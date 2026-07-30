@@ -117,7 +117,8 @@ worked through in order:
 - **`v1.0.0` is reserved for the completion of all 38 items.**
 
 Every release is an annotated git tag (`vX.Y.Z`) on `main`; `app_version` in
-`bunood_theme/hooks.py` always matches the latest tag; every release has a
+`bunood_theme/hooks.py` AND `__version__` in `bunood_theme/__init__.py` (what
+`bench list-apps` reports) both match the latest tag; every release has a
 CHANGELOG entry. Commit messages follow Conventional Commits
 (`feat:`/`fix:`/`chore:`), one logical change per commit.
 
