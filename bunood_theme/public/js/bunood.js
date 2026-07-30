@@ -428,6 +428,16 @@
 			icon: "icon-monitor",
 			run: () => new frappe.ui.ThemeSwitcher().show(),
 		});
+		// Theme Settings is site-wide admin config, so the shortcut only shows
+		// for users who can actually open it — everyone else would get a
+		// permission error page, which is worse than no entry.
+		if (frappe.user_roles && frappe.user_roles.includes("System Manager")) {
+			items.push({
+				label: __("Theme Settings"),
+				icon: "icon-setting-gear",
+				run: () => frappe.set_route("theme-settings"),
+			});
+		}
 		items.push({
 			label: __("Toggle Density"),
 			icon: "icon-sliders-horizontal",
