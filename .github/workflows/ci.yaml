@@ -39,11 +39,24 @@ jobs:
       - name: Build (includes the RTL guard)
         run: npm run build
 
+      # `git status --porcelain`, NOT `git diff`: a rebuilt dist file has a
+      # new hashed NAME, so the freshly built file is untracked — and `git
+      # diff` never reports untracked files. With diff alone, committing via
+      # `git commit -am` (which stages the old file's deletion but not the new
+      # untracked file) ships a tree with no theme JS at all while CI stays
+      # green. Release review v0.6.2..HEAD reproduced that end to end.
       - name: Committed dist matches sources
         run: |
-          git diff --exit-code -- bunood_theme/public/dist bunood_theme/assets.py \
-            || { echo "::error::dist/assets.py drift — run 'npm run build' and commit the output."; exit 1; }
+          drift=$(git status --porcelain -- bunood_theme/public/dist bunood_theme/assets.py)
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            echo "::error::dist/assets.py drift — run 'npm run build' and commit ALL of its output (new hashed files included)."
+            exit 1
+          fi
 
+      # tools/release-review.workflow.js is deliberately absent: it is a
+      # Workflow-runtime script (top-level return, runtime globals), not a
+      # Node module, and node --check rejects it by design.
       - name: JavaScript syntax
         run: |
           set -e

@@ -50,6 +50,9 @@ const CONSOLE_ALLOWLIST = [
 const results = [];
 let page; // assigned in main()
 
+/** Run one named check. Failures are recorded and printed but never abort
+ * the suite — every remaining check still runs, and main() derives the exit
+ * status from the collected results. */
 async function test(name, fn) {
 	try {
 		await fn();
@@ -61,10 +64,12 @@ async function test(name, fn) {
 	}
 }
 
+/** Assert a condition; `what` describes what was expected, for the FAIL line. */
 function expect(cond, what) {
 	if (!cond) throw new Error(`expected: ${what}`);
 }
 
+/** Assert strict equality, reporting both values on mismatch. */
 function expectEq(actual, wanted, what) {
 	if (actual !== wanted) throw new Error(`${what}: wanted ${JSON.stringify(wanted)}, got ${JSON.stringify(actual)}`);
 }
@@ -132,6 +137,9 @@ function setSettings(values) {
 
 const consoleErrors = [];
 
+/** Navigate to a desk route and wait for it to be usable. `waitSel` is the
+ * readiness selector (pass null/"" to skip); `settle` is a trailing wait in ms
+ * for post-render mounts (bars, rail, icons) that attach after the DOM. */
 async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500) {
 	// One retry after a pause: Docker Desktop's host-port proxy occasionally
 	// drops mid-run (measured: ERR_EMPTY_RESPONSE cascade with healthy
@@ -147,8 +155,11 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 	await page.waitForTimeout(settle);
 }
 
+/** Does the selector match anything on the current page? */
 const q = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
+/** Read an attribute off <html> (where all data-bnd-* state lives). */
 const attr = (name) => page.evaluate((n) => document.documentElement.getAttribute(n), name);
+/** Computed visibility of the first match: true/false, or null if absent. */
 const visible = (sel) =>
 	page.evaluate((s) => {
 		const el = document.querySelector(s);
@@ -189,10 +200,15 @@ const MUTABLE_FIELDS = [
 	"sidebar_icon_source", "sidebar_pane_width", "sidebar_quick_links",
 	"sidebar_apps_rail", "sidebar_badges", "sidebar_remember_sections",
 	"sidebar_scroll_fades",
+	// The save round-trip test writes tagline; release review v0.6.2..HEAD
+	// caught that leaving it out made every run permanently clobber the field.
+	"tagline",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
 
+/** The suite: snapshot settings, run every check sequentially against one
+ * authenticated page, then restore settings in `finally` — even on failure. */
 async function main() {
 	console.log(`Bunood Theme smoke suite — ${URL_BASE} (${SITE})`);
 
