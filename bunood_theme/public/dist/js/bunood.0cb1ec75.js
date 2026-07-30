@@ -225,6 +225,8 @@
 		set("badges", SB_SLUGS.badges[sb.badges]);
 		const glass = parseInt(sb.glass_opacity, 10);
 		if (glass >= 1 && glass <= 5) html.setAttribute("data-bnd-sb-glass", String(glass));
+		const width = parseInt(sb.pane_width, 10);
+		if (width >= 1 && width <= 5) html.setAttribute("data-bnd-sb-width", String(width));
 		const intensity = parseInt(sb.intensity, 10);
 		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
 		if (sb.blur) html.setAttribute("data-bnd-sb-blur", String(sb.blur).toLowerCase());
@@ -1214,42 +1216,71 @@
 		};
 
 		const trigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
+		let open_timer = null;
 		let close_timer = null;
 		let pinned = false;
 		const open = () => {
 			clearTimeout(close_timer);
-			container.classList.add("bnd-rail-open");
+			clearTimeout(open_timer);
+			// A short open delay filters drive-by passes over the rail; a
+			// deliberate pointer barely notices 80ms.
+			open_timer = setTimeout(() => container.classList.add("bnd-rail-open"), 80);
 		};
 		const close = (immediate) => {
+			clearTimeout(open_timer);
 			if (pinned) return;
 			clearTimeout(close_timer);
 			if (immediate) container.classList.remove("bnd-rail-open");
-			else close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 150);
+			// A generous close delay stops the pane flapping when the pointer
+			// clips the edge or crosses to the expand button.
+			else close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 320);
 		};
 		const toggle_pin = () => {
 			pinned = !pinned;
 			container.classList.toggle("bnd-rail-pinned", pinned);
-			if (pinned) open();
-			else close(true);
+			if (pinned) {
+				clearTimeout(close_timer);
+				container.classList.add("bnd-rail-open");
+			} else {
+				// Soft close: if the pointer is still over the pane, stay open
+				// until it leaves — an instant slam under the cursor reads as
+				// a glitch (the old behaviour).
+				if (!container.matches(":hover")) close(true);
+			}
 		};
 
 		if (trigger === "hover" || trigger === "hoverpin") {
 			on(container, "pointerenter", open);
 			on(container, "pointerleave", () => close(false));
-			on(container, "focusin", open);
-			on(container, "focusout", () => close(false));
+			// Focus versions ignore movements WITHIN the pane — focusout fires
+			// on every internal focus hop and caused open/close churn.
+			on(container, "focusin", () => {
+				clearTimeout(close_timer);
+				container.classList.add("bnd-rail-open");
+			});
+			on(container, "focusout", (e) => {
+				if (e.relatedTarget && container.contains(e.relatedTarget)) return;
+				close(false);
+			});
 		}
 		if (trigger === "click") {
 			on(container, "click", (e) => {
 				// A click on a LINK navigates; only background clicks toggle.
 				if (e.target.closest("a, button")) return;
 				if (container.classList.contains("bnd-rail-open")) close(true);
-				else open();
+				else {
+					clearTimeout(open_timer);
+					container.classList.add("bnd-rail-open");
+				}
 			});
 			on(document, "pointerdown", (e) => {
 				if (!container.contains(e.target)) close(true);
 			});
 		}
+		// Escape always closes an unpinned pane, whatever the trigger.
+		on(document, "keydown", (e) => {
+			if (e.key === "Escape" && !pinned) close(true);
+		});
 
 		if (trigger === "hoverpin") {
 			const header = container.querySelector(".bnd-sb-brand") || container.querySelector(".sidebar-header");
@@ -1288,6 +1319,22 @@
 			});
 			container.appendChild(btn);
 		}
+	}
+
+	/**
+	 * Apply the configured pane width. Rail mode's OPEN width and the
+	 * always-expanded pane both read --bnd-sb-w (stops 200-280px; stop 2 is
+	 * v16's original 220px). Manual-collapse mode is left to Frappe: its
+	 * collapse animation owns the width there, and an inline width from us
+	 * would pin it open.
+	 */
+	function sb_apply_width() {
+		const container = document.querySelector(".body-sidebar-container");
+		if (!container) return;
+		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
+		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
+		if (mode === "expanded") container.style.width = "var(--bnd-sb-w)";
+		else container.style.width = "";
 	}
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
@@ -1343,8 +1390,21 @@
 	/** Original icon markup per icon span, so previews can restore it. */
 	const sb_icon_originals = new WeakMap();
 
+	/** The icon mode last applied — a change forces reprocessing. */
+	let sb_icon_mode_applied = null;
+
 	function sb_fix_icons() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-iconsrc") || "smart";
+		if (sb_icon_mode_applied && sb_icon_mode_applied !== mode) {
+			// Restore before reapplying, or already-processed items would be
+			// skipped and a smart->letters preview would change nothing.
+			for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
+				const span = item.querySelector(".sidebar-item-icon");
+				if (span && sb_icon_originals.has(span)) span.innerHTML = sb_icon_originals.get(span);
+				item.removeAttribute("data-bnd-iconized");
+			}
+		}
+		sb_icon_mode_applied = mode;
 		if (mode === "original") {
 			// Restore anything a previous mode replaced.
 			for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
@@ -1598,6 +1658,7 @@
 			rail_button_shape: v("sidebar_rail_button_shape", "rail_button_shape"),
 			rail_button_icon: v("sidebar_rail_button_icon", "rail_button_icon"),
 			icon_source: v("sidebar_icon_source", "icon_source"),
+			pane_width: v("sidebar_pane_width", "pane_width"),
 			quick_links: v("sidebar_quick_links", "quick_links"),
 			apps_rail: v("sidebar_apps_rail", "apps_rail"),
 			badges: v("sidebar_badges", "badges"),
@@ -1620,7 +1681,11 @@
 		sb_mount_utils();
 		sb_fix_icons();
 		sb_mount_rail();
+		sb_apply_width();
 		sb_mount_apps_rail();
+		// Badges rebuild from scratch so mode switches (counts -> dots -> off)
+		// preview truthfully instead of stacking.
+		for (const badge of document.querySelectorAll(".bnd-sb-badge")) badge.remove();
 		sb_badges_at = 0;
 		sb_mount_badges();
 	};
@@ -1642,6 +1707,7 @@
 		sb_wrap_sections();
 		sb_fix_icons();
 		sb_mount_rail();
+		sb_apply_width();
 		sb_mount_apps_rail();
 		sb_mount_badges();
 		sb_observe();

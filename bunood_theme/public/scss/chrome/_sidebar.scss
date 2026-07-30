@@ -126,6 +126,13 @@ html[data-bnd-sb-color] .body-sidebar-container {
 html[data-bnd-sb-material="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
 }
+// Pane width stops. Stop 2 is v16's original 220px — the default.
+html[data-bnd-sb-width="1"] { --bnd-sb-w: 200px; }
+html[data-bnd-sb-width="2"] { --bnd-sb-w: 220px; }
+html[data-bnd-sb-width="3"] { --bnd-sb-w: 240px; }
+html[data-bnd-sb-width="4"] { --bnd-sb-w: 260px; }
+html[data-bnd-sb-width="5"] { --bnd-sb-w: 280px; }
+
 html[data-bnd-sb-glass="1"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-1); }
 html[data-bnd-sb-glass="2"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-2); }
 html[data-bnd-sb-glass="3"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-3); }

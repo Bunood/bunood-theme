@@ -32,6 +32,10 @@ frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
+		// Re-apply the FORM's values to the desk on every refresh: after a
+		// reload/discard this reverts any live preview to the stored state
+		// (on first open it re-applies what boot already applied — harmless).
+		setTimeout(() => bnd_sb_preview(frm), 300);
 	},
 	desk_layout(frm) {
 		bnd_render_layout_picker(frm);
@@ -380,6 +384,7 @@ const BND_SB_GROUPS = [
 const BND_SB_STEPPERS = [
 	{ field: "sidebar_glass_opacity", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
 	{ field: "sidebar_surface_intensity", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
+	{ field: "sidebar_pane_width", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
 
 /** Toggle rows: field + name + one-liner. */
@@ -514,7 +519,7 @@ function bnd_render_sidebar_picker_now(frm) {
 	}).join("");
 
 	const steppers = BND_SB_STEPPERS.map((s) => {
-		const current = parseInt(frm.doc[s.field], 10) || 3;
+		const current = parseInt(frm.doc[s.field], 10) || (s.field === "sidebar_pane_width" ? 2 : 3);
 		const stops = [1, 2, 3, 4, 5]
 			.map(
 				(n) =>

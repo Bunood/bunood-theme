@@ -108,6 +108,7 @@ def extend_bootinfo(bootinfo):
             "rail_button_shape": get("sidebar_rail_button_shape"),
             "rail_button_icon": get("sidebar_rail_button_icon"),
             "icon_source": get("sidebar_icon_source"),
+            "pane_width": get("sidebar_pane_width"),
             "quick_links": get("sidebar_quick_links"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "apps_rail": settings.get("sidebar_apps_rail") or 0,
@@ -140,6 +141,7 @@ def extend_bootinfo(bootinfo):
                 "sidebar_rail_button_shape": "rail_button_shape",
                 "sidebar_rail_button_icon": "rail_button_icon",
                 "sidebar_icon_source": "icon_source",
+                "sidebar_pane_width": "pane_width",
                 "sidebar_quick_links": "quick_links",
                 "sidebar_apps_rail": "apps_rail",
                 "sidebar_badges": "badges",

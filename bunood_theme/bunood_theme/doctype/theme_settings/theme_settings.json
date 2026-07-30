@@ -38,6 +38,7 @@
   "sidebar_rail_button_shape",
   "sidebar_rail_button_icon",
   "sidebar_icon_source",
+  "sidebar_pane_width",
   "sidebar_quick_links",
   "sidebar_apps_rail",
   "sidebar_badges",
@@ -267,6 +268,14 @@
    "options": "Smart\nOriginal\nLetters",
    "hidden": 1,
    "description": "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
+  },
+  {
+   "fieldname": "sidebar_pane_width",
+   "fieldtype": "Select",
+   "label": "Pane Width",
+   "options": "1\n2\n3\n4\n5",
+   "hidden": 1,
+   "description": "Five stops from 200px to 280px; stop 2 is the original 220px."
   },
   {
    "fieldname": "sidebar_quick_links",
