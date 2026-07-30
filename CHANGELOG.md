@@ -1,5 +1,42 @@
 # Changelog
 
+Versioning policy: SemVer, pre-1.0. MINOR = a coverage-checklist item (or a
+feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
+the completion of all 38 coverage items.** Every release is an annotated git
+tag, and `app_version` in hooks.py always matches the latest tag.
+
+## [0.6.1] — 2026-07-30 — Rail feel, preview coverage, pane width
+
+- Rail timing tuned (80ms open intent, 320ms close grace, in-pane focus
+  ignored, soft unpin, Escape closes).
+- Live preview covers every option: icon-source switches reprocess, badge
+  modes rebuild, and a form reload/discard visually reverts the desk.
+- Pane width setting: five stops 200–280px; stop 2 = v16's original 220px,
+  the default. Manual Collapse stays Frappe-owned.
+
+## [0.6.0] — 2026-07-30 — Settings experience + branding block
+
+- LIVE PREVIEW: picker clicks restyle the desk instantly (attribute
+  re-derivation + structural teardown/remount); Save keeps, leaving reverts.
+- Theme export/import as JSON (download + clipboard / paste with validation).
+- Settings search + per-group reset chips.
+- Per-user personalize: avatar menu ▸ Sidebar Style; whole presets only,
+  merged server-side in boot over site values.
+- Brand block (Theme Settings logo + company name) pinned at the pane top,
+  routing Home; the old Desktop/Workspaces cascade menus retired; module row
+  navigates instead of opening a menu; Website moved to the avatar menu.
+- Home & All Apps placement setting (Sidebar Top/Bottom, Top/Bottom Bar).
+
+## [0.5.1] — 2026-07-30 — Rail behaviour system + smart icons
+
+- Menu Rail split from its trigger (Always Expanded / Manual / Rail ×
+  Hover / Click / Button Only / Hover+Pin); expand button with placement,
+  shape and icon options; legacy stored labels still resolve.
+- Icon Source: Smart (keep real icons, infer from label against the sprite,
+  letter-chip fallback — 46/55 links inferred on Stock), Original, Letters.
+- Full-desk render audit fixes: Desktop-page chrome guard, calm resting
+  rail, true end-edge bar insets, apps-rail styling, overlay z-order.
+
 ## [0.5.0] — 2026-07-30 — Sidebar style kit (item 10; presets, item 30 pulled forward)
 
 The sidebar becomes a KIT of 16 composable Theme Settings options with 8

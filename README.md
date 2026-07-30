@@ -107,6 +107,20 @@ the build runs on the host and its output ships with the app.
 | `public/js/bunood.js` | the only desk script: density + layout mounting |
 | `build.mjs` | dart-sass build, RTL guard, hashing, `assets.py` codegen |
 
+## Versioning and releases
+
+SemVer, deliberately pre-1.0 while the [38-item coverage checklist] is being
+worked through in order:
+
+- **MINOR** (`0.X.0`) — a checklist item or feature set ships.
+- **PATCH** (`0.x.Y`) — fixes and refinements to shipped work.
+- **`v1.0.0` is reserved for the completion of all 38 items.**
+
+Every release is an annotated git tag (`vX.Y.Z`) on `main`; `app_version` in
+`bunood_theme/hooks.py` always matches the latest tag; every release has a
+CHANGELOG entry. Commit messages follow Conventional Commits
+(`feat:`/`fix:`/`chore:`), one logical change per commit.
+
 ## Documentation standard
 
 Every file opens with a header explaining what it is and any non-obvious
