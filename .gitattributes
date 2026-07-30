@@ -1,0 +1,19 @@
+# Line-ending policy: LF everywhere, on every platform.
+#
+# WHY THIS FILE EXISTS
+#   dist filenames carry a content hash and CI rebuilds dist and diffs it
+#   against the committed copy. If a Windows checkout hands the build CRLF
+#   sources while CI's Linux checkout hands it LF, the hashes differ and the
+#   gate fails on every push made from Windows. build.mjs also normalizes
+#   before hashing (belt and braces), but the working tree itself should
+#   simply never be CRLF.
+* text=auto eol=lf
+
+# Binaries — never subject to text conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

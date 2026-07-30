@@ -161,7 +161,10 @@ const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
  * @returns {Promise<{pyid: string, url: string}>}
  */
 async function buildJsEntry({ key, src, pyid }) {
-	const source = await readFile(join(JS, src), "utf8");
+	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
+	// checkout must produce the SAME content hash, or the dist-drift gate
+	// fails on every push made from Windows (CI run #1 did exactly that).
+	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 
