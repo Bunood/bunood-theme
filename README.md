@@ -137,9 +137,23 @@ worked through in order:
 Every release is an annotated git tag (`vX.Y.Z`) on `main`; `app_version` in
 `bunood_theme/hooks.py` AND `__version__` in `bunood_theme/__init__.py` (what
 `bench list-apps` reports) both match the latest tag; every release has a
-CHANGELOG entry, and **`npm test` must pass against the local stack before
-tagging**. Commit messages follow Conventional Commits
+CHANGELOG entry. Commit messages follow Conventional Commits
 (`feat:`/`fix:`/`chore:`), one logical change per commit.
+
+**A tag is cut only when all three gates pass:**
+
+1. **CI green** on the release commit.
+2. **`npm test` green** against the local stack.
+3. **The adversarial release review is clean** —
+   `tools/release-review.workflow.js` runs four independent reviewers over
+   the full diff since the previous tag and adversarially verifies every
+   finding. Confirmed findings are fixed (and the review re-run) or
+   explicitly waived in the CHANGELOG entry. No tag ships on the author's
+   own confidence alone.
+
+**Keep releases small.** If a change can ship alone, it ships alone — one
+setting, one fix, one behaviour per release. Small diffs keep the review
+honest and make a bad release trivially bisectable.
 
 ## Documentation standard
 
