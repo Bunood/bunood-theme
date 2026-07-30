@@ -156,6 +156,9 @@
   // alerts, so a dialog always covers our chrome. Panels (our menus, the
   // relocated notifications dropdown) sit above bars but still below modals.
   --bnd-z-bar: 990;
+  // Flyouts (the expanding menu rail) sit ABOVE bars — the rail overlay must
+  // cover the topbar/statusbar edges it slides across — but below panels.
+  --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;
 
   // ── Categorical hues ──────────────────────────────────────────────────────

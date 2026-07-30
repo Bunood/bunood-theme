@@ -169,7 +169,15 @@
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
-		menurail: { "Always Expanded": "expanded", "Manual Collapse": "manual", "Hover-Expand": "hover", "Hover + Pin": "hoverpin" },
+		// Legacy labels ("Hover-Expand", "Hover + Pin") predate the split into
+		// mode + trigger; they still resolve so an already-configured site
+		// keeps its rail across the upgrade.
+		menurail: { "Always Expanded": "expanded", "Manual Collapse": "manual", "Rail": "rail", "Hover-Expand": "rail", "Hover + Pin": "rail" },
+		railtrigger: { "Hover": "hover", "Click": "click", "Button Only": "button", "Hover + Pin": "hoverpin" },
+		railbtn: { "None": "", "Edge": "edge", "Top": "top", "Bottom": "bottom" },
+		railbtnshape: { "Circle": "circle", "Square": "square", "Tab": "tab" },
+		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
+		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
 	};
 
@@ -188,6 +196,16 @@
 		set("sections", SB_SLUGS.sections[sb.sections]);
 		set("wash", SB_SLUGS.wash[sb.wash]);
 		set("menurail", SB_SLUGS.menurail[sb.menurail]);
+		// Rail mode gets its own anchor attribute plus the trigger the JS
+		// wires. Legacy "Hover + Pin" mode labels imply their trigger.
+		if (SB_SLUGS.menurail[sb.menurail] === "rail") {
+			html.setAttribute("data-bnd-rail", "");
+			const trigger =
+				SB_SLUGS.railtrigger[sb.rail_trigger] ||
+				(sb.menurail === "Hover + Pin" ? "hoverpin" : "hover");
+			html.setAttribute("data-bnd-sb-railtrigger", trigger);
+		}
+		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
 		set("badges", SB_SLUGS.badges[sb.badges]);
 		const glass = parseInt(sb.glass_opacity, 10);
 		if (glass >= 1 && glass <= 5) html.setAttribute("data-bnd-sb-glass", String(glass));
@@ -984,12 +1002,21 @@
 		const header = sidebar.querySelector(".sidebar-header");
 		if (!header) return;
 
+		// Labels live in SPANS, not bare text nodes — the rail's rest state
+		// must be able to display:none them (text nodes cannot be hidden by
+		// CSS, which is how icons ended up overflowing the 52px rail).
+		const labelled = (text) => {
+			const span = el("span", "bnd-sb-item-label");
+			span.textContent = text;
+			return span;
+		};
+
 		const utils = el("div", "bnd-sb-utils");
-		const home = el("button", "bnd-sb-item", { type: "button" });
+		const home = el("button", "bnd-sb-item", { type: "button", title: __("Home") });
 		const home_chip = el("span", "bnd-sb-chip");
 		home_chip.appendChild(sprite_icon("icon-home"));
 		home.appendChild(home_chip);
-		home.appendChild(document.createTextNode(__("Home")));
+		home.appendChild(labelled(__("Home")));
 		home.addEventListener("click", () => frappe.set_route(""));
 		utils.appendChild(home);
 
@@ -1001,7 +1028,7 @@
 			'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
 			'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
 		apps.appendChild(apps_chip);
-		apps.appendChild(document.createTextNode(__("All Apps")));
+		apps.appendChild(labelled(__("All Apps")));
 		apps.addEventListener("click", () => {
 			window.location.href = "/apps";
 		});
@@ -1064,50 +1091,174 @@
 	}
 
 	/**
-	 * Hover-expand menu rail. The container is narrowed by inline style
-	 * (Frappe writes inline widths of its own, so CSS alone cannot win), and
-	 * the .bnd-rail-open class drives the CSS overlay expansion. Opening
-	 * triggers: pointer enter, focus entering the pane (keyboard parity).
-	 * Closing waits 150ms so a wobbly pointer does not flap the pane.
-	 * "hoverpin" adds a pin button that locks the pane open.
+	 * The menu rail. Active only in "Rail" mode; the container is narrowed by
+	 * inline style (Frappe writes inline widths of its own, so CSS alone
+	 * cannot win) and the .bnd-rail-open class drives the CSS overlay
+	 * expansion. The TRIGGER — how the rail opens — is a Theme Settings
+	 * option:
+	 *
+	 *   hover     pointer enter opens, leave closes (focus-within too)
+	 *   click     clicking the rail toggles; outside click or route closes
+	 *   button    only the expand button toggles
+	 *   hoverpin  hover, plus a pin that locks the pane open
+	 *
+	 * The expand BUTTON (placement/shape/glyph all options) can accompany any
+	 * trigger; picking the button-only trigger forces one at the edge.
 	 */
-	function sb_mount_hover_rail() {
-		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
-		if (mode !== "hover" && mode !== "hoverpin") return;
+	function sb_mount_rail() {
+		if (!document.documentElement.hasAttribute("data-bnd-rail")) return;
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container || container.dataset.bndRail) return;
 		container.dataset.bndRail = "1";
 		container.style.width = "var(--bnd-sb-rail-w)";
 
+		const trigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
 		let close_timer = null;
 		let pinned = false;
 		const open = () => {
 			clearTimeout(close_timer);
 			container.classList.add("bnd-rail-open");
 		};
-		const close = () => {
+		const close = (immediate) => {
 			if (pinned) return;
 			clearTimeout(close_timer);
-			close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 150);
+			if (immediate) container.classList.remove("bnd-rail-open");
+			else close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 150);
 		};
-		container.addEventListener("pointerenter", open);
-		container.addEventListener("pointerleave", close);
-		container.addEventListener("focusin", open);
-		container.addEventListener("focusout", close);
+		const toggle_pin = () => {
+			pinned = !pinned;
+			container.classList.toggle("bnd-rail-pinned", pinned);
+			if (pinned) open();
+			else close(true);
+		};
 
-		if (mode === "hoverpin") {
+		if (trigger === "hover" || trigger === "hoverpin") {
+			container.addEventListener("pointerenter", open);
+			container.addEventListener("pointerleave", () => close(false));
+			container.addEventListener("focusin", open);
+			container.addEventListener("focusout", () => close(false));
+		}
+		if (trigger === "click") {
+			container.addEventListener("click", (e) => {
+				// A click on a LINK navigates; only background clicks toggle.
+				if (e.target.closest("a, button")) return;
+				if (container.classList.contains("bnd-rail-open")) close(true);
+				else open();
+			});
+			document.addEventListener("pointerdown", (e) => {
+				if (!container.contains(e.target)) close(true);
+			});
+			if (frappe.router && frappe.router.on) frappe.router.on("change", () => close(true));
+		}
+
+		if (trigger === "hoverpin") {
 			const header = container.querySelector(".sidebar-header");
 			if (header) {
 				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open") });
 				pin.textContent = "⌖";
 				pin.addEventListener("click", (e) => {
 					e.stopPropagation();
-					pinned = !pinned;
-					container.classList.toggle("bnd-rail-pinned", pinned);
-					if (pinned) open();
-					else close();
+					toggle_pin();
 				});
 				header.insertAdjacentElement("beforeend", pin);
+			}
+		}
+
+		// The expand button. Its click PINS the pane (open until clicked
+		// again) so it works alone and alongside the hover trigger.
+		const sb = (frappe.boot && frappe.boot.bnd_sidebar) || {};
+		let pos = SB_SLUGS.railbtn[sb.rail_button] || "";
+		if (trigger === "button" && !pos) pos = "edge";
+		if (pos) {
+			const shape = SB_SLUGS.railbtnshape[sb.rail_button_shape] || "circle";
+			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
+			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos + " bnd-railbtn-" + shape, {
+				type: "button",
+				"aria-label": __("Expand sidebar"),
+				title: __("Expand sidebar"),
+			});
+			btn.appendChild(
+				sprite_icon(
+					glyph === "menu" ? "icon-menu" : glyph === "arrows" ? "icon-arrow-left-to-line" : "icon-chevron-right"
+				)
+			);
+			btn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				toggle_pin();
+			});
+			container.appendChild(btn);
+		}
+	}
+
+	// ── Icon engine (Smart / Original / Letters) ────────────────────────────
+
+	/**
+	 * Keyword -> sprite-symbol candidates for links that ship no icon of
+	 * their own (most Workspace Links do not). Candidates because sprite ids
+	 * differ across Frappe versions — the first symbol that EXISTS in
+	 * #all-symbols wins, and a wrong guess costs nothing: the letter chip is
+	 * the fallback. Order matters: earlier keywords are more specific.
+	 */
+	const SB_ICON_HINTS = [
+		[/dashboard|analytic/i, ["icon-chart", "icon-dashboard"]],
+		[/report|statement|ledger|trial/i, ["icon-table", "icon-chart"]],
+		[/chart of|tree|group/i, ["icon-list-tree"]],
+		[/customer|supplier|user|employee|contact|member|student|patient/i, ["icon-users", "icon-user"]],
+		[/invoice|bill/i, ["icon-invoice", "icon-file", "icon-small-file"]],
+		[/payment|bank|cash|money|salary|payroll|expense/i, ["icon-money", "icon-money-coins-1", "icon-file"]],
+		[/order|quotation|request/i, ["icon-assets", "icon-file"]],
+		[/item|product|stock|warehouse|batch|serial/i, ["icon-stock", "icon-package"]],
+		[/settings|setup|configuration|defaults/i, ["icon-setting-gear", "icon-settings"]],
+		[/entry|note|journal|voucher|document|template|term/i, ["icon-file", "icon-small-file"]],
+		[/tax|charge/i, ["icon-percentage", "icon-file"]],
+		[/company|organization|branch|department/i, ["icon-organization", "icon-building"]],
+		[/project|task|todo/i, ["icon-project", "icon-todo"]],
+		[/tool|import|export|rename|bulk/i, ["icon-tool"]],
+	];
+
+	/** First sprite id in `candidates` that exists in Frappe's symbol sheet. */
+	function sb_existing_symbol(candidates) {
+		for (const id of candidates) if (document.getElementById(id)) return id;
+		return null;
+	}
+
+	/**
+	 * Give every sidebar link a real glyph, per the Icon Source setting:
+	 * "original" leaves Frappe's icon area completely alone; "letters" uses a
+	 * styled initial for everything; "smart" (default) keeps icons that
+	 * exist, infers a sprite icon from the label for the many links that
+	 * ship none, and falls back to the initial. Idempotent per item.
+	 */
+	function sb_fix_icons() {
+		const mode = document.documentElement.getAttribute("data-bnd-sb-iconsrc") || "smart";
+		if (mode === "original") return;
+		for (const item of document.querySelectorAll(
+			".body-sidebar-top .sidebar-item-container:not([data-bnd-iconized])"
+		)) {
+			const icon_span = item.querySelector(":scope > .standard-sidebar-item .sidebar-item-icon");
+			if (!icon_span) continue;
+			item.setAttribute("data-bnd-iconized", "1");
+			const label = item.getAttribute("item-name") || "";
+			const has_icon = !!icon_span.querySelector("use");
+
+			if (mode === "letters" || !has_icon) {
+				let symbol = null;
+				if (mode === "smart") {
+					for (const [re, candidates] of SB_ICON_HINTS) {
+						if (re.test(label)) {
+							symbol = sb_existing_symbol(candidates);
+							if (symbol) break;
+						}
+					}
+				}
+				icon_span.innerHTML = "";
+				if (symbol) {
+					icon_span.appendChild(sprite_icon(symbol));
+				} else {
+					const letter = el("span", "bnd-sb-letter");
+					letter.textContent = (label || "?").charAt(0);
+					icon_span.appendChild(letter);
+				}
 			}
 		}
 	}
@@ -1229,7 +1380,10 @@
 				clearTimeout(timer);
 				timer = setTimeout(() => {
 					if (!sb_edit_active()) {
+						sb_mount_utils();
+						sb_mount_module_row();
 						sb_wrap_sections();
+						sb_fix_icons();
 						sb_mount_badges();
 					}
 				}, 200);
@@ -1255,10 +1409,18 @@
 	function mount_sidebar_kit() {
 		if (!sb_active() || layout() === "dock") return;
 		sb_resolve_workspace_from_route();
-		sb_mount_utils();
-		sb_mount_module_row();
+		// The header renders a beat after the shell exists; utils and the
+		// module row anchor to it, so they get their own retry budget
+		// (measured: a single attempt raced and silently mounted nothing).
+		try_for(() => {
+			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
+			sb_mount_utils();
+			sb_mount_module_row();
+			return true;
+		}, 30);
 		sb_wrap_sections();
-		sb_mount_hover_rail();
+		sb_fix_icons();
+		sb_mount_rail();
 		sb_mount_apps_rail();
 		sb_mount_badges();
 		sb_observe();

@@ -20,7 +20,10 @@
 //   data-bnd-sb-sections    plain | divided | cards | accordion
 //   data-bnd-sb-wash        off | subtle | rich
 //   data-bnd-sb-intensity   1..5           (card surface presence)
-//   data-bnd-sb-menurail    expanded | manual | hover | hoverpin
+//   data-bnd-sb-menurail    expanded | manual | rail
+//   data-bnd-rail           (attribute present = rail mode active; the anchor
+//                            for every rail rule — trigger wiring is JS)
+//   data-bnd-sb-iconsrc     smart | original | letters
 //   data-bnd-sb-appsrail    (attribute present = on)
 //   data-bnd-sb-badges      off | dots | counts
 //   data-bnd-sb-fades       (attribute present = on)
@@ -493,8 +496,7 @@ html[data-bnd-sb-fades] .body-sidebar-top {
 // bunood.js toggles from hover AND focus-within — so keyboard users get the
 // expansion too. Content never reflows: the fixed bars read the container
 // width (52px) via the existing ResizeObserver.
-html[data-bnd-sb-menurail="hover"] .body-sidebar-container,
-html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container {
+html[data-bnd-rail] .body-sidebar-container {
   overflow: visible;
   // The overlay positions against the CONTAINER, not the viewport — without
   // this, inset-block:0 resolves against the initial containing block and
@@ -511,7 +513,10 @@ html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container {
     border-radius: inherit;
     border: inherit;
     transition: inline-size var(--bnd-dur-base) var(--bnd-ease);
-    z-index: var(--bnd-z-bar);
+    // ABOVE the top/status bars it slides across, below panels/menus.
+    // Measured: at z-bar the expanded pane layered UNDER the page's sticky
+    // chrome and the bottom bars.
+    z-index: var(--bnd-z-flyout);
 
     // At rest, labels and wide-only pieces vanish; icons stay centered.
     .sidebar-item-label,
@@ -534,24 +539,21 @@ html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container {
   }
 }
 // Floating + rail: the overlay tracks the card's inset.
-html[data-bnd-sb-placement="floating"][data-bnd-sb-menurail="hover"] .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-placement="floating"][data-bnd-sb-menurail="hoverpin"] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   inset-block: 0;
   inset-inline-start: 0;
 }
 
 // Glass applies to the overlay surface in rail modes.
-html[data-bnd-sb-material="glass"][data-bnd-sb-menurail="hover"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-material="glass"][data-bnd-sb-menurail="hoverpin"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material="glass"][data-bnd-rail]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
 }
-html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-sb-menurail="hover"] .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-sb-menurail="hoverpin"] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
 // The pin control (hoverpin only; bunood.js mounts it).
-html[data-bnd-sb-menurail="hoverpin"] .bnd-sb-pin {
+html[data-bnd-rail] .bnd-sb-pin {
   display: grid;
   place-items: center;
   inline-size: 24px;
@@ -566,16 +568,14 @@ html[data-bnd-sb-menurail="hoverpin"] .bnd-sb-pin {
     background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
   }
 }
-html[data-bnd-sb-menurail="hoverpin"] .bnd-rail-pinned .bnd-sb-pin {
+html[data-bnd-rail] .bnd-rail-pinned .bnd-sb-pin {
   color: var(--bnd-brand);
 }
 
 // Hide Frappe's own collapse toggle in rail modes — the rail IS the
 // collapsed state, and two collapse affordances would fight.
-html[data-bnd-sb-menurail="hover"] .body-sidebar .collapse-sidebar-link,
-html[data-bnd-sb-menurail="hoverpin"] .body-sidebar .collapse-sidebar-link,
-html[data-bnd-sb-menurail="hover"] .body-sidebar .sidebar-resize-handle,
-html[data-bnd-sb-menurail="hoverpin"] .body-sidebar .sidebar-resize-handle {
+html[data-bnd-rail] .body-sidebar .collapse-sidebar-link,
+html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
   display: none;
 }
 
@@ -657,6 +657,95 @@ html[data-bnd-sb-appsrail] .bnd-apps-rail {
 // and any floating margins — this block only documents that the statusbar
 // consumes it; see observe_sidebar_width() in bunood.js.
 
+// ── Rail expand button ──────────────────────────────────────────────────────
+// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
+// trigger). Placement, shape and glyph are all Theme Settings options; the
+// element carries them as modifier classes so the CSS stays a flat list.
+html[data-bnd-rail] .bnd-railbtn {
+  position: absolute;
+  z-index: calc(var(--bnd-z-flyout) + 1);
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  background: var(--bnd-sb-card-base);
+  color: var(--bnd-sb-ink-muted);
+  cursor: pointer;
+  box-shadow: var(--bnd-shadow-sm);
+
+  svg {
+    inline-size: 13px;
+    block-size: 13px;
+    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
+  }
+
+  &:hover {
+    color: var(--bnd-sb-ink);
+  }
+}
+
+// Placements. Edge rides the pane's end border, vertically centred; top sits
+// in the header row; bottom is pinned above the pane's end.
+html[data-bnd-rail] .bnd-railbtn-edge {
+  inset-inline-end: -12px;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+}
+html[data-bnd-rail] .bnd-railbtn-top {
+  inset-inline-end: var(--bnd-sp-1);
+  inset-block-start: var(--bnd-sp-2);
+}
+html[data-bnd-rail] .bnd-railbtn-bottom {
+  inset-inline-end: 50%;
+  translate: 50% 0;
+  inset-block-end: var(--bnd-sp-2);
+}
+
+// Shapes.
+html[data-bnd-rail] .bnd-railbtn-circle {
+  border-radius: var(--bnd-radius-pill);
+}
+html[data-bnd-rail] .bnd-railbtn-square {
+  border-radius: var(--bnd-radius-md);
+}
+html[data-bnd-rail] .bnd-railbtn-tab {
+  border-radius: 0 var(--bnd-radius-md) var(--bnd-radius-md) 0;
+  inline-size: 16px;
+  block-size: 44px;
+  inset-inline-end: -16px;
+  box-shadow: none;
+  border-inline-start: none;
+}
+
+// Open state: the chevron/arrow glyphs flip to point back.
+.bnd-rail-open .bnd-railbtn svg {
+  rotate: 180deg;
+}
+
+// ── Icon source overrides ───────────────────────────────────────────────────
+// "Original" hands the icon area back to Frappe untouched — every chip rule
+// above is reverted. Letter chips are the Smart mode's fallback and the
+// entire vocabulary of the Letters mode.
+html[data-bnd-sb-iconsrc="original"] .body-sidebar .sidebar-item-icon {
+  background: transparent;
+  border-radius: 0;
+  inline-size: auto;
+  block-size: auto;
+  color: inherit;
+}
+
+html[data-bnd-sb-color] .bnd-sb-letter {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  text-transform: uppercase;
+}
+
 // ── The Desktop page owns its own chrome ────────────────────────────────────
 // Route "" is v16's Desktop (#page-desktop): it ships its OWN navbar, its own
 // search, and hides the normal sidebar. Every piece of Bunood chrome stands
@@ -694,8 +783,7 @@ html[data-bnd-desktop] {
 // is noise (measured on the Stock workspace). At rest the rail shows ONLY the
 // brand mark, the utility chips and the module chip; the link list fades in
 // with the expansion. Opacity (not display) so the expansion animates.
-html[data-bnd-sb-menurail="hover"] .body-sidebar-container:not(.bnd-rail-open),
-html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container:not(.bnd-rail-open) {
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
   .body-sidebar-top,
   .body-sidebar-cards,
   .body-sidebar-bottom,
@@ -705,6 +793,25 @@ html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container:not(.bnd-rail-open
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+  }
+
+  // Labels are text; opacity alone leaves their WIDTH, which pushed the
+  // chips past the 52px rail edge (measured). At rest the injected rows
+  // become icon-only and centered.
+  .bnd-sb-item .bnd-sb-item-label,
+  .bnd-sb-module .bnd-sb-module-label,
+  .bnd-sb-module .bnd-sb-module-chev {
+    display: none;
+  }
+
+  .bnd-sb-item,
+  .bnd-sb-module {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .bnd-sb-utils {
+    padding-inline: 0;
   }
 }
 

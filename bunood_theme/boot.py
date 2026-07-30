@@ -99,6 +99,11 @@ def extend_bootinfo(bootinfo):
             "wash": get("sidebar_hue_wash"),
             "intensity": get("sidebar_surface_intensity"),
             "menurail": get("sidebar_menu_rail"),
+            "rail_trigger": get("sidebar_rail_trigger"),
+            "rail_button": get("sidebar_rail_button"),
+            "rail_button_shape": get("sidebar_rail_button_shape"),
+            "rail_button_icon": get("sidebar_rail_button_icon"),
+            "icon_source": get("sidebar_icon_source"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "apps_rail": settings.get("sidebar_apps_rail") or 0,
             "badges": get("sidebar_badges"),

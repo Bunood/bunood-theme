@@ -66,6 +66,7 @@
   --bnd-sb-glass-4: 85%;
   --bnd-sb-glass-5: 93%;
   --bnd-z-bar: 990;
+  --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;
   --bnd-cat-1: #2a78d6;
   --bnd-cat-2: #eb6834;
@@ -1104,13 +1105,11 @@ html[data-bnd-sb-fades] .body-sidebar-top {
   mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent);
 }
 
-html[data-bnd-sb-menurail=hover] .body-sidebar-container,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container {
+html[data-bnd-rail] .body-sidebar-container {
   overflow: visible;
   position: relative;
 }
-html[data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar {
+html[data-bnd-rail] .body-sidebar-container .body-sidebar {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
@@ -1120,48 +1119,38 @@ html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar {
   border-radius: inherit;
   border: inherit;
   transition: inline-size var(--bnd-dur-base) var(--bnd-ease);
-  z-index: var(--bnd-z-bar);
+  z-index: var(--bnd-z-flyout);
 }
-html[data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar .sidebar-item-label,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-label,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-chev,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar .sidebar-item-label,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-label,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-chev {
+html[data-bnd-rail] .body-sidebar-container .body-sidebar .sidebar-item-label,
+html[data-bnd-rail] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-label,
+html[data-bnd-rail] .body-sidebar-container .body-sidebar .bnd-sb-module .bnd-sb-module-chev {
   opacity: 0;
   transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
 }
-html[data-bnd-sb-menurail=hover] .body-sidebar-container.bnd-rail-open .body-sidebar,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container.bnd-rail-open .body-sidebar {
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open .body-sidebar {
   inline-size: var(--bnd-sb-w);
   box-shadow: var(--bnd-shadow-lg);
 }
-html[data-bnd-sb-menurail=hover] .body-sidebar-container.bnd-rail-open .body-sidebar .sidebar-item-label,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-label,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-chev,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container.bnd-rail-open .body-sidebar .sidebar-item-label,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-label,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-chev {
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open .body-sidebar .sidebar-item-label,
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-label,
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-module .bnd-sb-module-chev {
   opacity: 1;
 }
 
-html[data-bnd-sb-placement=floating][data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-placement=floating][data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-placement=floating][data-bnd-rail] .body-sidebar-container .body-sidebar {
   inset-block: 0;
   inset-inline-start: 0;
 }
 
-html[data-bnd-sb-material=glass][data-bnd-sb-menurail=hover]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-material=glass][data-bnd-sb-menurail=hoverpin]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material=glass][data-bnd-rail]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
 }
 
-html[data-bnd-sb-material=glass][data-bnd-sb-blur=full][data-bnd-sb-menurail=hover] .body-sidebar-container .body-sidebar,
-html[data-bnd-sb-material=glass][data-bnd-sb-blur=full][data-bnd-sb-menurail=hoverpin] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material=glass][data-bnd-sb-blur=full][data-bnd-rail] .body-sidebar-container .body-sidebar {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
-html[data-bnd-sb-menurail=hoverpin] .bnd-sb-pin {
+html[data-bnd-rail] .bnd-sb-pin {
   display: grid;
   place-items: center;
   inline-size: 24px;
@@ -1172,18 +1161,16 @@ html[data-bnd-sb-menurail=hoverpin] .bnd-sb-pin {
   color: var(--bnd-sb-ink-muted);
   cursor: pointer;
 }
-html[data-bnd-sb-menurail=hoverpin] .bnd-sb-pin:hover {
+html[data-bnd-rail] .bnd-sb-pin:hover {
   background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
 }
 
-html[data-bnd-sb-menurail=hoverpin] .bnd-rail-pinned .bnd-sb-pin {
+html[data-bnd-rail] .bnd-rail-pinned .bnd-sb-pin {
   color: var(--bnd-brand);
 }
 
-html[data-bnd-sb-menurail=hover] .body-sidebar .collapse-sidebar-link,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar .collapse-sidebar-link,
-html[data-bnd-sb-menurail=hover] .body-sidebar .sidebar-resize-handle,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar .sidebar-resize-handle {
+html[data-bnd-rail] .body-sidebar .collapse-sidebar-link,
+html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
   display: none;
 }
 
@@ -1251,6 +1238,85 @@ html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-divider {
   margin-block: var(--bnd-sp-1);
 }
 
+html[data-bnd-rail] .bnd-railbtn {
+  position: absolute;
+  z-index: calc(var(--bnd-z-flyout) + 1);
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  background: var(--bnd-sb-card-base);
+  color: var(--bnd-sb-ink-muted);
+  cursor: pointer;
+  box-shadow: var(--bnd-shadow-sm);
+}
+html[data-bnd-rail] .bnd-railbtn svg {
+  inline-size: 13px;
+  block-size: 13px;
+  transition: rotate var(--bnd-dur-base) var(--bnd-ease);
+}
+html[data-bnd-rail] .bnd-railbtn:hover {
+  color: var(--bnd-sb-ink);
+}
+
+html[data-bnd-rail] .bnd-railbtn-edge {
+  inset-inline-end: -12px;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+}
+
+html[data-bnd-rail] .bnd-railbtn-top {
+  inset-inline-end: var(--bnd-sp-1);
+  inset-block-start: var(--bnd-sp-2);
+}
+
+html[data-bnd-rail] .bnd-railbtn-bottom {
+  inset-inline-end: 50%;
+  translate: 50% 0;
+  inset-block-end: var(--bnd-sp-2);
+}
+
+html[data-bnd-rail] .bnd-railbtn-circle {
+  border-radius: var(--bnd-radius-pill);
+}
+
+html[data-bnd-rail] .bnd-railbtn-square {
+  border-radius: var(--bnd-radius-md);
+}
+
+html[data-bnd-rail] .bnd-railbtn-tab {
+  border-radius: 0 var(--bnd-radius-md) var(--bnd-radius-md) 0;
+  inline-size: 16px;
+  block-size: 44px;
+  inset-inline-end: -16px;
+  box-shadow: none;
+  border-inline-start: none;
+}
+
+.bnd-rail-open .bnd-railbtn svg {
+  rotate: 180deg;
+}
+
+html[data-bnd-sb-iconsrc=original] .body-sidebar .sidebar-item-icon {
+  background: transparent;
+  border-radius: 0;
+  inline-size: auto;
+  block-size: auto;
+  color: inherit;
+}
+
+html[data-bnd-sb-color] .bnd-sb-letter {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  text-transform: uppercase;
+}
+
 html[data-bnd-desktop] .bnd-topbar,
 html[data-bnd-desktop] .bnd-statusbar,
 html[data-bnd-desktop] .bnd-apps-rail,
@@ -1270,21 +1336,28 @@ html[data-bnd-desktop] .dropdown-notifications {
   border-radius: 0;
 }
 
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-top,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header .sidebar-item-label,
-html[data-bnd-sb-menurail=hover] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin),
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-top,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header .sidebar-item-label,
-html[data-bnd-sb-menurail=hoverpin] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-top,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header .sidebar-item-label,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-item .bnd-sb-item-label,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-module .bnd-sb-module-label,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-module .bnd-sb-module-chev {
+  display: none;
+}
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-item,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-module {
+  justify-content: center;
+  padding-inline: 0;
+}
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-utils {
+  padding-inline: 0;
 }
 
 @media (prefers-reduced-transparency: reduce) {

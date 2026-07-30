@@ -245,6 +245,16 @@ const BND_SB_GROUPS = [
 		],
 	},
 	{
+		field: "sidebar_icon_source",
+		title: () => __("Icon source"),
+		desc: () => __("Where link glyphs come from - most workspace links ship no icon of their own."),
+		options: [
+			{ value: "Smart", name: () => __("Smart"), thumb: '<span class="bnd-sbp-glyph">▤ + A</span>' },
+			{ value: "Original", name: () => __("Original"), thumb: '<span class="bnd-sbp-glyph">▢</span>' },
+			{ value: "Letters", name: () => __("Letters"), thumb: '<span class="bnd-sbp-glyph" style="color:var(--primary,#4d8756);font-weight:600">A B C</span>' },
+		],
+	},
+	{
 		field: "sidebar_active_style",
 		title: () => __("Active link"),
 		desc: () => __("How the current page is marked."),
@@ -288,12 +298,51 @@ const BND_SB_GROUPS = [
 	{
 		field: "sidebar_menu_rail",
 		title: () => __("Menu rail"),
-		desc: () => __("How your sidebar rests and expands. Separate from the apps rail below."),
+		desc: () => __("How your sidebar rests. Separate from the apps rail below."),
 		options: [
 			{ value: "Always Expanded", name: () => __("Always expanded"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
 			{ value: "Manual Collapse", name: () => __("Manual collapse"), thumb: bnd_sb_pane("currentColor", "opacity:.18") + '<span style="position:absolute;inset-block-start:18px;inset-inline-start:32px;font-size:10px;opacity:.5">⟨</span>' },
-			{ value: "Hover-Expand", name: () => __("Hover-expand"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
-			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block-start:4px;inset-inline-end:6px;font-size:10px;color:var(--primary,#4d8756)">⌖</span>' },
+			{ value: "Rail", name: () => __("Rail"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
+		],
+	},
+	{
+		field: "sidebar_rail_trigger",
+		title: () => __("Rail expand trigger"),
+		desc: () => __("How the rail opens. Applies when Menu rail is set to Rail."),
+		options: [
+			{ value: "Hover", name: () => __("Hover"), thumb: '<span class="bnd-sbp-glyph">⇢</span>' },
+			{ value: "Click", name: () => __("Click"), thumb: '<span class="bnd-sbp-glyph">☉</span>' },
+			{ value: "Button Only", name: () => __("Button only"), thumb: '<span class="bnd-sbp-glyph">◎</span>' },
+			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span class="bnd-sbp-glyph">⌖</span>' },
+		],
+	},
+	{
+		field: "sidebar_rail_button",
+		title: () => __("Rail expand button"),
+		desc: () => __("An always-visible expand/collapse control on the rail."),
+		options: [
+			{ value: "None", name: () => __("None"), thumb: bnd_sb_pane("currentColor", "opacity:.14") },
+			{ value: "Edge", name: () => __("Edge"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:50%;inset-inline-start:24px;translate:0 -50%"></span>' },
+			{ value: "Top", name: () => __("Top"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
+			{ value: "Bottom", name: () => __("Bottom"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:12px"></span>' },
+		],
+	},
+	{
+		field: "sidebar_rail_button_shape",
+		title: () => __("Rail button shape"),
+		options: [
+			{ value: "Circle", name: () => __("Circle"), thumb: '<span class="bnd-sbp-shape" style="border-radius:50%"></span>' },
+			{ value: "Square", name: () => __("Square"), thumb: '<span class="bnd-sbp-shape" style="border-radius:4px"></span>' },
+			{ value: "Tab", name: () => __("Tab"), thumb: '<span class="bnd-sbp-shape" style="inline-size:9px;block-size:26px;border-radius:0 5px 5px 0;border-inline-start:none"></span>' },
+		],
+	},
+	{
+		field: "sidebar_rail_button_icon",
+		title: () => __("Rail button icon"),
+		options: [
+			{ value: "Chevron", name: () => __("Chevron"), thumb: '<span class="bnd-sbp-glyph">›</span>' },
+			{ value: "Menu", name: () => __("Menu"), thumb: '<span class="bnd-sbp-glyph">☰</span>' },
+			{ value: "Arrows", name: () => __("Arrows"), thumb: '<span class="bnd-sbp-glyph">⇄</span>' },
 		],
 	},
 	{
@@ -344,10 +393,24 @@ function bnd_render_sidebar_picker(frm) {
 function bnd_sb_match_preset(frm) {
 	const { presets, fields } = bnd_sb_catalogue;
 	for (const [name, values] of Object.entries(presets)) {
-		const hit = fields.every((f) => String(frm.doc[f] ?? "") === String(values[f] ?? ""));
+		const hit = fields.every(
+			(f) => bnd_sb_norm(f, frm.doc[f]) === bnd_sb_norm(f, values[f])
+		);
 		if (hit) return name;
 	}
 	return "Custom";
+}
+
+/**
+ * Normalise legacy stored values so old sites keep matching presets and the
+ * picker highlights the right card: the pre-split rail labels both mean
+ * "Rail" now.
+ */
+function bnd_sb_norm(field, value) {
+	if (field === "sidebar_menu_rail" && (value === "Hover-Expand" || value === "Hover + Pin")) {
+		return "Rail";
+	}
+	return String(value ?? "");
 }
 
 /** Preset card palette dots, hand-picked per preset for recognisability. */
@@ -406,11 +469,11 @@ function bnd_render_sidebar_picker_now(frm) {
 			: "";
 
 	const groups = BND_SB_GROUPS.map((group) => {
-		const current = frm.doc[group.field];
+		const current = bnd_sb_norm(group.field, frm.doc[group.field]);
 		const cards = group.options
 			.map((opt) => {
 				const reason = opt.disabled ? opt.disabled(frm) : "";
-				const on = opt.value === current ? " bnd-sbp-on" : "";
+				const on = bnd_sb_norm(group.field, opt.value) === current ? " bnd-sbp-on" : "";
 				const dis = reason ? " bnd-sbp-dis" : "";
 				return (
 					'<button type="button" class="bnd-sbp-opt' + on + dis + '" data-field="' + group.field +
@@ -496,6 +559,9 @@ function bnd_render_sidebar_picker_now(frm) {
 			".bnd-sbp-lines{position:absolute;inset-inline:8px;inset-block-start:10px;block-size:6px;border-radius:3px;background:currentColor;opacity:.15;box-shadow:0 10px 0 currentColor,0 20px 0 currentColor}" +
 			".bnd-sbp-card{position:absolute;inset-inline:7px;inset-block-start:7px;block-size:28px;border-radius:5px;background:var(--control-bg);border:1px solid var(--border-color)}" +
 			".bnd-sbp-wash{position:absolute;inset-inline:7px;inset-block-start:6px;block-size:16px;border-radius:5px}" +
+			".bnd-sbp-glyph{position:absolute;inset-block-start:12px;inset-inline-start:10px;font-size:12px;opacity:.75}" +
+			".bnd-sbp-btnmark{position:absolute;inline-size:10px;block-size:10px;border-radius:50%;background:var(--control-bg);border:1px solid currentColor;opacity:.7}" +
+			".bnd-sbp-shape{position:absolute;inset-block-start:12px;inset-inline-start:38px;inline-size:16px;block-size:16px;border:1.5px solid currentColor;opacity:.6}" +
 			".bnd-sbp-steps{display:flex;align-items:center;gap:8px}" +
 			".bnd-sbp-slab{font-size:var(--text-xs);color:var(--text-muted)}" +
 			".bnd-sbp-stop{inline-size:13px;block-size:13px;border-radius:50%;border:none;background:var(--border-color);cursor:pointer;padding:0}" +
