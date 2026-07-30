@@ -259,6 +259,70 @@ def set_user_density(density: str = "") -> dict:
     return {"density": density}
 
 
+@frappe.whitelist()
+def get_sidebar_presets() -> dict:
+    """Hand the sidebar preset catalogue to the Theme Settings picker.
+
+    The picker applies a preset by writing its values into the (hidden) style
+    fields — the values are the canon, the preset name is a label; see
+    :mod:`bunood_theme.presets`.
+
+    Returns:
+        ``{"presets": {...}, "fields": [...], "default": str}``.
+    """
+    from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_FIELDS, SIDEBAR_PRESETS
+
+    return {
+        "presets": SIDEBAR_PRESETS,
+        "fields": SIDEBAR_FIELDS,
+        "default": DEFAULT_SIDEBAR_PRESET,
+    }
+
+
+@frappe.whitelist()
+def get_sidebar_counts(labels=None) -> dict:
+    """Batched record counts for the sidebar's badge feature.
+
+    The client sends the visible link labels; anything that is not the exact
+    name of a countable, readable DocType is silently skipped — sidebar links
+    can point at pages, reports or dashboards, and a badge simply does not
+    apply to those. One request per sidebar build, capped, never raising:
+    badges are decoration.
+
+    Args:
+        labels: JSON list of link labels (the client caps at 40).
+
+    Returns:
+        ``{label: int}`` for the labels that resolved to DocTypes.
+    """
+    import json
+
+    if frappe.session.user in ("Guest", None, ""):
+        return {}
+    if isinstance(labels, str):
+        try:
+            labels = json.loads(labels)
+        except ValueError:
+            return {}
+    if not isinstance(labels, list):
+        return {}
+
+    counts: dict[str, int] = {}
+    for label in labels[:40]:
+        try:
+            if not isinstance(label, str) or not frappe.db.exists("DocType", label):
+                continue
+            meta = frappe.get_meta(label)
+            if meta.istable or meta.issingle:
+                continue
+            if not frappe.has_permission(label, "read"):
+                continue
+            counts[label] = frappe.db.count(label)
+        except Exception:
+            continue  # one bad label must not cost the rest their badges
+    return counts
+
+
 def clear_workspace_cache(doc=None, method=None) -> None:
     """``doc_events`` handler — drop cached workspace data when a Workspace changes.
 

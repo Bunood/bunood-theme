@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.5.0] — 2026-07-30 — Sidebar style kit (item 10; presets, item 30 pulled forward)
+
+The sidebar becomes a KIT of 16 composable Theme Settings options with 8
+presets on top. Values are the canon, presets are labels: applying a preset
+writes its values into the fields; diverging one option relabels to "Custom".
+Delivery: boot dict -> `data-bnd-sb-*` attributes -> one CSS matrix
+(`chrome/_sidebar.scss`); every combination is attribute selectors composing,
+no per-preset CSS. Missing/unknown values fail open per-option.
+
+### Options
+Placement (attached/floating) · Material (solid/glass) + 5-stop glass opacity
++ blur (off/soft/full, honours prefers-reduced-transparency) · Pane color
+(match-theme/minimal/dark-contrast/brand) · Icon style (6) · Active link (7,
+Folder Tab constrained to attached panes by the picker) · Section layout
+(plain/divided/mini-cards/accordion) · Hue wash (off/subtle/rich; actives take
+the section hue) · 5-stop surface intensity (bg/border/shadow move together) ·
+Menu rail (expanded/manual/hover-expand/hover+pin) · Apps rail (separate
+strip, renamed from workspace rail) · Badges (off/dots/counts, batched
+`get_sidebar_counts`, zero = silent) · remember sections · scroll fades.
+
+### Presets
+Bunood Night (default: dark glass float, hue-washed mini-cards, hover rail),
+Bunood Light (same design, daylight), Daylight, Ink, Carbon, Paper, Aurora,
+Operator. Catalogue lives in `presets.py`, served by `get_sidebar_presets`.
+
+### Mounted pieces (bunood.js, all reversible / fail-open)
+Home + All Apps utility section · module row (current workspace icon + name,
+opens the native workspace menu; resolved from route or crumb) · section
+wrapping into hue-stamped cards — UNWRAPPED automatically while Frappe's
+sidebar edit mode is active, rewrapped after (MutationObserver) · hover-expand
+rail as a container-anchored overlay (content never reflows; keyboard
+focus-within opens it too) · apps rail · badges.
+
+### Fixed during live verification
+- Rail overlay positioned against the viewport (container lacked
+  position:relative) — pane painted from the window corner.
+- v16 NESTS section children inside the section container: descendant label
+  selectors uppercased/hued every link; child combinators now.
+- Injected chips rendered sprite icons at intrinsic (huge) size — bounded.
+- Badge throttle stamped before the item list existed, throttling away the
+  observer's retry; now stamped only when there is something to fetch.
+- Native sidebar header ships light-surface styling; restyled for kit panes
+  (one inline-style-beating !important, the codebase's second, documented).
+
 ## [0.4.0] — 2026-07-30 — Desk layouts (checklist item 9; seeds item 14)
 
 Five switchable chrome layouts, chosen from wireframes: **Top Bar** (default;

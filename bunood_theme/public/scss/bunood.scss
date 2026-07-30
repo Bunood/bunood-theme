@@ -52,7 +52,8 @@
 @use "chrome/dock";
 @use "chrome/cluster";
 @use "chrome/breadcrumbs";
-// @use "chrome/sidebar";
+// Item 10: the composable sidebar style kit (attribute matrix).
+@use "chrome/sidebar";
 // @use "chrome/palette";
 
 // ── Surfaces: the content ───────────────────────────────────────────────────

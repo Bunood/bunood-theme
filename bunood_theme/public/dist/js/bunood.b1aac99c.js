@@ -146,6 +146,63 @@
 		return document.documentElement.getAttribute("data-bnd-layout") || "";
 	}
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Sidebar style kit (item 10) — attribute application
+	// ════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Theme Settings label -> attribute slug, per option. Unknown labels set
+	 * no attribute for that option, and the CSS matrix simply does not match:
+	 * every option fails open independently, not the kit as a whole.
+	 */
+	const SB_SLUGS = {
+		placement: { "Attached": "attached", "Floating": "floating" },
+		material: { "Solid": "solid", "Glass": "glass" },
+		color: { "Match Theme": "theme", "Minimal": "minimal", "Dark Contrast": "dark", "Brand": "brand" },
+		icons: {
+			"Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled",
+			"Duotone": "duotone", "Brand Lines": "brandlines", "Monochrome": "mono",
+		},
+		active: {
+			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
+			"Glow Ring": "glow", "Outline": "outline", "Dot Marker": "dot", "Folder Tab": "foldertab",
+		},
+		sections: { "Plain": "plain", "Divided": "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
+		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
+		menurail: { "Always Expanded": "expanded", "Manual Collapse": "manual", "Hover-Expand": "hover", "Hover + Pin": "hoverpin" },
+		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
+	};
+
+	// Reflect the sidebar options NOW, same timing rule as layout/density:
+	// the CSS matrix must know every choice before Frappe renders the sidebar.
+	(function apply_sidebar_attrs() {
+		const sb = (window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || null;
+		if (!sb) return;
+		const html = document.documentElement;
+		const set = (name, value) => value && html.setAttribute("data-bnd-sb-" + name, value);
+		set("placement", SB_SLUGS.placement[sb.placement]);
+		set("material", SB_SLUGS.material[sb.material]);
+		set("color", SB_SLUGS.color[sb.color]);
+		set("icons", SB_SLUGS.icons[sb.icons]);
+		set("active", SB_SLUGS.active[sb.active]);
+		set("sections", SB_SLUGS.sections[sb.sections]);
+		set("wash", SB_SLUGS.wash[sb.wash]);
+		set("menurail", SB_SLUGS.menurail[sb.menurail]);
+		set("badges", SB_SLUGS.badges[sb.badges]);
+		const glass = parseInt(sb.glass_opacity, 10);
+		if (glass >= 1 && glass <= 5) html.setAttribute("data-bnd-sb-glass", String(glass));
+		const intensity = parseInt(sb.intensity, 10);
+		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
+		if (sb.blur) html.setAttribute("data-bnd-sb-blur", String(sb.blur).toLowerCase());
+		if (parseInt(sb.apps_rail, 10)) html.setAttribute("data-bnd-sb-appsrail", "");
+		if (parseInt(sb.scroll_fades, 10)) html.setAttribute("data-bnd-sb-fades", "");
+	})();
+
+	/** True when the sidebar kit is active (its color attribute is the anchor). */
+	function sb_active() {
+		return document.documentElement.hasAttribute("data-bnd-sb-color");
+	}
+
 	// ── Small DOM helpers ───────────────────────────────────────────────────
 
 	/**
@@ -695,6 +752,10 @@
 						);
 					}
 					if (!ws || !ws.icon) continue;
+					// The module row (sidebar kit) shows the same workspace the
+					// trail resolved — one resolution, two consumers.
+					sb_current_workspace = ws;
+					sb_update_module_row();
 					const chip = el("span", "bnd-crumb-chip");
 					chip.appendChild(sprite_icon("icon-" + ws.icon));
 					link.insertBefore(chip, link.firstChild);
@@ -799,6 +860,354 @@
 		}
 	}
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Sidebar style kit (item 10) — mounted pieces
+	// ════════════════════════════════════════════════════════════════════════
+
+	/** The workspace shown by the crumb decorator; the module row reuses it. */
+	let sb_current_workspace = null;
+
+	/** Guard so our own DOM surgery does not retrigger the rebuild observer. */
+	let sb_mutating = false;
+
+	/**
+	 * Wrap each sidebar section (its header + following items) in a
+	 * .bnd-sb-card stamped with data-bnd-hue, for the cards/accordion section
+	 * layouts. Items BEFORE the first section header form the neutral card 0.
+	 *
+	 * The wrapping is fully reversible (sb_unwrap_sections) and is undone the
+	 * moment Frappe's sidebar EDIT MODE starts, because drag-reorder expects
+	 * the original flat list. Hue indices are assigned per section order
+	 * (1..7 cycling) — stable across reloads because section order is what
+	 * the tenant authored.
+	 */
+	function sb_wrap_sections() {
+		const kind = document.documentElement.getAttribute("data-bnd-sb-sections");
+		if (kind !== "cards" && kind !== "accordion") return;
+		const list = document.querySelector(".body-sidebar-top .sidebar-items");
+		if (!list || list.querySelector(".bnd-sb-card")) return;
+		try {
+			sb_mutating = true;
+			const groups = [];
+			let current = { hue: 0, nodes: [] };
+			for (const node of [...list.children]) {
+				if (node.classList.contains("bnd-sb-card")) continue;
+				if (node.querySelector(":scope > .standard-sidebar-item") || node.classList.contains("sidebar-item-container")) {
+					if (node.classList.contains("section-item")) {
+						if (current.nodes.length) groups.push(current);
+						current = { hue: (groups.filter((g) => g.hue > 0).length % 7) + 1, nodes: [node] };
+						continue;
+					}
+				}
+				current.nodes.push(node);
+			}
+			if (current.nodes.length) groups.push(current);
+			for (const group of groups) {
+				const card = el("div", "bnd-sb-card", { "data-bnd-hue": String(group.hue) });
+				list.insertBefore(card, group.nodes[0]);
+				for (const node of group.nodes) card.appendChild(node);
+			}
+		} catch (e) {
+			console.error("bunood_theme: section wrap failed, leaving stock sidebar", e); // eslint-disable-line no-console
+			sb_unwrap_sections();
+		} finally {
+			sb_mutating = false;
+		}
+	}
+
+	/** Undo sb_wrap_sections, restoring the flat native list. Always safe. */
+	function sb_unwrap_sections() {
+		const list = document.querySelector(".body-sidebar-top .sidebar-items");
+		if (!list) return;
+		sb_mutating = true;
+		for (const card of [...list.querySelectorAll(":scope > .bnd-sb-card")]) {
+			while (card.firstChild) list.insertBefore(card.firstChild, card);
+			card.remove();
+		}
+		sb_mutating = false;
+	}
+
+	/**
+	 * The pinned utility section: Home and All Apps, above everything. Home
+	 * routes to the default workspace; All Apps opens Frappe's /apps screen
+	 * (a full page, so a real navigation). Idempotent by mount marker.
+	 */
+	function sb_mount_utils() {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (!sidebar || sidebar.querySelector(".bnd-sb-utils")) return;
+		const header = sidebar.querySelector(".sidebar-header");
+		if (!header) return;
+
+		const utils = el("div", "bnd-sb-utils");
+		const home = el("button", "bnd-sb-item", { type: "button" });
+		const home_chip = el("span", "bnd-sb-chip");
+		home_chip.appendChild(sprite_icon("icon-home"));
+		home.appendChild(home_chip);
+		home.appendChild(document.createTextNode(__("Home")));
+		home.addEventListener("click", () => frappe.set_route(""));
+		utils.appendChild(home);
+
+		const apps = el("button", "bnd-sb-item", { type: "button" });
+		const apps_chip = el("span", "bnd-sb-chip");
+		// A 2x2 grid glyph of our own — no sprite id for "apps" is guaranteed.
+		apps_chip.innerHTML =
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+			'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
+			'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+		apps.appendChild(apps_chip);
+		apps.appendChild(document.createTextNode(__("All Apps")));
+		apps.addEventListener("click", () => {
+			window.location.href = "/apps";
+		});
+		utils.appendChild(apps);
+
+		header.insertAdjacentElement("afterend", utils);
+	}
+
+	/**
+	 * The module row: the current workspace's icon and name, pinned under the
+	 * utility section. Clicking it opens the native brand menu (which holds
+	 * the Workspaces cascade) — reuse, not reimplementation. Label refreshes
+	 * on every route change from the workspace the crumb decorator resolved.
+	 */
+	function sb_mount_module_row() {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (!sidebar || sidebar.querySelector(".bnd-sb-module")) return;
+		const anchor = sidebar.querySelector(".bnd-sb-utils") || sidebar.querySelector(".sidebar-header");
+		if (!anchor) return;
+
+		const row = el("button", "bnd-sb-module", { type: "button", "aria-haspopup": "menu" });
+		row.appendChild(el("span", "bnd-sb-chip bnd-sb-module-chip"));
+		const label = el("span", "bnd-sb-module-label");
+		row.appendChild(label);
+		const chev = el("span", "bnd-sb-module-chev");
+		chev.textContent = "▾";
+		row.appendChild(chev);
+		row.addEventListener("click", (e) => {
+			e.stopPropagation();
+			proxy_click(".body-sidebar .sidebar-header");
+		});
+		anchor.insertAdjacentElement("afterend", row);
+		sb_update_module_row();
+	}
+
+	/**
+	 * Resolve the current workspace from the route when it names one
+	 * directly (["Workspaces", "<Name>"]) — the crumb decorator covers list
+	 * and form pages, this covers workspace pages themselves, where the
+	 * trail has no workspace link to decorate.
+	 */
+	function sb_resolve_workspace_from_route() {
+		const route = frappe.get_route() || [];
+		if (route[0] !== "Workspaces" || !route[1]) return;
+		const hit = ((frappe.boot && frappe.boot.allowed_workspaces) || []).find(
+			(w) => w.name === route[1] || w.title === route[1]
+		);
+		if (hit) sb_current_workspace = hit;
+	}
+
+	/** Refresh the module row's icon + label from the resolved workspace. */
+	function sb_update_module_row() {
+		const row = document.querySelector(".bnd-sb-module");
+		if (!row) return;
+		const ws = sb_current_workspace;
+		row.querySelector(".bnd-sb-module-label").textContent = (ws && ws.title) || __("Workspaces");
+		const chip = row.querySelector(".bnd-sb-module-chip");
+		chip.innerHTML = "";
+		chip.appendChild(sprite_icon("icon-" + ((ws && ws.icon) || "folder-normal")));
+	}
+
+	/**
+	 * Hover-expand menu rail. The container is narrowed by inline style
+	 * (Frappe writes inline widths of its own, so CSS alone cannot win), and
+	 * the .bnd-rail-open class drives the CSS overlay expansion. Opening
+	 * triggers: pointer enter, focus entering the pane (keyboard parity).
+	 * Closing waits 150ms so a wobbly pointer does not flap the pane.
+	 * "hoverpin" adds a pin button that locks the pane open.
+	 */
+	function sb_mount_hover_rail() {
+		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
+		if (mode !== "hover" && mode !== "hoverpin") return;
+		const container = document.querySelector(".body-sidebar-container");
+		if (!container || container.dataset.bndRail) return;
+		container.dataset.bndRail = "1";
+		container.style.width = "var(--bnd-sb-rail-w)";
+
+		let close_timer = null;
+		let pinned = false;
+		const open = () => {
+			clearTimeout(close_timer);
+			container.classList.add("bnd-rail-open");
+		};
+		const close = () => {
+			if (pinned) return;
+			clearTimeout(close_timer);
+			close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 150);
+		};
+		container.addEventListener("pointerenter", open);
+		container.addEventListener("pointerleave", close);
+		container.addEventListener("focusin", open);
+		container.addEventListener("focusout", close);
+
+		if (mode === "hoverpin") {
+			const header = container.querySelector(".sidebar-header");
+			if (header) {
+				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open") });
+				pin.textContent = "⌖";
+				pin.addEventListener("click", (e) => {
+					e.stopPropagation();
+					pinned = !pinned;
+					container.classList.toggle("bnd-rail-pinned", pinned);
+					if (pinned) open();
+					else close();
+				});
+				header.insertAdjacentElement("beforeend", pin);
+			}
+		}
+	}
+
+	/**
+	 * The Apps Rail: a slim fixed strip of every root workspace, mounted
+	 * before the sidebar. Same data and behaviour as the Dock layout's
+	 * items, stacked vertically; overflow beyond 12 goes to a menu.
+	 */
+	function sb_mount_apps_rail() {
+		if (!document.documentElement.hasAttribute("data-bnd-sb-appsrail")) return;
+		if (document.querySelector(".bnd-apps-rail")) return;
+		const rail = el("div", "bnd-apps-rail", { role: "navigation", "aria-label": __("Apps") });
+
+		const slug = (name) =>
+			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
+		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter((w) => w.public && !w.parent_page);
+
+		for (const ws of roots.slice(0, 12)) {
+			const item = el("button", "bnd-apps-rail-item", { type: "button", title: ws.title, "data-ws": slug(ws.name) });
+			item.appendChild(sprite_icon("icon-" + (ws.icon || "folder-normal")));
+			item.addEventListener("click", () => frappe.set_route(slug(ws.name)));
+			rail.appendChild(item);
+		}
+		const rest = roots.slice(12);
+		if (rest.length) {
+			const more = el("button", "bnd-apps-rail-item", { type: "button", "aria-label": __("More") });
+			more.textContent = "⋯";
+			more.addEventListener("click", () =>
+				show_menu(more, rest.map((ws) => ({
+					label: ws.title,
+					icon: "icon-" + (ws.icon || "folder-normal"),
+					run: () => frappe.set_route(slug(ws.name)),
+				})))
+			);
+			rail.appendChild(more);
+		}
+		document.body.appendChild(rail);
+		sb_update_apps_rail_active();
+	}
+
+	/** Highlight the apps-rail item for the workspace being viewed. */
+	function sb_update_apps_rail_active() {
+		const rail = document.querySelector(".bnd-apps-rail");
+		if (!rail) return;
+		const route = frappe.get_route() || [];
+		const slug = (name) =>
+			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
+		const current = route[0] === "Workspaces" && route[1] ? slug(route[1]) : "";
+		for (const item of rail.querySelectorAll("[data-ws]")) {
+			item.classList.toggle("bnd-active", item.getAttribute("data-ws") === current);
+		}
+	}
+
+	/** Cache so badge counts are fetched at most once a minute per rebuild. */
+	let sb_badges_at = 0;
+
+	/**
+	 * Live badges on sidebar links. One batched server call
+	 * (bunood_theme.api.get_sidebar_counts) returns counts for the labels
+	 * that are readable DocTypes; anything else is silently skipped. "dots"
+	 * mode marks only nonzero rows; "counts" shows the number.
+	 */
+	function sb_mount_badges() {
+		const mode = document.documentElement.getAttribute("data-bnd-sb-badges");
+		if (mode !== "dots" && mode !== "counts") return;
+		if (Date.now() - sb_badges_at < 60000) return;
+
+		const items = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]:not(.section-item)")];
+		const labels = items.map((i) => i.getAttribute("item-name")).filter(Boolean);
+		if (!labels.length) return;
+		// Stamp the throttle only once there is actually something to fetch —
+		// at first mount the item list is often not built yet, and stamping on
+		// the empty attempt throttled away the observer's retry (measured).
+		sb_badges_at = Date.now();
+
+		frappe
+			.xcall("bunood_theme.api.get_sidebar_counts", { labels: labels.slice(0, 40) })
+			.then((counts) => {
+				for (const item of items) {
+					const label = item.getAttribute("item-name");
+					if (!(label in counts)) continue;
+					const anchor = item.querySelector(".item-anchor");
+					if (!anchor || anchor.querySelector(".bnd-sb-badge")) continue;
+					const count = counts[label];
+					// Zero is silence in BOTH modes — a wall of "0" pills reads
+					// as clutter, and an empty dot means nothing needs you.
+					if (!count) continue;
+					const badge = el("span", "bnd-sb-badge");
+					if (mode === "counts") badge.textContent = count > 99 ? "99+" : String(count);
+					anchor.appendChild(badge);
+				}
+			})
+			.catch(() => {}); // badges are decoration; never surface a failure
+	}
+
+	/**
+	 * Watch the sidebar for the two events that must undo/redo our surgery:
+	 * Frappe rebuilding the item list (workspace switch) and edit mode
+	 * starting/ending. Both are observed rather than hooked — Frappe exposes
+	 * no events here — with our own mutations guarded out via sb_mutating.
+	 */
+	function sb_observe() {
+		const list = document.querySelector(".body-sidebar-top .sidebar-items");
+		if (list && typeof MutationObserver !== "undefined") {
+			let timer = null;
+			new MutationObserver(() => {
+				if (sb_mutating) return;
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					if (!sb_edit_active()) {
+						sb_wrap_sections();
+						sb_mount_badges();
+					}
+				}, 200);
+			}).observe(list, { childList: true, subtree: true });
+		}
+
+		const bottom = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
+		if (bottom && typeof MutationObserver !== "undefined") {
+			new MutationObserver(() => {
+				if (sb_edit_active()) sb_unwrap_sections();
+				else setTimeout(sb_wrap_sections, 250);
+			}).observe(bottom, { attributes: true, attributeFilter: ["class"] });
+		}
+	}
+
+	/** True while Frappe's sidebar edit mode is active (save/discard shown). */
+	function sb_edit_active() {
+		const controls = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
+		return !!(controls && !controls.classList.contains("hidden"));
+	}
+
+	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
+	function mount_sidebar_kit() {
+		if (!sb_active() || layout() === "dock") return;
+		sb_resolve_workspace_from_route();
+		sb_mount_utils();
+		sb_mount_module_row();
+		sb_wrap_sections();
+		sb_mount_hover_rail();
+		sb_mount_apps_rail();
+		sb_mount_badges();
+		sb_observe();
+	}
+
 	// ── Orchestration ───────────────────────────────────────────────────────
 
 	/**
@@ -826,12 +1235,19 @@
 		}
 		// classic mounts nothing — stock chrome, plus the crumb chip above.
 
+		// The sidebar style kit rides along in every layout that HAS a
+		// sidebar; Dock hides it, so the kit stays down there.
+		mount_sidebar_kit();
+
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
 				decorate_breadcrumbs();
 				if (slug === "compact") inject_compact_cluster();
 				if (slug === "dock") update_dock_active();
+				sb_resolve_workspace_from_route();
+				sb_update_module_row();
+				sb_update_apps_rail_active();
 			});
 		}
 	}

@@ -1,0 +1,643 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// SIDEBAR STYLE KIT — checklist item 10 (+ presets, item 30 pulled forward).
+//
+// WHAT
+//   The composable sidebar styling system. Theme Settings stores ~16 style
+//   options; boot delivers them; bunood.js reflects each one as a
+//   `data-bnd-sb-*` attribute on <html>; THIS file is the entire visual
+//   consequence. Every combination of options is just attribute selectors
+//   composing — there is no per-preset CSS anywhere.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-sb-placement   attached | floating
+//   data-bnd-sb-material    solid | glass
+//   data-bnd-sb-glass       1..5           (opacity stop, glass only)
+//   data-bnd-sb-blur        off | soft | full
+//   data-bnd-sb-color       theme | minimal | dark | brand
+//   data-bnd-sb-icons       chips | dots | filled | duotone | brandlines | mono
+//   data-bnd-sb-active      pill | softpill | rail | glow | outline | dot | foldertab
+//   data-bnd-sb-sections    plain | divided | cards | accordion
+//   data-bnd-sb-wash        off | subtle | rich
+//   data-bnd-sb-intensity   1..5           (card surface presence)
+//   data-bnd-sb-menurail    expanded | manual | hover | hoverpin
+//   data-bnd-sb-appsrail    (attribute present = on)
+//   data-bnd-sb-badges      off | dots | counts
+//   data-bnd-sb-fades       (attribute present = on)
+//
+// THE WORKING-SET PATTERN (why this file stays sane)
+//   The color-mode blocks define a small working set of custom properties —
+//   --bnd-sb-bg, --bnd-sb-ink, --bnd-sb-chip-bg, --bnd-sb-card-bg... — and
+//   every component rule below consumes ONLY those. Adding a color mode is
+//   one block of variable assignments, never new component rules. Hue-washed
+//   sections work the same way: bunood.js stamps data-bnd-hue="1..7" on each
+//   section wrapper, a tiny block maps that to --bnd-sb-hue, and chips,
+//   washes and actives all derive from it.
+//
+// WHAT IS DELIBERATELY *NOT* HERE
+//   DOM construction (utility section, module row, section wrapping, rails)
+//   lives in bunood.js; per-user "reduce transparency" is honoured via the
+//   prefers-reduced-transparency media query at the bottom.
+//
+// Scoped html[data-bnd-sb-*] — the engine is inert with no attributes, so a
+// boot failure leaves the stock sidebar (fails open, same as the layouts).
+// Logical properties only. One !important in this file, documented at site.
+// ============================================================================
+
+// ── Color modes: define the working set ─────────────────────────────────────
+// Each mode sets the full set; components below never look elsewhere.
+
+html[data-bnd-sb-color="theme"] {
+  --bnd-sb-bg: var(--bnd-pane);
+  --bnd-sb-ink: var(--bnd-ink);
+  --bnd-sb-ink-muted: var(--bnd-ink-muted);
+  --bnd-sb-line: var(--bnd-border);
+  --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
+  --bnd-sb-chip-ink: var(--bnd-ink-muted);
+  --bnd-sb-card-base: var(--bnd-surface);
+  --bnd-sb-active-ink: var(--bnd-ink-inverse);
+}
+
+html[data-bnd-sb-color="minimal"] {
+  --bnd-sb-bg: #fafbfa;
+  --bnd-sb-ink: #2c2f2d;
+  --bnd-sb-ink-muted: #6d7570;
+  --bnd-sb-line: rgba(0, 0, 0, 0.07);
+  --bnd-sb-chip-bg: transparent;
+  --bnd-sb-chip-ink: #6d7570;
+  --bnd-sb-card-base: #ffffff;
+  --bnd-sb-active-ink: #ffffff;
+}
+html[data-theme="dark"][data-bnd-sb-color="minimal"] {
+  --bnd-sb-bg: #15181a;
+  --bnd-sb-ink: #d7dad8;
+  --bnd-sb-ink-muted: #8b938e;
+  --bnd-sb-line: rgba(255, 255, 255, 0.08);
+  --bnd-sb-card-base: #1b1f21;
+  --bnd-sb-active-ink: #101214;
+}
+
+// Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
+// from the brand seed so tenants get a tinted ink, not generic charcoal.
+html[data-bnd-sb-color="dark"] {
+  --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 10%, #131a15);
+  --bnd-sb-ink: #eef3ef;
+  --bnd-sb-ink-muted: #b7c2ba;
+  --bnd-sb-line: rgba(255, 255, 255, 0.09);
+  --bnd-sb-chip-bg: rgba(255, 255, 255, 0.08);
+  --bnd-sb-chip-ink: #a9b6ac;
+  --bnd-sb-card-base: rgba(255, 255, 255, 0.05);
+  --bnd-sb-active-ink: #ffffff;
+}
+
+html[data-bnd-sb-color="brand"] {
+  --bnd-sb-bg: linear-gradient(
+    170deg,
+    color-mix(in srgb, var(--bnd-brand) 96%, #ffffff),
+    color-mix(in srgb, var(--bnd-brand) 72%, #000000)
+  );
+  --bnd-sb-ink: #ffffff;
+  --bnd-sb-ink-muted: rgba(255, 255, 255, 0.75);
+  --bnd-sb-line: rgba(255, 255, 255, 0.2);
+  --bnd-sb-chip-bg: rgba(255, 255, 255, 0.16);
+  --bnd-sb-chip-ink: #ffffff;
+  --bnd-sb-card-base: rgba(255, 255, 255, 0.1);
+  --bnd-sb-active-ink: var(--bnd-brand);
+}
+
+// ── Pane surface: color + material + placement ──────────────────────────────
+html[data-bnd-sb-color] .body-sidebar-container {
+  background: var(--bnd-sb-bg);
+  border-inline-end: var(--bnd-line) solid var(--bnd-sb-line);
+
+  .body-sidebar {
+    background: transparent;
+    color: var(--bnd-sb-ink);
+  }
+}
+
+// Glass: keep N% of the pane color, let the page bleed through the rest.
+// A gradient bg (brand mode) cannot go through color-mix, so brand+glass
+// falls back to slight translucency via opacity on a pseudo-layer — the
+// simple, honest approximation.
+html[data-bnd-sb-material="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+}
+html[data-bnd-sb-glass="1"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-1); }
+html[data-bnd-sb-glass="2"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-2); }
+html[data-bnd-sb-glass="3"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-3); }
+html[data-bnd-sb-glass="4"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-4); }
+html[data-bnd-sb-glass="5"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-5); }
+
+html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"] .body-sidebar-container {
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+
+// Floating: the pane detaches into a rounded card; the page canvas shows
+// around it. The container keeps its flex slot; the visual is all its own.
+html[data-bnd-sb-placement="floating"] .body-sidebar-container {
+  margin-block: var(--bnd-sp-2);
+  margin-inline-start: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-sb-radius);
+  box-shadow: var(--bnd-shadow-lg);
+  overflow: hidden;
+}
+
+// ── The injected pieces (bunood.js): utils section + module row ─────────────
+html[data-bnd-sb-color] .bnd-sb-utils {
+  padding: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-color] .bnd-sb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: 100%;
+  padding-block: 5px;
+  padding-inline: var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  font-size: var(--bnd-text-sm);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
+    color: var(--bnd-sb-ink);
+    text-decoration: none;
+  }
+}
+
+html[data-bnd-sb-color] .bnd-sb-module {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin: var(--bnd-sp-1);
+  padding-block: 6px;
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-sb-card-bg, var(--bnd-sb-card-base));
+  color: var(--bnd-sb-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  inline-size: calc(100% - 2 * var(--bnd-sp-1));
+  text-align: start;
+  cursor: pointer;
+
+  .bnd-sb-module-chev {
+    margin-inline-start: auto;
+    color: var(--bnd-sb-ink-muted);
+  }
+}
+
+// ── Icon chips ──────────────────────────────────────────────────────────────
+// The native .sidebar-item-icon span already wraps each link's svg — we style
+// IT as the chip, so no markup changes. The hue comes from the section via
+// --bnd-sb-hue (stamped by the wash engine below); neutral otherwise.
+html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons] .bnd-sb-chip {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+
+  // Sprite symbols have no intrinsic size limit — an unsized <use> svg
+  // renders enormous (measured: the module row's icon painted as a giant
+  // outline). Every chip bounds its glyph explicitly.
+  svg {
+    inline-size: 15px;
+    block-size: 15px;
+  }
+}
+
+html[data-bnd-sb-icons="chips"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="chips"] .bnd-sb-chip,
+html[data-bnd-sb-icons="dots"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="dots"] .bnd-sb-chip {
+  background: var(--bnd-sb-hue-chip, var(--bnd-sb-chip-bg));
+  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  border-radius: var(--bnd-radius-md);
+
+  svg {
+    stroke: currentColor;
+  }
+}
+html[data-bnd-sb-icons="dots"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="dots"] .bnd-sb-chip {
+  border-radius: var(--bnd-radius-pill);
+}
+
+html[data-bnd-sb-icons="filled"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="filled"] .bnd-sb-chip {
+  background: transparent;
+  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+}
+
+html[data-bnd-sb-icons="duotone"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="duotone"] .bnd-sb-chip {
+  background: transparent;
+  color: var(--bnd-sb-hue, var(--bnd-brand));
+  opacity: 0.85;
+}
+
+html[data-bnd-sb-icons="brandlines"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="brandlines"] .bnd-sb-chip {
+  background: transparent;
+  color: var(--bnd-brand);
+}
+
+html[data-bnd-sb-icons="mono"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="mono"] .bnd-sb-chip {
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+}
+
+// Sidebar link text picks up the pane ink in every icon mode.
+html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
+  border-radius: var(--bnd-radius-md);
+  color: var(--bnd-sb-ink-muted);
+
+  .item-anchor,
+  .sidebar-item-label {
+    color: inherit;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
+    color: var(--bnd-sb-ink);
+  }
+}
+
+// ── Active link styles ──────────────────────────────────────────────────────
+// All variants target the native .active-sidebar marker. --bnd-sb-accent is
+// the hue-aware accent: the section hue when washing is on, brand otherwise.
+html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item.active-sidebar {
+  --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand));
+  color: var(--bnd-sb-ink);
+  font-weight: var(--bnd-weight-medium);
+}
+
+html[data-bnd-sb-active="pill"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  background: var(--bnd-sb-accent);
+  color: var(--bnd-sb-active-ink);
+
+  .sidebar-item-icon {
+    background: color-mix(in srgb, var(--bnd-sb-active-ink) 20%, transparent);
+    color: var(--bnd-sb-active-ink);
+  }
+}
+
+html[data-bnd-sb-active="softpill"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  background: color-mix(in srgb, var(--bnd-sb-accent) 16%, transparent);
+  color: var(--bnd-sb-ink);
+}
+
+html[data-bnd-sb-active="rail"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  border-inline-start: 3px solid var(--bnd-sb-accent);
+  border-radius: 0 var(--bnd-radius-md) var(--bnd-radius-md) 0;
+  background: color-mix(in srgb, var(--bnd-sb-accent) 9%, transparent);
+}
+
+html[data-bnd-sb-active="glow"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  background: color-mix(in srgb, var(--bnd-sb-accent) 12%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bnd-sb-accent) 55%, transparent),
+    0 0 12px color-mix(in srgb, var(--bnd-sb-accent) 35%, transparent);
+}
+
+html[data-bnd-sb-active="outline"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  box-shadow: inset 0 0 0 1.5px var(--bnd-sb-accent);
+}
+
+html[data-bnd-sb-active="dot"] .body-sidebar .standard-sidebar-item.active-sidebar {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: var(--bnd-sp-2);
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: var(--bnd-radius-pill);
+    background: var(--bnd-sb-accent);
+  }
+}
+
+// Folder tab: the active link takes the PAGE surface and merges into it.
+// Only offered on attached panes (the picker enforces it) because a floating
+// card has a visible gap the tab cannot bridge.
+html[data-bnd-sb-active="foldertab"][data-bnd-sb-placement="attached"]
+  .body-sidebar
+  .standard-sidebar-item.active-sidebar {
+  background: var(--bnd-page);
+  color: var(--bnd-ink);
+  border-radius: var(--bnd-radius-lg) 0 0 var(--bnd-radius-lg);
+  margin-inline-end: calc(-1 * var(--bnd-sp-2));
+  box-shadow: var(--bnd-shadow-sm);
+}
+
+// ── Sections: layout, wash, intensity ───────────────────────────────────────
+// bunood.js wraps each section (header + its items) in .bnd-sb-card and
+// stamps data-bnd-hue="0..7" (0 = the pre-section neutral group). "plain"
+// and "divided" skip the wrapping entirely.
+
+html[data-bnd-sb-sections="divided"] .body-sidebar .sidebar-item-container.section-item {
+  border-block-start: var(--bnd-line) solid var(--bnd-sb-line);
+  margin-block-start: var(--bnd-sp-1);
+  padding-block-start: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-color] .bnd-sb-card {
+  border-radius: var(--bnd-radius-lg);
+  padding: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-2);
+  background: var(--bnd-sb-card-bg);
+  border: var(--bnd-line) solid var(--bnd-sb-card-line);
+  box-shadow: var(--bnd-sb-card-shadow);
+}
+
+// Surface intensity: bg / border / shadow move TOGETHER through 5 designed
+// stops — a tenant can only land on states we drew.
+html[data-bnd-sb-intensity="1"] {
+  --bnd-sb-card-bg: transparent;
+  --bnd-sb-card-line: var(--bnd-sb-line);
+  --bnd-sb-card-shadow: none;
+}
+html[data-bnd-sb-intensity="2"] {
+  --bnd-sb-card-bg: color-mix(in srgb, var(--bnd-sb-card-base) 55%, transparent);
+  --bnd-sb-card-line: var(--bnd-sb-line);
+  --bnd-sb-card-shadow: none;
+}
+html[data-bnd-sb-intensity="3"] {
+  --bnd-sb-card-bg: var(--bnd-sb-card-base);
+  --bnd-sb-card-line: var(--bnd-sb-line);
+  --bnd-sb-card-shadow: none;
+}
+html[data-bnd-sb-intensity="4"] {
+  --bnd-sb-card-bg: var(--bnd-sb-card-base);
+  --bnd-sb-card-line: var(--bnd-sb-line);
+  --bnd-sb-card-shadow: var(--bnd-shadow-sm);
+}
+html[data-bnd-sb-intensity="5"] {
+  --bnd-sb-card-bg: var(--bnd-sb-card-base);
+  --bnd-sb-card-line: transparent;
+  --bnd-sb-card-shadow: var(--bnd-shadow-md);
+}
+
+// Hue wash: map the stamped hue index to the categorical tokens. The wash
+// level decides how strongly the card and chips take the hue.
+@for $i from 1 through 7 {
+  html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="#{$i}"] {
+    --bnd-sb-hue: var(--bnd-cat-#{$i});
+  }
+}
+
+html[data-bnd-sb-wash="subtle"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
+  background: color-mix(in srgb, var(--bnd-sb-hue) 5%, var(--bnd-sb-card-bg));
+  border-color: color-mix(in srgb, var(--bnd-sb-hue) 14%, var(--bnd-sb-card-line));
+
+  --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 12%, transparent);
+}
+html[data-bnd-sb-wash="rich"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
+  background: color-mix(in srgb, var(--bnd-sb-hue) 10%, var(--bnd-sb-card-bg));
+  border-color: color-mix(in srgb, var(--bnd-sb-hue) 22%, var(--bnd-sb-card-line));
+
+  --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, transparent);
+
+  // Child path on purpose — only the section's OWN caps label takes the hue,
+  // never the nested links (see the nesting note above).
+  .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
+    color: var(--bnd-sb-hue);
+  }
+}
+
+// Section headers inside the pane: quiet caps in every mode. CHILD combinator
+// is load-bearing: v16 NESTS a section's item containers INSIDE the section
+// container (measured), so a descendant selector here would uppercase every
+// link in the section — which is exactly the bug the first deploy shipped.
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bnd-sb-ink-muted);
+}
+
+// ── Brand header + pane furniture on kit surfaces ───────────────────────────
+// The native header ships light-surface styling (white card look, gray icon
+// tile); on a dark or tinted pane it must read as part of the pane.
+html[data-bnd-sb-color] .body-sidebar .sidebar-header {
+  background: transparent;
+
+  .sidebar-item-label,
+  .header-title,
+  span {
+    color: var(--bnd-sb-ink);
+  }
+
+  .icon-container {
+    background: var(--bnd-brand) !important; // beats Frappe's INLINE style (the 2nd documented legitimate use)
+    border-radius: var(--bnd-radius-md);
+  }
+}
+
+// Thin, pane-colored scrollbar instead of the browser default gutter.
+html[data-bnd-sb-color] .body-sidebar-top {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--bnd-sb-ink) 22%, transparent) transparent;
+}
+
+// ── Badges ──────────────────────────────────────────────────────────────────
+html[data-bnd-sb-badges] .bnd-sb-badge {
+  margin-inline-start: auto;
+  flex: none;
+}
+html[data-bnd-sb-badges="counts"] .bnd-sb-badge {
+  font-size: var(--bnd-text-xs);
+  font-variant-numeric: var(--bnd-numeric);
+  border-radius: var(--bnd-radius-pill);
+  padding-block: 0;
+  padding-inline: var(--bnd-sp-2);
+  background: color-mix(in srgb, var(--bnd-sb-hue, var(--bnd-brand)) 15%, transparent);
+  color: var(--bnd-sb-hue, var(--bnd-brand));
+}
+html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-serious);
+}
+
+// ── Scroll fades ────────────────────────────────────────────────────────────
+html[data-bnd-sb-fades] .body-sidebar-top {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 14px,
+    black calc(100% - 14px),
+    transparent
+  );
+}
+
+// ── Menu rail: hover-expand ─────────────────────────────────────────────────
+// The container narrows to the rail width (its inline width is set by
+// bunood.js because Frappe writes inline widths of its own); the INNER
+// sidebar becomes an overlay that grows on the .bnd-rail-open class, which
+// bunood.js toggles from hover AND focus-within — so keyboard users get the
+// expansion too. Content never reflows: the fixed bars read the container
+// width (52px) via the existing ResizeObserver.
+html[data-bnd-sb-menurail="hover"] .body-sidebar-container,
+html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container {
+  overflow: visible;
+  // The overlay positions against the CONTAINER, not the viewport — without
+  // this, inset-block:0 resolves against the initial containing block and
+  // the pane paints from the window corner (measured before the fix).
+  position: relative;
+
+  .body-sidebar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--bnd-sb-rail-w);
+    overflow: hidden;
+    background: var(--bnd-sb-bg);
+    border-radius: inherit;
+    border: inherit;
+    transition: inline-size var(--bnd-dur-base) var(--bnd-ease);
+    z-index: var(--bnd-z-bar);
+
+    // At rest, labels and wide-only pieces vanish; icons stay centered.
+    .sidebar-item-label,
+    .bnd-sb-module .bnd-sb-module-label,
+    .bnd-sb-module .bnd-sb-module-chev {
+      opacity: 0;
+      transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+    }
+  }
+
+  &.bnd-rail-open .body-sidebar {
+    inline-size: var(--bnd-sb-w);
+    box-shadow: var(--bnd-shadow-lg);
+
+    .sidebar-item-label,
+    .bnd-sb-module .bnd-sb-module-label,
+    .bnd-sb-module .bnd-sb-module-chev {
+      opacity: 1;
+    }
+  }
+}
+// Floating + rail: the overlay tracks the card's inset.
+html[data-bnd-sb-placement="floating"][data-bnd-sb-menurail="hover"] .body-sidebar-container .body-sidebar,
+html[data-bnd-sb-placement="floating"][data-bnd-sb-menurail="hoverpin"] .body-sidebar-container .body-sidebar {
+  inset-block: 0;
+  inset-inline-start: 0;
+}
+
+// Glass applies to the overlay surface in rail modes.
+html[data-bnd-sb-material="glass"][data-bnd-sb-menurail="hover"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar,
+html[data-bnd-sb-material="glass"][data-bnd-sb-menurail="hoverpin"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+}
+html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-sb-menurail="hover"] .body-sidebar-container .body-sidebar,
+html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-sb-menurail="hoverpin"] .body-sidebar-container .body-sidebar {
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+
+// The pin control (hoverpin only; bunood.js mounts it).
+html[data-bnd-sb-menurail="hoverpin"] .bnd-sb-pin {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
+  }
+}
+html[data-bnd-sb-menurail="hoverpin"] .bnd-rail-pinned .bnd-sb-pin {
+  color: var(--bnd-brand);
+}
+
+// Hide Frappe's own collapse toggle in rail modes — the rail IS the
+// collapsed state, and two collapse affordances would fight.
+html[data-bnd-sb-menurail="hover"] .body-sidebar .collapse-sidebar-link,
+html[data-bnd-sb-menurail="hoverpin"] .body-sidebar .collapse-sidebar-link,
+html[data-bnd-sb-menurail="hover"] .body-sidebar .sidebar-resize-handle,
+html[data-bnd-sb-menurail="hoverpin"] .body-sidebar .sidebar-resize-handle {
+  display: none;
+}
+
+// ── Apps rail ───────────────────────────────────────────────────────────────
+// A fixed strip before the sidebar; the sidebar shifts over by its width.
+html[data-bnd-sb-appsrail] .body-sidebar-container {
+  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-1));
+}
+html[data-bnd-sb-appsrail][data-bnd-sb-placement="floating"] .body-sidebar-container {
+  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-2));
+}
+
+html[data-bnd-sb-appsrail] .bnd-apps-rail {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--bnd-apps-rail-w);
+  z-index: var(--bnd-z-bar);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bnd-sp-1);
+  padding-block: var(--bnd-sp-2);
+  background: var(--bnd-sb-bg);
+  border-inline-end: var(--bnd-line) solid var(--bnd-sb-line);
+
+  .bnd-apps-rail-item {
+    display: grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+    border: none;
+    border-radius: var(--bnd-radius-lg);
+    background: transparent;
+    color: var(--bnd-sb-ink-muted);
+    cursor: pointer;
+
+    svg {
+      inline-size: 17px;
+      block-size: 17px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--bnd-sb-ink) 9%, transparent);
+      color: var(--bnd-sb-ink);
+    }
+
+    &.bnd-active {
+      background: color-mix(in srgb, var(--bnd-brand) 18%, transparent);
+      color: var(--bnd-brand);
+    }
+  }
+}
+
+// ── Reduce transparency (OS-level) ──────────────────────────────────────────
+// Glass degrades to the designed solid, never to a glitch. The per-user
+// toggle sets data-bnd-sb-blur="off" + material solid from JS; this covers
+// the OS preference with zero settings.
+@media (prefers-reduced-transparency: reduce) {
+  html[data-bnd-sb-material="glass"] .body-sidebar-container,
+  html[data-bnd-sb-material="glass"] .body-sidebar-container .body-sidebar {
+    background: var(--bnd-sb-bg);
+    backdrop-filter: none;
+  }
+}

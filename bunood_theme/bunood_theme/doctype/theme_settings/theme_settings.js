@@ -1,22 +1,29 @@
 // Copyright (c) 2026, Bunood and contributors
 // For license information, please see license.txt
 /**
- * Theme Settings form script — the visual Desk Layout picker.
+ * Theme Settings form script — the visual pickers.
  *
- * WHAT
- *   Renders five clickable wireframe cards (one per layout) into the
- *   `layout_picker` HTML field. Clicking a card sets the `desk_layout` Select;
- *   the Select stays visible above as the canonical stored value, so the
- *   picker is sugar, never a second source of truth.
+ * TWO PICKERS LIVE HERE
+ *   1. Desk Layout (item 9): five thumbnail cards -> `desk_layout`.
+ *   2. Sidebar Style (item 10): preset cards + one visual control per style
+ *      option -> the hidden `sidebar_*` fields.
  *
- * WHY INLINE SVG THUMBNAILS
- *   The cards are the wireframes the user chose from, shrunk to glyph size —
- *   a layout is a spatial idea and a Select of five nouns does not communicate
- *   it. Drawn with currentColor at low opacity plus var(--primary), so the
- *   thumbnails are legible in both desk themes with no per-mode assets.
+ * THE CONTRACT WITH THE SERVER
+ *   The hidden fields are the canon; presets are labels. Clicking a preset
+ *   writes all of its values into the fields (from the catalogue served by
+ *   bunood_theme.api.get_sidebar_presets — one source of truth in Python).
+ *   Changing any single option recomputes the label: exact match -> that
+ *   preset's name, anything else -> "Custom". No "preset + overrides" state
+ *   exists anywhere.
  *
- * Loaded automatically by Frappe because it sits next to the DocType it
- * belongs to (bunood_theme/doctype/theme_settings/).
+ * CONSTRAINTS ARE ENFORCED HERE, VISIBLY
+ *   Impossible combinations grey out with a one-line reason (e.g. Folder Tab
+ *   needs an attached pane) instead of failing silently later. If a change
+ *   invalidates the current choice, the choice is corrected and announced
+ *   with a toast — the form never stores a combination the CSS cannot draw.
+ *
+ * Styling is deliberately calmer than stock Frappe forms: hairline borders,
+ * flat cards, one accent outline for the selected option.
  */
 
 /* global frappe, __ */
@@ -24,11 +31,16 @@
 frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_render_layout_picker(frm);
+		bnd_render_sidebar_picker(frm);
 	},
 	desk_layout(frm) {
 		bnd_render_layout_picker(frm);
 	},
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// Desk Layout picker (item 9) — unchanged behaviour.
+// ════════════════════════════════════════════════════════════════════════════
 
 /**
  * The five layouts: stored value, human blurb, and a 120x76 thumbnail.
@@ -130,8 +142,7 @@ const BND_LAYOUTS = [
 ];
 
 /**
- * (Re)render the picker cards into the HTML field and highlight the current
- * choice. Idempotent — wholesale re-render on every call keeps state trivial.
+ * (Re)render the desk-layout cards and highlight the current choice.
  * @param {Object} frm - the Theme Settings form.
  */
 function bnd_render_layout_picker(frm) {
@@ -167,4 +178,379 @@ function bnd_render_layout_picker(frm) {
 	field.$wrapper.find(".bnd-lp-card").on("click", function () {
 		frm.set_value("desk_layout", this.getAttribute("data-layout"));
 	});
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Sidebar Style picker (item 10)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** The preset catalogue, fetched once per form session from the server. */
+let bnd_sb_catalogue = null;
+
+/** Mini pane-glyph helper: a rounded block, used across many thumbnails. */
+function bnd_sb_pane(bg, extra) {
+	return (
+		'<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:22px;' +
+		"border-radius:5px;background:" + bg + ";" + (extra || "") + '"></span>'
+	);
+}
+
+/**
+ * The option groups: field, title, one-line description, and per-value
+ * thumbnails. Values must equal the Select options in theme_settings.json.
+ * `disabled(frm)` returns a reason string when a value is not currently
+ * legal; the card greys out and shows it.
+ */
+const BND_SB_GROUPS = [
+	{
+		field: "sidebar_placement",
+		title: () => __("Pane placement"),
+		desc: () => __("How the sidebar sits against the page."),
+		options: [
+			{ value: "Attached", name: () => __("Attached"), thumb: '<span style="position:absolute;inset-block:0;inset-inline-start:0;inline-size:24px;background:currentColor;opacity:.18"></span>' },
+			{ value: "Floating", name: () => __("Floating card"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
+		],
+	},
+	{
+		field: "sidebar_material",
+		title: () => __("Pane material"),
+		desc: () => __("Glass lets the page glow through; opacity and blur below tune it."),
+		options: [
+			{ value: "Solid", name: () => __("Solid"), thumb: bnd_sb_pane("currentColor", "opacity:.3") },
+			{ value: "Glass", name: () => __("Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px") },
+		],
+	},
+	{
+		field: "sidebar_color",
+		title: () => __("Pane color"),
+		desc: () => __("The sidebar's own color world — independent of light or dark mode."),
+		options: [
+			{ value: "Match Theme", name: () => __("Match theme"), thumb: bnd_sb_pane("#dfeae1") },
+			{ value: "Minimal", name: () => __("Minimal"), thumb: bnd_sb_pane("#f2f2f0", "outline:1px solid rgba(0,0,0,.08);outline-offset:-1px") },
+			{ value: "Dark Contrast", name: () => __("Dark contrast"), thumb: bnd_sb_pane("#16211b") },
+			{ value: "Brand", name: () => __("Brand"), thumb: bnd_sb_pane("var(--primary, #4d8756)") },
+		],
+	},
+	{
+		field: "sidebar_icon_style",
+		title: () => __("Icon style"),
+		desc: () => __("How link icons are drawn."),
+		options: [
+			{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
+			{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
+			{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
+			{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756);opacity:.5">◪</span>' },
+			{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">○</span>' },
+			{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
+		],
+	},
+	{
+		field: "sidebar_active_style",
+		title: () => __("Active link"),
+		desc: () => __("How the current page is marked."),
+		options: [
+			{ value: "Solid Pill", name: () => __("Solid pill"), thumb: '<span class="bnd-sbp-row" style="background:var(--primary,#4d8756);color:#fff"></span>' },
+			{ value: "Soft Pill", name: () => __("Soft pill"), thumb: '<span class="bnd-sbp-row" style="background:color-mix(in srgb, var(--primary,#4d8756) 18%, transparent)"></span>' },
+			{ value: "Accent Rail", name: () => __("Accent rail"), thumb: '<span class="bnd-sbp-row" style="border-inline-start:3px solid var(--primary,#4d8756);border-radius:0;background:color-mix(in srgb, var(--primary,#4d8756) 8%, transparent)"></span>' },
+			{ value: "Glow Ring", name: () => __("Glow ring"), thumb: '<span class="bnd-sbp-row" style="outline:2px solid color-mix(in srgb, var(--primary,#4d8756) 55%, transparent);outline-offset:1px"></span>' },
+			{ value: "Outline", name: () => __("Outline"), thumb: '<span class="bnd-sbp-row" style="box-shadow:inset 0 0 0 1.5px var(--primary,#4d8756)"></span>' },
+			{ value: "Dot Marker", name: () => __("Dot marker"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:var(--primary,#4d8756)"></span>' },
+			{
+				value: "Folder Tab",
+				name: () => __("Folder tab"),
+				thumb: '<span style="position:absolute;inset-block:0;inset-inline-start:0;inline-size:22px;background:currentColor;opacity:.15"></span><span class="bnd-sbp-row" style="inset-inline-start:12px;background:var(--control-bg);border-radius:8px 0 0 8px"></span>',
+				disabled: (frm) =>
+					frm.doc.sidebar_placement === "Floating" ? __("Needs an attached pane") : "",
+			},
+		],
+	},
+	{
+		field: "sidebar_section_layout",
+		title: () => __("Sections"),
+		desc: () => __("How the pane's link groups are presented."),
+		options: [
+			{ value: "Plain", name: () => __("Plain"), thumb: '<span class="bnd-sbp-lines"></span>' },
+			{ value: "Divided", name: () => __("Divided"), thumb: '<span class="bnd-sbp-lines" style="border-block-start:1px solid currentColor;opacity:.6"></span>' },
+			{ value: "Mini-Cards", name: () => __("Mini-cards"), thumb: '<span class="bnd-sbp-card"></span>' },
+			{ value: "Accordion Cards", name: () => __("Accordion cards"), thumb: '<span class="bnd-sbp-card" style="block-size:12px"></span><span class="bnd-sbp-card" style="block-size:12px;inset-block-start:26px;opacity:.55"></span>' },
+		],
+	},
+	{
+		field: "sidebar_hue_wash",
+		title: () => __("Hue wash"),
+		desc: () => __("Each section keeps its own color family; actives take the section hue."),
+		options: [
+			{ value: "Off", name: () => __("Off"), thumb: '<span class="bnd-sbp-wash" style="background:var(--control-bg)"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:var(--control-bg)"></span>' },
+			{ value: "Subtle", name: () => __("Subtle"), thumb: '<span class="bnd-sbp-wash" style="background:#f5f8fd"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#fdf9f1"></span>' },
+			{ value: "Rich", name: () => __("Rich"), thumb: '<span class="bnd-sbp-wash" style="background:#e8f0fc"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#faf0dc"></span>' },
+		],
+	},
+	{
+		field: "sidebar_menu_rail",
+		title: () => __("Menu rail"),
+		desc: () => __("How your sidebar rests and expands. Separate from the apps rail below."),
+		options: [
+			{ value: "Always Expanded", name: () => __("Always expanded"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
+			{ value: "Manual Collapse", name: () => __("Manual collapse"), thumb: bnd_sb_pane("currentColor", "opacity:.18") + '<span style="position:absolute;inset-block-start:18px;inset-inline-start:32px;font-size:10px;opacity:.5">⟨</span>' },
+			{ value: "Hover-Expand", name: () => __("Hover-expand"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
+			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block-start:4px;inset-inline-end:6px;font-size:10px;color:var(--primary,#4d8756)">⌖</span>' },
+		],
+	},
+	{
+		field: "sidebar_badges",
+		title: () => __("Count badges"),
+		desc: () => __("Live record indicators on links."),
+		options: [
+			{ value: "Off", name: () => __("Off"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span>' },
+			{ value: "Dots", name: () => __("Dots"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:#E24B4A"></span>' },
+			{ value: "Counts", name: () => __("Counts"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:10px;inset-block-start:50%;translate:0 -50%;font-size:9px;background:color-mix(in srgb, var(--primary,#4d8756) 18%, transparent);color:var(--primary,#4d8756);border-radius:8px;padding-inline:5px">12</span>' },
+		],
+	},
+];
+
+/** Stepped 1..5 controls: field + endpoint labels. */
+const BND_SB_STEPPERS = [
+	{ field: "sidebar_glass_opacity", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
+	{ field: "sidebar_surface_intensity", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
+];
+
+/** Toggle rows: field + name + one-liner. */
+const BND_SB_TOGGLES = [
+	{ field: "sidebar_apps_rail", name: () => __("Apps rail"), desc: () => __("A separate slim strip of every app for one-click switching.") },
+	{ field: "sidebar_remember_sections", name: () => __("Remember sections"), desc: () => __("Keep each user's opened groups between visits.") },
+	{ field: "sidebar_scroll_fades", name: () => __("Scroll fades"), desc: () => __("Overflowing links fade at the edges instead of clipping.") },
+];
+
+/** Fetch the preset catalogue once, then render. */
+function bnd_render_sidebar_picker(frm) {
+	const field = frm.get_field("sidebar_picker");
+	if (!field || !field.$wrapper) return;
+	if (bnd_sb_catalogue) {
+		bnd_render_sidebar_picker_now(frm);
+		return;
+	}
+	frappe
+		.xcall("bunood_theme.api.get_sidebar_presets")
+		.then((data) => {
+			bnd_sb_catalogue = data;
+			bnd_render_sidebar_picker_now(frm);
+		})
+		.catch(() => {
+			field.$wrapper.html('<div class="text-muted">' + __("Could not load sidebar presets.") + "</div>");
+		});
+}
+
+/** Which preset (if any) exactly matches the form's current field values? */
+function bnd_sb_match_preset(frm) {
+	const { presets, fields } = bnd_sb_catalogue;
+	for (const [name, values] of Object.entries(presets)) {
+		const hit = fields.every((f) => String(frm.doc[f] ?? "") === String(values[f] ?? ""));
+		if (hit) return name;
+	}
+	return "Custom";
+}
+
+/** Preset card palette dots, hand-picked per preset for recognisability. */
+const BND_SB_PRESET_DOTS = {
+	"Bunood Night": ["#16211b", "#4d8756", "#5b8def", "#e8a13c"],
+	"Bunood Light": ["#f7faf7", "#4d8756", "#3b6fd4", "#d98e2b"],
+	"Daylight": ["#eef4ef", "#4d8756", "#3b6fd4", "#c4524a"],
+	"Ink": ["#fafafa", "#2c2c2a", "#888780", "#4d8756"],
+	"Carbon": ["#131714", "#5DCAA5", "#85B7EB", "#FAC775"],
+	"Paper": ["#f6f3ec", "#4d8756", "#534AB7", "#BA7517"],
+	"Aurora": ["#fdfefd", "#4d8756", "#378ADD", "#7F77DD"],
+	"Operator": ["#ffffff", "#2c2c2a", "#4d8756", "#B4B2A9"],
+};
+
+/** One-line blurbs for the preset cards. */
+const BND_SB_PRESET_BLURBS = {
+	"Bunood Night": () => __("Dark glass float, hue-washed cards, hover rail. The default."),
+	"Bunood Light": () => __("The same design in daylight: white glass, soft hue cards."),
+	"Daylight": () => __("Attached tinted pane, chips, solid pill. The safe beauty."),
+	"Ink": () => __("Minimal: mono icons, soft pill, no decoration."),
+	"Carbon": () => __("Deep dark, glow actives."),
+	"Paper": () => __("Warm and editorial."),
+	"Aurora": () => __("Luminous light glass."),
+	"Operator": () => __("Dense rows, live counts, hairline actives."),
+};
+
+/**
+ * Full render of the sidebar picker. Wholesale re-render on every change —
+ * state lives in the form document, never in this DOM.
+ */
+function bnd_render_sidebar_picker_now(frm) {
+	const field = frm.get_field("sidebar_picker");
+	const { presets } = bnd_sb_catalogue;
+	const active_preset = bnd_sb_match_preset(frm);
+
+	const preset_cards = Object.keys(presets)
+		.map((name) => {
+			const dots = (BND_SB_PRESET_DOTS[name] || [])
+				.map((c) => '<span class="bnd-sbp-dot" style="background:' + c + '"></span>')
+				.join("");
+			const blurb = BND_SB_PRESET_BLURBS[name] ? BND_SB_PRESET_BLURBS[name]() : "";
+			const on = name === active_preset ? " bnd-sbp-on" : "";
+			return (
+				'<button type="button" class="bnd-sbp-preset' + on + '" data-preset="' + name + '">' +
+				'<span class="bnd-sbp-pname">' + __(name) + "</span>" +
+				'<span class="bnd-sbp-pblurb">' + blurb + "</span>" +
+				'<span class="bnd-sbp-dots">' + dots + "</span>" +
+				"</button>"
+			);
+		})
+		.join("");
+
+	const custom_note =
+		active_preset === "Custom"
+			? '<div class="bnd-sbp-custom">' + __("Custom — your own combination.") + "</div>"
+			: "";
+
+	const groups = BND_SB_GROUPS.map((group) => {
+		const current = frm.doc[group.field];
+		const cards = group.options
+			.map((opt) => {
+				const reason = opt.disabled ? opt.disabled(frm) : "";
+				const on = opt.value === current ? " bnd-sbp-on" : "";
+				const dis = reason ? " bnd-sbp-dis" : "";
+				return (
+					'<button type="button" class="bnd-sbp-opt' + on + dis + '" data-field="' + group.field +
+					'" data-value="' + opt.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+					'<span class="bnd-sbp-thumb">' + opt.thumb + "</span>" +
+					'<span class="bnd-sbp-oname">' + opt.name() + "</span>" +
+					(reason ? '<span class="bnd-sbp-reason">' + reason + "</span>" : "") +
+					"</button>"
+				);
+			})
+			.join("");
+		return (
+			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + group.title() + "</div>" +
+			'<div class="bnd-sbp-desc">' + group.desc() + "</div>" +
+			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
+		);
+	}).join("");
+
+	const steppers = BND_SB_STEPPERS.map((s) => {
+		const current = parseInt(frm.doc[s.field], 10) || 3;
+		const stops = [1, 2, 3, 4, 5]
+			.map(
+				(n) =>
+					'<button type="button" class="bnd-sbp-stop' + (n === current ? " bnd-sbp-on" : "") +
+					'" data-field="' + s.field + '" data-value="' + n + '" aria-label="' + n + '"></button>'
+			)
+			.join("");
+		return (
+			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + s.title() + "</div>" +
+			'<div class="bnd-sbp-steps"><span class="bnd-sbp-slab">' + s.lo() + "</span>" + stops +
+			'<span class="bnd-sbp-slab">' + s.hi() + "</span></div></div>"
+		);
+	}).join("");
+
+	const blur_group =
+		'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Glass blur") + "</div>" +
+		'<div class="bnd-sbp-desc">' + __("Full steps down automatically on weak devices and honors the OS reduce-transparency setting.") + "</div>" +
+		'<div class="bnd-sbp-row-wrap">' +
+		["Off", "Soft", "Full"]
+			.map(
+				(v) =>
+					'<button type="button" class="bnd-sbp-opt' + (frm.doc.sidebar_blur === v ? " bnd-sbp-on" : "") +
+					'" data-field="sidebar_blur" data-value="' + v + '" style="inline-size:70px">' +
+					'<span class="bnd-sbp-oname">' + __(v) + "</span></button>"
+			)
+			.join("") +
+		"</div></div>";
+
+	const toggles = BND_SB_TOGGLES.map((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		return (
+			'<button type="button" class="bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
+			'<span class="bnd-sbp-knob' + (on ? " bnd-sbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
+			"</button>"
+		);
+	}).join("");
+
+	field.$wrapper.html(
+		"<style>" +
+			".bnd-sbp{display:flex;flex-direction:column;gap:14px;margin-block:4px}" +
+			".bnd-sbp-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}" +
+			".bnd-sbp-preset{display:flex;flex-direction:column;gap:3px;padding:9px;border:1px solid var(--border-color);border-radius:10px;background:var(--control-bg);cursor:pointer;text-align:start}" +
+			".bnd-sbp-preset:hover{border-color:var(--primary)}" +
+			".bnd-sbp-pname{font-weight:600;font-size:var(--text-sm)}" +
+			".bnd-sbp-pblurb{font-size:var(--text-xs);color:var(--text-muted);line-height:1.4}" +
+			".bnd-sbp-dots{display:flex;gap:3px;margin-block-start:2px}" +
+			".bnd-sbp-dot{inline-size:9px;block-size:9px;border-radius:50%;outline:1px solid var(--border-color);outline-offset:-1px}" +
+			".bnd-sbp-custom{font-size:var(--text-sm);color:var(--text-muted)}" +
+			".bnd-sbp-group{border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;background:var(--card-bg, var(--fg-color))}" +
+			".bnd-sbp-title{font-weight:600;font-size:var(--text-sm)}" +
+			".bnd-sbp-desc{font-size:var(--text-xs);color:var(--text-muted);margin-block-end:7px}" +
+			".bnd-sbp-row-wrap{display:flex;gap:7px;flex-wrap:wrap}" +
+			".bnd-sbp-opt{position:relative;inline-size:96px;padding:6px;border:1px solid var(--border-color);border-radius:8px;background:var(--control-bg);cursor:pointer;text-align:start}" +
+			".bnd-sbp-opt:hover{border-color:var(--primary)}" +
+			".bnd-sbp-on{border-color:var(--primary) !important;box-shadow:0 0 0 1px var(--primary)}" +
+			".bnd-sbp-dis{opacity:.45;cursor:not-allowed}" +
+			".bnd-sbp-thumb{position:relative;display:block;block-size:42px;border-radius:6px;background:var(--bg-color);overflow:hidden;color:var(--text-color)}" +
+			".bnd-sbp-oname{display:block;font-size:var(--text-xs);font-weight:600;margin-block-start:4px}" +
+			".bnd-sbp-reason{display:block;font-size:10px;color:var(--text-muted)}" +
+			".bnd-sbp-ic{position:relative;display:inline-grid;place-items:center;inline-size:16px;block-size:16px;border-radius:5px;font-size:9px;margin:12px 2px 0 6px}" +
+			".bnd-sbp-row{position:absolute;inset-inline:8px;inset-block-start:13px;block-size:16px;border-radius:8px}" +
+			".bnd-sbp-lines{position:absolute;inset-inline:8px;inset-block-start:10px;block-size:6px;border-radius:3px;background:currentColor;opacity:.15;box-shadow:0 10px 0 currentColor,0 20px 0 currentColor}" +
+			".bnd-sbp-card{position:absolute;inset-inline:7px;inset-block-start:7px;block-size:28px;border-radius:5px;background:var(--control-bg);border:1px solid var(--border-color)}" +
+			".bnd-sbp-wash{position:absolute;inset-inline:7px;inset-block-start:6px;block-size:16px;border-radius:5px}" +
+			".bnd-sbp-steps{display:flex;align-items:center;gap:8px}" +
+			".bnd-sbp-slab{font-size:var(--text-xs);color:var(--text-muted)}" +
+			".bnd-sbp-stop{inline-size:13px;block-size:13px;border-radius:50%;border:none;background:var(--border-color);cursor:pointer;padding:0}" +
+			".bnd-sbp-stop.bnd-sbp-on{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent)}" +
+			".bnd-sbp-toggle{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--control-bg);cursor:pointer;text-align:start;inline-size:100%}" +
+			".bnd-sbp-toggle b{font-size:var(--text-sm)}" +
+			".bnd-sbp-knob{position:relative;inline-size:30px;block-size:17px;border-radius:99px;background:var(--border-color);flex:none;transition:background .15s}" +
+			".bnd-sbp-knob::after{content:'';position:absolute;inset-block-start:2px;inset-inline-start:2px;inline-size:13px;block-size:13px;border-radius:50%;background:#fff;transition:inset-inline-start .15s}" +
+			".bnd-sbp-knob-on{background:var(--primary)}" +
+			".bnd-sbp-knob-on::after{inset-inline-start:15px}" +
+			"</style>" +
+			'<div class="bnd-sbp">' +
+			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
+			groups + blur_group + steppers +
+			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Extras") + '</div><div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			"</div>"
+	);
+
+	// One delegated pass wires everything; re-render happens on any change.
+	field.$wrapper.find(".bnd-sbp-preset").on("click", function () {
+		bnd_sb_apply_preset(frm, this.getAttribute("data-preset"));
+	});
+	field.$wrapper.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+}
+
+/** Apply a preset: write every field, then relabel and re-render. */
+function bnd_sb_apply_preset(frm, name) {
+	const values = bnd_sb_catalogue.presets[name];
+	if (!values) return;
+	for (const [field, value] of Object.entries(values)) frm.set_value(field, value);
+	frm.set_value("sidebar_preset", name);
+	bnd_render_sidebar_picker_now(frm);
+}
+
+/**
+ * Set one option, keep the state legal, relabel the preset, re-render.
+ * The one cross-field rule: leaving an attached pane while Folder Tab is
+ * the active style silently falls back to Solid Pill, with a toast.
+ */
+function bnd_sb_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	if (
+		fieldname === "sidebar_placement" &&
+		value === "Floating" &&
+		frm.doc.sidebar_active_style === "Folder Tab"
+	) {
+		frm.set_value("sidebar_active_style", "Solid Pill");
+		frappe.show_alert({
+			message: __("Folder Tab needs an attached pane — active link set to Solid Pill."),
+			indicator: "orange",
+		});
+	}
+	frm.set_value("sidebar_preset", bnd_sb_match_preset(frm));
+	bnd_render_sidebar_picker_now(frm);
 }

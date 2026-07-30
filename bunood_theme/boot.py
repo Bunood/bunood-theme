@@ -78,6 +78,34 @@ def extend_bootinfo(bootinfo):
         # missing value degrades to the stock desk (fails open).
         bootinfo.bnd_layout = settings.get("desk_layout") or "Top Bar"
 
+        # Sidebar style kit (item 10). One compact dict; every empty field
+        # falls back to the default preset so a half-seeded site still renders
+        # a coherent design instead of a mixed one. Same flash exemption: the
+        # sidebar is built by Frappe's JS after the splash.
+        from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
+
+        preset = SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET]
+        get = lambda f: settings.get(f) or preset.get(f)  # noqa: E731
+        bootinfo.bnd_sidebar = {
+            "preset": settings.get("sidebar_preset") or DEFAULT_SIDEBAR_PRESET,
+            "placement": get("sidebar_placement"),
+            "material": get("sidebar_material"),
+            "glass_opacity": get("sidebar_glass_opacity"),
+            "blur": get("sidebar_blur"),
+            "color": get("sidebar_color"),
+            "icons": get("sidebar_icon_style"),
+            "active": get("sidebar_active_style"),
+            "sections": get("sidebar_section_layout"),
+            "wash": get("sidebar_hue_wash"),
+            "intensity": get("sidebar_surface_intensity"),
+            "menurail": get("sidebar_menu_rail"),
+            # Checks: 0 is a real choice, so no or-fallback — absent field only.
+            "apps_rail": settings.get("sidebar_apps_rail") or 0,
+            "badges": get("sidebar_badges"),
+            "remember": settings.get("sidebar_remember_sections") or 0,
+            "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
+        }
+
     except Exception:
         # A missing DocType (pre-migrate) or a locked table must not break boot.
         frappe.log_error("bunood_theme.boot.extend_bootinfo failed")

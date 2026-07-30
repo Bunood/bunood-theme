@@ -135,6 +135,22 @@
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
 
+  // ── Sidebar style kit (checklist item 10) ─────────────────────────────────
+  // Consumed ONLY by chrome/_sidebar.scss. The kit's color-mode blocks set
+  // the --bnd-sb-* working set (bg, ink, chip, card); these are the shared
+  // geometry/stop values every mode agrees on.
+  --bnd-sb-w: 220px;
+  --bnd-sb-rail-w: 52px;
+  --bnd-apps-rail-w: 46px;
+  --bnd-sb-radius: 14px;
+  // Glass opacity stops (Theme Settings "Glass opacity", 1..5). The value is
+  // the OPAQUE percentage of the pane color kept in the mix.
+  --bnd-sb-glass-1: 55%;
+  --bnd-sb-glass-2: 65%;
+  --bnd-sb-glass-3: 75%;
+  --bnd-sb-glass-4: 85%;
+  --bnd-sb-glass-5: 93%;
+
   // ── Z-index ladder ────────────────────────────────────────────────────────
   // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and
   // alerts, so a dialog always covers our chrome. Panels (our menus, the

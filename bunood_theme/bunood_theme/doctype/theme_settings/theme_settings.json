@@ -19,6 +19,24 @@
   "section_layout",
   "desk_layout",
   "layout_picker",
+  "section_sidebar",
+  "sidebar_preset",
+  "sidebar_picker",
+  "sidebar_placement",
+  "sidebar_material",
+  "sidebar_glass_opacity",
+  "sidebar_blur",
+  "sidebar_color",
+  "sidebar_icon_style",
+  "sidebar_active_style",
+  "sidebar_section_layout",
+  "sidebar_hue_wash",
+  "sidebar_surface_intensity",
+  "sidebar_menu_rail",
+  "sidebar_apps_rail",
+  "sidebar_badges",
+  "sidebar_remember_sections",
+  "sidebar_scroll_fades",
   "section_features",
   "enable_command_palette",
   "default_density",
@@ -110,6 +128,127 @@
    "fieldname": "layout_picker",
    "fieldtype": "HTML",
    "label": "Layout Picker"
+  },
+  {
+   "fieldname": "section_sidebar",
+   "fieldtype": "Section Break",
+   "label": "Sidebar Style"
+  },
+  {
+   "fieldname": "sidebar_preset",
+   "fieldtype": "Select",
+   "label": "Sidebar Preset",
+   "options": "Bunood Night\nBunood Light\nDaylight\nInk\nCarbon\nPaper\nAurora\nOperator\nCustom",
+   "default": "Bunood Night",
+   "hidden": 1,
+   "description": "Set by the picker below. Values live in the individual style fields; the preset is a label."
+  },
+  {
+   "fieldname": "sidebar_picker",
+   "fieldtype": "HTML",
+   "label": "Sidebar Style Picker"
+  },
+  {
+   "fieldname": "sidebar_placement",
+   "fieldtype": "Select",
+   "label": "Pane Placement",
+   "options": "Attached\nFloating",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_material",
+   "fieldtype": "Select",
+   "label": "Pane Material",
+   "options": "Solid\nGlass",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_glass_opacity",
+   "fieldtype": "Select",
+   "label": "Glass Opacity",
+   "options": "1\n2\n3\n4\n5",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_blur",
+   "fieldtype": "Select",
+   "label": "Glass Blur",
+   "options": "Off\nSoft\nFull",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_color",
+   "fieldtype": "Select",
+   "label": "Pane Color",
+   "options": "Match Theme\nMinimal\nDark Contrast\nBrand",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_icon_style",
+   "fieldtype": "Select",
+   "label": "Icon Style",
+   "options": "Colored Chips\nColored Dots\nFilled Color\nDuotone\nBrand Lines\nMonochrome",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_active_style",
+   "fieldtype": "Select",
+   "label": "Active Link Style",
+   "options": "Solid Pill\nSoft Pill\nAccent Rail\nGlow Ring\nOutline\nDot Marker\nFolder Tab",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_section_layout",
+   "fieldtype": "Select",
+   "label": "Section Layout",
+   "options": "Plain\nDivided\nMini-Cards\nAccordion Cards",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_hue_wash",
+   "fieldtype": "Select",
+   "label": "Hue Wash",
+   "options": "Off\nSubtle\nRich",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_surface_intensity",
+   "fieldtype": "Select",
+   "label": "Surface Intensity",
+   "options": "1\n2\n3\n4\n5",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_menu_rail",
+   "fieldtype": "Select",
+   "label": "Menu Rail",
+   "options": "Always Expanded\nManual Collapse\nHover-Expand\nHover + Pin",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_apps_rail",
+   "fieldtype": "Check",
+   "label": "Apps Rail",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_badges",
+   "fieldtype": "Select",
+   "label": "Count Badges",
+   "options": "Off\nDots\nCounts",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_remember_sections",
+   "fieldtype": "Check",
+   "label": "Remember Sections",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_scroll_fades",
+   "fieldtype": "Check",
+   "label": "Scroll Fades",
+   "hidden": 1
   },
   {
    "fieldname": "section_features",

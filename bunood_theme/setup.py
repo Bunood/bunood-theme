@@ -26,6 +26,7 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
+from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
 
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
@@ -42,6 +43,11 @@ DEFAULTS = {
     # the default: global bar above the page, breadcrumb title row, slim status
     # bar below. Same seeding rationale as default_density.
     "desk_layout": "Top Bar",
+    # Sidebar style kit (item 10): seed the default preset's name and every
+    # one of its field values. Values, not the name, are the canon — see
+    # bunood_theme/presets.py.
+    "sidebar_preset": DEFAULT_SIDEBAR_PRESET,
+    **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
 }
 
 #: Label of the user-menu density toggle. Module-level so the seeder and any
