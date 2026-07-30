@@ -285,15 +285,39 @@
 	function observe_sidebar_width() {
 		const sidebar = document.querySelector(".body-sidebar-container");
 		const root = document.documentElement;
-		const set = (w) => root.style.setProperty("--bnd-sidebar-live-w", w + "px");
 		if (!sidebar) {
-			set(0);
+			root.style.setProperty("--bnd-sidebar-live-w", "0px");
 			return;
 		}
-		set(sidebar.getBoundingClientRect().width);
+		// The value is the sidebar's END-EDGE INSET, not its width: fixed
+		// bottom bars start where the sidebar column truly ends, which width
+		// alone misses whenever the apps rail or a floating margin shifts the
+		// container (measured: the status bar rendered under both).
+		const set = () => {
+			const r = sidebar.getBoundingClientRect();
+			let inset = 0;
+			if (r.width > 0) {
+				const rtl = (document.documentElement.getAttribute("dir") || document.dir) === "rtl";
+				inset = Math.max(0, Math.round(rtl ? window.innerWidth - r.left : r.right));
+			}
+			root.style.setProperty("--bnd-sidebar-live-w", inset + "px");
+		};
+		set();
 		if (typeof ResizeObserver !== "undefined") {
-			new ResizeObserver(() => set(sidebar.getBoundingClientRect().width)).observe(sidebar);
+			new ResizeObserver(set).observe(sidebar);
 		}
+		window.addEventListener("resize", set);
+	}
+
+	/**
+	 * Route "" is v16's Desktop page, which ships its own navbar and search
+	 * and hides the normal sidebar — every piece of Bunood chrome stands down
+	 * there via the data-bnd-desktop attribute (chrome/_sidebar.scss).
+	 */
+	function update_desktop_mode() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const on_desktop = !route.length || (route.length === 1 && !route[0]);
+		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
 	}
 
 	// ── The theme's dropdown menu ───────────────────────────────────────────
@@ -772,6 +796,18 @@
 					done = true;
 					break; // one chip per trail: the main module
 				}
+				// Workspace pages: the current workspace is the trail's LAST
+				// crumb and is often not a link at all, so the anchor loop
+				// finds nothing — chip it via the route-resolved workspace.
+				if (!done && sb_current_workspace && sb_current_workspace.icon) {
+					const last = trail.querySelector("li:last-child a, li:last-child span, li:last-child");
+					if (last) {
+						const chip = el("span", "bnd-crumb-chip");
+						chip.appendChild(sprite_icon("icon-" + sb_current_workspace.icon));
+						last.insertBefore(chip, last.firstChild);
+						done = true;
+					}
+				}
 				if (!done) all_done = false;
 			}
 			return all_done;
@@ -1086,6 +1122,16 @@
 		if (document.querySelector(".bnd-apps-rail")) return;
 		const rail = el("div", "bnd-apps-rail", { role: "navigation", "aria-label": __("Apps") });
 
+		// Brand chip first — the rail carries identity like the dock does.
+		const brand = el("button", "bnd-apps-rail-item bnd-apps-rail-brand", {
+			type: "button",
+			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
+		});
+		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		brand.addEventListener("click", () => frappe.set_route(""));
+		rail.appendChild(brand);
+		rail.appendChild(el("span", "bnd-apps-rail-divider"));
+
 		const slug = (name) =>
 			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
 		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter((w) => w.public && !w.parent_page);
@@ -1230,6 +1276,7 @@
 		if (!slug) return; // boot failed or theme inactive: leave stock desk alone
 
 		observe_sidebar_width();
+		update_desktop_mode();
 		decorate_breadcrumbs();
 
 		if (slug === "topbar") {
@@ -1252,10 +1299,11 @@
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
+				update_desktop_mode();
+				sb_resolve_workspace_from_route();
 				decorate_breadcrumbs();
 				if (slug === "compact") inject_compact_cluster();
 				if (slug === "dock") update_dock_active();
-				sb_resolve_workspace_from_route();
 				sb_update_module_row();
 				sb_update_apps_rail_active();
 			});

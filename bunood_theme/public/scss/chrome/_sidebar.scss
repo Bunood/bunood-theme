@@ -609,24 +609,102 @@ html[data-bnd-sb-appsrail] .bnd-apps-rail {
     block-size: 32px;
     border: none;
     border-radius: var(--bnd-radius-lg);
-    background: transparent;
-    color: var(--bnd-sb-ink-muted);
+    background: var(--bnd-sb-chip-bg);
+    color: var(--bnd-sb-chip-ink);
     cursor: pointer;
 
     svg {
-      inline-size: 17px;
-      block-size: 17px;
+      inline-size: 16px;
+      block-size: 16px;
     }
 
     &:hover {
-      background: color-mix(in srgb, var(--bnd-sb-ink) 9%, transparent);
+      background: color-mix(in srgb, var(--bnd-sb-ink) 12%, transparent);
       color: var(--bnd-sb-ink);
     }
 
     &.bnd-active {
-      background: color-mix(in srgb, var(--bnd-brand) 18%, transparent);
+      background: color-mix(in srgb, var(--bnd-brand) 20%, transparent);
       color: var(--bnd-brand);
+      box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bnd-brand) 45%, transparent);
     }
+  }
+
+  // The brand chip anchors the rail's identity, same as the dock's.
+  .bnd-apps-rail-brand {
+    background: var(--bnd-brand);
+    color: var(--bnd-ink-inverse);
+    font-weight: var(--bnd-weight-medium);
+    font-size: var(--bnd-text-sm);
+
+    &:hover {
+      background: var(--bnd-brand);
+      color: var(--bnd-ink-inverse);
+      filter: brightness(1.08);
+    }
+  }
+
+  .bnd-apps-rail-divider {
+    inline-size: 20px;
+    block-size: var(--bnd-line);
+    background: var(--bnd-sb-line);
+    margin-block: var(--bnd-sp-1);
+  }
+}
+
+// Fixed bottom bars must clear the apps rail: the live inset variable is
+// measured by JS at the sidebar's END edge, which already includes the rail
+// and any floating margins — this block only documents that the statusbar
+// consumes it; see observe_sidebar_width() in bunood.js.
+
+// ── The Desktop page owns its own chrome ────────────────────────────────────
+// Route "" is v16's Desktop (#page-desktop): it ships its OWN navbar, its own
+// search, and hides the normal sidebar. Every piece of Bunood chrome stands
+// down there — bunood.js stamps data-bnd-desktop on <html> for that route.
+// Measured 2026-07-30: without this, our topbar duplicated the Desktop's
+// search header and the apps rail overlaid its icon grid.
+html[data-bnd-desktop] {
+  .bnd-topbar,
+  .bnd-statusbar,
+  .bnd-apps-rail,
+  .bnd-dock {
+    display: none;
+  }
+
+  .main-section {
+    padding-block-end: 0;
+  }
+
+  // The Desktop navbar has its OWN notifications dropdown; the layouts'
+  // panel relocation (chrome/_layouts.scss) must not seize it — measured as
+  // a stray white pill floating at the page's top edge.
+  .dropdown-notifications {
+    position: static;
+    inline-size: auto;
+    max-height: none;
+    overflow-y: visible;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+// ── Rail rest state: calm, not compressed ───────────────────────────────────
+// A workspace can hold 70+ links; rendering them as micro-rows in a 52px rail
+// is noise (measured on the Stock workspace). At rest the rail shows ONLY the
+// brand mark, the utility chips and the module chip; the link list fades in
+// with the expansion. Opacity (not display) so the expansion animates.
+html[data-bnd-sb-menurail="hover"] .body-sidebar-container:not(.bnd-rail-open),
+html[data-bnd-sb-menurail="hoverpin"] .body-sidebar-container:not(.bnd-rail-open) {
+  .body-sidebar-top,
+  .body-sidebar-cards,
+  .body-sidebar-bottom,
+  .standard-items-sections,
+  .sidebar-header .sidebar-item-label,
+  .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
   }
 }
 
