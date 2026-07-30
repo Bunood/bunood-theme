@@ -1,0 +1,67 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// DESK BUNDLE ENTRY POINT
+//
+// WHAT
+//   The single compiled stylesheet for the whole desk. `build.mjs` compiles this
+//   to `public/dist/css/bunood.<contenthash>.css` and writes the hashed path into
+//   `bunood_theme/assets.py`, which `hooks.py` imports.
+//
+// WHY ONE BUNDLE
+//   v1 shipped 13 separate plain-CSS files listed in `app_include_css`, and their
+//   correctness depended on the ORDER of that list — a comment in hooks.py had to
+//   warn people not to alphabetise it. Each also carried a hand-maintained `?v=N`
+//   cache-buster. One compiled bundle removes both failure modes: import order is
+//   explicit and local to this file, and the content hash busts the cache.
+//
+// IMPORT ORDER IS THE CASCADE
+//   Later imports win ties. The order below is deliberate:
+//     1. tokens   — declare the vocabulary
+//     2. bridge   — map it onto Frappe's names (mode-scoped)
+//     3. base     — element-level resets and typography
+//     4. chrome   — the frame around the app
+//     5. surfaces — the content the frame contains
+//     6. print    — last, so its @media print can null out anything above
+//
+// TWO RULES THAT APPLY TO EVERY PARTIAL
+//   * NO `@layer`. Frappe's desk CSS is unlayered, and unlayered beats layered,
+//     so a layered override loses. Beat Frappe with the `html[data-theme]` scope
+//     prefix instead. (ARCHITECTURE.md section 2.)
+//   * LOGICAL PROPERTIES ONLY — `margin-inline-start`, not `margin-left`. `dir` is
+//     already correct on `<html>`, so one sheet serves LTR and RTL and we never
+//     depend on an rtlcss build or the `assets-rtl.json` manifest.
+//     (ARCHITECTURE.md section 9.)
+// ============================================================================
+
+@use "tokens";
+@use "bridge";
+// Geometry consumption for density (item 4). Shrinks into surface partials
+// as items 16-18 ship — see the file header.
+@use "density";
+
+// ── Base ────────────────────────────────────────────────────────────────────
+// @use "base";
+
+// ── Chrome: the frame ───────────────────────────────────────────────────────
+// Item 9: the desk-layout system. _layouts.scss is the conditional matrix
+// (what each data-bnd-layout value hides and where panels open); the others
+// are the appearance of the pieces bunood.js mounts.
+@use "chrome/layouts";
+@use "chrome/navbar";
+@use "chrome/statusbar";
+@use "chrome/dock";
+@use "chrome/cluster";
+@use "chrome/breadcrumbs";
+// @use "chrome/sidebar";
+// @use "chrome/palette";
+
+// ── Surfaces: the content ───────────────────────────────────────────────────
+// @use "surfaces/workspace";
+// @use "surfaces/list";
+// @use "surfaces/report";
+// @use "surfaces/form";
+// @use "surfaces/charts";
+// @use "surfaces/overlays";
+
+// ── Print — must stay last: within @media print, later rules win ties ───────
+@use "print";

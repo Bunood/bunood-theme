@@ -1,0 +1,41 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// BREADCRUMB MODULE CHIP — the workspace icon in the trail (item 9; item 11
+// will extend this file with the full breadcrumb treatment).
+//
+// WHAT
+//   `.bnd-crumb-chip`, a small brand-tinted square holding the current
+//   workspace's own sprite icon, injected by bunood.js as the first child of
+//   the workspace link inside v16's existing `.navbar-breadcrumbs` (which
+//   already lives in the page title area — measured 2026-07-30; no breadcrumb
+//   construction of our own is needed, only decoration).
+//
+// WHY THE CHIP USES THE WORKSPACE'S OWN ICON
+//   The sidebar (and dock) identify each workspace by its sprite icon; the
+//   crumb repeating the same icon makes the trail and the navigation visibly
+//   agree — the design point the user picked in the wireframe.
+// ============================================================================
+
+html[data-theme] .bnd-crumb-chip {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 20px;
+  margin-inline-end: var(--bnd-sp-1);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+  color: var(--bnd-brand);
+  vertical-align: text-bottom;
+
+  svg {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+}
+
+// The breadcrumb list itself: align items so the chip does not stretch the
+// row, and let the trail breathe a little.
+html[data-theme] .navbar-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+}

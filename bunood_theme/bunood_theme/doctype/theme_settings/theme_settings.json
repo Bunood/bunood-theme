@@ -1,0 +1,169 @@
+{
+ "actions": [],
+ "creation": "2026-07-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_branding",
+  "company_name",
+  "logo",
+  "column_break_branding",
+  "favicon",
+  "tagline",
+  "section_colors",
+  "brand_color",
+  "accent_color",
+  "column_break_colors",
+  "brand_color_dark",
+  "accent_color_dark",
+  "section_layout",
+  "desk_layout",
+  "layout_picker",
+  "section_features",
+  "enable_command_palette",
+  "default_density",
+  "section_generated",
+  "brand_css_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_branding",
+   "fieldtype": "Section Break",
+   "label": "Branding"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name",
+   "description": "Shown in the sidebar and the browser tab."
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo",
+   "description": "Frappe also reads Website Settings and Navbar Settings for a logo; set it there to have it appear before this app's JS runs."
+  },
+  {
+   "fieldname": "column_break_branding",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "favicon",
+   "fieldtype": "Attach Image",
+   "label": "Favicon"
+  },
+  {
+   "fieldname": "tagline",
+   "fieldtype": "Data",
+   "label": "Tagline",
+   "description": "Shown on the login page."
+  },
+  {
+   "fieldname": "section_colors",
+   "fieldtype": "Section Break",
+   "label": "Colors"
+  },
+  {
+   "fieldname": "brand_color",
+   "fieldtype": "Color",
+   "label": "Brand Color",
+   "default": "#4d8756",
+   "description": "The single seed. Every surface, hover and border is derived from it with color-mix()."
+  },
+  {
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Color",
+   "default": "#4463f0",
+   "description": "Interactive elements: links, focus rings, primary actions."
+  },
+  {
+   "fieldname": "column_break_colors",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "brand_color_dark",
+   "fieldtype": "Color",
+   "label": "Brand Color (Dark Mode)",
+   "description": "Optional. Dark mode is selected, not inverted; leave empty to reuse the light value."
+  },
+  {
+   "fieldname": "accent_color_dark",
+   "fieldtype": "Color",
+   "label": "Accent Color (Dark Mode)",
+   "description": "Optional."
+  },
+  {
+   "fieldname": "section_layout",
+   "fieldtype": "Section Break",
+   "label": "Desk Layout"
+  },
+  {
+   "fieldname": "desk_layout",
+   "fieldtype": "Select",
+   "label": "Desk Layout",
+   "options": "Top Bar\nCompact\nClassic\nBottom Bar\nDock",
+   "default": "Top Bar",
+   "description": "Where global search, notifications and your profile live. Applies site-wide on the next page load; pick visually below."
+  },
+  {
+   "fieldname": "layout_picker",
+   "fieldtype": "HTML",
+   "label": "Layout Picker"
+  },
+  {
+   "fieldname": "section_features",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "fieldname": "enable_command_palette",
+   "fieldtype": "Check",
+   "label": "Enable Command Palette",
+   "default": "1"
+  },
+  {
+   "fieldname": "section_generated",
+   "fieldtype": "Section Break",
+   "label": "Generated",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "brand_css_url",
+   "fieldtype": "Data",
+   "label": "Brand Stylesheet URL",
+   "read_only": 1,
+   "description": "Written by bunood_theme.brand on every save. Content-hashed, so the URL is immutable and needs no cache-busting query string."
+  },
+  {
+   "fieldname": "default_density",
+   "fieldtype": "Select",
+   "label": "Default Density",
+   "options": "Comfortable\nCompact",
+   "default": "Comfortable",
+   "description": "Site-wide default row and control height. Each user can override it from the settings menu; Compact shortens rows and padding but never the text size."
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Theme Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

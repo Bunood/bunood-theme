@@ -1,0 +1,25 @@
+# Python packaging for the Bunood Theme Frappe app.
+#
+# flit reads __version__ from bunood_theme/__init__.py, which is therefore the single
+# source of truth for the version — hooks.py's app_version must match it.
+#
+# The frappe dependency range is intentionally wide for marketplace compatibility, but
+# this app is written and verified against v16 only (see ARCHITECTURE.md).
+[project]
+name = "bunood_theme"
+authors = [{ name = "Bunood", email = "sales@bunood.com" }]
+description = "Modern white-label theme for Frappe/ERPNext v16"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Bunood/bunood-theme"
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<17.0.0"

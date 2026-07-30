@@ -1,0 +1,96 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// DOCK — the "Dock" layout's floating workspace bar (checklist item 9).
+//
+// WHAT
+//   `.bnd-dock`, a centered, floating pill fixed above the bottom edge,
+//   mounted by bunood.js when data-bnd-layout="dock". Contains: brand chip,
+//   the first N workspaces as icon buttons, an overflow "⋯" menu for the
+//   rest, then a divider and the global cluster (search, bell, avatar).
+//   The sidebar is hidden entirely in this layout (_layouts.scss), so the
+//   dock IS the navigation.
+//
+// WHY CENTERED-FLOATING RATHER THAN EDGE-TO-EDGE
+//   The macOS/Arc pattern the wireframe sold: content owns the full window
+//   and the dock reads as an object above it, not a wall below it. Fixed
+//   centering via inset-inline 0 + margin-inline auto + fit-content — no
+//   transform, so no blurry half-pixel rendering at odd widths.
+//
+// ICONS come from Frappe's own #all-symbols sprite (each workspace's `icon`
+// field names a sprite symbol), so dock icons always match what the sidebar
+// would have shown.
+// ============================================================================
+
+html[data-theme] .bnd-dock {
+  position: fixed;
+  inset-block-end: var(--bnd-sp-3);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  margin-inline: auto;
+  inline-size: fit-content;
+  max-inline-size: calc(100vw - var(--bnd-sp-6));
+  z-index: var(--bnd-z-bar);
+
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-xl);
+  box-shadow: var(--bnd-shadow-lg);
+}
+
+// One dock entry: a square icon button with a tooltip-style title attribute
+// (the browser's own tooltip — no custom tooltip machinery at this stage).
+html[data-theme] .bnd-dock-item {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--bnd-dock-h) - 16px);
+  block-size: calc(var(--bnd-dock-h) - 16px);
+  border: none;
+  border-radius: var(--bnd-radius-lg);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: background var(--bnd-dur-fast) var(--bnd-ease),
+    color var(--bnd-dur-fast) var(--bnd-ease);
+
+  svg {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+
+  // Active workspace: brand-tinted, same signal the sidebar would have given.
+  &.bnd-active {
+    background: var(--bnd-active);
+    color: var(--bnd-brand);
+  }
+}
+
+// Brand chip: the company mark; routes to the Desktop. Filled with the brand
+// colour so the dock carries identity now that the sidebar header is gone.
+html[data-theme] .bnd-dock-brand {
+  background: var(--bnd-brand);
+  color: var(--bnd-ink-inverse);
+  font-weight: var(--bnd-weight-medium);
+  font-size: var(--bnd-text-md);
+
+  &:hover {
+    background: var(--bnd-brand);
+    color: var(--bnd-ink-inverse);
+    filter: brightness(1.08);
+  }
+}
+
+html[data-theme] .bnd-dock-divider {
+  inline-size: var(--bnd-line);
+  align-self: stretch;
+  margin-block: var(--bnd-sp-2);
+  background: var(--bnd-border);
+}

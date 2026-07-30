@@ -1,0 +1,151 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// PRINT — checklist item 8, decision "B plus hardening" (2026-07-30).
+//
+// WHAT
+//   The desk on paper: what happens when a user presses Ctrl+P on a list,
+//   report or form. Scope boundary: invoice/PO PDFs go through Frappe's Print
+//   Format engine and are item 28 — nothing here touches them.
+//
+// WHY IT LIVES IN THE BUNDLE, NOT A SEPARATE FILE
+//   v1 shipped print as its own stylesheet — one more render-blocking request
+//   on every desk load for rules that apply only in a media query. Inside the
+//   bundle it costs nothing at screen time, and it MUST be the last import in
+//   bunood.scss: within @media print, later rules win ties against everything
+//   above, which is exactly the authority a print sheet needs.
+//
+// THE FORCE-LIGHT TRICK (why this file is small)
+//   A dark-mode user printing must get a light page — dark backgrounds waste
+//   toner and print illegibly. We do NOT restyle components for that. We
+//   override the --bnd-* TOKENS inside @media print, and _bridge.scss —
+//   whose mode-scoped blocks re-derive all of Frappe's ~534 variables from
+//   those tokens — turns the entire desk light automatically. One block,
+//   every component, including ones we have never styled. This is the token
+//   pipeline paying rent.
+//
+// DECISION RECORD (what was considered and rejected)
+//   Option C added a site/date footer via @page margin boxes — rejected
+//   because Chrome does not support @page margin-box content, and the
+//   position:fixed fallback collides with content margins. C's report-URL
+//   expansion is deferred with it. Revisit if printed reports become a real
+//   workflow.
+// ============================================================================
+
+@media print {
+  // ── Force light through the token pipeline ────────────────────────────────
+  // Restates the light values from _tokens.scss for BOTH the dark attribute
+  // and the automatic/absent cases. The bridge's [data-theme="dark"] block
+  // still applies — but it now derives from light-valued tokens, so every
+  // Frappe variable it maps comes out light. No component rules needed.
+  html,
+  html[data-theme="dark"],
+  html[data-theme="automatic"] {
+    --bnd-page: #ffffff; // paper is the page; no brand tint in print
+    --bnd-surface: #ffffff;
+    --bnd-raised: #ffffff;
+    --bnd-pane: #ffffff;
+    --bnd-hover: #ffffff;
+    --bnd-active: #ffffff;
+    --bnd-ink: #000000;
+    --bnd-ink-muted: #444444;
+    --bnd-ink-subtle: #666666;
+    --bnd-border: #999999; // hairlines must survive greyscale copiers
+    --bnd-border-strong: #666666;
+    --bnd-shadow-sm: none;
+    --bnd-shadow-md: none;
+    --bnd-shadow-lg: none;
+    background: #ffffff;
+  }
+
+  // ── Chrome carries nothing onto paper ─────────────────────────────────────
+  // Frappe's shell plus anything interactive. Page TITLE stays (a printout
+  // needs to say what it is) — only the action row beside it goes.
+  .body-sidebar-container,
+  .navbar,
+  .page-actions,
+  .form-sidebar,
+  .list-sidebar,
+  .layout-side-section,
+  .comment-box,
+  .btn,
+  .filter-section,
+  .filter-selector,
+  .desk-alert,
+  .modal-backdrop {
+    display: none;
+  }
+
+  // Content reclaims the freed width.
+  .main-section,
+  .page-container,
+  .layout-main-section-wrapper {
+    margin: 0;
+    padding: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  // ── Tables: the core of decision B ────────────────────────────────────────
+  // Column headers repeat on every page, and no row is ever cut in half by a
+  // page break. These two rules are the difference between a printout someone
+  // files and one they re-export from a spreadsheet.
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  tr,
+  .list-row,
+  .list-row-container,
+  .dt-row {
+    break-inside: avoid;
+  }
+
+  // Money must line up on paper exactly as on screen.
+  td,
+  th,
+  .list-row-col,
+  .dt-cell__content {
+    font-variant-numeric: var(--bnd-numeric);
+  }
+
+  // ── Hardening beyond B ────────────────────────────────────────────────────
+  // Form sections and cards keep their integrity across page breaks, same as
+  // rows do.
+  .frappe-card,
+  .form-section,
+  .widget {
+    break-inside: avoid;
+  }
+
+  // Status indicators: browsers strip background colours unless the user
+  // ticks "background graphics", which nobody does. The outline keeps the
+  // pill legible with zero settings; print-color-adjust restores the real
+  // colour when the setting IS on. State is never colour-alone on paper.
+  .indicator-pill,
+  .indicator {
+    border: 1px solid currentColor;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  // Links print as content, not as grey ink. (URL expansion is option C,
+  // deliberately not taken — see the decision record above.)
+  a,
+  a:visited {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  // No stranded single lines at page boundaries.
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

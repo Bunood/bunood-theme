@@ -1,0 +1,175 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// DESK LAYOUTS — the visibility matrix (checklist item 9).
+//
+// WHAT
+//   Five desk layouts, selected site-wide in Theme Settings and delivered as
+//   `data-bnd-layout` on <html> (set by bunood.js from boot, before
+//   DOMContentLoaded). This file holds everything CONDITIONAL on the layout:
+//   which native sidebar rows hide, where the notifications panel opens, and
+//   how much space page content reserves for bars. The bars' own appearance
+//   lives in their partials (_navbar, _statusbar, _dock).
+//
+// THE MATRIX (what each layout hides / mounts)
+//   topbar     hide sidebar search+bell+user   mount: topbar, statusbar
+//   compact    hide sidebar bell+user          mount: page-head cluster, statusbar
+//   classic    hide nothing                    mount: nothing (crumb chip only)
+//   bottombar  hide sidebar search+bell+user   mount: bottombar (global controls)
+//   dock       hide the ENTIRE sidebar         mount: dock
+//
+// WHY display:none STILL WORKS AS A CONTROL
+//   Our bar buttons do not reimplement search or notifications — they call
+//   .click() on the HIDDEN native trigger (bunood.js), and DOM click() fires
+//   handlers regardless of visibility. The native elements stay in the DOM as
+//   the single source of behaviour; we only relocate where the USER clicks.
+//
+// WHY THE NOTIFICATIONS PANEL IS REPOSITIONED HERE
+//   `.dropdown-notifications` opens anchored inside the sidebar. When the bell
+//   that opens it lives in a bar instead, the panel must open near that bell —
+//   so each layout pins it (position:fixed) next to its own bell. Classic is
+//   untouched.
+//
+// NO LAYOUT ATTRIBUTE = CLASSIC
+//   If boot fails, no attribute is set, none of these rules match, nothing is
+//   hidden and nothing mounts. The failure mode of the whole layout system is
+//   "stock v16", never a desk with controls hidden and no replacement.
+//
+// Scoped html[data-bnd-layout] throughout — (0,1,1)+ beats Frappe's unlayered
+// class rules without !important. Logical properties only (RTL guard).
+// ============================================================================
+
+// ── Shared: hide the native rows a layout replaces ──────────────────────────
+html[data-bnd-layout="topbar"],
+html[data-bnd-layout="bottombar"] {
+  .body-sidebar .navbar-search-bar,
+  .body-sidebar .sidebar-notification,
+  .body-sidebar .sidebar-user-button {
+    display: none;
+  }
+}
+
+html[data-bnd-layout="compact"] {
+  // Compact keeps the sidebar search (its one keeper); bell + identity move up.
+  .body-sidebar .sidebar-notification,
+  .body-sidebar .sidebar-user-button {
+    display: none;
+  }
+}
+
+html[data-bnd-layout="dock"] {
+  // The boldest layout: no sidebar at all. body is a flex row, so the main
+  // section reclaims the full width automatically.
+  //
+  // !important is REQUIRED here, not casual: Frappe's sidebar JS writes
+  // `style="display: block"` INLINE on this node (measured 2026-07-30), and
+  // no selector specificity can beat an inline style. Beating inline styles
+  // is one of the two legitimate uses of !important this codebase allows.
+  .body-sidebar-container {
+    display: none !important;
+  }
+  // The hamburger that toggles a sidebar that no longer exists.
+  .page-title .sidebar-toggle-btn {
+    display: none;
+  }
+}
+
+// ── Reserve space for fixed bars ────────────────────────────────────────────
+// The status bar and dock are position:fixed, so page content must pad its
+// block-end by their height or the last list row hides behind them forever.
+html[data-bnd-layout="topbar"] .main-section,
+html[data-bnd-layout="compact"] .main-section {
+  padding-block-end: var(--bnd-statusbar-h);
+}
+html[data-bnd-layout="bottombar"] .main-section {
+  padding-block-end: var(--bnd-bottombar-h);
+}
+html[data-bnd-layout="dock"] .main-section {
+  padding-block-end: calc(var(--bnd-dock-h) + 20px);
+}
+
+// ── Top bar layout: the native <header> becomes the bar's home ──────────────
+// v16 renders an EMPTY <header> as .main-section's first child — a native
+// mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section
+// flow and starts after the sidebar with no width bookkeeping.
+html[data-bnd-layout="topbar"] .main-section > header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--bnd-z-bar);
+  display: block;
+}
+// Frappe's .page-head is sticky at block-start 0; under a topbar it must
+// stick BELOW the bar instead of sliding beneath it.
+html[data-bnd-layout="topbar"] .page-head {
+  inset-block-start: var(--bnd-topbar-h);
+}
+
+// ── Notifications panel relocation ──────────────────────────────────────────
+// Pinned next to whichever bell the layout owns. Sized defensively: the panel
+// brings its own internal layout; we only place and bound it.
+html[data-bnd-layout="topbar"] .dropdown-notifications,
+html[data-bnd-layout="compact"] .dropdown-notifications,
+html[data-bnd-layout="bottombar"] .dropdown-notifications,
+html[data-bnd-layout="dock"] .dropdown-notifications {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  inset-inline-end: var(--bnd-sp-2);
+  inset-inline-start: auto;
+  inline-size: min(380px, 92vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--bnd-surface);
+  box-shadow: var(--bnd-shadow-lg);
+  border-radius: var(--bnd-radius-lg);
+
+  // Natively the wrapper is a 0x0 ANCHOR and the list inside is
+  // position:absolute, popping out beside the sidebar (measured: wrapper
+  // 0x0, child 853px absolute). Relocated to a bar, the wrapper must be the
+  // panel itself — so the list becomes static and gives the wrapper its
+  // height, and our size/scroll rules above actually bound the content.
+  .notifications-list {
+    position: static;
+    inline-size: 100%;
+  }
+}
+html[data-bnd-layout="topbar"] .dropdown-notifications {
+  inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
+  inset-block-end: auto;
+}
+html[data-bnd-layout="compact"] .dropdown-notifications {
+  inset-block-start: 56px; // just below the page-head strip that holds the bell
+  inset-block-end: auto;
+}
+html[data-bnd-layout="bottombar"] .dropdown-notifications {
+  inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
+  inset-block-start: auto;
+}
+html[data-bnd-layout="dock"] .dropdown-notifications {
+  inset-block-end: calc(var(--bnd-dock-h) + var(--bnd-sp-3));
+  inset-block-start: auto;
+}
+
+// ── Brand-menu slimming ─────────────────────────────────────────────────────
+// In every layout with an avatar menu (all but classic), the personal items
+// leave the logo menu: brand menu = WHERE (Desktop/Workspaces/Website),
+// avatar menu = WHO. Items are identified by their icon or onclick — both
+// locale-independent; label text would break on Arabic sites.
+// Classic keeps the stock merged menu because it has no avatar anywhere else.
+html[data-bnd-layout="topbar"],
+html[data-bnd-layout="compact"],
+html[data-bnd-layout="bottombar"],
+html[data-bnd-layout="dock"] {
+  .frappe-menu.context-menu {
+    // Display (theme submenu), Session Defaults, Reload — replaced by the
+    // avatar menu's Appearance / Session Defaults / Reload.
+    .dropdown-menu-item:has(use[href="#icon-monitor"]),
+    .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
+    .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
+    // Logout — covered whichever way Frappe identifies it.
+    .dropdown-menu-item[onclick*="logout"],
+    .dropdown-menu-item:has(use[href*="log-out"]),
+    // Our own seeded Navbar Settings action; the avatar menu hardcodes it.
+    .dropdown-menu-item[onclick*="cycle_density"] {
+      display: none;
+    }
+  }
+}
