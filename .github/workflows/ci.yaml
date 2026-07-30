@@ -1,0 +1,56 @@
+# Static quality gates for every push and PR.
+#
+# WHAT RUNS HERE vs LOCALLY
+#   CI has no bench/site, so it runs the gates that need none:
+#     1. the SCSS build — which embeds the RTL guard (the build FAILS on any
+#        physical CSS property), so RTL safety is enforced on every push;
+#     2. dist drift — the committed compiled output and assets.py must match
+#        a fresh build of the committed sources ("forgot to run npm run
+#        build" ships stale CSS otherwise, and nothing at runtime would say);
+#     3. syntax checks on every shipped JS and Python file.
+#   The full browser matrix (tests/smoke.mjs — layouts, presets, rail,
+#   preview, save round-trip) needs a running site and is REQUIRED locally
+#   before any release tag; see README "Versioning and releases".
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: the browser is only needed for the
+      # local e2e suite, never for these gates — saves ~120MB per run.
+      - name: Install toolchain
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Build (includes the RTL guard)
+        run: npm run build
+
+      - name: Committed dist matches sources
+        run: |
+          git diff --exit-code -- bunood_theme/public/dist bunood_theme/assets.py \
+            || { echo "::error::dist/assets.py drift — run 'npm run build' and commit the output."; exit 1; }
+
+      - name: JavaScript syntax
+        run: |
+          set -e
+          for f in build.mjs tests/smoke.mjs bunood_theme/public/js/bunood.js \
+                   bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js; do
+            node --check "$f"
+          done
+
+      - name: Python syntax
+        run: python3 -m compileall -q bunood_theme/

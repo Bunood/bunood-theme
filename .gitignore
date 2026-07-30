@@ -9,9 +9,9 @@ __pycache__/
 
 # Node — the toolchain is dev-only; the COMPILED output in
 # bunood_theme/public/dist IS committed, because the runtime containers cannot
-# build (see ARCHITECTURE.md section 7).
+# build (see ARCHITECTURE.md section 7). The LOCKFILE is committed so CI's
+# `npm ci` gate is reproducible.
 node_modules/
-package-lock.json
 
 # Env / editor
 .env

@@ -107,6 +107,24 @@ the build runs on the host and its output ships with the app.
 | `public/js/bunood.js` | the only desk script: density + layout mounting |
 | `build.mjs` | dart-sass build, RTL guard, hashing, `assets.py` codegen |
 
+## Testing
+
+Two layers, split by what they need:
+
+- **CI gates** (`.github/workflows/ci.yaml`, every push/PR): the SCSS build —
+  whose RTL guard fails on any physical property — plus dist/assets.py drift
+  detection and JS/Python syntax checks. No bench required.
+- **The browser smoke suite** (`npm test` → `tests/smoke.mjs`): every
+  behaviour ever verified by hand, re-run against the local dev stack — boot
+  and assets, all five desk layouts, the Desktop-page chrome guard, all eight
+  sidebar presets, rail triggers and the expand button, the icon engine, live
+  preview, the double-save regression, and a console-error budget. Needs the
+  local docker stack and `npx playwright install chromium` once. Settings are
+  snapshotted and restored even on failure.
+
+**A release tag requires the smoke suite green.** New verifications belong in
+the suite, not in throwaway scripts — that is the lesson of v0.4–v0.6.
+
 ## Versioning and releases
 
 SemVer, deliberately pre-1.0 while the [38-item coverage checklist] is being
@@ -119,7 +137,8 @@ worked through in order:
 Every release is an annotated git tag (`vX.Y.Z`) on `main`; `app_version` in
 `bunood_theme/hooks.py` AND `__version__` in `bunood_theme/__init__.py` (what
 `bench list-apps` reports) both match the latest tag; every release has a
-CHANGELOG entry. Commit messages follow Conventional Commits
+CHANGELOG entry, and **`npm test` must pass against the local stack before
+tagging**. Commit messages follow Conventional Commits
 (`feat:`/`fix:`/`chore:`), one logical change per commit.
 
 ## Documentation standard
