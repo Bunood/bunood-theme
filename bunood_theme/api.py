@@ -280,6 +280,38 @@ def get_sidebar_presets() -> dict:
 
 
 @frappe.whitelist()
+def set_user_sidebar_preset(preset: str = "") -> dict:
+    """Persist the current user's sidebar preset override.
+
+    The "personalize" layer: a user picks a whole PRESET (never individual
+    options — users always land on designed combinations; option-level
+    freedom is the tenant admin's). Empty clears the override and the user
+    follows the site's configuration again. Stored in ``frappe.defaults`` for
+    the same reasons as density — rides into boot, never localStorage.
+
+    Args:
+        preset: a name from :data:`bunood_theme.presets.SIDEBAR_PRESETS`, or
+            empty for "follow the site".
+
+    Returns:
+        ``{"preset": <stored value>}``.
+    """
+    from bunood_theme.presets import SIDEBAR_PRESETS
+
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    if preset and preset not in SIDEBAR_PRESETS:
+        frappe.throw(f"Unknown sidebar preset: {preset!r}")
+
+    if preset:
+        frappe.defaults.set_user_default("bnd_sidebar_preset", preset)
+    else:
+        frappe.defaults.clear_default("bnd_sidebar_preset", parent=frappe.session.user)
+    frappe.cache.hdel("bootinfo", frappe.session.user)
+    return {"preset": preset}
+
+
+@frappe.whitelist()
 def get_sidebar_counts(labels=None) -> dict:
     """Batched record counts for the sidebar's badge feature.
 

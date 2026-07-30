@@ -38,6 +38,7 @@
   "sidebar_rail_button_shape",
   "sidebar_rail_button_icon",
   "sidebar_icon_source",
+  "sidebar_quick_links",
   "sidebar_apps_rail",
   "sidebar_badges",
   "sidebar_remember_sections",
@@ -266,6 +267,13 @@
    "options": "Smart\nOriginal\nLetters",
    "hidden": 1,
    "description": "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
+  },
+  {
+   "fieldname": "sidebar_quick_links",
+   "fieldtype": "Select",
+   "label": "Home & All Apps Placement",
+   "options": "Sidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar",
+   "hidden": 1
   },
   {
    "fieldname": "sidebar_apps_rail",

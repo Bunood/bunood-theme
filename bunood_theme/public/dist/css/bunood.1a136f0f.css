@@ -835,6 +835,78 @@ html[data-bnd-sb-color] .bnd-sb-module .bnd-sb-module-chev {
   color: var(--bnd-sb-ink-muted);
 }
 
+html[data-bnd-sb-color] .body-sidebar .sidebar-header {
+  display: none;
+}
+
+html[data-bnd-sb-color] .bnd-sb-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: calc(100% - 2 * var(--bnd-sp-1));
+  margin: var(--bnd-sp-1);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-lg);
+  background: transparent;
+  color: var(--bnd-sb-ink);
+  font-size: var(--bnd-text-base);
+  font-weight: var(--bnd-weight-medium);
+  text-align: start;
+  cursor: pointer;
+}
+html[data-bnd-sb-color] .bnd-sb-brand:hover {
+  background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
+}
+html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-logo {
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: var(--bnd-radius-md);
+  object-fit: contain;
+  flex: none;
+}
+html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-chip {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-brand);
+  color: var(--bnd-ink-inverse);
+  font-size: var(--bnd-text-sm);
+  flex: none;
+}
+html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand .bnd-sb-brand-name {
+  display: none;
+}
+
+html[data-bnd-sb-color] .bnd-sb-utils-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-1);
+  margin-inline-end: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
+  inline-size: 22px;
+  block-size: 22px;
+}
+html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+
 html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon,
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;

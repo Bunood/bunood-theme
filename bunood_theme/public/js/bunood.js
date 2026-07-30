@@ -181,12 +181,28 @@
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
 	};
 
-	// Reflect the sidebar options NOW, same timing rule as layout/density:
-	// the CSS matrix must know every choice before Frappe renders the sidebar.
-	(function apply_sidebar_attrs() {
-		const sb = (window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || null;
+	/**
+	 * The style values currently IN EFFECT — boot's at load, possibly
+	 * replaced by a live preview (bunood.sb_apply) or a personalize pick.
+	 * Every mount reads THIS, never frappe.boot directly, which is what
+	 * makes instant preview a re-application rather than a special mode.
+	 */
+	let sb_state = (window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || null;
+
+	/**
+	 * Reflect a full set of sidebar options onto <html>, clearing whatever
+	 * set came before — attributes are wholly derived state.
+	 * @param {Object|null} sb - the boot-shaped values object.
+	 */
+	function apply_sidebar_attrs(sb) {
 		if (!sb) return;
+		sb_state = sb;
 		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name.startsWith("data-bnd-sb-") || a.name === "data-bnd-rail") {
+				html.removeAttribute(a.name);
+			}
+		}
 		const set = (name, value) => value && html.setAttribute("data-bnd-sb-" + name, value);
 		set("placement", SB_SLUGS.placement[sb.placement]);
 		set("material", SB_SLUGS.material[sb.material]);
@@ -214,7 +230,11 @@
 		if (sb.blur) html.setAttribute("data-bnd-sb-blur", String(sb.blur).toLowerCase());
 		if (parseInt(sb.apps_rail, 10)) html.setAttribute("data-bnd-sb-appsrail", "");
 		if (parseInt(sb.scroll_fades, 10)) html.setAttribute("data-bnd-sb-fades", "");
-	})();
+	}
+
+	// Apply boot's values NOW — same timing rule as layout/density: the CSS
+	// matrix must know every choice before Frappe renders the sidebar.
+	apply_sidebar_attrs(sb_state);
 
 	/** True when the sidebar kit is active (its color attribute is the anchor). */
 	function sb_active() {
@@ -453,17 +473,17 @@
 			},
 		});
 
-		// Dock hides the sidebar, taking the brand menu's place-switching with
-		// it — so Desktop and Website come along in that one layout.
+		// Place-switching that has no other home now that the old brand menu
+		// is retired: Website for everyone, Desktop where the sidebar is gone.
 		if (layout() === "dock") {
 			items.push({ label: __("Desktop"), icon: "icon-home", run: () => frappe.set_route("") });
-			items.push({
-				label: __("Website"),
-				icon: "icon-web",
-				run: () => frappe.ui.toolbar.view_website(),
-			});
-			items.push("divider");
 		}
+		items.push({
+			label: __("Website"),
+			icon: "icon-web",
+			run: () => frappe.ui.toolbar.view_website(),
+		});
+		items.push("divider");
 
 		items.push({
 			label: __("Appearance"),
@@ -480,6 +500,11 @@
 				run: () => frappe.set_route("theme-settings"),
 			});
 		}
+		items.push({
+			label: __("Sidebar Style"),
+			icon: "icon-sliders-horizontal",
+			run: () => sb_personalize_menu(),
+		});
 		items.push({
 			label: __("Toggle Density"),
 			icon: "icon-sliders-horizontal",
@@ -992,14 +1017,65 @@
 	}
 
 	/**
-	 * The pinned utility section: Home and All Apps, above everything. Home
-	 * routes to the default workspace; All Apps opens Frappe's /apps screen
-	 * (a full page, so a real navigation). Idempotent by mount marker.
+	 * The brand block: company logo + name from Theme Settings branding,
+	 * pinned at the pane's top and routing HOME on click — never a menu.
+	 * Replaces the native header visually (CSS hides it), which also retires
+	 * the old Desktop/Workspaces cascade: place-switching now lives in Home,
+	 * All Apps, the module row and the avatar menu.
+	 */
+	function sb_mount_brand() {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (!sidebar || sidebar.querySelector(".bnd-sb-brand")) return;
+		const brand = el("button", "bnd-sb-brand", { type: "button", title: __("Home") });
+		if (frappe.boot.bnd_logo) {
+			const img = el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" });
+			brand.appendChild(img);
+		} else {
+			const chip = el("span", "bnd-sb-brand-chip");
+			chip.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+			brand.appendChild(chip);
+		}
+		const name = el("span", "bnd-sb-brand-name");
+		name.textContent = frappe.boot.bnd_company || "Home";
+		brand.appendChild(name);
+		brand.addEventListener("click", () => frappe.set_route(""));
+		sidebar.insertBefore(brand, sidebar.firstChild);
+	}
+
+	/**
+	 * The quick links: Home and All Apps. WHERE they live is a Theme
+	 * Settings option — top or bottom of the pane, or as icon buttons in the
+	 * top/bottom bar. Rebuilt (not patched) on preview changes.
 	 */
 	function sb_mount_utils() {
+		for (const old_mount of document.querySelectorAll(".bnd-sb-utils")) old_mount.remove();
+		const placement = (sb_state && sb_state.quick_links) || "Sidebar Top";
+
+		if (placement === "Top Bar" || placement === "Bottom Bar") {
+			const bar =
+				placement === "Top Bar"
+					? document.querySelector(".bnd-topbar")
+					: document.querySelector(".bnd-statusbar");
+			if (!bar) return; // that bar is not part of the active desk layout
+			const wrap = el("span", "bnd-sb-utils bnd-sb-utils-bar");
+			const mk = (title, icon_html, run) => {
+				const btn = el("button", "bnd-icon-btn", { type: "button", title: title, "aria-label": title });
+				btn.innerHTML = icon_html;
+				btn.addEventListener("click", run);
+				wrap.appendChild(btn);
+			};
+			mk(__("Home"), "", () => frappe.set_route(""));
+			wrap.firstChild.appendChild(sprite_icon("icon-home"));
+			mk(__("All Apps"), BND_GRID_SVG, () => {
+				window.location.href = "/apps";
+			});
+			bar.insertBefore(wrap, bar.firstChild);
+			return;
+		}
+
 		const sidebar = document.querySelector(".body-sidebar");
-		if (!sidebar || sidebar.querySelector(".bnd-sb-utils")) return;
-		const header = sidebar.querySelector(".sidebar-header");
+		if (!sidebar) return;
+		const header = sidebar.querySelector(".bnd-sb-brand") || sidebar.querySelector(".sidebar-header");
 		if (!header) return;
 
 		// Labels live in SPANS, not bare text nodes — the rail's rest state
@@ -1020,13 +1096,9 @@
 		home.addEventListener("click", () => frappe.set_route(""));
 		utils.appendChild(home);
 
-		const apps = el("button", "bnd-sb-item", { type: "button" });
+		const apps = el("button", "bnd-sb-item", { type: "button", title: __("All Apps") });
 		const apps_chip = el("span", "bnd-sb-chip");
-		// A 2x2 grid glyph of our own — no sprite id for "apps" is guaranteed.
-		apps_chip.innerHTML =
-			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
-			'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
-			'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+		apps_chip.innerHTML = BND_GRID_SVG;
 		apps.appendChild(apps_chip);
 		apps.appendChild(labelled(__("All Apps")));
 		apps.addEventListener("click", () => {
@@ -1034,8 +1106,20 @@
 		});
 		utils.appendChild(apps);
 
-		header.insertAdjacentElement("afterend", utils);
+		if (placement === "Sidebar Bottom") {
+			const bottom = document.querySelector(".body-sidebar-bottom");
+			if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
+			else document.querySelector(".body-sidebar").appendChild(utils);
+		} else {
+			header.insertAdjacentElement("afterend", utils);
+		}
 	}
+
+	/** A 2x2 grid glyph of our own — no sprite id for "apps" is guaranteed. */
+	const BND_GRID_SVG =
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+		'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
+		'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
 
 	/**
 	 * The module row: the current workspace's icon and name, pinned under the
@@ -1046,19 +1130,27 @@
 	function sb_mount_module_row() {
 		const sidebar = document.querySelector(".body-sidebar");
 		if (!sidebar || sidebar.querySelector(".bnd-sb-module")) return;
-		const anchor = sidebar.querySelector(".bnd-sb-utils") || sidebar.querySelector(".sidebar-header");
+		const anchor =
+			sidebar.querySelector(".bnd-sb-utils:not(.bnd-sb-utils-bar)") ||
+			sidebar.querySelector(".bnd-sb-brand") ||
+			sidebar.querySelector(".sidebar-header");
 		if (!anchor) return;
 
-		const row = el("button", "bnd-sb-module", { type: "button", "aria-haspopup": "menu" });
+		const row = el("button", "bnd-sb-module", { type: "button" });
 		row.appendChild(el("span", "bnd-sb-chip bnd-sb-module-chip"));
 		const label = el("span", "bnd-sb-module-label");
 		row.appendChild(label);
-		const chev = el("span", "bnd-sb-module-chev");
-		chev.textContent = "▾";
-		row.appendChild(chev);
+		// No menu here by design — the old workspace cascade is retired.
+		// Clicking goes to the module's own landing page.
 		row.addEventListener("click", (e) => {
 			e.stopPropagation();
-			proxy_click(".body-sidebar .sidebar-header");
+			if (sb_current_workspace) {
+				const slug =
+					frappe.router && frappe.router.slug
+						? frappe.router.slug(sb_current_workspace.name)
+						: String(sb_current_workspace.name).toLowerCase().replace(/ /g, "-");
+				frappe.set_route(slug);
+			}
 		});
 		anchor.insertAdjacentElement("afterend", row);
 		sb_update_module_row();
@@ -1106,11 +1198,20 @@
 	 * trigger; picking the button-only trigger forces one at the edge.
 	 */
 	function sb_mount_rail() {
-		if (!document.documentElement.hasAttribute("data-bnd-rail")) return;
 		const container = document.querySelector(".body-sidebar-container");
-		if (!container || container.dataset.bndRail) return;
+		if (!container) return;
+		if (!document.documentElement.hasAttribute("data-bnd-rail")) {
+			sb_teardown_rail(container);
+			return;
+		}
+		if (container.dataset.bndRail) return;
 		container.dataset.bndRail = "1";
 		container.style.width = "var(--bnd-sb-rail-w)";
+		container._bnd_rail_teardown = [];
+		const on = (target, event, fn) => {
+			target.addEventListener(event, fn);
+			container._bnd_rail_teardown.push(() => target.removeEventListener(event, fn));
+		};
 
 		const trigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
 		let close_timer = null;
@@ -1133,26 +1234,25 @@
 		};
 
 		if (trigger === "hover" || trigger === "hoverpin") {
-			container.addEventListener("pointerenter", open);
-			container.addEventListener("pointerleave", () => close(false));
-			container.addEventListener("focusin", open);
-			container.addEventListener("focusout", () => close(false));
+			on(container, "pointerenter", open);
+			on(container, "pointerleave", () => close(false));
+			on(container, "focusin", open);
+			on(container, "focusout", () => close(false));
 		}
 		if (trigger === "click") {
-			container.addEventListener("click", (e) => {
+			on(container, "click", (e) => {
 				// A click on a LINK navigates; only background clicks toggle.
 				if (e.target.closest("a, button")) return;
 				if (container.classList.contains("bnd-rail-open")) close(true);
 				else open();
 			});
-			document.addEventListener("pointerdown", (e) => {
+			on(document, "pointerdown", (e) => {
 				if (!container.contains(e.target)) close(true);
 			});
-			if (frappe.router && frappe.router.on) frappe.router.on("change", () => close(true));
 		}
 
 		if (trigger === "hoverpin") {
-			const header = container.querySelector(".sidebar-header");
+			const header = container.querySelector(".bnd-sb-brand") || container.querySelector(".sidebar-header");
 			if (header) {
 				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open") });
 				pin.textContent = "⌖";
@@ -1166,7 +1266,7 @@
 
 		// The expand button. Its click PINS the pane (open until clicked
 		// again) so it works alone and alongside the hover trigger.
-		const sb = (frappe.boot && frappe.boot.bnd_sidebar) || {};
+		const sb = sb_state || {};
 		let pos = SB_SLUGS.railbtn[sb.rail_button] || "";
 		if (trigger === "button" && !pos) pos = "edge";
 		if (pos) {
@@ -1188,6 +1288,17 @@
 			});
 			container.appendChild(btn);
 		}
+	}
+
+	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
+	function sb_teardown_rail(container) {
+		if (!container.dataset.bndRail) return;
+		delete container.dataset.bndRail;
+		container.style.width = "";
+		container.classList.remove("bnd-rail-open", "bnd-rail-pinned");
+		for (const off of container._bnd_rail_teardown || []) off();
+		container._bnd_rail_teardown = [];
+		for (const node of container.querySelectorAll(".bnd-railbtn, .bnd-sb-pin")) node.remove();
 	}
 
 	// ── Icon engine (Smart / Original / Letters) ────────────────────────────
@@ -1229,9 +1340,20 @@
 	 * exist, infers a sprite icon from the label for the many links that
 	 * ship none, and falls back to the initial. Idempotent per item.
 	 */
+	/** Original icon markup per icon span, so previews can restore it. */
+	const sb_icon_originals = new WeakMap();
+
 	function sb_fix_icons() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-iconsrc") || "smart";
-		if (mode === "original") return;
+		if (mode === "original") {
+			// Restore anything a previous mode replaced.
+			for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
+				const span = item.querySelector(".sidebar-item-icon");
+				if (span && sb_icon_originals.has(span)) span.innerHTML = sb_icon_originals.get(span);
+				item.removeAttribute("data-bnd-iconized");
+			}
+			return;
+		}
 		for (const item of document.querySelectorAll(
 			".body-sidebar-top .sidebar-item-container:not([data-bnd-iconized])"
 		)) {
@@ -1242,6 +1364,7 @@
 			const has_icon = !!icon_span.querySelector("use");
 
 			if (mode === "letters" || !has_icon) {
+				if (!sb_icon_originals.has(icon_span)) sb_icon_originals.set(icon_span, icon_span.innerHTML);
 				let symbol = null;
 				if (mode === "smart") {
 					for (const [re, candidates] of SB_ICON_HINTS) {
@@ -1380,6 +1503,7 @@
 				clearTimeout(timer);
 				timer = setTimeout(() => {
 					if (!sb_edit_active()) {
+						sb_mount_brand();
 						sb_mount_utils();
 						sb_mount_module_row();
 						sb_wrap_sections();
@@ -1405,6 +1529,102 @@
 		return !!(controls && !controls.classList.contains("hidden"));
 	}
 
+	/**
+	 * The user-facing "personalize" picker: choose a whole PRESET for
+	 * yourself (or follow the site). Users never get option-level knobs —
+	 * they always land on designed combinations. Persisted server-side and
+	 * applied instantly.
+	 */
+	function sb_personalize_menu() {
+		frappe
+			.xcall("bunood_theme.api.get_sidebar_presets")
+			.then((data) => {
+				const current = (sb_state && sb_state.user_preset) || "";
+				const anchor = document.querySelector(".bnd-avatar-btn") || document.body;
+				const pick = (name) => {
+					frappe
+						.xcall("bunood_theme.api.set_user_sidebar_preset", { preset: name })
+						.then(() => {
+							if (name && data.presets[name]) {
+								bunood.sb_apply(data.presets[name]);
+								sb_state.user_preset = name;
+							} else {
+								window.location.reload(); // site values live server-side
+							}
+							frappe.show_alert({
+								message: name ? __("Sidebar: {0}", [__(name)]) : __("Sidebar: following the site"),
+								indicator: "green",
+							});
+						})
+						.catch(() => frappe.show_alert({ message: __("Could not save"), indicator: "red" }));
+				};
+				const items = [
+					{ label: (current === "" ? "✓ " : "") + __("Site Default"), run: () => pick("") },
+					"divider",
+				];
+				for (const name of Object.keys(data.presets)) {
+					items.push({ label: (current === name ? "✓ " : "") + __(name), run: () => pick(name) });
+				}
+				show_menu(anchor, items);
+			})
+			.catch(() => {});
+	}
+
+	/**
+	 * LIVE PREVIEW / re-application: take a full set of style values (Theme
+	 * Settings field names, as the picker and presets carry them), re-derive
+	 * the attribute set, tear down what placement changed, and remount.
+	 * Called by the settings picker on every option click — the desk IS the
+	 * preview. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.sb_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (sb_state ? sb_state[key] : undefined);
+		const next = {
+			placement: v("sidebar_placement", "placement"),
+			material: v("sidebar_material", "material"),
+			glass_opacity: v("sidebar_glass_opacity", "glass_opacity"),
+			blur: v("sidebar_blur", "blur"),
+			color: v("sidebar_color", "color"),
+			icons: v("sidebar_icon_style", "icons"),
+			active: v("sidebar_active_style", "active"),
+			sections: v("sidebar_section_layout", "sections"),
+			wash: v("sidebar_hue_wash", "wash"),
+			intensity: v("sidebar_surface_intensity", "intensity"),
+			menurail: v("sidebar_menu_rail", "menurail"),
+			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
+			rail_button: v("sidebar_rail_button", "rail_button"),
+			rail_button_shape: v("sidebar_rail_button_shape", "rail_button_shape"),
+			rail_button_icon: v("sidebar_rail_button_icon", "rail_button_icon"),
+			icon_source: v("sidebar_icon_source", "icon_source"),
+			quick_links: v("sidebar_quick_links", "quick_links"),
+			apps_rail: v("sidebar_apps_rail", "apps_rail"),
+			badges: v("sidebar_badges", "badges"),
+			remember: v("sidebar_remember_sections", "remember"),
+			scroll_fades: v("sidebar_scroll_fades", "scroll_fades"),
+			user_preset: sb_state ? sb_state.user_preset : "",
+		};
+		apply_sidebar_attrs(next);
+
+		// Structural pieces are torn down and remounted from the new state.
+		const container = document.querySelector(".body-sidebar-container");
+		if (container) sb_teardown_rail(container);
+		for (const node of document.querySelectorAll(".bnd-apps-rail")) node.remove();
+		if (document.documentElement.getAttribute("data-bnd-sb-sections") === "cards" ||
+			document.documentElement.getAttribute("data-bnd-sb-sections") === "accordion") {
+			sb_wrap_sections();
+		} else {
+			sb_unwrap_sections();
+		}
+		sb_mount_utils();
+		sb_fix_icons();
+		sb_mount_rail();
+		sb_mount_apps_rail();
+		sb_badges_at = 0;
+		sb_mount_badges();
+	};
+
 	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
 	function mount_sidebar_kit() {
 		if (!sb_active() || layout() === "dock") return;
@@ -1414,6 +1634,7 @@
 		// (measured: a single attempt raced and silently mounted nothing).
 		try_for(() => {
 			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
+			sb_mount_brand();
 			sb_mount_utils();
 			sb_mount_module_row();
 			return true;

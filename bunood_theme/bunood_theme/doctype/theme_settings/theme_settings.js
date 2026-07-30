@@ -161,6 +161,14 @@ function bnd_render_layout_picker(frm) {
 		);
 	}).join("");
 
+	const toolbar =
+		'<div class="bnd-sbp-toolbar">' +
+		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
+		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
+		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
+		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
+		"</div>";
+
 	field.$wrapper.html(
 		"<style>" +
 			".bnd-lp{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-block:4px}" +
@@ -293,6 +301,17 @@ const BND_SB_GROUPS = [
 			{ value: "Off", name: () => __("Off"), thumb: '<span class="bnd-sbp-wash" style="background:var(--control-bg)"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:var(--control-bg)"></span>' },
 			{ value: "Subtle", name: () => __("Subtle"), thumb: '<span class="bnd-sbp-wash" style="background:#f5f8fd"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#fdf9f1"></span>' },
 			{ value: "Rich", name: () => __("Rich"), thumb: '<span class="bnd-sbp-wash" style="background:#e8f0fc"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#faf0dc"></span>' },
+		],
+	},
+	{
+		field: "sidebar_quick_links",
+		title: () => __("Home & All Apps"),
+		desc: () => __("Where the two quick links live."),
+		options: [
+			{ value: "Sidebar Top", name: () => __("Sidebar top"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:7px;inset-inline-start:8px"></span><span class="bnd-sbp-btnmark" style="inset-block-start:7px;inset-inline-start:19px"></span>' },
+			{ value: "Sidebar Bottom", name: () => __("Sidebar bottom"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:8px"></span><span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:19px"></span>' },
+			{ value: "Top Bar", name: () => __("Top bar"), thumb: '<span style="position:absolute;inset-inline:4px;inset-block-start:4px;block-size:9px;border-radius:3px;background:currentColor;opacity:.14"></span><span class="bnd-sbp-btnmark" style="inset-block-start:4px;inset-inline-start:8px"></span>' },
+			{ value: "Bottom Bar", name: () => __("Bottom bar"), thumb: '<span style="position:absolute;inset-inline:4px;inset-block-end:4px;block-size:9px;border-radius:3px;background:currentColor;opacity:.14"></span><span class="bnd-sbp-btnmark" style="inset-block-end:4px;inset-inline-start:8px"></span>' },
 		],
 	},
 	{
@@ -486,8 +505,10 @@ function bnd_render_sidebar_picker_now(frm) {
 			})
 			.join("");
 		return (
-			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + group.title() + "</div>" +
-			'<div class="bnd-sbp-desc">' + group.desc() + "</div>" +
+			'<div class="bnd-sbp-group" data-search="' + (group.title() + " " + group.field).toLowerCase() + '">' +
+			'<div class="bnd-sbp-title">' + group.title() +
+			'<button type="button" class="bnd-sbp-reset" data-field="' + group.field + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
+			(group.desc ? '<div class="bnd-sbp-desc">' + group.desc() + "</div>" : "") +
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
 		);
 	}).join("");
@@ -532,9 +553,22 @@ function bnd_render_sidebar_picker_now(frm) {
 		);
 	}).join("");
 
+	const toolbar =
+		'<div class="bnd-sbp-toolbar">' +
+		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
+		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
+		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
+		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
+		"</div>";
+
 	field.$wrapper.html(
 		"<style>" +
 			".bnd-sbp{display:flex;flex-direction:column;gap:14px;margin-block:4px}" +
+			".bnd-sbp-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}" +
+			".bnd-sbp-search{max-inline-size:220px;border:1px solid var(--border-color);border-radius:8px;padding:4px 10px;background:var(--control-bg);font-size:var(--text-sm)}" +
+			".bnd-sbp-hint{font-size:var(--text-xs);color:var(--text-muted)}" +
+			".bnd-sbp-reset{border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;margin-inline-start:6px}" +
+			".bnd-sbp-reset:hover{color:var(--primary)}" +
 			".bnd-sbp-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}" +
 			".bnd-sbp-preset{display:flex;flex-direction:column;gap:3px;padding:9px;border:1px solid var(--border-color);border-radius:10px;background:var(--control-bg);cursor:pointer;text-align:start}" +
 			".bnd-sbp-preset:hover{border-color:var(--primary)}" +
@@ -573,7 +607,7 @@ function bnd_render_sidebar_picker_now(frm) {
 			".bnd-sbp-knob-on{background:var(--primary)}" +
 			".bnd-sbp-knob-on::after{inset-inline-start:15px}" +
 			"</style>" +
-			'<div class="bnd-sbp">' +
+			'<div class="bnd-sbp">' + toolbar +
 			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
 			groups + blur_group + steppers +
 			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Extras") + '</div><div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
@@ -588,14 +622,43 @@ function bnd_render_sidebar_picker_now(frm) {
 		if (this.hasAttribute("disabled")) return;
 		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
+	field.$wrapper.find(".bnd-sbp-export").on("click", () => bnd_sb_export(frm));
+	field.$wrapper.find(".bnd-sbp-import").on("click", () => bnd_sb_import(frm));
+	field.$wrapper.find(".bnd-sbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		const base = bnd_sb_match_preset(frm);
+		const source = bnd_sb_catalogue.presets[base] || bnd_sb_catalogue.presets[bnd_sb_catalogue.default];
+		bnd_sb_set(frm, f, source[f]);
+	});
+	field.$wrapper.find(".bnd-sbp-search").on("input", function () {
+		const q = this.value.trim().toLowerCase();
+		field.$wrapper.find(".bnd-sbp-group").each(function () {
+			this.style.display = !q || (this.getAttribute("data-search") || "").includes(q) || this.textContent.toLowerCase().includes(q) ? "" : "none";
+		});
+	});
 }
 
-/** Apply a preset: write every field, then relabel and re-render. */
+/**
+ * LIVE PREVIEW: hand the form's current sidebar values to the desk engine —
+ * the chrome around this very form restyles instantly. Saving makes it
+ * permanent for everyone; leaving without saving reverts on next load.
+ */
+function bnd_sb_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.sb_apply || !bnd_sb_catalogue) return;
+	const values = {};
+	for (const f of bnd_sb_catalogue.fields) values[f] = frm.doc[f];
+	values.sidebar_menu_rail = bnd_sb_norm("sidebar_menu_rail", values.sidebar_menu_rail);
+	window.bunood_theme.sb_apply(values);
+}
+
+/** Apply a preset: write every field, then relabel, preview and re-render. */
 function bnd_sb_apply_preset(frm, name) {
 	const values = bnd_sb_catalogue.presets[name];
 	if (!values) return;
 	for (const [field, value] of Object.entries(values)) frm.set_value(field, value);
 	frm.set_value("sidebar_preset", name);
+	bnd_sb_preview(frm);
 	bnd_render_sidebar_picker_now(frm);
 }
 
@@ -618,5 +681,61 @@ function bnd_sb_set(frm, fieldname, value) {
 		});
 	}
 	frm.set_value("sidebar_preset", bnd_sb_match_preset(frm));
+	bnd_sb_preview(frm);
 	bnd_render_sidebar_picker_now(frm);
+}
+
+/**
+ * Export the whole theme (desk layout, branding colors, every sidebar style
+ * field) as a JSON file + clipboard copy — portable between tenant sites.
+ */
+function bnd_sb_export(frm) {
+	const keys = [
+		"desk_layout", "company_name", "brand_color", "accent_color",
+		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
+	].concat(bnd_sb_catalogue.fields);
+	const data = {};
+	for (const k of keys) data[k] = frm.doc[k];
+	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
+	if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+	const blob = new Blob([text], { type: "application/json" });
+	const a = document.createElement("a");
+	a.href = URL.createObjectURL(blob);
+	a.download = "bunood-theme.json";
+	a.click();
+	URL.revokeObjectURL(a.href);
+	frappe.show_alert({ message: __("Theme exported (downloaded and copied)"), indicator: "green" });
+}
+
+/** Import a theme JSON: validate known keys, set, preview. Save to keep. */
+function bnd_sb_import(frm) {
+	frappe.prompt(
+		[{ fieldname: "json", fieldtype: "Small Text", label: __("Paste theme JSON"), reqd: 1 }],
+		(v) => {
+			let data;
+			try {
+				data = JSON.parse(v.json);
+			} catch (e) {
+				frappe.msgprint(__("That is not valid JSON."));
+				return;
+			}
+			const known = new Set(
+				["desk_layout", "company_name", "brand_color", "accent_color",
+					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
+				].concat(bnd_sb_catalogue.fields)
+			);
+			let applied = 0;
+			for (const [k, val] of Object.entries(data)) {
+				if (known.has(k) && val !== undefined && val !== null) {
+					frm.set_value(k, val);
+					applied++;
+				}
+			}
+			bnd_sb_preview(frm);
+			bnd_render_sidebar_picker_now(frm);
+			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
+		},
+		__("Import theme"),
+		__("Apply")
+	);
 }

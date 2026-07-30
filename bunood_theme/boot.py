@@ -57,6 +57,10 @@ def extend_bootinfo(bootinfo):
         # into the template), so they are intentionally absent here — setting them
         # from JS is what caused v1's visible flash of the Frappe icon in the tab.
         bootinfo.bnd_company = settings.get("company_name") or ""
+        # Branding for the sidebar's brand block (item 10): logo file URL as
+        # stored on Theme Settings. The favicon stays with Frappe's native
+        # Website Settings handling — see the header comment above.
+        bootinfo.bnd_logo = settings.get("logo") or ""
 
         # Behaviour flags, not appearance. Each is an int because the client only ever
         # tests truthiness and Frappe's Check fields arrive as 0/1.
@@ -104,12 +108,48 @@ def extend_bootinfo(bootinfo):
             "rail_button_shape": get("sidebar_rail_button_shape"),
             "rail_button_icon": get("sidebar_rail_button_icon"),
             "icon_source": get("sidebar_icon_source"),
+            "quick_links": get("sidebar_quick_links"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "apps_rail": settings.get("sidebar_apps_rail") or 0,
             "badges": get("sidebar_badges"),
             "remember": settings.get("sidebar_remember_sections") or 0,
             "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
         }
+
+        # Per-user preset override (the "personalize" layer): a user-chosen
+        # preset REPLACES the style values wholesale — never a field-level
+        # merge, so a user always sees a designed combination. Stored in
+        # frappe.defaults like density; empty = follow the site.
+        user_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
+        if user_preset and user_preset in SIDEBAR_PRESETS:
+            chosen = SIDEBAR_PRESETS[user_preset]
+            key_map = {
+                "sidebar_placement": "placement",
+                "sidebar_material": "material",
+                "sidebar_glass_opacity": "glass_opacity",
+                "sidebar_blur": "blur",
+                "sidebar_color": "color",
+                "sidebar_icon_style": "icons",
+                "sidebar_active_style": "active",
+                "sidebar_section_layout": "sections",
+                "sidebar_hue_wash": "wash",
+                "sidebar_surface_intensity": "intensity",
+                "sidebar_menu_rail": "menurail",
+                "sidebar_rail_trigger": "rail_trigger",
+                "sidebar_rail_button": "rail_button",
+                "sidebar_rail_button_shape": "rail_button_shape",
+                "sidebar_rail_button_icon": "rail_button_icon",
+                "sidebar_icon_source": "icon_source",
+                "sidebar_quick_links": "quick_links",
+                "sidebar_apps_rail": "apps_rail",
+                "sidebar_badges": "badges",
+                "sidebar_remember_sections": "remember",
+                "sidebar_scroll_fades": "scroll_fades",
+            }
+            for field, key in key_map.items():
+                if field in chosen:
+                    bootinfo.bnd_sidebar[key] = chosen[field]
+        bootinfo.bnd_sidebar["user_preset"] = user_preset
 
     except Exception:
         # A missing DocType (pre-migrate) or a locked table must not break boot.
