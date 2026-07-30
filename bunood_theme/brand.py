@@ -169,7 +169,17 @@ def write_brand_css(settings=None) -> str | None:
         url = f"/files/{BRAND_DIR}/{filename}"
         # set_value, not doc.save(): saving inside on_update would recurse, and this
         # field is derived state the user never edits.
-        frappe.db.set_single_value("Theme Settings", "brand_css_url", url)
+        #
+        # update_modified=False is LOAD-BEARING: this runs inside on_update,
+        # AFTER the save stamped `modified` — letting this write bump it again
+        # leaves every open form instantly stale, and the user's next save
+        # dies with TimestampMismatchError ("modified after you have opened
+        # it" — reported live 2026-07-30). Skipping the unchanged case also
+        # spares a pointless write on every save.
+        if frappe.db.get_single_value("Theme Settings", "brand_css_url") != url:
+            frappe.db.set_single_value(
+                "Theme Settings", "brand_css_url", url, update_modified=False
+            )
         return url
 
     except Exception:

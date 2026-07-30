@@ -5,6 +5,14 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.6.2] — 2026-07-30 — Fix: Theme Settings save conflict
+
+- `write_brand_css` no longer bumps the document's `modified` timestamp when
+  registering the brand stylesheet URL (`update_modified=False`, skip when
+  unchanged). It runs in `on_update` AFTER the save stamps `modified`, so the
+  bump left every open form stale and the next save failed with
+  TimestampMismatchError — hit in production on the first day.
+
 ## [0.6.1] — 2026-07-30 — Rail feel, preview coverage, pane width
 
 - Rail timing tuned (80ms open intent, 320ms close grace, in-pane focus
