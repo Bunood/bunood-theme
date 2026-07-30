@@ -1,0 +1,270 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// TOKENS — the theme's own design vocabulary.
+//
+// WHAT
+//   Every value the theme reasons about, declared once as a `--bnd-*` custom
+//   property. Nothing else in the codebase may hardcode a colour, spacing,
+//   radius, duration or font size.
+//
+// WHY THE `--bnd-` PREFIX IS NON-NEGOTIABLE
+//   Frappe implements dark mode by REMAPPING ITS OWN variable names under
+//   `[data-theme="dark"]` (`scss/desk/dark.scss:2`), while light lives at
+//   `:root, [data-theme="light"]` (`scss/desk/css_variables.scss:4`). Both
+//   selectors have specificity (0,1,0), so a later sheet that sets a Frappe
+//   name at `:root` wins in BOTH modes — and dark mode silently dies for that
+//   variable.
+//
+//   So: we never write Frappe's names here. We declare ours, and `_bridge.scss`
+//   maps ours onto Frappe's inside correctly scoped blocks. The per-site brand
+//   stylesheet (`brand.py`) also only ever sets `--bnd-*`, which means no
+//   customer colour choice can ever break dark mode.
+//
+// WHAT LIVES HERE vs IN brand.py
+//   Here: everything identical across tenants — scales, motion, elevation, and
+//   the DEFAULT colour seeds. `brand.py` overrides only the seeds and their
+//   derived surfaces per site. This file must therefore declare the COMPLETE
+//   token set, because if the brand sheet 404s the theme still has to render.
+//
+// See ARCHITECTURE.md section 1.
+// ============================================================================
+
+:root {
+  // ── Colour seeds ──────────────────────────────────────────────────────────
+  // Overridden per site by brand.py. Named "seed" because every surface below
+  // is derived from them with color-mix() rather than authored — one seed has
+  // to produce a coherent scale for whatever colour a customer picks.
+  --bnd-brand: #4d8756;
+  --bnd-accent: #4463f0;
+
+  // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
+  --bnd-surface: #ffffff;
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 8%, #ffffff);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 7%, #ffffff);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
+
+  // ── Ink ───────────────────────────────────────────────────────────────────
+  --bnd-ink: #16181d;
+  --bnd-ink-muted: #6b7280;
+  --bnd-ink-subtle: #9aa1ab;
+  --bnd-ink-inverse: #ffffff;
+
+  // ── Lines ─────────────────────────────────────────────────────────────────
+  // 0.5px reads as a true hairline on retina and rounds up on 1x, which is the
+  // behaviour we want in both cases.
+  --bnd-line: 0.5px;
+  --bnd-border: rgba(0, 0, 0, 0.09);
+  --bnd-border-strong: rgba(0, 0, 0, 0.16);
+
+  // ── Spacing (4px base) ────────────────────────────────────────────────────
+  --bnd-sp-1: 0.25rem;
+  --bnd-sp-2: 0.5rem;
+  --bnd-sp-3: 0.75rem;
+  --bnd-sp-4: 1rem;
+  --bnd-sp-5: 1.5rem;
+  --bnd-sp-6: 2rem;
+  --bnd-sp-7: 3rem;
+
+  // ── Type ──────────────────────────────────────────────────────────────────
+  // rem-based so the user's font-size preference scales the whole desk from a
+  // single root font-size, rather than needing a parallel set of px values.
+  --bnd-text-xs: 0.6875rem;
+  --bnd-text-sm: 0.8125rem;
+  --bnd-text-base: 0.875rem;
+  --bnd-text-md: 1rem;
+  --bnd-text-lg: 1.125rem;
+  --bnd-text-xl: 1.375rem;
+  --bnd-text-2xl: 1.75rem;
+  --bnd-weight-normal: 400;
+  --bnd-weight-medium: 500;
+  --bnd-leading-tight: 1.25;
+  --bnd-leading-base: 1.5;
+
+  // Tabular figures. ERP screens are columns of money; proportional digits make
+  // decimal points drift and are the single most common numeric-legibility bug.
+  --bnd-numeric: tabular-nums;
+
+  // ── Radii ─────────────────────────────────────────────────────────────────
+  --bnd-radius-sm: 4px;
+  --bnd-radius-md: 6px;
+  --bnd-radius-lg: 10px;
+  --bnd-radius-xl: 14px;
+  --bnd-radius-pill: 999px;
+
+  // ── Elevation ─────────────────────────────────────────────────────────────
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --bnd-shadow-md: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 8px -2px rgba(0, 0, 0, 0.06),
+    0 12px 24px -6px rgba(0, 0, 0, 0.06);
+  --bnd-shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px -6px rgba(0, 0, 0, 0.1),
+    0 32px 64px -12px rgba(0, 0, 0, 0.14);
+
+  // ── Motion ────────────────────────────────────────────────────────────────
+  --bnd-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bnd-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bnd-dur-fast: 120ms;
+  --bnd-dur-base: 180ms;
+  --bnd-dur-slow: 280ms;
+
+  // ── Density ───────────────────────────────────────────────────────────────
+  // Authored as VALUES, not as `[data-density="compact"] .foo {}` selector
+  // variants. That means the site default costs nothing (brand.py can emit
+  // different numbers) and a per-user toggle is one attribute flip, instead of a
+  // parallel set of rules for every component.
+  //
+  // THE RULE (decision "G with C", 2026-07-30): compact shortens rows, padding
+  // and controls — NEVER type. ERP text is invoice numbers and amounts;
+  // shrinking it to gain two rows is a bad trade. No font token appears in any
+  // density block, and that is enforceable by grep.
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+
+  // ── Chrome geometry (checklist item 9) ────────────────────────────────────
+  // The desk-layout system's fixed dimensions. Every bar and the dock size
+  // themselves from these, and page content pads itself by the same token, so
+  // a height change can never desynchronise a bar from the space reserved for
+  // it. --bnd-sidebar-live-w is special: it is MEASURED — bunood.js keeps it
+  // equal to the sidebar's actual rendered width (the sidebar is user-resizable
+  // and collapsible), so fixed-position bars can start exactly where the
+  // sidebar ends without hardcoding 220px anywhere.
+  --bnd-topbar-h: 44px;
+  --bnd-statusbar-h: 26px;
+  --bnd-bottombar-h: 40px;
+  --bnd-dock-h: 56px;
+  --bnd-sidebar-live-w: 220px;
+
+  // ── Z-index ladder ────────────────────────────────────────────────────────
+  // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and
+  // alerts, so a dialog always covers our chrome. Panels (our menus, the
+  // relocated notifications dropdown) sit above bars but still below modals.
+  --bnd-z-bar: 990;
+  --bnd-z-panel: 1040;
+
+  // ── Categorical hues ──────────────────────────────────────────────────────
+  // Fixed order, validated for colour-vision separation. ASSIGN ONCE PER ENTITY
+  // AND NEVER RE-ASSIGN: a module keeps its hue regardless of sort order or how
+  // many are shown. Never cycle these by index — that repaints survivors when a
+  // filter changes, which is the one thing a categorical palette must not do.
+  --bnd-cat-1: #2a78d6;
+  --bnd-cat-2: #eb6834;
+  --bnd-cat-3: #1baf7a;
+  --bnd-cat-4: #eda100;
+  --bnd-cat-5: #e87ba4;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #4a3aa7;
+  --bnd-cat-0: var(--bnd-ink-subtle); // the "other" bucket
+  --bnd-cat-tint: 14%;
+  --bnd-cat-wash: 7%;
+
+  // ── Status — RESERVED ─────────────────────────────────────────────────────
+  // Never reused as a categorical slot, and never the only signal: always ship
+  // an icon and a label alongside, so state survives colour-blindness and
+  // greyscale printing.
+  --bnd-good: #1a7f45;
+  --bnd-warn: #b06f00;
+  --bnd-serious: #c2410c;
+  --bnd-critical: #b42318;
+}
+
+// ── Dark ────────────────────────────────────────────────────────────────────
+// SELECTED, not flipped. Each value is chosen for a dark surface rather than
+// derived by lightening its light counterpart — inverted lightness produces
+// muddy mid-tones and inverts the perceived elevation order.
+html[data-theme="dark"] {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #9aa1ab;
+  --bnd-ink-subtle: #6b7280;
+
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+
+  // Re-stepped for the dark surface, not lightened from the light values.
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+}
+
+// ── "Automatic" — compensating for a Frappe bug ─────────────────────────────
+// `User.desk_theme` accepts "Automatic" and Frappe renders it verbatim into
+// `data-theme`, but ships NO `prefers-color-scheme` rules anywhere in its SCSS.
+// So `automatic` matches neither its light nor its dark block, and an Automatic
+// user on a dark OS gets a fully light splash screen until JS resolves it.
+// This block is the fix, and it must stay in CSS: JS runs after first paint.
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"] {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #9aa1ab;
+    --bnd-ink-subtle: #6b7280;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+  }
+}
+
+// ── Density: per-user override (decision G) ─────────────────────────────────
+// Three-layer precedence, weakest to strongest:
+//   1. the :root defaults above            (theme's Comfortable)
+//   2. the per-site brand sheet's :root    (admin's site default, brand.py)
+//   3. these attribute blocks              (the user's own choice)
+// Layer 3 wins because html[data-bnd-density] is (0,1,1) vs :root's (0,1,0) —
+// no ordering dependency, so it beats the brand sheet even though that sheet
+// loads after the bundle.
+//
+// The attribute is set by bunood.js from boot BEFORE Frappe renders any desk
+// content (classic scripts finish before DOMContentLoaded, and the splash is
+// the only thing painted earlier), so a user override causes no visible jump.
+// No attribute = "use the site default" — deliberately, so admins can change
+// the default and undecided users follow.
+//
+// Both blocks restate values explicitly: a compact-default site needs the
+// "comfortable" block to actually restore the comfortable numbers.
+html[data-bnd-density="comfortable"] {
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+}
+html[data-bnd-density="compact"] {
+  --bnd-row-h: 24px;
+  --bnd-control-h: 26px;
+  --bnd-pad-y: 3px;
+}
+
+// ── Reduced motion ──────────────────────────────────────────────────────────
+// Zeroing the duration tokens disables every transition in the theme at once,
+// because nothing hardcodes a duration.
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bnd-dur-fast: 0ms;
+    --bnd-dur-base: 0ms;
+    --bnd-dur-slow: 0ms;
+  }
+}

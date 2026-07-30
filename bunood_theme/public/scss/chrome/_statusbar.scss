@@ -1,0 +1,105 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// STATUS BAR / BOTTOM BAR — the desk's bottom edge (checklist items 9 + 14).
+//
+// WHAT
+//   Two variants of one fixed bottom strip, both mounted by bunood.js:
+//
+//   `.bnd-statusbar`             (layouts: topbar, compact)
+//       Slim, AMBIENT-ONLY: connection state, a Background Jobs link, the
+//       density toggle, the clock. Nothing here is a primary control — bottom
+//       edges are for state you glance at, not targets you aim for. This is
+//       checklist item 14 (status bar) arriving early; it grows there.
+//
+//   `.bnd-statusbar.bnd-bottombar`  (layout: bottombar)
+//       The taller GLOBAL variant: same ambient state plus the search field
+//       and the cluster (bell, avatar) — option G from the wireframes.
+//
+// WHY position:fixed AND A MEASURED START
+//   The desk scrolls at document level, so an in-flow footer would sit below
+//   the fold. Fixed needs to know where the sidebar ends — and the sidebar is
+//   user-resizable — so the start inset is --bnd-sidebar-live-w, which
+//   bunood.js keeps equal to the sidebar's real width via ResizeObserver.
+//   _layouts.scss reserves matching padding so content never hides under it.
+// ============================================================================
+
+html[data-theme] .bnd-statusbar {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline-start: var(--bnd-sidebar-live-w);
+  inset-inline-end: 0;
+  z-index: var(--bnd-z-bar);
+
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-4);
+  block-size: var(--bnd-statusbar-h);
+  padding-inline: var(--bnd-sp-4);
+  background: var(--bnd-raised);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-muted);
+
+  // Every entry is icon+label, never colour alone (status tokens rule).
+  .bnd-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bnd-sp-1);
+    white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+
+    svg {
+      inline-size: 12px;
+      block-size: 12px;
+      flex: none;
+    }
+  }
+
+  a.bnd-status-item,
+  button.bnd-status-item {
+    cursor: pointer;
+    &:hover {
+      color: var(--bnd-ink);
+      text-decoration: none;
+    }
+  }
+
+  .bnd-status-spacer {
+    margin-inline-start: auto;
+  }
+
+  // Connection dot: green connected, critical red otherwise. The label beside
+  // it carries the words, so the state survives greyscale and colour-blindness.
+  .bnd-conn-dot {
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: var(--bnd-radius-pill);
+    background: var(--bnd-good);
+    flex: none;
+  }
+  .bnd-conn[data-state="offline"] .bnd-conn-dot {
+    background: var(--bnd-critical);
+  }
+
+  .bnd-clock {
+    font-variant-numeric: var(--bnd-numeric);
+  }
+}
+
+// ── Bottom Bar variant (layout: bottombar) ──────────────────────────────────
+// Taller, and hosts real controls; the search field reuses the topbar's
+// .bnd-search-field styling wholesale (defined in _navbar.scss).
+html[data-theme] .bnd-statusbar.bnd-bottombar {
+  block-size: var(--bnd-bottombar-h);
+  background: var(--bnd-surface);
+  font-size: var(--bnd-text-sm);
+
+  .bnd-search-field {
+    inline-size: min(280px, 32vw);
+    block-size: calc(var(--bnd-bottombar-h) - 12px);
+  }
+}

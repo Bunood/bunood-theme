@@ -1,0 +1,29 @@
+# Python — dist/build anchored to the repo ROOT on purpose: an unanchored
+# `dist/` would also ignore bunood_theme/public/dist, which must be committed
+# (the runtime containers cannot build; see the Node section below).
+__pycache__/
+*.py[cod]
+*.egg-info/
+/dist/
+/build/
+
+# Node — the toolchain is dev-only; the COMPILED output in
+# bunood_theme/public/dist IS committed, because the runtime containers cannot
+# build (see ARCHITECTURE.md section 7).
+node_modules/
+package-lock.json
+
+# Env / editor
+.env
+.venv
+.DS_Store
+Thumbs.db
+
+# Agent runtime state
+.claude-flow/
+.swarm/
+ruvector.db*
+.claude/settings.local.json
+
+# Read-only reference clones (shallow) — never shipped
+_reference/

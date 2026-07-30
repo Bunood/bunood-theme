@@ -1,0 +1,82 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// TOP BAR — the "Top Bar" layout's global strip (checklist item 9).
+//
+// WHAT
+//   Appearance of `.bnd-topbar`, which bunood.js mounts into the native
+//   <header> inside .main-section when data-bnd-layout="topbar". Holds the
+//   always-visible search field and the global cluster (bell, avatar).
+//
+// WHY ONLY APPEARANCE LIVES HERE
+//   Position, stickiness and z-index are layout concerns and live in
+//   _layouts.scss with the rest of the matrix; this file must stay meaningful
+//   even if the bar is one day mounted somewhere else.
+//
+// EVERY VALUE IS A TOKEN — heights, colours, radii and durations all come from
+// _tokens.scss, so brand.py's per-site overrides reach the bar with no rules
+// here changing. Logical properties only (RTL guard in build.mjs).
+// ============================================================================
+
+html[data-theme] .bnd-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  block-size: var(--bnd-topbar-h);
+  padding-inline: var(--bnd-sp-4);
+  background: var(--bnd-surface);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+// The search "field" is a button dressed as an input: it proxy-clicks the
+// hidden native trigger, which opens Frappe's own search modal. A real input
+// would need us to own query state for no benefit.
+html[data-theme] .bnd-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: min(340px, 40vw);
+  block-size: calc(var(--bnd-topbar-h) - 14px);
+  padding-inline: var(--bnd-sp-3);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-page);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  cursor: pointer;
+  transition: border-color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease);
+
+  &:hover {
+    background: var(--bnd-hover);
+    border-color: var(--bnd-border-strong);
+  }
+
+  .bnd-search-label {
+    flex: 1;
+    text-align: start;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  kbd {
+    font-family: inherit;
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+    background: var(--bnd-surface);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-sm);
+    padding-block: 1px;
+    padding-inline: var(--bnd-sp-1);
+  }
+
+  svg {
+    inline-size: 16px;
+    block-size: 16px;
+    flex: none;
+  }
+}
+
+// Pushes the cluster to the bar's end regardless of what sits between.
+html[data-theme] .bnd-topbar .bnd-cluster {
+  margin-inline-start: auto;
+}

@@ -1,0 +1,94 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// BRIDGE — map our `--bnd-*` tokens onto Frappe's ~534 variable names.
+//
+// WHAT
+//   The single file where the theme touches Frappe's own variable vocabulary.
+//   Everything else in this codebase reads `--bnd-*` and never knows Frappe's
+//   names exist.
+//
+// WHY A SEPARATE FILE, AND WHY IT IS THE ONLY ONE
+//   Frappe's components are already fully variable-driven, so re-theming the
+//   entire desk is mostly a mapping exercise, not a restyling one. Concentrating
+//   that mapping in one place means:
+//     * a Frappe upgrade that renames a variable is a one-file fix;
+//     * no component rule anywhere else can accidentally set a Frappe name and
+//       break dark mode.
+//
+// THE SCOPING RULE THAT MAKES THIS SAFE
+//   Frappe declares light at `:root, [data-theme="light"]`
+//   (`scss/desk/css_variables.scss:4`) and dark at `[data-theme="dark"]`
+//   (`scss/desk/dark.scss:2`). Both are specificity (0,1,0). Our bundle loads
+//   AFTER Frappe's, so a bare `:root { --bg-color: … }` here would win in light
+//   mode AND in dark mode — silently killing dark mode for that variable.
+//
+//   Therefore every mapping below is written TWICE, once per mode-scoped
+//   selector, and never at bare `:root`. If you add a mapping, add it to both
+//   blocks or it will leak across modes.
+//
+//   `html:not([data-theme])` is included in the light block as a belt-and-braces
+//   case: Frappe always sets the attribute today, but a theme that renders
+//   unstyled when it is absent is a theme that breaks silently.
+//
+// See ARCHITECTURE.md sections 1 and 3.
+// ============================================================================
+
+@mixin bnd-frappe-mapping {
+  // ── Canvas and surfaces ───────────────────────────────────────────────────
+  // `--bg-color` is what `html` itself paints (`scss/desk/global.scss:1`), which
+  // is why getting it right removes any need for an inline background hack on
+  // the html element — the mistake v1 made, where an inline style outranked
+  // every stylesheet and pinned the canvas after a runtime theme switch.
+  --bg-color: var(--bnd-page);
+  --fg-color: var(--bnd-surface);
+  --card-bg: var(--bnd-surface);
+  --control-bg: var(--bnd-raised);
+  --subtle-accent: var(--bnd-hover);
+  --subtle-fg: var(--bnd-raised);
+  --fg-hover-color: var(--bnd-hover);
+  --modal-bg: var(--bnd-surface);
+  --popover-bg: var(--bnd-surface);
+  --toast-bg: var(--bnd-surface);
+
+  // ── Ink ───────────────────────────────────────────────────────────────────
+  --text-color: var(--bnd-ink);
+  --heading-color: var(--bnd-ink);
+  --text-muted: var(--bnd-ink-muted);
+  --text-light: var(--bnd-ink-subtle);
+  --disabled-text-color: var(--bnd-ink-subtle);
+
+  // ── Lines ─────────────────────────────────────────────────────────────────
+  --border-color: var(--bnd-border);
+  --dark-border-color: var(--bnd-border-strong);
+
+  // ── Brand ─────────────────────────────────────────────────────────────────
+  // Frappe's `--primary` defaults to `--gray-900`, i.e. near-black buttons.
+  // Pointing it at the brand seed is what turns a stock desk into a branded one
+  // in a single line.
+  --primary: var(--bnd-brand);
+  --primary-color: var(--bnd-brand);
+  --border-primary: var(--bnd-brand);
+  --progress-bar-bg: var(--bnd-brand);
+
+  // ── Component metrics ─────────────────────────────────────────────────────
+  // Density flows through here, which is why density is authored as token
+  // VALUES rather than as selector variants.
+  --list-row-height: var(--bnd-row-h);
+}
+
+html[data-theme="light"],
+html:not([data-theme]) {
+  @include bnd-frappe-mapping;
+}
+
+html[data-theme="dark"] {
+  @include bnd-frappe-mapping;
+}
+
+// The "Automatic" compensation from _tokens.scss re-derives the `--bnd-*` values
+// under a dark OS; this maps them through so Frappe's components follow.
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"] {
+    @include bnd-frappe-mapping;
+  }
+}

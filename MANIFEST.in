@@ -1,0 +1,4 @@
+include MANIFEST.in
+include *.json *.md *.py *.toml *.txt
+recursive-include bunood_theme *.css *.html *.js *.json *.md *.py *.scss *.svg *.txt
+recursive-exclude bunood_theme *.pyc

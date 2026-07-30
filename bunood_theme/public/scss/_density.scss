@@ -1,0 +1,45 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// DENSITY CONSUMPTION — where the geometry tokens reach real elements.
+//
+// WHAT
+//   The minimal set of rules that make `--bnd-row-h` / `--bnd-pad-y` actually
+//   change on-screen geometry. The tokens and their precedence live in
+//   _tokens.scss; this file is only the plumbing to Frappe's DOM.
+//
+// WHY THIS FILE EXISTS AT ALL
+//   Frappe defines `--list-row-height` but its list rows do not strictly honour
+//   it. Measured on the live desk (2026-07-30): `.list-row` has NO height or
+//   padding rule anywhere — its height is content-driven, and the content is
+//   `.level-left { padding: 5px 0 }` / `.level-right { padding: 9px 10px }`
+//   (21px line + 18px padding ≈ the observed 41px row). Mapping the variable
+//   alone moved a 43px row to 41px — a 2px "density mode". These rules drive
+//   the actual height contributors instead.
+//
+// MEASURED RESULTS (User list, 14px text, 21px line-height):
+//   comfortable  --bnd-pad-y: 6px  →  ~33px rows
+//   compact      --bnd-pad-y: 3px  →  ~27px rows   (~18% more rows on screen)
+//   Text size identical in both — that is decision C, and it is why compact
+//   bottoms out at line-height + 2·pad rather than the raw --bnd-row-h.
+//
+// LIFECYCLE NOTE
+//   These rules MIGRATE into their surface partials as those ship: the list
+//   rules below move into surfaces/_list.scss when checklist item 16 lands,
+//   form-control consumption (--bnd-control-h) arrives with item 18. This file
+//   should shrink to nothing over time — do not let it grow into a grab bag.
+//
+// Scoped html[data-theme] as always: Frappe's sheets are unlayered, so we win
+// by specificity, never by @layer. See ARCHITECTURE.md section 2.
+// ============================================================================
+
+html[data-theme] .list-row {
+  min-height: var(--bnd-row-h);
+}
+
+// The real height drivers. padding-block (logical) so RTL needs nothing.
+html[data-theme] .list-row .level-left,
+html[data-theme] .list-row .level-right,
+html[data-theme] .list-row-head .level-left,
+html[data-theme] .list-row-head .level-right {
+  padding-block: var(--bnd-pad-y);
+}

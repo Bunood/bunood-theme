@@ -1,0 +1,14 @@
+{
+  "name": "bunood-theme",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling for the Bunood Theme Frappe app. Compiles SCSS to a content-hashed CSS bundle and codegens bunood_theme/assets.py. See ARCHITECTURE.md section 7 for why the build runs on the host rather than via bench build.",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node --watch-path=./bunood_theme/public/scss build.mjs"
+  },
+  "devDependencies": {
+    "sass": "^1.80.0"
+  }
+}

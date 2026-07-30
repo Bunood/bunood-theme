@@ -1,0 +1,284 @@
+# Copyright (c) 2026, Bunood and contributors
+# For license information, please see license.txt
+"""Whitelisted endpoints and version-proof wrappers around Frappe internals.
+
+WHAT
+    Every call the theme's client code makes to the server, plus every call the theme
+    makes into ``frappe.desk.*``.
+
+THE RULE THIS FILE ENFORCES
+    **The client never calls a Frappe internal directly; it calls a wrapper here.**
+
+    Frappe renames internal desk APIs between minor versions without deprecation
+    shims. The verified case: ``frappe.desk.desktop.get_workspace_sidebar_items`` became
+    ``get_workspaces`` somewhere between v16.20 and v16.22 — same function body, pure
+    rename. The previous version of this theme called it directly and broke on half of
+    v16, loudly: "Failed to get method" popups on every desk screen.
+
+    A wrapper costs ten lines and converts a hard break into a soft one. Every function
+    here that touches a Frappe internal therefore:
+
+    1. resolves whichever name exists,
+    2. logs when neither does,
+    3. returns a valid EMPTY shape rather than raising.
+
+    Returning a well-formed empty result matters more than it looks: the client can then
+    render an empty state instead of a stack trace, and a theme that degrades is
+    infinitely preferable to a desk that will not load.
+
+See ARCHITECTURE.md section 10.
+"""
+
+import frappe
+
+# ── Cache keys ──────────────────────────────────────────────────────────────────
+# Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
+CACHE_WS_MAP = "bnd_doctype_workspace_map"
+CACHE_WS_LINKS = "bnd_workspace_links::"
+
+#: Workspaces that link to everything and therefore OWN nothing. Excluded from the
+#: DocType->Workspace map: they are conveniences, not homes. Without this exclusion,
+#: high-traffic doctypes get attributed to "Home" and the sidebar highlights the wrong
+#: module everywhere.
+LANDING_WORKSPACES = {"home", "welcome workspace"}
+
+
+# ── Version-proof wrappers ──────────────────────────────────────────────────────
+
+
+@frappe.whitelist()
+def get_workspaces() -> dict:
+    """Return the permission-filtered workspace list, whatever Frappe calls it today.
+
+    Frappe exposes no alternative way to obtain this list, so every theme that renders
+    navigation depends on this one internal — which is exactly why it is wrapped.
+
+    Returns:
+        ``{"pages": [...], "private_pages": [...]}``. Empty lists on any failure, so
+        callers can always index both keys.
+    """
+    try:
+        from frappe.desk import desktop
+
+        fn = getattr(desktop, "get_workspaces", None) or getattr(
+            desktop, "get_workspace_sidebar_items", None
+        )
+        if fn is None:
+            frappe.log_error(
+                "bunood_theme: no workspace-list method found on frappe.desk.desktop. "
+                "Frappe has renamed it again; add the new name to api.get_workspaces.",
+                "Bunood Theme API drift",
+            )
+            return {"pages": [], "private_pages": []}
+        return fn()
+    except Exception:
+        frappe.log_error("bunood_theme.api.get_workspaces failed")
+        return {"pages": [], "private_pages": []}
+
+
+# ── DocType -> Workspace ownership ──────────────────────────────────────────────
+
+
+@frappe.whitelist()
+def get_doctype_workspace_map() -> dict:
+    """Map every DocType to the workspace that owns it. Cached for an hour.
+
+    WHY THIS EXISTS
+        Frappe lights its sidebar only on a workspace *route*. Open any List or Form and
+        the sidebar goes blank and the breadcrumb collapses to just the DocType name.
+        This map is what lets the theme answer "where am I?" — keep the owning module
+        highlighted, and render ``Home > Selling > SINV-0041``.
+
+    Site-wide rather than per-user because workspace contents are not user-specific;
+    invalidated by :func:`clear_workspace_cache` on any Workspace change.
+    """
+    try:
+        cached = frappe.cache().get_value(CACHE_WS_MAP)
+        if cached:
+            return cached
+        mapping = _build_doctype_workspace_map()
+        frappe.cache().set_value(CACHE_WS_MAP, mapping, expires_in_sec=3600)
+        return mapping
+    except Exception:
+        frappe.log_error("bunood_theme.api.get_doctype_workspace_map failed")
+        return {}
+
+
+def _build_doctype_workspace_map() -> dict:
+    """Build ``{doctype: workspace_name}`` by merging three sources, weakest first.
+
+    Frappe has no canonical source for DocType ownership, so this reconstructs it.
+    Each pass overwrites the previous, and each is independently guarded because these
+    child-table schemas shift between v16 minors — one failing pass should degrade the
+    map, not empty it.
+
+    Pass order (this is the hard-won part, do not reorder):
+
+    1. **Module inheritance** — weakest. Every DocType inherits its module's public
+       workspace. Broad but coarse.
+    2. **Workspace Shortcut** rows — a handful of convenience pointers.
+    3. **Workspace Link** rows — STRONGEST. The curated contents of a topic workspace.
+
+    Why links must outrank shortcuts: shortcuts cluster on landing pages, so trusting
+    them more attributed Sales Invoice, Customer *and* Item all to "Home". The
+    resulting map looks plausible and is wrong on the highest-traffic doctypes.
+    """
+    mapping: dict[str, str] = {}
+
+    # Pass 1 — module inheritance.
+    try:
+        ws_by_module: dict[str, str] = {}
+        for ws in frappe.get_all("Workspace", fields=["name", "module", "public"]):
+            if ws.get("module") and ws.get("public") and ws["module"] not in ws_by_module:
+                ws_by_module[ws["module"]] = ws["name"]
+        if ws_by_module:
+            for dt in frappe.get_all(
+                "DocType", filters={"istable": 0, "issingle": 0}, fields=["name", "module"]
+            ):
+                owner = ws_by_module.get(dt.get("module"))
+                if owner:
+                    mapping[dt["name"]] = owner
+    except Exception:
+        frappe.log_error("bunood_theme: module->workspace pass failed")
+
+    # Passes 2 and 3 share their shape, so they share a helper.
+    for doctype, type_field in (("Workspace Shortcut", "type"), ("Workspace Link", "link_type")):
+        try:
+            for row in frappe.get_all(
+                doctype, filters={type_field: "DocType"}, fields=["link_to", "parent"]
+            ):
+                parent = (row.get("parent") or "").strip()
+                if not row.get("link_to") or not parent:
+                    continue
+                if parent.lower() in LANDING_WORKSPACES:
+                    continue
+                mapping[row["link_to"]] = parent
+        except Exception:
+            frappe.log_error(f"bunood_theme: {doctype} pass failed")
+
+    return mapping
+
+
+@frappe.whitelist()
+def get_workspace_links(workspace: str) -> list:
+    """Return one workspace's links grouped into its own Card Break sections.
+
+    Reuses ERPNext's existing grouping rather than inventing a taxonomy: the Stock
+    workspace alone ships 72 links already split across sections like "Stock
+    Transactions" and "Settings". Reading that structure means a newly installed app
+    appears correctly with no change to this theme.
+
+    Args:
+        workspace: the Workspace name.
+
+    Returns:
+        ``[{"title": str, "items": [{"label", "link_to", "link_type"}]}]``, or ``[]``.
+    """
+    if not workspace:
+        return []
+    try:
+        key = CACHE_WS_LINKS + str(workspace)
+        cached = frappe.cache().get_value(key)
+        if cached is not None:
+            return cached
+
+        rows = frappe.get_all(
+            "Workspace Link",
+            filters={"parent": workspace},
+            fields=["type", "label", "link_to", "link_type", "hidden"],
+            order_by="idx asc",
+        )
+
+        sections: list[dict] = []
+        current: dict = {"title": "", "items": []}
+        for r in rows:
+            if r.get("hidden"):
+                continue
+            # A Card Break starts a new section. Links before the first break belong to
+            # an untitled leading group, which the client labels generically.
+            if r.get("type") == "Card Break":
+                if current["items"]:
+                    sections.append(current)
+                current = {"title": r.get("label") or "", "items": []}
+                continue
+            if not r.get("link_to"):
+                continue
+            current["items"].append(
+                {
+                    "label": r.get("label") or r.get("link_to"),
+                    "link_to": r.get("link_to"),
+                    "link_type": r.get("link_type") or "DocType",
+                }
+            )
+        if current["items"]:
+            sections.append(current)
+
+        frappe.cache().set_value(key, sections, expires_in_sec=3600)
+        return sections
+    except Exception:
+        frappe.log_error("bunood_theme.api.get_workspace_links failed")
+        return []
+
+
+DENSITY_VALUES = ("", "Comfortable", "Compact")
+"""Valid per-user density choices. Empty string means "follow the site default" —
+a real state, not an absence: it is what lets an admin change the default and have
+every undecided user follow along."""
+
+
+@frappe.whitelist()
+def set_user_density(density: str = "") -> dict:
+    """Persist the current user's density override.
+
+    Stored in ``frappe.defaults`` (per-user server-side storage) rather than
+    localStorage — deliberately. The v1 theme kept per-user prefs client-side and the
+    result was per-BROWSER preferences that reset on every new machine. User defaults
+    ride into boot for free, so the attribute can be applied before first desk render
+    with no extra request.
+
+    Not stored on the User doctype: adding custom fields to core doctypes from a theme
+    creates migration coupling that outlives the theme.
+
+    Args:
+        density: one of :data:`DENSITY_VALUES`. Empty clears the override.
+
+    Returns:
+        ``{"density": <stored value>}`` for the client to apply immediately.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    if density not in DENSITY_VALUES:
+        frappe.throw(f"Invalid density: {density!r}")
+
+    if density:
+        frappe.defaults.set_user_default("bnd_density", density)
+    else:
+        frappe.defaults.clear_default("bnd_density", parent=frappe.session.user)
+    # Boot is cached per user; drop it so the next full load sees the new value.
+    frappe.cache.hdel("bootinfo", frappe.session.user)
+    return {"density": density}
+
+
+def clear_workspace_cache(doc=None, method=None) -> None:
+    """``doc_events`` handler — drop cached workspace data when a Workspace changes.
+
+    Registered on Workspace ``on_update`` and ``after_delete``. Without this, an edited
+    workspace keeps serving a stale sidebar for up to an hour.
+
+    Deliberately silent on failure: a stale cache is a cosmetic problem, and raising
+    here would block the user's save.
+    """
+    try:
+        frappe.cache().delete_value(CACHE_WS_MAP)
+    except Exception:
+        pass
+    try:
+        name = getattr(doc, "name", None) if doc else None
+        if name:
+            frappe.cache().delete_value(CACHE_WS_LINKS + str(name))
+        else:
+            # delete_keys is absent on some redis wrappers; the per-workspace entries
+            # expire on their own within the hour, so this is best-effort.
+            frappe.cache().delete_keys(CACHE_WS_LINKS + "*")
+    except Exception:
+        pass

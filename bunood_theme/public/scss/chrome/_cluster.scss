@@ -1,0 +1,169 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// GLOBAL CLUSTER + AVATAR MENU — shared by every non-classic layout.
+//
+// WHAT
+//   `.bnd-cluster`  — the [search] [bell] [avatar] button group. One builder
+//                     in bunood.js produces it; each layout mounts it in its
+//                     own bar (topbar / page-head / bottombar / dock).
+//   `.bnd-menu`     — the theme's own dropdown, used for the avatar menu and
+//                     the dock's workspace-overflow menu. Fixed-position,
+//                     JS-anchored to its trigger, opens up or down.
+//
+// WHY OUR OWN MENU AND NOT FRAPPE'S
+//   Frappe's `.frappe-menu` is built by sidebar code we do not own, anchored
+//   to sidebar coordinates, with content we would have to mutate. The avatar
+//   menu's ITEMS still call only Frappe's public toolbar APIs (bunood.js) —
+//   we own the shell, Frappe owns every behaviour.
+//
+// ACCESSIBILITY BASELINE (full pass is checklist item 34)
+//   Real <button> elements, aria-labels from bunood.js, Escape closes,
+//   focus-visible ring from the accent token.
+// ============================================================================
+
+html[data-theme] .bnd-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-1);
+}
+
+// Icon buttons: bell, dock search, compact-layout search. 28px square — the
+// same optical size as Frappe's own sidebar icon rows.
+html[data-theme] .bnd-icon-btn {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: background var(--bnd-dur-fast) var(--bnd-ease),
+    color var(--bnd-dur-fast) var(--bnd-ease);
+
+  svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+}
+
+// The avatar trigger wraps Frappe's own avatar markup (frappe.avatar()), so
+// user images, initials and their background colours all come from core.
+html[data-theme] .bnd-avatar-btn {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: none;
+  border-radius: var(--bnd-radius-pill);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+
+  .avatar {
+    inline-size: 26px;
+    block-size: 26px;
+  }
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--bnd-active);
+  }
+}
+
+// Divider between page actions and global cluster in the compact layout's
+// shared strip — the "one strip, two jobs" seam made visible.
+html[data-theme] .bnd-cluster-divider {
+  inline-size: var(--bnd-line);
+  block-size: 18px;
+  background: var(--bnd-border);
+  margin-inline: var(--bnd-sp-2);
+}
+
+// ── The theme's dropdown menu ───────────────────────────────────────────────
+html[data-theme] .bnd-menu {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  min-inline-size: 220px;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-lg);
+
+  // Identity header: who this menu belongs to. Data from frappe.session.
+  .bnd-menu-header {
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+    margin-block-end: var(--bnd-sp-1);
+
+    .bnd-menu-name {
+      font-size: var(--bnd-text-sm);
+      font-weight: var(--bnd-weight-medium);
+      color: var(--bnd-ink);
+    }
+    .bnd-menu-email {
+      font-size: var(--bnd-text-xs);
+      color: var(--bnd-ink-subtle);
+    }
+  }
+
+  .bnd-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    inline-size: 100%;
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink);
+    font-size: var(--bnd-text-sm);
+    text-align: start;
+    cursor: pointer;
+
+    svg {
+      inline-size: 15px;
+      block-size: 15px;
+      flex: none;
+      color: var(--bnd-ink-muted);
+    }
+
+    &:hover {
+      background: var(--bnd-hover);
+      text-decoration: none;
+      color: var(--bnd-ink);
+    }
+
+    &.bnd-danger {
+      color: var(--bnd-critical);
+      svg {
+        color: var(--bnd-critical);
+      }
+    }
+  }
+
+  .bnd-menu-divider {
+    block-size: var(--bnd-line);
+    background: var(--bnd-border);
+    margin-block: var(--bnd-sp-1);
+    margin-inline: var(--bnd-sp-2);
+  }
+}
+
+// Focus ring for keyboard users — accent token, visible in both modes.
+html[data-theme] .bnd-icon-btn:focus-visible,
+html[data-theme] .bnd-avatar-btn:focus-visible,
+html[data-theme] .bnd-search-field:focus-visible,
+html[data-theme] .bnd-menu-item:focus-visible,
+html[data-theme] .bnd-dock-item:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
