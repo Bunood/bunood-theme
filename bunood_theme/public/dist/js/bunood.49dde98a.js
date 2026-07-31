@@ -782,15 +782,18 @@
 		}, 20);
 	}
 
-	// ── Breadcrumb module chip (all layouts) ────────────────────────────────
+	// ── Trail workspace resolution (all layouts) ────────────────────────────
 
 	/**
-	 * Prepend the current workspace's own sprite icon to the workspace link in
-	 * v16's existing breadcrumb trail, so the trail and the navigation agree
-	 * visually. Decorates every un-decorated trail (pages are cached), maps
-	 * link slug -> boot.allowed_workspaces for the icon, and skips silently
-	 * when a link is not a workspace. Retried because breadcrumbs render
-	 * slightly after the route event.
+	 * Resolve the current workspace FROM the breadcrumb trail and feed it to
+	 * the sidebar kit's module row ("one resolution, two consumers"). On
+	 * list/form pages the trail's workspace crumb is the only reliable
+	 * signal — the route carries the doctype, not the workspace. Retried
+	 * because breadcrumbs render slightly after the route event.
+	 *
+	 * The 0.4.0 chip injection that used to live here was removed for the
+	 * item-11 breadcrumb kit; only the resolution survives, because the
+	 * module row depends on it in every layout.
 	 *
 	 * TWO-STEP MATCH, both needed (measured 2026-07-30): the workspace crumb's
 	 * href is unreliable — on a list page Frappe emitted text "Home" with
@@ -799,7 +802,7 @@
 	 * is locale-tolerant here because workspace titles arrive in boot already
 	 * in the user's locale, same as the crumb label Frappe renders from them.
 	 */
-	function decorate_breadcrumbs() {
+	function resolve_trail_workspace() {
 		const workspaces = (frappe.boot && frappe.boot.allowed_workspaces) || [];
 		if (!workspaces.length) return;
 		const slug = (name) =>
@@ -809,17 +812,14 @@
 		const by_slug = {};
 		for (const w of workspaces) by_slug[slug(w.name)] = w;
 
-		// Success means every trail is DECORATED, not merely present: the <ul>
-		// exists before Frappe fills it (measured — mount-time trails are
-		// empty), so "trail found" must keep retrying until links appear. The
-		// budget bounds pages whose trail legitimately has no workspace link.
+		// The <ul> exists before Frappe fills it (measured — mount-time trails
+		// are empty), so "trail found" is not success: keep retrying until a
+		// workspace link resolves. The budget bounds pages whose trail
+		// legitimately has no workspace link (Desktop, bare singles).
 		try_for(() => {
 			const trails = document.querySelectorAll(".page-head .navbar-breadcrumbs");
 			if (!trails.length) return false;
-			let all_done = true;
 			for (const trail of trails) {
-				if (trail.querySelector(".bnd-crumb-chip")) continue;
-				let done = false;
 				for (const link of trail.querySelectorAll('li a[href^="/desk/"]')) {
 					let ws = by_slug[link.getAttribute("href").split("/")[2]];
 					if (!ws) {
@@ -830,32 +830,13 @@
 								String(w.name || "").toLowerCase() === text
 						);
 					}
-					if (!ws || !ws.icon) continue;
-					// The module row (sidebar kit) shows the same workspace the
-					// trail resolved — one resolution, two consumers.
+					if (!ws) continue;
 					sb_current_workspace = ws;
 					sb_update_module_row();
-					const chip = el("span", "bnd-crumb-chip");
-					chip.appendChild(sprite_icon("icon-" + ws.icon));
-					link.insertBefore(chip, link.firstChild);
-					done = true;
-					break; // one chip per trail: the main module
+					return true;
 				}
-				// Workspace pages: the current workspace is the trail's LAST
-				// crumb and is often not a link at all, so the anchor loop
-				// finds nothing — chip it via the route-resolved workspace.
-				if (!done && sb_current_workspace && sb_current_workspace.icon) {
-					const last = trail.querySelector("li:last-child a, li:last-child span, li:last-child");
-					if (last) {
-						const chip = el("span", "bnd-crumb-chip");
-						chip.appendChild(sprite_icon("icon-" + sb_current_workspace.icon));
-						last.insertBefore(chip, last.firstChild);
-						done = true;
-					}
-				}
-				if (!done) all_done = false;
 			}
-			return all_done;
+			return false;
 		}, 20);
 	}
 
@@ -1717,8 +1698,9 @@
 
 	/**
 	 * Mount the chrome for the active layout, once the desk shell exists.
-	 * Per-page work (compact cluster, crumb chips, dock highlight) re-runs on
-	 * every route change; per-shell work runs once, guarded by mount markers.
+	 * Per-page work (compact cluster, trail resolution, dock highlight)
+	 * re-runs on every route change; per-shell work runs once, guarded by
+	 * mount markers.
 	 */
 	function mount_chrome() {
 		const slug = layout();
@@ -1726,7 +1708,7 @@
 
 		observe_sidebar_width();
 		update_desktop_mode();
-		decorate_breadcrumbs();
+		resolve_trail_workspace();
 
 		if (slug === "topbar") {
 			mount_topbar();
@@ -1739,7 +1721,7 @@
 		} else if (slug === "dock") {
 			mount_dock();
 		}
-		// classic mounts nothing — stock chrome, plus the crumb chip above.
+		// classic mounts nothing — stock chrome.
 
 		// The sidebar style kit rides along in every layout that HAS a
 		// sidebar; Dock hides it, so the kit stays down there.
@@ -1750,7 +1732,7 @@
 				close_menu();
 				update_desktop_mode();
 				sb_resolve_workspace_from_route();
-				decorate_breadcrumbs();
+				resolve_trail_workspace();
 				if (slug === "compact") inject_compact_cluster();
 				if (slug === "dock") update_dock_active();
 				sb_update_module_row();

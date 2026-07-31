@@ -663,27 +663,6 @@ html[data-theme] .bnd-dock-item:focus-visible {
   outline-offset: 1px;
 }
 
-html[data-theme] .bnd-crumb-chip {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 20px;
-  block-size: 20px;
-  margin-inline-end: var(--bnd-sp-1);
-  border-radius: var(--bnd-radius-md);
-  background: var(--bnd-active);
-  color: var(--bnd-brand);
-  vertical-align: text-bottom;
-}
-html[data-theme] .bnd-crumb-chip svg {
-  inline-size: 13px;
-  block-size: 13px;
-}
-
-html[data-theme] .navbar-breadcrumbs li {
-  display: inline-flex;
-  align-items: center;
-}
-
 html[data-bnd-sb-color=theme] {
   --bnd-sb-bg: var(--bnd-pane);
   --bnd-sb-ink: var(--bnd-ink);
