@@ -2576,12 +2576,15 @@
 		}, 30);
 		inbox_paint_badge();
 
-		// Frappe's own sidebar bell stays visible (and is the only bell) in
-		// Classic, and stays clickable in Compact — route its clicks through
-		// the same decision point, exactly as the palette does for the
-		// native search row. Capture phase so Frappe's handler never races
-		// us while our panel owns the surface; guarded so a missing xcall
-		// lets the native handler proceed untouched (fails open).
+		// Frappe's own sidebar bell is the ONLY bell in Classic (which
+		// mounts no cluster). Every other layout hides that row and mounts
+		// the themed bell instead — _layouts.scss hides it for topbar,
+		// bottombar and compact, and dock hides the sidebar entirely — so
+		// this listener exists for Classic. Route its clicks through the
+		// same decision point, exactly as the palette does for the native
+		// search row. Capture phase so Frappe's handler never races us
+		// while our panel owns the surface; guarded so a missing xcall lets
+		// the native handler proceed untouched (fails open).
 		document.addEventListener(
 			"click",
 			(ev) => {
@@ -3561,6 +3564,13 @@
 				if (slug === "dock") update_dock_active();
 				sb_update_module_row();
 				sb_update_apps_rail_active();
+				// AFTER inject_compact_cluster, never before: Compact builds
+				// a NEW cluster (with a fresh hidden badge) on every route
+				// change, and Frappe fires router listeners in registration
+				// order — mount_inbox's own listener runs first, so it can
+				// only ever paint the OUTGOING page's badge. Measured: every
+				// newly visited page kept a blank badge indefinitely.
+				inbox_ensure_badges();
 			});
 		}
 	}

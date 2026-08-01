@@ -81,7 +81,12 @@ html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) 
   opacity: 1;
   pointer-events: auto;
 
-  > *:not(.sidebar-notification) {
+  // The bell AND the panel it opens: Frappe renders `.dropdown-notifications`
+  // as a SIBLING inside this same container, so fading it left the opened
+  // panel collapsing the moment the pointer left the rail (measured: 262px
+  // -> 34px, opacity 0). Under Refined that made the newly-working skin
+  // unusable with the shipped Classic + Rail defaults.
+  > *:not(.sidebar-notification):not(.dropdown-notifications) {
     opacity: 0;
     pointer-events: none;
   }

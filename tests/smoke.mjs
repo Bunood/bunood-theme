@@ -691,6 +691,29 @@ async function main() {
 			expect(box && box.w > 200 && box.h > 100, `stock panel has a real box (got ${JSON.stringify(box)})`);
 		});
 
+		await test("inbox: Compact keeps the badge painted across route changes", async () => {
+			// Compact rebuilds its cluster per route, so each new page gets a
+			// fresh hidden badge. The first fix repainted on router change but
+			// registered its listener BEFORE the one that rebuilds the
+			// cluster, and Frappe fires them in order — so it painted the
+			// outgoing page and the incoming one stayed blank forever.
+			setSettings({ desk_layout: "Compact", inbox_style: "Inbox + Page", inbox_badge: "Count" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const read = () =>
+				page.evaluate(() => {
+					const head = frappe.container && frappe.container.page;
+					const n = head && head.querySelector(".bnd-cluster .bnd-inbox-badge");
+					return n ? { hidden: n.hasAttribute("hidden"), text: n.textContent.trim() } : null;
+				});
+			const first = await read();
+			expect(first && !first.hidden && first.text, `badge painted on first page (${JSON.stringify(first)})`);
+			await page.evaluate(() => window.frappe.set_route("List", "User"));
+			await page.waitForTimeout(2500);
+			const second = await read();
+			expect(second && !second.hidden && second.text, `badge painted after navigating (${JSON.stringify(second)})`);
+			setSettings({ desk_layout: "Top Bar" });
+		});
+
 		await test("inbox: works in Classic, which mounts no themed bell", async () => {
 			// Classic mounts no cluster, so Frappe's own sidebar row is the
 			// ONLY bell. The kit had no badge and no panel there at all,

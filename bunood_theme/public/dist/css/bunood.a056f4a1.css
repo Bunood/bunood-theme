@@ -1893,7 +1893,7 @@ html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) 
   opacity: 1;
   pointer-events: auto;
 }
-html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections > *:not(.sidebar-notification) {
+html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections > *:not(.sidebar-notification):not(.dropdown-notifications) {
   opacity: 0;
   pointer-events: none;
 }
