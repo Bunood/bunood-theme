@@ -300,6 +300,39 @@ PALETTE_FIELDS = [
     "palette_sigils",
 ]
 
+#: Notification centre kit fields (item 13), matching theme_settings.json.
+INBOX_FIELDS = [
+    "inbox_style",
+    "inbox_badge",
+    "inbox_group",
+    "inbox_chips",
+    "inbox_row_actions",
+    "inbox_arrival",
+    "inbox_keyboard",
+]
+
+#: The shipped default: "Inbox + Page" (the user's pick, option C) — our
+#: panel over Frappe's own Notification Log (filter tabs, rollup by
+#: document, reason chips, a REAL unread badge — Frappe's own badge code is
+#: dead in this version: the selectors it toggles exist in no template, so
+#: nothing renders however many unread rows there are) PLUS the full-page
+#: triage surface the panel links to. "Bunood Inbox" is the same panel
+#: without the page; "Refined" only restyles the stock panel; "Original"
+#: leaves it alone entirely.
+#:
+#: Arrival tiering defaults to approvals-only: an approval blocking a
+#: document earns an interruption, a share notification does not.
+INBOX_DEFAULTS = {
+    "inbox_style": "Inbox + Page",
+    "inbox_badge": "Count",
+    "inbox_arrival": "Approvals Only",
+    # Checks: behaviours inside a user-invoked panel, invisible until opened.
+    "inbox_group": 1,
+    "inbox_chips": 1,
+    "inbox_row_actions": 1,
+    "inbox_keyboard": 1,
+}
+
 #: The shipped default: "Bunood Palette" (the user's pick, option B) — our
 #: shell over Frappe's own search sources, grouped sections, pinned fallback
 #: rows, per-user frecency. "Original" leaves the stock Ctrl+K modal

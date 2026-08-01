@@ -37,6 +37,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_sidebar_picker(frm);
 		bnd_render_crumbs_picker(frm);
 		bnd_render_palette_picker(frm);
+		bnd_render_inbox_picker(frm);
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
@@ -44,6 +45,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_sb_preview(frm);
 			bnd_crumb_preview(frm);
 			bnd_palette_preview(frm);
+			bnd_inbox_preview(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -1179,16 +1181,243 @@ function bnd_palette_set(frm, fieldname, value) {
 	bnd_render_palette_picker(frm);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Notification centre picker (item 13)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.INBOX_FIELDS — keep in sync. */
+const BND_INBOX_FIELDS = [
+	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
+	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
+];
+
+/** Shipped defaults, for the per-option resets. */
+const BND_INBOX_DEFAULTS = {
+	inbox_style: "Inbox + Page",
+	inbox_badge: "Count",
+	inbox_arrival: "Approvals Only",
+	inbox_group: 1,
+	inbox_chips: 1,
+	inbox_row_actions: 1,
+	inbox_keyboard: 1,
+};
+
+/** The four styles: value, blurb, and a 120x64 anatomy thumbnail. */
+const BND_INBOX_STYLES = [
+	{
+		value: "Inbox + Page",
+		blurb: () => __("The panel plus a full-page triage surface: list beside a detail pane, keyboard loop with auto-advance."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<rect x="6" y="6" width="50" height="52" rx="4" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="10" y="11" width="42" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="10" y="21" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="10" y="31" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="10" y="41" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="62" y="6" width="52" height="52" rx="4" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="67" y="12" width="30" height="5" rx="2" fill="currentColor" opacity=".35"/>' +
+			'<rect x="67" y="22" width="40" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="67" y="29" width="34" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="67" y="44" width="20" height="8" rx="3" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			"</svg>",
+	},
+	{
+		value: "Bunood Inbox",
+		blurb: () => __("The panel only: filter tabs, grouping by document, reason chips, hover actions, a real unread badge."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<circle cx="99" cy="9" r="4" fill="currentColor" opacity=".3"/>' +
+			'<circle cx="103" cy="6" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<rect x="46" y="14" width="68" height="44" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="51" y="19" width="24" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="51" y="28" width="58" height="7" rx="3" fill="var(--primary, #4d8756)" opacity=".28"/>' +
+			'<rect x="51" y="38" width="58" height="7" rx="3" fill="currentColor" opacity=".1"/>' +
+			'<rect x="51" y="48" width="58" height="7" rx="3" fill="currentColor" opacity=".1"/>' +
+			"</svg>",
+	},
+	{
+		value: "Refined",
+		blurb: () => __("ERPNext's own panel and its three tabs, restyled through the theme tokens, plus the missing unread badge."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<circle cx="99" cy="9" r="4" fill="currentColor" opacity=".3"/>' +
+			'<circle cx="103" cy="6" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<rect x="46" y="14" width="68" height="44" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="51" y="19" width="14" height="3" rx="1.5" fill="currentColor" opacity=".35"/>' +
+			'<rect x="68" y="19" width="12" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="83" y="19" width="14" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="51" y="29" width="58" height="6" rx="2" fill="currentColor" opacity=".12"/>' +
+			'<rect x="51" y="39" width="58" height="6" rx="2" fill="currentColor" opacity=".1"/>' +
+			"</svg>",
+	},
+	{
+		value: "Original",
+		blurb: () => __("ERPNext's stock notification panel, completely untouched — no badge either."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<circle cx="99" cy="9" r="4" fill="currentColor" opacity=".25"/>' +
+			'<rect x="46" y="16" width="68" height="40" rx="3" fill="none" stroke="currentColor" opacity=".3"/>' +
+			'<rect x="51" y="21" width="58" height="5" rx="2" fill="currentColor" opacity=".14"/>' +
+			'<rect x="51" y="30" width="58" height="5" rx="2" fill="currentColor" opacity=".1"/>' +
+			'<rect x="51" y="39" width="58" height="5" rx="2" fill="currentColor" opacity=".1"/>' +
+			"</svg>",
+	},
+];
+
+/** Select-type extras: field, title, description, options. */
+const BND_INBOX_SELECTS = [
+	{
+		field: "inbox_badge",
+		title: () => __("Bell badge"),
+		desc: () => __("ERPNext renders no unread indicator at all — this one is the theme's."),
+		options: [
+			{ value: "Count", name: () => __("Count"), glyph: "③" },
+			{ value: "Action Count", name: () => __("Action count"), glyph: "①" },
+			{ value: "Dot", name: () => __("Dot"), glyph: "●" },
+			{ value: "Off", name: () => __("Off"), glyph: "—" },
+		],
+	},
+	{
+		field: "inbox_arrival",
+		title: () => __("When something arrives"),
+		desc: () => __("An approval that blocks a document earns an interruption; a share notification does not."),
+		options: [
+			{ value: "Badge Only", name: () => __("Badge only"), glyph: "•" },
+			{ value: "Approvals Only", name: () => __("Approvals only"), glyph: "!" },
+			{ value: "All Toasts", name: () => __("Everything"), glyph: "☰" },
+		],
+	},
+];
+
+/** Toggle rows: field, name, one-liner. */
+const BND_INBOX_TOGGLES = [
+	{ field: "inbox_group", name: () => __("Group by document"), desc: () => __("One submitted invoice can fire assignment, share and workflow notifications within a minute — this collects them under the document.") },
+	{ field: "inbox_chips", name: () => __("Reason chips"), desc: () => __("Label each row Approval / Mention / Share so a mixed list stays scannable.") },
+	{ field: "inbox_row_actions", name: () => __("Hover row actions"), desc: () => __("Open in a new tab, or mark done, without leaving the panel.") },
+	{ field: "inbox_keyboard", name: () => __("Keyboard triage"), desc: () => __("Arrows or j/k to move, Enter to open, e to mark read and advance to the next.") },
+];
+
+/**
+ * Full render of the notification picker. Wholesale re-render on every
+ * change — state lives in the form document. Reuses the crumbs picker's
+ * stylesheet (bnd-cbp-*), like the palette picker does.
+ */
+function bnd_render_inbox_picker(frm) {
+	const field = frm.get_field("inbox_picker");
+	if (!field || !field.$wrapper) return;
+
+	const current = frm.doc.inbox_style || "Inbox + Page";
+	const kit_down = current === "Original";
+	const panel_ours = current === "Bunood Inbox" || current === "Inbox + Page";
+
+	const style_cards = BND_INBOX_STYLES.map((s) => {
+		const on = s.value === current ? " bnd-cbp-on" : "";
+		return (
+			'<button type="button" class="bnd-cbp-style bnd-ibp-style' + on + '" data-value="' + s.value + '">' +
+			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
+			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
+			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
+			"</button>"
+		);
+	}).join("");
+
+	const selects = BND_INBOX_SELECTS.map((group) => {
+		// The badge survives Refined (the theme owns it either way); the
+		// arrival tiering needs our own panel to be meaningful.
+		const reason =
+			kit_down
+				? __("Original leaves the stock panel")
+				: group.field === "inbox_arrival" && !panel_ours
+					? __("Needs the Bunood panel")
+					: "";
+		const cards = group.options
+			.map((opt) => {
+				const on = opt.value === frm.doc[group.field] ? " bnd-cbp-on" : "";
+				const dis = reason ? " bnd-cbp-dis" : "";
+				return (
+					'<button type="button" class="bnd-cbp-opt' + on + dis + '" data-field="' + group.field +
+					'" data-value="' + opt.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+					'<span class="bnd-cbp-glyph">' + opt.glyph + "</span>" +
+					'<span class="bnd-cbp-oname">' + opt.name() + "</span></button>"
+				);
+			})
+			.join("");
+		return (
+			'<div class="bnd-cbp-group' + (reason ? " bnd-cbp-off" : "") + '">' +
+			'<div class="bnd-cbp-title">' + group.title() +
+			'<button type="button" class="bnd-cbp-reset bnd-ibp-reset" data-field="' + group.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
+			'<div class="bnd-cbp-desc">' + group.desc() + "</div>" +
+			'<div class="bnd-cbp-row">' + cards + "</div></div>"
+		);
+	}).join("");
+
+	const toggles = BND_INBOX_TOGGLES.map((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		const reason = panel_ours ? "" : kit_down ? __("Original leaves the stock panel") : __("Needs the Bunood panel");
+		const dis = reason ? " bnd-cbp-dis" : "";
+		return (
+			'<button type="button" class="bnd-cbp-toggle bnd-ibp-toggle' + dis + '" data-field="' + t.field +
+			'" data-value="' + (on ? 0 : 1) + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span></button>"
+		);
+	}).join("");
+
+	const note = kit_down
+		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's panel untouched — including the missing unread badge.") + "</div>"
+		: '<div class="bnd-cbp-note">' + __("Changes apply the next time the panel opens — click the bell to try it.") + "</div>";
+
+	field.$wrapper.html(
+		'<div class="bnd-cbp">' +
+			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + selects +
+			'<div class="bnd-cbp-group' + (panel_ours ? "" : " bnd-cbp-off") + '"><div class="bnd-cbp-title">' + __("Panel behaviour") + "</div>" +
+			'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			"</div>"
+	);
+
+	field.$wrapper.find(".bnd-ibp-style").on("click", function () {
+		bnd_inbox_set(frm, "inbox_style", this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-ibp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_inbox_set(frm, f, BND_INBOX_DEFAULTS[f]);
+	});
+}
+
+/** LIVE PREVIEW: hand the form's current inbox values to the desk engine. */
+function bnd_inbox_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.inbox_apply) return;
+	const values = {};
+	for (const f of BND_INBOX_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.inbox_apply(values);
+}
+
+/** Set one inbox option, preview, re-render. */
+function bnd_inbox_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_inbox_preview(frm);
+	bnd_render_inbox_picker(frm);
+}
+
 /**
  * Export the whole theme (desk layout, branding colors, every sidebar style
- * field, every breadcrumb field, every palette field) as a JSON file +
- * clipboard copy — portable between tenant sites.
+ * field, every breadcrumb field, every palette field, every notification
+ * field) as a JSON file + clipboard copy — portable between tenant sites.
  */
 function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -1217,7 +1446,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -1229,9 +1458,11 @@ function bnd_sb_import(frm) {
 			bnd_sb_preview(frm);
 			bnd_crumb_preview(frm);
 			bnd_palette_preview(frm);
+			bnd_inbox_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
 			bnd_render_palette_picker(frm);
+			bnd_render_inbox_picker(frm);
 			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),

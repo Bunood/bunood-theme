@@ -29,6 +29,7 @@ from bunood_theme.brand import write_brand_css
 from bunood_theme.presets import (
     CRUMB_DEFAULTS,
     DEFAULT_SIDEBAR_PRESET,
+    INBOX_DEFAULTS,
     PALETTE_DEFAULTS,
     SIDEBAR_PRESETS,
 )
@@ -39,7 +40,7 @@ from bunood_theme.presets import (
 #: value is ``None`` — i.e. the field has never been written at all.
 CHECK_DEFAULTS = {
     field: value
-    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS)
+    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS)
     for field, value in defaults.items()
     if isinstance(value, int)
 }
@@ -73,6 +74,7 @@ DEFAULTS = {
     # protects an admin's explicit 0.
     **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
 }
 
 #: Label of the user-menu density toggle. Module-level so the seeder and any

@@ -650,13 +650,19 @@
 			title: __("Notifications"),
 		});
 		bell.appendChild(cloned_icon(".sidebar-notification", "icon-bell"));
+		// The unread badge is OURS to build: Frappe's own badge code toggles
+		// selectors (.notifications-icon / .notifications-unseen) that exist
+		// in no template in this version, so nothing renders however many
+		// unread rows a user has (measured with 2 unread + seen:0). See the
+		// inbox kit below; inbox_mount_badge fills this node.
+		bell.appendChild(el("span", "bnd-inbox-badge", { hidden: "" }));
 		bell.addEventListener("click", (e) => {
 			// The proxy opens the panel synchronously; without this, OUR click
 			// then bubbles to Frappe's document-level outside-click closer —
 			// whose target (this button) is outside the panel — and the panel
 			// closes in the same instant it opened (measured 2026-07-30).
 			e.stopPropagation();
-			proxy_click(".sidebar-notification .item-anchor");
+			inbox_invoke();
 		});
 		cluster.appendChild(bell);
 
@@ -1174,6 +1180,158 @@
 		pal_pending_uses.push(key);
 		pal_flush_uses(false);
 	}
+
+	/**
+	 * Render the full-page inbox into a container (the "Inbox + Page" style;
+	 * called by bunood_theme/page/bnd_inbox/bnd_inbox.js). Shares every row
+	 * class and action with the panel — one renderer, two surfaces — and
+	 * adds the detail pane the panel has no room for.
+	 * @param {HTMLElement} container - the page's main element.
+	 */
+	bunood.inbox_render_page = function (container) {
+		if (!container) return;
+		container.innerHTML = "";
+		const frame = el("div", "bnd-inbox-page");
+		const left = el("div", "bnd-inbox-page-list");
+		const tabs = el("div", "bnd-inbox-tabs", { role: "tablist" });
+		for (const tab of INBOX_TABS) {
+			const btn = el("button", "bnd-inbox-tab", { type: "button", role: "tab", "data-tab": tab.id });
+			btn.textContent = tab.label();
+			btn.addEventListener("click", () => {
+				inbox_tab = tab.id;
+				load();
+			});
+			tabs.appendChild(btn);
+		}
+		left.appendChild(tabs);
+		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "0" });
+		left.appendChild(list);
+		frame.appendChild(left);
+
+		const detail = el("div", "bnd-inbox-page-detail");
+		frame.appendChild(detail);
+		container.appendChild(frame);
+
+		/** Paint the detail pane for the highlighted row. */
+		function show_detail() {
+			const row = inbox_flat[inbox_cursor];
+			detail.innerHTML = "";
+			if (!row) {
+				const empty = el("div", "bnd-inbox-empty");
+				empty.textContent = __("Select a notification");
+				detail.appendChild(empty);
+				return;
+			}
+			const title = el("div", "bnd-inbox-detail-title");
+			title.textContent = row.document_name || __("Notification");
+			detail.appendChild(title);
+			const meta = el("div", "bnd-inbox-detail-meta");
+			const subject = el("div");
+			subject.innerHTML = row.subject || "";
+			meta.appendChild(subject);
+			// Plain facts as TEXT, the timestamp as MARKUP — comment_when
+			// returns a live <span class="frappe-timestamp">, so the two
+			// cannot share one assignment.
+			const facts = [];
+			if (row.document_type) facts.push(__(row.document_type));
+			if (row.from_user) facts.push(row.from_user);
+			if (facts.length) {
+				const line = el("div");
+				line.textContent = facts.join(" · ");
+				meta.appendChild(line);
+			}
+			const detail_when = inbox_when(row);
+			if (detail_when) {
+				const line = el("div");
+				line.innerHTML = detail_when;
+				meta.appendChild(line);
+			}
+			detail.appendChild(meta);
+
+			const actions = el("div", "bnd-inbox-detail-actions");
+			const open_btn = el("button", "bnd-inbox-btn bnd-inbox-btn-primary", { type: "button" });
+			open_btn.textContent = __("Open");
+			open_btn.addEventListener("click", () => inbox_open(row));
+			actions.appendChild(open_btn);
+			const done_btn = el("button", "bnd-inbox-btn", { type: "button" });
+			done_btn.textContent = inbox_done.has(row.name) ? __("Not done") : __("Done");
+			done_btn.addEventListener("click", () => {
+				const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
+				inbox_mark_read(row, node);
+				inbox_toggle_done(row);
+				if (node) node.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
+				// Triage loop: acting advances, exactly like the `e` key.
+				inbox_highlight(inbox_cursor + 1, list);
+				show_detail();
+			});
+			actions.appendChild(done_btn);
+			detail.appendChild(actions);
+		}
+
+		/** Load the active tab into the page list. */
+		function load() {
+			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
+				btn.classList.toggle("bnd-inbox-tab-on", btn.getAttribute("data-tab") === inbox_tab);
+			}
+			list.innerHTML = "";
+			const loading = el("div", "bnd-inbox-empty");
+			loading.textContent = __("Loading...");
+			list.appendChild(loading);
+			inbox_fetch(inbox_tab, 0).then((res) => {
+				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_paint_badge();
+				inbox_render_rows(list, (res && res.rows) || []);
+				inbox_highlight(0, list);
+				show_detail();
+			});
+		}
+
+		// Selection follows the pointer and the keys; the detail pane
+		// follows the selection.
+		list.addEventListener("mousemove", (ev) => {
+			const row = ev.target.closest && ev.target.closest(".bnd-inbox-row");
+			if (!row) return;
+			const idx = parseInt(row.getAttribute("data-idx"), 10);
+			if (idx !== inbox_cursor) {
+				inbox_highlight(idx, list);
+				show_detail();
+			}
+		});
+		list.addEventListener("keydown", (ev) => {
+			inbox_keydown(ev, list, null);
+			show_detail();
+		});
+		list.focus();
+		inbox_tab = "unread";
+		load();
+	};
+
+	/**
+	 * LIVE PREVIEW for the notification kit: re-derive the attribute, drop
+	 * the built panel so flag changes rebuild on next open, repaint the
+	 * badge. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.inbox_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (inbox_state ? inbox_state[key] : undefined);
+		apply_inbox_attrs({
+			style: v("inbox_style", "style"),
+			badge: v("inbox_badge", "badge"),
+			arrival: v("inbox_arrival", "arrival"),
+			group: v("inbox_group", "group"),
+			chips: v("inbox_chips", "chips"),
+			row_actions: v("inbox_row_actions", "row_actions"),
+			keyboard: v("inbox_keyboard", "keyboard"),
+			unread: inbox_unread,
+			done: [...inbox_done],
+		});
+		if (inbox_nodes) {
+			inbox_nodes.backdrop.remove();
+			inbox_nodes = null;
+		}
+		inbox_paint_badge();
+	};
 
 	/** Forget the in-memory usage blob (the picker's reset presses this). */
 	bunood.palette_forget_usage = function () {
@@ -1798,6 +1956,603 @@
 			},
 			true
 		);
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	// Notification centre kit (item 13)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// FOUR STYLES:
+	//   Original      -> stock panel, untouched (kit sets no attribute).
+	//   Refined       -> stock panel, tagged for the CSS skin.
+	//   Bunood Inbox  -> OUR panel over Frappe's Notification Log.
+	//   Inbox + Page  -> the panel plus a full-page triage surface.
+	//
+	// Sources and actions are Frappe's own: api.get_inbox pages the log
+	// (Frappe's get_notification_logs takes no offset, caps at 20 and is
+	// http-cached for 60s — a burst can render the same row repeatedly),
+	// mark-read goes through Frappe's whitelisted endpoints, and routing
+	// uses frappe.set_route. "Done" is ours (frappe.defaults) because the
+	// log grants role All no write permission and has no unread endpoint.
+
+	/** Label -> attribute slug. Original/unknown -> no attribute. */
+	const INBOX_SLUGS = { "Original": "", "Refined": "refined", "Bunood Inbox": "inbox", "Inbox + Page": "page" };
+
+	/** The inbox options in effect — boot's, or a live preview's. */
+	let inbox_state =
+		window.frappe && frappe.boot && typeof frappe.boot.bnd_inbox === "object"
+			? frappe.boot.bnd_inbox
+			: null;
+
+	/** Reflect the style onto <html>; wholly derived, cleared first. */
+	function apply_inbox_attrs(v) {
+		const html = document.documentElement;
+		html.removeAttribute("data-bnd-inbox");
+		if (!v) return;
+		inbox_state = v;
+		const slug = INBOX_SLUGS[v.style];
+		if (slug) html.setAttribute("data-bnd-inbox", slug);
+	}
+
+	apply_inbox_attrs(inbox_state);
+
+	/** True when OUR panel owns the bell (inbox / page styles). */
+	function inbox_active() {
+		const slug = document.documentElement.getAttribute("data-bnd-inbox");
+		return slug === "inbox" || slug === "page";
+	}
+
+	/** True when the full-page surface is part of the chosen style. */
+	function inbox_has_page() {
+		return document.documentElement.getAttribute("data-bnd-inbox") === "page";
+	}
+
+	// ── Badge ───────────────────────────────────────────────────────────────
+
+	/** Notification Log types that mean "someone is waiting on you". */
+	const INBOX_ACTION_TYPES = ["Assignment", "Mention"];
+
+	/** Last unread count applied, so realtime pushes can render optimistically. */
+	let inbox_unread = inbox_state ? parseInt(inbox_state.unread, 10) || 0 : 0;
+
+	/** Unread count of action-required rows, filled by the first fetch. */
+	let inbox_action_unread = null;
+
+	/**
+	 * Paint every mounted bell badge from the current counts, per the badge
+	 * mode. "Action Count" needs a typed count, so until the first fetch
+	 * answers it falls back to a dot rather than showing a wrong number.
+	 */
+	function inbox_paint_badge() {
+		// Original stands the WHOLE kit down, badge included: the style
+		// promises stock behaviour, and stock has no unread indicator. The
+		// CSS is attribute-scoped, so without this the node would still
+		// unhide — an unstyled number floating on the bell (caught by the
+		// item-13 suite).
+		const style = document.documentElement.getAttribute("data-bnd-inbox");
+		const mode = !style ? "Off" : (inbox_state && inbox_state.badge) || "Count";
+		for (const node of document.querySelectorAll(".bnd-inbox-badge")) {
+			let text = "";
+			let show = false;
+			if (mode === "Count" && inbox_unread > 0) {
+				text = inbox_unread > 99 ? "99+" : String(inbox_unread);
+				show = true;
+			} else if (mode === "Action Count") {
+				if (inbox_action_unread === null) {
+					show = inbox_unread > 0;
+				} else if (inbox_action_unread > 0) {
+					text = inbox_action_unread > 99 ? "99+" : String(inbox_action_unread);
+					show = true;
+				}
+			} else if (mode === "Dot") {
+				show = inbox_unread > 0;
+			}
+			node.textContent = text;
+			node.classList.toggle("bnd-inbox-badge-dot", show && !text);
+			if (show) node.removeAttribute("hidden");
+			else node.setAttribute("hidden", "");
+		}
+	}
+
+	/** Refresh the unread count from the server, then repaint. */
+	function inbox_refresh_count() {
+		if (!frappe.xcall) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.get_inbox_unread")
+			.then((res) => {
+				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_paint_badge();
+			})
+			.catch(() => {});
+	}
+
+	// ── Data ────────────────────────────────────────────────────────────────
+
+	/** Current filter tab. */
+	let inbox_tab = "unread";
+
+	/** Rows currently rendered, flat, for keyboard traversal. */
+	let inbox_flat = [];
+	let inbox_cursor = 0;
+
+	/** The tab set, in fixed order — state filters before type filters. */
+	const INBOX_TABS = [
+		{ id: "unread", label: () => __("Unread"), unread_only: 1, kinds: "" },
+		{ id: "approvals", label: () => __("Approvals"), unread_only: 0, kinds: "Assignment" },
+		{ id: "mentions", label: () => __("Mentions"), unread_only: 0, kinds: "Mention" },
+		{ id: "shared", label: () => __("Shared"), unread_only: 0, kinds: "Share" },
+		{ id: "all", label: () => __("All"), unread_only: 0, kinds: "" },
+	];
+
+	/** Reason-chip label per Notification Log type. */
+	function inbox_chip(type) {
+		if (type === "Assignment") return __("Approval");
+		if (type === "Mention") return __("Mention");
+		if (type === "Share") return __("Share");
+		if (type === "Energy Point") return __("Points");
+		if (type === "Alert") return __("Alert");
+		return "";
+	}
+
+	/** Fetch one tab's rows. Returns a promise of {rows, unread, has_more}. */
+	function inbox_fetch(tab_id, start) {
+		const tab = INBOX_TABS.find((t) => t.id === tab_id) || INBOX_TABS[0];
+		if (!frappe.xcall) return Promise.resolve({ rows: [], unread: 0, has_more: false });
+		return frappe
+			.xcall("bunood_theme.api.get_inbox", {
+				start: start || 0,
+				unread_only: tab.unread_only,
+				kinds: tab.kinds,
+			})
+			.catch(() => ({ rows: [], unread: 0, has_more: false }));
+	}
+
+	/**
+	 * Group rows by the document they concern. One submitted invoice can
+	 * fire assignment, share and workflow rows within a minute; Frappe lists
+	 * each separately. Rows without a document stay ungrouped (own group of
+	 * one) so nothing is ever hidden by grouping.
+	 */
+	function inbox_group_rows(rows) {
+		if (!inbox_state || !parseInt(inbox_state.group, 10)) {
+			return rows.map((r) => ({ key: r.name, doc: null, rows: [r] }));
+		}
+		const groups = [];
+		const by_doc = {};
+		for (const row of rows) {
+			const key = row.document_type && row.document_name
+				? row.document_type + "/" + row.document_name
+				: null;
+			if (!key) {
+				groups.push({ key: row.name, doc: null, rows: [row] });
+				continue;
+			}
+			if (!by_doc[key]) {
+				by_doc[key] = { key, doc: { type: row.document_type, name: row.document_name }, rows: [] };
+				groups.push(by_doc[key]);
+			}
+			by_doc[key].rows.push(row);
+		}
+		return groups;
+	}
+
+	// ── Actions ─────────────────────────────────────────────────────────────
+
+	/** The per-user done list (ours; see api.mark_inbox_done). */
+	let inbox_done = new Set((inbox_state && inbox_state.done) || []);
+
+	/** Mark one row read through Frappe's own endpoint, optimistically. */
+	function inbox_mark_read(row, node) {
+		if (row.read) return Promise.resolve();
+		row.read = 1;
+		if (node) node.classList.remove("bnd-inbox-unread");
+		inbox_unread = Math.max(0, inbox_unread - 1);
+		inbox_paint_badge();
+		if (!frappe.xcall) return Promise.resolve();
+		return frappe
+			.xcall("frappe.desk.doctype.notification_log.notification_log.mark_as_read", {
+				docname: row.name,
+			})
+			.catch(() => {});
+	}
+
+	/** Flag/unflag one row as handled (our own per-user store). */
+	function inbox_toggle_done(row) {
+		const undo = inbox_done.has(row.name);
+		if (undo) inbox_done.delete(row.name);
+		else inbox_done.add(row.name);
+		if (frappe.xcall) {
+			frappe
+				.xcall("bunood_theme.api.mark_inbox_done", { name: row.name, undo: undo ? 1 : 0 })
+				.catch(() => {});
+		}
+	}
+
+	/** Open the document a row concerns, marking it read on the way. */
+	function inbox_open(row, new_tab) {
+		inbox_mark_read(row);
+		let route = null;
+		if (row.link) {
+			route = row.link;
+		} else if (row.document_type && row.document_name) {
+			route = ["Form", row.document_type, row.document_name];
+		}
+		if (!route) return;
+		if (new_tab) frappe.open_in_new_tab = true;
+		if (typeof route === "string") window.location.href = route;
+		else frappe.set_route(route);
+	}
+
+	/** Mark every unread row read (Frappe's own bulk endpoint). */
+	function inbox_mark_all_read() {
+		inbox_unread = 0;
+		inbox_action_unread = 0;
+		inbox_paint_badge();
+		for (const node of document.querySelectorAll(".bnd-inbox-unread")) {
+			node.classList.remove("bnd-inbox-unread");
+		}
+		if (frappe.xcall) {
+			frappe
+				.xcall("frappe.desk.doctype.notification_log.notification_log.mark_all_as_read")
+				.catch(() => {});
+		}
+	}
+
+	// ── Rendering (shared by the panel and the page) ─────────────────────────
+
+	/** Relative time, using Frappe's own formatter when present. */
+	function inbox_when(row) {
+		try {
+			if (frappe.datetime && frappe.datetime.comment_when) {
+				return frappe.datetime.comment_when(row.creation, true);
+			}
+		} catch (e) {
+			/* fall through */
+		}
+		return "";
+	}
+
+	/**
+	 * Build one row node. `subject` is Frappe's own HTML (it wraps the title
+	 * in <b class="subject-title">), so it is inserted as markup exactly as
+	 * the stock panel does — same trust boundary, not a new one.
+	 */
+	function inbox_row_el(row, flat_index) {
+		const item = el("div", "bnd-inbox-row" + (row.read ? "" : " bnd-inbox-unread"), {
+			role: "option",
+			"data-idx": String(flat_index),
+		});
+		item.appendChild(el("span", "bnd-inbox-dot"));
+
+		const avatar = el("span", "bnd-inbox-avatar");
+		const who = row.from_user || "";
+		avatar.textContent = (who.replace(/@.*/, "").trim().charAt(0) || "?").toUpperCase();
+		item.appendChild(avatar);
+
+		const body = el("span", "bnd-inbox-body");
+		const subject = el("span", "bnd-inbox-subject");
+		subject.innerHTML = row.subject || "";
+		body.appendChild(subject);
+		const when = inbox_when(row);
+		if (when) {
+			const meta = el("span", "bnd-inbox-when");
+			// comment_when returns Frappe's own <span class="frappe-timestamp">
+			// MARKUP, not a plain string — assigning it as text printed the
+			// tag source into the row (caught by the item-13 visual sweep).
+			// As markup it also keeps Frappe's live relative-time updating.
+			meta.innerHTML = when;
+			body.appendChild(meta);
+		}
+		item.appendChild(body);
+
+		if (inbox_state && parseInt(inbox_state.chips, 10)) {
+			const label = inbox_chip(row.type);
+			if (label) {
+				const chip = el("span", "bnd-inbox-chip", { "data-kind": String(row.type || "") });
+				chip.textContent = label;
+				item.appendChild(chip);
+			}
+		}
+
+		if (inbox_state && parseInt(inbox_state.row_actions, 10)) {
+			const gutter = el("span", "bnd-inbox-actions");
+			const open_btn = el("button", "bnd-inbox-act", {
+				type: "button",
+				"aria-label": __("Open in a new tab"),
+				title: __("Open in a new tab"),
+			});
+			const open_symbol = sb_existing_symbol(["icon-link-url", "icon-link", "es-line-link"]);
+			if (open_symbol) open_btn.appendChild(sprite_icon(open_symbol));
+			open_btn.addEventListener("click", (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				inbox_open(row, true);
+			});
+			gutter.appendChild(open_btn);
+
+			const done_btn = el("button", "bnd-inbox-act", {
+				type: "button",
+				"aria-label": __("Mark as done"),
+				title: __("Mark as done"),
+			});
+			const done_symbol = sb_existing_symbol(["icon-check", "es-line-check", "icon-tick"]);
+			if (done_symbol) done_btn.appendChild(sprite_icon(done_symbol));
+			done_btn.addEventListener("click", (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				inbox_mark_read(row, item);
+				inbox_toggle_done(row);
+				item.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
+			});
+			gutter.appendChild(done_btn);
+			item.appendChild(gutter);
+		}
+
+		if (inbox_done.has(row.name)) item.classList.add("bnd-inbox-done");
+		item.addEventListener("click", (ev) => inbox_open(row, ev.ctrlKey || ev.metaKey));
+		return item;
+	}
+
+	/** Render grouped rows into a list container; fills inbox_flat. */
+	function inbox_render_rows(list, rows) {
+		inbox_flat = [];
+		list.innerHTML = "";
+		const groups = inbox_group_rows(rows);
+		for (const group of groups) {
+			if (group.doc && group.rows.length > 1) {
+				const head = el("div", "bnd-inbox-group");
+				head.textContent =
+					group.doc.name + " · " + __(group.doc.type) + " · " +
+					__("{0} updates", [String(group.rows.length)]);
+				list.appendChild(head);
+			} else if (group.doc) {
+				const head = el("div", "bnd-inbox-group");
+				head.textContent = group.doc.name + " · " + __(group.doc.type);
+				list.appendChild(head);
+			}
+			for (const row of group.rows) {
+				list.appendChild(inbox_row_el(row, inbox_flat.length));
+				inbox_flat.push(row);
+			}
+		}
+		if (!rows.length) {
+			const empty = el("div", "bnd-inbox-empty");
+			const tab = INBOX_TABS.find((t) => t.id === inbox_tab);
+			empty.textContent =
+				inbox_tab === "approvals"
+					? __("Nothing waiting on your approval")
+					: inbox_tab === "mentions"
+						? __("No one has mentioned you")
+						: inbox_tab === "unread"
+							? __("You're all caught up")
+							: __("Nothing here yet");
+			if (tab) list.appendChild(empty);
+		}
+	}
+
+	// ── Panel ───────────────────────────────────────────────────────────────
+
+	let inbox_nodes = null;
+
+	/** Move the keyboard highlight (wrap-around) within the rendered rows. */
+	function inbox_highlight(index, list) {
+		if (!inbox_flat.length) return;
+		inbox_cursor = ((index % inbox_flat.length) + inbox_flat.length) % inbox_flat.length;
+		const rows = list.querySelectorAll(".bnd-inbox-row");
+		rows.forEach((n) => n.removeAttribute("aria-selected"));
+		const active = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
+		if (active) {
+			active.setAttribute("aria-selected", "true");
+			active.scrollIntoView({ block: "nearest" });
+		}
+	}
+
+	/** Keyboard triage: arrows move, Enter opens, e marks read, Esc closes. */
+	function inbox_keydown(ev, list, close) {
+		if (!inbox_state || !parseInt(inbox_state.keyboard, 10)) return;
+		const row = inbox_flat[inbox_cursor];
+		if (ev.key === "ArrowDown" || ev.key === "j") {
+			ev.preventDefault();
+			inbox_highlight(inbox_cursor + 1, list);
+		} else if (ev.key === "ArrowUp" || ev.key === "k") {
+			ev.preventDefault();
+			inbox_highlight(inbox_cursor - 1, list);
+		} else if (ev.key === "Enter" && row) {
+			ev.preventDefault();
+			inbox_open(row, ev.ctrlKey || ev.metaKey);
+		} else if ((ev.key === "e" || ev.key === "E") && row) {
+			// Auto-advance: triage is a loop, the hand never leaves the keys.
+			ev.preventDefault();
+			const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
+			inbox_mark_read(row, node);
+			inbox_highlight(inbox_cursor + 1, list);
+		} else if (ev.key === "Escape" && close) {
+			ev.preventDefault();
+			close();
+		}
+	}
+
+	/** Build the panel shell once. */
+	function inbox_build() {
+		const backdrop = el("div", "bnd-inbox-backdrop", { hidden: "" });
+		const panel = el("div", "bnd-inbox", {
+			role: "dialog",
+			"aria-label": __("Notifications"),
+		});
+
+		const head = el("div", "bnd-inbox-head");
+		const title = el("span", "bnd-inbox-title");
+		title.textContent = __("Inbox");
+		head.appendChild(title);
+		const count = el("span", "bnd-inbox-headcount");
+		head.appendChild(count);
+		const mark_all = el("button", "bnd-inbox-link", { type: "button" });
+		mark_all.textContent = __("Mark all read");
+		mark_all.addEventListener("click", (ev) => {
+			ev.stopPropagation();
+			inbox_mark_all_read();
+		});
+		head.appendChild(mark_all);
+		const settings = el("button", "bnd-inbox-act", {
+			type: "button",
+			"aria-label": __("Notification settings"),
+			title: __("Notification settings"),
+		});
+		const gear = sb_existing_symbol(["icon-setting-gear", "icon-settings", "es-line-settings"]);
+		if (gear) settings.appendChild(sprite_icon(gear));
+		settings.addEventListener("click", (ev) => {
+			ev.stopPropagation();
+			inbox_close();
+			frappe.set_route("Form", "Notification Settings", frappe.session.user);
+		});
+		head.appendChild(settings);
+		panel.appendChild(head);
+
+		const tabs = el("div", "bnd-inbox-tabs", { role: "tablist" });
+		for (const tab of INBOX_TABS) {
+			const btn = el("button", "bnd-inbox-tab", {
+				type: "button",
+				role: "tab",
+				"data-tab": tab.id,
+			});
+			btn.textContent = tab.label();
+			btn.addEventListener("click", (ev) => {
+				ev.stopPropagation();
+				inbox_tab = tab.id;
+				inbox_load();
+			});
+			tabs.appendChild(btn);
+		}
+		panel.appendChild(tabs);
+
+		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "-1" });
+		panel.appendChild(list);
+
+		const foot = el("div", "bnd-inbox-foot");
+		if (inbox_has_page()) {
+			const all = el("button", "bnd-inbox-link", { type: "button" });
+			all.textContent = __("Open inbox page");
+			all.addEventListener("click", (ev) => {
+				ev.stopPropagation();
+				inbox_close();
+				frappe.set_route("bnd-inbox");
+			});
+			foot.appendChild(all);
+		}
+		const hint = el("span", "bnd-inbox-hint");
+		hint.textContent = __("↑↓ move · ↵ open · e read");
+		foot.appendChild(hint);
+		panel.appendChild(foot);
+
+		backdrop.appendChild(panel);
+		document.body.appendChild(backdrop);
+		backdrop.addEventListener("mousedown", (ev) => {
+			if (ev.target === backdrop) inbox_close();
+		});
+		panel.addEventListener("keydown", (ev) => inbox_keydown(ev, list, inbox_close));
+		inbox_nodes = { backdrop, panel, list, count, tabs };
+	}
+
+	/** Load the active tab into the panel. */
+	function inbox_load() {
+		if (!inbox_nodes) return;
+		for (const btn of inbox_nodes.tabs.querySelectorAll(".bnd-inbox-tab")) {
+			btn.classList.toggle("bnd-inbox-tab-on", btn.getAttribute("data-tab") === inbox_tab);
+		}
+		inbox_nodes.list.innerHTML = "";
+		const loading = el("div", "bnd-inbox-empty");
+		loading.textContent = __("Loading...");
+		inbox_nodes.list.appendChild(loading);
+		inbox_fetch(inbox_tab, 0).then((res) => {
+			if (!inbox_nodes) return;
+			inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+			inbox_paint_badge();
+			inbox_nodes.count.textContent = inbox_unread ? String(inbox_unread) : "";
+			inbox_render_rows(inbox_nodes.list, (res && res.rows) || []);
+			inbox_highlight(0, inbox_nodes.list);
+		});
+	}
+
+	/** Open the panel (building lazily); a second invocation closes it. */
+	function inbox_open_panel() {
+		if (!inbox_nodes) inbox_build();
+		if (!inbox_nodes.backdrop.hasAttribute("hidden")) {
+			inbox_close();
+			return;
+		}
+		inbox_nodes.backdrop.removeAttribute("hidden");
+		inbox_tab = "unread";
+		inbox_load();
+		inbox_nodes.panel.focus();
+	}
+
+	/** Close the panel. */
+	function inbox_close() {
+		if (inbox_nodes) inbox_nodes.backdrop.setAttribute("hidden", "");
+	}
+
+	/**
+	 * The single decision point every bell click routes through: our panel
+	 * when the style owns it, otherwise the native one (Refined tags it for
+	 * the skin on the way). Mirrors pal_invoke.
+	 */
+	function inbox_invoke() {
+		if (inbox_active() && frappe.xcall) {
+			inbox_open_panel();
+			return;
+		}
+		proxy_click(".sidebar-notification .item-anchor");
+		if (document.documentElement.getAttribute("data-bnd-inbox") === "refined") {
+			try_for(() => {
+				const panel = document.querySelector(".dropdown-notifications");
+				if (!panel) return false;
+				panel.classList.add("bnd-notif-panel");
+				return true;
+			}, 10);
+		}
+	}
+
+	/**
+	 * Arrival tiering: an approval that blocks a document earns an
+	 * interruption; a share notification does not. "Badge Only" stays
+	 * silent, "Approvals Only" (default) toasts assignments and mentions,
+	 * "All Toasts" announces everything. Uses Frappe's own alert so the
+	 * toast looks native and stacks with the desk's other messages.
+	 * @param {Object} doc - the Notification Log document from realtime.
+	 */
+	function inbox_announce(doc) {
+		const mode = (inbox_state && inbox_state.arrival) || "Approvals Only";
+		if (mode === "Badge Only" || !doc || !frappe.show_alert) return;
+		if (mode === "Approvals Only" && INBOX_ACTION_TYPES.indexOf(doc.type) === -1) return;
+		// subject carries HTML; show_alert renders it, exactly as the stock
+		// panel renders the same field.
+		frappe.show_alert({ message: doc.subject || __("New notification"), indicator: "blue" }, 7);
+	}
+
+	/**
+	 * Mount the kit: paint the badge from boot, keep it live on Frappe's own
+	 * realtime event, and tier arrival toasts. Registered only when boot
+	 * delivered the kit, so a boot failure leaves stock behaviour intact.
+	 */
+	function mount_inbox() {
+		if (!inbox_state) return;
+		inbox_paint_badge();
+		if (frappe.realtime && frappe.realtime.on) {
+			// Frappe publishes the whole Notification Log doc on this event
+			// (notification_log.py after_insert), so the tiering decision
+			// needs no extra round trip.
+			frappe.realtime.on("notification", (doc) => {
+				inbox_refresh_count().then(() => {
+					if (inbox_nodes && !inbox_nodes.backdrop.hasAttribute("hidden")) inbox_load();
+				});
+				inbox_announce(doc);
+			});
+		}
+		// Frappe's own panel force-hides on route change; ours does too, so
+		// a click-through never leaves a panel floating over the new page.
+		if (frappe.router && frappe.router.on) {
+			frappe.router.on("change", () => inbox_close());
+		}
 	}
 
 	// ── Dock ────────────────────────────────────────────────────────────────
@@ -2729,6 +3484,9 @@
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();
+
+		// The notification kit owns the bell (and the badge Frappe lacks).
+		mount_inbox();
 
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {

@@ -62,6 +62,15 @@
   "palette_fallbacks",
   "palette_suggest",
   "palette_sigils",
+  "section_inbox",
+  "inbox_style",
+  "inbox_picker",
+  "inbox_badge",
+  "inbox_arrival",
+  "inbox_group",
+  "inbox_chips",
+  "inbox_row_actions",
+  "inbox_keyboard",
   "section_features",
   "enable_command_palette",
   "default_density",
@@ -483,11 +492,74 @@
    "label": "Mode Sigils (Pro)",
    "default": "1",
    "hidden": 1
+  },
+  {
+   "fieldname": "section_inbox",
+   "fieldtype": "Section Break",
+   "label": "Notifications"
+  },
+  {
+   "fieldname": "inbox_style",
+   "fieldtype": "Select",
+   "label": "Notification Style",
+   "options": "Original\nRefined\nBunood Inbox\nInbox + Page",
+   "default": "Inbox + Page",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock notification panel untouched."
+  },
+  {
+   "fieldname": "inbox_picker",
+   "fieldtype": "HTML",
+   "label": "Notification Picker"
+  },
+  {
+   "fieldname": "inbox_badge",
+   "fieldtype": "Select",
+   "label": "Bell Badge",
+   "options": "Count\nAction Count\nDot\nOff",
+   "default": "Count",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_arrival",
+   "fieldtype": "Select",
+   "label": "Arrival Behaviour",
+   "options": "Badge Only\nApprovals Only\nAll Toasts",
+   "default": "Approvals Only",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_group",
+   "fieldtype": "Check",
+   "label": "Group by Document",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_chips",
+   "fieldtype": "Check",
+   "label": "Reason Chips",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_row_actions",
+   "fieldtype": "Check",
+   "label": "Hover Row Actions",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_keyboard",
+   "fieldtype": "Check",
+   "label": "Keyboard Triage",
+   "default": "1",
+   "hidden": 1
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-01 10:00:00.000000",
+ "modified": "2026-08-01 18:30:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

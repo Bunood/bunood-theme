@@ -210,6 +210,9 @@ const MUTABLE_FIELDS = [
 	"palette_style", "palette_frecency", "palette_footer", "palette_newtab",
 	"palette_fallbacks", "palette_suggest", "palette_sigils",
 	"enable_command_palette",
+	// Notification centre kit (item 13).
+	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
+	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -564,6 +567,117 @@ async function main() {
 			await page.evaluate(() => window.bunood_theme.palette_apply({ palette_style: "Bunood Palette" }));
 			expectEq(await attr("data-bnd-palette"), "palette", "preview back to palette");
 		});
+
+		// ── Notification centre kit (item 13) ───────────────────────────────
+		// Seed real Notification Log rows for Administrator. NOTE: Frappe's
+		// own get_notification_logs is http-cached for 60s, which is exactly
+		// why our panel pages through api.get_inbox instead — but the seed
+		// must still exist BEFORE the desk loads for the badge count to be
+		// in boot.
+		const seedNotifications = () =>
+			benchPy(
+				`for i in (1, 2):\n` +
+				`    frappe.get_doc({\n` +
+				`        "doctype": "Notification Log",\n` +
+				`        "subject": "<b class='subject-title'>BND-TEST-00%d</b> assigned to you" % i,\n` +
+				`        "for_user": "Administrator",\n` +
+				`        "type": "Assignment",\n` +
+				`        "document_type": "Item",\n` +
+				`        "document_name": "BND-TEST-00%d" % i,\n` +
+				`        "from_user": "Administrator",\n` +
+				`    }).insert(ignore_permissions=True)\n` +
+				`frappe.db.commit()\nprint("seeded")\n`
+			);
+		const clearNotifications = () =>
+			benchPy(
+				`frappe.db.delete("Notification Log", {"for_user": "Administrator"})\n` +
+				`frappe.defaults.clear_default("bnd_inbox_done", parent="Administrator")\n` +
+				`frappe.db.commit()\nprint("cleared")\n`
+			);
+
+		clearNotifications();
+		seedNotifications();
+
+		const INBOX_STYLE_SLUG = { "Refined": "refined", "Bunood Inbox": "inbox", "Inbox + Page": "page" };
+		for (const [style, slugValue] of Object.entries(INBOX_STYLE_SLUG)) {
+			await test(`inbox: ${style} attribute`, async () => {
+				setSettings({ inbox_style: style });
+				await goDesk("/desk/item", ".page-head", 2500);
+				expectEq(await attr("data-bnd-inbox"), slugValue, "style attr");
+			});
+		}
+
+		await test("inbox: the bell carries the unread badge ERPNext lacks", async () => {
+			setSettings({ inbox_style: "Inbox + Page", inbox_badge: "Count" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const badge = await page.evaluate(() => {
+				const node = document.querySelector(".bnd-inbox-badge:not([hidden])");
+				return node ? node.textContent.trim() : null;
+			});
+			expectEq(badge, "2", "badge shows the unread count");
+		});
+
+		await test("inbox: panel opens with tabs, grouping and rows", async () => {
+			await page.click(".bnd-icon-btn[aria-label='Notifications']");
+			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 6000 });
+			// Rows arrive from api.get_inbox AFTER the panel paints — wait
+			// for content, not just for the shell, or this races the fetch.
+			await page.waitForSelector(".bnd-inbox-row", { timeout: 8000 });
+			expect(await q(".bnd-inbox .bnd-inbox-tab-on"), "a tab is active");
+			const rows = await page.evaluate(() => document.querySelectorAll(".bnd-inbox-row").length);
+			expect(rows >= 2, `seeded rows render (got ${rows})`);
+			expect(await q(".bnd-inbox-row .bnd-inbox-chip"), "reason chip rendered");
+			expect(await q(".bnd-inbox-foot .bnd-inbox-link"), "page link in the footer (Inbox + Page)");
+		});
+
+		await test("inbox: marking read updates the server and the badge", async () => {
+			await page.evaluate(() => {
+				const btns = document.querySelectorAll(".bnd-inbox-row .bnd-inbox-act");
+				// Second action in the first row's gutter is "mark done",
+				// which also marks read through Frappe's own endpoint.
+				if (btns.length > 1) btns[1].click();
+			});
+			await page.waitForTimeout(1800);
+			const unread = benchPy(
+				`print(frappe.db.count("Notification Log", {"for_user": "Administrator", "read": 0}))\n`
+			).trim().split("\n").pop();
+			expectEq(unread, "1", "one row marked read server-side");
+			const badge = await page.evaluate(() => {
+				const node = document.querySelector(".bnd-inbox-badge:not([hidden])");
+				return node ? node.textContent.trim() : null;
+			});
+			expectEq(badge, "1", "badge decremented");
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
+		});
+
+		await test("inbox: the full page renders its split pane", async () => {
+			await goDesk("/desk/bnd-inbox", ".bnd-inbox-page", 3000);
+			expect(await q(".bnd-inbox-page-list .bnd-inbox-tabs"), "page tabs");
+			expect(await q(".bnd-inbox-page-detail"), "detail pane");
+		});
+
+		await test("inbox: Original leaves the stock panel and shows no badge", async () => {
+			setSettings({ inbox_style: "Original" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			expectEq(await attr("data-bnd-inbox"), null, "no style attr");
+			expect(!(await q(".bnd-inbox-badge:not([hidden])")), "no badge");
+			await page.click(".bnd-icon-btn[aria-label='Notifications']");
+			await page.waitForTimeout(1200);
+			expect(!(await q(".bnd-inbox-backdrop:not([hidden])")), "our panel never built");
+			expectEq(await visible(".dropdown-notifications"), true, "stock panel opened");
+		});
+
+		await test("inbox: live preview flips the style and back", async () => {
+			setSettings({ inbox_style: "Inbox + Page" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			await page.evaluate(() => window.bunood_theme.inbox_apply({ inbox_style: "Bunood Inbox" }));
+			expectEq(await attr("data-bnd-inbox"), "inbox", "preview flips");
+			await page.evaluate(() => window.bunood_theme.inbox_apply({ inbox_style: "Inbox + Page" }));
+			expectEq(await attr("data-bnd-inbox"), "page", "preview back");
+		});
+
+		clearNotifications();
 
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {

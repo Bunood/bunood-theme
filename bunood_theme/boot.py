@@ -162,6 +162,44 @@ def extend_bootinfo(bootinfo):
             "narrow_collapse": crumb("crumb_narrow_collapse"),
         }
 
+        # Notification centre kit (item 13). Same construction exemption as
+        # the palette: the panel is user-invoked, so nothing paints until it
+        # opens. The unread COUNT rides along so the badge can render on the
+        # first paint after boot instead of after a round trip — Frappe's own
+        # badge machinery is dead in this version (the selectors it toggles
+        # exist in no template), so the theme owns this affordance entirely.
+        from bunood_theme.presets import INBOX_DEFAULTS
+
+        def inbox(field):
+            value = settings.get(field)
+            return INBOX_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_inbox = {
+            "style": inbox("inbox_style"),
+            "badge": inbox("inbox_badge"),
+            "arrival": inbox("inbox_arrival"),
+            "group": inbox("inbox_group"),
+            "chips": inbox("inbox_chips"),
+            "row_actions": inbox("inbox_row_actions"),
+            "keyboard": inbox("inbox_keyboard"),
+            "unread": 0,
+            "done": [],
+        }
+        try:
+            bootinfo.bnd_inbox["unread"] = frappe.db.count(
+                "Notification Log", {"for_user": frappe.session.user, "read": 0}
+            )
+            # "Done" is ours: Notification Log grants role All no write
+            # permission and ships no mark-as-unread endpoint, and adding a
+            # custom field to a core doctype would outlive this theme. Per
+            # user, in frappe.defaults, capped in api.mark_inbox_done.
+            bootinfo.bnd_inbox["done"] = frappe.parse_json(
+                frappe.defaults.get_user_default("bnd_inbox_done") or "[]"
+            )
+        except Exception:
+            # A missing table pre-migrate must not cost the user their boot.
+            pass
+
         # Per-user preset override (the "personalize" layer): a user-chosen
         # preset REPLACES the style values wholesale — never a field-level
         # merge, so a user always sees a designed combination. Stored in

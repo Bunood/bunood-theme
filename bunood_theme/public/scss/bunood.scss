@@ -56,6 +56,8 @@
 @use "chrome/sidebar";
 // Item 12: the command palette (refined native skin + our shell).
 @use "chrome/palette";
+// Item 13: the notification centre (badge + refined skin + our panel/page).
+@use "chrome/inbox";
 
 // ── Surfaces: the content ───────────────────────────────────────────────────
 // @use "surfaces/workspace";

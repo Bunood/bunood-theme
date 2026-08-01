@@ -457,3 +457,127 @@ def reset_palette_ranking() -> dict:
     frappe.defaults.clear_default("bnd_palette_usage", parent=frappe.session.user)
     frappe.cache.hdel("bootinfo", frappe.session.user)
     return {"ok": True}
+
+
+#: Rows per inbox page. Frappe's own dropdown is hard-capped at 20 with no
+#: pagination; this endpoint pages properly via ``frappe.db.get_list``.
+INBOX_PAGE_SIZE = 30
+
+#: Cap on the per-user "done" list. Done is a triage state, not an archive:
+#: past this the oldest entries drop off and those rows simply reappear as
+#: ordinary read notifications.
+INBOX_DONE_CAP = 400
+
+
+@frappe.whitelist()
+def get_inbox(start: int = 0, limit: int = 0, unread_only: int = 0, kinds: str = "") -> dict:
+    """Page through the current user's notifications.
+
+    Deliberately ``frappe.db.get_list`` rather than Frappe's own
+    ``get_notification_logs``: that endpoint takes no offset, caps at 20, and
+    is ``@http_cache(max_age=60)`` — a burst of arrivals can render the same
+    item repeatedly from the browser cache. Notification Log's permission
+    query condition scopes rows to ``for_user`` automatically, so no filter
+    on the current user is needed (and none is applied here, or Administrator
+    — for whom that condition returns no filter at all — would see everyone's
+    notifications).
+
+    Args:
+        start: offset for paging.
+        limit: page size; defaults to :data:`INBOX_PAGE_SIZE`, capped at 100.
+        unread_only: 1 to return only unread rows.
+        kinds: optional comma-separated Notification Log ``type`` values
+            (Mention / Assignment / Share / Energy Point / Alert).
+
+    Returns:
+        ``{"rows": [...], "unread": <int>, "has_more": <bool>}``.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    start = max(0, int(start or 0))
+    limit = min(100, int(limit or INBOX_PAGE_SIZE))
+
+    filters = {"for_user": frappe.session.user}
+    if int(unread_only or 0):
+        filters["read"] = 0
+    kind_list = [k.strip() for k in (kinds or "").split(",") if k.strip()]
+    if kind_list:
+        filters["type"] = ["in", kind_list]
+
+    rows = frappe.db.get_list(
+        "Notification Log",
+        fields=[
+            "name", "subject", "type", "document_type", "document_name",
+            "from_user", "read", "creation", "link",
+        ],
+        filters=filters,
+        order_by="creation desc",
+        limit_start=start,
+        limit_page_length=limit + 1,
+        ignore_permissions=False,
+    )
+    has_more = len(rows) > limit
+    return {
+        "rows": rows[:limit],
+        "unread": get_inbox_unread().get("unread", 0),
+        "has_more": has_more,
+    }
+
+
+@frappe.whitelist()
+def get_inbox_unread() -> dict:
+    """Unread count for the bell badge.
+
+    A dedicated endpoint because Frappe ships none, and its client-side badge
+    machinery is dead in this version — the selectors ``toggle_notification_icon``
+    flips exist in no template, so nothing renders however many unread rows a
+    user has. The theme owns the affordance, so it owns the count.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        return {"unread": 0}
+    return {
+        "unread": frappe.db.count(
+            "Notification Log", {"for_user": frappe.session.user, "read": 0}
+        )
+    }
+
+
+@frappe.whitelist()
+def mark_inbox_done(name: str = "", undo: int = 0) -> dict:
+    """Flag one notification as handled (or un-flag it), per user.
+
+    Stored in ``frappe.defaults`` rather than on the document because
+    Notification Log grants role ``All`` no write permission, ships no
+    mark-as-unread endpoint, and adding a custom field to a core doctype
+    creates migration coupling that outlives this theme — the same reasoning
+    as density and palette frecency.
+
+    Args:
+        name: the Notification Log row name.
+        undo: 1 to remove it from the done list instead.
+
+    Returns:
+        ``{"ok": True, "done": <current list length>}``.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    name = (name or "")[:140]
+    if not name:
+        return {"ok": False, "done": 0}
+
+    try:
+        done = frappe.parse_json(frappe.defaults.get_user_default("bnd_inbox_done") or "[]")
+        if not isinstance(done, list):
+            done = []
+    except Exception:
+        done = []
+
+    if int(undo or 0):
+        done = [d for d in done if d != name]
+    elif name not in done:
+        done.append(name)
+    if len(done) > INBOX_DONE_CAP:
+        done = done[-INBOX_DONE_CAP:]
+
+    frappe.defaults.set_user_default("bnd_inbox_done", frappe.as_json(done, indent=None))
+    return {"ok": True, "done": len(done)}
