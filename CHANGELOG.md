@@ -5,6 +5,74 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.9.0] — 2026-08-01 — Notification centre kit (item 13)
+
+Four styles picked visually (hidden fields -> boot dict ->
+`data-bnd-inbox` -> CSS + a lazily-built panel):
+
+- **Inbox + Page** (default): our panel over Frappe's own Notification
+  Log — filter tabs (Unread / Approvals / Mentions / Shared / All),
+  rollup by document, reason chips, hover row actions, keyboard triage
+  (j/k, Enter, `e` marks read and auto-advances) — PLUS a full-page
+  split-pane surface at `bnd-inbox` with a detail pane, reached from the
+  panel's footer.
+- **Bunood Inbox**: the same panel without the page.
+- **Refined**: ERPNext's own panel restyled through the tokens.
+- **Original**: the stock panel, untouched — badge included.
+
+**The unread badge is the headline fix.** ERPNext renders no unread
+indicator at all in this version: `toggle_notification_icon` flips
+`.notifications-icon` / `.notifications-unseen`, and neither exists in
+any template — verified live with two unread rows and `seen: 0`. The
+theme owns the affordance outright: Count, Action Count (assignments and
+mentions only), Dot, or Off; seeded from boot so it is correct at first
+paint, kept live on Frappe's own realtime event.
+
+Sources and actions stay Frappe's. `api.get_inbox` pages the log
+properly — `get_notification_logs` takes no offset, caps at 20 and is
+`@http_cache(60)`, so a burst can render the same row twice — while
+mark-read and mark-all-read call Frappe's whitelisted endpoints. "Done"
+is ours in `frappe.defaults`: role All has no write permission on
+Notification Log, there is no mark-as-unread endpoint, and a custom
+field on a core doctype would outlive this theme.
+
+Arrival tiering defaults to approvals-only: an approval blocking a
+document earns an interruption, a share notification does not.
+
+### Hardening from the release review and the visual sweep
+- **The kit was inert in Classic**, which mounts no themed bell: no
+  badge node, the stock panel opening under the Bunood styles, and
+  Refined's skin gated on a class only JS applied — so it rendered
+  identically to Original, silently. The skin is now pure CSS keyed on
+  the boot attribute, and a capture-phase listener routes Frappe's own
+  bell into our panel (the counterpart the palette kit already had).
+- **With the shipped defaults** (Classic + the Rail preset) that bell was
+  still unreachable: the rail fades `.standard-items-sections` to
+  opacity 0 with `pointer-events: none`, and a child cannot escape an
+  opacity-0 ancestor. The container is restored and its other children
+  faded individually.
+- **Compact** re-injects its cluster per route, so every new page
+  arrived with a fresh unpainted badge; badges are ensured and repainted
+  on route change.
+- **"Action Count" could never render a count** — the typed count was
+  declared and never assigned, degrading the mode to a dot that lit up
+  for shares too. It now comes from the server, seeded at boot.
+- Under **Original** the badge still unhid itself (the CSS is
+  attribute-scoped, so it showed as a bare number on the bell).
+- `comment_when()` returns Frappe's live timestamp MARKUP, not a string:
+  assigned as text it printed tag source into every row.
+- Contrast: group headers, timestamps, chips, the avatar initial and the
+  footer hints measured 2.3–3.4:1 against a 4.5:1 floor; all moved to
+  the muted ink token, and the badge gained a mode-aware
+  `--bnd-on-critical` because its fill flips lightness between modes.
+- `icon-link-url` draws a paperclip in this icon set — the wrong verb
+  for "open in a new tab".
+
+Smoke suite grew to 51 checks, including the kit exercised under Classic
+specifically (every earlier inbox test ran under one layout, which is
+why none could see the blind spot). NOTE: the suite mutates Theme
+Settings and is not safe to run concurrently with itself.
+
 ## [0.8.0] — 2026-08-01 — Command palette kit (item 12)
 
 Ctrl+K grows up. Four styles picked visually (hidden fields -> boot dict ->
