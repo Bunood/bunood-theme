@@ -123,17 +123,27 @@
 
   // ── Chrome geometry (checklist item 9) ────────────────────────────────────
   // The desk-layout system's fixed dimensions. Every bar and the dock size
-  // themselves from these, and page content pads itself by the same token, so
-  // a height change can never desynchronise a bar from the space reserved for
-  // it. --bnd-sidebar-live-w is special: it is MEASURED — bunood.js keeps it
-  // equal to the sidebar's actual rendered width (the sidebar is user-resizable
-  // and collapsible), so fixed-position bars can start exactly where the
-  // sidebar ends without hardcoding 220px anywhere.
+  // themselves from these.
+  //
+  // THE LAST TWO ARE MEASURED, NOT DECLARED. bunood.js keeps them equal to
+  // what actually rendered, because neither is knowable from a token:
+  //   --bnd-sidebar-live-w  the sidebar's end edge — it is user-resizable and
+  //                         collapsible, so fixed bars can start exactly where
+  //                         it ends without hardcoding 220px anywhere.
+  //   --bnd-bottom-reserve  how much of the viewport's bottom edge the fixed
+  //                         chrome covers, which chrome/_layouts.scss takes off
+  //                         .main-section's height. It depends on WHICH bars a
+  //                         layout mounts (Dock mounts two), on whether the
+  //                         status bar carries search, and on a floating pill
+  //                         whose rendered height no token states.
+  // Both default to a value that is safe if the script never runs: the sidebar
+  // width Frappe itself uses, and a reserve of zero (= stock geometry).
   --bnd-topbar-h: 44px;
   --bnd-statusbar-h: 26px;
   --bnd-bottombar-h: 40px;
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
+  --bnd-bottom-reserve: 0px;
 
   // ── Sidebar style kit (checklist item 10) ─────────────────────────────────
   // Consumed ONLY by chrome/_sidebar.scss. The kit's color-mode blocks set

@@ -1037,6 +1037,111 @@ async function main() {
 			setSettings({ search_placement: "Top Bar Center", status_style: "Quiet" });
 		});
 
+		// ── Bottom reserve: content never hides under the fixed chrome ─────
+		// The regression this locks down shipped with the layout kit (item 9)
+		// and survived three plausible fixes, so it is worth stating what is
+		// actually being measured.
+		//
+		// The status bar and the dock are position:fixed. Reserving space for
+		// them as padding on .main-section does nothing, because Frappe sizes
+		// the list from that element's BORDER box:
+		//   base_list.js:452  main_rect = $(".main-section").getBoundingClientRect()
+		// so the list keeps filling the whole viewport and the paging row —
+		// the "20 100 500 2500" buttons — sits under the bar. The fix takes
+		// the reserve off .main-section's height instead (chrome/_layouts.scss),
+		// with the reserve MEASURED from the rendered chrome (bunood.js
+		// observe_bottom_reserve).
+		//
+		// Two assertions per layout, and the second one matters as much as the
+		// first: the paging row must not pass UNDER the bar, and it must not
+		// stop short of it either — over-reserving would read as a dead band
+		// at the foot of every page, which is what the naive per-layout token
+		// matrix did in Dock (76px reserved for 62px of chrome).
+		const RESERVE_LAYOUTS = [
+			// [layout, status_style, status_in_classic, what the layout mounts]
+			["Top Bar", "Quiet", 0, ".bnd-statusbar"],
+			["Compact", "Quiet", 0, ".bnd-statusbar"],
+			["Bottom Bar", "Quiet", 0, ".bnd-statusbar.bnd-bottombar"],
+			// Dock mounts a floating pill AND a status bar; the reserve has to
+			// clear whichever sits highest, which is the pill.
+			["Dock", "Quiet", 0, ".bnd-dock"],
+			// Dock with the status bar switched Off: the pill ALONE. Worth its
+			// own row because the pill is appended to <body> while the status
+			// bar goes into .main-section — so a reserve that only watches
+			// .main-section passes the row above (the bar's arrival triggers
+			// the re-measure, which then happens to see the pill) and fails
+			// this one. It did exactly that; measured in RTL at 430px.
+			["Dock", "Off", 0, ".bnd-dock"],
+			// Classic mounts nothing by default — but it can opt in, and that
+			// opt-in had no reservation at all before this fix.
+			["Classic", "Quiet", 1, ".bnd-statusbar"],
+		];
+
+		/** Geometry of the paging row against the topmost fixed bottom chrome.
+		 * Read in ONE evaluate: two reads can straddle a relayout. */
+		const bottomGeometry = () =>
+			page.evaluate(() => {
+				const tops = [...document.querySelectorAll(".bnd-statusbar, .bnd-dock")]
+					.filter((el) => getComputedStyle(el).display !== "none")
+					.map((el) => el.getBoundingClientRect())
+					.filter((r) => r.height > 0)
+					.map((r) => r.top);
+				const paging = document.querySelector(".list-paging-area");
+				const main = document.querySelector(".main-section");
+				return {
+					barTop: tops.length ? Math.round(Math.min(...tops)) : null,
+					bars: tops.length,
+					pagingBottom: paging ? Math.round(paging.getBoundingClientRect().bottom) : null,
+					mainBottom: main ? Math.round(main.getBoundingClientRect().bottom) : null,
+					reserve: getComputedStyle(document.documentElement)
+						.getPropertyValue("--bnd-bottom-reserve")
+						.trim(),
+				};
+			});
+
+		for (const [layout, status, inClassic, mounts] of RESERVE_LAYOUTS) {
+			await test(`reserve: ${layout} keeps the paging row clear of ${mounts}`, async () => {
+				setSettings({
+					desk_layout: layout, status_style: status, status_in_classic: inClassic,
+					search_placement: "Top Bar Center",
+				});
+				await goDesk("/desk/item", ".frappe-list", 4500);
+				const g = await bottomGeometry();
+				expect(g.barTop !== null, `${mounts} is mounted (found ${g.bars} bars)`);
+				expect(g.pagingBottom !== null, "the list rendered its paging row");
+				// THE defect: any positive difference is content behind glass.
+				expect(
+					g.pagingBottom <= g.barTop,
+					`paging row clears the bar — bottom ${g.pagingBottom} vs bar top ${g.barTop} ` +
+						`(overlap ${g.pagingBottom - g.barTop}px, reserve ${g.reserve})`
+				);
+				// And no dead band: the list is sized to fill its container, so
+				// its foot should land ON the bar, not above it. 2px of slack
+				// for sub-pixel rounding in the reserve.
+				expect(
+					g.barTop - g.pagingBottom <= 2,
+					`no dead band above the bar — gap ${g.barTop - g.pagingBottom}px (reserve ${g.reserve})`
+				);
+			});
+		}
+
+		await test("reserve: status style Off reserves nothing at all", async () => {
+			// The mirror image of the tests above. With no bar mounted the desk
+			// must be stock height — a reserve that outlives its bar is a strip
+			// of viewport the user paid for and cannot use.
+			setSettings({ desk_layout: "Top Bar", status_style: "Off", status_in_classic: 0 });
+			await goDesk("/desk/item", ".frappe-list", 4500);
+			const g = await bottomGeometry();
+			expectEq(g.barTop, null, "no bottom chrome is mounted");
+			expectEq(g.reserve, "0px", "reserve released");
+			const vh = await page.evaluate(() => window.innerHeight);
+			expectEq(g.mainBottom, vh, ".main-section runs to the viewport edge");
+			setSettings({
+				desk_layout: "Top Bar", status_style: "Quiet", status_in_classic: 0,
+				search_placement: "Top Bar Center",
+			});
+		});
+
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {

@@ -849,10 +849,10 @@ html[data-bnd-desktop] {
   .bnd-dock {
     display: none;
   }
-
-  .main-section {
-    padding-block-end: 0;
-  }
+  // No .main-section reset is needed to go with that display:none. The bottom
+  // reserve is MEASURED from the chrome that is actually rendered
+  // (chrome/_layouts.scss), and a display:none bar measures zero — so standing
+  // the chrome down here already releases the space it had claimed.
 
   // The Desktop navbar has its OWN notifications dropdown; the layouts'
   // panel relocation (chrome/_layouts.scss) must not seize it — measured as

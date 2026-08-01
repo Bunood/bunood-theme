@@ -5,6 +5,67 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.10.1] — 2026-08-01 — Fix: page content no longer hides under the fixed bottom chrome
+
+The status bar and the dock have been `position: fixed` since the desk-layout
+kit (item 9), and the space reserved for them never actually worked. On every
+list view the paging row — the "20 100 500 2500" buttons — sat under the bar:
+26px in Top Bar/Compact with a slim strip, 40px once the strip carried search
+or the layout was Bottom Bar, 62px in Dock. Workspaces stayed under it even
+scrolled to the end, and at narrow widths nothing scrolled at all, so the
+overlap was permanent.
+
+**Why the existing reservation could not have worked.** `_layouts.scss` padded
+`.main-section`'s block-end by the bar's height, but Frappe sizes the list from
+that element's *border box* — `base_list.js:452` reads
+`$(".main-section").getBoundingClientRect().height`, which padding does not
+change. Measured: padding on `.main-section`, padding on `.page-body`, a margin
+on `.list-paging-area` and a sticky bar all left the paging row at `y=900`
+exactly. The fix takes the reserve off `.main-section`'s **height** instead, so
+Frappe's own arithmetic — the list JS and the `calc(100vh - …)` rules in report,
+form-sidebar and kanban CSS — resolves against a viewport that ends where the
+bar starts. Scrolling distance is unchanged: on a border-box scroll container,
+bottom padding adds equally to `scrollHeight` and `clientHeight`.
+See ARCHITECTURE.md §11.
+
+**The reserve is now measured, not declared.** `--bnd-bottom-reserve` is written
+by `bunood.js` from the chrome that actually rendered, the same contract as
+`--bnd-sidebar-live-w`. A static per-layout matrix was written first and was
+wrong in three states: Dock over-reserved by 14px (it mounts a floating pill
+*and* a status bar, and the pill renders 50px, not its 56px token); Classic's
+opt-in status bar reserved nothing at all, because every reservation selector
+named a layout and Classic was not one of them; and Bottom Bar with the status
+bar switched Off reserved 40px of dead space. Measuring also fixes the failure
+mode — no bar in the DOM means no reserve, so a half-failed boot degrades to
+stock geometry instead of to a strip of viewport nobody can use.
+
+**Measuring happens off the critical path.** Reading the chrome's geometry
+forces a synchronous layout, so doing it inside the router's `change` handler
+made every listener registered after ours — Frappe's own re-render among them —
+pay for it mid-render. The route-change re-measure now runs on the next frame.
+Caught by the smoke suite, which failed one unrelated timing-sensitive test per
+run (three runs, three different tests, twice with Playwright's "promise was
+garbage collected") until the measurement moved off the handler.
+
+**One box needed the reserve spelled out.** A shorter scroll container fixes
+everything that can scroll; the form's sidebar is `position: sticky`, so it
+cannot — anything past the container's foot is unreachable at every scroll
+position. Frappe sizes it `calc(100vh - var(--page-head-height))`, which left
+41px of it (tags, share, assignments) permanently out of reach: behind the bar
+before this fix, past the container foot after. It now subtracts the reserve
+too. The report view's pane uses the same viewport arithmetic but is static, so
+it simply scrolls and was left alone — verified, not assumed.
+
+Also fixed, found while measuring the same defect: the theme's fixed chrome was
+never hidden for print, so the top bar, status bar, dock and apps rail stamped
+themselves over the same strip of **every** printed sheet, and `.main-section`
+kept a one-viewport height on paper. Both now stand down under `@media print`.
+
+Verified on list, form, report and workspace views across all five layouts and
+status style Off, in LTR and Arabic, at 1440×900 and 430×900. `tests/smoke.mjs`
+gains `reserve:` checks asserting both directions of the defect: the paging row
+must not pass under the bar, and must not stop short of it either.
+
 ## [0.10.0] — 2026-08-01 — Status bar kit + search placement (item 14)
 
 Two settings, deliberately separate — because the previous arrangement

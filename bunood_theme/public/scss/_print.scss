@@ -62,6 +62,14 @@
   // needs to say what it is) — only the action row beside it goes.
   .body-sidebar-container,
   .navbar,
+  // This theme's own chrome. All of it is position:fixed, so on paper it does
+  // not scroll away with the page — it stamps itself over the SAME strip of
+  // every printed sheet. Found while fixing the on-screen overlap: the two are
+  // the same defect, one on glass and one on paper.
+  .bnd-topbar,
+  .bnd-statusbar,
+  .bnd-dock,
+  .bnd-apps-rail,
   .page-actions,
   .form-sidebar,
   .list-sidebar,
@@ -83,6 +91,16 @@
     padding: 0;
     width: auto;
     max-width: none;
+  }
+
+  // Paper has no viewport and no fixed bars, so the desk's scroll container
+  // must stop pretending to be one screen tall — otherwise a long list prints
+  // its first page and nothing else. Frappe leaves `height: 100vh` in place
+  // here; chrome/_layouts.scss replaces it with `100vh` minus the bottom
+  // reserve, so this rule has to name the same scope to win (the reset above
+  // is (0,1,0) and would lose to (0,2,1) regardless of source order).
+  html[data-bnd-layout] .main-section {
+    block-size: auto;
   }
 
   // ── Tables: the core of decision B ────────────────────────────────────────

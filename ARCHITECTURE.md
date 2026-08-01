@@ -225,6 +225,94 @@ resolves whichever name exists and fails soft with empty data.
 
 ---
 
+---
+
+## 11. Space for fixed chrome is taken off `.main-section`'s height, never its padding
+
+`.main-section` is the desk's scroll container — `frappe/public/scss/desk/main.scss:37`:
+
+```scss
+.main-section {
+	width: 100%;
+	height: 100vh;
+	overflow: scroll;
+	overflow-x: hidden;
+	overflow-y: visible;
+}
+```
+
+Anything this theme fixes to the bottom edge (the status bar, the dock) covers
+content unless the page reserves the space. **Padding cannot make that
+reservation**, because Frappe measures the container's *border box*:
+
+`frappe/public/js/frappe/list/base_list.js:452` `set_result_height()`:
+
+```js
+let main_rect = $(".main-section").get(0).getBoundingClientRect();
+let result_top = $result_container.get(0).getBoundingClientRect().top - main_rect.top;
+let resultContainerHeight = Math.floor(
+	main_rect.height - this.$paging_area.get(0).getBoundingClientRect().height - result_top
+);
+```
+
+`getBoundingClientRect().height` is the border box, so `padding-block-end` is
+invisible to it: the list keeps sizing itself to the whole viewport and the
+paging row keeps landing under the bar. Measured 2026-08-01 on `/desk/item`:
+padding on `.main-section`, padding on `.page-body`, a margin on
+`.list-paging-area`, and making the bar `position: sticky` all left the paging
+row at `y=900` exactly — unmoved.
+
+**Rule:** shrink the box. `block-size: calc(100vh - var(--bnd-bottom-reserve))`
+on `.main-section` (`chrome/_layouts.scss`) fixes every page type at once,
+because Frappe's own arithmetic — JS *and* the `calc(100vh - …)` rules in
+`report.scss`, `form_sidebar.scss`, `kanban.scss` — then resolves against a
+viewport that ends where the bar starts. Content that no longer fits scrolls
+instead of hiding, and the amount of scrolling is unchanged: for a border-box
+scroll container, `padding-block-end: R` adds `R` to both `scrollHeight` and
+`clientHeight`, so `scrollHeight - clientHeight` is identical either way.
+
+### The one box a shorter container does not fix: `position: sticky`
+
+Shrinking the scroll container works because content that no longer fits
+*scrolls*. A sticky box cannot — it is pinned, so anything past the container's
+foot is unreachable at every scroll position. There is exactly one such box on
+the desk, `frappe/public/scss/desk/form_sidebar.scss:273-279`:
+
+```scss
+body[data-route^="Form"] .layout-side-section {
+	height: calc(100vh - var(--page-head-height));
+	position: sticky;
+	top: var(--page-head-height);
+}
+```
+
+It is sized to the viewport, so it needs the reserve subtracted explicitly
+(`chrome/_layouts.scss`) — tags, share and assignments live at its foot.
+Measured on `/desk/item/BND-TEST-001`: 41px unreachable without that rule.
+
+The report view's pane (`report.scss:100`) uses the same `calc(100vh - …)` but
+is **static**, so it just scrolls and needs nothing. Verified, not assumed — the
+rule of thumb is *sticky needs the reserve, static does not*.
+
+### The reserve is measured, not declared
+
+`--bnd-bottom-reserve` is written by `bunood.js` (`observe_bottom_reserve`) from
+the chrome that actually rendered — the same contract as `--bnd-sidebar-live-w`,
+for the same reason: it is a runtime fact, not a constant. A static matrix of
+per-layout values was written first and was wrong in three states, each measured:
+
+| State | Static matrix | Truth |
+|---|---|---|
+| Dock | 76px (`--bnd-dock-h` + 20) | 62px — Dock mounts a pill **and** a status bar, and the pill renders 50px, not its 56px token |
+| Classic with the status bar opted in | 0px — every selector named a layout, and Classic was not one | 26px |
+| Bottom Bar with the status bar switched Off | 40px | 0px |
+
+Measuring also makes the failure mode right by construction: no bar in the DOM
+means no reserve, so a half-failed boot degrades to stock geometry rather than
+to a strip of viewport nobody can use.
+
+---
+
 ## Verification checklist after any Frappe upgrade
 
 1. `data-theme` still on `<html>` in `frappe/www/desk.html`.
@@ -234,3 +322,6 @@ resolves whichever name exists and fails soft with empty data.
    `[data-theme="dark"]`.
 5. Splash screen still the first child of `<body>`.
 6. The `api.py` shims still resolve.
+7. `.main-section` is still `height: 100vh` and still the scroll container, and
+   `base_list.js` still sizes the result area from its `getBoundingClientRect()`
+   (§11). The `reserve:` checks in `tests/smoke.mjs` fail loudly if not.

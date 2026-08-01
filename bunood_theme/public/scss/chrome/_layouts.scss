@@ -73,41 +73,68 @@ html[data-bnd-layout="dock"] {
   }
 }
 
-// ── Reserve space for fixed bars ────────────────────────────────────────────
-// The status bar and dock are position:fixed, so page content must pad its
-// block-end by their height or the last list row hides behind them forever.
+// ── Reserve space for fixed bottom chrome ───────────────────────────────────
+// The status bar and the dock are position:fixed, so page content has to stop
+// above them. RESERVING THAT SPACE AS PADDING CANNOT WORK, and the reason is
+// worth stating once because it is not guessable:
 //
-// KNOWN INCOMPLETE — measured 2026-08-01, tracked separately. This padding is
-// necessary but NOT sufficient: Frappe sizes `.content.page-container` from
-// the VIEWPORT, so it overflows whatever padding its ancestor reserves and
-// still ends flush with the viewport edge. On a list view that leaves the
-// paging area 26px under the slim bar (40px when the bar carries search).
-// Verified that none of ancestor padding, a margin on the paging area, or a
-// sticky bar moves it — the page's own height math has to change, which is a
-// change across all five layouts and every page type, not a status-bar fix.
-// KEYED ON THE BAR EXISTING, not on layout and style. Whether a bar mounts
-// depends on the layout, the status style AND the Classic opt-in; bunood.js
-// knows the answer and stamps data-bnd-statusbar, so these rules do not have
-// to re-derive it — and Classic's opt-in bar, which no layout rule covered,
-// gets its clearance for free.
+//   frappe/public/js/frappe/list/base_list.js:452  set_result_height()
+//     let main_rect = $(".main-section").get(0).getBoundingClientRect();
+//     resultContainerHeight = main_rect.height - paging_height - result_top;
 //
-// Every rule below excludes the Desktop page. Its stand-down guard
-// (chrome/_sidebar.scss) zeroes this padding with a single attribute
-// selector, which a two-attribute rule here would silently outrank.
-html[data-bnd-statusbar="slim"]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-statusbar-h);
+// `getBoundingClientRect().height` is the BORDER-BOX height, so padding on
+// .main-section is invisible to that arithmetic — the list keeps sizing
+// itself to the whole viewport and the paging row keeps landing under the
+// bar. Measured 2026-08-01 on /desk/item: padding on .main-section, padding
+// on .page-body, a margin on .list-paging-area and a sticky bar all left the
+// paging row at y=900 exactly, unmoved.
+//
+// So shrink the BOX instead. .main-section IS the desk's scroll container
+// (frappe scss/desk/main.scss:37, `height: 100vh`); take the reserve off its
+// height and every page type follows for free, because Frappe's own math —
+// JS and CSS alike — then resolves against a viewport that ends where the bar
+// starts. Content that no longer fits scrolls, instead of hiding.
+//
+// WHY THE RESERVE IS MEASURED RATHER THAN DECLARED
+//   bunood.js writes --bnd-bottom-reserve from the real rendered chrome (see
+//   observe_bottom_reserve), the same contract as --bnd-sidebar-live-w. A
+//   matrix of static per-layout values was written first and was wrong in
+//   three states, all measured: Dock over-reserved by 14px (it mounts a dock
+//   pill AND a status bar, and the pill's rendered 50px is not its 56px
+//   token); Classic's opt-in status bar reserved nothing at all, because
+//   every reservation selector named a layout and Classic was not one of
+//   them; and Bottom Bar with the status bar switched Off reserved 40px of
+//   dead space. One measurement answers all three and cannot drift.
+//
+// Scoped to html[data-bnd-layout] so a failed boot leaves .main-section
+// exactly as Frappe sized it. A layout with no bottom chrome measures 0 and
+// resolves to calc(100vh - 0px) — stock geometry, no dead band.
+html[data-bnd-layout] .main-section {
+  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px));
 }
 
-html[data-bnd-statusbar="global"]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-bottombar-h);
-}
-
-// The slim strip GROWS to bottom-bar height when it carries search
-// (chrome/_statusbar.scss), so the reservation has to grow with it or the
-// last list row spends its life behind the search field.
-html[data-bnd-statusbar="slim"][data-bnd-search="botedge"]:not([data-bnd-desktop]) .main-section,
-html[data-bnd-statusbar="slim"][data-bnd-search="botcenter"]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-bottombar-h);
+// The ONE box that shrinking the scroll container does not fix by itself.
+//
+// Frappe sizes the form's sidebar to the viewport and makes it sticky
+// (frappe scss/desk/form_sidebar.scss:273-279):
+//   body[data-route^="Form"] .layout-side-section {
+//     height: calc(100vh - var(--page-head-height));
+//     position: sticky; top: var(--page-head-height);
+//   }
+// Everywhere else, content taller than the container simply scrolls — a
+// STICKY box cannot, because it is pinned. So its last 41px (measured on
+// /desk/item/BND-TEST-001) is unreachable at every scroll position: before
+// this fix it sat behind the bar, and after it would sit past the container's
+// foot. Same content lost, different reason — which is why the shorter
+// container alone is not the whole fix. Tags, share and assignments live down
+// there.
+//
+// Specificity is deliberate and load-bearing: Frappe's selector is (0,2,1), so
+// a bare `html[data-bnd-layout] .layout-side-section` would only TIE and be
+// decided by which sheet loads last. Naming body[data-route] too makes it
+// (0,3,2) and settles it on specificity instead of on app order.
+html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
+  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
 // The dock floats above whatever bar is there, so it needs its own clearance

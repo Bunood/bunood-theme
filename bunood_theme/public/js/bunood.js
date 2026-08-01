@@ -142,9 +142,14 @@
 	})();
 
 	// The status style travels as an attribute for the same reason as the
-	// layout, and for one more: the fixed bar's CLEARANCE is a CSS rule, and
-	// CSS cannot see a JS variable. Without this, style "Off" mounts no bar
-	// while the page keeps reserving space at the bottom for it.
+	// layout: it is state the stylesheet has to be able to see.
+	//
+	// It used to carry a second job — zeroing the bottom clearance when the
+	// style is "Off" — and no longer does. Clearance is now MEASURED from the
+	// chrome that actually rendered (observe_bottom_reserve), so "Off" needs
+	// no special case: no bar in the DOM measures zero. The attribute stays
+	// because it is a legitimate styling hook, but nothing about the desk's
+	// geometry depends on it any more.
 	(function apply_status() {
 		const boot = (window.frappe && frappe.boot && frappe.boot.bnd_status) || null;
 		const label = (boot && boot.status_style) || "Quiet";
@@ -425,6 +430,123 @@
 			new ResizeObserver(set).observe(sidebar);
 		}
 		window.addEventListener("resize", set);
+	}
+
+	// ── Bottom reserve tracking ─────────────────────────────────────────────
+
+	/** Every piece of chrome this theme fixes to the viewport's bottom edge. */
+	const BND_BOTTOM_CHROME = ".bnd-statusbar, .bnd-dock";
+
+	/**
+	 * Re-measure the bottom reserve on demand. Assigned by
+	 * observe_bottom_reserve; a no-op until then, and a no-op forever if the
+	 * desk never mounted — which is the correct reserve for a desk with no
+	 * chrome on it.
+	 */
+	let sync_bottom_reserve = () => {};
+
+	/**
+	 * Re-measure on the next frame instead of right now.
+	 *
+	 * Measuring forces a synchronous layout, so calling it from inside an
+	 * event handler makes every listener after ours pay for it — and on a
+	 * route change those listeners are Frappe's own re-render. One frame of
+	 * delay is imperceptible (the bar and the reserve both already exist;
+	 * only the number changes) and keeps us off the critical path.
+	 */
+	function defer_bottom_reserve() {
+		if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => sync_bottom_reserve());
+		else setTimeout(() => sync_bottom_reserve(), 0);
+	}
+
+	/**
+	 * Keep --bnd-bottom-reserve equal to how much of the viewport's bottom
+	 * edge the fixed chrome actually covers. chrome/_layouts.scss subtracts it
+	 * from .main-section's height, which is what stops page content from
+	 * hiding behind the bar — see that file for why padding cannot do it.
+	 *
+	 * WHY MEASURED RATHER THAN A TOKEN PER LAYOUT
+	 *   The reserve is not a property of the layout. Dock mounts a floating
+	 *   pill AND a status bar, and the pill's rendered height (50px) is not
+	 *   its --bnd-dock-h token (56px). The slim strip grows from 26px to 40px
+	 *   when search is placed in it. Classic mounts a bar only if the user
+	 *   opts in. Quick links can be moved into the bar and change its height.
+	 *   A static matrix was written first and was wrong in three of those
+	 *   states; one getBoundingClientRect is right in all of them.
+	 *
+	 * The observers are the whole point: a ResizeObserver catches a bar that
+	 * changes height in place (search moving in, an option flip, a responsive
+	 * collapse), and a childList MutationObserver on .main-section catches a
+	 * bar being mounted, removed or rebuilt by a live preview. Between them
+	 * there is no code path that has to remember to call this.
+	 */
+	function observe_bottom_reserve() {
+		const root = document.documentElement;
+		// BOTH mount points, and the pair is load-bearing: mount_statusbar
+		// appends to .main-section while mount_dock appends to <body>.
+		// Watching only .main-section made the Dock layout depend on the
+		// status bar arriving to trigger the re-measure — so Dock with the
+		// status bar switched Off reserved nothing and the dock sat on top of
+		// the paging row. Measured in RTL at 430px before this line existed.
+		const hosts = [document.querySelector(".main-section"), document.body].filter(Boolean);
+		if (!hosts.length) return;
+
+		const observed = typeof ResizeObserver === "undefined" ? null : new WeakSet();
+		const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => sync());
+		let last = null;
+
+		const sync = () => {
+			let reserve = 0;
+			for (const bar of document.querySelectorAll(BND_BOTTOM_CHROME)) {
+				if (ro && !observed.has(bar)) {
+					observed.add(bar);
+					ro.observe(bar);
+				}
+				// A display:none bar measures 0x0, which is the right answer:
+				// the Desktop page stands all chrome down and must reserve
+				// nothing. So no visibility check is needed here.
+				const r = bar.getBoundingClientRect();
+				if (r.height <= 0) continue;
+				// Distance from the viewport's BOTTOM EDGE to the top of the
+				// bar — not the bar's height. The dock floats clear of the
+				// edge, so its height alone would under-reserve by the gap.
+				reserve = Math.max(reserve, Math.ceil(window.innerHeight - r.top));
+			}
+			reserve = Math.max(0, reserve);
+			if (reserve === last) return;
+			last = reserve;
+			root.style.setProperty("--bnd-bottom-reserve", reserve + "px");
+			relayout_list();
+		};
+
+		sync_bottom_reserve = sync;
+		sync();
+		if (typeof MutationObserver !== "undefined") {
+			// Direct children only. Watching the subtree would fire on every
+			// list render, and the bars are always appended as direct children
+			// of one of these two hosts.
+			const mo = new MutationObserver(sync);
+			for (const host of hosts) mo.observe(host, { childList: true });
+		}
+		window.addEventListener("resize", sync);
+	}
+
+	/**
+	 * Ask the list view to re-measure after the reserve changes.
+	 *
+	 * Frappe recomputes the result height only on window resize
+	 * (base_list.js:433) and on refresh. Shrinking .main-section from CSS
+	 * fires neither, so without this the list keeps the height it computed
+	 * against the taller box until the next navigation. Best-effort by
+	 * design: a renamed internal must cost us a relayout, never the bar.
+	 */
+	function relayout_list() {
+		try {
+			const list = window.cur_list;
+			if (list && typeof list.set_result_height === "function") list.set_result_height();
+		} catch (e) {
+			/* a stale list object must never take the chrome down */
+		}
 	}
 
 	/**
@@ -4129,6 +4251,9 @@
 		if (!slug) return; // boot failed or theme inactive: leave stock desk alone
 
 		observe_sidebar_width();
+		// Set up BEFORE the bars mount: its MutationObserver is what notices
+		// them arriving, so there is no ordering to maintain below.
+		observe_bottom_reserve();
 		update_desktop_mode();
 		decorate_crumbs();
 
@@ -4182,6 +4307,14 @@
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
+				// AFTER update_desktop_mode, because that call is what stands
+				// the chrome down on route "" and brings it back — but on the
+				// NEXT frame, not in this handler. Measuring forces a
+				// synchronous layout, and doing that inside a router event
+				// runs it in the middle of Frappe's own re-render; one frame
+				// later is invisible to a user and keeps our bookkeeping out
+				// of their critical path.
+				defer_bottom_reserve();
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
 				if (slug === "compact") inject_compact_cluster();
