@@ -43,10 +43,36 @@ boot delivers the kit — `add_shortcut` REPLACES every handler on a combo,
 so the action itself covers all styles (our shell or the native modal),
 and a boot failure leaves the stock binding untouched.
 
-Smoke suite grew to 37 checks (style attribute matrix, shell open with
+**Hardening from the release review** (three rounds; each fix
+adversarially re-verified, the last with a revert-control run):
+- The capture-phase click interceptor no longer defeats the kit's own
+  fail-open — a missing `frappe.search.utils` lets Frappe's native
+  handler through instead of killing every search entry point.
+- Frecency writes are batched (90s throttle + tail flush on tab hide):
+  `frappe.defaults.set_default` clears the user's whole cache per write,
+  so per-execution writes rebuilt boot on every navigation.
+- Ctrl+K on Original/Refined calls Frappe's OWN shortcut function, so
+  the Global Search hand-off and keyword carry survive; the shell does
+  the same hand-off through the Dialog object so `is_visible` clears.
+- With focus in a Frappe control, `base_input`'s own Ctrl+K handler
+  opens the native modal via jQuery-simulated handlers before ours sees
+  the event; the shell now closes it, and the z-lift asks the DOM for a
+  surviving `.modal.show` rather than `body.modal-open` — Bootstrap
+  strips that class without reference counting, which had dropped the
+  palette *under* the user's dialog.
+- Row typing uses Frappe's untranslated `opt.type`, never a regex on a
+  translated label: on Arabic, "{0} List" renders as "قائمة {0}" with an
+  untranslated doctype name, so the core Report doctype's *list* row was
+  badged as a report.
+- The palette master gate moved to None-aware seeding (an explicit 0 no
+  longer flips back on migrate), and empty-state suggestions dedupe
+  within each group as well as across.
+
+Smoke suite grew to 40 checks (style attribute matrix, shell open with
 suggestions, grouped results + pinned fallback + the Actions split,
 execution routing + server-side frecency write, Original/Refined native
-behaviour, live preview).
+behaviour, live preview, duplicate-suggestion regression, Ctrl+K over an
+open dialog, Global Search hand-off).
 
 ## [0.7.0] — 2026-07-31 — Breadcrumb kit (item 11)
 
