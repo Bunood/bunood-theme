@@ -34,8 +34,12 @@ survives its full-rebuild-on-save and every unknown value fails open.
 - Hover: soft pill / underline / darken (ancestors only).
 - Copy link: hover-revealed button on the last crumb; clipboard + toast.
 - Status pill: Frappe's own docstatus indicator styled into the trail row.
-- Narrow screens: the trail collapses to a single labeled back crumb
-  ("← Parent") under 992px, overriding Frappe's keep-the-last-crumb rule.
+- Narrow screens (OPT-IN): the trail collapses to a single labeled back
+  crumb ("← Parent") under 992px, overriding Frappe's keep-the-last-crumb
+  rule. Off by default — on v16 form pages the last crumb IS the page
+  heading, so the collapse hides the open document's name on small
+  screens (release review reproduced it live); it stays opt-in until the
+  collapse design keeps the title visible.
 
 ### Facts the implementation is built on (measured)
 - Frappe's separator is generated content on the ANCHOR's ::before; all
@@ -50,9 +54,25 @@ survives its full-rebuild-on-save and every unknown value fails open.
   default-on checks could never be seeded (or worse, an admin's explicit
   off would flip back on).
 
-Smoke suite grew to 28 checks: the four styles' attribute matrix +
-decoration, Original-applies-nothing, Every-Crumb inference, live preview
-flip/revert.
+### Release infrastructure (first shipped in this range)
+- **The committed browser smoke suite** (`npm test` → tests/smoke.mjs):
+  every behaviour ever verified by hand, now 28 checks incl. the four
+  crumb styles' attribute matrix + decoration, Original-applies-nothing,
+  Every-Crumb inference, and live-preview flip/revert. Settings are
+  snapshotted and restored even on failure.
+- **CI gates on every push** (.github/workflows/ci.yaml): SCSS build with
+  the RTL guard, dist/assets.py drift detection (via `git status
+  --porcelain` — `git diff` is blind to untracked hashed files), JS and
+  Python syntax. package-lock.json is committed for reproducible `npm ci`.
+- **Deterministic builds across platforms**: build.mjs normalizes CRLF to
+  LF before hashing and .gitattributes pins LF repo-wide — a Windows
+  checkout and CI's Linux checkout now produce identical dist hashes.
+- **The adversarial release-review workflow**
+  (tools/release-review.workflow.js), codified in README as the third
+  release gate: four independent reviewers over the diff since the last
+  tag, every finding adversarially verified. Its findings are fixed in
+  this release (copy-link now checks clipboard availability at mount
+  time — secure contexts only; the narrow collapse made opt-in).
 
 ## [0.6.2] — 2026-07-30 — Fix: Theme Settings save conflict
 

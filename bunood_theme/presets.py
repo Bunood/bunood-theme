@@ -276,10 +276,14 @@ CRUMB_DEFAULTS = {
     "crumb_separator": "Chevron",
     "crumb_icons": "First Crumb",
     "crumb_hover": "Soft Pill",
-    # Checks: 1/0, not labels. Copy-link and the narrow collapse default ON
-    # (hover-only affordances, near-zero visual cost); the status pill
-    # defaults OFF — it visibly changes form pages, so it is opt-in.
+    # Checks: 1/0, not labels. Copy-link defaults ON (hover-only affordance,
+    # near-zero visual cost). The status pill AND the narrow collapse default
+    # OFF: both visibly change pages, and the collapse in particular replaces
+    # the last crumb — which on v16 form pages IS the page heading (no
+    # separate h1) — with the parent link, hiding the open document's name on
+    # small screens. Release review v0.6.2..HEAD reproduced that live; the
+    # option stays opt-in until the collapse design keeps the title visible.
     "crumb_copy_link": 1,
     "crumb_status_pill": 0,
-    "crumb_narrow_collapse": 1,
+    "crumb_narrow_collapse": 0,
 }

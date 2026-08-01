@@ -720,7 +720,7 @@ const BND_CRUMB_DEFAULTS = {
 	crumb_hover: "Soft Pill",
 	crumb_copy_link: 1,
 	crumb_status_pill: 0,
-	crumb_narrow_collapse: 1,
+	crumb_narrow_collapse: 0,
 };
 
 /**

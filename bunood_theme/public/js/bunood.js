@@ -859,6 +859,11 @@
 	 * @returns {HTMLElement|null}
 	 */
 	function crumb_copy_button() {
+		// Both preconditions checked at MOUNT time, honouring the contract
+		// below: navigator.clipboard only exists in secure contexts, and a
+		// plain-http intranet tenant must not get a visible button whose
+		// click silently does nothing (release review v0.6.2..HEAD).
+		if (!(navigator.clipboard && navigator.clipboard.writeText)) return null;
 		const symbol = sb_existing_symbol(["icon-link-url", "icon-link", "es-line-link", "icon-duplicate"]);
 		if (!symbol) return null;
 		const btn = el("button", "bnd-crumb-copy", {
@@ -872,7 +877,6 @@
 			// crumb anchor and navigate.
 			ev.preventDefault();
 			ev.stopPropagation();
-			if (!(navigator.clipboard && navigator.clipboard.writeText)) return;
 			navigator.clipboard.writeText(window.location.href).then(
 				() => frappe.show_alert({ message: __("Link copied"), indicator: "green" }),
 				() => frappe.show_alert({ message: __("Could not copy"), indicator: "red" })
