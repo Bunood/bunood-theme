@@ -127,6 +127,17 @@ html[data-bnd-search="sbbottom"] .body-sidebar .navbar-search-bar {
   display: block;
 }
 
+// The mirror image: search placed in one of OUR bars must take the native row
+// away, whatever the layout. Compact and Classic keep that row (it is their
+// search), so without this a bar placement showed the user two search fields
+// at once — one native, one ours.
+html[data-bnd-search="topcenter"] .body-sidebar .navbar-search-bar,
+html[data-bnd-search="topedge"] .body-sidebar .navbar-search-bar,
+html[data-bnd-search="botcenter"] .body-sidebar .navbar-search-bar,
+html[data-bnd-search="botedge"] .body-sidebar .navbar-search-bar {
+  display: none;
+}
+
 html[data-bnd-search="sbtop"] .body-sidebar .navbar-search-bar {
   order: -1;
 }
@@ -137,29 +148,46 @@ html[data-bnd-search="sbbottom"] .body-sidebar .navbar-search-bar {
 }
 
 // ── Bar slots ───────────────────────────────────────────────────────────────
-// Both bars reserve a centre slot between two spacers. The spacers FLEX
-// rather than carry an auto margin, because only a matched pair splitting
-// the free space evenly can centre what sits between them — the auto-margin
-// version put "Bottom Bar Center" hard against the trailing group.
+// The spacer keeps its auto margin: it separates the signals from the
+// trailing group and must not flex. Flexible lengths resolve BEFORE auto
+// margins in flex layout, so any flexing sibling consumes the free space,
+// the cluster's own `margin-inline-start: auto` resolves to zero, and the
+// bell and avatar jump to the leading edge.
 html[data-theme] .bnd-topbar .bnd-status-spacer,
 html[data-theme] .bnd-statusbar .bnd-status-spacer {
-  flex: 1;
+  margin-inline-start: auto;
 }
 
+// The centre slot is centred against the BAR, out of flow, so that neither
+// the width of the signals on one side nor the cluster on the other can
+// shift it. Auto inline margins rather than a translate keeps it correct in
+// RTL with no second ruleset.
 html[data-theme] .bnd-search-center {
-  flex: none;
+  position: absolute;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: min(420px, 46%);
   display: flex;
   justify-content: center;
-  min-inline-size: 0;
+  // The slot is wider than the field it holds; without this it would swallow
+  // clicks aimed at the segments it floats over.
+  pointer-events: none;
 }
 
-// An EMPTY centre slot (search is placed elsewhere) must vanish completely,
-// its trailing spacer included: leave that spacer flexing and it steals half
-// the free space, parking the clock and avatar in the middle of the bar
-// instead of at its end.
-html[data-theme] .bnd-search-center:empty,
-html[data-theme] .bnd-search-center:empty + .bnd-status-spacer {
+html[data-theme] .bnd-search-center > * {
+  pointer-events: auto;
+}
+
+html[data-theme] .bnd-search-center:empty {
   display: none;
+}
+
+// Each bar is the positioning context for its own centre slot.
+// .bnd-statusbar is already fixed, so it establishes one; .bnd-topbar is
+// static (the STICKY in the topbar layout is on its parent <header>, not on
+// the bar) and needs this, or the slot would centre against the page.
+html[data-theme] .bnd-topbar {
+  position: relative;
 }
 
 html[data-theme] .bnd-search-center .bnd-search-field {
@@ -183,6 +211,11 @@ html[data-bnd-search="botcenter"] .bnd-statusbar:not(.bnd-bottombar) {
 
 // ── Live segments ───────────────────────────────────────────────────────────
 
+// `[hidden]` is a UA rule of the lowest possible weight, and `.bnd-status-item`
+// above sets `display: inline-flex` — so every hidden item stayed visible.
+// That silently broke Quiet's central promise: the connection segment is
+// hidden while the socket is healthy, and it was showing regardless.
+html[data-theme] .bnd-statusbar .bnd-status-item[hidden],
 html[data-theme] .bnd-status-seg[hidden] {
   display: none;
 }

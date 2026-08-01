@@ -85,33 +85,39 @@ html[data-bnd-layout="dock"] {
 // Verified that none of ancestor padding, a margin on the paging area, or a
 // sticky bar moves it — the page's own height math has to change, which is a
 // change across all five layouts and every page type, not a status-bar fix.
-html[data-bnd-layout="topbar"] .main-section,
-html[data-bnd-layout="compact"] .main-section {
+// KEYED ON THE BAR EXISTING, not on layout and style. Whether a bar mounts
+// depends on the layout, the status style AND the Classic opt-in; bunood.js
+// knows the answer and stamps data-bnd-statusbar, so these rules do not have
+// to re-derive it — and Classic's opt-in bar, which no layout rule covered,
+// gets its clearance for free.
+//
+// Every rule below excludes the Desktop page. Its stand-down guard
+// (chrome/_sidebar.scss) zeroes this padding with a single attribute
+// selector, which a two-attribute rule here would silently outrank.
+html[data-bnd-statusbar="slim"]:not([data-bnd-desktop]) .main-section {
   padding-block-end: var(--bnd-statusbar-h);
 }
-html[data-bnd-layout="bottombar"] .main-section {
-  padding-block-end: var(--bnd-bottombar-h);
-}
-html[data-bnd-layout="dock"] .main-section {
-  padding-block-end: calc(var(--bnd-dock-h) + 20px);
-}
 
-// Style "Off" mounts no bar at all (item 14), so the reservation above would
-// be a strip of dead space at the foot of every page. Bottom Bar and Dock are
-// excluded on purpose: their strip IS the layout, not the status bar.
-html[data-bnd-status="off"][data-bnd-layout="topbar"] .main-section,
-html[data-bnd-status="off"][data-bnd-layout="compact"] .main-section {
-  padding-block-end: 0;
+html[data-bnd-statusbar="global"]:not([data-bnd-desktop]) .main-section {
+  padding-block-end: var(--bnd-bottombar-h);
 }
 
 // The slim strip GROWS to bottom-bar height when it carries search
 // (chrome/_statusbar.scss), so the reservation has to grow with it or the
 // last list row spends its life behind the search field.
-html[data-bnd-search="botedge"][data-bnd-layout="topbar"] .main-section,
-html[data-bnd-search="botcenter"][data-bnd-layout="topbar"] .main-section,
-html[data-bnd-search="botedge"][data-bnd-layout="compact"] .main-section,
-html[data-bnd-search="botcenter"][data-bnd-layout="compact"] .main-section {
+html[data-bnd-statusbar="slim"][data-bnd-search="botedge"]:not([data-bnd-desktop]) .main-section,
+html[data-bnd-statusbar="slim"][data-bnd-search="botcenter"]:not([data-bnd-desktop]) .main-section {
   padding-block-end: var(--bnd-bottombar-h);
+}
+
+// The dock floats above whatever bar is there, so it needs its own clearance
+// on top (see the stacking rule further down).
+html[data-bnd-layout="dock"]:not([data-bnd-desktop]) .main-section {
+  padding-block-end: calc(var(--bnd-dock-h) + 20px);
+}
+
+html[data-bnd-layout="dock"][data-bnd-statusbar]:not([data-bnd-desktop]) .main-section {
+  padding-block-end: calc(var(--bnd-dock-h) + 20px + var(--bnd-statusbar-h));
 }
 
 // ── Top bar layout: the native <header> becomes the bar's home ──────────────

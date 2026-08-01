@@ -41,6 +41,20 @@ html[data-theme] .bnd-dock {
   box-shadow: var(--bnd-shadow-lg);
 }
 
+// The status bar became a setting rather than a layout consequence (item 14),
+// so Dock can now have one — and both are fixed to the bottom edge with the
+// same z-index. The dock, appended later, simply painted over the bar and ate
+// its clicks; with the default placement the search field landed in that bar
+// and sat invisibly beneath the dock pill. They stack instead.
+html[data-theme][data-bnd-statusbar] .bnd-dock {
+  inset-block-end: calc(var(--bnd-statusbar-h) + var(--bnd-sp-3));
+}
+
+html[data-theme][data-bnd-statusbar][data-bnd-search="botcenter"] .bnd-dock,
+html[data-theme][data-bnd-statusbar][data-bnd-search="botedge"] .bnd-dock {
+  inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-3));
+}
+
 // One dock entry: a square icon button with a tooltip-style title attribute
 // (the browser's own tooltip — no custom tooltip machinery at this stage).
 html[data-theme] .bnd-dock-item {

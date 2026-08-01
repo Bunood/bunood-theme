@@ -1481,6 +1481,10 @@ function bnd_search_slot_blocker(frm, slot) {
 	if (slot === "Top Bar Edge" || slot === "Top Bar Center") {
 		return layout === "Top Bar" ? "" : __("{0} has no top bar", [__(layout)]);
 	}
+	// Bottom slots need a strip to live in. The Bottom Bar layout always has
+	// one — there it is the layout's own chrome, which the status style does
+	// not govern — so only the other layouts can lose it.
+	if (layout === "Bottom Bar") return "";
 	if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
 	if (layout === "Classic" && !parseInt(frm.doc.status_in_classic, 10)) {
 		return __("Classic shows no bottom bar");
@@ -1568,7 +1572,8 @@ const BND_STATUS_STYLES = [
 	},
 	{
 		value: "Off",
-		blurb: () => __("No status bar at all, and the page takes the space back."),
+		blurb: () =>
+			__("No status bar at all, and the page takes the space back. The Bottom Bar layout keeps its strip — that one carries notifications and your profile."),
 		svg:
 			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
 			'<rect x="30" y="20" width="60" height="5" rx="2" fill="currentColor" opacity=".1"/></svg>',

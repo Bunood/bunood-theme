@@ -862,7 +862,11 @@
 			if (errors !== null && errors !== undefined) {
 				if (errors > 0) {
 					text = __("{0} errors", [String(errors)]);
-					tone = quiet ? "warn" : "";
+					// The tone belongs to the FACT, not to the style. Tying it
+					// to Quiet meant Operator — the style for people watching
+					// for trouble — rendered errors in plain text, and the
+					// escalation tint could never fire for them at all.
+					tone = "warn";
 				} else if (!quiet) {
 					text = __("No errors");
 				}
@@ -1150,13 +1154,17 @@
 		const bar = el("div", "bnd-topbar");
 		// No search here any more: mount_search() places it per the setting,
 		// which may well be this bar — but may equally be the sidebar or the
-		// bottom strip. The bar only owns the cluster it always owned, plus
-		// a reserved centre slot (see mount_statusbar for why it is reserved
-		// rather than appended later).
-		bar.appendChild(build_cluster({ search: "none" }));
-		bar.appendChild(el("span", "bnd-status-spacer"));
+		// bottom strip. The bar only owns the cluster it always owned, plus a
+		// reserved centre slot (see mount_statusbar for why it is reserved).
+		//
+		// The centre slot is appended FIRST and centred by CSS against the
+		// bar. It must not flex: the cluster is pushed to the trailing edge
+		// by an auto margin, and per flexbox, flexible lengths resolve before
+		// auto margins — so a flexing sibling eats the free space, the auto
+		// margin resolves to zero, and the bell and avatar snap to the
+		// leading edge. That regression shipped in the first cut of item 14.
 		bar.appendChild(el("div", "bnd-search-center"));
-		bar.appendChild(el("span", "bnd-status-spacer"));
+		bar.appendChild(build_cluster({ search: "none" }));
 		header.appendChild(bar);
 	}
 
@@ -1174,13 +1182,23 @@
 	 */
 	function mount_statusbar(global_variant) {
 		if (document.querySelector(".bnd-statusbar")) return;
-		if (status_style() === "off") return;
+
+		// Style "Off" means NO STATUS BAR — but in the Bottom Bar layout this
+		// strip is not the status bar. It is that layout's only chrome: it
+		// carries the bell, the unread badge and the avatar menu, while
+		// _layouts.scss hides the sidebar's own copies of all three keyed on
+		// the LAYOUT. Refusing to mount it there left a desk with no
+		// notifications, no user menu and no way to log out. So Off empties
+		// the strip of status content; it never deletes a layout's chrome.
+		const off = status_style() === "off";
+		if (off && !global_variant) return;
+
 		const bar = el("div", "bnd-statusbar" + (global_variant ? " bnd-bottombar" : ""));
 
 		// Connection: dot + word. State wired to the realtime socket when it
 		// exposes lifecycle events, else to navigator.onLine — both guarded,
 		// because a status bar must never be the thing that breaks the desk.
-		if (status_on("status_segments_connection")) {
+		if (!off && status_on("status_segments_connection")) {
 			// Built hidden and with no text: the first honest paint comes from
 			// bind_connection_state, which knows whether the socket is up and
 			// whether this style wants to hear about it. Seeding it "Connected"
@@ -1195,12 +1213,13 @@
 			bind_connection_state();
 		}
 
-		// Minimal is the "no server calls" style, so everything the POLLER
-		// owns is skipped outright rather than built and left dark: unfilled
-		// segments would be permanently hidden dead nodes, and the freshness
-		// stamp would sit there reading "No data" forever with a refresh
-		// button that is wired to a poll which returns early.
-		const live = status_style() !== "minimal";
+		// Minimal is the "no server calls" style, and Off wants no status
+		// content at all, so everything the POLLER owns is skipped outright
+		// rather than built and left dark: unfilled segments would be
+		// permanently hidden dead nodes, and the freshness stamp would sit
+		// there reading "No data" forever with a refresh button wired to a
+		// poll that returns early.
+		const live = !off && status_style() !== "minimal";
 
 		// Live signal segments, built empty and filled by the poller. Each
 		// carries a priority so narrow viewports collapse by rank, not by
@@ -1218,17 +1237,22 @@
 			status_refs[seg.id] = node;
 		}
 
-		// The centre slot is RESERVED here, between two spacers, rather than
-		// appended by mount_search() when it runs. Appending put the field
-		// after everything already in the bar, so "Bottom Bar Center" sat
-		// well right of centre behind the trailing group (measured in the
-		// item-14 sweep). Reserving the position makes centring a property
-		// of the bar, not of the order two mount functions happened to run.
+		// The centre slot is RESERVED here rather than appended by
+		// mount_search() when it runs: appending put the field after
+		// everything else in the bar, so "Bottom Bar Center" sat well right
+		// of centre (measured). It is centred by CSS against the BAR, not by
+		// flexing siblings — a pair of flexing spacers would centre it
+		// between the two content groups instead, and would also cancel the
+		// cluster's auto margin and drag the bell and avatar to the leading
+		// edge (both caught by the release review).
 		bar.appendChild(el("span", "bnd-status-spacer"));
 		bar.appendChild(el("div", "bnd-search-center"));
-		bar.appendChild(el("span", "bnd-status-spacer"));
 
-		if (live && status_on("status_freshness")) {
+		// The stamp is only honest if something is actually being polled. A
+		// user with no readable signals would otherwise get a permanent "No
+		// data" above a refresh button that cannot refresh anything.
+		const pollable = STATUS_SEGMENTS.some(status_seg_enabled);
+		if (live && pollable && status_on("status_freshness")) {
 			const fresh = el("button", "bnd-status-item bnd-status-fresh", {
 				type: "button",
 				title: __("Refresh now"),
@@ -1240,7 +1264,7 @@
 		}
 
 		// Density: label shows the user's override or "Auto"; click cycles.
-		if (status_on("status_segments_density")) {
+		if (!off && status_on("status_segments_density")) {
 			const density = el("button", "bnd-status-item", {
 				type: "button",
 				title: __("Toggle Density"),
@@ -1252,7 +1276,7 @@
 			refresh_density_label();
 		}
 
-		if (status_clock_mode() !== "off") {
+		if (!off && status_clock_mode() !== "off") {
 			const clock = el("span", "bnd-status-item bnd-clock", { "data-bnd-prio": "3" });
 			bar.appendChild(clock);
 			status_refs.clock = clock;
@@ -1266,6 +1290,12 @@
 		// so the bar is position:fixed (CSS); body still gets it as a child
 		// of .main-section for sane DOM ownership.
 		(document.querySelector(".main-section") || document.body).appendChild(bar);
+		// Tell CSS a bar EXISTS, rather than making it infer one from layout
+		// and style. Whether a bar mounts depends on the style, the layout and
+		// the Classic opt-in; the clearance rules only care about the answer,
+		// and Classic's opt-in bar had no clearance at all while it was left
+		// to guess.
+		document.documentElement.setAttribute("data-bnd-statusbar", global_variant ? "global" : "slim");
 		status_start();
 	}
 

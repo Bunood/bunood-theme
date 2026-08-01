@@ -852,8 +852,19 @@ async function main() {
 			// Quiet may legitimately show a real problem (this dev bench has
 			// failed jobs); what it must NEVER show is an "all clear".
 			expect(
-				!quiet.some((t) => /OK|No errors|Scheduler on/i.test(t)),
+				!quiet.some((t) => /OK|No errors|Scheduler on|^Live$/i.test(t)),
 				`Quiet says nothing reassuring (${JSON.stringify(quiet)})`
+			);
+			// `[hidden]` is the lowest-weight rule there is, and the bar sets
+			// display on .bnd-status-item — so hiding anything took a rule of
+			// our own. Without it Quiet's whole premise was decorative.
+			expectEq(
+				await page.evaluate(() => {
+					const n = document.querySelector(".bnd-status-seg[hidden], .bnd-conn[hidden]");
+					return n ? getComputedStyle(n).display : "none";
+				}),
+				"none",
+				"a hidden item is actually hidden"
 			);
 		});
 
@@ -886,6 +897,80 @@ async function main() {
 			setSettings({ status_style: "Quiet" });
 		});
 
+		await test("status: Off never takes away a layout's own chrome", async () => {
+			// Off means "no status bar". In Bottom Bar the strip is not the
+			// status bar — it is the layout's only chrome, and the sidebar's
+			// bell and user button are hidden by the layout. Skipping it there
+			// left a desk with no notifications and no way to log out.
+			setSettings({ desk_layout: "Bottom Bar", status_style: "Off" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			expect(await q(".bnd-bottombar .bnd-cluster"), "bottom bar still carries the cluster");
+			expect(await q(".bnd-bottombar .bnd-inbox-bell, .bnd-bottombar .bnd-cluster button"), "bell reachable");
+			const segs = await page.evaluate(() => document.querySelectorAll(".bnd-status-seg, .bnd-status-fresh").length);
+			expectEq(segs, 0, "but carries no status content");
+
+			// ...while a layout whose bar IS the status bar loses it entirely.
+			setSettings({ desk_layout: "Top Bar", status_style: "Off" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			expect(!(await q(".bnd-statusbar")), "Top Bar drops the strip outright");
+			setSettings({ status_style: "Quiet" });
+		});
+
+		await test("status: the cluster stays at the bar's trailing edge", async () => {
+			// The centre search slot must not flex: flexible lengths resolve
+			// before auto margins, so a flexing sibling cancels the cluster's
+			// `margin-inline-start: auto` and drags the bell and avatar to the
+			// leading edge.
+			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			const geom = await page.evaluate(() => {
+				const bar = document.querySelector(".bnd-topbar");
+				const cluster = document.querySelector(".bnd-topbar .bnd-cluster");
+				const field = document.querySelector(".bnd-topbar .bnd-search-field");
+				if (!bar || !cluster || !field) return null;
+				const b = bar.getBoundingClientRect(), c = cluster.getBoundingClientRect(), f = field.getBoundingClientRect();
+				return {
+					clusterFromEnd: Math.round(b.right - c.right),
+					clusterFromStart: Math.round(c.left - b.left),
+					offCentre: Math.abs(Math.round((f.left + f.right) / 2 - (b.left + b.right) / 2)),
+				};
+			});
+			expect(geom, "top bar, cluster and search all present");
+			expect(geom.clusterFromEnd < geom.clusterFromStart, `cluster sits at the end (${JSON.stringify(geom)})`);
+			expect(geom.offCentre <= 8, `search is centred on the bar (off by ${geom.offCentre}px)`);
+		});
+
+		await test("search: one field only, never two", async () => {
+			// Compact and Classic keep Frappe's own sidebar search row, so a
+			// bar placement has to take it away or the user sees two.
+			for (const layout of ["Compact", "Classic"]) {
+				setSettings({ desk_layout: layout, search_placement: "Bottom Bar Center", status_in_classic: 1 });
+				await goDesk("/desk/item", ".page-head", 4500);
+				const count = await page.evaluate(() => {
+					const ours = document.querySelectorAll(".bnd-search-field").length;
+					const native = document.querySelector(".body-sidebar .navbar-search-bar");
+					return ours + (native && getComputedStyle(native).display !== "none" ? 1 : 0);
+				});
+				expectEq(count, 1, `${layout}: exactly one search field on screen`);
+			}
+			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center", status_in_classic: 0 });
+		});
+
+		await test("status: the dock and the status bar stack, never overlap", async () => {
+			setSettings({ desk_layout: "Dock", status_style: "Operator", search_placement: "Top Bar Center" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const geom = await page.evaluate(() => {
+				const dock = document.querySelector(".bnd-dock");
+				const bar = document.querySelector(".bnd-statusbar");
+				if (!dock || !bar) return null;
+				const d = dock.getBoundingClientRect(), b = bar.getBoundingClientRect();
+				return { dockBottom: Math.round(d.bottom), barTop: Math.round(b.top) };
+			});
+			expect(geom, "dock and bar both mounted");
+			expect(geom.dockBottom <= geom.barTop, `dock clears the bar (${JSON.stringify(geom)})`);
+			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+		});
+
 		await test("status: privileged signals never reach a plain user", async () => {
 			// Server-side, because the browser session is Administrator and the
 			// interesting case is the one it can never exercise. A throwaway
@@ -905,6 +990,27 @@ async function main() {
 			const res = JSON.parse(out.split("BND")[1].trim());
 			expectEq(res.priv, 0, "not flagged privileged");
 			expectEq(res.jobs, null, "no job counts for an unprivileged session");
+
+			// ...and as Administrator the counter must actually COUNT. Without
+			// this the suite stays green while the RQ Job helper drifts away
+			// underneath us and the segment is permanently dead — which is
+			// exactly how the unfiltered-scan bug survived its first outing.
+			const admin = JSON.parse(
+				benchPy(
+					`from bunood_theme.api import get_status_signals\n` +
+					`frappe.set_user("Administrator")\n` +
+					`r = get_status_signals(1, 0, 0)\n` +
+					`print("BND" + json.dumps({"jobs": r["jobs"], "priv": r["privileged"]}))\n`
+				).split("BND")[1].trim()
+			);
+			expectEq(admin.priv, 1, "Administrator is privileged");
+			expect(admin.jobs && typeof admin.jobs === "object", "job counts came back");
+			for (const key of ["queued", "started", "failed"]) {
+				expect(
+					Number.isInteger(admin.jobs[key]),
+					`${key} is a real count, not null (${JSON.stringify(admin.jobs)})`
+				);
+			}
 		});
 
 		await test("status: collapses by rank on narrow viewports", async () => {
