@@ -76,6 +76,15 @@ html[data-bnd-layout="dock"] {
 // ── Reserve space for fixed bars ────────────────────────────────────────────
 // The status bar and dock are position:fixed, so page content must pad its
 // block-end by their height or the last list row hides behind them forever.
+//
+// KNOWN INCOMPLETE — measured 2026-08-01, tracked separately. This padding is
+// necessary but NOT sufficient: Frappe sizes `.content.page-container` from
+// the VIEWPORT, so it overflows whatever padding its ancestor reserves and
+// still ends flush with the viewport edge. On a list view that leaves the
+// paging area 26px under the slim bar (40px when the bar carries search).
+// Verified that none of ancestor padding, a margin on the paging area, or a
+// sticky bar moves it — the page's own height math has to change, which is a
+// change across all five layouts and every page type, not a status-bar fix.
 html[data-bnd-layout="topbar"] .main-section,
 html[data-bnd-layout="compact"] .main-section {
   padding-block-end: var(--bnd-statusbar-h);
@@ -85,6 +94,24 @@ html[data-bnd-layout="bottombar"] .main-section {
 }
 html[data-bnd-layout="dock"] .main-section {
   padding-block-end: calc(var(--bnd-dock-h) + 20px);
+}
+
+// Style "Off" mounts no bar at all (item 14), so the reservation above would
+// be a strip of dead space at the foot of every page. Bottom Bar and Dock are
+// excluded on purpose: their strip IS the layout, not the status bar.
+html[data-bnd-status="off"][data-bnd-layout="topbar"] .main-section,
+html[data-bnd-status="off"][data-bnd-layout="compact"] .main-section {
+  padding-block-end: 0;
+}
+
+// The slim strip GROWS to bottom-bar height when it carries search
+// (chrome/_statusbar.scss), so the reservation has to grow with it or the
+// last list row spends its life behind the search field.
+html[data-bnd-search="botedge"][data-bnd-layout="topbar"] .main-section,
+html[data-bnd-search="botcenter"][data-bnd-layout="topbar"] .main-section,
+html[data-bnd-search="botedge"][data-bnd-layout="compact"] .main-section,
+html[data-bnd-search="botcenter"][data-bnd-layout="compact"] .main-section {
+  padding-block-end: var(--bnd-bottombar-h);
 }
 
 // ── Top bar layout: the native <header> becomes the bar's home ──────────────

@@ -162,6 +162,25 @@ def extend_bootinfo(bootinfo):
             "narrow_collapse": crumb("crumb_narrow_collapse"),
         }
 
+        # Search placement + status bar (item 14). Same construction
+        # exemption as the other chrome: both are mounted after the splash.
+        from bunood_theme.presets import STATUS_DEFAULTS
+
+        def status(field):
+            value = settings.get(field)
+            return STATUS_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
+        # Whether this user may see the System-Manager-only signals (job
+        # counts, scheduler state). Decided SERVER-side: the client must
+        # never probe an endpoint it is not allowed to call just to discover
+        # that it cannot. The error count is deliberately NOT gated on this —
+        # Error Log read is grantable to other roles, and api.py already
+        # omits the count for anyone without it.
+        bootinfo.bnd_status["privileged"] = int(
+            "System Manager" in frappe.get_roles() or frappe.session.user == "Administrator"
+        )
+
         # Notification centre kit (item 13). Same construction exemption as
         # the palette: the panel is user-invoked, so nothing paints until it
         # opens. The unread COUNT rides along so the badge can render on the

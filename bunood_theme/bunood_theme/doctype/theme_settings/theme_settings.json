@@ -71,6 +71,22 @@
   "inbox_chips",
   "inbox_row_actions",
   "inbox_keyboard",
+  "section_search",
+  "search_placement",
+  "search_picker",
+  "section_status",
+  "status_style",
+  "status_picker",
+  "status_clock",
+  "status_interval",
+  "status_segments_jobs",
+  "status_segments_errors",
+  "status_segments_scheduler",
+  "status_segments_connection",
+  "status_segments_density",
+  "status_freshness",
+  "status_escalate",
+  "status_in_classic",
   "section_features",
   "enable_command_palette",
   "default_density",
@@ -555,11 +571,118 @@
    "label": "Keyboard Triage",
    "default": "1",
    "hidden": 1
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status Bar"
+  },
+  {
+   "fieldname": "search_placement",
+   "fieldtype": "Select",
+   "label": "Search Placement",
+   "options": "Sidebar Top\nSidebar Bottom\nTop Bar Edge\nTop Bar Center\nBottom Bar Edge\nBottom Bar Center",
+   "default": "Top Bar Center",
+   "hidden": 1,
+   "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
+  },
+  {
+   "fieldname": "status_style",
+   "fieldtype": "Select",
+   "label": "Status Bar",
+   "options": "Off\nMinimal\nQuiet\nOperator",
+   "default": "Quiet",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_picker",
+   "fieldtype": "HTML",
+   "label": "Search & Status Picker"
+  },
+  {
+   "fieldname": "status_clock",
+   "fieldtype": "Select",
+   "label": "Clock",
+   "options": "Off\n12 Hour\n24 Hour",
+   "default": "24 Hour",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_interval",
+   "fieldtype": "Select",
+   "label": "Refresh Interval",
+   "options": "30s\n60s\n5min\nManual",
+   "default": "60s",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_jobs",
+   "fieldtype": "Check",
+   "label": "Jobs Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_errors",
+   "fieldtype": "Check",
+   "label": "Errors Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_scheduler",
+   "fieldtype": "Check",
+   "label": "Scheduler Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_connection",
+   "fieldtype": "Check",
+   "label": "Connection Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_density",
+   "fieldtype": "Check",
+   "label": "Density Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_freshness",
+   "fieldtype": "Check",
+   "label": "Freshness Stamp",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_escalate",
+   "fieldtype": "Check",
+   "label": "Recolour the Bar on Failure",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_in_classic",
+   "fieldtype": "Check",
+   "label": "Show in Classic Layout",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_search",
+   "fieldtype": "Section Break",
+   "label": "Search"
+  },
+  {
+   "fieldname": "search_picker",
+   "fieldtype": "HTML",
+   "label": "Search Picker"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-01 18:30:00.000000",
+ "modified": "2026-08-01 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

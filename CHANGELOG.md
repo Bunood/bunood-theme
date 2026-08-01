@@ -5,6 +5,106 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.10.0] — 2026-08-01 — Status bar kit + search placement (item 14)
+
+Two settings, deliberately separate — because the previous arrangement
+made them one.
+
+### Search placement is now its own setting
+
+Search used to be welded into whichever bar the layout mounted, so
+picking a layout also picked where search lived, and in Bottom Bar it
+fought the status segments for a single strip. It is now six slots of
+its own — Top Bar Center (default) / Top Bar Edge / Sidebar Top /
+Sidebar Bottom / Bottom Bar Center / Bottom Bar Edge — chosen from
+thumbnails, independent of the layout.
+
+Two mechanisms, on purpose: **sidebar slots reveal Frappe's own search
+row** and order it (injecting a second search there would be a
+duplicate, not a placement), while **bar slots inject our field**, since
+those bars are ours. A slot the active layout does not offer falls back
+to the nearest one that exists rather than vanishing, and the picker
+says so on the card — naming the actual blocker (no top bar, sidebar
+hidden, status bar switched off) instead of greying the choice out.
+
+### Status bar
+
+**Quiet** is the default and the argument: a healthy desk shows almost
+nothing, and a signal appears only once it needs a person. **Operator**
+puts every count on screen with a freshness stamp and manual refresh;
+**Minimal** keeps connection, density and clock with no server calls at
+all; **Off** renders no bar. Every extra is an independent switch —
+five segments, freshness stamp, bar recolouring on a failure, and an
+opt-in for Classic — plus refresh interval and clock format.
+
+**Quiet never says "all clear."** A signal that cannot be read — no
+permission, failed poll — is absent, not reassuring: `null` renders as
+nothing, never as zero. The bar also states how old its numbers are,
+because Frappe publishes no event for background jobs and the counts
+are therefore polled, not live.
+
+`api.get_status_signals` answers all three signals in one round trip and
+guards each independently, so one failing source degrades to "no data"
+rather than taking the strip down. Job counting is System Manager only,
+gated on the ROLE rather than on catching a permission error, and always
+filtered: `get_matching_job_ids` with a status filter runs in 1-12ms,
+where the same call unfiltered measured **4,463ms**.
+
+Responsive by declared rank, not by flexbox accident: every optional
+item carries `data-bnd-prio` and narrow viewports drop the least
+actionable first, so "3 failed jobs" outlives the clock. Logical
+properties throughout, so the strip mirrors in Arabic with no second
+ruleset.
+
+### Hardening from testing and the release review
+
+- **Bottom Bar layout sat search-less for 3.1 seconds on its own default
+  placement.** The mount waited out a 20-try retry budget for a top bar
+  that layout never mounts. Our bars are mounted synchronously moments
+  before that call, so a missing bar host is missing forever; only
+  Frappe's late-rendering sidebar row is worth waiting for, and the two
+  are now told apart.
+- **Dock could place search where no one could see it.** Dock leaves
+  `.body-sidebar` in the DOM and hides its container, so an
+  existence check happily resolved a sidebar slot into `display: none`
+  and search disappeared with no error anywhere. Visibility, not
+  presence, is the condition.
+- **Minimal built what it refuses to feed** — three hidden segments and
+  a freshness stamp wired to a poll that returns early, i.e. a stamp
+  reading "No data" forever above a dead refresh button. The poll-driven
+  half of the bar is no longer built in that style, and the test now
+  counts requests to the endpoint rather than trusting the DOM.
+- **The boot payload's server-decided `privileged` flag was never read
+  by the client**, so an ordinary user got a jobs segment the server
+  will always refuse and a "Scheduler paused" warning they have no power
+  to act on. Admin-only signals are now dropped for them, and not asked
+  for. Error Log stays ungated on purpose: that permission is grantable
+  beyond System Manager, and the server already self-gates by omitting
+  the count.
+- **A repaint interval leaked on every restart** — `status_start` cleared
+  the poll timer but not the ageing timer it also created.
+- **"Bottom Bar Center" was not centred.** The field was appended when
+  search mounted, which is after the bar has built everything else, so it
+  landed hard against the trailing group. Both bars now RESERVE a centre
+  slot between two flexing spacers, making the position a property of the
+  bar rather than of the order two mount functions happened to run.
+- **The connection segment said "Offline" on a desk that plainly
+  worked.** It watches the realtime socket, not the network: what stops
+  without it is live updates, and that is what it now says. It also no
+  longer accuses at boot — socket.io is normally mid-handshake when the
+  bar mounts, so good news paints immediately while bad news waits out a
+  grace period. Under Quiet, a working socket says nothing at all.
+- **Style "Off" still reserved a strip of empty space** at the foot of
+  every page: the clearance for the fixed bar is a CSS rule, and the kit
+  was the only one shipping no `data-bnd-*` attribute for CSS to read.
+  It now sets `data-bnd-status`, and the reservation also grows when the
+  slim strip grows to carry search — which it previously did not, leaving
+  the last list row behind the search field.
+- **`_count_jobs` logged API drift from inside a poller.** A rename
+  upstream would have written an Error Log row every 60 seconds per
+  admin — and the error segment counts Error Log rows, so the bar would
+  have reported its own noise as a fault. Throttled to once an hour.
+
 ## [0.9.0] — 2026-08-01 — Notification centre kit (item 13)
 
 Four styles picked visually (hidden fields -> boot dict ->

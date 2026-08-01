@@ -300,6 +300,54 @@ PALETTE_FIELDS = [
     "palette_sigils",
 ]
 
+#: Chrome placement + status bar fields (item 14, plus the search-placement
+#: split the status work forced: search used to be welded into whichever bar
+#: the layout mounted, so choosing a layout chose where search lived AND
+#: fought the status segments for the same strip).
+STATUS_FIELDS = [
+    "search_placement",
+    "status_style",
+    "status_segments_jobs",
+    "status_segments_errors",
+    "status_segments_scheduler",
+    "status_segments_connection",
+    "status_segments_density",
+    "status_clock",
+    "status_interval",
+    "status_freshness",
+    "status_escalate",
+    "status_in_classic",
+]
+
+#: The shipped defaults. Search sits centred in the top bar — the placement
+#: modern desks converged on, and the one that leaves the bottom strip free
+#: for status. "Quiet" is the status style: a healthy desk shows almost
+#: nothing, and a segment only appears once it has earned attention.
+#:
+#: PLACEMENT IS A REQUEST, NOT A GUARANTEE: a layout without a top bar
+#: (Classic, Dock) cannot honour "Top Bar Center", so bunood.js walks a
+#: documented fallback chain rather than dropping the field silently.
+STATUS_DEFAULTS = {
+    "search_placement": "Top Bar Center",
+    "status_style": "Quiet",
+    "status_clock": "24 Hour",
+    "status_interval": "60s",
+    # Checks: segments a user is allowed to see. Permission is decided
+    # elsewhere and always wins, so these mean "show if permitted", never
+    # "show regardless": jobs and the scheduler are System Manager only,
+    # while the error count self-gates on Error Log read — a permission
+    # grantable to other roles, and therefore not assumed here.
+    "status_segments_jobs": 1,
+    "status_segments_errors": 1,
+    "status_segments_scheduler": 1,
+    "status_segments_connection": 1,
+    "status_segments_density": 1,
+    "status_freshness": 1,
+    "status_escalate": 0,
+    "status_in_classic": 0,
+}
+
+
 #: Notification centre kit fields (item 13), matching theme_settings.json.
 INBOX_FIELDS = [
     "inbox_style",

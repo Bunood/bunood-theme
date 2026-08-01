@@ -68,10 +68,6 @@ html[data-theme] .bnd-statusbar {
     }
   }
 
-  .bnd-status-spacer {
-    margin-inline-start: auto;
-  }
-
   // Connection dot: green connected, critical red otherwise. The label beside
   // it carries the words, so the state survives greyscale and colour-blindness.
   .bnd-conn-dot {
@@ -101,5 +97,150 @@ html[data-theme] .bnd-statusbar.bnd-bottombar {
   .bnd-search-field {
     inline-size: min(280px, 32vw);
     block-size: calc(var(--bnd-bottombar-h) - 12px);
+  }
+}
+
+// ============================================================================
+// SEARCH PLACEMENT + LIVE SEGMENTS — checklist item 14.
+//
+// Search placement is its own setting now (data-bnd-search on <html>), so a
+// layout choice no longer decides where search lives — and in Bottom Bar the
+// field no longer fights the status segments for one strip.
+//
+// SIX SLOTS, TWO MECHANISMS:
+//   sbtop / sbbottom    -> Frappe's OWN sidebar search row, revealed and
+//                          ordered. No second search is injected.
+//   topedge / topcenter -> our field inside .bnd-topbar
+//   botedge / botcenter -> our field inside .bnd-statusbar
+//
+// RESPONSIVE BY RANK, NOT BY ACCIDENT: every optional item carries
+// data-bnd-prio; narrow viewports drop the highest numbers first, so
+// "3 failed jobs" outlives the clock. Logical properties throughout, so the
+// whole strip mirrors in Arabic with no second ruleset.
+// ============================================================================
+
+// ── Sidebar slots: reveal the native row and order it ───────────────────────
+// The layout rules hide this row for the bars that replace it; when search is
+// PLACED in the sidebar it must come back, whatever the layout.
+html[data-bnd-search="sbtop"] .body-sidebar .navbar-search-bar,
+html[data-bnd-search="sbbottom"] .body-sidebar .navbar-search-bar {
+  display: block;
+}
+
+html[data-bnd-search="sbtop"] .body-sidebar .navbar-search-bar {
+  order: -1;
+}
+
+html[data-bnd-search="sbbottom"] .body-sidebar .navbar-search-bar {
+  order: 999;
+  margin-block-start: auto;
+}
+
+// ── Bar slots ───────────────────────────────────────────────────────────────
+// Both bars reserve a centre slot between two spacers. The spacers FLEX
+// rather than carry an auto margin, because only a matched pair splitting
+// the free space evenly can centre what sits between them — the auto-margin
+// version put "Bottom Bar Center" hard against the trailing group.
+html[data-theme] .bnd-topbar .bnd-status-spacer,
+html[data-theme] .bnd-statusbar .bnd-status-spacer {
+  flex: 1;
+}
+
+html[data-theme] .bnd-search-center {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  min-inline-size: 0;
+}
+
+// An EMPTY centre slot (search is placed elsewhere) must vanish completely,
+// its trailing spacer included: leave that spacer flexing and it steals half
+// the free space, parking the clock and avatar in the middle of the bar
+// instead of at its end.
+html[data-theme] .bnd-search-center:empty,
+html[data-theme] .bnd-search-center:empty + .bnd-status-spacer {
+  display: none;
+}
+
+html[data-theme] .bnd-search-center .bnd-search-field {
+  inline-size: min(420px, 100%);
+}
+
+// Edge placements sit at the start of the bar and stay their natural size.
+html[data-bnd-search="topedge"] .bnd-topbar .bnd-search-field,
+html[data-bnd-search="botedge"] .bnd-statusbar .bnd-search-field {
+  flex: none;
+  margin-inline-end: var(--bnd-sp-3);
+}
+
+// A status bar carrying search needs room to breathe: the slim strip is
+// sized for text, not for a control.
+html[data-bnd-search="botedge"] .bnd-statusbar:not(.bnd-bottombar),
+html[data-bnd-search="botcenter"] .bnd-statusbar:not(.bnd-bottombar) {
+  min-block-size: var(--bnd-bottombar-h);
+  padding-block: var(--bnd-sp-1);
+}
+
+// ── Live segments ───────────────────────────────────────────────────────────
+
+html[data-theme] .bnd-status-seg[hidden] {
+  display: none;
+}
+
+html[data-theme] .bnd-status-seg[data-tone="warn"] {
+  color: var(--bnd-warn);
+}
+
+html[data-theme] .bnd-status-seg[data-tone="bad"] {
+  color: var(--bnd-critical);
+}
+
+// Opt-in escalation. One tint on the whole strip, never a flash or an
+// animation: a bar that shouts gets muted by the people who need it.
+html[data-theme] .bnd-statusbar.bnd-status-alarm {
+  background: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface));
+  border-block-start-color: color-mix(in srgb, var(--bnd-critical) 35%, transparent);
+}
+
+html[data-theme] .bnd-status-fresh {
+  color: var(--bnd-ink-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Responsive collapse, by declared rank ───────────────────────────────────
+// Ranks: 1 freshness · 2 density · 3 clock · 4 errors · 5 jobs · 6 scheduler.
+// Drop the least actionable first; a failure signal is the last thing to go.
+@media (max-width: 991px) {
+  html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
+  html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
+    display: none;
+  }
+
+  // Search stops pretending to be a field and becomes its icon, so the
+  // signals it shares the strip with keep their room.
+  html[data-theme] .bnd-statusbar .bnd-search-field .bnd-search-label,
+  html[data-theme] .bnd-statusbar .bnd-search-field kbd {
+    display: none;
+  }
+
+  html[data-theme] .bnd-search-center .bnd-search-field {
+    inline-size: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  // Last stand: only what is wrong survives, and the connection dot.
+  html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
+    display: none;
+  }
+
+  html[data-theme] .bnd-statusbar {
+    gap: var(--bnd-sp-2);
   }
 }

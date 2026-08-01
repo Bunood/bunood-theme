@@ -38,6 +38,8 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_crumbs_picker(frm);
 		bnd_render_palette_picker(frm);
 		bnd_render_inbox_picker(frm);
+		bnd_render_search_picker(frm);
+		bnd_render_status_picker(frm);
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
@@ -50,6 +52,10 @@ frappe.ui.form.on("Theme Settings", {
 	},
 	desk_layout(frm) {
 		bnd_render_layout_picker(frm);
+		// The search picker's availability notes read the layout, so they go
+		// stale the moment it changes — "Not available" must never linger on
+		// a slot the new layout actually offers.
+		bnd_render_search_picker(frm);
 	},
 });
 
@@ -1419,16 +1425,271 @@ function bnd_inbox_set(frm, fieldname, value) {
 	bnd_render_inbox_picker(frm);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Search placement picker (item 14 companion) — deliberately its OWN section
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
+const BND_STATUS_FIELDS = [
+	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
+	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
+	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",
+];
+
+/** Shipped defaults, for the reset chips. */
+const BND_STATUS_DEFAULTS = {
+	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "24 Hour",
+	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
+	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
+	status_freshness: 1, status_escalate: 0, status_in_classic: 0,
+};
+
+/** A 120x54 thumbnail of the desk with search highlighted in one slot. */
+function bnd_search_thumb(slot) {
+	const on = 'fill="var(--primary, #4d8756)" opacity=".55"';
+	const off = 'fill="currentColor" opacity=".12"';
+	const bar = (y) => `<rect x="30" y="${y}" width="86" height="8" rx="3" ${off}/>`;
+	const pill = (x, y, w) => `<rect x="${x}" y="${y}" width="${w}" height="6" rx="3" ${on}/>`;
+	const parts = [
+		'<rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>',
+		`<rect x="2" y="2" width="24" height="50" ${off}/>`,
+		bar(4), bar(44),
+	];
+	if (slot === "Sidebar Top") parts.push(pill(5, 6, 18));
+	if (slot === "Sidebar Bottom") parts.push(pill(5, 44, 18));
+	if (slot === "Top Bar Edge") parts.push(pill(33, 5, 26));
+	if (slot === "Top Bar Center") parts.push(pill(58, 5, 30));
+	if (slot === "Bottom Bar Edge") parts.push(pill(33, 45, 26));
+	if (slot === "Bottom Bar Center") parts.push(pill(58, 45, 30));
+	return '<svg viewBox="0 0 120 54">' + parts.join("") + "</svg>";
+}
+
+/**
+ * Can this slot exist with the settings currently on screen? Used to WARN,
+ * never to block — the runtime falls back either way.
+ *
+ * Availability is not the layout alone, which is why this is a function and
+ * not a lookup table: the bottom strip only exists while the status bar is
+ * switched on (and in Classic only when it opts in), and Dock hides the
+ * sidebar outright.
+ */
+function bnd_search_slot_blocker(frm, slot) {
+	const layout = frm.doc.desk_layout || "Top Bar";
+	if (slot === "Sidebar Top" || slot === "Sidebar Bottom") {
+		return layout === "Dock" ? __("Dock hides the sidebar") : "";
+	}
+	if (slot === "Top Bar Edge" || slot === "Top Bar Center") {
+		return layout === "Top Bar" ? "" : __("{0} has no top bar", [__(layout)]);
+	}
+	if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
+	if (layout === "Classic" && !parseInt(frm.doc.status_in_classic, 10)) {
+		return __("Classic shows no bottom bar");
+	}
+	return "";
+}
+
+const BND_SEARCH_SLOTS = [
+	{ value: "Top Bar Center", blurb: () => __("Centred in the top bar — the modern default.") },
+	{ value: "Top Bar Edge", blurb: () => __("At the start of the top bar, beside the page.") },
+	{ value: "Sidebar Top", blurb: () => __("ERPNext's own search row, at the top of the sidebar.") },
+	{ value: "Sidebar Bottom", blurb: () => __("The same row, pinned to the sidebar's foot.") },
+	{ value: "Bottom Bar Center", blurb: () => __("Centred in the bottom strip, beside the status signals.") },
+	{ value: "Bottom Bar Edge", blurb: () => __("At the start of the bottom strip.") },
+];
+
+/** Render the search-placement picker. */
+function bnd_render_search_picker(frm) {
+	const field = frm.get_field("search_picker");
+	if (!field || !field.$wrapper) return;
+	const current = frm.doc.search_placement || "Top Bar Center";
+
+	const cards = BND_SEARCH_SLOTS.map((s) => {
+		const on = s.value === current ? " bnd-cbp-on" : "";
+		// Never disabled: an unavailable slot falls back at runtime, and
+		// naming the actual reason is more useful than greying the choice out.
+		const blocker = bnd_search_slot_blocker(frm, s.value);
+		const note = blocker
+			? '<span class="bnd-cbp-blurb" style="color:var(--text-muted)">' +
+			  __("Not available — {0}. Falls back to the nearest slot.", [blocker]) + "</span>"
+			: "";
+		return (
+			'<button type="button" class="bnd-cbp-style bnd-srp-slot' + on + '" data-value="' + s.value + '">' +
+			'<span class="bnd-cbp-thumb">' + bnd_search_thumb(s.value) + "</span>" +
+			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
+			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" + note + "</button>"
+		);
+	}).join("");
+
+	field.$wrapper.html(
+		'<div class="bnd-cbp"><div class="bnd-cbp-styles">' + cards + "</div>" +
+		'<div class="bnd-cbp-note">' + __("Where the search field lives, independent of the desk layout. Applies on the next page load.") + "</div></div>"
+	);
+	field.$wrapper.find(".bnd-srp-slot").on("click", function () {
+		bnd_status_set(frm, "search_placement", this.getAttribute("data-value"));
+	});
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Status bar picker (item 14)
+// ════════════════════════════════════════════════════════════════════════════
+
+const BND_STATUS_STYLES = [
+	{
+		value: "Quiet",
+		blurb: () => __("A healthy desk shows almost nothing. A signal appears only once it needs you."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="42" width="116" height="10" fill="currentColor" opacity=".06"/>' +
+			'<rect x="84" y="45" width="14" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="102" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
+	},
+	{
+		value: "Operator",
+		blurb: () => __("Every count on screen at all times, with a freshness stamp and manual refresh."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="42" width="116" height="10" fill="currentColor" opacity=".06"/>' +
+			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #4d8756)"/>' +
+			'<rect x="16" y="45" width="16" height="4" rx="2" fill="currentColor" opacity=".35"/>' +
+			'<rect x="36" y="45" width="14" height="4" rx="2" fill="#b42318" opacity=".55"/>' +
+			'<rect x="54" y="45" width="18" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="90" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="105" y="45" width="9" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
+	},
+	{
+		value: "Minimal",
+		blurb: () => __("Connection, density and the clock only. No server calls at all."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="42" width="116" height="10" fill="currentColor" opacity=".06"/>' +
+			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #4d8756)"/>' +
+			'<rect x="90" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="105" y="45" width="9" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
+	},
+	{
+		value: "Off",
+		blurb: () => __("No status bar at all, and the page takes the space back."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="30" y="20" width="60" height="5" rx="2" fill="currentColor" opacity=".1"/></svg>',
+	},
+];
+
+const BND_STATUS_SELECTS = [
+	{
+		field: "status_interval", title: () => __("Refresh"),
+		desc: () => __("Frappe emits no live event for background jobs, so counts are polled. Longer is cheaper."),
+		options: [
+			{ value: "30s", name: () => __("30 seconds") }, { value: "60s", name: () => __("1 minute") },
+			{ value: "5min", name: () => __("5 minutes") }, { value: "Manual", name: () => __("Manual only") },
+		],
+	},
+	{
+		field: "status_clock", title: () => __("Clock"),
+		desc: () => __("Explicit, not inferred from the locale."),
+		options: [
+			{ value: "24 Hour", name: () => __("24 hour") }, { value: "12 Hour", name: () => __("12 hour") },
+			{ value: "Off", name: () => __("Off") },
+		],
+	},
+];
+
+const BND_STATUS_TOGGLES = [
+	{ field: "status_segments_jobs", name: () => __("Background jobs"), desc: () => __("Failed and running counts. System Managers only — nobody else is even asked about.") },
+	{ field: "status_segments_errors", name: () => __("Errors"), desc: () => __("Unseen error count, using ERPNext's own permission-filtered counter.") },
+	{ field: "status_segments_scheduler", name: () => __("Scheduler"), desc: () => __("Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only.") },
+	{ field: "status_segments_connection", name: () => __("Live updates"), desc: () => __("Says when the realtime connection is down. The desk still works — what stops is anything updating on its own.") },
+	{ field: "status_segments_density", name: () => __("Density toggle"), desc: () => __("Click to cycle row density.") },
+	{ field: "status_freshness", name: () => __("Freshness stamp"), desc: () => __("How old the counts are, and a button to refresh them now.") },
+	{ field: "status_escalate", name: () => __("Recolour the bar on failure"), desc: () => __("Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored.") },
+	{ field: "status_in_classic", name: () => __("Show in Classic layout"), desc: () => __("Classic mounts no bars of its own; this opts it in.") },
+];
+
+/** Render the status bar picker. */
+function bnd_render_status_picker(frm) {
+	const field = frm.get_field("status_picker");
+	if (!field || !field.$wrapper) return;
+	const current = frm.doc.status_style || "Quiet";
+	const off = current === "Off";
+	const minimal = current === "Minimal";
+
+	const cards = BND_STATUS_STYLES.map((s) => {
+		const on = s.value === current ? " bnd-cbp-on" : "";
+		return (
+			'<button type="button" class="bnd-cbp-style bnd-stp-style' + on + '" data-value="' + s.value + '">' +
+			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
+			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
+			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span></button>"
+		);
+	}).join("");
+
+	const selects = BND_STATUS_SELECTS.map((g) => {
+		// Minimal makes no server calls, so a refresh interval is moot.
+		const reason = off ? __("The bar is off")
+			: minimal && g.field === "status_interval" ? __("Minimal polls nothing") : "";
+		const opts = g.options.map((o) => {
+			const sel = o.value === frm.doc[g.field] ? " bnd-cbp-on" : "";
+			const dis = reason ? " bnd-cbp-dis" : "";
+			return '<button type="button" class="bnd-cbp-opt' + sel + dis + '" data-field="' + g.field +
+				'" data-value="' + o.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+				'<span class="bnd-cbp-oname">' + o.name() + "</span></button>";
+		}).join("");
+		return '<div class="bnd-cbp-group' + (reason ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + g.title() +
+			'<button type="button" class="bnd-cbp-reset bnd-stp-reset" data-field="' + g.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
+			'<div class="bnd-cbp-desc">' + g.desc() + "</div><div class=\"bnd-cbp-row\">" + opts + "</div></div>";
+	}).join("");
+
+	const toggles = BND_STATUS_TOGGLES.map((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		const signal = ["status_segments_jobs", "status_segments_errors", "status_segments_scheduler", "status_freshness"].indexOf(t.field) !== -1;
+		const reason = off ? __("The bar is off") : minimal && signal ? __("Minimal shows no live signals") : "";
+		const dis = reason ? " bnd-cbp-dis" : "";
+		return '<button type="button" class="bnd-cbp-toggle bnd-stp-toggle' + dis + '" data-field="' + t.field +
+			'" data-value="' + (on ? 0 : 1) + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span></button>";
+	}).join("");
+
+	field.$wrapper.html(
+		"<style>.bnd-stp .bnd-cbp-opt{inline-size:112px}</style>" +
+		'<div class="bnd-cbp bnd-stp"><div class="bnd-cbp-styles">' + cards + "</div>" +
+		'<div class="bnd-cbp-note">' + __("Applies on the next page load.") + "</div>" + selects +
+		'<div class="bnd-cbp-group' + (off ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + __("Segments and extras") + "</div>" +
+		'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div></div>"
+	);
+
+	field.$wrapper.find(".bnd-stp-style").on("click", function () {
+		bnd_status_set(frm, "status_style", this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-cbp-opt, .bnd-stp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_status_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-stp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_status_set(frm, f, BND_STATUS_DEFAULTS[f]);
+	});
+}
+
+/** Set one search/status option and re-render both pickers. */
+function bnd_status_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_render_search_picker(frm);
+	bnd_render_status_picker(frm);
+}
+
 /**
  * Export the whole theme (desk layout, branding colors, every sidebar style
  * field, every breadcrumb field, every palette field, every notification
- * field) as a JSON file + clipboard copy — portable between tenant sites.
+ * field, search placement and the status bar) as a JSON file + clipboard
+ * copy — portable between tenant sites.
  */
 function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -1457,7 +1718,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -1474,6 +1735,8 @@ function bnd_sb_import(frm) {
 			bnd_render_crumbs_picker(frm);
 			bnd_render_palette_picker(frm);
 			bnd_render_inbox_picker(frm);
+			bnd_render_search_picker(frm);
+			bnd_render_status_picker(frm);
 			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),

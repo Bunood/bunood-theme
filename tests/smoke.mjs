@@ -213,6 +213,10 @@ const MUTABLE_FIELDS = [
 	// Notification centre kit (item 13).
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
+	// Search placement + status bar (item 14).
+	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
+	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
+	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -280,8 +284,12 @@ async function main() {
 				expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
 			},
 			"Bottom Bar": async () => {
-				expect(await q(".bnd-statusbar.bnd-bottombar .bnd-search-field"), "bottombar with search");
 				expect(await q(".bnd-bottombar .bnd-cluster"), "cluster in bottombar");
+				// Search is its own setting since item 14, and the DEFAULT asks
+				// for a top bar this layout never mounts. So this asserts the
+				// fallback, not a layout feature: it must land in the bottom
+				// bar promptly rather than vanish or arrive seconds late.
+				await page.waitForSelector(".bnd-statusbar.bnd-bottombar .bnd-search-field", { timeout: 2500 });
 			},
 			"Dock": async () => {
 				expect(await q(".bnd-dock .bnd-dock-brand"), "dock with brand chip");
@@ -773,6 +781,155 @@ async function main() {
 		});
 
 		clearNotifications();
+
+		// ── Search placement + status bar (item 14) ─────────────────────────
+		const SEARCH_SLOTS = {
+			"Top Bar Center": "topcenter", "Top Bar Edge": "topedge",
+			"Sidebar Top": "sbtop", "Sidebar Bottom": "sbbottom",
+			"Bottom Bar Center": "botcenter", "Bottom Bar Edge": "botedge",
+		};
+		for (const [label, slug] of Object.entries(SEARCH_SLOTS)) {
+			await test(`search: placed at ${label}`, async () => {
+				setSettings({ desk_layout: "Top Bar", search_placement: label, status_style: "Quiet" });
+				await goDesk("/desk/item", ".page-head", 4500);
+				expectEq(await attr("data-bnd-search"), slug, "resolved slot");
+				const where = await page.evaluate(() => {
+					const f = document.querySelector(".bnd-search-field");
+					if (f) return f.closest(".bnd-topbar") ? "topbar" : f.closest(".bnd-statusbar") ? "statusbar" : "other";
+					const nat = document.querySelector(".body-sidebar .navbar-search-bar");
+					return nat && getComputedStyle(nat).display !== "none" ? "sidebar-native" : "none";
+				});
+				const want = slug.startsWith("top") ? "topbar" : slug.startsWith("bot") ? "statusbar" : "sidebar-native";
+				expectEq(where, want, "field lives in the requested bar");
+				// Sidebar slots reveal Frappe's OWN row — injecting a second
+				// search there would be a duplicate, not a placement.
+				const injected = await page.evaluate(() => document.querySelectorAll(".bnd-search-field").length);
+				expectEq(injected, slug.startsWith("sb") ? 0 : 1, "exactly one search field");
+			});
+		}
+
+		await test("search: an unavailable slot falls back, never vanishes", async () => {
+			// Classic mounts no bars at all, so a top-bar request cannot be
+			// honoured — it must land in the sidebar rather than disappear.
+			setSettings({ desk_layout: "Classic", search_placement: "Top Bar Center" });
+			await goDesk("/desk/item", ".page-head", 5200);
+			expectEq(await attr("data-bnd-search"), "sbtop", "fell back to the sidebar");
+			expectEq(
+				await visible(".body-sidebar .navbar-search-bar"), true, "native search row is reachable"
+			);
+			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+		});
+
+		await test("search: a hidden sidebar is not a valid home", async () => {
+			// Dock keeps .body-sidebar in the DOM and sets display:none on its
+			// container, so an existence check "places" search into a hidden
+			// box and it disappears with no error anywhere. Whatever slot is
+			// chosen, the field must end up somewhere a user can see.
+			setSettings({ desk_layout: "Dock", search_placement: "Sidebar Top" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await attr("data-bnd-search"), "botcenter", "left the hidden sidebar");
+			expectEq(await visible(".bnd-search-field"), true, "search is actually on screen");
+			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+		});
+
+		await test("status: Quiet hides healthy signals, Operator shows them", async () => {
+			setSettings({ status_style: "Operator", status_interval: "30s" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			await page.waitForSelector(".bnd-status-seg:not([hidden])", { timeout: 8000 });
+			const operator = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-status-seg")].filter((n) => !n.hasAttribute("hidden")).length
+			);
+			expect(operator >= 2, `Operator shows its segments (${operator})`);
+			expect(await q(".bnd-status-fresh"), "freshness stamp present");
+
+			setSettings({ status_style: "Quiet" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const quiet = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-status-seg")]
+					.filter((n) => !n.hasAttribute("hidden"))
+					.map((n) => n.textContent.trim())
+			);
+			// Quiet may legitimately show a real problem (this dev bench has
+			// failed jobs); what it must NEVER show is an "all clear".
+			expect(
+				!quiet.some((t) => /OK|No errors|Scheduler on/i.test(t)),
+				`Quiet says nothing reassuring (${JSON.stringify(quiet)})`
+			);
+		});
+
+		await test("status: Minimal makes no server calls, Off renders nothing", async () => {
+			setSettings({ status_style: "Minimal" });
+			// Count the signal endpoint for real rather than trusting the DOM:
+			// "no server calls" is the whole point of this style, and a silent
+			// poller would leave no visible trace to assert on.
+			let polls = 0;
+			const countPolls = (req) => {
+				if (req.url().includes("bunood_theme.api.get_status_signals")) polls += 1;
+			};
+			page.on("request", countPolls);
+			try {
+				await goDesk("/desk/item", ".page-head", 3500);
+				expect(await q(".bnd-statusbar"), "bar still present in Minimal");
+				const segs = await page.evaluate(() => document.querySelectorAll(".bnd-status-seg").length);
+				expectEq(segs, 0, "no live segments built");
+				// The stamp is poll-driven too: rendering one that can never
+				// age would be a lie with a dead refresh button under it.
+				expect(!(await q(".bnd-status-fresh")), "no freshness stamp either");
+				expectEq(polls, 0, "signal endpoint never called");
+			} finally {
+				page.off("request", countPolls);
+			}
+
+			setSettings({ status_style: "Off" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			expect(!(await q(".bnd-statusbar")), "no status bar at all");
+			setSettings({ status_style: "Quiet" });
+		});
+
+		await test("status: privileged signals never reach a plain user", async () => {
+			// Server-side, because the browser session is Administrator and the
+			// interesting case is the one it can never exercise. A throwaway
+			// user with no roles stands in for every ordinary employee.
+			const out = benchPy(
+				`from bunood_theme.api import get_status_signals\n` +
+				`u = "bnd-status-probe@example.com"\n` +
+				`if not frappe.db.exists("User", u):\n` +
+				`    d = frappe.get_doc({"doctype": "User", "email": u, "first_name": "Probe",\n` +
+				`                        "send_welcome_email": 0, "user_type": "System User"})\n` +
+				`    d.insert(ignore_permissions=True)\n` +
+				`    frappe.db.commit()\n` +
+				`frappe.set_user(u)\n` +
+				`res = get_status_signals(1, 1, 1)\n` +
+				`print("BND" + json.dumps({"jobs": res["jobs"], "priv": res["privileged"]}))\n`
+			);
+			const res = JSON.parse(out.split("BND")[1].trim());
+			expectEq(res.priv, 0, "not flagged privileged");
+			expectEq(res.jobs, null, "no job counts for an unprivileged session");
+		});
+
+		await test("status: collapses by rank on narrow viewports", async () => {
+			setSettings({ status_style: "Operator", search_placement: "Bottom Bar Center" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const visiblePrios = async () =>
+				page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-statusbar [data-bnd-prio]")]
+						.filter((n) => getComputedStyle(n).display !== "none")
+						.map((n) => parseInt(n.dataset.bndPrio, 10))
+				);
+			const wide = await visiblePrios();
+			await page.setViewportSize({ width: 700, height: 900 });
+			await page.waitForTimeout(600);
+			const narrow = await visiblePrios();
+			await page.setViewportSize({ width: 1920, height: 1080 });
+			await page.waitForTimeout(400);
+			expect(wide.length > narrow.length, `narrow drops items (${wide.length} -> ${narrow.length})`);
+			// The point of ranking: what survives is what means trouble.
+			expect(
+				narrow.every((p) => p >= Math.min(...wide)) && Math.max(...narrow) >= 5,
+				`signal ranks survive (${JSON.stringify(narrow)})`
+			);
+			setSettings({ search_placement: "Top Bar Center", status_style: "Quiet" });
+		});
 
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {

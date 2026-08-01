@@ -599,3 +599,154 @@ def mark_inbox_done(name: str = "", undo: int = 0) -> dict:
 
     frappe.defaults.set_user_default("bnd_inbox_done", frappe.as_json(done, indent=None))
     return {"ok": True, "done": len(done)}
+
+
+#: Job statuses worth a status-bar segment. Deliberately NARROW: RQJob's
+#: count materialises every matching job id from Redis across the whole
+#: BENCH before filtering to this site, so an unfiltered or "finished"
+#: count is O(everything). Queued and started are bounded by real work;
+#: failed is capped by RQ at 1000.
+STATUS_JOB_FILTERS = (("queued", "queued"), ("started", "started"), ("failed", "failed"))
+
+
+@frappe.whitelist()
+def get_status_signals(want_jobs: int = 1, want_errors: int = 1, want_scheduler: int = 1) -> dict:
+    """One round trip for everything the status bar shows.
+
+    WHY ONE ENDPOINT
+        The bar polls. Three separate calls would triple the request count
+        for a strip that is, by design, usually silent.
+
+    WHAT EACH SIGNAL COSTS, AND WHO MAY SEE IT
+        * scheduler — ``frappe.utils.scheduler.get_scheduler_status`` is
+          whitelisted with NO permission check and reads config plus a
+          cached Single. Free, and safe for every user.
+        * errors — via ``frappe.desk.notifications.get_notifications``,
+          which SELF-GATES: it filters by what the user can read, so a
+          non-System-Manager simply gets no Error Log key rather than an
+          exception. Redis-cached per user.
+        * jobs — System Manager only, and expensive. Gated here on the
+          ROLE, never on catching a PermissionError from a probe, and
+          always with a narrow status filter.
+
+    Every signal is independently guarded: one failing source degrades to
+    ``None`` (rendered as "no data", which is not the same as zero) and
+    never takes the whole bar down.
+
+    Returns:
+        ``{"scheduler": "active"|"inactive"|None, "errors": int|None,
+        "jobs": {"queued": int, "started": int, "failed": int}|None,
+        "privileged": 0|1, "at": <epoch seconds>}``
+    """
+    import time
+
+    out = {"scheduler": None, "errors": None, "jobs": None, "at": int(time.time())}
+    if frappe.session.user in ("Guest", None, ""):
+        out["privileged"] = 0
+        return out
+
+    privileged = "System Manager" in frappe.get_roles() or frappe.session.user == "Administrator"
+    out["privileged"] = int(privileged)
+
+    if int(want_scheduler or 0):
+        try:
+            from frappe.utils.scheduler import get_scheduler_status
+
+            out["scheduler"] = (get_scheduler_status() or {}).get("status")
+        except Exception:
+            pass
+
+    if int(want_errors or 0):
+        try:
+            from frappe.desk.notifications import get_notifications
+
+            counts = (get_notifications() or {}).get("open_count_doctype") or {}
+            # Absent key = this user may not read Error Log. That is "not
+            # applicable", not zero — leave it None so the bar hides the
+            # segment instead of claiming a clean system.
+            if "Error Log" in counts:
+                out["errors"] = int(counts["Error Log"] or 0)
+        except Exception:
+            pass
+
+    if int(want_jobs or 0) and privileged:
+        out["jobs"] = _count_jobs()
+
+    return out
+
+
+def _count_jobs():
+    """Count queued/started/failed background jobs as cheaply as possible.
+
+    Counts job IDS, never job objects: ``RQJob.get_list`` calls RQ's
+    ``fetch_many``, which is one Redis hash read PER JOB, while
+    ``get_matching_job_ids`` only walks the registries. On a busy bench
+    that is the difference between a status bar and an outage.
+
+    Version-proof per this file's rule: the private helper is resolved by
+    name and the public ``get_count`` is the fallback, so an upstream
+    rename degrades to a missing segment rather than a broken desk.
+
+    Returns:
+        ``{"queued": int|None, ...}`` or ``None`` when no source worked.
+    """
+    try:
+        from frappe.core.doctype.rq_job.rq_job import RQJob
+    except Exception:
+        return None
+
+    # STATIC METHODS ON THE CONTROLLER, not module functions — verified in
+    # this fork (rq_job.py:89 get_matching_job_ids, :126 get_count). Both
+    # resolved by name so a rename degrades to a missing segment.
+    ids = getattr(RQJob, "get_matching_job_ids", None)
+    counter = getattr(RQJob, "get_count", None)
+    jobs = {}
+    for key, status in STATUS_JOB_FILTERS:
+        # FOUR-element filters — [doctype, field, operator, value]. Frappe's
+        # make_filter_dict reads f[1..3] positionally, so a dict or a
+        # 3-element list either raises or silently matches EVERYTHING.
+        # Measured on this stack: filtered 1-12ms per status; unfiltered
+        # 4,463ms, because it walks every registry for all seven statuses
+        # across every queue on the bench. Never let this go unfiltered.
+        flt = [["RQ Job", "status", "=", status]]
+        try:
+            if ids:
+                jobs[key] = len(ids(flt))
+            elif counter:
+                jobs[key] = int(counter(flt))
+            else:
+                jobs[key] = None
+        except Exception:
+            jobs[key] = None
+    if all(v is None for v in jobs.values()):
+        _log_drift_once(
+            "rq-job-counter",
+            "bunood_theme: no usable RQ Job counter found. Frappe may have renamed "
+            "get_matching_job_ids/get_count; update api._count_jobs.",
+        )
+        return None
+    return jobs
+
+
+def _log_drift_once(key: str, message: str, period: int = 3600) -> None:
+    """Log an API-drift warning at most once an hour, per site.
+
+    WHY THIS ONE IS THROTTLED AND THE OTHERS ARE NOT
+        Every other drift log in this file sits on a path a user triggers by
+        acting. This one sits under a POLLER: the status bar asks every 60
+        seconds, per signed-in admin. Unthrottled, a single upstream rename
+        would write a row a minute per admin — and since one of the signals
+        counts Error Log rows, the bar would end up reporting its own noise
+        back as a problem with the system.
+
+    Cache trouble never suppresses the log: the point of the message is that
+    something upstream moved, and losing it is worse than repeating it.
+    """
+    try:
+        cache_key = f"bnd-drift-{key}"
+        if frappe.cache().get_value(cache_key):
+            return
+        frappe.cache().set_value(cache_key, 1, expires_in_sec=period)
+    except Exception:
+        pass
+    frappe.log_error(message, "Bunood Theme API drift")

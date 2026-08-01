@@ -141,6 +141,16 @@
 		if (slug) document.documentElement.setAttribute("data-bnd-layout", slug);
 	})();
 
+	// The status style travels as an attribute for the same reason as the
+	// layout, and for one more: the fixed bar's CLEARANCE is a CSS rule, and
+	// CSS cannot see a JS variable. Without this, style "Off" mounts no bar
+	// while the page keeps reserving space at the bottom for it.
+	(function apply_status() {
+		const boot = (window.frappe && frappe.boot && frappe.boot.bnd_status) || null;
+		const label = (boot && boot.status_style) || "Quiet";
+		document.documentElement.setAttribute("data-bnd-status", String(label).toLowerCase());
+	})();
+
 	/** Current layout slug, or "" when the system is inactive. */
 	function layout() {
 		return document.documentElement.getAttribute("data-bnd-layout") || "";
@@ -631,6 +641,9 @@
 	function build_cluster(opts) {
 		const cluster = el("div", "bnd-cluster");
 
+		// "field" is legacy: search placement is its own setting now and
+		// mount_search() owns it. Kept so a caller asking for the old shape
+		// still gets one search rather than none.
 		if (opts.search === "field") {
 			cluster.appendChild(build_search_field());
 		} else if (opts.search === "icon") {
@@ -713,6 +726,416 @@
 		return field;
 	}
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Status bar (item 14) — state, segments, polling
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// FOUR STYLES: Off / Minimal (no server calls at all) / Quiet (default:
+	// a healthy desk shows nothing but density and the clock; a segment
+	// appears only once it has something to say) / Operator (always-on
+	// counts for admins).
+	//
+	// WHAT THE PLATFORM ALLOWS, and why this shape:
+	//   * Frappe publishes NO realtime event for background jobs — not on
+	//     start, success or failure. Job state is therefore POLLED, and the
+	//     bar says how old the number is rather than pretending to be live.
+	//   * Job counts are System Manager only, and counting them walks every
+	//     RQ registry on the BENCH. api.get_status_signals gates on the role
+	//     server-side and always filters by status (measured: 9ms warm
+	//     against 4.5s unfiltered).
+	//   * Error counts ride Frappe's own self-gating notification counts, so
+	//     a user who may not read Error Log gets null — "not applicable",
+	//     which the bar renders as absence, never as a reassuring zero.
+
+	/** Boot's status options, replaced by live preview. */
+	let status_state = (window.frappe && frappe.boot && frappe.boot.bnd_status) || null;
+
+	/** Latest signals from the server, and when they arrived. */
+	let status_signals = null;
+	let status_timer = null;
+	let status_age_timer = null;
+
+	/** Style slug: off | minimal | quiet | operator. */
+	function status_style() {
+		const label = (status_state && status_state.status_style) || "Quiet";
+		return String(label).toLowerCase();
+	}
+
+	/** Is a segment flag on? */
+	function status_on(field) {
+		return !!(status_state && parseInt(status_state[field], 10));
+	}
+
+	/** Clock mode: off | 12 | 24. */
+	function status_clock_mode() {
+		const label = (status_state && status_state.status_clock) || "24 Hour";
+		if (label === "Off") return "off";
+		return label === "12 Hour" ? "12" : "24";
+	}
+
+	/** Poll period in ms, or 0 for manual-only. */
+	function status_period() {
+		const label = (status_state && status_state.status_interval) || "60s";
+		if (label === "Manual") return 0;
+		if (label === "30s") return 30000;
+		if (label === "5min") return 300000;
+		return 60000;
+	}
+
+	/**
+	 * The live segments, in bar order. `prio` is the collapse rank — higher
+	 * numbers are dropped first on narrow viewports (CSS reads it), so the
+	 * things that mean "something is wrong" survive longest.
+	 */
+	const STATUS_SEGMENTS = [
+		{
+			id: "jobs",
+			flag: "status_segments_jobs",
+			prio: 5,
+			admin: true,
+			open: () => frappe.set_route("List", "RQ Job"),
+		},
+		{
+			// NOT admin-gated: Error Log read is grantable to roles other than
+			// System Manager, and the server self-gates by omitting the count
+			// for anyone without it. Guessing here would hide a signal from
+			// someone entitled to see it.
+			id: "errors",
+			flag: "status_segments_errors",
+			prio: 4,
+			open: () => frappe.set_route("List", "Error Log"),
+		},
+		{
+			id: "scheduler",
+			flag: "status_segments_scheduler",
+			prio: 6,
+			admin: true,
+			open: () => frappe.set_route("Form", "System Settings"),
+		},
+	];
+
+	/** Is the session a System Manager? Decided by the SERVER, at boot. */
+	function status_privileged() {
+		return !!(status_state && parseInt(status_state.privileged, 10));
+	}
+
+	/**
+	 * Should this segment exist for this user at all?
+	 *
+	 * Admin-only signals are dropped rather than built-and-left-empty: a
+	 * "Scheduler paused" warning is noise to someone with no power to
+	 * restart it, and a jobs count the server will always refuse is a node
+	 * that can never fill.
+	 */
+	function status_seg_enabled(seg) {
+		if (!status_on(seg.flag)) return false;
+		return seg.admin ? status_privileged() : true;
+	}
+
+	/**
+	 * Paint one segment. Returns true when it has something to show.
+	 * Quiet hides anything healthy; Operator shows everything it has.
+	 */
+	function status_paint_segment(seg) {
+		const node = status_refs[seg.id];
+		if (!node) return false;
+		const quiet = status_style() === "quiet";
+		let text = "";
+		let tone = "";
+
+		if (seg.id === "jobs") {
+			const jobs = status_signals && status_signals.jobs;
+			if (jobs) {
+				const failed = parseInt(jobs.failed, 10) || 0;
+				const busy = (parseInt(jobs.queued, 10) || 0) + (parseInt(jobs.started, 10) || 0);
+				if (failed > 0) {
+					text = __("{0} failed", [String(failed)]);
+					tone = "bad";
+				} else if (!quiet && busy > 0) {
+					text = __("{0} running", [String(busy)]);
+				} else if (!quiet) {
+					text = __("Jobs OK");
+				}
+			}
+		} else if (seg.id === "errors") {
+			const errors = status_signals && status_signals.errors;
+			if (errors !== null && errors !== undefined) {
+				if (errors > 0) {
+					text = __("{0} errors", [String(errors)]);
+					tone = quiet ? "warn" : "";
+				} else if (!quiet) {
+					text = __("No errors");
+				}
+			}
+		} else if (seg.id === "scheduler") {
+			const sched = status_signals && status_signals.scheduler;
+			if (sched === "inactive") {
+				text = __("Scheduler paused");
+				tone = "warn";
+			} else if (sched === "active" && !quiet) {
+				text = __("Scheduler on");
+			}
+		}
+
+		node.textContent = text;
+		if (tone) node.setAttribute("data-tone", tone);
+		else node.removeAttribute("data-tone");
+		if (text) node.removeAttribute("hidden");
+		else node.setAttribute("hidden", "");
+		return !!text;
+	}
+
+	/** Repaint every segment plus the freshness stamp. */
+	function status_paint() {
+		let alarm = false;
+		for (const seg of STATUS_SEGMENTS) {
+			if (status_paint_segment(seg) && status_refs[seg.id].getAttribute("data-tone") === "bad") {
+				alarm = true;
+			}
+		}
+		// Escalation is opt-in: tinting a whole bar is loud, and a bar that
+		// cries wolf gets ignored.
+		const bar = document.querySelector(".bnd-statusbar");
+		if (bar) bar.classList.toggle("bnd-status-alarm", alarm && status_on("status_escalate"));
+
+		const fresh = status_refs.fresh;
+		if (fresh) {
+			if (!status_signals) {
+				fresh.textContent = __("No data");
+			} else {
+				const age = Math.max(0, Math.round(Date.now() / 1000 - (status_signals.at || 0)));
+				fresh.textContent =
+					age < 60 ? __("{0}s ago", [String(age)]) : __("{0}m ago", [String(Math.round(age / 60))]);
+			}
+		}
+	}
+
+	/**
+	 * Ask the server for signals. `force` bypasses nothing on the server —
+	 * it only exists so the manual refresh button works while the interval
+	 * is set to Manual.
+	 */
+	function status_poll(force) {
+		if (!frappe.xcall) return;
+		if (!force && status_period() === 0) return;
+		const style = status_style();
+		if (style === "off" || style === "minimal") return;
+		// Ask only for what this user will actually be shown. The server
+		// gates jobs on the role regardless; not asking spares it the work.
+		const want = {};
+		for (const seg of STATUS_SEGMENTS) want[seg.id] = status_seg_enabled(seg) ? 1 : 0;
+		if (!want.jobs && !want.errors && !want.scheduler) return;
+		frappe
+			.xcall("bunood_theme.api.get_status_signals", {
+				want_jobs: want.jobs,
+				want_errors: want.errors,
+				want_scheduler: want.scheduler,
+			})
+			.then((res) => {
+				status_signals = res || null;
+				status_paint();
+			})
+			.catch(() => {
+				// Leave the last known values and let the stamp age — a
+				// failed poll is stale data, not zero.
+				status_paint();
+			});
+	}
+
+	/** Start (or restart) polling for the active style. */
+	function status_start() {
+		// BOTH timers are cleared, not just the poller: this function is a
+		// restart, and an ageing timer left behind by a previous call would
+		// stack a second repaint loop on every restart.
+		clearInterval(status_timer);
+		clearInterval(status_age_timer);
+		status_timer = null;
+		status_age_timer = null;
+		const style = status_style();
+		if (style === "off" || style === "minimal") return;
+		status_poll(true);
+		const period = status_period();
+		if (period) status_timer = setInterval(() => status_poll(false), period);
+		// The stamp must keep ageing between polls or "12s ago" lies.
+		status_age_timer = setInterval(status_paint, 15000);
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	// Search placement (item 14 companion)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// Search used to be welded into whichever bar the layout mounted, so
+	// picking a layout also picked where search lived — and in Bottom Bar it
+	// fought the status segments for one strip. Placement is now its own
+	// setting with six slots.
+	//
+	// TWO MECHANISMS, deliberately:
+	//   sidebar slots -> CSS only. Frappe's own search row already lives in
+	//     the sidebar; we reveal and order it rather than injecting a second
+	//     search (proxy, don't reimplement).
+	//   bar slots     -> inject our field, since those bars are ours.
+
+	/** Theme Settings label -> slot slug. */
+	const SEARCH_SLOTS = {
+		"Sidebar Top": "sbtop",
+		"Sidebar Bottom": "sbbottom",
+		"Top Bar Edge": "topedge",
+		"Top Bar Center": "topcenter",
+		"Bottom Bar Edge": "botedge",
+		"Bottom Bar Center": "botcenter",
+	};
+
+	/**
+	 * Preference order when the requested slot does not exist in the active
+	 * layout (Classic has no bars; Dock has no sidebar). Walked left to
+	 * right from the request, so a choice degrades to the nearest sensible
+	 * home instead of vanishing.
+	 */
+	const SEARCH_FALLBACK = ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"];
+
+	/** The container a slot needs, or null when this layout has no such bar. */
+	function search_slot_host(slot) {
+		if (slot === "topedge" || slot === "topcenter") {
+			return document.querySelector(".bnd-topbar");
+		}
+		if (slot === "botedge" || slot === "botcenter") {
+			return document.querySelector(".bnd-statusbar");
+		}
+		// Sidebar slots need the sidebar AND Frappe's own search row — and
+		// need them VISIBLE. Dock hides the whole sidebar container while
+		// leaving it in the DOM, so an existence test happily "places" search
+		// inside display:none and it is simply gone. Visibility is the real
+		// condition; anything less makes the fallback unreachable exactly
+		// where it is needed most.
+		if (slot === "sbtop" || slot === "sbbottom") {
+			const sidebar = document.querySelector(".body-sidebar");
+			const native = document.querySelector(".navbar-search-bar");
+			if (!sidebar || !native || sidebar_is_hidden()) return null;
+			return sidebar;
+		}
+		return null;
+	}
+
+	/** Is the sidebar container display:none (Dock layout, narrow collapse)? */
+	function sidebar_is_hidden() {
+		const container = document.querySelector(".body-sidebar-container");
+		return !!container && getComputedStyle(container).display === "none";
+	}
+
+	/** The slot the admin asked for, as a slug. */
+	function search_wanted_slot() {
+		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
+	}
+
+	/**
+	 * Resolve the configured placement to one that actually exists now, and
+	 * reflect it on <html> so CSS can position both our field and Frappe's
+	 * native row. Returns the resolved slug (or "" when nothing fits).
+	 */
+	function search_resolve_slot() {
+		const want = search_wanted_slot();
+		for (const slot of [want].concat(SEARCH_FALLBACK.filter((s) => s !== want))) {
+			if (search_slot_host(slot)) return slot;
+		}
+		return "";
+	}
+
+	/**
+	 * Mount the search field at the resolved slot. Idempotent: an existing
+	 * field in the right host is left alone, one in the wrong host is moved,
+	 * so a live preview flip does not leave two search fields behind.
+	 *
+	 * WHY TWO BRANCHES, and why neither is a plain retry loop:
+	 *   Our own bars are mounted SYNCHRONOUSLY by the caller a few lines
+	 *   above this call, so for a bar slot "no host now" means "no host
+	 *   ever" — waiting cannot help. Frappe's sidebar search row is the
+	 *   opposite: it renders a beat after boot, so that anchor IS worth
+	 *   waiting for. Treating both the same way costs one of them:
+	 *     - retry everything -> Bottom Bar layout sat search-less for 3.1s
+	 *       on its own default placement while a top bar that will never
+	 *       exist was waited out (measured).
+	 *     - retry nothing    -> Classic resolved before the native row
+	 *       existed and search never appeared at all (measured).
+	 */
+	function mount_search() {
+		if (!status_state) return;
+		const want = search_wanted_slot();
+
+		if (want !== "sbtop" && want !== "sbbottom") {
+			// A bar slot: resolve at once. The bounded retry underneath is
+			// for the FALLBACK's sake — when no bar fits, the nearest home
+			// is the sidebar, whose row has not rendered yet.
+			try_for(() => {
+				const slot = search_resolve_slot();
+				if (!slot) return false;
+				mount_search_at(slot);
+				return true;
+			}, 20);
+			return;
+		}
+
+		// A sidebar slot in a layout that has no visible sidebar (Dock) is
+		// never going to arrive — waiting for it only delays the fallback.
+		if (sidebar_is_hidden()) {
+			const slot = search_resolve_slot();
+			if (slot) mount_search_at(slot);
+			return;
+		}
+
+		// A sidebar slot, asked for by name. Hold out for it: a non-strict
+		// resolve this early would hand the request to whichever of our bars
+		// mounted first, which is how "Sidebar Bottom" once landed in the top
+		// bar (measured).
+		let placed = false;
+		try_for(() => {
+			if (!search_slot_host(want)) return false;
+			mount_search_at(want);
+			placed = true;
+			return true;
+		}, 20);
+		// Budget spent: this layout has no sidebar at all (Dock hides it), so
+		// take the nearest available home rather than dropping search.
+		setTimeout(() => {
+			if (placed) return;
+			const slot = search_resolve_slot();
+			if (slot) mount_search_at(slot);
+		}, 20 * 150 + 100);
+	}
+
+	/** Place the field (or reveal the native row) for a resolved slot. */
+	function mount_search_at(slot) {
+		const html = document.documentElement;
+		html.setAttribute("data-bnd-search", slot);
+
+		// Sidebar slots are pure CSS — the native row is the search there.
+		if (slot === "sbtop" || slot === "sbbottom") {
+			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
+			return;
+		}
+
+		const host = search_slot_host(slot);
+		if (!host) return;
+		let field = host.querySelector(".bnd-search-field");
+		if (!field) {
+			// Remove any field left in another bar by a previous placement.
+			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
+			field = build_search_field();
+			if (slot === "topcenter" || slot === "botcenter") {
+				// Both bars reserve this slot at mount. Falling back to a
+				// fresh wrapper keeps the placement working if a bar ever
+				// forgets to — search appearing off-centre beats no search.
+				let centre = host.querySelector(".bnd-search-center");
+				if (!centre) {
+					centre = el("div", "bnd-search-center");
+					host.appendChild(centre);
+				}
+				centre.appendChild(field);
+			} else {
+				host.insertBefore(field, host.firstChild);
+			}
+		}
+	}
+
 	// ── Top bar ─────────────────────────────────────────────────────────────
 
 	/**
@@ -725,8 +1148,15 @@
 		const header = document.querySelector(".main-section > header");
 		if (!header || header.querySelector(".bnd-topbar")) return;
 		const bar = el("div", "bnd-topbar");
-		bar.appendChild(build_search_field());
+		// No search here any more: mount_search() places it per the setting,
+		// which may well be this bar — but may equally be the sidebar or the
+		// bottom strip. The bar only owns the cluster it always owned, plus
+		// a reserved centre slot (see mount_statusbar for why it is reserved
+		// rather than appended later).
 		bar.appendChild(build_cluster({ search: "none" }));
+		bar.appendChild(el("span", "bnd-status-spacer"));
+		bar.appendChild(el("div", "bnd-search-center"));
+		bar.appendChild(el("span", "bnd-status-spacer"));
 		header.appendChild(bar);
 	}
 
@@ -744,46 +1174,91 @@
 	 */
 	function mount_statusbar(global_variant) {
 		if (document.querySelector(".bnd-statusbar")) return;
+		if (status_style() === "off") return;
 		const bar = el("div", "bnd-statusbar" + (global_variant ? " bnd-bottombar" : ""));
-
-		if (global_variant) bar.appendChild(build_search_field());
 
 		// Connection: dot + word. State wired to the realtime socket when it
 		// exposes lifecycle events, else to navigator.onLine — both guarded,
 		// because a status bar must never be the thing that breaks the desk.
-		const conn = el("span", "bnd-status-item bnd-conn", { "data-state": "online" });
-		conn.appendChild(el("span", "bnd-conn-dot"));
-		const conn_label = el("span");
-		conn_label.textContent = __("Connected");
-		conn.appendChild(conn_label);
-		bar.appendChild(conn);
-		status_refs.conn = conn;
-		status_refs.conn_label = conn_label;
-		bind_connection_state();
+		if (status_on("status_segments_connection")) {
+			// Built hidden and with no text: the first honest paint comes from
+			// bind_connection_state, which knows whether the socket is up and
+			// whether this style wants to hear about it. Seeding it "Connected"
+			// here would state a fact nobody had checked yet.
+			const conn = el("span", "bnd-status-item bnd-conn", { "data-state": "online", hidden: "" });
+			conn.appendChild(el("span", "bnd-conn-dot"));
+			const conn_label = el("span");
+			conn.appendChild(conn_label);
+			bar.appendChild(conn);
+			status_refs.conn = conn;
+			status_refs.conn_label = conn_label;
+			bind_connection_state();
+		}
 
-		// Background jobs: a plain route link. A live count is item 14 work.
-		const jobs = el("button", "bnd-status-item", { type: "button", title: __("Background Jobs") });
-		jobs.appendChild(document.createTextNode(__("Jobs")));
-		jobs.addEventListener("click", () => frappe.set_route("background-jobs"));
-		bar.appendChild(jobs);
+		// Minimal is the "no server calls" style, so everything the POLLER
+		// owns is skipped outright rather than built and left dark: unfilled
+		// segments would be permanently hidden dead nodes, and the freshness
+		// stamp would sit there reading "No data" forever with a refresh
+		// button that is wired to a poll which returns early.
+		const live = status_style() !== "minimal";
 
+		// Live signal segments, built empty and filled by the poller. Each
+		// carries a priority so narrow viewports collapse by rank, not by
+		// flexbox accident (CSS reads data-bnd-prio).
+		for (const seg of live ? STATUS_SEGMENTS : []) {
+			if (!status_seg_enabled(seg)) continue;
+			const node = el("button", "bnd-status-item bnd-status-seg", {
+				type: "button",
+				"data-seg": seg.id,
+				"data-bnd-prio": String(seg.prio),
+				hidden: "",
+			});
+			node.addEventListener("click", () => seg.open());
+			bar.appendChild(node);
+			status_refs[seg.id] = node;
+		}
+
+		// The centre slot is RESERVED here, between two spacers, rather than
+		// appended by mount_search() when it runs. Appending put the field
+		// after everything already in the bar, so "Bottom Bar Center" sat
+		// well right of centre behind the trailing group (measured in the
+		// item-14 sweep). Reserving the position makes centring a property
+		// of the bar, not of the order two mount functions happened to run.
+		bar.appendChild(el("span", "bnd-status-spacer"));
+		bar.appendChild(el("div", "bnd-search-center"));
 		bar.appendChild(el("span", "bnd-status-spacer"));
 
-		// Density: label shows the user's override or "Auto"; click cycles.
-		const density = el("button", "bnd-status-item", {
-			type: "button",
-			title: __("Toggle Density"),
-		});
-		density.addEventListener("click", () => bunood.cycle_density());
-		bar.appendChild(density);
-		status_refs.density = density;
-		refresh_density_label();
+		if (live && status_on("status_freshness")) {
+			const fresh = el("button", "bnd-status-item bnd-status-fresh", {
+				type: "button",
+				title: __("Refresh now"),
+				"data-bnd-prio": "1",
+			});
+			fresh.addEventListener("click", () => status_poll(true));
+			bar.appendChild(fresh);
+			status_refs.fresh = fresh;
+		}
 
-		const clock = el("span", "bnd-status-item bnd-clock");
-		bar.appendChild(clock);
-		status_refs.clock = clock;
-		tick_clock();
-		setInterval(tick_clock, 30000);
+		// Density: label shows the user's override or "Auto"; click cycles.
+		if (status_on("status_segments_density")) {
+			const density = el("button", "bnd-status-item", {
+				type: "button",
+				title: __("Toggle Density"),
+				"data-bnd-prio": "2",
+			});
+			density.addEventListener("click", () => bunood.cycle_density());
+			bar.appendChild(density);
+			status_refs.density = density;
+			refresh_density_label();
+		}
+
+		if (status_clock_mode() !== "off") {
+			const clock = el("span", "bnd-status-item bnd-clock", { "data-bnd-prio": "3" });
+			bar.appendChild(clock);
+			status_refs.clock = clock;
+			tick_clock();
+			setInterval(tick_clock, 30000);
+		}
 
 		if (global_variant) bar.appendChild(build_cluster({ search: "none" }));
 
@@ -791,14 +1266,20 @@
 		// so the bar is position:fixed (CSS); body still gets it as a child
 		// of .main-section for sane DOM ownership.
 		(document.querySelector(".main-section") || document.body).appendChild(bar);
+		status_start();
 	}
 
-	/** Put the current time (locale HH:MM) on the status bar. */
+	/** Put the current time on the status bar, in the configured format. */
 	function tick_clock() {
 		if (!status_refs.clock) return;
+		const mode = status_clock_mode();
+		if (mode === "off") return;
 		status_refs.clock.textContent = new Date().toLocaleTimeString([], {
 			hour: "2-digit",
 			minute: "2-digit",
+			// Explicit, not locale-inferred: an Arabic desk in a 24h country
+			// should still honour the admin's choice.
+			hour12: mode === "12",
 		});
 	}
 
@@ -809,31 +1290,64 @@
 		status_refs.density.textContent = __("Density: {0}", [value ? __(value) : __("Auto")]);
 	}
 
+	/** How long the socket may take to finish its handshake before we say so. */
+	const CONN_GRACE_MS = 8000;
+
+	/**
+	 * Paint the connection segment.
+	 *
+	 * IT DOES NOT SAY "OFFLINE", because that would be false: the desk you
+	 * are reading loaded over HTTP and every page, save and report still
+	 * works without a socket. What stops is LIVE UPDATES, so that is what it
+	 * says. The old wording told users their connection was broken while
+	 * they were plainly using it.
+	 */
+	function paint_connection(up) {
+		const conn = status_refs.conn;
+		if (!conn || !status_refs.conn_label) return;
+		conn.setAttribute("data-state", up ? "online" : "offline");
+		status_refs.conn_label.textContent = up ? __("Live") : __("No live updates");
+		// Quiet keeps its promise here too: a working socket is not news.
+		if (up && status_style() === "quiet") conn.setAttribute("hidden", "");
+		else conn.removeAttribute("hidden");
+	}
+
 	/**
 	 * Wire the connection indicator to the realtime socket's lifecycle if it
 	 * is reachable, else to the browser's own online/offline events. Both
 	 * paths are best-effort — see mount_statusbar.
+	 *
+	 * GOOD NEWS PAINTS AT ONCE, BAD NEWS WAITS. socket.io is normally still
+	 * mid-handshake when the bar mounts, so reading `connected` right away
+	 * reported a warning on virtually every page load, which then corrected
+	 * itself a second later. Nothing negative is shown until the handshake
+	 * has had its grace period; after that, a drop paints immediately.
 	 */
 	function bind_connection_state() {
-		const set = (online) => {
-			if (!status_refs.conn) return;
-			status_refs.conn.setAttribute("data-state", online ? "online" : "offline");
-			status_refs.conn_label.textContent = online ? __("Connected") : __("Offline");
+		let known = null;
+		let settled = false;
+		const mark = (state) => {
+			known = state;
+			if (state || settled) paint_connection(state);
 		};
+		setTimeout(() => {
+			settled = true;
+			paint_connection(known === true);
+		}, CONN_GRACE_MS);
 		try {
 			const socket = frappe.realtime && (frappe.realtime.socket || null);
 			if (socket && socket.on) {
-				socket.on("connect", () => set(true));
-				socket.on("disconnect", () => set(false));
-				set(!!socket.connected);
+				socket.on("connect", () => mark(true));
+				socket.on("disconnect", () => mark(false));
+				if (socket.connected) mark(true);
 				return;
 			}
 		} catch (e) {
 			/* fall through to navigator */
 		}
-		set(navigator.onLine);
-		window.addEventListener("online", () => set(true));
-		window.addEventListener("offline", () => set(false));
+		mark(navigator.onLine);
+		window.addEventListener("online", () => mark(true));
+		window.addEventListener("offline", () => mark(false));
 	}
 
 	// ── Compact layout: cluster in the page strip ───────────────────────────
@@ -3614,8 +4128,15 @@
 			mount_statusbar(true);
 		} else if (slug === "dock") {
 			mount_dock();
+			mount_statusbar(false);
 		}
-		// classic mounts nothing — stock chrome.
+		// Classic mounts no bars of its own — but the status bar is now a
+		// setting rather than a layout consequence, so it may opt in.
+		if (slug === "classic" && status_on("status_in_classic")) mount_statusbar(false);
+
+		// Search placement is independent of the layout (item 14): mount it
+		// AFTER the bars exist, since its slots live in them.
+		mount_search();
 
 		// The sidebar style kit rides along in every layout that HAS a
 		// sidebar; Dock hides it, so the kit stays down there.
