@@ -617,6 +617,21 @@ async function main() {
 			expectEq(badge, "2", "badge shows the unread count");
 		});
 
+		await test("inbox: Action Count shows a NUMBER, not a bare dot", async () => {
+			// It shipped permanently degraded to a dot: nothing ever filled
+			// the typed count (release review v0.8.0..HEAD). The seeded rows
+			// are Assignment + Mention, i.e. all action-required.
+			setSettings({ inbox_style: "Inbox + Page", inbox_badge: "Action Count" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const state = await page.evaluate(() => {
+				const n = document.querySelector(".bnd-inbox-badge:not([hidden])");
+				return n ? { text: n.textContent.trim(), dot: n.classList.contains("bnd-inbox-badge-dot") } : null;
+			});
+			expect(state && !state.dot, "renders as a count, not a dot");
+			expectEq(state && state.text, "2", "counts the action-required rows");
+			setSettings({ inbox_badge: "Count" });
+		});
+
 		await test("inbox: panel opens with tabs, grouping and rows", async () => {
 			await page.click(".bnd-icon-btn[aria-label='Notifications']");
 			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 6000 });

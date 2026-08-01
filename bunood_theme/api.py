@@ -517,28 +517,46 @@ def get_inbox(start: int = 0, limit: int = 0, unread_only: int = 0, kinds: str =
         ignore_permissions=False,
     )
     has_more = len(rows) > limit
+    counts = get_inbox_unread()
     return {
         "rows": rows[:limit],
-        "unread": get_inbox_unread().get("unread", 0),
+        "unread": counts.get("unread", 0),
+        "action": counts.get("action", 0),
         "has_more": has_more,
     }
 
 
+#: Notification Log types that mean "someone is waiting on you". Mirrored
+#: client-side in bunood.js (INBOX_ACTION_TYPES) — the badge's "Action
+#: Count" mode counts only these.
+INBOX_ACTION_TYPES = ("Assignment", "Mention")
+
+
 @frappe.whitelist()
 def get_inbox_unread() -> dict:
-    """Unread count for the bell badge.
+    """Unread counts for the bell badge: total, and action-required only.
 
     A dedicated endpoint because Frappe ships none, and its client-side badge
     machinery is dead in this version — the selectors ``toggle_notification_icon``
     flips exist in no template, so nothing renders however many unread rows a
     user has. The theme owns the affordance, so it owns the count.
+
+    ``action`` exists because the badge offers an "Action Count" mode: a
+    number for what genuinely waits on you (assignments, mentions) while
+    shares and system alerts stay silent. Without it that mode had no typed
+    count to render and degraded to an undifferentiated dot.
+
+    Returns:
+        ``{"unread": <int>, "action": <int>}``.
     """
     if frappe.session.user in ("Guest", None, ""):
-        return {"unread": 0}
+        return {"unread": 0, "action": 0}
+    base = {"for_user": frappe.session.user, "read": 0}
     return {
-        "unread": frappe.db.count(
-            "Notification Log", {"for_user": frappe.session.user, "read": 0}
-        )
+        "unread": frappe.db.count("Notification Log", base),
+        "action": frappe.db.count(
+            "Notification Log", dict(base, type=["in", list(INBOX_ACTION_TYPES)])
+        ),
     }
 
 

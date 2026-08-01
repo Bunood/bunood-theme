@@ -183,11 +183,21 @@ def extend_bootinfo(bootinfo):
             "row_actions": inbox("inbox_row_actions"),
             "keyboard": inbox("inbox_keyboard"),
             "unread": 0,
+            "action": 0,
             "done": [],
         }
         try:
-            bootinfo.bnd_inbox["unread"] = frappe.db.count(
-                "Notification Log", {"for_user": frappe.session.user, "read": 0}
+            from bunood_theme.api import INBOX_ACTION_TYPES
+
+            unread_filters = {"for_user": frappe.session.user, "read": 0}
+            bootinfo.bnd_inbox["unread"] = frappe.db.count("Notification Log", unread_filters)
+            # The "Action Count" badge mode needs this typed count at BOOT,
+            # not after the first panel open — otherwise the badge renders a
+            # bare dot until something fetches, which is what shipped as an
+            # unusable mode (release review v0.8.0..HEAD).
+            bootinfo.bnd_inbox["action"] = frappe.db.count(
+                "Notification Log",
+                dict(unread_filters, type=["in", list(INBOX_ACTION_TYPES)]),
             )
             # "Done" is ours: Notification Log grants role All no write
             # permission and ships no mark-as-unread endpoint, and adding a

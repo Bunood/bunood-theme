@@ -1279,6 +1279,7 @@
 			list.appendChild(loading);
 			inbox_fetch(inbox_tab, 0).then((res) => {
 				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
 				inbox_paint_badge();
 				inbox_render_rows(list, (res && res.rows) || []);
 				inbox_highlight(0, list);
@@ -2015,8 +2016,13 @@
 	/** Last unread count applied, so realtime pushes can render optimistically. */
 	let inbox_unread = inbox_state ? parseInt(inbox_state.unread, 10) || 0 : 0;
 
-	/** Unread count of action-required rows, filled by the first fetch. */
-	let inbox_action_unread = null;
+	/**
+	 * Unread count of action-required rows. Seeded from BOOT and refreshed
+	 * by every count fetch — it used to be declared null and never assigned,
+	 * so "Action Count" could only ever fall through to a dot (release
+	 * review v0.8.0..HEAD).
+	 */
+	let inbox_action_unread = inbox_state ? parseInt(inbox_state.action, 10) || 0 : null;
 
 	/**
 	 * Paint every mounted bell badge from the current counts, per the badge
@@ -2061,6 +2067,7 @@
 			.xcall("bunood_theme.api.get_inbox_unread")
 			.then((res) => {
 				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
 				inbox_paint_badge();
 			})
 			.catch(() => {});
@@ -2147,6 +2154,11 @@
 		row.read = 1;
 		if (node) node.classList.remove("bnd-inbox-unread");
 		inbox_unread = Math.max(0, inbox_unread - 1);
+		// Keep the typed count honest too, or an "Action Count" badge would
+		// stay stuck until the next fetch.
+		if (inbox_action_unread !== null && INBOX_ACTION_TYPES.indexOf(row.type) !== -1) {
+			inbox_action_unread = Math.max(0, inbox_action_unread - 1);
+		}
 		inbox_paint_badge();
 		if (!frappe.xcall) return Promise.resolve();
 		return frappe
@@ -2471,6 +2483,7 @@
 		inbox_fetch(inbox_tab, 0).then((res) => {
 			if (!inbox_nodes) return;
 			inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+			inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
 			inbox_paint_badge();
 			inbox_nodes.count.textContent = inbox_unread ? String(inbox_unread) : "";
 			inbox_render_rows(inbox_nodes.list, (res && res.rows) || []);
