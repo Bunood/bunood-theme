@@ -2069,8 +2069,28 @@
 		}
 	}
 
+	/** Last count fetch, for the route-change throttle. */
+	let inbox_counted_at = 0;
+
+	/**
+	 * Refresh the count on navigation, at most once a minute.
+	 *
+	 * The badge is normally kept live by Frappe's realtime "notification"
+	 * event — but when the socket is down (verified: this dev stack reads
+	 * "Offline" with socket.connected false) nothing refreshed it until a
+	 * full reload, so a user could work all day against a stale number.
+	 * Navigation is a cheap, natural checkpoint; the throttle keeps it from
+	 * becoming a query per click.
+	 */
+	function inbox_refresh_on_route() {
+		if (Date.now() - inbox_counted_at < 60000) return;
+		inbox_counted_at = Date.now();
+		inbox_refresh_count();
+	}
+
 	/** Refresh the unread count from the server, then repaint. */
 	function inbox_refresh_count() {
+		inbox_counted_at = Date.now();
 		if (!frappe.xcall) return Promise.resolve();
 		return frappe
 			.xcall("bunood_theme.api.get_inbox_unread")
@@ -2666,8 +2686,10 @@
 				inbox_close();
 				// Compact rebuilds its cluster per page: the new bell needs
 				// its badge painted, and Classic's native bell may only now
-				// have rendered.
+				// have rendered. (The observer covers late arrivals; this
+				// covers nodes that already exist.)
 				inbox_ensure_badges();
+				inbox_refresh_on_route();
 			});
 		}
 	}
