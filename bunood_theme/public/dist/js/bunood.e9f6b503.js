@@ -243,6 +243,68 @@
 		return document.documentElement.hasAttribute("data-bnd-sb-color");
 	}
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Breadcrumb kit (item 11) — attribute application
+	// ════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Theme Settings label -> attribute slug. "Original" deliberately maps to
+	 * "" so it sets NO attributes at all — the CSS matrix matches nothing and
+	 * v16's stock trail is untouched, the same escape hatch the desk-layout
+	 * picker offers with "Classic". Unknown labels behave identically.
+	 */
+	const CRUMB_SLUGS = {
+		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },
+		separator: { "Slash": "slash", "Chevron": "chevron", "Dot": "dot", "Arrow": "arrow" },
+		icons: { "Off": "off", "First Crumb": "first", "Every Crumb": "every" },
+		hover: { "Soft Pill": "pill", "Underline": "underline", "Darken": "darken" },
+	};
+
+	/**
+	 * The crumb options currently IN EFFECT — boot's at load, possibly
+	 * replaced by a live preview (bunood.crumb_apply). Mounts read THIS,
+	 * never frappe.boot, so preview is a re-application, not a mode.
+	 */
+	let crumb_state = (window.frappe && frappe.boot && frappe.boot.bnd_crumbs) || null;
+
+	/**
+	 * Reflect a full set of crumb options onto <html>, clearing whatever set
+	 * came before — attributes are wholly derived state. A falsy style slug
+	 * (Original / unknown / no boot) clears everything and sets nothing:
+	 * the whole kit stands down and the stock trail renders.
+	 * @param {Object|null} c - the boot-shaped values object.
+	 */
+	function apply_crumb_attrs(c) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-crumbs" || a.name.startsWith("data-bnd-crumb-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!c) return;
+		crumb_state = c;
+		const style = CRUMB_SLUGS.style[c.style];
+		if (!style) return;
+		html.setAttribute("data-bnd-crumbs", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-crumb-" + name, value);
+		set("sep", CRUMB_SLUGS.separator[c.separator]);
+		set("icons", CRUMB_SLUGS.icons[c.icons]);
+		set("hover", CRUMB_SLUGS.hover[c.hover]);
+		// Boolean flags: presence-only attributes, matched with [attr] in CSS.
+		if (parseInt(c.copy_link, 10)) html.setAttribute("data-bnd-crumb-copy", "");
+		if (parseInt(c.status_pill, 10)) html.setAttribute("data-bnd-crumb-pill", "");
+		if (parseInt(c.narrow_collapse, 10)) html.setAttribute("data-bnd-crumb-collapse", "");
+	}
+
+	// Same timing rule as the sidebar: the matrix must know every choice
+	// before Frappe renders the first trail.
+	apply_crumb_attrs(crumb_state);
+
+	/** True when the breadcrumb kit is active (style attribute is the anchor). */
+	function crumb_active() {
+		return document.documentElement.hasAttribute("data-bnd-crumbs");
+	}
+
 	// ── Small DOM helpers ───────────────────────────────────────────────────
 
 	/**
@@ -268,6 +330,12 @@
 	 */
 	function sprite_icon(symbol) {
 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		// Frappe's own `icon` class is load-bearing, not cosmetic: many sprite
+		// symbols (the es-line set, icon-stock, ...) are STROKE drawings whose
+		// paths carry no fill attribute — an unstyled <svg> fills them black
+		// and they render as solid blobs (caught by the item-11 visual sweep).
+		// Frappe's icon stylesheet keys fill/stroke defaults on this class.
+		svg.setAttribute("class", "icon");
 		const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
 		use.setAttribute("href", "#" + symbol);
 		svg.appendChild(use);
@@ -782,18 +850,48 @@
 		}, 20);
 	}
 
-	// ── Trail workspace resolution (all layouts) ────────────────────────────
+	// ── Breadcrumb kit (item 11) — trail decoration ─────────────────────────
 
 	/**
-	 * Resolve the current workspace FROM the breadcrumb trail and feed it to
-	 * the sidebar kit's module row ("one resolution, two consumers"). On
-	 * list/form pages the trail's workspace crumb is the only reliable
-	 * signal — the route carries the doctype, not the workspace. Retried
+	 * The copy-link button for the trail's last crumb. Returns null when no
+	 * suitable sprite symbol exists — the affordance simply does not mount
+	 * (fails open), never a broken button.
+	 * @returns {HTMLElement|null}
+	 */
+	function crumb_copy_button() {
+		const symbol = sb_existing_symbol(["icon-link-url", "icon-link", "es-line-link", "icon-duplicate"]);
+		if (!symbol) return null;
+		const btn = el("button", "bnd-crumb-copy", {
+			type: "button",
+			"aria-label": __("Copy link"),
+			title: __("Copy link"),
+		});
+		btn.appendChild(sprite_icon(symbol));
+		btn.addEventListener("click", (ev) => {
+			// The button sits inside the trail; never let the click reach a
+			// crumb anchor and navigate.
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (!(navigator.clipboard && navigator.clipboard.writeText)) return;
+			navigator.clipboard.writeText(window.location.href).then(
+				() => frappe.show_alert({ message: __("Link copied"), indicator: "green" }),
+				() => frappe.show_alert({ message: __("Could not copy"), indicator: "red" })
+			);
+		});
+		return btn;
+	}
+
+	/**
+	 * One pass over every trail (pages are cached in the DOM, so there is one
+	 * trail per instantiated page): resolve the current workspace, then — if
+	 * the kit is active — decorate per the boot/preview options. Retried
 	 * because breadcrumbs render slightly after the route event.
 	 *
-	 * The 0.4.0 chip injection that used to live here was removed for the
-	 * item-11 breadcrumb kit; only the resolution survives, because the
-	 * module row depends on it in every layout.
+	 * RESOLUTION ALWAYS RUNS, even with the kit down ("Original"): the
+	 * sidebar kit's module row consumes the resolved workspace in every
+	 * layout — one resolution, two consumers. On list/form pages the trail's
+	 * workspace crumb is the only reliable signal; the route carries the
+	 * doctype, not the workspace.
 	 *
 	 * TWO-STEP MATCH, both needed (measured 2026-07-30): the workspace crumb's
 	 * href is unreliable — on a list page Frappe emitted text "Home" with
@@ -802,9 +900,8 @@
 	 * is locale-tolerant here because workspace titles arrive in boot already
 	 * in the user's locale, same as the crumb label Frappe renders from them.
 	 */
-	function resolve_trail_workspace() {
+	function decorate_crumbs() {
 		const workspaces = (frappe.boot && frappe.boot.allowed_workspaces) || [];
-		if (!workspaces.length) return;
 		const slug = (name) =>
 			frappe.router && frappe.router.slug
 				? frappe.router.slug(name)
@@ -814,30 +911,114 @@
 
 		// The <ul> exists before Frappe fills it (measured — mount-time trails
 		// are empty), so "trail found" is not success: keep retrying until a
-		// workspace link resolves. The budget bounds pages whose trail
-		// legitimately has no workspace link (Desktop, bare singles).
+		// workspace link resolves. Decoration is idempotent per trail and per
+		// li, so the extra passes as content arrives cost nothing; the budget
+		// bounds pages whose trail legitimately has no workspace link
+		// (Desktop, bare singles) — those still get copy/icon passes.
 		try_for(() => {
 			const trails = document.querySelectorAll(".page-head .navbar-breadcrumbs");
 			if (!trails.length) return false;
+			const icon_mode = document.documentElement.getAttribute("data-bnd-crumb-icons") || "off";
+			const want_copy = document.documentElement.hasAttribute("data-bnd-crumb-copy");
+			let resolved = false;
+
 			for (const trail of trails) {
+				// 1. Resolution (always) — find the workspace crumb.
+				let ws_link = null;
+				let ws = null;
 				for (const link of trail.querySelectorAll('li a[href^="/desk/"]')) {
-					let ws = by_slug[link.getAttribute("href").split("/")[2]];
-					if (!ws) {
+					let hit = by_slug[link.getAttribute("href").split("/")[2]];
+					if (!hit) {
 						const text = link.textContent.trim().toLowerCase();
-						ws = workspaces.find(
+						hit = workspaces.find(
 							(w) =>
 								String(w.title || "").toLowerCase() === text ||
 								String(w.name || "").toLowerCase() === text
 						);
 					}
-					if (!ws) continue;
+					if (!hit) continue;
+					ws_link = link;
+					ws = hit;
 					sb_current_workspace = ws;
 					sb_update_module_row();
-					return true;
+					resolved = true;
+					break;
+				}
+
+				if (!crumb_active()) continue;
+
+				// 2. Module chip(s), per the icon-scope option.
+				if (icon_mode !== "off" && !trail.querySelector(".bnd-crumb-chip")) {
+					if (ws_link && ws && ws.icon) {
+						const chip = el("span", "bnd-crumb-chip");
+						chip.appendChild(sprite_icon("icon-" + ws.icon));
+						ws_link.insertBefore(chip, ws_link.firstChild);
+					} else if (sb_current_workspace && sb_current_workspace.icon) {
+						// Workspace pages: the current workspace is the trail's
+						// LAST crumb and often not a link at all — chip it via
+						// the route-resolved workspace instead. Anchor FIRST,
+						// explicitly: a comma list returns the first match in
+						// DOCUMENT order, which is the li itself — and a chip
+						// outside the anchor sits outside the pill styles
+						// (caught by the item-11 visual sweep).
+						const last =
+							trail.querySelector("li:last-child a") ||
+							trail.querySelector("li:last-child span") ||
+							trail.querySelector("li:last-child");
+						if (last) {
+							const chip = el("span", "bnd-crumb-chip");
+							chip.appendChild(sprite_icon("icon-" + sb_current_workspace.icon));
+							last.insertBefore(chip, last.firstChild);
+						}
+					}
+				}
+				if (icon_mode === "every") {
+					// Best-effort icons for the remaining crumbs, inferred from
+					// their text via the sidebar's hint table. No letter-chip
+					// fallback here: an unmatched crumb (a document name) stays
+					// text-only rather than gaining a meaningless initial.
+					// Skips the first li (Frappe's own home icon) and anything
+					// already chipped.
+					const lis = trail.querySelectorAll("li");
+					for (let i = 1; i < lis.length; i++) {
+						const link = lis[i].querySelector("a");
+						if (!link || lis[i].querySelector(".bnd-crumb-chip")) continue;
+						const text = link.textContent.trim();
+						if (!text) continue;
+						let symbol = null;
+						for (const [re, candidates] of SB_ICON_HINTS) {
+							if (re.test(text)) {
+								symbol = sb_existing_symbol(candidates);
+								if (symbol) break;
+							}
+						}
+						if (!symbol) continue;
+						const chip = el("span", "bnd-crumb-chip");
+						chip.appendChild(sprite_icon(symbol));
+						link.insertBefore(chip, link.firstChild);
+					}
+				}
+
+				// 3. Copy-link on the last crumb. Requires a real trail (two
+				// or more crumbs) so the home-only bail state of tool pages
+				// does not grow a button beside a lone home icon.
+				if (want_copy && trail.children.length >= 2 && !trail.querySelector(".bnd-crumb-copy")) {
+					const last = trail.querySelector("li:last-child");
+					const btn = crumb_copy_button();
+					if (last && btn) last.appendChild(btn);
 				}
 			}
-			return false;
+			return resolved;
 		}, 20);
+	}
+
+	/**
+	 * Remove every node the kit injected into the trails. Used by live
+	 * preview before re-decorating, so option flips (icons Every -> Off,
+	 * copy on -> off) preview truthfully instead of accreting.
+	 */
+	function crumb_teardown() {
+		for (const node of document.querySelectorAll(".bnd-crumb-chip, .bnd-crumb-copy")) node.remove();
 	}
 
 	// ── Dock ────────────────────────────────────────────────────────────────
@@ -1671,6 +1852,30 @@
 		sb_mount_badges();
 	};
 
+	/**
+	 * LIVE PREVIEW / re-application for the breadcrumb kit: take a full set
+	 * of option values (Theme Settings field names, as the picker carries
+	 * them), re-derive the attribute set, tear down injected nodes, and
+	 * re-decorate. Called by the settings picker on every option click —
+	 * the desk IS the preview. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.crumb_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (crumb_state ? crumb_state[key] : undefined);
+		apply_crumb_attrs({
+			style: v("crumb_style", "style"),
+			separator: v("crumb_separator", "separator"),
+			icons: v("crumb_icons", "icons"),
+			hover: v("crumb_hover", "hover"),
+			copy_link: v("crumb_copy_link", "copy_link"),
+			status_pill: v("crumb_status_pill", "status_pill"),
+			narrow_collapse: v("crumb_narrow_collapse", "narrow_collapse"),
+		});
+		crumb_teardown();
+		decorate_crumbs();
+	};
+
 	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
 	function mount_sidebar_kit() {
 		if (!sb_active() || layout() === "dock") return;
@@ -1708,7 +1913,23 @@
 
 		observe_sidebar_width();
 		update_desktop_mode();
-		resolve_trail_workspace();
+		decorate_crumbs();
+
+		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
+		// on each update() — route changes, add() calls, and every form
+		// header refresh (a doc save wipes our decoration). Wrapping update()
+		// is the sanctioned augmentation point: a plain object method, and
+		// core itself appends to the trail after clear() the same way.
+		// Fails open — if Frappe renames update(), decoration still runs on
+		// route changes below, just not on form refreshes.
+		if (frappe.breadcrumbs && typeof frappe.breadcrumbs.update === "function" && !frappe.breadcrumbs._bnd_wrapped) {
+			const native_update = frappe.breadcrumbs.update.bind(frappe.breadcrumbs);
+			frappe.breadcrumbs.update = function () {
+				native_update();
+				decorate_crumbs();
+			};
+			frappe.breadcrumbs._bnd_wrapped = true;
+		}
 
 		if (slug === "topbar") {
 			mount_topbar();
@@ -1732,7 +1953,7 @@
 				close_menu();
 				update_desktop_mode();
 				sb_resolve_workspace_from_route();
-				resolve_trail_workspace();
+				decorate_crumbs();
 				if (slug === "compact") inject_compact_cluster();
 				if (slug === "dock") update_dock_active();
 				sb_update_module_row();

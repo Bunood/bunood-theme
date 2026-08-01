@@ -26,7 +26,17 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
-from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
+from bunood_theme.presets import CRUMB_DEFAULTS, DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
+
+#: Check-type fields whose shipped default is 1. These CANNOT go through the
+#: truthiness seeding in :data:`DEFAULTS`: an admin's explicit 0 is falsy and
+#: would be flipped back to 1 on every migrate. They are seeded only when the
+#: value is ``None`` — i.e. the field has never been written at all.
+CHECK_DEFAULTS = {
+    field: value
+    for field, value in CRUMB_DEFAULTS.items()
+    if isinstance(value, int)
+}
 
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
@@ -48,6 +58,10 @@ DEFAULTS = {
     # bunood_theme/presets.py.
     "sidebar_preset": DEFAULT_SIDEBAR_PRESET,
     **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
+    # Breadcrumb kit (item 11): the Select fields only — the Check fields
+    # live in CHECK_DEFAULTS above, where None-aware seeding protects an
+    # admin's explicit 0.
+    **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
 }
 
 #: Label of the user-menu density toggle. Module-level so the seeder and any
@@ -141,6 +155,20 @@ def _seed_defaults() -> None:
             return  # pre-migrate; nothing to seed yet
         for field, value in DEFAULTS.items():
             if not frappe.db.get_single_value("Theme Settings", field):
+                frappe.db.set_single_value("Theme Settings", field, value)
+        # Default-on Checks: seed ONLY the never-written state, so an admin
+        # who turned one off stays off across migrates. get_single_value is
+        # useless here — it CASTS a missing Check to 0 (verified live), so
+        # "never written" must be read as row-absence in tabSingles. Raw SQL
+        # because Singles is a bare table, not a DocType.
+        stored = {
+            row[0]
+            for row in frappe.db.sql(
+                "select field from tabSingles where doctype=%s", ("Theme Settings",)
+            )
+        }
+        for field, value in CHECK_DEFAULTS.items():
+            if field not in stored:
                 frappe.db.set_single_value("Theme Settings", field, value)
         frappe.db.commit()
     except Exception as e:

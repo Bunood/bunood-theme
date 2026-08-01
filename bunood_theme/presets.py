@@ -251,3 +251,35 @@ SIDEBAR_PRESETS = {
 
 #: The default preset name — the user's chosen combination.
 DEFAULT_SIDEBAR_PRESET = "Bunood Night"
+
+
+#: Breadcrumb kit fields (item 11), matching theme_settings.json. Unlike the
+#: sidebar there is no preset catalogue — the style IS the top-level choice
+#: and the extras compose with any style, so defaults are a single dict.
+CRUMB_FIELDS = [
+    "crumb_style",
+    "crumb_separator",
+    "crumb_icons",
+    "crumb_hover",
+    "crumb_copy_link",
+    "crumb_status_pill",
+    "crumb_narrow_collapse",
+]
+
+#: The shipped default: "Quiet Trail" (muted ancestors, strong last crumb,
+#: chevron separators, module chip on the first crumb, soft-pill hover) —
+#: the wireframe the user picked as option A. "Original" leaves v16's stock
+#: trail untouched, the same escape hatch the desk-layout picker offers with
+#: "Classic". Values are Select LABELS; bunood.js owns label -> css-slug.
+CRUMB_DEFAULTS = {
+    "crumb_style": "Quiet Trail",
+    "crumb_separator": "Chevron",
+    "crumb_icons": "First Crumb",
+    "crumb_hover": "Soft Pill",
+    # Checks: 1/0, not labels. Copy-link and the narrow collapse default ON
+    # (hover-only affordances, near-zero visual cost); the status pill
+    # defaults OFF — it visibly changes form pages, so it is opt-in.
+    "crumb_copy_link": 1,
+    "crumb_status_pill": 0,
+    "crumb_narrow_collapse": 1,
+}

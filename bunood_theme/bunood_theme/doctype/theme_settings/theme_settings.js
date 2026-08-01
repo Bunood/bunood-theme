@@ -3,10 +3,13 @@
 /**
  * Theme Settings form script — the visual pickers.
  *
- * TWO PICKERS LIVE HERE
+ * THREE PICKERS LIVE HERE
  *   1. Desk Layout (item 9): five thumbnail cards -> `desk_layout`.
  *   2. Sidebar Style (item 10): preset cards + one visual control per style
  *      option -> the hidden `sidebar_*` fields.
+ *   3. Breadcrumbs (item 11): style cards + extras -> the hidden `crumb_*`
+ *      fields. "Original" is the stock-ERPNext escape hatch, like the
+ *      layout picker's "Classic".
  *
  * THE CONTRACT WITH THE SERVER
  *   The hidden fields are the canon; presets are labels. Clicking a preset
@@ -32,10 +35,14 @@ frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
+		bnd_render_crumbs_picker(frm);
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
-		setTimeout(() => bnd_sb_preview(frm), 300);
+		setTimeout(() => {
+			bnd_sb_preview(frm);
+			bnd_crumb_preview(frm);
+		}, 300);
 	},
 	desk_layout(frm) {
 		bnd_render_layout_picker(frm);
@@ -690,15 +697,303 @@ function bnd_sb_set(frm, fieldname, value) {
 	bnd_render_sidebar_picker_now(frm);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Breadcrumbs picker (item 11)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Client mirror of presets.CRUMB_FIELDS — keep in sync with
+ * theme_settings.json and bunood_theme/presets.py. Hardcoded (no API round
+ * trip) because unlike the sidebar there is no server-side preset catalogue
+ * to fetch: the style IS the choice.
+ */
+const BND_CRUMB_FIELDS = [
+	"crumb_style", "crumb_separator", "crumb_icons", "crumb_hover",
+	"crumb_copy_link", "crumb_status_pill", "crumb_narrow_collapse",
+];
+
+/** Shipped defaults, for the per-group reset. Mirrors presets.CRUMB_DEFAULTS. */
+const BND_CRUMB_DEFAULTS = {
+	crumb_style: "Quiet Trail",
+	crumb_separator: "Chevron",
+	crumb_icons: "First Crumb",
+	crumb_hover: "Soft Pill",
+	crumb_copy_link: 1,
+	crumb_status_pill: 0,
+	crumb_narrow_collapse: 1,
+};
+
+/**
+ * The five styles: stored value, blurb, and a 120x36 trail thumbnail.
+ * Abstract shapes, same drawing language as the layout picker.
+ */
+const BND_CRUMB_STYLES = [
+	{
+		value: "Quiet Trail",
+		blurb: () => __("Muted small ancestors, strong last crumb. Typography does the wayfinding."),
+		svg:
+			'<svg viewBox="0 0 120 36">' +
+			'<circle cx="10" cy="18" r="4" fill="currentColor" opacity=".3"/>' +
+			'<rect x="20" y="14" width="8" height="8" rx="2.5" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			'<rect x="31" y="16" width="18" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<path d="M54 14l3 4-3 4" stroke="currentColor" fill="none" opacity=".3"/>' +
+			'<rect x="61" y="16" width="14" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<path d="M80 14l3 4-3 4" stroke="currentColor" fill="none" opacity=".3"/>' +
+			'<rect x="87" y="15" width="26" height="6" rx="3" fill="currentColor" opacity=".75"/>' +
+			"</svg>",
+	},
+	{
+		value: "Title Fusion",
+		blurb: () => __("The last crumb IS the page title — one row, maximum vertical economy."),
+		svg:
+			'<svg viewBox="0 0 120 36">' +
+			'<circle cx="10" cy="18" r="4" fill="currentColor" opacity=".3"/>' +
+			'<rect x="20" y="16" width="14" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="38" y="16" width="3" height="4" rx="1.5" fill="currentColor" opacity=".25"/>' +
+			'<rect x="45" y="16" width="14" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="63" y="16" width="3" height="4" rx="1.5" fill="currentColor" opacity=".25"/>' +
+			'<rect x="70" y="12" width="40" height="11" rx="4" fill="currentColor" opacity=".75"/>' +
+			"</svg>",
+	},
+	{
+		value: "Eyebrow Title",
+		blurb: () => __("Small trail line above a large title. Long names wrap without deforming the trail."),
+		svg:
+			'<svg viewBox="0 0 120 36">' +
+			'<circle cx="10" cy="10" r="3" fill="currentColor" opacity=".3"/>' +
+			'<rect x="18" y="8" width="14" height="3.5" rx="1.75" fill="currentColor" opacity=".3"/>' +
+			'<path d="M37 7l2.5 3-2.5 3" stroke="currentColor" fill="none" opacity=".3"/>' +
+			'<rect x="44" y="8" width="14" height="3.5" rx="1.75" fill="currentColor" opacity=".3"/>' +
+			'<rect x="6" y="19" width="58" height="11" rx="4" fill="currentColor" opacity=".75"/>' +
+			"</svg>",
+	},
+	{
+		value: "Crumb Pills",
+		blurb: () => __("Every crumb is a soft pill; the current page is the filled one."),
+		svg:
+			'<svg viewBox="0 0 120 36">' +
+			'<rect x="4" y="12" width="16" height="12" rx="6" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<circle cx="12" cy="18" r="3" fill="currentColor" opacity=".35"/>' +
+			'<rect x="24" y="12" width="26" height="12" rx="6" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="54" y="12" width="24" height="12" rx="6" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="82" y="12" width="32" height="12" rx="6" fill="var(--primary, #4d8756)" opacity=".4"/>' +
+			"</svg>",
+	},
+	{
+		value: "Original",
+		blurb: () => __("ERPNext's stock trail, completely untouched."),
+		svg:
+			'<svg viewBox="0 0 120 36">' +
+			'<circle cx="10" cy="18" r="4" fill="currentColor" opacity=".3"/>' +
+			'<rect x="20" y="15" width="3" height="6" rx="1" fill="currentColor" opacity=".25" transform="rotate(15 21 18)"/>' +
+			'<rect x="29" y="15" width="20" height="5" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="53" y="15" width="3" height="6" rx="1" fill="currentColor" opacity=".25" transform="rotate(15 54 18)"/>' +
+			'<rect x="62" y="15" width="20" height="5" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="86" y="15" width="3" height="6" rx="1" fill="currentColor" opacity=".25" transform="rotate(15 87 18)"/>' +
+			'<rect x="95" y="15" width="20" height="5" rx="2" fill="currentColor" opacity=".55"/>' +
+			"</svg>",
+	},
+];
+
+/**
+ * The extras groups. `disabled(frm)` marks options the current style makes
+ * moot — greyed with the reason, never silently ignored.
+ */
+const BND_CRUMB_GROUPS = [
+	{
+		field: "crumb_separator",
+		title: () => __("Separator"),
+		desc: () => __("Chevron and arrow mirror automatically in right-to-left languages."),
+		options: [
+			{ value: "Chevron", name: () => __("Chevron"), glyph: "›" },
+			{ value: "Slash", name: () => __("Slash"), glyph: "/" },
+			{ value: "Dot", name: () => __("Dot"), glyph: "·" },
+			{ value: "Arrow", name: () => __("Arrow"), glyph: "→" },
+		],
+		disabled: (frm) =>
+			frm.doc.crumb_style === "Crumb Pills" ? __("Pills draw no separators") : "",
+	},
+	{
+		field: "crumb_icons",
+		title: () => __("Module icons"),
+		desc: () => __("The workspace's own icon as a small chip in the trail."),
+		options: [
+			{ value: "First Crumb", name: () => __("First crumb"), glyph: "▣ a › b" },
+			{ value: "Every Crumb", name: () => __("Every crumb"), glyph: "▣ a › ▣ b" },
+			{ value: "Off", name: () => __("Off"), glyph: "a › b" },
+		],
+	},
+	{
+		field: "crumb_hover",
+		title: () => __("Hover"),
+		desc: () => __("How ancestor crumbs react to the pointer."),
+		options: [
+			{
+				value: "Soft Pill",
+				name: () => __("Soft pill"),
+				glyph: "▢",
+				disabled: (frm) =>
+					frm.doc.crumb_style === "Crumb Pills" ? __("Pills have their own hover") : "",
+			},
+			{ value: "Underline", name: () => __("Underline"), glyph: "a̲" },
+			{ value: "Darken", name: () => __("Darken"), glyph: "a" },
+		],
+	},
+];
+
+/** Toggle rows: field + name + one-liner. */
+const BND_CRUMB_TOGGLES = [
+	{ field: "crumb_copy_link", name: () => __("Copy link"), desc: () => __("A copy button appears on the last crumb when the title row is hovered.") },
+	{ field: "crumb_status_pill", name: () => __("Status in the trail row"), desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape.") },
+	{ field: "crumb_narrow_collapse", name: () => __("Back crumb on small screens"), desc: () => __("Under tablet width the trail becomes a single labeled link to the parent.") },
+];
+
+/**
+ * Full render of the breadcrumbs picker. Wholesale re-render on every
+ * change — state lives in the form document, never in this DOM. Carries
+ * its own stylesheet (prefixed bnd-cbp-) so it renders correctly even if
+ * the sidebar picker's fetch failed.
+ */
+function bnd_render_crumbs_picker(frm) {
+	const field = frm.get_field("crumbs_picker");
+	if (!field || !field.$wrapper) return;
+
+	const current_style = frm.doc.crumb_style || "Quiet Trail";
+	const kit_down = current_style === "Original";
+
+	const style_cards = BND_CRUMB_STYLES.map((s) => {
+		const on = s.value === current_style ? " bnd-cbp-on" : "";
+		return (
+			'<button type="button" class="bnd-cbp-style' + on + '" data-value="' + s.value + '">' +
+			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
+			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
+			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
+			"</button>"
+		);
+	}).join("");
+
+	const groups = BND_CRUMB_GROUPS.map((group) => {
+		const group_reason = group.disabled ? group.disabled(frm) : "";
+		const cards = group.options
+			.map((opt) => {
+				const reason = kit_down
+					? __("Original leaves the stock trail")
+					: (opt.disabled ? opt.disabled(frm) : "") || group_reason;
+				const on = opt.value === frm.doc[group.field] ? " bnd-cbp-on" : "";
+				const dis = reason ? " bnd-cbp-dis" : "";
+				return (
+					'<button type="button" class="bnd-cbp-opt' + on + dis + '" data-field="' + group.field +
+					'" data-value="' + opt.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
+					'<span class="bnd-cbp-glyph">' + opt.glyph + "</span>" +
+					'<span class="bnd-cbp-oname">' + opt.name() + "</span>" +
+					"</button>"
+				);
+			})
+			.join("");
+		return (
+			'<div class="bnd-cbp-group' + (kit_down || group_reason ? " bnd-cbp-off" : "") + '">' +
+			'<div class="bnd-cbp-title">' + group.title() +
+			'<button type="button" class="bnd-cbp-reset" data-field="' + group.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
+			'<div class="bnd-cbp-desc">' + group.desc() + "</div>" +
+			'<div class="bnd-cbp-row">' + cards + "</div></div>"
+		);
+	}).join("");
+
+	const toggles = BND_CRUMB_TOGGLES.map((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		const dis = kit_down ? " bnd-cbp-dis" : "";
+		return (
+			'<button type="button" class="bnd-cbp-toggle' + dis + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '"' +
+			(kit_down ? ' title="' + __("Original leaves the stock trail") + '" disabled' : "") + ">" +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span>" +
+			"</button>"
+		);
+	}).join("");
+
+	const note = kit_down
+		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's trail untouched — the options below apply to the other styles.") + "</div>"
+		: '<div class="bnd-cbp-note">' + __("Changes preview instantly — Save to keep them.") + "</div>";
+
+	field.$wrapper.html(
+		"<style>" +
+			".bnd-cbp{display:flex;flex-direction:column;gap:12px;margin-block:4px}" +
+			".bnd-cbp-styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}" +
+			".bnd-cbp-style{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid var(--border-color);border-radius:10px;background:var(--control-bg);cursor:pointer;text-align:start}" +
+			".bnd-cbp-style:hover{border-color:var(--primary)}" +
+			".bnd-cbp-on{border-color:var(--primary) !important;box-shadow:0 0 0 1px var(--primary)}" +
+			".bnd-cbp-thumb svg{display:block;inline-size:100%;block-size:auto;color:var(--text-color);background:var(--bg-color);border-radius:6px}" +
+			".bnd-cbp-name{font-weight:600;font-size:var(--text-sm)}" +
+			".bnd-cbp-blurb{font-size:var(--text-xs);color:var(--text-muted);line-height:1.45}" +
+			".bnd-cbp-note{font-size:var(--text-xs);color:var(--text-muted)}" +
+			".bnd-cbp-group{border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;background:var(--card-bg, var(--fg-color))}" +
+			".bnd-cbp-off{opacity:.55}" +
+			".bnd-cbp-title{font-weight:600;font-size:var(--text-sm)}" +
+			".bnd-cbp-desc{font-size:var(--text-xs);color:var(--text-muted);margin-block-end:7px}" +
+			".bnd-cbp-row{display:flex;gap:7px;flex-wrap:wrap}" +
+			".bnd-cbp-opt{inline-size:96px;padding:6px;border:1px solid var(--border-color);border-radius:8px;background:var(--control-bg);cursor:pointer;text-align:center}" +
+			".bnd-cbp-opt:hover{border-color:var(--primary)}" +
+			".bnd-cbp-dis{opacity:.45;cursor:not-allowed}" +
+			".bnd-cbp-glyph{display:block;font-size:14px;block-size:22px;line-height:22px;opacity:.8}" +
+			".bnd-cbp-oname{display:block;font-size:var(--text-xs);font-weight:600;margin-block-start:2px}" +
+			".bnd-cbp-reset{border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;margin-inline-start:6px}" +
+			".bnd-cbp-reset:hover{color:var(--primary)}" +
+			".bnd-cbp-toggle{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--control-bg);cursor:pointer;text-align:start;inline-size:100%}" +
+			".bnd-cbp-toggle b{font-size:var(--text-sm)}" +
+			".bnd-cbp-knob{position:relative;inline-size:30px;block-size:17px;border-radius:99px;background:var(--border-color);flex:none;transition:background .15s}" +
+			".bnd-cbp-knob::after{content:'';position:absolute;inset-block-start:2px;inset-inline-start:2px;inline-size:13px;block-size:13px;border-radius:50%;background:#fff;transition:inset-inline-start .15s}" +
+			".bnd-cbp-knob-on{background:var(--primary)}" +
+			".bnd-cbp-knob-on::after{inset-inline-start:15px}" +
+			"</style>" +
+			'<div class="bnd-cbp">' +
+			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + groups +
+			'<div class="bnd-cbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			"</div>"
+	);
+
+	field.$wrapper.find(".bnd-cbp-style").on("click", function () {
+		bnd_crumb_set(frm, "crumb_style", this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-cbp-opt, .bnd-cbp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_crumb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_crumb_set(frm, f, BND_CRUMB_DEFAULTS[f]);
+	});
+}
+
+/**
+ * LIVE PREVIEW: hand the form's current crumb values to the desk engine —
+ * the trail above this very form restyles instantly. Saving makes it
+ * permanent for everyone; leaving without saving reverts on next load.
+ */
+function bnd_crumb_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.crumb_apply) return;
+	const values = {};
+	for (const f of BND_CRUMB_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.crumb_apply(values);
+}
+
+/** Set one crumb option, preview, re-render. */
+function bnd_crumb_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_crumb_preview(frm);
+	bnd_render_crumbs_picker(frm);
+}
+
 /**
  * Export the whole theme (desk layout, branding colors, every sidebar style
- * field) as a JSON file + clipboard copy — portable between tenant sites.
+ * field, every breadcrumb field) as a JSON file + clipboard copy — portable
+ * between tenant sites.
  */
 function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -727,7 +1022,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields)
+				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -737,7 +1032,9 @@ function bnd_sb_import(frm) {
 				}
 			}
 			bnd_sb_preview(frm);
+			bnd_crumb_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
+			bnd_render_crumbs_picker(frm);
 			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),

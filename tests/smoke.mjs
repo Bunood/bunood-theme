@@ -203,6 +203,9 @@ const MUTABLE_FIELDS = [
 	// The save round-trip test writes tagline; release review v0.6.2..HEAD
 	// caught that leaving it out made every run permanently clobber the field.
 	"tagline",
+	// Breadcrumb kit (item 11).
+	"crumb_style", "crumb_separator", "crumb_icons", "crumb_hover",
+	"crumb_copy_link", "crumb_status_pill", "crumb_narrow_collapse",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -301,6 +304,65 @@ async function main() {
 			await page.waitForTimeout(2500);
 			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "attr cleared on workspace");
 			expectEq(await visible(".bnd-topbar"), true, "topbar returns");
+		});
+
+		// ── Breadcrumb kit (item 11): styles, Original, icon scope, preview ─
+		// The deepest stock trail (form page: home / workspace / doctype /
+		// doc) exercises every option. Pages are cached, so assertions always
+		// target the VISIBLE trail, never the first match.
+		const CRUMB_STYLE_SLUG = {
+			"Quiet Trail": "quiet", "Title Fusion": "fusion",
+			"Eyebrow Title": "eyebrow", "Crumb Pills": "pills",
+		};
+		const visibleTrail = (sel) =>
+			page.evaluate((s) => {
+				const trail = [...document.querySelectorAll(".page-head .navbar-breadcrumbs")].find((u) => u.offsetParent);
+				return !!(trail && trail.querySelector(s));
+			}, sel);
+
+		for (const [style, slugValue] of Object.entries(CRUMB_STYLE_SLUG)) {
+			await test(`crumbs: ${style}`, async () => {
+				setSettings({
+					crumb_style: style, crumb_separator: "Chevron", crumb_icons: "First Crumb",
+					crumb_hover: "Soft Pill", crumb_copy_link: 1, crumb_status_pill: 0, crumb_narrow_collapse: 1,
+				});
+				await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
+				expectEq(await attr("data-bnd-crumbs"), slugValue, "style attr");
+				expectEq(await attr("data-bnd-crumb-sep"), "chevron", "separator attr");
+				expectEq(await attr("data-bnd-crumb-icons"), "first", "icons attr");
+				expectEq(await attr("data-bnd-crumb-hover"), "pill", "hover attr");
+				expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-crumb-copy")), "copy flag");
+				expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-crumb-collapse")), "collapse flag");
+				expect(await visibleTrail(".bnd-crumb-chip"), "module chip in visible trail");
+				expect(await visibleTrail("li:last-child .bnd-crumb-copy"), "copy button on last crumb");
+			});
+		}
+
+		await test("crumbs: Original applies nothing", async () => {
+			setSettings({ crumb_style: "Original" });
+			await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
+			expectEq(await attr("data-bnd-crumbs"), null, "no style attr");
+			expect(!(await q(".bnd-crumb-chip")), "no chips anywhere");
+			expect(!(await q(".bnd-crumb-copy")), "no copy buttons anywhere");
+		});
+
+		await test("crumbs: Every Crumb infers a doctype icon too", async () => {
+			setSettings({ crumb_style: "Quiet Trail", crumb_icons: "Every Crumb" });
+			await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
+			const chips = await page.evaluate(() => {
+				const trail = [...document.querySelectorAll(".page-head .navbar-breadcrumbs")].find((u) => u.offsetParent);
+				return trail ? trail.querySelectorAll(".bnd-crumb-chip").length : 0;
+			});
+			expect(chips >= 2, `at least 2 chips on the form trail (got ${chips})`);
+			setSettings({ crumb_icons: "First Crumb" });
+		});
+
+		await test("crumbs: live preview flips the style instantly and back", async () => {
+			await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
+			await page.evaluate(() => window.bunood_theme.crumb_apply({ crumb_style: "Crumb Pills" }));
+			expectEq(await attr("data-bnd-crumbs"), "pills", "preview flips to pills");
+			await page.evaluate(() => window.bunood_theme.crumb_apply({ crumb_style: "Quiet Trail" }));
+			expectEq(await attr("data-bnd-crumbs"), "quiet", "preview back to quiet");
 		});
 
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────

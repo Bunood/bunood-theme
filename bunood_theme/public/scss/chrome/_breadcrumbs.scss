@@ -1,9 +1,355 @@
 // Copyright (c) 2026, Bunood and contributors
 // ============================================================================
-// BREADCRUMBS — checklist item 11.
+// BREADCRUMB KIT — checklist item 11.
 //
-// The 0.4.0 module chip that lived here unconditionally was removed; the
-// full breadcrumb treatment (style matrix keyed on data-bnd-crumbs-*)
-// replaces it in this file. Until the matrix lands, the theme leaves v16's
-// stock trail completely alone — fails open by absence.
+// WHAT
+//   The full trail treatment, as a CSS matrix keyed on attributes bunood.js
+//   derives from Theme Settings (boot -> data-bnd-crumbs*):
+//
+//     data-bnd-crumbs           quiet | fusion | eyebrow | pills   (the style)
+//     data-bnd-crumb-sep        slash | chevron | dot | arrow      (separator)
+//     data-bnd-crumb-hover      pill | underline | darken          (ancestors)
+//     data-bnd-crumb-icons      off | first | every    (JS mounts the chips)
+//     data-bnd-crumb-copy       present = copy-link button on the last crumb
+//     data-bnd-crumb-pill       present = docstatus pill styled into the row
+//     data-bnd-crumb-collapse   present = back-crumb collapse under 992px
+//
+//   "Original" sets NO attributes: nothing here matches and v16's stock
+//   trail renders untouched — the kit fails open by absence.
+//
+// THE FACTS THIS FILE IS BUILT ON (all measured, see ARCHITECTURE.md)
+//   * The trail lives in `.page-head .title-area > ul.navbar-breadcrumbs`,
+//     one UL per cached page; on list/form pages the trail IS the page
+//     title (the last crumb doubles as the heading).
+//   * Frappe's separator is generated content on the ANCHOR's ::before —
+//     inside the link box. Every separator option here moves the glyph to
+//     the LI's ::before instead, so hover backgrounds on the anchor can
+//     never paint over the separator.
+//   * Frappe sets the last crumb's color with `!important`
+//     (breadcrumb.scss: li:last-child > a). We deliberately restyle only
+//     SIZE and WEIGHT of the last crumb — its color already lands on the
+//     strong ink via the _bridge token mapping, and fighting a stylesheet
+//     !important would break the house rule.
+//   * Frappe's own mobile sheet hides every crumb but the last under
+//     991px at specificity (0,2,1); any display rule of ours at (0,2,2)+
+//     would silently un-hide them — so the desktop alignment rule below is
+//     fenced behind (min-width: 992px), and the collapse option owns the
+//     narrow range explicitly.
+//   * The workspace crumb's class is Frappe's own typo
+//     `worksapce-breadcrumb`; selectors must reproduce it verbatim.
 // ============================================================================
+
+// ── Base (any active style) ─────────────────────────────────────────────────
+
+@media (min-width: 992px) {
+  html[data-bnd-crumbs] .navbar-breadcrumbs li {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+html[data-bnd-crumbs] .navbar-breadcrumbs {
+  a {
+    color: var(--bnd-ink-muted);
+    transition: color var(--bnd-dur-fast) ease, background-color var(--bnd-dur-fast) ease;
+  }
+}
+
+// The module chip (mounted by JS per the icon-scope option): a small
+// brand-tinted square holding a workspace/inferred sprite icon, sitting as
+// the anchor's first child. Same design as 0.4.0, now conditional.
+html[data-bnd-crumbs] .bnd-crumb-chip {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 20px;
+  margin-inline-end: var(--bnd-sp-1);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+  color: var(--bnd-brand);
+  vertical-align: text-bottom;
+
+  svg {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+}
+
+// Copy-link button (mounted by JS on the last li when the flag is set).
+// Rest state is invisible; hovering anywhere on the title row or keyboard
+// focus reveals it — the affordance costs nothing until wanted.
+html[data-bnd-crumbs] .bnd-crumb-copy {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  margin-inline-start: var(--bnd-sp-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--bnd-radius-sm);
+  background: transparent;
+  color: var(--bnd-ink-subtle);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) ease, background-color var(--bnd-dur-fast) ease;
+
+  svg {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 1px;
+  }
+}
+
+html[data-bnd-crumbs] .page-head .title-area:hover .bnd-crumb-copy {
+  opacity: 1;
+}
+
+// ── Separators ──────────────────────────────────────────────────────────────
+// Move the glyph off the anchor (Frappe's a::before) onto the li, then draw
+// our own. The first crumb never gets one; Frappe's `.mobile-no-divider`
+// contract is honoured on the li as it was on the anchor.
+
+html[data-bnd-crumbs][data-bnd-crumb-sep] .navbar-breadcrumbs {
+  a::before {
+    content: none;
+  }
+
+  li::before {
+    display: inline-block;
+    margin-inline: var(--bnd-sp-2);
+    color: var(--bnd-ink-subtle);
+    font-size: var(--bnd-text-sm);
+    line-height: 1;
+  }
+
+  li:first-child::before {
+    content: none;
+  }
+
+  &.mobile-no-divider li::before {
+    content: none;
+  }
+}
+
+html[data-bnd-crumb-sep="slash"] .navbar-breadcrumbs li::before {
+  content: "/";
+}
+
+html[data-bnd-crumb-sep="chevron"] .navbar-breadcrumbs li::before {
+  content: "\203A"; // ›
+}
+
+html[data-bnd-crumb-sep="dot"] .navbar-breadcrumbs li::before {
+  content: "\00B7"; // ·
+}
+
+html[data-bnd-crumb-sep="arrow"] .navbar-breadcrumbs li::before {
+  content: "\2192"; // →
+}
+
+// Directional glyphs mirror in RTL. Generated-content strings are not
+// physical properties, so this is the one legitimate place a dir selector
+// appears — the build guard only polices box properties.
+html[dir="rtl"][data-bnd-crumb-sep="chevron"] .navbar-breadcrumbs li::before {
+  content: "\2039"; // ‹
+}
+
+html[dir="rtl"][data-bnd-crumb-sep="arrow"] .navbar-breadcrumbs li::before {
+  content: "\2190"; // ←
+}
+
+// ── Hover treatments (ancestor crumbs only — the last crumb is the page) ────
+
+html[data-bnd-crumbs]:not([data-bnd-crumbs="pills"])[data-bnd-crumb-hover="pill"] .navbar-breadcrumbs {
+  // Constant padding so the hover paints without reflow.
+  li:not(:last-child) > a {
+    padding-block: 2px;
+    padding-inline: var(--bnd-sp-1);
+    border-radius: var(--bnd-radius-sm);
+  }
+
+  li:not(:last-child) > a:hover {
+    background: var(--bnd-active);
+    color: var(--bnd-ink);
+  }
+}
+
+html[data-bnd-crumb-hover="underline"] .navbar-breadcrumbs li:not(:last-child) > a:hover {
+  color: var(--bnd-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+html[data-bnd-crumb-hover="darken"] .navbar-breadcrumbs li:not(:last-child) > a:hover {
+  color: var(--bnd-ink);
+}
+
+// ── Style: Quiet Trail ──────────────────────────────────────────────────────
+// Muted small ancestors, last crumb at the stock title size. Typography
+// carries the hierarchy; nothing else changes.
+
+html[data-bnd-crumbs="quiet"] .navbar-breadcrumbs {
+  a {
+    font-size: var(--bnd-text-sm);
+  }
+
+  li:last-child > a {
+    font-size: var(--bnd-text-md);
+    font-weight: var(--bnd-weight-medium);
+  }
+}
+
+// ── Style: Title Fusion ─────────────────────────────────────────────────────
+// The last crumb IS the title: large and strong, inline with its small
+// ancestors. One row, maximum vertical economy.
+
+html[data-bnd-crumbs="fusion"] .navbar-breadcrumbs {
+  a {
+    font-size: var(--bnd-text-sm);
+  }
+
+  li:last-child > a {
+    font-size: var(--bnd-text-lg);
+    font-weight: var(--bnd-weight-medium);
+    line-height: var(--bnd-leading-tight);
+  }
+}
+
+// ── Style: Eyebrow Title ────────────────────────────────────────────────────
+// Ancestors as a tiny eyebrow line; the last crumb wraps onto its own row
+// as a large title. Trail and title truncate independently — the safest
+// shape for long Arabic/English document names.
+
+// Frappe's .page-head-content is a FIXED height (var(--page-head-height));
+// the eyebrow's two-row trail overflows it and clips flush with the
+// viewport top (caught by the item-11 visual sweep). Let it grow.
+html[data-bnd-crumbs="eyebrow"] .page-head .page-head-content {
+  block-size: auto;
+  min-block-size: var(--page-head-height);
+  padding-block: var(--bnd-sp-2);
+}
+
+html[data-bnd-crumbs="eyebrow"] .navbar-breadcrumbs {
+  flex-wrap: wrap;
+  row-gap: 2px;
+
+  a {
+    font-size: var(--bnd-text-xs);
+    letter-spacing: 0.02em;
+  }
+
+  li:last-child {
+    flex-basis: 100%;
+    margin-block-start: var(--bnd-sp-1);
+  }
+
+  // The new row must not open with a separator.
+  li:last-child::before {
+    content: none;
+  }
+
+  li:last-child > a {
+    font-size: var(--bnd-text-xl);
+    font-weight: var(--bnd-weight-medium);
+    line-height: var(--bnd-leading-tight);
+    letter-spacing: normal;
+  }
+}
+
+// ── Style: Crumb Pills ──────────────────────────────────────────────────────
+// Every crumb is a soft pill; the current page is the filled one. Pills
+// need no separators — the kill rule sits AFTER the separator block on
+// purpose: same specificity, later source order wins.
+
+html[data-bnd-crumbs="pills"] .navbar-breadcrumbs {
+  gap: var(--bnd-sp-1);
+
+  li::before,
+  a::before {
+    content: none;
+  }
+
+  li > a {
+    padding-block: 3px;
+    padding-inline: var(--bnd-sp-2);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-pill);
+    background: var(--bnd-raised);
+    font-size: var(--bnd-text-sm);
+  }
+
+  li:not(:last-child) > a:hover {
+    background: var(--bnd-hover);
+    border-color: var(--bnd-border-strong);
+    color: var(--bnd-ink);
+  }
+
+  li:last-child > a {
+    background: var(--bnd-active);
+    border-color: transparent;
+    font-weight: var(--bnd-weight-medium);
+  }
+
+  // The chip sits inside a pill that already has its own surface — drop the
+  // chip's tint so it reads as an icon, not a box in a box.
+  .bnd-crumb-chip {
+    background: transparent;
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+
+// ── Status pill in the trail row ────────────────────────────────────────────
+// Frappe already renders the docstatus indicator as a sibling of the trail
+// inside .title-area (span.page-indicator-pill). The flag pushes it to the
+// row's end and calms its shape — proxy, never rebuild.
+
+html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
+  margin-inline-start: auto;
+
+  .indicator-pill {
+    border-radius: var(--bnd-radius-pill);
+    font-weight: var(--bnd-weight-medium);
+    letter-spacing: 0.02em;
+  }
+}
+
+// ── Narrow collapse: a single labeled back crumb ────────────────────────────
+// Under 992px the trail becomes "‹ Parent" — the second-to-last crumb, a
+// real link one level up. Frappe's own mobile rule (which keeps the LAST
+// crumb) is overridden by specificity; home-only trails keep their one li.
+
+@media (max-width: 991px) {
+  html[data-bnd-crumbs][data-bnd-crumb-collapse] .navbar-breadcrumbs {
+    li {
+      display: none;
+    }
+
+    li:nth-last-child(2),
+    li:only-child {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    li:nth-last-child(2)::before {
+      content: "\2190"; // ←
+      display: inline-block;
+      margin-inline: 0 var(--bnd-sp-1);
+      color: var(--bnd-ink-muted);
+    }
+  }
+
+  html[dir="rtl"][data-bnd-crumbs][data-bnd-crumb-collapse] .navbar-breadcrumbs li:nth-last-child(2)::before {
+    content: "\2192"; // →
+  }
+}

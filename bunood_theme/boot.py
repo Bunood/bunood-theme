@@ -117,6 +117,28 @@ def extend_bootinfo(bootinfo):
             "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
         }
 
+        # Breadcrumb kit (item 11). Same flash exemption as the sidebar: the
+        # trail is rendered by Frappe's JS after the splash, so attributes
+        # applied from boot paint nothing stale. Selects fall back to the
+        # shipped default when empty (a half-migrated site still renders a
+        # coherent trail); Checks fall back only when the field has NEVER
+        # been set — 0 is a real choice and must survive migrates.
+        from bunood_theme.presets import CRUMB_DEFAULTS
+
+        def crumb(field):
+            value = settings.get(field)
+            return CRUMB_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_crumbs = {
+            "style": crumb("crumb_style"),
+            "separator": crumb("crumb_separator"),
+            "icons": crumb("crumb_icons"),
+            "hover": crumb("crumb_hover"),
+            "copy_link": crumb("crumb_copy_link"),
+            "status_pill": crumb("crumb_status_pill"),
+            "narrow_collapse": crumb("crumb_narrow_collapse"),
+        }
+
         # Per-user preset override (the "personalize" layer): a user-chosen
         # preset REPLACES the style values wholesale — never a field-level
         # merge, so a user always sees a designed combination. Stored in

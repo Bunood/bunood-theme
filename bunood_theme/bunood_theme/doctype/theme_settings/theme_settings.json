@@ -44,6 +44,15 @@
   "sidebar_badges",
   "sidebar_remember_sections",
   "sidebar_scroll_fades",
+  "section_crumbs",
+  "crumb_style",
+  "crumbs_picker",
+  "crumb_separator",
+  "crumb_icons",
+  "crumb_hover",
+  "crumb_copy_link",
+  "crumb_status_pill",
+  "crumb_narrow_collapse",
   "section_features",
   "enable_command_palette",
   "default_density",
@@ -340,11 +349,74 @@
    "options": "Comfortable\nCompact",
    "default": "Comfortable",
    "description": "Site-wide default row and control height. Each user can override it from the settings menu; Compact shortens rows and padding but never the text size."
+  },
+  {
+   "fieldname": "section_crumbs",
+   "fieldtype": "Section Break",
+   "label": "Breadcrumbs"
+  },
+  {
+   "fieldname": "crumb_style",
+   "fieldtype": "Select",
+   "label": "Breadcrumb Style",
+   "options": "Original\nQuiet Trail\nTitle Fusion\nEyebrow Title\nCrumb Pills",
+   "default": "Quiet Trail",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock trail untouched."
+  },
+  {
+   "fieldname": "crumbs_picker",
+   "fieldtype": "HTML",
+   "label": "Breadcrumb Picker"
+  },
+  {
+   "fieldname": "crumb_separator",
+   "fieldtype": "Select",
+   "label": "Crumb Separator",
+   "options": "Slash\nChevron\nDot\nArrow",
+   "default": "Chevron",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_icons",
+   "fieldtype": "Select",
+   "label": "Crumb Module Icons",
+   "options": "Off\nFirst Crumb\nEvery Crumb",
+   "default": "First Crumb",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_hover",
+   "fieldtype": "Select",
+   "label": "Crumb Hover",
+   "options": "Soft Pill\nUnderline\nDarken",
+   "default": "Soft Pill",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_copy_link",
+   "fieldtype": "Check",
+   "label": "Copy Link on Last Crumb",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_status_pill",
+   "fieldtype": "Check",
+   "label": "Status Pill in Trail Row",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_narrow_collapse",
+   "fieldtype": "Check",
+   "label": "Collapse to Back Crumb on Narrow Screens",
+   "default": "1",
+   "hidden": 1
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-29 00:00:00.000000",
+ "modified": "2026-07-31 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",
