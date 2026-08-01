@@ -5,6 +5,55 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.7.0] — 2026-07-31 — Breadcrumb kit (item 11)
+
+The full trail treatment, as a kit of composable Theme Settings options
+picked visually (same architecture as the sidebar: hidden fields -> boot
+dict -> `data-bnd-crumb*` attributes -> one CSS matrix). The 0.4.0
+unconditional module chip was retired first; the chip is now one option of
+the kit. Everything is DECORATION of v16's own trail — Frappe's renderer
+is wrapped (`frappe.breadcrumbs.update`), never forked, so decoration
+survives its full-rebuild-on-save and every unknown value fails open.
+
+### Styles (the picker's cards)
+- **Quiet Trail** (default): muted small ancestors, strong last crumb —
+  typography carries the hierarchy.
+- **Title Fusion**: the last crumb IS the page title, large, one row.
+- **Eyebrow Title**: tiny trail line above a large title on its own row;
+  trail and title truncate independently (long Arabic/English names).
+- **Crumb Pills**: every crumb a soft pill, current page filled; pills
+  draw no separators.
+- **Original**: ERPNext's stock trail, untouched — no attributes set.
+
+### Extras (each its own option, any style)
+- Separator: slash / chevron / dot / arrow — chevron and arrow mirror
+  automatically under `[dir=rtl]` (generated content, not box properties,
+  so the RTL build guard stays honest).
+- Module icons: off / first crumb / every crumb (inference reuses the
+  sidebar's hint table; unmatched crumbs stay text-only).
+- Hover: soft pill / underline / darken (ancestors only).
+- Copy link: hover-revealed button on the last crumb; clipboard + toast.
+- Status pill: Frappe's own docstatus indicator styled into the trail row.
+- Narrow screens: the trail collapses to a single labeled back crumb
+  ("← Parent") under 992px, overriding Frappe's keep-the-last-crumb rule.
+
+### Facts the implementation is built on (measured)
+- Frappe's separator is generated content on the ANCHOR's ::before; all
+  separator options move it to the LI so hover backgrounds can never paint
+  over the glyph. The last crumb's color is Frappe `!important` — the kit
+  restyles only size/weight and inherits the strong ink via the bridge.
+- Frappe's mobile sheet hides all but the last crumb at (0,2,1) under
+  992px; the kit's alignment rules are fenced to `min-width: 992px` so
+  they can never accidentally un-hide crumbs.
+- `frappe.db.get_single_value` CASTS a missing Check field to 0, so the
+  seeder reads "never written" as row-absence in tabSingles — otherwise
+  default-on checks could never be seeded (or worse, an admin's explicit
+  off would flip back on).
+
+Smoke suite grew to 28 checks: the four styles' attribute matrix +
+decoration, Original-applies-nothing, Every-Crumb inference, live preview
+flip/revert.
+
 ## [0.6.2] — 2026-07-30 — Fix: Theme Settings save conflict
 
 - `write_brand_css` no longer bumps the document's `modified` timestamp when
