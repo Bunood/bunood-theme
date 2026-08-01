@@ -53,6 +53,15 @@
   "crumb_copy_link",
   "crumb_status_pill",
   "crumb_narrow_collapse",
+  "section_palette",
+  "palette_style",
+  "palette_picker",
+  "palette_frecency",
+  "palette_footer",
+  "palette_newtab",
+  "palette_fallbacks",
+  "palette_suggest",
+  "palette_sigils",
   "section_features",
   "enable_command_palette",
   "default_density",
@@ -327,7 +336,9 @@
    "fieldname": "enable_command_palette",
    "fieldtype": "Check",
    "label": "Enable Command Palette",
-   "default": "1"
+   "default": "1",
+   "hidden": 1,
+   "description": "Master gate for the palette kit: unchecked forces the stock Ctrl+K modal (Original) whatever the picker says."
   },
   {
    "fieldname": "section_generated",
@@ -411,11 +422,72 @@
    "fieldtype": "Check",
    "label": "Collapse to Back Crumb on Narrow Screens",
    "hidden": 1
+  },
+  {
+   "fieldname": "section_palette",
+   "fieldtype": "Section Break",
+   "label": "Command Palette"
+  },
+  {
+   "fieldname": "palette_style",
+   "fieldtype": "Select",
+   "label": "Palette Style",
+   "options": "Original\nRefined\nBunood Palette\nPalette Pro",
+   "default": "Bunood Palette",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock Ctrl+K modal untouched."
+  },
+  {
+   "fieldname": "palette_picker",
+   "fieldtype": "HTML",
+   "label": "Palette Picker"
+  },
+  {
+   "fieldname": "palette_frecency",
+   "fieldtype": "Check",
+   "label": "Frecency Ranking",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_footer",
+   "fieldtype": "Check",
+   "label": "Footer Hint Bar",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_newtab",
+   "fieldtype": "Check",
+   "label": "Ctrl+Enter Opens a New Tab",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_fallbacks",
+   "fieldtype": "Check",
+   "label": "Fallback Rows",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_suggest",
+   "fieldtype": "Check",
+   "label": "Empty-State Suggestions",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_sigils",
+   "fieldtype": "Check",
+   "label": "Mode Sigils (Pro)",
+   "default": "1",
+   "hidden": 1
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-31 14:00:00.000000",
+ "modified": "2026-08-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

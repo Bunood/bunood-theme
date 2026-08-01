@@ -287,3 +287,34 @@ CRUMB_DEFAULTS = {
     "crumb_status_pill": 0,
     "crumb_narrow_collapse": 0,
 }
+
+
+#: Command palette kit fields (item 12), matching theme_settings.json.
+PALETTE_FIELDS = [
+    "palette_style",
+    "palette_frecency",
+    "palette_footer",
+    "palette_newtab",
+    "palette_fallbacks",
+    "palette_suggest",
+    "palette_sigils",
+]
+
+#: The shipped default: "Bunood Palette" (the user's pick, option B) — our
+#: shell over Frappe's own search sources, grouped sections, pinned fallback
+#: rows, per-user frecency. "Original" leaves the stock Ctrl+K modal
+#: untouched; "Refined" only restyles it; "Palette Pro" adds mode sigils and
+#: the record-search stage. The legacy visible `enable_command_palette`
+#: check is the kit's master gate: 0 forces Original whatever the style.
+PALETTE_DEFAULTS = {
+    "palette_style": "Bunood Palette",
+    # Checks: 1/0, not labels. All default ON — they are behaviours inside a
+    # user-invoked overlay, invisible until the palette is opened, unlike
+    # the crumb extras that repaint standing chrome.
+    "palette_frecency": 1,
+    "palette_footer": 1,
+    "palette_newtab": 1,
+    "palette_fallbacks": 1,
+    "palette_suggest": 1,
+    "palette_sigils": 1,
+}

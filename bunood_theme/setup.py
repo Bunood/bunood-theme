@@ -26,7 +26,12 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
-from bunood_theme.presets import CRUMB_DEFAULTS, DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
+from bunood_theme.presets import (
+    CRUMB_DEFAULTS,
+    DEFAULT_SIDEBAR_PRESET,
+    PALETTE_DEFAULTS,
+    SIDEBAR_PRESETS,
+)
 
 #: Check-type fields whose shipped default is 1. These CANNOT go through the
 #: truthiness seeding in :data:`DEFAULTS`: an admin's explicit 0 is falsy and
@@ -34,7 +39,8 @@ from bunood_theme.presets import CRUMB_DEFAULTS, DEFAULT_SIDEBAR_PRESET, SIDEBAR
 #: value is ``None`` — i.e. the field has never been written at all.
 CHECK_DEFAULTS = {
     field: value
-    for field, value in CRUMB_DEFAULTS.items()
+    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS)
+    for field, value in defaults.items()
     if isinstance(value, int)
 }
 
@@ -58,10 +64,11 @@ DEFAULTS = {
     # bunood_theme/presets.py.
     "sidebar_preset": DEFAULT_SIDEBAR_PRESET,
     **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
-    # Breadcrumb kit (item 11): the Select fields only — the Check fields
-    # live in CHECK_DEFAULTS above, where None-aware seeding protects an
-    # admin's explicit 0.
+    # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
+    # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
+    # protects an admin's explicit 0.
     **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
 }
 
 #: Label of the user-menu density toggle. Module-level so the seeder and any

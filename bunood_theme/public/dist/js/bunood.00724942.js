@@ -701,7 +701,9 @@
 		const kbd = el("kbd");
 		kbd.textContent = /mac/i.test(navigator.platform) ? "⌘K" : "Ctrl+K";
 		field.appendChild(kbd);
-		field.addEventListener("click", () => proxy_click(".navbar-search-bar .item-anchor"));
+		// The palette kit owns search invocation when active; otherwise the
+		// click proxies the hidden native trigger exactly as before.
+		field.addEventListener("click", () => pal_invoke());
 		return field;
 	}
 
@@ -1023,6 +1025,618 @@
 	 */
 	function crumb_teardown() {
 		for (const node of document.querySelectorAll(".bnd-crumb-chip, .bnd-crumb-copy")) node.remove();
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	// Command palette kit (item 12)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// FOUR STYLES, three of them Frappe's own modal:
+	//   Original -> stock Ctrl+K modal, untouched (kit sets no attribute).
+	//   Refined  -> stock modal, tagged `bnd-search-modal` so CSS can skin it.
+	//   Bunood Palette / Palette Pro -> OUR shell (.bnd-palette), but every
+	//   result comes from frappe.search.utils.* and executes with the stock
+	//   select semantics — "we own the shell, Frappe owns every behaviour",
+	//   the avatar-menu precedent. If any of those APIs is missing (upgrade),
+	//   invocation falls back to opening the native modal: never a dead
+	//   Ctrl+K, never a broken search.
+	//
+	// FRECENCY: per-user, SERVER-side (frappe.defaults via api.py), per the
+	// item-31 rule — localStorage would make ranking per-browser. The boot
+	// blob is merged in memory on every use and pushed with one small xcall.
+
+	/** Palette label -> attribute slug. Original/unknown -> no attribute. */
+	const PAL_SLUGS = { "Original": "", "Refined": "refined", "Bunood Palette": "palette", "Palette Pro": "pro" };
+
+	/**
+	 * The palette options in effect — boot's at load, replaced by live
+	 * preview. An old cached boot may still deliver the pre-0.8 integer
+	 * flag; anything non-object means "kit down" and everything fails open.
+	 */
+	let pal_state =
+		window.frappe && frappe.boot && typeof frappe.boot.bnd_palette === "object"
+			? frappe.boot.bnd_palette
+			: null;
+
+	/** Reflect the palette style onto <html>; clears first, wholly derived. */
+	function apply_palette_attrs(p) {
+		const html = document.documentElement;
+		html.removeAttribute("data-bnd-palette");
+		if (!p) return;
+		pal_state = p;
+		const slug = PAL_SLUGS[p.style];
+		if (slug) html.setAttribute("data-bnd-palette", slug);
+	}
+
+	apply_palette_attrs(pal_state);
+
+	/** True when OUR shell owns invocation (palette/pro styles). */
+	function pal_shell_active() {
+		const slug = document.documentElement.getAttribute("data-bnd-palette");
+		return slug === "palette" || slug === "pro";
+	}
+
+	/**
+	 * Open search — the single entry point every invoker routes through
+	 * (theme field click, Ctrl+K, intercepted native row). Decides at CALL
+	 * time so live preview needs no re-wiring: our shell when active and
+	 * buildable, otherwise the native modal (Refined additionally tags it
+	 * for the CSS skin).
+	 */
+	function pal_invoke() {
+		if (pal_shell_active() && frappe.search && frappe.search.utils) {
+			pal_open();
+			return;
+		}
+		proxy_click(".navbar-search-bar .item-anchor");
+		if (document.documentElement.getAttribute("data-bnd-palette") === "refined") {
+			// The native modal is built lazily on first open; tag it once so
+			// _palette.scss can skin it without :has().
+			try_for(() => {
+				const input = document.getElementById("navbar-search");
+				const modal = input && input.closest(".modal");
+				if (!modal) return false;
+				modal.classList.add("bnd-search-modal");
+				return true;
+			}, 10);
+		}
+	}
+
+	// ── Frecency ────────────────────────────────────────────────────────────
+
+	/** Half-life of a use, in days: two weeks keeps last week's work warm. */
+	const PAL_HALFLIFE_DAYS = 14;
+
+	/**
+	 * The learned boost for one option key: decayed use count, scaled to
+	 * compete with (not drown) the source indices Frappe assigns (~20-100).
+	 * @param {string} key
+	 * @returns {number}
+	 */
+	function pal_frecency(key) {
+		if (!pal_state || !parseInt(pal_state.frecency, 10)) return 0;
+		const entry = pal_state.usage && pal_state.usage[key];
+		if (!entry) return 0;
+		const age_days = Math.max(0, (Date.now() / 1000 - (entry[1] || 0)) / 86400);
+		return Math.min(120, 30 * (entry[0] || 0) * Math.pow(0.5, age_days / PAL_HALFLIFE_DAYS));
+	}
+
+	/** Merge one use into the in-memory blob and persist it server-side. */
+	function pal_record_use(key) {
+		if (!pal_state || !parseInt(pal_state.frecency, 10) || !key) return;
+		pal_state.usage = pal_state.usage || {};
+		const entry = pal_state.usage[key] || [0, 0];
+		pal_state.usage[key] = [entry[0] + 1, Math.floor(Date.now() / 1000)];
+		if (frappe.xcall) {
+			frappe.xcall("bunood_theme.api.record_palette_use", { key }).catch(() => {});
+		}
+	}
+
+	// ── Sources ─────────────────────────────────────────────────────────────
+
+	/** Species metadata: group title, badge, sprite candidates for row icons. */
+	const PAL_SPECIES = {
+		action: { title: () => __("Actions"), badge: () => __("Action"), icons: ["icon-add", "es-line-add", "icon-small-add"] },
+		navigate: { title: () => __("Navigate"), badge: () => __("List"), icons: ["icon-list", "es-line-list", "icon-unordered-list"] },
+		report: { title: () => __("Reports"), badge: () => __("Report"), icons: ["icon-chart", "es-line-graph", "icon-table"] },
+		page: { title: () => __("Pages & Workspaces"), badge: () => __("Page"), icons: ["icon-file", "es-line-file", "icon-small-file"] },
+		doc: { title: () => __("Documents"), badge: () => __("Document"), icons: ["icon-file", "es-line-file", "icon-small-file"] },
+		frequent: { title: () => __("Frequent"), badge: () => "", icons: [] },
+		recent: { title: () => __("Recent"), badge: () => "", icons: [] },
+		fallback: { title: () => "", badge: () => "", icons: [] },
+	};
+
+	/** A stable frecency key for a sourced option. */
+	function pal_key(opt) {
+		if (opt.route) return "route:" + (Array.isArray(opt.route) ? opt.route.join("/") : String(opt.route));
+		return "label:" + (opt.value || opt.label || "");
+	}
+
+	/**
+	 * Map one frappe.search.utils option into a palette row model. The
+	 * marked label (match highlighting) comes from Frappe's own fuzzy_search
+	 * so the palette shows the same "why it matched" the stock bar would.
+	 */
+	function pal_row(opt, species, txt) {
+		let marked = opt.label || opt.value || "";
+		if (txt && frappe.search.utils.fuzzy_search) {
+			const scored = frappe.search.utils.fuzzy_search(txt, opt.value || "", true);
+			if (scored && scored.marked_string) marked = scored.marked_string;
+		}
+		const plain = opt.value || opt.label || "";
+		// The badge names what Enter does, so a "X Report" or "X Tree" row
+		// must not wear the generic List badge of its species.
+		let badge_override = null;
+		if (species === "navigate") {
+			if (/\bReport$/.test(plain)) badge_override = __("Report");
+			else if (/\bTree$/.test(plain)) badge_override = __("Tree");
+		}
+		return {
+			species,
+			marked,
+			plain,
+			badge_override,
+			route: opt.route,
+			route_options: opt.route_options,
+			onclick: opt.onclick,
+			icon_data: opt.icon_data,
+			match: opt.match,
+			index: (opt.index || 0) + pal_frecency(pal_key(opt)),
+			key: pal_key(opt),
+		};
+	}
+
+	/** Safely call one source; a missing/throwing source contributes nothing. */
+	function pal_source(name, txt) {
+		try {
+			const fn = frappe.search.utils[name];
+			return fn ? fn.call(frappe.search.utils, txt) || [] : [];
+		} catch (e) {
+			return [];
+		}
+	}
+
+	/**
+	 * Assemble the grouped row model for a query. Groups keep a FIXED order
+	 * (positional memory beats cleverness); rows sort by boosted index
+	 * within their group; every group is capped so no species floods the
+	 * palette the way broad queries flood the stock bar's flat list.
+	 */
+	function pal_options(txt) {
+		const pro = document.documentElement.getAttribute("data-bnd-palette") === "pro";
+		const sigils = pro && parseInt(pal_state.sigils, 10);
+		const groups = [];
+		const push = (species, rows, cap) => {
+			rows = rows.filter(Boolean).sort((a, b) => b.index - a.index).slice(0, cap);
+			if (rows.length) groups.push({ species, rows });
+		};
+
+		if (!txt) {
+			if (!parseInt(pal_state.suggest, 10)) return groups;
+			// Frequent: the frecency store itself, best first, resolved back
+			// to displayable rows via boot frequents + recents when possible.
+			const seen = new Set();
+			const recents = pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", ""));
+			const frequents = pal_source("get_frequent_links", "").map((o) => pal_row(o, "frequent", ""));
+			for (const row of [...frequents, ...recents]) {
+				row.index += pal_frecency(row.key);
+			}
+			push("frequent", frequents.filter((r) => !seen.has(r.key) && seen.add(r.key)), 5);
+			push("recent", recents.filter((r) => !seen.has(r.key) && seen.add(r.key)), 7);
+			return groups;
+		}
+
+		// Mode sigils (Pro): a leading character narrows to one species.
+		if (sigils && txt[0] === ">") {
+			const q = txt.slice(1).trim();
+			push("action", [
+				...pal_source("get_creatables", q).map((o) => pal_row(o, "action", q)),
+				...pal_source("get_executables", q).map((o) => pal_row(o, "action", q)),
+			], 20);
+			return groups;
+		}
+		if (sigils && txt[0] === "/") {
+			const q = txt.slice(1).trim();
+			push("report", pal_source("get_reports", q).map((o) => pal_row(o, "report", q)), 20);
+			return groups;
+		}
+		if (sigils && txt[0] === "#") {
+			// Record search renders asynchronously — pal_render_docs fills
+			// the Documents group when the server answers.
+			return groups;
+		}
+
+		// get_creatables only fires on a "new " prefix; the everyday "New X"
+		// rows ride inside get_doctypes — split them out into Actions here,
+		// or creation would vanish from plain queries (caught by the item-12
+		// visual sweep).
+		const doctype_rows = pal_source("get_doctypes", txt);
+		const is_new = (o) => /^New /.test(o.value || o.label || "");
+		push("action", [
+			...pal_source("get_creatables", txt).map((o) => pal_row(o, "action", txt)),
+			...doctype_rows.filter(is_new).map((o) => pal_row(o, "action", txt)),
+			...pal_source("get_executables", txt).map((o) => pal_row(o, "action", txt)),
+		], 4);
+		push("navigate", [
+			...doctype_rows.filter((o) => !is_new(o)).map((o) => pal_row(o, "navigate", txt)),
+			...pal_source("get_search_in_list", txt).map((o) => pal_row(o, "navigate", txt)),
+		], 8);
+		push("report", pal_source("get_reports", txt).map((o) => pal_row(o, "report", txt)), 4);
+		push("page", [
+			...pal_source("get_pages", txt).map((o) => pal_row(o, "page", txt)),
+			...pal_source("get_desktop_icons", txt).map((o) => pal_row(o, "page", txt)),
+			...pal_source("get_dashboards", txt).map((o) => pal_row(o, "page", txt)),
+		], 4);
+		return groups;
+	}
+
+	/**
+	 * The pinned fallback rows: never ranked, never pushed out — fixing the
+	 * stock bar's worst measured weakness (99 fuzzy rows burying "Search
+	 * for X"). Calculator included: same convenience as stock, but behind a
+	 * strict arithmetic whitelist instead of a raw eval.
+	 */
+	function pal_fallbacks(txt) {
+		const rows = [];
+		if (!txt || !parseInt(pal_state.fallbacks, 10)) return rows;
+		// Under a Pro sigil the hand-off query is the part AFTER the sigil —
+		// "Search all documents for '#test'" would search for a literal hash.
+		const pro = document.documentElement.getAttribute("data-bnd-palette") === "pro";
+		if (pro && parseInt(pal_state.sigils, 10) && /^[>#/]/.test(txt)) {
+			txt = txt.slice(1).trim();
+			if (!txt) return rows;
+		}
+		if (/^[0-9+\-*/(). %]+$/.test(txt) && /[0-9]/.test(txt)) {
+			try {
+				const result = Function('"use strict"; return (' + txt + ")")();
+				if (typeof result === "number" && isFinite(result)) {
+					rows.push({
+						species: "fallback",
+						marked: frappe.utils.escape_html(txt + " = " + result),
+						plain: String(result),
+						onclick: () => {
+							if (navigator.clipboard && navigator.clipboard.writeText) {
+								navigator.clipboard.writeText(String(result)).catch(() => {});
+							}
+						},
+						key: "",
+						index: 0,
+					});
+				}
+			} catch (e) {
+				/* not arithmetic after all — no row */
+			}
+		}
+		// Global search hand-off: proxy to Frappe's own full-text dialog.
+		if (frappe.searchdialog && frappe.searchdialog.search) {
+			rows.push({
+				species: "fallback",
+				marked: frappe.utils.escape_html(__("Search all documents for \"{0}\"", [txt])),
+				plain: txt,
+				onclick: () => frappe.searchdialog.search.init_search(txt, "global_search"),
+				key: "",
+				index: 0,
+			});
+		}
+		return rows;
+	}
+
+	// ── Shell ───────────────────────────────────────────────────────────────
+
+	/** Built-once overlay nodes; destroyed by live preview to rebuild flags. */
+	let pal_nodes = null;
+
+	/** Debounce handle for the Pro record-search stage. */
+	let pal_docs_timer = null;
+
+	/** Build the overlay skeleton (backdrop, input, list, footer). */
+	function pal_build() {
+		const backdrop = el("div", "bnd-palette-backdrop", { hidden: "" });
+		const shell = el("div", "bnd-palette", { role: "dialog", "aria-modal": "true", "aria-label": __("Command palette") });
+		const head = el("div", "bnd-palette-head");
+		head.appendChild(sprite_icon(sb_existing_symbol(["icon-search", "es-line-search"]) || "icon-search"));
+		const input = el("input", "bnd-palette-input", {
+			type: "text",
+			placeholder: __("Search or type a command"),
+			"aria-label": __("Search"),
+			spellcheck: "false",
+		});
+		head.appendChild(input);
+		shell.appendChild(head);
+		const list = el("div", "bnd-palette-list", { role: "listbox" });
+		shell.appendChild(list);
+		let footer = null;
+		if (parseInt(pal_state.footer, 10)) {
+			footer = el("div", "bnd-palette-footer");
+			shell.appendChild(footer);
+		}
+		backdrop.appendChild(shell);
+		document.body.appendChild(backdrop);
+
+		backdrop.addEventListener("mousedown", (ev) => {
+			if (ev.target === backdrop) pal_close();
+		});
+		input.addEventListener("input", () => pal_render(input.value.trim()));
+		input.addEventListener("keydown", pal_keydown);
+		pal_nodes = { backdrop, shell, input, list, footer };
+	}
+
+	/** Rows currently rendered, flat, for keyboard traversal. */
+	let pal_flat = [];
+	let pal_cursor = 0;
+
+	/** Render the footer hints for the current mode. */
+	function pal_footer_hints() {
+		if (!pal_nodes.footer) return;
+		const pro = document.documentElement.getAttribute("data-bnd-palette") === "pro";
+		const sigils = pro && parseInt(pal_state.sigils, 10);
+		const bits = [];
+		if (sigils) bits.push("<span>&gt; " + __("actions") + "</span><span># " + __("documents") + "</span><span>/ " + __("reports") + "</span>");
+		bits.push("<span>↑↓ " + __("navigate") + "</span>");
+		bits.push("<span>↵ " + __("open") + "</span>");
+		if (parseInt(pal_state.newtab, 10)) bits.push("<span>Ctrl↵ " + __("new tab") + "</span>");
+		bits.push('<span class="bnd-palette-footer-end">esc ' + __("close") + "</span>");
+		pal_nodes.footer.innerHTML = bits.join("");
+	}
+
+	/** Render one row element. */
+	function pal_row_el(row, flat_index) {
+		const item = el("div", "bnd-palette-row", { role: "option", "data-idx": String(flat_index) });
+		const species = PAL_SPECIES[row.species];
+		const symbol = species.icons.length ? sb_existing_symbol(species.icons) : null;
+		if (symbol) {
+			const ic = el("span", "bnd-palette-row-icon");
+			ic.appendChild(sprite_icon(symbol));
+			item.appendChild(ic);
+		}
+		const label = el("span", "bnd-palette-row-label");
+		label.innerHTML = row.marked; // frappe's own marked_string; stock renders it the same way
+		item.appendChild(label);
+		const badge_text = row.badge_override || species.badge();
+		if (badge_text) {
+			const badge = el("span", "bnd-palette-row-badge");
+			badge.textContent = badge_text;
+			item.appendChild(badge);
+		}
+		item.addEventListener("mousemove", () => pal_highlight(flat_index));
+		item.addEventListener("mousedown", (ev) => {
+			ev.preventDefault();
+			pal_execute(row, ev.ctrlKey || ev.metaKey);
+		});
+		return item;
+	}
+
+	/** Move the highlight (wrap-around) and sync aria + scroll. */
+	function pal_highlight(index) {
+		if (!pal_flat.length) return;
+		pal_cursor = ((index % pal_flat.length) + pal_flat.length) % pal_flat.length;
+		const rows = pal_nodes.list.querySelectorAll(".bnd-palette-row");
+		rows.forEach((node) => node.removeAttribute("aria-selected"));
+		const active = pal_nodes.list.querySelector('.bnd-palette-row[data-idx="' + pal_cursor + '"]');
+		if (active) {
+			active.setAttribute("aria-selected", "true");
+			active.scrollIntoView({ block: "nearest" });
+		}
+	}
+
+	/** Full list render for a query. */
+	function pal_render(txt) {
+		const groups = pal_options(txt);
+		const fallbacks = pal_fallbacks(txt);
+		pal_flat = [];
+		pal_nodes.list.innerHTML = "";
+		for (const group of groups) {
+			const species = PAL_SPECIES[group.species];
+			if (species.title()) {
+				const heading = el("div", "bnd-palette-group");
+				heading.textContent = species.title();
+				pal_nodes.list.appendChild(heading);
+			}
+			for (const row of group.rows) {
+				pal_nodes.list.appendChild(pal_row_el(row, pal_flat.length));
+				pal_flat.push(row);
+			}
+		}
+		if (fallbacks.length) {
+			const divider = el("div", "bnd-palette-divider");
+			pal_nodes.list.appendChild(divider);
+			for (const row of fallbacks) {
+				pal_nodes.list.appendChild(pal_row_el(row, pal_flat.length));
+				pal_flat.push(row);
+			}
+		}
+		if (!pal_flat.length && txt) {
+			const empty = el("div", "bnd-palette-empty");
+			empty.textContent = __("No matches");
+			pal_nodes.list.appendChild(empty);
+		}
+		pal_highlight(0);
+		pal_footer_hints();
+
+		// Pro record-search stage: '#query' or any plain query of 3+ chars
+		// appends a Documents group when the (debounced) server answers.
+		const pro = document.documentElement.getAttribute("data-bnd-palette") === "pro";
+		const hash = pro && parseInt(pal_state.sigils, 10) && txt[0] === "#";
+		const record_q = hash ? txt.slice(1).trim() : txt;
+		clearTimeout(pal_docs_timer);
+		if (pro && record_q.length >= 3 && frappe.search.utils.get_global_results) {
+			pal_docs_timer = setTimeout(() => pal_render_docs(record_q, txt), 260);
+		}
+	}
+
+	/**
+	 * Append the async Documents group (Pro). Ignored if the query moved on
+	 * — the palette must never show results for a stale keystroke.
+	 */
+	function pal_render_docs(record_q, typed) {
+		frappe.search.utils
+			.get_global_results(record_q, 0, 12)
+			.then((sets) => {
+				if (!pal_nodes || pal_nodes.input.value.trim() !== typed) return;
+				const rows = [];
+				for (const set of sets || []) {
+					for (const opt of (set && set.results) || []) {
+						rows.push({
+							species: "doc",
+							marked: frappe.utils.escape_html(opt.label || opt.value || ""),
+							plain: opt.value || "",
+							route: opt.route,
+							key: pal_key(opt),
+							index: 0,
+							badge_override: set.title,
+						});
+					}
+				}
+				if (!rows.length) return;
+				const heading = el("div", "bnd-palette-group");
+				heading.textContent = PAL_SPECIES.doc.title();
+				pal_nodes.list.appendChild(heading);
+				for (const row of rows.slice(0, 12)) {
+					const node = pal_row_el(row, pal_flat.length);
+					if (row.badge_override) {
+						const badge = node.querySelector(".bnd-palette-row-badge");
+						if (badge) badge.textContent = row.badge_override;
+					}
+					pal_nodes.list.appendChild(node);
+					pal_flat.push(row);
+				}
+			})
+			.catch(() => {});
+	}
+
+	/**
+	 * Execute a row with the stock awesomebar's select semantics
+	 * (awesome_bar.js:209-234), plus the frecency write.
+	 */
+	function pal_execute(row, new_tab) {
+		pal_record_use(row.key);
+		pal_close();
+		if (row.route_options) frappe.route_options = row.route_options;
+		if (row.onclick) {
+			row.onclick(row.match);
+			return;
+		}
+		if (row.icon_data && frappe.utils.get_route_for_icon) {
+			frappe.route_options = { sidebar: row.icon_data.label };
+			frappe.set_route(frappe.utils.get_route_for_icon(row.icon_data));
+			return;
+		}
+		if (!row.route) return;
+		const route = Array.isArray(row.route) ? row.route : [row.route];
+		if (String(route[0]).startsWith("https://")) {
+			window.open(route[0], "_blank");
+			return;
+		}
+		if (new_tab && parseInt(pal_state.newtab, 10)) {
+			frappe.open_in_new_tab = true;
+		}
+		frappe.set_route(route);
+	}
+
+	/** Keyboard model: wrap-around arrows, two-stage Esc, Ctrl+Enter. */
+	function pal_keydown(ev) {
+		if (ev.key === "ArrowDown") {
+			ev.preventDefault();
+			pal_highlight(pal_cursor + 1);
+		} else if (ev.key === "ArrowUp") {
+			ev.preventDefault();
+			pal_highlight(pal_cursor - 1);
+		} else if (ev.key === "Enter") {
+			ev.preventDefault();
+			const row = pal_flat[pal_cursor];
+			if (row) pal_execute(row, ev.ctrlKey || ev.metaKey);
+		} else if (ev.key === "Escape") {
+			ev.preventDefault();
+			if (pal_nodes.input.value) {
+				pal_nodes.input.value = "";
+				pal_render("");
+			} else {
+				pal_close();
+			}
+		}
+	}
+
+	/** Open (building lazily), reset to the empty state, focus. */
+	function pal_open() {
+		if (!pal_nodes) pal_build();
+		if (frappe.search.utils.setup_recent) {
+			try {
+				frappe.search.utils.setup_recent();
+			} catch (e) {
+				/* recents unavailable — groups simply omit them */
+			}
+		}
+		pal_nodes.backdrop.removeAttribute("hidden");
+		pal_nodes.input.value = "";
+		pal_render("");
+		pal_nodes.input.focus();
+	}
+
+	/** Close and return focus to the page. */
+	function pal_close() {
+		if (pal_nodes) {
+			pal_nodes.backdrop.setAttribute("hidden", "");
+			pal_nodes.input.blur();
+		}
+	}
+
+	/**
+	 * LIVE PREVIEW / re-application: update state + attribute, tear the
+	 * built shell down so flag changes (footer, sigils) rebuild on next
+	 * open. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.palette_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (pal_state ? pal_state[key] : undefined);
+		apply_palette_attrs({
+			style: v("palette_style", "style"),
+			frecency: v("palette_frecency", "frecency"),
+			footer: v("palette_footer", "footer"),
+			newtab: v("palette_newtab", "newtab"),
+			fallbacks: v("palette_fallbacks", "fallbacks"),
+			suggest: v("palette_suggest", "suggest"),
+			sigils: v("palette_sigils", "sigils"),
+			usage: (pal_state && pal_state.usage) || {},
+		});
+		if (pal_nodes) {
+			pal_nodes.backdrop.remove();
+			pal_nodes = null;
+		}
+	};
+
+	/**
+	 * Wire invocation once the desk exists. Registered ONLY when boot
+	 * delivered the kit: add_shortcut REPLACES every handler on the combo
+	 * (keyboard.js:70 calls off() first), so the action must cover all
+	 * styles itself — pal_invoke opens our shell or the native modal. If
+	 * boot carried nothing, we never touch the binding and stock survives.
+	 */
+	function mount_palette() {
+		if (!pal_state) return;
+		if (frappe.ui && frappe.ui.keys && frappe.ui.keys.add_shortcut) {
+			frappe.ui.keys.add_shortcut({
+				shortcut: "ctrl+k",
+				action: () => pal_invoke(),
+				description: __("Open the command palette"),
+				ignore_inputs: true,
+			});
+		}
+		// The native sidebar search row stays visible in Classic/Compact;
+		// route its clicks through the same decision point. Capture phase,
+		// so Frappe's own handler never races us while the shell is active.
+		document.addEventListener(
+			"click",
+			(ev) => {
+				if (!pal_shell_active()) return;
+				const trigger = ev.target.closest && ev.target.closest(".navbar-search-bar");
+				if (!trigger) return;
+				ev.preventDefault();
+				ev.stopPropagation();
+				pal_open();
+			},
+			true
+		);
 	}
 
 	// ── Dock ────────────────────────────────────────────────────────────────
@@ -1951,6 +2565,9 @@
 		// The sidebar style kit rides along in every layout that HAS a
 		// sidebar; Dock hides it, so the kit stays down there.
 		mount_sidebar_kit();
+
+		// The palette kit owns search invocation in every layout.
+		mount_palette();
 
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {

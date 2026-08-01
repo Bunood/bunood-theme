@@ -54,7 +54,8 @@
 @use "chrome/breadcrumbs";
 // Item 10: the composable sidebar style kit (attribute matrix).
 @use "chrome/sidebar";
-// @use "chrome/palette";
+// Item 12: the command palette (refined native skin + our shell).
+@use "chrome/palette";
 
 // ── Surfaces: the content ───────────────────────────────────────────────────
 // @use "surfaces/workspace";

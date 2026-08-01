@@ -206,6 +206,10 @@ const MUTABLE_FIELDS = [
 	// Breadcrumb kit (item 11).
 	"crumb_style", "crumb_separator", "crumb_icons", "crumb_hover",
 	"crumb_copy_link", "crumb_status_pill", "crumb_narrow_collapse",
+	// Command palette kit (item 12).
+	"palette_style", "palette_frecency", "palette_footer", "palette_newtab",
+	"palette_fallbacks", "palette_suggest", "palette_sigils",
+	"enable_command_palette",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -363,6 +367,100 @@ async function main() {
 			expectEq(await attr("data-bnd-crumbs"), "pills", "preview flips to pills");
 			await page.evaluate(() => window.bunood_theme.crumb_apply({ crumb_style: "Quiet Trail" }));
 			expectEq(await attr("data-bnd-crumbs"), "quiet", "preview back to quiet");
+		});
+
+		// ── Command palette kit (item 12) ───────────────────────────────────
+		const PAL_STYLE_SLUG = { "Refined": "refined", "Bunood Palette": "palette", "Palette Pro": "pro" };
+
+		for (const [style, slugValue] of Object.entries(PAL_STYLE_SLUG)) {
+			await test(`palette: ${style} attribute`, async () => {
+				setSettings({ palette_style: style, enable_command_palette: 1 });
+				await goDesk("/desk/item", ".page-head", 2500);
+				expectEq(await attr("data-bnd-palette"), slugValue, "style attr");
+			});
+		}
+
+		await test("palette: Ctrl+K opens our shell with suggestions", async () => {
+			setSettings({
+				palette_style: "Bunood Palette", palette_frecency: 1, palette_footer: 1,
+				palette_newtab: 1, palette_fallbacks: 1, palette_suggest: 1, palette_sigils: 1,
+			});
+			await goDesk("/desk/item", ".page-head", 2500);
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
+			expect(await q(".bnd-palette .bnd-palette-input"), "input mounted");
+			expect(await q(".bnd-palette .bnd-palette-footer"), "footer hints mounted");
+			expect(
+				await page.evaluate(() => document.activeElement.classList.contains("bnd-palette-input")),
+				"input focused"
+			);
+		});
+
+		await test("palette: grouped results with the pinned fallback", async () => {
+			await page.fill(".bnd-palette-input", "item");
+			await page.waitForTimeout(400);
+			expect(
+				(await page.evaluate(() => document.querySelectorAll(".bnd-palette-group").length)) >= 2,
+				"at least two group headings"
+			);
+			const texts = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-palette-row")].map((r) => r.textContent)
+			);
+			expect(texts.some((t) => /Item List/.test(t)), "Item List row present");
+			// "New X" rows ride inside get_doctypes, not get_creatables (which
+			// needs a "new " prefix) — the split into Actions must survive.
+			expect(texts.some((t) => /New Item/.test(t)), "New Item action present");
+			expect(texts[texts.length - 1].includes("Search all documents"), "search-all pinned last");
+		});
+
+		await test("palette: execution routes and records frecency", async () => {
+			await page.evaluate(() => {
+				const row = [...document.querySelectorAll(".bnd-palette-row")].find((r) =>
+					/Item List/.test(r.textContent)
+				);
+				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+			});
+			await page.waitForTimeout(2000);
+			expect(
+				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
+				"routed to the Item list"
+			);
+			const usage = benchPy(
+				`print(frappe.defaults.get_user_default("bnd_palette_usage", "Administrator") or "{}")\n`
+			).trim().split("\n").pop();
+			expect(usage.includes("route:List/Item"), "frecency use recorded server-side");
+			benchPy(
+				`frappe.defaults.clear_default("bnd_palette_usage", parent="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+			);
+		});
+
+		await test("palette: Original leaves the stock Ctrl+K modal", async () => {
+			setSettings({ palette_style: "Original" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			expectEq(await attr("data-bnd-palette"), null, "no style attr");
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".modal #navbar-search", { timeout: 8000 });
+			expect(!(await q(".bnd-palette")), "our shell never built");
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(400);
+		});
+
+		await test("palette: Refined tags the native modal for the skin", async () => {
+			setSettings({ palette_style: "Refined" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".modal.bnd-search-modal #navbar-search", { timeout: 8000 });
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(400);
+		});
+
+		await test("palette: live preview flips the style and back", async () => {
+			setSettings({ palette_style: "Bunood Palette" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			await page.evaluate(() => window.bunood_theme.palette_apply({ palette_style: "Palette Pro" }));
+			expectEq(await attr("data-bnd-palette"), "pro", "preview flips to pro");
+			await page.evaluate(() => window.bunood_theme.palette_apply({ palette_style: "Bunood Palette" }));
+			expectEq(await attr("data-bnd-palette"), "palette", "preview back to palette");
 		});
 
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────

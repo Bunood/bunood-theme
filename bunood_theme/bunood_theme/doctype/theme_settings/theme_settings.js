@@ -36,12 +36,14 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
 		bnd_render_crumbs_picker(frm);
+		bnd_render_palette_picker(frm);
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
 		setTimeout(() => {
 			bnd_sb_preview(frm);
 			bnd_crumb_preview(frm);
+			bnd_palette_preview(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -984,16 +986,202 @@ function bnd_crumb_set(frm, fieldname, value) {
 	bnd_render_crumbs_picker(frm);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Command Palette picker (item 12)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.PALETTE_FIELDS — keep in sync. */
+const BND_PALETTE_FIELDS = [
+	"palette_style", "palette_frecency", "palette_footer", "palette_newtab",
+	"palette_fallbacks", "palette_suggest", "palette_sigils",
+];
+
+/** Shipped defaults, for the picker's reset affordances. */
+const BND_PALETTE_DEFAULTS = {
+	palette_style: "Bunood Palette",
+	palette_frecency: 1,
+	palette_footer: 1,
+	palette_newtab: 1,
+	palette_fallbacks: 1,
+	palette_suggest: 1,
+	palette_sigils: 1,
+};
+
+/**
+ * The four styles: stored value, blurb, and a 120x64 thumbnail sketching
+ * the palette anatomy each one produces.
+ */
+const BND_PALETTE_STYLES = [
+	{
+		value: "Bunood Palette",
+		blurb: () => __("Our palette over Frappe's own search: grouped results, pinned fallbacks, per-user frecency, footer hints."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="23" y="10" width="74" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="24" y="22" width="18" height="3" rx="1.5" fill="currentColor" opacity=".25"/>' +
+			'<rect x="23" y="27" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="24" y="36" width="14" height="3" rx="1.5" fill="currentColor" opacity=".25"/>' +
+			'<rect x="23" y="41" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="18" y="52" width="84" height="0.75" fill="currentColor" opacity=".3"/>' +
+			"</svg>",
+	},
+	{
+		value: "Palette Pro",
+		blurb: () => __("The palette plus mode sigils (> actions, # documents, / reports) and record search — actual invoices by name."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="23" y="10" width="14" height="8" rx="3" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			'<rect x="40" y="10" width="57" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="23" y="24" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="23" y="33" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="23" y="42" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="18" y="52" width="84" height="0.75" fill="currentColor" opacity=".3"/>' +
+			"</svg>",
+	},
+	{
+		value: "Refined",
+		blurb: () => __("Frappe's own search modal, restyled through the theme tokens. No new behavior — the list stays flat."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
+			'<rect x="23" y="10" width="74" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="23" y="23" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="23" y="32" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="23" y="41" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
+			"</svg>",
+	},
+	{
+		value: "Original",
+		blurb: () => __("ERPNext's stock Ctrl+K modal, completely untouched."),
+		svg:
+			'<svg viewBox="0 0 120 64">' +
+			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
+			'<rect x="18" y="8" width="84" height="42" rx="3" fill="none" stroke="currentColor" opacity=".3"/>' +
+			'<rect x="23" y="13" width="74" height="7" rx="2" fill="currentColor" opacity=".12"/>' +
+			'<rect x="23" y="25" width="74" height="5" rx="2" fill="currentColor" opacity=".18"/>' +
+			'<rect x="23" y="33" width="74" height="5" rx="2" fill="currentColor" opacity=".1"/>' +
+			'<rect x="23" y="41" width="74" height="5" rx="2" fill="currentColor" opacity=".1"/>' +
+			"</svg>",
+	},
+];
+
+/** Toggle rows: field, name, one-liner, and which styles they apply to. */
+const BND_PALETTE_TOGGLES = [
+	{ field: "palette_frecency", name: () => __("Frecency ranking"), desc: () => __("Your most-used entries rise to the top. Stored per user on the server — follows you across devices.") },
+	{ field: "palette_suggest", name: () => __("Empty-state suggestions"), desc: () => __("Frequent and recent destinations appear before you type.") },
+	{ field: "palette_fallbacks", name: () => __("Fallback rows"), desc: () => __("\"Search all documents\" stays pinned at the bottom — never pushed out by broad queries. Includes the calculator.") },
+	{ field: "palette_footer", name: () => __("Footer hint bar"), desc: () => __("A slim keycap legend along the palette's bottom edge.") },
+	{ field: "palette_newtab", name: () => __("Ctrl+Enter opens a new tab"), desc: () => __("Side-by-side documents without losing the one you came from.") },
+	{ field: "palette_sigils", name: () => __("Mode sigils"), desc: () => __("A leading > # or / narrows to actions, documents, or reports."), pro_only: true },
+];
+
+/**
+ * Full render of the palette picker. Wholesale re-render on every change —
+ * state lives in the form document, never in this DOM. Reuses the crumbs
+ * picker's stylesheet (bnd-cbp-*): both render on every refresh, and the
+ * class contract is local to this file.
+ */
+function bnd_render_palette_picker(frm) {
+	const field = frm.get_field("palette_picker");
+	if (!field || !field.$wrapper) return;
+
+	const current_style = frm.doc.palette_style || "Bunood Palette";
+	const kit_down = current_style === "Original" || !parseInt(frm.doc.enable_command_palette ?? 1, 10);
+	const is_pro = current_style === "Palette Pro";
+
+	const style_cards = BND_PALETTE_STYLES.map((s) => {
+		const on = s.value === current_style ? " bnd-cbp-on" : "";
+		return (
+			'<button type="button" class="bnd-cbp-style bnd-plp-style' + on + '" data-value="' + s.value + '">' +
+			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
+			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
+			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
+			"</button>"
+		);
+	}).join("");
+
+	const toggles = BND_PALETTE_TOGGLES.map((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		const reason = kit_down
+			? __("Original leaves the stock modal")
+			: t.pro_only && !is_pro
+				? __("Palette Pro only")
+				: "";
+		const dis = reason ? " bnd-cbp-dis" : "";
+		return (
+			'<button type="button" class="bnd-cbp-toggle' + dis + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '"' +
+			(reason ? ' title="' + reason + '" disabled' : "") + ">" +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span>" +
+			"</button>"
+		);
+	}).join("");
+
+	const note = kit_down
+		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's Ctrl+K modal untouched — the options below apply to the other styles.") + "</div>"
+		: '<div class="bnd-cbp-note">' + __("Changes apply on the palette's next open — press Ctrl+K to try it.") + "</div>";
+
+	field.$wrapper.html(
+		'<div class="bnd-cbp">' +
+			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note +
+			'<div class="bnd-cbp-group' + (kit_down ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + __("Behaviour") + '</div>' +
+			'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div>" +
+			'<div style="margin-block-start:10px"><button type="button" class="btn btn-xs btn-default bnd-plp-reset-rank">' + __("Reset my ranking") + "</button>" +
+			'<span class="bnd-cbp-note" style="margin-inline-start:8px">' + __("Clears what the frecency ranking has learned for your user.") + "</span></div>" +
+			"</div>" +
+			"</div>"
+	);
+
+	field.$wrapper.find(".bnd-plp-style").on("click", function () {
+		bnd_palette_set(frm, "palette_style", this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-cbp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_palette_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-plp-reset-rank").on("click", () => {
+		frappe
+			.xcall("bunood_theme.api.reset_palette_ranking")
+			.then(() => frappe.show_alert({ message: __("Ranking reset"), indicator: "green" }))
+			.catch(() => frappe.show_alert({ message: __("Could not reset ranking"), indicator: "red" }));
+	});
+}
+
+/**
+ * LIVE PREVIEW: hand the form's current palette values to the desk engine.
+ * The palette is built lazily, so "preview" means the next Ctrl+K opens
+ * with these options; saving makes them permanent for everyone.
+ */
+function bnd_palette_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.palette_apply) return;
+	const values = {};
+	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
+	if (!parseInt(frm.doc.enable_command_palette ?? 1, 10)) values.palette_style = "Original";
+	window.bunood_theme.palette_apply(values);
+}
+
+/** Set one palette option, preview, re-render. */
+function bnd_palette_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_palette_preview(frm);
+	bnd_render_palette_picker(frm);
+}
+
 /**
  * Export the whole theme (desk layout, branding colors, every sidebar style
- * field, every breadcrumb field) as a JSON file + clipboard copy — portable
- * between tenant sites.
+ * field, every breadcrumb field, every palette field) as a JSON file +
+ * clipboard copy — portable between tenant sites.
  */
 function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -1022,7 +1210,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -1033,8 +1221,10 @@ function bnd_sb_import(frm) {
 			}
 			bnd_sb_preview(frm);
 			bnd_crumb_preview(frm);
+			bnd_palette_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
+			bnd_render_palette_picker(frm);
 			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),

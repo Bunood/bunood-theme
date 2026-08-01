@@ -378,3 +378,76 @@ def clear_workspace_cache(doc=None, method=None) -> None:
             frappe.cache().delete_keys(CACHE_WS_LINKS + "*")
     except Exception:
         pass
+
+
+#: Frecency store size cap. 100 entries covers months of an accountant's
+#: habits; past it the coldest entries are pruned so the boot payload and the
+#: per-use write stay small forever.
+PALETTE_USAGE_CAP = 100
+
+
+@frappe.whitelist()
+def record_palette_use(key: str = "") -> dict:
+    """Record one palette execution for the current user's frecency ranking.
+
+    Stored in ``frappe.defaults`` (per-user, server-side) for the same reason
+    density is — localStorage would make ranking per-BROWSER, and item 31's
+    rule forbids a parallel client-side preference store. The blob is
+    ``{key: [count, last_used_epoch]}``, capped at
+    :data:`PALETTE_USAGE_CAP` by evicting the entries with the oldest
+    last-use. One small write per palette execution — the same order of
+    traffic as Frappe's own Route History logging.
+
+    Deliberately NOT invalidating the boot cache here (unlike density): the
+    client already merged the use into its in-memory copy, and ranking may
+    lag one reload without anyone noticing. Density changes appearance at
+    next boot; ranking only reorders suggestions.
+
+    Args:
+        key: the executed option's identity, e.g. ``"route:/desk/item"`` or
+            ``"new:Item"``. Anything else the client derives is fine — the
+            server treats it as an opaque string (length-capped).
+
+    Returns:
+        ``{"ok": True}`` — the client never needs the stored blob back.
+    """
+    import time
+
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    key = (key or "")[:140]
+    if not key:
+        return {"ok": False}
+
+    try:
+        usage = frappe.parse_json(frappe.defaults.get_user_default("bnd_palette_usage") or "{}")
+        if not isinstance(usage, dict):
+            usage = {}
+    except Exception:
+        usage = {}
+
+    now = int(time.time())
+    count = (usage.get(key) or [0, 0])[0]
+    usage[key] = [count + 1, now]
+    if len(usage) > PALETTE_USAGE_CAP:
+        for cold in sorted(usage, key=lambda k: usage[k][1])[: len(usage) - PALETTE_USAGE_CAP]:
+            usage.pop(cold, None)
+    frappe.defaults.set_user_default("bnd_palette_usage", frappe.as_json(usage, indent=None))
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def reset_palette_ranking() -> dict:
+    """Clear the current user's palette frecency store (the picker's valve).
+
+    Raycast ships the same escape hatch: learned ranking sometimes learns the
+    wrong thing, and a reset is cheaper than fighting it.
+
+    Returns:
+        ``{"ok": True}``.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    frappe.defaults.clear_default("bnd_palette_usage", parent=frappe.session.user)
+    frappe.cache.hdel("bootinfo", frappe.session.user)
+    return {"ok": True}

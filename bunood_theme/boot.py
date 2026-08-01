@@ -62,9 +62,32 @@ def extend_bootinfo(bootinfo):
         # Website Settings handling — see the header comment above.
         bootinfo.bnd_logo = settings.get("logo") or ""
 
-        # Behaviour flags, not appearance. Each is an int because the client only ever
-        # tests truthiness and Frappe's Check fields arrive as 0/1.
-        bootinfo.bnd_palette = int(settings.get("enable_command_palette") or 0)
+        # Command palette kit (item 12). A user-invoked overlay is pure
+        # "construction" under the flash rule — nothing paints until opened.
+        # The legacy visible check is the master gate: 0 forces Original
+        # (stock Ctrl+K modal) whatever the picker stored. Selects fall back
+        # to the shipped default when empty; Checks only when never written.
+        from bunood_theme.presets import PALETTE_DEFAULTS
+
+        def pal(field):
+            value = settings.get(field)
+            return PALETTE_DEFAULTS[field] if value in (None, "") else value
+
+        gate = settings.get("enable_command_palette")
+        bootinfo.bnd_palette = {
+            "style": "Original" if gate is not None and not int(gate or 0) else pal("palette_style"),
+            "frecency": pal("palette_frecency"),
+            "footer": pal("palette_footer"),
+            "newtab": pal("palette_newtab"),
+            "fallbacks": pal("palette_fallbacks"),
+            "suggest": pal("palette_suggest"),
+            "sigils": pal("palette_sigils"),
+            # Per-user usage blob for frecency (capped server-side in
+            # api.record_palette_use): {key: [count, last_used_epoch]}.
+            "usage": frappe.parse_json(
+                frappe.defaults.get_user_default("bnd_palette_usage") or "{}"
+            ),
+        }
 
         # Per-user density override (decision "G with C"). Density is the ONE visual
         # value allowed through boot, because it is exempt from the flash rule: every

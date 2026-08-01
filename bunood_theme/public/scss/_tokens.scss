@@ -160,6 +160,10 @@
   // cover the topbar/statusbar edges it slides across — but below panels.
   --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;
+  // The command palette sits above every panel but still below Frappe's
+  // modals (1050): executing a palette row can open a Frappe dialog, and
+  // that dialog must cover what launched it.
+  --bnd-z-palette: 1045;
 
   // ── Categorical hues ──────────────────────────────────────────────────────
   // Fixed order, validated for colour-vision separation. ASSIGN ONCE PER ENTITY
