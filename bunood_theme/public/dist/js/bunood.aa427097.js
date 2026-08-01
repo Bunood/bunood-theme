@@ -846,9 +846,18 @@
 	 * not exist yet when the router event fires.
 	 */
 	function inject_compact_cluster() {
+		// `frappe.container.page` still points at the OUTGOING page when the
+		// router fires — the new one becomes current a few hundred ms later
+		// (measured: 105ms still old, 512ms new, on Form routes). Without
+		// this guard the first synchronous attempt found the outgoing page's
+		// existing cluster, returned success, and the incoming page never
+		// got one at all: no cluster, no bell, no badge, indefinitely.
+		const outgoing = frappe.container && frappe.container.page;
+		const wait_for_swap = !!(outgoing && outgoing.querySelector(".bnd-cluster"));
 		try_for(() => {
 			const page = frappe.container && frappe.container.page;
 			if (!page) return false;
+			if (wait_for_swap && page === outgoing) return false;
 			const section = page.querySelector(".page-head .standard-items-section");
 			if (!section) return false;
 			if (section.querySelector(".bnd-cluster")) return true;
@@ -2543,6 +2552,47 @@
 		inbox_paint_badge();
 	}
 
+	/** Coalesces observer bursts into one paint per frame. */
+	let inbox_paint_queued = false;
+
+	/**
+	 * Watch for badge nodes ARRIVING and paint them.
+	 *
+	 * Two timing fixes failed before this one, both for the same reason:
+	 * Compact rebuilds its cluster per route through a try_for poll, so the
+	 * moment a new badge exists is not tied to any event we can order
+	 * against. Painting "after inject_compact_cluster" still painted the
+	 * OUTGOING page — measured: on a hop to a form route the incoming page
+	 * had no cluster at all for 15s, while the previous page got the one we
+	 * built. Cold loads on form URLs were blank permanently.
+	 *
+	 * So stop guessing when: react to the DOM itself. Idempotent, cheap
+	 * (one paint per frame), and correct for every layout and page type.
+	 */
+	function inbox_observe() {
+		if (!inbox_state || !window.MutationObserver) return;
+		const observer = new MutationObserver((records) => {
+			if (inbox_paint_queued) return;
+			for (const record of records) {
+				for (const node of record.addedNodes) {
+					if (node.nodeType !== 1) continue;
+					if (
+						node.classList.contains("bnd-inbox-badge") ||
+						node.querySelector(".bnd-inbox-badge")
+					) {
+						inbox_paint_queued = true;
+						requestAnimationFrame(() => {
+							inbox_paint_queued = false;
+							inbox_paint_badge();
+						});
+						return;
+					}
+				}
+			}
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+	}
+
 	/**
 	 * Arrival tiering: an approval that blocks a document earns an
 	 * interruption; a share notification does not. "Badge Only" stays
@@ -2575,6 +2625,7 @@
 			return true;
 		}, 30);
 		inbox_paint_badge();
+		inbox_observe();
 
 		// Frappe's own sidebar bell is the ONLY bell in Classic (which
 		// mounts no cluster). Every other layout hides that row and mounts

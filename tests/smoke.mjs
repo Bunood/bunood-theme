@@ -699,18 +699,34 @@ async function main() {
 			// outgoing page and the incoming one stayed blank forever.
 			setSettings({ desk_layout: "Compact", inbox_style: "Inbox + Page", inbox_badge: "Count" });
 			await goDesk("/desk/item", ".page-head", 3000);
-			const read = () =>
-				page.evaluate(() => {
-					const head = frappe.container && frappe.container.page;
-					const n = head && head.querySelector(".bnd-cluster .bnd-inbox-badge");
-					return n ? { hidden: n.hasAttribute("hidden"), text: n.textContent.trim() } : null;
-				});
-			const first = await read();
-			expect(first && !first.hidden && first.text, `badge painted on first page (${JSON.stringify(first)})`);
+			// POLL, never sample: a navigation can tear down an in-flight
+			// evaluate ("promise was garbage collected"), and a one-shot read
+			// also cannot tell "painted late" from "never painted".
+			const painted = async (what) => {
+				try {
+					await page.waitForFunction(
+						() => {
+							const head = frappe.container && frappe.container.page;
+							const n = head && head.querySelector(".bnd-cluster .bnd-inbox-badge");
+							return !!(n && !n.hasAttribute("hidden") && n.textContent.trim());
+						},
+						{ timeout: 8000 }
+					);
+				} catch (e) {
+					throw new Error(`badge never painted ${what}`);
+				}
+			};
+			await painted("on the first page");
 			await page.evaluate(() => window.frappe.set_route("List", "User"));
-			await page.waitForTimeout(2500);
-			const second = await read();
-			expect(second && !second.hidden && second.text, `badge painted after navigating (${JSON.stringify(second)})`);
+			await painted("after navigating to a list");
+			// FORM routes specifically: their page container becomes current
+			// AFTER the router fires, so every ordering-based fix painted the
+			// outgoing page and left this one blank (measured 15s+).
+			await page.evaluate(() => window.frappe.set_route("Form", "System Settings"));
+			await painted("on a form route");
+			// And a COLD load straight onto a form URL.
+			await goDesk("/desk/system-settings", ".page-head", 2500);
+			await painted("on a cold form load");
 			setSettings({ desk_layout: "Top Bar" });
 		});
 
