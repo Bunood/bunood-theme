@@ -5,6 +5,49 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [0.8.0] — 2026-08-01 — Command palette kit (item 12)
+
+Ctrl+K grows up. Four styles picked visually (hidden fields -> boot dict ->
+data-bnd-palette -> CSS + a lazily-built shell):
+
+- **Bunood Palette** (default): our shell over Frappe's OWN search — every
+  result sourced from `frappe.search.utils.*`, executed with the stock
+  select semantics, rendered as grouped sections (Frequent / Recent /
+  Actions / Navigate / Reports / Pages) with species badges, match
+  highlighting via background tint (per-character bolding breaks Arabic
+  contextual shaping), pinned fallback rows ("Search all documents" can
+  never be pushed out — the stock bar's worst measured weakness), a
+  calculator behind a strict arithmetic whitelist instead of a raw eval,
+  and a footer keycap legend. If any sourced API is missing after an
+  upgrade, invocation falls back to opening the native modal.
+- **Palette Pro**: adds mode sigils (`>` actions, `#` documents, `/`
+  reports) and a debounced record-search stage over Frappe's global-search
+  endpoint — actual documents by name, permission-checked server-side.
+- **Refined**: Frappe's own modal, tagged on first open and restyled
+  through the tokens. The flat list stays flat — no new behavior.
+- **Original**: the stock Ctrl+K modal, untouched. The legacy visible
+  "Enable Command Palette" check is now the kit's hidden master gate
+  (0 forces Original).
+
+**Frecency, finally real**: per-user, SERVER-side (frappe.defaults via two
+new whitelisted endpoints), decayed with a 14-day half-life, capped at 100
+entries, merged into ranking on every open, with a "Reset my ranking"
+valve in the picker. Fixes what upstream cannot: the fork's `user_recent`
+store has no writer, and Route History deliberately never persists Form
+visits — so Frappe's own "frequently visited" can never contain a
+document. Ours can.
+
+**Keyboard**: wrap-around arrows, two-stage Esc (clear, then close),
+Ctrl+Enter opens in a new tab. The Ctrl+K takeover is registered only when
+boot delivers the kit — `add_shortcut` REPLACES every handler on a combo,
+so the action itself covers all styles (our shell or the native modal),
+and a boot failure leaves the stock binding untouched.
+
+Smoke suite grew to 37 checks (style attribute matrix, shell open with
+suggestions, grouped results + pinned fallback + the Actions split,
+execution routing + server-side frecency write, Original/Refined native
+behaviour, live preview).
+
 ## [0.7.0] — 2026-07-31 — Breadcrumb kit (item 11)
 
 The full trail treatment, as a kit of composable Theme Settings options
