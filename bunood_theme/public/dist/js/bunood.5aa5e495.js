@@ -1121,16 +1121,55 @@
 		return Math.min(120, 30 * (entry[0] || 0) * Math.pow(0.5, age_days / PAL_HALFLIFE_DAYS));
 	}
 
-	/** Merge one use into the in-memory blob and persist it server-side. */
+	/** Uses recorded since the last server flush. */
+	let pal_pending_uses = [];
+
+	/** Timestamp of the last flush, for the throttle window. */
+	let pal_flushed_at = 0;
+
+	/** Throttle window between server writes, ms. */
+	const PAL_FLUSH_EVERY = 90 * 1000;
+
+	/**
+	 * Push pending uses to the server in ONE batched write. Throttled hard:
+	 * frappe.defaults.set_default clears the user's whole cache on every
+	 * write (verified in the release review), so a write per palette
+	 * execution would rebuild boot on every navigation. In-session ranking
+	 * freshness never depends on this — the in-memory blob is merged
+	 * immediately; the server copy only matters across sessions.
+	 * @param {boolean} force - flush regardless of the throttle window.
+	 */
+	function pal_flush_uses(force) {
+		if (!pal_pending_uses.length || !frappe.xcall) return;
+		if (!force && Date.now() - pal_flushed_at < PAL_FLUSH_EVERY) return;
+		const keys = pal_pending_uses;
+		pal_pending_uses = [];
+		pal_flushed_at = Date.now();
+		frappe.xcall("bunood_theme.api.record_palette_use", { keys: JSON.stringify(keys) }).catch(() => {
+			// Lost uses only soften ranking — never re-queue into a loop.
+		});
+	}
+
+	// Flush the tail when the tab hides; best-effort by design.
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState === "hidden") pal_flush_uses(true);
+	});
+
+	/** Merge one use into the in-memory blob and queue the server write. */
 	function pal_record_use(key) {
 		if (!pal_state || !parseInt(pal_state.frecency, 10) || !key) return;
 		pal_state.usage = pal_state.usage || {};
 		const entry = pal_state.usage[key] || [0, 0];
 		pal_state.usage[key] = [entry[0] + 1, Math.floor(Date.now() / 1000)];
-		if (frappe.xcall) {
-			frappe.xcall("bunood_theme.api.record_palette_use", { key }).catch(() => {});
-		}
+		pal_pending_uses.push(key);
+		pal_flush_uses(false);
 	}
+
+	/** Forget the in-memory usage blob (the picker's reset presses this). */
+	bunood.palette_forget_usage = function () {
+		if (pal_state) pal_state.usage = {};
+		pal_pending_uses = [];
+	};
 
 	// ── Sources ─────────────────────────────────────────────────────────────
 
@@ -1165,11 +1204,15 @@
 		}
 		const plain = opt.value || opt.label || "";
 		// The badge names what Enter does, so a "X Report" or "X Tree" row
-		// must not wear the generic List badge of its species.
+		// must not wear the generic List badge of its species. Match on the
+		// UNTRANSLATED opt.type Frappe supplies — the value string is
+		// translated ("New X" is Arabic on Arabic sessions) and a regex on
+		// it silently misgroups there (release review v0.7.0..HEAD). The
+		// regex stays as the fallback for sources that omit type.
 		let badge_override = null;
 		if (species === "navigate") {
-			if (/\bReport$/.test(plain)) badge_override = __("Report");
-			else if (/\bTree$/.test(plain)) badge_override = __("Tree");
+			if (opt.type === "Report" || /\bReport$/.test(plain)) badge_override = __("Report");
+			else if (opt.type === "Tree" || /\bTree$/.test(plain)) badge_override = __("Tree");
 		}
 		return {
 			species,
@@ -1213,16 +1256,24 @@
 
 		if (!txt) {
 			if (!parseInt(pal_state.suggest, 10)) return groups;
-			// Frequent: the frecency store itself, best first, resolved back
-			// to displayable rows via boot frequents + recents when possible.
-			const seen = new Set();
-			const recents = pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", ""));
-			const frequents = pal_source("get_frequent_links", "").map((o) => pal_row(o, "frequent", ""));
-			for (const row of [...frequents, ...recents]) {
-				row.index += pal_frecency(row.key);
-			}
-			push("frequent", frequents.filter((r) => !seen.has(r.key) && seen.add(r.key)), 5);
-			push("recent", recents.filter((r) => !seen.has(r.key) && seen.add(r.key)), 7);
+			// Cap FIRST, dedupe against the survivors only: get_frequent_links
+			// falls back to get_recent_pages when boot frequents are empty
+			// (identical keys), and a dedupe that runs before the cap would
+			// consume every key and leave Recent permanently empty (release
+			// review v0.7.0..HEAD). pal_row already added the frecency boost
+			// — no second pass, or the documented cap doubles.
+			const frequents = pal_source("get_frequent_links", "")
+				.map((o) => pal_row(o, "frequent", ""))
+				.sort((a, b) => b.index - a.index)
+				.slice(0, 5);
+			const kept = new Set(frequents.map((r) => r.key));
+			const recents = pal_source("get_recent_pages", "")
+				.map((o) => pal_row(o, "recent", ""))
+				.filter((r) => !kept.has(r.key))
+				.sort((a, b) => b.index - a.index)
+				.slice(0, 7);
+			if (frequents.length) groups.push({ species: "frequent", rows: frequents });
+			if (recents.length) groups.push({ species: "recent", rows: recents });
 			return groups;
 		}
 
@@ -1251,7 +1302,8 @@
 		// or creation would vanish from plain queries (caught by the item-12
 		// visual sweep).
 		const doctype_rows = pal_source("get_doctypes", txt);
-		const is_new = (o) => /^New /.test(o.value || o.label || "");
+		// opt.type first — the value string is translated; see pal_row.
+		const is_new = (o) => o.type === "New" || /^New /.test(o.value || o.label || "");
 		push("action", [
 			...pal_source("get_creatables", txt).map((o) => pal_row(o, "action", txt)),
 			...doctype_rows.filter(is_new).map((o) => pal_row(o, "action", txt)),
@@ -1455,11 +1507,16 @@
 
 		// Pro record-search stage: '#query' or any plain query of 3+ chars
 		// appends a Documents group when the (debounced) server answers.
+		// NEVER under '>' or '/': those sigils narrow to ONE species, and a
+		// global search for the literal sigil string would bolt a Documents
+		// group under the narrowed view (release review v0.7.0..HEAD).
 		const pro = document.documentElement.getAttribute("data-bnd-palette") === "pro";
-		const hash = pro && parseInt(pal_state.sigils, 10) && txt[0] === "#";
+		const sigil_on = pro && parseInt(pal_state.sigils, 10);
+		const hash = sigil_on && txt[0] === "#";
+		const other_sigil = sigil_on && (txt[0] === ">" || txt[0] === "/");
 		const record_q = hash ? txt.slice(1).trim() : txt;
 		clearTimeout(pal_docs_timer);
-		if (pro && record_q.length >= 3 && frappe.search.utils.get_global_results) {
+		if (pro && !other_sigil && record_q.length >= 3 && frappe.search.utils.get_global_results) {
 			pal_docs_timer = setTimeout(() => pal_render_docs(record_q, txt), 260);
 		}
 	}
@@ -1556,8 +1613,32 @@
 		}
 	}
 
-	/** Open (building lazily), reset to the empty state, focus. */
+	/**
+	 * Open (building lazily), reset to the empty state, focus. Guarded and
+	 * toggling like the stock binding: a second Ctrl+K closes, an open
+	 * Global Search dialog is handed off (hidden) first, and a missing
+	 * search API degrades to the native modal — never a throw after our
+	 * capture handler already suppressed Frappe's own handler.
+	 */
 	function pal_open() {
+		if (!(frappe.search && frappe.search.utils)) {
+			proxy_click(".navbar-search-bar .item-anchor");
+			return;
+		}
+		if (pal_nodes && !pal_nodes.backdrop.hasAttribute("hidden")) {
+			pal_close();
+			return;
+		}
+		// Stock ctrl+k closes an open Global Search dialog before opening
+		// the awesomebar — keep that hand-off.
+		const gs_dialog = document.querySelector(".modal.search-dialog.show");
+		if (gs_dialog && window.jQuery) {
+			try {
+				window.jQuery(gs_dialog).modal("hide");
+			} catch (e) {
+				/* dialog stays; the palette still opens above it */
+			}
+		}
 		if (!pal_nodes) pal_build();
 		if (frappe.search.utils.setup_recent) {
 			try {
@@ -1566,6 +1647,10 @@
 				/* recents unavailable — groups simply omit them */
 			}
 		}
+		// Ctrl+K fires with ignore_inputs even while a Frappe dialog (1050)
+		// is up; our resting slot is below dialogs by design, so lift just
+		// this open above them or the palette would render underneath.
+		pal_nodes.backdrop.style.zIndex = document.body.classList.contains("modal-open") ? "1055" : "";
 		pal_nodes.backdrop.removeAttribute("hidden");
 		pal_nodes.input.value = "";
 		pal_render("");
@@ -1625,12 +1710,29 @@
 		// The native sidebar search row stays visible in Classic/Compact;
 		// route its clicks through the same decision point. Capture phase,
 		// so Frappe's own handler never races us while the shell is active.
+		// TWO guards keep the fail-open contract honest (release review
+		// v0.7.0..HEAD traced both): the API guard lets the native handler
+		// proceed untouched when frappe.search.utils is gone — including
+		// pal_invoke's own fallback proxy_click, whose synthetic event lands
+		// right here — and the Refined branch never intercepts, it only
+		// tags the lazily-built modal for the CSS skin.
 		document.addEventListener(
 			"click",
 			(ev) => {
-				if (!pal_shell_active()) return;
 				const trigger = ev.target.closest && ev.target.closest(".navbar-search-bar");
 				if (!trigger) return;
+				if (document.documentElement.getAttribute("data-bnd-palette") === "refined") {
+					try_for(() => {
+						const input = document.getElementById("navbar-search");
+						const modal = input && input.closest(".modal");
+						if (!modal) return false;
+						modal.classList.add("bnd-search-modal");
+						return true;
+					}, 10);
+					return;
+				}
+				if (!pal_shell_active()) return;
+				if (!(frappe.search && frappe.search.utils)) return;
 				ev.preventDefault();
 				ev.stopPropagation();
 				pal_open();

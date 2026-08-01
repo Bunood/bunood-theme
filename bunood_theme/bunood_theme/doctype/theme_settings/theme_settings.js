@@ -1147,7 +1147,14 @@ function bnd_render_palette_picker(frm) {
 	field.$wrapper.find(".bnd-plp-reset-rank").on("click", () => {
 		frappe
 			.xcall("bunood_theme.api.reset_palette_ranking")
-			.then(() => frappe.show_alert({ message: __("Ranking reset"), indicator: "green" }))
+			.then(() => {
+				// The live desk holds its own in-memory copy of the blob —
+				// clear it too, or ranking looks unchanged until a reload.
+				if (window.bunood_theme && window.bunood_theme.palette_forget_usage) {
+					window.bunood_theme.palette_forget_usage();
+				}
+				frappe.show_alert({ message: __("Ranking reset"), indicator: "green" });
+			})
 			.catch(() => frappe.show_alert({ message: __("Could not reset ranking"), indicator: "red" }));
 	});
 }

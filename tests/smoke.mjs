@@ -385,7 +385,9 @@ async function main() {
 				palette_style: "Bunood Palette", palette_frecency: 1, palette_footer: 1,
 				palette_newtab: 1, palette_fallbacks: 1, palette_suggest: 1, palette_sigils: 1,
 			});
-			await goDesk("/desk/item", ".page-head", 2500);
+			// NOT /desk/item: the frecency test below executes "Item List"
+			// and must prove a REAL route change, not a no-op navigation.
+			await goDesk("/desk/sales-invoice", ".page-head", 2500);
 			await page.keyboard.press("Control+k");
 			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
 			expect(await q(".bnd-palette .bnd-palette-input"), "input mounted");
@@ -414,16 +416,22 @@ async function main() {
 		});
 
 		await test("palette: execution routes and records frecency", async () => {
+			// Clear BEFORE acting, not only after: a leftover blob from an
+			// aborted earlier run would make the server-write assertion pass
+			// even if the endpoint regressed (release review v0.7.0..HEAD).
+			benchPy(
+				`frappe.defaults.clear_default("bnd_palette_usage", parent="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+			);
 			await page.evaluate(() => {
 				const row = [...document.querySelectorAll(".bnd-palette-row")].find((r) =>
 					/Item List/.test(r.textContent)
 				);
 				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
 			});
-			await page.waitForTimeout(2000);
+			await page.waitForTimeout(2500);
 			expect(
 				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
-				"routed to the Item list"
+				"routed from the Sales Invoice list to the Item list"
 			);
 			const usage = benchPy(
 				`print(frappe.defaults.get_user_default("bnd_palette_usage", "Administrator") or "{}")\n`

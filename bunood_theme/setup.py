@@ -43,6 +43,11 @@ CHECK_DEFAULTS = {
     for field, value in defaults.items()
     if isinstance(value, int)
 }
+# The palette kit's master gate (item 12). Lived in DEFAULTS since item 4,
+# where truthiness seeding would flip an admin's explicit 0 back to 1 on
+# every migrate — the tagline bug's exact shape, caught by the v0.8.0
+# release review before it could bite.
+CHECK_DEFAULTS["enable_command_palette"] = 1
 
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
@@ -50,7 +55,6 @@ DEFAULTS = {
     "company_name": "Bunood",
     "brand_color": "#4d8756",
     "accent_color": "#4463f0",
-    "enable_command_palette": 1,
     # Density site default (decision "G with C"). Seeded here because a field
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.

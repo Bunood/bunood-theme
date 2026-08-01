@@ -387,37 +387,42 @@ PALETTE_USAGE_CAP = 100
 
 
 @frappe.whitelist()
-def record_palette_use(key: str = "") -> dict:
-    """Record one palette execution for the current user's frecency ranking.
+def record_palette_use(keys=None) -> dict:
+    """Record a BATCH of palette executions for the user's frecency ranking.
 
     Stored in ``frappe.defaults`` (per-user, server-side) for the same reason
     density is — localStorage would make ranking per-BROWSER, and item 31's
     rule forbids a parallel client-side preference store. The blob is
     ``{key: [count, last_used_epoch]}``, capped at
     :data:`PALETTE_USAGE_CAP` by evicting the entries with the oldest
-    last-use. One small write per palette execution — the same order of
-    traffic as Frappe's own Route History logging.
+    last-use.
 
-    Deliberately NOT invalidating the boot cache here (unlike density): the
-    client already merged the use into its in-memory copy, and ranking may
-    lag one reload without anyone noticing. Density changes appearance at
-    next boot; ranking only reorders suggestions.
+    BATCHED BY CONTRACT: ``frappe.defaults.set_default`` clears the user's
+    ENTIRE cache — including the cached boot — on every write (verified
+    during the v0.8.0 release review), so the client throttles flushes to
+    one every ~90s and this endpoint takes a list. In-session ranking never
+    depends on these writes; the client merges uses in memory immediately.
 
     Args:
-        key: the executed option's identity, e.g. ``"route:/desk/item"`` or
-            ``"new:Item"``. Anything else the client derives is fine — the
-            server treats it as an opaque string (length-capped).
+        keys: JSON array (or list) of option identities, e.g.
+            ``["route:List/Item", "label:New Item"]``. Opaque strings,
+            length- and count-capped.
 
     Returns:
-        ``{"ok": True}`` — the client never needs the stored blob back.
+        ``{"ok": True, "recorded": <count>}``.
     """
     import time
 
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
-    key = (key or "")[:140]
-    if not key:
-        return {"ok": False}
+    if isinstance(keys, str):
+        try:
+            keys = frappe.parse_json(keys)
+        except Exception:
+            keys = None
+    if not isinstance(keys, list) or not keys:
+        return {"ok": False, "recorded": 0}
+    keys = [str(k)[:140] for k in keys[:50] if k]
 
     try:
         usage = frappe.parse_json(frappe.defaults.get_user_default("bnd_palette_usage") or "{}")
@@ -427,13 +432,14 @@ def record_palette_use(key: str = "") -> dict:
         usage = {}
 
     now = int(time.time())
-    count = (usage.get(key) or [0, 0])[0]
-    usage[key] = [count + 1, now]
+    for key in keys:
+        count = (usage.get(key) or [0, 0])[0]
+        usage[key] = [count + 1, now]
     if len(usage) > PALETTE_USAGE_CAP:
         for cold in sorted(usage, key=lambda k: usage[k][1])[: len(usage) - PALETTE_USAGE_CAP]:
             usage.pop(cold, None)
     frappe.defaults.set_user_default("bnd_palette_usage", frappe.as_json(usage, indent=None))
-    return {"ok": True}
+    return {"ok": True, "recorded": len(keys)}
 
 
 @frappe.whitelist()
