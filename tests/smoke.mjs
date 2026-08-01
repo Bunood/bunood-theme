@@ -442,6 +442,28 @@ async function main() {
 			);
 		});
 
+		await test("palette: no duplicate rows in the empty state", async () => {
+			setSettings({ palette_style: "Bunood Palette" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			// Revisit the same list twice: frappe.route_history appends per
+			// navigation without deduping, so a within-group dedupe bug shows
+			// up here as the same row twice.
+			await page.evaluate(() => window.frappe.set_route(["List", "Sales Invoice"]));
+			await page.waitForTimeout(1500);
+			await page.evaluate(() => window.frappe.set_route(["List", "Item"]));
+			await page.waitForTimeout(1500);
+			await page.evaluate(() => window.frappe.set_route(["List", "Sales Invoice"]));
+			await page.waitForTimeout(1500);
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
+			const labels = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-palette-row-label")].map((n) => n.textContent.trim())
+			);
+			expectEq(labels.length, new Set(labels).size, `no repeated suggestion (${labels.join(" | ")})`);
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
+		});
+
 		await test("palette: Original leaves the stock Ctrl+K modal", async () => {
 			setSettings({ palette_style: "Original" });
 			await goDesk("/desk/item", ".page-head", 2500);

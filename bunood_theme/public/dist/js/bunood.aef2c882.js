@@ -1088,7 +1088,17 @@
 			pal_open();
 			return;
 		}
-		proxy_click(".navbar-search-bar .item-anchor");
+		// Original / Refined must behave EXACTLY like stock ctrl+k, and stock
+		// ctrl+k is this function — it hides an open Global Search dialog and
+		// carries its keywords into the awesomebar. A bare proxy_click skips
+		// both (release review v0.7.0..HEAD measured the dialog left open
+		// behind the modal). Call Frappe's own function; proxy only if the
+		// name is gone in a future version.
+		if (frappe.search && typeof frappe.search.open_awesomebar_from_global_search_shortcut === "function") {
+			frappe.search.open_awesomebar_from_global_search_shortcut();
+		} else {
+			proxy_click(".navbar-search-bar .item-anchor");
+		}
 		if (document.documentElement.getAttribute("data-bnd-palette") === "refined") {
 			// The native modal is built lazily on first open; tag it once so
 			// _palette.scss can skin it without :has().
@@ -1211,8 +1221,20 @@
 		// regex stays as the fallback for sources that omit type.
 		let badge_override = null;
 		if (species === "navigate") {
-			if (opt.type === "Report" || /\bReport$/.test(plain)) badge_override = __("Report");
-			else if (opt.type === "Tree" || /\bTree$/.test(plain)) badge_override = __("Tree");
+			if (opt.type) {
+				// Trust the type ALONE when present. Keeping the regex as an
+				// `||` fallback re-created the bug it was meant to fix: on
+				// Arabic, "{0} List" translates to "قائمة {0}" (placeholder
+				// LAST) with the doctype name untranslated, so the List row
+				// of the core "Report" doctype reads "قائمة Report" and the
+				// regex badged it "تقرير" — a row whose Enter opens a list.
+				if (opt.type === "Report") badge_override = __("Report");
+				else if (opt.type === "Tree") badge_override = __("Tree");
+			} else if (/\bReport$/.test(plain)) {
+				badge_override = __("Report");
+			} else if (/\bTree$/.test(plain)) {
+				badge_override = __("Tree");
+			}
 		}
 		return {
 			species,
@@ -1262,13 +1284,18 @@
 			// consume every key and leave Recent permanently empty (release
 			// review v0.7.0..HEAD). pal_row already added the frecency boost
 			// — no second pass, or the documented cap doubles.
-			const frequents = pal_source("get_frequent_links", "")
-				.map((o) => pal_row(o, "frequent", ""))
+			// Dedupe WITHIN each group as well as across: frappe.route_history
+			// is appended per navigation with no dedupe, so revisiting a list
+			// twice would otherwise render it twice and eat the cap.
+			const uniq = (rows) => {
+				const seen = new Set();
+				return rows.filter((r) => !seen.has(r.key) && seen.add(r.key));
+			};
+			const frequents = uniq(pal_source("get_frequent_links", "").map((o) => pal_row(o, "frequent", "")))
 				.sort((a, b) => b.index - a.index)
 				.slice(0, 5);
 			const kept = new Set(frequents.map((r) => r.key));
-			const recents = pal_source("get_recent_pages", "")
-				.map((o) => pal_row(o, "recent", ""))
+			const recents = uniq(pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", "")))
 				.filter((r) => !kept.has(r.key))
 				.sort((a, b) => b.index - a.index)
 				.slice(0, 7);
@@ -1302,8 +1329,9 @@
 		// or creation would vanish from plain queries (caught by the item-12
 		// visual sweep).
 		const doctype_rows = pal_source("get_doctypes", txt);
-		// opt.type first — the value string is translated; see pal_row.
-		const is_new = (o) => o.type === "New" || /^New /.test(o.value || o.label || "");
+		// Type alone when present; the regex only covers sources that omit
+		// it — the value string is translated. See pal_row.
+		const is_new = (o) => (o.type !== undefined ? o.type === "New" : /^New /.test(o.value || o.label || ""));
 		push("action", [
 			...pal_source("get_creatables", txt).map((o) => pal_row(o, "action", txt)),
 			...doctype_rows.filter(is_new).map((o) => pal_row(o, "action", txt)),
@@ -1629,14 +1657,34 @@
 			pal_close();
 			return;
 		}
-		// Stock ctrl+k closes an open Global Search dialog before opening
-		// the awesomebar — keep that hand-off.
+		// Stock ctrl+k closes an open Global Search dialog and CARRIES its
+		// keywords across — keep both halves of that hand-off. Hide through
+		// the Dialog object when it is reachable, so its own is_visible flag
+		// clears too (jQuery modal("hide") alone leaves it stale).
+		let seed = "";
+		const gs = frappe.searchdialog && frappe.searchdialog.search;
 		const gs_dialog = document.querySelector(".modal.search-dialog.show");
-		if (gs_dialog && window.jQuery) {
+		if (gs_dialog) {
+			const gs_input = gs_dialog.querySelector("input");
+			seed = (gs_input && gs_input.value) || "";
 			try {
-				window.jQuery(gs_dialog).modal("hide");
+				if (gs && gs.search_dialog && gs.search_dialog.hide) gs.search_dialog.hide();
+				else if (window.jQuery) window.jQuery(gs_dialog).modal("hide");
 			} catch (e) {
 				/* dialog stays; the palette still opens above it */
+			}
+		}
+		// A Frappe control input answers ctrl+k with its OWN handler
+		// (base_input.js: $("#navbar-modal-search").click(); return false),
+		// whose jQuery-simulated click opens the native modal before our
+		// capture listener ever sees the real event — so the shell would
+		// stack on top of an invisible, focus-stealing awesomebar. Close it.
+		const native_modal = document.querySelector(".modal.show #navbar-search");
+		if (native_modal && window.jQuery) {
+			try {
+				window.jQuery(native_modal.closest(".modal")).modal("hide");
+			} catch (e) {
+				/* leave it; ours is above and focused either way */
 			}
 		}
 		if (!pal_nodes) pal_build();
@@ -1652,8 +1700,8 @@
 		// this open above them or the palette would render underneath.
 		pal_nodes.backdrop.style.zIndex = document.body.classList.contains("modal-open") ? "1055" : "";
 		pal_nodes.backdrop.removeAttribute("hidden");
-		pal_nodes.input.value = "";
-		pal_render("");
+		pal_nodes.input.value = seed;
+		pal_render(seed);
 		pal_nodes.input.focus();
 	}
 
