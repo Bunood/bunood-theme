@@ -105,6 +105,48 @@ ruleset.
   admin — and the error segment counts Error Log rows, so the bar would
   have reported its own noise as a fault. Throttled to once an hour.
 
+### Caught by the release review, after the suite was green
+
+The adversarial review gate found a critical defect and two majors that
+52 passing browser tests did not. All are fixed, each with a regression
+test — several of them geometric, because the old assertions passed
+while the layout underneath them was wrong.
+
+- **Style "Off" deleted the Bottom Bar layout's only chrome.** The early
+  return skipped the strip whichever bar it was, but in that layout the
+  strip IS the layout — it carries the bell, the unread badge and the
+  avatar menu, while the CSS hides the sidebar's copies of all three
+  keyed on the layout. Bottom Bar + Off gave every user a desk with no
+  notifications and no way to log out. Off now empties the strip of
+  status content; it never deletes a layout's chrome.
+- **The centred search slot dragged the top bar's cluster to the wrong
+  end.** Flexbox resolves flexible lengths before auto margins, so the
+  flexing spacers introduced for centring cancelled the cluster's own
+  `margin-inline-start: auto` and moved the bell and avatar to the
+  leading edge. The slot is now positioned against the bar, which also
+  centres it on the BAR rather than between whatever sits either side.
+- **The dock and the status bar occupied the same band.** Dock gained a
+  status bar this release; both are fixed to the bottom edge with the
+  same z-index, and the dock — appended later — painted over the bar and
+  swallowed its clicks, including the search field that falls back into
+  it under the default placement. They stack.
+- **Nothing hidden was ever hidden.** `[hidden]` is the lowest-weight
+  rule there is and `.bnd-status-item` sets `display`, so Quiet's whole
+  premise was decorative.
+- **Two search fields at once.** Compact and Classic keep Frappe's own
+  sidebar row, so a bar placement added a second field beside it.
+- **The clearance rule outranked the Desktop-page stand-down guard** on
+  specificity. Clearance is now keyed on `data-bnd-statusbar` — whether a
+  bar actually mounted — rather than re-derived from layout and style,
+  which also gives Classic's opt-in bar the clearance no layout rule
+  ever covered.
+- **The errors segment lost its warn tone in Operator**, the one style
+  meant for people watching for trouble, so escalation could never fire
+  for errors at all.
+- **The freshness stamp was built for users with nothing pollable**,
+  leaving a permanent "No data" over a refresh button that could not
+  refresh anything.
+
 ## [0.9.0] — 2026-08-01 — Notification centre kit (item 13)
 
 Four styles picked visually (hidden fields -> boot dict ->
