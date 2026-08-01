@@ -2261,7 +2261,12 @@
 				"aria-label": __("Open in a new tab"),
 				title: __("Open in a new tab"),
 			});
-			const open_symbol = sb_existing_symbol(["icon-link-url", "icon-link", "es-line-link"]);
+			// icon-link-url draws a PAPERCLIP in this icon set (measured) —
+			// wrong verb for "open in a new tab". The espresso arrow reads
+			// as "leaves this surface", which is what the action does.
+			const open_symbol = sb_existing_symbol([
+				"es-line-arrow-up-right", "es-line-web-link", "icon-link-url",
+			]);
 			if (open_symbol) open_btn.appendChild(sprite_icon(open_symbol));
 			open_btn.addEventListener("click", (ev) => {
 				ev.preventDefault();
@@ -2501,15 +2506,28 @@
 			inbox_open_panel();
 			return;
 		}
+		// Refined needs no tagging: its skin is keyed on the boot attribute
+		// alone (the tagging never ran in Classic, which mounts no bell).
 		proxy_click(".sidebar-notification .item-anchor");
-		if (document.documentElement.getAttribute("data-bnd-inbox") === "refined") {
-			try_for(() => {
-				const panel = document.querySelector(".dropdown-notifications");
-				if (!panel) return false;
-				panel.classList.add("bnd-notif-panel");
-				return true;
-			}, 10);
+	}
+
+	/**
+	 * Make sure every bell that exists right now carries a badge node, then
+	 * paint them. TWO layouts need this beyond the initial mount:
+	 *   Classic  — mounts no cluster at all, so the ONLY bell is Frappe's
+	 *              own sidebar row; without this it had no badge whatsoever
+	 *              while the picker still offered "Bell badge: Count".
+	 *   Compact  — re-injects its cluster on every route change, so each
+	 *              new page arrived with a fresh, unpainted badge node.
+	 * (Release review v0.8.0..HEAD found both.)
+	 */
+	function inbox_ensure_badges() {
+		if (!inbox_state) return;
+		const native = document.querySelector(".sidebar-notification .item-anchor");
+		if (native && !native.querySelector(".bnd-inbox-badge")) {
+			native.appendChild(el("span", "bnd-inbox-badge", { hidden: "" }));
 		}
+		inbox_paint_badge();
 	}
 
 	/**
@@ -2536,7 +2554,33 @@
 	 */
 	function mount_inbox() {
 		if (!inbox_state) return;
+		// The sidebar renders a beat after the shell, so the native bell may
+		// not exist yet; retry like every other late-mounting anchor.
+		try_for(() => {
+			if (!document.querySelector(".sidebar-notification .item-anchor")) return false;
+			inbox_ensure_badges();
+			return true;
+		}, 30);
 		inbox_paint_badge();
+
+		// Frappe's own sidebar bell stays visible (and is the only bell) in
+		// Classic, and stays clickable in Compact — route its clicks through
+		// the same decision point, exactly as the palette does for the
+		// native search row. Capture phase so Frappe's handler never races
+		// us while our panel owns the surface; guarded so a missing xcall
+		// lets the native handler proceed untouched (fails open).
+		document.addEventListener(
+			"click",
+			(ev) => {
+				if (!inbox_active() || !frappe.xcall) return;
+				const trigger = ev.target.closest && ev.target.closest(".sidebar-notification");
+				if (!trigger) return;
+				ev.preventDefault();
+				ev.stopPropagation();
+				inbox_open_panel();
+			},
+			true
+		);
 		if (frappe.realtime && frappe.realtime.on) {
 			// Frappe publishes the whole Notification Log doc on this event
 			// (notification_log.py after_insert), so the tiering decision
@@ -2551,7 +2595,13 @@
 		// Frappe's own panel force-hides on route change; ours does too, so
 		// a click-through never leaves a panel floating over the new page.
 		if (frappe.router && frappe.router.on) {
-			frappe.router.on("change", () => inbox_close());
+			frappe.router.on("change", () => {
+				inbox_close();
+				// Compact rebuilds its cluster per page: the new bell needs
+				// its badge painted, and Classic's native bell may only now
+				// have rendered.
+				inbox_ensure_badges();
+			});
 		}
 	}
 

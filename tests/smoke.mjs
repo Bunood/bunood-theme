@@ -665,7 +665,48 @@ async function main() {
 			await page.click(".bnd-icon-btn[aria-label='Notifications']");
 			await page.waitForTimeout(1200);
 			expect(!(await q(".bnd-inbox-backdrop:not([hidden])")), "our panel never built");
-			expectEq(await visible(".dropdown-notifications"), true, "stock panel opened");
+			// A display check alone is too weak — the stock panel can be
+			// display:block and still have no visible box. Measure it.
+			const box = await page.evaluate(() => {
+				const n = document.querySelector(".dropdown-notifications");
+				if (!n) return null;
+				const r = n.getBoundingClientRect();
+				return { w: Math.round(r.width), h: Math.round(r.height) };
+			});
+			expect(box && box.w > 200 && box.h > 100, `stock panel has a real box (got ${JSON.stringify(box)})`);
+		});
+
+		await test("inbox: works in Classic, which mounts no themed bell", async () => {
+			// Classic mounts no cluster, so Frappe's own sidebar row is the
+			// ONLY bell. The kit had no badge and no panel there at all,
+			// while the picker still advertised both (release review
+			// v0.8.0..HEAD). Every other inbox test runs under the ambient
+			// layout and cannot see this.
+			setSettings({ desk_layout: "Classic", inbox_style: "Inbox + Page" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			expect(!(await q(".bnd-icon-btn[aria-label='Notifications']")), "no themed bell in Classic (precondition)");
+			const badge = await page.evaluate(() => {
+				const n = document.querySelector(".sidebar-notification .bnd-inbox-badge:not([hidden])");
+				return n ? n.textContent.trim() : null;
+			});
+			expect(badge && parseInt(badge, 10) > 0, `native bell carries the badge (got ${badge})`);
+			await page.click(".sidebar-notification .item-anchor");
+			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 6000 });
+			expect(await q(".bnd-inbox .bnd-inbox-tabs"), "our panel opened from the native bell");
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
+
+			// Refined must skin the stock panel here too — its selector may
+			// not depend on anything JS applies, since nothing mounts.
+			setSettings({ inbox_style: "Refined" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const skinned = await page.evaluate(() => {
+				const n = document.querySelector(".dropdown-notifications .notifications-list");
+				if (!n) return null;
+				return getComputedStyle(n).borderRadius;
+			});
+			expect(skinned && skinned !== "0px", `Refined skin applies in Classic (radius ${skinned})`);
+			setSettings({ desk_layout: "Top Bar", inbox_style: "Inbox + Page" });
 		});
 
 		await test("inbox: live preview flips the style and back", async () => {
@@ -757,6 +798,13 @@ async function main() {
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
 			await goDesk("/desk/theme-settings", ".bnd-sbp-presets", 2000);
+			// Start from the DB's current state: earlier tests write Theme
+			// Settings through set_single_value, which bumps `modified`, so
+			// without this round 1 can fail on inherited staleness and mask
+			// what this test actually guards — that OUR save path does not
+			// bump `modified` and break the NEXT save (the v0.6.2 bug).
+			await page.evaluate(() => window.cur_frm.reload_doc());
+			await page.waitForTimeout(1500);
 			for (const round of [1, 2]) {
 				await page.evaluate(() => window.cur_frm.set_value("tagline", "smoke-" + Date.now()));
 				await page.keyboard.press("Control+s");

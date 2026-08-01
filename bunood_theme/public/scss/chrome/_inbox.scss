@@ -20,25 +20,35 @@
 
 // ── The bell badge (all styles except Original) ─────────────────────────────
 
-html[data-bnd-inbox] .bnd-icon-btn {
+// Both bells anchor the badge: the themed one in the bars, and Frappe's own
+// sidebar row, which stays visible (and is the ONLY bell) in Classic.
+html[data-bnd-inbox] .bnd-icon-btn,
+html[data-bnd-inbox] .sidebar-notification .item-anchor {
   position: relative;
 }
 
 html[data-bnd-inbox] .bnd-inbox-badge {
   position: absolute;
-  inset-block-start: 1px;
-  inset-inline-end: 1px;
-  min-inline-size: 15px;
-  block-size: 15px;
-  padding-inline: 4px;
+  // Offset OUTWARD past the button's corner: at 15px the badge is wider
+  // than the 13px bell glyph, so sitting inside the button it covered the
+  // dome and the pair read as a red dot on a stick (measured in the
+  // item-13 sweep). Overhanging the corner is the convention anyway.
+  inset-block-start: -4px;
+  inset-inline-end: -4px;
+  min-inline-size: 14px;
+  block-size: 14px;
+  padding-inline: 3px;
   border-radius: var(--bnd-radius-pill);
   // --bnd-critical is the theme's existing alert red, mode-aware in
   // _tokens.scss; nothing here hardcodes a colour.
   background: var(--bnd-critical);
-  color: #fff;
+  // Mode-aware: --bnd-critical is a DARK red in light mode and a LIGHT red
+  // in dark mode, so the readable foreground flips with it. Keeping white
+  // ink in both measured 2.1:1 on the dark-mode fill.
+  color: var(--bnd-on-critical);
   font-size: 9.5px;
   font-weight: var(--bnd-weight-medium);
-  line-height: 15px;
+  line-height: 14px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
@@ -56,9 +66,35 @@ html[data-bnd-inbox] .bnd-inbox-badge {
   }
 }
 
+// ── The bell must survive the rail's rest state ─────────────────────────────
+// In Classic the ONLY bell is Frappe's sidebar row, and that row lives inside
+// `.standard-items-sections`, which the menu rail fades to opacity 0 with
+// pointer-events: none at rest (_sidebar.scss "Rail rest state"). Result with
+// the shipped defaults (Classic + the Rail preset): no reachable bell and an
+// invisible badge — the click was measurably unhittable.
+//
+// A child cannot escape an opacity-0 ancestor, so the container is restored
+// and its OTHER children are faded individually instead. Same rest-state look,
+// one essential affordance kept — exactly how the brand and utility chips are
+// already treated.
+html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections {
+  opacity: 1;
+  pointer-events: auto;
+
+  > *:not(.sidebar-notification) {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 // ── Refined: skin Frappe's own panel ────────────────────────────────────────
 
-html[data-bnd-inbox="refined"] .dropdown-notifications.bnd-notif-panel {
+// Keyed on the ATTRIBUTE ALONE, never on a JS-applied class: the Classic
+// layout mounts no themed bell, so nothing there ever ran the tagging code
+// and Refined rendered identically to Original — silently, forever (release
+// review v0.8.0..HEAD). `_layouts.scss` already proves the bare selector is
+// sufficient, and pure CSS also means the skin is right at first paint.
+html[data-bnd-inbox="refined"] .dropdown-notifications {
   .notifications-list {
     border: var(--bnd-line) solid var(--bnd-border);
     border-radius: var(--bnd-radius-xl);
@@ -168,11 +204,15 @@ html[data-theme] .bnd-inbox-link {
   &:hover {
     color: var(--bnd-ink);
   }
+}
 
-  // The first link in the head row pushes itself to the end edge.
-  .bnd-inbox-head &:first-of-type {
-    margin-inline-start: auto;
-  }
+// The first link in the head row pushes itself and everything after it to
+// the end edge. Written flat, NOT as `.bnd-inbox-head &` inside the block
+// above: that expands to `.bnd-inbox-head html[data-theme] .bnd-inbox-link`
+// — an <html> nested in a div — so it silently matched nothing and the
+// header actions stayed jammed against the title (item-13 sweep).
+html[data-theme] .bnd-inbox-head .bnd-inbox-link:first-of-type {
+  margin-inline-start: auto;
 }
 
 html[data-theme] .bnd-inbox-act {
@@ -238,7 +278,10 @@ html[data-theme] .bnd-inbox-group {
   padding-block: var(--bnd-sp-2) 2px;
   padding-inline: var(--bnd-sp-4);
   font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
+  // ink-subtle measured 2.6:1 here (AA needs 4.5:1 for small text);
+  // ink-muted is the lightest token that passes. Same swap below for
+  // timestamps, chips, the avatar initial and the footer hints.
+  color: var(--bnd-ink-muted);
 }
 
 html[data-theme] .bnd-inbox-row {
@@ -290,7 +333,9 @@ html[data-theme] .bnd-inbox-avatar {
   block-size: 22px;
   border-radius: 50%;
   background: var(--bnd-active);
-  color: var(--bnd-brand);
+  // Brand-on-tint measured 2.6:1 for a single initial; ink reads cleanly
+  // and the tint still identifies the actor.
+  color: var(--bnd-ink);
   font-size: var(--bnd-text-xs);
   flex: none;
 }
@@ -311,7 +356,7 @@ html[data-theme] .bnd-inbox-subject {
 
 html[data-theme] .bnd-inbox-when {
   font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
+  color: var(--bnd-ink-muted);
 }
 
 html[data-theme] .bnd-inbox-chip {
@@ -321,13 +366,15 @@ html[data-theme] .bnd-inbox-chip {
   padding-block: 1px;
   padding-inline: var(--bnd-sp-1);
   background: var(--bnd-raised);
-  color: var(--bnd-ink-subtle);
+  color: var(--bnd-ink-muted);
   border: var(--bnd-line) solid var(--bnd-border);
 
-  // Approvals carry a deadline; they get the one coloured chip.
+  // Approvals carry a deadline; they get the one coloured chip. Brand ink
+  // on the brand tint measured 3.4:1 — the tint carries the meaning, so
+  // the LABEL takes full ink and the pair passes.
   &[data-kind="Assignment"] {
     background: var(--bnd-active);
-    color: var(--bnd-brand);
+    color: var(--bnd-ink);
     border-color: transparent;
   }
 }
@@ -362,7 +409,7 @@ html[data-theme] .bnd-inbox-foot {
   padding-inline: var(--bnd-sp-4);
   border-block-start: var(--bnd-line) solid var(--bnd-border);
   font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
+  color: var(--bnd-ink-muted);
 }
 
 html[data-theme] .bnd-inbox-hint {

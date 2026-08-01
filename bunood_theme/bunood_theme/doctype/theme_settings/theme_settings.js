@@ -1372,9 +1372,14 @@ function bnd_render_inbox_picker(frm) {
 		: '<div class="bnd-cbp-note">' + __("Changes apply the next time the panel opens — click the bell to try it.") + "</div>";
 
 	field.$wrapper.html(
-		'<div class="bnd-cbp">' +
+		// Wider option tiles than the shared bnd-cbp-opt default: "Approvals
+		// only" wrapped to two lines at 96px, pushing its glyph off the row's
+		// baseline (item-13 sweep).
+		"<style>.bnd-ibp .bnd-cbp-opt{inline-size:118px}</style>" +
+		'<div class="bnd-cbp bnd-ibp">' +
 			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + selects +
-			'<div class="bnd-cbp-group' + (panel_ours ? "" : " bnd-cbp-off") + '"><div class="bnd-cbp-title">' + __("Panel behaviour") + "</div>" +
+			'<div class="bnd-cbp-group' + (panel_ours ? "" : " bnd-cbp-off") + '"><div class="bnd-cbp-title">' + __("Panel behaviour") +
+			'<button type="button" class="bnd-cbp-reset bnd-ibp-reset-all" title="' + __("Reset to defaults") + '">↺</button></div>' +
 			'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
 			"</div>"
 	);
@@ -1385,6 +1390,12 @@ function bnd_render_inbox_picker(frm) {
 	field.$wrapper.find(".bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	field.$wrapper.find(".bnd-ibp-reset-all").on("click", function (e) {
+		e.stopPropagation();
+		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, BND_INBOX_DEFAULTS[t.field]);
+		bnd_inbox_preview(frm);
+		bnd_render_inbox_picker(frm);
 	});
 	field.$wrapper.find(".bnd-ibp-reset").on("click", function (e) {
 		e.stopPropagation();

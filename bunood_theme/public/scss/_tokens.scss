@@ -189,6 +189,11 @@
   --bnd-warn: #b06f00;
   --bnd-serious: #c2410c;
   --bnd-critical: #b42318;
+  // Foreground for anything filled with --bnd-critical (the unread badge).
+  // Mode-aware because the fill flips lightness: white on the dark light-mode
+  // red, near-black on the light dark-mode red — measured 2.1:1 when the
+  // badge kept white ink in dark mode.
+  --bnd-on-critical: #ffffff;
 }
 
 // ── Dark ────────────────────────────────────────────────────────────────────
@@ -229,6 +234,7 @@ html[data-theme="dark"] {
   --bnd-warn: #e0a33a;
   --bnd-serious: #f08a5d;
   --bnd-critical: #f2736a;
+  --bnd-on-critical: #2b0f0c;
 }
 
 // ── "Automatic" — compensating for a Frappe bug ─────────────────────────────
