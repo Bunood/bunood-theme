@@ -1688,6 +1688,17 @@
 			}
 		}
 		if (!pal_nodes) pal_build();
+
+		// Is another modal ACTUALLY still up? Ask the DOM, never
+		// body.modal-open: Bootstrap's _hideModal strips that class
+		// unconditionally, with no reference counting, so hiding the
+		// awesomebar above the user's own dialog clears it while the dialog
+		// is still open — and a lift keyed on the class then left the
+		// palette at its resting 1045, UNDER that dialog (measured live in
+		// the v0.8.0 fix verification). Repair the class too, or the page
+		// behind the surviving dialog scrolls.
+		const other_modal = document.querySelector(".modal.show");
+		if (other_modal) document.body.classList.add("modal-open");
 		if (frappe.search.utils.setup_recent) {
 			try {
 				frappe.search.utils.setup_recent();
@@ -1698,7 +1709,7 @@
 		// Ctrl+K fires with ignore_inputs even while a Frappe dialog (1050)
 		// is up; our resting slot is below dialogs by design, so lift just
 		// this open above them or the palette would render underneath.
-		pal_nodes.backdrop.style.zIndex = document.body.classList.contains("modal-open") ? "1055" : "";
+		pal_nodes.backdrop.style.zIndex = other_modal ? "1055" : "";
 		pal_nodes.backdrop.removeAttribute("hidden");
 		pal_nodes.input.value = seed;
 		pal_render(seed);

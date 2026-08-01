@@ -464,6 +464,78 @@ async function main() {
 			await page.waitForTimeout(300);
 		});
 
+		await test("palette: Ctrl+K over an open dialog lands ABOVE it, once", async () => {
+			// The scenario that has broken twice: a Frappe dialog is open and
+			// focus sits in one of its inputs, so base_input's own ctrl+k
+			// handler jQuery-clicks the native trigger (opening the
+			// awesomebar via simulated handlers) before our listener sees the
+			// real click. The shell must end up the ONLY search surface, and
+			// it must paint above the dialog — Bootstrap clears body's
+			// modal-open when we hide the awesomebar, so the lift cannot be
+			// keyed on that class.
+			setSettings({ palette_style: "Bunood Palette" });
+			await goDesk("/desk/item", ".page-head", 2500);
+			await page.evaluate(() => {
+				window.__bnd_dlg = new frappe.ui.Dialog({
+					title: "Probe",
+					fields: [{ fieldname: "probe", fieldtype: "Data", label: "Probe" }],
+				});
+				window.__bnd_dlg.show();
+			});
+			await page.waitForTimeout(900);
+			await page.click(".modal.show input[data-fieldname='probe']");
+			await page.keyboard.press("Control+k");
+			await page.waitForTimeout(900);
+			const state = await page.evaluate(() => {
+				const shell = document.querySelector(".bnd-palette-backdrop:not([hidden]) .bnd-palette");
+				const box = shell && shell.getBoundingClientRect();
+				const hit = box && document.elementFromPoint(box.left + box.width / 2, box.top + 24);
+				return {
+					shell_open: !!shell,
+					native_open: !!document.querySelector(".modal.show #navbar-search"),
+					dialog_open: !!document.querySelector(".modal.show"),
+					palette_on_top: !!(hit && hit.closest && hit.closest(".bnd-palette")),
+				};
+			});
+			expect(state.shell_open, "shell opened");
+			expect(!state.native_open, "native awesomebar did NOT also open");
+			expect(state.dialog_open, "the dialog is still open (precondition)");
+			expect(state.palette_on_top, "palette paints above the dialog");
+			await page.evaluate(() => {
+				if (window.__bnd_dlg) window.__bnd_dlg.hide();
+				delete window.__bnd_dlg;
+			});
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(500);
+		});
+
+		await test("palette: Global Search hand-off carries its keywords", async () => {
+			await goDesk("/desk/item", ".page-head", 2500);
+			const opened = await page.evaluate(() => {
+				if (!(frappe.searchdialog && frappe.searchdialog.search)) return false;
+				frappe.searchdialog.search.init_search("widget", "global_search");
+				return true;
+			});
+			if (opened) {
+				await page.waitForTimeout(1200);
+				await page.keyboard.press("Control+k");
+				await page.waitForTimeout(900);
+				const state = await page.evaluate(() => ({
+					gs_open: !!document.querySelector(".modal.search-dialog.show"),
+					gs_flag: !!(
+						frappe.searchdialog.search.search_dialog &&
+						frappe.searchdialog.search.search_dialog.is_visible
+					),
+					seeded: (document.querySelector(".bnd-palette-input") || {}).value || "",
+				}));
+				expect(!state.gs_open, "Global Search dialog handed off (hidden)");
+				expect(!state.gs_flag, "its is_visible flag cleared too");
+				expectEq(state.seeded, "widget", "keywords carried into the palette");
+				await page.keyboard.press("Escape");
+				await page.waitForTimeout(400);
+			}
+		});
+
 		await test("palette: Original leaves the stock Ctrl+K modal", async () => {
 			setSettings({ palette_style: "Original" });
 			await goDesk("/desk/item", ".page-head", 2500);
