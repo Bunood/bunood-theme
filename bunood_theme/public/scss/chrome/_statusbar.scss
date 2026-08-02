@@ -127,16 +127,12 @@ html[data-bnd-search="sbbottom"] .body-sidebar .navbar-search-bar {
   display: block;
 }
 
-// The mirror image: search placed in one of OUR bars must take the native row
-// away, whatever the layout. Compact and Classic keep that row (it is their
-// search), so without this a bar placement showed the user two search fields
-// at once — one native, one ours.
-html[data-bnd-search="topcenter"] .body-sidebar .navbar-search-bar,
-html[data-bnd-search="topedge"] .body-sidebar .navbar-search-bar,
-html[data-bnd-search="botcenter"] .body-sidebar .navbar-search-bar,
-html[data-bnd-search="botedge"] .body-sidebar .navbar-search-bar {
-  display: none;
-}
+// The mirror image — search placed in one of OUR bars must take the native row
+// away — now lives in chrome/_layouts.scss keyed on `data-bnd-own~="search"`.
+// It was keyed here on `data-bnd-search`, which mount_search_at stamps BEFORE
+// it knows whether a host exists: a resolved-but-unmounted placement hid the
+// native row and put nothing in its place. Same polarity bug as the layout
+// rules, one day newer.
 
 html[data-bnd-search="sbtop"] .body-sidebar .navbar-search-bar {
   order: -1;

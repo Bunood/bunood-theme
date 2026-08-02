@@ -162,6 +162,50 @@
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
+	// Ownership stamps
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// THE POLARITY OF EVERY NATIVE-HIDING RULE.
+	//
+	// The old rule was: the LAYOUT declares it will replace the sidebar's bell,
+	// so CSS hides that bell at first paint from `data-bnd-layout`. What
+	// actually mounts is decided later, in the DOM, by code that can fail —
+	// mount_topbar bails if Frappe rendered no <header>, and the Bottom Bar
+	// strip refused to mount at all when the status style was "Off". When the
+	// declaration removes the native and the replacement never arrives, the
+	// affordance is DELETED, not degraded: a desk with no notifications and no
+	// way to log out. That is the shape of every bug this area has produced.
+	//
+	// The new rule inverts it: natives stay visible until our replacement is
+	// STAMPED PRESENT. `bnd_own("bell")` is called after the node is in the
+	// DOM, and the CSS keys on `html[data-bnd-own~="bell"]`. There is no
+	// release path to write, because release is the default state — a mount
+	// that fails leaves the stock desk, which is this app's declared failure
+	// contract (see the head of chrome/_layouts.scss).
+	//
+	// The flash cost is nil: every native row this touches is built by
+	// Frappe's own JS after the splash, and a brief window showing both is
+	// strictly better than a window showing neither.
+
+	/** Claim an affordance: our replacement for it is mounted and visible. */
+	function bnd_own(token) {
+		const html = document.documentElement;
+		const owned = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+		if (owned.has(token)) return;
+		owned.add(token);
+		html.setAttribute("data-bnd-own", [...owned].join(" "));
+	}
+
+	/** Release an affordance back to Frappe's own control. */
+	function bnd_disown(token) {
+		const html = document.documentElement;
+		const owned = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+		if (!owned.delete(token)) return;
+		if (owned.size) html.setAttribute("data-bnd-own", [...owned].join(" "));
+		else html.removeAttribute("data-bnd-own");
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
 	// Sidebar style kit (item 10) — attribute application
 	// ════════════════════════════════════════════════════════════════════════
 
@@ -760,6 +804,24 @@
 	 * @param {"field"|"icon"|"none"} opts.search - how search appears here.
 	 * @returns {HTMLElement}
 	 */
+	/**
+	 * Append a cluster to a host and CLAIM the affordances it carries.
+	 *
+	 * The claim happens here rather than in build_cluster because a cluster
+	 * that was built but never appended owns nothing — and hiding Frappe's
+	 * bell on the strength of a node that is not in the document is precisely
+	 * the failure this inversion exists to remove.
+	 */
+	function mount_cluster(host, opts) {
+		if (!host) return null;
+		const cluster = build_cluster(opts || { search: "none" });
+		host.appendChild(cluster);
+		bnd_own("bell");
+		bnd_own("user");
+		if (cluster.querySelector(".bnd-search-icon")) bnd_own("search");
+		return cluster;
+	}
+
 	function build_cluster(opts) {
 		const cluster = el("div", "bnd-cluster");
 
@@ -1282,9 +1344,13 @@
 		const html = document.documentElement;
 		html.setAttribute("data-bnd-search", slot);
 
-		// Sidebar slots are pure CSS — the native row is the search there.
+		// Sidebar slots are pure CSS — the native row IS the search there, so we
+		// deliberately do NOT claim it. Unclaimed means visible, which is
+		// exactly what this placement wants; disowning matters too, for a live
+		// preview flipping back from a bar slot.
 		if (slot === "sbtop" || slot === "sbbottom") {
 			for (const stray of document.querySelectorAll(".bnd-search-field, .bnd-search-icon")) stray.remove();
+			bnd_disown("search");
 			return;
 		}
 
@@ -1298,6 +1364,7 @@
 			if (!host.querySelector(".bnd-search-icon")) {
 				host.insertBefore(build_search_icon(), host.firstChild);
 			}
+			bnd_own("search");
 			return;
 		}
 		for (const stray of document.querySelectorAll(".bnd-search-icon")) stray.remove();
@@ -1320,6 +1387,10 @@
 				host.insertBefore(field, host.firstChild);
 			}
 		}
+		// Claimed only once the field is in the document — this is the line
+		// that hides Frappe's own search row, so it must not run a moment
+		// earlier than the replacement actually existing.
+		bnd_own("search");
 	}
 
 	// ── Top bar ─────────────────────────────────────────────────────────────
@@ -1346,7 +1417,7 @@
 		// margin resolves to zero, and the bell and avatar snap to the
 		// leading edge. That regression shipped in the first cut of item 14.
 		bar.appendChild(el("div", "bnd-search-center"));
-		bar.appendChild(build_cluster({ search: "none" }));
+		mount_cluster(bar);
 		header.appendChild(bar);
 	}
 
@@ -1466,7 +1537,7 @@
 			setInterval(tick_clock, 30000);
 		}
 
-		if (global_variant) bar.appendChild(build_cluster({ search: "none" }));
+		if (global_variant) mount_cluster(bar);
 
 		// The native <footer> exists but the desk scrolls at document level,
 		// so the bar is position:fixed (CSS); body still gets it as a child
@@ -1588,7 +1659,7 @@
 			if (!section) return false;
 			if (section.querySelector(".bnd-cluster")) return true;
 			section.appendChild(el("span", "bnd-cluster-divider"));
-			section.appendChild(build_cluster({ search: "none" }));
+			mount_cluster(section);
 			return true;
 		}, 20);
 	}
@@ -3490,7 +3561,7 @@
 		// rendered search twice — this pill's icon plus whatever the placement
 		// setting put in the status bar — which the release review found and
 		// the invariant matrix then reproduced.
-		dock.appendChild(build_cluster({ search: "none" }));
+		mount_cluster(dock);
 		document.body.appendChild(dock);
 		update_dock_active();
 	}

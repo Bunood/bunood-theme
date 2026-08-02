@@ -38,22 +38,26 @@
 // class rules without !important. Logical properties only (RTL guard).
 // ============================================================================
 
-// ── Shared: hide the native rows a layout replaces ──────────────────────────
-html[data-bnd-layout="topbar"],
-html[data-bnd-layout="bottombar"] {
-  .body-sidebar .navbar-search-bar,
-  .body-sidebar .sidebar-notification,
-  .body-sidebar .sidebar-user-button {
-    display: none;
-  }
-}
-
-html[data-bnd-layout="compact"] {
-  // Compact keeps the sidebar search (its one keeper); bell + identity move up.
-  .body-sidebar .sidebar-notification,
-  .body-sidebar .sidebar-user-button {
-    display: none;
-  }
+// ── Shared: hide a native row ONLY once we have replaced it ─────────────────
+// Keyed on `data-bnd-own`, which bunood.js stamps AFTER a replacement is in the
+// document — never on `data-bnd-layout`, which is a declaration made at boot
+// about what we intend to mount.
+//
+// WHY THE POLARITY MATTERS MORE THAN IT LOOKS
+//   Hiding from intent means a mount that fails DELETES the affordance: the
+//   layout promised a bell, the bar never mounted, and the sidebar's bell was
+//   already gone. That is not a hypothetical — status style "Off" did exactly
+//   this to the Bottom Bar layout's logout, and mount_topbar bails whenever
+//   Frappe renders no <header>, which is every viewport under ~480px.
+//   Hiding from outcome has no failure mode to handle: unclaimed is visible,
+//   so a failed mount degrades to stock ERPNext, which is this file's stated
+//   contract (see NO LAYOUT ATTRIBUTE = CLASSIC above).
+//
+//   There is no "release path" to write either. Releasing is the default.
+html[data-bnd-own~="search"] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~="bell"] .body-sidebar .sidebar-notification,
+html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
+  display: none;
 }
 
 html[data-bnd-layout="dock"] {
@@ -204,10 +208,12 @@ html[data-bnd-layout="dock"] .dropdown-notifications {
 // avatar menu = WHO. Items are identified by their icon or onclick — both
 // locale-independent; label text would break on Arabic sites.
 // Classic keeps the stock merged menu because it has no avatar anywhere else.
-html[data-bnd-layout="topbar"],
-html[data-bnd-layout="compact"],
-html[data-bnd-layout="bottombar"],
-html[data-bnd-layout="dock"] {
+// Keyed on ownership of the USER affordance, for the same reason as the rows
+// above: these items are hidden because the avatar menu carries them, so if no
+// avatar mounted they must all come back — logout included. This was the least
+// symmetric part of the old design, because a released bell was one selector
+// and a released Log Out was five.
+html[data-bnd-own~="user"] {
   .frappe-menu.context-menu {
     // Display (theme submenu), Session Defaults, Reload — replaced by the
     // avatar menu's Appearance / Session Defaults / Reload.

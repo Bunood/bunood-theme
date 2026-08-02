@@ -241,17 +241,9 @@ html[data-theme] .list-row-head .level-right {
   padding-block: var(--bnd-pad-y);
 }
 
-html[data-bnd-layout=topbar] .body-sidebar .navbar-search-bar,
-html[data-bnd-layout=topbar] .body-sidebar .sidebar-notification,
-html[data-bnd-layout=topbar] .body-sidebar .sidebar-user-button,
-html[data-bnd-layout=bottombar] .body-sidebar .navbar-search-bar,
-html[data-bnd-layout=bottombar] .body-sidebar .sidebar-notification,
-html[data-bnd-layout=bottombar] .body-sidebar .sidebar-user-button {
-  display: none;
-}
-
-html[data-bnd-layout=compact] .body-sidebar .sidebar-notification,
-html[data-bnd-layout=compact] .body-sidebar .sidebar-user-button {
+html[data-bnd-own~=search] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~=bell] .body-sidebar .sidebar-notification,
+html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
@@ -324,30 +316,12 @@ html[data-bnd-layout=dock] .dropdown-notifications {
   inset-block-start: auto;
 }
 
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]),
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
-html[data-bnd-layout=topbar] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density],
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]),
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
-html[data-bnd-layout=compact] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density],
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]),
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
-html[data-bnd-layout=bottombar] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density],
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]),
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
-html[data-bnd-layout=dock] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density] {
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]),
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
+html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density] {
   display: none;
 }
 
@@ -474,13 +448,6 @@ html[data-theme] .bnd-statusbar.bnd-bottombar .bnd-search-field {
 html[data-bnd-search=sbtop] .body-sidebar .navbar-search-bar,
 html[data-bnd-search=sbbottom] .body-sidebar .navbar-search-bar {
   display: block;
-}
-
-html[data-bnd-search=topcenter] .body-sidebar .navbar-search-bar,
-html[data-bnd-search=topedge] .body-sidebar .navbar-search-bar,
-html[data-bnd-search=botcenter] .body-sidebar .navbar-search-bar,
-html[data-bnd-search=botedge] .body-sidebar .navbar-search-bar {
-  display: none;
 }
 
 html[data-bnd-search=sbtop] .body-sidebar .navbar-search-bar {

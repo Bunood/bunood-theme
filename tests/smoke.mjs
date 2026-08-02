@@ -1360,6 +1360,42 @@ async function main() {
 					);
 				}
 
+				// THE OWNERSHIP CONTRACT, both directions. This is what makes a
+				// failed mount degrade instead of delete: a token may only be
+				// claimed while our replacement is really in the document, and
+				// an unclaimed affordance must leave Frappe's own visible.
+				const ownership = await page.evaluate(
+					(pairs) => {
+						const owned = new Set(
+							(document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean)
+						);
+						const vis = (sel) => {
+							const el = sel && document.querySelector(sel);
+							if (!el) return false;
+							const r = el.getBoundingClientRect();
+							return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+						};
+						return pairs.map(([token, ours, native]) => ({
+							token,
+							claimed: owned.has(token),
+							ours: vis(ours),
+							native: vis(native),
+						}));
+					},
+					[
+						["search", ".bnd-search-field, .bnd-search-icon", ".body-sidebar .navbar-search-bar"],
+						["bell", ".bnd-bell", ".body-sidebar .sidebar-notification"],
+						["user", ".bnd-avatar-btn", ".body-sidebar .sidebar-user-button"],
+					]
+				);
+				for (const o of ownership) {
+					if (o.claimed) {
+						expect(o.ours, `claimed "${o.token}" — our replacement is really mounted`);
+					} else {
+						expect(o.native, `unclaimed "${o.token}" — Frappe's own is left visible`);
+					}
+				}
+
 				// Log out specifically, because losing it is the worst outcome
 				// in the app and it hides behind two different affordances.
 				const canLogOut = await page.evaluate(() => {

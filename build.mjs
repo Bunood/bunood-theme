@@ -139,6 +139,44 @@ const FIELD_EXCEPTIONS = new Set([
 	"enable_command_palette", "default_density",
 ]);
 
+/**
+ * Ownership guard — a native affordance may only be hidden from what we
+ * MOUNTED, never from what a layout declared it would mount.
+ *
+ * Fails the build on any rule that hides one of Frappe's own affordances while
+ * keyed on `data-bnd-layout` or `data-bnd-search`. Both are declarations made
+ * before the DOM is known; hiding from them deletes the affordance whenever
+ * the replacement does not arrive, which is how "Off" cost the Bottom Bar
+ * layout its logout and how a resolved-but-unmounted search placement hid the
+ * sidebar's search row with nothing to replace it.
+ *
+ * Keyed on `data-bnd-own`, which is stamped after the node is in the document.
+ */
+const OWNED_NATIVES = ["navbar-search-bar", "sidebar-notification", "sidebar-user-button", "frappe-menu"];
+
+function assertOwnershipPolarity(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [];
+	// Each rule: everything up to `{`, then its body up to `}`.
+	for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+		const [, selector, body] = m;
+		if (!/display\s*:\s*none/.test(body)) continue;
+		if (!OWNED_NATIVES.some((n) => selector.includes(n))) continue;
+		if (/data-bnd-(layout|search)/.test(selector)) {
+			offenders.push(selector.trim().slice(0, 120));
+		}
+	}
+	if (offenders.length) {
+		throw new Error(
+			`Ownership guard: ${name} hides a native affordance from a DECLARATION:\n  ` +
+				offenders.join("\n  ") +
+				"\nKey it on [data-bnd-own~=\"search|bell|user\"] instead — stamped after the " +
+				"replacement is in the DOM, so a failed mount degrades to stock rather than " +
+				"deleting the affordance."
+		);
+	}
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -178,6 +216,7 @@ async function buildEntry({ key, src, pyid }) {
 	});
 
 	assertLogicalOnly(result.css, `${key}.css`);
+	assertOwnershipPolarity(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;
