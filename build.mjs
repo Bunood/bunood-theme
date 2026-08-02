@@ -107,6 +107,58 @@ function assertLogicalOnly(css, name) {
 }
 
 /**
+ * Field-naming guard — fail the build if a Theme Settings field for a component
+ * is not named `<component>_<property>`.
+ *
+ * WHY A GUARD AND NOT A CONVENTION
+ *   Conventions drift silently, and this one already did: `search_placement` is
+ *   filed under the Status Bar section, `enable_command_palette` sits in
+ *   "Features" away from its seven `palette_*` siblings, and `default_density`
+ *   lives under "Generated" beside a build artefact. Each was defensible on the
+ *   day it was written; together they are why the boot payload, the form order
+ *   and the stand-down list cannot be generated from one table — a generator
+ *   would need a lookup of exceptions, which is the thing being deleted.
+ *
+ * THE EXCEPTIONS ARE LISTED, NOT PATTERN-MATCHED, AND THE LIST MUST SHRINK.
+ *   Renaming a stored Single field needs a patch, so the two real violations
+ *   are fixed when the component rework writes one anyway. Until then they are
+ *   named here so no NEW drift can enter unnoticed. Do not add to this list to
+ *   make a build pass.
+ */
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk"];
+const FIELD_EXCEPTIONS = new Set([
+	// Identity and colour are axes, not components — they have no prefix by
+	// design and a layout preset must never write them.
+	"company_name", "logo", "favicon", "tagline",
+	"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+	// Generated artefact, not a setting.
+	"brand_css_url",
+	// KNOWN VIOLATIONS, to be renamed by the component rework's patch:
+	//   enable_command_palette -> palette_enabled
+	//   default_density        -> density_default
+	"enable_command_palette", "default_density",
+]);
+
+function assertFieldNaming(doctypeJson) {
+	const offenders = [];
+	for (const f of doctypeJson.fields || []) {
+		const name = f.fieldname;
+		if (!name || FIELD_EXCEPTIONS.has(name)) continue;
+		// Layout furniture carries no data.
+		if (["Section Break", "Column Break", "Tab Break", "HTML"].includes(f.fieldtype)) continue;
+		if (!FIELD_PREFIXES.some((p) => name.startsWith(p + "_"))) offenders.push(name);
+	}
+	if (offenders.length) {
+		throw new Error(
+			`Field-naming guard: ${offenders.join(", ")} — Theme Settings fields must be ` +
+				`<component>_<property> using one of: ${FIELD_PREFIXES.join(", ")}. ` +
+				"Rename the field, or if it is genuinely not a component setting, add it to " +
+				"FIELD_EXCEPTIONS in build.mjs with a comment saying why."
+		);
+	}
+}
+
+/**
  * Compile one entry, write the hashed file, reap older hashes of the same entry.
  * @returns {Promise<{pyid: string, url: string}>}
  */
@@ -209,6 +261,17 @@ async function writeAssetsPy(entries) {
 }
 
 async function main() {
+	// Guard before compiling: a naming violation is cheaper to hear about
+	// before the build spends time on Sass than after.
+	assertFieldNaming(
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		)
+	);
+
 	const built = [];
 	for (const entry of ENTRIES) {
 		const out = await buildEntry(entry);

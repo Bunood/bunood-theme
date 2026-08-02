@@ -769,17 +769,14 @@
 		if (opts.search === "field") {
 			cluster.appendChild(build_search_field());
 		} else if (opts.search === "icon") {
-			const btn = el("button", "bnd-icon-btn", {
-				type: "button",
-				"aria-label": __("Search"),
-				title: __("Search"),
-			});
-			btn.appendChild(cloned_icon(".navbar-search-bar", "icon-search"));
-			btn.addEventListener("click", () => proxy_click(".navbar-search-bar .item-anchor"));
-			cluster.appendChild(btn);
+			cluster.appendChild(build_search_icon());
 		}
 
-		const bell = el("button", "bnd-icon-btn", {
+		// `bnd-bell` names the AFFORDANCE. The badge inside it is only the
+		// unread indicator and is hidden whenever there is nothing unread —
+		// asking the badge whether notifications are reachable answers a
+		// different question, and answers it wrongly on a quiet bench.
+		const bell = el("button", "bnd-icon-btn bnd-bell", {
 			type: "button",
 			"aria-label": __("Notifications"),
 			title: __("Notifications"),
@@ -825,6 +822,27 @@
 			const initial = (frappe.session.user_fullname || "?").charAt(0).toUpperCase();
 			return '<span class="avatar avatar-small"><div class="avatar-frame standard-image">' + initial + "</div></span>";
 		}
+	}
+
+	/**
+	 * The search ICON: the same affordance as the field, for hosts too narrow
+	 * to hold one — today the dock's pill.
+	 *
+	 * `bnd-search-icon` names it deliberately. `.bnd-icon-btn` alone cannot be
+	 * told apart from the bell, so nothing could ask "is search reachable in
+	 * this layout" — and the invariant matrix answered "no" for Dock, where
+	 * search was in fact right there.
+	 * @returns {HTMLElement}
+	 */
+	function build_search_icon() {
+		const btn = el("button", "bnd-icon-btn bnd-search-icon", {
+			type: "button",
+			"aria-label": __("Search"),
+			title: __("Search"),
+		});
+		btn.appendChild(cloned_icon(".navbar-search-bar", "icon-search"));
+		btn.addEventListener("click", () => pal_invoke());
+		return btn;
 	}
 
 	/**
@@ -1111,6 +1129,13 @@
 		"Bottom Bar Center": "botcenter",
 	};
 
+	//: The dock is a slot too, reachable only by fallback. It is deliberately
+	//: absent from SEARCH_SLOTS because no admin picks it directly — the Dock
+	//: layout is the only place it exists, and there it is the RIGHT home:
+	//: the dock already carries this layout's other controls, and it is the
+	//: only chrome that survives when the status bar is switched off.
+	const SEARCH_DOCK = "dock";
+
 	/**
 	 * Preference order when the requested slot does not exist in the active
 	 * layout. Walked left to right from the request, so a choice degrades to
@@ -1131,7 +1156,11 @@
 		compact: ["sbtop", "sbbottom", "botcenter", "botedge"],
 		classic: ["sbtop", "sbbottom", "botcenter", "botedge"],
 		bottombar: ["botcenter", "botedge", "sbtop", "sbbottom"],
-		dock: ["botcenter", "botedge"],
+		// The dock FIRST, not the status bar. Dock hides the sidebar and may
+		// have no status bar at all, so the pill is the one piece of chrome
+		// guaranteed to be there — and putting search anywhere else in this
+		// layout leaves the pill's own controls split across two strips.
+		dock: ["dock", "botcenter", "botedge"],
 	};
 
 	/** The fallback order for the active layout. */
@@ -1146,6 +1175,9 @@
 		}
 		if (slot === "botedge" || slot === "botcenter") {
 			return document.querySelector(".bnd-statusbar");
+		}
+		if (slot === SEARCH_DOCK) {
+			return document.querySelector(".bnd-dock .bnd-cluster");
 		}
 		// Sidebar slots need the sidebar AND Frappe's own search row — and
 		// need them VISIBLE. Dock hides the whole sidebar container while
@@ -1252,12 +1284,23 @@
 
 		// Sidebar slots are pure CSS — the native row is the search there.
 		if (slot === "sbtop" || slot === "sbbottom") {
-			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
+			for (const stray of document.querySelectorAll(".bnd-search-field, .bnd-search-icon")) stray.remove();
 			return;
 		}
 
 		const host = search_slot_host(slot);
 		if (!host) return;
+
+		// The dock takes the ICON form: a 340px field does not fit a pill, and
+		// the pill's other controls are icons already.
+		if (slot === SEARCH_DOCK) {
+			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
+			if (!host.querySelector(".bnd-search-icon")) {
+				host.insertBefore(build_search_icon(), host.firstChild);
+			}
+			return;
+		}
+		for (const stray of document.querySelectorAll(".bnd-search-icon")) stray.remove();
 		let field = host.querySelector(".bnd-search-field");
 		if (!field) {
 			// Remove any field left in another bar by a previous placement.
@@ -3442,7 +3485,12 @@
 		}
 
 		dock.appendChild(el("span", "bnd-dock-divider"));
-		dock.appendChild(build_cluster({ search: "icon" }));
+		// No search here: the dock is a search REGION now, and mount_search
+		// decides whether search lands in it. Hardcoding the icon meant Dock
+		// rendered search twice — this pill's icon plus whatever the placement
+		// setting put in the status bar — which the release review found and
+		// the invariant matrix then reproduced.
+		dock.appendChild(build_cluster({ search: "none" }));
 		document.body.appendChild(dock);
 		update_dock_active();
 	}

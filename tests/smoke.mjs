@@ -228,6 +228,27 @@ async function main() {
 
 	const sid = process.env.BND_SID || mintSid();
 	const snapshot = getSettings(MUTABLE_FIELDS);
+
+	// RESET BEFORE RUNNING, not just restore after. Restoring protects the
+	// operator's settings; resetting protects the RUN. A suite that inherits
+	// whatever the bench happens to hold is not reproducible — two runs were
+	// voided on 2026-08-01 by a bench left on Dock/Sidebar Top by an aborted
+	// run, and the cost was not the wasted minutes, it was mistaking correct
+	// behaviour for failure and vice versa.
+	//
+	// Read from setup.py rather than restating them here, so "shipped default"
+	// cannot drift between the installer and the suite. Intersected with
+	// MUTABLE_FIELDS deliberately: resetting a field we do not also RESTORE
+	// would clobber it permanently — the tagline bug, in a new costume.
+	const shipped = JSON.parse(
+		benchPy(
+			`from bunood_theme.setup import DEFAULTS, CHECK_DEFAULTS\n` +
+			`print(json.dumps({**DEFAULTS, **CHECK_DEFAULTS}))\n`
+		).trim().split("\n").pop()
+	);
+	setSettings(Object.fromEntries(
+		Object.entries(shipped).filter(([field]) => MUTABLE_FIELDS.includes(field))
+	));
 	const presets = JSON.parse(
 		benchPy(`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
@@ -838,8 +859,11 @@ async function main() {
 			// chosen, the field must end up somewhere a user can see.
 			setSettings({ desk_layout: "Dock", search_placement: "Sidebar Top" });
 			await goDesk("/desk/item", ".page-head", 4500);
-			expectEq(await attr("data-bnd-search"), "botcenter", "left the hidden sidebar");
-			expectEq(await visible(".bnd-search-field"), true, "search is actually on screen");
+			// Falls back to the DOCK, not the status bar: the pill is the one
+			// piece of chrome this layout always has, and it is where the
+			// layout's other controls already live.
+			expectEq(await attr("data-bnd-search"), "dock", "left the hidden sidebar for the dock");
+			expectEq(await visible(".bnd-dock .bnd-search-icon"), true, "search is actually on screen");
 			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 		});
 
@@ -1263,6 +1287,118 @@ async function main() {
 			const reverted = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
 			expectEq(reverted, before, "discard reverts the desk");
 		});
+
+		// ── Invariant matrix ───────────────────────────────────────────────
+		//
+		// WHY THIS EXISTS, AND WHY IT IS NOT MORE FEATURE TESTS
+		//   Every test above pins one state and asserts a feature works in it.
+		//   That shape cannot catch the bug this release actually shipped,
+		//   because the failure belonged to no feature: status style "Off" in
+		//   the Bottom Bar layout left a desk with no notifications and no way
+		//   to log out. "There is always a way to log out" is not the
+		//   notification kit's job or the layout kit's job, so nobody asserted
+		//   it, and 75 passing tests said nothing.
+		//
+		//   So: walk the state space, and in EVERY state assert the handful of
+		//   things that must be true regardless of configuration. The states
+		//   come from the settings; the invariants come from registry.py, so a
+		//   component added there is covered here the day it is registered
+		//   rather than the day someone remembers to write a test.
+		const registry = JSON.parse(
+			benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()))\n`)
+				.trim().split("\n").pop()
+		);
+		const CRITICAL = registry.components.filter((c) => c.critical);
+
+		// A deliberately AWKWARD sample rather than a full cross product: the
+		// full space is 5 layouts x 4 styles x 7 placements = 140 states and
+		// ~9 minutes of page loads. These are the corners where the layout
+		// system and the component settings disagree — every one of them is a
+		// state that has produced a real defect, or is one move away from one.
+		const INVARIANT_STATES = [
+			["Top Bar", "Quiet", "Top Bar Center"],
+			// The critical v0.10.0 defect: this strip IS the layout's only
+			// chrome, so "no status bar" must not mean "no logout".
+			["Bottom Bar", "Off", "Top Bar Center"],
+			["Bottom Bar", "Operator", "Bottom Bar Center"],
+			// No bar anywhere: everything must fall back to the natives.
+			["Classic", "Off", "Top Bar Center"],
+			// Sidebar hidden outright — the natives are NOT available here.
+			["Dock", "Off", "Sidebar Top"],
+			["Dock", "Quiet", "Top Bar Center"],
+			// Compact keeps its native search row; the layout mounts no top bar.
+			["Compact", "Minimal", "Top Bar Center"],
+			// Search asked for a bar that this layout does not mount.
+			["Classic", "Quiet", "Bottom Bar Edge"],
+		];
+
+		for (const [layout, style, placement] of INVARIANT_STATES) {
+			await test(`invariant: ${layout} · ${style} · search ${placement}`, async () => {
+				setSettings({ desk_layout: layout, status_style: style, search_placement: placement });
+				await goDesk("/desk/item", ".page-head", 4500);
+
+				// Every critical component must be reachable by SOME route —
+				// ours or the native one it replaced. Which route is not the
+				// invariant; having one is.
+				for (const c of CRITICAL) {
+					const reachable = await page.evaluate(
+						({ ours, native }) => {
+							const shown = (sel) => {
+								if (!sel) return false;
+								const el = document.querySelector(sel);
+								if (!el) return false;
+								const r = el.getBoundingClientRect();
+								return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+							};
+							return { ours: shown(ours), native: shown(native) };
+						},
+						{ ours: c.selector, native: c.native }
+					);
+					expect(
+						reachable.ours || reachable.native,
+						`${c.label} reachable — ours:${reachable.ours} native:${reachable.native}`
+					);
+				}
+
+				// Log out specifically, because losing it is the worst outcome
+				// in the app and it hides behind two different affordances.
+				const canLogOut = await page.evaluate(() => {
+					const hit = [...document.querySelectorAll("a,button,li")].some((n) =>
+						/log\s?out|sign\s?out|تسجيل الخروج/i.test(n.textContent || "")
+					);
+					// Our avatar menu builds its items on click, so its mere
+					// presence counts as a route to logout.
+					return hit || !!document.querySelector(".bnd-avatar-btn, .sidebar-user-button");
+				});
+				expect(canLogOut, "a route to Log Out exists");
+
+				// Exactly one search affordance — never zero, never two. Two
+				// shipped in Compact and Classic before the native-hiding rule
+				// was inverted.
+				const searches = await page.evaluate(() => {
+					// Rect-based, NOT `display !== "none"`. An element can have
+					// its own display set while an ANCESTOR is hidden — which is
+					// exactly Dock, where the sidebar row is fine and the
+					// sidebar container is display:none. Asking the element
+					// alone counted a search box nobody could see.
+					const vis = (el) => {
+						if (!el) return false;
+						const r = el.getBoundingClientRect();
+						return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+					};
+					// Both forms count: the dock and page-head clusters carry
+					// search as an icon rather than a field, and an icon the
+					// user can click is a search affordance.
+					const ours = [...document.querySelectorAll(".bnd-search-field, .bnd-search-icon")]
+						.filter(vis).length;
+					const nat = vis(document.querySelector(".body-sidebar .navbar-search-bar")) ? 1 : 0;
+					return ours + nat;
+				});
+				expectEq(searches, 1, "exactly one search affordance on screen");
+			});
+		}
+
+		setSettings({ desk_layout: "Top Bar", status_style: "Quiet", search_placement: "Top Bar Center" });
 
 		// ── Console error budget ───────────────────────────────────────────
 		await test("console error budget: nothing beyond the allowlist", async () => {
