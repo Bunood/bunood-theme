@@ -1,0 +1,567 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THEME SETTINGS — the pickers' own styling.
+//
+// WHY IT LIVES HERE AND NOT IN theme_settings.js
+//   It used to be three `<style>` strings concatenated inside three render
+//   functions. That had four costs, all real:
+//
+//   1. AN INVISIBLE ORDERING DEPENDENCY. The `.bnd-cbp-*` vocabulary was
+//      defined inside the BREADCRUMBS picker's block, and the palette, inbox,
+//      search and status pickers all use those classes. Four pickers were
+//      styled by a fifth having rendered first; remove or fail the breadcrumbs
+//      picker and four others lose their appearance with nothing to explain it.
+//   2. No RTL guard. Compiled CSS is checked for physical properties at build
+//      time (build.mjs); a string inside a JS file is checked by nobody, so
+//      `margin-left` in a picker would have shipped.
+//   3. Re-parsed on every render, and re-inserted into the DOM each time a
+//      picker redraws — which the live preview does on every click.
+//   4. Unhashed and uncacheable, unlike every other stylesheet this app ships.
+//
+//   The rules below are the same rules, moved verbatim except where noted.
+//   Nothing here is scoped to a picker: this IS the shared vocabulary, and
+//   naming it as such is the point.
+//
+// SCOPING
+//   `html[data-theme]` for the same reason as every other partial — (0,2,0)
+//   beats Frappe's unlayered class rules without !important. The two
+//   `!important`s carried over are on selected-state borders, beating an
+//   inline-ish base rule; they were in the original and are left alone rather
+//   than quietly re-engineered during a move.
+// ============================================================================
+
+// ── Desk layout picker ──────────────────────────────────────────────────────
+html[data-theme] {
+  .bnd-lp {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-block: 4px;
+  }
+
+  .bnd-lp-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-lp-selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .bnd-lp-thumb svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    color: var(--text-color);
+  }
+
+  .bnd-lp-name {
+    font-weight: 600;
+    font-size: var(--text-md);
+  }
+
+  .bnd-lp-blurb {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+}
+
+// ── Shared picker vocabulary (cbp) ──────────────────────────────────────────
+// Used by breadcrumbs, palette, notifications, search and status. Defined here
+// once, so no picker depends on another having run.
+html[data-theme] {
+  .bnd-cbp {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-block: 4px;
+  }
+
+  .bnd-cbp-styles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .bnd-cbp-style {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-cbp-on {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .bnd-cbp-thumb svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    color: var(--text-color);
+    background: var(--bg-color);
+    border-radius: 6px;
+  }
+
+  .bnd-cbp-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-cbp-blurb {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .bnd-cbp-note {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .bnd-cbp-group {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--card-bg, var(--fg-color));
+  }
+
+  .bnd-cbp-off {
+    opacity: 0.55;
+  }
+
+  .bnd-cbp-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-cbp-desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-block-end: 7px;
+  }
+
+  .bnd-cbp-row {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    // Cards on one line match the tallest. Without this a label that wraps to
+    // two lines — "Approvals only" at 96px wide — makes its own card taller
+    // than its neighbours and the row goes ragged. The old inline rules never
+    // showed it because they were losing a specificity fight with Frappe and
+    // the label was not being laid out as authored.
+    align-items: stretch;
+  }
+
+  .bnd-cbp-opt {
+    inline-size: 96px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: center;
+
+    // Centre the content in whatever height the row settles on, so a
+    // one-line card and a two-line card read as a set rather than as a
+    // mistake.
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-cbp-dis {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .bnd-cbp-glyph {
+    display: block;
+    font-size: 14px;
+    block-size: 22px;
+    line-height: 22px;
+    opacity: 0.8;
+  }
+
+  .bnd-cbp-oname {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    margin-block-start: 2px;
+  }
+
+  .bnd-cbp-reset {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    margin-inline-start: 6px;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+}
+
+// ── Switch row, shared by every kit ─────────────────────────────────────────
+// One rule set for both prefixes: the sidebar picker grew its own copy of an
+// identical control, and two copies of a switch is how two switches end up
+// looking different.
+html[data-theme] {
+  .bnd-cbp-toggle,
+  .bnd-sbp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+    inline-size: 100%;
+
+    b {
+      font-size: var(--text-sm);
+    }
+  }
+
+  .bnd-cbp-knob,
+  .bnd-sbp-knob {
+    position: relative;
+    inline-size: 30px;
+    block-size: 17px;
+    border-radius: 99px;
+    background: var(--border-color);
+    flex: none;
+    transition: background 0.15s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block-start: 2px;
+      inset-inline-start: 2px;
+      inline-size: 13px;
+      block-size: 13px;
+      border-radius: 50%;
+      background: #fff;
+      transition: inset-inline-start 0.15s;
+    }
+  }
+
+  .bnd-cbp-knob-on,
+  .bnd-sbp-knob-on {
+    background: var(--primary);
+
+    &::after {
+      inset-inline-start: 15px;
+    }
+  }
+}
+
+// ── Sidebar style picker (sbp) ──────────────────────────────────────────────
+// Its miniature-desk thumbnails are drawn with absolutely positioned parts,
+// which is why this section is longer than the others.
+html[data-theme] {
+  .bnd-sbp {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-block: 4px;
+  }
+
+  .bnd-sbp-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .bnd-sbp-search {
+    max-inline-size: 220px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: var(--control-bg);
+    font-size: var(--text-sm);
+  }
+
+  .bnd-sbp-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .bnd-sbp-reset {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    margin-inline-start: 6px;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+
+  .bnd-sbp-preset {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-pname {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-sbp-pblurb {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .bnd-sbp-dots {
+    display: flex;
+    gap: 3px;
+    margin-block-start: 2px;
+  }
+
+  .bnd-sbp-dot {
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: 50%;
+    outline: 1px solid var(--border-color);
+    outline-offset: -1px;
+  }
+
+  .bnd-sbp-custom {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  .bnd-sbp-group {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--card-bg, var(--fg-color));
+  }
+
+  .bnd-sbp-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-sbp-desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-block-end: 7px;
+  }
+
+  .bnd-sbp-row-wrap {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .bnd-sbp-opt {
+    position: relative;
+    inline-size: 96px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-on {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .bnd-sbp-dis {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .bnd-sbp-thumb {
+    position: relative;
+    display: block;
+    block-size: 42px;
+    border-radius: 6px;
+    background: var(--bg-color);
+    overflow: hidden;
+    color: var(--text-color);
+  }
+
+  .bnd-sbp-oname {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    margin-block-start: 4px;
+  }
+
+  .bnd-sbp-reason {
+    display: block;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  // The thumbnail's parts. `margin` here is shorthand with physical sides in
+  // the original (`12px 2px 0 6px`); written long-hand and logical so the RTL
+  // guard can see it and so the chip mirrors with the rest of the desk.
+  .bnd-sbp-ic {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 16px;
+    block-size: 16px;
+    border-radius: 5px;
+    font-size: 9px;
+    margin-block-start: 12px;
+    margin-inline-end: 2px;
+    margin-block-end: 0;
+    margin-inline-start: 6px;
+  }
+
+  .bnd-sbp-row {
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-start: 13px;
+    block-size: 16px;
+    border-radius: 8px;
+  }
+
+  .bnd-sbp-lines {
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-start: 10px;
+    block-size: 6px;
+    border-radius: 3px;
+    background: currentColor;
+    opacity: 0.15;
+    box-shadow: 0 10px 0 currentColor, 0 20px 0 currentColor;
+  }
+
+  .bnd-sbp-card {
+    position: absolute;
+    inset-inline: 7px;
+    inset-block-start: 7px;
+    block-size: 28px;
+    border-radius: 5px;
+    background: var(--control-bg);
+    border: 1px solid var(--border-color);
+  }
+
+  .bnd-sbp-wash {
+    position: absolute;
+    inset-inline: 7px;
+    inset-block-start: 6px;
+    block-size: 16px;
+    border-radius: 5px;
+  }
+
+  .bnd-sbp-glyph {
+    position: absolute;
+    inset-block-start: 12px;
+    inset-inline-start: 10px;
+    font-size: 12px;
+    opacity: 0.75;
+  }
+
+  .bnd-sbp-btnmark {
+    position: absolute;
+    inline-size: 10px;
+    block-size: 10px;
+    border-radius: 50%;
+    background: var(--control-bg);
+    border: 1px solid currentColor;
+    opacity: 0.7;
+  }
+
+  .bnd-sbp-shape {
+    position: absolute;
+    inset-block-start: 12px;
+    inset-inline-start: 38px;
+    inline-size: 16px;
+    block-size: 16px;
+    border: 1.5px solid currentColor;
+    opacity: 0.6;
+  }
+
+  .bnd-sbp-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bnd-sbp-slab {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .bnd-sbp-stop {
+    inline-size: 13px;
+    block-size: 13px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border-color);
+    cursor: pointer;
+    padding: 0;
+
+    &.bnd-sbp-on {
+      background: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+    }
+  }
+}

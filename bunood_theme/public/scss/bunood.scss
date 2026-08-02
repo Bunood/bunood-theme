@@ -58,6 +58,10 @@
 @use "chrome/palette";
 // Item 13: the notification centre (badge + refined skin + our panel/page).
 @use "chrome/inbox";
+// The Theme Settings pickers. Was three <style> strings inside
+// theme_settings.js, where the RTL guard could not see them and four pickers
+// were styled by a fifth having rendered first.
+@use "chrome/settings";
 
 // ── Surfaces: the content ───────────────────────────────────────────────────
 // @use "surfaces/workspace";
