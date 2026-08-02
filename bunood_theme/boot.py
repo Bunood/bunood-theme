@@ -193,6 +193,16 @@ def extend_bootinfo(bootinfo):
             value = settings.get(field)
             return INBOX_DEFAULTS[field] if value in (None, "") else value
 
+        # Placement rides in the same dict as the rest of the kit, not in a
+        # new one: the client reads a flat blob per kit, and a second payload
+        # for "where" would be a second thing to keep in step with "what".
+        from bunood_theme.presets import USER_DEFAULTS
+
+        bootinfo.bnd_placement = {
+            "inbox": inbox("inbox_placement"),
+            "user": (settings.get("user_placement") or USER_DEFAULTS["user_placement"]),
+        }
+
         bootinfo.bnd_inbox = {
             "style": inbox("inbox_style"),
             "badge": inbox("inbox_badge"),

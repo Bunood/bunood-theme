@@ -804,6 +804,78 @@
 	 * @param {"field"|"icon"|"none"} opts.search - how search appears here.
 	 * @returns {HTMLElement}
 	 */
+	// ════════════════════════════════════════════════════════════════════════
+	// Host registry — where a region actually is, right now
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// One table answering "does this region exist in the live DOM, and what
+	// node do I put things in". Every tenant resolves through it, so adding a
+	// component becomes a placement field plus a row here — not a new branch
+	// in the mount ladder, a new selector in the Desktop stand-down list, and
+	// a new rule per layout.
+	//
+	// It reports the DOM, never the settings. A region backed by a hidden
+	// container is ABSENT, because a tenant placed there would be invisible:
+	// Dock leaves .body-sidebar in the document and hides its container, which
+	// is how search once resolved into display:none and disappeared.
+	const HOSTS = {
+		topbar: () => document.querySelector(".bnd-topbar .bnd-cluster") || document.querySelector(".bnd-topbar"),
+		bottombar: () =>
+			document.querySelector(".bnd-statusbar .bnd-cluster") || document.querySelector(".bnd-statusbar"),
+		pagehead: () => document.querySelector(".page-head .bnd-cluster"),
+		dock: () => document.querySelector(".bnd-dock .bnd-cluster"),
+		sidepane: () => (sidebar_is_hidden() ? null : document.querySelector(".body-sidebar")),
+	};
+
+	/** The node for a region, or null when this desk has no such region now. */
+	function host_for(region) {
+		const get = HOSTS[region];
+		if (!get) return null;
+		try {
+			return get() || null;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	/** Theme Settings label -> region key. "Off" resolves to nothing at all. */
+	const PLACEMENT_REGIONS = {
+		"Top Bar": "topbar",
+		"Bottom Bar": "bottombar",
+		"Page Header": "pagehead",
+		"Side Pane": "sidepane",
+		Dock: "dock",
+	};
+
+	/** Boot's placement choices, replaced by live preview. */
+	let placement_state = (window.frappe && frappe.boot && frappe.boot.bnd_placement) || null;
+
+	/**
+	 * Resolve a tenant's placement. THREE outcomes, not two, and conflating
+	 * the last two is a bug I wrote and caught here:
+	 *
+	 *   "off"     the admin asked for it to be gone. Remove ours; the native
+	 *             comes back because we stop claiming the token.
+	 *   "absent"  the admin asked for a region this layout does not have —
+	 *             the shipped default is Top Bar, and a Bottom Bar site has no
+	 *             top bar. LEAVE WHATEVER IS THERE. Removing it would delete
+	 *             the bell from every Bottom Bar desk on upgrade, which is the
+	 *             exact failure this whole rework exists to stop.
+	 *   <region>  place it there.
+	 *
+	 * Unlike search, these two do NOT walk a fallback chain. They have native
+	 * ERPNext equivalents, so "nowhere of ours" is a fine answer — and moving
+	 * a control the admin deliberately placed to somewhere they did not ask
+	 * for is worse than leaving it where the layout put it.
+	 */
+	function placement_for(tenant) {
+		const label = (placement_state && placement_state[tenant]) || "";
+		if (label === "Off") return "off";
+		const region = PLACEMENT_REGIONS[label];
+		if (!region) return "absent";
+		return host_for(region) ? region : "absent";
+	}
+
 	/**
 	 * Append a cluster to a host and CLAIM the affordances it carries.
 	 *
@@ -816,10 +888,62 @@
 		if (!host) return null;
 		const cluster = build_cluster(opts || { search: "none" });
 		host.appendChild(cluster);
-		bnd_own("bell");
-		bnd_own("user");
+		if (cluster.querySelector(".bnd-bell")) bnd_own("bell");
+		if (cluster.querySelector(".bnd-avatar-btn")) bnd_own("user");
 		if (cluster.querySelector(".bnd-search-icon")) bnd_own("search");
 		return cluster;
+	}
+
+	/**
+	 * Place the bell and the user menu per their own settings.
+	 *
+	 * Runs AFTER the layout has mounted its containers, because a placement
+	 * can only be honoured by a region that exists. Each is independent: the
+	 * bell may sit in the top bar while the avatar sits in the side pane, which
+	 * the single welded cluster could never express.
+	 *
+	 * Anything already carrying one is left alone — mount_cluster still builds
+	 * the pair for layouts whose bar IS their chrome — so this only has work to
+	 * do when a placement points somewhere else.
+	 */
+	function mount_placed_tenants() {
+		if (!placement_state) return;
+		for (const [tenant, token, cls, build] of [
+			["inbox", "bell", "bnd-bell", build_bell],
+			["user", "user", "bnd-avatar-btn", build_user],
+		]) {
+			const region = placement_for(tenant);
+			const existing = document.querySelector("." + cls);
+
+			// Asked for a region this layout does not have: leave whatever the
+			// layout mounted exactly where it is, and keep claiming it if it
+			// is really there. Doing anything else deletes chrome.
+			if (region === "absent") {
+				if (existing) bnd_own(token);
+				continue;
+			}
+
+			if (region === "off") {
+				if (existing) existing.remove();
+				bnd_disown(token);
+				continue;
+			}
+
+			const host = host_for(region);
+			if (!host) continue;
+			if (existing && host.contains(existing)) {
+				bnd_own(token);
+				continue;
+			}
+			if (existing) existing.remove();
+			let cluster = host.querySelector(".bnd-cluster");
+			if (!cluster) {
+				cluster = el("div", "bnd-cluster");
+				host.appendChild(cluster);
+			}
+			cluster.appendChild(build());
+			bnd_own(token);
+		}
 	}
 
 	function build_cluster(opts) {
@@ -834,10 +958,21 @@
 			cluster.appendChild(build_search_icon());
 		}
 
-		// `bnd-bell` names the AFFORDANCE. The badge inside it is only the
-		// unread indicator and is hidden whenever there is nothing unread —
-		// asking the badge whether notifications are reachable answers a
-		// different question, and answers it wrongly on a quiet bench.
+		cluster.appendChild(build_bell());
+		cluster.appendChild(build_user());
+		return cluster;
+	}
+
+	/**
+	 * The notifications bell.
+	 *
+	 * `bnd-bell` names the AFFORDANCE. The badge inside it is only the unread
+	 * indicator and is hidden whenever there is nothing unread — asking the
+	 * badge whether notifications are reachable answers a different question,
+	 * and answers it wrongly on a quiet bench.
+	 * @returns {HTMLElement}
+	 */
+	function build_bell() {
 		const bell = el("button", "bnd-icon-btn bnd-bell", {
 			type: "button",
 			"aria-label": __("Notifications"),
@@ -858,17 +993,22 @@
 			e.stopPropagation();
 			inbox_invoke();
 		});
-		cluster.appendChild(bell);
+		return bell;
+	}
 
+	/**
+	 * The avatar and its menu — the only route to Log Out once a layout hides
+	 * Frappe's own, which is why `user` is the sharpest ownership token.
+	 * @returns {HTMLElement}
+	 */
+	function build_user() {
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
 			"aria-label": __("User menu"),
 		});
 		avatar.innerHTML = user_avatar_html();
 		avatar.addEventListener("click", () => show_menu(avatar, avatar_menu_items()));
-		cluster.appendChild(avatar);
-
-		return cluster;
+		return avatar;
 	}
 
 	/**
@@ -4428,6 +4568,11 @@
 		// Search placement is independent of the layout (item 14): mount it
 		// AFTER the bars exist, since its slots live in them.
 		mount_search();
+
+		// The bell and the user menu follow their own settings, after the
+		// containers exist — a placement can only be honoured by a region
+		// that is really there.
+		mount_placed_tenants();
 
 		// The sidebar style kit rides along in every layout that HAS a
 		// sidebar; Dock hides it, so the kit stays down there.

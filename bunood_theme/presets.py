@@ -351,6 +351,7 @@ STATUS_DEFAULTS = {
 #: Notification centre kit fields (item 13), matching theme_settings.json.
 INBOX_FIELDS = [
     "inbox_style",
+    "inbox_placement",
     "inbox_badge",
     "inbox_group",
     "inbox_chips",
@@ -358,6 +359,27 @@ INBOX_FIELDS = [
     "inbox_arrival",
     "inbox_keyboard",
 ]
+
+#: Where the bell goes, and the user menu. Component rework, slice 1.
+#:
+#: PLACEMENT IS ONE FIELD WHOSE FIRST OPTION IS "Off", deliberately: an
+#: on/off Check plus a separate placement Select can disagree with itself,
+#: and every defect in this area has come from two pieces of state
+#: describing one thing. One field cannot contradict itself.
+#:
+#: "Side Pane" means Frappe's OWN row, where core put it — which is what
+#: lets Classic stop being a special case in code and become a preset that
+#: places everything at Side Pane.
+PLACEMENT_FIELDS = ["inbox_placement", "user_placement"]
+
+#: Kept in step with HOSTS in bunood.js. The labels are what the picker
+#: shows; the slugs the client resolves are lowercased and de-spaced.
+PLACEMENTS = ("Off", "Top Bar", "Bottom Bar", "Page Header", "Side Pane", "Dock")
+
+#: The user menu's own placement. Same reasoning as inbox_placement, and the
+#: same fresh-install answer — but this one carries Log Out, so the client
+#: refuses to leave it unreachable however it is configured.
+USER_DEFAULTS = {"user_placement": "Top Bar"}
 
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our
 #: panel over Frappe's own Notification Log (filter tabs, rollup by
@@ -372,6 +394,12 @@ INBOX_FIELDS = [
 #: document earns an interruption, a share notification does not.
 INBOX_DEFAULTS = {
     "inbox_style": "Inbox + Page",
+    # Not a no-op default, and deliberately so: the bell has always been in
+    # the top bar for the shipped layout, and seeding "Off" here would take
+    # it away from every existing site on upgrade. The migration patch writes
+    # what each layout ACTUALLY rendered; this is only what a fresh install
+    # gets, and a fresh install gets the Top Bar layout.
+    "inbox_placement": "Top Bar",
     "inbox_badge": "Count",
     "inbox_arrival": "Approvals Only",
     # Checks: behaviours inside a user-invoked panel, invisible until opened.

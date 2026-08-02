@@ -64,6 +64,8 @@
   "palette_sigils",
   "section_inbox",
   "inbox_style",
+  "inbox_placement",
+  "user_placement",
   "inbox_picker",
   "inbox_badge",
   "inbox_arrival",
@@ -522,6 +524,24 @@
    "default": "Inbox + Page",
    "hidden": 1,
    "description": "Set by the picker below. Original leaves ERPNext's stock notification panel untouched."
+  },
+  {
+   "fieldname": "inbox_placement",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Notifications Placement",
+   "options": "Off\nTop Bar\nBottom Bar\nPage Header\nSide Pane\nDock",
+   "default": "Top Bar",
+   "description": "Where the notifications bell lives. Off removes it and leaves ERPNext's own."
+  },
+  {
+   "fieldname": "user_placement",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "User Menu Placement",
+   "options": "Off\nTop Bar\nBottom Bar\nPage Header\nSide Pane\nDock",
+   "default": "Top Bar",
+   "description": "Where the profile avatar and its menu live. Carries Log Out, so it is never left unreachable."
   },
   {
    "fieldname": "inbox_picker",

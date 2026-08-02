@@ -3,3 +3,7 @@
 
 [post_model_sync]
 # Patches here run AFTER doctypes are migrated.
+# This one runs before after_migrate -> _seed_defaults, which is exactly why it
+# guards on tabSingles row-absence rather than on a value: seeding first would
+# make the patch look as though it had already run.
+bunood_theme.patches.v0_11_0.chrome_placement

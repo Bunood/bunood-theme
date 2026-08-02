@@ -125,7 +125,7 @@ function assertLogicalOnly(css, name) {
  *   named here so no NEW drift can enter unnoticed. Do not add to this list to
  *   make a build pass.
  */
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them.

@@ -214,6 +214,8 @@ const MUTABLE_FIELDS = [
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
 	// Search placement + status bar (item 14).
+	// Component rework, slice 1: the bell and the user menu place themselves.
+	"inbox_placement", "user_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",
@@ -1286,6 +1288,58 @@ async function main() {
 			await page.waitForTimeout(2000);
 			const reverted = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
 			expectEq(reverted, before, "discard reverts the desk");
+		});
+
+		// ── Placement: bell and user menu are their own components ─────────
+		await test("placement: the bell and the avatar can be separated", async () => {
+			// The whole point of splitting build_cluster: these two were one
+			// DOM node with four call sites, so they could never be apart.
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Side Pane", user_placement: "Top Bar" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const where = await page.evaluate(() => ({
+				bellInSidebar: !!document.querySelector(".body-sidebar .bnd-bell"),
+				bellInTopbar: !!document.querySelector(".bnd-topbar .bnd-bell"),
+				userInTopbar: !!document.querySelector(".bnd-topbar .bnd-avatar-btn"),
+			}));
+			expect(where.bellInSidebar, `bell moved to the side pane (${JSON.stringify(where)})`);
+			expect(!where.bellInTopbar, "and is not left behind in the top bar");
+			expect(where.userInTopbar, "while the avatar stays where it was asked to be");
+		});
+
+		await test("placement: Off removes ours and gives ERPNext its own back", async () => {
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Top Bar" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const state = await page.evaluate(() => {
+				const vis = (sel) => {
+					const el = document.querySelector(sel);
+					if (!el) return false;
+					const r = el.getBoundingClientRect();
+					return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+				};
+				return {
+					own: document.documentElement.getAttribute("data-bnd-own") || "",
+					ours: !!document.querySelector(".bnd-bell"),
+					native: vis(".body-sidebar .sidebar-notification"),
+				};
+			});
+			expect(!state.ours, "our bell is gone");
+			expect(!/\bbell\b/.test(state.own), "and the token is released");
+			expect(state.native, "so ERPNext's own bell is visible again");
+			setSettings({ inbox_placement: "Top Bar" });
+		});
+
+		await test("placement: a region this layout lacks changes nothing", async () => {
+			// The shipped default is Top Bar, and Bottom Bar has no top bar.
+			// "Cannot honour" must not mean "delete" — that is the failure the
+			// whole rework exists to remove, and it would arrive via upgrade.
+			setSettings({ desk_layout: "Bottom Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const kept = await page.evaluate(() => ({
+				bell: !!document.querySelector(".bnd-bottombar .bnd-bell"),
+				user: !!document.querySelector(".bnd-bottombar .bnd-avatar-btn"),
+			}));
+			expect(kept.bell && kept.user, `bottom bar keeps its chrome (${JSON.stringify(kept)})`);
+			setSettings({ desk_layout: "Top Bar" });
 		});
 
 		// ── Invariant matrix ───────────────────────────────────────────────
