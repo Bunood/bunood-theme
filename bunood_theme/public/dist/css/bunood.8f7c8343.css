@@ -258,6 +258,10 @@ html[data-bnd-layout] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px));
 }
 
+html[data-bnd-layout] body[data-route^="Form/Theme Settings"] .layout-side-section {
+  display: none;
+}
+
 html[data-bnd-layout] body[data-route^=Form] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }

@@ -33,6 +33,18 @@
 
 frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
+		// The layout is becoming a PRESET rather than a setting the desk reads
+		// at runtime (component rework). Read-only for one release so support
+		// can still see what a site was, while the component fields below are
+		// the truth. It is not hidden, because "my layout dropdown vanished"
+		// is a worse first impression than a greyed field with a reason.
+		frm.set_df_property(
+			"desk_layout",
+			"description",
+			__("Replaced by the component settings below. Kept visible for reference; it no longer decides anything on its own.")
+		);
+		frm.set_df_property("desk_layout", "read_only", 1);
+
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
 		bnd_render_crumbs_picker(frm);
