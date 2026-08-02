@@ -3,13 +3,20 @@
 /**
  * Theme Settings form script — the visual pickers.
  *
- * THREE PICKERS LIVE HERE
- *   1. Desk Layout (item 9): five thumbnail cards -> `desk_layout`.
- *   2. Sidebar Style (item 10): preset cards + one visual control per style
- *      option -> the hidden `sidebar_*` fields.
- *   3. Breadcrumbs (item 11): style cards + extras -> the hidden `crumb_*`
- *      fields. "Original" is the stock-ERPNext escape hatch, like the
- *      layout picker's "Classic".
+ * SEVEN PICKERS LIVE HERE
+ *   Desk Layout (item 9), Sidebar Style (10), Breadcrumbs (11), Command
+ *   Palette (12), Notifications (13), Search placement and Status Bar (14).
+ *   Each writes hidden fields; none of them is a control the user types into.
+ *
+ * ONE VOCABULARY, BUILT BY `P`
+ *   Every picker composes the same handful of shapes — a style card, a small
+ *   option chip, a switch, a bordered group with a reset — so they are built
+ *   by the `P` helpers below rather than hand-assembled seven times. Before
+ *   this, the same idea was written slightly differently in each picker, and
+ *   the differences were accidents rather than decisions: three spellings of
+ *   the reset chip, two of the switch, cards that did and did not carry a
+ *   blurb. The CSS lives in chrome/_settings.scss (it used to be three
+ *   `<style>` strings in this file, where no build guard could see it).
  *
  * THE CONTRACT WITH THE SERVER
  *   The hidden fields are the canon; presets are labels. Clicking a preset
@@ -30,6 +37,127 @@
  */
 
 /* global frappe, __ */
+
+// ════════════════════════════════════════════════════════════════════════════
+// P — the picker vocabulary
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Small builders returning HTML strings, one per shape a picker can contain.
+// They exist so a picker DECLARES what it holds instead of spelling out the
+// markup, which has three payoffs: the shapes cannot drift apart, a new
+// component composes rather than copies, and the classes are applied in one
+// place so nothing can be styled by accident.
+//
+// Everything is escaped on the way in. These take translated, admin-authored
+// and Frappe-supplied strings, and one of them (a preset name) reaches this
+// file from the database.
+
+/** Escape a value for interpolation into markup. */
+function bnd_esc(value) {
+	return String(value == null ? "" : value)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
+const P = {
+	/** The outer wrapper every picker sits in. */
+	wrap(body) {
+		return '<div class="bnd-cbp">' + body + "</div>";
+	},
+
+	/** A quiet line of explanation under a picker. */
+	note(text) {
+		return '<div class="bnd-cbp-note">' + bnd_esc(text) + "</div>";
+	},
+
+	/**
+	 * The big choice: a grid of thumbnail cards.
+	 * @param {Array<{value:string, name:string, blurb?:string, svg?:string, note?:string}>} items
+	 * @param {{selected:string, cls?:string}} opts
+	 */
+	cards(items, opts) {
+		const cls = opts.cls || "bnd-cbp-style";
+		return (
+			'<div class="bnd-cbp-styles">' +
+			items
+				.map(
+					(i) =>
+						'<button type="button" class="' + cls + (i.value === opts.selected ? " bnd-cbp-on" : "") +
+						'" data-value="' + bnd_esc(i.value) + '">' +
+						(i.svg ? '<span class="bnd-cbp-thumb">' + i.svg + "</span>" : "") +
+						'<span class="bnd-cbp-name">' + bnd_esc(i.name) + "</span>" +
+						(i.blurb ? '<span class="bnd-cbp-blurb">' + bnd_esc(i.blurb) + "</span>" : "") +
+						(i.note
+							? '<span class="bnd-cbp-blurb bnd-cbp-cardnote">' + bnd_esc(i.note) + "</span>"
+							: "") +
+						"</button>"
+				)
+				.join("") +
+			"</div>"
+		);
+	},
+
+	/**
+	 * A row of small chips — the second-tier choice inside a group.
+	 * @param {Array<{value:string|number, name:string, glyph?:string, reason?:string}>} items
+	 */
+	options(items, opts) {
+		return (
+			'<div class="bnd-cbp-row">' +
+			items
+				.map((i) => {
+					const off = i.reason ? " bnd-cbp-dis" : "";
+					const on = String(i.value) === String(opts.value) ? " bnd-cbp-on" : "";
+					return (
+						'<button type="button" class="bnd-cbp-opt' + on + off + '"' +
+						' data-field="' + bnd_esc(opts.field) + '" data-value="' + bnd_esc(i.value) + '"' +
+						(i.reason ? ' title="' + bnd_esc(i.reason) + '" disabled' : "") + ">" +
+						(i.glyph ? '<span class="bnd-cbp-glyph">' + i.glyph + "</span>" : "") +
+						'<span class="bnd-cbp-oname">' + bnd_esc(i.name) + "</span>" +
+						"</button>"
+					);
+				})
+				.join("") +
+			"</div>"
+		);
+	},
+
+	/** A switch with a name and one line of why it exists. */
+	toggle(t) {
+		const on = !!t.on;
+		return (
+			'<button type="button" class="bnd-cbp-toggle' + (t.reason ? " bnd-cbp-dis" : "") + '"' +
+			' data-field="' + bnd_esc(t.field) + '" data-value="' + (on ? 0 : 1) + '"' +
+			(t.reason ? ' title="' + bnd_esc(t.reason) + '" disabled' : "") + ">" +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + bnd_esc(t.name) + "</b>" +
+			(t.desc ? "<br><span class='bnd-cbp-blurb'>" + bnd_esc(t.desc) + "</span>" : "") +
+			"</span></button>"
+		);
+	},
+
+	/**
+	 * A bordered group: title, optional reset chip, one line of description,
+	 * then whatever it contains.
+	 */
+	group(g) {
+		return (
+			'<div class="bnd-cbp-group' + (g.off ? " bnd-cbp-off" : "") + '">' +
+			'<div class="bnd-cbp-title">' + bnd_esc(g.title) +
+			(g.field
+				? '<button type="button" class="bnd-cbp-reset" data-field="' + bnd_esc(g.field) +
+				  '" title="' + bnd_esc(__("Reset to default")) + '">↺</button>'
+				: "") +
+			"</div>" +
+			(g.desc ? '<div class="bnd-cbp-desc">' + bnd_esc(g.desc) + "</div>" : "") +
+			g.body +
+			"</div>"
+		);
+	},
+};
 
 frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
@@ -1435,26 +1563,29 @@ function bnd_render_search_picker(frm) {
 	if (!field || !field.$wrapper) return;
 	const current = frm.doc.search_placement || "Top Bar Center";
 
-	const cards = BND_SEARCH_SLOTS.map((s) => {
-		const on = s.value === current ? " bnd-cbp-on" : "";
-		// Never disabled: an unavailable slot falls back at runtime, and
-		// naming the actual reason is more useful than greying the choice out.
-		const blocker = bnd_search_slot_blocker(frm, s.value);
-		const note = blocker
-			? '<span class="bnd-cbp-blurb" style="color:var(--text-muted)">' +
-			  __("Not available — {0}. Falls back to the nearest slot.", [blocker]) + "</span>"
-			: "";
-		return (
-			'<button type="button" class="bnd-cbp-style bnd-srp-slot' + on + '" data-value="' + s.value + '">' +
-			'<span class="bnd-cbp-thumb">' + bnd_search_thumb(s.value) + "</span>" +
-			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
-			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" + note + "</button>"
-		);
-	}).join("");
+	const cards = P.cards(
+		BND_SEARCH_SLOTS.map((s) => {
+			// Never disabled: an unavailable slot falls back at runtime, and
+			// naming the actual reason beats greying the choice out.
+			const blocker = bnd_search_slot_blocker(frm, s.value);
+			return {
+				value: s.value,
+				name: __(s.value),
+				blurb: s.blurb(),
+				svg: bnd_search_thumb(s.value),
+				note: blocker ? __("Not available — {0}. Falls back to the nearest slot.", [blocker]) : "",
+			};
+		}),
+		{ selected: current, cls: "bnd-cbp-style bnd-srp-slot" }
+	);
 
 	field.$wrapper.html(
-		'<div class="bnd-cbp"><div class="bnd-cbp-styles">' + cards + "</div>" +
-		'<div class="bnd-cbp-note">' + __("Where the search field lives, independent of the desk layout. Applies on the next page load.") + "</div></div>"
+		P.wrap(
+			cards +
+				P.note(
+					__("Where the search field lives, independent of the desk layout. Applies on the next page load.")
+				)
+		)
 	);
 	field.$wrapper.find(".bnd-srp-slot").on("click", function () {
 		bnd_status_set(frm, "search_placement", this.getAttribute("data-value"));
@@ -1546,49 +1677,57 @@ function bnd_render_status_picker(frm) {
 	const off = current === "Off";
 	const minimal = current === "Minimal";
 
-	const cards = BND_STATUS_STYLES.map((s) => {
-		const on = s.value === current ? " bnd-cbp-on" : "";
-		return (
-			'<button type="button" class="bnd-cbp-style bnd-stp-style' + on + '" data-value="' + s.value + '">' +
-			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
-			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
-			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span></button>"
-		);
-	}).join("");
+	const cards = P.cards(
+		BND_STATUS_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		{ selected: current, cls: "bnd-cbp-style bnd-stp-style" }
+	);
 
 	const selects = BND_STATUS_SELECTS.map((g) => {
 		// Minimal makes no server calls, so a refresh interval is moot.
-		const reason = off ? __("The bar is off")
-			: minimal && g.field === "status_interval" ? __("Minimal polls nothing") : "";
-		const opts = g.options.map((o) => {
-			const sel = o.value === frm.doc[g.field] ? " bnd-cbp-on" : "";
-			const dis = reason ? " bnd-cbp-dis" : "";
-			return '<button type="button" class="bnd-cbp-opt' + sel + dis + '" data-field="' + g.field +
-				'" data-value="' + o.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
-				'<span class="bnd-cbp-oname">' + o.name() + "</span></button>";
-		}).join("");
-		return '<div class="bnd-cbp-group' + (reason ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + g.title() +
-			'<button type="button" class="bnd-cbp-reset bnd-stp-reset" data-field="' + g.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
-			'<div class="bnd-cbp-desc">' + g.desc() + "</div><div class=\"bnd-cbp-row\">" + opts + "</div></div>";
+		const reason = off
+			? __("The bar is off")
+			: minimal && g.field === "status_interval"
+			? __("Minimal polls nothing")
+			: "";
+		return P.group({
+			title: g.title(),
+			desc: g.desc(),
+			field: g.field,
+			off: !!reason,
+			body: P.options(
+				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: g.field, value: frm.doc[g.field] }
+			),
+		});
 	}).join("");
 
+	const SIGNALS = ["status_segments_jobs", "status_segments_errors", "status_segments_scheduler", "status_freshness"];
 	const toggles = BND_STATUS_TOGGLES.map((t) => {
-		const on = !!parseInt(frm.doc[t.field], 10);
-		const signal = ["status_segments_jobs", "status_segments_errors", "status_segments_scheduler", "status_freshness"].indexOf(t.field) !== -1;
-		const reason = off ? __("The bar is off") : minimal && signal ? __("Minimal shows no live signals") : "";
-		const dis = reason ? " bnd-cbp-dis" : "";
-		return '<button type="button" class="bnd-cbp-toggle bnd-stp-toggle' + dis + '" data-field="' + t.field +
-			'" data-value="' + (on ? 0 : 1) + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
-			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
-			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span></button>";
+		const reason = off
+			? __("The bar is off")
+			: minimal && SIGNALS.indexOf(t.field) !== -1
+			? __("Minimal shows no live signals")
+			: "";
+		return P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			reason,
+		});
 	}).join("");
 
 	field.$wrapper.html(
-		"<style>.bnd-stp .bnd-cbp-opt{inline-size:112px}</style>" +
-		'<div class="bnd-cbp bnd-stp"><div class="bnd-cbp-styles">' + cards + "</div>" +
-		'<div class="bnd-cbp-note">' + __("Applies on the next page load.") + "</div>" + selects +
-		'<div class="bnd-cbp-group' + (off ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + __("Segments and extras") + "</div>" +
-		'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div></div>"
+		'<div class="bnd-cbp bnd-stp">' +
+			cards +
+			P.note(__("Applies on the next page load.")) +
+			selects +
+			P.group({
+				title: __("Segments and extras"),
+				off,
+				body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
+			}) +
+			"</div>"
 	);
 
 	field.$wrapper.find(".bnd-stp-style").on("click", function () {

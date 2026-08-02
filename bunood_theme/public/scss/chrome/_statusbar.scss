@@ -239,6 +239,50 @@ html[data-theme] .bnd-status-fresh {
 // ── Responsive collapse, by declared rank ───────────────────────────────────
 // Ranks: 1 freshness · 2 density · 3 clock · 4 errors · 5 jobs · 6 scheduler.
 // Drop the least actionable first; a failure signal is the last thing to go.
+//
+// ASKED OF THE BAR, NOT THE VIEWPORT.
+//   The bar does not span the viewport: it starts where the sidebar ends
+//   (`inset-inline-start: var(--bnd-sidebar-live-w)`), and that width is
+//   MEASURED because the sidebar is user-resizable. So a viewport query asks
+//   the wrong question — drag the sidebar out to 400px on a 1200px screen and
+//   the bar is ~800px wide while `max-width: 991px` has not fired, so the
+//   clock and the freshness stamp keep space the signals need.
+//
+//   The viewport queries below are kept underneath as the floor: a narrow
+//   viewport always implies a narrow bar, so they can only ever agree. Where
+//   they disagree — wide viewport, wide sidebar — the container query is the
+//   one telling the truth, and browsers without support keep today's
+//   behaviour rather than none.
+html[data-theme] .bnd-statusbar,
+html[data-theme] .bnd-topbar {
+  container-type: inline-size;
+  container-name: bndbar;
+}
+
+@container bndbar (max-width: 900px) {
+  html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
+  html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
+    display: none;
+  }
+}
+
+@container bndbar (max-width: 700px) {
+  html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
+    display: none;
+  }
+
+  html[data-theme] .bnd-statusbar .bnd-search-field .bnd-search-label,
+  html[data-theme] .bnd-statusbar .bnd-search-field kbd {
+    display: none;
+  }
+}
+
+@container bndbar (max-width: 460px) {
+  html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
+    display: none;
+  }
+}
+
 @media (max-width: 991px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
   html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {

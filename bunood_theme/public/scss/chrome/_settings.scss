@@ -143,6 +143,30 @@ html[data-theme] {
     color: var(--text-muted);
   }
 
+  // A card's own caveat — "not available here, and why". Muted so it reads as
+  // a footnote to the blurb above it rather than as a second blurb. Was an
+  // inline style on the element; a class so the primitive can apply it.
+  .bnd-cbp-cardnote {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  // A stack of switches inside a group. Was an inline `style` attribute on a
+  // div in the status picker; a class so every kit stacks them the same way.
+  .bnd-cbp-switches {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-block-start: 7px;
+  }
+
+  // The status picker's option chips carry longer labels ("Manual only",
+  // "5 minutes") than the 96px default fits. Was a one-rule <style> element
+  // injected by that picker alone.
+  .bnd-stp .bnd-cbp-opt {
+    inline-size: 112px;
+  }
+
   .bnd-cbp-group {
     border: 1px solid var(--border-color);
     border-radius: 10px;

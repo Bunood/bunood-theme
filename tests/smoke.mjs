@@ -1008,6 +1008,51 @@ async function main() {
 			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
 		});
 
+		await test("status: the bar collapses because IT is narrow, not the window", async () => {
+			// The bar starts where the sidebar ends, and the sidebar is
+			// user-resizable — so its width is not the viewport's. A media
+			// query cannot see that: drag the sidebar out on a wide screen and
+			// the bar is cramped while `max-width: 991px` has never fired.
+			// Container queries ask the bar itself.
+			setSettings({ desk_layout: "Top Bar", status_style: "Operator", search_placement: "Top Bar Center" });
+			await page.setViewportSize({ width: 1200, height: 900 });
+			await goDesk("/desk/item", ".page-head", 4500);
+
+			const ranks = async () =>
+				page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-statusbar [data-bnd-prio]")]
+						.filter((n) => getComputedStyle(n).display !== "none")
+						.map((n) => parseInt(n.dataset.bndPrio, 10))
+						.sort((a, b) => a - b)
+				);
+			const widen = (px) =>
+				page.evaluate((w) => {
+					document.documentElement.style.setProperty("--bnd-sidebar-live-w", w);
+				}, px);
+
+			const roomy = await ranks();
+			expect(roomy.length >= 5, `all ranks fit a 1140px bar (${JSON.stringify(roomy)})`);
+
+			// Same viewport throughout — only the bar changes.
+			await widen("400px");
+			await page.waitForTimeout(500);
+			const squeezed = await ranks();
+			await widen("620px");
+			await page.waitForTimeout(500);
+			const tight = await ranks();
+			await widen("");
+			await page.setViewportSize({ width: 1920, height: 1080 });
+
+			expect(
+				squeezed.length < roomy.length && tight.length < squeezed.length,
+				`narrowing the BAR drops ranks (${JSON.stringify([roomy, squeezed, tight])})`
+			);
+			// And it drops them in the documented order — the least actionable
+			// first, so a failure count outlives the clock.
+			expect(!squeezed.includes(1) && !squeezed.includes(2), "freshness and density go first");
+			expect(tight.includes(5) && tight.includes(6), "jobs and scheduler survive longest");
+		});
+
 		await test("status: privileged signals never reach a plain user", async () => {
 			// Server-side, because the browser session is Administrator and the
 			// interesting case is the one it can never exercise. A throwaway
