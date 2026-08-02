@@ -1490,6 +1490,100 @@ async function main() {
 
 		setSettings({ desk_layout: "Top Bar", status_style: "Quiet", search_placement: "Top Bar Center" });
 
+		// ── Settings form geometry ─────────────────────────────────────────
+		//
+		// The invariant matrix asks whether things are REACHABLE. Nothing asks
+		// whether they are laid out correctly, and a settings form is where
+		// that shows: moving the pickers' CSS out of three inline <style>
+		// strings raised its specificity from (0,1,0) to the house convention
+		// (0,2,0), our rules started winning fights they had been losing to
+		// Frappe, and one label wrapped to two lines and made its card taller
+		// than its neighbours. 86 tests stayed green throughout, because none
+		// of them looks at shape.
+		//
+		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
+		// of this machine's font rendering and would fail on anyone else's.
+		await test("settings: every picker renders its full complement", async () => {
+			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			// Structural counts catch a picker that silently rendered nothing —
+			// which is what a thrown error inside one render function looks
+			// like, since each is called in sequence from refresh().
+			const EXPECTED = {
+				layout_picker: { cards: 5 },
+				// Eight, matching SIDEBAR_PRESETS in presets.py. Worth stating
+				// because the first draft of this test said three: it counted
+				// `.bnd-sbp-card`, a decorative part INSIDE a preset thumbnail,
+				// rather than `.bnd-sbp-preset`, the card itself.
+				sidebar_picker: { cards: 8 },
+				crumbs_picker: { cards: 5, toggles: 3, opts: 10 },
+				palette_picker: { cards: 4, toggles: 6 },
+				inbox_picker: { cards: 4, toggles: 4, opts: 7 },
+				search_picker: { cards: 6 },
+				status_picker: { cards: 4, toggles: 8, opts: 7 },
+			};
+			const got = await page.evaluate(() => {
+				const out = {};
+				for (const f of Object.keys({
+					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
+					inbox_picker: 1, search_picker: 1, status_picker: 1,
+				})) {
+					const el = document.querySelector(`[data-fieldname="${f}"]`);
+					out[f] = el
+						? {
+								h: Math.round(el.getBoundingClientRect().height),
+								cards: el.querySelectorAll(".bnd-cbp-style,.bnd-lp-card,.bnd-sbp-preset,.bnd-srp-slot").length,
+								toggles: el.querySelectorAll(".bnd-cbp-toggle,.bnd-sbp-toggle").length,
+								opts: el.querySelectorAll(".bnd-cbp-opt").length,
+						  }
+						: null;
+				}
+				return out;
+			});
+			for (const [name, want] of Object.entries(EXPECTED)) {
+				expect(got[name], `${name} rendered`);
+				expect(got[name].h > 0, `${name} has height`);
+				for (const [k, v] of Object.entries(want)) {
+					expectEq(got[name][k], v, `${name}.${k}`);
+				}
+			}
+		});
+
+		await test("settings: no ragged rows — cards on a line match heights", async () => {
+			// The fault the CSS move exposed, made permanent. A card whose label
+			// wraps must not stand taller than the ones beside it.
+			const ragged = await page.evaluate(() => {
+				const bad = [];
+				for (const row of document.querySelectorAll(".bnd-cbp-row, .bnd-sbp-row-wrap, .bnd-cbp-styles")) {
+					const kids = [...row.children].filter((k) => k.getBoundingClientRect().height > 0);
+					if (kids.length < 2) continue;
+					// Group by top edge: only cards on the SAME line are peers.
+					const lines = new Map();
+					for (const k of kids) {
+						const r = k.getBoundingClientRect();
+						const key = Math.round(r.top);
+						if (!lines.has(key)) lines.set(key, []);
+						lines.get(key).push(Math.round(r.height));
+					}
+					for (const [top, hs] of lines) {
+						if (Math.max(...hs) - Math.min(...hs) > 1) {
+							bad.push({ cls: row.className, top, heights: hs });
+						}
+					}
+				}
+				return bad;
+			});
+			expectEq(ragged.length, 0, `ragged rows: ${JSON.stringify(ragged.slice(0, 3))}`);
+		});
+
+		await test("settings: nothing overflows the form horizontally", async () => {
+			const overflow = await page.evaluate(() =>
+				[...document.querySelectorAll('[data-fieldname$="_picker"]')]
+					.map((el) => ({ f: el.getAttribute("data-fieldname"), over: el.scrollWidth - el.clientWidth }))
+					.filter((x) => x.over > 1)
+			);
+			expectEq(overflow.length, 0, `pickers overflowing: ${JSON.stringify(overflow)}`);
+		});
+
 		// ── Console error budget ───────────────────────────────────────────
 		await test("console error budget: nothing beyond the allowlist", async () => {
 			const unexpected = consoleErrors.filter((e) => !CONSOLE_ALLOWLIST.some((re) => re.test(e)));
