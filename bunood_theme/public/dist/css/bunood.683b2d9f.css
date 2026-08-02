@@ -57,6 +57,7 @@
   --bnd-bottombar-h: 40px;
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
+  --bnd-bottom-reserve: 0px;
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
   --bnd-apps-rail-w: 46px;
@@ -261,25 +262,12 @@ html[data-bnd-layout=dock] .page-title .sidebar-toggle-btn {
   display: none;
 }
 
-html[data-bnd-statusbar=slim]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-statusbar-h);
+html[data-bnd-layout] .main-section {
+  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px));
 }
 
-html[data-bnd-statusbar=global]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-bottombar-h);
-}
-
-html[data-bnd-statusbar=slim][data-bnd-search=botedge]:not([data-bnd-desktop]) .main-section,
-html[data-bnd-statusbar=slim][data-bnd-search=botcenter]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: var(--bnd-bottombar-h);
-}
-
-html[data-bnd-layout=dock]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: calc(var(--bnd-dock-h) + 20px);
-}
-
-html[data-bnd-layout=dock][data-bnd-statusbar]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: calc(var(--bnd-dock-h) + 20px + var(--bnd-statusbar-h));
+html[data-bnd-layout] body[data-route^=Form] .layout-side-section {
+  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
 html[data-bnd-layout=topbar] .main-section > header {
@@ -1750,9 +1738,6 @@ html[data-bnd-desktop] .bnd-apps-rail,
 html[data-bnd-desktop] .bnd-dock {
   display: none;
 }
-html[data-bnd-desktop] .main-section {
-  padding-block-end: 0;
-}
 html[data-bnd-desktop] .dropdown-notifications {
   position: static;
   inline-size: auto;
@@ -2415,6 +2400,10 @@ html[data-theme] .bnd-inbox-btn-primary {
   }
   .body-sidebar-container,
   .navbar,
+  .bnd-topbar,
+  .bnd-statusbar,
+  .bnd-dock,
+  .bnd-apps-rail,
   .page-actions,
   .form-sidebar,
   .list-sidebar,
@@ -2434,6 +2423,9 @@ html[data-theme] .bnd-inbox-btn-primary {
     padding: 0;
     width: auto;
     max-width: none;
+  }
+  html[data-bnd-layout] .main-section {
+    block-size: auto;
   }
   thead {
     display: table-header-group;

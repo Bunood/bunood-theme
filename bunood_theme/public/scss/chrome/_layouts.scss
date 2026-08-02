@@ -137,16 +137,6 @@ html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
-// The dock floats above whatever bar is there, so it needs its own clearance
-// on top (see the stacking rule further down).
-html[data-bnd-layout="dock"]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: calc(var(--bnd-dock-h) + 20px);
-}
-
-html[data-bnd-layout="dock"][data-bnd-statusbar]:not([data-bnd-desktop]) .main-section {
-  padding-block-end: calc(var(--bnd-dock-h) + 20px + var(--bnd-statusbar-h));
-}
-
 // ── Top bar layout: the native <header> becomes the bar's home ──────────────
 // v16 renders an EMPTY <header> as .main-section's first child — a native
 // mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section

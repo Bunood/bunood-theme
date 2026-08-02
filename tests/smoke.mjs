@@ -277,7 +277,13 @@ async function main() {
 			"Compact": async () => {
 				expect(!(await q(".bnd-topbar")), "no topbar");
 				expect(await q(".page-head .bnd-cluster"), "cluster in page head");
+				// Compact has no top bar, so the default placement falls back —
+				// and its fallback order puts the sidebar first, because growing
+				// the slim strip to hold search is the one thing this layout
+				// exists to avoid.
 				expectEq(await visible(".body-sidebar .navbar-search-bar"), true, "sidebar search kept");
+				expectEq(await attr("data-bnd-search"), "sbtop", "fell back to the sidebar, not the strip");
+				expectEq(await page.evaluate(() => document.querySelectorAll(".bnd-search-field").length), 0, "no injected field");
 			},
 			"Classic": async () => {
 				expect(!(await q(".bnd-topbar")) && !(await q(".bnd-statusbar")) && !(await q(".bnd-dock")), "no bnd chrome");
@@ -301,12 +307,17 @@ async function main() {
 		};
 		for (const [layout, checks] of Object.entries(LAYOUT_CHECKS)) {
 			await test(`layout: ${layout}`, async () => {
-				setSettings({ desk_layout: layout });
+				// Search placement is a SEPARATE setting since item 14, and these
+				// checks assert where search ends up — so they must state it
+				// rather than inherit whatever the site happens to hold. Left
+				// implicit, a bench sitting on "Sidebar Top" failed Top Bar and
+				// Bottom Bar for reasons that were entirely correct behaviour.
+				setSettings({ desk_layout: layout, search_placement: "Top Bar Center" });
 				await goDesk("/desk/sales-invoice", ".page-head");
 				await checks();
 			});
 		}
-		setSettings({ desk_layout: "Top Bar" });
+		setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);

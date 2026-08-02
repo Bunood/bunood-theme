@@ -1113,11 +1113,31 @@
 
 	/**
 	 * Preference order when the requested slot does not exist in the active
-	 * layout (Classic has no bars; Dock has no sidebar). Walked left to
-	 * right from the request, so a choice degrades to the nearest sensible
-	 * home instead of vanishing.
+	 * layout. Walked left to right from the request, so a choice degrades to
+	 * the nearest sensible home instead of vanishing.
+	 *
+	 * PER-LAYOUT, because "nearest sensible home" is a property of the layout
+	 * rather than a global ranking:
+	 *   compact / classic  keep Frappe's own sidebar search row, and are
+	 *                      defined by not growing extra chrome. Falling back
+	 *                      into their slim strip contradicted the layout
+	 *                      twice — it grew that strip to 40px AND took away
+	 *                      the row the layout exists to keep.
+	 *   dock               hides the sidebar outright, so it has only bars.
+	 *   bottombar          its own strip first: that strip IS the layout.
 	 */
-	const SEARCH_FALLBACK = ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"];
+	const SEARCH_FALLBACKS = {
+		topbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
+		compact: ["sbtop", "sbbottom", "botcenter", "botedge"],
+		classic: ["sbtop", "sbbottom", "botcenter", "botedge"],
+		bottombar: ["botcenter", "botedge", "sbtop", "sbbottom"],
+		dock: ["botcenter", "botedge"],
+	};
+
+	/** The fallback order for the active layout. */
+	function search_fallback_order() {
+		return SEARCH_FALLBACKS[layout()] || SEARCH_FALLBACKS.topbar;
+	}
 
 	/** The container a slot needs, or null when this layout has no such bar. */
 	function search_slot_host(slot) {
@@ -1160,10 +1180,25 @@
 	 */
 	function search_resolve_slot() {
 		const want = search_wanted_slot();
-		for (const slot of [want].concat(SEARCH_FALLBACK.filter((s) => s !== want))) {
+		for (const slot of [want].concat(search_fallback_order().filter((s) => s !== want))) {
 			if (search_slot_host(slot)) return slot;
 		}
 		return "";
+	}
+
+	/**
+	 * Is this slot merely LATE rather than absent?
+	 *
+	 * Every bar slot lives in a bar mounted synchronously by the caller a few
+	 * lines above mount_search, so for those "missing now" means "missing
+	 * forever". Frappe's sidebar search row is the one anchor that arrives a
+	 * beat after boot — unless the layout hides the sidebar outright, in
+	 * which case it is not coming either.
+	 */
+	function search_pending(slot) {
+		if (slot !== "sbtop" && slot !== "sbbottom") return false;
+		if (sidebar_is_hidden()) return false;
+		return !document.querySelector(".navbar-search-bar");
 	}
 
 	/**
@@ -1171,56 +1206,38 @@
 	 * field in the right host is left alone, one in the wrong host is moved,
 	 * so a live preview flip does not leave two search fields behind.
 	 *
-	 * WHY TWO BRANCHES, and why neither is a plain retry loop:
-	 *   Our own bars are mounted SYNCHRONOUSLY by the caller a few lines
-	 *   above this call, so for a bar slot "no host now" means "no host
-	 *   ever" — waiting cannot help. Frappe's sidebar search row is the
-	 *   opposite: it renders a beat after boot, so that anchor IS worth
-	 *   waiting for. Treating both the same way costs one of them:
-	 *     - retry everything -> Bottom Bar layout sat search-less for 3.1s
-	 *       on its own default placement while a top bar that will never
-	 *       exist was waited out (measured).
-	 *     - retry nothing    -> Classic resolved before the native row
-	 *       existed and search never appeared at all (measured).
+	 * THE RULE: never fall PAST a higher-preference slot that is only late.
+	 * Both halves of that matter, and each was learned by breaking it:
+	 *   - waiting on a slot that can never exist left Bottom Bar search-less
+	 *     for 3.1s on its own default placement;
+	 *   - not waiting at all let Compact skip its sidebar — its preferred
+	 *     home — for the strip that happened to exist already, growing the
+	 *     one layout defined by not growing chrome;
+	 *   - and resolving before the row rendered dropped search entirely in
+	 *     Classic. All three measured.
 	 */
 	function mount_search() {
 		if (!status_state) return;
 		const want = search_wanted_slot();
+		const order = [want].concat(search_fallback_order().filter((s) => s !== want));
 
-		if (want !== "sbtop" && want !== "sbbottom") {
-			// A bar slot: resolve at once. The bounded retry underneath is
-			// for the FALLBACK's sake — when no bar fits, the nearest home
-			// is the sidebar, whose row has not rendered yet.
-			try_for(() => {
-				const slot = search_resolve_slot();
-				if (!slot) return false;
-				mount_search_at(slot);
-				return true;
-			}, 20);
-			return;
-		}
-
-		// A sidebar slot in a layout that has no visible sidebar (Dock) is
-		// never going to arrive — waiting for it only delays the fallback.
-		if (sidebar_is_hidden()) {
-			const slot = search_resolve_slot();
-			if (slot) mount_search_at(slot);
-			return;
-		}
-
-		// A sidebar slot, asked for by name. Hold out for it: a non-strict
-		// resolve this early would hand the request to whichever of our bars
-		// mounted first, which is how "Sidebar Bottom" once landed in the top
-		// bar (measured).
 		let placed = false;
 		try_for(() => {
-			if (!search_slot_host(want)) return false;
-			mount_search_at(want);
-			placed = true;
-			return true;
+			for (const slot of order) {
+				if (search_slot_host(slot)) {
+					mount_search_at(slot);
+					placed = true;
+					return true;
+				}
+				// Stop scanning here rather than settling for a lower
+				// preference: this one may still arrive.
+				if (search_pending(slot)) return false;
+			}
+			return false;
 		}, 20);
-		// Budget spent: this layout has no sidebar at all (Dock hides it), so
-		// take the nearest available home rather than dropping search.
+
+		// Budget spent: whatever we were waiting for is not coming. Take the
+		// nearest home that does exist rather than dropping search.
 		setTimeout(() => {
 			if (placed) return;
 			const slot = search_resolve_slot();
