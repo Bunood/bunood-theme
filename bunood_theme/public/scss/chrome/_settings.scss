@@ -31,54 +31,11 @@
 // ============================================================================
 
 // ── Desk layout picker ──────────────────────────────────────────────────────
-html[data-theme] {
-  .bnd-lp {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
-    margin-block: 4px;
-  }
-
-  .bnd-lp-card {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--control-bg);
-    cursor: pointer;
-    text-align: start;
-
-    &:hover {
-      border-color: var(--primary);
-    }
-  }
-
-  .bnd-lp-selected {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 1px var(--primary);
-  }
-
-  .bnd-lp-thumb svg {
-    display: block;
-    inline-size: 100%;
-    block-size: auto;
-    color: var(--text-color);
-  }
-
-  .bnd-lp-name {
-    font-weight: 600;
-    font-size: var(--text-md);
-  }
-
-  .bnd-lp-blurb {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    line-height: 1.45;
-  }
-}
+// Nothing of its own. It used to carry `bnd-lp-*`, a second spelling of the
+// shared card — same structure, same rules, differing only in a name one step
+// larger and a grid 10px wider, neither of which anybody chose. It composes
+// `P.cards` now like every other picker; `.bnd-lp-card` survives in the markup
+// purely as a click hook and needs no styling.
 
 // ── Shared picker vocabulary (cbp) ──────────────────────────────────────────
 // Used by breadcrumbs, palette, notifications, search and status. Defined here
@@ -160,11 +117,17 @@ html[data-theme] {
     margin-block-start: 7px;
   }
 
-  // The status picker's option chips carry longer labels ("Manual only",
-  // "5 minutes") than the 96px default fits. Was a one-rule <style> element
-  // injected by that picker alone.
+  // Two pickers carry labels longer than the 96px default fits — "Manual
+  // only" and "5 minutes" in the status bar, the arrival modes in
+  // notifications. Each shipped its own one-rule <style> element; the widths
+  // differ because they were chosen separately, and they stay separate here
+  // rather than being averaged into a number that suits neither.
   .bnd-stp .bnd-cbp-opt {
     inline-size: 112px;
+  }
+
+  .bnd-ibp .bnd-cbp-opt {
+    inline-size: 118px;
   }
 
   .bnd-cbp-group {

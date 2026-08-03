@@ -2375,47 +2375,6 @@ html[data-theme] .bnd-inbox-btn-primary {
     inline-size: auto;
   }
 }
-html[data-theme] .bnd-lp {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
-  margin-block: 4px;
-}
-html[data-theme] .bnd-lp-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--control-bg);
-  cursor: pointer;
-  text-align: start;
-}
-html[data-theme] .bnd-lp-card:hover {
-  border-color: var(--primary);
-}
-html[data-theme] .bnd-lp-selected {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary);
-}
-html[data-theme] .bnd-lp-thumb svg {
-  display: block;
-  inline-size: 100%;
-  block-size: auto;
-  color: var(--text-color);
-}
-html[data-theme] .bnd-lp-name {
-  font-weight: 600;
-  font-size: var(--text-md);
-}
-html[data-theme] .bnd-lp-blurb {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-
 html[data-theme] .bnd-cbp {
   display: flex;
   flex-direction: column;
@@ -2478,6 +2437,9 @@ html[data-theme] .bnd-cbp-switches {
 }
 html[data-theme] .bnd-stp .bnd-cbp-opt {
   inline-size: 112px;
+}
+html[data-theme] .bnd-ibp .bnd-cbp-opt {
+  inline-size: 118px;
 }
 html[data-theme] .bnd-cbp-group {
   border: 1px solid var(--border-color);

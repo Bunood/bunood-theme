@@ -311,16 +311,15 @@ function bnd_render_layout_picker(frm) {
 	if (!field || !field.$wrapper) return;
 
 	const current = frm.doc.desk_layout || "Top Bar";
-	const cards = BND_LAYOUTS.map((l) => {
-		const selected = l.value === current ? " bnd-lp-selected" : "";
-		return (
-			'<button type="button" class="bnd-lp-card' + selected + '" data-layout="' + l.value + '">' +
-			'<span class="bnd-lp-thumb">' + l.svg + "</span>" +
-			'<span class="bnd-lp-name">' + __(l.value) + "</span>" +
-			'<span class="bnd-lp-blurb">' + l.blurb() + "</span>" +
-			"</button>"
-		);
-	}).join("");
+	// The shared vocabulary, not a parallel one. `bnd-lp-*` duplicated
+	// `bnd-cbp-*` rule for rule — same card, same thumb, same blurb, two
+	// spellings — and the only differences were unintended: a name one step
+	// larger and a grid 10px wider, neither of them a decision anybody made.
+	// `bnd-lp-card` survives purely as the click hook.
+	const cards = P.cards(
+		BND_LAYOUTS.map((l) => ({ value: l.value, name: __(l.value), blurb: l.blurb(), svg: l.svg })),
+		{ selected: current, cls: "bnd-cbp-style bnd-lp-card" }
+	);
 
 	const toolbar =
 		'<div class="bnd-sbp-toolbar">' +
@@ -330,12 +329,13 @@ function bnd_render_layout_picker(frm) {
 		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
 		"</div>";
 
-	field.$wrapper.html(
-					'<div class="bnd-lp">' + cards + "</div>"
-	);
+	field.$wrapper.html(P.wrap(cards));
 
 	field.$wrapper.find(".bnd-lp-card").on("click", function () {
-		frm.set_value("desk_layout", this.getAttribute("data-layout"));
+		// `data-value`, not `data-layout`: the shared builder emits one
+		// attribute name for every picker, so a handler cannot be written
+		// against a spelling only this picker used.
+		frm.set_value("desk_layout", this.getAttribute("data-value"));
 	});
 }
 
@@ -717,7 +717,7 @@ function bnd_render_sidebar_picker_now(frm) {
 					'<div class="bnd-sbp">' + toolbar +
 			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
 			groups + blur_group + steppers +
-			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Extras") + '</div><div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
 			"</div>"
 	);
 
@@ -1013,7 +1013,7 @@ function bnd_render_crumbs_picker(frm) {
 	field.$wrapper.html(
 					'<div class="bnd-cbp">' +
 			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + groups +
-			'<div class="bnd-cbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			'<div class="bnd-cbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
 			"</div>"
 	);
 
@@ -1194,7 +1194,7 @@ function bnd_render_palette_picker(frm) {
 		'<div class="bnd-cbp">' +
 			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note +
 			'<div class="bnd-cbp-group' + (kit_down ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + __("Behaviour") + '</div>' +
-			'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div>" +
+			'<div class="bnd-cbp-switches">' + toggles + "</div>" +
 			'<div style="margin-block-start:10px"><button type="button" class="btn btn-xs btn-default bnd-plp-reset-rank">' + __("Reset my ranking") + "</button>" +
 			'<span class="bnd-cbp-note" style="margin-inline-start:8px">' + __("Clears what the frecency ranking has learned for your user.") + "</span></div>" +
 			"</div>" +
@@ -1437,12 +1437,11 @@ function bnd_render_inbox_picker(frm) {
 		// Wider option tiles than the shared bnd-cbp-opt default: "Approvals
 		// only" wrapped to two lines at 96px, pushing its glyph off the row's
 		// baseline (item-13 sweep).
-		"<style>.bnd-ibp .bnd-cbp-opt{inline-size:118px}</style>" +
 		'<div class="bnd-cbp bnd-ibp">' +
 			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + selects +
 			'<div class="bnd-cbp-group' + (panel_ours ? "" : " bnd-cbp-off") + '"><div class="bnd-cbp-title">' + __("Panel behaviour") +
 			'<button type="button" class="bnd-cbp-reset bnd-ibp-reset-all" title="' + __("Reset to defaults") + '">↺</button></div>' +
-			'<div style="display:flex;flex-direction:column;gap:6px;margin-block-start:7px">' + toggles + "</div></div>" +
+			'<div class="bnd-cbp-switches">' + toggles + "</div></div>" +
 			"</div>"
 	);
 
