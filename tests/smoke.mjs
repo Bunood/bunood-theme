@@ -166,6 +166,129 @@ const visible = (sel) =>
 		return el ? getComputedStyle(el).display !== "none" : null;
 	}, sel);
 
+/**
+ * Layout invariants — the things that must hold of ANY region of the desk,
+ * whatever it contains.
+ *
+ * WHY A HELPER AND NOT MORE ASSERTIONS
+ *   Hand-written checks cover the states somebody thought of. These cover a
+ *   CLASS of defect wherever it appears, and two of this release's real bugs
+ *   are in that class: the dock painted over the status bar, and a search
+ *   field resolved underneath the dock pill. Both are "two interactive things
+ *   occupy the same pixels", which nobody would think to assert per-component
+ *   — and which is trivially checkable everywhere at once.
+ *
+ * Deliberately NOT pixel snapshots: heights encode one machine's font
+ * rendering. Every rule here is relational and holds on any machine.
+ *
+ * @param {string} rootSel  region to inspect
+ * @param {{allowOverlap?: string[]}} opts  selectors exempt from the overlap
+ *   rule — for genuinely stacked UI (a dropdown over its trigger).
+ * @returns {Promise<string[]>} human-readable faults; empty means sane.
+ */
+async function layoutFaults(rootSel, opts = {}) {
+	return page.evaluate(
+		({ rootSel, allowOverlap }) => {
+			const root = document.querySelector(rootSel);
+			if (!root) return [`root ${rootSel} not found`];
+			const faults = [];
+			const box = (el) => el.getBoundingClientRect();
+			const shown = (el) => {
+				const cs = getComputedStyle(el);
+				if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false;
+				const r = box(el);
+				return r.width > 0 && r.height > 0;
+			};
+
+			// 1. Ragged rows: siblings sharing a line must match heights.
+			for (const row of root.querySelectorAll(".bnd-cbp-row, .bnd-sbp-row-wrap, .bnd-cbp-styles")) {
+				const lines = new Map();
+				for (const k of [...row.children].filter(shown)) {
+					const r = box(k);
+					const key = Math.round(r.top);
+					if (!lines.has(key)) lines.set(key, []);
+					lines.get(key).push(Math.round(r.height));
+				}
+				for (const [top, hs] of lines) {
+					if (Math.max(...hs) - Math.min(...hs) > 1) {
+						faults.push(`ragged row at y=${top}: heights ${hs.join(",")}`);
+					}
+				}
+			}
+
+			// 2. Horizontal overflow of the region itself.
+			if (root.scrollWidth - root.clientWidth > 1) {
+				faults.push(`${rootSel} overflows by ${root.scrollWidth - root.clientWidth}px`);
+			}
+
+			// 3. Interactive elements that are present but unusable, and pairs
+			//    that sit on top of each other. This is the dock-over-bar class.
+			//
+			//    SCOPED TO THE DOCUMENT, NOT THE ROOT, and that is the whole
+			//    point: our chrome is position:fixed and deliberately escapes
+			//    any one subtree — the dock is appended to <body> while the
+			//    status bar goes into .main-section. Rooting this at
+			//    .main-section meant the two were never compared, and the
+			//    first version of this helper sailed past the very collision
+			//    it was written for (verified by reintroducing that bug).
+			// 3a. The REGIONS themselves must not overlap each other. This is
+			//     the check the dock-over-statusbar bug needed, and two
+			//     earlier versions of this helper missed it: comparing only
+			//     interactive descendants finds nothing, because the dock's
+			//     buttons sit centred while the bar's controls sit at its
+			//     edges. What collides is the dock's opaque pill covering a
+			//     band of the bar — an occluder with no button in the overlap.
+			const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock", ".bnd-apps-rail"];
+			const present = REGIONS.map((s) => [s, document.querySelector(s)])
+				.filter(([, el]) => el && shown(el));
+			for (let i = 0; i < present.length; i++) {
+				for (let j = i + 1; j < present.length; j++) {
+					const [sa, a] = present[i], [sb, b] = present[j];
+					if (a.contains(b) || b.contains(a)) continue;
+					const ra = box(a), rb = box(b);
+					const ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+					const oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+					if (ox > 2 && oy > 2) {
+						faults.push(`chrome regions overlap: ${sa} over ${sb} (${Math.round(ox)}x${Math.round(oy)}px)`);
+					}
+				}
+			}
+
+			const OURS = ".bnd-topbar, .bnd-statusbar, .bnd-dock, .bnd-cluster, .bnd-apps-rail";
+			const interactive = [...document.querySelectorAll(OURS)]
+				.flatMap((region) => [
+					...region.querySelectorAll("button, a[href], input, select, [role='button']"),
+				])
+				.filter((el) => !allowOverlap.some((s) => el.closest(s)));
+			const visibleOnes = interactive.filter(shown);
+			for (const el of interactive) {
+				if (el.disabled || el.hasAttribute("hidden")) continue;
+				const r = box(el);
+				if (shown(el) && (r.width < 4 || r.height < 4)) {
+					faults.push(`interactive element too small to hit: ${el.className || el.tagName} ${Math.round(r.width)}x${Math.round(r.height)}`);
+				}
+			}
+			for (let i = 0; i < visibleOnes.length; i++) {
+				for (let j = i + 1; j < visibleOnes.length; j++) {
+					const a = visibleOnes[i], b = visibleOnes[j];
+					if (a.contains(b) || b.contains(a)) continue;
+					const ra = box(a), rb = box(b);
+					const ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+					const oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+					// A couple of pixels of adjacency is not an overlap.
+					if (ox > 2 && oy > 2) {
+						faults.push(
+							`interactive overlap: ${a.className || a.tagName} over ${b.className || b.tagName} (${Math.round(ox)}x${Math.round(oy)}px)`
+						);
+					}
+				}
+			}
+			return faults;
+		},
+		{ rootSel, allowOverlap: opts.allowOverlap || [] }
+	);
+}
+
 // ── Expected attribute matrix per preset (mirrors bunood.js SB_SLUGS) ───────
 
 const SLUG = {
@@ -1627,6 +1750,28 @@ async function main() {
 					.filter((x) => x.over > 1)
 			);
 			expectEq(overflow.length, 0, `pickers overflowing: ${JSON.stringify(overflow)}`);
+		});
+
+		await test("layout invariants hold across the mounted chrome", async () => {
+			// One helper, every region, every layout. Catches the class the
+			// dock-over-statusbar bug belonged to without anyone having to
+			// predict which two components would collide next.
+			for (const [layout, style] of [
+				["Top Bar", "Operator"],
+				["Bottom Bar", "Operator"],
+				["Dock", "Operator"],
+				["Compact", "Quiet"],
+			]) {
+				setSettings({ desk_layout: layout, status_style: style, search_placement: "Top Bar Center" });
+				await goDesk("/desk/item", ".page-head", 4500);
+				const faults = await layoutFaults(".main-section", {
+					// Frappe's own page furniture stacks legitimately; we are
+					// asserting OUR chrome does not collide with itself.
+					allowOverlap: [".page-head", ".frappe-list", ".layout-side-section", ".dropdown-menu"],
+				});
+				expectEq(faults.length, 0, `${layout}/${style}: ${faults.slice(0, 3).join(" | ")}`);
+			}
+			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
 		});
 
 		// ── Console error budget ───────────────────────────────────────────
