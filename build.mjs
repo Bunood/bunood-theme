@@ -177,6 +177,46 @@ function assertOwnershipPolarity(css, name) {
 	}
 }
 
+/**
+ * Registry/identity guard — every component is named, and every name is real.
+ *
+ * Two directions, because both have already gone wrong:
+ *   * a registry entry with no `part` is a component nothing can find except
+ *     by class, which is how four separate queries ended up measuring a
+ *     decorative fragment instead of the thing itself;
+ *   * a `data-bnd-part` in the JS that no registry entry claims is drift —
+ *     an identity the desk emits and the registry has never heard of, so the
+ *     smoke suite cannot know to look for it.
+ *
+ * Parses the registry as TEXT rather than importing it: it is Python, this is
+ * the JS build, and a regex over two well-formed key lines is a smaller price
+ * than a language boundary. If registry.py ever stops being a plain literal
+ * this guard should be replaced, not patched — it would be lying by then.
+ */
+function assertRegistryIdentity(registrySrc, deskJs) {
+	const problems = [];
+	const keys = [...registrySrc.matchAll(/"key":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	const parts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	if (keys.length !== parts.length) {
+		problems.push(
+			`registry.py: ${keys.length} components but ${parts.length} parts — every component needs a "part"`
+		);
+	}
+	const known = new Set(parts);
+	const emitted = [...deskJs.matchAll(/"data-bnd-part":\s*"([a-z-]+)"/g)].map((m) => m[1]);
+	for (const p of new Set(emitted)) {
+		if (!known.has(p)) {
+			problems.push(`bunood.js emits data-bnd-part="${p}", which registry.py does not define`);
+		}
+	}
+	if (problems.length) {
+		throw new Error(
+			"Registry identity guard:\n  " + problems.join("\n  ") +
+				"\nIdentity lives in registry.py so the desk and the smoke suite cannot disagree about how to find a component."
+		);
+	}
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -309,6 +349,10 @@ async function main() {
 				"utf8"
 			)
 		)
+	);
+	assertRegistryIdentity(
+		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
 	);
 
 	const built = [];

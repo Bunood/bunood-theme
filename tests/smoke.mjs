@@ -1716,6 +1716,82 @@ async function main() {
 			}
 		});
 
+		await test("settings: no unexplained structural drift in any picker", async () => {
+			// THE BASELINE IS COMMITTED, so "measure before and after" stops
+			// being something to remember around a refactor and becomes
+			// something the suite does. Hand-porting the search picker dropped
+			// its thumbnail SVGs, and the card count was identical either way —
+			// only a structural comparison catches that, and only if somebody
+			// runs it at the right moment. Now nobody has to.
+			//
+			// Structure, never pixels: node sequence, svg count, text length.
+			// Heights would encode one machine's font rendering.
+			//
+			// A DIFF HERE IS NOT AUTOMATICALLY A BUG. Porting a picker to the
+			// shared vocabulary legitimately renames classes. The rule is that
+			// a change must be LOOKED AT, then the fixture regenerated on
+			// purpose:  node tools/fingerprint.mjs tests/fixtures/picker-shape.json
+			const fixture = JSON.parse(
+				readFileSync(new URL("./fixtures/picker-shape.json", import.meta.url), "utf8")
+			);
+			const expected = fixture.pickers;
+			// PIN THE STATE THE FIXTURE RECORDS. The pickers render what the
+			// settings say — the sidebar picker alone shows a preset name or
+			// "Custom", one node and 22 characters apart. By this point the
+			// suite has mutated settings dozens of times, so a baseline
+			// captured in another state reported drift in a picker nobody had
+			// touched. A check that cries wolf gets ignored, which is worse
+			// than not having one.
+			//
+			// The state comes FROM the fixture rather than a copy kept here:
+			// one fact in two files is the exact defect this codebase keeps
+			// producing, and a shape checker built that way would be a poor
+			// joke.
+			setSettings(fixture.state);
+			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			const actual = await page.evaluate((names) => {
+				const out = {};
+				for (const f of names) {
+					const root = document.querySelector(`[data-fieldname="${f}"]`);
+					if (!root) { out[f] = null; continue; }
+					const seq = [];
+					const walk = (el) => {
+						for (const c of el.children) {
+							seq.push(
+								c.tagName.toLowerCase() + "." +
+								(c.getAttribute("class") || "").trim().split(/\s+/).sort().join(".")
+							);
+							walk(c);
+						}
+					};
+					walk(root);
+					out[f] = {
+						n: seq.length,
+						svgs: root.querySelectorAll("svg").length,
+						text: root.textContent.replace(/\s+/g, " ").trim().length,
+						seq,
+					};
+				}
+				return out;
+			}, Object.keys(expected));
+
+			const drift = [];
+			for (const [name, want] of Object.entries(expected)) {
+				const got = actual[name];
+				if (!got) { drift.push(`${name}: absent`); continue; }
+				// SVG and text counts are what catch a silently dropped
+				// thumbnail or label — the exact hand-porting failure.
+				if (got.svgs !== want.svgs) drift.push(`${name}: svg ${want.svgs} -> ${got.svgs}`);
+				if (got.text !== want.text) drift.push(`${name}: text ${want.text} -> ${got.text}`);
+				if (got.n !== want.n) drift.push(`${name}: nodes ${want.n} -> ${got.n}`);
+				else if (JSON.stringify(got.seq) !== JSON.stringify(want.seq)) {
+					const at = got.seq.findIndex((s, i) => s !== want.seq[i]);
+					drift.push(`${name}: structure at #${at} "${want.seq[at]}" -> "${got.seq[at]}"`);
+				}
+			}
+			expectEq(drift.length, 0, `structural drift:\n    ${drift.slice(0, 6).join("\n    ")}`);
+		});
+
 		await test("settings: no ragged rows — cards on a line match heights", async () => {
 			// The fault the CSS move exposed, made permanent. A card whose label
 			// wraps must not stand taller than the ones beside it.
