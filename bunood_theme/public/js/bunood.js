@@ -975,6 +975,7 @@
 	function build_bell() {
 		const bell = el("button", "bnd-icon-btn bnd-bell", {
 			type: "button",
+			"data-bnd-part": "bell",
 			"aria-label": __("Notifications"),
 			title: __("Notifications"),
 		});
@@ -1004,6 +1005,7 @@
 	function build_user() {
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
+			"data-bnd-part": "user",
 			"aria-label": __("User menu"),
 		});
 		avatar.innerHTML = user_avatar_html();
@@ -1039,6 +1041,7 @@
 	function build_search_icon() {
 		const btn = el("button", "bnd-icon-btn bnd-search-icon", {
 			type: "button",
+			"data-bnd-part": "search",
 			"aria-label": __("Search"),
 			title: __("Search"),
 		});
@@ -1054,7 +1057,11 @@
 	 * @returns {HTMLElement}
 	 */
 	function build_search_field() {
-		const field = el("button", "bnd-search-field", { type: "button", "aria-label": __("Search") });
+		const field = el("button", "bnd-search-field", {
+			type: "button",
+			"data-bnd-part": "search",
+			"aria-label": __("Search"),
+		});
 		field.appendChild(cloned_icon(".navbar-search-bar", "icon-search"));
 		const label = el("span", "bnd-search-label");
 		label.textContent = __("Search");

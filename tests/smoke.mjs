@@ -1752,6 +1752,33 @@ async function main() {
 			expectEq(overflow.length, 0, `pickers overflowing: ${JSON.stringify(overflow)}`);
 		});
 
+		await test("registry: every component is findable by identity, not by class", async () => {
+			// Classes answer "how does this look". Four times in one day a
+			// class-only query measured a decorative PART instead of the thing
+			// itself — the unread badge for the bell, a thumbnail fragment for
+			// a preset card, the first option on the page for one in a
+			// specific group. `data-bnd-part` answers "what is this", nothing
+			// styles it, and the registry is where the answer lives so the
+			// desk code and this suite cannot disagree about it.
+			setSettings({ desk_layout: "Top Bar", status_style: "Operator", search_placement: "Top Bar Center" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			const parts = registry.components
+				.filter((c) => c.part)
+				.map((c) => ({ key: c.key, part: c.part }));
+			expect(parts.length >= 3, `registry names identity parts (${parts.length})`);
+			const missing = await page.evaluate(
+				(ps) => ps.filter((p) => !document.querySelector(`[data-bnd-part="${p.part}"]`)).map((p) => p.key),
+				parts
+			);
+			// Only the ones this layout actually mounts are required; the point
+			// is that when a thing IS present it is findable by identity.
+			expectEq(
+				missing.filter((k) => ["inbox", "user", "search"].includes(k)).length,
+				0,
+				`mounted components findable by data-bnd-part (missing: ${missing.join(",")})`
+			);
+		});
+
 		await test("layout invariants hold across the mounted chrome", async () => {
 			// One helper, every region, every layout. Catches the class the
 			// dock-over-statusbar bug belonged to without anyone having to

@@ -53,6 +53,7 @@ REGIONS = ("topbar", "bottombar", "pagehead", "sidepane", "dock")
 COMPONENTS = [
     {
         "key": "topbar",
+        "part": "topbar",
         "label": "Top bar",
         "type": CONTAINER,
         "selector": ".bnd-topbar",
@@ -62,6 +63,7 @@ COMPONENTS = [
     },
     {
         "key": "bottombar",
+        "part": "bottombar",
         "label": "Bottom bar",
         "type": CONTAINER,
         "selector": ".bnd-statusbar",
@@ -71,6 +73,7 @@ COMPONENTS = [
     },
     {
         "key": "sidepane",
+        "part": "sidepane",
         "label": "Side pane",
         "type": CONTAINER,
         "selector": ".body-sidebar",
@@ -80,6 +83,7 @@ COMPONENTS = [
     },
     {
         "key": "dock",
+        "part": "dock",
         "label": "Dock",
         "type": CONTAINER,
         "selector": ".bnd-dock",
@@ -89,6 +93,7 @@ COMPONENTS = [
     },
     {
         "key": "search",
+        "part": "search",
         "label": "Search",
         "type": TENANT,
         # Two forms, both real: the field we inject into a bar, and the icon
@@ -103,6 +108,7 @@ COMPONENTS = [
     },
     {
         "key": "inbox",
+        "part": "bell",
         "label": "Notifications",
         "type": TENANT,
         # The bell, NOT the badge inside it: the badge is the unread count and
@@ -114,6 +120,7 @@ COMPONENTS = [
     },
     {
         "key": "user",
+        "part": "user",
         "label": "User profile",
         "type": TENANT,
         "selector": ".bnd-avatar-btn",
@@ -125,6 +132,7 @@ COMPONENTS = [
     },
     {
         "key": "home",
+        "part": "home",
         "label": "Home link",
         "type": TENANT,
         "selector": ".bnd-sb-item",
@@ -136,6 +144,7 @@ COMPONENTS = [
     },
     {
         "key": "apps",
+        "part": "apps",
         "label": "All apps link",
         "type": TENANT,
         "selector": ".bnd-apps-rail",
