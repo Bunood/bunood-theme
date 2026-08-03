@@ -7,7 +7,8 @@
 	"scripts": {
 		"build": "node build.mjs",
 		"watch": "node --watch-path=./bunood_theme/public/scss build.mjs",
-		"test": "node tests/smoke.mjs"
+		"test": "node tests/smoke.mjs",
+		"verify": "node tools/verify.mjs"
 	},
 	"devDependencies": {
 		"playwright": "^1.62.1",
