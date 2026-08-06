@@ -86,12 +86,19 @@ say "shipped -> $FRONTEND (dist)"
 # level with no app underneath it. The mirror is for following THIS repo's work,
 # which is 1.2MB.
 #
+# `--delete-excluded` is load-bearing, not belt-and-braces. Plain `--exclude`
+# also protects a path from `--delete` ON THE DESTINATION, so once 531MB of
+# `_reference` had been copied there by an earlier run, adding the exclusion
+# could never remove it — the deploy reported "mirrored" over a 439MB tree it
+# was no longer maintaining. A mirror that silently keeps what it stopped
+# tracking is not a mirror.
+#
 # The durable copy. Runs even when nothing else changed, because being able to
 # follow the work is the point of it. Failure is reported, never fatal: a broken
 # mirror must not stop a deploy that otherwise succeeded.
 WIN_PATH="$(pwd -W 2>/dev/null || pwd)"
 WSL_SRC="$(printf '%s' "$WIN_PATH" | sed -E 's#^([A-Za-z]):#/mnt/\l\1#; s#\\#/#g')"
-if wsl.exe -- bash -lc "rsync -a --delete \
+if wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
 		--exclude .git --exclude node_modules --exclude _reference \
 		'$WSL_SRC/' '$WSL_MIRROR/'" 2>/dev/null; then
 	say "mirrored -> WSL $WSL_MIRROR"
