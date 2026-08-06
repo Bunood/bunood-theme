@@ -56,8 +56,17 @@ forks, no `@layer`, no `?v=` cache-busters, and (almost) no `!important`.
 npm install          # dart-sass, dev only
 npm run build        # SCSS -> hashed CSS, regenerates bunood_theme/assets.py
 npm run contrast     # WCAG 2.2 AA over every brand seed a tenant could enter
+npm run deploy       # ship to the local stack + mirror to WSL ~/bunood-theme
 npm run verify       # the browser suite; needs the local stack running
 ```
+
+`npm run deploy` exists because the deploy is five steps and leaving one out does
+not fail loudly — it verifies the previous build and reports it green. It ships
+the app to all four app containers, copies the hashed CSS/JS into the frontend's
+own asset tree (a separate tree; assets 404 there otherwise), mirrors the repo
+into WSL so the running work is followable from there, restarts only when the
+asset hash actually moved, and exits non-zero if the stack is not serving the
+build it just made. Do not run it while the suite is running.
 
 `npm run contrast` needs a Python interpreter — it imports the same
 `bunood_theme.palette` the server runs, rather than a second copy of the maths

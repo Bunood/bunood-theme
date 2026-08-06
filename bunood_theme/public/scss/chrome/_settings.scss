@@ -578,10 +578,15 @@ html[data-theme] {
   padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
 }
 
+// Label on one line, state beneath it. Side by side, the note gets whatever the
+// label leaves of a 210px rail, and the two shipped side-pane presets are
+// "Bunood Night" and "Bunood Light" - both of which truncate to "Bunood ...",
+// which is worse than showing nothing at all. A preset name is the one note that
+// carries real information, so the layout is built for it.
 .bnd-shell-item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--bnd-sp-2);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--bnd-sp-2);
   inline-size: 100%;
   text-align: start;
   padding: var(--bnd-pad-y) var(--bnd-sp-2);
@@ -614,18 +619,26 @@ html[data-theme] {
 // beside it is redundant reinforcement, which is the point: colour alone is
 // never the only signal (same rule the status tokens follow).
 .bnd-shell-note {
-  margin-inline-start: auto;
+  grid-column: 1;
   font-size: var(--bnd-text-xs);
   color: var(--bnd-ink-subtle);
-  white-space: nowrap;
-  // The longest note is a preset name ("Bunood Night"); past that, truncate
-  // rather than let one entry set the rail's width.
+  // Truncate only if a future preset name is genuinely longer than the rail,
+  // rather than at a width that clips the ones we actually ship.
   overflow: hidden;
   text-overflow: ellipsis;
-  max-inline-size: 8ch;
+  white-space: nowrap;
+
+  // An empty note must not reserve a line: the marks are absent until the
+  // defaults arrive, and a rail that reflows when they land reads as a glitch.
+  &:empty {
+    display: none;
+  }
 }
 
 .bnd-shell-dot {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
   inline-size: 6px;
   block-size: 6px;
   border-radius: 50%;

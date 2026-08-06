@@ -2816,9 +2816,9 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 }
 
 .bnd-shell-item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--bnd-sp-2);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--bnd-sp-2);
   inline-size: 100%;
   text-align: start;
   padding: var(--bnd-pad-y) var(--bnd-sp-2);
@@ -2844,16 +2844,21 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 }
 
 .bnd-shell-note {
-  margin-inline-start: auto;
+  grid-column: 1;
   font-size: var(--bnd-text-xs);
   color: var(--bnd-ink-subtle);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-inline-size: 8ch;
+  white-space: nowrap;
+}
+.bnd-shell-note:empty {
+  display: none;
 }
 
 .bnd-shell-dot {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
   inline-size: 6px;
   block-size: 6px;
   border-radius: 50%;

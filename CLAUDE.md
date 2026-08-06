@@ -12,9 +12,15 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 2. **Baseline before, re-measure after.** `tests/fixtures/picker-shape.json` is the
    before for the settings form. For anything else, capture the numbers first.
 3. **Change one thing.** Refactor and behaviour go in separate commits.
-4. **`npm run verify`** — never a hand-assembled shell chain. `grep -c` exits 1 on
-   zero matches and reported a green run as failed; `| head` closed the pipe and
-   killed a suite mid-run.
+4. **`npm run deploy`, then `npm run verify`** — never hand-assembled shell chains.
+   `deploy` builds, ships to all four app containers *and* the frontend's own dist,
+   mirrors the tree into WSL `~/bunood-theme` so the work is followable there,
+   restarts only when the asset hash moved, and fails if the stack is not serving
+   the build it just made. `verify` runs the suite: `grep -c` exits 1 on zero
+   matches and reported a green run as failed; `| head` closed the pipe and killed
+   a suite mid-run.
+   **Never deploy while the suite is running** — it invalidates the run and
+   produces phantom failures.
 5. **Commit locally. Never push, tag-push or open a PR without being asked.**
 
 ## Non-negotiables
