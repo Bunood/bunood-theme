@@ -2460,6 +2460,21 @@ html[data-theme] .bnd-stp .bnd-cbp-opt {
 html[data-theme] .bnd-ibp .bnd-cbp-opt {
   inline-size: 118px;
 }
+html[data-theme] .bnd-cbp-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+html[data-theme] .bnd-cbp-zone + .bnd-cbp-zone {
+  padding-block-start: 14px;
+  border-block-start: 1px solid var(--border-color);
+}
+html[data-theme] .bnd-cbp-zone-title {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
 html[data-theme] .bnd-cbp-group {
   border: 1px solid var(--border-color);
   border-radius: 10px;

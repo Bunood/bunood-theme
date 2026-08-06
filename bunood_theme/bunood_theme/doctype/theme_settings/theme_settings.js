@@ -149,6 +149,22 @@ const P = {
 	},
 
 	/**
+	 * A band of related groups, under one heading.
+	 *
+	 * Identity is `data-zone`; the class is for styling. Same rule the desk
+	 * follows with `data-bnd-part` — a test that finds a band by class finds
+	 * whatever else carries that class next month.
+	 */
+	zone(z) {
+		return (
+			'<section class="bnd-cbp-zone" data-zone="' + bnd_esc(z.key) + '">' +
+			(z.title ? '<h4 class="bnd-cbp-zone-title">' + bnd_esc(z.title) + "</h4>" : "") +
+			z.body +
+			"</section>"
+		);
+	},
+
+	/**
 	 * A bordered group: title, optional reset chip, one line of description,
 	 * then whatever it contains.
 	 */
@@ -177,13 +193,71 @@ const P = {
 			(g.cls ? " " + g.cls : "") +
 			(g.off ? " bnd-cbp-off" : "") + '"' +
 			(g.search ? ' data-search="' + bnd_esc(g.search) + '"' : "") + ">" +
-			'<div class="bnd-cbp-title">' + bnd_esc(g.title) + chip + "</div>" +
+			// A group inside a named band needs no title of its own — the band
+			// says it. Emitting the row anyway leaves an empty heading holding
+			// open a line of space, which is the kind of gap that reads as a
+			// rendering bug rather than as a deliberate blank.
+			(g.title || chip
+				? '<div class="bnd-cbp-title">' + bnd_esc(g.title || "") + chip + "</div>"
+				: "") +
 			(g.desc ? '<div class="bnd-cbp-desc">' + bnd_esc(g.desc) + "</div>" : "") +
 			g.body +
 			"</div>"
 		);
 	},
 };
+
+/**
+ * The bands a picker can split into, in render order.
+ *
+ * WHY THE VOCABULARY IS LONGER THAN THREE
+ *   Placement / Style / Extras is the right split for five of the six pickers.
+ *   The side pane is not one of them: it has 20 option groups, so a single
+ *   "Style" band there would be a longer wall than the split exists to remove.
+ *   `pane` / `links` / `rail` divide it where its own settings already divide —
+ *   the surface, what sits on it, and the collapsed rail. A longer vocabulary
+ *   where the data earns it, not a second mechanism.
+ *
+ * WHY `placement` IS USUALLY EMPTY, AND THAT IS CORRECT
+ *   Only the side pane and the search picker have placement controls today.
+ *   `inbox_placement` and `user_placement` appear ZERO times in this file — they
+ *   are settings with no control yet, and rework step 3 (the shared desk
+ *   diagram) is where they get one. A band renders only when it has content, so
+ *   step 3 fills this in without editing anything here.
+ */
+const BND_ZONES = [
+	// Style leads. Where a picker has cards, they are its headline choice — the
+	// side pane's presets WRITE the placement below them — so a "Placement" band
+	// above the thing that sets it reads backwards.
+	{ key: "style", title: () => __("Style") },
+	{ key: "placement", title: () => __("Placement") },
+	{ key: "pane", title: () => __("Pane surface") },
+	{ key: "links", title: () => __("Links & icons") },
+	{ key: "rail", title: () => __("Rail") },
+	{ key: "extras", title: () => __("Extras") },
+];
+
+/**
+ * Assemble `{zone, html}` parts into bands.
+ *
+ * A picker whose parts all land in ONE zone gets no headings at all — a band
+ * titled "Style" over the entire contents of a pane says nothing and costs a
+ * line. That is computed from what actually rendered rather than declared
+ * per-picker, so a picker that grows a second zone starts showing headings on
+ * its own, and one that loses a zone stops.
+ *
+ * Order comes from BND_ZONES, never from the caller's array order: two pickers
+ * listing their parts in different sequences must still read the same way.
+ */
+function bnd_bands(parts) {
+	const live = BND_ZONES.map((z) => ({
+		z,
+		html: parts.filter((p) => p.zone === z.key && p.html).map((p) => p.html).join(""),
+	})).filter((b) => b.html);
+
+	if (live.length < 2) return live.map((b) => b.html).join("");
+	return live.map((b) => P.zone({ key: b.z.key, title: b.z.title(), body: b.html })).join("");
+}
 
 frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
@@ -751,6 +825,7 @@ function bnd_sb_pane(bg, extra) {
 const BND_SB_GROUPS = [
 	{
 		field: "sidebar_placement",
+		zone: "placement",
 		title: () => __("Pane placement"),
 		desc: () => __("How the sidebar sits against the page."),
 		options: [
@@ -760,6 +835,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_material",
+		zone: "pane",
 		title: () => __("Pane material"),
 		desc: () => __("Glass lets the page glow through; opacity and blur below tune it."),
 		options: [
@@ -769,6 +845,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_color",
+		zone: "pane",
 		title: () => __("Pane color"),
 		desc: () => __("The sidebar's own color world — independent of light or dark mode."),
 		options: [
@@ -780,6 +857,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_icon_style",
+		zone: "links",
 		title: () => __("Icon style"),
 		desc: () => __("How link icons are drawn."),
 		options: [
@@ -793,6 +871,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_icon_source",
+		zone: "links",
 		title: () => __("Icon source"),
 		desc: () => __("Where link glyphs come from - most workspace links ship no icon of their own."),
 		options: [
@@ -803,6 +882,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_active_style",
+		zone: "links",
 		title: () => __("Active link"),
 		desc: () => __("How the current page is marked."),
 		options: [
@@ -823,6 +903,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_section_layout",
+		zone: "links",
 		title: () => __("Sections"),
 		desc: () => __("How the pane's link groups are presented."),
 		options: [
@@ -834,6 +915,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_hue_wash",
+		zone: "pane",
 		title: () => __("Hue wash"),
 		desc: () => __("Each section keeps its own color family; actives take the section hue."),
 		options: [
@@ -844,6 +926,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_quick_links",
+		zone: "placement",
 		title: () => __("Home & All Apps"),
 		desc: () => __("Where the two quick links live."),
 		options: [
@@ -855,6 +938,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_menu_rail",
+		zone: "rail",
 		title: () => __("Menu rail"),
 		desc: () => __("How your sidebar rests. Separate from the apps rail below."),
 		options: [
@@ -865,6 +949,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_rail_trigger",
+		zone: "rail",
 		title: () => __("Rail expand trigger"),
 		desc: () => __("How the rail opens. Applies when Menu rail is set to Rail."),
 		options: [
@@ -876,6 +961,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_rail_button",
+		zone: "rail",
 		title: () => __("Rail expand button"),
 		desc: () => __("An always-visible expand/collapse control on the rail."),
 		options: [
@@ -887,6 +973,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_rail_button_shape",
+		zone: "rail",
 		title: () => __("Rail button shape"),
 		options: [
 			{ value: "Circle", name: () => __("Circle"), thumb: '<span class="bnd-sbp-shape" style="border-radius:50%"></span>' },
@@ -896,6 +983,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_rail_button_icon",
+		zone: "rail",
 		title: () => __("Rail button icon"),
 		options: [
 			{ value: "Chevron", name: () => __("Chevron"), thumb: '<span class="bnd-sbp-glyph">›</span>' },
@@ -905,6 +993,7 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_badges",
+		zone: "links",
 		title: () => __("Count badges"),
 		desc: () => __("Live record indicators on links."),
 		options: [
@@ -917,9 +1006,9 @@ const BND_SB_GROUPS = [
 
 /** Stepped 1..5 controls: field + endpoint labels. */
 const BND_SB_STEPPERS = [
-	{ field: "sidebar_glass_opacity", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
-	{ field: "sidebar_surface_intensity", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
-	{ field: "sidebar_pane_width", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
+	{ field: "sidebar_glass_opacity", zone: "pane", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
+	{ field: "sidebar_surface_intensity", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
+	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
 
 /** Toggle rows: field + name + one-liner. */
@@ -942,6 +1031,14 @@ function bnd_render_sidebar_picker(frm, host) {
 		.then((data) => {
 			bnd_sb_catalogue = data;
 			bnd_render_sidebar_picker_now(frm, host);
+			// The side pane's note is its PRESET NAME, and deriving that needs
+			// this catalogue. Two independent fetches race — the shipped defaults
+			// and this one — and whichever lands second leaves the other's work
+			// stale. Painting again here is the cheap half of the fix; the marks
+			// are idempotent, so the redundant repaint when this wins costs
+			// nothing. Without it the note read "Default" on the one entry that
+			// has a real preset to name, intermittently, which is the worst kind.
+			bnd_shell_marks(frm);
 		})
 		.catch(() => {
 			$host.html('<div class="text-muted">' + __("Could not load sidebar presets.") + "</div>");
@@ -1028,7 +1125,14 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			? '<div class="bnd-sbp-custom">' + __("Custom — your own combination.") + "</div>"
 			: "";
 
-	const groups = BND_SB_GROUPS.map((group) => {
+	// Collected BY BAND rather than joined into one string: the side pane has
+	// twenty option groups, and one undifferentiated column of them is the wall
+	// this split exists to remove.
+	const by_zone = {};
+	const add = (zone, html) => {
+		by_zone[zone] = (by_zone[zone] || "") + html;
+	};
+	BND_SB_GROUPS.forEach((group) => {
 		const current = bnd_sb_norm(group.field, frm.doc[group.field]);
 		const cards = group.options
 			.map((opt) => {
@@ -1045,16 +1149,17 @@ function bnd_render_sidebar_picker_now(frm, host) {
 				);
 			})
 			.join("");
-		return (
+		add(group.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (group.title() + " " + group.field).toLowerCase() + '">' +
 			'<div class="bnd-cbp-title">' + group.title() +
 			'<button type="button" class="bnd-cbp-reset bnd-sbp-reset" data-field="' + group.field + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
 			(group.desc ? '<div class="bnd-cbp-desc">' + group.desc() + "</div>" : "") +
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
-		);
-	}).join("");
+		));
+	});
 
-	const steppers = BND_SB_STEPPERS.map((s) => {
+
+	BND_SB_STEPPERS.forEach((s) => {
 		const current = parseInt(frm.doc[s.field], 10) || (s.field === "sidebar_pane_width" ? 2 : 3);
 		const stops = [1, 2, 3, 4, 5]
 			.map(
@@ -1063,12 +1168,12 @@ function bnd_render_sidebar_picker_now(frm, host) {
 					'" data-field="' + s.field + '" data-value="' + n + '" aria-label="' + n + '"></button>'
 			)
 			.join("");
-		return (
+		add(s.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + s.title() + "</div>" +
 			'<div class="bnd-sbp-steps"><span class="bnd-sbp-slab">' + s.lo() + "</span>" + stops +
 			'<span class="bnd-sbp-slab">' + s.hi() + "</span></div></div>"
-		);
-	}).join("");
+		));
+	});
 
 	const blur_group =
 		'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + __("Glass blur") + "</div>" +
@@ -1103,10 +1208,20 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		"</div>";
 
 	$host.html(
-					'<div class="bnd-sbp">' + toolbar +
-			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
-			groups + blur_group + steppers +
-			'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
+		'<div class="bnd-sbp">' + toolbar +
+			bnd_bands([
+				{ zone: "style", html: '<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note },
+				{ zone: "placement", html: by_zone.placement },
+				// The blur control is authored inline rather than in a table, so
+				// its band is stated here. It belongs with the surface it blurs.
+				{ zone: "pane", html: (by_zone.pane || "") + blur_group },
+				{ zone: "links", html: by_zone.links },
+				{ zone: "rail", html: by_zone.rail },
+				// The literal `__("Extras")` group this replaces was the same idea
+				// hand-rolled, in the second of two pickers that each had their own
+				// copy. Both are gone.
+				{ zone: "extras", html: '<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-switches">' + toggles + "</div></div>" },
+			]) +
 			"</div>"
 	);
 
@@ -1131,6 +1246,16 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		const q = this.value.trim().toLowerCase();
 		$host.find(".bnd-sbp-group").each(function () {
 			this.style.display = !q || (this.getAttribute("data-search") || "").includes(q) || this.textContent.toLowerCase().includes(q) ? "" : "none";
+		});
+		// A band whose every group just got filtered out must go too, or the
+		// search leaves headings standing over nothing — which reads as a broken
+		// filter rather than as no matches. Bands holding no groups at all (the
+		// preset cards) are left alone: they have nothing to be filtered.
+		$host.find(".bnd-cbp-zone").each(function () {
+			const groups = this.querySelectorAll(".bnd-sbp-group");
+			if (!groups.length) return;
+			const any = [...groups].some((g) => g.style.display !== "none");
+			this.style.display = any ? "" : "none";
 		});
 	});
 }
@@ -1387,13 +1512,16 @@ function bnd_render_crumbs_picker(frm, host) {
 			: __("Changes preview instantly — Save to keep them.")
 	);
 
+	// Two bands: the style choice and its option groups, then the switches. The
+	// literal `P.group({title: __("Extras")})` this replaces was the same idea
+	// hand-rolled in one picker — now it is the mechanism, so the sidebar's
+	// identical literal goes too and neither can drift from the other.
 	$host.html(
 		P.wrap(
-			style_cards + note + groups +
-				P.group({
-					title: __("Extras"),
-					body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
-				})
+			bnd_bands([
+				{ zone: "style", html: style_cards + note + groups },
+				{ zone: "extras", html: '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+			])
 		)
 	);
 
@@ -1565,10 +1693,9 @@ function bnd_render_palette_picker(frm, host) {
 
 	$host.html(
 		P.wrap(
-			style_cards +
-				note +
-				P.group({
-					title: __("Behaviour"),
+			bnd_bands([
+				{ zone: "style", html: style_cards + note },
+				{ zone: "extras", html: P.group({
 					off: kit_down,
 					body:
 						'<div class="bnd-cbp-switches">' + toggles + "</div>" +
@@ -1578,7 +1705,8 @@ function bnd_render_palette_picker(frm, host) {
 						'<span class="bnd-cbp-note">' +
 						__("Clears what the frecency ranking has learned for your user.") +
 						"</span></div>",
-				})
+				}) },
+			])
 		)
 	);
 
@@ -1805,16 +1933,18 @@ function bnd_render_inbox_picker(frm, host) {
 		// only" wrapped to two lines at 96px, pushing its glyph off the row's
 		// baseline (item-13 sweep).
 		'<div class="bnd-cbp bnd-ibp">' +
-			style_cards + note + selects +
-			P.group({
-				title: __("Panel behaviour"),
-				// No `field`: this chip resets the whole section, and the
-				// handler that does so is bound by this class alone.
-				resetCls: "bnd-ibp-reset-all",
-				resetTitle: __("Reset to defaults"),
-				off: !panel_ours,
-				body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
-			}) +
+			bnd_bands([
+				{ zone: "style", html: style_cards + note + selects },
+				{ zone: "extras", html: P.group({
+					// No title: the band names it. No `field` either — this chip
+					// resets the whole section and its handler is bound by class
+					// alone, so the chip must survive losing the title beside it.
+					resetCls: "bnd-ibp-reset-all",
+					resetTitle: __("Reset to defaults"),
+					off: !panel_ours,
+					body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
+				}) },
+			]) +
 			"</div>"
 	);
 
@@ -1951,12 +2081,22 @@ function bnd_render_search_picker(frm, host) {
 		{ selected: current, cls: "bnd-cbp-style bnd-srp-slot" }
 	);
 
+	// One band, so `bnd_bands` prints no heading at all and this renders exactly
+	// as it did before. Marked anyway: search IS the placement control, and when
+	// step 3's desk diagram gives the bell and the user menu one too, they join
+	// this band rather than needing the picker restructured.
 	$host.html(
 		P.wrap(
-			cards +
-				P.note(
-					__("Where the search field lives, independent of the desk layout. Applies on the next page load.")
-				)
+			bnd_bands([
+				{
+					zone: "placement",
+					html:
+						cards +
+						P.note(
+							__("Where the search field lives, independent of the desk layout. Applies on the next page load.")
+						),
+				},
+			])
 		)
 	);
 	$host.find(".bnd-srp-slot").on("click", function () {
@@ -2091,14 +2231,13 @@ function bnd_render_status_picker(frm, host) {
 
 	$host.html(
 		'<div class="bnd-cbp bnd-stp">' +
-			cards +
-			P.note(__("Applies on the next page load.")) +
-			selects +
-			P.group({
-				title: __("Segments and extras"),
-				off,
-				body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
-			}) +
+			bnd_bands([
+				{ zone: "style", html: cards + P.note(__("Applies on the next page load.")) + selects },
+				{ zone: "extras", html: P.group({
+					off,
+					body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
+				}) },
+			]) +
 			"</div>"
 	);
 

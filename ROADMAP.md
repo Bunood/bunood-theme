@@ -86,18 +86,22 @@ defect in 0.10.0.
     claim one section: a stranded "Features" heading over nothing, and the density
     control rendered at 636px against every other Select's 273px, having lost the
     `.form-column > form >` chain Frappe caps input width with
-  - `[ ]` **The three-zone split** (Placement / Style / Extras). **Key finding, so it is
-    not re-derived:** 59 of the 92 fields are `hidden: 1`, and every component section
-    holds exactly *one* visible field — its HTML picker. The controls a user touches are
-    not Frappe field wrappers at all; they are buttons the pickers print. So zones
-    belong **inside the picker output**, where `BND_SB_GROUPS` / `*_TOGGLES` already
-    separate them and two pickers already print a literal `Extras` heading. Do **not**
-    zone at the `.form-section` layer and do **not** add per-zone Section Breaks: they
-    would contain only hidden fields, and `layout.js` can only stamp `empty-section` on
-    a section whose parent is a tab-pane or form-page — which a shell pane is not, so an
-    empty section there can never hide itself. Note the split will then show in the
-    stacked form too, so `tests/fixtures/picker-shape.json` needs a deliberate
-    regeneration
+  - `[x]` **The zone split.** Bands live **inside the picker output**, not at the
+    `.form-section` layer: 59 of the 92 fields are `hidden: 1` and every component
+    section holds exactly *one* visible field — its picker — so the controls a user
+    touches are not Frappe field wrappers at all. Zoning the form layer would have
+    zoned almost nothing, and per-zone Section Breaks would have been permanently
+    empty sections (`layout.js` only stamps `empty-section` when the parent is a
+    tab-pane or form-page, which a shell pane is not).
+    `P.zone` + `bnd_bands()`; each row declares `zone:` on the row that already
+    exists, so there is no new table. **Headings appear only where a picker has more
+    than one populated band**, computed from what rendered — so `search` (placement
+    only) and `layout` stay exactly as they were. Both hand-rolled `__("Extras")`
+    groups are deleted. The side pane earns a longer vocabulary —
+    Style / Placement / Pane surface / Links & icons / Rail / Extras — because one
+    "Style" band over its 20 groups is the wall the split exists to remove. Its filter
+    now hides a band once every group in it is filtered out. Fixture regenerated
+    deliberately: every delta is a band wrapper, `layout` and `search` unchanged
 - `[ ]` **Slice 1c step 3** — the shared desk diagram as the placement control, doing
   double duty as the Overview
 - `[ ]` **Slice 2** — remaining containers and tenants; `sidebar_quick_links` and

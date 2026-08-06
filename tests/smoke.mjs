@@ -1856,6 +1856,105 @@ async function main() {
 			expectEq(counts.legacyVisible, 0, "legacy picker fields still visible beside the shell");
 		});
 
+		await test("bands: headings appear only where there is more than one", async () => {
+			// Three defects in one check. A band with an empty heading (a zone
+			// rendered with no title). A picker with ONE zone printing a heading
+			// over its entire contents — which says nothing and costs a line, and
+			// is why `bnd_bands` counts what actually rendered instead of trusting
+			// a per-picker flag. And a group stranded outside every band, which is
+			// what happens when a new row is added to a picker table and nobody
+			// gives it a `zone`.
+			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 4000);
+			const report = await page.evaluate(() => {
+				const out = {};
+				for (const f of [
+					"crumbs_picker", "palette_picker", "inbox_picker",
+					"status_picker", "search_picker", "sidebar_picker", "layout_picker",
+				]) {
+					const root = document.querySelector(`[data-fieldname="${f}"]`);
+					if (!root) continue;
+					const zones = [...root.querySelectorAll(".bnd-cbp-zone")];
+					out[f] = {
+						zones: zones.length,
+						blankTitles: zones.filter(
+							(z) => !(z.querySelector(".bnd-cbp-zone-title") || {}).textContent
+						).length,
+						keys: zones.map((z) => z.dataset.zone).filter(Boolean).length,
+						// Groups sitting outside every band, in a picker that has bands.
+						stranded: zones.length
+							? [...root.querySelectorAll(".bnd-cbp-group")].filter(
+									(g) => !g.closest(".bnd-cbp-zone")
+							  ).length
+							: 0,
+					};
+				}
+				return out;
+			});
+			for (const [picker, r] of Object.entries(report)) {
+				expect(r.zones !== 1, `${picker}: a single band still printed a heading`);
+				expectEq(r.blankTitles, 0, `${picker}: ${r.blankTitles} band(s) with an empty heading`);
+				expectEq(r.keys, r.zones, `${picker}: a band has no data-zone identity`);
+				expectEq(r.stranded, 0, `${picker}: ${r.stranded} group(s) outside every band`);
+			}
+			// And the two that must stay unbanded, because they have one zone.
+			expectEq(report.search_picker.zones, 0, "search grew bands; it is placement-only");
+			expect(report.sidebar_picker.zones >= 5, `side pane has only ${report.sidebar_picker.zones} bands`);
+		});
+
+		await test("bands: the side pane filter hides a band once it empties", async () => {
+			// Filtering every group out of a band used to leave its heading
+			// standing over nothing, which reads as a broken filter rather than
+			// as no matches.
+			await goDesk("/desk/theme-settings", ".bnd-sbp-search", 4000);
+			const state = async (q) => {
+				await page.fill(".bnd-sbp-search", q);
+				await page.waitForTimeout(350);
+				return page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-cbp-zone")]
+						.filter((z) => z.offsetParent !== null)
+						.map((z) => z.dataset.zone)
+				);
+			};
+			const all = await state("");
+			expect(all.length >= 5, `only ${all.length} bands visible unfiltered`);
+
+			// Assert the INVARIANT, not a predicted outcome. The filter matches a
+			// group's text as well as its field name, so which bands a given word
+			// empties is a property of the copy — an earlier version of this test
+			// assumed "rail" appeared only in rail-band groups and failed on a
+			// description elsewhere that mentions it. The contract is simply: no
+			// visible band is empty.
+			for (const q of ["rail", "zzzznomatch", "icon", "glass"]) {
+				const orphan = await page.evaluate((query) => {
+					const bad = [];
+					for (const z of document.querySelectorAll(".bnd-cbp-zone")) {
+						if (z.offsetParent === null) continue;
+						const groups = z.querySelectorAll(".bnd-sbp-group");
+						if (!groups.length) continue; // the preset band holds no groups
+						if (![...groups].some((g) => g.offsetParent !== null)) {
+							bad.push(`${z.dataset.zone} @ "${query}"`);
+						}
+					}
+					return bad;
+				}, q);
+				await page.fill(".bnd-sbp-search", q);
+				await page.waitForTimeout(350);
+				const after = await page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-cbp-zone")]
+						.filter((z) => z.offsetParent !== null)
+						.filter((z) => {
+							const g = z.querySelectorAll(".bnd-sbp-group");
+							return g.length && ![...g].some((x) => x.offsetParent !== null);
+						})
+						.map((z) => z.dataset.zone)
+				);
+				expectEq(after.join(","), "", `bands left standing empty by "${q}"`);
+				expectEq(orphan.join(","), "", `pre-existing empty band: ${orphan.join(",")}`);
+			}
+			await page.fill(".bnd-sbp-search", "");
+			await page.waitForTimeout(300);
+		});
+
 		await test("shell: the change dot marks the component that actually changed", async () => {
 			// The defect this catches is a dot that is always on, always off, or on
 			// for the wrong entry — all three of which look like a working feature

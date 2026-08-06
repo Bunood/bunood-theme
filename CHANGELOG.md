@@ -46,7 +46,13 @@ enforces, so no sixth list of fieldnames had to be written down.
 
 **The note refuses to invent presets.** Only the side pane has a preset
 catalogue, so only the side pane shows a preset name (via the existing
-comparison of all 22 values — pinning the name still pins nothing).
+comparison of all 22 values — pinning the name still pins nothing). Two
+independent fetches race to supply the marks — the shipped defaults and
+that catalogue — and whichever landed second left the other's work stale,
+so the one entry with a real preset to name intermittently read
+"Default". Both now repaint; the marks are idempotent, so the redundant
+pass costs nothing. Caught by the suite, not by looking: a manual check
+had happened to give the catalogue time to win.
 `crumb_style`, `palette_style`, `inbox_style` and `status_style` are
 top-level style choices that compose with their extras, and nothing
 anywhere records what `desk_layout` writes to the component fields. Those
@@ -61,11 +67,30 @@ at 636px against every other Select's 273px, having lost the
 `.form-column > form >` chain Frappe caps input width with. Density now
 has its own section and the palette gate sits with its seven siblings.
 
-Still to come in this slice: the three-zone split within a pane
-(Placement / Style / Extras). It belongs inside the picker output rather
-than at the form-section layer — 59 of the 92 fields are hidden and every
-component section holds exactly one visible field, its picker, so the
-controls a user touches are not Frappe field wrappers at all.
+**The zone split.** Each picker now divides into labelled bands —
+Placement / Style / Extras, and for the side pane also Pane surface,
+Links & icons and Rail.
+
+The bands live **inside the picker output**, not at the form-section
+layer, because 59 of the 92 fields are hidden and every component section
+holds exactly one visible field: its picker. The controls a user touches
+are not Frappe field wrappers at all, so zoning the form layer would have
+zoned almost nothing — and per-zone Section Breaks would have been
+permanently empty sections, since Frappe only marks a section empty when
+its parent is a tab-pane or form-page, which a shell pane is not.
+
+Each row declares its band on the row that already exists, so no new
+table was written. **A heading appears only where a picker has more than
+one populated band**, computed from what actually rendered — so Search
+(placement only) and Layout preset are untouched, and a picker that grows
+a second band starts showing headings on its own. The two hand-rolled
+`Extras` group titles are gone; that idea is the mechanism now.
+
+The side pane earns the longer vocabulary because one "Style" band over
+its twenty option groups would be the wall the split exists to remove.
+Its settings filter also hides a band once every group in it is filtered
+out — previously the heading stood over nothing, which reads as a broken
+filter rather than as no matches.
 
 ### Contrast validation (item 32)
 
