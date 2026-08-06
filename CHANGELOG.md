@@ -7,6 +7,30 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Theme Settings no longer offers to "Submit" itself
+
+The primary button on Theme Settings read **Submit** — wrong on a
+settings Single, and every obvious explanation was a dead end:
+`is_submittable` is 0 in the JSON, `docstatus` is 0, and there is no
+Workflow, Client Script or Property Setter on the doctype.
+
+**The label comes from a permission, and the defect is upstream.**
+`frappe/public/js/frappe/model/perm.js` grants Administrator *every*
+right unconditionally, `submit` included, without reference to whether
+the doctype is submittable. `toolbar.js` `can_submit()` then reads that
+right and never checks `is_submittable` — the word appears once in the
+file, in `add_discard()`, never there — and `get_action_status()` tests
+`can_submit()` before `can_save()`. Confirmed desk-wide: a stock ERPNext
+**Item**, which this theme does not touch, shows "Submit" too.
+
+Corrected for this doctype only, by clearing the three rights that are
+meaningless on something non-submittable. A theme has no business
+rewriting the desk's permission model, and a global patch would surprise
+anyone later debugging a genuinely submittable form — so Item still shows
+what stock Frappe shows, and a test fails if that ever stops being true.
+The other test asserts the *label*, not our patch, so it keeps passing if
+Frappe fixes this upstream and our correction becomes a no-op.
+
 ### The shared desk diagram (component rework, slice 1c step 3)
 
 Placement is now chosen on a picture of the desk: click where the thing

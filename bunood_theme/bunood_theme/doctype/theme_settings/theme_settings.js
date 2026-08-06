@@ -429,8 +429,54 @@ function bnd_bands(parts) {
 	return live.map((b) => P.zone({ key: b.z.key, title: b.z.title(), body: b.html })).join("");
 }
 
+/**
+ * Stop the primary button reading "Submit" on a doctype nothing can submit.
+ *
+ * THIS IS AN UPSTREAM DEFECT, NOT OURS, and it is worth writing down because
+ * everything about the symptom points the wrong way:
+ *
+ *   * `frappe/public/js/frappe/model/perm.js` `_get_perm()` gives Administrator
+ *     EVERY right unconditionally — `submit` among them — with no reference to
+ *     whether the doctype is submittable.
+ *   * `frappe/public/js/frappe/form/toolbar.js` `can_submit()` then tests that
+ *     right and never asks `is_submittable`. That word appears exactly once in
+ *     the file, inside `add_discard()`, and never here.
+ *   * `get_action_status()` checks `can_submit()` BEFORE `can_save()`.
+ *
+ * So for an Administrator, every saved workflow-free document in the desk
+ * reports "Submit" — a settings Single included. `is_submittable` is 0 in our
+ * JSON, `docstatus` is 0, there is no Workflow, Client Script or Property
+ * Setter, and none of that matters: the label comes from a PERMISSION.
+ *
+ * Corrected for this doctype only. This app is a theme; rewriting the desk's
+ * permission model for every doctype is not a theme's business, and a global
+ * patch would surprise the next person debugging a genuinely submittable form.
+ * The three rights cleared are meaningless on a non-submittable doctype, so
+ * clearing them states a fact rather than removing a capability — without it
+ * the same path can also offer "Cancel" and "Amend".
+ */
+function bnd_fix_primary_action(frm) {
+	if (!frm.meta || frm.meta.is_submittable) return;
+	const perm = frm.perm && frm.perm[0];
+	if (!perm) return;
+	if (!perm.submit && !perm.cancel && !perm.amend) return;
+	perm.submit = 0;
+	perm.cancel = 0;
+	perm.amend = 0;
+	// Recompute: the toolbar may already have decided on the stale rights.
+	if (frm.toolbar && typeof frm.toolbar.set_primary_action === "function") {
+		frm.toolbar.set_primary_action();
+	}
+}
+
 frappe.ui.form.on("Theme Settings", {
+	// Before the first refresh, so the toolbar's first decision is already
+	// made on corrected rights rather than corrected after the fact.
+	onload(frm) {
+		bnd_fix_primary_action(frm);
+	},
 	refresh(frm) {
+		bnd_fix_primary_action(frm);
 		// The layout is becoming a PRESET rather than a setting the desk reads
 		// at runtime (component rework). Read-only for one release so support
 		// can still see what a site was, while the component fields below are

@@ -1833,6 +1833,48 @@ async function main() {
 		// every picker: two sets of cards writing the same field, each unaware
 		// of the other's clicks. These three tests are the whole contract —
 		// off by default, exactly one surface when on, and no orphaned copy.
+		await test("settings: the primary button is not \"Submit\"", async () => {
+			// Theme Settings is a non-submittable Single, so "Submit" is simply
+			// wrong on it. The cause is upstream: perm.js grants Administrator
+			// every right including `submit`, and toolbar.js `can_submit()` reads
+			// that right without ever checking `is_submittable` — so the label
+			// comes from a permission, not from the doctype. Asserted on the
+			// LABEL rather than on our patch, so this keeps passing if Frappe
+			// ever fixes it and our correction becomes a no-op.
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
+			const seen = await page.evaluate(() => ({
+				primary: (document.querySelector(".primary-action") || {}).textContent?.trim() || "",
+				submittable: !!(window.cur_frm && window.cur_frm.meta.is_submittable),
+				perm: window.cur_frm ? window.cur_frm.perm[0].submit : null,
+			}));
+			expectEq(seen.submittable, false, "Theme Settings became submittable");
+			expect(
+				seen.primary !== "Submit",
+				`primary action reads "Submit" on a non-submittable Single (perm.submit=${seen.perm})`
+			);
+		});
+
+		await test("settings: the primary-action fix stays scoped to this doctype", async () => {
+			// The correction clears submit/cancel/amend on Theme Settings' own
+			// perm. A theme has no business rewriting the desk's permission model,
+			// so this fails if the fix ever leaks: another non-submittable doctype
+			// must still show whatever stock Frappe shows, untouched by us.
+			await goDesk("/desk/item", ".page-head", 3500);
+			const elsewhere = await page.evaluate(() =>
+				window.frappe && window.frappe.perm && window.frappe.perm.doctype_perm
+					? Object.entries(window.frappe.perm.doctype_perm)
+							.filter(([dt]) => dt !== "Theme Settings")
+							.filter(([, p]) => p && p[0] && p[0].submit === 0)
+							.map(([dt]) => dt)
+					: []
+			);
+			expectEq(
+				elsewhere.join(","),
+				"",
+				`the fix cleared submit on other doctypes: ${elsewhere.join(", ")}`
+			);
+		});
+
 		await test("shell: absent unless asked for", async () => {
 			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			expectEq(await q(".bnd-shell"), false, "shell rendered without ?shell=1");
