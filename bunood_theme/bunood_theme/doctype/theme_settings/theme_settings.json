@@ -96,7 +96,6 @@
   "status_segments_density",
   "status_freshness",
   "status_escalate",
-  "status_in_classic",
   "section_density",
   "default_density",
   "section_generated",
@@ -686,12 +685,6 @@
    "fieldname": "status_escalate",
    "fieldtype": "Check",
    "label": "Recolour the Bar on Failure",
-   "hidden": 1
-  },
-  {
-   "fieldname": "status_in_classic",
-   "fieldtype": "Check",
-   "label": "Show in Classic Layout",
    "hidden": 1
   },
   {

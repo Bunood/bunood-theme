@@ -7,6 +7,31 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The status bar stops being a property of the layout (rework slice 2)
+
+`status_in_classic` is gone. The bar used to be a consequence of the
+desk layout — four layouts mounted it and Classic did not, so Classic
+needed an opt-in to have one. It is a component now, so `status_style`
+decides and the layout has no opinion. That is a single call correct for
+all five layouts, because `mount_statusbar` already returns early when
+the style is Off.
+
+A per-layout override was the second place the same fact lived, which is
+the defect class this rework exists to remove.
+
+**A patch preserves what every site currently sees**, not what it stored:
+a Classic site that had not opted in gets `status_style: "Off"`, which is
+the desk it has today expressed in the vocabulary that survives. Proven
+against all three cases — Classic opted out, Classic opted in, and a
+non-Classic layout the field never governed.
+
+The cost is written down rather than glossed: `status_style` is global,
+so such a site that later switches to Top Bar will find the bar off and
+have to turn it on. That is what deleting a per-layout override means,
+and it is better than silently showing a bar to someone who switched it
+off.
+
+
 ### Theme Settings no longer offers to "Submit" itself
 
 The primary button on Theme Settings read **Submit** — wrong on a
@@ -80,10 +105,11 @@ rework exists to remove, reintroduced by the thing meant to fix it. The
 shell relocates the existing DOM instead, so there is exactly one node
 per field and every Frappe control keeps working untouched.
 
-Gated behind `?shell=1`. The stacked form stays the default until the
-shell has the desk diagram and the derived preset label: a half-finished
-navigation is worse than a long form, because a long form at least shows
-you everything it has.
+It shipped gated behind `?shell=1` while it was half-built — a
+half-finished navigation being worse than a long form — and **the default
+flipped once it was finished**: `/app/theme-settings` opens on the
+component layout now, and `?shell=0` still reaches the stacked form for
+any field the shell has not placed.
 
 Two defects found while building it, both now covered by tests: the
 container-query breakpoint collapsed the list into a wrapped row of chips

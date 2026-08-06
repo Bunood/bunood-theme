@@ -4611,10 +4611,14 @@
 		} else if (slug === "dock") {
 			mount_dock();
 			mount_statusbar(false);
+		} else if (slug === "classic") {
+			// Classic used to need an opt-in (`status_in_classic`) because the
+			// status bar was a consequence of the LAYOUT. It is a component now,
+			// so the layout has no opinion: `status_style` decides, here as
+			// everywhere else. mount_statusbar returns early when the style is
+			// Off, which is what makes one call correct for all five layouts.
+			mount_statusbar(false);
 		}
-		// Classic mounts no bars of its own — but the status bar is now a
-		// setting rather than a layout consequence, so it may opt in.
-		if (slug === "classic" && status_on("status_in_classic")) mount_statusbar(false);
 
 		// Search placement is independent of the layout (item 14): mount it
 		// AFTER the bars exist, since its slots live in them.

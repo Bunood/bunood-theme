@@ -8,3 +8,4 @@
 # make the patch look as though it had already run.
 bunood_theme.patches.v0_11_0.chrome_placement
 bunood_theme.patches.v0_11_0.split_quick_links
+bunood_theme.patches.v0_11_0.status_is_a_component

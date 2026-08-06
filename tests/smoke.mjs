@@ -342,7 +342,7 @@ const MUTABLE_FIELDS = [
 	"inbox_placement", "user_placement", "home_placement", "apps_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
-	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",
+	"status_clock", "status_interval", "status_freshness", "status_escalate",
 ];
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -433,7 +433,15 @@ async function main() {
 				expectEq(await page.evaluate(() => document.querySelectorAll(".bnd-search-field").length), 0, "no injected field");
 			},
 			"Classic": async () => {
-				expect(!(await q(".bnd-topbar")) && !(await q(".bnd-statusbar")) && !(await q(".bnd-dock")), "no bnd chrome");
+				// Classic mounts no bars OF ITS OWN — no top bar, no dock. It does
+				// now show the status bar, because that stopped being a property of
+				// the layout when `status_in_classic` was deleted: it is a
+				// component, so `status_style` decides everywhere. The old
+				// assertion ("no bnd chrome") encoded the layout-owns-it contract
+				// and is deliberately replaced, not relaxed — the Off case below
+				// asserts the other direction, which the old one could not.
+				expect(!(await q(".bnd-topbar")) && !(await q(".bnd-dock")), "no topbar or dock");
+				expect(await q(".bnd-statusbar"), "status bar follows status_style, not the layout");
 				expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
 			},
 			"Bottom Bar": async () => {
@@ -896,6 +904,27 @@ async function main() {
 			setSettings({ desk_layout: "Top Bar" });
 		});
 
+		await test("status: Classic honours status_style in BOTH directions", async () => {
+			// The contract that replaced `status_in_classic`. Asserting only that
+			// Classic HAS a bar would pass just as well if the layout had started
+			// mounting one unconditionally — which is the bug the deleted field
+			// used to prevent. Both directions, or the test says nothing.
+			setSettings({ desk_layout: "Classic", status_style: "Quiet" });
+			await goDesk("/desk/item", ".body-sidebar-container", 3500);
+			expect(await q(".bnd-statusbar"), "Classic + Quiet should mount the bar");
+
+			setSettings({ desk_layout: "Classic", status_style: "Off" });
+			await goDesk("/desk/item", ".body-sidebar-container", 3500);
+			expectEq(await q(".bnd-statusbar"), false, "Classic + Off should mount no bar");
+
+			// And the sidebar's own routes survive either way — Classic is the
+			// layout that relies on them.
+			expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
+			expectEq(await visible(".body-sidebar .sidebar-user-button"), true, "sidebar user menu kept");
+
+			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+		});
+
 		await test("inbox: works in Classic, which mounts no themed bell", async () => {
 			// Classic mounts no cluster, so Frappe's own sidebar row is the
 			// ONLY bell. The kit had no badge and no panel there at all,
@@ -1105,7 +1134,7 @@ async function main() {
 			// Compact and Classic keep Frappe's own sidebar search row, so a
 			// bar placement has to take it away or the user sees two.
 			for (const layout of ["Compact", "Classic"]) {
-				setSettings({ desk_layout: layout, search_placement: "Bottom Bar Center", status_in_classic: 1 });
+				setSettings({ desk_layout: layout, search_placement: "Bottom Bar Center" });
 				await goDesk("/desk/item", ".page-head", 4500);
 				const count = await page.evaluate(() => {
 					const ours = document.querySelectorAll(".bnd-search-field").length;
@@ -1114,7 +1143,7 @@ async function main() {
 				});
 				expectEq(count, 1, `${layout}: exactly one search field on screen`);
 			}
-			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center", status_in_classic: 0 });
+			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 		});
 
 		await test("status: the dock and the status bar stack, never overlap", async () => {
@@ -1264,23 +1293,25 @@ async function main() {
 		// at the foot of every page, which is what the naive per-layout token
 		// matrix did in Dock (76px reserved for 62px of chrome).
 		const RESERVE_LAYOUTS = [
-			// [layout, status_style, status_in_classic, what the layout mounts]
-			["Top Bar", "Quiet", 0, ".bnd-statusbar"],
-			["Compact", "Quiet", 0, ".bnd-statusbar"],
-			["Bottom Bar", "Quiet", 0, ".bnd-statusbar.bnd-bottombar"],
+			// [layout, status_style, what the layout mounts]
+			["Top Bar", "Quiet", ".bnd-statusbar"],
+			["Compact", "Quiet", ".bnd-statusbar"],
+			["Bottom Bar", "Quiet", ".bnd-statusbar.bnd-bottombar"],
 			// Dock mounts a floating pill AND a status bar; the reserve has to
 			// clear whichever sits highest, which is the pill.
-			["Dock", "Quiet", 0, ".bnd-dock"],
+			["Dock", "Quiet", ".bnd-dock"],
 			// Dock with the status bar switched Off: the pill ALONE. Worth its
 			// own row because the pill is appended to <body> while the status
 			// bar goes into .main-section — so a reserve that only watches
 			// .main-section passes the row above (the bar's arrival triggers
 			// the re-measure, which then happens to see the pill) and fails
 			// this one. It did exactly that; measured in RTL at 430px.
-			["Dock", "Off", 0, ".bnd-dock"],
-			// Classic mounts nothing by default — but it can opt in, and that
-			// opt-in had no reservation at all before this fix.
-			["Classic", "Quiet", 1, ".bnd-statusbar"],
+			["Dock", "Off", ".bnd-dock"],
+			// Classic mounts the bar like every other layout now: the status bar
+			// is a component, so `status_style` decides and the layout has no
+			// opinion. It used to need `status_in_classic`, and that opt-in had
+			// no bottom reservation at all before the clearance fix.
+			["Classic", "Quiet", ".bnd-statusbar"],
 		];
 
 		/** Geometry of the paging row against the topmost fixed bottom chrome.
@@ -1305,10 +1336,10 @@ async function main() {
 				};
 			});
 
-		for (const [layout, status, inClassic, mounts] of RESERVE_LAYOUTS) {
+		for (const [layout, status, mounts] of RESERVE_LAYOUTS) {
 			await test(`reserve: ${layout} keeps the paging row clear of ${mounts}`, async () => {
 				setSettings({
-					desk_layout: layout, status_style: status, status_in_classic: inClassic,
+					desk_layout: layout, status_style: status,
 					search_placement: "Top Bar Center",
 				});
 				await goDesk("/desk/item", ".frappe-list", 4500);
@@ -1335,7 +1366,7 @@ async function main() {
 			// The mirror image of the tests above. With no bar mounted the desk
 			// must be stock height — a reserve that outlives its bar is a strip
 			// of viewport the user paid for and cannot use.
-			setSettings({ desk_layout: "Top Bar", status_style: "Off", status_in_classic: 0 });
+			setSettings({ desk_layout: "Top Bar", status_style: "Off" });
 			await goDesk("/desk/item", ".frappe-list", 4500);
 			const g = await bottomGeometry();
 			expectEq(g.barTop, null, "no bottom chrome is mounted");
@@ -1343,7 +1374,7 @@ async function main() {
 			const vh = await page.evaluate(() => window.innerHeight);
 			expectEq(g.mainBottom, vh, ".main-section runs to the viewport edge");
 			setSettings({
-				desk_layout: "Top Bar", status_style: "Quiet", status_in_classic: 0,
+				desk_layout: "Top Bar", status_style: "Quiet",
 				search_placement: "Top Bar Center",
 			});
 		});
@@ -1694,7 +1725,9 @@ async function main() {
 				inbox_picker: { cards: 4, slots: 5, toggles: 4, opts: 8 },
 				user_picker: { cards: 0, slots: 5, opts: 1 },
 				search_picker: { cards: 0, slots: 6 },
-				status_picker: { cards: 4, toggles: 8, opts: 7 },
+				// 7, not 8: `status_in_classic` was deleted when the status bar stopped
+				// being a property of the layout.
+				status_picker: { cards: 4, toggles: 7, opts: 7 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};

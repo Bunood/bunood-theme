@@ -307,7 +307,6 @@ STATUS_FIELDS = [
     "status_interval",
     "status_freshness",
     "status_escalate",
-    "status_in_classic",
 ]
 
 #: The shipped defaults. Search sits centred in the top bar — the placement
@@ -335,7 +334,6 @@ STATUS_DEFAULTS = {
     "status_segments_density": 1,
     "status_freshness": 1,
     "status_escalate": 0,
-    "status_in_classic": 0,
 }
 
 

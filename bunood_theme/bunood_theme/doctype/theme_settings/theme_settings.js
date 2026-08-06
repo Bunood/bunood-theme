@@ -289,9 +289,6 @@ function bnd_region_blocker(frm, region) {
 	if (region === "bottombar") {
 		if (layout === "Bottom Bar") return "";
 		if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
-		if (layout === "Classic" && !parseInt(frm.doc.status_in_classic, 10)) {
-			return __("Classic shows no bottom bar");
-		}
 	}
 	return "";
 }
@@ -2336,7 +2333,7 @@ function bnd_inbox_set(frm, fieldname, value) {
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
-	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",
+	"status_clock", "status_interval", "status_freshness", "status_escalate",
 ];
 
 /** Shipped defaults, for the reset chips. */
@@ -2344,7 +2341,7 @@ const BND_STATUS_DEFAULTS = {
 	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "24 Hour",
 	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
 	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
-	status_freshness: 1, status_escalate: 0, status_in_classic: 0,
+	status_freshness: 1, status_escalate: 0,
 };
 
 /**
@@ -2570,7 +2567,6 @@ const BND_STATUS_TOGGLES = [
 	{ field: "status_segments_density", name: () => __("Density toggle"), desc: () => __("Click to cycle row density.") },
 	{ field: "status_freshness", name: () => __("Freshness stamp"), desc: () => __("How old the counts are, and a button to refresh them now.") },
 	{ field: "status_escalate", name: () => __("Recolour the bar on failure"), desc: () => __("Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored.") },
-	{ field: "status_in_classic", name: () => __("Show in Classic layout"), desc: () => __("Classic mounts no bars of its own; this opts it in.") },
 ];
 
 /** Render the status bar picker. */

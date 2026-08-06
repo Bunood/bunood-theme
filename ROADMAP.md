@@ -130,9 +130,15 @@ defect in 0.10.0.
     sub-positions preserved as distinct slots, and a migration patch. `build.mjs`
     FIELD_PREFIXES gained `home` and `apps`: that list grows when a component is
     registered, never to make a build pass
-  - `[ ]` **`status_in_classic` deleted** — the bar is its own component, so a
-    layout-conditional should not gate it. Patch must preserve what Classic sites
-    see: `status_style: "Off"` where they had not opted in. Small; do it first
+  - `[x]` **`status_in_classic` deleted** *(2026-08-06)*. The bar was a consequence
+    of the LAYOUT — four layouts mounted it, Classic did not, so Classic needed an
+    opt-in. It is a component now: `status_style` decides and the layout has no
+    opinion, which is one call correct for all five layouts because
+    `mount_statusbar` already returns early on "Off". The per-layout override was
+    the second place the same fact lived. A patch preserves what each site SEES —
+    `status_style: "Off"` for a Classic site that had not opted in — and the
+    honest cost is written down: that site switching to Top Bar later will find
+    the bar off, which is what deleting a per-layout override means
   - `[ ]` **The remaining containers** — top bar, bottom bar, side pane, dock each
     with their own on/off instead of `desk_layout` choosing. **Touches
     `mount_chrome`**, where every critical defect in this project has lived. The
