@@ -1672,7 +1672,7 @@ async function main() {
 		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
 		// of this machine's font rendering and would fail on anyone else's.
 		await test("settings: every picker renders its full complement", async () => {
-			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			// Structural counts catch a picker that silently rendered nothing —
 			// which is what a thrown error inside one render function looks
 			// like, since each is called in sequence from refresh().
@@ -1685,21 +1685,28 @@ async function main() {
 				sidebar_picker: { cards: 8 },
 				crumbs_picker: { cards: 5, toggles: 3, opts: 10 },
 				palette_picker: { cards: 4, toggles: 6 },
-				inbox_picker: { cards: 4, toggles: 4, opts: 7 },
-				search_picker: { cards: 6 },
+				// `slots` are desk-diagram targets and `cards` are style
+				// thumbnails: different controls, counted apart. Search has only
+				// slots now — its six thumbnails became six positions on one
+				// shared desk. The bell's `opts` went 7 -> 8 for the "Off" chip,
+				// which sits BESIDE the diagram because "not shown" is not a place.
+				inbox_picker: { cards: 4, slots: 5, toggles: 4, opts: 8 },
+				user_picker: { cards: 0, slots: 5, opts: 1 },
+				search_picker: { cards: 0, slots: 6 },
 				status_picker: { cards: 4, toggles: 8, opts: 7 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
-					inbox_picker: 1, search_picker: 1, status_picker: 1,
+					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
 						? {
 								h: Math.round(el.getBoundingClientRect().height),
-								cards: el.querySelectorAll(".bnd-cbp-style,.bnd-lp-card,.bnd-sbp-preset,.bnd-srp-slot").length,
+								cards: el.querySelectorAll(".bnd-cbp-style,.bnd-lp-card,.bnd-sbp-preset").length,
+								slots: el.querySelectorAll(".bnd-dgm-slot").length,
 								toggles: el.querySelectorAll(".bnd-cbp-toggle,.bnd-sbp-toggle").length,
 								opts: el.querySelectorAll(".bnd-cbp-opt").length,
 						  }
@@ -1748,7 +1755,7 @@ async function main() {
 			// producing, and a shape checker built that way would be a poor
 			// joke.
 			setSettings(fixture.state);
-			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			const actual = await page.evaluate((names) => {
 				const out = {};
 				for (const f of names) {
@@ -1827,7 +1834,7 @@ async function main() {
 		// of the other's clicks. These three tests are the whole contract —
 		// off by default, exactly one surface when on, and no orphaned copy.
 		await test("shell: absent unless asked for", async () => {
-			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			expectEq(await q(".bnd-shell"), false, "shell rendered without ?shell=1");
 			// And the legacy form is untouched — the sections still show.
 			expect(await visible('[data-fieldname="sidebar_picker"]'), "legacy picker missing");
@@ -1843,8 +1850,8 @@ async function main() {
 					// Picker CONTENT, not the field wrapper: the wrapper stays in
 					// the DOM (empty) because Frappe owns it. Two copies of the
 					// content is the defect this test exists for.
-					cards: document.querySelectorAll(".bnd-cbp-opt, .bnd-sbp-card, .bnd-srp-slot").length,
-					cardsInShell: inside(".bnd-cbp-opt, .bnd-sbp-card, .bnd-srp-slot"),
+					cards: document.querySelectorAll(".bnd-cbp-opt, .bnd-sbp-card, .bnd-dgm-slot").length,
+					cardsInShell: inside(".bnd-cbp-opt, .bnd-sbp-card, .bnd-dgm-slot"),
 					legacyVisible: [...document.querySelectorAll('[data-fieldname$="_picker"]')].filter(
 						(n) => !n.closest(".bnd-shell") && n.getBoundingClientRect().height > 0
 					).length,
@@ -1856,6 +1863,86 @@ async function main() {
 			expectEq(counts.legacyVisible, 0, "legacy picker fields still visible beside the shell");
 		});
 
+		await test("diagram: marks the current slot, and warns the ones the layout cannot honour", async () => {
+			// The defect: a placement diagram that always looks the same. It has
+			// to track the stored value AND react to the layout, because a slot's
+			// availability is a property of the layout, not of the picker. Both
+			// are asserted as transitions.
+			const slots = (key) =>
+				page.evaluate((k) => {
+					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
+					if (!pane) return null;
+					return [...pane.querySelectorAll(".bnd-dgm-slot")].map((b) => ({
+						v: b.dataset.value,
+						on: b.classList.contains("bnd-dgm-on"),
+						warn: b.classList.contains("bnd-dgm-warn"),
+					}));
+				}, key);
+
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar", status_style: "Quiet" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="inbox"]');
+			await page.waitForTimeout(500);
+			let s1 = await slots("inbox");
+			expect(!!s1 && s1.length === 5, `bell diagram has ${s1 ? s1.length : 0} slots, expected 5`);
+			expectEq(s1.filter((x) => x.on).map((x) => x.v).join(","), "Top Bar", "wrong slot marked current");
+			// Top Bar layout: no dock, and only Compact fills the title row.
+			expectEq(
+				s1.filter((x) => x.warn).map((x) => x.v).sort().join(","),
+				"Dock,Page Header",
+				"wrong slots warned for the Top Bar layout"
+			);
+
+			// Change the LAYOUT and the warnings must move with it.
+			setSettings({ desk_layout: "Dock" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="inbox"]');
+			await page.waitForTimeout(500);
+			const s2 = await slots("inbox");
+			const warned = s2.filter((x) => x.warn).map((x) => x.v).sort().join(",");
+			expect(
+				warned.includes("Side Pane") && warned.includes("Top Bar") && !warned.includes("Dock"),
+				`Dock layout warned "${warned}" — it hides the sidebar and HAS a dock`
+			);
+			setSettings({ desk_layout: "Top Bar" });
+		});
+
+		await test("overview: one mark per placed component, each a route to its control", async () => {
+			setSettings({ inbox_placement: "Top Bar", user_placement: "Side Pane" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="overview"]');
+			await page.waitForTimeout(600);
+			const marks = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-dgm-mark")].map((m) => ({
+					goto: m.dataset.goto,
+					x: Math.round(m.getBoundingClientRect().left),
+				}))
+			);
+			expectEq(
+				marks.map((m) => m.goto).sort().join(","),
+				"inbox,search,user",
+				"overview does not mark exactly the three placed components"
+			);
+			// The user menu was moved to the side pane, so its mark must sit to
+			// the LEFT of the bell's, which is in the top bar. A diagram whose
+			// marks do not move with the setting is a picture, not an overview.
+			const user = marks.find((m) => m.goto === "user");
+			const bell = marks.find((m) => m.goto === "inbox");
+			expect(user.x < bell.x, `user mark at ${user.x} is not left of the bell at ${bell.x}`);
+
+			// And a mark is a route to the control.
+			await page.click('.bnd-dgm-mark[data-goto="user"]');
+			await page.waitForTimeout(500);
+			expectEq(
+				await page.evaluate(() =>
+					(document.querySelector(".bnd-shell-item.bnd-shell-on") || {}).getAttribute("data-key")
+				),
+				"user",
+				"clicking the user mark did not select the user menu entry"
+			);
+			setSettings({ user_placement: "Top Bar" });
+		});
+
 		await test("bands: headings appear only where there is more than one", async () => {
 			// Three defects in one check. A band with an empty heading (a zone
 			// rendered with no title). A picker with ONE zone printing a heading
@@ -1864,7 +1951,7 @@ async function main() {
 			// a per-picker flag. And a group stranded outside every band, which is
 			// what happens when a new row is added to a picker table and nobody
 			// gives it a `zone`.
-			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
 			const report = await page.evaluate(() => {
 				const out = {};
 				for (const f of [
@@ -2024,9 +2111,14 @@ async function main() {
 			);
 			for (const [key, note] of Object.entries(notes)) {
 				if (key === "sidepane") continue;
+				// The Overview owns no fields — it READS them — so it has no state
+				// to report and must stay silent. Saying "Default" under it would
+				// claim otherwise, and would go on saying it while every component
+				// it displays had been changed.
+				const allowed = key === "overview" ? [""] : ["Default", "Changed"];
 				expect(
-					["Default", "Changed"].includes(note),
-					`${key} shows "${note}" — only the side pane has presets, so the rest must be Default/Changed`
+					allowed.includes(note),
+					`${key} shows "${note}"; expected one of ${JSON.stringify(allowed)}`
 				);
 			}
 		});

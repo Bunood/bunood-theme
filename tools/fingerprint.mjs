@@ -41,7 +41,7 @@ await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); cons
 // baseline that is quietly wrong — and a wrong baseline then fails CORRECT
 // code, forever, which is worse than having no baseline at all. That is not
 // hypothetical: the fixture committed on 2026-08-05 recorded the search
-// picker with no card selected, when the pinned state selects "Top Bar
+// picker with no slot selected, when the pinned state selects "Top Bar
 // Center", and the drift check then reported a regression that did not exist.
 //
 // Reload rather than sleep longer, because the failure is a stale document
@@ -49,10 +49,10 @@ await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); cons
 async function settleOnPinnedState() {
   for (let attempt = 1; attempt <= 3; attempt++) {
     await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 45000 });
-    await page.waitForSelector(".bnd-srp-slot", { timeout: 30000 });
+    await page.waitForSelector(".bnd-dgm-slot", { timeout: 30000 });
     await page.waitForTimeout(3500);
     const shown = await page.evaluate(() => {
-      const sel = document.querySelector(".bnd-srp-slot.bnd-cbp-on");
+      const sel = document.querySelector('[data-fieldname="search_picker"] .bnd-dgm-slot.bnd-dgm-on');
       return sel ? sel.getAttribute("data-value") : null;
     });
     if (shown === SHAPE_STATE.search_placement) return;
@@ -66,7 +66,7 @@ async function settleOnPinnedState() {
 await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
-  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","search_picker","status_picker"]) {
+  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","search_picker","status_picker"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}
     const nodes=[];

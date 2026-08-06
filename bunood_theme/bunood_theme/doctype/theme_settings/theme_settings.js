@@ -207,6 +207,176 @@ const P = {
 	},
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+// The shared desk diagram (component rework, slice 1c step 3)
+//
+// WHY ONE DIAGRAM INSTEAD OF THUMBNAILS PER CHOICE
+//   Placement was drawn as a thumbnail per option: six hand-authored SVGs for
+//   search alone, and the bell, the user menu, home and all-apps would each have
+//   needed their own set — about thirty little pictures of the same desk, every
+//   one of which has to stay truthful as the chrome changes. They would not.
+//   A miniature that lies about where a thing lands is worse than no picture,
+//   because it is believed.
+//
+//   So there is ONE desk, and a component contributes only the slots it can
+//   occupy. The frame is drawn from the same geometry the slots are positioned
+//   from, so a region cannot move in the picture without its hit area moving
+//   with it.
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The desk, in a 300x180 viewBox. Regions are the furniture; a slot is a region
+ * or a named part of one.
+ *
+ * `sub` divides a bar into the centre and the trailing edge, which is a
+ * distinction only search makes — the bell and the user menu take a whole
+ * region. Keeping both in one table is what stops the two from drifting.
+ */
+const BND_DESK_GEOM = {
+	sidepane: { x: 6, y: 6, w: 58, h: 168 },
+	topbar: { x: 68, y: 6, w: 226, h: 22 },
+	pagehead: { x: 68, y: 32, w: 226, h: 20 },
+	content: { x: 68, y: 56, w: 226, h: 92 },
+	dock: { x: 124, y: 120, w: 114, h: 22 },
+	bottombar: { x: 68, y: 152, w: 226, h: 22 },
+};
+
+/** Slot label -> the rectangle it occupies. Percentages are derived, never typed. */
+const BND_DESK_SLOTS = {
+	// Whole regions — what a tenant with a simple placement chooses from.
+	"Top Bar": BND_DESK_GEOM.topbar,
+	"Bottom Bar": BND_DESK_GEOM.bottombar,
+	"Page Header": BND_DESK_GEOM.pagehead,
+	"Side Pane": BND_DESK_GEOM.sidepane,
+	Dock: BND_DESK_GEOM.dock,
+	// Parts of a region — search, which cares where in the bar it sits.
+	"Top Bar Center": { x: 140, y: 9, w: 82, h: 16 },
+	"Top Bar Edge": { x: 250, y: 9, w: 40, h: 16 },
+	"Bottom Bar Center": { x: 140, y: 155, w: 82, h: 16 },
+	"Bottom Bar Edge": { x: 250, y: 155, w: 40, h: 16 },
+	"Sidebar Top": { x: 10, y: 10, w: 50, h: 30 },
+	"Sidebar Bottom": { x: 10, y: 140, w: 50, h: 30 },
+};
+
+/** Which desk region each placement label resolves to, for availability. */
+const BND_SLOT_REGION = {
+	"Top Bar": "topbar", "Top Bar Center": "topbar", "Top Bar Edge": "topbar",
+	"Bottom Bar": "bottombar", "Bottom Bar Center": "bottombar", "Bottom Bar Edge": "bottombar",
+	"Page Header": "pagehead",
+	"Side Pane": "sidepane", "Sidebar Top": "sidepane", "Sidebar Bottom": "sidepane",
+	Dock: "dock",
+};
+
+/**
+ * Why a region cannot hold anything in the configuration on screen — "" if it can.
+ *
+ * WARNS, never blocks: the runtime falls back either way, and naming the actual
+ * obstacle beats greying a choice out with no explanation. This mirrors
+ * `mount_chrome` in bunood.js, which is the only thing that really decides —
+ * `topbar` exists only in the Top Bar layout, `pagehead` only in Compact (which
+ * injects the cluster there), `dock` only in Dock, and the sidebar is hidden by
+ * Dock outright. The bottom strip is the awkward one: the Bottom Bar layout owns
+ * it unconditionally, everyone else borrows the status bar.
+ */
+function bnd_region_blocker(frm, region) {
+	const layout = frm.doc.desk_layout || "Top Bar";
+	if (region === "topbar") return layout === "Top Bar" ? "" : __("{0} has no top bar", [__(layout)]);
+	if (region === "pagehead") {
+		return layout === "Compact" ? "" : __("only Compact puts controls in the title row");
+	}
+	if (region === "dock") return layout === "Dock" ? "" : __("{0} has no dock", [__(layout)]);
+	if (region === "sidepane") return layout === "Dock" ? __("Dock hides the sidebar") : "";
+	if (region === "bottombar") {
+		if (layout === "Bottom Bar") return "";
+		if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
+		if (layout === "Classic" && !parseInt(frm.doc.status_in_classic, 10)) {
+			return __("Classic shows no bottom bar");
+		}
+	}
+	return "";
+}
+
+/** The static desk furniture, drawn from the same geometry the slots use. */
+function bnd_desk_frame() {
+	const r = (k, cls) => {
+		const g = BND_DESK_GEOM[k];
+		return (
+			'<rect class="' + cls + '" x="' + g.x + '" y="' + g.y + '" width="' + g.w +
+			'" height="' + g.h + '" rx="3"/>'
+		);
+	};
+	return (
+		'<svg class="bnd-dgm-frame" viewBox="0 0 300 180" aria-hidden="true" focusable="false">' +
+		'<rect class="bnd-dgm-desk" x="1" y="1" width="298" height="178" rx="6"/>' +
+		r("sidepane", "bnd-dgm-region") +
+		r("topbar", "bnd-dgm-region") +
+		r("pagehead", "bnd-dgm-region bnd-dgm-quiet") +
+		r("content", "bnd-dgm-region bnd-dgm-quiet") +
+		r("dock", "bnd-dgm-region") +
+		r("bottombar", "bnd-dgm-region") +
+		"</svg>"
+	);
+}
+
+/**
+ * The diagram as a control.
+ *
+ * @param {object} o
+ * @param {string} o.field    the Theme Settings field the slots write.
+ * @param {string[]} o.slots  the labels this component can occupy, in any order.
+ * @param {string} o.value    the current label.
+ * @param {function} o.blocker  (label) -> reason string, or "".
+ *
+ * Slots are real `<button>`s positioned over the picture rather than shapes
+ * inside it: they are the control, and a control that Frappe's own styles, the
+ * keyboard and the accessibility tree all already understand is worth more than
+ * a tidier SVG.
+ */
+function bnd_desk_diagram(o) {
+	const pc = (n, total) => (Math.round((n / total) * 10000) / 100) + "%";
+	const buttons = o.slots
+		.map((label) => {
+			const g = BND_DESK_SLOTS[label];
+			if (!g) return "";
+			const reason = o.blocker ? o.blocker(label) : "";
+			const on = label === o.value;
+			return (
+				'<button type="button" class="bnd-dgm-slot' + (on ? " bnd-dgm-on" : "") +
+				(reason ? " bnd-dgm-warn" : "") + '"' +
+				' data-field="' + bnd_esc(o.field) + '" data-value="' + bnd_esc(label) + '"' +
+				' aria-pressed="' + (on ? "true" : "false") + '"' +
+				' title="' + bnd_esc(reason ? __("{0} — not available: {1}. Falls back to the nearest slot.", [__(label), reason]) : __(label)) + '"' +
+				' style="inset-inline-start:' + pc(g.x, 300) + ";inset-block-start:" + pc(g.y, 180) +
+				";inline-size:" + pc(g.w, 300) + ";block-size:" + pc(g.h, 180) + '">' +
+				'<span class="bnd-dgm-label">' + bnd_esc(__(label)) + "</span>" +
+				"</button>"
+			);
+		})
+		.join("");
+	return '<div class="bnd-dgm">' + bnd_desk_frame() + buttons + "</div>";
+}
+
+/**
+ * The placement control for a tenant that takes a whole region.
+ *
+ * `Off` is rendered as a chip beside the diagram rather than as a slot on it,
+ * because "not shown" is not a place on the desk. Drawing it as a region would
+ * make the picture claim there is somewhere the bell goes when it is off.
+ */
+function bnd_placement_control(frm, field, note) {
+	const current = frm.doc[field] || "Top Bar";
+	return (
+		bnd_desk_diagram({
+			field: field,
+			slots: ["Top Bar", "Page Header", "Side Pane", "Dock", "Bottom Bar"],
+			value: current,
+			blocker: (label) => bnd_region_blocker(frm, BND_SLOT_REGION[label] || ""),
+		}) +
+		P.options([{ value: "Off", name: __("Off — not shown") }], { field: field, value: current }) +
+		(note ? P.note(note) : "")
+	);
+}
+
 /**
  * The bands a picker can split into, in render order.
  *
@@ -280,6 +450,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_inbox_picker(frm);
 		bnd_render_search_picker(frm);
 		bnd_render_status_picker(frm);
+		bnd_render_user_picker(frm);
 		// AFTER the pickers, never before: the shell relocates the sections they
 		// were just drawn into, and moving a node the renderer is about to look
 		// for is how the host resolver ends up pointing at a detached wrapper.
@@ -296,6 +467,10 @@ frappe.ui.form.on("Theme Settings", {
 	},
 	desk_layout(frm) {
 		bnd_render_layout_picker(frm);
+		// Every placement diagram marks slots the layout cannot honour, so all
+		// of them go stale the moment it changes — not just search's.
+		bnd_render_inbox_picker(frm);
+		bnd_render_user_picker(frm);
 		// The search picker's availability notes read the layout, so they go
 		// stale the moment it changes — "Not available" must never linger on
 		// a slot the new layout actually offers.
@@ -341,6 +516,14 @@ frappe.ui.form.on("Theme Settings", {
  */
 const BND_SHELL_GROUPS = [
 	{
+		group: () => __("Desk"),
+		items: [
+			// The only entry that renders rather than relocating: it owns no
+			// fields, it reads them.
+			{ key: "overview", label: () => __("Overview"), render: bnd_render_overview },
+		],
+	},
+	{
 		group: () => __("Bars & panes"),
 		items: [
 			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
@@ -352,6 +535,7 @@ const BND_SHELL_GROUPS = [
 		group: () => __("Controls"),
 		items: [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
+			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			// `enable_command_palette` now sits with its seven siblings in
 			// section_palette, so one anchor reaches the whole component. It used
 			// to live three sections away, and anchoring it here claimed the
@@ -409,7 +593,8 @@ const BND_SHELL_OWNS = {
 	sidepane: { prefixes: ["sidebar_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.
-	inbox: { prefixes: ["inbox_"], fields: ["user_placement"] },
+	inbox: { prefixes: ["inbox_"] },
+	user: { fields: ["user_placement"] },
 	status: { prefixes: ["status_"] },
 	search: { prefixes: ["search_"] },
 	crumbs: { prefixes: ["crumb_"] },
@@ -463,8 +648,86 @@ function bnd_changed_fields(key, frm) {
  */
 function bnd_shell_note(key, frm) {
 	if (!bnd_shipped) return "";
+	// An entry that owns no fields has no state to report. The Overview READS
+	// settings; saying "Default" under it claims it has some, and would go on
+	// saying it while every component it shows had been changed.
+	if (!BND_SHELL_OWNS[key]) return "";
 	if (key === "sidepane" && bnd_sb_catalogue) return bnd_sb_match_preset(frm);
 	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
+}
+
+/**
+ * The Overview: the same desk, showing where everything currently is.
+ *
+ * This is the diagram's second job and the reason it is worth building once.
+ * Per-component pickers answer "where does the bell go"; nobody could answer
+ * "what does my desk look like" without opening five of them and holding the
+ * answer in their head. Here it is one picture.
+ *
+ * Read-only by design. A marker is a link to the control, not a control — two
+ * ways to set the same value is the duplication this rework exists to remove,
+ * and a drag target on a 40px box would be a worse one than the picker it
+ * duplicated.
+ */
+const BND_OVERVIEW_TENANTS = [
+	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Top Bar Center" },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Top Bar" },
+	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Top Bar" },
+];
+
+function bnd_render_overview(frm, $pane) {
+	const pc = (n, total) => Math.round((n / total) * 10000) / 100 + "%";
+	const placed = [];
+	const off = [];
+
+	BND_OVERVIEW_TENANTS.forEach((t, i) => {
+		const value = frm.doc[t.field] || t.fallback;
+		const g = BND_DESK_SLOTS[value];
+		if (!g) {
+			off.push(t);
+			return;
+		}
+		const reason = bnd_region_blocker(frm, BND_SLOT_REGION[value] || "");
+		// Stack markers inside a region rather than overlapping them: three
+		// things in the top bar is the COMMON case, not an edge case.
+		const seen = placed.filter((x) => x.value === value).length;
+		placed.push({ ...t, value, g, reason, seen });
+	});
+
+	const markers = placed
+		.map((m) => {
+			const inset = m.seen * 26;
+			return (
+				'<button type="button" class="bnd-dgm-mark' + (m.reason ? " bnd-dgm-warn" : "") + '"' +
+				' data-goto="' + bnd_esc(m.key) + '"' +
+				' title="' + bnd_esc(
+					m.reason
+						? __("{0}: {1} — not available: {2}", [m.label(), __(m.value), m.reason])
+						: __("{0}: {1}", [m.label(), __(m.value)])
+				) + '"' +
+				' style="inset-inline-start:calc(' + pc(m.g.x, 300) + " + " + inset + 'px);inset-block-start:' +
+				pc(m.g.y + 2, 180) + '">' + bnd_esc(m.label()) + "</button>"
+			);
+		})
+		.join("");
+
+	const hidden = off.length
+		? P.note(__("Not shown anywhere: {0}", [off.map((t) => t.label()).join(", ")]))
+		: "";
+
+	$pane.html(
+		P.wrap(
+			'<div class="bnd-dgm bnd-dgm-overview">' + bnd_desk_frame() + markers + "</div>" +
+			P.note(
+				__("Layout: {0}. Each mark is a control — select it to change where that piece lives.", [
+					__(frm.doc.desk_layout || "Top Bar"),
+				])
+			) + hidden
+		)
+	);
+	$pane.find(".bnd-dgm-mark").on("click", function () {
+		bnd_shell_select(frm, this.getAttribute("data-goto"));
+	});
 }
 
 /** True when the URL asks for the shell. Read from `location`, not from
@@ -531,7 +794,12 @@ function bnd_shell_setup(frm) {
 		for (const item of g.items) {
 			const $pane = $(`<div class="bnd-shell-pane" data-key="${bnd_esc(item.key)}" hidden></div>`);
 			$detail.append($pane);
-			for (const anchor of item.anchors) {
+			if (item.render) {
+				// Owns no fields, so there is nothing to relocate — it draws.
+				item.render(frm, $pane);
+				continue;
+			}
+			for (const anchor of item.anchors || []) {
 				const f = frm.get_field(anchor);
 				if (!f || !f.$wrapper) continue;
 				const $section = f.$wrapper.closest(".form-section");
@@ -619,6 +887,16 @@ function bnd_shell_select(frm, key) {
 		this.classList.toggle("bnd-shell-on", on);
 		this.setAttribute("aria-selected", on ? "true" : "false");
 	});
+	// A render-entry reads values the OTHER panes write, so it is stale the
+	// moment anything else was touched. Redrawn on selection rather than on
+	// every change: it is the cheapest place that is always early enough.
+	for (const g of BND_SHELL_GROUPS) {
+		for (const item of g.items) {
+			if (item.render && item.key === key) {
+				item.render(frm, $shell.find(`.bnd-shell-pane[data-key="${key}"]`));
+			}
+		}
+	}
 	$shell.find(".bnd-shell-pane").each(function () {
 		const on = this.getAttribute("data-key") === key;
 		// `hidden` rather than display, so a pane that is off is off for
@@ -1934,6 +2212,14 @@ function bnd_render_inbox_picker(frm, host) {
 		// baseline (item-13 sweep).
 		'<div class="bnd-cbp bnd-ibp">' +
 			bnd_bands([
+				{
+					zone: "placement",
+					html: bnd_placement_control(
+						frm,
+						"inbox_placement",
+						__("Where the bell sits. Applies on the next page load.")
+					),
+				},
 				{ zone: "style", html: style_cards + note + selects },
 				{ zone: "extras", html: P.group({
 					// No title: the band names it. No `field` either — this chip
@@ -1951,7 +2237,7 @@ function bnd_render_inbox_picker(frm, host) {
 	$host.find(".bnd-ibp-style").on("click", function () {
 		bnd_inbox_set(frm, "inbox_style", this.getAttribute("data-value"));
 	});
-	$host.find(".bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
+	$host.find(".bnd-dgm-slot, .bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
@@ -2002,26 +2288,6 @@ const BND_STATUS_DEFAULTS = {
 	status_freshness: 1, status_escalate: 0, status_in_classic: 0,
 };
 
-/** A 120x54 thumbnail of the desk with search highlighted in one slot. */
-function bnd_search_thumb(slot) {
-	const on = 'fill="var(--primary, #4d8756)" opacity=".55"';
-	const off = 'fill="currentColor" opacity=".12"';
-	const bar = (y) => `<rect x="30" y="${y}" width="86" height="8" rx="3" ${off}/>`;
-	const pill = (x, y, w) => `<rect x="${x}" y="${y}" width="${w}" height="6" rx="3" ${on}/>`;
-	const parts = [
-		'<rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>',
-		`<rect x="2" y="2" width="24" height="50" ${off}/>`,
-		bar(4), bar(44),
-	];
-	if (slot === "Sidebar Top") parts.push(pill(5, 6, 18));
-	if (slot === "Sidebar Bottom") parts.push(pill(5, 44, 18));
-	if (slot === "Top Bar Edge") parts.push(pill(33, 5, 26));
-	if (slot === "Top Bar Center") parts.push(pill(58, 5, 30));
-	if (slot === "Bottom Bar Edge") parts.push(pill(33, 45, 26));
-	if (slot === "Bottom Bar Center") parts.push(pill(58, 45, 30));
-	return '<svg viewBox="0 0 120 54">' + parts.join("") + "</svg>";
-}
-
 /**
  * Can this slot exist with the settings currently on screen? Used to WARN,
  * never to block — the runtime falls back either way.
@@ -2032,22 +2298,11 @@ function bnd_search_thumb(slot) {
  * sidebar outright.
  */
 function bnd_search_slot_blocker(frm, slot) {
-	const layout = frm.doc.desk_layout || "Top Bar";
-	if (slot === "Sidebar Top" || slot === "Sidebar Bottom") {
-		return layout === "Dock" ? __("Dock hides the sidebar") : "";
-	}
-	if (slot === "Top Bar Edge" || slot === "Top Bar Center") {
-		return layout === "Top Bar" ? "" : __("{0} has no top bar", [__(layout)]);
-	}
-	// Bottom slots need a strip to live in. The Bottom Bar layout always has
-	// one — there it is the layout's own chrome, which the status style does
-	// not govern — so only the other layouts can lose it.
-	if (layout === "Bottom Bar") return "";
-	if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
-	if (layout === "Classic" && !parseInt(frm.doc.status_in_classic, 10)) {
-		return __("Classic shows no bottom bar");
-	}
-	return "";
+	// Delegates. These rules used to live here in search's own vocabulary, and
+	// the bell and the user menu would have needed the same reasoning restated
+	// in theirs — three copies of "which regions does this layout actually
+	// mount". One copy, keyed by region.
+	return bnd_region_blocker(frm, BND_SLOT_REGION[slot] || "");
 }
 
 const BND_SEARCH_SLOTS = [
@@ -2059,27 +2314,52 @@ const BND_SEARCH_SLOTS = [
 	{ value: "Bottom Bar Edge", blurb: () => __("At the start of the bottom strip.") },
 ];
 
+/**
+ * The user menu's placement.
+ *
+ * Its own picker because the user menu is its own component — `registry.py` has
+ * always said so, and it is the one marked `critical`: lose every route to it
+ * and there is no log out, no theme switch, no session defaults. It shared the
+ * notifications section only because the two were built by one commit.
+ */
+function bnd_render_user_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "user_picker", host);
+	if (!$host) return;
+
+	$host.html(
+		P.wrap(
+			bnd_bands([
+				{
+					zone: "placement",
+					html: bnd_placement_control(
+						frm,
+						"user_placement",
+						__("Where the avatar and its menu sit. Applies on the next page load.")
+					),
+				},
+			])
+		)
+	);
+	$host.find(".bnd-dgm-slot, .bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+}
+
 /** Render the search-placement picker. */
 function bnd_render_search_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "search_picker", host);
 	if (!$host) return;
 	const current = frm.doc.search_placement || "Top Bar Center";
 
-	const cards = P.cards(
-		BND_SEARCH_SLOTS.map((s) => {
-			// Never disabled: an unavailable slot falls back at runtime, and
-			// naming the actual reason beats greying the choice out.
-			const blocker = bnd_search_slot_blocker(frm, s.value);
-			return {
-				value: s.value,
-				name: __(s.value),
-				blurb: s.blurb(),
-				svg: bnd_search_thumb(s.value),
-				note: blocker ? __("Not available — {0}. Falls back to the nearest slot.", [blocker]) : "",
-			};
-		}),
-		{ selected: current, cls: "bnd-cbp-style bnd-srp-slot" }
-	);
+	// One diagram of the desk, six slots on it — replacing six hand-drawn
+	// thumbnails of the same desk that each had to stay truthful on their own.
+	const diagram = bnd_desk_diagram({
+		field: "search_placement",
+		slots: BND_SEARCH_SLOTS.map((s) => s.value),
+		value: current,
+		blocker: (label) => bnd_search_slot_blocker(frm, label),
+	});
 
 	// One band, so `bnd_bands` prints no heading at all and this renders exactly
 	// as it did before. Marked anyway: search IS the placement control, and when
@@ -2091,7 +2371,7 @@ function bnd_render_search_picker(frm, host) {
 				{
 					zone: "placement",
 					html:
-						cards +
+						diagram +
 						P.note(
 							__("Where the search field lives, independent of the desk layout. Applies on the next page load.")
 						),
@@ -2099,7 +2379,7 @@ function bnd_render_search_picker(frm, host) {
 			])
 		)
 	);
-	$host.find(".bnd-srp-slot").on("click", function () {
+	$host.find(".bnd-dgm-slot").on("click", function () {
 		bnd_status_set(frm, "search_placement", this.getAttribute("data-value"));
 	});
 }

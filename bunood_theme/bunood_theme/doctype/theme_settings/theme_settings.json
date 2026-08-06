@@ -68,7 +68,6 @@
   "section_inbox",
   "inbox_style",
   "inbox_placement",
-  "user_placement",
   "inbox_picker",
   "inbox_badge",
   "inbox_arrival",
@@ -79,6 +78,9 @@
   "section_search",
   "search_placement",
   "search_picker",
+  "section_user",
+  "user_picker",
+  "user_placement",
   "section_status",
   "status_style",
   "status_picker",
@@ -710,6 +712,16 @@
    "fieldname": "section_density",
    "fieldtype": "Section Break",
    "label": "Density"
+  },
+  {
+   "fieldname": "section_user",
+   "fieldtype": "Section Break",
+   "label": "User Menu"
+  },
+  {
+   "fieldname": "user_picker",
+   "fieldtype": "HTML",
+   "label": "User Menu Picker"
   }
  ],
  "issingle": 1,

@@ -102,8 +102,24 @@ defect in 0.10.0.
     "Style" band over its 20 groups is the wall the split exists to remove. Its filter
     now hides a band once every group in it is filtered out. Fixture regenerated
     deliberately: every delta is a band wrapper, `layout` and `search` unchanged
-- `[ ]` **Slice 1c step 3** — the shared desk diagram as the placement control, doing
-  double duty as the Overview
+- `[x]` **Slice 1c step 3** — the shared desk diagram as the placement control, doing
+  double duty as the Overview.
+  - One desk drawn from one geometry table; a component contributes only the slots it
+    can occupy, so the frame and the hit areas cannot drift apart. This replaces
+    thumbnails-per-choice: search alone had six hand-drawn miniatures of the same desk,
+    and the bell, user menu, home and all-apps would each have needed their own — about
+    thirty pictures that all had to stay truthful. **`search_picker` went 63 → 23 nodes
+    and 6 SVGs → 1**; `bnd_search_thumb` deleted (grepped to zero callers first)
+  - **The bell and the user menu get a placement control at all** — `inbox_placement`
+    and `user_placement` had appeared zero times in the settings form since slice 1a
+  - The user menu is its own section and its own shell entry, matching `registry.py`,
+    which has always called it a separate component — and the one marked `critical`
+  - Availability is one function keyed by region (`bnd_region_blocker`), mirroring
+    `mount_chrome`. It used to be search's own vocabulary; the bell and user menu would
+    have restated it twice more. Warns, never blocks: the runtime falls back either way
+  - **Overview**: every placed component on one desk, each mark a route to its control.
+    Read-only on purpose — two ways to set one value is the duplication this rework
+    exists to remove
 - `[ ]` **Slice 2** — remaining containers and tenants; `sidebar_quick_links` and
   `status_in_classic` deleted; the honest-picker rules extended to every component
 

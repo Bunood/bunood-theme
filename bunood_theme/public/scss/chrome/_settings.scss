@@ -140,6 +140,116 @@ html[data-theme] {
     inline-size: 118px;
   }
 
+  // ── The shared desk diagram (rework slice 1c step 3) ──────────────────────
+  // One picture of the desk; a component overlays only the slots it can take.
+  // The frame is pure shapes with no text, which is what lets it mirror wholesale
+  // in Arabic instead of needing a second drawing.
+  .bnd-dgm {
+    position: relative;
+    inline-size: 100%;
+    max-inline-size: 420px;
+    aspect-ratio: 300 / 180;
+  }
+
+  .bnd-dgm-frame {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+  }
+
+  .bnd-dgm-desk {
+    fill: var(--control-bg);
+    stroke: var(--border-color);
+  }
+
+  .bnd-dgm-region {
+    fill: var(--bnd-hover);
+    stroke: none;
+  }
+
+  // The page body and title row are context, not targets — they should read as
+  // the desk this is a picture OF, not as things you can click.
+  .bnd-dgm-quiet {
+    fill: var(--bnd-page);
+  }
+
+  .bnd-dgm-slot {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px dashed var(--bnd-border-strong);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 9px;
+    line-height: 1.1;
+    overflow: hidden;
+    cursor: pointer;
+
+    &:hover {
+      border-style: solid;
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      color: var(--bnd-ink);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bnd-accent);
+      outline-offset: 1px;
+    }
+  }
+
+  .bnd-dgm-on {
+    border-style: solid;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    color: var(--bnd-ink);
+    font-weight: 600;
+  }
+
+  // A slot the current layout cannot honour. NOT disabled — the runtime falls
+  // back either way, and the title says which slot it will fall back to. Marked
+  // so the choice is informed rather than silently overridden.
+  .bnd-dgm-warn {
+    border-color: var(--bnd-warn);
+    border-style: dotted;
+  }
+
+  // Slot labels are the one place this picture carries text, and at 9px in a
+  // 40px-wide box most of them cannot fit. They are a hint next to a shape whose
+  // POSITION is the real message, so clipping is acceptable where wrapping would
+  // deform the slot.
+  .bnd-dgm-label {
+    padding-inline: 2px;
+    text-align: center;
+  }
+
+  // An Overview marker: a label sitting where that component lands. Not a
+  // control — it selects the control. Sized to its text rather than to a slot,
+  // because several of them share a region and a fixed box would overlap.
+  .bnd-dgm-mark {
+    position: absolute;
+    padding: 1px 5px;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 18%, var(--control-bg));
+    color: var(--bnd-ink);
+    font-size: 9px;
+    line-height: 1.4;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 34%, var(--control-bg));
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bnd-accent);
+      outline-offset: 1px;
+    }
+  }
+
   // ── Bands (rework slice 1c step 2) ────────────────────────────────────────
   // A picker splits into Placement / Style / ... / Extras only when it has more
   // than one populated band; `bnd_bands` decides that, so nothing here needs to

@@ -7,6 +7,40 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The shared desk diagram (component rework, slice 1c step 3)
+
+Placement is now chosen on a picture of the desk: click where the thing
+should live.
+
+**One desk, not thirty thumbnails.** Placement used to be drawn as a
+miniature per choice — six hand-authored SVGs for search alone, and the
+bell, user menu, home and all-apps would each have needed their own set.
+Around thirty little pictures of the same desk, every one of which has to
+stay truthful as the chrome changes. They would not have. There is now
+one frame drawn from one geometry table, and a component contributes only
+the slots it can occupy, so a region cannot move in the picture without
+its hit area moving with it. `search_picker` went from 63 nodes and six
+SVGs to 23 nodes and one.
+
+**The bell and the user menu have a placement control at all.**
+`inbox_placement` and `user_placement` have existed since slice 1a and
+appeared nowhere in the settings form — settings with no way to set them.
+The user menu also gets its own section and its own entry in the list,
+matching what `registry.py` has always said: it is a separate component,
+and the one marked *critical*, since losing every route to it means no
+log out and no theme switch.
+
+**Availability is one function, keyed by region.** A slot the current
+layout cannot honour is marked and says why — "Top Bar has no dock",
+"Dock hides the sidebar", "the status bar is switched off". It warns and
+never blocks, because the runtime falls back either way and naming the
+obstacle beats greying a choice out. Those rules used to live in search's
+own vocabulary; the bell and the user menu would have restated them.
+
+**The Overview** shows every placed component on one desk, with each mark
+a route to its control. Read-only on purpose: two ways to set the same
+value is the duplication this rework exists to remove.
+
 ### Master & detail settings shell (component rework, slice 1c step 2)
 
 Theme Settings is ~70 fields in nine stacked sections. This adds the
