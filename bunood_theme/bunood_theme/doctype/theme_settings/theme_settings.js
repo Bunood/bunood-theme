@@ -329,12 +329,45 @@ const BND_LAYOUTS = [
 ];
 
 /**
+ * Where a picker should render.
+ *
+ * Every picker used to look up its own field and render into that wrapper.
+ * The master/detail shell needs them to render into panes it owns instead —
+ * Frappe lays fields out in a vertical stack, so a persistent list-beside-detail
+ * surface has to be owned by ONE field's wrapper, with the pickers rendered
+ * inside it.
+ *
+ * Falls back to the field wrapper when no host is given, so every existing
+ * caller keeps working unchanged.
+ */
+const bnd_picker_hosts = {};
+
+function bnd_picker_host(frm, fieldname, host) {
+	// REMEMBERED, not threaded. A picker re-renders itself from places that
+	// have no idea where it was drawn — applying a preset, setting one value,
+	// importing a theme. Passing `host` through every one of those call sites
+	// would be the same fact in five places, which is the defect this rework
+	// exists to remove; the third caller to forget it would quietly send the
+	// picker back to its field wrapper mid-session.
+	if (host) bnd_picker_hosts[fieldname] = window.$(host);
+	const $remembered = bnd_picker_hosts[fieldname];
+	if ($remembered) {
+		// Still attached? A shell that was torn down must not capture the
+		// picker forever.
+		if ($remembered.length && document.body.contains($remembered[0])) return $remembered;
+		delete bnd_picker_hosts[fieldname];
+	}
+	const field = frm.get_field(fieldname);
+	return field && field.$wrapper ? field.$wrapper : null;
+}
+
+/**
  * (Re)render the desk-layout cards and highlight the current choice.
  * @param {Object} frm - the Theme Settings form.
  */
-function bnd_render_layout_picker(frm) {
-	const field = frm.get_field("layout_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_layout_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "layout_picker", host);
+	if (!$host) return;
 
 	const current = frm.doc.desk_layout || "Top Bar";
 	// The shared vocabulary, not a parallel one. `bnd-lp-*` duplicated
@@ -355,9 +388,9 @@ function bnd_render_layout_picker(frm) {
 		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
 		"</div>";
 
-	field.$wrapper.html(P.wrap(cards));
+	$host.html(P.wrap(cards));
 
-	field.$wrapper.find(".bnd-lp-card").on("click", function () {
+	$host.find(".bnd-lp-card").on("click", function () {
 		// `data-value`, not `data-layout`: the shared builder emits one
 		// attribute name for every picker, so a handler cannot be written
 		// against a spelling only this picker used.
@@ -568,21 +601,21 @@ const BND_SB_TOGGLES = [
 ];
 
 /** Fetch the preset catalogue once, then render. */
-function bnd_render_sidebar_picker(frm) {
-	const field = frm.get_field("sidebar_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_sidebar_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "sidebar_picker", host);
+	if (!$host) return;
 	if (bnd_sb_catalogue) {
-		bnd_render_sidebar_picker_now(frm);
+		bnd_render_sidebar_picker_now(frm, host);
 		return;
 	}
 	frappe
 		.xcall("bunood_theme.api.get_sidebar_presets")
 		.then((data) => {
 			bnd_sb_catalogue = data;
-			bnd_render_sidebar_picker_now(frm);
+			bnd_render_sidebar_picker_now(frm, host);
 		})
 		.catch(() => {
-			field.$wrapper.html('<div class="text-muted">' + __("Could not load sidebar presets.") + "</div>");
+			$host.html('<div class="text-muted">' + __("Could not load sidebar presets.") + "</div>");
 		});
 }
 
@@ -638,8 +671,9 @@ const BND_SB_PRESET_BLURBS = {
  * Full render of the sidebar picker. Wholesale re-render on every change —
  * state lives in the form document, never in this DOM.
  */
-function bnd_render_sidebar_picker_now(frm) {
-	const field = frm.get_field("sidebar_picker");
+function bnd_render_sidebar_picker_now(frm, host) {
+	const $host = bnd_picker_host(frm, "sidebar_picker", host);
+	if (!$host) return;
 	const { presets } = bnd_sb_catalogue;
 	const active_preset = bnd_sb_match_preset(frm);
 
@@ -739,7 +773,7 @@ function bnd_render_sidebar_picker_now(frm) {
 		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
 		"</div>";
 
-	field.$wrapper.html(
+	$host.html(
 					'<div class="bnd-sbp">' + toolbar +
 			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
 			groups + blur_group + steppers +
@@ -748,25 +782,25 @@ function bnd_render_sidebar_picker_now(frm) {
 	);
 
 	// One delegated pass wires everything; re-render happens on any change.
-	field.$wrapper.find(".bnd-sbp-preset").on("click", function () {
+	$host.find(".bnd-sbp-preset").on("click", function () {
 		bnd_sb_apply_preset(frm, this.getAttribute("data-preset"));
 	});
-	field.$wrapper.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
+	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-sbp-export").on("click", () => bnd_sb_export(frm));
-	field.$wrapper.find(".bnd-sbp-import").on("click", () => bnd_sb_import(frm));
-	field.$wrapper.find(".bnd-sbp-reset").on("click", function (e) {
+	$host.find(".bnd-sbp-export").on("click", () => bnd_sb_export(frm));
+	$host.find(".bnd-sbp-import").on("click", () => bnd_sb_import(frm));
+	$host.find(".bnd-sbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		const base = bnd_sb_match_preset(frm);
 		const source = bnd_sb_catalogue.presets[base] || bnd_sb_catalogue.presets[bnd_sb_catalogue.default];
 		bnd_sb_set(frm, f, source[f]);
 	});
-	field.$wrapper.find(".bnd-sbp-search").on("input", function () {
+	$host.find(".bnd-sbp-search").on("input", function () {
 		const q = this.value.trim().toLowerCase();
-		field.$wrapper.find(".bnd-sbp-group").each(function () {
+		$host.find(".bnd-sbp-group").each(function () {
 			this.style.display = !q || (this.getAttribute("data-search") || "").includes(q) || this.textContent.toLowerCase().includes(q) ? "" : "none";
 		});
 	});
@@ -975,9 +1009,9 @@ const BND_CRUMB_TOGGLES = [
  * its own stylesheet (prefixed bnd-cbp-) so it renders correctly even if
  * the sidebar picker's fetch failed.
  */
-function bnd_render_crumbs_picker(frm) {
-	const field = frm.get_field("crumbs_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_crumbs_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "crumbs_picker", host);
+	if (!$host) return;
 
 	const current_style = frm.doc.crumb_style || "Quiet Trail";
 	const kit_down = current_style === "Original";
@@ -1024,7 +1058,7 @@ function bnd_render_crumbs_picker(frm) {
 			: __("Changes preview instantly — Save to keep them.")
 	);
 
-	field.$wrapper.html(
+	$host.html(
 		P.wrap(
 			style_cards + note + groups +
 				P.group({
@@ -1034,14 +1068,14 @@ function bnd_render_crumbs_picker(frm) {
 		)
 	);
 
-	field.$wrapper.find(".bnd-cbp-style").on("click", function () {
+	$host.find(".bnd-cbp-style").on("click", function () {
 		bnd_crumb_set(frm, "crumb_style", this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-cbp-opt, .bnd-cbp-toggle").on("click", function () {
+	$host.find(".bnd-cbp-opt, .bnd-cbp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_crumb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-cbp-reset").on("click", function (e) {
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		bnd_crumb_set(frm, f, BND_CRUMB_DEFAULTS[f]);
@@ -1167,9 +1201,9 @@ const BND_PALETTE_TOGGLES = [
  * picker's stylesheet (bnd-cbp-*): both render on every refresh, and the
  * class contract is local to this file.
  */
-function bnd_render_palette_picker(frm) {
-	const field = frm.get_field("palette_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_palette_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "palette_picker", host);
+	if (!$host) return;
 
 	const current_style = frm.doc.palette_style || "Bunood Palette";
 	const kit_down = current_style === "Original" || !parseInt(frm.doc.enable_command_palette ?? 1, 10);
@@ -1200,7 +1234,7 @@ function bnd_render_palette_picker(frm) {
 			: __("Changes apply on the palette's next open — press Ctrl+K to try it.")
 	);
 
-	field.$wrapper.html(
+	$host.html(
 		P.wrap(
 			style_cards +
 				note +
@@ -1219,14 +1253,14 @@ function bnd_render_palette_picker(frm) {
 		)
 	);
 
-	field.$wrapper.find(".bnd-plp-style").on("click", function () {
+	$host.find(".bnd-plp-style").on("click", function () {
 		bnd_palette_set(frm, "palette_style", this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-cbp-toggle").on("click", function () {
+	$host.find(".bnd-cbp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_palette_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-plp-reset-rank").on("click", () => {
+	$host.find(".bnd-plp-reset-rank").on("click", () => {
 		frappe
 			.xcall("bunood_theme.api.reset_palette_ranking")
 			.then(() => {
@@ -1386,9 +1420,9 @@ const BND_INBOX_TOGGLES = [
  * change — state lives in the form document. Reuses the crumbs picker's
  * stylesheet (bnd-cbp-*), like the palette picker does.
  */
-function bnd_render_inbox_picker(frm) {
-	const field = frm.get_field("inbox_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_inbox_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "inbox_picker", host);
+	if (!$host) return;
 
 	const current = frm.doc.inbox_style || "Inbox + Page";
 	const kit_down = current === "Original";
@@ -1437,7 +1471,7 @@ function bnd_render_inbox_picker(frm) {
 		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's panel untouched — including the missing unread badge.") + "</div>"
 		: '<div class="bnd-cbp-note">' + __("Changes apply the next time the panel opens — click the bell to try it.") + "</div>";
 
-	field.$wrapper.html(
+	$host.html(
 		// Wider option tiles than the shared bnd-cbp-opt default: "Approvals
 		// only" wrapped to two lines at 96px, pushing its glyph off the row's
 		// baseline (item-13 sweep).
@@ -1455,20 +1489,20 @@ function bnd_render_inbox_picker(frm) {
 			"</div>"
 	);
 
-	field.$wrapper.find(".bnd-ibp-style").on("click", function () {
+	$host.find(".bnd-ibp-style").on("click", function () {
 		bnd_inbox_set(frm, "inbox_style", this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
+	$host.find(".bnd-cbp-opt, .bnd-ibp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-ibp-reset-all").on("click", function (e) {
+	$host.find(".bnd-ibp-reset-all").on("click", function (e) {
 		e.stopPropagation();
 		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, BND_INBOX_DEFAULTS[t.field]);
 		bnd_inbox_preview(frm);
 		bnd_render_inbox_picker(frm);
 	});
-	field.$wrapper.find(".bnd-ibp-reset").on("click", function (e) {
+	$host.find(".bnd-ibp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		bnd_inbox_set(frm, f, BND_INBOX_DEFAULTS[f]);
@@ -1567,9 +1601,9 @@ const BND_SEARCH_SLOTS = [
 ];
 
 /** Render the search-placement picker. */
-function bnd_render_search_picker(frm) {
-	const field = frm.get_field("search_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_search_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "search_picker", host);
+	if (!$host) return;
 	const current = frm.doc.search_placement || "Top Bar Center";
 
 	const cards = P.cards(
@@ -1588,7 +1622,7 @@ function bnd_render_search_picker(frm) {
 		{ selected: current, cls: "bnd-cbp-style bnd-srp-slot" }
 	);
 
-	field.$wrapper.html(
+	$host.html(
 		P.wrap(
 			cards +
 				P.note(
@@ -1596,7 +1630,7 @@ function bnd_render_search_picker(frm) {
 				)
 		)
 	);
-	field.$wrapper.find(".bnd-srp-slot").on("click", function () {
+	$host.find(".bnd-srp-slot").on("click", function () {
 		bnd_status_set(frm, "search_placement", this.getAttribute("data-value"));
 	});
 }
@@ -1679,9 +1713,9 @@ const BND_STATUS_TOGGLES = [
 ];
 
 /** Render the status bar picker. */
-function bnd_render_status_picker(frm) {
-	const field = frm.get_field("status_picker");
-	if (!field || !field.$wrapper) return;
+function bnd_render_status_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "status_picker", host);
+	if (!$host) return;
 	const current = frm.doc.status_style || "Quiet";
 	const off = current === "Off";
 	const minimal = current === "Minimal";
@@ -1726,7 +1760,7 @@ function bnd_render_status_picker(frm) {
 		});
 	}).join("");
 
-	field.$wrapper.html(
+	$host.html(
 		'<div class="bnd-cbp bnd-stp">' +
 			cards +
 			P.note(__("Applies on the next page load.")) +
@@ -1739,14 +1773,14 @@ function bnd_render_status_picker(frm) {
 			"</div>"
 	);
 
-	field.$wrapper.find(".bnd-stp-style").on("click", function () {
+	$host.find(".bnd-stp-style").on("click", function () {
 		bnd_status_set(frm, "status_style", this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-cbp-opt, .bnd-stp-toggle").on("click", function () {
+	$host.find(".bnd-cbp-opt, .bnd-stp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_status_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	field.$wrapper.find(".bnd-stp-reset").on("click", function (e) {
+	$host.find(".bnd-stp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		bnd_status_set(frm, f, BND_STATUS_DEFAULTS[f]);
