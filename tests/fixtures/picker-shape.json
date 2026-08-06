@@ -841,7 +841,7 @@
     "b.",
     "br.",
     "span.bnd-cbp-blurb",
-    "div.",
+    "div.bnd-cbp-action",
     "button.bnd-plp-reset-rank.btn.btn-default.btn-xs",
     "span.bnd-cbp-note"
    ]

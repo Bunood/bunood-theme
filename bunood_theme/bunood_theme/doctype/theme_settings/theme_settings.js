@@ -125,11 +125,20 @@ const P = {
 		);
 	},
 
-	/** A switch with a name and one line of why it exists. */
+	/**
+	 * A switch with a name and one line of why it exists.
+	 *
+	 * `cls` is the picker's own hook class. Pickers bind their click handlers
+	 * to it, so a primitive emitting only the shared class would leave the
+	 * markup looking correct and the switch inert — a port that reads as a
+	 * pure rename and quietly removes behaviour.
+	 */
 	toggle(t) {
 		const on = !!t.on;
 		return (
-			'<button type="button" class="bnd-cbp-toggle' + (t.reason ? " bnd-cbp-dis" : "") + '"' +
+			'<button type="button" class="bnd-cbp-toggle' +
+			(t.cls ? " " + t.cls : "") +
+			(t.reason ? " bnd-cbp-dis" : "") + '"' +
 			' data-field="' + bnd_esc(t.field) + '" data-value="' + (on ? 0 : 1) + '"' +
 			(t.reason ? ' title="' + bnd_esc(t.reason) + '" disabled' : "") + ">" +
 			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
@@ -144,14 +153,23 @@ const P = {
 	 * then whatever it contains.
 	 */
 	group(g) {
+		// `resetCls` exists because a group's reset is not always the same
+		// verb. The notifications picker has two: a per-group chip carrying
+		// `data-field`, and a reset-ALL for a whole section with no field at
+		// all. They are told apart by class, and a primitive that emitted only
+		// the first would silently unbind the second — the port would look
+		// right and the button would quietly stop working.
+		const chip =
+			g.field || g.resetCls
+				? '<button type="button" class="bnd-cbp-reset' +
+				  (g.resetCls ? " " + g.resetCls : "") +
+				  '"' +
+				  (g.field ? ' data-field="' + bnd_esc(g.field) + '"' : "") +
+				  ' title="' + bnd_esc(g.resetTitle || __("Reset to default")) + '">↺</button>'
+				: "";
 		return (
 			'<div class="bnd-cbp-group' + (g.off ? " bnd-cbp-off" : "") + '">' +
-			'<div class="bnd-cbp-title">' + bnd_esc(g.title) +
-			(g.field
-				? '<button type="button" class="bnd-cbp-reset" data-field="' + bnd_esc(g.field) +
-				  '" title="' + bnd_esc(__("Reset to default")) + '">↺</button>'
-				: "") +
-			"</div>" +
+			'<div class="bnd-cbp-title">' + bnd_esc(g.title) + chip + "</div>" +
 			(g.desc ? '<div class="bnd-cbp-desc">' + bnd_esc(g.desc) + "</div>" : "") +
 			g.body +
 			"</div>"
@@ -1158,47 +1176,48 @@ function bnd_render_palette_picker(frm) {
 	const kit_down = current_style === "Original" || !parseInt(frm.doc.enable_command_palette ?? 1, 10);
 	const is_pro = current_style === "Palette Pro";
 
-	const style_cards = BND_PALETTE_STYLES.map((s) => {
-		const on = s.value === current_style ? " bnd-cbp-on" : "";
-		return (
-			'<button type="button" class="bnd-cbp-style bnd-plp-style' + on + '" data-value="' + s.value + '">' +
-			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
-			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
-			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
-			"</button>"
-		);
-	}).join("");
+	const style_cards = P.cards(
+		BND_PALETTE_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		{ selected: current_style, cls: "bnd-cbp-style bnd-plp-style" }
+	);
 
-	const toggles = BND_PALETTE_TOGGLES.map((t) => {
-		const on = !!parseInt(frm.doc[t.field], 10);
-		const reason = kit_down
-			? __("Original leaves the stock modal")
-			: t.pro_only && !is_pro
+	const toggles = BND_PALETTE_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			reason: kit_down
+				? __("Original leaves the stock modal")
+				: t.pro_only && !is_pro
 				? __("Palette Pro only")
-				: "";
-		const dis = reason ? " bnd-cbp-dis" : "";
-		return (
-			'<button type="button" class="bnd-cbp-toggle' + dis + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '"' +
-			(reason ? ' title="' + reason + '" disabled' : "") + ">" +
-			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
-			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span>" +
-			"</button>"
-		);
-	}).join("");
+				: "",
+		})
+	).join("");
 
-	const note = kit_down
-		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's Ctrl+K modal untouched — the options below apply to the other styles.") + "</div>"
-		: '<div class="bnd-cbp-note">' + __("Changes apply on the palette's next open — press Ctrl+K to try it.") + "</div>";
+	const note = P.note(
+		kit_down
+			? __("Original leaves ERPNext's Ctrl+K modal untouched — the options below apply to the other styles.")
+			: __("Changes apply on the palette's next open — press Ctrl+K to try it.")
+	);
 
 	field.$wrapper.html(
-		'<div class="bnd-cbp">' +
-			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note +
-			'<div class="bnd-cbp-group' + (kit_down ? " bnd-cbp-off" : "") + '"><div class="bnd-cbp-title">' + __("Behaviour") + '</div>' +
-			'<div class="bnd-cbp-switches">' + toggles + "</div>" +
-			'<div style="margin-block-start:10px"><button type="button" class="btn btn-xs btn-default bnd-plp-reset-rank">' + __("Reset my ranking") + "</button>" +
-			'<span class="bnd-cbp-note" style="margin-inline-start:8px">' + __("Clears what the frecency ranking has learned for your user.") + "</span></div>" +
-			"</div>" +
-			"</div>"
+		P.wrap(
+			style_cards +
+				note +
+				P.group({
+					title: __("Behaviour"),
+					off: kit_down,
+					body:
+						'<div class="bnd-cbp-switches">' + toggles + "</div>" +
+						'<div class="bnd-cbp-action">' +
+						'<button type="button" class="btn btn-xs btn-default bnd-plp-reset-rank">' +
+						__("Reset my ranking") + "</button>" +
+						'<span class="bnd-cbp-note">' +
+						__("Clears what the frecency ranking has learned for your user.") +
+						"</span></div>",
+				})
+		)
 	);
 
 	field.$wrapper.find(".bnd-plp-style").on("click", function () {
@@ -1376,58 +1395,44 @@ function bnd_render_inbox_picker(frm) {
 	const kit_down = current === "Original";
 	const panel_ours = current === "Bunood Inbox" || current === "Inbox + Page";
 
-	const style_cards = BND_INBOX_STYLES.map((s) => {
-		const on = s.value === current ? " bnd-cbp-on" : "";
-		return (
-			'<button type="button" class="bnd-cbp-style bnd-ibp-style' + on + '" data-value="' + s.value + '">' +
-			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
-			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
-			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
-			"</button>"
-		);
-	}).join("");
+	const style_cards = P.cards(
+		BND_INBOX_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		{ selected: current, cls: "bnd-cbp-style bnd-ibp-style" }
+	);
 
 	const selects = BND_INBOX_SELECTS.map((group) => {
 		// The badge survives Refined (the theme owns it either way); the
 		// arrival tiering needs our own panel to be meaningful.
-		const reason =
-			kit_down
-				? __("Original leaves the stock panel")
-				: group.field === "inbox_arrival" && !panel_ours
-					? __("Needs the Bunood panel")
-					: "";
-		const cards = group.options
-			.map((opt) => {
-				const on = opt.value === frm.doc[group.field] ? " bnd-cbp-on" : "";
-				const dis = reason ? " bnd-cbp-dis" : "";
-				return (
-					'<button type="button" class="bnd-cbp-opt' + on + dis + '" data-field="' + group.field +
-					'" data-value="' + opt.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
-					'<span class="bnd-cbp-glyph">' + opt.glyph + "</span>" +
-					'<span class="bnd-cbp-oname">' + opt.name() + "</span></button>"
-				);
-			})
-			.join("");
-		return (
-			'<div class="bnd-cbp-group' + (reason ? " bnd-cbp-off" : "") + '">' +
-			'<div class="bnd-cbp-title">' + group.title() +
-			'<button type="button" class="bnd-cbp-reset bnd-ibp-reset" data-field="' + group.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
-			'<div class="bnd-cbp-desc">' + group.desc() + "</div>" +
-			'<div class="bnd-cbp-row">' + cards + "</div></div>"
-		);
+		const reason = kit_down
+			? __("Original leaves the stock panel")
+			: group.field === "inbox_arrival" && !panel_ours
+			? __("Needs the Bunood panel")
+			: "";
+		return P.group({
+			title: group.title(),
+			desc: group.desc(),
+			field: group.field,
+			// Preserved deliberately: this picker binds per-group resets and its
+			// reset-all separately, and they are told apart by this class.
+			resetCls: "bnd-ibp-reset",
+			off: !!reason,
+			body: P.options(
+				group.options.map((opt) => ({ value: opt.value, name: opt.name(), glyph: opt.glyph, reason })),
+				{ field: group.field, value: frm.doc[group.field] }
+			),
+		});
 	}).join("");
 
-	const toggles = BND_INBOX_TOGGLES.map((t) => {
-		const on = !!parseInt(frm.doc[t.field], 10);
-		const reason = panel_ours ? "" : kit_down ? __("Original leaves the stock panel") : __("Needs the Bunood panel");
-		const dis = reason ? " bnd-cbp-dis" : "";
-		return (
-			'<button type="button" class="bnd-cbp-toggle bnd-ibp-toggle' + dis + '" data-field="' + t.field +
-			'" data-value="' + (on ? 0 : 1) + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
-			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
-			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span></button>"
-		);
-	}).join("");
+	const toggles = BND_INBOX_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			cls: "bnd-ibp-toggle",
+			reason: panel_ours ? "" : kit_down ? __("Original leaves the stock panel") : __("Needs the Bunood panel"),
+		})
+	).join("");
 
 	const note = kit_down
 		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's panel untouched — including the missing unread badge.") + "</div>"
@@ -1438,10 +1443,16 @@ function bnd_render_inbox_picker(frm) {
 		// only" wrapped to two lines at 96px, pushing its glyph off the row's
 		// baseline (item-13 sweep).
 		'<div class="bnd-cbp bnd-ibp">' +
-			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + selects +
-			'<div class="bnd-cbp-group' + (panel_ours ? "" : " bnd-cbp-off") + '"><div class="bnd-cbp-title">' + __("Panel behaviour") +
-			'<button type="button" class="bnd-cbp-reset bnd-ibp-reset-all" title="' + __("Reset to defaults") + '">↺</button></div>' +
-			'<div class="bnd-cbp-switches">' + toggles + "</div></div>" +
+			style_cards + note + selects +
+			P.group({
+				title: __("Panel behaviour"),
+				// No `field`: this chip resets the whole section, and the
+				// handler that does so is bound by this class alone.
+				resetCls: "bnd-ibp-reset-all",
+				resetTitle: __("Reset to defaults"),
+				off: !panel_ours,
+				body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
+			}) +
 			"</div>"
 	);
 

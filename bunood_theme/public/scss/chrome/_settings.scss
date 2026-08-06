@@ -117,6 +117,16 @@ html[data-theme] {
     margin-block-start: 7px;
   }
 
+  // A group's trailing action — a button plus the line explaining what it
+  // does. Two inline `style` attributes in the palette picker before this.
+  .bnd-cbp-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-block-start: 10px;
+  }
+
   // Two pickers carry labels longer than the 96px default fits — "Manual
   // only" and "5 minutes" in the status bar, the arrival modes in
   // notifications. Each shipped its own one-rule <style> element; the widths
