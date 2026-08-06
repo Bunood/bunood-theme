@@ -2516,8 +2516,7 @@ html[data-theme] .bnd-cbp-reset:hover {
   color: var(--primary);
 }
 
-html[data-theme] .bnd-cbp-toggle,
-html[data-theme] .bnd-sbp-toggle {
+html[data-theme] .bnd-cbp-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2529,12 +2528,10 @@ html[data-theme] .bnd-sbp-toggle {
   text-align: start;
   inline-size: 100%;
 }
-html[data-theme] .bnd-cbp-toggle b,
-html[data-theme] .bnd-sbp-toggle b {
+html[data-theme] .bnd-cbp-toggle b {
   font-size: var(--text-sm);
 }
-html[data-theme] .bnd-cbp-knob,
-html[data-theme] .bnd-sbp-knob {
+html[data-theme] .bnd-cbp-knob {
   position: relative;
   inline-size: 30px;
   block-size: 17px;
@@ -2543,8 +2540,7 @@ html[data-theme] .bnd-sbp-knob {
   flex: none;
   transition: background 0.15s;
 }
-html[data-theme] .bnd-cbp-knob::after,
-html[data-theme] .bnd-sbp-knob::after {
+html[data-theme] .bnd-cbp-knob::after {
   content: "";
   position: absolute;
   inset-block-start: 2px;
@@ -2555,12 +2551,10 @@ html[data-theme] .bnd-sbp-knob::after {
   background: #fff;
   transition: inset-inline-start 0.15s;
 }
-html[data-theme] .bnd-cbp-knob-on,
-html[data-theme] .bnd-sbp-knob-on {
+html[data-theme] .bnd-cbp-knob-on {
   background: var(--primary);
 }
-html[data-theme] .bnd-cbp-knob-on::after,
-html[data-theme] .bnd-sbp-knob-on::after {
+html[data-theme] .bnd-cbp-knob-on::after {
   inset-inline-start: 15px;
 }
 
@@ -2642,21 +2636,6 @@ html[data-theme] .bnd-sbp-dot {
 html[data-theme] .bnd-sbp-custom {
   font-size: var(--text-sm);
   color: var(--text-muted);
-}
-html[data-theme] .bnd-sbp-group {
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--card-bg, var(--fg-color));
-}
-html[data-theme] .bnd-sbp-title {
-  font-weight: 600;
-  font-size: var(--text-sm);
-}
-html[data-theme] .bnd-sbp-desc {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  margin-block-end: 7px;
 }
 html[data-theme] .bnd-sbp-row-wrap {
   display: flex;

@@ -167,8 +167,16 @@ const P = {
 				  (g.field ? ' data-field="' + bnd_esc(g.field) + '"' : "") +
 				  ' title="' + bnd_esc(g.resetTitle || __("Reset to default")) + '">↺</button>'
 				: "";
+		// `cls` and `search` exist for the sidebar picker, whose group is this
+		// group plus one responsibility: its filter box hides groups by
+		// matching `data-search`. Shell, title, description and reset are
+		// otherwise identical — and so were their CSS rules, which is the
+		// definition of duplication worth removing.
 		return (
-			'<div class="bnd-cbp-group' + (g.off ? " bnd-cbp-off" : "") + '">' +
+			'<div class="bnd-cbp-group' +
+			(g.cls ? " " + g.cls : "") +
+			(g.off ? " bnd-cbp-off" : "") + '"' +
+			(g.search ? ' data-search="' + bnd_esc(g.search) + '"' : "") + ">" +
 			'<div class="bnd-cbp-title">' + bnd_esc(g.title) + chip + "</div>" +
 			(g.desc ? '<div class="bnd-cbp-desc">' + bnd_esc(g.desc) + "</div>" : "") +
 			g.body +
@@ -675,10 +683,10 @@ function bnd_render_sidebar_picker_now(frm) {
 			})
 			.join("");
 		return (
-			'<div class="bnd-sbp-group" data-search="' + (group.title() + " " + group.field).toLowerCase() + '">' +
-			'<div class="bnd-sbp-title">' + group.title() +
-			'<button type="button" class="bnd-sbp-reset" data-field="' + group.field + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
-			(group.desc ? '<div class="bnd-sbp-desc">' + group.desc() + "</div>" : "") +
+			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (group.title() + " " + group.field).toLowerCase() + '">' +
+			'<div class="bnd-cbp-title">' + group.title() +
+			'<button type="button" class="bnd-cbp-reset bnd-sbp-reset" data-field="' + group.field + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
+			(group.desc ? '<div class="bnd-cbp-desc">' + group.desc() + "</div>" : "") +
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
 		);
 	}).join("");
@@ -693,15 +701,15 @@ function bnd_render_sidebar_picker_now(frm) {
 			)
 			.join("");
 		return (
-			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + s.title() + "</div>" +
+			'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + s.title() + "</div>" +
 			'<div class="bnd-sbp-steps"><span class="bnd-sbp-slab">' + s.lo() + "</span>" + stops +
 			'<span class="bnd-sbp-slab">' + s.hi() + "</span></div></div>"
 		);
 	}).join("");
 
 	const blur_group =
-		'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Glass blur") + "</div>" +
-		'<div class="bnd-sbp-desc">' + __("Full steps down automatically on weak devices and honors the OS reduce-transparency setting.") + "</div>" +
+		'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + __("Glass blur") + "</div>" +
+		'<div class="bnd-cbp-desc">' + __("Full steps down automatically on weak devices and honors the OS reduce-transparency setting.") + "</div>" +
 		'<div class="bnd-sbp-row-wrap">' +
 		["Off", "Soft", "Full"]
 			.map(
@@ -716,8 +724,8 @@ function bnd_render_sidebar_picker_now(frm) {
 	const toggles = BND_SB_TOGGLES.map((t) => {
 		const on = !!parseInt(frm.doc[t.field], 10);
 		return (
-			'<button type="button" class="bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
-			'<span class="bnd-sbp-knob' + (on ? " bnd-sbp-knob-on" : "") + '"></span>' +
+			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
 			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
 			"</button>"
 		);
@@ -735,7 +743,7 @@ function bnd_render_sidebar_picker_now(frm) {
 					'<div class="bnd-sbp">' + toolbar +
 			'<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
 			groups + blur_group + steppers +
-			'<div class="bnd-sbp-group"><div class="bnd-sbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
+			'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
 			"</div>"
 	);
 
@@ -974,65 +982,56 @@ function bnd_render_crumbs_picker(frm) {
 	const current_style = frm.doc.crumb_style || "Quiet Trail";
 	const kit_down = current_style === "Original";
 
-	const style_cards = BND_CRUMB_STYLES.map((s) => {
-		const on = s.value === current_style ? " bnd-cbp-on" : "";
-		return (
-			'<button type="button" class="bnd-cbp-style' + on + '" data-value="' + s.value + '">' +
-			'<span class="bnd-cbp-thumb">' + s.svg + "</span>" +
-			'<span class="bnd-cbp-name">' + __(s.value) + "</span>" +
-			'<span class="bnd-cbp-blurb">' + s.blurb() + "</span>" +
-			"</button>"
-		);
-	}).join("");
+	const style_cards = P.cards(
+		BND_CRUMB_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		{ selected: current_style }
+	);
 
 	const groups = BND_CRUMB_GROUPS.map((group) => {
 		const group_reason = group.disabled ? group.disabled(frm) : "";
-		const cards = group.options
-			.map((opt) => {
-				const reason = kit_down
-					? __("Original leaves the stock trail")
-					: (opt.disabled ? opt.disabled(frm) : "") || group_reason;
-				const on = opt.value === frm.doc[group.field] ? " bnd-cbp-on" : "";
-				const dis = reason ? " bnd-cbp-dis" : "";
-				return (
-					'<button type="button" class="bnd-cbp-opt' + on + dis + '" data-field="' + group.field +
-					'" data-value="' + opt.value + '"' + (reason ? ' title="' + reason + '" disabled' : "") + ">" +
-					'<span class="bnd-cbp-glyph">' + opt.glyph + "</span>" +
-					'<span class="bnd-cbp-oname">' + opt.name() + "</span>" +
-					"</button>"
-				);
-			})
-			.join("");
-		return (
-			'<div class="bnd-cbp-group' + (kit_down || group_reason ? " bnd-cbp-off" : "") + '">' +
-			'<div class="bnd-cbp-title">' + group.title() +
-			'<button type="button" class="bnd-cbp-reset" data-field="' + group.field + '" title="' + __("Reset to default") + '">↺</button></div>' +
-			'<div class="bnd-cbp-desc">' + group.desc() + "</div>" +
-			'<div class="bnd-cbp-row">' + cards + "</div></div>"
-		);
+		return P.group({
+			title: group.title(),
+			desc: group.desc(),
+			field: group.field,
+			off: !!(kit_down || group_reason),
+			body: P.options(
+				group.options.map((opt) => ({
+					value: opt.value,
+					name: opt.name(),
+					glyph: opt.glyph,
+					reason: kit_down
+						? __("Original leaves the stock trail")
+						: (opt.disabled ? opt.disabled(frm) : "") || group_reason,
+				})),
+				{ field: group.field, value: frm.doc[group.field] }
+			),
+		});
 	}).join("");
 
-	const toggles = BND_CRUMB_TOGGLES.map((t) => {
-		const on = !!parseInt(frm.doc[t.field], 10);
-		const dis = kit_down ? " bnd-cbp-dis" : "";
-		return (
-			'<button type="button" class="bnd-cbp-toggle' + dis + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '"' +
-			(kit_down ? ' title="' + __("Original leaves the stock trail") + '" disabled' : "") + ">" +
-			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
-			"<span><b>" + t.name() + "</b><br><span class='bnd-cbp-blurb'>" + t.desc() + "</span></span>" +
-			"</button>"
-		);
-	}).join("");
+	const toggles = BND_CRUMB_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			reason: kit_down ? __("Original leaves the stock trail") : "",
+		})
+	).join("");
 
-	const note = kit_down
-		? '<div class="bnd-cbp-note">' + __("Original leaves ERPNext's trail untouched — the options below apply to the other styles.") + "</div>"
-		: '<div class="bnd-cbp-note">' + __("Changes preview instantly — Save to keep them.") + "</div>";
+	const note = P.note(
+		kit_down
+			? __("Original leaves ERPNext's trail untouched — the options below apply to the other styles.")
+			: __("Changes preview instantly — Save to keep them.")
+	);
 
 	field.$wrapper.html(
-					'<div class="bnd-cbp">' +
-			'<div class="bnd-cbp-styles">' + style_cards + "</div>" + note + groups +
-			'<div class="bnd-cbp-group"><div class="bnd-cbp-title">' + __("Extras") + '</div><div class="bnd-cbp-switches">' + toggles + "</div></div>" +
-			"</div>"
+		P.wrap(
+			style_cards + note + groups +
+				P.group({
+					title: __("Extras"),
+					body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
+				})
+		)
 	);
 
 	field.$wrapper.find(".bnd-cbp-style").on("click", function () {

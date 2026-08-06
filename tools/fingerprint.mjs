@@ -34,8 +34,36 @@ const SHAPE_STATE = { ...shipped, desk_layout: "Top Bar", inbox_placement: "Top 
 set(SHAPE_STATE);
 const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
 await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
-await page.goto(`${URL_BASE}/desk/theme-settings`,{waitUntil:"domcontentloaded",timeout:45000});
-await page.waitForSelector(".bnd-srp-slot",{timeout:30000}); await page.waitForTimeout(3500);
+// REFUSE TO CAPTURE A PAGE THAT IS NOT SHOWING THE PINNED STATE.
+//
+// Setting a value and navigating is not enough: the form reads its own
+// document, and a capture taken before the write has propagated bakes a
+// baseline that is quietly wrong — and a wrong baseline then fails CORRECT
+// code, forever, which is worse than having no baseline at all. That is not
+// hypothetical: the fixture committed on 2026-08-05 recorded the search
+// picker with no card selected, when the pinned state selects "Top Bar
+// Center", and the drift check then reported a regression that did not exist.
+//
+// Reload rather than sleep longer, because the failure is a stale document
+// and not a slow one.
+async function settleOnPinnedState() {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForSelector(".bnd-srp-slot", { timeout: 30000 });
+    await page.waitForTimeout(3500);
+    const shown = await page.evaluate(() => {
+      const sel = document.querySelector(".bnd-srp-slot.bnd-cbp-on");
+      return sel ? sel.getAttribute("data-value") : null;
+    });
+    if (shown === SHAPE_STATE.search_placement) return;
+    console.log(`  attempt ${attempt}: form shows search "${shown}", pinned "${SHAPE_STATE.search_placement}" — reloading`);
+  }
+  throw new Error(
+    `fingerprint: the form never settled on the pinned state. Refusing to write a ` +
+      `fixture that does not match what it claims to record.`
+  );
+}
+await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
   for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","search_picker","status_picker"]) {

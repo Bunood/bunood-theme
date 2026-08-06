@@ -234,8 +234,7 @@ html[data-theme] {
 // identical control, and two copies of a switch is how two switches end up
 // looking different.
 html[data-theme] {
-  .bnd-cbp-toggle,
-  .bnd-sbp-toggle {
+  .bnd-cbp-toggle {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -252,8 +251,7 @@ html[data-theme] {
     }
   }
 
-  .bnd-cbp-knob,
-  .bnd-sbp-knob {
+  .bnd-cbp-knob {
     position: relative;
     inline-size: 30px;
     block-size: 17px;
@@ -275,8 +273,7 @@ html[data-theme] {
     }
   }
 
-  .bnd-cbp-knob-on,
-  .bnd-sbp-knob-on {
+  .bnd-cbp-knob-on {
     background: var(--primary);
 
     &::after {
@@ -382,23 +379,8 @@ html[data-theme] {
     color: var(--text-muted);
   }
 
-  .bnd-sbp-group {
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 10px 12px;
-    background: var(--card-bg, var(--fg-color));
-  }
 
-  .bnd-sbp-title {
-    font-weight: 600;
-    font-size: var(--text-sm);
-  }
 
-  .bnd-sbp-desc {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-block-end: 7px;
-  }
 
   .bnd-sbp-row-wrap {
     display: flex;
