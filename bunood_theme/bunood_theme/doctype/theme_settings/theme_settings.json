@@ -4,6 +4,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "section_shell",
+  "chrome_shell",
   "section_branding",
   "company_name",
   "logo",
@@ -96,6 +98,16 @@
   "brand_css_url"
  ],
  "fields": [
+  {
+   "fieldname": "section_shell",
+   "fieldtype": "Section Break",
+   "label": "Desk"
+  },
+  {
+   "fieldname": "chrome_shell",
+   "fieldtype": "HTML",
+   "label": "Desk Settings"
+  },
   {
    "fieldname": "section_branding",
    "fieldtype": "Section Break",

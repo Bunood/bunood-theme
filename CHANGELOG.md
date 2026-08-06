@@ -7,6 +7,38 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Master & detail settings shell (component rework, slice 1c step 2)
+
+Theme Settings is ~70 fields in nine stacked sections. This adds the
+grouped list beside a detail pane that the wireframes settled on — Bars
+& panes / Controls / Appearance, ten entries, one component's settings
+shown at a time.
+
+**It moves the form Frappe already built rather than drawing a second
+one.** The obvious implementation renders every picker into the new
+surface, which leaves two sets of cards bound to the same fields, each
+blind to the other's clicks — the same-fact-in-two-places defect the
+rework exists to remove, reintroduced by the thing meant to fix it. The
+shell relocates the existing DOM instead, so there is exactly one node
+per field and every Frappe control keeps working untouched.
+
+Gated behind `?shell=1`. The stacked form stays the default until the
+shell has the desk diagram and the derived preset label: a half-finished
+navigation is worse than a long form, because a long form at least shows
+you everything it has.
+
+Two defects found while building it, both now covered by tests: the
+container-query breakpoint collapsed the list into a wrapped row of chips
+at normal form width (the form's column is ~870px, the threshold was
+900), and two entries claimed the same section — `default_density` and
+`enable_command_palette` share `section_features` — which silently
+emptied whichever pane lost. A section can now only be claimed once, and
+a later claim takes just its own field.
+
+Still to come in this slice: the three-zone split within a pane
+(placement / style / extras), change dots against the preset, and the
+derived *Custom* label.
+
 ### Contrast validation (item 32)
 
 A white-label theme re-derives every surface from a colour the customer

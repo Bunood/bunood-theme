@@ -544,3 +544,114 @@ html[data-theme] {
     }
   }
 }
+
+// ── Master & detail shell (rework slice 1c step 2) ──────────────────────────
+//
+// A list beside a detail pane, collapsing to stacked below 900px. The width
+// query is on the FORM's container, not the viewport: this form already gets a
+// different width depending on whether the desk sidebar is expanded, so a
+// viewport query would answer a question nobody asked. Same reasoning as the
+// status bar's rank collapse.
+.bnd-shell {
+  container-type: inline-size;
+  container-name: bndshell;
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  gap: var(--bnd-sp-5);
+  align-items: start;
+}
+
+.bnd-shell-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  inset-block-start: var(--bnd-sp-4);
+  padding-inline-end: var(--bnd-sp-3);
+  border-inline-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+.bnd-shell-group {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-ink-subtle);
+  padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
+}
+
+.bnd-shell-item {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: 100%;
+  text-align: start;
+  padding: var(--bnd-pad-y) var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+
+  &.bnd-shell-on {
+    background: var(--bnd-active);
+    color: var(--bnd-brand-ink);
+    font-weight: var(--bnd-weight-medium);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 2px;
+  }
+}
+
+.bnd-shell-detail {
+  min-inline-size: 0;
+
+  // Relocated sections arrive with the top border and padding that separated
+  // them from a sibling above. In a pane there is no sibling, so the rule is a
+  // line hanging over nothing.
+  .form-section {
+    border-block-start: none;
+    padding-block-start: 0;
+    margin-block-start: 0;
+  }
+}
+
+.bnd-shell-pane[hidden] {
+  display: none;
+}
+
+// 620px, not 900: the form's own column is ~840px wide on a 1440 desk with the
+// sidebar expanded, so a 900px threshold collapsed the list into a wrapped row
+// of chips at full size - measured, not guessed. The stacked layout is for a
+// genuinely narrow form, which is why the number is well below the common case.
+@container bndshell (max-width: 620px) {
+  .bnd-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bnd-shell-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-inline-end: 0;
+    padding-block-end: var(--bnd-sp-3);
+    border-inline-end: none;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  .bnd-shell-item {
+    inline-size: auto;
+  }
+
+  // A group heading in a wrapped row of chips reads as another chip. The
+  // grouping survives in the order; the label does not survive the layout.
+  .bnd-shell-group {
+    display: none;
+  }
+}

@@ -1819,6 +1819,92 @@ async function main() {
 			expectEq(ragged.length, 0, `ragged rows: ${JSON.stringify(ragged.slice(0, 3))}`);
 		});
 
+		// ── Master & detail settings shell (rework slice 1c step 2) ───────
+		//
+		// The shell is built ALONGSIDE the existing form and gated behind a URL
+		// argument, because both surfaces rendering at once would double-bind
+		// every picker: two sets of cards writing the same field, each unaware
+		// of the other's clicks. These three tests are the whole contract —
+		// off by default, exactly one surface when on, and no orphaned copy.
+		await test("shell: absent unless asked for", async () => {
+			await goDesk("/desk/theme-settings", ".bnd-srp-slot", 3500);
+			expectEq(await q(".bnd-shell"), false, "shell rendered without ?shell=1");
+			// And the legacy form is untouched — the sections still show.
+			expect(await visible('[data-fieldname="sidebar_picker"]'), "legacy picker missing");
+		});
+
+		await test("shell: exactly one surface renders, never two", async () => {
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			const counts = await page.evaluate(() => {
+				const inside = (sel) =>
+					[...document.querySelectorAll(sel)].filter((n) => n.closest(".bnd-shell")).length;
+				return {
+					shells: document.querySelectorAll(".bnd-shell").length,
+					// Picker CONTENT, not the field wrapper: the wrapper stays in
+					// the DOM (empty) because Frappe owns it. Two copies of the
+					// content is the defect this test exists for.
+					cards: document.querySelectorAll(".bnd-cbp-opt, .bnd-sbp-card, .bnd-srp-slot").length,
+					cardsInShell: inside(".bnd-cbp-opt, .bnd-sbp-card, .bnd-srp-slot"),
+					legacyVisible: [...document.querySelectorAll('[data-fieldname$="_picker"]')].filter(
+						(n) => !n.closest(".bnd-shell") && n.getBoundingClientRect().height > 0
+					).length,
+				};
+			});
+			expectEq(counts.shells, 1, "shell root count");
+			expect(counts.cards > 0, "shell rendered no picker content at all");
+			expectEq(counts.cardsInShell, counts.cards, "picker content exists outside the shell too");
+			expectEq(counts.legacyVisible, 0, "legacy picker fields still visible beside the shell");
+		});
+
+		await test("shell: no section is left stranded outside it", async () => {
+			// The shell claims sections by name. Add a section to the doctype and
+			// forget to place it and it renders below the shell, looking like a
+			// bug in the shell rather than an omission in its table. This is the
+			// check that names it. It also catches the opposite error: two entries
+			// claiming ONE section, which used to make the loser silently empty —
+			// `default_density` and `enable_command_palette` share
+			// `section_features`, and that is how it was found.
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			const stranded = await page.evaluate(() =>
+				[...document.querySelectorAll(".form-section")]
+					.filter((n) => !n.closest(".bnd-shell") && n.getBoundingClientRect().height > 0)
+					// The shell's own host section is the one legitimate exception:
+					// it is what the shell is rendered INTO.
+					.filter((n) => !n.querySelector('[data-fieldname="chrome_shell"]'))
+					.map((n) =>
+						[...n.querySelectorAll("[data-fieldname]")]
+							.map((x) => x.dataset.fieldname)
+							.filter((x) => !x.startsWith("__"))
+							.slice(0, 3)
+							.join(",")
+					)
+			);
+			expectEq(stranded.length, 0, `sections outside the shell: ${JSON.stringify(stranded)}`);
+		});
+
+		await test("shell: every group opens and mounts its picker", async () => {
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			const items = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-shell-item")].map((n) => n.dataset.key)
+			);
+			expect(items.length >= 6, `only ${items.length} shell entries`);
+			for (const key of items) {
+				await page.click(`.bnd-shell-item[data-key="${key}"]`);
+				await page.waitForTimeout(400);
+				const ok = await page.evaluate(
+					(k) => {
+						const pane = document.querySelector(".bnd-shell-detail");
+						if (!pane) return "no detail pane";
+						const sel = document.querySelector(`.bnd-shell-item[data-key="${k}"].bnd-shell-on`);
+						if (!sel) return "selection did not follow the click";
+						return pane.textContent.trim().length > 10 ? "" : "detail pane is empty";
+					},
+					key
+				);
+				expectEq(ok, "", `${key}: ${ok}`);
+			}
+		});
+
 		await test("settings: nothing overflows the form horizontally", async () => {
 			const overflow = await page.evaluate(() =>
 				[...document.querySelectorAll('[data-fieldname$="_picker"]')]

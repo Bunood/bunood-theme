@@ -206,6 +206,10 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_inbox_picker(frm);
 		bnd_render_search_picker(frm);
 		bnd_render_status_picker(frm);
+		// AFTER the pickers, never before: the shell relocates the sections they
+		// were just drawn into, and moving a node the renderer is about to look
+		// for is how the host resolver ends up pointing at a detached wrapper.
+		bnd_shell_setup(frm);
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
@@ -224,6 +228,187 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_search_picker(frm);
 	},
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// Master & detail shell (component rework, slice 1c step 2)
+//
+// WHAT
+//   A grouped list on one side, one component's settings on the other, instead
+//   of ~70 fields in nine stacked sections that a reader has to scroll to find
+//   anything in.
+//
+// WHY IT RELOCATES SECTIONS RATHER THAN REBUILDING THEM
+//   The obvious build is a second surface: draw the shell, and render every
+//   picker into it. That gives you TWO sets of cards bound to the same fields,
+//   each unaware of the other's clicks — the same-fact-in-two-places defect this
+//   whole rework exists to remove, reintroduced by the thing meant to fix it.
+//
+//   So the shell MOVES the DOM Frappe already built. There is exactly one node
+//   per field, in a different parent, and "only one surface exists" stops being
+//   a rule anybody has to keep and becomes a property of the construction. It
+//   also means every Frappe control keeps working untouched: its JS holds a
+//   reference to its own wrapper, and a wrapper does not care who its parent is.
+//
+// WHY IT IS GATED BEHIND ?shell=1
+//   This lands before it replaces anything. The stacked form stays the default
+//   until the shell has the diagram (step 3) and the derived preset label, and
+//   until it has been used. A half-finished navigation is worse than a long
+//   form, because a long form at least shows you everything it has.
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The left list: groups, and what each entry owns.
+ *
+ * `anchors` are FIELD names, not section names, and that is deliberate — a
+ * section break's own wrapper is an implementation detail of Frappe's layout
+ * engine that has moved between versions, while a field's `$wrapper` is the
+ * thing every control in this form already depends on. The section is found by
+ * walking up from the field, so this keeps working if Frappe restructures.
+ */
+const BND_SHELL_GROUPS = [
+	{
+		group: () => __("Bars & panes"),
+		items: [
+			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
+			{ key: "status", label: () => __("Bottom bar & status"), anchors: ["status_style"] },
+			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
+		],
+	},
+	{
+		group: () => __("Controls"),
+		items: [
+			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
+			// The palette's on/off switch lives in its own "Features" section,
+			// three sections away from its seven siblings. The shell puts them
+			// together without needing the field renamed or the doctype patched.
+			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style", "enable_command_palette"] },
+			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
+		],
+	},
+	{
+		group: () => __("Appearance"),
+		items: [
+			{ key: "layout", label: () => __("Layout preset"), anchors: ["desk_layout"] },
+			{ key: "branding", label: () => __("Branding"), anchors: ["company_name"] },
+			// brand_css_url is the generated stylesheet path — it belongs beside
+			// the colours that produce it, not in a "Generated" section of its own
+			// at the bottom of the form where nobody connects the two.
+			{ key: "colors", label: () => __("Colours"), anchors: ["brand_color", "brand_css_url"] },
+			// `default_density` shares section_features with
+			// `enable_command_palette` — two unrelated settings in one section,
+			// which is the exact drift build.mjs's field-naming guard already
+			// lists as a known violation. The shell does not need it fixed first:
+			// a second claim on an already-taken section falls back to moving the
+			// field's own wrapper. See bnd_shell_setup.
+			{ key: "density", label: () => __("Density"), anchors: ["default_density"] },
+		],
+	},
+];
+
+/** True when the URL asks for the shell. Read from `location`, not from
+ *  Frappe's route state: the router drops unknown query args on some
+ *  transitions and the answer must not change under the user mid-session. */
+function bnd_shell_wanted() {
+	try {
+		return new URLSearchParams(window.location.search).get("shell") === "1";
+	} catch (e) {
+		return false;
+	}
+}
+
+/**
+ * Build the shell once, move the owned sections into it, and select an entry.
+ *
+ * Idempotent: `refresh` fires on every save and route return, and rebuilding
+ * would detach sections the pickers have already been drawn into.
+ */
+function bnd_shell_setup(frm) {
+	const field = frm.get_field("chrome_shell");
+	if (!field || !field.$wrapper) return;
+	if (!bnd_shell_wanted()) return;
+	if (field.$wrapper.find(".bnd-shell").length) {
+		// Already built. The sections are where we put them; only the
+		// selection state can have gone stale.
+		bnd_shell_select(frm, field.$wrapper.find(".bnd-shell").attr("data-current") || "sidepane");
+		return;
+	}
+
+	const $ = window.$;
+	let nav = "";
+	for (const g of BND_SHELL_GROUPS) {
+		nav += `<div class="bnd-shell-group">${bnd_esc(g.group())}</div>`;
+		for (const item of g.items) {
+			nav +=
+				`<button type="button" class="bnd-shell-item" data-key="${bnd_esc(item.key)}">` +
+				`<span class="bnd-shell-label">${bnd_esc(item.label())}</span>` +
+				`</button>`;
+		}
+	}
+
+	const $shell = $(
+		`<div class="bnd-shell" data-current="">` +
+			`<nav class="bnd-shell-nav" role="tablist">${nav}</nav>` +
+			`<div class="bnd-shell-detail"></div>` +
+			`</div>`
+	);
+	field.$wrapper.empty().append($shell);
+
+	const $detail = $shell.find(".bnd-shell-detail");
+	// A section can only be in one pane. Two entries claiming the same one is not
+	// hypothetical — `default_density` and `enable_command_palette` share
+	// `section_features`, so the second claim silently stole the first entry's
+	// content until this existed. First claim wins the whole section; a later one
+	// takes just its own field, which is the smaller, still-correct move.
+	const claimed = new Set();
+	for (const g of BND_SHELL_GROUPS) {
+		for (const item of g.items) {
+			const $pane = $(`<div class="bnd-shell-pane" data-key="${bnd_esc(item.key)}" hidden></div>`);
+			$detail.append($pane);
+			for (const anchor of item.anchors) {
+				const f = frm.get_field(anchor);
+				if (!f || !f.$wrapper) continue;
+				const $section = f.$wrapper.closest(".form-section");
+				const node = $section.length ? $section[0] : null;
+				// MOVE, not clone. jQuery append relocates an existing node, so
+				// there is never a second copy to keep in step.
+				if (node && !claimed.has(node)) {
+					claimed.add(node);
+					$pane.append($section);
+				} else {
+					$pane.append(f.$wrapper);
+				}
+			}
+		}
+	}
+
+	$shell.on("click", ".bnd-shell-item", function () {
+		bnd_shell_select(frm, this.getAttribute("data-key"));
+	});
+
+	bnd_shell_select(frm, BND_SHELL_GROUPS[0].items[0].key);
+}
+
+/** Show one pane, mark its entry selected. */
+function bnd_shell_select(frm, key) {
+	const field = frm.get_field("chrome_shell");
+	if (!field || !field.$wrapper) return;
+	const $shell = field.$wrapper.find(".bnd-shell");
+	if (!$shell.length) return;
+
+	$shell.attr("data-current", key);
+	$shell.find(".bnd-shell-item").each(function () {
+		const on = this.getAttribute("data-key") === key;
+		this.classList.toggle("bnd-shell-on", on);
+		this.setAttribute("aria-selected", on ? "true" : "false");
+	});
+	$shell.find(".bnd-shell-pane").each(function () {
+		const on = this.getAttribute("data-key") === key;
+		// `hidden` rather than display, so a pane that is off is off for
+		// assistive technology too, not merely invisible.
+		if (on) this.removeAttribute("hidden");
+		else this.setAttribute("hidden", "hidden");
+	});
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Desk Layout picker (item 9) — unchanged behaviour.

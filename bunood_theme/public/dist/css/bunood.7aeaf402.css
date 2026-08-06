@@ -2789,6 +2789,93 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
+.bnd-shell {
+  container-type: inline-size;
+  container-name: bndshell;
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  gap: var(--bnd-sp-5);
+  align-items: start;
+}
+
+.bnd-shell-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  inset-block-start: var(--bnd-sp-4);
+  padding-inline-end: var(--bnd-sp-3);
+  border-inline-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+.bnd-shell-group {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-ink-subtle);
+  padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
+}
+
+.bnd-shell-item {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: 100%;
+  text-align: start;
+  padding: var(--bnd-pad-y) var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  cursor: pointer;
+}
+.bnd-shell-item:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+.bnd-shell-item.bnd-shell-on {
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+  font-weight: var(--bnd-weight-medium);
+}
+.bnd-shell-item:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+
+.bnd-shell-detail {
+  min-inline-size: 0;
+}
+.bnd-shell-detail .form-section {
+  border-block-start: none;
+  padding-block-start: 0;
+  margin-block-start: 0;
+}
+
+.bnd-shell-pane[hidden] {
+  display: none;
+}
+
+@container bndshell (max-width: 620px) {
+  .bnd-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bnd-shell-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-inline-end: 0;
+    padding-block-end: var(--bnd-sp-3);
+    border-inline-end: none;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+  .bnd-shell-item {
+    inline-size: auto;
+  }
+  .bnd-shell-group {
+    display: none;
+  }
+}
 @media print {
   html,
   html[data-theme=dark],

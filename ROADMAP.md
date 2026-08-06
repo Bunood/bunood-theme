@@ -63,9 +63,14 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[ ]` **Slice 1c step 2** — master & detail settings form: grouped left list
-  (Overview / Bars & panes / Controls / Appearance), three-zone detail pane, derived
-  *Custom* label
+- `[~]` **Slice 1c step 2** — master & detail settings form. **Shipped:** the shell
+  itself, gated behind `?shell=1` so the stacked form stays the default until this
+  replaces it; a grouped left list (Bars & panes / Controls / Appearance, 10 entries);
+  a detail pane showing one component at a time. It **relocates** the sections Frappe
+  built rather than drawing a second surface — so "only one surface exists" is a
+  property of the construction, not a rule to keep, and every Frappe control keeps
+  working untouched. **Remaining:** the three-zone split within a pane (placement /
+  style / extras), change dots against the preset, and the derived *Custom* label.
 - `[ ]` **Slice 1c step 3** — the shared desk diagram as the placement control, doing
   double duty as the Overview
 - `[ ]` **Slice 2** — remaining containers and tenants; `sidebar_quick_links` and
