@@ -2817,7 +2817,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 
 .bnd-shell-item {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--bnd-sp-2);
   inline-size: 100%;
   text-align: start;
@@ -2843,6 +2843,31 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   outline-offset: 2px;
 }
 
+.bnd-shell-note {
+  margin-inline-start: auto;
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-inline-size: 8ch;
+}
+
+.bnd-shell-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--bnd-brand-solid);
+  flex: none;
+}
+.bnd-shell-dot[hidden] {
+  display: none;
+}
+
+.bnd-shell-item.bnd-shell-on .bnd-shell-note {
+  color: var(--bnd-brand-ink);
+}
+
 .bnd-shell-detail {
   min-inline-size: 0;
 }
@@ -2850,6 +2875,10 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   border-block-start: none;
   padding-block-start: 0;
   margin-block-start: 0;
+}
+.bnd-shell-detail .section-head,
+.bnd-shell-detail .form-section-heading {
+  display: none;
 }
 
 .bnd-shell-pane[hidden] {

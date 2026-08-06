@@ -81,6 +81,19 @@ DEFAULTS = {
     **{f: v for f, v in USER_DEFAULTS.items() if not isinstance(v, int)},
 }
 
+#: The complete shipped-default map: what a fresh install writes, for every
+#: field the theme owns.
+#:
+#: WHY IT IS NAMED HERE AND NOT COMPOSED AT EACH USE SITE
+#:     `{**DEFAULTS, **CHECK_DEFAULTS}` was being written out by every consumer
+#:     that needed it — the smoke suite, the fingerprint tool — each restating a
+#:     composition rule that only this module should own. The split between the
+#:     two maps exists for SEEDING (a Check needs None-aware seeding so an
+#:     admin's explicit 0 survives a migrate); it is an implementation detail of
+#:     installation and means nothing to a reader asking "what ships by default".
+#:     They get this.
+SHIPPED = {**DEFAULTS, **CHECK_DEFAULTS}
+
 #: Label of the user-menu density toggle. Module-level so the seeder and any
 #: future remover agree on the one string that identifies our row.
 NAVBAR_DENSITY_LABEL = "Toggle Density"

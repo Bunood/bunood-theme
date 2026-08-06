@@ -63,14 +63,41 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[~]` **Slice 1c step 2** — master & detail settings form. **Shipped:** the shell
-  itself, gated behind `?shell=1` so the stacked form stays the default until this
-  replaces it; a grouped left list (Bars & panes / Controls / Appearance, 10 entries);
-  a detail pane showing one component at a time. It **relocates** the sections Frappe
-  built rather than drawing a second surface — so "only one surface exists" is a
-  property of the construction, not a rule to keep, and every Frappe control keeps
-  working untouched. **Remaining:** the three-zone split within a pane (placement /
-  style / extras), change dots against the preset, and the derived *Custom* label.
+- `[~]` **Slice 1c step 2** — master & detail settings form, gated behind `?shell=1` so
+  the stacked form stays the default until this replaces it.
+  - `[x]` The shell: grouped left list (Bars & panes / Controls / Appearance, 10
+    entries), a detail pane showing one component at a time. It **relocates** the
+    sections Frappe built rather than drawing a second surface, so "only one surface
+    exists" is a property of the construction rather than a rule to keep. Verified to
+    survive a save, a route round-trip and an explicit `frm.refresh()`
+  - `[x]` Change dots — `api.get_shipped_defaults` over `setup.SHIPPED` (one named map,
+    which `smoke.mjs` and `fingerprint.mjs` now also read instead of each recomposing
+    `{**DEFAULTS, **CHECK_DEFAULTS}`). Ownership is by **prefix**, the rule `build.mjs`
+    already enforces, so there is no sixth hand-written field list
+  - `[x]` Derived note — the side pane's real preset name via the existing
+    `bnd_sb_match_preset`; **Default/Changed** for everything else, from the same
+    function the dot uses. Deliberately *not* a preset label: only the side pane has a
+    catalogue. `crumb_style`/`palette_style`/`inbox_style`/`status_style` are style
+    choices that compose with their extras, and no table anywhere says what
+    `desk_layout` writes to the component fields — the 0.11.0 patch records what
+    0.10.0 *rendered*, which is a migration artefact, not a catalogue
+  - `[x]` Doctype repair — `default_density` has its own section. It used to share
+    `section_features` with `enable_command_palette`, which made two shell entries
+    claim one section: a stranded "Features" heading over nothing, and the density
+    control rendered at 636px against every other Select's 273px, having lost the
+    `.form-column > form >` chain Frappe caps input width with
+  - `[ ]` **The three-zone split** (Placement / Style / Extras). **Key finding, so it is
+    not re-derived:** 59 of the 92 fields are `hidden: 1`, and every component section
+    holds exactly *one* visible field — its HTML picker. The controls a user touches are
+    not Frappe field wrappers at all; they are buttons the pickers print. So zones
+    belong **inside the picker output**, where `BND_SB_GROUPS` / `*_TOGGLES` already
+    separate them and two pickers already print a literal `Extras` heading. Do **not**
+    zone at the `.form-section` layer and do **not** add per-zone Section Breaks: they
+    would contain only hidden fields, and `layout.js` can only stamp `empty-section` on
+    a section whose parent is a tab-pane or form-page — which a shell pane is not, so an
+    empty section there can never hide itself. Note the split will then show in the
+    stacked form too, so `tests/fixtures/picker-shape.json` needs a deliberate
+    regeneration
 - `[ ]` **Slice 1c step 3** — the shared desk diagram as the placement control, doing
   double duty as the Overview
 - `[ ]` **Slice 2** — remaining containers and tenants; `sidebar_quick_links` and

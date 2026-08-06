@@ -580,7 +580,7 @@ html[data-theme] {
 
 .bnd-shell-item {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--bnd-sp-2);
   inline-size: 100%;
   text-align: start;
@@ -609,6 +609,41 @@ html[data-theme] {
   }
 }
 
+// The note is the entry's state in words - a preset name for the side pane,
+// "Default" or "Changed" for everything else. It carries the meaning; the dot
+// beside it is redundant reinforcement, which is the point: colour alone is
+// never the only signal (same rule the status tokens follow).
+.bnd-shell-note {
+  margin-inline-start: auto;
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-subtle);
+  white-space: nowrap;
+  // The longest note is a preset name ("Bunood Night"); past that, truncate
+  // rather than let one entry set the rail's width.
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-inline-size: 8ch;
+}
+
+.bnd-shell-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--bnd-brand-solid);
+  flex: none;
+
+  &[hidden] {
+    // `hidden` is a UA rule of the lowest possible weight and loses to any
+    // display declaration - the exact failure the status bar hit with
+    // `.bnd-status-item[hidden]`. State it explicitly.
+    display: none;
+  }
+}
+
+.bnd-shell-item.bnd-shell-on .bnd-shell-note {
+  color: var(--bnd-brand-ink);
+}
+
 .bnd-shell-detail {
   min-inline-size: 0;
 
@@ -619,6 +654,20 @@ html[data-theme] {
     border-block-start: none;
     padding-block-start: 0;
     margin-block-start: 0;
+  }
+
+  // The section heading names the same thing the selected list entry names, one
+  // inch away - "Command palette" over the Command palette pane. In a stacked
+  // form that heading IS the navigation; here it is a second copy of it. Hidden
+  // rather than removed, because the heading is Frappe's and the stacked form
+  // still needs it.
+  //
+  // It also absorbs the sub-headings a pane picks up when one entry owns two
+  // sections, which would otherwise read as stray labels: "Generated" under
+  // Colours is the brand stylesheet path, not a second topic.
+  .section-head,
+  .form-section-heading {
+    display: none;
   }
 }
 

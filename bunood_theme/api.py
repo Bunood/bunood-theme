@@ -750,3 +750,29 @@ def _log_drift_once(key: str, message: str, period: int = 3600) -> None:
     except Exception:
         pass
     frappe.log_error(message, "Bunood Theme API drift")
+
+
+@frappe.whitelist()
+def get_shipped_defaults() -> dict:
+    """What a fresh install writes, so the settings form can show what changed.
+
+    WHY THE SERVER ANSWERS THIS
+        The defaults are composed in Python from :mod:`bunood_theme.presets` —
+        the sidebar preset's 22 values plus five per-kit default dicts. Any
+        client-side copy is a second statement of the same fact, and this repo's
+        every critical defect has traced to one. The form asks instead.
+
+    WHY NOT BOOT
+        ``boot.py`` is assembled for every user on every desk page, and this is
+        needed by one System-Manager-only form. Sixty-odd keys on every page load
+        to serve one screen is the wrong trade — see GUIDELINES on the payload
+        budget.
+
+    Returns:
+        ``{"defaults": {fieldname: shipped_value}}``. Wrapped in a dict rather
+        than returned bare so a later addition (say, the preset catalogues) does
+        not change the shape of what callers already destructure.
+    """
+    from bunood_theme.setup import SHIPPED
+
+    return {"defaults": dict(SHIPPED)}

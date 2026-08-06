@@ -35,9 +35,37 @@ at normal form width (the form's column is ~870px, the threshold was
 emptied whichever pane lost. A section can now only be claimed once, and
 a later claim takes just its own field.
 
+**Change dots and a derived note.** Each entry shows a dot when that
+component differs from what a fresh install writes, and a note saying
+what state it is in. The defaults come from the server —
+`api.get_shipped_defaults` over a newly named `setup.SHIPPED`, which the
+smoke suite and the fingerprint tool now read too instead of each
+recomposing `{**DEFAULTS, **CHECK_DEFAULTS}` for themselves. Which fields
+an entry owns is expressed as a **prefix**, the rule `build.mjs` already
+enforces, so no sixth list of fieldnames had to be written down.
+
+**The note refuses to invent presets.** Only the side pane has a preset
+catalogue, so only the side pane shows a preset name (via the existing
+comparison of all 22 values — pinning the name still pins nothing).
+`crumb_style`, `palette_style`, `inbox_style` and `status_style` are
+top-level style choices that compose with their extras, and nothing
+anywhere records what `desk_layout` writes to the component fields. Those
+entries get the honest two-state **Default / Changed**, computed by the
+same function the dot uses — one comparison, two renderings.
+
+**A doctype repair, found by measuring the shell rather than reading it.**
+`default_density` shared `section_features` with `enable_command_palette`,
+so two shell entries claimed one section: the palette pane carried a
+stranded "Features" heading over nothing, and the density control rendered
+at 636px against every other Select's 273px, having lost the
+`.form-column > form >` chain Frappe caps input width with. Density now
+has its own section and the palette gate sits with its seven siblings.
+
 Still to come in this slice: the three-zone split within a pane
-(placement / style / extras), change dots against the preset, and the
-derived *Custom* label.
+(Placement / Style / Extras). It belongs inside the picker output rather
+than at the form-section layer — 59 of the 92 fields are hidden and every
+component section holds exactly one visible field, its picker, so the
+controls a user touches are not Frappe field wrappers at all.
 
 ### Contrast validation (item 32)
 

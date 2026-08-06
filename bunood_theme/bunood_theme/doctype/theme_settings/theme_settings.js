@@ -278,10 +278,12 @@ const BND_SHELL_GROUPS = [
 		group: () => __("Controls"),
 		items: [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
-			// The palette's on/off switch lives in its own "Features" section,
-			// three sections away from its seven siblings. The shell puts them
-			// together without needing the field renamed or the doctype patched.
-			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style", "enable_command_palette"] },
+			// `enable_command_palette` now sits with its seven siblings in
+			// section_palette, so one anchor reaches the whole component. It used
+			// to live three sections away, and anchoring it here claimed the
+			// section that also held `default_density` — which left a stranded
+			// "Features" heading over nothing and evicted the density control.
+			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
 		],
 	},
@@ -294,16 +296,102 @@ const BND_SHELL_GROUPS = [
 			// the colours that produce it, not in a "Generated" section of its own
 			// at the bottom of the form where nobody connects the two.
 			{ key: "colors", label: () => __("Colours"), anchors: ["brand_color", "brand_css_url"] },
-			// `default_density` shares section_features with
-			// `enable_command_palette` — two unrelated settings in one section,
-			// which is the exact drift build.mjs's field-naming guard already
-			// lists as a known violation. The shell does not need it fixed first:
-			// a second claim on an already-taken section falls back to moving the
-			// field's own wrapper. See bnd_shell_setup.
+			// `default_density` has its own section as of the shell work. It used
+			// to share `section_features` with `enable_command_palette`, and the
+			// fallback that handles a twice-claimed section handled it — but only
+			// by moving a bare $wrapper out of `.form-column > form`, which severs
+			// the direct-descendant chain Frappe caps input width with
+			// (form.scss `.form-column.col-sm-12 > form > .input-max-width`).
+			// Measured: 636px against every other Select's 273px. The fallback is
+			// still there for the next collision; this one is fixed at the root.
 			{ key: "density", label: () => __("Density"), anchors: ["default_density"] },
 		],
 	},
 ];
+
+/**
+ * The shipped defaults, fetched once per form session. `null` until it arrives,
+ * and `null` forever if the call fails — every reader treats that as "cannot
+ * say", so a failed fetch costs the change marks and nothing else. The form has
+ * to render when the server cannot answer a cosmetic question.
+ */
+let bnd_shipped = null;
+
+/**
+ * Which fields each shell entry owns, as PREFIXES rather than a list.
+ *
+ * The alternative is a sixth hand-written list of fieldnames — there are already
+ * five (`BND_CRUMB_FIELDS`, `BND_PALETTE_FIELDS`, `BND_INBOX_FIELDS`,
+ * `BND_STATUS_FIELDS`, `bnd_sb_catalogue.fields`) and adding one more that must
+ * be kept in step with the doctype is the defect this repo keeps paying for. The
+ * prefix IS the naming rule `build.mjs` already enforces, so this reads the
+ * convention instead of restating its contents.
+ *
+ * The four entries with no prefix are listed explicitly, because identity and
+ * colour are axes rather than components and deliberately carry no prefix —
+ * `build.mjs`'s FIELD_EXCEPTIONS says exactly that.
+ */
+const BND_SHELL_OWNS = {
+	sidepane: { prefixes: ["sidebar_"] },
+	// The bell and the user menu are separate components sharing one picker, so
+	// this entry owns the inbox prefix plus the user menu's placement field.
+	inbox: { prefixes: ["inbox_"], fields: ["user_placement"] },
+	status: { prefixes: ["status_"] },
+	search: { prefixes: ["search_"] },
+	crumbs: { prefixes: ["crumb_"] },
+	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
+	layout: { fields: ["desk_layout"] },
+	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
+	colors: { fields: ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark"] },
+	density: { fields: ["default_density"] },
+};
+
+/**
+ * The fields of one shell entry that differ from what a fresh install writes.
+ *
+ * Returns `[]` when the defaults have not arrived. "Cannot say" and "nothing
+ * changed" therefore render identically, and that is the right way round: a mark
+ * that appeared because a fetch failed would be a lie about the user's settings.
+ *
+ * Comparison goes through `bnd_sb_norm`, which is not decoration here. Two
+ * values that mean the same thing arrive in different shapes — a Check reads
+ * back as `1` from Python and `"1"` from some form paths, and
+ * `sidebar_menu_rail` has two legacy spellings that both mean "Rail". Comparing
+ * raw would mark a component changed that nobody had touched.
+ */
+function bnd_changed_fields(key, frm) {
+	if (!bnd_shipped) return [];
+	const spec = BND_SHELL_OWNS[key];
+	if (!spec) return [];
+	const owned = Object.keys(bnd_shipped).filter(
+		(f) =>
+			(spec.fields || []).includes(f) ||
+			(spec.prefixes || []).some((p) => f.startsWith(p))
+	);
+	return owned.filter((f) => bnd_sb_norm(f, frm.doc[f]) !== bnd_sb_norm(f, bnd_shipped[f]));
+}
+
+/**
+ * The note under a shell entry: a preset name where one genuinely exists,
+ * otherwise how far the component is from stock.
+ *
+ * ONLY THE SIDE PANE HAS A PRESET CATALOGUE, and pretending otherwise would be
+ * the defect this rework exists to remove. `crumb_style`, `palette_style`,
+ * `inbox_style` and `status_style` are top-level style CHOICES that compose with
+ * their extras — `presets.py` says so in as many words — so there is nothing to
+ * match against and no "Custom" to derive. `desk_layout` has no table anywhere
+ * stating what it writes to the component fields; the migration patch records
+ * what 0.10.0 *rendered*, which is a one-shot artefact, not a catalogue.
+ *
+ * So the rest get the honest two-state, computed by the SAME function the dot
+ * uses. One comparison, two renderings — never two comparisons that can
+ * disagree.
+ */
+function bnd_shell_note(key, frm) {
+	if (!bnd_shipped) return "";
+	if (key === "sidepane" && bnd_sb_catalogue) return bnd_sb_match_preset(frm);
+	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
+}
 
 /** True when the URL asks for the shell. Read from `location`, not from
  *  Frappe's route state: the router drops unknown query args on some
@@ -327,9 +415,12 @@ function bnd_shell_setup(frm) {
 	if (!field || !field.$wrapper) return;
 	if (!bnd_shell_wanted()) return;
 	if (field.$wrapper.find(".bnd-shell").length) {
-		// Already built. The sections are where we put them; only the
-		// selection state can have gone stale.
+		// Already built. The sections are where we put them; the selection and
+		// the change marks are the only state that can have gone stale — and the
+		// marks always have, because `refresh` fires straight after a save and a
+		// save is precisely when "changed" stops being true.
 		bnd_shell_select(frm, field.$wrapper.find(".bnd-shell").attr("data-current") || "sidepane");
+		bnd_shell_marks(frm);
 		return;
 	}
 
@@ -341,6 +432,8 @@ function bnd_shell_setup(frm) {
 			nav +=
 				`<button type="button" class="bnd-shell-item" data-key="${bnd_esc(item.key)}">` +
 				`<span class="bnd-shell-label">${bnd_esc(item.label())}</span>` +
+				`<span class="bnd-shell-note" data-bnd-note="${bnd_esc(item.key)}"></span>` +
+				`<span class="bnd-shell-dot" data-bnd-dot="${bnd_esc(item.key)}" hidden></span>` +
 				`</button>`;
 		}
 	}
@@ -386,6 +479,57 @@ function bnd_shell_setup(frm) {
 	});
 
 	bnd_shell_select(frm, BND_SHELL_GROUPS[0].items[0].key);
+
+	// The marks need the shipped defaults, which the server owns. Fetched once
+	// and then re-read from the module-level cache, so returning to the form
+	// costs nothing. A failure leaves `bnd_shipped` null and the marks simply do
+	// not appear — the shell is already fully usable without them.
+	if (bnd_shipped) {
+		bnd_shell_marks(frm);
+	} else {
+		frappe
+			.xcall("bunood_theme.api.get_shipped_defaults")
+			.then((data) => {
+				bnd_shipped = (data && data.defaults) || null;
+				bnd_shell_marks(frm);
+			})
+			.catch(() => {});
+	}
+}
+
+/**
+ * Paint the change dot and the note on every entry.
+ *
+ * Called after the fetch and after every save, because a save is exactly when
+ * "changed" stops being true. It reads `frm.doc`, so it must run after Frappe
+ * has refreshed the document, never against the values the user typed.
+ */
+function bnd_shell_marks(frm) {
+	const field = frm.get_field("chrome_shell");
+	if (!field || !field.$wrapper) return;
+	const $shell = field.$wrapper.find(".bnd-shell");
+	if (!$shell.length) return;
+
+	for (const g of BND_SHELL_GROUPS) {
+		for (const item of g.items) {
+			const changed = bnd_changed_fields(item.key, frm).length;
+			const dot = $shell.find(`[data-bnd-dot="${item.key}"]`)[0];
+			const note = $shell.find(`[data-bnd-note="${item.key}"]`)[0];
+			if (dot) {
+				if (changed) dot.removeAttribute("hidden");
+				else dot.setAttribute("hidden", "hidden");
+				// The dot is decoration; the count is the fact. Announce it once,
+				// on the control, rather than shipping a coloured circle that
+				// says nothing to anyone not looking at it.
+				// Label + value, never an interpolated plural: Frappe's translation
+				// layer is flat key->value with no plural support and Arabic has
+				// singular, dual and two plural forms, so "{0} settings differ"
+				// cannot be made correct for n=1,2,3-10,11+. See ROADMAP item 7(c).
+				dot.setAttribute("title", __("Differs from default") + ": " + changed);
+			}
+			if (note) note.textContent = bnd_shell_note(item.key, frm);
+		}
+	}
 }
 
 /** Show one pane, mark its entry selected. */

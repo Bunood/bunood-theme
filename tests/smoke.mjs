@@ -367,8 +367,8 @@ async function main() {
 	// would clobber it permanently — the tagline bug, in a new costume.
 	const shipped = JSON.parse(
 		benchPy(
-			`from bunood_theme.setup import DEFAULTS, CHECK_DEFAULTS\n` +
-			`print(json.dumps({**DEFAULTS, **CHECK_DEFAULTS}))\n`
+			`from bunood_theme.setup import SHIPPED\n` +
+			`print(json.dumps(SHIPPED))\n`
 		).trim().split("\n").pop()
 	);
 	setSettings(Object.fromEntries(
@@ -1854,6 +1854,82 @@ async function main() {
 			expect(counts.cards > 0, "shell rendered no picker content at all");
 			expectEq(counts.cardsInShell, counts.cards, "picker content exists outside the shell too");
 			expectEq(counts.legacyVisible, 0, "legacy picker fields still visible beside the shell");
+		});
+
+		await test("shell: the change dot marks the component that actually changed", async () => {
+			// The defect this catches is a dot that is always on, always off, or on
+			// for the wrong entry — all three of which look like a working feature
+			// in a screenshot. So it asserts the TRANSITION, against a value read
+			// from the shipped defaults rather than typed here: a hand-written
+			// "expected default" is the copy that goes stale, and it already fooled
+			// this test's author once ("Soft Tint" is a real option and is NOT the
+			// default; "Soft Pill" is, so a restore to the wrong one left the dot
+			// correctly lit and looked like a bug).
+			const shipped = JSON.parse(
+				benchPy(`from bunood_theme.setup import SHIPPED\nprint(json.dumps(SHIPPED))\n`)
+					.trim().split("\n").pop()
+			);
+			const lit = async () => {
+				const m = await page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-shell-item")]
+						.filter(
+							(n) =>
+								!document
+									.querySelector(`[data-bnd-dot="${n.dataset.key}"]`)
+									.hasAttribute("hidden")
+						)
+						.map((n) => n.dataset.key)
+				);
+				return m.join(",");
+			};
+
+			setSettings({ crumb_hover: shipped.crumb_hover });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			const entries = await page.evaluate(
+				() => document.querySelectorAll(".bnd-shell-item").length
+			);
+			expect(entries >= 6, `only ${entries} shell entries`);
+			expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
+
+			const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
+			setSettings({ crumb_hover: other });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
+
+			setSettings({ crumb_hover: shipped.crumb_hover });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
+		});
+
+		await test("shell: the note names a real preset, and never invents one", async () => {
+			// The value is the second half: this fails if someone later makes
+			// crumb_style or desk_layout print a preset name, which would be a
+			// label with no catalogue behind it. Only the side pane has presets.
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			const notes = await page.evaluate(() =>
+				Object.fromEntries(
+					[...document.querySelectorAll(".bnd-shell-item")].map((n) => [
+						n.dataset.key,
+						document.querySelector(`[data-bnd-note="${n.dataset.key}"]`).textContent.trim(),
+					])
+				)
+			);
+			const presets = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(list(SIDEBAR_PRESETS)))\n`
+				).trim().split("\n").pop()
+			);
+			expect(
+				presets.includes(notes.sidepane) || notes.sidepane === "Custom",
+				`side pane note "${notes.sidepane}" is neither a real preset name nor "Custom"`
+			);
+			for (const [key, note] of Object.entries(notes)) {
+				if (key === "sidepane") continue;
+				expect(
+					["Default", "Changed"].includes(note),
+					`${key} shows "${note}" — only the side pane has presets, so the rest must be Default/Changed`
+				);
+			}
 		});
 
 		await test("shell: no section is left stranded outside it", async () => {

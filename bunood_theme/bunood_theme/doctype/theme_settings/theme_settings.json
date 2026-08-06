@@ -64,6 +64,7 @@
   "palette_fallbacks",
   "palette_suggest",
   "palette_sigils",
+  "enable_command_palette",
   "section_inbox",
   "inbox_style",
   "inbox_placement",
@@ -91,8 +92,7 @@
   "status_freshness",
   "status_escalate",
   "status_in_classic",
-  "section_features",
-  "enable_command_palette",
+  "section_density",
   "default_density",
   "section_generated",
   "brand_css_url"
@@ -365,11 +365,6 @@
    "fieldtype": "Check",
    "label": "Scroll Fades",
    "hidden": 1
-  },
-  {
-   "fieldname": "section_features",
-   "fieldtype": "Section Break",
-   "label": "Features"
   },
   {
    "fieldname": "enable_command_palette",
@@ -710,6 +705,11 @@
    "fieldname": "search_picker",
    "fieldtype": "HTML",
    "label": "Search Picker"
+  },
+  {
+   "fieldname": "section_density",
+   "fieldtype": "Section Break",
+   "label": "Density"
   }
  ],
  "issingle": 1,

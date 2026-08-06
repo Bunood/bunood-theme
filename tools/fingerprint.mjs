@@ -27,8 +27,8 @@ frappe.clear_cache()
 frappe.db.commit()
 print("ok")
 `);
-const shipped = JSON.parse(py(`from bunood_theme.setup import DEFAULTS, CHECK_DEFAULTS
-print(json.dumps({**DEFAULTS, **CHECK_DEFAULTS}))
+const shipped = JSON.parse(py(`from bunood_theme.setup import SHIPPED
+print(json.dumps(SHIPPED))
 `).trim().split(/\r?\n/).pop());
 const SHAPE_STATE = { ...shipped, desk_layout: "Top Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" };
 set(SHAPE_STATE);
