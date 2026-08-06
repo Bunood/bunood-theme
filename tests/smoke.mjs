@@ -320,7 +320,7 @@ const MUTABLE_FIELDS = [
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_rail_button_shape", "sidebar_rail_button_icon",
-	"sidebar_icon_source", "sidebar_pane_width", "sidebar_quick_links",
+	"sidebar_icon_source", "sidebar_pane_width",
 	"sidebar_apps_rail", "sidebar_badges", "sidebar_remember_sections",
 	"sidebar_scroll_fades",
 	// The save round-trip test writes tagline; release review v0.6.2..HEAD
@@ -338,7 +338,8 @@ const MUTABLE_FIELDS = [
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
 	// Search placement + status bar (item 14).
 	// Component rework, slice 1: the bell and the user menu place themselves.
-	"inbox_placement", "user_placement",
+	// Slice 2: so do Home and All Apps, which used to share one field.
+	"inbox_placement", "user_placement", "home_placement", "apps_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate", "status_in_classic",

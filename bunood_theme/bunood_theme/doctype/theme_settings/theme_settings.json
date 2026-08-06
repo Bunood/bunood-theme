@@ -41,7 +41,6 @@
   "sidebar_rail_button_icon",
   "sidebar_icon_source",
   "sidebar_pane_width",
-  "sidebar_quick_links",
   "sidebar_apps_rail",
   "sidebar_badges",
   "sidebar_remember_sections",
@@ -81,6 +80,10 @@
   "section_user",
   "user_picker",
   "user_placement",
+  "section_links",
+  "links_picker",
+  "home_placement",
+  "apps_placement",
   "section_status",
   "status_style",
   "status_picker",
@@ -335,13 +338,6 @@
    "options": "1\n2\n3\n4\n5",
    "hidden": 1,
    "description": "Five stops from 200px to 280px; stop 2 is the original 220px."
-  },
-  {
-   "fieldname": "sidebar_quick_links",
-   "fieldtype": "Select",
-   "label": "Home & All Apps Placement",
-   "options": "Sidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar",
-   "hidden": 1
   },
   {
    "fieldname": "sidebar_apps_rail",
@@ -722,6 +718,32 @@
    "fieldname": "user_picker",
    "fieldtype": "HTML",
    "label": "User Menu Picker"
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "Home & All Apps"
+  },
+  {
+   "fieldname": "links_picker",
+   "fieldtype": "HTML",
+   "label": "Quick Links Picker"
+  },
+  {
+   "fieldname": "home_placement",
+   "fieldtype": "Select",
+   "label": "Home Link Placement",
+   "options": "Off\nSidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar\nDock",
+   "default": "Sidebar Top",
+   "hidden": 1
+  },
+  {
+   "fieldname": "apps_placement",
+   "fieldtype": "Select",
+   "label": "All Apps Link Placement",
+   "options": "Off\nSidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar\nDock",
+   "default": "Sidebar Top",
+   "hidden": 1
   }
  ],
  "issingle": 1,

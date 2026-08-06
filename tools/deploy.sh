@@ -56,27 +56,51 @@ say "assets: $CSS_NAME  $JS_NAME"
 # The hash IS the change signal. A restart costs ~15s plus a cold boot, so it is
 # only paid when the compiled output actually moved; a Python-only edit still
 # needs one, which is why the caller can force it.
+# BOTH hashes, not just the CSS. Checking one meant a JS-only build reported
+# "no asset change - skipping restart" while shipping a new bunood.<hash>.js that
+# assets.py now points at - the stack then served a filename the backend had not
+# been restarted to reference. Measured on the slice-2 build.
 NEED_RESTART=0
-if ! docker exec "$FRONTEND" sh -lc "test -f $FRONTEND_ASSETS/css/$CSS_NAME" 2>/dev/null; then
-	NEED_RESTART=1
-fi
+for pair in "css/$CSS_NAME" "js/$JS_NAME"; do
+	if ! docker exec "$FRONTEND" sh -lc "test -f $FRONTEND_ASSETS/$pair" 2>/dev/null; then
+		NEED_RESTART=1
+	fi
+done
 
 # ── Ship the app source ─────────────────────────────────────────────────────
-TAR="$(mktemp -t bnd-XXXXXX.tgz)"
-trap 'rm -f "$TAR"' EXIT
-tar -czf "$TAR" bunood_theme
-for c in "${APP_CONTAINERS[@]}"; do
-	docker cp "$TAR" "$c:/tmp/bnd.tgz" >/dev/null
-	docker exec "$c" bash -lc 'cd /home/frappe/frappe-bench/apps/bunood_theme && tar -xzf /tmp/bnd.tgz'
-	say "shipped -> $c"
-done
+# ONLY WHEN THE APP IS NOT BIND-MOUNTED. If it is, the containers already read
+# the WSL mirror and this copy is worse than redundant: `docker cp` writes files
+# as ROOT into the mount, and the rsync below then cannot chgrp them — so the
+# mirror silently stops updating and the deploy reports success over a tree it
+# is no longer maintaining. Measured on the slice-2 build.
+MOUNTED=0
+if docker inspect "$BACKEND" --format "{{json .Mounts}}" 2>/dev/null | grep -q "apps/bunood_theme"; then
+	MOUNTED=1
+fi
+
+if [[ "$MOUNTED" == "1" ]]; then
+	say "app is bind-mounted — the mirror below IS the deploy"
+else
+	TAR="$(mktemp -t bnd-XXXXXX.tgz)"
+	trap 'rm -f "$TAR"' EXIT
+	tar -czf "$TAR" bunood_theme
+	for c in "${APP_CONTAINERS[@]}"; do
+		docker cp "$TAR" "$c:/tmp/bnd.tgz" >/dev/null
+		docker exec "$c" bash -lc 'cd /home/frappe/frappe-bench/apps/bunood_theme && tar -xzf /tmp/bnd.tgz'
+		say "shipped -> $c"
+	done
+fi
 
 # ── Feed the frontend its own copy ──────────────────────────────────────────
 # `sites/assets` is a per-container symlink; the frontend does not see what the
 # backend unpacked, so runtime app assets 404 there unless copied explicitly.
-docker cp "$CSS_PATH" "$FRONTEND:$FRONTEND_ASSETS/css/" >/dev/null
-docker cp "$JS_PATH" "$FRONTEND:$FRONTEND_ASSETS/js/" >/dev/null
-say "shipped -> $FRONTEND (dist)"
+if [[ "$MOUNTED" == "1" ]]; then
+	say "frontend assets are mounted too — nothing to copy"
+else
+	docker cp "$CSS_PATH" "$FRONTEND:$FRONTEND_ASSETS/css/" >/dev/null
+	docker cp "$JS_PATH" "$FRONTEND:$FRONTEND_ASSETS/js/" >/dev/null
+	say "shipped -> $FRONTEND (dist)"
+fi
 
 # ── Mirror into WSL ─────────────────────────────────────────────────────────
 # `_reference` is excluded and that is not an oversight: it is 531MB of upstream

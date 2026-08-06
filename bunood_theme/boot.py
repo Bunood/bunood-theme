@@ -132,7 +132,6 @@ def extend_bootinfo(bootinfo):
             "rail_button_icon": get("sidebar_rail_button_icon"),
             "icon_source": get("sidebar_icon_source"),
             "pane_width": get("sidebar_pane_width"),
-            "quick_links": get("sidebar_quick_links"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "apps_rail": settings.get("sidebar_apps_rail") or 0,
             "badges": get("sidebar_badges"),
@@ -196,11 +195,15 @@ def extend_bootinfo(bootinfo):
         # Placement rides in the same dict as the rest of the kit, not in a
         # new one: the client reads a flat blob per kit, and a second payload
         # for "where" would be a second thing to keep in step with "what".
-        from bunood_theme.presets import USER_DEFAULTS
+        from bunood_theme.presets import LINKS_DEFAULTS, USER_DEFAULTS
 
         bootinfo.bnd_placement = {
             "inbox": inbox("inbox_placement"),
             "user": (settings.get("user_placement") or USER_DEFAULTS["user_placement"]),
+            # Home and All Apps place themselves now; they used to ride the
+            # sidebar style kit as one shared field.
+            "home": (settings.get("home_placement") or LINKS_DEFAULTS["home_placement"]),
+            "apps": (settings.get("apps_placement") or LINKS_DEFAULTS["apps_placement"]),
         }
 
         bootinfo.bnd_inbox = {
@@ -264,7 +267,6 @@ def extend_bootinfo(bootinfo):
                 "sidebar_rail_button_icon": "rail_button_icon",
                 "sidebar_icon_source": "icon_source",
                 "sidebar_pane_width": "pane_width",
-                "sidebar_quick_links": "quick_links",
                 "sidebar_apps_rail": "apps_rail",
                 "sidebar_badges": "badges",
                 "sidebar_remember_sections": "remember",

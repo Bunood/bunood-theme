@@ -125,7 +125,11 @@ function assertLogicalOnly(css, name) {
  *   named here so no NEW drift can enter unnoticed. Do not add to this list to
  *   make a build pass.
  */
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user"];
+// `home` and `apps` joined in slice 2, when Home and All Apps stopped sharing
+// `sidebar_quick_links` and became the two components registry.py always said
+// they were. This list grows when a component is REGISTERED, never to make a
+// build pass — that is what FIELD_EXCEPTIONS below is for, and it shrinks.
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them.

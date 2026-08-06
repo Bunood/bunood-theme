@@ -32,6 +32,7 @@ from bunood_theme.presets import (
     INBOX_DEFAULTS,
     PALETTE_DEFAULTS,
     SIDEBAR_PRESETS,
+    LINKS_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
 )
@@ -42,7 +43,7 @@ from bunood_theme.presets import (
 #: value is ``None`` — i.e. the field has never been written at all.
 CHECK_DEFAULTS = {
     field: value
-    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS, USER_DEFAULTS)
+    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS, USER_DEFAULTS, LINKS_DEFAULTS)
     for field, value in defaults.items()
     if isinstance(value, int)
 }
@@ -79,6 +80,7 @@ DEFAULTS = {
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in USER_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in LINKS_DEFAULTS.items() if not isinstance(v, int)},
 }
 
 #: The complete shipped-default map: what a fresh install writes, for every

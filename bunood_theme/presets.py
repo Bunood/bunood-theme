@@ -43,7 +43,6 @@ SIDEBAR_FIELDS = [
     "sidebar_rail_button_icon",
     "sidebar_icon_source",
     "sidebar_pane_width",
-    "sidebar_quick_links",
     "sidebar_apps_rail",
     "sidebar_badges",
     "sidebar_remember_sections",
@@ -73,7 +72,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -97,7 +95,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -121,7 +118,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -145,7 +141,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -169,7 +164,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -193,7 +187,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -217,7 +210,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -241,7 +233,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
-        "sidebar_quick_links": "Sidebar Top",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Counts",
         "sidebar_remember_sections": 0,
@@ -379,6 +370,17 @@ PLACEMENTS = ("Off", "Top Bar", "Bottom Bar", "Page Header", "Side Pane", "Dock"
 #: The user menu's own placement. Same reasoning as inbox_placement, and the
 #: same fresh-install answer — but this one carries Log Out, so the client
 #: refuses to leave it unreachable however it is configured.
+#: Home and All Apps place themselves (component rework, slice 2).
+#:
+#: They used to ride the sidebar style kit as one field, `sidebar_quick_links`,
+#: which meant a preset chose where they lived and the two could never be
+#: separated. `registry.py` has always called them two components; these are
+#: their settings, and a sidebar preset no longer writes them.
+LINKS_DEFAULTS = {
+    "home_placement": "Sidebar Top",
+    "apps_placement": "Sidebar Top",
+}
+
 USER_DEFAULTS = {"user_placement": "Top Bar"}
 
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our

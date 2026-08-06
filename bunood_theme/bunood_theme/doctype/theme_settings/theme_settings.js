@@ -497,6 +497,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_search_picker(frm);
 		bnd_render_status_picker(frm);
 		bnd_render_user_picker(frm);
+		bnd_render_links_picker(frm);
 		// AFTER the pickers, never before: the shell relocates the sections they
 		// were just drawn into, and moving a node the renderer is about to look
 		// for is how the host resolver ends up pointing at a detached wrapper.
@@ -582,6 +583,7 @@ const BND_SHELL_GROUPS = [
 		items: [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
+			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
 			// `enable_command_palette` now sits with its seven siblings in
 			// section_palette, so one anchor reaches the whole component. It used
 			// to live three sections away, and anchoring it here claimed the
@@ -641,6 +643,7 @@ const BND_SHELL_OWNS = {
 	// this entry owns the inbox prefix plus the user menu's placement field.
 	inbox: { prefixes: ["inbox_"] },
 	user: { fields: ["user_placement"] },
+	links: { fields: ["home_placement", "apps_placement"] },
 	status: { prefixes: ["status_"] },
 	search: { prefixes: ["search_"] },
 	crumbs: { prefixes: ["crumb_"] },
@@ -1268,18 +1271,6 @@ const BND_SB_GROUPS = [
 			{ value: "Off", name: () => __("Off"), thumb: '<span class="bnd-sbp-wash" style="background:var(--control-bg)"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:var(--control-bg)"></span>' },
 			{ value: "Subtle", name: () => __("Subtle"), thumb: '<span class="bnd-sbp-wash" style="background:#f5f8fd"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#fdf9f1"></span>' },
 			{ value: "Rich", name: () => __("Rich"), thumb: '<span class="bnd-sbp-wash" style="background:#e8f0fc"></span><span class="bnd-sbp-wash" style="inset-block-start:26px;background:#faf0dc"></span>' },
-		],
-	},
-	{
-		field: "sidebar_quick_links",
-		zone: "placement",
-		title: () => __("Home & All Apps"),
-		desc: () => __("Where the two quick links live."),
-		options: [
-			{ value: "Sidebar Top", name: () => __("Sidebar top"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:7px;inset-inline-start:8px"></span><span class="bnd-sbp-btnmark" style="inset-block-start:7px;inset-inline-start:19px"></span>' },
-			{ value: "Sidebar Bottom", name: () => __("Sidebar bottom"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:8px"></span><span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:19px"></span>' },
-			{ value: "Top Bar", name: () => __("Top bar"), thumb: '<span style="position:absolute;inset-inline:4px;inset-block-start:4px;block-size:9px;border-radius:3px;background:currentColor;opacity:.14"></span><span class="bnd-sbp-btnmark" style="inset-block-start:4px;inset-inline-start:8px"></span>' },
-			{ value: "Bottom Bar", name: () => __("Bottom bar"), thumb: '<span style="position:absolute;inset-inline:4px;inset-block-end:4px;block-size:9px;border-radius:3px;background:currentColor;opacity:.14"></span><span class="bnd-sbp-btnmark" style="inset-block-end:4px;inset-inline-start:8px"></span>' },
 		],
 	},
 	{
@@ -2411,6 +2402,59 @@ function bnd_render_user_picker(frm, host) {
 	$host.find(".bnd-dgm-slot, .bnd-cbp-opt").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+}
+
+/**
+ * Home and All Apps — one diagram each.
+ *
+ * They shared a single setting until slice 2, which meant a sidebar STYLE
+ * preset decided where both lived and neither could move without the other.
+ * Two controls, because `registry.py` has always described two components.
+ */
+function bnd_render_links_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "links_picker", host);
+	if (!$host) return;
+
+	const one = (field, label) =>
+		P.group({
+			title: label,
+			field: field,
+			body: bnd_desk_diagram({
+				field: field,
+				// Sidebar Top and Sidebar Bottom are kept as distinct slots: the
+				// old field had them, and collapsing both to "Side Pane" would
+				// silently move every site that chose the bottom.
+				slots: ["Sidebar Top", "Sidebar Bottom", "Top Bar", "Bottom Bar"],
+				value: frm.doc[field] || "Sidebar Top",
+				blocker: (slot) => bnd_region_blocker(frm, BND_SLOT_REGION[slot] || ""),
+			}) +
+				P.options([{ value: "Off", name: __("Off — not shown") }], {
+					field: field,
+					value: frm.doc[field] || "Sidebar Top",
+				}),
+		});
+
+	$host.html(
+		P.wrap(
+			bnd_bands([
+				{
+					zone: "placement",
+					html:
+						one("home_placement", __("Home")) +
+						one("apps_placement", __("All Apps")) +
+						P.note(__("Two links, placed independently. Applies on the next page load.")),
+				},
+			])
+		)
+	);
+	$host.find(".bnd-dgm-slot, .bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_inbox_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		bnd_inbox_set(frm, this.getAttribute("data-field"), "Sidebar Top");
 	});
 }
 

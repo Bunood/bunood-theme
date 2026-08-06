@@ -3833,71 +3833,116 @@
 	 * Settings option — top or bottom of the pane, or as icon buttons in the
 	 * top/bottom bar. Rebuilt (not patched) on preview changes.
 	 */
-	function sb_mount_utils() {
-		for (const old_mount of document.querySelectorAll(".bnd-sb-utils")) old_mount.remove();
-		const placement = (sb_state && sb_state.quick_links) || "Sidebar Top";
+	/**
+	 * Build ONE quick link, in the shape its region wants.
+	 *
+	 * A bar wants an icon button; the pane wants a labelled row whose text sits
+	 * in a SPAN, because the collapsed rail hides labels with `display:none` and
+	 * a bare text node cannot be hidden by CSS — that is how icons once
+	 * overflowed the 52px rail.
+	 */
+	function build_quick_link(which, in_bar) {
+		const is_home = which === "home";
+		const title = is_home ? __("Home") : __("All Apps");
+		const run = is_home
+			? () => frappe.set_route("")
+			: () => {
+					window.location.href = "/apps";
+			  };
 
-		if (placement === "Top Bar" || placement === "Bottom Bar") {
-			const bar =
-				placement === "Top Bar"
-					? document.querySelector(".bnd-topbar")
-					: document.querySelector(".bnd-statusbar");
-			if (!bar) return; // that bar is not part of the active desk layout
-			const wrap = el("span", "bnd-sb-utils bnd-sb-utils-bar");
-			const mk = (title, icon_html, run) => {
-				const btn = el("button", "bnd-icon-btn", { type: "button", title: title, "aria-label": title });
-				btn.innerHTML = icon_html;
-				btn.addEventListener("click", run);
-				wrap.appendChild(btn);
-			};
-			mk(__("Home"), "", () => frappe.set_route(""));
-			wrap.firstChild.appendChild(sprite_icon("icon-home"));
-			mk(__("All Apps"), BND_GRID_SVG, () => {
-				window.location.href = "/apps";
+		if (in_bar) {
+			const btn = el("button", "bnd-icon-btn bnd-sb-util", {
+				type: "button",
+				title: title,
+				"aria-label": title,
+				"data-bnd-part": which,
 			});
-			bar.insertBefore(wrap, bar.firstChild);
-			return;
+			if (is_home) btn.appendChild(sprite_icon("icon-home"));
+			else btn.innerHTML = BND_GRID_SVG;
+			btn.addEventListener("click", run);
+			return btn;
 		}
 
-		const sidebar = document.querySelector(".body-sidebar");
-		if (!sidebar) return;
-		const header = sidebar.querySelector(".bnd-sb-brand") || sidebar.querySelector(".sidebar-header");
-		if (!header) return;
-
-		// Labels live in SPANS, not bare text nodes — the rail's rest state
-		// must be able to display:none them (text nodes cannot be hidden by
-		// CSS, which is how icons ended up overflowing the 52px rail).
-		const labelled = (text) => {
-			const span = el("span", "bnd-sb-item-label");
-			span.textContent = text;
-			return span;
-		};
-
-		const utils = el("div", "bnd-sb-utils");
-		const home = el("button", "bnd-sb-item", { type: "button", title: __("Home") });
-		const home_chip = el("span", "bnd-sb-chip");
-		home_chip.appendChild(sprite_icon("icon-home"));
-		home.appendChild(home_chip);
-		home.appendChild(labelled(__("Home")));
-		home.addEventListener("click", () => frappe.set_route(""));
-		utils.appendChild(home);
-
-		const apps = el("button", "bnd-sb-item", { type: "button", title: __("All Apps") });
-		const apps_chip = el("span", "bnd-sb-chip");
-		apps_chip.innerHTML = BND_GRID_SVG;
-		apps.appendChild(apps_chip);
-		apps.appendChild(labelled(__("All Apps")));
-		apps.addEventListener("click", () => {
-			window.location.href = "/apps";
+		const item = el("button", "bnd-sb-item bnd-sb-util", {
+			type: "button",
+			title: title,
+			"data-bnd-part": which,
 		});
-		utils.appendChild(apps);
+		const chip = el("span", "bnd-sb-chip");
+		if (is_home) chip.appendChild(sprite_icon("icon-home"));
+		else chip.innerHTML = BND_GRID_SVG;
+		item.appendChild(chip);
+		const label = el("span", "bnd-sb-item-label");
+		label.textContent = title;
+		item.appendChild(label);
+		item.addEventListener("click", run);
+		return item;
+	}
 
-		if (placement === "Sidebar Bottom") {
-			const bottom = document.querySelector(".body-sidebar-bottom");
-			if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
-			else document.querySelector(".body-sidebar").appendChild(utils);
-		} else {
-			header.insertAdjacentElement("afterend", utils);
+	/**
+	 * Home and All Apps, each placed on its own.
+	 *
+	 * THEY USED TO SHARE ONE SETTING. `sidebar_quick_links` positioned both, and
+	 * it rode the sidebar STYLE kit — so a preset decided where they lived and
+	 * they could never be separated. `registry.py` has always called them two
+	 * components; slice 2 is where the runtime catches up.
+	 *
+	 * Rebuilt rather than patched on every call: preview changes re-run this,
+	 * and reconciling two independently-placed nodes against four possible
+	 * regions is more code than throwing them away and building again.
+	 */
+	function sb_mount_utils() {
+		for (const old_mount of document.querySelectorAll(".bnd-sb-utils")) old_mount.remove();
+
+		// No fallback to the old shared key: boot stopped emitting it in slice 2,
+		// so reading it would be a branch that can never be taken pretending to
+		// be a safety net.
+		const place = (which) =>
+			(placement_state && placement_state[which]) || "Sidebar Top";
+
+		// Group by destination so two links landing in the same place share one
+		// wrapper — otherwise the pane grows two containers with one row each,
+		// and the bar puts a gap between buttons that belong together.
+		const groups = new Map();
+		for (const which of ["home", "apps"]) {
+			const where = place(which);
+			if (where === "Off") continue;
+			if (!groups.has(where)) groups.set(where, []);
+			groups.get(where).push(which);
+		}
+
+		for (const [where, members] of groups) {
+			if (where === "Top Bar" || where === "Bottom Bar") {
+				const bar =
+					where === "Top Bar"
+						? document.querySelector(".bnd-topbar")
+						: document.querySelector(".bnd-statusbar");
+				// That bar is not part of the active layout. Leave it: the
+				// setting is honoured when the region exists, and inventing a
+				// home for it elsewhere would be a placement nobody chose.
+				if (!bar) continue;
+				const wrap = el("span", "bnd-sb-utils bnd-sb-utils-bar");
+				for (const which of members) wrap.appendChild(build_quick_link(which, true));
+				bar.insertBefore(wrap, bar.firstChild);
+				continue;
+			}
+
+			const sidebar = document.querySelector(".body-sidebar");
+			if (!sidebar) continue;
+			const header =
+				sidebar.querySelector(".bnd-sb-brand") || sidebar.querySelector(".sidebar-header");
+			if (!header) continue;
+
+			const utils = el("div", "bnd-sb-utils");
+			for (const which of members) utils.appendChild(build_quick_link(which, false));
+
+			if (where === "Sidebar Bottom") {
+				const bottom = document.querySelector(".body-sidebar-bottom");
+				if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
+				else sidebar.appendChild(utils);
+			} else {
+				header.insertAdjacentElement("afterend", utils);
+			}
 		}
 	}
 
@@ -4443,7 +4488,6 @@
 			rail_button_icon: v("sidebar_rail_button_icon", "rail_button_icon"),
 			icon_source: v("sidebar_icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
-			quick_links: v("sidebar_quick_links", "quick_links"),
 			apps_rail: v("sidebar_apps_rail", "apps_rail"),
 			badges: v("sidebar_badges", "badges"),
 			remember: v("sidebar_remember_sections", "remember"),

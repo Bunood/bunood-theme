@@ -7,3 +7,4 @@
 # guards on tabSingles row-absence rather than on a value: seeding first would
 # make the patch look as though it had already run.
 bunood_theme.patches.v0_11_0.chrome_placement
+bunood_theme.patches.v0_11_0.split_quick_links
