@@ -1424,7 +1424,7 @@ async function main() {
 
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
-			await goDesk("/desk/theme-settings", ".bnd-sbp-presets", 2000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2000);
 			// Start from the DB's current state: earlier tests write Theme
 			// Settings through set_single_value, which bumps `modified`, so
 			// without this round 1 can fail on inherited staleness and mask
@@ -1672,7 +1672,7 @@ async function main() {
 		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
 		// of this machine's font rendering and would fail on anyone else's.
 		await test("settings: every picker renders its full complement", async () => {
-			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
 			// Structural counts catch a picker that silently rendered nothing —
 			// which is what a thrown error inside one render function looks
 			// like, since each is called in sequence from refresh().
@@ -1755,7 +1755,7 @@ async function main() {
 			// producing, and a shape checker built that way would be a poor
 			// joke.
 			setSettings(fixture.state);
-			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
 			const actual = await page.evaluate((names) => {
 				const out = {};
 				for (const f of names) {
@@ -1841,7 +1841,7 @@ async function main() {
 			// comes from a permission, not from the doctype. Asserted on the
 			// LABEL rather than on our patch, so this keeps passing if Frappe
 			// ever fixes it and our correction becomes a no-op.
-			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 4000);
 			const seen = await page.evaluate(() => ({
 				primary: (document.querySelector(".primary-action") || {}).textContent?.trim() || "",
 				submittable: !!(window.cur_frm && window.cur_frm.meta.is_submittable),
@@ -1875,11 +1875,17 @@ async function main() {
 			);
 		});
 
-		await test("shell: absent unless asked for", async () => {
-			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
-			expectEq(await q(".bnd-shell"), false, "shell rendered without ?shell=1");
-			// And the legacy form is untouched — the sections still show.
-			expect(await visible('[data-fieldname="sidebar_picker"]'), "legacy picker missing");
+		await test("shell: it IS the settings page, and ?shell=0 still reaches the old form", async () => {
+			// The gate inverted once the shell was finished. Both halves matter:
+			// the plain URL must show the shell (it shipped invisible behind a
+			// query string nobody would guess), and the stacked form must stay
+			// reachable for any field the shell has not placed.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4500);
+			expectEq(await q(".bnd-shell"), true, "the plain settings URL does not show the shell");
+
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 4500);
+			expectEq(await q(".bnd-shell"), false, "?shell=0 still rendered the shell");
+			expect(await visible('[data-fieldname="sidebar_picker"]'), "?shell=0 lost the stacked form");
 		});
 
 		await test("shell: exactly one surface renders, never two", async () => {
@@ -1993,7 +1999,7 @@ async function main() {
 			// a per-picker flag. And a group stranded outside every band, which is
 			// what happens when a new row is added to a picker table and nobody
 			// gives it a `zone`.
-			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 4000);
 			const report = await page.evaluate(() => {
 				const out = {};
 				for (const f of [
@@ -2034,7 +2040,7 @@ async function main() {
 			// Filtering every group out of a band used to leave its heading
 			// standing over nothing, which reads as a broken filter rather than
 			// as no matches.
-			await goDesk("/desk/theme-settings", ".bnd-sbp-search", 4000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-search", 4000);
 			const state = async (q) => {
 				await page.fill(".bnd-sbp-search", q);
 				await page.waitForTimeout(350);

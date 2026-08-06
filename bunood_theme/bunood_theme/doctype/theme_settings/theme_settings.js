@@ -776,13 +776,28 @@ function bnd_render_overview(frm, $pane) {
 	});
 }
 
-/** True when the URL asks for the shell. Read from `location`, not from
- *  Frappe's route state: the router drops unknown query args on some
- *  transitions and the answer must not change under the user mid-session. */
+/**
+ * True unless the URL asks for the old stacked form.
+ *
+ * THE DEFAULT FLIPPED once the shell was finished. It shipped behind `?shell=1`
+ * while it was being built, on the reasoning that a half-finished navigation is
+ * worse than a long form — right at the time, and wrong the moment it stopped
+ * being half-finished. Left as it was, the work was invisible: the settings page
+ * kept showing the ~70-field stack it was built to replace, and the only way to
+ * see the new one was a query string nobody would guess.
+ *
+ * `?shell=0` still reaches the stacked form. It is the escape hatch for anyone
+ * who needs a field the shell has not placed, and for comparing the two.
+ *
+ * Read from `location`, not from Frappe's route state: the router drops unknown
+ * query args on some transitions, and the answer must not change under the user
+ * mid-session.
+ */
 function bnd_shell_wanted() {
 	try {
-		return new URLSearchParams(window.location.search).get("shell") === "1";
+		return new URLSearchParams(window.location.search).get("shell") !== "0";
 	} catch (e) {
+		// Cannot tell — show the stacked form, which needs nothing from us.
 		return false;
 	}
 }

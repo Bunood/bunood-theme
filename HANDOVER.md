@@ -10,15 +10,19 @@
 
 ## 1. Where the work stands
 
-**Nothing is pushed.** 66 commits and the `v0.10.0` tag are local only. The user
-decides when to push; never push, tag-push or open a PR without being asked.
+**Pushed and green** (2026-08-06). `main` is level with
+`origin/main` at `Bunood/bunood-theme`, the `v0.10.0` tag is pushed, and CI passed
+all nine steps including the new contrast gate. The first CI run failed for 14
+minutes inside "Set up job" — *"Failed to resolve action download info: Service
+Unavailable"*, a GitHub outage before `actions/checkout` was even fetched — and a
+re-run cleared it. **Still never push without being asked**; this time it was.
 
 Shipped this session, all committed, all verified:
 
 | | what |
 |---|---|
 | **Item 32 — contrast** | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,080 pairs over 11 seeds × 2 modes in CI |
-| **Rework 1c step 2** | Master & detail settings shell behind `?shell=1`; change dots; derived note; zone bands |
+| **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
 | **Tooling** | `npm run deploy`, `npm run contrast`, `tools/session.mjs` |
@@ -30,12 +34,12 @@ After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
 
 ---
 
-## 2. Two decisions waiting on the user
+## 2. Waiting on the user
 
-1. **Push.** 66 commits + `v0.10.0` unpushed. Prod currently lacks every fix here.
-2. **Release.** Item 32 is a MINOR by the versioning policy but sits in
+1. **Release.** Item 32 is a MINOR by the versioning policy but sits in
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
-   three gates: CI green, smoke green, adversarial release review clean.
+   three gates: CI green (is), smoke green (is), adversarial release review clean
+   (not yet run for this batch).
 
 ---
 
@@ -48,7 +52,7 @@ probes before it existed; do not write a ninth.
 ```js
 import { openDesk, goto, benchPy, settingsDrift, setSettings } from "./tools/session.mjs";
 const { page, close, errors } = await openDesk();
-await goto(page, "/desk/theme-settings?shell=1", ".bnd-shell");
+await goto(page, "/desk/theme-settings", ".bnd-shell");  // shell is the default
 ```
 
 | constant | value |

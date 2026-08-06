@@ -46,9 +46,14 @@ await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); cons
 //
 // Reload rather than sleep longer, because the failure is a stale document
 // and not a slow one.
+// ?shell=0 ON PURPOSE. The shell is the default now, and it shows ONE component
+// at a time — so six of the seven pickers would be in hidden panes and measure as
+// nothing. The fixture records the shape of every picker, which only the stacked
+// form renders all at once. This is not a fallback; it is the right surface for
+// this measurement.
 async function settleOnPinnedState() {
   for (let attempt = 1; attempt <= 3; attempt++) {
-    await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.goto(`${URL_BASE}/desk/theme-settings?shell=0`, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForSelector(".bnd-dgm-slot", { timeout: 30000 });
     await page.waitForTimeout(3500);
     const shown = await page.evaluate(() => {

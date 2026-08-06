@@ -63,8 +63,10 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[x]` **Slice 1c step 2** — master & detail settings form, gated behind `?shell=1` so
-  the stacked form stays the default until this replaces it.
+- `[x]` **Slice 1c step 2** — master & detail settings form. **It is the settings page**
+  as of 2026-08-06; `?shell=0` still reaches the stacked form for any field the shell
+  has not placed. It shipped behind `?shell=1` while half-built, which was right then
+  and wrong the moment it was finished — the work was invisible behind a query string.
   - `[x]` The shell: grouped left list (Bars & panes / Controls / Appearance, 10
     entries), a detail pane showing one component at a time. It **relocates** the
     sections Frappe built rather than drawing a second surface, so "only one surface
