@@ -63,7 +63,7 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[~]` **Slice 1c step 2** — master & detail settings form, gated behind `?shell=1` so
+- `[x]` **Slice 1c step 2** — master & detail settings form, gated behind `?shell=1` so
   the stacked form stays the default until this replaces it.
   - `[x]` The shell: grouped left list (Bars & panes / Controls / Appearance, 10
     entries), a detail pane showing one component at a time. It **relocates** the
