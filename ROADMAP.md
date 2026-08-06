@@ -122,8 +122,23 @@ defect in 0.10.0.
   - **Overview**: every placed component on one desk, each mark a route to its control.
     Read-only on purpose — two ways to set one value is the duplication this rework
     exists to remove
-- `[ ]` **Slice 2** — remaining containers and tenants; `sidebar_quick_links` and
-  `status_in_classic` deleted; the honest-picker rules extended to every component
+- `[~]` **Slice 2** — remaining containers and tenants.
+  - `[x]` **Home and All Apps place themselves** *(2026-08-06)*. They shared one
+    field, `sidebar_quick_links`, which rode the sidebar STYLE kit — so a preset
+    decided where both lived and neither could move alone. Now `home_placement` /
+    `apps_placement`, each with its own desk diagram, the two sidebar
+    sub-positions preserved as distinct slots, and a migration patch. `build.mjs`
+    FIELD_PREFIXES gained `home` and `apps`: that list grows when a component is
+    registered, never to make a build pass
+  - `[ ]` **`status_in_classic` deleted** — the bar is its own component, so a
+    layout-conditional should not gate it. Patch must preserve what Classic sites
+    see: `status_style: "Off"` where they had not opted in. Small; do it first
+  - `[ ]` **The remaining containers** — top bar, bottom bar, side pane, dock each
+    with their own on/off instead of `desk_layout` choosing. **Touches
+    `mount_chrome`**, where every critical defect in this project has lived. The
+    ownership-stamp rule is the thing to keep in front of you
+  - `[ ]` **Honest-picker rules across every component** — `bnd_region_blocker`
+    covers placement; the rest is unaudited
 
 ## Phase 1 — contracts with no design uncertainty
 

@@ -27,9 +27,28 @@ Shipped this session, all committed, all verified:
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
 | **Tooling** | `npm run deploy`, `npm run contrast`, `tools/session.mjs` |
 
-`ROADMAP.md` phase 0 is now: slices 0, 1a, 1b, 1c steps 1–3 all `[x]`.
-**Next up is Slice 2** — remaining containers and tenants; `sidebar_quick_links`
-and `status_in_classic` deleted; honest-picker rules extended to every component.
+`ROADMAP.md` phase 0: slices 0, 1a, 1b and 1c steps 1–3 are `[x]`.
+
+**Slice 2 is one quarter done.** Part 1 shipped: Home and All Apps place
+themselves (`home_placement` / `apps_placement`), `sidebar_quick_links` deleted
+with a migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`.
+
+Remaining, in the order they should be taken:
+
+1. **`status_in_classic` deleted.** The status bar is its own component, so a
+   layout-conditional should not gate it. Needs a patch preserving what Classic
+   sites see today — `status_style: "Off"` wherever they had not opted in.
+   Small and self-contained; do this one first.
+2. **The remaining containers** — top bar, bottom bar, side pane and dock each
+   getting their own on/off, instead of `desk_layout` deciding which mount.
+   **This is the big one and it touches `mount_chrome` in `bunood.js`**, which is
+   where every critical defect in this project has lived (status "Off" deleting
+   the Bottom Bar layout's only route to Log Out; a native affordance hidden from
+   a declaration that outran reality). Start it fresh, not at the end of a long
+   session, and keep the ownership-stamp rule in front of you.
+3. **Honest-picker rules across every component.** Partly there —
+   `bnd_region_blocker` covers placement — but not audited picker by picker.
+
 After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
 
 ---
