@@ -750,7 +750,14 @@ function bnd_shell_wanted() {
 function bnd_shell_setup(frm) {
 	const field = frm.get_field("chrome_shell");
 	if (!field || !field.$wrapper) return;
-	if (!bnd_shell_wanted()) return;
+	if (!bnd_shell_wanted()) {
+		// Hide the host section on the stacked form. The field renders nothing
+		// there, and Frappe cannot mark the section empty by itself — so it drew
+		// a "Desk" heading over a blank strip at the top of the default form,
+		// which is the same empty-heading defect the shell's own panes fixed.
+		field.$wrapper.closest(".form-section").hide();
+		return;
+	}
 	if (field.$wrapper.find(".bnd-shell").length) {
 		// Already built. The sections are where we put them; the selection and
 		// the change marks are the only state that can have gone stale — and the
