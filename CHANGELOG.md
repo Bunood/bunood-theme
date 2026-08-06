@@ -5,6 +5,67 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+## [Unreleased]
+
+### Contrast validation (item 32)
+
+A white-label theme re-derives every surface from a colour the customer
+picks, and nothing was checking the result. The shipped default was
+already failing — white-on-brand at **4.27:1** — and a bright yellow seed
+measured **1.62:1**. Twenty distinct pairs failed at the shipped seed;
+across eight plausible seeds, 153.
+
+**The target is now stated: WCAG 2.2 AA.** 4.5:1 for text, 3:1 for UI
+components, meaningful graphics and the focus ring.
+
+**Nothing is rejected.** A tenant's brand colour is their identity, not a
+preference; refusing it produces a support ticket, not an accessible
+desk. So the seed contributes hue and the system controls lightness — the
+approach Material 3, Radix, Spectrum and Carbon all converge on. The
+brand now has three roles instead of one:
+
+- `--bnd-brand` — washes and hue tints, exactly the seed, unconstrained
+- `--bnd-brand-solid` + `--bnd-on-brand` — opaque fills and their labels,
+  guaranteed 3:1 against every surface *and* 4.5:1 under the label
+- `--bnd-brand-ink` — the brand written as text, 4.5:1 against every surface
+
+A yellow seed keeps its yellow and gets dark labels. A seed in the narrow
+band where neither white nor dark ink can reach 4.5:1 — where the shipped
+default sits — gets a fill shifted by a few percent. Theme Settings
+reports which, on save; it never blocks a colour.
+
+**`--bnd-ink-subtle` moved rather than being documented away.** At 2.61:1
+it was a text token that never passed as text, on 14 real text rules. It
+is now fitted to 4.5:1, and `--bnd-ink-muted` to 7:1 so the ramp still
+reads as three levels. `--bnd-warn` (4.01:1 as status text) and the
+dark-mode focus ring were fitted too.
+
+Because the surfaces are seed-tinted, a fixed value cannot solve this:
+measured across eight seeds, `ink-subtle` failed in 96 of 96 placements.
+The inks are therefore derived per tenant, by the same `palette.derive()`
+that CI measures — so the gate is not checking a copy of the design.
+
+**Mechanized:** `npm run contrast` (and a CI step) recomputes 1,080 pairs
+over 11 seeds × 2 modes plus the no-brand-stylesheet fallback — plausible
+brand colours plus pure white, pure black and mid grey — parses the
+values out of `_tokens.scss` rather than restating them, and asserts the
+static defaults equal the derivation. The smoke suite feeds live
+`getComputedStyle` values to the same implementation, so the enforced
+numbers stay tied to pixels.
+
+Two pairs are measured and deliberately not enforced, with their ratios
+published: `--bnd-border` (1.22:1, a separator) and `--bnd-border-strong`
+(1.45:1, a hover accent that always accompanies a background change).
+Whether a control needs a 3:1 resting boundary is a per-component
+question for item 34. The sidebar style kit's own 8-preset palette is
+also outside the gate — fixed values, so no per-tenant risk, but
+unmeasured; also item 34.
+
+Visible changes: muted and subtle text are darker in light mode and
+lighter in dark; the brand green shifts by about one shade where it is
+painted as a fill or written as text; the dark-mode unread badge takes a
+neutral near-black ink instead of the hand-tuned `#2b0f0c`.
+
 ## [0.10.0] — 2026-08-01 — Status bar kit + search placement (item 14)
 
 Two settings, deliberately separate — because the previous arrangement

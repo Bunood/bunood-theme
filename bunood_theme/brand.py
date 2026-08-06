@@ -39,6 +39,8 @@ import os
 
 import frappe
 
+from bunood_theme import palette
+
 #: Subdirectory under the site's ``public/files``. Kept in its own folder so reaping
 #: can glob safely without touching user uploads.
 BRAND_DIR = "bunood"
@@ -50,17 +52,28 @@ BRAND_STEM = "brand_"
 def render_brand_css(settings=None) -> str:
     """Build the CSS text for the current Theme Settings.
 
-    Emits three blocks, and the split matters:
+    Emits four blocks, and the split matters:
 
     * ``:root`` — mode-independent tokens (the raw seeds, spacing, radii).
     * ``html[data-theme="light"]`` / ``html[data-theme="dark"]`` — the light and dark
       *derived* steps. Dark is SELECTED, not computed by lightening light: the
       customer may supply explicit dark seeds, and where they do not we derive from a
       dark surface rather than flipping the light values.
+    * ``@media (prefers-color-scheme: dark) html[data-theme="automatic"]`` — the
+      same dark values, for the mode Frappe accepts but ships no rules for.
 
-    Every derived value uses ``color-mix()`` so one seed produces a coherent scale for
-    whatever colour a customer picks — the alternative, hand-authoring 12 steps per
-    tenant, does not scale for a white-label product.
+    One seed produces a coherent scale for whatever colour a customer picks — the
+    alternative, hand-authoring 12 steps per tenant, does not scale for a
+    white-label product.
+
+    CONTRAST IS GUARANTEED HERE, NOT HOPED FOR (checklist item 32). Before this,
+    every surface was re-derived from the seed and nothing validated the result:
+    a yellow seed measured 1.62:1 for white-on-brand, and the SHIPPED default was
+    already failing at 4.27:1. :mod:`bunood_theme.palette` now fits each ink and
+    fill to the surfaces the seed actually produces, so the ratios hold for any
+    colour a tenant enters. Values are emitted as concrete hex rather than live
+    ``color-mix()`` for exactly that reason: what CI measured and what the browser
+    paints are then the same string.
 
     Args:
         settings: an optional pre-fetched Theme Settings document, to avoid a second
@@ -93,6 +106,27 @@ def render_brand_css(settings=None) -> str:
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;"""
 
+    # Every seed-dependent value comes from palette.derive — the SAME function
+    # tools/contrast_gate.py measures in CI. This file formats; it does not
+    # decide. A colour computed here and merely checked there would be a check on
+    # a copy, and the copy is what would drift.
+    #
+    # A bad seed degrades to the compiled bundle's defaults rather than to an
+    # illegible desk: derive() raises only when no fill can satisfy both
+    # constraints, write_brand_css catches, and context.py appends nothing.
+    try:
+        light = palette.derive(brand, accent, "light")
+        dark = palette.derive(brand_dark, accent_dark, "dark")
+    except ValueError:
+        frappe.log_error("bunood_theme.brand: seed rejected by palette.derive")
+        raise
+
+    def block(tokens: dict, indent: str = "  ") -> str:
+        # Sorted, so a colour change produces a diff of the values that changed
+        # rather than a reshuffle. The file is regenerated wholesale on every
+        # save; stable ordering is what makes it readable when debugging one.
+        return "\n".join(f"{indent}{k}: {v};" for k, v in sorted(tokens.items()))
+
     # The whole sheet is @media screen — deliberately. This file loads AFTER the
     # compiled bundle and its mode blocks tie the bundle's selectors at (0,1,1),
     # so later-sheet-wins would let a dark brand value beat the bundle's
@@ -100,30 +134,27 @@ def render_brand_css(settings=None) -> str:
     # stayed dark in print emulation until this wrapper existed). Brand colour
     # is a screen concern; on paper the bundle's print block owns every token
     # unopposed, with no !important anywhere.
+    #
+    # The `automatic` block is emitted too, and that is not decoration. Frappe
+    # accepts "Automatic" for User.desk_theme and ships no prefers-color-scheme
+    # rules at all; _tokens.scss supplies the fallback, but without this block a
+    # tenant's own colours would stop at the mode boundary and an Automatic user
+    # on a dark OS would see the SHIPPED green rather than theirs.
     return f"""@media screen {{
 :root {{
   --bnd-brand:  {brand};
   --bnd-accent: {accent};{density}
 }}
 html[data-theme="light"], html:not([data-theme]) {{
-  --bnd-brand:  {brand};
-  --bnd-accent: {accent};
-  --bnd-page:    color-mix(in srgb, {brand} 4%, #ffffff);
-  --bnd-surface: #ffffff;
-  --bnd-raised:  color-mix(in srgb, {brand} 2%, #ffffff);
-  --bnd-pane:    color-mix(in srgb, {brand} 8%, #ffffff);
-  --bnd-hover:   color-mix(in srgb, {brand} 7%, #ffffff);
-  --bnd-active:  color-mix(in srgb, {brand} 14%, #ffffff);
+{block(light)}
 }}
 html[data-theme="dark"] {{
-  --bnd-brand:  {brand_dark};
-  --bnd-accent: {accent_dark};
-  --bnd-page:    color-mix(in srgb, {brand_dark} 6%, #101317);
-  --bnd-surface: color-mix(in srgb, {brand_dark} 8%, #171a20);
-  --bnd-raised:  color-mix(in srgb, {brand_dark} 10%, #1b1f25);
-  --bnd-pane:    color-mix(in srgb, {brand_dark} 16%, #14171b);
-  --bnd-hover:   color-mix(in srgb, {brand_dark} 14%, #21252b);
-  --bnd-active:  color-mix(in srgb, {brand_dark} 22%, #181c21);
+{block(dark)}
+}}
+@media (prefers-color-scheme: dark) {{
+  html[data-theme="automatic"] {{
+{block(dark, "    ")}
+  }}
 }}
 }}
 """

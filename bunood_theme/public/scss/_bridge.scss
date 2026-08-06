@@ -65,10 +65,19 @@
   // Frappe's `--primary` defaults to `--gray-900`, i.e. near-black buttons.
   // Pointing it at the brand seed is what turns a stock desk into a branded one
   // in a single line.
-  --primary: var(--bnd-brand);
-  --primary-color: var(--bnd-brand);
-  --border-primary: var(--bnd-brand);
-  --progress-bar-bg: var(--bnd-brand);
+  // Split by ROLE, because Frappe overloads both names. `--primary` and
+  // `--primary-color` are written as TEXT in its own SCSS (report.scss:358,
+  // global_search.scss:339) as well as painted as fills, so they get the
+  // stricter 4.5:1 token; a border and a progress fill only need 3:1 and get
+  // the fill token, which stays closer to the tenant's actual colour.
+  //
+  // Frappe's primary BUTTON is not here: it reads `--btn-primary`, which this
+  // bridge does not map at all, so primary buttons stay Frappe's neutral grey.
+  // That is a branding gap, not a contrast one - noted, not fixed here.
+  --primary: var(--bnd-brand-ink);
+  --primary-color: var(--bnd-brand-ink);
+  --border-primary: var(--bnd-brand-solid);
+  --progress-bar-bg: var(--bnd-brand-solid);
 
   // ── Component metrics ─────────────────────────────────────────────────────
   // Density flows through here, which is why density is authored as token

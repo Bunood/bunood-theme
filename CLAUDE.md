@@ -21,6 +21,10 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 
 - **Logical properties only.** Build-enforced.
 - **Tokens, never raw hex/px in a rule.** New tokens go in `_tokens.scss`, documented.
+- **A colour token has one role.** The brand is three tokens — wash / fill+ink / text —
+  because the three have different contrast requirements. Never paint with the raw seed.
+  Adding or re-stepping a colour means running `npm run contrast`; it is build-enforced
+  that `_tokens.scss` matches `palette.derive()`.
 - **Frappe variables only inside `[data-theme]`.** A neutral in bare `:root` is the
   light-leaks-into-dark bug.
 - **`!important`** only in the two sanctioned places.
@@ -57,11 +61,18 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - `tools/verify.mjs` · `tools/fingerprint.mjs` — the suite runner and the shape
   capture. Regenerate the fixture *deliberately* after an intended change.
 - `build.mjs` — RTL, ownership polarity, field naming, registry identity guards.
-- Coverage checklist and release policy live in the assistant memory for this
-  project, not in a repo. See GUIDELINES §2.1 — that is itself governance drift.
+- `contrast.py` (colour maths) · `palette.py` (the seed-dependent token set) ·
+  `tools/contrast_gate.py` (`npm run contrast`). One derivation, two consumers:
+  `brand.py` formats it, the gate measures it. Never reimplement either in JS.
+- `ROADMAP.md` — the 38 items and the phase order. It used to live only in assistant
+  memory; GUIDELINES §2.1 records why that was governance drift.
 
 ## Open, from the audit
 
-Contrast has no stated target and the default seed already fails white-on-brand
-(4.27:1). Accessibility is present in the components but asserted nowhere. Bidi
-isolation is absent. Payload is unmeasured. Item 7 (RTL **and** Arabic) is reopened.
+Accessibility is present in the components but asserted nowhere. Bidi isolation is
+absent. Payload is unmeasured. Item 7 (RTL **and** Arabic) is reopened.
+
+Contrast is **closed** (item 32, 2026-08-06): WCAG 2.2 AA, enforced by
+`npm run contrast` over 11 seeds x 2 modes. Two things it handed to item 34 — whether a
+1.22:1 resting hairline identifies a control, and the sidebar kit's own palette — are
+measured and published but not enforced.

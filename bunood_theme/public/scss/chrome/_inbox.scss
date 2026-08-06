@@ -210,7 +210,7 @@ html[data-theme] .bnd-inbox-headcount {
   padding-inline: var(--bnd-sp-1);
   border-radius: var(--bnd-radius-pill);
   background: var(--bnd-active);
-  color: var(--bnd-brand);
+  color: var(--bnd-brand-ink);
   font-size: var(--bnd-text-xs);
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -291,7 +291,7 @@ html[data-theme] .bnd-inbox-tab {
 
 html[data-theme] .bnd-inbox-tab-on {
   color: var(--bnd-ink);
-  border-block-end-color: var(--bnd-brand);
+  border-block-end-color: var(--bnd-brand-solid);
 }
 
 html[data-theme] .bnd-inbox-list {
@@ -337,7 +337,7 @@ html[data-theme] .bnd-inbox-unread {
   color: var(--bnd-ink);
 
   .bnd-inbox-dot {
-    background: var(--bnd-brand);
+    background: var(--bnd-brand-solid);
   }
 }
 
@@ -509,7 +509,7 @@ html[data-theme] .bnd-inbox-btn {
 
 html[data-theme] .bnd-inbox-btn-primary {
   background: var(--bnd-active);
-  color: var(--bnd-brand);
+  color: var(--bnd-brand-ink);
   border-color: transparent;
 }
 

@@ -27,7 +27,7 @@
  *   BND_URL=... BND_SITE=... BND_BACKEND=... node tests/smoke.mjs
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
@@ -1875,6 +1875,61 @@ async function main() {
 				expectEq(faults.length, 0, `${layout}/${style}: ${faults.slice(0, 3).join(" | ")}`);
 			}
 			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+		});
+
+		// ── Contrast, measured on the rendered desk (item 32) ──────────────
+		await test("rendered tokens clear WCAG 2.2 AA in both modes", async () => {
+			// The contrast gate in CI measures a MODEL of the stylesheet. This
+			// measures the desk: it reads what getComputedStyle actually resolved
+			// and hands those values to the SAME Python implementation, so the
+			// ratios CI enforces are tied to pixels at least once per run. A
+			// token shadowed by a Frappe rule, lost to a typo, or one that never
+			// reaches the element is invisible to the model and caught here.
+			await goDesk("/desk/item", ".page-head", 3000);
+			const computed = await page.evaluate(() => {
+				const html = document.documentElement;
+				const before = html.getAttribute("data-theme");
+				// Collect every --bnd-* the theme declares anywhere, then resolve
+				// each one per mode against the live element.
+				const names = new Set();
+				for (const sheet of Array.from(document.styleSheets)) {
+					let rules;
+					try {
+						rules = sheet.cssRules;
+					} catch {
+						continue; // cross-origin sheet; nothing of ours is there
+					}
+					const walk = (list) => {
+						for (const rule of Array.from(list || [])) {
+							for (const prop of Array.from(rule.style || [])) {
+								if (prop.startsWith("--bnd-")) names.add(prop);
+							}
+							if (rule.cssRules) walk(rule.cssRules); // @media
+						}
+					};
+					walk(rules);
+				}
+				const out = { light: {}, dark: {} };
+				for (const mode of ["light", "dark"]) {
+					html.setAttribute("data-theme", mode);
+					const cs = getComputedStyle(html);
+					for (const n of names) out[mode][n] = cs.getPropertyValue(n).trim();
+				}
+				if (before === null) html.removeAttribute("data-theme");
+				else html.setAttribute("data-theme", before);
+				return out;
+			});
+
+			for (const mode of ["light", "dark"]) {
+				const n = Object.values(computed[mode]).filter(Boolean).length;
+				expect(n > 20, `${mode}: only ${n} --bnd-* tokens resolved to a value`);
+			}
+
+			const gate = spawnSync("node", ["tools/contrast.mjs", "--check-computed"], {
+				input: JSON.stringify(computed),
+				encoding: "utf8",
+			});
+			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
 		// ── Console error budget ───────────────────────────────────────────

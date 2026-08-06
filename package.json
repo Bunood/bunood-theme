@@ -8,7 +8,8 @@
 		"build": "node build.mjs",
 		"watch": "node --watch-path=./bunood_theme/public/scss build.mjs",
 		"test": "node tests/smoke.mjs",
-		"verify": "node tools/verify.mjs"
+		"verify": "node tools/verify.mjs",
+		"contrast": "node tools/contrast.mjs"
 	},
 	"devDependencies": {
 		"playwright": "^1.62.1",

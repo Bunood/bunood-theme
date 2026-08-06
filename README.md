@@ -44,13 +44,24 @@ forks, no `@layer`, no `?v=` cache-busters, and (almost) no `!important`.
 - **RTL** — logical properties only, enforced by a build-time guard that
   fails the build on any physical property. One sheet serves LTR and Arabic
   with no rtlcss pass.
+- **Contrast** — WCAG 2.2 AA, guaranteed for *any* brand colour a tenant
+  enters, not just the shipped one. The seed contributes hue; the theme fits
+  the lightness of each fill and ink against the surfaces that seed produces.
+  Nothing is ever rejected — a bright yellow keeps its yellow and gets dark
+  labels. Enforced in CI over 11 seeds in both modes.
 
 ## Quick start
 
 ```bash
 npm install          # dart-sass, dev only
 npm run build        # SCSS -> hashed CSS, regenerates bunood_theme/assets.py
+npm run contrast     # WCAG 2.2 AA over every brand seed a tenant could enter
+npm run verify       # the browser suite; needs the local stack running
 ```
+
+`npm run contrast` needs a Python interpreter — it imports the same
+`bunood_theme.palette` the server runs, rather than a second copy of the maths
+in JavaScript. `npm run build` needs only Node.
 
 ```bash
 bench get-app bunood_theme /path/to/bunood-theme

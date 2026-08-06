@@ -93,15 +93,21 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
   - **(d) Translation** — no `translations/` exists; 356 strings. Glossary against
     ERPNext core's `ar.csv` first, or the desk speaks two vocabularies.
   - **(e) Gate** — render in `ar`, assert no theme-owned source string appears verbatim.
-- `[ ]` **32 · Contrast validation** — the single open finding that ships a defect to a
-  tenant rather than a cost to us. The default seed already fails white-on-brand at
-  **4.27:1**; `brand.py` re-derives every surface from a customer-chosen seed and
-  nothing validates it (a yellow seed measures **1.62:1**). Derive the on-brand ink
-  from the seed's luminance instead of assuming white, guard at the point the seed is
-  accepted, and state the target (WCAG 2.2 AA). See GUIDELINES §2.2.
+- `[x]` **32 · Contrast validation** — *done 2026-08-06.* Target stated (WCAG 2.2 AA);
+  the brand split into three roles so the seed contributes hue and the system controls
+  lightness; inks fitted per tenant against the surfaces that seed produces, because
+  seed-tinted surfaces mean no fixed value can pass for every seed (`ink-subtle` failed
+  96 of 96 placements). `npm run contrast` recomputes 1,080 pairs over 11 seeds × 2 modes
+  plus the no-brand-sheet fallback, in CI; the smoke suite ties it to rendered pixels.
+  Nothing is ever rejected — Theme Settings reports what it adjusted. See GUIDELINES
+  §2.2 "RESOLVED".
 - `[ ]` **34a · Accessibility assertions for the components that already exist** — the
   kits already use ARIA and handle Esc; none of it is asserted. Focus contracts on the
   palette and inbox are cheap because the harness already drives them. See §2.3.
+  **Item 32 handed two things to this one:** (a) whether a control whose resting
+  boundary is a 1.22:1 hairline is identifiable at all — a per-component judgement, not
+  a token value; (b) the sidebar style kit's own 8-preset palette, which is outside the
+  contrast gate. Both are measured and published, neither is enforced.
 - `[ ]` **Payload budget** *(from GUIDELINES §2.5, not a numbered item)* — record CSS
   and JS bytes in each release commit and set a ceiling that requires a decision to
   cross. Currently 78 KB / 183 KB, unmeasured across every release so far.

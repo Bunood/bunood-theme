@@ -58,7 +58,7 @@ html[data-bnd-sb-color="theme"] {
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
   --bnd-sb-card-base: var(--bnd-surface);
-  --bnd-sb-active-ink: var(--bnd-ink-inverse);
+  --bnd-sb-active-ink: var(--bnd-on-brand);
 }
 
 html[data-bnd-sb-color="minimal"] {
@@ -248,8 +248,8 @@ html[data-bnd-sb-color] .bnd-sb-brand {
     inline-size: 24px;
     block-size: 24px;
     border-radius: var(--bnd-radius-md);
-    background: var(--bnd-brand);
-    color: var(--bnd-ink-inverse);
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
     font-size: var(--bnd-text-sm);
     flex: none;
   }
@@ -342,7 +342,7 @@ html[data-bnd-sb-icons="duotone"] .bnd-sb-chip {
 html[data-bnd-sb-icons="brandlines"] .body-sidebar .sidebar-item-icon,
 html[data-bnd-sb-icons="brandlines"] .bnd-sb-chip {
   background: transparent;
-  color: var(--bnd-brand);
+  color: var(--bnd-brand-ink);
 }
 
 html[data-bnd-sb-icons="mono"] .body-sidebar .sidebar-item-icon,
@@ -371,7 +371,7 @@ html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
 // All variants target the native .active-sidebar marker. --bnd-sb-accent is
 // the hue-aware accent: the section hue when washing is on, brand otherwise.
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item.active-sidebar {
-  --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand));
+  --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand-solid));
   color: var(--bnd-sb-ink);
   font-weight: var(--bnd-weight-medium);
 }
@@ -536,7 +536,7 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-header {
   }
 
   .icon-container {
-    background: var(--bnd-brand) !important; // beats Frappe's INLINE style (the 2nd documented legitimate use)
+    background: var(--bnd-brand-solid) !important; // beats Frappe's INLINE style (the 2nd documented legitimate use)
     border-radius: var(--bnd-radius-md);
   }
 }
@@ -659,7 +659,7 @@ html[data-bnd-rail] .bnd-sb-pin {
   }
 }
 html[data-bnd-rail] .bnd-rail-pinned .bnd-sb-pin {
-  color: var(--bnd-brand);
+  color: var(--bnd-brand-ink);
 }
 
 // Hide Frappe's own collapse toggle in rail modes — the rail IS the
@@ -715,21 +715,21 @@ html[data-bnd-sb-appsrail] .bnd-apps-rail {
 
     &.bnd-active {
       background: color-mix(in srgb, var(--bnd-brand) 20%, transparent);
-      color: var(--bnd-brand);
+      color: var(--bnd-brand-ink);
       box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bnd-brand) 45%, transparent);
     }
   }
 
   // The brand chip anchors the rail's identity, same as the dock's.
   .bnd-apps-rail-brand {
-    background: var(--bnd-brand);
-    color: var(--bnd-ink-inverse);
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
     font-weight: var(--bnd-weight-medium);
     font-size: var(--bnd-text-sm);
 
     &:hover {
-      background: var(--bnd-brand);
-      color: var(--bnd-ink-inverse);
+      background: var(--bnd-brand-solid);
+      color: var(--bnd-on-brand);
       filter: brightness(1.08);
     }
   }

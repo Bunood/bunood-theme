@@ -83,21 +83,21 @@ html[data-theme] .bnd-dock-item {
   // Active workspace: brand-tinted, same signal the sidebar would have given.
   &.bnd-active {
     background: var(--bnd-active);
-    color: var(--bnd-brand);
+    color: var(--bnd-brand-ink);
   }
 }
 
 // Brand chip: the company mark; routes to the Desktop. Filled with the brand
 // colour so the dock carries identity now that the sidebar header is gone.
 html[data-theme] .bnd-dock-brand {
-  background: var(--bnd-brand);
-  color: var(--bnd-ink-inverse);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
   font-weight: var(--bnd-weight-medium);
   font-size: var(--bnd-text-md);
 
   &:hover {
-    background: var(--bnd-brand);
-    color: var(--bnd-ink-inverse);
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
     filter: brightness(1.08);
   }
 }

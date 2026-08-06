@@ -67,3 +67,10 @@ jobs:
 
       - name: Python syntax
         run: python3 -m compileall -q bunood_theme/
+
+      # Recomputes every pair the token contract creates, for eight brand seeds
+      # in both modes, plus the no-brand-stylesheet fallback — and asserts that
+      # _tokens.scss still agrees with palette.derive. Pure stdlib: no site, no
+      # database, no Frappe. See GUIDELINES section 2.2.
+      - name: Contrast (WCAG 2.2 AA)
+        run: npm run contrast

@@ -37,6 +37,30 @@
   --bnd-brand: #4d8756;
   --bnd-accent: #4463f0;
 
+  // ── The brand's three roles (checklist item 32) ───────────────────────────
+  // THE SEED IS NOT A COLOUR YOU CAN PAINT WITH. It is a hue the tenant chose,
+  // and the same hue cannot serve as a wash, a fill and a text colour: each has
+  // a different contrast requirement, and at the shipped seed the raw value
+  // fails two of the three (white-on-brand 4.27:1, brand-as-text 4.27:1).
+  //
+  //   --bnd-brand        the seed, untouched. Alpha washes and hue tints only —
+  //                      nothing is read on it, so nothing constrains it, and a
+  //                      tenant inspecting the CSS finds the hex they pasted in.
+  //   --bnd-brand-solid  opaque fills: the dock chip, the sidebar's active item,
+  //                      the inbox unread dot. Guaranteed 3:1 against every
+  //                      surface AND 4.5:1 under --bnd-on-brand.
+  //   --bnd-on-brand     what to write on --bnd-brand-solid. NOT always white:
+  //                      a yellow seed keeps its yellow and takes dark ink.
+  //   --bnd-brand-ink    the brand written as text. 4.5:1 against every surface,
+  //                      which is a stricter bar than a fill has to clear.
+  //
+  // These are FITTED values, not formulas — the output of a search in
+  // `palette.py`, restated here because this file must render with no per-site
+  // stylesheet. `tools/contrast_gate.py` fails if the two ever disagree.
+  --bnd-brand-solid: #4a8253;
+  --bnd-on-brand: #ffffff;
+  --bnd-brand-ink: #44764b;
+
   // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
   --bnd-surface: #ffffff;
@@ -46,9 +70,25 @@
   --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
 
   // ── Ink ───────────────────────────────────────────────────────────────────
+  // Three levels, all three LEGIBLE. `--bnd-ink-subtle` used to be #9aa1ab and
+  // measured 2.61:1 on white — a text token that never passed as text, on 14
+  // real text rules across the palette, breadcrumbs, inbox, navbar, status bar
+  // and cluster. It is now fitted to 4.5:1 and `--bnd-ink-muted` to 7:1, which
+  // keeps the ramp reading as primary / secondary / tertiary rather than
+  // collapsing the two lower steps together. See palette.py's INK_MUTED_TARGET.
+  //
+  // The values are fitted against the DARKEST surface each is placed on, which
+  // is seed-dependent — so brand.py re-derives them per tenant and these are the
+  // shipped-seed answers.
   --bnd-ink: #16181d;
-  --bnd-ink-muted: #6b7280;
-  --bnd-ink-subtle: #9aa1ab;
+  --bnd-ink-muted: #4a4e58;
+  --bnd-ink-subtle: #676b72;
+  // Plain white, for ink on a known-dark surface. It is NO LONGER the answer to
+  // "what goes on a brand fill" — that is --bnd-on-brand, which is derived and
+  // is not always white. Every former consumer here moved on 2026-08-06 (item
+  // 32) and this now has zero in-repo callers, verified by grep; it is kept
+  // because token names are a contract Layer 3/4 may consume, and removing one
+  // is a breaking change (GUIDELINES 1.4). Do not reach for it for a brand fill.
   --bnd-ink-inverse: #ffffff;
 
   // ── Lines ─────────────────────────────────────────────────────────────────
@@ -195,8 +235,9 @@
   // Never reused as a categorical slot, and never the only signal: always ship
   // an icon and a label alongside, so state survives colour-blindness and
   // greyscale printing.
+  // --bnd-warn was #b06f00 and measured 4.01:1 as text on --bnd-raised. Fitted.
   --bnd-good: #1a7f45;
-  --bnd-warn: #b06f00;
+  --bnd-warn: #965f00;
   --bnd-serious: #c2410c;
   --bnd-critical: #b42318;
   // Foreground for anything filled with --bnd-critical (the unread badge).
@@ -219,8 +260,20 @@ html[data-theme="dark"] {
   --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
 
   --bnd-ink: #e8eaec;
-  --bnd-ink-muted: #9aa1ab;
-  --bnd-ink-subtle: #6b7280;
+  --bnd-ink-muted: #b9bec5;
+  --bnd-ink-subtle: #9298a2;
+
+  // Dark mode takes the OTHER branch of the fill derivation: darkening the seed
+  // so white text clears 4.5:1 would push it toward the dark surfaces and cost
+  // the 3:1 it needs to be seen at all (measured 2.98:1 against --bnd-hover). So
+  // the fill is LIGHTENED and takes dark ink instead. Both constraints are
+  // solved together for exactly this reason — see contrast.fill_pair.
+  --bnd-brand-solid: #558d5e;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #76a27c;
+
+  // The focus ring has to clear 3:1 on every dark surface; #4463f0 does not.
+  --bnd-accent: #516ef1;
 
   --bnd-border: rgba(255, 255, 255, 0.1);
   --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -244,7 +297,10 @@ html[data-theme="dark"] {
   --bnd-warn: #e0a33a;
   --bnd-serious: #f08a5d;
   --bnd-critical: #f2736a;
-  --bnd-on-critical: #2b0f0c;
+  // Was #2b0f0c — a warm near-black tuned by eye to sit on the red. It passed,
+  // but it was the one ink chosen by hand rather than derived, and keeping a
+  // special case alive costs more than the half-shade it bought.
+  --bnd-on-critical: #16181d;
 }
 
 // ── "Automatic" — compensating for a Frappe bug ─────────────────────────────
@@ -262,8 +318,13 @@ html[data-theme="dark"] {
     --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
     --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
     --bnd-ink: #e8eaec;
-    --bnd-ink-muted: #9aa1ab;
-    --bnd-ink-subtle: #6b7280;
+    --bnd-ink-muted: #b9bec5;
+    --bnd-ink-subtle: #9298a2;
+    --bnd-brand-solid: #558d5e;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #76a27c;
+    --bnd-accent: #516ef1;
+    --bnd-on-critical: #16181d;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);
   }
