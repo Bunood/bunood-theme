@@ -1,5 +1,9 @@
 # Working contract — read this before acting
 
+**Starting a fresh session? Read [HANDOVER.md](HANDOVER.md) first** — the state of
+play, the stack's constants, the open decisions, and the facts that have cost time
+to rediscover. This file is the standing rules; that one is where things stand.
+
 `GUIDELINES.md` is the doctrine and the audit. This is the short form: what to do
 every turn, and the traps this repo has actually fallen into. If the two ever
 disagree, GUIDELINES wins and this file is stale — fix it.
@@ -66,6 +70,12 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   critical. One table, several consumers.
 - `tools/verify.mjs` · `tools/fingerprint.mjs` — the suite runner and the shape
   capture. Regenerate the fixture *deliberately* after an intended change.
+- `tools/session.mjs` — the stack's constants and an authenticated browser
+  session. **Use it for any ad-hoc probe.** The forty lines it replaces were
+  retyped into eight throwaway scripts in one session before it existed.
+- `tools/deploy.sh` (`npm run deploy`) — build, ship to all five containers,
+  mirror to WSL, restart only when hashes moved, and fail if the stack is not
+  serving the build it just made.
 - `build.mjs` — RTL, ownership polarity, field naming, registry identity guards.
 - `contrast.py` (colour maths) · `palette.py` (the seed-dependent token set) ·
   `tools/contrast_gate.py` (`npm run contrast`). One derivation, two consumers:
