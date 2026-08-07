@@ -7,6 +7,45 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Saving Theme Settings no longer dies with "modified after you have opened it"
+
+Reported repeatedly and never reproduced until now, because the test that
+was supposed to cover it worked around the bug: it calls `reload_doc()`
+first — literally what the error message tells you to do — and runs on
+`?shell=0` rather than the shell people use. Green throughout.
+
+**The cause.** `frappe.db.set_single_value` bumps `modified` unless told
+not to, and `setup._seed_defaults` runs on **every** `after_migrate`,
+writing any field that is empty and any Check whose row is absent. So any
+upgrade that ADDS a field gave the document a new timestamp, every open
+Theme Settings form went stale, and the admin's next save died. The
+container split added four fields in one session and produced it four
+times.
+
+**The fix.** Seeding and every migration patch now write with
+`update_modified=False`. The values still land; the claim that a human
+made them does not. `modified` means "when a user last changed this", and
+it is what Frappe's optimistic-concurrency check compares — recording
+housekeeping as the user's edit was both untrue and the thing that broke
+their form. `write_brand_css` has done this since 2026-07-30; it was the
+only place that did.
+
+**The error message misleads, which cost time.** It prints
+`(previous.modified, self.modified)`, but `self.modified` has already been
+reset to *now* by `set_user_and_timestamp()`. The second number is never
+what the form sent — the comparison is against `_original_modified`, which
+is never shown. Read literally it says the client is ahead of the
+database, which is the opposite of what is happening.
+
+Reproduced before fixing (form open, one seeding-shaped write, save →
+the exact error), and the same reproduction now runs a full
+`after_migrate` with the form open and saves cleanly.
+
+The new check drives the real seeder rather than an imitation, on the real
+shell, with no reload. Inserting it also exposed that `live preview` never
+navigated — it inherited whichever page ran before it — so that test now
+states what it needs instead of depending on its neighbour.
+
 ### The dock and the side pane become containers (rework slice 2c, 3 and 5)
 
 `dock_enabled` and `sidebar_enabled`. **Containers are independent** — turn

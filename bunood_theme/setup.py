@@ -203,13 +203,33 @@ def _seed_defaults() -> None:
     Uses ``set_single_value`` rather than ``doc.save()`` deliberately: saving would fire
     ``on_update``, which regenerates the brand CSS, which we are about to do once
     anyway — and during ``after_install`` the document may not be fully constructed.
+
+    ``update_modified=False`` ON EVERY WRITE HERE, AND IT IS NOT AN OPTIMISATION
+        ``set_single_value`` bumps ``modified`` unless told not to, and this runs
+        on **every** ``after_migrate``. Any upgrade that adds a field therefore
+        gave the document a new timestamp — so every Theme Settings form that
+        happened to be open anywhere became stale, and the admin's next save
+        died with:
+
+            Theme Settings has been modified after you have opened it
+            (…, …). Please refresh to get the latest document.
+
+        Reported repeatedly, and reproduced on 2026-08-07 by opening the form,
+        performing one seeding-shaped write, and saving. The container split
+        added four fields in one session and so produced it four times.
+
+        ``modified`` means "when a user last changed this", and it is what
+        Frappe's optimistic-concurrency check compares. Seeding fills values the
+        user never set; recording it as their edit is both untrue and the thing
+        that breaks their open form. The values still land — only the claim that
+        a human made them does not.
     """
     try:
         if not frappe.db.exists("DocType", "Theme Settings"):
             return  # pre-migrate; nothing to seed yet
         for field, value in DEFAULTS.items():
             if not frappe.db.get_single_value("Theme Settings", field):
-                frappe.db.set_single_value("Theme Settings", field, value)
+                frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
         # Default-on Checks: seed ONLY the never-written state, so an admin
         # who turned one off stays off across migrates. get_single_value is
         # useless here — it CASTS a missing Check to 0 (verified live), so
@@ -223,7 +243,7 @@ def _seed_defaults() -> None:
         }
         for field, value in CHECK_DEFAULTS.items():
             if field not in stored:
-                frappe.db.set_single_value("Theme Settings", field, value)
+                frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
         frappe.db.commit()
     except Exception as e:
         # Never let seeding block an install or a migrate.

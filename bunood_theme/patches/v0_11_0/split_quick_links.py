@@ -54,7 +54,7 @@ def execute() -> None:
 
     value = old if old in KNOWN else "Sidebar Top"
     for field in ("home_placement", "apps_placement"):
-        frappe.db.set_single_value("Theme Settings", field, value)
+        frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
 
     # Leave the old row in place. It costs one row, it is the only record of
     # what the site chose before the split, and deleting data in a patch that

@@ -64,7 +64,11 @@ def execute() -> None:
     # constant into a patch, which must go on meaning the same thing years
     # after `DEFAULT_DESK_LAYOUT` may have moved.
     layout = _single("desk_layout") or _LAYOUT_WITH_TOPBAR
+    # update_modified=False: a migration is not a user's edit, and bumping
+    # `modified` strands every open Theme Settings form — its next save dies
+    # with TimestampMismatchError. See setup._seed_defaults for the full
+    # account; reproduced 2026-08-07.
     frappe.db.set_single_value(
-        "Theme Settings", "topbar_enabled", int(layout == _LAYOUT_WITH_TOPBAR)
+        "Theme Settings", "topbar_enabled", int(layout == _LAYOUT_WITH_TOPBAR), update_modified=False
     )
     frappe.db.commit()

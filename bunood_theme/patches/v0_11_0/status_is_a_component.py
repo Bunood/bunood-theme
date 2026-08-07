@@ -57,7 +57,7 @@ def execute() -> None:
 
     layout = _single("desk_layout") or "Top Bar"
     if layout == "Classic" and not frappe.utils.cint(opted_in):
-        frappe.db.set_single_value("Theme Settings", "status_style", "Off")
+        frappe.db.set_single_value("Theme Settings", "status_style", "Off", update_modified=False)
 
     # The old row is left in place: it costs one row and it is the only record
     # of what the site chose. Deleting data in the same patch that replaces it

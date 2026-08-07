@@ -68,8 +68,8 @@ def execute():
     layout = frappe.db.get_single_value("Theme Settings", "desk_layout")
     inbox, user = RENDERED.get(layout, FALLBACK)
 
-    frappe.db.set_single_value("Theme Settings", "inbox_placement", inbox)
-    frappe.db.set_single_value("Theme Settings", "user_placement", user)
+    frappe.db.set_single_value("Theme Settings", "inbox_placement", inbox, update_modified=False)
+    frappe.db.set_single_value("Theme Settings", "user_placement", user, update_modified=False)
     frappe.db.commit()
 
     print(f"bunood_theme: placement seeded from layout {layout!r} -> bell {inbox!r}, user {user!r}")

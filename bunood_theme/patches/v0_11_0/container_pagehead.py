@@ -61,7 +61,11 @@ def execute() -> None:
         return
 
     layout = _single("desk_layout") or _SHIPPED_LAYOUT
+    # update_modified=False: a migration is not a user's edit, and bumping
+    # `modified` strands every open Theme Settings form — its next save dies
+    # with TimestampMismatchError. See setup._seed_defaults for the full
+    # account; reproduced 2026-08-07.
     frappe.db.set_single_value(
-        "Theme Settings", "pagehead_enabled", int(layout == _LAYOUT_WITH_PAGEHEAD)
+        "Theme Settings", "pagehead_enabled", int(layout == _LAYOUT_WITH_PAGEHEAD), update_modified=False
     )
     frappe.db.commit()

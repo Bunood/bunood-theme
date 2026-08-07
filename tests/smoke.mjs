@@ -67,10 +67,20 @@ let page; // assigned in main()
  *   things. The three release gates (CI, smoke, adversarial review) all mean
  *   the WHOLE suite.
  *
- * The filter is a substring, or /regex/ with flags, over the test name. Tests
- * are ordered and share one site, so a filtered run is only meaningful for
- * checks that set the state they need — every `container:` test does; some
- * older ones inherit state from the test before them.
+ * The filter is a substring over the test name, or several separated by `|`.
+ * `re:<pattern>` takes a raw regular expression.
+ *
+ * NOT `/pattern/`, and that is not a style choice: Git Bash rewrites any
+ * argument beginning with `/` into a Windows path, so `--only "/a|b/"` arrives
+ * as `C:/Program Files/Git/a|b/` and silently matches nothing. The run then
+ * reports 0 of 0 — honest, but ten minutes of confusion. `|` and `re:` have no
+ * leading slash and survive every shell here.
+ *
+ * Tests are ordered and share one site, so a filtered run is only meaningful
+ * for checks that set the state they need. Every `container:` test does; some
+ * older ones inherited their page from whichever test ran before them, which
+ * is a landmine for whoever inserts the next one — `live preview` is annotated
+ * where that bit.
  *
  * Failures are recorded and printed but never abort the suite — every
  * remaining check still runs, and main() derives the exit status from the
@@ -80,8 +90,12 @@ const ONLY = (() => {
 	const i = process.argv.indexOf("--only");
 	const raw = i !== -1 ? process.argv[i + 1] : process.env.BND_ONLY;
 	if (!raw) return null;
-	const m = raw.match(/^\/(.*)\/([a-z]*)$/);
-	return m ? new RegExp(m[1], m[2]) : new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+	if (raw.startsWith("re:")) return new RegExp(raw.slice(3), "i");
+	// Substrings, `|`-separated. Each is escaped, so a name containing regex
+	// punctuation ("status: Off never takes away…") matches literally.
+	const escaped = raw.split("|").map((s) => s.trim()).filter(Boolean)
+		.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+	return new RegExp(escaped.join("|"), "i");
 })();
 
 /** How many checks the filter skipped, so the tally can say so. */
@@ -1646,8 +1660,68 @@ async function main() {
 			}
 		});
 
+		await test("settings: seeding a new field does not kill an open form", async () => {
+			// THE BUG THIS ENCODES, reported repeatedly and reproduced 2026-08-07:
+			//   "Theme Settings has been modified after you have opened it
+			//    (…, …). Please refresh to get the latest document."
+			//
+			// `frappe.db.set_single_value` bumps `modified` unless told not to,
+			// and `setup._seed_defaults` runs on EVERY after_migrate, writing any
+			// field that is empty and any Check whose row is absent. So every
+			// upgrade that ADDS a field — four of them in the container split
+			// alone — invalidated every Theme Settings form that happened to be
+			// open, and the user's next save died. The document had changed, but
+			// not by them.
+			//
+			// WHY THE OLD DOUBLE-SAVE TEST NEVER CAUGHT IT: it calls reload_doc()
+			// first, which is precisely the workaround the error asks for, and it
+			// runs on `?shell=0`. Green throughout.
+			//
+			// Drives the REAL seeder, not an imitation of it: a Check row is
+			// deleted so the seeder has genuine work, exactly as a newly added
+			// field gives it work on an upgrade.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			const before = await page.evaluate(() => String(window.cur_frm.doc.modified));
+
+			const after = JSON.parse(
+				benchPy(
+					`frappe.db.sql("delete from tabSingles where doctype='Theme Settings' and field='crumb_copy_link'")\n` +
+					`frappe.db.commit()\n` +
+					`from bunood_theme.setup import _seed_defaults\n` +
+					`_seed_defaults()\n` +
+					`row = frappe.db.sql("select value from tabSingles where doctype='Theme Settings' and field='modified'")\n` +
+					`seeded = frappe.db.sql("select value from tabSingles where doctype='Theme Settings' and field='crumb_copy_link'")\n` +
+					`print(json.dumps({"modified": str(row[0][0]) if row else None,\n` +
+					`                  "seeded": str(seeded[0][0]) if seeded else None}))\n`
+				).trim().split("\n").pop()
+			);
+
+			expectEq(after.seeded, "1", "precondition: the seeder really did write the field back");
+			expectEq(after.modified, before, "seeding did NOT bump `modified` and strand the open form");
+
+			// And the form it was open in can still save.
+			await page.evaluate(() => window.cur_frm.set_value("tagline", "smoke-seed-" + Date.now()));
+			await page.keyboard.press("Control+s");
+			await page.waitForTimeout(3000);
+			const dialog = await page.evaluate(() => {
+				const m = document.querySelector(".modal.show .modal-body, .msgprint");
+				return m ? m.textContent.trim().replace(/\s+/g, " ").slice(0, 160) : "";
+			});
+			expect(!/modified after/i.test(dialog), `save after a seed: ${dialog}`);
+			expect(!(await page.evaluate(() => window.cur_frm.is_dirty())), "and it actually saved");
+		});
+
 		// ── Live preview ───────────────────────────────────────────────────
 		await test("live preview: pane color flips instantly, discard reverts", async () => {
+			// NAVIGATES EXPLICITLY. It used to inherit whatever page the test
+			// before it had left open, which happened to be `?shell=0` — so the
+			// sidebar picker was on screen and clickable by luck of ordering.
+			// Inserting any test in front of it broke it: on the shell the same
+			// button exists but sits in an unselected detail pane, and Playwright
+			// waited 30s for something it could never click. A test that depends
+			// on its predecessor's navigation is a landmine for whoever adds the
+			// next one, so this states what it needs.
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2500);
 			const before = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
 			await page.click('.bnd-sbp-opt[data-field="sidebar_color"][data-value="Minimal"]');
 			await page.waitForTimeout(700);

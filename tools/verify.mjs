@@ -23,6 +23,12 @@
  *   npm run verify -- --log x           # choose the log path
  *   npm run verify -- --quiet           # summary only, no pass-by-pass output
  *   npm run verify -- --only container: # INNER LOOP: run matching checks only
+ *   npm run verify -- --only "a|b"      # several substrings
+ *   npm run verify -- --only re:^dock   # a raw regular expression
+ *
+ * Do NOT use a `/pattern/` form: Git Bash rewrites a leading `/` into a
+ * Windows path, so the filter silently matches nothing and the run reports
+ * 0 of 0. `|` and `re:` survive every shell used here.
  *
  * WHY `--only` IS REPORTED DIFFERENTLY
  *   A filtered run is for the seconds after writing a line, not for deciding
