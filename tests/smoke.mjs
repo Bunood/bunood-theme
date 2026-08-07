@@ -1930,6 +1930,96 @@ async function main() {
 			setSettings({ inbox_placement: "Top Bar" });
 		});
 
+		// ── Honest pickers ─────────────────────────────────────────────────
+		//
+		// A control is DISHONEST when it offers something that does not happen,
+		// or stays silent while nothing it offers can happen. `bnd_region_blocker`
+		// has covered placement since slice 1c step 3; the rest was unaudited,
+		// and these are what the audit found.
+		await test("honest: Home and All Apps land where they are placed", async () => {
+			// `home_placement` and `apps_placement` had NO coverage at all,
+			// which is how "Dock" survived: the field offers it, registry.py
+			// says both components may occupy the dock, and `sb_mount_utils`
+			// handled Off / Top Bar / Bottom Bar / Sidebar Top / Sidebar Bottom
+			// and let everything else fall through to the sidebar. So choosing
+			// "Dock" moved the link to the side pane and said nothing.
+			//
+			// Every region the field offers is walked, so the next one added
+			// cannot quietly do the same.
+			for (const [where, host] of [
+				["Top Bar", ".bnd-topbar"],
+				["Bottom Bar", ".bnd-statusbar"],
+				["Dock", ".bnd-dock"],
+			]) {
+				setSettings({
+					...CHROME_DEFAULTS,
+					desk_layout: "Top Bar",
+					topbar_enabled: 1,
+					bottombar_enabled: 1,
+					dock_enabled: 1,
+					home_placement: where,
+					apps_placement: "Sidebar Top",
+				});
+				await goDesk("/desk/item", ".page-head", 4500);
+				// BY IDENTITY: in a bar the link is `.bnd-icon-btn.bnd-sb-util`, in
+				// the pane it is `.bnd-sb-item`. Asking by class would measure
+				// one of the two forms and call the other a failure.
+				expect(
+					await q(`${host} [data-bnd-part="home"]`),
+					`Home placed at "${where}" is inside ${host}`
+				);
+			}
+		});
+
+		await test("honest: a link placed in a bar does not need the side pane", async () => {
+			// `sb_mount_utils` is only reached through `mount_sidebar_kit`,
+			// which returns early when the pane is hidden — so Home placed in
+			// the TOP BAR mounted nowhere at all unless an unrelated container
+			// happened to be on. Newly reachable the day the side pane got its
+			// own switch, and exactly the shape of coupling the split exists to
+			// remove: one setting silently requiring another.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1,
+				sidebar_enabled: 0,
+				home_placement: "Top Bar",
+				apps_placement: "Top Bar",
+			});
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await q('.bnd-topbar [data-bnd-part="home"]'), "Home is in the top bar with no side pane");
+		});
+
+		await test("honest: a picker says so when its own container is off", async () => {
+			// The counterpart to `bnd_region_blocker`. That answers "can a tenant
+			// go here"; nothing answered "does any of this matter right now".
+			// The container split created the gap: switch the side pane off and
+			// all 22 sidebar style options are inert, switch the bottom bar off
+			// and every status option is. Both kept offering themselves.
+			//
+			// The status picker had a reason string for exactly this and it had
+			// gone dead: it read `status_style === "Off"`, an option removed in
+			// slice 2c-4, so the condition could never be true again.
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 3000);
+
+			for (const [field, value, picker, want] of [
+				["sidebar_enabled", 0, "sidebar_picker", /side pane/i],
+				["bottombar_enabled", 0, "status_picker", /bottom bar/i],
+			]) {
+				setSettings({ ...CHROME_DEFAULTS, [field]: value });
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 3000);
+				const note = await page.evaluate(
+					(p) => {
+						const host = document.querySelector(`[data-fieldname="${p}"]`);
+						return host ? host.textContent.replace(/\s+/g, " ") : "";
+					},
+					picker
+				);
+				expect(want.test(note), `${picker} explains that the container is off — got: ${note.slice(0, 160)}`);
+			}
+			setSettings({ ...CHROME_DEFAULTS });
+		});
+
 		await test("placement: a region this desk lacks changes nothing", async () => {
 			// The shipped default is Top Bar, and this desk has no top bar.
 			// "Cannot honour" must not mean "delete" — that is the failure the

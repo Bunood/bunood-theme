@@ -316,6 +316,37 @@ function bnd_region_blocker(frm, region) {
 	return "";
 }
 
+/**
+ * Why nothing this component offers can take effect — "" when it can.
+ *
+ * THE COUNTERPART TO `bnd_region_blocker`, and the gap the honest-picker audit
+ * was named for. That function answers "can a tenant go HERE"; nothing
+ * answered "does any of this matter at all right now". The container split
+ * created the question: switch the side pane off and all 22 sidebar style
+ * options are inert, switch the bottom bar off and every status option is —
+ * and both kept offering themselves as though they were live.
+ *
+ * The status picker had a reason string for exactly this and it had gone dead:
+ * it tested `status_style === "Off"`, an option removed when the bottom bar
+ * became a container, so the condition could never be true again. A control
+ * that explains itself only in a state that can no longer occur is worse than
+ * one that never did — it reads as covered.
+ *
+ * WARNS, NEVER BLOCKS, the same rule `bnd_region_blocker` follows: the value
+ * is still stored and still correct the moment the container comes back, and
+ * greying a choice out with no explanation tells a user less than nothing.
+ */
+function bnd_component_blocker(frm, key) {
+	const on = (field, dflt) => parseInt(frm.doc[field] ?? dflt, 10);
+	if (key === "sidepane" && !on("sidebar_enabled", 1)) {
+		return __("the side pane is switched off");
+	}
+	if (key === "status" && !on("bottombar_enabled", 1)) {
+		return __("the bottom bar is switched off");
+	}
+	return "";
+}
+
 /** The static desk furniture, drawn from the same geometry the slots use. */
 function bnd_desk_frame() {
 	const r = (k, cls) => {
@@ -1812,11 +1843,18 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	const add = (zone, html) => {
 		by_zone[zone] = (by_zone[zone] || "") + html;
 	};
+	// Nothing in this picker does anything while the pane it styles is off.
+	// Twenty option groups offering themselves as live is the dishonesty the
+	// audit was named for, and it became reachable the day the side pane got
+	// its own switch. The container's answer wins over any per-option one: a
+	// reason about `sidebar_material` explains the smaller of two facts.
+	const kit_off = bnd_component_blocker(frm, "sidepane");
+
 	BND_SB_GROUPS.forEach((group) => {
 		const current = bnd_sb_norm(group.field, frm.doc[group.field]);
 		const cards = group.options
 			.map((opt) => {
-				const reason = opt.disabled ? opt.disabled(frm) : "";
+				const reason = kit_off || (opt.disabled ? opt.disabled(frm) : "");
 				const on = bnd_sb_norm(group.field, opt.value) === current ? " bnd-sbp-on" : "";
 				const dis = reason ? " bnd-sbp-dis" : "";
 				return (
@@ -1890,7 +1928,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	$host.html(
 		'<div class="bnd-sbp">' + toolbar +
 			bnd_bands([
-				{ zone: "style", html: '<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note },
+				{ zone: "style", html: '<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
+					(kit_off ? P.note(kit_off) : "") },
 				{ zone: "placement", html: by_zone.placement },
 				// The blur control is authored inline rather than in a table, so
 				// its band is stated here. It belongs with the surface it blurs.
@@ -2920,7 +2959,10 @@ function bnd_render_status_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "status_picker", host);
 	if (!$host) return;
 	const current = frm.doc.status_style || "Quiet";
-	const off = current === "Off";
+	// WAS `current === "Off"`, which stopped being reachable when the bottom
+	// bar became a container and the style lost that option. The real question
+	// is whether the bar exists at all, and it is not this field's to answer.
+	const off = bnd_component_blocker(frm, "status");
 	const minimal = current === "Minimal";
 
 	const cards = P.cards(
@@ -2930,11 +2972,11 @@ function bnd_render_status_picker(frm, host) {
 
 	const selects = BND_STATUS_SELECTS.map((g) => {
 		// Minimal makes no server calls, so a refresh interval is moot.
-		const reason = off
-			? __("The bar is off")
-			: minimal && g.field === "status_interval"
-			? __("Minimal polls nothing")
-			: "";
+		// The container's answer wins: if there is no bar, nothing below it
+		// matters and saying "Minimal polls nothing" would explain the smaller
+		// of two reasons.
+		const reason =
+			off || (minimal && g.field === "status_interval" ? __("Minimal polls nothing") : "");
 		return P.group({
 			title: g.title(),
 			desc: g.desc(),
@@ -2949,11 +2991,8 @@ function bnd_render_status_picker(frm, host) {
 
 	const SIGNALS = ["status_segments_jobs", "status_segments_errors", "status_segments_scheduler", "status_freshness"];
 	const toggles = BND_STATUS_TOGGLES.map((t) => {
-		const reason = off
-			? __("The bar is off")
-			: minimal && SIGNALS.indexOf(t.field) !== -1
-			? __("Minimal shows no live signals")
-			: "";
+		const reason =
+			off || (minimal && SIGNALS.indexOf(t.field) !== -1 ? __("Minimal shows no live signals") : "");
 		return P.toggle({
 			field: t.field,
 			on: !!parseInt(frm.doc[t.field], 10),
@@ -2966,9 +3005,9 @@ function bnd_render_status_picker(frm, host) {
 	$host.html(
 		'<div class="bnd-cbp bnd-stp">' +
 			bnd_bands([
-				{ zone: "style", html: cards + P.note(__("Applies on the next page load.")) + selects },
+				{ zone: "style", html: cards + P.note(off || __("Applies as you click.")) + selects },
 				{ zone: "extras", html: P.group({
-					off,
+					off: !!off,
 					body: '<div class="bnd-cbp-switches">' + toggles + "</div>",
 				}) },
 			]) +

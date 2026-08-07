@@ -442,6 +442,10 @@
 		mount_placed_tenants();
 		if (guard_critical_reach()) mount_placed_tenants();
 		mount_sidebar_kit();
+		// The links live in containers too: without this, switching the bar
+		// that held them leaves them behind in a node that has just been
+		// removed, or absent from the one that has just arrived.
+		sb_mount_utils();
 		defer_bottom_reserve();
 	};
 
@@ -4320,15 +4324,25 @@
 			groups.get(where).push(which);
 		}
 
+		// Every region the FIELD offers, resolved against the live DOM. It used
+		// to name Top Bar and Bottom Bar and let everything else fall through
+		// to the sidebar — so choosing "Dock", which the field offers and
+		// registry.py permits, quietly put the link in the side pane instead
+		// and said nothing. Found by the honest-picker audit; there were no
+		// tests for these two components at all.
+		const BAR_HOSTS = {
+			"Top Bar": () => document.querySelector(".bnd-topbar"),
+			"Bottom Bar": () => document.querySelector(".bnd-statusbar"),
+			Dock: () => document.querySelector(".bnd-dock"),
+		};
+
 		for (const [where, members] of groups) {
-			if (where === "Top Bar" || where === "Bottom Bar") {
-				const bar =
-					where === "Top Bar"
-						? document.querySelector(".bnd-topbar")
-						: document.querySelector(".bnd-statusbar");
-				// That bar is not part of the active layout. Leave it: the
-				// setting is honoured when the region exists, and inventing a
-				// home for it elsewhere would be a placement nobody chose.
+			if (BAR_HOSTS[where]) {
+				const bar = BAR_HOSTS[where]();
+				// That container is not on this desk. Leave it: the setting is
+				// honoured when the region exists, and inventing a home for it
+				// elsewhere would be a placement nobody chose — which is
+				// precisely what the fall-through used to do.
 				if (!bar) continue;
 				const wrap = el("span", "bnd-sb-utils bnd-sb-utils-bar");
 				for (const which of members) wrap.appendChild(build_quick_link(which, true));
@@ -4966,6 +4980,13 @@
 		try_for(() => {
 			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
 			sb_mount_brand();
+			// Home and All Apps are NOT mounted here any more. They are their
+			// own components with their own placements (slice 2), and reaching
+			// them only through this function meant a link placed in the top
+			// bar never mounted at all when the side pane was switched off —
+			// one setting silently requiring another. mount_chrome calls
+			// sb_mount_utils directly; this retry still gets them into the pane
+			// when that is where they belong, because the call is idempotent.
 			sb_mount_utils();
 			sb_mount_module_row();
 			return true;
@@ -5074,6 +5095,13 @@
 		// The sidebar style kit rides along wherever there IS a side pane —
 		// after the guard, so a pane that has just come back is decorated too.
 		mount_sidebar_kit();
+
+		// Home and All Apps place themselves, so they mount from HERE rather
+		// than from inside the pane's style kit. Reached only through that kit
+		// they inherited its gate, and a link placed in the top bar mounted
+		// nowhere at all when the side pane was off. Idempotent — it clears its
+		// own previous mounts first — so the kit calling it too costs nothing.
+		sb_mount_utils();
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();

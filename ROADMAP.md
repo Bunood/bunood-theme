@@ -194,8 +194,14 @@ defect in 0.10.0.
       the last preset without it
     - `[x]` **5 · Side pane** — landed with the dock, above, for the reason
       given there. `desk_layout` stops deciding once the bottom bar follows
-  - `[ ]` **Honest-picker rules across every component** — `bnd_region_blocker`
-    covers placement; the rest is unaudited
+  - `[x]` **Honest-picker rules across every component** *(2026-08-07)*.
+    `bnd_component_blocker` is the counterpart to `bnd_region_blocker`: that one
+    answers "can a tenant go HERE", this one "does any of this matter right
+    now". Three of the five findings were runtime lies rather than silent
+    pickers — `"Dock"` fell through to the sidebar, links placed in a bar needed
+    the side pane, and `registry.py` named the wrong element for BOTH link
+    components. The notifications panel's position is the one finding left open
+    (behaviour, not honesty)
 
 ## Phase 1 — contracts with no design uncertainty
 

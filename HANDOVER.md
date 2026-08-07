@@ -146,6 +146,15 @@ pays for them a third time.
   `BND_FORCE_RESTART=1 npm run deploy` whenever the change is `.py`.
 - **A doctype change needs `bench --site demo.bunood.test migrate`** after the
   deploy — that is what syncs the field and runs the patch. The deploy does not.
+- **Two intermittents seen once each on 2026-08-07, neither explained.** A
+  `pageerror: frappe.template.compile(...) is not a function` in one full run
+  (the theme calls `render_template` nowhere — that is the only path to it,
+  `microtemplate.js:104` — and it did not recur in a re-run, a 13-test targeted
+  run, or a four-state sweep of the settings page); and `tools/fingerprint.mjs`
+  timing out on `.bnd-dgm-slot`, which it waits for VISIBLE while a probe found
+  24 of them PRESENT. Re-running fixed both, unchanged. Recorded because one
+  sighting is not enough to call something environmental — if either returns,
+  it has a second data point waiting here rather than starting from scratch.
 - **An ABORTED suite run poisons the next one, twice over.** The suite restores
   the snapshot it took at START, so aborting run A leaves the bench mid-test, and
   run B then faithfully restores *that* on the way out. Two runs were voided this
@@ -281,6 +290,10 @@ placement on every route change.
 
 **Still open, and mine:**
 
+- **The notifications panel still guesses where the bell is, from the layout.**
+  Unchanged by the audit: keying all four panel rules on `inbox_placement` is a
+  behaviour change, and behaviour does not ride along with an audit. It is the
+  one honest-picker finding left open.
 - **`chrome_placement.py` maps Classic to `"Side Pane"`, and its own comment
   says "nothing of ours -> the sidebar's own bell and user button".** Those
   disagree: `"Side Pane"` mounts OUR bell into Frappe's sidebar and stamps

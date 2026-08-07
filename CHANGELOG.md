@@ -7,6 +7,42 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Honest pickers: every control tells the truth about itself
+
+`bnd_component_blocker` is the counterpart to `bnd_region_blocker`. That
+one answers "can a tenant go HERE"; nothing answered "does any of this
+matter right now". Switch the side pane off and all 22 sidebar style
+options are inert; switch the bottom bar off and every status option is.
+Both kept offering themselves as live. Warns, never blocks — the value is
+still stored and still correct the moment the container returns.
+
+**The status picker had a reason for exactly this, and it had gone dead.**
+It tested `status_style === "Off"`, an option removed when the bottom bar
+became a container, so the condition could never be true again. A control
+that explains itself only in a state that can no longer occur is worse
+than one that never did: it reads as covered.
+
+Three of the five findings were runtime lies, not silent pickers:
+
+* **`"Dock"` did something else.** `home_placement` / `apps_placement`
+  offer it and `registry.py` permits it, but `sb_mount_utils` named Top
+  Bar and Bottom Bar and let everything else fall through to the sidebar.
+  Choosing Dock moved the link to the side pane and said nothing.
+* **A link placed in a bar needed the side pane.** `sb_mount_utils` was
+  reachable only through `mount_sidebar_kit`, which returns early on a
+  hidden pane — so Home in the top bar mounted nowhere at all when the
+  pane was off. One setting silently requiring another.
+* **`registry.py` named the wrong elements for both link components.**
+  `home` was `.bnd-sb-item`, the sidebar form only, so three of its four
+  regions read as absent. `apps` was `.bnd-apps-rail` — a different
+  component entirely, the sidebar's app-icon rail. Both now identify by
+  `data-bnd-part`. Nothing caught it because neither is `critical`, so the
+  invariant matrix never asks: "not critical" means unwatched, not
+  harmless.
+
+There were **no tests at all** for Home and All Apps placement, which is
+how "Dock" survived. The new check walks every region the field offers.
+
 ### Switching a container applies to the desk, instead of waiting for a reload
 
 Reported as "the settings save but nothing is applied in reality", and it

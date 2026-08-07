@@ -164,7 +164,14 @@ COMPONENTS = [
         "part": "home",
         "label": "Home link",
         "type": TENANT,
-        "selector": ".bnd-sb-item",
+        # BY IDENTITY, not by class, and the audit of 2026-08-07 is why. This
+        # said `.bnd-sb-item`, which is the SIDEBAR form of the link; placed in
+        # a bar or the dock it renders as `.bnd-icon-btn.bnd-sb-util` instead,
+        # so any consumer of this row measured "not there" in three of the four
+        # regions the component may occupy. Exactly the defect the `search` row
+        # above is annotated against — naming one of two forms — reappearing in
+        # a component added later.
+        "selector": '[data-bnd-part="home"]',
         # Ours entirely — the sidebar kit adds it; stock ERPNext has no such
         # affordance, so there is nothing to release if it fails to mount.
         "native": None,
@@ -177,7 +184,13 @@ COMPONENTS = [
         "part": "apps",
         "label": "All apps link",
         "type": TENANT,
-        "selector": ".bnd-apps-rail",
+        # This said `.bnd-apps-rail`, which is a DIFFERENT COMPONENT: the rail
+        # of app icons the sidebar style kit adds under `sidebar_apps_rail`.
+        # The All Apps link is what `build_quick_link` renders. Nothing caught
+        # it because this row is not `critical`, so the invariant matrix never
+        # asks about it — a reminder that "not critical" means unwatched, not
+        # harmless.
+        "selector": '[data-bnd-part="apps"]',
         "native": None,
         "regions": ("topbar", "bottombar", "sidepane", "dock"),
         "toggle": None,

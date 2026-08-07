@@ -65,6 +65,7 @@
   "status_escalate": 0,
   "topbar_enabled": 1,
   "pagehead_enabled": 0,
+  "bottombar_enabled": 1,
   "sidebar_enabled": 1,
   "dock_enabled": 0,
   "enable_command_palette": 1
@@ -1110,7 +1111,7 @@
   "status_picker": {
    "n": 114,
    "svgs": 4,
-   "text": 1280,
+   "text": 1271,
    "seq": [
     "div.bnd-cbp.bnd-stp",
     "section.bnd-cbp-zone",
