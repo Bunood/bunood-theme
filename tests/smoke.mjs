@@ -121,8 +121,41 @@ function getSettings(fields) {
 	return JSON.parse(out.trim().split("\n").pop());
 }
 
-/** Write Theme Settings fields + clear cache so boot picks them up. */
+/**
+ * Write Theme Settings fields + clear cache so boot picks them up.
+ *
+ * REFUSES ANY FIELD THE SUITE DOES NOT RESTORE. `main()` snapshots
+ * MUTABLE_FIELDS and writes it back in its `finally`; anything written that is
+ * NOT in that list is changed permanently, on whatever site BND_SITE points at.
+ *
+ * This has now happened twice. The first time it was `tagline`, and the fix was
+ * a comment plus an intersection at the one call site that had caused it — which
+ * is why the pre-run reset filters and this one did not. The second time it was
+ * `company_name`, `brand_color`, `accent_color` and `default_density`, written
+ * by `setSettings(fixture.state)` because a fixture's `state` is the whole
+ * SHIPPED map and nobody thought of it as a call site at all.
+ *
+ * So the guard moved from the call sites into here, where it cannot be
+ * forgotten: adding a field to a fixture or a new test now fails LOUDLY the
+ * first time it runs, instead of quietly destroying somebody's brand colours.
+ *
+ * The loss was invisible at the moment it happened, which is what made it worth
+ * this much prose: `set_single_value` does not fire `on_update`, so
+ * `write_brand_css` never ran and the desk kept serving the old stylesheet. The
+ * colours only changed at the next migrate, with nothing to connect the two.
+ */
 function setSettings(values) {
+	const unrestorable = Object.keys(values).filter((f) => !MUTABLE_FIELDS.includes(f));
+	if (unrestorable.length) {
+		throw new Error(
+			`setSettings: ${unrestorable.join(", ")} ${unrestorable.length === 1 ? "is" : "are"} ` +
+				"not in MUTABLE_FIELDS, so the suite would not restore " +
+				(unrestorable.length === 1 ? "it" : "them") +
+				". Add to MUTABLE_FIELDS, or do not write " +
+				(unrestorable.length === 1 ? "it" : "them") +
+				"."
+		);
+	}
 	benchPy(
 		`vals = json.loads(${JSON.stringify(JSON.stringify(values))})\n` +
 		`for f, v in vals.items():\n` +
@@ -1788,7 +1821,17 @@ async function main() {
 			// one fact in two files is the exact defect this codebase keeps
 			// producing, and a shape checker built that way would be a poor
 			// joke.
-			setSettings(fixture.state);
+			// Intersected with MUTABLE_FIELDS: a fixture's `state` is the whole
+			// SHIPPED map, which includes identity and colour fields the suite
+			// does not snapshot. Writing them here destroyed them permanently.
+			// Safe for this check: the fingerprint is purely structural — node
+			// sequence, svg count, text length — and a brand colour or a company
+			// name changes none of those.
+			setSettings(
+				Object.fromEntries(
+					Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
+				)
+			);
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
 			const actual = await page.evaluate((names) => {
 				const out = {};
