@@ -165,7 +165,10 @@ defect in 0.10.0.
       OUTCOME — which was already wrong before the split, since `mount_topbar`
       returns early on every viewport under ~480px and those desks were reserving
       space for a bar that never arrived
-    - `[ ]` **2 · Page header** — `pagehead_enabled` replaces `slug === "compact"`
+    - `[x]` **2 · Page header** *(2026-08-07)*. `pagehead_enabled` replaces
+      `slug === "compact"` at BOTH call sites — the mount and the route-change
+      handler. The only container that remounts per navigation, so it is the
+      only one where "off" could undo itself on the next click
     - `[ ]` **3 · Dock** — decoupled from the side pane hiding, which stays
       layout-keyed until slice 5. Dock-on **and** side-pane-on becomes reachable
     - `[ ]` **4 · Bottom bar** — `bottombar_enabled` owns whether the strip

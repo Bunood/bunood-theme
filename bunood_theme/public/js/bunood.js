@@ -1967,9 +1967,22 @@
 			if (wait_for_swap && page === outgoing) return false;
 			const section = page.querySelector(".page-head .standard-items-section");
 			if (!section) return false;
-			if (section.querySelector(".bnd-cluster")) return true;
+			if (section.querySelector(".bnd-cluster")) {
+				// Already there, but the stamp is per-DOCUMENT and the page is
+				// per-ROUTE: arriving back on a cached page that still has its
+				// cluster must re-assert the attribute, or a navigation away
+				// and back leaves the stylesheet believing there is no cluster.
+				container_mounted("pagehead");
+				return true;
+			}
 			section.appendChild(el("span", "bnd-cluster-divider"));
-			mount_cluster(section);
+			// Identity on the cluster itself, not on the page head: the head is
+			// Frappe's and exists on every desk, while THIS is the container —
+			// the group our tenants live in, and what HOSTS.pagehead resolves
+			// to. `mount_cluster` is shared with the top bar and the dock, so
+			// the stamp goes on here rather than inside it.
+			mount_cluster(section).setAttribute("data-bnd-part", "pagehead");
+			container_mounted("pagehead");
 			// mount_cluster builds the bell and the avatar unconditionally, and
 			// this runs again on EVERY route change (it has to — Frappe swaps the
 			// page element out from under us). Without re-asserting placement,
@@ -4788,9 +4801,9 @@
 		//     cannot take a control away from a user; it can only decline to
 		//     offer a new home for one.
 		if (container_on("topbar")) mount_topbar();
+		if (container_on("pagehead")) inject_compact_cluster();
 
 		if (slug === "compact") {
-			inject_compact_cluster();
 			mount_statusbar(false);
 		} else if (slug === "bottombar") {
 			mount_statusbar(true);
@@ -4845,7 +4858,13 @@
 				defer_bottom_reserve();
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
-				if (slug === "compact") inject_compact_cluster();
+				// The ONE container that has to remount per route: page heads
+				// are built per page and Frappe swaps the element out from
+				// under us. Asking the setting rather than the layout matters
+				// more here than anywhere else — this is the line that would
+				// quietly bring the cluster back on the next navigation after
+				// the user switched it off.
+				if (container_on("pagehead")) inject_compact_cluster();
 				if (slug === "dock") update_dock_active();
 				sb_update_module_row();
 				sb_update_apps_rail_active();

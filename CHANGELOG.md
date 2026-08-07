@@ -7,6 +7,32 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The page header becomes its own container (rework slice 2c, 2 of 5)
+
+`pagehead_enabled` decides whether the global controls ride in each page's
+own title row. Compact's one distinguishing act stops being a branch in
+`mount_chrome` and becomes a setting, so the merged strip is available on
+any layout and Compact can be had without it.
+
+**It is the only container that remounts on every route change.** Page
+heads are built per page and Frappe swaps the element out from under us,
+so `inject_compact_cluster` runs again on every navigation — which makes
+that one line the place an "off" would quietly undo itself on the next
+click. It asks the setting now, and the test navigates rather than
+checking first paint, because an off that lasts until you click something
+is not off. The stamp is re-asserted when returning to a cached page that
+still has its cluster: the attribute is per-document, the mount is
+per-route, and without that the stylesheet would believe there was no
+cluster after a navigation away and back.
+
+**The patch guards on row-absence, and here that is the whole patch.**
+The shipped default is 0, so "the value is falsy" is true both for a site
+that has never had the field and for an admin who deliberately switched
+the cluster off — testing the value would hand a Compact site back chrome
+it had chosen to remove. And unlike the top bar, the danger runs the other
+way: without the patch a Compact site would *lose* the only chrome its
+layout exists to provide, leaving the title row empty on upgrade.
+
 ### The top bar becomes its own container (rework slice 2c, 1 of 5)
 
 The first of the five containers to stop being a consequence of

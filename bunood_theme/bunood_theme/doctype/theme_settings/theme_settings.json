@@ -23,6 +23,8 @@
   "layout_picker",
   "section_topbar",
   "topbar_enabled",
+  "section_pagehead",
+  "pagehead_enabled",
   "section_sidebar",
   "sidebar_preset",
   "sidebar_picker",
@@ -210,6 +212,18 @@
    "label": "Show the top bar",
    "default": "1",
    "description": "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "section_pagehead",
+   "fieldtype": "Section Break",
+   "label": "Page Header"
+  },
+  {
+   "fieldname": "pagehead_enabled",
+   "fieldtype": "Check",
+   "label": "Put controls in the page title row",
+   "default": "0",
+   "description": "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
   },
   {
    "fieldname": "section_sidebar",

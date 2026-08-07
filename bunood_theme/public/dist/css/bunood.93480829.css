@@ -290,7 +290,7 @@ html[data-bnd-topbar] .page-head {
 }
 
 html[data-bnd-topbar] .dropdown-notifications,
-html[data-bnd-layout=compact] .dropdown-notifications,
+html[data-bnd-pagehead] .dropdown-notifications,
 html[data-bnd-layout=bottombar] .dropdown-notifications,
 html[data-bnd-layout=dock] .dropdown-notifications {
   position: fixed;
@@ -305,7 +305,7 @@ html[data-bnd-layout=dock] .dropdown-notifications {
   border-radius: var(--bnd-radius-lg);
 }
 html[data-bnd-topbar] .dropdown-notifications .notifications-list,
-html[data-bnd-layout=compact] .dropdown-notifications .notifications-list,
+html[data-bnd-pagehead] .dropdown-notifications .notifications-list,
 html[data-bnd-layout=bottombar] .dropdown-notifications .notifications-list,
 html[data-bnd-layout=dock] .dropdown-notifications .notifications-list {
   position: static;
@@ -317,7 +317,7 @@ html[data-bnd-topbar] .dropdown-notifications {
   inset-block-end: auto;
 }
 
-html[data-bnd-layout=compact] .dropdown-notifications {
+html[data-bnd-pagehead] .dropdown-notifications {
   inset-block-start: 56px;
   inset-block-end: auto;
 }

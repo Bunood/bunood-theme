@@ -427,7 +427,7 @@ const MUTABLE_FIELDS = [
 	// Slice 2c, the container split: each container gets its own on/off, so
 	// `desk_layout` can become a preset that writes them and then stops
 	// deciding. One field per container, added as its slice lands.
-	"topbar_enabled",
+	"topbar_enabled", "pagehead_enabled",
 ];
 
 /**
@@ -447,7 +447,7 @@ const MUTABLE_FIELDS = [
  *   agree by good intentions: the container test below asserts these values
  *   against SHIPPED and fails the moment they diverge.
  */
-const CHROME_DEFAULTS = { topbar_enabled: 1 };
+const CHROME_DEFAULTS = { topbar_enabled: 1, pagehead_enabled: 0 };
 
 // ── The suite ───────────────────────────────────────────────────────────────
 
@@ -1670,6 +1670,26 @@ async function main() {
 			expectEq(await q(".bnd-topbar"), false, "no top bar once it is switched off");
 		});
 
+		await test("container: the page-head cluster mounts in a layout that never had one", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", pagehead_enabled: 1 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await visible(".page-head .bnd-cluster"), "a page-head cluster on a Top Bar desk");
+		});
+
+		await test("container: the page-head cluster survives a route change, and stops when off", async () => {
+			// The page head is REBUILT per page — Frappe swaps the element out
+			// from under us — so this container is the only one whose mount runs
+			// again on every route change. Both directions have to hold across a
+			// navigation, not just on first paint: an "off" that only takes
+			// effect until you click something is not off.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Compact", pagehead_enabled: 0 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await q(".page-head .bnd-cluster"), false, "no cluster once it is switched off");
+			await page.evaluate(() => window.frappe.set_route("List", "Sales Invoice"));
+			await page.waitForTimeout(3000);
+			expectEq(await q(".page-head .bnd-cluster"), false, "and still none after a route change");
+		});
+
 		await test("container: the layout preset writes the containers and then stops deciding", async () => {
 			// The catalogue is the thing that lets the derived "Custom" label
 			// cover the layout preset at all — until this table existed there
@@ -1683,9 +1703,14 @@ async function main() {
 			);
 			const layouts = ["Top Bar", "Compact", "Classic", "Bottom Bar", "Dock"];
 			for (const l of layouts) expect(chrome[l], `the catalogue covers ${l}`);
-			expectEq(chrome["Top Bar"].topbar, 1, "Top Bar is the layout that writes a top bar");
-			for (const l of layouts.filter((x) => x !== "Top Bar")) {
-				expectEq(chrome[l].topbar, 0, `${l} writes no top bar`);
+			// One row per split container: the layout it belongs to writes 1 and
+			// every other layout writes 0. Stated per container rather than as a
+			// whole-table snapshot, so a failure names which cell moved.
+			for (const [container, owner] of [["topbar", "Top Bar"], ["pagehead", "Compact"]]) {
+				expectEq(chrome[owner][container], 1, `${owner} is the layout that writes a ${container}`);
+				for (const l of layouts.filter((x) => x !== owner)) {
+					expectEq(chrome[l][container], 0, `${l} writes no ${container}`);
+				}
 			}
 
 			// CHROME_DEFAULTS is the one hand-written copy of a shipped default
@@ -1778,6 +1803,16 @@ async function main() {
 			// A top bar on a Classic desk — a container contradicting its
 			// layout in the direction nothing else in this list covers.
 			["Classic", "Off", "Top Bar Edge", { topbar_enabled: 1 }],
+			// Compact with its cluster off and no top bar either: the layout
+			// defined by NOT growing chrome, now with none of ours at all. Every
+			// route to everything is a native one, which is the case the
+			// ownership stamps exist to keep working.
+			["Compact", "Off", "Top Bar Center", { pagehead_enabled: 0 }],
+			// A page-head cluster on a Dock desk. Dock hides the sidebar, so the
+			// natives are unreachable and this cluster is a real route — and it
+			// is the one container that remounts on every route change, in the
+			// layout where losing it would leave nothing.
+			["Dock", "Quiet", "Top Bar Center", { pagehead_enabled: 1 }],
 		];
 
 		for (const [layout, style, placement, chrome] of INVARIANT_STATES) {

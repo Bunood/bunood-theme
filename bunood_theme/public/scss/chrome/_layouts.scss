@@ -188,7 +188,7 @@ html[data-bnd-topbar] .page-head {
 // Pinned next to whichever bell the layout owns. Sized defensively: the panel
 // brings its own internal layout; we only place and bound it.
 html[data-bnd-topbar] .dropdown-notifications,
-html[data-bnd-layout="compact"] .dropdown-notifications,
+html[data-bnd-pagehead] .dropdown-notifications,
 html[data-bnd-layout="bottombar"] .dropdown-notifications,
 html[data-bnd-layout="dock"] .dropdown-notifications {
   position: fixed;
@@ -232,7 +232,7 @@ html[data-bnd-topbar] .dropdown-notifications {
   inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
   inset-block-end: auto;
 }
-html[data-bnd-layout="compact"] .dropdown-notifications {
+html[data-bnd-pagehead] .dropdown-notifications {
   inset-block-start: 56px; // just below the page-head strip that holds the bell
   inset-block-end: auto;
 }

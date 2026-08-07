@@ -292,7 +292,9 @@ function bnd_region_blocker(frm, region) {
 		return parseInt(frm.doc.topbar_enabled ?? 1, 10) ? "" : __("the top bar is switched off");
 	}
 	if (region === "pagehead") {
-		return layout === "Compact" ? "" : __("only Compact puts controls in the title row");
+		return parseInt(frm.doc.pagehead_enabled ?? 0, 10)
+			? ""
+			: __("the page title row is not carrying controls");
 	}
 	if (region === "dock") return layout === "Dock" ? "" : __("{0} has no dock", [__(layout)]);
 	if (region === "sidepane") return layout === "Dock" ? __("Dock hides the sidebar") : "";
@@ -541,6 +543,9 @@ frappe.ui.form.on("Theme Settings", {
 	topbar_enabled(frm) {
 		bnd_repaint_placement_pickers(frm);
 	},
+	pagehead_enabled(frm) {
+		bnd_repaint_placement_pickers(frm);
+	},
 });
 
 /**
@@ -616,6 +621,7 @@ const BND_SHELL_GROUPS = [
 			// and "Layout preset" under Appearance stops being a setting at all
 			// once the last one has.
 			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
+			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
 			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
 			{ key: "status", label: () => __("Bottom bar & status"), anchors: ["status_style"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
@@ -692,6 +698,7 @@ let bnd_container_toggles = null;
  */
 const BND_SHELL_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
+	pagehead: { prefixes: ["pagehead_"] },
 	sidepane: { prefixes: ["sidebar_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.

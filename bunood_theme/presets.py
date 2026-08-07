@@ -399,7 +399,7 @@ DEFAULT_DESK_LAYOUT = "Top Bar"
 #: seed is filtered to what exists. **This tuple grows with each slice and is
 #: deleted with the last one** — when it lists every container it says nothing,
 #: and `CHROME_DEFAULTS` should go back to being the whole catalogue row.
-SHIPPED_CONTAINERS = ("topbar",)
+SHIPPED_CONTAINERS = ("topbar", "pagehead")
 
 #: What a fresh install writes for each container it ships, derived from the
 #: catalogue rather than restated beside it.
