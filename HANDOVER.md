@@ -29,7 +29,7 @@ Shipped this session, all committed, all verified:
 
 `ROADMAP.md` phase 0: slices 0, 1a, 1b and 1c steps 1–3 are `[x]`.
 
-**Slice 2 is half done.** Shipped: Home and All Apps place themselves
+**Slice 2 is finished.** Earlier in it: Home and All Apps place themselves
 (`home_placement` / `apps_placement`, `sidebar_quick_links` deleted with a
 migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`); and
 `status_in_classic` deleted — the status bar is a component now, so
@@ -55,9 +55,6 @@ Also shipped this session, and both worth knowing about:
 
 **NEXT: the honest-picker audit** — `bnd_region_blocker` covers placement; the
 rest is unaudited. Two concrete items for it are in §8.
-
-Then: the honest-picker audit across every component (`bnd_region_blocker`
-covers placement; the rest is unaudited).
 
 After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
 
@@ -100,7 +97,8 @@ await goto(page, "/desk/theme-settings", ".bnd-shell");  // shell is the default
 npm run build      # SCSS -> hashed CSS + assets.py codegen. Node only.
 npm run contrast   # WCAG gate, 1,080 pairs. Needs Python.
 npm run deploy     # build + ship to 5 containers + mirror to WSL + restart if hashes moved
-npm run verify     # the 106-test browser suite. NEVER while deploying.
+npm run verify     # the full browser suite (132). NEVER while deploying.
+npm run verify -- --only "container:"   # ~90s inner loop; says FILTERED, never a gate
 ```
 
 **Deploying mid-suite invalidates the run and produces phantom failures.** It has
