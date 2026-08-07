@@ -2410,6 +2410,69 @@ async function main() {
 			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
+		await test("placement: Off never removes the LAST route to a critical control", async () => {
+			// The Dock layout hides the whole sidebar by layout rule, so the stock
+			// bell and user button exist but cannot be clicked. Switching our
+			// replacement Off there used to leave a desk with no notifications and
+			// no way to log out — the same defect status style "Off" caused in the
+			// Bottom Bar layout, which is why this asserts REACHABILITY rather
+			// than the presence of any particular node.
+			const reachable = (sel) =>
+				page.evaluate((s) => {
+					const n = document.querySelector(s);
+					return !!(n && n.offsetParent !== null);
+				}, sel);
+
+			setSettings({ desk_layout: "Dock", inbox_placement: "Off", user_placement: "Off" });
+			await goDesk("/desk/item", ".bnd-dock", 4500);
+			expect(
+				(await reachable(".bnd-avatar-btn")) || (await reachable(".body-sidebar .sidebar-user-button")),
+				"Dock + user Off: no reachable route to the user menu (no log out)"
+			);
+			expect(
+				(await reachable(".bnd-bell")) || (await reachable(".body-sidebar .sidebar-notification")),
+				"Dock + bell Off: no reachable route to notifications"
+			);
+
+			// And where the stock control IS reachable, Off must still work —
+			// otherwise the guard above would have turned Off into a no-op.
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Off" });
+			await goDesk("/desk/item", ".bnd-topbar", 4500);
+			expectEq(await q(".bnd-avatar-btn"), false, "Top Bar + user Off should remove ours");
+			expect(
+				await reachable(".body-sidebar .sidebar-user-button"),
+				"Top Bar + user Off: the stock button must be released, not left hidden"
+			);
+
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" });
+		});
+
+		await test("placement: Compact keeps it across a route change", async () => {
+			// Compact rebuilds its cluster on every navigation, because Frappe
+			// swaps the page element out. It used to rebuild the bell and avatar
+			// unconditionally, so a placement applied on load was undone by the
+			// first route change — the setting appeared to work once, then quietly
+			// revert. Two routes, because one proves nothing here.
+			setSettings({ desk_layout: "Compact", user_placement: "Off", inbox_placement: "Off" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			const first = await page.evaluate(() => document.querySelectorAll(".bnd-avatar-btn").length);
+
+			await goDesk("/desk/user", ".page-head", 4000);
+			const afterRoute = await page.evaluate(() => document.querySelectorAll(".bnd-avatar-btn").length);
+			expectEq(afterRoute, first, `route change changed the avatar count (${first} -> ${afterRoute})`);
+
+			// Whatever the count, the route to the user menu must survive both.
+			expect(
+				await page.evaluate(() => {
+					const n = document.querySelector(".bnd-avatar-btn, .body-sidebar .sidebar-user-button");
+					return !!(n && n.offsetParent !== null);
+				}),
+				"Compact lost every reachable route to the user menu after a route change"
+			);
+
+			setSettings({ desk_layout: "Top Bar", user_placement: "Top Bar", inbox_placement: "Top Bar" });
+		});
+
 		// ── Console error budget ───────────────────────────────────────────
 		await test("console error budget: nothing beyond the allowlist", async () => {
 			const unexpected = consoleErrors.filter((e) => !CONSOLE_ALLOWLIST.some((re) => re.test(e)));

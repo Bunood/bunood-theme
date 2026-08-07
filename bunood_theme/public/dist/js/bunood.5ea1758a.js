@@ -906,8 +906,38 @@
 	 * the pair for layouts whose bar IS their chrome — so this only has work to
 	 * do when a placement points somewhere else.
 	 */
+	/**
+	 * Is the stock affordance this tenant replaces actually usable right now?
+	 *
+	 * Present in the DOM is not enough. The Dock layout hides the whole
+	 * `.body-sidebar-container` with `display: none !important` keyed on the
+	 * LAYOUT (_layouts.scss) — Frappe writes an inline `display: block` there,
+	 * which is one of this codebase's two sanctioned uses of !important. So the
+	 * native bell and user button still exist, still match a selector, and
+	 * cannot be clicked by anyone.
+	 *
+	 * `offsetParent` is null for an element inside a `display: none` ancestor,
+	 * which is exactly the question being asked and is cheaper than walking up
+	 * through getComputedStyle.
+	 */
+	function native_pane_usable() {
+		// Ask about the CONTAINER, not the affordance inside it. This runs from
+		// mount_chrome, before Frappe has painted the sidebar's contents — so
+		// testing the bell or the user button answers "not there yet" and the
+		// guard below misfires, refusing Off in every layout. The container is
+		// part of the desk skeleton and exists by then, and it is exactly what
+		// the layout rule targets (_layouts.scss sets `display: none !important`
+		// on it for Dock, beating Frappe's inline `display: block`).
+		const pane = document.querySelector(".body-sidebar-container");
+		return !!(pane && getComputedStyle(pane).display !== "none");
+	}
+
 	function mount_placed_tenants() {
 		if (!placement_state) return;
+		// `native` mirrors registry.py, which is the table that says what each
+		// tenant replaces. Both of these are marked `critical` there: losing
+		// every route to the user menu means no log out, no theme switch and no
+		// session defaults.
 		for (const [tenant, token, cls, build] of [
 			["inbox", "bell", "bnd-bell", build_bell],
 			["user", "user", "bnd-avatar-btn", build_user],
@@ -924,8 +954,34 @@
 			}
 
 			if (region === "off") {
-				if (existing) existing.remove();
+				// OFF MUST NOT DELETE THE LAST ROUTE TO THIS THING. Off means
+				// "use the stock affordance instead of ours" — it can only mean
+				// that where the stock one is reachable. In the Dock layout the
+				// sidebar is hidden by the layout itself, so removing ours would
+				// leave a desk with no notifications, no user menu and no way to
+				// log out. Exactly the defect status style "Off" caused in the
+				// Bottom Bar layout, in a new costume.
+				//
+				// So: keep it, and keep claiming it. The user asked for one fewer
+				// control and gets the one they cannot do without — which is the
+				// same bargain the whole ownership-stamp rule exists to strike.
+				// RELEASE FIRST, THEN LOOK. Asking "is the native reachable?" while
+				// we still own it always answers no — the ownership stamp is the
+				// very thing hiding it (_layouts.scss keys on data-bnd-own). The
+				// first version of this guard did exactly that and turned Off into
+				// a no-op in every layout, which the Top Bar half of the test
+				// caught. Reading offsetParent forces the style recalc, so the
+				// answer below is the post-release truth.
 				bnd_disown(token);
+				if (existing && !native_pane_usable()) {
+					// Releasing did not bring anything back: this layout hides the
+					// stock control by itself (Dock hides the whole sidebar). Take
+					// the claim back and keep ours — Off can mean "use the stock
+					// one instead", but never "have none at all".
+					bnd_own(token);
+					continue;
+				}
+				if (existing) existing.remove();
 				continue;
 			}
 
@@ -1807,6 +1863,13 @@
 			if (section.querySelector(".bnd-cluster")) return true;
 			section.appendChild(el("span", "bnd-cluster-divider"));
 			mount_cluster(section);
+			// mount_cluster builds the bell and the avatar unconditionally, and
+			// this runs again on EVERY route change (it has to — Frappe swaps the
+			// page element out from under us). Without re-asserting placement,
+			// a tenant the user placed elsewhere or switched Off came back on the
+			// next navigation and quietly stayed: the setting appeared to work
+			// once and then undo itself.
+			mount_placed_tenants();
 			return true;
 		}, 20);
 	}

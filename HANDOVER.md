@@ -29,25 +29,19 @@ Shipped this session, all committed, all verified:
 
 `ROADMAP.md` phase 0: slices 0, 1a, 1b and 1c steps 1–3 are `[x]`.
 
-**Slice 2 is one quarter done.** Part 1 shipped: Home and All Apps place
-themselves (`home_placement` / `apps_placement`), `sidebar_quick_links` deleted
-with a migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`.
+**Slice 2 is half done.** Shipped: Home and All Apps place themselves
+(`home_placement` / `apps_placement`, `sidebar_quick_links` deleted with a
+migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`); and
+`status_in_classic` deleted — the status bar is a component now, so
+`status_style` decides in all five layouts and a patch preserved what each site
+sees.
 
-Remaining, in the order they should be taken:
+**NEXT: the container split.** Top bar, bottom bar, side pane and dock each get
+their own on/off, instead of `desk_layout` deciding which mount. Read §7 before
+starting it — that is the whole briefing.
 
-1. **`status_in_classic` deleted.** The status bar is its own component, so a
-   layout-conditional should not gate it. Needs a patch preserving what Classic
-   sites see today — `status_style: "Off"` wherever they had not opted in.
-   Small and self-contained; do this one first.
-2. **The remaining containers** — top bar, bottom bar, side pane and dock each
-   getting their own on/off, instead of `desk_layout` deciding which mount.
-   **This is the big one and it touches `mount_chrome` in `bunood.js`**, which is
-   where every critical defect in this project has lived (status "Off" deleting
-   the Bottom Bar layout's only route to Log Out; a native affordance hidden from
-   a declaration that outran reality). Start it fresh, not at the end of a long
-   session, and keep the ownership-stamp rule in front of you.
-3. **Honest-picker rules across every component.** Partly there —
-   `bnd_region_blocker` covers placement — but not audited picker by picker.
+Then: the honest-picker audit across every component (`bnd_region_blocker`
+covers placement; the rest is unaudited).
 
 After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
 
@@ -188,17 +182,74 @@ Reads through the mount are ~3.4× slower than the image filesystem (0.54 ms vs
 
 ---
 
-## 7. Open, and honestly stated
+## 7. The container split — read this before starting
 
-- **Slice 1c step 3 left `placement` bands empty in most pickers on purpose** —
-  only the side pane and search have placement controls; the bell and user menu
-  now have one too. Home and All Apps do not yet.
-- **The sidebar style kit's own 8-preset palette is outside the contrast gate.**
-  Fixed values, so no per-tenant risk, but unmeasured. Tracked under item 34.
-- **`--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
-  deliberately not enforced.** Whether a control needs a 3:1 resting boundary is
-  a per-component question for item 34.
-- **`--bnd-ink-inverse` now has zero in-repo callers** (grepped). Kept because
-  token names are a contract; do not reach for it for a brand fill.
-- **A spawned task chip exists** for the Submit-label issue — now fixed here, so
-  it is stale and can be dismissed.
+**This is the riskiest change left in the project.** It touches `mount_chrome`
+in `bunood.js`, which is where every serious defect here has lived. Two of them,
+both the same shape, both worth having in front of you:
+
+* status style "Off" deleted the **Bottom Bar** layout's only chrome — that
+  strip carries the bell, the badge and the avatar, and `_layouts.scss` hid the
+  sidebar's copies keyed on the LAYOUT. Off left a desk with no way to log out.
+* `user_placement: "Off"` did the same in **Dock**, because Dock hides
+  `.body-sidebar-container` outright. Fixed 2026-08-07: `mount_placed_tenants`
+  now releases the token FIRST, then asks whether the sidebar pane is usable at
+  all, and keeps our control when releasing would bring nothing back.
+
+**The rule that prevents this class:** a control may be removed only when
+something else can still reach the same function. Ask the DOM, never a
+declaration — and ask about the sidebar CONTAINER, not the affordance inside
+it, because `mount_chrome` runs before Frappe paints the sidebar's contents.
+Testing the affordance answers "not there yet" and turns the guard into a
+refusal of every Off. That mistake cost a suite run on 2026-08-07.
+
+**What the split has to decide.** Today `desk_layout` chooses which containers
+mount (`mount_chrome`, ~line 4570). Afterwards each container is its own
+setting, and `desk_layout` becomes a preset that WRITES those settings and then
+stops deciding anything — the end-state the settings architecture note
+describes. Two things follow that are easy to miss:
+
+1. **There is still no table saying what each layout writes.** `registry.py`
+   lists components and regions but no per-layout values; the 0.11.0 patch
+   `chrome_placement.py` records what 0.10.0 *rendered*, which is a migration
+   artefact, not a catalogue. That table has to be authored as part of this
+   work, and it is what finally lets the derived "Custom" label cover the
+   layout preset (today only the side pane has a real catalogue).
+2. **Every container off at once is a reachable configuration.** Decide what
+   that means before writing the code, not after — the invariant matrix in
+   `tests/smoke.mjs` is the place to encode the answer.
+
+**Do it in slices**, each verified: one container at a time, invariant matrix
+green between each. Do not start it at the end of a long session.
+
+## 8. Open, and honestly stated
+
+From the adversarial review of 2026-08-06/07. Fixed since: the smoke suite's
+restore bug (it could permanently destroy `company_name`, `brand_color`,
+`accent_color`, `default_density`), the Dock "Off" defect, and Compact undoing
+placement on every route change.
+
+**Still open, and mine:**
+
+- `home_placement` / `apps_placement` accept `"Dock"`, which no runtime branch
+  handles — it falls through to the sidebar. Either handle it or remove it from
+  the field's options.
+- Clicking a slot in the User or Home/All-Apps picker does not repaint that
+  picker, so the selection does not move until the form is refreshed.
+- `tools/fingerprint.mjs` hardcodes an absolute path to one machine
+  (`createRequire("C:/Users/saltedfish/...")`), so the documented
+  fixture-regeneration command only runs there.
+
+**Older, still true:**
+
+- The sidebar style kit's own 8-preset palette is outside the contrast gate.
+  Fixed values, so no per-tenant risk, but unmeasured. Item 34.
+- `--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
+  deliberately not enforced; whether a control needs a 3:1 resting boundary is
+  a per-component question. Item 34.
+- `--bnd-ink-inverse` has zero in-repo callers. Kept because token names are a
+  contract; do not reach for it for a brand fill.
+- The first test of a cold stack routinely exceeds a 30s budget because
+  `get_status_signals` takes ~5s on its first call. It fails as
+  "desk boots authenticated with theme assets" and drags the console-error
+  budget down with it. Environmental, recurring, not yet mechanised away.
