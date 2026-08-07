@@ -50,10 +50,48 @@ const CONSOLE_ALLOWLIST = [
 const results = [];
 let page; // assigned in main()
 
-/** Run one named check. Failures are recorded and printed but never abort
- * the suite — every remaining check still runs, and main() derives the exit
- * status from the collected results. */
+/**
+ * Run one named check, unless a filter excludes it.
+ *
+ * WHY A FILTER EXISTS, AND WHY IT CAN NEVER GATE A COMMIT
+ *   The full suite is ~15 minutes of real page loads. That is the right price
+ *   for a release gate and the wrong price for "does the line I just wrote
+ *   work" — and paying it either way is what pushes a change into batches. You
+ *   stop checking after each step because checking costs a quarter of an hour,
+ *   so mistakes are found late, together, and then have to be untangled from
+ *   each other. `--only` is for the inner loop.
+ *
+ *   It is deliberately loud about being partial. A filtered run says FILTERED
+ *   at the top and in the tally, and never prints the "N/N passed" phrase —
+ *   the words that mean green must not be producible by a run that skipped
+ *   things. The three release gates (CI, smoke, adversarial review) all mean
+ *   the WHOLE suite.
+ *
+ * The filter is a substring, or /regex/ with flags, over the test name. Tests
+ * are ordered and share one site, so a filtered run is only meaningful for
+ * checks that set the state they need — every `container:` test does; some
+ * older ones inherit state from the test before them.
+ *
+ * Failures are recorded and printed but never abort the suite — every
+ * remaining check still runs, and main() derives the exit status from the
+ * collected results.
+ */
+const ONLY = (() => {
+	const i = process.argv.indexOf("--only");
+	const raw = i !== -1 ? process.argv[i + 1] : process.env.BND_ONLY;
+	if (!raw) return null;
+	const m = raw.match(/^\/(.*)\/([a-z]*)$/);
+	return m ? new RegExp(m[1], m[2]) : new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+})();
+
+/** How many checks the filter skipped, so the tally can say so. */
+let skipped = 0;
+
 async function test(name, fn) {
+	if (ONLY && !ONLY.test(name)) {
+		skipped++;
+		return;
+	}
 	try {
 		await fn();
 		results.push({ name, ok: true });
@@ -455,6 +493,9 @@ const CHROME_DEFAULTS = { topbar_enabled: 1, pagehead_enabled: 0 };
  * authenticated page, then restore settings in `finally` — even on failure. */
 async function main() {
 	console.log(`Bunood Theme smoke suite — ${URL_BASE} (${SITE})`);
+	if (ONLY) {
+		console.log(`FILTERED to ${ONLY} — inner loop only, never a release gate.`);
+	}
 
 	const sid = process.env.BND_SID || mintSid();
 	const snapshot = getSettings(MUTABLE_FIELDS);
@@ -2697,7 +2738,18 @@ async function main() {
 	}
 
 	const failed = results.filter((r) => !r.ok);
-	console.log(`\n${results.length - failed.length}/${results.length} passed`);
+	// A filtered run deliberately does NOT print the phrase "N/M passed". That
+	// string is what tools/verify.mjs reports as the verdict and what a reader
+	// scans for; a partial run must not be able to produce it. An inner-loop
+	// check that reads like a release gate is worse than having no inner loop.
+	if (ONLY) {
+		console.log(
+			`\nFILTERED RUN — ${results.length - failed.length}/${results.length} matched checks ok, ` +
+				`${skipped} skipped. NOT a release gate; run the full suite before committing.`
+		);
+	} else {
+		console.log(`\n${results.length - failed.length}/${results.length} passed`);
+	}
 	process.exit(failed.length ? 1 : 0);
 }
 

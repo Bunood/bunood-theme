@@ -19,9 +19,17 @@
  *   the log rather than by a pipeline that can change the verdict.
  *
  * USAGE
- *   npm run verify              # log to a temp file, print its path
- *   npm run verify -- --log x   # choose the log path
- *   npm run verify -- --quiet   # summary only, no pass-by-pass output
+ *   npm run verify                      # log to a temp file, print its path
+ *   npm run verify -- --log x           # choose the log path
+ *   npm run verify -- --quiet           # summary only, no pass-by-pass output
+ *   npm run verify -- --only container: # INNER LOOP: run matching checks only
+ *
+ * WHY `--only` IS REPORTED DIFFERENTLY
+ *   A filtered run is for the seconds after writing a line, not for deciding
+ *   whether something is done. So it never prints the "N/N passed" verdict
+ *   line: that phrase is what a reader — and the release checklist — takes as
+ *   green, and it must only ever come out of a run that skipped nothing. The
+ *   filtered summary says FILTERED and says what it skipped.
  */
 
 import { spawn } from "node:child_process";
@@ -35,10 +43,11 @@ const flag = (name, fallback) => {
 	return i === -1 ? fallback : args[i + 1];
 };
 const quiet = args.includes("--quiet");
+const only = flag("only", null);
 const logPath = flag("log", join(tmpdir(), `bnd-smoke-${Date.now()}.log`));
 
 const out = createWriteStream(logPath);
-const child = spawn("node", ["tests/smoke.mjs"], {
+const child = spawn("node", ["tests/smoke.mjs", ...(only ? ["--only", only] : [])], {
 	stdio: ["ignore", "pipe", "pipe"],
 	shell: false,
 });
@@ -59,7 +68,13 @@ child.on("close", (code) => {
 		// counting it reported one broken test as two, which is the same
 		// species of wrong-by-a-little that this whole wrapper exists to stop.
 		const fails = log.split("\n").filter((l) => /^\s*FAIL\s/.test(l));
-		const tally = (log.match(/\d+\/\d+ passed/g) || []).pop() || "no tally line";
+		// Read the suite's own summary line, whichever it printed. The filtered
+		// one deliberately does not contain "passed", so a partial run cannot
+		// be mistaken for a verdict here or by anyone reading the log.
+		const tally =
+			(log.match(/FILTERED RUN — .*/g) || []).pop() ||
+			(log.match(/\d+\/\d+ passed/g) || []).pop() ||
+			"no tally line";
 
 		console.log("\n" + "─".repeat(60));
 		console.log(`  ${tally}`);
