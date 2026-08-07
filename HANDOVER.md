@@ -36,18 +36,27 @@ migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`); and
 `status_style` decides in all five layouts and a patch preserved what each site
 sees.
 
-**The container split is under way — 2 of 5 done** (2026-08-07, suite 119/119).
-The top bar and the page header are their own containers. Read §7 before
-continuing it; the four decisions taken on the way in are recorded there and
-should not be re-litigated without a reason.
+**The container split is 4 of 5 done** (2026-08-07, suite 126/126). Top bar,
+page header, dock and side pane are their own containers. Read §7 before
+continuing; the decisions taken on the way in are recorded there and should not
+be re-litigated without a reason.
 
-**NEXT: slice 2c-3, the dock.** `dock_enabled` decides `mount_dock`, decoupled
-from the sidebar hiding — which stays keyed on `data-bnd-layout="dock"` until
-slice 2c-5, so dock-on **and** side-pane-on becomes reachable for the first
-time. Then the bottom bar, then the side pane. `ROADMAP.md` phase 0 carries the
-per-slice detail; the shape of a slice is now settled, and 2c-1's commit is the
-worked example (field + catalogue column + boot + seed + patch + runtime +
-outcome-keyed CSS + settings entry + two container tests + invariant states).
+**NEXT: slice 2c-4, the bottom bar** — the last one, after which `desk_layout`
+decides nothing and the derived "Custom" label can finally cover it.
+`bottombar_enabled` owns whether the strip exists and `status_style` loses
+"Off", so it governs only content; `global_variant` goes with it. Note
+`LAYOUT_CHROME` writes `bottombar: 0` for Classic, which is the one arguable
+cell in the catalogue and is annotated there.
+
+`ROADMAP.md` phase 0 carries the per-slice detail. The shape of a slice is
+settled and 2c-1's commit is the worked example: field + catalogue column +
+boot + seed + patch + runtime + outcome-keyed CSS + settings entry + container
+tests + invariant states.
+
+**Use the fast loop.** `npm run verify -- --only "container:"` runs just those
+checks in ~90s against ~15 minutes for the suite. It cannot be mistaken for a
+gate — it prints FILTERED and never the "N/N passed" phrase. Four of those
+iterations landed slice 2c-3; each would have been a full run before.
 
 Then: the honest-picker audit across every component (`bnd_region_blocker`
 covers placement; the rest is unaudited).

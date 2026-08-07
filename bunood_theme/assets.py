@@ -10,5 +10,5 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 ``rtl_`` on Arabic sites. See ARCHITECTURE.md section 6.
 """
 
-THEME_CSS = "/assets/bunood_theme/dist/css/bunood.93480829.css"
-THEME_JS = "/assets/bunood_theme/dist/js/bunood.72af9d4a.js"
+THEME_CSS = "/assets/bunood_theme/dist/css/bunood.18afb7f0.css"
+THEME_JS = "/assets/bunood_theme/dist/js/bunood.6097e562.js"

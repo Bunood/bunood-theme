@@ -60,18 +60,46 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
-html[data-bnd-layout="dock"] {
-  // The boldest layout: no sidebar at all. body is a flex row, so the main
-  // section reclaims the full width automatically.
-  //
-  // !important is REQUIRED here, not casual: Frappe's sidebar JS writes
-  // `style="display: block"` INLINE on this node (measured 2026-07-30), and
-  // no selector specificity can beat an inline style. Beating inline styles
-  // is one of the two legitimate uses of !important this codebase allows.
+// ── The side pane, switched off ─────────────────────────────────────────────
+// `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
+// `html[data-bnd-layout="dock"]` hid the pane, so "dock" and "no side pane"
+// were one choice nobody could take apart. They are two containers now and
+// they are independent: turn both on and you get both. What the Dock PRESET
+// writes is `dock: 1, sidepane: 0`, which is the same desk arrived at honestly.
+//
+// WHY IT IS A DECLARATION, WHEN THE HOUSE RULE IS TO KEY ON THE OUTCOME
+//   Because the thing being hidden is Frappe's and is already on screen. Our
+//   own chrome does not exist before it mounts, so an outcome-keyed rule has
+//   nothing to flash. The side pane is in the document from the first paint and
+//   stays visible until a rule says otherwise, so keyed on anything JS stamps
+//   later, every pane-off desk would show the pane for up to 150ms — the
+//   interval `mount_chrome`'s poll waits on — and then have it vanish.
+//
+// WHY THE ATTRIBUTE LISTS WHAT IS **OFF**
+//   So that no attribute hides nothing. A list of what is ON would have to be
+//   read here as `:not([data-bnd-chrome~="sidepane"])`, which MATCHES when the
+//   attribute is absent — and a failed boot would then hide the side pane and
+//   every affordance inside it. That is this file's stated contract (NO LAYOUT
+//   ATTRIBUTE = CLASSIC) inverted by a selector.
+//
+//   The declaration is CHECKED rather than trusted: `guard_critical_reach()`
+//   runs after every container has mounted and both placement passes have run,
+//   and gives the pane back if switching it off has left no route to search,
+//   notifications or Log Out. Declare, then verify — the same bargain
+//   `mount_placed_tenants` strikes when it releases a token first and only then
+//   asks what became visible. That is what makes a declaration safe here when
+//   it was not safe for the bell, and why build.mjs's ownership guard names
+//   `data-bnd-layout` and `data-bnd-search` — declarations with no release
+//   path — and deliberately not this one.
+//
+// !important is REQUIRED, not casual: Frappe's sidebar JS writes
+// `style="display: block"` INLINE on this node (measured 2026-07-30) and no
+// selector specificity beats an inline style. One of the two sanctioned uses.
+html[data-bnd-chrome-off~="sidepane"] {
   .body-sidebar-container {
     display: none !important;
   }
-  // The hamburger that toggles a sidebar that no longer exists.
+  // The hamburger that toggles a sidebar that is no longer there.
   .page-title .sidebar-toggle-btn {
     display: none;
   }
@@ -190,7 +218,7 @@ html[data-bnd-topbar] .page-head {
 html[data-bnd-topbar] .dropdown-notifications,
 html[data-bnd-pagehead] .dropdown-notifications,
 html[data-bnd-layout="bottombar"] .dropdown-notifications,
-html[data-bnd-layout="dock"] .dropdown-notifications {
+html[data-bnd-dock] .dropdown-notifications {
   position: fixed;
   z-index: var(--bnd-z-panel);
   inset-inline-end: var(--bnd-sp-2);
@@ -240,7 +268,7 @@ html[data-bnd-layout="bottombar"] .dropdown-notifications {
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
   inset-block-start: auto;
 }
-html[data-bnd-layout="dock"] .dropdown-notifications {
+html[data-bnd-dock] .dropdown-notifications {
   inset-block-end: calc(var(--bnd-dock-h) + var(--bnd-sp-3));
   inset-block-start: auto;
 }

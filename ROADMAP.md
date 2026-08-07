@@ -169,15 +169,22 @@ defect in 0.10.0.
       `slug === "compact"` at BOTH call sites — the mount and the route-change
       handler. The only container that remounts per navigation, so it is the
       only one where "off" could undo itself on the next click
-    - `[ ]` **3 · Dock** — decoupled from the side pane hiding, which stays
-      layout-keyed until slice 5. Dock-on **and** side-pane-on becomes reachable
+    - `[x]` **3 · Dock, and the side pane with it** *(2026-08-07)*. `dock_enabled`
+      and `sidebar_enabled`. **They had to land together**: the dock hid the pane
+      from `data-bnd-layout="dock"`, so the moment the dock became switchable
+      something else had to say whether the pane was shown — split across two
+      slices, every Dock site would have grown a pane on upgrade in between.
+      Containers are independent, so a dock and a side pane coexist if both are
+      on. **Every container off is now reachable**, and `guard_critical_reach`
+      refuses it: the pane comes back when nothing else can reach what
+      `registry.CRITICAL` names. The critical selectors travel in boot rather
+      than becoming a fourth hand-written copy
     - `[ ]` **4 · Bottom bar** — `bottombar_enabled` owns whether the strip
       exists and `status_style` loses "Off", so it governs only content. Today
       "Off" is the container's on/off in four layouts and not in the fifth, which
       is the same fact in two places. `global_variant` goes with it
-    - `[ ]` **5 · Side pane**, and `desk_layout` stops deciding. The riskiest:
-      the only container whose "off" hides a NATIVE container, so it takes every
-      stock affordance with it. Last, behind the guard above
+    - `[x]` **5 · Side pane** — landed with the dock, above, for the reason
+      given there. `desk_layout` stops deciding once the bottom bar follows
   - `[ ]` **Honest-picker rules across every component** — `bnd_region_blocker`
     covers placement; the rest is unaudited
 

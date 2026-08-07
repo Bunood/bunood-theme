@@ -7,6 +7,43 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The dock and the side pane become containers (rework slice 2c, 3 and 5)
+
+`dock_enabled` and `sidebar_enabled`. **Containers are independent** — turn
+both on and you get both. "Dock" used to mean *dock, and therefore no side
+pane*: one layout, two facts, welded together by a CSS rule keyed on
+`data-bnd-layout="dock"`.
+
+**These two had to land together.** The moment the dock stops hiding the
+pane, something else has to say whether the pane is shown — and if nothing
+does, every Dock site grows a side pane on upgrade. Splitting them across
+two slices would have shipped that regression in between. Same lesson as
+slice 2c-1, where "a container has a setting" and "the layout *writes*
+that setting" turned out to be one change; caught this time before it
+shipped rather than after.
+
+**Every container off is now a reachable configuration, and it is
+refused.** `guard_critical_reach` runs last — after every container has
+mounted and both placement passes have run, because "is there still a
+route to this" cannot be answered from settings — and gives the side pane
+back when nothing else can reach search, notifications or Log Out. It
+reads `registry.CRITICAL` through boot rather than becoming a fourth
+hand-written copy of those three selectors. Tested in both directions: a
+guard that always fires is not a guard.
+
+**The pane's hide is a declaration, and says so.** Our own chrome is not
+in the document before it mounts, so an outcome-keyed rule has nothing to
+flash; the side pane is Frappe's, on screen from the first paint, so
+keying it on anything JS stamps later means 150ms of visible pane and then
+a vanish. The attribute therefore lists what is **off**, not what is on —
+a list of what is on would have to be read as `:not(…)`, which matches
+when the attribute is absent, and a failed boot would hide the pane and
+every affordance inside it.
+
+`mount_sidebar_kit` and the avatar menu's Desktop item now ask the DOM
+whether the pane is reachable instead of asking which layout is active —
+both gave the wrong answer the moment a dock could sit beside a pane.
+
 ### The page header becomes its own container (rework slice 2c, 2 of 5)
 
 `pagehead_enabled` decides whether the global controls ride in each page's

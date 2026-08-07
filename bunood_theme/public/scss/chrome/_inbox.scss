@@ -185,7 +185,7 @@ html[data-theme] .bnd-inbox {
 }
 
 html[data-bnd-layout="bottombar"] .bnd-inbox,
-html[data-bnd-layout="dock"] .bnd-inbox {
+html[data-bnd-dock] .bnd-inbox {
   inset-block-start: auto;
   inset-block-end: calc(var(--bnd-bottombar-h, 44px) + var(--bnd-sp-2));
 }

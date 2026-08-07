@@ -25,7 +25,10 @@
   "topbar_enabled",
   "section_pagehead",
   "pagehead_enabled",
+  "section_dock",
+  "dock_enabled",
   "section_sidebar",
+  "sidebar_enabled",
   "sidebar_preset",
   "sidebar_picker",
   "sidebar_placement",
@@ -226,9 +229,28 @@
    "description": "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
   },
   {
+   "fieldname": "section_dock",
+   "fieldtype": "Section Break",
+   "label": "Dock"
+  },
+  {
+   "fieldname": "dock_enabled",
+   "fieldtype": "Check",
+   "label": "Show the dock",
+   "default": "0",
+   "description": "A floating pill of workspace icons. It replaces the side pane rather than joining it: while the dock is shown the side pane is hidden, and switching the dock off gives the side pane straight back. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
    "fieldname": "section_sidebar",
    "fieldtype": "Section Break",
    "label": "Sidebar Style"
+  },
+  {
+   "fieldname": "sidebar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the side pane",
+   "default": "1",
+   "description": "Frappe's own left pane, and the home of its search row, notifications and user button. Independent of every other container: a dock and a side pane can both be shown. Switching it off is refused while nothing else can reach search, notifications or Log Out. Applies site-wide on the next page load."
   },
   {
    "fieldname": "sidebar_preset",

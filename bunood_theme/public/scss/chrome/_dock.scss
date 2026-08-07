@@ -1,14 +1,18 @@
 // Copyright (c) 2026, Bunood and contributors
 // ============================================================================
-// DOCK — the "Dock" layout's floating workspace bar (checklist item 9).
+// DOCK — the floating workspace bar (checklist item 9).
 //
 // WHAT
 //   `.bnd-dock`, a centered, floating pill fixed above the bottom edge,
-//   mounted by bunood.js when data-bnd-layout="dock". Contains: brand chip,
+//   mounted by bunood.js when `dock_enabled` says so. Contains: brand chip,
 //   the first N workspaces as icon buttons, an overflow "⋯" menu for the
 //   rest, then a divider and the global cluster (search, bell, avatar).
-//   The sidebar is hidden entirely in this layout (_layouts.scss), so the
-//   dock IS the navigation.
+//
+//   It used to be the "Dock" LAYOUT's bar. Since slice 2c it is a container
+//   with its own setting, which a layout preset writes — so it can appear
+//   beside a side pane on any layout, and the Dock layout can be had without
+//   it. While it IS shown the side pane is hidden (_layouts.scss), because
+//   the dock replaces that navigation rather than joining it.
 //
 // WHY CENTERED-FLOATING RATHER THAN EDGE-TO-EDGE
 //   The macOS/Arc pattern the wireframe sold: content owns the full window

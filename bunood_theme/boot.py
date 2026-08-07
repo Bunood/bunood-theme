@@ -138,6 +138,26 @@ def extend_bootinfo(bootinfo):
             if c["toggle"] in CHROME_DEFAULTS
         }
 
+        # The components a user must never lose every route to, as the pair of
+        # selectors that answers "is there a route to this" — ours, and the
+        # stock affordance ours replaced.
+        #
+        # WHY IT TRAVELS IN BOOT
+        #     bunood.js has to answer that question at mount time, to decide
+        #     whether switching a container off is honourable or would leave a
+        #     desk nobody can log out of. registry.py is where `critical` is
+        #     defined and the smoke suite already reads it from there; without
+        #     this the desk would carry a fourth hand-written copy of the same
+        #     three selectors — and "the same fact in two places" is the defect
+        #     class the whole rework exists to remove. Three small strings on a
+        #     payload is the cheaper side of that trade.
+        from bunood_theme.registry import CRITICAL
+
+        bootinfo.bnd_critical = [
+            {"key": c["key"], "selector": c["selector"], "native": c["native"]}
+            for c in CRITICAL
+        ]
+
         # Sidebar style kit (item 10). One compact dict; every empty field
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the

@@ -15,3 +15,5 @@ bunood_theme.patches.v0_11_0.status_is_a_component
 # be re-read to find out what any single one of them decided.
 bunood_theme.patches.v0_11_0.container_topbar
 bunood_theme.patches.v0_11_0.container_pagehead
+bunood_theme.patches.v0_11_0.container_dock
+bunood_theme.patches.v0_11_0.container_sidepane

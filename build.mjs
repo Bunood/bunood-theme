@@ -132,7 +132,7 @@ function assertLogicalOnly(css, name) {
 // "topbar" and the container prefixes that follow it are here because a
 // CONTAINER was registered (registry.py), which is the only reason this list
 // is ever allowed to grow — never to make a build pass.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them.

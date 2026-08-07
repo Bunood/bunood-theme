@@ -251,6 +251,105 @@
 		document.documentElement.setAttribute("data-bnd-" + key, "");
 	}
 
+	/**
+	 * Containers explicitly switched OFF, as a token list on <html>, applied
+	 * before first paint.
+	 *
+	 * CONTAINERS ARE INDEPENDENT. Turning one on never turns another off — a
+	 * dock and a side pane coexist if a user asks for both, exactly like every
+	 * other pair. The Dock LAYOUT used to mean "dock, and therefore no side
+	 * pane", and that coupling died with the split: the layout is a preset, so
+	 * it writes `dock: 1, sidepane: 0` and the two settings go their own way
+	 * afterwards.
+	 *
+	 * WHY THE OFF-LIST IS A DECLARATION WHEN THE HOUSE RULE IS TO KEY ON THE
+	 * OUTCOME
+	 *   Our own chrome is not in the document before it mounts, so an
+	 *   outcome-keyed rule has nothing to flash. The side pane is the other way
+	 *   round: it is Frappe's, it is there from the first paint, and it stays
+	 *   visible until a rule says otherwise. Keyed on anything JS stamps later,
+	 *   every pane-off desk would show the pane for up to 150ms — the interval
+	 *   `mount_chrome`'s poll waits on — and then have it vanish.
+	 *
+	 * WHY IT LISTS WHAT IS OFF RATHER THAN WHAT IS ON
+	 *   So the failure mode is stock. No attribute — theme inactive, boot
+	 *   failed, a site whose migration has not run — must hide nothing at all.
+	 *   An on-list would have to be read as `:not([… ~= "sidepane"])`, which
+	 *   MATCHES when the attribute is absent, and a failed boot would hide the
+	 *   side pane and every affordance in it. That is the whole layout system's
+	 *   contract inverted by a selector.
+	 *
+	 *   The price of a declaration is that it can be wrong, and this codebase
+	 *   has paid it: a layout that promised a bell it never mounted left a desk
+	 *   with no way to log out. So it is CHECKED — see `guard_critical_reach`.
+	 */
+	/**
+	 * Containers whose absence hides something of FRAPPE'S, rather than merely
+	 * declining to add something of ours.
+	 *
+	 * Only these need a declaration at all. A top bar that is off is simply not
+	 * there; a side pane that is off takes the search row, the bell and the user
+	 * button with it, because they live inside it.
+	 *
+	 * DECLARED BEFORE THE IIFE THAT READS IT, and that is not style. `const` is
+	 * hoisted into a temporal dead zone, so reading it from the block below
+	 * while it is still declared underneath throws a ReferenceError — inside
+	 * this file's single top-level IIFE, which kills the whole of bunood.js and
+	 * leaves a stock desk with no theme at all. Written after, this cost a test
+	 * run: every "container is on" check failed and every "container is off"
+	 * check passed, because nothing had mounted.
+	 */
+	const HIDES_NATIVE = { sidepane: true };
+
+	(function apply_chrome_off() {
+		if (!chrome_state) return;
+		const off = Object.keys(chrome_state).filter((k) => !chrome_state[k] && HIDES_NATIVE[k]);
+		if (off.length) document.documentElement.setAttribute("data-bnd-chrome-off", off.join(" "));
+	})();
+
+	/**
+	 * Give the side pane back when switching it off would leave a user stranded.
+	 *
+	 * THE RULE, which is the same one `mount_placed_tenants` applies to tenants:
+	 * a control may be removed only while something else can still reach the
+	 * same function. Every container off at once is a reachable configuration
+	 * now, and it must not be a desk with no search, no notifications and no way
+	 * to log out. The side pane is where every stock affordance lives, so it is
+	 * the thing that comes back.
+	 *
+	 * ASKS THE DOM, AND ASKS IT LAST. It runs after every container has mounted
+	 * and after both placement passes, because "is there a route to this" cannot
+	 * be answered from settings — a tenant may have been placed in a region that
+	 * did not materialise, and only the document knows. The critical list comes
+	 * from `registry.py` via boot rather than being restated here; it is the
+	 * table that defines `critical`, and a fourth copy of those three selectors
+	 * is exactly the duplication this rework exists to remove.
+	 *
+	 * Exposed on `bunood_theme` so the suite can drive it directly: the state it
+	 * defends against is one where a mount FAILED, which no setting can produce,
+	 * and a guard that has never run is a guard with no evidence it works.
+	 */
+	function guard_critical_reach() {
+		const html = document.documentElement;
+		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).filter(Boolean);
+		if (!off.includes("sidepane")) return false;
+
+		// PRESENCE, not visibility. This runs while Frappe is still painting,
+		// so a node of ours that exists but has not been laid out yet is a real
+		// route and measuring it would say otherwise. The natives are excluded
+		// deliberately — they are inside the pane we have hidden, so asking
+		// about them answers the question we are trying to decide.
+		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
+		const stranded = critical.filter((c) => !document.querySelector(c.selector));
+		if (!stranded.length) return false;
+
+		const kept = off.filter((k) => k !== "sidepane");
+		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
+		else html.removeAttribute("data-bnd-chrome-off");
+		return true;
+	}
+	bunood.guard_critical_reach = guard_critical_reach;
+
 	// ════════════════════════════════════════════════════════════════════════
 	// Ownership stamps
 	// ════════════════════════════════════════════════════════════════════════
@@ -811,7 +910,12 @@
 
 		// Place-switching that has no other home now that the old brand menu
 		// is retired: Website for everyone, Desktop where the sidebar is gone.
-		if (layout() === "dock") {
+		// Asks the DOM, not the layout: this item exists because the side pane
+		// — which normally carries the Desktop route — is not reachable. Since
+		// the container split that is a question about the PANE, not about
+		// which layout is active, and the menu is built on click so the honest
+		// answer is available by then.
+		if (sidebar_is_hidden()) {
 			items.push({ label: __("Desktop"), icon: "icon-home", run: () => frappe.set_route("") });
 		}
 		items.push({
@@ -4727,7 +4831,12 @@
 
 	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
 	function mount_sidebar_kit() {
-		if (!sb_active() || layout() === "dock") return;
+		// Asks whether the side pane is actually usable, not which layout this
+		// is. A dock can now sit beside a side pane (Top Bar + dock), and it
+		// can be absent from the Dock layout — both states in which the old
+		// `layout() === "dock"` test gave the wrong answer, one by decorating
+		// nothing and one by leaving a real side pane undecorated.
+		if (!sb_active() || sidebar_is_hidden()) return;
 		sb_resolve_workspace_from_route();
 		// The header renders a beat after the shell exists; utils and the
 		// module row anchor to it, so they get their own retry budget
@@ -4802,13 +4911,13 @@
 		//     offer a new home for one.
 		if (container_on("topbar")) mount_topbar();
 		if (container_on("pagehead")) inject_compact_cluster();
+		if (container_on("dock")) mount_dock();
 
 		if (slug === "compact") {
 			mount_statusbar(false);
 		} else if (slug === "bottombar") {
 			mount_statusbar(true);
 		} else if (slug === "dock") {
-			mount_dock();
 			mount_statusbar(false);
 		} else if (slug === "topbar" || slug === "classic") {
 			// Named rather than left to a bare `else`: an unknown slug must
@@ -4834,8 +4943,18 @@
 		// that is really there.
 		mount_placed_tenants();
 
-		// The sidebar style kit rides along in every layout that HAS a
-		// sidebar; Dock hides it, so the kit stays down there.
+		// LAST, and only now: every container has mounted and both placement
+		// passes have run, so "is there still a route to everything critical"
+		// finally has an honest answer. If switching the side pane off has left
+		// a user stranded, it comes back — and the tenants are placed again,
+		// because the pane returning makes regions and native affordances
+		// available that were not there a moment ago. Re-running is safe by
+		// construction: mount_placed_tenants is idempotent and Compact already
+		// calls it on every route change.
+		if (guard_critical_reach()) mount_placed_tenants();
+
+		// The sidebar style kit rides along wherever there IS a side pane —
+		// after the guard, so a pane that has just come back is decorated too.
 		mount_sidebar_kit();
 
 		// The palette kit owns search invocation in every layout.
@@ -4865,7 +4984,7 @@
 				// quietly bring the cluster back on the next navigation after
 				// the user switched it off.
 				if (container_on("pagehead")) inject_compact_cluster();
-				if (slug === "dock") update_dock_active();
+				if (container_on("dock")) update_dock_active();
 				sb_update_module_row();
 				sb_update_apps_rail_active();
 				// AFTER inject_compact_cluster, never before: Compact builds

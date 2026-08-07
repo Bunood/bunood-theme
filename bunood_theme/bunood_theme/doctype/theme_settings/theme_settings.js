@@ -296,8 +296,16 @@ function bnd_region_blocker(frm, region) {
 			? ""
 			: __("the page title row is not carrying controls");
 	}
-	if (region === "dock") return layout === "Dock" ? "" : __("{0} has no dock", [__(layout)]);
-	if (region === "sidepane") return layout === "Dock" ? __("Dock hides the sidebar") : "";
+	if (region === "dock") {
+		return parseInt(frm.doc.dock_enabled ?? 0, 10) ? "" : __("the dock is switched off");
+	}
+	// The side pane answers for itself. It used to be "is the layout Dock",
+	// because the dock hid it; containers are independent now, so a dock and a
+	// side pane coexist and the only thing that removes the pane is its own
+	// setting.
+	if (region === "sidepane") {
+		return parseInt(frm.doc.sidebar_enabled ?? 1, 10) ? "" : __("the side pane is switched off");
+	}
 	if (region === "bottombar") {
 		if (layout === "Bottom Bar") return "";
 		if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
@@ -546,6 +554,12 @@ frappe.ui.form.on("Theme Settings", {
 	pagehead_enabled(frm) {
 		bnd_repaint_placement_pickers(frm);
 	},
+	dock_enabled(frm) {
+		bnd_repaint_placement_pickers(frm);
+	},
+	sidebar_enabled(frm) {
+		bnd_repaint_placement_pickers(frm);
+	},
 });
 
 /**
@@ -623,6 +637,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
 			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
 			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
+			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
 			{ key: "status", label: () => __("Bottom bar & status"), anchors: ["status_style"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
 		],
@@ -700,6 +715,7 @@ const BND_SHELL_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
 	pagehead: { prefixes: ["pagehead_"] },
 	sidepane: { prefixes: ["sidebar_"] },
+	dock: { prefixes: ["dock_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.
 	inbox: { prefixes: ["inbox_"] },

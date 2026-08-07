@@ -278,6 +278,25 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 const q = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
 /** Read an attribute off <html> (where all data-bnd-* state lives). */
 const attr = (name) => page.evaluate((n) => document.documentElement.getAttribute(n), name);
+/**
+ * The side pane container's computed display.
+ *
+ * Its own helper because the container split turns "is the side pane there"
+ * into a question several tests ask, and `visible()` answers a different one:
+ * the sidebar ROW can be display:block inside a container that is display:none,
+ * which is exactly the Dock case and exactly how a search box once got
+ * "placed" somewhere nobody could see it.
+ */
+const paneHidden = () =>
+	page.evaluate(() => {
+		const el = document.querySelector(".body-sidebar-container");
+		// The QUESTION is "is it hidden", never "is it display:block". Frappe
+		// computes this container to `flex` on some routes and `block` on
+		// others, and an assertion that named one of them failed on a desk that
+		// was perfectly correct. Only `none` means gone.
+		return !el || getComputedStyle(el).display === "none";
+	});
+
 /** Computed visibility of the first match: true/false, or null if absent. */
 const visible = (sel) =>
 	page.evaluate((s) => {
@@ -465,7 +484,7 @@ const MUTABLE_FIELDS = [
 	// Slice 2c, the container split: each container gets its own on/off, so
 	// `desk_layout` can become a preset that writes them and then stops
 	// deciding. One field per container, added as its slice lands.
-	"topbar_enabled", "pagehead_enabled",
+	"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled",
 ];
 
 /**
@@ -485,7 +504,12 @@ const MUTABLE_FIELDS = [
  *   agree by good intentions: the container test below asserts these values
  *   against SHIPPED and fails the moment they diverge.
  */
-const CHROME_DEFAULTS = { topbar_enabled: 1, pagehead_enabled: 0 };
+const CHROME_DEFAULTS = {
+	topbar_enabled: 1,
+	pagehead_enabled: 0,
+	dock_enabled: 0,
+	sidebar_enabled: 1,
+};
 
 // ── The suite ───────────────────────────────────────────────────────────────
 
@@ -1731,6 +1755,103 @@ async function main() {
 			expectEq(await q(".page-head .bnd-cluster"), false, "and still none after a route change");
 		});
 
+		await test("container: a dock and a side pane coexist when both are on", async () => {
+			// CONTAINERS ARE INDEPENDENT, and this is the claim that says so.
+			// "Dock" used to mean "dock, and therefore no side pane" — one
+			// layout, two facts, no way to take them apart. Ask for both and you
+			// get both, exactly like any other pair.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				dock_enabled: 1,
+				sidebar_enabled: 1,
+			});
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await visible(".bnd-dock"), "a dock");
+			expect(!(await paneHidden()), "and a side pane, at the same time");
+		});
+
+		await test("container: the side pane answers for itself, not to the dock", async () => {
+			// The converse, and the half that used to be impossible: no dock,
+			// and no side pane either. Nothing hides the pane but its own
+			// setting — so the guard has to be what keeps this desk usable, and
+			// the invariant matrix walks that state.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				dock_enabled: 0,
+				sidebar_enabled: 0,
+			});
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await q(".bnd-dock"), false, "no dock");
+			expect(await paneHidden(), "and no side pane either");
+			expect(await visible(".bnd-topbar .bnd-avatar-btn"), "the top bar still carries Log Out");
+		});
+
+		await test("container: EVERY container off is refused at the last one", async () => {
+			// The configuration the split makes reachable and nothing before it
+			// could express. Every container this slice has split out is off,
+			// which means no route of OURS to search, notifications or Log Out —
+			// and the side pane, where every stock route lives, is off too.
+			//
+			// Note it has to say so in full. Spreading CHROME_DEFAULTS and then
+			// naming only the dock leaves `topbar_enabled: 1` underneath, a top
+			// bar mounts, it carries the cluster, and the guard correctly does
+			// not fire — a test that would have passed while asserting nothing
+			// about the state it was named for.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Dock",
+				topbar_enabled: 0,
+				pagehead_enabled: 0,
+				dock_enabled: 0,
+				sidebar_enabled: 0,
+			});
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await q(".bnd-dock"), false, "no dock");
+			expectEq(await q(".bnd-topbar"), false, "no top bar");
+			expect(!(await paneHidden()), "the guard gives the side pane back rather than strand the user");
+			expect(
+				await visible(".body-sidebar .sidebar-user-button"),
+				"so ERPNext's own user button — and Log Out — is reachable"
+			);
+		});
+
+		await test("container: the guard refuses to strand a user, and only then", async () => {
+			// Two directions, because a guard that always fires is not a guard.
+			//
+			// The pane hide is keyed on a DECLARATION rather than on a mount,
+			// deliberately: the pane is Frappe's and is on screen from the first
+			// paint, so keying it on anything JS stamps later means up to 150ms
+			// of visible pane — the interval mount_chrome's poll waits on — and
+			// then a vanish. The price of a declaration is that it can be wrong,
+			// so it is checked. This drives the check directly, because the
+			// state it defends against is a mount FAILURE that no setting can
+			// produce.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				sidebar_enabled: 0,
+				topbar_enabled: 1,
+			});
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await paneHidden(), "precondition: the pane is off and stays off while ours is reachable");
+			const held = await page.evaluate(() => window.bunood_theme.guard_critical_reach());
+			expectEq(held, false, "the guard does NOT fire while the top bar carries everything");
+
+			const released = await page.evaluate(() => {
+				// Take away every route of ours, as a failed mount would.
+				for (const n of document.querySelectorAll(".bnd-bell, .bnd-avatar-btn, .bnd-search-field, .bnd-search-icon")) {
+					n.remove();
+				}
+				const fired = window.bunood_theme.guard_critical_reach();
+				const el = document.querySelector(".body-sidebar-container");
+				return { fired, hidden: getComputedStyle(el).display === "none" };
+			});
+			expect(released.fired, "and DOES fire once nothing of ours is left");
+			expect(!released.hidden, "giving the side pane, and every stock affordance in it, back");
+		});
+
 		await test("container: the layout preset writes the containers and then stops deciding", async () => {
 			// The catalogue is the thing that lets the derived "Custom" label
 			// cover the layout preset at all — until this table existed there
@@ -1747,11 +1868,19 @@ async function main() {
 			// One row per split container: the layout it belongs to writes 1 and
 			// every other layout writes 0. Stated per container rather than as a
 			// whole-table snapshot, so a failure names which cell moved.
-			for (const [container, owner] of [["topbar", "Top Bar"], ["pagehead", "Compact"]]) {
+			for (const [container, owner] of [
+				["topbar", "Top Bar"], ["pagehead", "Compact"], ["dock", "Dock"],
+			]) {
 				expectEq(chrome[owner][container], 1, `${owner} is the layout that writes a ${container}`);
 				for (const l of layouts.filter((x) => x !== owner)) {
 					expectEq(chrome[l][container], 0, `${l} writes no ${container}`);
 				}
+			}
+			// The side pane is the other way round: every layout keeps it except
+			// Dock, which is how "Dock" goes on meaning what it always meant now
+			// that the dock no longer hides the pane by itself.
+			for (const l of layouts) {
+				expectEq(chrome[l].sidepane, l === "Dock" ? 0 : 1, `${l}'s side pane`);
 			}
 
 			// CHROME_DEFAULTS is the one hand-written copy of a shipped default
@@ -1854,6 +1983,20 @@ async function main() {
 			// is the one container that remounts on every route change, in the
 			// layout where losing it would leave nothing.
 			["Dock", "Quiet", "Top Bar Center", { pagehead_enabled: 1 }],
+			// The Dock layout with no dock — not a state before the split, one
+			// keystroke away after it. The Dock preset has already written
+			// sidepane 0, so this is EVERY CONTAINER OFF: nothing of ours, and
+			// the pane switched off too. The guard is the only thing standing
+			// between this state and a desk nobody can log out of.
+			["Dock", "Off", "Top Bar Center", {
+				topbar_enabled: 0, pagehead_enabled: 0, dock_enabled: 0, sidebar_enabled: 0,
+			}],
+			// A dock alongside a side pane, which no layout could express.
+			["Top Bar", "Quiet", "Top Bar Center", { dock_enabled: 1 }],
+			// The side pane off while our own chrome carries everything — the
+			// state the guard must NOT fire in, asserted here as an invariant
+			// rather than only as a unit check.
+			["Top Bar", "Quiet", "Top Bar Center", { sidebar_enabled: 0 }],
 		];
 
 		for (const [layout, style, placement, chrome] of INVARIANT_STATES) {
