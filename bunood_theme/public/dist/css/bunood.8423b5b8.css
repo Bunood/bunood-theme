@@ -451,12 +451,12 @@ html[data-theme] .bnd-statusbar .bnd-clock {
   font-variant-numeric: var(--bnd-numeric);
 }
 
-html[data-theme] .bnd-statusbar.bnd-bottombar {
+html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-btn) {
   block-size: var(--bnd-bottombar-h);
   background: var(--bnd-surface);
   font-size: var(--bnd-text-sm);
 }
-html[data-theme] .bnd-statusbar.bnd-bottombar .bnd-search-field {
+html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-btn) .bnd-search-field {
   inline-size: min(280px, 32vw);
   block-size: calc(var(--bnd-bottombar-h) - 12px);
 }
@@ -512,9 +512,7 @@ html[data-bnd-search=botedge] .bnd-statusbar .bnd-search-field {
   margin-inline-end: var(--bnd-sp-3);
 }
 
-html[data-bnd-search=botedge] .bnd-statusbar:not(.bnd-bottombar),
-html[data-bnd-search=botcenter] .bnd-statusbar:not(.bnd-bottombar) {
-  min-block-size: var(--bnd-bottombar-h);
+html[data-theme] .bnd-statusbar:has(.bnd-search-field) {
   padding-block: var(--bnd-sp-1);
 }
 

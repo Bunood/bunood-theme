@@ -17,3 +17,4 @@ bunood_theme.patches.v0_11_0.container_topbar
 bunood_theme.patches.v0_11_0.container_pagehead
 bunood_theme.patches.v0_11_0.container_dock
 bunood_theme.patches.v0_11_0.container_sidepane
+bunood_theme.patches.v0_11_0.container_bottombar

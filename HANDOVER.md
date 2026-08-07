@@ -36,27 +36,25 @@ migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`); and
 `status_style` decides in all five layouts and a patch preserved what each site
 sees.
 
-**The container split is 4 of 5 done** (2026-08-07, suite 126/126). Top bar,
-page header, dock and side pane are their own containers. Read §7 before
-continuing; the decisions taken on the way in are recorded there and should not
-be re-litigated without a reason.
+**The container split is COMPLETE** (2026-08-07, suite 132/132). Top bar, page
+header, bottom bar, side pane and dock each have their own on/off;
+`mount_chrome` is five lines and not one of them reads `desk_layout`. A layout
+is a preset that writes values — containers *and* tenant placements — and then
+has no further say. The settings form derives its name by comparing those
+values and reads "Custom" the moment one differs, which is what
+`registry.LAYOUT_CHROME` was authored for.
 
-**NEXT: slice 2c-4, the bottom bar** — the last one, after which `desk_layout`
-decides nothing and the derived "Custom" label can finally cover it.
-`bottombar_enabled` owns whether the strip exists and `status_style` loses
-"Off", so it governs only content; `global_variant` goes with it. Note
-`LAYOUT_CHROME` writes `bottombar: 0` for Classic, which is the one arguable
-cell in the catalogue and is annotated there.
+Also shipped this session, and both worth knowing about:
 
-`ROADMAP.md` phase 0 carries the per-slice detail. The shape of a slice is
-settled and 2c-1's commit is the worked example: field + catalogue column +
-boot + seed + patch + runtime + outcome-keyed CSS + settings entry + container
-tests + invariant states.
+* **Theme Settings autosaves.** A click IS the change; there is no Save step.
+  Hooked to `frm.dirty` (one choke point, so a control added later is covered)
+  and serialised on `frappe.ui.form.is_saving` — Frappe's own global, because a
+  private flag misses saves started by the toolbar or Ctrl+S, and `_call`
+  reacts with a SYNCHRONOUS `throw "saving"` that no `.catch()` sees.
+* **The TimestampMismatch on save is fixed at the root.** See §4.
 
-**Use the fast loop.** `npm run verify -- --only "container:"` runs just those
-checks in ~90s against ~15 minutes for the suite. It cannot be mistaken for a
-gate — it prints FILTERED and never the "N/N passed" phrase. Four of those
-iterations landed slice 2c-3; each would have been a full run before.
+**NEXT: the honest-picker audit** — `bnd_region_blocker` covers placement; the
+rest is unaudited. Two concrete items for it are in §8.
 
 Then: the honest-picker audit across every component (`bnd_region_blocker`
 covers placement; the rest is unaudited).
@@ -278,6 +276,21 @@ restore bug (it could permanently destroy `company_name`, `brand_color`,
 placement on every route change.
 
 **Still open, and mine:**
+
+- **`chrome_placement.py` maps Classic to `"Side Pane"`, and its own comment
+  says "nothing of ours -> the sidebar's own bell and user button".** Those
+  disagree: `"Side Pane"` mounts OUR bell into Frappe's sidebar and stamps
+  `data-bnd-own`, which hides Frappe's own. Found on 2026-08-07 while giving
+  the layout catalogue its placement column, where the right value for Classic
+  is `"Off"` — release the token and the stock affordance renders. The patch
+  has already run on real sites, so correcting it means writing over settings
+  those admins may have changed since. Deliberately NOT auto-corrected; the
+  catalogue is right for anyone who picks a layout from here on.
+- **`_statusbar.scss` now uses `:has()`.** The bar sizes itself from what it
+  contains, which is the honest rule, but on a browser without `:has()` the
+  strip stays text-height and controls are cramped. Never absent, never
+  unclickable — a soft failure, and the only unguarded modern-CSS dependency
+  in the sheet.
 
 - **The notifications panel guesses where the bell is, from the layout.**
   `inbox_placement` is the thing that knows, and has been its own setting since

@@ -499,6 +499,7 @@ const MUTABLE_FIELDS = [
 	// `desk_layout` can become a preset that writes them and then stops
 	// deciding. One field per container, added as its slice lands.
 	"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled",
+	"bottombar_enabled",
 ];
 
 /**
@@ -523,6 +524,7 @@ const CHROME_DEFAULTS = {
 	pagehead_enabled: 0,
 	dock_enabled: 0,
 	sidebar_enabled: 1,
+	bottombar_enabled: 1,
 };
 
 // ── The suite ───────────────────────────────────────────────────────────────
@@ -601,7 +603,7 @@ async function main() {
 		const LAYOUT_CHECKS = {
 			"Top Bar": async () => {
 				expect(await q(".main-section > header .bnd-topbar"), "topbar mounted");
-				expect(await q(".bnd-statusbar:not(.bnd-bottombar)"), "slim statusbar");
+				expect(await q(".bnd-statusbar"), "a bottom bar");
 				expectEq(await visible(".body-sidebar .navbar-search-bar"), false, "sidebar search hidden");
 			},
 			"Compact": async () => {
@@ -628,12 +630,12 @@ async function main() {
 				expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
 			},
 			"Bottom Bar": async () => {
-				expect(await q(".bnd-bottombar .bnd-cluster"), "cluster in bottombar");
+				expect(await q(".bnd-statusbar .bnd-cluster"), "cluster in the bottom bar");
 				// Search is its own setting since item 14, and the DEFAULT asks
 				// for a top bar this layout never mounts. So this asserts the
 				// fallback, not a layout feature: it must land in the bottom
 				// bar promptly rather than vanish or arrive seconds late.
-				await page.waitForSelector(".bnd-statusbar.bnd-bottombar .bnd-search-field", { timeout: 2500 });
+				await page.waitForSelector(".bnd-statusbar .bnd-search-field", { timeout: 2500 });
 			},
 			"Dock": async () => {
 				expect(await q(".bnd-dock .bnd-dock-brand"), "dock with brand chip");
@@ -1096,7 +1098,7 @@ async function main() {
 			await goDesk("/desk/item", ".body-sidebar-container", 3500);
 			expect(await q(".bnd-statusbar"), "Classic + Quiet should mount the bar");
 
-			setSettings({ desk_layout: "Classic", status_style: "Off" });
+			setSettings({ desk_layout: "Classic", bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".body-sidebar-container", 3500);
 			expectEq(await q(".bnd-statusbar"), false, "Classic + Off should mount no bar");
 
@@ -1264,29 +1266,41 @@ async function main() {
 				page.off("request", countPolls);
 			}
 
-			setSettings({ status_style: "Off" });
+			setSettings({ bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 3000);
 			expect(!(await q(".bnd-statusbar")), "no status bar at all");
 			setSettings({ status_style: "Quiet" });
 		});
 
-		await test("status: Off never takes away a layout's own chrome", async () => {
-			// Off means "no status bar". In Bottom Bar the strip is not the
-			// status bar — it is the layout's only chrome, and the sidebar's
-			// bell and user button are hidden by the layout. Skipping it there
-			// left a desk with no notifications and no way to log out.
-			setSettings({ desk_layout: "Bottom Bar", status_style: "Off" });
-			await goDesk("/desk/item", ".page-head", 4000);
-			expect(await q(".bnd-bottombar .bnd-cluster"), "bottom bar still carries the cluster");
-			expect(await q(".bnd-bottombar .bnd-inbox-bell, .bnd-bottombar .bnd-cluster button"), "bell reachable");
-			const segs = await page.evaluate(() => document.querySelectorAll(".bnd-status-seg, .bnd-status-fresh").length);
-			expectEq(segs, 0, "but carries no status content");
-
-			// ...while a layout whose bar IS the status bar loses it entirely.
-			setSettings({ desk_layout: "Top Bar", status_style: "Off" });
-			await goDesk("/desk/item", ".page-head", 3000);
-			expect(!(await q(".bnd-statusbar")), "Top Bar drops the strip outright");
-			setSettings({ status_style: "Quiet" });
+		await test("status: switching the bottom bar off never strands a user", async () => {
+			// WAS "Off never takes away a layout's own chrome", and that premise
+			// belonged to `status_style: "Off"` — a style that also meant "no
+			// bar", except in the Bottom Bar layout where the strip mounted
+			// anyway because it was that layout's only chrome. The workaround
+			// for the 0.10.0 defect, in other words.
+			//
+			// `bottombar_enabled: 0` genuinely removes the bar, in every layout,
+			// which is what a switch should do. So the thing to assert is no
+			// longer "the chrome survives" but the rule that replaced it: a
+			// control may be removed only while something else can still reach
+			// the same function.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Bottom Bar", bottombar_enabled: 0 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await q(".bnd-statusbar"), false, "the bar is really gone");
+			const reachable = await page.evaluate(() => {
+				const vis = (sel) => {
+					const el = document.querySelector(sel);
+					if (!el) return false;
+					const r = el.getBoundingClientRect();
+					return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+				};
+				return {
+					bell: vis(".bnd-bell") || vis(".body-sidebar .sidebar-notification"),
+					user: vis(".bnd-avatar-btn") || vis(".body-sidebar .sidebar-user-button"),
+				};
+			});
+			expect(reachable.bell, "notifications are still reachable somewhere");
+			expect(reachable.user, "and so is the user menu, and therefore Log Out");
 		});
 
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
@@ -1479,7 +1493,7 @@ async function main() {
 			// [layout, status_style, what the layout mounts]
 			["Top Bar", "Quiet", ".bnd-statusbar"],
 			["Compact", "Quiet", ".bnd-statusbar"],
-			["Bottom Bar", "Quiet", ".bnd-statusbar.bnd-bottombar"],
+			["Bottom Bar", "Quiet", ".bnd-statusbar"],
 			// Dock mounts a floating pill AND a status bar; the reserve has to
 			// clear whichever sits highest, which is the pill.
 			["Dock", "Quiet", ".bnd-dock"],
@@ -1489,7 +1503,7 @@ async function main() {
 			// .main-section passes the row above (the bar's arrival triggers
 			// the re-measure, which then happens to see the pill) and fails
 			// this one. It did exactly that; measured in RTL at 430px.
-			["Dock", "Off", ".bnd-dock"],
+			["Dock", "Quiet", ".bnd-dock"],
 			// Classic mounts the bar like every other layout now: the status bar
 			// is a component, so `status_style` decides and the layout has no
 			// opinion. It used to need `status_in_classic`, and that opt-in had
@@ -1549,7 +1563,7 @@ async function main() {
 			// The mirror image of the tests above. With no bar mounted the desk
 			// must be stock height — a reserve that outlives its bar is a strip
 			// of viewport the user paid for and cannot use.
-			setSettings({ desk_layout: "Top Bar", status_style: "Off" });
+			setSettings({ desk_layout: "Top Bar", bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".frappe-list", 4500);
 			const g = await bottomGeometry();
 			expectEq(g.barTop, null, "no bottom chrome is mounted");
@@ -1847,18 +1861,43 @@ async function main() {
 			setSettings({ inbox_placement: "Top Bar" });
 		});
 
-		await test("placement: a region this layout lacks changes nothing", async () => {
-			// The shipped default is Top Bar, and Bottom Bar has no top bar.
+		await test("placement: a region this desk lacks changes nothing", async () => {
+			// The shipped default is Top Bar, and this desk has no top bar.
 			// "Cannot honour" must not mean "delete" — that is the failure the
 			// whole rework exists to remove, and it would arrive via upgrade.
-			setSettings({ desk_layout: "Bottom Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" });
+			//
+			// What "leave it alone" LEAVES has changed, and deliberately. The
+			// bottom bar used to build a bell and an avatar unconditionally
+			// (`global_variant`), so an unhonourable placement left them sitting
+			// in that bar — a second answer to a question `inbox_placement`
+			// already owned. The bar reserves an empty slot now, so what is left
+			// alone is Frappe's own affordance, unclaimed and visible. Same
+			// protection, one fewer place for it to live.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Bottom Bar",
+				topbar_enabled: 0,
+				inbox_placement: "Top Bar",
+				user_placement: "Top Bar",
+			});
 			await goDesk("/desk/item", ".page-head", 4500);
-			const kept = await page.evaluate(() => ({
-				bell: !!document.querySelector(".bnd-bottombar .bnd-bell"),
-				user: !!document.querySelector(".bnd-bottombar .bnd-avatar-btn"),
-			}));
-			expect(kept.bell && kept.user, `bottom bar keeps its chrome (${JSON.stringify(kept)})`);
-			setSettings({ desk_layout: "Top Bar" });
+			const state = await page.evaluate(() => {
+				const vis = (sel) => {
+					const el = document.querySelector(sel);
+					if (!el) return false;
+					const r = el.getBoundingClientRect();
+					return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+				};
+				const own = document.documentElement.getAttribute("data-bnd-own") || "";
+				return {
+					claimedBell: /bell/.test(own),
+					claimedUser: /user/.test(own),
+					nativeBell: vis(".body-sidebar .sidebar-notification"),
+					nativeUser: vis(".body-sidebar .sidebar-user-button"),
+				};
+			});
+			expect(!state.claimedBell && !state.claimedUser, `nothing is claimed (${JSON.stringify(state)})`);
+			expect(state.nativeBell && state.nativeUser, "so ERPNext's own are left visible");
 		});
 
 		// ── The container split (slice 2c) ─────────────────────────────────
@@ -2002,6 +2041,73 @@ async function main() {
 			expect(!released.hidden, "giving the side pane, and every stock affordance in it, back");
 		});
 
+		await test("container: the bottom bar mounts in a layout that writes none", async () => {
+			// Classic's catalogue row says no bottom bar, so this contradicts its
+			// own preset — the same shape as every other container's first check.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Classic", bottombar_enabled: 1 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await visible(".bnd-statusbar"), "a bottom bar on a Classic desk");
+		});
+
+		await test("container: the status style no longer decides whether the bar exists", async () => {
+			// `status_style: "Off"` used to mean "no bottom bar" in four layouts
+			// and nothing at all in the fifth, where the strip mounted regardless
+			// because it was that layout's only chrome. One fact, two places,
+			// disagreeing — which is exactly how "Off" cost the Bottom Bar layout
+			// its logout in 0.10.0. The option is gone; the container's own switch
+			// is the only answer now, and the style is only ever about content.
+			const opts = JSON.parse(
+				benchPy(
+					`print(json.dumps(frappe.get_meta("Theme Settings").get_field("status_style").options.split("\\n")))\n`
+				).trim().split("\n").pop()
+			).filter(Boolean);
+			expect(!opts.includes("Off"), `status_style offers styles only: ${opts.join(", ")}`);
+
+			// And every surviving style still leaves a bar, because existence is
+			// not its job any more.
+			for (const style of opts) {
+				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", status_style: style, bottombar_enabled: 1 });
+				await goDesk("/desk/item", ".page-head", 4500);
+				expect(await visible(".bnd-statusbar"), `style ${style} still has a bar`);
+			}
+		});
+
+		await test("container: desk_layout decides nothing — it writes, then stops", async () => {
+			// THE POINT OF THE WHOLE SPLIT, and the last thing it owed. Apply each
+			// layout the way a user can, then read the desk back: what mounted has
+			// to be what the catalogue says that layout WRITES. If any branch
+			// anywhere still consulted `desk_layout` at mount time, one of these
+			// five rows would disagree with its own row in the table.
+			const chrome = JSON.parse(
+				benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
+					.trim().split("\n").pop()
+			);
+			const SELECTOR = {
+				topbar: ".bnd-topbar",
+				pagehead: ".page-head .bnd-cluster",
+				bottombar: ".bnd-statusbar",
+				dock: ".bnd-dock",
+			};
+			for (const layout of ["Top Bar", "Compact", "Classic", "Bottom Bar", "Dock"]) {
+				// Writing desk_layout alone applies the preset — setSettings models
+				// the picker, which is the only gesture that can change it.
+				setSettings({ desk_layout: layout, status_style: "Quiet", search_placement: "Top Bar Center" });
+				await goDesk("/desk/item", ".page-head", 4500);
+				for (const [key, sel] of Object.entries(SELECTOR)) {
+					expectEq(
+						await q(sel),
+						!!chrome[layout][key],
+						`${layout}: ${key} present, catalogue says ${chrome[layout][key]}`
+					);
+				}
+				expectEq(
+					await paneHidden(),
+					!chrome[layout].sidepane,
+					`${layout}: side pane hidden, catalogue says sidepane ${chrome[layout].sidepane}`
+				);
+			}
+		});
+
 		await test("container: the layout preset writes the containers and then stops deciding", async () => {
 			// The catalogue is the thing that lets the derived "Custom" label
 			// cover the layout preset at all — until this table existed there
@@ -2021,6 +2127,8 @@ async function main() {
 			for (const [container, owner] of [
 				["topbar", "Top Bar"], ["pagehead", "Compact"], ["dock", "Dock"],
 			]) {
+				// (the bottom bar is not in this list: more than one layout writes
+				// it, so "one owner" is the wrong shape — it is checked below)
 				expectEq(chrome[owner][container], 1, `${owner} is the layout that writes a ${container}`);
 				for (const l of layouts.filter((x) => x !== owner)) {
 					expectEq(chrome[l][container], 0, `${l} writes no ${container}`);
@@ -2031,6 +2139,27 @@ async function main() {
 			// that the dock no longer hides the pane by itself.
 			for (const l of layouts) {
 				expectEq(chrome[l].sidepane, l === "Dock" ? 0 : 1, `${l}'s side pane`);
+			}
+			// EVERY layout keeps the ambient strip, Classic included. That was
+			// settled on 2026-08-06 when `status_in_classic` was deleted to make
+			// the status bar a component, and the catalogue states it rather
+			// than leaving it to "status_style happens not to be Off". Writing 0
+			// for Classic here would reverse a decision a day after it was made,
+			// and a user picking Classic cannot tell a preset that removes their
+			// status bar from a layout that decides it.
+			for (const l of layouts) {
+				expectEq(chrome[l].bottombar, 1, `${l} keeps the ambient strip`);
+			}
+			// Every container the doctype has grown is in every row: a catalogue
+			// with a hole in it is how a preset silently stops writing something.
+			const toggles = JSON.parse(
+				benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["toggles"]))\n`)
+					.trim().split("\n").pop()
+			);
+			for (const l of layouts) {
+				for (const key of Object.keys(toggles)) {
+					expect(key in chrome[l], `${l} states a value for ${key}`);
+				}
 			}
 
 			// CHROME_DEFAULTS is the one hand-written copy of a shipped default
@@ -2100,12 +2229,12 @@ async function main() {
 			["Top Bar", "Quiet", "Top Bar Center", {}],
 			// The critical v0.10.0 defect: this strip IS the layout's only
 			// chrome, so "no status bar" must not mean "no logout".
-			["Bottom Bar", "Off", "Top Bar Center", {}],
+			["Bottom Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
 			["Bottom Bar", "Operator", "Bottom Bar Center", {}],
 			// No bar anywhere: everything must fall back to the natives.
-			["Classic", "Off", "Top Bar Center", {}],
+			["Classic", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
 			// Sidebar hidden outright — the natives are NOT available here.
-			["Dock", "Off", "Sidebar Top", {}],
+			["Dock", "Quiet", "Sidebar Top", { bottombar_enabled: 0, }],
 			["Dock", "Quiet", "Top Bar Center", {}],
 			// Compact keeps its native search row; the layout mounts no top bar.
 			["Compact", "Minimal", "Top Bar Center", {}],
@@ -2122,12 +2251,12 @@ async function main() {
 			["Dock", "Quiet", "Top Bar Center", { topbar_enabled: 1 }],
 			// A top bar on a Classic desk — a container contradicting its
 			// layout in the direction nothing else in this list covers.
-			["Classic", "Off", "Top Bar Edge", { topbar_enabled: 1 }],
+			["Classic", "Quiet", "Top Bar Edge", { bottombar_enabled: 0,  topbar_enabled: 1 }],
 			// Compact with its cluster off and no top bar either: the layout
 			// defined by NOT growing chrome, now with none of ours at all. Every
 			// route to everything is a native one, which is the case the
 			// ownership stamps exist to keep working.
-			["Compact", "Off", "Top Bar Center", { pagehead_enabled: 0 }],
+			["Compact", "Quiet", "Top Bar Center", { bottombar_enabled: 0,  pagehead_enabled: 0 }],
 			// A page-head cluster on a Dock desk. Dock hides the sidebar, so the
 			// natives are unreachable and this cluster is a real route — and it
 			// is the one container that remounts on every route change, in the
@@ -2138,7 +2267,7 @@ async function main() {
 			// sidepane 0, so this is EVERY CONTAINER OFF: nothing of ours, and
 			// the pane switched off too. The guard is the only thing standing
 			// between this state and a desk nobody can log out of.
-			["Dock", "Off", "Top Bar Center", {
+			["Dock", "Quiet", "Top Bar Center", { bottombar_enabled: 0, 
 				topbar_enabled: 0, pagehead_enabled: 0, dock_enabled: 0, sidebar_enabled: 0,
 			}],
 			// A dock alongside a side pane, which no layout could express.
@@ -2756,8 +2885,17 @@ async function main() {
 
 		await test("shell: the note names a real preset, and never invents one", async () => {
 			// The value is the second half: this fails if someone later makes
-			// crumb_style or desk_layout print a preset name, which would be a
-			// label with no catalogue behind it. Only the side pane has presets.
+			// crumb_style or inbox_style print a preset name, which would be a
+			// label with no catalogue behind it.
+			//
+			// TWO entries have a catalogue now. The side pane has had one since
+			// item 10 (SIDEBAR_PRESETS, 22 values). The LAYOUT gained one with
+			// slice 2c — `registry.LAYOUT_CHROME` — and that is the whole point
+			// of the container split: until a table said what a layout writes,
+			// there was nothing to compare a desk against and this note could
+			// only say "Default" or "Changed". Both are checked the same way,
+			// against the server's list, so neither can drift into a label the
+			// catalogue does not contain.
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			const notes = await page.evaluate(() =>
 				Object.fromEntries(
@@ -2776,8 +2914,20 @@ async function main() {
 				presets.includes(notes.sidepane) || notes.sidepane === "Custom",
 				`side pane note "${notes.sidepane}" is neither a real preset name nor "Custom"`
 			);
+
+			const layouts = Object.keys(
+				JSON.parse(
+					benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
+						.trim().split("\n").pop()
+				)
+			);
+			expect(
+				layouts.includes(notes.layout) || notes.layout === "Custom",
+				`layout note "${notes.layout}" is neither a real layout name nor "Custom"`
+			);
+
 			for (const [key, note] of Object.entries(notes)) {
-				if (key === "sidepane") continue;
+				if (key === "sidepane" || key === "layout") continue;
 				// The Overview owns no fields — it READS them — so it has no state
 				// to report and must stay silent. Saying "Default" under it would
 				// claim otherwise, and would go on saying it while every component

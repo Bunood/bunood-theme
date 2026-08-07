@@ -3,17 +3,18 @@
 // STATUS BAR / BOTTOM BAR — the desk's bottom edge (checklist items 9 + 14).
 //
 // WHAT
-//   Two variants of one fixed bottom strip, both mounted by bunood.js:
+//   ONE fixed bottom strip, `.bnd-statusbar`, mounted by bunood.js when
+//   `bottombar_enabled` says so. It carries ambient state — connection, a
+//   Background Jobs link, the density toggle, the clock — and hosts whatever
+//   `inbox_placement` / `user_placement` / `search_placement` put at the foot
+//   of the desk. Bottom edges are for state you glance at, so nothing ambient
+//   here is a primary control; the controls arrive only if placed.
 //
-//   `.bnd-statusbar`             (layouts: topbar, compact)
-//       Slim, AMBIENT-ONLY: connection state, a Background Jobs link, the
-//       density toggle, the clock. Nothing here is a primary control — bottom
-//       edges are for state you glance at, not targets you aim for. This is
-//       checklist item 14 (status bar) arriving early; it grows there.
-//
-//   `.bnd-statusbar.bnd-bottombar`  (layout: bottombar)
-//       The taller GLOBAL variant: same ambient state plus the search field
-//       and the cluster (bell, avatar) — option G from the wireframes.
+//   It used to be TWO variants, `.bnd-statusbar` and `.bnd-statusbar
+//   .bnd-bottombar`, chosen by the LAYOUT. That was the same fact twice: the
+//   layout decided the strip was "global", while the placement settings
+//   decided what it actually held, and the two could disagree. One bar now,
+//   sized by what it contains (see the `:has` rule below).
 //
 // WHY position:fixed AND A MEASURED START
 //   The desk scrolls at document level, so an in-flow footer would sit below
@@ -86,10 +87,28 @@ html[data-theme] .bnd-statusbar {
   }
 }
 
-// ── Bottom Bar variant (layout: bottombar) ──────────────────────────────────
-// Taller, and hosts real controls; the search field reuses the topbar's
-// .bnd-search-field styling wholesale (defined in _navbar.scss).
-html[data-theme] .bnd-statusbar.bnd-bottombar {
+// ── A bar carrying real controls ────────────────────────────────────────────
+// Taller, on a surface, because a strip sized for ambient text is not sized for
+// something you click. The search field reuses the topbar's .bnd-search-field
+// styling wholesale (defined in _navbar.scss).
+//
+// ASKS WHAT THE BAR CONTAINS, not which layout is active. This was
+// `.bnd-statusbar.bnd-bottombar`, a class JS added when the Bottom Bar LAYOUT
+// mounted it — so the strip grew because of the layout, while what it actually
+// carried was decided by `inbox_placement`, `user_placement` and
+// `search_placement`. Those disagreed: a Top Bar desk with the bell placed at
+// the foot got controls crammed into a text-height strip, and a Bottom Bar desk
+// with everything placed elsewhere got a tall bar holding a clock.
+//
+// The precedent is directly below and predates the split: a rule that grew the
+// slim bar when SEARCH landed in it. This is that rule, generalised to every
+// control, which is why the search one is gone rather than kept beside it.
+//
+// `:has()` is the right tool and the failure is soft: on a browser without it
+// the bar stays text-height and the controls are cramped — never absent, never
+// unclickable. `.bnd-cluster` is excluded deliberately because the bar now
+// reserves an EMPTY one on every mount; matching that would make every bar tall.
+html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-btn) {
   block-size: var(--bnd-bottombar-h);
   background: var(--bnd-surface);
   font-size: var(--bnd-text-sm);
@@ -197,11 +216,12 @@ html[data-bnd-search="botedge"] .bnd-statusbar .bnd-search-field {
   margin-inline-end: var(--bnd-sp-3);
 }
 
-// A status bar carrying search needs room to breathe: the slim strip is
-// sized for text, not for a control.
-html[data-bnd-search="botedge"] .bnd-statusbar:not(.bnd-bottombar),
-html[data-bnd-search="botcenter"] .bnd-statusbar:not(.bnd-bottombar) {
-  min-block-size: var(--bnd-bottombar-h);
+// A status bar carrying search needs room to breathe. That used to be stated
+// here, keyed on `data-bnd-search` and excluding the layout's own variant; the
+// rule above says it for every control at once, from what the bar CONTAINS
+// rather than from a placement declaration. Only the padding is still specific
+// to search — a field wants a little air that a clock does not.
+html[data-theme] .bnd-statusbar:has(.bnd-search-field) {
   padding-block: var(--bnd-sp-1);
 }
 

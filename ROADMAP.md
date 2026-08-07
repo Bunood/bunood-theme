@@ -139,7 +139,7 @@ defect in 0.10.0.
     `status_style: "Off"` for a Classic site that had not opted in — and the
     honest cost is written down: that site switching to Top Bar later will find
     the bar off, which is what deleting a per-layout override means
-  - `[~]` **The container split** — each container with its own on/off instead of
+  - `[x]` **The container split** *(complete 2026-08-07)* — each container with its own on/off instead of
     `desk_layout` choosing. **Touches `mount_chrome`**, where every critical
     defect in this project has lived. The ownership-stamp rule is the thing to
     keep in front of you. **One container per slice, invariant matrix green
@@ -179,10 +179,19 @@ defect in 0.10.0.
       refuses it: the pane comes back when nothing else can reach what
       `registry.CRITICAL` names. The critical selectors travel in boot rather
       than becoming a fourth hand-written copy
-    - `[ ]` **4 · Bottom bar** — `bottombar_enabled` owns whether the strip
-      exists and `status_style` loses "Off", so it governs only content. Today
-      "Off" is the container's on/off in four layouts and not in the fifth, which
-      is the same fact in two places. `global_variant` goes with it
+    - `[x]` **4 · Bottom bar, and `desk_layout` stops deciding** *(2026-08-07)*.
+      `bottombar_enabled` owns whether the strip exists; `status_style` lost
+      "Off" and governs only content. `global_variant` and `.bnd-bottombar` are
+      gone — the bar's size follows what it CONTAINS, generalising a rule that
+      already existed for search alone. `mount_chrome` is five lines, none of
+      which reads the layout. The catalogue gained the tenant placements too,
+      because `desk_layout`'s own description promises "where global search,
+      notifications and your profile live" and the preset was writing none of it
+    - `[x]` **The derived label** — `bnd_match_layout` reads the layout's name by
+      COMPARING the container values against `LAYOUT_CHROME`, and says "Custom"
+      the moment one differs. This is what the catalogue was authored for: the
+      side pane's picker has worked this way since item 10, and the layout was
+      the last preset without it
     - `[x]` **5 · Side pane** — landed with the dock, above, for the reason
       given there. `desk_layout` stops deciding once the bottom bar follows
   - `[ ]` **Honest-picker rules across every component** — `bnd_region_blocker`

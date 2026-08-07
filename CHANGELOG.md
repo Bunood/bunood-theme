@@ -7,6 +7,51 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The bottom bar becomes a container, and `desk_layout` stops deciding
+
+The last of the five, and the end of the container split. `mount_chrome`
+is five lines — one per container, each asking its own setting — and not
+one of them reads the layout. A layout is a preset that writes values and
+then has no further say.
+
+**`status_style` lost its "Off".** That option answered two questions at
+once, and inconsistently: it meant *no bar* in four layouts and nothing at
+all in the Bottom Bar layout, where the strip mounted regardless because
+it was that layout's only chrome. That disagreement is the defect this
+whole rework began with — in 0.10.0 it deleted a Bottom Bar desk's bell,
+badge and avatar, leaving no way to log out. Existence is
+`bottombar_enabled`; the style is only ever about content.
+
+**`global_variant` and `.bnd-bottombar` are gone with it.** The bar's size
+now follows what it CONTAINS, generalising a rule that already sat one
+block below for search alone. That fixes two states nobody had noticed: a
+Top Bar desk with the bell placed at the foot crammed controls into a
+text-height strip, and a Bottom Bar desk with everything placed elsewhere
+got a tall bar holding a clock.
+
+**A layout writes where the controls live, not just which bars exist.**
+`desk_layout`'s own description promises "where global search,
+notifications and your profile live" and the preset wrote none of it. That
+was invisible while the bottom bar built a bell and avatar unconditionally
+— a freshly picked "Bottom Bar" looked right by accident.
+
+**Classic reaches stock by not claiming anything.** Its placements are
+"Off", not "Side Pane": the latter mounts OUR bell into Frappe's sidebar
+and stamps `data-bnd-own`, which hides Frappe's own. A themed control
+standing in a native place is not the escape hatch.
+
+**The derived label finally exists.** `bnd_match_layout` reads the
+layout's name by comparing the container values against the catalogue, and
+says "Custom" the moment one differs. It cannot read `desk_layout` back,
+because the stored name is only what was last APPLIED — a desk can carry
+the label "Dock" while showing a top bar and a side pane. This is what
+`LAYOUT_CHROME` was authored for in the first slice.
+
+Every layout keeps the ambient strip, Classic included. Writing 0 there
+would have reversed the 2026-08-06 decision that made the status bar a
+component, one day after it was made — and a user picking Classic cannot
+tell a preset that removes their status bar from a layout that decides it.
+
 ### Theme Settings applies as you click — there is nothing to save
 
 Every control persists the moment it is touched. The desk already

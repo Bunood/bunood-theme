@@ -307,8 +307,11 @@ function bnd_region_blocker(frm, region) {
 		return parseInt(frm.doc.sidebar_enabled ?? 1, 10) ? "" : __("the side pane is switched off");
 	}
 	if (region === "bottombar") {
-		if (layout === "Bottom Bar") return "";
-		if ((frm.doc.status_style || "Quiet") === "Off") return __("the status bar is switched off");
+		// Was: "Bottom Bar layout always has one, otherwise ask status_style".
+		// Two answers to one question, and they disagreed — which is how "Off"
+		// took the Log Out off a Bottom Bar desk in 0.10.0. The container's own
+		// switch is the only answer now, and the style is about content.
+		return parseInt(frm.doc.bottombar_enabled ?? 1, 10) ? "" : __("the bottom bar is switched off");
 	}
 	return "";
 }
@@ -684,6 +687,9 @@ frappe.ui.form.on("Theme Settings", {
 	pagehead_enabled(frm) {
 		bnd_repaint_placement_pickers(frm);
 	},
+	bottombar_enabled(frm) {
+		bnd_repaint_placement_pickers(frm);
+	},
 	dock_enabled(frm) {
 		bnd_repaint_placement_pickers(frm);
 	},
@@ -768,7 +774,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
 			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
 			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
-			{ key: "status", label: () => __("Bottom bar & status"), anchors: ["status_style"] },
+			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
 		],
 	},
@@ -851,7 +857,10 @@ const BND_SHELL_OWNS = {
 	inbox: { prefixes: ["inbox_"] },
 	user: { fields: ["user_placement"] },
 	links: { fields: ["home_placement", "apps_placement"] },
-	status: { prefixes: ["status_"] },
+	// The container and the content it shows are one entry: "is there a bar"
+	// and "what does it say" are the same component to a reader, even though the
+	// split deliberately made them two fields.
+	status: { prefixes: ["status_", "bottombar_"] },
 	search: { prefixes: ["search_"] },
 	crumbs: { prefixes: ["crumb_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
@@ -890,17 +899,26 @@ function bnd_changed_fields(key, frm) {
  * The note under a shell entry: a preset name where one genuinely exists,
  * otherwise how far the component is from stock.
  *
- * ONLY THE SIDE PANE HAS A PRESET CATALOGUE, and pretending otherwise would be
- * the defect this rework exists to remove. `crumb_style`, `palette_style`,
- * `inbox_style` and `status_style` are top-level style CHOICES that compose with
- * their extras — `presets.py` says so in as many words — so there is nothing to
- * match against and no "Custom" to derive. `desk_layout` has no table anywhere
- * stating what it writes to the component fields; the migration patch records
- * what 0.10.0 *rendered*, which is a one-shot artefact, not a catalogue.
+ * TWO ENTRIES HAVE A REAL CATALOGUE; the rest do not, and pretending otherwise
+ * would be the defect this rework exists to remove.
  *
- * So the rest get the honest two-state, computed by the SAME function the dot
- * uses. One comparison, two renderings — never two comparisons that can
- * disagree.
+ *   sidepane  — `SIDEBAR_PRESETS`, 22 values per preset, matched since item 10.
+ *   layout    — `registry.LAYOUT_CHROME` as of slice 2c. **This is new**, and
+ *               it is what the whole container split was for. Until the split
+ *               there was no table anywhere stating what a layout writes: the
+ *               migration patch records what 0.10.0 *rendered*, which is a
+ *               one-shot artefact, and the layout decided things at mount time
+ *               that no field recorded at all. There was nothing to compare
+ *               against, so this function said "Changed" or "Default" and the
+ *               comment here said why. Now every layout is exactly five
+ *               container values, so the name is DERIVED by comparing them —
+ *               and reads "Custom" the moment one differs.
+ *
+ * `crumb_style`, `palette_style`, `inbox_style` and `status_style` are top-level
+ * style CHOICES that compose with their extras — `presets.py` says so in as many
+ * words — so there is still nothing to match and no "Custom" to derive. Those
+ * get the honest two-state, computed by the SAME function the dot uses. One
+ * comparison, two renderings — never two comparisons that can disagree.
  */
 function bnd_shell_note(key, frm) {
 	if (!bnd_shipped) return "";
@@ -909,7 +927,38 @@ function bnd_shell_note(key, frm) {
 	// saying it while every component it shows had been changed.
 	if (!BND_SHELL_OWNS[key]) return "";
 	if (key === "sidepane" && bnd_sb_catalogue) return bnd_sb_match_preset(frm);
+	if (key === "layout") return bnd_match_layout(frm);
 	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
+}
+
+/**
+ * Which layout the desk's containers currently ARE, or "Custom".
+ *
+ * Derived by comparing values, never by reading `desk_layout` back. Pinning the
+ * name pins nothing: the name is what was last APPLIED, and every container has
+ * its own switch afterwards, so a desk can carry the label "Dock" while showing
+ * a top bar and a side pane. The side pane's picker has worked this way since
+ * item 10 for exactly this reason — its label is derived by comparing 23 values
+ * — and this is the same rule reaching the last preset that lacked it.
+ *
+ * Falls back to the stored name when the catalogue has not arrived. That is the
+ * honest answer to "cannot say": it is what a user picked, merely unverified.
+ */
+function bnd_match_layout(frm) {
+	const current = frm.doc.desk_layout || "";
+	if (!bnd_layout_chrome || !bnd_container_toggles) return __(current);
+
+	for (const name of Object.keys(bnd_layout_chrome)) {
+		const row = bnd_layout_chrome[name];
+		const matches = Object.keys(bnd_container_toggles).every((key) => {
+			const field = bnd_container_toggles[key];
+			// A container whose field the doctype has not grown cannot disagree.
+			if (!(key in row) || !frm.get_field(field)) return true;
+			return parseInt(frm.doc[field] ?? row[key], 10) === row[key];
+		});
+		if (matches) return __(name);
+	}
+	return __("Custom");
 }
 
 /**

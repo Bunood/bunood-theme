@@ -1354,10 +1354,20 @@
 	let status_timer = null;
 	let status_age_timer = null;
 
-	/** Style slug: off | minimal | quiet | operator. */
+	/**
+	 * Style slug: minimal | quiet | operator.
+	 *
+	 * "Off" was a fourth option until slice 2c-4, and it meant "no bottom bar" —
+	 * which is `bottombar_enabled`'s answer, not a style's. A site read before
+	 * its migration has run can still be holding the retired label, so it is
+	 * normalised to the shipped style rather than passed through: left alone it
+	 * would fall through every content branch below and produce a bar that
+	 * exists and shows nothing, which is the one outcome neither setting means.
+	 */
 	function status_style() {
 		const label = (status_state && status_state.status_style) || "Quiet";
-		return String(label).toLowerCase();
+		const slug = String(label).toLowerCase();
+		return slug === "off" ? "quiet" : slug;
 	}
 
 	/** Is a segment flag on? */
@@ -1843,29 +1853,31 @@
 	/**
 	 * Mount the fixed bottom strip.
 	 *
-	 * @param {boolean} global_variant - false: slim ambient status bar
-	 *   (topbar/compact layouts; checklist item 14's seed). true: the Bottom
-	 *   Bar layout's taller strip that also carries search + bell + avatar.
+	 * NO `global_variant` ANY MORE, and losing it is the point of slice 2c-4.
+	 * It used to mean "the Bottom Bar layout's taller strip, which also carries
+	 * search + bell + avatar" — a second way of saying what `inbox_placement`
+	 * and `user_placement` already say. The bar reserves a cluster slot and
+	 * `mount_placed_tenants` fills it, exactly as it fills the top bar and the
+	 * dock; the strip grows to fit whatever really landed in it (_statusbar.scss
+	 * keys on the contents, not on a flag).
+	 *
+	 * AND NO `status_style: "Off"`. Whether the strip exists is
+	 * `bottombar_enabled`, checked by the caller; the style only ever decides
+	 * what it SHOWS. Those were one fact in two places, and they disagreed:
+	 * "Off" meant no bar in four layouts and nothing at all in the fifth, where
+	 * the strip mounted regardless because it was that layout's only chrome.
+	 * That disagreement is how "Off" cost the Bottom Bar layout its Log Out in
+	 * 0.10.0 — the defect the whole component rework began with.
 	 */
-	function mount_statusbar(global_variant) {
+	function mount_statusbar() {
 		if (document.querySelector(".bnd-statusbar")) return;
 
-		// Style "Off" means NO STATUS BAR — but in the Bottom Bar layout this
-		// strip is not the status bar. It is that layout's only chrome: it
-		// carries the bell, the unread badge and the avatar menu, while
-		// _layouts.scss hides the sidebar's own copies of all three keyed on
-		// the LAYOUT. Refusing to mount it there left a desk with no
-		// notifications, no user menu and no way to log out. So Off empties
-		// the strip of status content; it never deletes a layout's chrome.
-		const off = status_style() === "off";
-		if (off && !global_variant) return;
-
-		const bar = el("div", "bnd-statusbar" + (global_variant ? " bnd-bottombar" : ""));
+		const bar = el("div", "bnd-statusbar", { "data-bnd-part": "bottombar" });
 
 		// Connection: dot + word. State wired to the realtime socket when it
 		// exposes lifecycle events, else to navigator.onLine — both guarded,
 		// because a status bar must never be the thing that breaks the desk.
-		if (!off && status_on("status_segments_connection")) {
+		if (status_on("status_segments_connection")) {
 			// Built hidden and with no text: the first honest paint comes from
 			// bind_connection_state, which knows whether the socket is up and
 			// whether this style wants to hear about it. Seeding it "Connected"
@@ -1880,13 +1892,12 @@
 			bind_connection_state();
 		}
 
-		// Minimal is the "no server calls" style, and Off wants no status
-		// content at all, so everything the POLLER owns is skipped outright
-		// rather than built and left dark: unfilled segments would be
-		// permanently hidden dead nodes, and the freshness stamp would sit
-		// there reading "No data" forever with a refresh button wired to a
-		// poll that returns early.
-		const live = !off && status_style() !== "minimal";
+		// Minimal is the "no server calls" style, so everything the POLLER
+		// owns is skipped outright rather than built and left dark: unfilled
+		// segments would be permanently hidden dead nodes, and the freshness
+		// stamp would sit there reading "No data" forever with a refresh button
+		// wired to a poll that returns early.
+		const live = status_style() !== "minimal";
 
 		// Live signal segments, built empty and filled by the poller. Each
 		// carries a priority so narrow viewports collapse by rank, not by
@@ -1931,7 +1942,7 @@
 		}
 
 		// Density: label shows the user's override or "Auto"; click cycles.
-		if (!off && status_on("status_segments_density")) {
+		if (status_on("status_segments_density")) {
 			const density = el("button", "bnd-status-item", {
 				type: "button",
 				title: __("Toggle Density"),
@@ -1943,7 +1954,7 @@
 			refresh_density_label();
 		}
 
-		if (!off && status_clock_mode() !== "off") {
+		if (status_clock_mode() !== "off") {
 			const clock = el("span", "bnd-status-item bnd-clock", { "data-bnd-prio": "3" });
 			bar.appendChild(clock);
 			status_refs.clock = clock;
@@ -1951,18 +1962,28 @@
 			setInterval(tick_clock, 30000);
 		}
 
-		if (global_variant) mount_cluster(bar);
+		// A cluster slot, ALWAYS — empty until mount_placed_tenants puts
+		// something in it. It is reserved for the same reason the search centre
+		// above is: appending later lands it after every status segment, and
+		// the bell and avatar belong at the trailing edge. An empty slot costs
+		// nothing and means the bottom bar is a host like any other, rather
+		// than a bar that only carries controls in one layout.
+		bar.appendChild(el("div", "bnd-cluster"));
 
 		// The native <footer> exists but the desk scrolls at document level,
 		// so the bar is position:fixed (CSS); body still gets it as a child
 		// of .main-section for sane DOM ownership.
 		(document.querySelector(".main-section") || document.body).appendChild(bar);
-		// Tell CSS a bar EXISTS, rather than making it infer one from layout
-		// and style. Whether a bar mounts depends on the style, the layout and
-		// the Classic opt-in; the clearance rules only care about the answer,
-		// and Classic's opt-in bar had no clearance at all while it was left
-		// to guess.
-		document.documentElement.setAttribute("data-bnd-statusbar", global_variant ? "global" : "slim");
+		// Tell CSS a bar EXISTS, rather than making it infer one. This attribute
+		// predates the container split and was already the model for it: the
+		// clearance rules only ever cared about the answer, and Classic's
+		// opt-in bar had no clearance at all while they were left to guess.
+		//
+		// It carries no VALUE any more. "global" vs "slim" was the layout
+		// variant, and the bar's size now follows what really landed in it —
+		// see _statusbar.scss, which asks about its contents.
+		document.documentElement.setAttribute("data-bnd-statusbar", "");
+		container_mounted("bottombar");
 		status_start();
 	}
 
@@ -4860,14 +4881,21 @@
 	// ── Orchestration ───────────────────────────────────────────────────────
 
 	/**
-	 * Mount the chrome for the active layout, once the desk shell exists.
-	 * Per-page work (compact cluster, trail resolution, dock highlight)
+	 * Mount the desk chrome, once the shell exists.
+	 *
+	 * Per-page work (the page-head cluster, trail resolution, dock highlight)
 	 * re-runs on every route change; per-shell work runs once, guarded by
 	 * mount markers.
+	 *
+	 * "the active LAYOUT" is deliberately no longer part of that sentence. Since
+	 * slice 2c every container answers for itself and a layout is a preset that
+	 * wrote those settings at the moment it was picked.
 	 */
 	function mount_chrome() {
-		const slug = layout();
-		if (!slug) return; // boot failed or theme inactive: leave stock desk alone
+		// The one thing the layout attribute is still asked, and it is not
+		// "which containers": empty means boot failed or the theme is inactive,
+		// and a stock desk must be left exactly as Frappe built it.
+		if (!layout()) return;
 
 		observe_sidebar_width();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
@@ -4894,45 +4922,34 @@
 
 		// ── The container ladder ─────────────────────────────────────────
 		//
-		// One line per container that has been split out (slice 2c), asking
-		// its own setting; the rest still hang off the layout below, and each
-		// moves up here as its slice lands. Two things about the order:
+		// FIVE LINES, AND `desk_layout` IS NOT ONE OF THEM. This was a ladder of
+		// `if (slug === …)` branches, and the seam between what the layout
+		// implied and what the component settings said produced every defect in
+		// 0.10.0. Each container answers for itself now; a layout is a preset
+		// that WRITES these settings (registry.LAYOUT_CHROME is the catalogue)
+		// and then has no further say. That is the whole point of slice 2c, and
+		// this is the line it was aiming at.
 		//
-		//   * the top bar goes FIRST because it is a host. mount_search and
+		// `layout()` still exists, but only as a styling hook and a fallback for
+		// a boot payload that predates the split — never as a mount decision.
+		//
+		// Two things about the order:
+		//
+		//   * containers go FIRST because they are hosts. mount_search and
 		//     mount_placed_tenants resolve placements against the live DOM
 		//     (HOSTS), so a region has to exist before anything can be put in
-		//     it — that is why both of those calls already sit at the bottom
-		//     of this function.
+		//     it — which is why both of those calls sit below.
 		//   * a container that is off mounts nothing and stamps nothing, so
-		//     `host_for("topbar")` returns null and every tenant pointed at it
-		//     resolves to "absent". Absent means LEAVE WHAT IS THERE, not
-		//     delete — see placement_for. Switching a container off therefore
-		//     cannot take a control away from a user; it can only decline to
-		//     offer a new home for one.
+		//     `host_for(…)` returns null and every tenant pointed at it resolves
+		//     to "absent". Absent means LEAVE WHAT IS THERE, not delete — see
+		//     placement_for. Switching a container off therefore cannot take a
+		//     control away from a user; it can only decline to offer a new home
+		//     for one. What stops the LAST one stranding somebody is
+		//     guard_critical_reach, below.
 		if (container_on("topbar")) mount_topbar();
 		if (container_on("pagehead")) inject_compact_cluster();
 		if (container_on("dock")) mount_dock();
-
-		if (slug === "compact") {
-			mount_statusbar(false);
-		} else if (slug === "bottombar") {
-			mount_statusbar(true);
-		} else if (slug === "dock") {
-			mount_statusbar(false);
-		} else if (slug === "topbar" || slug === "classic") {
-			// Named rather than left to a bare `else`: an unknown slug must
-			// keep mounting nothing at all. `apply_layout` only stamps labels
-			// it recognises, so this cannot happen today — and the failure mode
-			// of the whole layout system is "stock v16", which a catch-all
-			// would quietly stop being true the first time a label is renamed.
-			//
-			// Classic used to need an opt-in (`status_in_classic`) because the
-			// status bar was a consequence of the LAYOUT. It is a component
-			// now, so the layout has no opinion: `status_style` decides, here
-			// as everywhere else. mount_statusbar returns early when the style
-			// is Off, which is what makes one call correct for all five.
-			mount_statusbar(false);
-		}
+		if (container_on("bottombar")) mount_statusbar();
 
 		// Search placement is independent of the layout (item 14): mount it
 		// AFTER the bars exist, since its slots live in them.

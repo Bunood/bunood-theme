@@ -230,22 +230,86 @@ LAYOUT_CHROME = {
     "Top Bar": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
     # One merged strip: the cluster rides in each page's own title row.
     "Compact": {"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
-    # Stock v16, plus the breadcrumb chip. The escape hatch, so it mounts
-    # nothing — a Classic desk with a bar on it is not Classic.
+    # Stock v16 plus the breadcrumb chip and the ambient strip. The escape
+    # hatch: it mounts none of the bars that CARRY controls.
     #
-    # THE BOTTOM BAR CELL IS THE ONE TO ARGUE ABOUT, and slice 2c-4 is where
-    # that argument belongs. Deleting `status_in_classic` made the status bar a
-    # component so the layout would have no opinion at MOUNT time, and this 0
-    # is not that opinion returning: a preset writes a starting point the user
-    # can change, which is a different thing from a branch in `mount_chrome`
-    # that no setting can overrule. But it does mean picking Classic will turn
-    # the strip off once `bottombar_enabled` exists, where today it leaves
-    # `status_style` in charge. Written down here rather than discovered then.
-    "Classic": {"topbar": 0, "pagehead": 0, "bottombar": 0, "sidepane": 1, "dock": 0},
+    # THE BOTTOM BAR CELL WAS THE ONE TO ARGUE ABOUT, and slice 2c-4 settled it
+    # at 1 — the way it had already been settled on 2026-08-06, when deleting
+    # `status_in_classic` made the status bar a component precisely so every
+    # layout would have one subject to its own switch. Writing 0 here would
+    # have quietly reversed that a day later: a preset that writes a starting
+    # point is not the same as a branch in `mount_chrome`, but a user picking
+    # Classic and losing their status bar cannot tell the difference. The
+    # smoke suite states the older decision outright ("status bar follows
+    # status_style, not the layout") and it was right to.
+    "Classic": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
     # Everything global at the foot of the screen.
     "Bottom Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
     # The boldest: no side pane at all, the dock IS the navigation.
     "Dock": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
+}
+
+
+#: Where each layout puts the tenants — the OTHER half of what a layout means.
+#:
+#: `desk_layout`'s own field description promises "where global search,
+#: notifications and your profile live", and until slice 2c-4 the preset wrote
+#: none of it: it moved the containers and left the controls wherever they had
+#: been. A freshly picked "Bottom Bar" therefore mounted a strip at the foot of
+#: the desk with a clock in it and nothing else, because the bar used to build
+#: a bell and an avatar unconditionally and had stopped.
+#:
+#: The values are the ones `patches/v0_11_0/chrome_placement.py` read off the
+#: 0.10.0 mount ladder. That they coincide is not an accident and not a reason
+#: to share the constant: that patch answers "what did this site RENDER", once,
+#: and this answers "what does this layout MEAN", forever. They are free to
+#: diverge and one day will.
+LAYOUT_TENANTS = {
+    "Top Bar": {
+        "inbox_placement": "Top Bar",
+        "user_placement": "Top Bar",
+        "search_placement": "Top Bar Center",
+    },
+    "Compact": {
+        "inbox_placement": "Page Header",
+        "user_placement": "Page Header",
+        # Compact exists to NOT grow chrome, so search stays in the sidebar row
+        # Frappe already renders rather than widening the page-head strip.
+        "search_placement": "Sidebar Top",
+    },
+    "Classic": {
+        # "Off", NOT "Side Pane", and the difference is the whole meaning of
+        # this layout. "Side Pane" mounts OUR bell into Frappe's sidebar and
+        # stamps `data-bnd-own`, which hides Frappe's own — a themed control in
+        # a native place. "Off" releases the token, so the stock affordance is
+        # what renders. Classic is the escape hatch to stock v16; it has to
+        # reach it by not claiming anything, not by rebuilding it.
+        #
+        # `patches/v0_11_0/chrome_placement.py` maps Classic to "Side Pane"
+        # while its own comment says "nothing of ours -> the sidebar's own bell
+        # and user button". Those disagree, and it has already run on real
+        # sites; see HANDOVER for the open question of whether to correct them.
+        "inbox_placement": "Off",
+        "user_placement": "Off",
+        # Search is different and "Sidebar Top" is right: that slot is pure CSS
+        # revealing Frappe's OWN row, and mount_search_at deliberately does not
+        # claim it. Stock behaviour, reached by naming it.
+        "search_placement": "Sidebar Top",
+    },
+    "Bottom Bar": {
+        "inbox_placement": "Bottom Bar",
+        "user_placement": "Bottom Bar",
+        "search_placement": "Bottom Bar Center",
+    },
+    "Dock": {
+        "inbox_placement": "Dock",
+        "user_placement": "Dock",
+        # `search_placement` has no "Dock" option — the dock takes the ICON form
+        # and mount_search resolves it through the fallback chain, which puts
+        # the dock first for this layout. Naming a slot the field does not offer
+        # would write an illegal value into a Select.
+        "search_placement": "Bottom Bar Center",
+    },
 }
 
 
@@ -267,7 +331,9 @@ def layout_settings(layout: str) -> dict:
     chrome = LAYOUT_CHROME.get(layout)
     if not chrome:
         return {}
-    return {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
+    values = {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
+    values.update(LAYOUT_TENANTS.get(layout, {}))
+    return values
 
 
 def as_dict() -> dict:

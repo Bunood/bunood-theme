@@ -92,6 +92,7 @@
   "home_placement",
   "apps_placement",
   "section_status",
+  "bottombar_enabled",
   "status_style",
   "status_picker",
   "status_clock",
@@ -661,10 +662,17 @@
    "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
   },
   {
+   "fieldname": "bottombar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the bottom bar",
+   "default": "1",
+   "description": "The fixed strip along the foot of the desk. Whether it EXISTS is this setting; what it shows is \"Status Bar\" below. Independent of the desk layout: a layout preset writes this, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
    "fieldname": "status_style",
    "fieldtype": "Select",
    "label": "Status Bar",
-   "options": "Off\nMinimal\nQuiet\nOperator",
+   "options": "Minimal\nQuiet\nOperator",
    "default": "Quiet",
    "hidden": 1
   },
