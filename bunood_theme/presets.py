@@ -23,6 +23,8 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME
+
 #: Ordered field names, matching theme_settings.json. Order matters only for
 #: the picker's "does the current state match a preset?" comparison.
 SIDEBAR_FIELDS = [
@@ -380,6 +382,32 @@ LINKS_DEFAULTS = {
 }
 
 USER_DEFAULTS = {"user_placement": "Top Bar"}
+
+#: The desk layout a fresh install gets. Named once, because it seeds
+#: ``desk_layout`` AND decides the container defaults below — two facts that
+#: would otherwise be free to disagree, which is how the shipped default and
+#: what the shipped default RENDERS drift apart.
+DEFAULT_DESK_LAYOUT = "Top Bar"
+
+#: Containers whose on/off field the doctype has actually grown.
+#:
+#: The container split lands one container per slice (ROADMAP phase 0, slice
+#: 2c), and :data:`registry.LAYOUT_CHROME` names all five from the start —
+#: authoring half a catalogue would be worse than none. Seeding a field the
+#: doctype does not have yet would put an orphan row in ``tabSingles`` that
+#: ``get_single_value`` then refuses to read back (it raises; measured), so the
+#: seed is filtered to what exists. **This tuple grows with each slice and is
+#: deleted with the last one** — when it lists every container it says nothing,
+#: and `CHROME_DEFAULTS` should go back to being the whole catalogue row.
+SHIPPED_CONTAINERS = ("topbar",)
+
+#: What a fresh install writes for each container it ships, derived from the
+#: catalogue rather than restated beside it.
+CHROME_DEFAULTS = {
+    c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
+    for c in CONTAINERS
+    if c["key"] in SHIPPED_CONTAINERS
+}
 
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our
 #: panel over Frappe's own Notification Log (filter tabs, rollup by

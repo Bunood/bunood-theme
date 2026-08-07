@@ -129,7 +129,10 @@ function assertLogicalOnly(css, name) {
 // `sidebar_quick_links` and became the two components registry.py always said
 // they were. This list grows when a component is REGISTERED, never to make a
 // build pass — that is what FIELD_EXCEPTIONS below is for, and it shrinks.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps"];
+// "topbar" and the container prefixes that follow it are here because a
+// CONTAINER was registered (registry.py), which is the only reason this list
+// is ever allowed to grow — never to make a build pass.
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them.

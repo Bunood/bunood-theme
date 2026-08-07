@@ -278,18 +278,18 @@ html[data-bnd-layout] body[data-route^=Form] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
-html[data-bnd-layout=topbar] .main-section > header {
+html[data-bnd-topbar] .main-section > header {
   position: sticky;
   inset-block-start: 0;
   z-index: var(--bnd-z-bar);
   display: block;
 }
 
-html[data-bnd-layout=topbar] .page-head {
+html[data-bnd-topbar] .page-head {
   inset-block-start: var(--bnd-topbar-h);
 }
 
-html[data-bnd-layout=topbar] .dropdown-notifications,
+html[data-bnd-topbar] .dropdown-notifications,
 html[data-bnd-layout=compact] .dropdown-notifications,
 html[data-bnd-layout=bottombar] .dropdown-notifications,
 html[data-bnd-layout=dock] .dropdown-notifications {
@@ -304,7 +304,7 @@ html[data-bnd-layout=dock] .dropdown-notifications {
   box-shadow: var(--bnd-shadow-lg);
   border-radius: var(--bnd-radius-lg);
 }
-html[data-bnd-layout=topbar] .dropdown-notifications .notifications-list,
+html[data-bnd-topbar] .dropdown-notifications .notifications-list,
 html[data-bnd-layout=compact] .dropdown-notifications .notifications-list,
 html[data-bnd-layout=bottombar] .dropdown-notifications .notifications-list,
 html[data-bnd-layout=dock] .dropdown-notifications .notifications-list {
@@ -312,7 +312,7 @@ html[data-bnd-layout=dock] .dropdown-notifications .notifications-list {
   inline-size: 100%;
 }
 
-html[data-bnd-layout=topbar] .dropdown-notifications {
+html[data-bnd-topbar] .dropdown-notifications {
   inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
   inset-block-end: auto;
 }

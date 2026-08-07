@@ -1,11 +1,17 @@
 // Copyright (c) 2026, Bunood and contributors
 // ============================================================================
-// TOP BAR — the "Top Bar" layout's global strip (checklist item 9).
+// TOP BAR — the desk's global strip (checklist item 9).
 //
 // WHAT
 //   Appearance of `.bnd-topbar`, which bunood.js mounts into the native
-//   <header> inside .main-section when data-bnd-layout="topbar". Holds the
+//   <header> inside .main-section when `topbar_enabled` says so. Holds the
 //   always-visible search field and the global cluster (bell, avatar).
+//
+//   It used to be the "Top Bar" LAYOUT's strip, mounted on the one branch of
+//   a ladder that read `desk_layout`. Since slice 2c it is a container with
+//   its own setting, which a layout preset writes — so it can be present on a
+//   Classic desk and absent from a Top Bar one, and this file describes a bar
+//   rather than a layout.
 //
 // WHY ONLY APPEARANCE LIVES HERE
 //   Position, stickiness and z-index are layout concerns and live in

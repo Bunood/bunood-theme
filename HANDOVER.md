@@ -36,9 +36,14 @@ migration patch, `build.mjs` FIELD_PREFIXES gained `home` and `apps`); and
 `status_style` decides in all five layouts and a patch preserved what each site
 sees.
 
-**NEXT: the container split.** Top bar, bottom bar, side pane and dock each get
-their own on/off, instead of `desk_layout` deciding which mount. Read §7 before
-starting it — that is the whole briefing.
+**The container split is under way — 1 of 5 done** (2026-08-07, suite 115/115).
+The top bar is its own container. Read §7 before continuing it; the four
+decisions taken on the way in are recorded there and should not be re-litigated
+without a reason.
+
+**NEXT: slice 2c-2, the page header.** `pagehead_enabled` replaces
+`slug === "compact"` as what calls `inject_compact_cluster`. Then dock, then
+bottom bar, then side pane. `ROADMAP.md` phase 0 carries the per-slice detail.
 
 Then: the honest-picker audit across every component (`bnd_region_blocker`
 covers placement; the rest is unaudited).
@@ -119,6 +124,18 @@ pays for them a third time.
 - **`rsync --exclude` also protects the destination from `--delete`.** Adding an
   exclusion cannot remove what a previous run already copied; that needs
   `--delete-excluded`. Cost a 439 MB mirror that reported itself as maintained.
+- **`npm run deploy` restarts on ASSET hashes, so a Python-only edit ships
+  without one** and the backend keeps serving the modules it imported at boot.
+  `tools/deploy.sh` says so and offers the flag; it is easy to read the cheerful
+  "no asset change — skipping restart" as success. Use
+  `BND_FORCE_RESTART=1 npm run deploy` whenever the change is `.py`.
+- **A doctype change needs `bench --site demo.bunood.test migrate`** after the
+  deploy — that is what syncs the field and runs the patch. The deploy does not.
+- **An ABORTED suite run poisons the next one, twice over.** The suite restores
+  the snapshot it took at START, so aborting run A leaves the bench mid-test, and
+  run B then faithfully restores *that* on the way out. Two runs were voided this
+  way on 2026-08-01 and it happened again on 2026-08-07. After any abort, reset
+  the bench to `setup.SHIPPED` before trusting what you see.
 
 ---
 
@@ -203,21 +220,39 @@ it, because `mount_chrome` runs before Frappe paints the sidebar's contents.
 Testing the affordance answers "not there yet" and turns the guard into a
 refusal of every Off. That mistake cost a suite run on 2026-08-07.
 
-**What the split has to decide.** Today `desk_layout` chooses which containers
-mount (`mount_chrome`, ~line 4570). Afterwards each container is its own
-setting, and `desk_layout` becomes a preset that WRITES those settings and then
-stops deciding anything — the end-state the settings architecture note
-describes. Two things follow that are easy to miss:
+**What the split has to decide** — all four settled on 2026-08-07, with slice
+2c-1. They are recorded because re-deciding them mid-split would leave the five
+containers governed inconsistently, which is the state the split exists to end.
 
-1. **There is still no table saying what each layout writes.** `registry.py`
-   lists components and regions but no per-layout values; the 0.11.0 patch
-   `chrome_placement.py` records what 0.10.0 *rendered*, which is a migration
-   artefact, not a catalogue. That table has to be authored as part of this
-   work, and it is what finally lets the derived "Custom" label cover the
-   layout preset (today only the side pane has a real catalogue).
-2. **Every container off at once is a reachable configuration.** Decide what
-   that means before writing the code, not after — the invariant matrix in
-   `tests/smoke.mjs` is the place to encode the answer.
+1. **Five containers, not four.** `pagehead` is registered too. Compact's only
+   distinguishing act is injecting the cluster that MAKES the pagehead region
+   exist, so leaving it out would have left `desk_layout` still deciding one
+   thing — and a layout that still decides can never carry a derived "Custom"
+   label.
+2. **The catalogue is `registry.LAYOUT_CHROME`**, authored complete and consumed
+   one column per slice. It is NOT `patches/v0_11_0/chrome_placement.py`, which
+   records what 0.10.0 *rendered*. They deliberately disagree; the disagreement
+   is annotated in both files.
+3. **The bottom bar's on/off will be `bottombar_enabled`, and `status_style`
+   loses "Off"** (slice 2c-4). Today "Off" is the container's on/off in four
+   layouts and not in the fifth — the same fact in two places.
+4. **Every container off at once is refused at the last container.** The rule
+   already in force for tenants covers it: a control may be removed only while
+   something else can still reach the same function. So the side pane's off is
+   honoured only while a mounted container can host the critical tenants. One
+   guard derived from `critical` in `registry.py`, not five special cases.
+
+**THE SEQUENCING MISTAKE, MADE AND CORRECTED IN SLICE 2c-1.** "Each container is
+its own setting" and "the layout WRITES those settings" read like two steps and
+are one. The moment the first container stops following the layout, the layout
+picker half-works on every site — pick Compact and you get its page-head cluster
+*and* keep the top bar. Five tests failed on exactly that. The preset write
+therefore landed with the FIRST container: `api.get_shipped_defaults` serves
+`layout_chrome` + `toggles`, `bnd_apply_layout_preset` writes them on layout
+change, and the suite's `setSettings` does the same server-side, because writing
+`desk_layout` alone is not a gesture any user can make. **Which** containers a
+preset writes is decided by asking the doctype whether the field exists — never
+by a list of which slices have landed.
 
 **Do it in slices**, each verified: one container at a time, invariant matrix
 green between each. Do not start it at the end of a long session.
@@ -231,6 +266,15 @@ placement on every route change.
 
 **Still open, and mine:**
 
+- **The notifications panel guesses where the bell is, from the layout.**
+  `inbox_placement` is the thing that knows, and has been its own setting since
+  slice 1a — so a Top Bar desk with the bell in the side pane already gets a
+  panel pinned under the top bar, nowhere near it. Slice 2c-1 makes one more
+  such state reachable (a top bar on a Dock desk: both selectors match at equal
+  specificity and source order gives it to the dock) and names it in
+  `_layouts.scss` rather than fixing it, because keying all four rules on the
+  bell's real region is a behaviour change and behaviour does not ride along
+  with a refactor. It is one line of the honest-picker audit.
 - `home_placement` / `apps_placement` accept `"Dock"`, which no runtime branch
   handles — it falls through to the sidebar. Either handle it or remove it from
   the field's options.

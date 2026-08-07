@@ -27,7 +27,9 @@ import frappe
 
 from bunood_theme.brand import write_brand_css
 from bunood_theme.presets import (
+    CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
+    DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
     INBOX_DEFAULTS,
     PALETTE_DEFAULTS,
@@ -41,9 +43,24 @@ from bunood_theme.presets import (
 #: truthiness seeding in :data:`DEFAULTS`: an admin's explicit 0 is falsy and
 #: would be flipped back to 1 on every migrate. They are seeded only when the
 #: value is ``None`` — i.e. the field has never been written at all.
+#:
+#: The container on/off fields (slice 2c) belong here for a second reason as
+#: well as that one: a migration patch writes them from what the site's layout
+#: RENDERED, and it runs before this seeder. None-aware seeding is what makes
+#: the patch's answer stick — truthiness seeding would overwrite every 0 it had
+#: just written, which is precisely "the layout decides" surviving the change
+#: meant to end it.
 CHECK_DEFAULTS = {
     field: value
-    for defaults in (CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS, USER_DEFAULTS, LINKS_DEFAULTS)
+    for defaults in (
+        CRUMB_DEFAULTS,
+        PALETTE_DEFAULTS,
+        INBOX_DEFAULTS,
+        STATUS_DEFAULTS,
+        USER_DEFAULTS,
+        LINKS_DEFAULTS,
+        CHROME_DEFAULTS,
+    )
     for field, value in defaults.items()
     if isinstance(value, int)
 }
@@ -66,7 +83,12 @@ DEFAULTS = {
     # Desk layout (checklist item 9). "Top Bar" is the layout the user chose as
     # the default: global bar above the page, breadcrumb title row, slim status
     # bar below. Same seeding rationale as default_density.
-    "desk_layout": "Top Bar",
+    #
+    # Named in presets.py rather than spelt out here because the CONTAINER
+    # defaults are derived from this layout's catalogue row: a literal in both
+    # places is a shipped default that can disagree with what the shipped
+    # default renders.
+    "desk_layout": DEFAULT_DESK_LAYOUT,
     # Sidebar style kit (item 10): seed the default preset's name and every
     # one of its field values. Values, not the name, are the canon — see
     # bunood_theme/presets.py.

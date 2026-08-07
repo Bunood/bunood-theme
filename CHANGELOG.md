@@ -7,6 +7,54 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The top bar becomes its own container (rework slice 2c, 1 of 5)
+
+The first of the five containers to stop being a consequence of
+`desk_layout`. `topbar_enabled` decides whether the strip mounts; a layout
+is becoming a preset that *writes* that setting rather than standing in
+for it. So a top bar can sit on a Classic desk, and a Top Bar desk can
+have none — configurations that did not exist before, and that the
+invariant matrix now walks.
+
+**The catalogue exists at last.** `registry.LAYOUT_CHROME` states what
+each of the five layouts writes to each of the five containers. Until now
+*no table anywhere* said this: the 0.11.0 migration patch records what
+0.10.0 **rendered**, which is a one-shot artefact, and the settings form
+gave that as its reason for refusing to derive a "Custom" label for the
+layout at all. Authoring it is what makes that label possible — it
+arrives with the last container, when the table reaches the client. The
+catalogue is complete from the start; consuming it one column per slice
+is what "one container at a time" means.
+
+**The stylesheet stops believing a promise.** Three rules keyed on
+`data-bnd-layout="topbar"` now key on `data-bnd-topbar`, stamped only
+once the bar is really in the document. That is not bookkeeping for the
+split — it was wrong before it. `mount_topbar` returns early whenever
+Frappe renders no `<header>`, which is **every viewport under ~480px**,
+and those desks were getting a page head pushed down by the bar's height
+with no bar above it. Same polarity as `data-bnd-own` and
+`data-bnd-statusbar`, for the same reason: key on the outcome and there
+is no failure mode left to handle.
+
+**Switching a container off cannot take a control away.** A container
+that is off mounts nothing and stamps nothing, so its region resolves to
+absent — and absent already means *leave what is there*, never delete.
+Search proves it in the matrix: asked for a top bar that is switched off,
+it lands in the status bar instead of vanishing.
+
+**A patch per container, not one for all five.** `container_topbar`
+writes what each site's layout renders today — 1 for Top Bar, 0 for
+everything else — and nothing more. Without it, the field's shipped
+default of 1 would give every Compact, Classic, Bottom Bar and Dock site
+a top bar it never had, on upgrade, without being asked.
+
+Two smaller things fixed in passing, both the same shape as the slice:
+the Home & All Apps diagrams were not repainted when the desk's shape
+changed, so they could show "not available" over a slot that worked; and
+the Overview's caption read "Layout: X" as though that described the
+picture above it, which a container contradicting its layout makes
+false — it names the preset now.
+
 ### The status bar stops being a property of the layout (rework slice 2)
 
 `status_in_classic` is gone. The bar used to be a consequence of the

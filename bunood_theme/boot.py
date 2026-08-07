@@ -103,7 +103,40 @@ def extend_bootinfo(bootinfo):
         # stale. Site-wide by design; per-user layouts are a possible later step.
         # bunood.js maps this label to a data-bnd-layout slug; an unknown or
         # missing value degrades to the stock desk (fails open).
-        bootinfo.bnd_layout = settings.get("desk_layout") or "Top Bar"
+        from bunood_theme.presets import CHROME_DEFAULTS, DEFAULT_DESK_LAYOUT
+
+        bootinfo.bnd_layout = settings.get("desk_layout") or DEFAULT_DESK_LAYOUT
+
+        # Which containers this desk mounts (component rework, slice 2c).
+        #
+        # WHY IT IS A SEPARATE PAYLOAD FROM bnd_layout AND NOT DERIVED FROM IT
+        #     That derivation is the thing being removed. `desk_layout` used to
+        #     be read at mount time and a ladder of branches decided which
+        #     containers appeared; each container is its own setting now, and a
+        #     layout is a preset that WRITES them. Deriving here would keep the
+        #     layout deciding, one level further down, where it would be harder
+        #     to see.
+        #
+        # Keyed by container key, not fieldname: the client thinks in
+        # containers, and registry.py already owns the mapping between the two.
+        # Values are ints because CSS and the mount ladder both want a yes/no,
+        # and a Check reads back as None on a site whose patch has not run yet
+        # — which must mean "the shipped answer", never "off".
+        #
+        # Same flash exemption as the layout above: every container is built by
+        # Frappe's JS or ours after the splash, so a boot-delivered answer
+        # paints nothing stale.
+        from bunood_theme.registry import CONTAINERS
+
+        def container(field):
+            value = settings.get(field)
+            return int(CHROME_DEFAULTS[field] if value in (None, "") else value)
+
+        bootinfo.bnd_chrome = {
+            c["key"]: container(c["toggle"])
+            for c in CONTAINERS
+            if c["toggle"] in CHROME_DEFAULTS
+        }
 
         # Sidebar style kit (item 10). One compact dict; every empty field
         # falls back to the default preset so a half-seeded site still renders

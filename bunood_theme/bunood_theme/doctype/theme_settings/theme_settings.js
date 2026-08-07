@@ -280,7 +280,17 @@ const BND_SLOT_REGION = {
  */
 function bnd_region_blocker(frm, region) {
 	const layout = frm.doc.desk_layout || "Top Bar";
-	if (region === "topbar") return layout === "Top Bar" ? "" : __("{0} has no top bar", [__(layout)]);
+	// A container that has been split out (slice 2c) answers for itself: the
+	// question "is there a top bar" is `topbar_enabled`, not the layout, and
+	// giving the old answer here would grey out a slot that works — the
+	// picker's warning would then be the LAST place the layout still decided.
+	// The remaining regions read the layout until their own slice lands.
+	if (region === "topbar") {
+		// `?? 1` for the same reason boot.py falls back to CHROME_DEFAULTS: a
+		// Check reads back as undefined on a site whose migration has not run,
+		// and "not migrated yet" must mean the shipped answer, never "off".
+		return parseInt(frm.doc.topbar_enabled ?? 1, 10) ? "" : __("the top bar is switched off");
+	}
 	if (region === "pagehead") {
 		return layout === "Compact" ? "" : __("only Compact puts controls in the title row");
 	}
@@ -510,17 +520,47 @@ frappe.ui.form.on("Theme Settings", {
 		}, 300);
 	},
 	desk_layout(frm) {
-		bnd_render_layout_picker(frm);
-		// Every placement diagram marks slots the layout cannot honour, so all
-		// of them go stale the moment it changes — not just search's.
-		bnd_render_inbox_picker(frm);
-		bnd_render_user_picker(frm);
-		// The search picker's availability notes read the layout, so they go
-		// stale the moment it changes — "Not available" must never linger on
-		// a slot the new layout actually offers.
-		bnd_render_search_picker(frm);
+		// The preset WRITES first, then everything repaints against what it
+		// wrote. The other order paints the old containers and leaves them on
+		// screen until the next refresh.
+		//
+		// Fires only on a real change — Frappe does not run field handlers on
+		// load — so this cannot overwrite an admin's container choices when
+		// they merely open the form. The one place `desk_layout` is written is
+		// the layout picker's click handler, which is exactly the gesture that
+		// should mean "apply this preset".
+		bnd_apply_layout_preset(frm).then(() => {
+			bnd_render_layout_picker(frm);
+			bnd_repaint_placement_pickers(frm);
+		});
+	},
+	// A container's on/off changes which regions can hold anything, exactly as
+	// the layout used to — so it invalidates the same set of diagrams. One
+	// handler per container, all calling the one repaint, because the thing
+	// that went stale is the same thing however it was changed.
+	topbar_enabled(frm) {
+		bnd_repaint_placement_pickers(frm);
 	},
 });
+
+/**
+ * Repaint every picker whose availability notes read the desk's shape.
+ *
+ * Every placement diagram marks the slots that cannot be honoured right now
+ * (`bnd_region_blocker`), so all of them go stale the moment the shape changes
+ * — not just search's. "Not available" lingering on a slot that works is worse
+ * than no warning at all, because it is a warning the user can prove wrong.
+ *
+ * A function rather than three calls repeated per handler: the container split
+ * adds one handler per container, and a list restated five times is the
+ * duplication this rework exists to remove.
+ */
+function bnd_repaint_placement_pickers(frm) {
+	bnd_render_inbox_picker(frm);
+	bnd_render_user_picker(frm);
+	bnd_render_search_picker(frm);
+	bnd_render_links_picker(frm);
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Master & detail shell (component rework, slice 1c step 2)
@@ -570,6 +610,12 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Bars & panes"),
 		items: [
+			// Containers, roughly top to bottom on the desk. The top bar is the
+			// first to have been split out of `desk_layout` (slice 2c); the
+			// others join this group as their own entries as their slices land,
+			// and "Layout preset" under Appearance stops being a setting at all
+			// once the last one has.
+			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
 			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
 			{ key: "status", label: () => __("Bottom bar & status"), anchors: ["status_style"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
@@ -621,6 +667,16 @@ const BND_SHELL_GROUPS = [
 let bnd_shipped = null;
 
 /**
+ * The layout catalogue and the container-key -> fieldname map, from the same
+ * request as `bnd_shipped`. `null` until it arrives and `null` forever if the
+ * call fails, in which case picking a layout writes no container values —
+ * which is the honest failure: better to leave the desk as it is than to write
+ * half a preset from a guess.
+ */
+let bnd_layout_chrome = null;
+let bnd_container_toggles = null;
+
+/**
  * Which fields each shell entry owns, as PREFIXES rather than a list.
  *
  * The alternative is a sixth hand-written list of fieldnames — there are already
@@ -635,6 +691,7 @@ let bnd_shipped = null;
  * `build.mjs`'s FIELD_EXCEPTIONS says exactly that.
  */
 const BND_SHELL_OWNS = {
+	topbar: { prefixes: ["topbar_"] },
 	sidepane: { prefixes: ["sidebar_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.
@@ -765,7 +822,14 @@ function bnd_render_overview(frm, $pane) {
 		P.wrap(
 			'<div class="bnd-dgm bnd-dgm-overview">' + bnd_desk_frame() + markers + "</div>" +
 			P.note(
-				__("Layout: {0}. Each mark is a control — select it to change where that piece lives.", [
+				// "Layout PRESET", not "Layout". Since slice 2c a container can
+				// contradict the layout it came from — a top bar on a Classic
+				// desk — so naming the layout as though it described the picture
+				// above would be a claim this line cannot back. It names what
+				// was last APPLIED, which it can. The derived "Custom" label
+				// that makes the difference visible arrives with the last
+				// container, when the catalogue reaches the client.
+				__("Layout preset: {0}. Each mark is a control — select it to change where that piece lives.", [
 					__(frm.doc.desk_layout || "Top Bar"),
 				])
 			) + hidden
@@ -894,17 +958,77 @@ function bnd_shell_setup(frm) {
 	// and then re-read from the module-level cache, so returning to the form
 	// costs nothing. A failure leaves `bnd_shipped` null and the marks simply do
 	// not appear — the shell is already fully usable without them.
-	if (bnd_shipped) {
-		bnd_shell_marks(frm);
-	} else {
-		frappe
-			.xcall("bunood_theme.api.get_shipped_defaults")
-			.then((data) => {
-				bnd_shipped = (data && data.defaults) || null;
-				bnd_shell_marks(frm);
-			})
-			.catch(() => {});
-	}
+	bnd_load_shipped().then(() => bnd_shell_marks(frm));
+}
+
+/**
+ * The server's answer to "what does a fresh install write, and what does each
+ * layout preset write" — fetched once per form session, then cached.
+ *
+ * ONE REQUEST, THREE CONSUMERS: the change dots, the derived note, and the
+ * layout preset that writes the container fields. It is a promise rather than a
+ * flag because the third of those is triggered by a CLICK, which can land
+ * before any fetch this form started has resolved — and a preset that silently
+ * writes nothing because a request was still in flight is the worst of the
+ * available failures. Callers await; the cache makes every later await free.
+ *
+ * Never rejects. A failed fetch leaves `bnd_shipped` null, which every reader
+ * already treats as "cannot say" — the form has to render when the server
+ * cannot answer a cosmetic question.
+ */
+let bnd_shipped_load = null;
+function bnd_load_shipped() {
+	if (bnd_shipped) return Promise.resolve();
+	if (bnd_shipped_load) return bnd_shipped_load;
+	bnd_shipped_load = frappe
+		.xcall("bunood_theme.api.get_shipped_defaults")
+		.then((data) => {
+			bnd_shipped = (data && data.defaults) || null;
+			bnd_layout_chrome = (data && data.layout_chrome) || null;
+			bnd_container_toggles = (data && data.toggles) || null;
+		})
+		.catch(() => {
+			// Let the next caller try again: this one may have failed because
+			// the desk was mid-reload, and a permanently poisoned cache would
+			// cost the layout preset for the rest of the session.
+			bnd_shipped_load = null;
+		});
+	return bnd_shipped_load;
+}
+
+/**
+ * Apply a layout preset: write what the chosen layout says each container is.
+ *
+ * WHY THE LAYOUT HAS TO WRITE, AND WHY IT COULD NOT WAIT FOR THE LAST SLICE
+ *   `desk_layout` used to be READ at mount time, and a ladder of branches
+ *   decided which containers appeared. The split replaces that with one setting
+ *   per container — which means that from the moment the FIRST container is
+ *   split out, the layout no longer moves it. Picking "Compact" would give a
+ *   desk its page-head cluster and leave the top bar exactly where it was: a
+ *   layout picker that half works, on every site, for as long as the split
+ *   takes to finish. So the write lands with the first container, not the last.
+ *
+ * Same contract as the sidebar presets: applying a preset is writing its
+ * values, there is no "preset plus overrides" state anywhere, and the values
+ * are the canon. The catalogue is `registry.LAYOUT_CHROME`, served rather than
+ * copied here — a client-side second copy is the defect this rework exists to
+ * remove.
+ *
+ * Containers whose field the doctype has not grown yet are skipped by ASKING
+ * THE FORM whether the field exists, rather than by consulting a list of which
+ * slices have landed. There is no such list to fall out of step with.
+ */
+function bnd_apply_layout_preset(frm) {
+	return bnd_load_shipped().then(() => {
+		if (!bnd_layout_chrome || !bnd_container_toggles) return;
+		const row = bnd_layout_chrome[frm.doc.desk_layout];
+		if (!row) return; // unknown layout: write nothing, same fail-open rule
+		for (const key of Object.keys(bnd_container_toggles)) {
+			const field = bnd_container_toggles[key];
+			if (!(key in row) || !frm.get_field(field)) continue;
+			frm.set_value(field, row[key]);
+		}
+	});
 }
 
 /**

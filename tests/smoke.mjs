@@ -156,14 +156,62 @@ function setSettings(values) {
 				"."
 		);
 	}
-	benchPy(
+	// WRITING `desk_layout` MEANS "THE ADMIN PICKED THIS LAYOUT", so it applies
+	// the layout preset first and the explicit values second.
+	//
+	// Since slice 2c a layout is a preset that WRITES the container fields
+	// (registry.LAYOUT_CHROME); it no longer decides anything at mount time.
+	// Setting the Select alone is therefore not a gesture any user can make —
+	// the only place it is written is the picker's click handler, which applies
+	// the preset in the same breath. A suite that wrote the Select by itself
+	// would be testing a state the product cannot reach, and would report the
+	// containers as broken every time a test changed layouts.
+	//
+	// Order is explicit rather than dict order: an explicit value in `values`
+	// must always beat the preset, which is what makes a state like
+	// {desk_layout: "Top Bar", topbar_enabled: 0} mean what it reads as.
+	//
+	// The catalogue is read from `registry`, never restated here — the whole
+	// point of it being one table.
+	//
+	// THE PRESET'S OWN WRITES GO THROUGH THE SAME RESTORE GUARD. They are not
+	// in `values`, so the check above cannot see them — and each slice of the
+	// split adds one more field the preset writes. Left unguarded, the first
+	// container whose field nobody remembered to add to MUTABLE_FIELDS would be
+	// changed permanently on the operator's site, which is the exact loss this
+	// function's guard was moved here to prevent. Python reports what it had to
+	// skip; the throw below is loud on purpose.
+	const out = benchPy(
+		`from bunood_theme.registry import layout_settings\n` +
 		`vals = json.loads(${JSON.stringify(JSON.stringify(values))})\n` +
+		`restorable = set(json.loads(${JSON.stringify(JSON.stringify(MUTABLE_FIELDS))}))\n` +
+		`meta = frappe.get_meta("Theme Settings")\n` +
+		`unrestorable = []\n` +
+		`if "desk_layout" in vals:\n` +
+		`    for f, v in layout_settings(vals["desk_layout"]).items():\n` +
+		// Containers whose slice has not landed have no field yet; writing one
+		// would leave an orphan tabSingles row that get_single_value refuses to
+		// read back. Ask the doctype, so there is no list of landed slices.
+		`        if not meta.get_field(f):\n` +
+		`            continue\n` +
+		`        if f not in restorable:\n` +
+		`            unrestorable.append(f)\n` +
+		`            continue\n` +
+		`        frappe.db.set_single_value("Theme Settings", f, v)\n` +
 		`for f, v in vals.items():\n` +
 		`    frappe.db.set_single_value("Theme Settings", f, v)\n` +
 		`frappe.clear_cache()\n` +
 		`frappe.db.commit()\n` +
-		`print("ok")\n`
+		`print("BND_UNRESTORABLE=" + json.dumps(unrestorable))\n`
 	);
+	const skipped = JSON.parse((out.match(/BND_UNRESTORABLE=(\[.*\])/) || [, "[]"])[1]);
+	if (skipped.length) {
+		throw new Error(
+			`setSettings: the layout preset writes ${skipped.join(", ")}, which ` +
+				"the suite would not restore. Add to MUTABLE_FIELDS — a container's " +
+				"on/off field belongs there the moment its slice lands."
+		);
+	}
 }
 
 // ── Browser helpers ─────────────────────────────────────────────────────────
@@ -376,7 +424,30 @@ const MUTABLE_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
+	// Slice 2c, the container split: each container gets its own on/off, so
+	// `desk_layout` can become a preset that writes them and then stops
+	// deciding. One field per container, added as its slice lands.
+	"topbar_enabled",
 ];
+
+/**
+ * The container on/off fields, with what a fresh install writes.
+ *
+ * WHY IT EXISTS AT ALL
+ *   Every invariant state must pin EVERY container, not just the one it is
+ *   about. A state that leaves a container at whatever the previous state set
+ *   is not a state at all — that is how a bench left on Dock voided two runs
+ *   (see the reset comment in main()). Spreading this map under each state's
+ *   overrides makes "unspecified" mean "shipped", always.
+ *
+ * WHY IT IS A LITERAL AND HOW THAT IS KEPT HONEST
+ *   It is needed at module scope, before `main()` has fetched anything from
+ *   the server — so it cannot BE `setup.SHIPPED`. A second statement of a
+ *   shipped default is this repo's most expensive habit, so it is not left to
+ *   agree by good intentions: the container test below asserts these values
+ *   against SHIPPED and fails the moment they diverge.
+ */
+const CHROME_DEFAULTS = { topbar_enabled: 1 };
 
 // ── The suite ───────────────────────────────────────────────────────────────
 
@@ -1575,6 +1646,77 @@ async function main() {
 			setSettings({ desk_layout: "Top Bar" });
 		});
 
+		// ── The container split (slice 2c) ─────────────────────────────────
+		//
+		// THE ONE CLAIM: a container mounts because its OWN setting says so,
+		// not because of the layout. Both directions have to be asserted,
+		// because each fails in a different place — the first would pass on a
+		// runtime that still reads `desk_layout` if the layout happened to be
+		// Top Bar, and the second would pass on a runtime that mounts nothing
+		// at all. Together they pin the setting as the thing that decides.
+		//
+		// These are deliberately narrow. Whether the desk remains USABLE in
+		// these configurations is the invariant matrix's job, and the two
+		// states below are added to it for exactly that reason.
+		await test("container: the top bar mounts in a layout that never had one", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Classic", topbar_enabled: 1 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expect(await visible(".bnd-topbar"), "a top bar on a Classic desk");
+		});
+
+		await test("container: the Top Bar layout with the top bar switched off has none", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 0 });
+			await goDesk("/desk/item", ".page-head", 4500);
+			expectEq(await q(".bnd-topbar"), false, "no top bar once it is switched off");
+		});
+
+		await test("container: the layout preset writes the containers and then stops deciding", async () => {
+			// The catalogue is the thing that lets the derived "Custom" label
+			// cover the layout preset at all — until this table existed there
+			// was no per-layout statement of what a layout writes anywhere in
+			// the repo, only a migration patch recording what 0.10.0 RENDERED.
+			// Assert it against the registry rather than restating it here, so
+			// this test cannot become the second copy.
+			const chrome = JSON.parse(
+				benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
+					.trim().split("\n").pop()
+			);
+			const layouts = ["Top Bar", "Compact", "Classic", "Bottom Bar", "Dock"];
+			for (const l of layouts) expect(chrome[l], `the catalogue covers ${l}`);
+			expectEq(chrome["Top Bar"].topbar, 1, "Top Bar is the layout that writes a top bar");
+			for (const l of layouts.filter((x) => x !== "Top Bar")) {
+				expectEq(chrome[l].topbar, 0, `${l} writes no top bar`);
+			}
+
+			// CHROME_DEFAULTS is the one hand-written copy of a shipped default
+			// in this file, and it exists only because module scope has no
+			// server to ask. This is what stops it drifting: every state in the
+			// matrix is built on these values, so a stale one would quietly
+			// stop testing the configuration its name claims.
+			for (const [field, value] of Object.entries(CHROME_DEFAULTS)) {
+				expectEq(String(shipped[field]), String(value), `CHROME_DEFAULTS.${field} matches SHIPPED`);
+			}
+			// And the shipped defaults ARE the catalogue's row for the shipped
+			// layout — the derivation presets.py performs, checked end to end
+			// rather than trusted. A container whose field the doctype has not
+			// grown yet is legitimately absent from SHIPPED and skipped here.
+			for (const [key, field] of Object.entries(
+				JSON.parse(
+					benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["toggles"]))\n`)
+						.trim().split("\n").pop()
+				)
+			)) {
+				if (!(field in shipped)) continue;
+				expectEq(
+					Number(shipped[field]),
+					chrome["Top Bar"][key],
+					`SHIPPED.${field} is what the shipped layout's catalogue row says`
+				);
+			}
+		});
+
+		setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar" });
+
 		// ── Invariant matrix ───────────────────────────────────────────────
 		//
 		// WHY THIS EXISTS, AND WHY IT IS NOT MORE FEATURE TESTS
@@ -1602,26 +1744,52 @@ async function main() {
 		// ~9 minutes of page loads. These are the corners where the layout
 		// system and the component settings disagree — every one of them is a
 		// state that has produced a real defect, or is one move away from one.
+		//
+		// The fourth element is the CONTAINER state (slice 2c), spread over
+		// CHROME_DEFAULTS so every state pins every container. Splitting a
+		// container off `desk_layout` multiplies this space rather than adding
+		// to it, so the states earning a place here are the ones where a
+		// container contradicts its layout — that combination did not exist
+		// before and no older test can have covered it.
 		const INVARIANT_STATES = [
-			["Top Bar", "Quiet", "Top Bar Center"],
+			["Top Bar", "Quiet", "Top Bar Center", {}],
 			// The critical v0.10.0 defect: this strip IS the layout's only
 			// chrome, so "no status bar" must not mean "no logout".
-			["Bottom Bar", "Off", "Top Bar Center"],
-			["Bottom Bar", "Operator", "Bottom Bar Center"],
+			["Bottom Bar", "Off", "Top Bar Center", {}],
+			["Bottom Bar", "Operator", "Bottom Bar Center", {}],
 			// No bar anywhere: everything must fall back to the natives.
-			["Classic", "Off", "Top Bar Center"],
+			["Classic", "Off", "Top Bar Center", {}],
 			// Sidebar hidden outright — the natives are NOT available here.
-			["Dock", "Off", "Sidebar Top"],
-			["Dock", "Quiet", "Top Bar Center"],
+			["Dock", "Off", "Sidebar Top", {}],
+			["Dock", "Quiet", "Top Bar Center", {}],
 			// Compact keeps its native search row; the layout mounts no top bar.
-			["Compact", "Minimal", "Top Bar Center"],
+			["Compact", "Minimal", "Top Bar Center", {}],
 			// Search asked for a bar that this layout does not mount.
-			["Classic", "Quiet", "Bottom Bar Edge"],
+			["Classic", "Quiet", "Bottom Bar Edge", {}],
+			// The layout that always mounted a top bar, with the top bar off,
+			// and search still asking for it. Search must fall back rather
+			// than vanish — the same failure the placement chain was built for,
+			// reachable now by a route that did not exist before the split.
+			["Top Bar", "Quiet", "Top Bar Center", { topbar_enabled: 0 }],
+			// A top bar on a Dock desk: the one layout that hides the sidebar,
+			// so the natives are unreachable and OUR containers are the only
+			// route to anything. Two containers where there was one.
+			["Dock", "Quiet", "Top Bar Center", { topbar_enabled: 1 }],
+			// A top bar on a Classic desk — a container contradicting its
+			// layout in the direction nothing else in this list covers.
+			["Classic", "Off", "Top Bar Edge", { topbar_enabled: 1 }],
 		];
 
-		for (const [layout, style, placement] of INVARIANT_STATES) {
-			await test(`invariant: ${layout} · ${style} · search ${placement}`, async () => {
-				setSettings({ desk_layout: layout, status_style: style, search_placement: placement });
+		for (const [layout, style, placement, chrome] of INVARIANT_STATES) {
+			const label = Object.keys(chrome).length ? ` · ${JSON.stringify(chrome)}` : "";
+			await test(`invariant: ${layout} · ${style} · search ${placement}${label}`, async () => {
+				setSettings({
+					...CHROME_DEFAULTS,
+					...chrome,
+					desk_layout: layout,
+					status_style: style,
+					search_placement: placement,
+				});
 				await goDesk("/desk/item", ".page-head", 4500);
 
 				// Every critical component must be reachable by SOME route —
@@ -1721,7 +1889,12 @@ async function main() {
 			});
 		}
 
-		setSettings({ desk_layout: "Top Bar", status_style: "Quiet", search_placement: "Top Bar Center" });
+		setSettings({
+			...CHROME_DEFAULTS,
+			desk_layout: "Top Bar",
+			status_style: "Quiet",
+			search_placement: "Top Bar Center",
+		});
 
 		// ── Settings form geometry ─────────────────────────────────────────
 		//

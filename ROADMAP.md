@@ -139,10 +139,42 @@ defect in 0.10.0.
     `status_style: "Off"` for a Classic site that had not opted in — and the
     honest cost is written down: that site switching to Top Bar later will find
     the bar off, which is what deleting a per-layout override means
-  - `[ ]` **The remaining containers** — top bar, bottom bar, side pane, dock each
-    with their own on/off instead of `desk_layout` choosing. **Touches
-    `mount_chrome`**, where every critical defect in this project has lived. The
-    ownership-stamp rule is the thing to keep in front of you
+  - `[~]` **The container split** — each container with its own on/off instead of
+    `desk_layout` choosing. **Touches `mount_chrome`**, where every critical
+    defect in this project has lived. The ownership-stamp rule is the thing to
+    keep in front of you. **One container per slice, invariant matrix green
+    between each.**
+    - **Five, not four.** `pagehead` is registered as a container too: Compact's
+      only distinguishing act is injecting the cluster that MAKES the pagehead
+      region exist, so leaving it out would have left `desk_layout` still
+      deciding one thing — and a layout that still decides cannot have a derived
+      "Custom" label
+    - **`registry.LAYOUT_CHROME` is the catalogue**, authored complete with the
+      first slice and consumed one column at a time. It is what finally makes
+      the derived label possible; it is *not* `patches/v0_11_0/chrome_placement`,
+      which records what 0.10.0 **rendered**. The two deliberately disagree —
+      Classic writes no bottom bar, while a Classic site that had opted into the
+      status bar keeps it until the layout is picked again
+    - **Every container off at once** is answered by the rule already in force
+      for tenants: a control may be removed only while something else can still
+      reach the same function. So it is refused at the last container — the side
+      pane's off is honoured only while a mounted container can host the
+      critical tenants. One guard derived from `critical`, not five special cases
+    - `[x]` **1 · Top bar** *(2026-08-07)*. `topbar_enabled`; three `_layouts.scss`
+      rules re-keyed from `data-bnd-layout="topbar"` to `data-bnd-topbar`, the
+      OUTCOME — which was already wrong before the split, since `mount_topbar`
+      returns early on every viewport under ~480px and those desks were reserving
+      space for a bar that never arrived
+    - `[ ]` **2 · Page header** — `pagehead_enabled` replaces `slug === "compact"`
+    - `[ ]` **3 · Dock** — decoupled from the side pane hiding, which stays
+      layout-keyed until slice 5. Dock-on **and** side-pane-on becomes reachable
+    - `[ ]` **4 · Bottom bar** — `bottombar_enabled` owns whether the strip
+      exists and `status_style` loses "Off", so it governs only content. Today
+      "Off" is the container's on/off in four layouts and not in the fifth, which
+      is the same fact in two places. `global_variant` goes with it
+    - `[ ]` **5 · Side pane**, and `desk_layout` stops deciding. The riskiest:
+      the only container whose "off" hides a NATIVE container, so it takes every
+      stock affordance with it. Last, behind the guard above
   - `[ ]` **Honest-picker rules across every component** — `bnd_region_blocker`
     covers placement; the rest is unaudited
 

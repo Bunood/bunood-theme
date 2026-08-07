@@ -162,6 +162,96 @@
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
+	// Containers (component rework, slice 2c)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// WHAT CHANGED
+	//   A container used to mount because the LAYOUT said so — `mount_chrome`
+	//   read one Select and a ladder of branches decided which strips appeared.
+	//   Each container is its own setting now, delivered as `frappe.boot
+	//   .bnd_chrome`, and a layout is a preset that WRITES those settings
+	//   (registry.py's LAYOUT_CHROME is the catalogue) rather than standing in
+	//   for them.
+	//
+	// WHY THAT MATTERS BEYOND TIDINESS
+	//   While the layout decided, every question about the desk had two
+	//   answers — what the layout implied and what the component settings said
+	//   — and the seam between them produced every defect in 0.10.0. One
+	//   setting per container is one answer per question.
+	//
+	// FALLS OPEN, LIKE EVERYTHING ELSE HERE
+	//   No boot payload (theme inactive, boot failed, a site whose migration
+	//   has not run) means `chrome_state` is null and `container_on` answers
+	//   from the layout exactly as before. A desk never loses chrome because a
+	//   payload was missing.
+	//
+	// THE SPLIT LANDS ONE CONTAINER PER SLICE, so this map is deliberately
+	// partial: a container with no entry falls back to the layout branch that
+	// still owns it. LAYOUT_CONTAINERS is that fallback, and it shrinks to
+	// nothing as the slices land.
+
+	/** Boot's per-container on/off, keyed by registry container key. */
+	const chrome_state = (window.frappe && frappe.boot && frappe.boot.bnd_chrome) || null;
+
+	/**
+	 * Which containers each layout mounted BEFORE the split — the fallback,
+	 * and the honest record of what the mount ladder used to do.
+	 *
+	 * It is not `registry.LAYOUT_CHROME`. That table says what a layout WRITES
+	 * going forward; this says what 0.10.0 rendered, and the two deliberately
+	 * differ — Classic mounted a bottom strip here (subject to `status_style`,
+	 * which the 0.11.0 patch set to Off for sites that had not opted in) while
+	 * the catalogue writes none, because a Classic desk with a bar on it is not
+	 * Classic. Confusing what a thing did with what it means is how a migration
+	 * artefact becomes a design; they are kept in different files for that
+	 * reason.
+	 *
+	 * EVERY layout mounted the bottom strip — the ladder called
+	 * `mount_statusbar` on all five branches — and every layout but Dock had a
+	 * side pane. Writing only the container each branch was NAMED for would
+	 * have left the last two slices with a fallback that silently answered "no"
+	 * for a container that was plainly there.
+	 */
+	const LAYOUT_CONTAINERS = {
+		topbar: ["topbar", "bottombar", "sidepane"],
+		compact: ["pagehead", "bottombar", "sidepane"],
+		classic: ["bottombar", "sidepane"],
+		bottombar: ["bottombar", "sidepane"],
+		// The one layout with no side pane: it hides the whole container.
+		dock: ["dock", "bottombar"],
+	};
+
+	/**
+	 * Should this container mount?
+	 *
+	 * @param {string} key - a registry container key ("topbar", "dock", …).
+	 * @returns {boolean}
+	 */
+	function container_on(key) {
+		if (chrome_state && Object.prototype.hasOwnProperty.call(chrome_state, key)) {
+			return !!chrome_state[key];
+		}
+		return (LAYOUT_CONTAINERS[layout()] || []).indexOf(key) !== -1;
+	}
+
+	/**
+	 * Record that a container really mounted.
+	 *
+	 * SAME POLARITY AS `data-bnd-own`, and for the same reason. `data-bnd-
+	 * layout` is a declaration made at boot about what we INTEND to mount;
+	 * `mount_topbar` bails whenever Frappe rendered no <header>, which is every
+	 * viewport under ~480px. A stylesheet keyed on the intention then reserves
+	 * space for a bar that is not there, or sticks a page head below a bar that
+	 * never arrived. Keyed on the outcome there is nothing to get wrong.
+	 *
+	 * `data-bnd-statusbar` has worked this way since item 14 and is the model.
+	 * This generalises it rather than adding a fifth bespoke attribute.
+	 */
+	function container_mounted(key) {
+		document.documentElement.setAttribute("data-bnd-" + key, "");
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
 	// Ownership stamps
 	// ════════════════════════════════════════════════════════════════════════
 	//
@@ -1428,7 +1518,20 @@
 		dock: ["dock", "botcenter", "botedge"],
 	};
 
-	/** The fallback order for the active layout. */
+	/**
+	 * The fallback order for the active layout.
+	 *
+	 * STILL KEYED ON THE LAYOUT, and knowingly so. Since slice 2c a container
+	 * can contradict its layout — a top bar on a Classic desk, none on a Top
+	 * Bar one — so this table no longer describes what is really there. It does
+	 * not have to: `mount_search` tries the WANTED slot first and every slot is
+	 * resolved against the live DOM (`search_slot_host`), so the worst this can
+	 * be is a suboptimal SECOND choice, never a wrong first one or a missing
+	 * search. Reworking it into a preference over regions belongs with the
+	 * honest-picker audit, which is where every remaining "the layout decides"
+	 * gets found; changing it here would be a second behaviour riding along
+	 * with the split.
+	 */
 	function search_fallback_order() {
 		return SEARCH_FALLBACKS[layout()] || SEARCH_FALLBACKS.topbar;
 	}
@@ -1607,7 +1710,7 @@
 	function mount_topbar() {
 		const header = document.querySelector(".main-section > header");
 		if (!header || header.querySelector(".bnd-topbar")) return;
-		const bar = el("div", "bnd-topbar");
+		const bar = el("div", "bnd-topbar", { "data-bnd-part": "topbar" });
 		// No search here any more: mount_search() places it per the setting,
 		// which may well be this bar — but may equally be the sidebar or the
 		// bottom strip. The bar only owns the cluster it always owned, plus a
@@ -1622,6 +1725,10 @@
 		bar.appendChild(el("div", "bnd-search-center"));
 		mount_cluster(bar);
 		header.appendChild(bar);
+		// Stamped only now, with the bar in the document — the whole point of
+		// keying the stylesheet on the outcome. Everything above this line can
+		// return early.
+		container_mounted("topbar");
 	}
 
 	// ── Status bar / bottom bar ─────────────────────────────────────────────
@@ -4663,10 +4770,26 @@
 			frappe.breadcrumbs._bnd_wrapped = true;
 		}
 
-		if (slug === "topbar") {
-			mount_topbar();
-			mount_statusbar(false);
-		} else if (slug === "compact") {
+		// ── The container ladder ─────────────────────────────────────────
+		//
+		// One line per container that has been split out (slice 2c), asking
+		// its own setting; the rest still hang off the layout below, and each
+		// moves up here as its slice lands. Two things about the order:
+		//
+		//   * the top bar goes FIRST because it is a host. mount_search and
+		//     mount_placed_tenants resolve placements against the live DOM
+		//     (HOSTS), so a region has to exist before anything can be put in
+		//     it — that is why both of those calls already sit at the bottom
+		//     of this function.
+		//   * a container that is off mounts nothing and stamps nothing, so
+		//     `host_for("topbar")` returns null and every tenant pointed at it
+		//     resolves to "absent". Absent means LEAVE WHAT IS THERE, not
+		//     delete — see placement_for. Switching a container off therefore
+		//     cannot take a control away from a user; it can only decline to
+		//     offer a new home for one.
+		if (container_on("topbar")) mount_topbar();
+
+		if (slug === "compact") {
 			inject_compact_cluster();
 			mount_statusbar(false);
 		} else if (slug === "bottombar") {
@@ -4674,12 +4797,18 @@
 		} else if (slug === "dock") {
 			mount_dock();
 			mount_statusbar(false);
-		} else if (slug === "classic") {
+		} else if (slug === "topbar" || slug === "classic") {
+			// Named rather than left to a bare `else`: an unknown slug must
+			// keep mounting nothing at all. `apply_layout` only stamps labels
+			// it recognises, so this cannot happen today — and the failure mode
+			// of the whole layout system is "stock v16", which a catch-all
+			// would quietly stop being true the first time a label is renamed.
+			//
 			// Classic used to need an opt-in (`status_in_classic`) because the
-			// status bar was a consequence of the LAYOUT. It is a component now,
-			// so the layout has no opinion: `status_style` decides, here as
-			// everywhere else. mount_statusbar returns early when the style is
-			// Off, which is what makes one call correct for all five layouts.
+			// status bar was a consequence of the LAYOUT. It is a component
+			// now, so the layout has no opinion: `status_style` decides, here
+			// as everywhere else. mount_statusbar returns early when the style
+			// is Off, which is what makes one call correct for all five.
 			mount_statusbar(false);
 		}
 

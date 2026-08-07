@@ -769,10 +769,26 @@ def get_shipped_defaults() -> dict:
         budget.
 
     Returns:
-        ``{"defaults": {fieldname: shipped_value}}``. Wrapped in a dict rather
-        than returned bare so a later addition (say, the preset catalogues) does
-        not change the shape of what callers already destructure.
+        ``{"defaults": {fieldname: shipped_value}, "layout_chrome": {layout:
+        {container: 0|1}}, "toggles": {container: fieldname}}``. Wrapped in a
+        dict rather than returned bare so a later addition — the preset
+        catalogues, which is exactly what ``layout_chrome`` turned out to be —
+        does not change the shape of what callers already destructure.
+
+    WHY THE LAYOUT CATALOGUE RIDES ALONG HERE
+        The form has to WRITE it, not just compare against it: since slice 2c a
+        layout is a preset, and picking one writes the container fields the same
+        way picking a sidebar preset writes its 22. Same reason the defaults are
+        served rather than hardcoded — a client-side copy of
+        ``registry.LAYOUT_CHROME`` would be a second statement of the fact the
+        whole rework exists to have exactly once. Same request, because a form
+        that needs both and asks twice can render a moment where it has one.
     """
+    from bunood_theme.registry import LAYOUT_CHROME, CONTAINERS
     from bunood_theme.setup import SHIPPED
 
-    return {"defaults": dict(SHIPPED)}
+    return {
+        "defaults": dict(SHIPPED),
+        "layout_chrome": LAYOUT_CHROME,
+        "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
+    }

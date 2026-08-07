@@ -21,6 +21,8 @@
   "section_layout",
   "desk_layout",
   "layout_picker",
+  "section_topbar",
+  "topbar_enabled",
   "section_sidebar",
   "sidebar_preset",
   "sidebar_picker",
@@ -196,6 +198,18 @@
    "fieldname": "layout_picker",
    "fieldtype": "HTML",
    "label": "Layout Picker"
+  },
+  {
+   "fieldname": "section_topbar",
+   "fieldtype": "Section Break",
+   "label": "Top Bar"
+  },
+  {
+   "fieldname": "topbar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the top bar",
+   "default": "1",
+   "description": "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
   },
   {
    "fieldname": "section_sidebar",

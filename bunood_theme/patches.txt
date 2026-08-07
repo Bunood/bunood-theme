@@ -9,3 +9,8 @@
 bunood_theme.patches.v0_11_0.chrome_placement
 bunood_theme.patches.v0_11_0.split_quick_links
 bunood_theme.patches.v0_11_0.status_is_a_component
+# The container split (slice 2c), one patch per container. Each answers only
+# for its own field, from what the site's layout RENDERED. One patch writing
+# all five would have to be right about all five at once, and could not later
+# be re-read to find out what any single one of them decided.
+bunood_theme.patches.v0_11_0.container_topbar
