@@ -486,6 +486,135 @@ function bnd_fix_primary_action(frm) {
 	}
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Autosave — a click IS the change
+//
+// WHAT
+//   Every control on this form persists the moment it is touched. No Save, no
+//   Discard, no "Not Saved" badge. The desk already previewed each choice live;
+//   the Save button was the last place a user could see their change and still
+//   not have made it.
+//
+// WHY IT HOOKS `frm.dirty` AND NOT THE CONTROLS
+//   There are a dozen `frm.set_value` call sites across seven pickers, the desk
+//   diagram, the layout preset and the toggles, and more arrive with every
+//   component. Wiring each one is a list to keep in step with the form — the
+//   duplication this whole rework exists to remove. `frm.dirty()` is the single
+//   choke point Frappe itself routes every change through, so a control added
+//   tomorrow is covered without anyone remembering.
+//
+// WHY IT IS SERIALISED, AND WHY THAT IS THE WHOLE DESIGN
+//   Two saves in flight is not a performance problem, it is a CORRECTNESS one:
+//   the second carries the first's stale `modified` and dies with
+//   TimestampMismatchError — the same error this app just fixed at the seeding
+//   end. Autosave multiplies the chance of it by every click. So: one save at a
+//   time, a debounce so a burst of clicks is one write, and a re-run afterwards
+//   if anything changed while a save was in flight. The LAST click is what ends
+//   up stored, which is the only answer a user would call correct.
+//
+// FAILS LOUDLY, NEVER SILENTLY
+//   A settings page that silently stops persisting is worse than one with a
+//   Save button, because nothing on screen says so. A save that fails re-marks
+//   the form dirty and lets Frappe's own error surface.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** How long a burst of clicks is collapsed into one write. */
+const BND_AUTOSAVE_MS = 400;
+
+/**
+ * How many times a save may be deferred because Frappe is already saving.
+ *
+ * Bounded, not infinite. `frappe.ui.form.is_saving` is cleared in an `always`
+ * handler, so a request that never returns would leave it set and an unbounded
+ * retry would spin for the life of the page. Ten deferrals is four seconds —
+ * far longer than any of these writes takes, and short of a spin.
+ */
+const BND_AUTOSAVE_MAX_DEFER = 10;
+
+let bnd_save_timer = null;
+let bnd_save_defers = 0;
+
+/**
+ * Wrap `frm.dirty` once per form so every change schedules a save.
+ *
+ * Idempotent by a marker on the form: `refresh` runs many times per session and
+ * wrapping twice would double every scheduled save.
+ */
+function bnd_autosave_setup(frm) {
+	if (frm.__bnd_autosave) return;
+	frm.__bnd_autosave = true;
+
+	const native_dirty = frm.dirty.bind(frm);
+	frm.dirty = function () {
+		const out = native_dirty.apply(this, arguments);
+		bnd_schedule_autosave(frm);
+		return out;
+	};
+}
+
+function bnd_schedule_autosave(frm) {
+	clearTimeout(bnd_save_timer);
+	bnd_save_timer = setTimeout(() => bnd_autosave(frm), BND_AUTOSAVE_MS);
+}
+
+/**
+ * Save, once, if there is anything to save and Frappe is not already saving.
+ *
+ * THE IN-FLIGHT FLAG IS FRAPPE'S, NOT OURS, and that distinction cost a suite
+ * run. `frappe.ui.form.is_saving` is a module-level global set by
+ * `form/save.js` — shared by every form, and set by paths this file does not
+ * own (the toolbar button, Ctrl+S, another form entirely). A private flag of
+ * ours tracked only the saves we started, so a click landing beside one of
+ * those went straight into `_call`, which does:
+ *
+ *     if (frappe.ui.form.is_saving) { console.log(...); throw "saving"; }
+ *
+ * That throw is SYNCHRONOUS and it throws a bare string, so `frm.save()` never
+ * returns a promise and `.catch()` never sees it — which is why it surfaced as
+ * two unexplained console errors rather than as a failed save. Hence both the
+ * pre-check and the try/catch: one to avoid the throw, one for the race
+ * between checking and calling.
+ */
+function bnd_autosave(frm) {
+	// `is_dirty` and not a flag of our own: Frappe owns that answer too, and a
+	// reload or a discard clears it without telling us.
+	if (!frm.is_dirty() || frm.doc.__islocal) return;
+
+	if (frappe.ui.form.is_saving) {
+		if (bnd_save_defers++ < BND_AUTOSAVE_MAX_DEFER) bnd_schedule_autosave(frm);
+		return;
+	}
+	bnd_save_defers = 0;
+
+	// `frappe.dom.freeze` is deliberately NOT used. Freezing the desk on every
+	// click is exactly the interruption autosave exists to remove, and these
+	// writes are small.
+	let saving;
+	try {
+		saving = frm.save();
+	} catch (e) {
+		// Lost the race above. Come back rather than dropping the change.
+		if (bnd_save_defers++ < BND_AUTOSAVE_MAX_DEFER) bnd_schedule_autosave(frm);
+		return;
+	}
+
+	Promise.resolve(saving)
+		.then(() => {
+			// A click that landed WHILE this save was in flight left the form
+			// dirty again. Re-arm — this is what makes the last click the one
+			// that ends up stored.
+			if (frm.is_dirty()) bnd_schedule_autosave(frm);
+		})
+		.catch(() => {
+			// Leave it dirty and STOP. Frappe has already shown whatever went
+			// wrong, the Save button lights up as the manual fallback, and a
+			// retry loop against a failure that is not going away would spin
+			// forever. A form that quietly reports itself saved when it is not
+			// is the one failure mode worse than the Save button.
+			frm.doc.__unsaved = 1;
+		});
+}
+
 frappe.ui.form.on("Theme Settings", {
 	// Before the first refresh, so the toolbar's first decision is already
 	// made on corrected rights rather than corrected after the fact.
@@ -494,6 +623,7 @@ frappe.ui.form.on("Theme Settings", {
 	},
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
+		bnd_autosave_setup(frm);
 		// The layout is becoming a PRESET rather than a setting the desk reads
 		// at runtime (component rework). Read-only for one release so support
 		// can still see what a site was, while the component fields below are
@@ -1281,7 +1411,7 @@ function bnd_render_layout_picker(frm, host) {
 		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
-		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
+		'<span class="bnd-sbp-hint">' + __("Changes apply as you click — there is nothing to save.") + "</span>" +
 		"</div>";
 
 	$host.html(P.wrap(cards));
@@ -1685,7 +1815,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
-		'<span class="bnd-sbp-hint">' + __("Changes preview instantly — Save to keep them.") + "</span>" +
+		'<span class="bnd-sbp-hint">' + __("Changes apply as you click — there is nothing to save.") + "</span>" +
 		"</div>";
 
 	$host.html(
@@ -1990,7 +2120,7 @@ function bnd_render_crumbs_picker(frm, host) {
 	const note = P.note(
 		kit_down
 			? __("Original leaves ERPNext's trail untouched — the options below apply to the other styles.")
-			: __("Changes preview instantly — Save to keep them.")
+			: __("Changes apply as you click — there is nothing to save.")
 	);
 
 	// Two bands: the style choice and its option groups, then the switches. The

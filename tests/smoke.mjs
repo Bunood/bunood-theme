@@ -1711,8 +1711,73 @@ async function main() {
 			expect(!(await page.evaluate(() => window.cur_frm.is_dirty())), "and it actually saved");
 		});
 
+		await test("settings: a click applies, with no Save", async () => {
+			// THE CLAIM: touching a control persists it. Not previews it —
+			// persists it. Proven the only way that means anything: change it,
+			// RELOAD THE PAGE without saving, and read it back from the server.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			const start = getSettings(["crumb_separator"]).crumb_separator;
+			const want = start === "Chevron" ? "Dot" : "Chevron";
+
+			await page.evaluate(() => {
+				// The breadcrumbs entry, so the picker under test is on screen.
+				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
+					(n) => n.getAttribute("data-key") === "crumbs"
+				);
+				if (item) item.click();
+			});
+			await page.waitForTimeout(800);
+			await page.click(`[data-field="crumb_separator"][data-value="${want}"]`);
+			// Long enough for a debounced save to fire and land, and no longer.
+			await page.waitForTimeout(3000);
+
+			expectEq(getSettings(["crumb_separator"]).crumb_separator, want, "the click reached the database");
+
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			expectEq(
+				await page.evaluate(() => String(window.cur_frm.doc.crumb_separator)),
+				want,
+				"and survives a reload, so nothing was waiting on a Save"
+			);
+			expect(
+				!(await page.evaluate(() => window.cur_frm.is_dirty())),
+				"the form does not sit dirty afterwards"
+			);
+			setSettings({ crumb_separator: start });
+		});
+
+		await test("settings: rapid clicks all land, and none is lost", async () => {
+			// Autosave without serialisation is worse than no autosave: two
+			// saves in flight means the second carries the first's stale
+			// `modified` and dies — the very error this session just fixed at
+			// the seeding end. Clicking faster than saves complete must still
+			// leave the LAST choice stored.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await page.evaluate(() => {
+				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
+					(n) => n.getAttribute("data-key") === "crumbs"
+				);
+				if (item) item.click();
+			});
+			await page.waitForTimeout(800);
+
+			for (const v of ["Dot", "Arrow", "Slash", "Chevron"]) {
+				await page.click(`[data-field="crumb_separator"][data-value="${v}"]`);
+				await page.waitForTimeout(120); // faster than any save can finish
+			}
+			await page.waitForTimeout(5000);
+
+			expectEq(getSettings(["crumb_separator"]).crumb_separator, "Chevron", "the last click is what is stored");
+			const dialog = await page.evaluate(() => {
+				const m = document.querySelector(".modal.show .modal-body, .msgprint");
+				return m ? m.textContent.trim().replace(/\s+/g, " ").slice(0, 160) : "";
+			});
+			expect(!/modified after/i.test(dialog), `no conflict from overlapping saves: ${dialog}`);
+			expect(!(await page.evaluate(() => window.cur_frm.is_dirty())), "and nothing is left unsaved");
+		});
+
 		// ── Live preview ───────────────────────────────────────────────────
-		await test("live preview: pane color flips instantly, discard reverts", async () => {
+		await test("live preview: pane color flips instantly, and stays", async () => {
 			// NAVIGATES EXPLICITLY. It used to inherit whatever page the test
 			// before it had left open, which happened to be `?shell=0` — so the
 			// sidebar picker was on screen and clickable by luck of ordering.
@@ -1727,10 +1792,21 @@ async function main() {
 			await page.waitForTimeout(700);
 			const after = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
 			expect(before !== after, "background changed live");
+
+			// THE SECOND HALF USED TO BE "discard reverts the desk", and that
+			// premise is gone on purpose: since autosave, a click IS the change,
+			// so there is nothing to discard and reload_doc() reloads the value
+			// that was already stored. Asserting the old behaviour would be
+			// asserting that autosave does not work.
+			//
+			// What survives is the half that still means something, and it is
+			// the stronger claim anyway: reload from the SERVER and the desk
+			// still shows it. Preview and persistence are the same act now.
 			await page.evaluate(() => window.cur_frm.reload_doc());
-			await page.waitForTimeout(2000);
-			const reverted = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
-			expectEq(reverted, before, "discard reverts the desk");
+			await page.waitForTimeout(2500);
+			const reloaded = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
+			expectEq(reloaded, after, "and a reload from the server shows the same desk");
+			setSettings({ sidebar_color: "Dark Contrast" });
 		});
 
 		// ── Placement: bell and user menu are their own components ─────────

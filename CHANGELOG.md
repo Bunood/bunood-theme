@@ -7,6 +7,46 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Theme Settings applies as you click — there is nothing to save
+
+Every control persists the moment it is touched. The desk already
+previewed each choice live; the Save button was the last place a user
+could see their change and still not have made it.
+
+**It hooks `frm.dirty`, not the controls.** There are a dozen
+`set_value` call sites across seven pickers, the desk diagram, the layout
+preset and the toggles, and more arrive with every component. Wiring each
+one is a list to keep in step with the form — the duplication this rework
+exists to remove. `frm.dirty()` is the single choke point Frappe routes
+every change through, so a control added tomorrow is covered without
+anyone remembering.
+
+**Serialised, and that is the whole design.** Two saves in flight is not a
+performance problem, it is a correctness one: the second carries the
+first's stale `modified` and dies with the TimestampMismatchError this
+release just fixed at the seeding end. Autosave would have multiplied that
+by every click. So a burst of clicks is one write, one save runs at a
+time, and the form re-arms if a click landed while a save was in flight —
+the last click is what ends up stored, which is the only answer a user
+would call correct.
+
+**The in-flight flag is Frappe's, not ours**, and that distinction cost a
+suite run. `frappe.ui.form.is_saving` is a module-level global shared by
+every form and set by paths this file does not own. Worse, `_call` reacts
+to it with `throw "saving"` — synchronous, and a bare string — so
+`frm.save()` never returns a promise and `.catch()` never sees it. It
+surfaced as two unexplained console errors rather than a failed save.
+
+**A failed save stays dirty and stops.** Frappe has already shown what
+went wrong, the Save button lights up as the manual fallback, and
+retrying a failure that is not going away would spin forever. A form that
+quietly reports itself saved when it is not is the one failure mode worse
+than the Save button.
+
+"live preview: discard reverts" is now "live preview: and stays" — the
+old premise is gone on purpose, and the replacement reloads from the
+server rather than from memory, which is the stronger claim.
+
 ### Saving Theme Settings no longer dies with "modified after you have opened it"
 
 Reported repeatedly and never reproduced until now, because the test that

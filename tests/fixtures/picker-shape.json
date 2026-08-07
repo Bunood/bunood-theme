@@ -63,6 +63,10 @@
   "status_segments_density": 1,
   "status_freshness": 1,
   "status_escalate": 0,
+  "topbar_enabled": 1,
+  "pagehead_enabled": 0,
+  "sidebar_enabled": 1,
+  "dock_enabled": 0,
   "enable_command_palette": 1
  },
  "pickers": {
@@ -160,7 +164,7 @@
   "sidebar_picker": {
    "n": 435,
    "svgs": 0,
-   "text": 2136,
+   "text": 2144,
    "seq": [
     "div.bnd-sbp",
     "div.bnd-sbp-toolbar",
@@ -602,7 +606,7 @@
   "crumbs_picker": {
    "n": 126,
    "svgs": 5,
-   "text": 1015,
+   "text": 1023,
    "seq": [
     "div.bnd-cbp",
     "section.bnd-cbp-zone",
