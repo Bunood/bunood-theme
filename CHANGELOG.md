@@ -7,6 +7,39 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### Switching a container applies to the desk, instead of waiting for a reload
+
+Reported as "the settings save but nothing is applied in reality", and it
+was exactly that. The value reached the database, the form went clean, and
+the desk kept its top bar through a route change — losing it only on a
+hard reload.
+
+**The cause.** Every style kit re-applies to the live desk on click; the
+sidebar, breadcrumb, palette and inbox kits have done so since they
+shipped. The five containers never did: they were read once from
+`frappe.boot` at page load and nothing re-mounted them. That was
+survivable while saving meant pressing Save (and usually reloading
+afterwards anyway). Autosave removed the last gesture that would ever
+refresh the desk, so a container setting did nothing visible at all.
+
+**`bunood.chrome_apply`** mounts what is newly on, tears down what is
+newly off, then re-places the tenants. Picking a LAYOUT goes through the
+same path, because a preset writes five containers and the placements at
+once and would otherwise leave the old layout's chrome on screen.
+
+**Ownership is released before the containers move.** Tearing a container
+down takes its tenants with it, and a token left claimed on `<html>` would
+hide Frappe's own bell or avatar with nothing in its place — the failure
+this project has already paid for twice. `mount_placed_tenants` re-claims
+only what it really mounts, which is the same release-then-look bargain it
+already strikes internally for "Off".
+
+**Why the suite was green through all of it.** Every container test writes
+settings SERVER-side and then navigates, which jumps straight over the gap
+between the click and the desk. The new check drives the control itself,
+and asserts the ownership contract in both directions: claimed implies
+ours is visible, released implies the native is.
+
 ### The bottom bar becomes a container, and `desk_layout` stops deciding
 
 The last of the five, and the end of the container split. `mount_chrome`

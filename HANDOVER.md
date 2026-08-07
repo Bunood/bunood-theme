@@ -52,6 +52,12 @@ Also shipped this session, and both worth knowing about:
   private flag misses saves started by the toolbar or Ctrl+S, and `_call`
   reacts with a SYNCHRONOUS `throw "saving"` that no `.catch()` sees.
 * **The TimestampMismatch on save is fixed at the root.** See §4.
+* **Containers apply live** (`bunood.chrome_apply`). They were the only
+  components that did not, which nobody noticed until autosave removed the
+  reload that had been hiding it. **Any new container or kit must re-apply on
+  click** — and note the trap: every container test writes settings
+  server-side and then navigates, so the whole click-to-desk path can be
+  broken with the suite fully green. Drive the control.
 
 **NEXT: the honest-picker audit** — `bnd_region_blocker` covers placement; the
 rest is unaudited. Two concrete items for it are in §8.

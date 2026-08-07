@@ -301,11 +301,13 @@
 	 */
 	const HIDES_NATIVE = { sidepane: true };
 
-	(function apply_chrome_off() {
+	function apply_chrome_off() {
 		if (!chrome_state) return;
 		const off = Object.keys(chrome_state).filter((k) => !chrome_state[k] && HIDES_NATIVE[k]);
 		if (off.length) document.documentElement.setAttribute("data-bnd-chrome-off", off.join(" "));
-	})();
+		else document.documentElement.removeAttribute("data-bnd-chrome-off");
+	}
+	apply_chrome_off();
 
 	/**
 	 * Give the side pane back when switching it off would leave a user stranded.
@@ -349,6 +351,105 @@
 		return true;
 	}
 	bunood.guard_critical_reach = guard_critical_reach;
+
+	/**
+	 * Take a container back off the desk.
+	 *
+	 * The mirror of each mount, and the reason `chrome_apply` can exist at all.
+	 * The side pane has no entry because it is Frappe's: nothing of ours built
+	 * it, so nothing of ours removes it — hiding is the whole mechanism, and
+	 * `data-bnd-chrome-off` is what does it.
+	 */
+	const CONTAINER_TEARDOWN = {
+		topbar: () => {
+			for (const n of document.querySelectorAll(".bnd-topbar")) n.remove();
+		},
+		pagehead: () => {
+			// Pages are cached in the DOM, so this has to reach EVERY page head
+			// that ever received a cluster, not just the one on screen. Missing
+			// the others leaves a container that reappears by navigating.
+			for (const n of document.querySelectorAll(".page-head .bnd-cluster, .page-head .bnd-cluster-divider")) {
+				n.remove();
+			}
+		},
+		bottombar: () => {
+			for (const n of document.querySelectorAll(".bnd-statusbar")) n.remove();
+			document.documentElement.removeAttribute("data-bnd-statusbar");
+		},
+		dock: () => {
+			for (const n of document.querySelectorAll(".bnd-dock")) n.remove();
+		},
+		sidepane: () => {},
+	};
+
+	/**
+	 * Apply a change to the container settings to the LIVE desk.
+	 *
+	 * WHY THIS EXISTS
+	 *   Every style kit re-applies on click — `bunood.crumb_apply`,
+	 *   `bunood.sidebar_apply` and friends — so the desk IS the preview. The
+	 *   five containers were the exception: read once from boot at page load,
+	 *   with nothing to re-mount them. That was survivable while saving meant
+	 *   pressing Save and reloading, and stopped being survivable the moment
+	 *   Theme Settings began saving on click: there was no longer any gesture
+	 *   that would refresh the desk, so switching a container did nothing
+	 *   visible, ever. Reported as "the settings save but nothing is applied
+	 *   in reality" — and it was exactly that, no more and no less.
+	 *
+	 * RELEASE FIRST, THEN RE-PLACE, and this is the part to be careful about.
+	 *   Tearing a container down takes its tenants with it. A token left
+	 *   claimed on <html> would then hide Frappe's own affordance with nothing
+	 *   in its place — the failure this project has already paid for twice. So
+	 *   every token is released before the containers move, and
+	 *   `mount_placed_tenants` re-claims only what it really mounts. That is
+	 *   the same release-then-look bargain it strikes internally for "Off".
+	 *
+	 * @param {Object} values - container key OR toggle fieldname -> 0|1.
+	 */
+	bunood.chrome_apply = function (values) {
+		if (!values || !chrome_state) return;
+
+		// Accept either vocabulary. The settings form thinks in fieldnames and
+		// the desk thinks in container keys; making the caller translate would
+		// put the registry's mapping in a third place.
+		const FIELD_TO_KEY = {
+			topbar_enabled: "topbar",
+			pagehead_enabled: "pagehead",
+			bottombar_enabled: "bottombar",
+			sidebar_enabled: "sidepane",
+			dock_enabled: "dock",
+		};
+		for (const [name, value] of Object.entries(values)) {
+			const key = key_of(name, FIELD_TO_KEY);
+			if (key && key in chrome_state) chrome_state[key] = parseInt(value, 10) ? 1 : 0;
+		}
+		apply_chrome_off();
+
+		for (const token of ["search", "bell", "user"]) bnd_disown(token);
+
+		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
+			if (container_on(key)) continue;
+			CONTAINER_TEARDOWN[key]();
+			document.documentElement.removeAttribute("data-bnd-" + key);
+		}
+
+		if (container_on("topbar")) mount_topbar();
+		if (container_on("pagehead")) inject_compact_cluster();
+		if (container_on("dock")) mount_dock();
+		if (container_on("bottombar")) mount_statusbar();
+
+		mount_search();
+		mount_placed_tenants();
+		if (guard_critical_reach()) mount_placed_tenants();
+		mount_sidebar_kit();
+		defer_bottom_reserve();
+	};
+
+	/** A container key, from either a key or its toggle fieldname. */
+	function key_of(name, field_map) {
+		if (Object.prototype.hasOwnProperty.call(field_map, name)) return field_map[name];
+		return name;
+	}
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Ownership stamps

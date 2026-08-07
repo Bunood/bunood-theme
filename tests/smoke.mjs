@@ -1760,6 +1760,75 @@ async function main() {
 			setSettings({ crumb_separator: start });
 		});
 
+		await test("settings: a container applies to the desk on click, with no reload", async () => {
+			// THE GAP CLICK-TO-APPLY EXPOSED. Every style kit — sidebar,
+			// breadcrumbs, palette, inbox — re-applies to the live desk the
+			// moment it is touched. The five CONTAINERS did not: they were read
+			// from boot at page load and nothing re-mounted them, so a change
+			// showed up only whenever the user next happened to reload.
+			//
+			// Survivable while saving meant pressing Save (and usually reloading
+			// afterwards anyway). With autosave there is no gesture left that
+			// would ever refresh it, so the setting appeared to do nothing at
+			// all — reported as "the settings save but nothing is applied in
+			// reality", and reproduced exactly: the value reached the database,
+			// the form went clean, the desk kept its top bar through a route
+			// change and lost it only on a hard reload.
+			//
+			// Driven from the CONTROL, not from `setSettings`: the whole failure
+			// lives between the click and the desk, which a server-side write
+			// jumps straight over. That is why the suite was green throughout.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar" });
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			expect(await q(".bnd-topbar"), "precondition: the desk has a top bar");
+
+			const toggle = async () => {
+				await page.evaluate(() => {
+					const cb = document.querySelector(
+						'.frappe-control[data-fieldname="topbar_enabled"] input[type="checkbox"]'
+					);
+					if (cb) cb.click();
+				});
+				await page.waitForTimeout(2500);
+			};
+
+			await page.evaluate(() => {
+				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
+					(n) => n.getAttribute("data-key") === "topbar"
+				);
+				if (item) item.click();
+			});
+			await page.waitForTimeout(700);
+
+			await toggle();
+			expectEq(await q(".bnd-topbar"), false, "the top bar goes on the click, with no reload");
+			await toggle();
+			expect(await q(".bnd-topbar"), "and comes back — a one-way apply is half a feature");
+
+			// THE THING THAT MUST NOT BREAK. Tearing a container down takes its
+			// tenants with it, and a token left claimed would hide Frappe's own
+			// affordance with nothing in its place — the defect class this
+			// project has already paid for twice.
+			const stranded = await page.evaluate(() => {
+				const owned = new Set(
+					(document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean)
+				);
+				const vis = (sel) => {
+					const el = sel && document.querySelector(sel);
+					if (!el) return false;
+					const r = el.getBoundingClientRect();
+					return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+				};
+				return [
+					["bell", ".bnd-bell", ".body-sidebar .sidebar-notification"],
+					["user", ".bnd-avatar-btn", ".body-sidebar .sidebar-user-button"],
+				]
+					.filter(([token, ours, native]) => (owned.has(token) ? !vis(ours) : !vis(native)))
+					.map(([token]) => token);
+			});
+			expectEq(stranded.length, 0, `claimed but absent, or released but hidden: ${stranded.join(",")}`);
+		});
+
 		await test("settings: rapid clicks all land, and none is lost", async () => {
 			// Autosave without serialisation is worse than no autosave: two
 			// saves in flight means the second carries the first's stale

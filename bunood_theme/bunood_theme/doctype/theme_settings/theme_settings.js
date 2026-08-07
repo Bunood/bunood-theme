@@ -673,30 +673,50 @@ frappe.ui.form.on("Theme Settings", {
 		// the layout picker's click handler, which is exactly the gesture that
 		// should mean "apply this preset".
 		bnd_apply_layout_preset(frm).then(() => {
+			// The preset just wrote five container values and the placements;
+			// without this the desk keeps the OLD layout's chrome until a
+			// reload, which is the same "nothing applied" the containers had.
+			bnd_container_changed(frm);
 			bnd_render_layout_picker(frm);
-			bnd_repaint_placement_pickers(frm);
 		});
 	},
 	// A container's on/off changes which regions can hold anything, exactly as
 	// the layout used to — so it invalidates the same set of diagrams. One
 	// handler per container, all calling the one repaint, because the thing
 	// that went stale is the same thing however it was changed.
-	topbar_enabled(frm) {
-		bnd_repaint_placement_pickers(frm);
-	},
-	pagehead_enabled(frm) {
-		bnd_repaint_placement_pickers(frm);
-	},
-	bottombar_enabled(frm) {
-		bnd_repaint_placement_pickers(frm);
-	},
-	dock_enabled(frm) {
-		bnd_repaint_placement_pickers(frm);
-	},
-	sidebar_enabled(frm) {
-		bnd_repaint_placement_pickers(frm);
-	},
+	topbar_enabled: bnd_container_changed,
+	pagehead_enabled: bnd_container_changed,
+	bottombar_enabled: bnd_container_changed,
+	dock_enabled: bnd_container_changed,
+	sidebar_enabled: bnd_container_changed,
 });
+
+/**
+ * A container was switched: apply it to the live desk, then repaint.
+ *
+ * THE DESK IS THE PREVIEW, for containers as for every style kit. Until this
+ * existed the five containers were read once from boot and never re-mounted,
+ * so switching one did nothing visible until the user next happened to reload
+ * the page. Harmless while saving meant pressing Save; fatal to the feature
+ * once Theme Settings began saving on click, because then no gesture refreshed
+ * the desk at all and the setting looked broken.
+ *
+ * All five are sent every time, not just the one that changed. `chrome_apply`
+ * decides what to mount and tear down by comparing the whole picture, and
+ * handing it a single field would make it guess at the rest.
+ */
+function bnd_container_changed(frm) {
+	if (window.bunood_theme && typeof window.bunood_theme.chrome_apply === "function") {
+		window.bunood_theme.chrome_apply({
+			topbar_enabled: frm.doc.topbar_enabled,
+			pagehead_enabled: frm.doc.pagehead_enabled,
+			bottombar_enabled: frm.doc.bottombar_enabled,
+			sidebar_enabled: frm.doc.sidebar_enabled,
+			dock_enabled: frm.doc.dock_enabled,
+		});
+	}
+	bnd_repaint_placement_pickers(frm);
+}
 
 /**
  * Repaint every picker whose availability notes read the desk's shape.
