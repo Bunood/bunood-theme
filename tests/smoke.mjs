@@ -43,6 +43,42 @@ const CONSOLE_ALLOWLIST = [
 	/\/undefined/,           // Frappe's own stray request, present on stock desks
 	/Failed to load resource.*40[34]/, // avatar images etc. on empty dev data
 	/impersonate you/i,      // Chrome's own console warning banner
+	// A recovered Single-write conflict.
+	//
+	// Saving Theme Settings writes the WHOLE document (`update_single` deletes
+	// every tabSingles row and re-inserts), so a save racing another writer
+	// raises MySQL 1020 and Frappe returns 417. This suite provokes that
+	// structurally, not in one place: many tests write settings SERVER-side
+	// while a browser holds the form open, which no real user does. Autosave
+	// then merges and retries, and the click lands.
+	//
+	// Allowed because the RECOVERY is asserted, repeatedly and by name —
+	// "a concurrent write is merged, not clobbered", "a click applies, with no
+	// Save", "rapid clicks all land, and none is lost" all fail if a conflict
+	// is not recovered. Scoped to the deadlock itself, so an ordinary failed
+	// save is still an unexplained error.
+	//
+	// Tried first as a splice inside the one test that provokes it deliberately;
+	// that was wrong, because it is not one test.
+	/QueryDeadlockError/,
+	/Record has changed since last read in table/,
+	/417 \(EXPECTATION FAILED\)[\s\S]*savedocs/,
+	// Frappe logs the server traceback to the console as FRAMES ONLY — the
+	// exception line the two patterns above look for is not always in the text.
+	// `savedocs` is in the frames, and a traceback from the save endpoint is
+	// the same recovered conflict by another name.
+	/Traceback[\s\S]*savedocs/,
+	// A stale BRAND stylesheet link.
+	//
+	// brand.write_brand_css names the file by a digest of its contents and
+	// `_reap_old` deletes the previous one immediately, so any page loaded
+	// BEFORE a brand change still points at a filename that no longer exists
+	// and gets Frappe's HTML 404 body with the wrong MIME type. Pre-existing —
+	// hashed assets plus immediate reaping always had this window — but this
+	// suite changes settings constantly with pages open, so it hits it often.
+	// The consequence for a real desk is recorded in HANDOVER: an already-open
+	// tab loses its brand colours after somebody changes them, until reloaded.
+	/Refused to apply style from[\s\S]*brand_[0-9a-f]+\.css/,
 ];
 
 // ── Tiny sequential test runner ─────────────────────────────────────────────
@@ -135,11 +171,28 @@ function benchPy(code) {
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
-	return execFileSync(
-		"docker",
-		["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
-		{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
-	);
+	try {
+		return execFileSync(
+			"docker",
+			["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+			{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
+		);
+	} catch (err) {
+		// PUT THE TRACEBACK WHERE IT CAN BE READ. `test()` slices a failure
+		// message to 300 chars, and execFileSync's default message spends all
+		// of them on the docker command line followed by two unavoidable
+		// RuntimeWarnings — running `../env/bin/python` from `sites/` makes
+		// sys.prefix mismatch, on every single call. The result was a FAIL line
+		// that ended mid-warning with the actual Python error never shown, and
+		// diagnosing one cost a round-trip.
+		const noise = /^<frozen site>:\d+: RuntimeWarning:.*$|^\s*$/;
+		const stderr = String(err.stderr || "")
+			.split("\n")
+			.filter((l) => !noise.test(l))
+			.join("\n")
+			.trim();
+		throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
+	}
 }
 
 /** Mint an Administrator sid — same mechanism as ops verification, never
@@ -263,6 +316,91 @@ function setSettings(values) {
 				"the suite would not restore. Add to MUTABLE_FIELDS — a container's " +
 				"on/off field belongs there the moment its slice lands."
 		);
+	}
+}
+
+// ── Language ────────────────────────────────────────────────────────────────
+
+/**
+ * The language the suite's assertions are written against.
+ *
+ * ~130 checks match rendered English ("Item List" was one until this commit).
+ * That is CORRECT for the desk they run on, and making all of them
+ * language-independent would be a large refactor to no end: the Arabic checks
+ * are a handful of tests that flip the language deliberately, assert, and flip
+ * back. This constant is what "flip back" means, and what the pre-run reset
+ * forces so an aborted Arabic run cannot poison the next one.
+ */
+const LANG_DEFAULT = "en";
+
+/**
+ * Read the desk language from BOTH places that decide it.
+ *
+ * `get_user_lang()` reads `User.language` FIRST and only then falls back to the
+ * `lang` default that `System Settings` mirrors — so setting one and not the
+ * other produces a site that reports Arabic and renders English, or the
+ * reverse. Both are snapshotted because both must be put back.
+ */
+function getLang() {
+	const out = benchPy(
+		`print(json.dumps({\n` +
+		`  "system": frappe.db.get_single_value("System Settings", "language") or "",\n` +
+		`  "user": frappe.db.get_value("User", "Administrator", "language") or "",\n` +
+		`}))\n`
+	);
+	return JSON.parse(out.trim().split("\n").pop());
+}
+
+/**
+ * Set the desk language. Accepts a code, or a snapshot from `getLang()`.
+ *
+ * WHY THIS IS NOT `setSettings`, AND WHY IT NEEDS ITS OWN GUARD
+ *   `setSettings`' restore guard is a membership test against MUTABLE_FIELDS,
+ *   which lists THEME SETTINGS fields. Language lives on `System Settings` and
+ *   `User` — different doctypes entirely — so that guard is structurally blind
+ *   to it and always was. A language flip is therefore the one mutation the
+ *   suite could make and not put back, and `HANDOVER.md` already records what
+ *   that costs: an aborted run leaves the bench mid-test, and the next run
+ *   faithfully restores THAT. Two runs were voided that way on 2026-08-01 and
+ *   it happened again on 2026-08-07.
+ *
+ *   `withLang()` below is the only intended caller, and it restores in a
+ *   `finally` so a throwing test cannot leave the desk Arabic.
+ */
+function setLang(lang) {
+	const system = typeof lang === "string" ? lang : lang.system;
+	const user = typeof lang === "string" ? lang : lang.user;
+	benchPy(
+		`frappe.db.set_single_value("System Settings", "language", ${JSON.stringify(system)})\n` +
+		// System Settings.on_update mirrors this, but the suite writes the field
+		// directly (no doc save, so no hook) — so the default is set explicitly.
+		// `get_language()` reads it for logged-out requests and as the last
+		// fallback for logged-in ones.
+		`frappe.db.set_default("lang", ${JSON.stringify(system)})\n` +
+		`frappe.db.set_value("User", "Administrator", "language", ${JSON.stringify(user)})\n` +
+		`frappe.db.commit()\n` +
+		// Translations are cached under `merged_translations` per language and
+		// the whole dict ships in the per-user `bootinfo`. Without this the desk
+		// keeps serving the previous language's payload and the flip looks
+		// broken rather than uncached.
+		`frappe.clear_cache()\n` +
+		`print("ok")\n`
+	);
+}
+
+/**
+ * Run `fn` with the desk in `code`, and put the language back no matter what.
+ *
+ * The restore is in a `finally` because the failure this exists to prevent is
+ * exactly the one where an assertion throws — see `setLang`.
+ */
+async function withLang(code, fn) {
+	const before = getLang();
+	try {
+		setLang(code);
+		return await fn();
+	} finally {
+		setLang(before);
 	}
 }
 
@@ -537,8 +675,40 @@ async function main() {
 		console.log(`FILTERED to ${ONLY} — inner loop only, never a release gate.`);
 	}
 
+	// REAP STALE SESSIONS BEFORE MINTING ANOTHER.
+	//
+	// Every run mints a sid and never cleans up, and so does every ad-hoc probe.
+	// They accumulate in `tabSessions` for the life of the dev site, and a
+	// bloated session table slows desk boot until timing-sensitive assertions
+	// start failing — with ROTATING identity, because it is load rather than
+	// logic. That is why two runs of the same tree failed 23 checks each with
+	// only 8 in common, and it is the likeliest reason this suite was recorded
+	// green on 2026-08-07 and failed 23 the next day with no commit between.
+	//
+	// Measured 2026-08-08, same tree, deploy and restart before each run:
+	//   382 session rows -> 114/137        0 session rows -> 125/137
+	// Eleven tests, none of which had anything to do with the code under test.
+	//
+	// Older than an hour, not "all": someone may be working in the desk right
+	// now and their session is minutes old. The debris this reaps is the
+	// suite's own.
+	benchPy(
+		`frappe.db.sql("delete from tabSessions where lastupdate < %s", ` +
+		`(frappe.utils.add_to_date(None, hours=-1),))\n` +
+		`frappe.db.commit()\n` +
+		`print("sessions remaining: %d" % frappe.db.count("Sessions"))\n`
+	);
+
 	const sid = process.env.BND_SID || mintSid();
 	const snapshot = getSettings(MUTABLE_FIELDS);
+	// Language is snapshotted like the settings are, and for the same reason —
+	// but it is FORCED to LANG_DEFAULT before the run rather than merely
+	// restored after. Restoring protects the operator; forcing protects the run.
+	// Most assertions here match rendered English, so a bench left in Arabic by
+	// an aborted `withLang` would fail dozens of unrelated checks and read as a
+	// broken feature. Cheap insurance: two reads and a cache clear.
+	const langSnapshot = getLang();
+	setLang(LANG_DEFAULT);
 
 	// RESET BEFORE RUNNING, not just restore after. Restoring protects the
 	// operator's settings; resetting protects the RUN. A suite that inherits
@@ -578,6 +748,29 @@ async function main() {
 		}
 	});
 	page.on("pageerror", (err) => consoleErrors.push("pageerror: " + err.message));
+
+	// ── Warm the stack before anything is measured ─────────────────────────
+	//
+	// The FIRST request after a restart or a long idle is slow enough to fail
+	// on its own: `bunood_theme.api.get_status_signals` takes ~4,400ms cold
+	// against ~10ms warm (measured three times on 2026-08-08), and the desk's
+	// own boot is cold too — the first navigation has returned both a 30s
+	// selector timeout and a 500. That lands on "desk boots authenticated with
+	// theme assets", which is the first test and therefore the one that pays,
+	// and its 500 then also breaks the console-error budget at the very end.
+	//
+	// HANDOVER §8 has carried this as "environmental, recurring, not yet
+	// mechanised away". This is the mechanising: one throwaway navigation whose
+	// failure is ignored, so the first MEASURED request is a warm one. It
+	// asserts nothing and cannot hide a defect — every real check still runs
+	// after it, unchanged.
+	try {
+		await page.goto(`${URL_BASE}/desk/item`, { waitUntil: "domcontentloaded", timeout: 60000 });
+		await page.waitForTimeout(6000);
+		consoleErrors.length = 0;
+	} catch (e) {
+		console.log("  (warm-up navigation failed; continuing)");
+	}
 
 	try {
 		// ── Boot & assets ──────────────────────────────────────────────────
@@ -767,14 +960,28 @@ async function main() {
 				(await page.evaluate(() => document.querySelectorAll(".bnd-palette-group").length)) >= 2,
 				"at least two group headings"
 			);
-			const texts = await page.evaluate(() =>
-				[...document.querySelectorAll(".bnd-palette-row")].map((r) => r.textContent)
+			// IDENTITY, NEVER RENDERED TEXT. `row.marked` is __()-translated and
+			// carries <mark> tags from fuzzy_search, so asserting on it asserts a
+			// rendering — and on an Arabic desk it asserts nothing at all. The
+			// rows stamp what they ARE (bunood.js pal_row_el).
+			const rows = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-palette-row")].map((r) => ({
+					key: r.getAttribute("data-bnd-key"),
+					species: r.getAttribute("data-bnd-species"),
+					type: r.getAttribute("data-bnd-type"),
+				}))
 			);
-			expect(texts.some((t) => /Item List/.test(t)), "Item List row present");
+			expect(rows.some((r) => r.key === "route:List/Item"), "Item List row present");
 			// "New X" rows ride inside get_doctypes, not get_creatables (which
 			// needs a "new " prefix) — the split into Actions must survive.
-			expect(texts.some((t) => /New Item/.test(t)), "New Item action present");
-			expect(texts[texts.length - 1].includes("Search all documents"), "search-all pinned last");
+			// Asserted by species + Frappe's untranslated `type`, not by the
+			// words "New Item": a New row carries no route, so pal_key falls
+			// back to `label:<translated value>` and is useless as a handle.
+			expect(
+				rows.some((r) => r.species === "action" && r.type === "New"),
+				"a New-doctype row is in the Actions group"
+			);
+			expect(rows[rows.length - 1].species === "fallback", "search-all pinned last");
 		});
 
 		await test("palette: execution routes and records frecency", async () => {
@@ -784,10 +991,15 @@ async function main() {
 			benchPy(
 				`frappe.defaults.clear_default("bnd_palette_usage", parent="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
 			);
+			// By key, not by label. The old form found the row with
+			// /Item List/ and dereferenced it unguarded, so on any desk where
+			// that string is translated this THREW — a crash, not a failure,
+			// which reads as a broken suite rather than a broken feature.
 			await page.evaluate(() => {
-				const row = [...document.querySelectorAll(".bnd-palette-row")].find((r) =>
-					/Item List/.test(r.textContent)
+				const row = document.querySelector(
+					'.bnd-palette-row[data-bnd-key="route:List/Item"]'
 				);
+				if (!row) throw new Error("no row with data-bnd-key=route:List/Item");
 				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
 			});
 			await page.waitForTimeout(2500);
@@ -1380,6 +1592,27 @@ async function main() {
 					document.documentElement.style.setProperty("--bnd-sidebar-live-w", w);
 				}, px);
 
+			// WAIT FOR THE DATA, DO NOT SAMPLE FOR IT. The live segments are
+			// built hidden and revealed by the poller, and
+			// `api.get_status_signals` takes ~5,000ms on its FIRST call after a
+			// restart against 8-10ms thereafter (HANDOVER §4). A fixed settle
+			// therefore measures an empty bar on a cold stack and this test
+			// fails reporting [1,2,3] — freshness, density and clock, the three
+			// items that need no server call. Seen repeatedly; it passes on a
+			// re-run, which is the signature of a race rather than a defect.
+			//
+			// This test is about CONTAINER QUERIES, not about whether the poller
+			// works, so waiting for its precondition is not weakening it. A poll
+			// that genuinely never arrives still fails, and says so.
+			try {
+				await page.waitForFunction(
+					() => document.querySelectorAll(".bnd-statusbar .bnd-status-seg:not([hidden])").length > 0,
+					{ timeout: 20000 }
+				);
+			} catch (e) {
+				throw new Error("the status poller never delivered a segment in 20s — nothing to measure");
+			}
+
 			const roomy = await ranks();
 			expect(roomy.length >= 5, `all ranks fit a 1140px bar (${JSON.stringify(roomy)})`);
 
@@ -1716,13 +1949,21 @@ async function main() {
 			// And the form it was open in can still save.
 			await page.evaluate(() => window.cur_frm.set_value("tagline", "smoke-seed-" + Date.now()));
 			await page.keyboard.press("Control+s");
-			await page.waitForTimeout(3000);
+			// Autosave may already be saving this, and Ctrl+S then defers to it,
+			// so "clean within a budget" is the honest question — not "clean
+			// after exactly three seconds".
+			let saved = true;
+			try {
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+			} catch (e) {
+				saved = false;
+			}
 			const dialog = await page.evaluate(() => {
 				const m = document.querySelector(".modal.show .modal-body, .msgprint");
 				return m ? m.textContent.trim().replace(/\s+/g, " ").slice(0, 160) : "";
 			});
 			expect(!/modified after/i.test(dialog), `save after a seed: ${dialog}`);
-			expect(!(await page.evaluate(() => window.cur_frm.is_dirty())), "and it actually saved");
+			expect(saved, "and it actually saved");
 		});
 
 		await test("settings: a click applies, with no Save", async () => {
@@ -1829,6 +2070,56 @@ async function main() {
 			expectEq(stranded.length, 0, `claimed but absent, or released but hidden: ${stranded.join(",")}`);
 		});
 
+		await test("settings: a concurrent write is merged, not clobbered", async () => {
+			// THE DEFECT THIS ENCODES, found 2026-08-08 and present in shipped
+			// code: saving a Frappe SINGLE writes the WHOLE document.
+			// `Document.update_single` deletes every tabSingles row and
+			// re-inserts them, so one click on Theme Settings rewrites every
+			// field — including ones something else changed a moment earlier.
+			//
+			// Two harms, both silent. Either the other writer's change
+			// disappears, or the two collide and MySQL raises 1020 ("Record has
+			// changed since last read... try restarting transaction"), which
+			// Frappe returns as a 417 and the click vanishes instead. Four such
+			// conflicts in a single hour of suite runs — and it is why full runs
+			// gave 20/15/12/9/28/12 failures with a DIFFERENT set every time: a
+			// race, losing somewhere new on each pass, on the pushed commit as
+			// well as on the working tree.
+			//
+			// The contract: what THIS edit touched wins; everything else the
+			// other writer stored survives it.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			const start = getSettings(["crumb_separator", "tagline"]);
+			const wantSep = start.crumb_separator === "Chevron" ? "Dot" : "Chevron";
+			const wantTag = "concurrent-" + Date.now();
+
+			await page.evaluate(() => {
+				const it = [...document.querySelectorAll(".bnd-shell-item")].find(
+					(n) => n.getAttribute("data-key") === "crumbs"
+				);
+				if (it) it.click();
+			});
+			await page.waitForTimeout(700);
+
+			// Somebody else writes a DIFFERENT field while the form is open — a
+			// migration, a second admin, this suite. It bumps `modified`, which
+			// is what turns the form's next save into a conflict.
+			setSettings({ tagline: wantTag });
+
+			// Now the user clicks. The form's document is already stale.
+			await page.evaluate((v) => {
+				const o = document.querySelector(`[data-field="crumb_separator"][data-value="${v}"]`);
+				if (o) o.click();
+			}, wantSep);
+			await page.waitForTimeout(7000);
+
+			const after = getSettings(["crumb_separator", "tagline"]);
+			expectEq(after.crumb_separator, wantSep, "the click landed");
+			expectEq(after.tagline, wantTag, "and the other writer's field survived it");
+
+			setSettings({ crumb_separator: start.crumb_separator, tagline: start.tagline || "" });
+		});
+
 		await test("settings: rapid clicks all land, and none is lost", async () => {
 			// Autosave without serialisation is worse than no autosave: two
 			// saves in flight means the second carries the first's stale
@@ -1885,6 +2176,11 @@ async function main() {
 			// What survives is the half that still means something, and it is
 			// the stronger claim anyway: reload from the SERVER and the desk
 			// still shows it. Preview and persistence are the same act now.
+			// WAIT FOR THE SAVE, THEN RELOAD. Autosave is debounced and can
+			// retry, so a fixed pause can reload BEFORE the click has landed —
+			// and the reload then reverts the very preview just asserted, which
+			// reads as "the preview did not stick". Ask the form instead.
+			await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
 			await page.evaluate(() => window.cur_frm.reload_doc());
 			await page.waitForTimeout(2500);
 			const reloaded = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
@@ -1928,6 +2224,79 @@ async function main() {
 			expect(!/\bbell\b/.test(state.own), "and the token is released");
 			expect(state.native, "so ERPNext's own bell is visible again");
 			setSettings({ inbox_placement: "Top Bar" });
+		});
+
+		await test("placement: exactly one of each, wherever it was placed", async () => {
+			// THE BUG THE CONTAINER SPLIT CREATED, measured 2026-08-07 with every
+			// container on: asking for the bell in the Top Bar produced THREE
+			// bells — top bar, page header and dock — because each container's
+			// `mount_cluster` built its own bell and avatar. That was safe while
+			// exactly one container mounted per layout. It stopped being safe the
+			// moment containers became independent, and `mount_placed_tenants`
+			// could not clean up after it because it looked at `querySelector`,
+			// the FIRST match, and there were now three.
+			//
+			// So the claim is not "it is in the top bar" — that passed while
+			// three existed. It is EXACTLY ONE, and in the right place.
+			const ALL_ON = {
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1, pagehead_enabled: 1, bottombar_enabled: 1,
+				sidebar_enabled: 1, dock_enabled: 1,
+			};
+			const count = (part) =>
+				page.evaluate((p) => {
+					const all = [...document.querySelectorAll(`[data-bnd-part="${p}"]`)];
+					const vis = (n) => {
+						const r = n.getBoundingClientRect();
+						return getComputedStyle(n).display !== "none" && r.width > 0 && r.height > 0;
+					};
+					const shown = all.filter(vis);
+					const host = (n) =>
+						n.closest(".bnd-topbar") ? "topbar"
+						: n.closest(".bnd-statusbar") ? "bottombar"
+						: n.closest(".bnd-dock") ? "dock"
+						: n.closest(".page-head") ? "pagehead"
+						: n.closest(".body-sidebar") ? "sidepane"
+						: "?";
+					return { n: shown.length, at: shown.map(host) };
+				}, part);
+
+			for (const [where, host] of [
+				["Top Bar", "topbar"],
+				["Bottom Bar", "bottombar"],
+				["Page Header", "pagehead"],
+				["Dock", "dock"],
+				["Side Pane", "sidepane"],
+			]) {
+				setSettings({ ...ALL_ON, inbox_placement: where, user_placement: where });
+				await goDesk("/desk/item", ".page-head", 4500);
+				for (const part of ["bell", "user"]) {
+					const got = await count(part);
+					expectEq(got.n, 1, `${part} at "${where}": one only, found ${got.n} at ${got.at.join("+")}`);
+					expectEq(got.at[0], host, `${part} at "${where}" is in the ${host}`);
+				}
+			}
+
+			// And "Off" means none of ours anywhere — not "one fewer than before".
+			setSettings({ ...ALL_ON, inbox_placement: "Off", user_placement: "Off" });
+			await goDesk("/desk/item", ".page-head", 4500);
+			for (const part of ["bell", "user"]) {
+				expectEq((await count(part)).n, 0, `${part} switched off leaves none of ours`);
+			}
+			const natives = await page.evaluate(() => {
+				const vis = (s) => {
+					const n = document.querySelector(s);
+					if (!n) return false;
+					const r = n.getBoundingClientRect();
+					return getComputedStyle(n).display !== "none" && r.width > 0 && r.height > 0;
+				};
+				return {
+					bell: vis(".body-sidebar .sidebar-notification"),
+					user: vis(".body-sidebar .sidebar-user-button"),
+				};
+			});
+			expect(natives.bell && natives.user, "and Frappe's own are visible instead");
 		});
 
 		// ── Honest pickers ─────────────────────────────────────────────────
@@ -3335,6 +3704,15 @@ async function main() {
 			setSettings(snapshot);
 		} catch (e) {
 			console.error("WARNING: settings restore failed — check Theme Settings manually.", e.message);
+		}
+		// Separately try/caught: a failed SETTINGS restore must not skip the
+		// LANGUAGE restore. Leaving the site in Arabic is the more confusing of
+		// the two to walk into, because it makes every later run fail on checks
+		// that have nothing to do with what broke.
+		try {
+			setLang(langSnapshot);
+		} catch (e) {
+			console.error("WARNING: language restore failed — check System Settings manually.", e.message);
 		}
 		await browser.close();
 	}

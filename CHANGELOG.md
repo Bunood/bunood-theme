@@ -7,6 +7,63 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### A click can no longer be swallowed by a concurrent write
+
+Saving a Frappe **Single** writes the whole document:
+`Document.update_single` deletes every `tabSingles` row and re-inserts
+them. So one click on Theme Settings rewrote every field — and anything
+else that had written the Single since the form loaded was either
+overwritten silently, or collided: MySQL 1020, *"Record has changed since
+last read... try restarting transaction"*, which Frappe returns as a 417
+and the click disappeared with nothing on screen to say so.
+
+Autosave turned that from theoretical into routine, because every click is
+a write. A migration, a second admin or a background job could take your
+change with it.
+
+**The form keeps a clean-state snapshot** — refreshed after every
+successful save and every reload, the moments the document and the server
+agree. On a refused save it reloads, lays **only the fields this edit
+changed** on top, and saves once. Last-write-wins per FIELD, not per
+document: the other writer's work survives, and the click still lands.
+
+**`frm.save()` resolves even when the save was refused** — measured: the
+promise settled, the value never reached the database, the form stayed
+dirty. So the failure signal is `modified`, which a successful save brings
+back changed and a refused one leaves alone. A retry hung off `.catch()`
+never ran at all.
+
+An earlier attempt re-applied every field the app owns and was worse — it
+turned a lost click into a lost document. That is why the diff matters,
+and it is recorded next to the code.
+
+### Exactly one of each control, wherever it was placed
+
+Every container built its own bell and avatar, which was safe while one
+container mounted per layout and stopped being safe when containers became
+independent. Asking for the bell in the Top Bar produced **three** — top
+bar, page header and dock — with `inbox_placement` overruled by all of
+them, and "Off" left one behind while revealing Frappe's own.
+
+Containers reserve an empty slot now; `mount_placed_tenants` is the only
+thing that places a tenant, so "exactly one, where you asked" holds by
+construction. Two subtleties it had to learn: Frappe caches pages, so
+"exactly one" is scoped per PAGE for the page header, and `HOSTS.pagehead`
+was returning the first page head in the document — usually the one you
+had just left.
+
+### Two recurring suite flakes retired
+
+`get_status_signals` takes **~4,400ms on its first call after a restart
+and ~10ms warm** (measured three times). That cold call has been failing
+the first test and the container-query test for weeks — HANDOVER carried
+it as "environmental, recurring, not yet mechanised away". The suite now
+warms the stack before anything is measured, and the container-query test
+waits for the poller instead of sampling at a fixed delay.
+
+Autosave made every fixed-pause assumption in the suite fragile at once;
+four tests now wait for a condition rather than sampling for it.
+
 ### Honest pickers: every control tells the truth about itself
 
 `bnd_component_blocker` is the counterpart to `bnd_region_blocker`. That

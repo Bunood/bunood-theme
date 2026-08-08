@@ -552,6 +552,33 @@ function bnd_fix_primary_action(frm) {
 //   the form dirty and lets Frappe's own error surface.
 // ════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Remember the document as the server last agreed it was.
+ *
+ * Only the fields this app owns. `name`, `modified`, `docstatus` and the rest
+ * of Frappe's bookkeeping must always come from the server — re-applying a
+ * stale `modified` is how a merge becomes a conflict.
+ */
+function bnd_snapshot(frm) {
+	const clean = {};
+	for (const df of frm.meta.fields) {
+		if (["Section Break", "Column Break", "Tab Break", "HTML"].includes(df.fieldtype)) continue;
+		clean[df.fieldname] = frm.doc[df.fieldname];
+	}
+	frm.__bnd_clean = clean;
+}
+
+/** The fields THIS edit changed — never the whole document. */
+function bnd_changed_since_clean(frm) {
+	const clean = frm.__bnd_clean;
+	if (!clean) return {};
+	const out = {};
+	for (const key of Object.keys(clean)) {
+		if (String(frm.doc[key] ?? "") !== String(clean[key] ?? "")) out[key] = frm.doc[key];
+	}
+	return out;
+}
+
 /** How long a burst of clicks is collapsed into one write. */
 const BND_AUTOSAVE_MS = 400;
 
@@ -575,6 +602,12 @@ let bnd_save_defers = 0;
  * wrapping twice would double every scheduled save.
  */
 function bnd_autosave_setup(frm) {
+	// The snapshot is refreshed on EVERY refresh, dirty or not — a refresh
+	// follows every successful save and every reload, which are exactly the
+	// moments the document and the server agree. Without it there is no way to
+	// tell a field this edit changed from a field somebody else changed, and
+	// "merge" degenerates into "overwrite everything".
+	if (!frm.is_dirty()) bnd_snapshot(frm);
 	if (frm.__bnd_autosave) return;
 	frm.__bnd_autosave = true;
 
@@ -623,6 +656,18 @@ function bnd_autosave(frm) {
 	// `frappe.dom.freeze` is deliberately NOT used. Freezing the desk on every
 	// click is exactly the interruption autosave exists to remove, and these
 	// writes are small.
+	// Captured BEFORE the attempt: a retry has to reload first, and a reload
+	// replaces `frm.doc` — taking the user's click with it.
+	const mine = bnd_changed_since_clean(frm);
+
+	// FRAPPE RESOLVES ITS SAVE PROMISE EVEN WHEN THE SAVE WAS REFUSED.
+	// Measured 2026-08-08: with the document changed underneath it, `frm.save()`
+	// settled "resolved", the value never reached the database, and the form
+	// stayed dirty. So `.catch()` is not the failure signal and a retry hung off
+	// it never ran. `modified` is: a save that took brings a new one back from
+	// the server, and a save that did not leaves it exactly where it was.
+	const modified_before = frm.doc.modified;
+
 	let saving;
 	try {
 		saving = frm.save();
@@ -634,19 +679,75 @@ function bnd_autosave(frm) {
 
 	Promise.resolve(saving)
 		.then(() => {
+			if (frm.doc.modified === modified_before) {
+				// It did not take. Almost always the document changed
+				// underneath us; see bnd_merge_and_retry.
+				return bnd_merge_and_retry(frm, mine);
+			}
+			bnd_snapshot(frm);
 			// A click that landed WHILE this save was in flight left the form
 			// dirty again. Re-arm — this is what makes the last click the one
 			// that ends up stored.
 			if (frm.is_dirty()) bnd_schedule_autosave(frm);
 		})
-		.catch(() => {
-			// Leave it dirty and STOP. Frappe has already shown whatever went
-			// wrong, the Save button lights up as the manual fallback, and a
-			// retry loop against a failure that is not going away would spin
-			// forever. A form that quietly reports itself saved when it is not
-			// is the one failure mode worse than the Save button.
-			frm.doc.__unsaved = 1;
-		});
+		.catch(() => bnd_merge_and_retry(frm, mine));
+}
+
+/** How long to wait before the single retry — long enough for the other writer. */
+const BND_RETRY_MS = 700;
+
+/**
+ * A save was refused. Reload, re-apply ONLY what this edit changed, save again.
+ *
+ * WHY THIS IS NEEDED AT ALL
+ *   Saving a Frappe SINGLE writes the whole document: `Document.update_single`
+ *   deletes every `tabSingles` row and re-inserts them. So a click on Theme
+ *   Settings rewrites every field, and anything else that wrote the Single
+ *   since this form loaded is either overwritten silently, or collides —
+ *   MySQL 1020, "Record has changed since last read... try restarting
+ *   transaction", which Frappe returns as a 417 and the click disappears.
+ *
+ *   Autosave turned that from theoretical into routine: every click is a write.
+ *   Measured 2026-08-08 — four conflicts in one hour, and it made full suite
+ *   runs non-deterministic (20/15/12/9/28/12 failures, different sets, on the
+ *   PUSHED commit as well as the working tree).
+ *
+ * WHY ONLY THE CHANGED FIELDS
+ *   The first attempt at this re-applied every field the app owns and was
+ *   WORSE — it turned a lost click into a lost document, overwriting
+ *   everything the other writer had just stored (failures went 12 -> 28). The
+ *   reload brings their work in; re-applying only this edit's diff leaves it
+ *   there. Last-write-wins per FIELD, not per document, which is the smallest
+ *   claim that still honours the click.
+ *
+ * ONCE, NEVER IN A LOOP. A failure that is not transient has to surface: the
+ * form stays dirty and Frappe's own error stands, with the Save button as the
+ * manual fallback. A form that reports itself saved when it is not is the one
+ * failure worse than a visible error.
+ */
+function bnd_merge_and_retry(frm, mine) {
+	if (frm.__bnd_retrying || !Object.keys(mine || {}).length) {
+		frm.doc.__unsaved = 1;
+		return;
+	}
+	frm.__bnd_retrying = true;
+	setTimeout(() => {
+		frm.reload_doc()
+			.then(() => {
+				// The reload brought the other writer's document. Lay only this
+				// edit's fields on top of it.
+				for (const [key, value] of Object.entries(mine)) frm.doc[key] = value;
+				frm.doc.__unsaved = 1;
+				return frm.save();
+			})
+			.then(() => bnd_snapshot(frm))
+			.catch(() => {
+				frm.doc.__unsaved = 1;
+			})
+			.finally(() => {
+				frm.__bnd_retrying = false;
+			});
+	}, BND_RETRY_MS);
 }
 
 frappe.ui.form.on("Theme Settings", {

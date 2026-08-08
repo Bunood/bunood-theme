@@ -146,6 +146,14 @@ pays for them a third time.
   `BND_FORCE_RESTART=1 npm run deploy` whenever the change is `.py`.
 - **A doctype change needs `bench --site demo.bunood.test migrate`** after the
   deploy — that is what syncs the field and runs the patch. The deploy does not.
+- **THE FULL SUITE IS THE ONLY HONEST SIGNAL, AND A BASELINE IS CHEAPER THAN A
+  THEORY.** On 2026-08-08 six consecutive full runs gave 20/15/12/9/28/12
+  failures with a DIFFERENT set each time, and the cause was hunted through the
+  environment — gunicorn workers, cold calls, Docker health — for hours.
+  Stashing the working tree and running the PUSHED commit took ten minutes and
+  settled it in one run: the baseline failed identically, so the working tree
+  was never the cause. **When failure sets shift between runs, measure the
+  baseline before theorising.**
 - **Two intermittents seen once each on 2026-08-07, neither explained.** A
   `pageerror: frappe.template.compile(...) is not a function` in one full run
   (the theme calls `render_template` nowhere — that is the only path to it,
@@ -289,6 +297,20 @@ restore bug (it could permanently destroy `company_name`, `brand_color`,
 placement on every route change.
 
 **Still open, and mine:**
+
+- **An open desk tab loses its brand colours when somebody changes them.**
+  `brand.write_brand_css` names the file by a digest of its contents and
+  `_reap_old` deletes the previous one immediately, so a page loaded BEFORE the
+  change still points at a filename that no longer exists, gets Frappe's HTML
+  404 body, and the browser refuses it as a stylesheet. The window always
+  existed; autosave makes it frequent, because every click on Colours writes a
+  new digest. Two cheap fixes if it is worth closing: keep the previous file or
+  two rather than reaping immediately, or serve a stable name with a
+  cache-busting query. Not done — it is a product call.
+- **Saving Theme Settings still writes the WHOLE document.** The merge above
+  makes that safe for the user's click, but it is a property of Frappe Singles,
+  not something this app chose, and any future writer of the Single should
+  expect to be overwritten between a form's load and its next save.
 
 - **The notifications panel still guesses where the bell is, from the layout.**
   Unchanged by the audit: keying all four panel rules on `inbox_placement` is a

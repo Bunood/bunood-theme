@@ -37,6 +37,60 @@ TENANT = "tenant"
 #: put it — which is what lets Classic stop being code and become a preset.
 REGIONS = ("topbar", "bottombar", "pagehead", "sidepane", "dock")
 
+#: Human labels for the regions, as the placement fields spell them.
+REGION_LABELS = {
+    "topbar": "Top Bar",
+    "bottombar": "Bottom Bar",
+    "pagehead": "Page Header",
+    "sidepane": "Side Pane",
+    "dock": "Dock",
+}
+
+#: Where inside a region a tenant sits.
+#:
+#: ONE VOCABULARY FOR EVERY REGION, and it is the logical one on purpose. This
+#: codebase is logical-properties throughout and the build enforces it, so a
+#: bar's "Start" is its left in English and its right in Arabic with no second
+#: table. The side pane is a column, so the same three words read top / middle /
+#: bottom there — the axis is the same, only its direction differs, which is
+#: exactly what start and end mean.
+#:
+#: The settings form may still SAY "Top / Middle / Bottom" over the pane's
+#: bands; that is a label for a reader, not a second set of values.
+ZONES = ("Start", "Center", "End")
+
+#: Every placement value in existence: "<Region> <Zone>", plus "Off".
+#:
+#: WHY IT IS DERIVED AND NOT LISTED
+#:     Five components x five regions x three zones is 75 Select options that
+#:     have to agree with each other, with `regions` above, and with the
+#:     runtime. Listing them is how "Dock" ended up on a field whose runtime
+#:     dropped it in the sidebar (found 2026-08-07). Here the field options,
+#:     the desk diagram's slots and the migration all read the same function.
+def slots_for(key: str) -> list:
+    """Placement values a component may take, in desk order. "Off" first."""
+    component = next((c for c in COMPONENTS if c["key"] == key), None)
+    if not component:
+        return []
+    out = ["Off"] if component.get("offable") else []
+    for region in REGIONS:
+        if region not in component["regions"]:
+            continue
+        for zone in ZONES:
+            out.append(f"{REGION_LABELS[region]} {zone}")
+    return out
+
+
+def parse_slot(value: str):
+    """"Top Bar End" -> ("topbar", "end"). Unknown or "Off" -> (None, None)."""
+    if not value or value == "Off":
+        return (None, None)
+    for region, label in REGION_LABELS.items():
+        if value.startswith(label + " "):
+            zone = value[len(label) + 1:].lower()
+            return (region, zone) if zone in ("start", "center", "end") else (None, None)
+    return (None, None)
+
 #: The desk chrome, in settings-form order.
 #:
 #: ``selector``  what bunood.js mounts (containers) or the affordance a tenant
@@ -53,6 +107,14 @@ REGIONS = ("topbar", "bottombar", "pagehead", "sidepane", "dock")
 #:               ``sidebar_`` prefix since item 10 while the registry has always
 #:               called the component ``sidepane``. Deriving would have to
 #:               special-case that; stating it costs one line and cannot drift.
+#: ``offable``   whether the component's placement field offers "Off". Stated,
+#:               not inferred: deriving it from ``native`` gave SEARCH an "Off"
+#:               it has never had, and inferring a field's options from a
+#:               neighbouring fact is exactly how "Dock" ended up on a field
+#:               whose runtime dropped it in the sidebar (2026-08-07). Search is
+#:               the one tenant with no Off — a desk nobody can search is not a
+#:               configuration this theme offers, and Ctrl+K does not count
+#:               because it is unreachable on touch.
 #: ``critical``  losing every route to this leaves a user unable to work.
 #:               These are the invariants the smoke matrix asserts in EVERY
 #:               state, because no single kit owns them and so no per-feature
@@ -129,6 +191,10 @@ COMPONENTS = [
         "native": ".body-sidebar .navbar-search-bar",
         "regions": REGIONS,
         "toggle": None,
+        "offable": False,
+        "offable": False,
+        "regions": REGIONS,
+        "toggle": None,
         # Ctrl+K does NOT satisfy this: it is unreachable on touch, and a
         # user who cannot find anything cannot work.
         "critical": True,
@@ -144,6 +210,7 @@ COMPONENTS = [
         "native": ".body-sidebar .sidebar-notification",
         "regions": REGIONS,
         "toggle": None,
+        "offable": True,
         "critical": True,
     },
     {
@@ -155,6 +222,7 @@ COMPONENTS = [
         "native": ".body-sidebar .sidebar-user-button",
         "regions": REGIONS,
         "toggle": None,
+        "offable": True,
         # Identity is the sharpest invariant in the app: lose every route to
         # it and there is no log out, no theme switch, no session defaults.
         "critical": True,
@@ -177,6 +245,7 @@ COMPONENTS = [
         "native": None,
         "regions": ("topbar", "bottombar", "sidepane", "dock"),
         "toggle": None,
+        "offable": True,
         "critical": False,
     },
     {
@@ -194,6 +263,7 @@ COMPONENTS = [
         "native": None,
         "regions": ("topbar", "bottombar", "sidepane", "dock"),
         "toggle": None,
+        "offable": True,
         "critical": False,
     },
 ]

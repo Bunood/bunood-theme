@@ -1121,7 +1121,17 @@
 		topbar: () => document.querySelector(".bnd-topbar .bnd-cluster") || document.querySelector(".bnd-topbar"),
 		bottombar: () =>
 			document.querySelector(".bnd-statusbar .bnd-cluster") || document.querySelector(".bnd-statusbar"),
-		pagehead: () => document.querySelector(".page-head .bnd-cluster"),
+		// SCOPED TO THE PAGE BEING LOOKED AT. `document.querySelector` returns
+		// the FIRST page head in the document, and Frappe caches every page it
+		// has instantiated — so on a route change that is usually the page you
+		// just left. The tenant was being built into the outgoing page's
+		// cluster, where nobody could see it, and the incoming page stayed
+		// empty. Measured 2026-08-07: the Compact badge stopped painting after
+		// any navigation.
+		pagehead: () => {
+			const page = (window.frappe && frappe.container && frappe.container.page) || document;
+			return page.querySelector(".page-head .bnd-cluster");
+		},
 		dock: () => document.querySelector(".bnd-dock .bnd-cluster"),
 		sidepane: () => (sidebar_is_hidden() ? null : document.querySelector(".body-sidebar")),
 	};
@@ -1183,28 +1193,36 @@
 	 * bell on the strength of a node that is not in the document is precisely
 	 * the failure this inversion exists to remove.
 	 */
-	function mount_cluster(host, opts) {
+	/**
+	 * Reserve an empty cluster slot in a container.
+	 *
+	 * A CONTAINER MOUNTS FURNITURE, NEVER TENANTS. Each container used to build
+	 * its own bell and avatar (`mount_cluster`), which was safe while exactly
+	 * one container mounted per layout — the layout decided, so there was only
+	 * ever one. Containers became independent in slice 2c and several can be on
+	 * at once, and then asking for the bell in the top bar produced THREE
+	 * bells: top bar, page head and dock, each built by its own container,
+	 * with `inbox_placement` overruled by all of them. Measured 2026-08-07.
+	 *
+	 * So the container contributes a place and nothing else.
+	 * `mount_placed_tenants` is the single thing that puts a tenant anywhere,
+	 * which is what makes "exactly one, where you asked" true by construction
+	 * rather than by everyone remembering.
+	 */
+	function reserve_cluster(host) {
 		if (!host) return null;
-		const cluster = build_cluster(opts || { search: "none" });
-		host.appendChild(cluster);
-		if (cluster.querySelector(".bnd-bell")) bnd_own("bell");
-		if (cluster.querySelector(".bnd-avatar-btn")) bnd_own("user");
-		if (cluster.querySelector(".bnd-search-icon")) bnd_own("search");
+		let cluster = host.querySelector(".bnd-cluster");
+		if (!cluster) {
+			cluster = el("div", "bnd-cluster");
+			host.appendChild(cluster);
+		}
 		return cluster;
 	}
 
-	/**
-	 * Place the bell and the user menu per their own settings.
-	 *
-	 * Runs AFTER the layout has mounted its containers, because a placement
-	 * can only be honoured by a region that exists. Each is independent: the
-	 * bell may sit in the top bar while the avatar sits in the side pane, which
-	 * the single welded cluster could never express.
-	 *
-	 * Anything already carrying one is left alone — mount_cluster still builds
-	 * the pair for layouts whose bar IS their chrome — so this only has work to
-	 * do when a placement points somewhere else.
-	 */
+	// `mount_cluster` and `build_cluster` were deleted here on 2026-08-07,
+	// grepped to zero callers first. They built a bell and an avatar into
+	// whichever container asked, which is precisely the duplication above.
+
 	/**
 	 * Is the stock affordance this tenant replaces actually usable right now?
 	 *
@@ -1242,81 +1260,88 @@
 			["user", "user", "bnd-avatar-btn", build_user],
 		]) {
 			const region = placement_for(tenant);
-			const existing = document.querySelector("." + cls);
+			// ALL of them, not the first. This was `querySelector`, which was
+			// correct while exactly one container mounted per layout and became
+			// wrong the moment containers turned independent: three containers
+			// each built a bell, this saw one, and `inbox_placement` was
+			// overruled by whichever two it could not see. Measured 2026-08-07:
+			// "Top Bar" produced bells in the top bar, the page head AND the
+			// dock. Containers reserve an empty slot now (`reserve_cluster`) and
+			// this function is the only thing that puts a tenant anywhere — so
+			// "exactly one, where you asked" is a property of the construction.
+			// PAGES ARE CACHED IN THE DOM, so "one in the document" is the wrong
+			// unit for the page header: every page Frappe has instantiated keeps
+			// its own head, and the tenant has to exist in the head of the page
+			// being LOOKED AT. Counting the whole document made the first cut of
+			// this see the outgoing page's bell, decide one already existed, and
+			// never build one for the incoming page — the Compact badge stopped
+			// painting after any navigation.
+			//
+			// So a node inside some OTHER page's head is not a duplicate; it is
+			// somebody else's, and it is neither kept nor removed here. Its page
+			// re-runs inject_compact_cluster (and this) when it comes forward.
+			const current_page = (window.frappe && frappe.container && frappe.container.page) || null;
+			const in_another_page = (node) => {
+				const head = node.closest(".page-head");
+				return !!head && !!current_page && !current_page.contains(head);
+			};
+			const existing = [...document.querySelectorAll("." + cls)].filter((n) => !in_another_page(n));
 
-			// Asked for a region this layout does not have: leave whatever the
-			// layout mounted exactly where it is, and keep claiming it if it
-			// is really there. Doing anything else deletes chrome.
+			// Asked for a region this desk does not have: leave whatever is
+			// already there exactly where it is, and keep claiming it if it is
+			// really there. Doing anything else deletes chrome.
 			if (region === "absent") {
-				if (existing) bnd_own(token);
+				if (existing.length) bnd_own(token);
 				continue;
 			}
 
 			if (region === "off") {
 				// OFF MUST NOT DELETE THE LAST ROUTE TO THIS THING. Off means
 				// "use the stock affordance instead of ours" — it can only mean
-				// that where the stock one is reachable. In the Dock layout the
-				// sidebar is hidden by the layout itself, so removing ours would
-				// leave a desk with no notifications, no user menu and no way to
-				// log out. Exactly the defect status style "Off" caused in the
-				// Bottom Bar layout, in a new costume.
+				// that where the stock one is reachable. Where the side pane is
+				// hidden, removing ours would leave a desk with no
+				// notifications, no user menu and no way to log out: exactly the
+				// defect status style "Off" caused in the Bottom Bar layout.
 				//
-				// So: keep it, and keep claiming it. The user asked for one fewer
-				// control and gets the one they cannot do without — which is the
-				// same bargain the whole ownership-stamp rule exists to strike.
-				// RELEASE FIRST, THEN LOOK. Asking "is the native reachable?" while
-				// we still own it always answers no — the ownership stamp is the
-				// very thing hiding it (_layouts.scss keys on data-bnd-own). The
-				// first version of this guard did exactly that and turned Off into
-				// a no-op in every layout, which the Top Bar half of the test
-				// caught. Reading offsetParent forces the style recalc, so the
-				// answer below is the post-release truth.
+				// RELEASE FIRST, THEN LOOK. Asking "is the native reachable?"
+				// while we still own it always answers no — the ownership stamp
+				// is the very thing hiding it (_layouts.scss keys on
+				// data-bnd-own). The first version of this guard did exactly
+				// that and turned Off into a no-op in every layout.
 				bnd_disown(token);
-				if (existing && !native_pane_usable()) {
-					// Releasing did not bring anything back: this layout hides the
-					// stock control by itself (Dock hides the whole sidebar). Take
-					// the claim back and keep ours — Off can mean "use the stock
-					// one instead", but never "have none at all".
+				if (existing.length && !native_pane_usable()) {
+					// Releasing brought nothing back, so keep ONE of ours and
+					// claim it again. Keeping one rather than all is the other
+					// half of the fix: before, "Off" with three containers on
+					// removed one bell and left two, which is neither off nor
+					// placed.
+					for (const node of existing.slice(1)) node.remove();
 					bnd_own(token);
 					continue;
 				}
-				if (existing) existing.remove();
+				for (const node of existing) node.remove();
 				continue;
 			}
 
 			const host = host_for(region);
 			if (!host) continue;
-			if (existing && host.contains(existing)) {
-				bnd_own(token);
-				continue;
+			// Keep at most one, and only if it is already in the right host;
+			// everything else goes, wherever it is.
+			let keeper = null;
+			for (const node of existing) {
+				if (!keeper && host.contains(node)) keeper = node;
+				else node.remove();
 			}
-			if (existing) existing.remove();
-			let cluster = host.querySelector(".bnd-cluster");
-			if (!cluster) {
-				cluster = el("div", "bnd-cluster");
-				host.appendChild(cluster);
-			}
-			cluster.appendChild(build());
+			if (!keeper) reserve_cluster(host).appendChild(build());
 			bnd_own(token);
 		}
 	}
 
-	function build_cluster(opts) {
-		const cluster = el("div", "bnd-cluster");
-
-		// "field" is legacy: search placement is its own setting now and
-		// mount_search() owns it. Kept so a caller asking for the old shape
-		// still gets one search rather than none.
-		if (opts.search === "field") {
-			cluster.appendChild(build_search_field());
-		} else if (opts.search === "icon") {
-			cluster.appendChild(build_search_icon());
-		}
-
-		cluster.appendChild(build_bell());
-		cluster.appendChild(build_user());
-		return cluster;
-	}
+	// `build_cluster` lived here and is deleted: it welded a bell and an avatar
+	// together and handed the pair to any container that asked. Search had
+	// already been lifted out of it by item 14 — the `opts.search` branch was
+	// annotated "legacy" and had no live caller — and the other two follow now
+	// for the same reason. A tenant is placed by `mount_placed_tenants`, once.
 
 	/**
 	 * The notifications bell.
@@ -1942,7 +1967,7 @@
 		// margin resolves to zero, and the bell and avatar snap to the
 		// leading edge. That regression shipped in the first cut of item 14.
 		bar.appendChild(el("div", "bnd-search-center"));
-		mount_cluster(bar);
+		reserve_cluster(bar);
 		header.appendChild(bar);
 		// Stamped only now, with the bar in the document — the whole point of
 		// keying the stylesheet on the outcome. Everything above this line can
@@ -2211,7 +2236,7 @@
 			// the group our tenants live in, and what HOSTS.pagehead resolves
 			// to. `mount_cluster` is shared with the top bar and the dock, so
 			// the stamp goes on here rather than inside it.
-			mount_cluster(section).setAttribute("data-bnd-part", "pagehead");
+			reserve_cluster(section).setAttribute("data-bnd-part", "pagehead");
 			container_mounted("pagehead");
 			// mount_cluster builds the bell and the avatar unconditionally, and
 			// this runs again on EVERY route change (it has to — Frappe swaps the
@@ -2773,6 +2798,12 @@
 			match: opt.match,
 			index: (opt.index || 0) + pal_frecency(pal_key(opt)),
 			key: pal_key(opt),
+			// Frappe's UNTRANSLATED discriminator ("List" | "New" | "Report" |
+			// "Tree"). Carried through so a row can be identified by what it
+			// DOES rather than by what it reads — see pal_row_el. It is the
+			// same field the badge_override above already trusts for exactly
+			// that reason, so this exposes a fact the model was using anyway.
+			type: opt.type || null,
 		};
 	}
 
@@ -2984,9 +3015,40 @@
 		pal_nodes.footer.innerHTML = bits.join("");
 	}
 
-	/** Render one row element. */
+	/**
+	 * Render one row element.
+	 *
+	 * IDENTITY IS STAMPED, NOT READ OFF THE LABEL. `data-bnd-key` is the same
+	 * stable frecency key the server already stores ("route:List/Item"),
+	 * `data-bnd-species` is the group, and `data-bnd-type` is Frappe's own
+	 * untranslated discriminator. None of the three moves when the desk
+	 * changes language.
+	 *
+	 * The label cannot serve this purpose and never could: `row.marked` is
+	 * `__()`-translated AND carries <mark> tags from fuzzy_search, so matching
+	 * on it is matching on a rendering. That mistake is already recorded twice
+	 * in this file — the badge regex that read "قائمة Report" and badged a list
+	 * row as a report (see pal_row) — and a third copy of it sat in the smoke
+	 * suite, where four assertions matched "Item List"/"New Item" and one of
+	 * them DROVE A CLICK, so an Arabic run threw instead of failing.
+	 *
+	 * "New" rows are the reason `type` is stamped separately: they carry no
+	 * route, so their key falls back to `label:<translated value>`. `type` is
+	 * the only untranslated handle they have.
+	 */
 	function pal_row_el(row, flat_index) {
-		const item = el("div", "bnd-palette-row", { role: "option", "data-idx": String(flat_index) });
+		const attrs = {
+			role: "option",
+			"data-idx": String(flat_index),
+			// `|| ""` because the fallback rows are hand-built rather than
+			// produced by pal_row(), and the calculator one carries no key.
+			"data-bnd-key": row.key || "",
+			"data-bnd-species": row.species,
+		};
+		// Conditional because el() setAttribute's whatever it is given, and an
+		// absent type would stamp the literal string "undefined".
+		if (row.type) attrs["data-bnd-type"] = row.type;
+		const item = el("div", "bnd-palette-row", attrs);
 		const species = PAL_SPECIES[row.species];
 		const symbol = species.icons.length ? sb_existing_symbol(species.icons) : null;
 		if (symbol) {
@@ -4121,7 +4183,7 @@
 		// rendered search twice — this pill's icon plus whatever the placement
 		// setting put in the status bar — which the release review found and
 		// the invariant matrix then reproduced.
-		mount_cluster(dock);
+		reserve_cluster(dock);
 		document.body.appendChild(dock);
 		update_dock_active();
 	}
