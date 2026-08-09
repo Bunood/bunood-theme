@@ -313,6 +313,28 @@ for (const key of items) {
 			}
 		}
 		const saved = await settled();
+		// A FAILED save surfaces Frappe's error dialog ON PURPOSE — the
+		// autosave's contract is fail loudly, never silently. To the sweep
+		// that dialog is two things at once: a finding to record against the
+		// option that raised it, and a blocker that would swallow every later
+		// click if left standing. So it is reported, dismissed, and the sweep
+		// walks on — dying under it (the first behaviour) hid every option
+		// after the failure.
+		const dialog = await page.evaluate(() => {
+			const m = document.querySelector(".modal.show");
+			if (!m) return null;
+			const title = ((m.querySelector(".modal-title") || {}).textContent || "").trim();
+			const body = ((m.querySelector(".modal-body") || {}).textContent || "").trim().slice(0, 160);
+			const close = m.querySelector('[data-dismiss="modal"], .btn-modal-close, .modal-header .close');
+			if (close) close.click();
+			return title + (body ? " — " + body : "");
+		});
+		if (dialog) {
+			failures.push({ at: current, why: "save raised Frappe's error dialog: " + dialog });
+			await page.keyboard.press("Escape").catch(() => {});
+			await page.waitForTimeout(400);
+			continue;
+		}
 		if (!saved) {
 			failures.push({ at: current, why: "did not save (dirty after 20s)" });
 			continue;
