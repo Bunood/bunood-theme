@@ -245,6 +245,53 @@ export function readExempt(path) {
 }
 
 /**
+ * Source strings that may keep a count-governed shape, with the reason.
+ *
+ * EMPTY, AND IT MUST STAY THAT WAY. It exists so that a future exception is a
+ * deliberate, argued act with a name attached, rather than a quiet edit to the
+ * regex below. Do not add to it to make a build pass — reshape the string.
+ */
+const PLURAL_EXCEPTIONS = new Map();
+
+/**
+ * Refuse a source string whose placeholder governs a noun.
+ *
+ * WHY THIS CANNOT BE FIXED IN TRANSLATION
+ *   Frappe's dictionary is flat: one key, one string. It carries no plural
+ *   forms at all — `get_translations_from_mo` stores `m.string`, which for a
+ *   plural message is a tuple, so plurals are broken upstream by construction.
+ *   Arabic meanwhile has six plural categories (zero, one, two, few, many,
+ *   other). `__("{0} errors")` therefore has no correct Arabic for 1, 2, 3-10
+ *   and 11+ simultaneously, and no translator can supply one.
+ *
+ *   So the fix is string DESIGN, not a plural library: name the label and let
+ *   the number follow. "Errors: 3" is grammar-free in every language, and the
+ *   status bar already read that way for "Density: {0}" before item 7 made it
+ *   uniform.
+ *
+ * WHAT IT MATCHES
+ *   A placeholder followed by whitespace and a lowercase letter — "{0} errors",
+ *   "{0} running". Not "{0}s ago" (an abbreviation, no governed noun) and not
+ *   "{0} — not available" (punctuation, not a noun).
+ */
+export function assertNoCountGoverned() {
+	const catalogue = extractCatalogue();
+	const offenders = [...catalogue.keys()].filter(
+		(m) => /\{\d\}\s+[a-z]/.test(m) && !PLURAL_EXCEPTIONS.has(m)
+	);
+	if (offenders.length) {
+		throw new Error(
+			`Plural guard: ${offenders.length} source string(s) let a placeholder govern a noun:\n  ` +
+				offenders.map((m) => JSON.stringify(m)).join("\n  ") +
+				"\nFrappe's translation layer has no plural forms and Arabic has six " +
+				"categories, so there is no correct translation for these. Rewrite as " +
+				'label + value — "Errors: {0}", not "{0} errors".'
+		);
+	}
+	return offenders.length;
+}
+
+/**
  * The gate.
  *
  * Two directions, and the second is what makes the exemption list SHRINK

@@ -1862,10 +1862,18 @@ function sb_zone_anchor(pane, zone, node) {
 				const failed = parseInt(jobs.failed, 10) || 0;
 				const busy = (parseInt(jobs.queued, 10) || 0) + (parseInt(jobs.started, 10) || 0);
 				if (failed > 0) {
-					text = __("{0} failed", [String(failed)]);
+					// LABEL + VALUE, NOT A COUNTED NOUN. Frappe's translation
+					// layer is a flat key->string map with no plural forms, and
+					// Arabic has six plural categories — so "{0} failed" cannot
+					// be correct for 1, 2, 3-10 and 11+ at once, and no
+					// translation can rescue it. Naming the label and letting
+					// the number follow is grammar-free in every language.
+					// The siblings below ("Jobs OK", "No errors") already read
+					// this way; item 7(c) makes it uniform.
+					text = __("Failed: {0}", [String(failed)]);
 					tone = "bad";
 				} else if (!quiet && busy > 0) {
-					text = __("{0} running", [String(busy)]);
+					text = __("Running: {0}", [String(busy)]);
 				} else if (!quiet) {
 					text = __("Jobs OK");
 				}
@@ -1874,7 +1882,7 @@ function sb_zone_anchor(pane, zone, node) {
 			const errors = status_signals && status_signals.errors;
 			if (errors !== null && errors !== undefined) {
 				if (errors > 0) {
-					text = __("{0} errors", [String(errors)]);
+					text = __("Errors: {0}", [String(errors)]);
 					// The tone belongs to the FACT, not to the style. Tying it
 					// to Quiet meant Operator — the style for people watching
 					// for trouble — rendered errors in plain text, and the
@@ -4068,7 +4076,7 @@ function sb_zone_anchor(pane, zone, node) {
 				const head = el("div", "bnd-inbox-group");
 				head.textContent =
 					group.doc.name + " · " + __(group.doc.type) + " · " +
-					__("{0} updates", [String(group.rows.length)]);
+					__("Updates: {0}", [String(group.rows.length)]);
 				list.appendChild(head);
 			} else if (group.doc) {
 				const head = el("div", "bnd-inbox-group");

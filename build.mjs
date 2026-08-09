@@ -40,6 +40,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as sass from "sass";
 
+// The translation catalogue and its guards. Derived, never listed — see
+// tools/i18n.mjs for why the string inventory is recomputed on every build.
+import { assertNoCountGoverned } from "./tools/i18n.mjs";
+
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const APP = join(ROOT, "bunood_theme");
 const SCSS = join(APP, "public", "scss");
@@ -361,6 +365,12 @@ async function main() {
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
 	);
+	// Item 7(c). A counted noun has no correct Arabic through a plural-free
+	// dictionary, so it is refused at the source rather than left for a
+	// translator who cannot fix it. Green as of this commit; the COVERAGE gate
+	// (`npm run i18n:check`) deliberately stays out of the build until
+	// translations/ar.csv exists, because a red build blocks every deploy.
+	assertNoCountGoverned();
 
 	const built = [];
 	for (const entry of ENTRIES) {

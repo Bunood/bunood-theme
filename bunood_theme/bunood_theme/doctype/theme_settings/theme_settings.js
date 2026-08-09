@@ -3684,7 +3684,10 @@ function bnd_sb_import(frm) {
 			bnd_render_inbox_picker(frm);
 			bnd_render_search_picker(frm);
 			bnd_render_status_picker(frm);
-			frappe.show_alert({ message: __("Applied {0} settings — Save to keep", [applied]), indicator: "blue" });
+			// Label + value: see the note in bunood.js's status segments. A
+			// counted noun cannot be translated correctly into Arabic through
+			// Frappe's plural-free dictionary.
+			frappe.show_alert({ message: __("Settings applied: {0} — Save to keep", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),
 		__("Apply")
