@@ -287,6 +287,32 @@ export function readTranslations(path) {
 	return map;
 }
 
+/**
+ * Strings upstream already translates, and translates correctly for our sense.
+ *
+ * WHY THIS FILE EXISTS AT ALL
+ *   The runtime dictionary is ONE flat global map shared by every installed
+ *   app, so a string frappe or erpnext already translates needs no row from us —
+ *   the lookup finds theirs. That is the cheapest and most consistent outcome
+ *   available: reuse by OMISSION, which is also the only way the desk speaks one
+ *   vocabulary instead of two.
+ *
+ *   But the coverage gate counts a string as covered only if WE ship it or WE
+ *   exempt it, so inheriting would read as a hole. This is the third category,
+ *   and it is GENERATED (`npm run i18n:inherited`) from the .po files in the
+ *   running containers rather than hand-listed — a hand-listed copy of what
+ *   upstream happens to translate would be stale the next time ERPNext ships.
+ *
+ * WHY IT IS NOT SIMPLY "EVERY COLLISION"
+ *   37 of our strings collide; several are false friends where upstream's sense
+ *   is wrong for ours ("Operator" is a machine operator in Manufacturing). Those
+ *   are NOT inherited — they are renamed, or we ship a row deliberately. This
+ *   file records only the ones a human has accepted.
+ */
+export function readInherited(path) {
+	return readExempt(path);
+}
+
 /** One msgid per line; `#` comments and blanks ignored. */
 export function readExempt(path) {
 	const set = new Set();
@@ -361,9 +387,16 @@ export function assertTranslationCoverage(lang = "ar") {
 	const catalogue = extractCatalogue();
 	const shipped = readTranslations(join(APP, "translations", `${lang}.csv`));
 	const exempt = readExempt(join(APP, "locale", "untranslatable.txt"));
+	const inherited = readInherited(join(APP, "locale", `inherited.${lang}.txt`));
 
-	const missing = [...catalogue.keys()].filter((m) => !shipped.has(m) && !exempt.has(m));
-	const staleExempt = [...exempt].filter((m) => !catalogue.has(m));
+	const missing = [...catalogue.keys()].filter(
+		(m) => !shipped.has(m) && !exempt.has(m) && !inherited.has(m)
+	);
+	const staleExempt = [...exempt, ...inherited].filter((m) => !catalogue.has(m));
+	// A row that duplicates what we already inherit is the second copy of a
+	// fact, and it silently overrides upstream desk-wide the moment their
+	// wording changes. Cheap to check, so it is checked.
+	const redundant = [...shipped.keys()].filter((m) => inherited.has(m));
 
 	const problems = [];
 	if (missing.length) {
@@ -375,8 +408,17 @@ export function assertTranslationCoverage(lang = "ar") {
 	}
 	if (staleExempt.length) {
 		problems.push(
-			`${staleExempt.length} exemption(s) name a string that no longer exists — ` +
-				`delete them:\n    ` + staleExempt.slice(0, 8).map((m) => JSON.stringify(m)).join("\n    ")
+			`${staleExempt.length} exemption/inheritance entr(ies) name a string that no ` +
+				`longer exists — delete them:\n    ` +
+				staleExempt.slice(0, 8).map((m) => JSON.stringify(m)).join("\n    ")
+		);
+	}
+	if (redundant.length) {
+		problems.push(
+			`${redundant.length} row(s) in ${lang}.csv duplicate a string we already inherit ` +
+				`from frappe/erpnext. Delete the row and let the shared dictionary answer, or ` +
+				`remove it from inherited.${lang}.txt if we mean to override:\n    ` +
+				redundant.slice(0, 8).map((m) => JSON.stringify(m)).join("\n    ")
 		);
 	}
 	if (problems.length) {
