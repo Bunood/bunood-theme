@@ -264,6 +264,17 @@ pays for them a third time.
 
 ---
 
+**A gate started right after `BND_FORCE_RESTART` is a coin toss.** The suite's
+warm-up outruns a freshly restarted gunicorn set: two full runs (2026-08-09)
+failed 8-14 tests each in areas the day's commits never touched — status-bar
+mounts, cold badge paints, search fallbacks — and every one passed in
+isolation minutes later. Deploy, give the workers a beat (one authenticated
+request settles them), THEN gate; and read a broad, incoherent failure set as
+"the bench was cold or moving", never as fourteen simultaneous regressions.
+The converse discipline also holds: two of the "poisoned" failures that day
+were REAL (the bell-selector break and the status Off card) — isolation
+re-runs are what separate the two, not judgement calls on the pattern.
+
 ## 5. The WSL bind mount — local-only, and its sharp edge
 
 At the user's request, `~/bunood/compose.local.yaml` now mounts the WSL mirror
