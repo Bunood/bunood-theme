@@ -22,6 +22,11 @@ bunood_theme.patches.v0_11_0.container_bottombar
 # patches because it does not depend on them, and last is where a vocabulary
 # change belongs — the ones above still speak the old one.
 bunood_theme.patches.v0_11_0.slot_vocabulary
+# Item 7: "Operator" is ERPNext's word for a machine operator — a person — in
+# Manufacturing, and Frappe's dictionary is one flat global map, so the word
+# cannot also name a sidebar preset and a status style. Two fields, two
+# different replacements, because they never meant the same thing.
+bunood_theme.patches.v0_11_0.rename_operator
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

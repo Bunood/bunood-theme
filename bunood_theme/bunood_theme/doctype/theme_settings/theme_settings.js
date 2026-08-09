@@ -2036,7 +2036,7 @@ const BND_SB_PRESET_DOTS = {
 	"Carbon": ["#131714", "#5DCAA5", "#85B7EB", "#FAC775"],
 	"Paper": ["#f6f3ec", "#4d8756", "#534AB7", "#BA7517"],
 	"Aurora": ["#fdfefd", "#4d8756", "#378ADD", "#7F77DD"],
-	"Operator": ["#ffffff", "#2c2c2a", "#4d8756", "#B4B2A9"],
+	"Workbench": ["#ffffff", "#2c2c2a", "#4d8756", "#B4B2A9"],
 };
 
 /** One-line blurbs for the preset cards. */
@@ -2048,7 +2048,7 @@ const BND_SB_PRESET_BLURBS = {
 	"Carbon": () => __("Deep dark, glow actives."),
 	"Paper": () => __("Warm and editorial."),
 	"Aurora": () => __("Luminous light glass."),
-	"Operator": () => __("Dense rows, live counts, hairline actives."),
+	"Workbench": () => __("Dense rows, live counts, hairline actives."),
 };
 
 /**
@@ -3459,7 +3459,7 @@ const BND_STATUS_STYLES = [
 			'<rect x="102" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
 	},
 	{
-		value: "Operator",
+		value: "Always On",
 		blurb: () => __("Every count on screen at all times, with a freshness stamp and manual refresh."),
 		svg:
 			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +

@@ -1735,7 +1735,7 @@ function sb_zone_anchor(pane, zone, node) {
 	//
 	// FOUR STYLES: Off / Minimal (no server calls at all) / Quiet (default:
 	// a healthy desk shows nothing but density and the clock; a segment
-	// appears only once it has something to say) / Operator (always-on
+	// appears only once it has something to say) / "Always On" (always-on
 	// counts for admins).
 	//
 	// WHAT THE PLATFORM ALLOWS, and why this shape:
@@ -1847,7 +1847,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/**
 	 * Paint one segment. Returns true when it has something to show.
-	 * Quiet hides anything healthy; Operator shows everything it has.
+	 * Quiet hides anything healthy; "Always On" shows everything it has.
 	 */
 	function status_paint_segment(seg) {
 		const node = status_refs[seg.id];
@@ -1884,7 +1884,7 @@ function sb_zone_anchor(pane, zone, node) {
 				if (errors > 0) {
 					text = __("Errors: {0}", [String(errors)]);
 					// The tone belongs to the FACT, not to the style. Tying it
-					// to Quiet meant Operator — the style for people watching
+					// to Quiet meant "Always On" — the style for people watching
 					// for trouble — rendered errors in plain text, and the
 					// escalation tint could never fire for them at all.
 					tone = "warn";

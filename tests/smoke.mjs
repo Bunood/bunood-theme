@@ -1473,14 +1473,14 @@ async function main() {
 			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 		});
 
-		await test("status: Quiet hides healthy signals, Operator shows them", async () => {
-			setSettings({ status_style: "Operator", status_interval: "30s" });
+		await test("status: Quiet hides healthy signals, Always On shows them", async () => {
+			setSettings({ status_style: "Always On", status_interval: "30s" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			await page.waitForSelector(".bnd-status-seg:not([hidden])", { timeout: 8000 });
 			const operator = await page.evaluate(() =>
 				[...document.querySelectorAll(".bnd-status-seg")].filter((n) => !n.hasAttribute("hidden")).length
 			);
-			expect(operator >= 2, `Operator shows its segments (${operator})`);
+			expect(operator >= 2, `Always On shows its segments (${operator})`);
 			expect(await q(".bnd-status-fresh"), "freshness stamp present");
 
 			setSettings({ status_style: "Quiet" });
@@ -1637,7 +1637,7 @@ async function main() {
 		});
 
 		await test("status: the dock and the status bar stack, never overlap", async () => {
-			setSettings({ desk_layout: "Dock", status_style: "Operator", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Dock", status_style: "Always On", search_placement: "Top Bar Center" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const geom = await page.evaluate(() => {
 				const dock = document.querySelector(".bnd-dock");
@@ -1657,7 +1657,7 @@ async function main() {
 			// query cannot see that: drag the sidebar out on a wide screen and
 			// the bar is cramped while `max-width: 991px` has never fired.
 			// Container queries ask the bar itself.
-			setSettings({ desk_layout: "Top Bar", status_style: "Operator", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center" });
 			await page.setViewportSize({ width: 1200, height: 900 });
 			await goDesk("/desk/item", ".page-head", 4500);
 
@@ -1760,7 +1760,7 @@ async function main() {
 		});
 
 		await test("status: collapses by rank on narrow viewports", async () => {
-			setSettings({ status_style: "Operator", search_placement: "Bottom Bar Center" });
+			setSettings({ status_style: "Always On", search_placement: "Bottom Bar Center" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const visiblePrios = async () =>
 				page.evaluate(() =>
@@ -3220,7 +3220,7 @@ async function main() {
 			// The critical v0.10.0 defect: this strip IS the layout's only
 			// chrome, so "no status bar" must not mean "no logout".
 			["Bottom Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
-			["Bottom Bar", "Operator", "Bottom Bar Center", {}],
+			["Bottom Bar", "Always On", "Bottom Bar Center", {}],
 			// No bar anywhere: everything must fall back to the natives.
 			["Classic", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
 			// Sidebar hidden outright — the natives are NOT available here.
@@ -4032,7 +4032,7 @@ async function main() {
 			// specific group. `data-bnd-part` answers "what is this", nothing
 			// styles it, and the registry is where the answer lives so the
 			// desk code and this suite cannot disagree about it.
-			setSettings({ desk_layout: "Top Bar", status_style: "Operator", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const parts = registry.components
 				.filter((c) => c.part)
@@ -4056,9 +4056,9 @@ async function main() {
 			// dock-over-statusbar bug belonged to without anyone having to
 			// predict which two components would collide next.
 			for (const [layout, style] of [
-				["Top Bar", "Operator"],
-				["Bottom Bar", "Operator"],
-				["Dock", "Operator"],
+				["Top Bar", "Always On"],
+				["Bottom Bar", "Always On"],
+				["Dock", "Always On"],
 				["Compact", "Quiet"],
 			]) {
 				setSettings({ desk_layout: layout, status_style: style, search_placement: "Top Bar Center" });

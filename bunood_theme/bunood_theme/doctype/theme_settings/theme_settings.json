@@ -260,7 +260,7 @@
    "fieldname": "sidebar_preset",
    "fieldtype": "Select",
    "label": "Sidebar Preset",
-   "options": "Bunood Night\nBunood Light\nDaylight\nInk\nCarbon\nPaper\nAurora\nOperator\nCustom",
+   "options": "Bunood Night\nBunood Light\nDaylight\nInk\nCarbon\nPaper\nAurora\nWorkbench\nCustom",
    "default": "Bunood Night",
    "hidden": 1,
    "description": "Set by the picker below. Values live in the individual style fields; the preset is a label."
@@ -673,7 +673,7 @@
    "fieldname": "status_style",
    "fieldtype": "Select",
    "label": "Status Bar",
-   "options": "Minimal\nQuiet\nOperator",
+   "options": "Minimal\nQuiet\nAlways On",
    "default": "Quiet",
    "hidden": 1
   },

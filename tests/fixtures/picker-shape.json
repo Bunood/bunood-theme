@@ -6,6 +6,7 @@
   "default_density": "Comfortable",
   "desk_layout": "Top Bar",
   "sidebar_preset": "Bunood Night",
+  "desk_order": "search,inbox,user,home,apps",
   "sidebar_placement": "Attached",
   "sidebar_material": "Solid",
   "sidebar_glass_opacity": "4",
@@ -165,7 +166,7 @@
   "sidebar_picker": {
    "n": 434,
    "svgs": 0,
-   "text": 2122,
+   "text": 2123,
    "seq": [
     "div.bnd-sbp",
     "div.bnd-sbp-toolbar",
@@ -1150,7 +1151,7 @@
   "status_picker": {
    "n": 107,
    "svgs": 3,
-   "text": 1123,
+   "text": 1124,
    "seq": [
     "div.bnd-cbp.bnd-stp",
     "section.bnd-cbp-zone",

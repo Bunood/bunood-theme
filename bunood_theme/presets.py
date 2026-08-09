@@ -227,7 +227,15 @@ SIDEBAR_PRESETS = {
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 1,
     },
-    "Operator": {
+    # Renamed from "Operator" for item 7. ERPNext already translates "Operator"
+    # as a MACHINE OPERATOR — a person — in Manufacturing (downtime_entry,
+    # downtime_analysis). Frappe's dictionary is one flat global map, so the
+    # word cannot mean a person there and a sidebar preset here: whichever
+    # Arabic ships, one of the two reads wrong. Renaming ours is the only fix
+    # with no blast radius. "Workbench" also says what the preset IS — solid,
+    # minimal colour, monochrome icons, no blur — where "Operator" named the
+    # person it was for.
+    "Workbench": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
         "sidebar_glass_opacity": "3",
