@@ -4244,11 +4244,14 @@ async function main() {
 			);
 			// Two-stage Esc, then focus is back on the trigger.
 			await page.keyboard.press("Escape");
-			await page.waitForSelector(".bnd-palette-backdrop[hidden]", { timeout: 5000 });
-			expect(
-				await page.evaluate(() => document.activeElement === document.querySelector(".bnd-search-field")),
-				"focus returned to the control that opened it"
-			);
+			// state:"attached", NOT the default: the default wait is for
+			// visibility, and a [hidden] element is precisely never visible.
+			await page.waitForSelector(".bnd-palette-backdrop[hidden]", { state: "attached", timeout: 5000 });
+			const back = await page.evaluate(() => ({
+				same: document.activeElement === document.querySelector(".bnd-search-field"),
+				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
+			}));
+			expect(back.same, `focus returned to the control that opened it (landed on: ${back.at})`);
 		});
 
 		await test("a11y: inbox Esc is not a preference, and focus returns to the bell", async () => {
@@ -4273,11 +4276,12 @@ async function main() {
 			expectEq(open.expanded, "true", "the bell says its popup is open");
 			expect(open.closeBtn, "a visible close control exists");
 			await page.keyboard.press("Escape");
-			await page.waitForSelector(".bnd-inbox-backdrop[hidden]", { timeout: 5000 });
-			expect(
-				await page.evaluate(() => document.activeElement === document.querySelector(".bnd-bell")),
-				"focus returned to the bell"
-			);
+			await page.waitForSelector(".bnd-inbox-backdrop[hidden]", { state: "attached", timeout: 5000 });
+			const back = await page.evaluate(() => ({
+				same: document.activeElement === document.querySelector(".bnd-bell"),
+				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
+			}));
+			expect(back.same, `focus returned to the bell (landed on: ${back.at})`);
 			expectEq(
 				await page.evaluate(() => document.querySelector(".bnd-bell").getAttribute("aria-expanded")),
 				"false",
@@ -4456,10 +4460,12 @@ async function main() {
 			await goDesk("/desk/item", ".page-head", 3000);
 			await page.evaluate(() => document.activeElement && document.activeElement.blur());
 			await page.keyboard.press("Tab");
-			expect(
-				await page.evaluate(() => document.activeElement.classList.contains("bnd-skip-link")),
-				"first Tab lands on the skip link"
-			);
+			const hit = await page.evaluate(() => ({
+				ok: document.activeElement.classList.contains("bnd-skip-link"),
+				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
+				first: (document.body.firstElementChild.className || "").slice(0, 40),
+			}));
+			expect(hit.ok, `first Tab lands on the skip link (landed on: ${hit.at}; body first child: ${hit.first})`);
 			expect(
 				await page.evaluate(() => {
 					const cs = getComputedStyle(document.querySelector(".bnd-skip-link"));

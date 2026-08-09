@@ -159,12 +159,27 @@
 	// ── Skip link (34a, design pick 4A) ─────────────────────────────────────
 	// A keyboard user otherwise crosses the whole chrome — pane, bars, dock —
 	// on every page before reaching content. First Tab reveals a pill that
-	// jumps straight to the page. Mounted once, first in the body, so it is
-	// the first Tab stop by document order rather than by tabindex tricks.
-	(function mount_skip_link() {
-		const add = () => {
-			if (!document.body || document.querySelector(".bnd-skip-link")) return;
-			const link = el("button", "bnd-skip-link", { type: "button" });
+	// jumps straight to the page; first BY DOCUMENT ORDER, never by positive
+	// tabindex, which reorders the whole page's tab sequence around itself.
+	//
+	// AN ENSURE, NOT A ONE-SHOT: mounted at parse time the link WAS body's
+	// first child — and then Frappe prepended `.body-sidebar-container` during
+	// boot and quietly demoted it, so the first Tab landed on the pane's brand
+	// (measured 2026-08-09). It re-asserts its place in the same passes that
+	// mount the chrome, which run at boot and on every route change; the check
+	// is one property read when nothing has moved.
+	function ensure_skip_link() {
+		if (!document.body) return;
+		let link = document.querySelector(".bnd-skip-link");
+		if (!link) {
+			// tabindex="1" IS the anti-pattern, taken knowingly: Frappe's list
+			// rows carry tabindex="1", and positive values precede every
+			// tabindex="0" element regardless of document order — so on list
+			// pages (the desk's most common) no ordinary element can be the
+			// first Tab. Matching the value puts the link first among equals
+			// by document order, which the ensure below maintains. Remove the
+			// moment upstream drops positive tabindexes.
+			link = el("button", "bnd-skip-link", { type: "button", tabindex: "1" });
 			link.textContent = __("Skip to content");
 			link.addEventListener("click", () => {
 				const main =
@@ -174,11 +189,12 @@
 				main.setAttribute("tabindex", "-1");
 				main.focus();
 			});
+		}
+		if (document.body.firstElementChild !== link) {
 			document.body.insertBefore(link, document.body.firstChild);
-		};
-		if (document.body) add();
-		else document.addEventListener("DOMContentLoaded", add);
-	})();
+		}
+	}
+	ensure_skip_link();
 
 	/** Current layout slug, or "" when the system is inactive. */
 	function layout() {
@@ -793,6 +809,30 @@
 		}
 		window.addEventListener("resize", set);
 	}
+
+	// ── Numerals ────────────────────────────────────────────────────────────
+
+	/**
+	 * THE NUMERAL POLICY, IN ONE PLACE.
+	 *
+	 * Western digits everywhere, pinned rather than inferred. `GUIDELINES.md`
+	 * §1.6 says to decide this once and §2.4 recorded it as undecided; this is
+	 * the decision, and it is a constant so there can never be a second one.
+	 *
+	 * WHY PINNED AT ALL. `toLocaleTimeString` infers the numbering system from
+	 * the locale, so an `ar` desk rendered ٠٩:٤٥ in the status bar while every
+	 * number Frappe itself drew — list counts, grid rows, currency — stayed
+	 * Western. The theme was the only thing on screen speaking a different
+	 * numeral system, which reads as a bug rather than a localisation.
+	 *
+	 * WHY WESTERN AND NOT ARABIC-INDIC. The theme follows the platform instead
+	 * of inventing a second policy: Frappe and ERPNext render `latn`, and ZATCA
+	 * e-invoices carry `latn`. If that ever changes, THIS is the line to change,
+	 * and the numeric font stack in `_tokens.scss` has to move with it — a
+	 * Latin-led tabular stack loses its alignment the moment it is asked for
+	 * Arabic-Indic glyphs it does not have.
+	 */
+	const BND_NUMERALS = "latn";
 
 	// ── Bottom reserve tracking ─────────────────────────────────────────────
 
@@ -1643,6 +1683,7 @@ function sb_zone_anchor(pane, zone, node) {
 			stamp(region);
 		}
 		enforce_desk_order();
+		ensure_skip_link();
 	}
 
 	// `build_cluster` lived here and is deleted: it welded a bell and an avatar
@@ -2477,6 +2518,7 @@ function sb_zone_anchor(pane, zone, node) {
 			// Explicit, not locale-inferred: an Arabic desk in a 24h country
 			// should still honour the admin's choice.
 			hour12: mode === "12",
+			numberingSystem: BND_NUMERALS,
 		});
 	}
 
@@ -3375,6 +3417,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// Esc must work wherever focus sits inside the dialog, not
 				// only in the input — pal_keydown is input-bound.
 				ev.preventDefault();
+				ev.stopPropagation();
 				pal_close();
 			}
 		});
@@ -3524,7 +3567,7 @@ function sb_zone_anchor(pane, zone, node) {
 		pal_highlight(0);
 		if (pal_nodes.status) {
 			pal_nodes.status.textContent = pal_flat.length
-				? __("{0} results", [pal_flat.length])
+				? __("Results: {0}", [pal_flat.length])
 				: txt
 					? __("No matches")
 					: "";
@@ -3630,6 +3673,11 @@ function sb_zone_anchor(pane, zone, node) {
 			if (row) pal_execute(row, ev.ctrlKey || ev.metaKey);
 		} else if (ev.key === "Escape") {
 			ev.preventDefault();
+			// AND stop it: this Escape is the dialog's. Left to bubble, Frappe's
+			// document-level Escape handling runs after our close and blurs the
+			// focus the restore just placed — measured 2026-08-09, focus landing
+			// on <body> with the restore demonstrably having run.
+			ev.stopPropagation();
 			if (pal_nodes.input.value) {
 				pal_nodes.input.value = "";
 				pal_render("");
@@ -3899,7 +3947,7 @@ function sb_zone_anchor(pane, zone, node) {
 			bell.setAttribute(
 				"aria-label",
 				inbox_unread > 0
-					? __("Notifications, {0} unread", [String(inbox_unread)])
+					? __("Notifications") + " — " + __("Unread: {0}", [String(inbox_unread)])
 					: __("Notifications")
 			);
 		}
@@ -3908,7 +3956,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// this. Lives on the PANEL so it only speaks while the panel is up.
 		if (inbox_nodes && inbox_nodes.status) {
 			inbox_nodes.status.textContent = inbox_unread > 0
-				? __("{0} unread", [String(inbox_unread)])
+				? __("Unread: {0}", [String(inbox_unread)])
 				: __("All read");
 		}
 		for (const node of document.querySelectorAll(".bnd-inbox-badge")) {
@@ -4267,6 +4315,10 @@ function sb_zone_anchor(pane, zone, node) {
 		// and never closed again without a mouse. Found by the 34a audit.
 		if (ev.key === "Escape" && close) {
 			ev.preventDefault();
+			// The dialog's Escape, consumed — same reasoning as the palette's:
+			// bubbling on lets Frappe's own Escape handling blur the focus the
+			// close just restored to the bell.
+			ev.stopPropagation();
 			close();
 			return;
 		}

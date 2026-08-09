@@ -605,7 +605,7 @@
    ]
   },
   "crumbs_picker": {
-   "n": 126,
+   "n": 129,
    "svgs": 5,
    "text": 1023,
    "seq": [
@@ -672,6 +672,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
@@ -689,6 +690,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
@@ -703,6 +705,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
@@ -841,7 +844,7 @@
    ]
   },
   "inbox_picker": {
-   "n": 163,
+   "n": 166,
    "svgs": 5,
    "text": 1429,
    "seq": [
@@ -907,6 +910,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset.bnd-ibp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
@@ -924,6 +928,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset.bnd-ibp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-opt",
@@ -983,6 +988,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset.bnd-ibp-reset-all",
+    "span.",
     "div.bnd-cbp-switches",
     "button.bnd-cbp-toggle.bnd-ibp-toggle",
     "span.bnd-cbp-knob.bnd-cbp-knob-on",
@@ -1060,7 +1066,7 @@
    ]
   },
   "links_picker": {
-   "n": 52,
+   "n": 54,
    "svgs": 2,
    "text": 241,
    "seq": [
@@ -1068,6 +1074,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-dgm",
     "svg.bnd-dgm-frame",
     "rect.bnd-dgm-desk",
@@ -1093,6 +1100,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-dgm",
     "svg.bnd-dgm-frame",
     "rect.bnd-dgm-desk",
@@ -1149,7 +1157,7 @@
    ]
   },
   "status_picker": {
-   "n": 107,
+   "n": 109,
    "svgs": 3,
    "text": 1124,
    "seq": [
@@ -1193,6 +1201,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-opt",
@@ -1206,6 +1215,7 @@
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
+    "span.",
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
