@@ -143,6 +143,65 @@ def after_install() -> None:
     print("→ Configure at /app/theme-settings\n")
 
 
+#: Languages written right-to-left, per CLDR. A fact table about the world,
+#: like ``registry.REGION_LABELS`` — NOT a copy of Frappe's ``is_rtl`` list,
+#: which is the four-element subset under indictment here. The smoke suite
+#: holds every entry to the browser's own CLDR (``Intl.Locale`` textInfo), so
+#: a typo or a wrong entry fails a test rather than mis-warning a tenant.
+#: `ku` is deliberately ABSENT: Kurmanji Kurdish is written in Latin script and
+#: CLDR marks it LTR — only `ckb` (Sorani) runs right-to-left. It was listed
+#: here, called "Sorani" by the design notes, and the suite's CLDR cross-check
+#: refused it on its first run. That is the check doing its one job.
+RTL_LANGS = frozenset({"ar", "he", "fa", "ps", "ur", "ckb", "sd", "ug", "yi", "dv", "ks"})
+
+
+def _warn_unreachable_rtl() -> None:
+    """Warn, at migrate time, about enabled languages Frappe will render wrong.
+
+    ``frappe.utils.jinja_globals.is_rtl`` is an exact-match list of four codes
+    with no parent-language resolution, while ``get_all_translations`` DOES
+    resolve parents — so a site language like ``ur`` (or any hand-created
+    ``ar-*`` dialect row) gets Arabic-script translations on a left-to-right
+    desk. The theme deliberately does NOT correct it: ``bundled_asset`` picks
+    Frappe's ``rtl_`` stylesheet variant off the same broken check, so forcing
+    ``dir`` alone produces a half-flipped desk — strictly worse than a
+    consistently wrong one. Detection preserves consistency; correction breaks
+    it. The one-line fix belongs upstream (docs/upstream/frappe-is-rtl.md).
+
+    Frappe's verdict is obtained by ASKING ``is_rtl`` per code, never by
+    restating its list — a copy here would go stale the day upstream fixes it,
+    and this warning would then cry wolf forever.
+    """
+    try:
+        from frappe.utils.jinja_globals import is_rtl
+
+        enabled = frappe.get_all("Language", filters={"enabled": 1}, pluck="name")
+        saved_lang = getattr(frappe.local, "lang", None)
+        missed = []
+        for code in enabled:
+            parent = code.split("-")[0].split("_")[0]
+            if parent not in RTL_LANGS:
+                continue
+            frappe.local.lang = code
+            if not is_rtl():
+                missed.append(code)
+        frappe.local.lang = saved_lang
+
+        if missed:
+            print(
+                "\n⚠  bunood_theme: %s enabled language(s) will render LEFT-TO-RIGHT "
+                "with right-to-left translations: %s.\n"
+                "   frappe's is_rtl() matches four codes exactly and never resolves "
+                "parents. Until that is fixed upstream, point affected users at a "
+                "code it does handle (e.g. 'ar'), or disable the row."
+                % (len(missed), ", ".join(sorted(missed)))
+            )
+    except Exception:
+        # A warning must never break a migrate. Everything above is read-only
+        # except the local.lang save/restore.
+        frappe.log_error("bunood_theme: _warn_unreachable_rtl failed")
+
+
 def after_migrate() -> None:
     """Re-seed newly added fields and regenerate the brand stylesheet.
 
@@ -152,6 +211,7 @@ def after_migrate() -> None:
     _seed_defaults()
     _seed_navbar_density_item()
     write_brand_css()
+    _warn_unreachable_rtl()
 
 
 def _seed_navbar_density_item() -> None:

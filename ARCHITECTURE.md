@@ -210,7 +210,20 @@ comes from `--bg-color` (`scss/desk/global.scss:1`).
 `bench build` can emit an rtlcss variant, but per §6 we cannot rely on the manifest
 here. Instead we author exclusively in **CSS logical properties**
 (`margin-inline-start`, `inset-inline-start`, `padding-inline`, `text-align: start`)
-and ship one sheet for both directions. `dir` is already correct on `<html>`.
+and ship one sheet for both directions.
+
+`dir` on `<html>` is correct **exactly for `ar`, `he`, `fa`, `ps`** — the four codes
+`frappe.utils.jinja_globals.is_rtl` matches, exactly, with no parent resolution. Every
+other RTL language (`ur`, `ckb`, a hand-created `ar-SA`…) gets RTL translations on an
+LTR desk, because `get_all_translations` resolves parents and `is_rtl` does not. This
+file used to assert "`dir` is already correct" unconditionally — an unearned claim,
+now held by a test instead of by prose: the suite's `direction:` gate derives the
+expectation from CLDR (`Intl.Locale`), names `ur` as the documented upstream defect,
+and flips red the day frappe fixes it. We deliberately do **not** correct `dir`
+ourselves: `bundled_asset()` (§6) selects the `rtl_` stylesheet variant off the same
+broken check, so forcing `dir` alone yields a half-flipped desk — worse than a
+consistently wrong one. `after_migrate` warns any site with an enabled language in
+the gap; the one-line fix is drafted in `docs/upstream/frappe-is-rtl.md`.
 
 ---
 

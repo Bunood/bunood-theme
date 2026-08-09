@@ -4160,6 +4160,74 @@ async function main() {
 			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
+		// ── Direction (item 7d) ────────────────────────────────────────────
+		await test("direction: the desk's dir agrees with the language's script", async () => {
+			// The EXPECTATION IS DERIVED, never listed: the browser's own CLDR
+			// (Intl.Locale textInfo) says which way a language runs. Restating
+			// Frappe's ["ar","he","fa","ps"] here would be a second copy of the
+			// exact constant under test — the gate would then agree with the
+			// bug by construction, which is how ARCHITECTURE.md came to claim
+			// "dir is already correct on <html>" for years of languages it is
+			// not correct for.
+			const derived = (lang) =>
+				page.evaluate((l) => {
+					const loc = new Intl.Locale(l);
+					return (loc.getTextInfo ? loc.getTextInfo() : loc.textInfo).direction;
+				}, lang);
+
+			// Languages Frappe RENDERS WRONG, each with the upstream defect
+			// named. `frappe.utils.jinja_globals.is_rtl` is a four-element
+			// exact-match list with no parent-language resolution, so every
+			// other RTL language gets translations (get_all_translations DOES
+			// resolve parents) on an LTR desk. Verified strict first: this
+			// test failed `dir for lang=ur: wanted "rtl", got "ltr"` before
+			// this map existed. The theme does NOT correct it — bundled_asset
+			// picks the rtl_ stylesheet variant off the same broken check, so
+			// forcing dir alone produces a HALF-FLIPPED desk, which is worse
+			// (measured reasoning in the item-7 plan, R1).
+			//
+			// THIS MAP MUST SHRINK: when upstream fixes is_rtl, the agreement
+			// below flips this test red, and the fix is to DELETE the entry
+			// (and the matching after_migrate warning basis in setup.py).
+			const KNOWN_BROKEN = new Map([
+				["ur", "frappe/frappe is_rtl(): exact-match list, no parent resolution"],
+			]);
+
+			for (const lang of ["ar", "ur"]) {
+				await withLang(lang, async () => {
+					await goDesk("/desk/item", ".page-head", 2000);
+					const want = await derived(lang);
+					const got = await page.evaluate(() => document.documentElement.dir || "ltr");
+					if (KNOWN_BROKEN.has(lang)) {
+						expect(
+							got !== want,
+							`lang=${lang} now renders ${want} — upstream fixed is_rtl ` +
+								`(${KNOWN_BROKEN.get(lang)}). Delete it from KNOWN_BROKEN and ` +
+								`from setup.py's warning basis; the defect this documented is gone.`
+						);
+					} else {
+						expectEq(got, want, `dir for lang=${lang}`);
+					}
+				});
+			}
+
+			// The after_migrate warning derives from setup.RTL_LANGS, a Python
+			// fact table this browser cannot import — so the suite holds the
+			// two to the same CLDR here: every code that list calls RTL must
+			// be RTL per Intl too. A typo in the list fails HERE, not in a
+			// warning nobody sees until a tenant is already broken.
+			const rtlLangs = JSON.parse(
+				benchPy(
+					`from bunood_theme.setup import RTL_LANGS\n` +
+					`print(json.dumps(sorted(RTL_LANGS)))\n`
+				).trim().split("\n").pop()
+			);
+			expect(rtlLangs.length >= 8, `setup.RTL_LANGS looks truncated (${rtlLangs.length} entries)`);
+			for (const code of rtlLangs) {
+				expectEq(await derived(code), "rtl", `setup.RTL_LANGS lists ${code}, but CLDR says`);
+			}
+		});
+
 		await test("placement: Off never removes the LAST route to a critical control", async () => {
 			// The Dock layout hides the whole sidebar by layout rule, so the stock
 			// bell and user button exist but cannot be clicked. Switching our
