@@ -171,27 +171,44 @@ function benchPy(code) {
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
-	try {
-		return execFileSync(
-			"docker",
-			["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
-			{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
-		);
-	} catch (err) {
-		// PUT THE TRACEBACK WHERE IT CAN BE READ. `test()` slices a failure
-		// message to 300 chars, and execFileSync's default message spends all
-		// of them on the docker command line followed by two unavoidable
-		// RuntimeWarnings — running `../env/bin/python` from `sites/` makes
-		// sys.prefix mismatch, on every single call. The result was a FAIL line
-		// that ended mid-warning with the actual Python error never shown, and
-		// diagnosing one cost a round-trip.
-		const noise = /^<frozen site>:\d+: RuntimeWarning:.*$|^\s*$/;
-		const stderr = String(err.stderr || "")
-			.split("\n")
-			.filter((l) => !noise.test(l))
-			.join("\n")
-			.trim();
-		throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
+	// ONE retry, and only for MySQL 1020 on tabSingles. That error is an
+	// optimistic-lock conflict whose own text says "try restarting
+	// transaction" — Frappe retries it in request handling for the same
+	// reason. It became a startup-killer once the apps.json set was installed:
+	// seven more apps' scheduler jobs now write their own Singles, and one
+	// colliding with the pre-run reset crashed a 25-minute run before the
+	// first test (measured 2026-08-10, main() line 730). Retrying ANYTHING
+	// else stays wrong: every other failure here is a real defect, and a
+	// blanket retry is how one gets papered over.
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return execFileSync(
+				"docker",
+				["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+				{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
+			);
+		} catch (err) {
+			// PUT THE TRACEBACK WHERE IT CAN BE READ. `test()` slices a failure
+			// message to 300 chars, and execFileSync's default message spends all
+			// of them on the docker command line followed by two unavoidable
+			// RuntimeWarnings — running `../env/bin/python` from `sites/` makes
+			// sys.prefix mismatch, on every single call. The result was a FAIL line
+			// that ended mid-warning with the actual Python error never shown, and
+			// diagnosing one cost a round-trip.
+			const noise = /^<frozen site>:\d+: RuntimeWarning:.*$|^\s*$/;
+			const stderr = String(err.stderr || "")
+				.split("\n")
+				.filter((l) => !noise.test(l))
+				.join("\n")
+				.trim();
+			if (attempt === 1 && /\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) {
+				// Synchronous pause — benchPy is sync throughout, and its callers
+				// depend on that.
+				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
+				continue;
+			}
+			throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
+		}
 	}
 }
 
@@ -1224,7 +1241,14 @@ async function main() {
 		});
 
 		await test("inbox: panel opens with tabs, grouping and rows", async () => {
-			await page.click(".bnd-icon-btn[aria-label='Notifications']");
+			// BY IDENTITY, NEVER BY ACCESSIBLE NAME. This clicked
+			// `[aria-label='Notifications']`, and 34a made the bell's label
+			// ANNOUNCE its count — "Notifications — Unread: 2" — so the exact
+			// match found nothing for 30s straight, deterministically, because
+			// the seed above guarantees unread=2. An accessible name is rendered
+			// text: it changes with state and with language, which is exactly
+			// why the contract says identity lives in data-bnd-part.
+			await page.click('[data-bnd-part="bell"]');
 			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 6000 });
 			// Rows arrive from api.get_inbox AFTER the panel paints — wait
 			// for content, not just for the shell, or this races the fetch.
@@ -1272,7 +1296,9 @@ async function main() {
 			await goDesk("/desk/item", ".page-head", 2500);
 			expectEq(await attr("data-bnd-inbox"), null, "no style attr");
 			expect(!(await q(".bnd-inbox-badge:not([hidden])")), "no badge");
-			await page.click(".bnd-icon-btn[aria-label='Notifications']");
+			// By identity — the accessible name is state- and language-dependent
+			// since 34a (see "panel opens" above).
+			await page.click('[data-bnd-part="bell"]');
 			await page.waitForTimeout(1200);
 			expect(!(await q(".bnd-inbox-backdrop:not([hidden])")), "our panel never built");
 			// A display check alone is too weak — the stock panel can be
@@ -1354,7 +1380,12 @@ async function main() {
 			// layout and cannot see this.
 			setSettings({ desk_layout: "Classic", inbox_style: "Inbox + Page" });
 			await goDesk("/desk/item", ".page-head", 3000);
-			expect(!(await q(".bnd-icon-btn[aria-label='Notifications']")), "no themed bell in Classic (precondition)");
+			// By identity. The old form matched on the exact accessible name,
+			// which 34a suffixes with the unread count — so this precondition
+			// had become VACUOUSLY true: it would pass with a themed bell right
+			// there on the page, and the test after it would be measuring a desk
+			// it had mischaracterised.
+			expect(!(await q('[data-bnd-part="bell"]')), "no themed bell in Classic (precondition)");
 			const badge = await page.evaluate(() => {
 				const n = document.querySelector(".sidebar-notification .bnd-inbox-badge:not([hidden])");
 				return n ? n.textContent.trim() : null;

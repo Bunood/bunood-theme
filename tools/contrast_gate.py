@@ -413,7 +413,19 @@ def check_computed() -> int:
         if not variables:
             print(f"check-computed: no {mode} tokens supplied")
             return 1
-        for ink, bg, need, why in pairs():
+        for pair in pairs():
+            ink, bg, need, why = pair[:4]
+            # A five-element pair names the ONE mode it renders in (the 34a
+            # sidebar fits — see the model loop above, which grew this arm at
+            # the same time). This loop kept unpacking four, so the first desk
+            # that actually SERVED the fitted tokens crashed the gate with
+            # "too many values to unpack" — invisible until then, because the
+            # crash needs the 34a stylesheet to be the one deployed. Same
+            # skip-rule as the model: a light fit against the dark pane is a
+            # combination the stylesheet never produces, and measuring it
+            # would fail rows that no user can see.
+            if len(pair) == 5 and pair[4] != mode:
+                continue
             if need is None:
                 continue
             try:
