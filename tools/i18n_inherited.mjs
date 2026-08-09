@@ -52,7 +52,42 @@ const REJECT = new Map([
 	["Mentions", "upstream يذكر is a verb; ours is a noun"],
 ]);
 
-const APPS = ["frappe", "erpnext"];
+/**
+ * Every app installed on the site, in `installed_apps` order — asked, not
+ * listed.
+ *
+ * It was `["frappe", "erpnext"]` while those were the only two. The moment
+ * hrms, crm, helpdesk, payments, telephony, ksa_compliance and
+ * bunood_realestate joined, a hardcoded pair would have gone on reporting 30
+ * inherited strings while the real answer was 51 — a stale list that still
+ * looks like an answer, which is the failure mode this whole file exists to
+ * avoid. Order matters too: it is the order the runtime merges them in, so
+ * the app that actually WINS a colliding msgid is the last one here.
+ */
+function installedApps() {
+	try {
+		const out = execFileSync(
+			"docker",
+			["exec", BACKEND, "bash", "-lc",
+			 `cd /home/frappe/frappe-bench/sites && ../env/bin/python -c ` +
+			 `'import frappe,json;frappe.init(site="${SITE}",sites_path=".");frappe.connect();` +
+			 `print("APPS=" + json.dumps(frappe.get_installed_apps()))'`],
+			{ encoding: "utf8" }
+		);
+		const m = out.match(/APPS=(\[.*\])/);
+		if (m) return JSON.parse(m[1]);
+	} catch {
+		/* fall through */
+	}
+	console.error("  WARNING: could not read installed_apps; falling back to frappe + erpnext");
+	return ["frappe", "erpnext"];
+}
+
+const SITE = process.env.BND_SITE || "demo.bunood.test";
+// Everything except ourselves: "inherited" means another app already answers,
+// and reading our own ar.csv back would make every row we ship look inherited
+// and then redundant — the gate would eat its own tail.
+const APPS = installedApps().filter((a) => a !== "bunood_theme");
 
 function poFromContainer(app) {
 	try {
@@ -99,7 +134,12 @@ const upstream = new Map();
 for (const app of APPS) {
 	const po = poFromContainer(app);
 	if (!po.trim()) {
-		console.error(`  WARNING: no ${LANG}.po read from ${app} — is the stack running?`);
+		// Not an error. Most apps ship no Arabic at all — payments,
+		// ksa_compliance, bunood_realestate and telephony each have zero, and
+		// saying "is the stack running?" here sent me chasing a healthy stack
+		// once already. If EVERY app comes back empty, the check below catches
+		// that; one empty app is just an app with no translations.
+		console.log(`  ${app}: no ${LANG}.po (ships no ${LANG} translations)`);
 		continue;
 	}
 	for (const [id, s] of parsePo(po)) if (!upstream.has(id)) upstream.set(id, { app, ar: s });
