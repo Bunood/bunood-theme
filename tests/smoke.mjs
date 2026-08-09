@@ -30,6 +30,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -4509,6 +4510,126 @@ async function main() {
 				await page.evaluate(() => !!document.activeElement.closest(".main-section")),
 				"activating it moves focus into the page"
 			);
+		});
+
+		// ── 34a: axe, scoped honestly ──────────────────────────────────────
+		//
+		// GUIDELINES §2.3's exact prescription, built as written: a HARD gate
+		// over our own components, and a BASELINE-DIFF over Desk pages so only
+		// new violations fail. An unscoped axe run over the Frappe Desk drowns
+		// in upstream violations and gets abandoned — the scoping is what makes
+		// the gate live instead of aspirational.
+
+		await test("a11y: axe finds nothing in our chrome, overlays open", async () => {
+			// OUR roots, explicitly listed. `.body-sidebar` would drag Frappe's
+			// own rows into the scan; our tenants inside the pane are included
+			// by their own selectors instead.
+			const OURS = [
+				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
+				".bnd-apps-rail", ".bnd-sb-utils", ".bnd-sb-brand",
+				".bnd-palette", ".bnd-inbox",
+			];
+			// Deliberate exceptions, each with the reason axe cannot know.
+			// The same allowlist contract as CONSOLE_ALLOWLIST: scoped to the
+			// exact rule, so anything new still fails.
+			const ACCEPTED = [
+				// The skip link's tabindex=1 knowingly matches Frappe's own
+				// list rows — a positive tabindex is the only thing that can
+				// precede one, and ours must be first. See ensure_skip_link.
+				{ rule: "tabindex", selectorHas: "bnd-skip-link" },
+			];
+			// Page-level rules have no meaning inside a scoped include: the
+			// scan sees fragments, not the document.
+			const PAGE_RULES = ["region", "page-has-heading-one", "landmark-one-main", "bypass"];
+
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
+			});
+			await goDesk("/desk/item", ".page-head", 4000);
+
+			const scan = async (label) => {
+				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
+				for (const root of OURS) builder = builder.include(root);
+				const res = await builder.analyze();
+				return res.violations
+					.filter(
+						(v) =>
+							!ACCEPTED.some(
+								(a) =>
+									a.rule === v.id &&
+									v.nodes.every((n) => n.target.join(" ").includes(a.selectorHas))
+							)
+					)
+					.map((v) => `${label}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
+			};
+
+			let bad = await scan("desk");
+			// The overlays exist open only while somebody opens them — an
+			// end-of-run scan would never see them, which the audit called out.
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
+			bad = bad.concat(await scan("palette open"));
+			await page.keyboard.press("Escape");
+			await page.waitForSelector(".bnd-palette-backdrop[hidden]", { state: "attached", timeout: 5000 });
+
+			await page.click(".bnd-bell");
+			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 5000 });
+			bad = bad.concat(await scan("inbox open"));
+			await page.keyboard.press("Escape");
+
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			bad = bad.concat(await scan("settings shell"));
+
+			expectEq(bad.join("\n"), "", "axe over our chrome, all states");
+		});
+
+		await test("a11y: axe over the Desk only fails on NEW violations", async () => {
+			// Upstream's violations are not ours to fix and a gate that fails
+			// on them gets deleted. The BASELINE records what the Desk scores
+			// today, keyed rule -> count per route; this test fails only when
+			// a rule appears that the baseline has never seen, or an existing
+			// rule's node count GROWS — either of which means a change on OUR
+			// side made the page worse. Regenerate deliberately after reading
+			// the diff:  node tools/axe-baseline.mjs
+			const baseline = JSON.parse(
+				readFileSync(new URL("./fixtures/axe-baseline.json", import.meta.url), "utf8")
+			);
+			// THE SAME STATE THE BASELINE TOOL PINS — the shipped defaults.
+			// Left to inherit, this test measured whatever desk the previous
+			// test built, and a state difference read as a phantom regression
+			// on its very first run.
+			const shippedState = JSON.parse(
+				benchPy("from bunood_theme.setup import SHIPPED\nprint(json.dumps(SHIPPED))\n")
+					.trim().split("\n").pop()
+			);
+			// Only the fields the suite may write: SHIPPED also carries
+			// branding and colours, which are outside MUTABLE_FIELDS because a
+			// restore failure there is permanent damage. The baseline tool
+			// pins them too, but it owns its own writes; the suite does not.
+			setSettings(
+				Object.fromEntries(
+					Object.entries(shippedState).filter(([k]) => MUTABLE_FIELDS.includes(k))
+				)
+			);
+			for (const [route, waitFor] of [
+				["/desk/item", ".page-head"],
+				["/desk/theme-settings?shell=1", ".bnd-shell"],
+			]) {
+				await goDesk(route, waitFor, 4000);
+				const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+				const seen = {};
+				for (const v of res.violations) seen[v.id] = v.nodes.length;
+				const base = baseline[route] || {};
+				const worse = [];
+				for (const [rule, count] of Object.entries(seen)) {
+					if (!(rule in base)) worse.push(`${route}: NEW rule ${rule} (${count} nodes)`);
+					else if (count > base[rule]) worse.push(`${route}: ${rule} grew ${base[rule]} -> ${count}`);
+				}
+				expectEq(worse.join("\n"), "", `no new axe violations on ${route}`);
+			}
 		});
 
 		await test("console error budget: nothing beyond the allowlist", async () => {

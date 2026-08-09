@@ -2999,7 +2999,11 @@ function sb_zone_anchor(pane, zone, node) {
 			const row = inbox_flat[inbox_cursor];
 			detail.innerHTML = "";
 			if (!row) {
-				const empty = el("div", "bnd-inbox-empty");
+				// aria-hidden like its Loading sibling: the message is visual, the
+			// list's own label and the status live region carry the state, and
+			// a listbox whose only child is prose fails required-children —
+			// found by the scoped axe scan on the caught-up resting state.
+			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
 				empty.textContent = __("Select a notification");
 				detail.appendChild(empty);
 				return;
@@ -3061,7 +3065,7 @@ function sb_zone_anchor(pane, zone, node) {
 				btn.setAttribute("aria-selected", tab_on ? "true" : "false");
 			}
 			list.innerHTML = "";
-			const loading = el("div", "bnd-inbox-empty");
+			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
 			loading.textContent = __("Loading...");
 			list.appendChild(loading);
 			inbox_fetch(inbox_tab, 0).then((res) => {
@@ -3343,7 +3347,14 @@ function sb_zone_anchor(pane, zone, node) {
 		if (frappe.searchdialog && frappe.searchdialog.search) {
 			rows.push({
 				species: "fallback",
-				marked: frappe.utils.escape_html(__("Search all documents for \"{0}\"", [txt])),
+				// Typographic quotes, not escaped ASCII ones. Every regex-based
+				// message extractor — Frappe's TRANSLATE_PATTERN and ours alike —
+				// stops at the first quote character it sees, so \" split this
+				// msgid in half: the catalogue carried `Search all documents for \`
+				// while the runtime looked up the full string, which therefore
+				// could never be translated. “ ” need no escaping, so the
+				// extracted msgid and the runtime key agree again.
+				marked: frappe.utils.escape_html(__("Search all documents for “{0}”", [txt])),
 				plain: txt,
 				onclick: () => frappe.searchdialog.search.init_search(txt, "global_search"),
 				key: "",
@@ -4256,16 +4267,22 @@ function sb_zone_anchor(pane, zone, node) {
 	function inbox_render_rows(list, rows) {
 		inbox_flat = [];
 		list.innerHTML = "";
+		// The list is an input role and input roles need NAMES — axe's
+		// aria-input-field-name, found by the scoped scan the moment it ran.
+		if (!list.getAttribute("aria-label")) list.setAttribute("aria-label", __("Notifications"));
 		const groups = inbox_group_rows(rows);
 		for (const group of groups) {
 			if (group.doc && group.rows.length > 1) {
-				const head = el("div", "bnd-inbox-group");
+				// aria-hidden for the same reason as the palette's headings: a
+				// listbox may contain only options, and the grouping is visual
+				// — the rows carry their document identity themselves.
+				const head = el("div", "bnd-inbox-group", { "aria-hidden": "true" });
 				head.textContent =
 					group.doc.name + " · " + __(group.doc.type) + " · " +
 					__("Updates: {0}", [String(group.rows.length)]);
 				list.appendChild(head);
 			} else if (group.doc) {
-				const head = el("div", "bnd-inbox-group");
+				const head = el("div", "bnd-inbox-group", { "aria-hidden": "true" });
 				head.textContent = group.doc.name + " · " + __(group.doc.type);
 				list.appendChild(head);
 			}
@@ -4275,7 +4292,11 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 		}
 		if (!rows.length) {
-			const empty = el("div", "bnd-inbox-empty");
+			// aria-hidden like its Loading sibling: the message is visual, the
+			// list's own label and the status live region carry the state, and
+			// a listbox whose only child is prose fails required-children —
+			// found by the scoped axe scan on the caught-up resting state.
+			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
 			const tab = INBOX_TABS.find((t) => t.id === inbox_tab);
 			empty.textContent =
 				inbox_tab === "approvals"
@@ -4462,7 +4483,7 @@ function sb_zone_anchor(pane, zone, node) {
 			btn.setAttribute("aria-selected", tab_on ? "true" : "false");
 		}
 		inbox_nodes.list.innerHTML = "";
-		const loading = el("div", "bnd-inbox-empty");
+		const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
 		loading.textContent = __("Loading...");
 		inbox_nodes.list.appendChild(loading);
 		inbox_fetch(inbox_tab, 0).then((res) => {

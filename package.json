@@ -13,9 +13,11 @@
 		"i18n:check": "node tools/i18n.mjs check",
 		"i18n:list": "node tools/i18n.mjs list",
 		"i18n:inherited": "node tools/i18n_inherited.mjs",
+		"i18n:emit": "node tools/i18n_po.mjs emit",
 		"deploy": "bash tools/deploy.sh"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.12.1",
 		"playwright": "^1.62.1",
 		"sass": "^1.80.0"
 	}
