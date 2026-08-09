@@ -172,6 +172,61 @@ export function fromJs(paths = JS_SOURCES) {
 	return out;
 }
 
+// Python's marker is `_(`, not `__(`. The negative lookbehind stops it matching
+// the tail of an identifier (`gettext_(`, `__(`) — without it every JS-style
+// call in a .py docstring would be counted twice.
+const PY_CALL = /(?<![A-Za-z0-9_])_\(\s*(["'])((?:(?!\1)[\s\S])*)\1/g;
+const PY_RAW = /(?<![A-Za-z0-9_])_\(\s*["']/g;
+
+/** Every .py file the app ships. */
+function pythonFiles(dir = APP, out = []) {
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		if (entry.name === "__pycache__" || entry.name === "node_modules") continue;
+		const p = join(dir, entry.name);
+		if (entry.isDirectory()) pythonFiles(p, out);
+		else if (entry.name.endsWith(".py")) out.push(p);
+	}
+	return out;
+}
+
+/**
+ * `_("literal")` call sites in Python.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM fromJs
+ *   It was missing at first, and that is worth recording rather than quietly
+ *   fixing: the contrast-adjustment report was rewritten into seven `_()`
+ *   sentences in theme_settings.py, and the coverage gate went on reporting
+ *   full coverage because it had never looked at a .py file. A gate that is
+ *   blind to a whole language is the "green tests that assert existence"
+ *   failure this repo names, wearing a new coat.
+ *
+ * Same self-check as the JS half, for the same reason.
+ */
+export function fromPython(paths = pythonFiles()) {
+	const out = [];
+	let raw = 0;
+	let matched = 0;
+	for (const p of paths) {
+		const src = readFileSync(p, "utf8");
+		const name = p.split(/[\\/]/).pop();
+		raw += (src.match(PY_RAW) || []).length;
+		PY_CALL.lastIndex = 0;
+		let m;
+		while ((m = PY_CALL.exec(src))) {
+			matched++;
+			const text = unescape(m[2]);
+			if (isTranslatable(text)) out.push({ msg: text, comment: `In ${name}` });
+		}
+	}
+	if (raw !== matched) {
+		throw new Error(
+			`i18n extractor: found ${raw} python \`_(\` call sites but parsed ${matched}. ` +
+				"Under-extraction reads as full coverage, so this refuses."
+		);
+	}
+	return out;
+}
+
 /**
  * The whole catalogue: msgid -> the first comment that described it.
  *
@@ -185,6 +240,7 @@ export function extractCatalogue() {
 		for (const { msg, comment } of fromDoctype(f)) if (!cat.has(msg)) cat.set(msg, comment);
 	}
 	for (const { msg, comment } of fromJs()) if (!cat.has(msg)) cat.set(msg, comment);
+	for (const { msg, comment } of fromPython()) if (!cat.has(msg)) cat.set(msg, comment);
 	return cat;
 }
 

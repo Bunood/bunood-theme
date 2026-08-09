@@ -205,8 +205,8 @@ def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     return out
 
 
-def adjustments(brand: str, accent: str) -> list[str]:
-    """Human-readable notes on what had to move, for the settings form to show.
+def adjustments(brand: str, accent: str) -> list[dict]:
+    """What had to move, as FACTS rather than prose.
 
     Empty means the seeds were used exactly as chosen. Non-empty is not an error
     and must never be phrased as one: it is the theme reporting what it did so an
@@ -216,22 +216,33 @@ def adjustments(brand: str, accent: str) -> list[str]:
     Reported per mode, because a seed can be fine in light and need correction in
     dark — the surfaces differ, so the same colour is measured against different
     backgrounds.
+
+    WHY THIS RETURNS DICTS AND NOT SENTENCES
+        It used to build English f-strings here, and the caller glued them to a
+        translated prefix. That was broken twice over. An f-string is invisible
+        to every message extractor — Frappe's needs a literal — so the notes
+        could never be translated at all, while the translated prefix made the
+        message LOOK covered to any gate that checked. And the sentences were
+        assembled from a fragment (`" in dark mode"` spliced mid-clause), which
+        no language with different word order can render correctly even once
+        someone does translate it.
+
+        So this module reports what it measured and stops. The wording, and the
+        `_()` calls that make it translatable, belong to the surface that shows
+        it — see ``theme_settings.report_contrast_adjustments``. Colour maths
+        here, prose there; ``brand.py`` and ``tools/contrast_gate.py`` already
+        consume this module without wanting a word of English from it.
     """
     notes = []
     for mode in ("light", "dark"):
         d = derive(brand, accent, mode)
         solid, ink = d["--bnd-brand-solid"], d["--bnd-on-brand"]
-        where = "" if mode == "light" else " in dark mode"
         if solid.lower() != brand.lower():
-            notes.append(
-                f"Brand fills{where} use {solid} rather than {brand}, so their labels "
-                f"stay readable and the fill stays visible against the chrome."
-            )
+            notes.append({"kind": "brand_fill", "mode": mode, "used": solid, "chosen": brand})
         if ink.lower() != "#ffffff":
-            notes.append(f"Labels on brand fills{where} are dark rather than white.")
+            notes.append({"kind": "brand_ink", "mode": mode})
         if d["--bnd-accent"].lower() != accent.lower():
             notes.append(
-                f"The focus ring{where} uses {d['--bnd-accent']} rather than {accent}, "
-                f"to stay visible on every surface."
+                {"kind": "focus_ring", "mode": mode, "used": d["--bnd-accent"], "chosen": accent}
             )
     return notes

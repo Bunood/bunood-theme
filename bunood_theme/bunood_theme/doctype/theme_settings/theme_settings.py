@@ -96,8 +96,68 @@ class ThemeSettings(Document):
 		if not notes:
 			return
 
+		rendered = [_note_sentence(n) for n in notes]
+		rendered = [s for s in rendered if s]
+		if not rendered:
+			return
+
+		# ONE TRANSLATABLE SENTENCE, NOT A GLUED PREFIX. This used to be
+		# `_("Adjusted for readability") + ": " + " ".join(notes)`, where the
+		# notes were raw English f-strings from palette.py. The prefix was
+		# translated and the body never could be — f-strings are invisible to
+		# every message extractor — so the message was permanently half English
+		# while looking covered to anything that only checked the prefix.
 		frappe.msgprint(
-			_("Adjusted for readability") + ": " + " ".join(notes),
+			_("Adjusted for readability: {details}").format(details=" ".join(rendered)),
 			indicator="blue",
 			alert=True,
 		)
+
+
+def _note_sentence(note: dict) -> str:
+	"""One contrast-adjustment fact, as a whole translated sentence.
+
+	SIX TEMPLATES, NOT THREE WITH A SPLICED FRAGMENT. The light and dark
+	variants are written out in full rather than assembled from a shared stem
+	plus `" in dark mode"`. A fragment glued into the middle of a clause cannot
+	survive translation into a language that orders the clause differently, and
+	Arabic is one — so the mode has to be part of the sentence a translator is
+	given, not something done to it afterwards.
+
+	NAMED PLACEHOLDERS, NOT `{0}`. These interpolate colour VALUES. The build's
+	plural guard (`tools/i18n.mjs`) refuses a numeric placeholder that governs a
+	following word, because that shape has no correct Arabic through a
+	plural-free dictionary; a named placeholder says "this is a value, not a
+	count" and is ignored by it. Use `{0}` for counts you have already reshaped,
+	and a name for everything else.
+	"""
+	kind, mode = note.get("kind"), note.get("mode")
+	dark = mode == "dark"
+
+	if kind == "brand_fill":
+		template = (
+			_("Brand fills in dark mode use {used} rather than {chosen}, so their labels stay readable and the fill stays visible against the chrome.")
+			if dark
+			else _("Brand fills use {used} rather than {chosen}, so their labels stay readable and the fill stays visible against the chrome.")
+		)
+		return template.format(used=note.get("used", ""), chosen=note.get("chosen", ""))
+
+	if kind == "brand_ink":
+		return (
+			_("Labels on brand fills in dark mode are dark rather than white.")
+			if dark
+			else _("Labels on brand fills are dark rather than white.")
+		)
+
+	if kind == "focus_ring":
+		template = (
+			_("The focus ring in dark mode uses {used} rather than {chosen}, to stay visible on every surface.")
+			if dark
+			else _("The focus ring uses {used} rather than {chosen}, to stay visible on every surface.")
+		)
+		return template.format(used=note.get("used", ""), chosen=note.get("chosen", ""))
+
+	# An unknown kind is a palette.py change that forgot this function. Saying
+	# nothing is right: the adjustment still happened and is still correct, and
+	# a half-rendered sentence would be worse than a shorter report.
+	return ""
