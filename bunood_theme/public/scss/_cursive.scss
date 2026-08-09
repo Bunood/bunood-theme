@@ -1,0 +1,81 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// CURSIVE SAFETY — stop inter-glyph spacing from severing Arabic's joins.
+//
+// WHAT BREAKS
+//   Arabic is cursive: letters join, and each letter's SHAPE depends on its
+//   neighbours. `letter-spacing` inserts space between every glyph and severs
+//   those joins — CSS Text 3 §7.2.1 says so outright. The stored string stays
+//   correct and only the rendering is wrong, so nothing that inspects data can
+//   ever catch it.
+//
+// WHY THIS FILE EXISTS EVEN THOUGH THE BUILD ALREADY GUARDS IT
+//   `assertCursiveSafe` in build.mjs refuses non-zero `letter-spacing` in OUR
+//   compiled sheet, and that is now clean. It was not enough. Measured on a
+//   live `ar` desk after the guard passed: 65 of our own chrome nodes still
+//   computed `letter-spacing: 0.28px`, INHERITED from Frappe's own `body` rule.
+//   A guard over our stylesheet cannot see a rule in theirs, so removing our
+//   tracking was necessary and not sufficient — the difference between "our
+//   sheet is clean" and "the desk renders Arabic correctly".
+//
+// TWO RULES, BECAUSE THERE ARE TWO FAILURE MODES
+//   1. AN ARABIC DESK. Everything on it is cursive, including Frappe's own DOM,
+//      so the reset is document-wide and scoped by language. `:lang()` and not
+//      `[dir]`: it PREFIX-matches, so `ar-SA` and `fa-IR` are covered, where
+//      Frappe's `is_rtl()` is an exact-match list of four codes that misses
+//      both. The list is CURSIVE-JOINING scripts, which is not the RTL list —
+//      Hebrew is absent because it does not join; Urdu, Sorani, Sindhi and
+//      Uyghur are present because they do.
+//   2. ARABIC DATA ON AN ENGLISH DESK. A workspace named in Arabic renders in
+//      our sidebar on a `lang=en` site, where rule 1 is looking the wrong way
+//      and no language-based scope can help. The nodes that show USER TEXT
+//      therefore drop tracking unconditionally. That is a real cost — a couple
+//      of tenths of a pixel of Latin tracking — paid where the text is not ours
+//      to predict.
+//
+// Frappe's own DOM is touched here, which the working contract otherwise
+// forbids. The rule is about colour and structure; this is neither. Rendering
+// text unreadably is not a style preference, and rule 1 fires only on a desk
+// whose language already says the text is cursive.
+// ============================================================================
+
+// ── 1. A cursive-script desk: no tracking anywhere ─────────────────────────
+//
+// `html:lang(x) body` is (0,0,2) against Frappe's `body` at (0,0,1), so it wins
+// on specificity and needs no `!important` — which is restricted to two
+// sanctioned places and this is not one of them.
+html:lang(ar) body,
+html:lang(fa) body,
+html:lang(ps) body,
+html:lang(ur) body,
+html:lang(ckb) body,
+html:lang(ku) body,
+html:lang(sd) body,
+html:lang(ug) body,
+html:lang(ks) body {
+  letter-spacing: normal;
+}
+
+// ── 2. Anywhere WE render text the site's users named ──────────────────────
+//
+// These carry document titles, workspace names and section headings — content
+// whose script is decided by whoever typed it, not by the desk's language. The
+// selectors are deliberately narrow: this is not a licence to strip tracking
+// from Frappe's chrome, only from the places our own components print data.
+.bnd-sb-letter,
+.bnd-inbox-row-title,
+.bnd-inbox-group,
+.bnd-palette-row-label,
+.bnd-crumb-title,
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-label {
+  letter-spacing: normal;
+}
+
+// The status chip is the one node rule 1 could not reach. It also carries
+// Frappe's `.indicator-pill`, and Frappe sets tracking on that class DIRECTLY —
+// so there is nothing to inherit and the document-wide reset never applies.
+// Measured: after rule 1 took the desk from 65 tracked nodes to 1, this was the
+// 1. Specificity has to beat `.indicator-pill` (0,1,0), so it is qualified.
+html[data-theme] .bnd-crumb-chip {
+  letter-spacing: normal;
+}

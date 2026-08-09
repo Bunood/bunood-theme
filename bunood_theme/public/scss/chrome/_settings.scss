@@ -932,7 +932,9 @@ html[data-theme] {
 	margin: 0;
 	font-size: var(--text-xs, 0.75rem);
 	font-weight: 600;
-	letter-spacing: 0.04em;
+	// Tracking removed (assertCursiveSafe) — see the note at line 277, which
+	// reached this conclusion by hand for the picker headings before the build
+	// enforced it. `text-transform` stays: a no-op in Arabic, free for Latin.
 	text-transform: uppercase;
 	color: var(--text-muted);
 }

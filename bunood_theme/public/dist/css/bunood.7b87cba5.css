@@ -253,6 +253,31 @@ html[data-theme] .list-row-head .level-right {
   padding-block: var(--bnd-pad-y);
 }
 
+html:lang(ar) body,
+html:lang(fa) body,
+html:lang(ps) body,
+html:lang(ur) body,
+html:lang(ckb) body,
+html:lang(ku) body,
+html:lang(sd) body,
+html:lang(ug) body,
+html:lang(ks) body {
+  letter-spacing: normal;
+}
+
+.bnd-sb-letter,
+.bnd-inbox-row-title,
+.bnd-inbox-group,
+.bnd-palette-row-label,
+.bnd-crumb-title,
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-label {
+  letter-spacing: normal;
+}
+
+html[data-theme] .bnd-crumb-chip {
+  letter-spacing: normal;
+}
+
 html[data-bnd-own~=search] .body-sidebar .navbar-search-bar,
 html[data-bnd-own~=bell] .body-sidebar .sidebar-notification,
 html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
@@ -341,6 +366,28 @@ html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item[onclick*=
   display: none;
 }
 
+.bnd-skip-link {
+  position: fixed;
+  inset-inline-start: var(--bnd-sp-3);
+  inset-block-start: var(--bnd-sp-3);
+  z-index: calc(var(--bnd-z-flyout) + 10);
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  transform: translateY(calc(-100% - var(--bnd-sp-5)));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bnd-skip-link:focus-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
 html[data-theme] .bnd-topbar {
   display: flex;
   align-items: center;
@@ -360,7 +407,7 @@ html[data-theme] .bnd-search-field {
   padding-inline: var(--bnd-sp-3);
   border: var(--bnd-line) solid var(--bnd-border);
   border-radius: var(--bnd-radius-md);
-  background: var(--bnd-page);
+  background: color-mix(in srgb, var(--bnd-ink) 5%, var(--bnd-page));
   color: var(--bnd-ink-muted);
   font-size: var(--bnd-text-sm);
   cursor: pointer;
@@ -969,7 +1016,6 @@ html[data-bnd-crumbs=eyebrow] .navbar-breadcrumbs {
 }
 html[data-bnd-crumbs=eyebrow] .navbar-breadcrumbs a {
   font-size: var(--bnd-text-xs);
-  letter-spacing: 0.02em;
 }
 html[data-bnd-crumbs=eyebrow] .navbar-breadcrumbs li:last-child {
   flex-basis: 100%;
@@ -1022,7 +1068,6 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
 html[data-bnd-crumb-pill] .page-head .page-indicator-pill .indicator-pill {
   border-radius: var(--bnd-radius-pill);
   font-weight: var(--bnd-weight-medium);
-  letter-spacing: 0.02em;
 }
 
 @media (max-width: 991px) {
@@ -1512,7 +1557,6 @@ html[data-bnd-sb-wash=rich] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) .
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
   font-size: var(--bnd-text-xs);
   font-weight: var(--bnd-weight-medium);
-  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--bnd-sb-ink-muted);
 }
@@ -1950,7 +1994,6 @@ html[data-theme] .bnd-palette-group {
   padding-block: var(--bnd-sp-2) 2px;
   padding-inline: var(--bnd-sp-3);
   font-size: var(--bnd-text-xs);
-  letter-spacing: 0.04em;
   color: var(--bnd-ink-subtle);
 }
 
@@ -2032,6 +2075,18 @@ html[data-theme] .bnd-palette-footer {
 }
 html[data-theme] .bnd-palette-footer .bnd-palette-footer-end {
   margin-inline-start: auto;
+}
+
+.bnd-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 html[data-bnd-inbox] .bnd-icon-btn,
@@ -2545,7 +2600,7 @@ html[data-theme] .bnd-dgm-slot {
   padding: 0;
   border: 1px dashed var(--bnd-border-strong);
   border-radius: 3px;
-  background: transparent;
+  background: color-mix(in srgb, var(--bnd-ink) 4%, transparent);
   color: var(--text-muted);
   font-size: 9px;
   line-height: 1.1;
@@ -3108,7 +3163,6 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   margin: 0;
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
 }

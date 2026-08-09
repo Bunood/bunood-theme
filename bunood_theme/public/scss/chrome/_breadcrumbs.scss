@@ -245,7 +245,10 @@ html[data-bnd-crumbs="eyebrow"] .navbar-breadcrumbs {
 
   a {
     font-size: var(--bnd-text-xs);
-    letter-spacing: 0.02em;
+    // No tracking. Inter-glyph spacing severs Arabic's cursive joins, and no
+    // selector can scope it safely — a workspace named in Arabic renders on an
+    // ENGLISH desk too, where every language-based guard looks the wrong way.
+    // Build-enforced by assertCursiveSafe. At --bnd-text-xs this was 0.2px.
   }
 
   li:last-child {
@@ -320,7 +323,6 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
   .indicator-pill {
     border-radius: var(--bnd-radius-pill);
     font-weight: var(--bnd-weight-medium);
-    letter-spacing: 0.02em;
   }
 }
 

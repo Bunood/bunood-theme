@@ -111,6 +111,58 @@ function assertLogicalOnly(css, name) {
 }
 
 /**
+ * Cursive guard — refuse inter-glyph spacing, which breaks Arabic joining.
+ *
+ * WHAT BREAKS
+ *   Arabic is cursive: letters JOIN, and their shape depends on their
+ *   neighbours. `letter-spacing` inserts space between every glyph, severing
+ *   those joins — CSS Text 3 §7.2.1 says so outright ("in cursive scripts,
+ *   letter-spacing may break cursive connections"). The stored string is
+ *   correct and only the rendering is wrong, so every unit test passes while
+ *   the desk is unreadable.
+ *
+ * WHAT DOES NOT BREAK, AND IS THEREFORE NOT BANNED
+ *   `text-transform: uppercase` is a NO-OP in Arabic — the script has no case.
+ *   Banning it would be cargo-cult: it costs a real design choice (the sidebar
+ *   section labels, the avatar chip) and buys nothing for i18n. The rule is
+ *   about inter-glyph SPACE, not about casing, and saying so precisely is what
+ *   keeps the guard honest enough to be obeyed.
+ *
+ * WHY THE VALUE AND NOT THE SELECTOR
+ *   The obvious alternative — allow tracking where the rule cannot match an
+ *   Arabic desk — is not expressible. CSS selects on document LANGUAGE
+ *   (`:lang`) or DIRECTION (`[dir]`), never on the SCRIPT of the text being
+ *   rendered, and `html:not([dir=rtl])` inherits the blind spot in Frappe's
+ *   hardcoded `is_rtl()` list. Worse, none of it helps the case that matters
+ *   most here: ARABIC DATA ON AN ENGLISH DESK — a workspace named in Arabic in
+ *   a `lang=en` site, where the root language is wrong and every selector-based
+ *   scope silently permits the damage. Banning the value covers that; scoping
+ *   the selector cannot. `_settings.scss` reached the same conclusion by hand
+ *   ("Deliberately no letter-spacing…"); this generalises it.
+ *
+ * Runs on COMPILED css, like assertLogicalOnly, so nothing slips through a
+ * mixin or an import.
+ */
+function assertCursiveSafe(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [];
+	for (const m of stripped.matchAll(/letter-spacing\s*:\s*([^;}]+)/g)) {
+		const value = m[1].trim().replace(/\s*!important$/, "");
+		// `normal` and a bare zero are the only values that add no space.
+		if (!/^(normal|0)$/.test(value)) offenders.push(value);
+	}
+	if (offenders.length) {
+		throw new Error(
+			`Cursive guard: ${name} sets letter-spacing to ${[...new Set(offenders)].join(", ")}. ` +
+				"Inter-glyph spacing severs Arabic's cursive joins (CSS Text 3 §7.2.1), and no " +
+				"selector can scope it safely — Arabic DATA renders on English desks too. " +
+				"Use word-spacing, padding-inline or font-size for airiness, or drop it: at " +
+				"--bnd-text-xs these values are 0.2-0.6px."
+		);
+	}
+}
+
+/**
  * Field-naming guard — fail the build if a Theme Settings field for a component
  * is not named `<component>_<property>`.
  *
@@ -268,6 +320,7 @@ async function buildEntry({ key, src, pyid }) {
 
 	assertLogicalOnly(result.css, `${key}.css`);
 	assertOwnershipPolarity(result.css, `${key}.css`);
+	assertCursiveSafe(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;

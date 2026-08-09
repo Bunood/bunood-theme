@@ -42,6 +42,11 @@
 // ── Base ────────────────────────────────────────────────────────────────────
 // @use "base";
 
+// Item 7(a). Must load AFTER bridge and BEFORE the chrome partials: it neutralises
+// tracking Frappe's own sheet applies to `body`, which our chrome then inherits —
+// something the build guard over our stylesheet structurally cannot see.
+@use "cursive";
+
 // ── Chrome: the frame ───────────────────────────────────────────────────────
 // Item 9: the desk-layout system. _layouts.scss is the conditional matrix
 // (what each data-bnd-layout value hides and where panels open); the others

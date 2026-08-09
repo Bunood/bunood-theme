@@ -534,7 +534,10 @@ html[data-bnd-sb-wash="rich"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"])
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
   font-size: var(--bnd-text-xs);
   font-weight: var(--bnd-weight-medium);
-  letter-spacing: 0.05em;
+  // Tracking removed (assertCursiveSafe): a section label is user data, so it
+  // is Arabic on any desk whose workspaces are named in Arabic, English one
+  // included. `text-transform` STAYS — Arabic has no cased characters, so it
+  // is a true no-op there and costs nothing to keep for Latin.
   text-transform: uppercase;
   color: var(--bnd-sb-ink-muted);
 }

@@ -142,7 +142,9 @@ html[data-theme] .bnd-palette-group {
   padding-block: var(--bnd-sp-2) 2px;
   padding-inline: var(--bnd-sp-3);
   font-size: var(--bnd-text-xs);
-  letter-spacing: 0.04em;
+  // Tracking removed for Arabic (assertCursiveSafe). The group headings are
+  // single words — "Actions", "Navigate" — so word-spacing would buy nothing;
+  // the padding above already does the separating work.
   color: var(--bnd-ink-subtle);
 }
 
