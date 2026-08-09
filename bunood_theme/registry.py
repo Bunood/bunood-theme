@@ -476,6 +476,16 @@ LAYOUT_TENANTS = {
 }
 
 
+#: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's
+#: `desk_order` field seeds from this and the runtime falls back to it, so
+#: "the order the registry declares components in" and "the order they sit on
+#: a desk" are one fact. A tenant added to the table joins the order without
+#: anyone remembering a second edit.
+def default_desk_order() -> str:
+    """Tenant keys in registry order, comma-joined: "search,inbox,user,home,apps"."""
+    return ",".join(c["key"] for c in COMPONENTS if c["type"] == TENANT)
+
+
 def layout_settings(layout: str) -> dict:
     """The Theme Settings values a layout preset writes, keyed by FIELD.
 

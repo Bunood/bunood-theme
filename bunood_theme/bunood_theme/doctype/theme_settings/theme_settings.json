@@ -83,6 +83,7 @@
   "inbox_keyboard",
   "section_placement",
   "placement_board",
+  "desk_order",
   "section_search",
   "search_placement",
   "search_picker",
@@ -754,6 +755,14 @@
    "fieldname": "placement_board",
    "fieldtype": "HTML",
    "label": "Placement Board"
+  },
+  {
+   "default": "search,inbox,user,home,apps",
+   "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
+   "fieldname": "desk_order",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Desk Order"
   },
   {
    "fieldname": "section_search",

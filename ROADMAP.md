@@ -214,8 +214,16 @@ defect in 0.10.0.
     click-to-pick/click-to-drop, both ending in the same `drop_on`. Zones read
     from the field's own options, so the board cannot offer what a field
     refuses. Suite: `board:` tests
-  - `[ ]` **E3 · Order within a zone** — `chrome_order`; two tenants sharing a
-    zone hold a stable, chosen order
+  - `[x]` **E3 · Order within a zone** *(2026-08-09)*. `desk_order` (the build
+    guard's naming rule renamed it from the planned `chrome_order`, and was
+    right to): one hidden field, tenant keys in desk order, seeded from the
+    registry and suite-pinned to it. The runtime is a DOM sort pass after the
+    mounts — idempotent, listener-safe, tolerant of stale strings, so no
+    migration. The quick links joined the cluster zones on the way (they
+    mounted at the bar's literal firstChild — one visual place, two
+    containers, no expressible order). The board is the only control: chips
+    render in desk order, drop ON a chip means before it, drop on blank zone
+    means after its chips
 
 ## Phase 1 — contracts with no design uncertainty
 

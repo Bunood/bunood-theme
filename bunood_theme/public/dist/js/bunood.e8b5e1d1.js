@@ -1402,6 +1402,93 @@ function sb_zone_anchor(pane, zone, node) {
 		return "";
 	}
 
+	/**
+	 * ORDER WITHIN A ZONE (E3). Two tenants sharing a zone used to sit in
+	 * mount-array order — the bell always led the user menu, and nothing a
+	 * user did could change it. `desk_order` is the chosen order (tenant
+	 * keys, comma-joined, written by the placement board); this pass sorts
+	 * each zone's tenants by it.
+	 *
+	 * A DOM SORT, NOT A MOUNT RULE. Mounts stay independent and idempotent —
+	 * teaching each mount path to insert at a rank would put the order in
+	 * four places. Sorting afterwards puts it in one, and appendChild MOVES
+	 * a node, so listeners survive and running twice is a no-op.
+	 *
+	 * Tolerant by construction: a key missing from the stored order ranks at
+	 * its default position, an unknown token is ignored, and the quick-links
+	 * wrap (one node carrying home AND apps) ranks by its best member — so a
+	 * half-written or stale order degrades to the shipped one, never to an
+	 * error. No migration needed for exactly this reason.
+	 */
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "apps"];
+	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps" };
+
+	function desk_order_rank() {
+		const stored = String((placement_state && placement_state.order) || "")
+			.split(",")
+			.map((t) => t.trim())
+			.filter((t) => DESK_ORDER_DEFAULT.indexOf(t) !== -1);
+		const order = stored.concat(DESK_ORDER_DEFAULT.filter((t) => stored.indexOf(t) === -1));
+		const rank = {};
+		order.forEach((t, i) => { rank[t] = i; });
+		return rank;
+	}
+
+	/** The order key a mounted node answers to, or null for foreign nodes. */
+	function node_order_key(node, rank) {
+		const part = node.getAttribute && node.getAttribute("data-bnd-part");
+		if (part && part in PART_TO_KEY) return rank[PART_TO_KEY[part]];
+		if (node.classList && node.classList.contains("bnd-sb-utils")) {
+			// The wrap is one node carrying up to two tenants; it sits where
+			// its best-ranked member would.
+			const ranks = [...node.querySelectorAll("[data-bnd-part]")]
+				.map((n) => PART_TO_KEY[n.getAttribute("data-bnd-part")])
+				.filter((k) => k)
+				.map((k) => rank[k]);
+			return ranks.length ? Math.min(...ranks) : null;
+		}
+		if (node.classList && (node.classList.contains("bnd-search-field") || node.classList.contains("bnd-search-icon"))) {
+			return rank.search;
+		}
+		return null;
+	}
+
+	/** Re-order one group of sibling nodes in place, leaving strangers alone. */
+	function sort_siblings(nodes, rank) {
+		const ours = nodes.filter((n) => node_order_key(n, rank) !== null);
+		if (ours.length < 2) return;
+		const sorted = [...ours].sort((a, b) => node_order_key(a, rank) - node_order_key(b, rank));
+		if (ours.every((n, i) => n === sorted[i])) return;
+		// An anchor comment marks the group's start; each node re-inserts
+		// before it in sorted order. Insertion is the only mutation, so a
+		// stranger between two of ours keeps its own position relative to
+		// the group's start.
+		const anchor = document.createComment("bnd-order");
+		ours[0].before(anchor);
+		for (const n of sorted) anchor.before(n);
+		anchor.remove();
+	}
+
+	function enforce_desk_order() {
+		const rank = desk_order_rank();
+		// Cluster zones: every bar's start/center/end.
+		for (const zone of document.querySelectorAll(".bnd-zone")) {
+			sort_siblings([...zone.children], rank);
+		}
+		// Pane zones: our direct children of the side pane, grouped by the
+		// zone they were anchored to. Sorted within the group only — the
+		// pane's own rows are never touched.
+		const pane = document.querySelector(".body-sidebar");
+		if (pane) {
+			for (const zone of ["start", "end"]) {
+				sort_siblings(
+					[...pane.children].filter((n) => n.getAttribute && n.getAttribute("data-bnd-zone") === zone),
+					rank
+				);
+			}
+		}
+	}
+
 	function mount_placed_tenants() {
 		if (!placement_state) return;
 		// `native` mirrors registry.py, which is the table that says what each
@@ -1521,6 +1608,7 @@ function sb_zone_anchor(pane, zone, node) {
 			bnd_own(token);
 			stamp(region);
 		}
+		enforce_desk_order();
 	}
 
 	// `build_cluster` lived here and is deleted: it welded a bell and an avatar
@@ -4598,41 +4686,25 @@ function sb_zone_anchor(pane, zone, node) {
 			groups.get(where).push(which);
 		}
 
-		// Every region the FIELD offers, resolved against the live DOM. It used
-		// to name Top Bar and Bottom Bar and let everything else fall through
-		// to the sidebar — so choosing "Dock", which the field offers and
-		// registry.py permits, quietly put the link in the side pane instead
-		// and said nothing. Found by the honest-picker audit; there were no
-		// tests for these two components at all.
-		//
-		// KEYED BY REGION, not by placement value, and `parse_slot` is what
-		// turns one into the other. This table used to be keyed by the whole
-		// value — "Top Bar", "Dock" — which was the same string only while the
-		// vocabulary had no zones in it. After E1 a stored "Top Bar Start"
-		// matched nothing here and fell through to the sidebar: the exact
-		// silent-wrong-place bug the comment above says this table was written
-		// to fix, reintroduced by a vocabulary change that missed one consumer.
-		// Going through `parse_slot` means the next one cannot.
-		const BAR_HOSTS = {
-			topbar: () => document.querySelector(".bnd-topbar"),
-			bottombar: () => document.querySelector(".bnd-statusbar"),
-			dock: () => document.querySelector(".bnd-dock"),
-		};
-
 		for (const [where, members] of groups) {
 			const { region, zone } = parse_slot(where);
-			if (BAR_HOSTS[region]) {
-				const bar = BAR_HOSTS[region]();
-				// That container is not on this desk. Leave it: the setting is
-				// honoured when the region exists, and inventing a home for it
-				// elsewhere would be a placement nobody chose — which is
-				// precisely what the fall-through used to do.
-				if (!bar) continue;
+			if (region && region !== "sidepane") {
+				// THE SAME ZONES AS EVERY OTHER TENANT (E3). The links used to
+				// mount at the bar's literal firstChild while the bell used the
+				// cluster's start ZONE — one visual place, two containers, and
+				// no order between them was expressible. `host_for` resolves
+				// region + zone to the same element the bell mounts into, so
+				// `enforce_desk_order` can sort them as neighbours, and a
+				// container that is not on this desk returns null — the setting
+				// is honoured when the region exists, exactly as before.
+				const host = host_for(region, zone);
+				if (!host) continue;
 				const wrap = el("span", "bnd-sb-utils bnd-sb-utils-bar");
 				for (const which of members) wrap.appendChild(build_quick_link(which, true));
-				bar.insertBefore(wrap, bar.firstChild);
+				host.appendChild(wrap);
 				continue;
 			}
+			if (!region) continue;
 
 			const sidebar = document.querySelector(".body-sidebar");
 			if (!sidebar) continue;
@@ -4641,6 +4713,7 @@ function sb_zone_anchor(pane, zone, node) {
 			if (!header) continue;
 
 			const utils = el("div", "bnd-sb-utils");
+			utils.setAttribute("data-bnd-zone", zone || "start");
 			for (const which of members) utils.appendChild(build_quick_link(which, false));
 
 			// The pane's two zones, by the same rule as every other tenant:
@@ -4653,6 +4726,7 @@ function sb_zone_anchor(pane, zone, node) {
 				header.insertAdjacentElement("afterend", utils);
 			}
 		}
+		enforce_desk_order();
 	}
 
 	/** A 2x2 grid glyph of our own — no sprite id for "apps" is guaranteed. */

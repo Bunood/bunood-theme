@@ -250,6 +250,8 @@ def extend_bootinfo(bootinfo):
         # for "where" would be a second thing to keep in step with "what".
         from bunood_theme.presets import LINKS_DEFAULTS, USER_DEFAULTS
 
+        from bunood_theme.registry import default_desk_order
+
         bootinfo.bnd_placement = {
             "inbox": inbox("inbox_placement"),
             "user": (settings.get("user_placement") or USER_DEFAULTS["user_placement"]),
@@ -257,6 +259,11 @@ def extend_bootinfo(bootinfo):
             # sidebar style kit as one shared field.
             "home": (settings.get("home_placement") or LINKS_DEFAULTS["home_placement"]),
             "apps": (settings.get("apps_placement") or LINKS_DEFAULTS["apps_placement"]),
+            # E3: the desk order the tenants sort by when they share a zone.
+            # Same payload as the placements because it is the same fact —
+            # where things sit — split across two keys would be two things to
+            # keep in step.
+            "order": settings.get("desk_order") or default_desk_order(),
         }
 
         bootinfo.bnd_inbox = {

@@ -605,7 +605,7 @@ const ATTR_OF = {
 
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
 const MUTABLE_FIELDS = [
-	"desk_layout", "sidebar_preset", "sidebar_placement", "sidebar_material",
+	"desk_layout", "desk_order", "sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color", "sidebar_icon_style",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
@@ -2549,6 +2549,108 @@ async function main() {
 			);
 		});
 
+		// ── E3: order within a zone ────────────────────────────────────────
+		await test("order: two tenants in one zone follow desk_order, and flip when it flips", async () => {
+			// The claim: sharing a zone is not a coin toss. Before E3 the DOM
+			// order was the mount array's order — the bell always led the user
+			// menu, and nothing a user did could change it. Asserted as
+			// POSITION and as a TRANSITION, the same two rules every placement
+			// test follows: a single static pass cannot tell "ordered" from
+			// "happened to mount that way".
+			const ALL_ON = {
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+			};
+			const at = (part) =>
+				page.evaluate((p) => {
+					const el = document.querySelector(`[data-bnd-part="${p}"]`);
+					if (!el) return null;
+					const r = el.getBoundingClientRect();
+					return Math.round(r.left + r.width / 2);
+				}, part);
+
+			setSettings({ ...ALL_ON, desk_order: "search,inbox,user,home,apps" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			let bell = await at("bell"), user = await at("user");
+			expect(bell !== null && user !== null, "both tenants mounted in the end zone");
+			expect(bell < user, `default order: bell before user (${bell} < ${user})`);
+
+			setSettings({ ...ALL_ON, desk_order: "search,user,inbox,home,apps" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			bell = await at("bell"); user = await at("user");
+			expect(user < bell, `flipped order: user before bell (${user} < ${bell})`);
+		});
+
+		await test("order: quick links share the zone system, and order among the tenants", async () => {
+			// Home and All Apps used to mount at the bar's literal firstChild
+			// while the bell used the cluster's start ZONE — one visual place,
+			// two containers, and no order between them was expressible. E3
+			// unifies the links into the zone, so this asserts all three
+			// tenants in ONE zone holding a chosen order across a flip.
+			const state = {
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				inbox_placement: "Top Bar Start", home_placement: "Top Bar Start",
+				apps_placement: "Top Bar Start", user_placement: "Top Bar End",
+			};
+			const xs = () =>
+				page.evaluate(() =>
+					Object.fromEntries(
+						["bell", "home", "apps"].map((p) => {
+							const el = document.querySelector(`[data-bnd-part="${p}"]`);
+							return [p, el ? Math.round(el.getBoundingClientRect().left) : null];
+						})
+					)
+				);
+
+			setSettings({ ...state, desk_order: "search,inbox,user,home,apps" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			let m = await xs();
+			expect(m.bell !== null && m.home !== null && m.apps !== null, "all three mounted");
+			expect(m.bell < m.home && m.home < m.apps, `bell, home, apps in order (${m.bell}, ${m.home}, ${m.apps})`);
+
+			setSettings({ ...state, desk_order: "search,home,apps,inbox,user" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			m = await xs();
+			expect(m.home < m.apps && m.apps < m.bell, `links precede the bell after the flip (${m.home}, ${m.apps}, ${m.bell})`);
+		});
+
+		await test("order: the board writes it — a drop before a chip lands before it", async () => {
+			// The board's within-zone drop position IS the order control; there
+			// is no other. Synthetic drag for the same reason the E2 drag test
+			// is synthetic: the handlers are ours, the browser's gesture
+			// recognition is not.
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+				desk_order: "search,inbox,user,home,apps",
+			});
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+			await page.evaluate(() => {
+				const bd = document.querySelector(".bnd-bd");
+				const user = bd.querySelector('.bnd-bd-chip[data-tenant="user"]');
+				const zone = bd.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]');
+				const bell = zone.querySelector('.bnd-bd-chip[data-tenant="inbox"]');
+				const dt = new DataTransfer();
+				user.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+				// Drop ON the bell chip: "before the chip I was dropped on".
+				const r = bell.getBoundingClientRect();
+				const drop = new DragEvent("drop", {
+					bubbles: true, cancelable: true, dataTransfer: dt,
+					clientX: r.left + 2, clientY: r.top + 2,
+				});
+				bell.dispatchEvent(drop);
+				user.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
+			});
+			await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+			const order = getSettings(["desk_order"]).desk_order;
+			expect(
+				order.indexOf("user") < order.indexOf("inbox"),
+				`user precedes inbox in desk_order after the drop (${order})`
+			);
+		});
+
 		await test("slots: nothing ships a value the field will not accept", async () => {
 			// THE CHECK THAT WAS MISSING, and its absence cost a whole suite run.
 			// The vocabulary test above pins the FIELD OPTIONS to the registry.
@@ -2585,6 +2687,18 @@ async function main() {
 				).trim().split("\n").pop()
 			);
 			expectEq(bad.join(" | "), "", "every written placement is one the field offers");
+
+			// E3's order default is pinned the same way: the doctype's literal
+			// must equal what the registry derives, or a tenant added to the
+			// table would ship ranked by a stale string.
+			const orderPin = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import default_desk_order\n" +
+					"stored = frappe.get_meta('Theme Settings').get_field('desk_order').default\n" +
+					"print(json.dumps({'registry': default_desk_order(), 'doctype': stored}))\n"
+				).trim().split("\n").pop()
+			);
+			expectEq(orderPin.doctype, orderPin.registry, "desk_order's default is the registry's");
 
 			// Belt and braces on the live site: whatever it is holding RIGHT NOW
 			// must be acceptable too, or the next save of any setting dies. This
@@ -3764,7 +3878,20 @@ async function main() {
 				return m.join(",");
 			};
 
-			setSettings({ crumb_hover: shipped.crumb_hover });
+			// The placement family is stated too, at its shipped values: the
+			// E3 order tests run earlier in this suite and leave desk_order and
+			// three placements moved, and "no dot at defaults" is only a claim
+			// about a desk that IS at defaults. Inheriting made the placement
+			// dot light for a change this test never made.
+			setSettings({
+				crumb_hover: shipped.crumb_hover,
+				desk_order: shipped.desk_order,
+				inbox_placement: shipped.inbox_placement,
+				user_placement: shipped.user_placement,
+				home_placement: shipped.home_placement,
+				apps_placement: shipped.apps_placement,
+				search_placement: shipped.search_placement,
+			});
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			const entries = await page.evaluate(
 				() => document.querySelectorAll(".bnd-shell-item").length

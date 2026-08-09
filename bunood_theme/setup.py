@@ -26,6 +26,7 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
+from bunood_theme.registry import default_desk_order
 from bunood_theme.presets import (
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
@@ -93,6 +94,10 @@ DEFAULTS = {
     # one of its field values. Values, not the name, are the canon — see
     # bunood_theme/presets.py.
     "sidebar_preset": DEFAULT_SIDEBAR_PRESET,
+    # E3: the tenants' desk order, seeded from the registry so the field's
+    # default and the table cannot drift. The suite pins the doctype's literal
+    # default to the same function.
+    "desk_order": default_desk_order(),
     **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
     # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding

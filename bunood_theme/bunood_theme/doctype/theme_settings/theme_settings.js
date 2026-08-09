@@ -1142,6 +1142,7 @@ const BND_SHELL_OWNS = {
 			"user_placement",
 			"home_placement",
 			"apps_placement",
+			"desk_order",
 		],
 	},
 	// The container and the content it shows are one entry: "is there a bar"
@@ -3143,13 +3144,47 @@ function bnd_board_chip(t, value) {
 	);
 }
 
+/** The stored desk order as a token list, healed against the default. */
+function bnd_order_tokens(frm) {
+	const DEFAULT = ["search", "inbox", "user", "home", "apps"];
+	const stored = String(frm.doc.desk_order || "")
+		.split(",")
+		.map((t) => t.trim())
+		.filter((t) => DEFAULT.indexOf(t) !== -1);
+	return stored.concat(DEFAULT.filter((t) => stored.indexOf(t) === -1));
+}
+
+/**
+ * Move one tenant in the desk order: before `before_key`, or to the end.
+ *
+ * The order is GLOBAL (one list) while the constraint is per-zone, and that
+ * is the design rather than a shortcut: a per-zone list would need a list per
+ * zone a tenant may occupy and a rule for what happens when it moves. One
+ * list, position meaningful wherever two tenants share a zone, is the whole
+ * of E3.
+ */
+function bnd_order_move(frm, moved_key, before_key) {
+	const tokens = bnd_order_tokens(frm).filter((t) => t !== moved_key);
+	const at = before_key ? tokens.indexOf(before_key) : -1;
+	if (at === -1) tokens.push(moved_key);
+	else tokens.splice(at, 0, moved_key);
+	const next = tokens.join(",");
+	if (next !== (frm.doc.desk_order || "")) frm.set_value("desk_order", next);
+}
+
 function bnd_render_placement_board(frm, host) {
 	const $host = bnd_picker_host(frm, "placement_board", host);
 	if (!$host) return;
 
 	const placed = new Map();
 	const off = [];
-	for (const t of BND_BOARD_TENANTS) {
+	// Walked in the DESK order, not declaration order, so the chips in a zone
+	// read exactly as the desk will render them — the board is the order's
+	// only control, and a board that showed a different sequence than the desk
+	// would be a picker lying about what it writes.
+	const by_key = Object.fromEntries(BND_BOARD_TENANTS.map((t) => [t.key, t]));
+	const ordered = bnd_order_tokens(frm).map((k) => by_key[k]).filter(Boolean);
+	for (const t of ordered) {
 		const value = frm.doc[t.field] || bnd_field_first_slot(frm, t.field);
 		if (!value || value === "Off") {
 			off.push(bnd_board_chip(t, "Off"));
@@ -3220,8 +3255,17 @@ function bnd_render_placement_board(frm, host) {
 			? bnd_can_be_off(frm, field)
 			: bnd_field_slots(frm, field).indexOf(slot) !== -1;
 
-	const drop_on = (field, slot) => {
+	const drop_on = (field, slot, order_settled) => {
 		if (!field || !slot || !legal(field, slot)) return;
+		// Landing at a zone's blank space means AFTER its current chips, and
+		// the order list has to say so too or the desk would render the new
+		// arrival wherever its old rank put it — before chips the user just
+		// dropped it behind. The chip-level drop has ALREADY placed the token
+		// ("before this chip") and says so — appending here as well would
+		// clobber the position it just chose, which is exactly what the first
+		// cut did: every before-drop measured as an after-drop.
+		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
+		if (t && slot !== "Off" && !order_settled) bnd_order_move(frm, t.key, null);
 		bnd_inbox_set(frm, field, slot);
 	};
 
@@ -3251,6 +3295,36 @@ function bnd_render_placement_board(frm, host) {
 		const field = $bd.attr("data-armed");
 		if (!field) return;
 		drop_on(field, this.getAttribute("data-slot"));
+	});
+
+	// Dropping ON a chip means "before this chip" — the within-zone position
+	// is the order control (E3), and the zone-level drop stays "at the end".
+	// The chip handler must run before the zone's, so it stops propagation.
+	const tenant_of_field = (field) => {
+		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
+		return t ? t.key : "";
+	};
+	$bd.find(".bnd-bd-chip").on("drop", function (e) {
+		const ev = e.originalEvent || e;
+		ev.preventDefault();
+		ev.stopPropagation();
+		const field = (ev.dataTransfer && ev.dataTransfer.getData("text/plain")) || $bd.attr("data-armed");
+		const zone = this.closest(".bnd-bd-zone");
+		if (!field || !zone) return;
+		const moved = tenant_of_field(field);
+		const before = this.getAttribute("data-tenant");
+		const settled = !!(moved && before && moved !== before);
+		if (settled) bnd_order_move(frm, moved, before);
+		drop_on(field, zone.getAttribute("data-slot"), settled);
+	});
+	$bd.find(".bnd-bd-chip").on("dragover", function (e) {
+		const ev = e.originalEvent || e;
+		const field = $bd.attr("data-armed");
+		const zone = this.closest(".bnd-bd-zone");
+		if (!field || !zone || !legal(field, zone.getAttribute("data-slot"))) return;
+		ev.preventDefault();
+		ev.stopPropagation();
+		if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
 	});
 
 	$bd.find(".bnd-bd-chip").on("dragstart", function (e) {

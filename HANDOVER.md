@@ -90,6 +90,20 @@ in the same `drop_on`, so neither rots alone. Zones come from
 elsewhere. Three suite tests own it (`board:`). The per-component pickers
 remain as the detail view.
 
+**E3 IS DONE** (2026-08-09) — order within a zone. `desk_order` holds tenant
+keys in desk order (one global list; position is meaningful wherever two
+tenants share a zone). Enforcement is `enforce_desk_order()` in bunood.js — a
+DOM sort after each mount pass, never a mount rule, so mounts stay independent
+and the order lives in one place. The quick links now mount into the same
+cluster zones as the bell (`host_for`), which is what made them orderable at
+all. The board writes the order: drop ON a chip = before it, drop on a zone's
+blank space = after its chips — and the first cut clobbered the former with
+the latter's append, so the drop_on/`order_settled` handshake is load-bearing.
+Also: the shell's container query moved to a `.bnd-shell-viewport` wrapper —
+a `@container` rule cannot style the container it queries, so the shell's own
+narrow rule never fired while its children's did, which is what "breaks its
+format instead of reflowing" was.
+
 **The notifications panel follows the BELL now** (`data-bnd-bell`, stamped by
 `mount_placed_tenants` from where the mount landed, cleared on off/absent/no
 host). The four `_layouts.scss` panel rules key on it — the last "the layout
