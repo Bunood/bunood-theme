@@ -4192,6 +4192,288 @@ async function main() {
 		});
 
 		// ── Console error budget ───────────────────────────────────────────
+		// ── 34a: accessibility contracts ───────────────────────────────────
+		//
+		// The kits used ARIA and handled Esc from the start; NONE of it was
+		// asserted (GUIDELINES §2.3), so every attribute here had already
+		// drifted or half-lied somewhere when the 34a audit looked: a tablist
+		// with no tabs, a dialog whose focus() was a silent no-op, an Esc
+		// behind a preference. These tests are the difference between "uses
+		// ARIA" and "keeps its ARIA promises".
+
+		await test("a11y: the palette is a combobox and focus comes back where it left", async () => {
+			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			// Open FROM the trigger, so "restore" has something real to claim.
+			await page.focus(".bnd-search-field");
+			await page.keyboard.press("Enter");
+			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
+			const open = await page.evaluate(() => {
+				const input = document.querySelector(".bnd-palette-input");
+				return {
+					focusInInput: document.activeElement === input,
+					role: input.getAttribute("role"),
+					expanded: input.getAttribute("aria-expanded"),
+					controls: input.getAttribute("aria-controls"),
+					listId: (document.querySelector(".bnd-palette-list") || {}).id,
+				};
+			});
+			expect(open.focusInInput, "focus lands in the input");
+			expectEq(open.role, "combobox", "the input is a combobox");
+			expectEq(open.controls, open.listId, "aria-controls points at the listbox");
+			// The selection moves without focus moving — activedescendant is
+			// the contract, asserted as a TRANSITION.
+			const before = await page.evaluate(() =>
+				document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant")
+			);
+			await page.keyboard.press("ArrowDown");
+			const after = await page.evaluate(() => {
+				const input = document.querySelector(".bnd-palette-input");
+				const active = input.getAttribute("aria-activedescendant");
+				const marked = document.querySelectorAll('.bnd-palette-row[aria-selected="true"]');
+				return { active, markedCount: marked.length, markedId: marked.length === 1 ? marked[0].id : null };
+			});
+			expect(after.active && after.active !== before, "aria-activedescendant moved with the arrow");
+			expectEq(after.markedCount, 1, "exactly one option is aria-selected");
+			expectEq(after.active, after.markedId, "activedescendant names the selected option");
+			// Tab is trapped — aria-modal promised it.
+			await page.keyboard.press("Tab");
+			expect(
+				await page.evaluate(() => document.activeElement === document.querySelector(".bnd-palette-input")),
+				"Tab stays inside the dialog"
+			);
+			// Two-stage Esc, then focus is back on the trigger.
+			await page.keyboard.press("Escape");
+			await page.waitForSelector(".bnd-palette-backdrop[hidden]", { timeout: 5000 });
+			expect(
+				await page.evaluate(() => document.activeElement === document.querySelector(".bnd-search-field")),
+				"focus returned to the control that opened it"
+			);
+		});
+
+		await test("a11y: inbox Esc is not a preference, and focus returns to the bell", async () => {
+			// Shortcuts OFF is the state that used to trap users: Esc sat
+			// behind the same guard as j/k/e, so the panel could be opened
+			// from the bell and never left without a mouse.
+			setSettings({
+				desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
+				inbox_placement: "Top Bar End", inbox_keyboard: 0,
+			});
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click(".bnd-bell");
+			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 5000 });
+			const open = await page.evaluate(() => ({
+				focusInPanel: document.activeElement === document.querySelector(".bnd-inbox"),
+				modal: document.querySelector(".bnd-inbox").getAttribute("aria-modal"),
+				expanded: document.querySelector(".bnd-bell").getAttribute("aria-expanded"),
+				closeBtn: !!document.querySelector(".bnd-inbox-close"),
+			}));
+			expect(open.focusInPanel, "the dialog actually took focus (tabindex was the missing piece)");
+			expectEq(open.modal, "true", "the panel says it is modal");
+			expectEq(open.expanded, "true", "the bell says its popup is open");
+			expect(open.closeBtn, "a visible close control exists");
+			await page.keyboard.press("Escape");
+			await page.waitForSelector(".bnd-inbox-backdrop[hidden]", { timeout: 5000 });
+			expect(
+				await page.evaluate(() => document.activeElement === document.querySelector(".bnd-bell")),
+				"focus returned to the bell"
+			);
+			expectEq(
+				await page.evaluate(() => document.querySelector(".bnd-bell").getAttribute("aria-expanded")),
+				"false",
+				"the bell says its popup closed"
+			);
+		});
+
+		await test("a11y: the bell's name and badge agree about unread", async () => {
+			// The badge's text is masked by the bell's aria-label under accname
+			// rules, so the LABEL carries the count. The two must agree: digits
+			// in the label exactly when the badge shows.
+			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox", inbox_placement: "Top Bar End", inbox_badge: "Count" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click(".bnd-bell");
+			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 5000 });
+			await page.waitForFunction(
+				() => !document.querySelector(".bnd-inbox-empty") || !/Loading/.test(document.querySelector(".bnd-inbox-empty").textContent),
+				{ timeout: 8000 }
+			).catch(() => {});
+			const state = await page.evaluate(() => {
+				const bell = document.querySelector(".bnd-bell");
+				const badge = bell.querySelector(".bnd-inbox-badge");
+				return {
+					label: bell.getAttribute("aria-label") || "",
+					badgeShown: !!badge && !badge.hasAttribute("hidden") && badge.textContent.trim() !== "",
+				};
+			});
+			expectEq(
+				/\d/.test(state.label),
+				state.badgeShown,
+				`label "${state.label}" and badge visibility (${state.badgeShown}) tell one story`
+			);
+			await page.keyboard.press("Escape");
+		});
+
+		await test("a11y: the settings rail is a real tablist", async () => {
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			const shape = await page.evaluate(() => {
+				const items = [...document.querySelectorAll(".bnd-shell-item")];
+				return {
+					allTabs: items.every((n) => n.getAttribute("role") === "tab"),
+					selected: items.filter((n) => n.getAttribute("aria-selected") === "true").length,
+					tabStops: items.filter((n) => n.getAttribute("tabindex") === "0").length,
+				};
+			});
+			expect(shape.allTabs, "every entry is role=tab");
+			expectEq(shape.selected, 1, "exactly one entry is selected");
+			expectEq(shape.tabStops, 1, "exactly one entry is the Tab stop (roving tabindex)");
+			// Arrows move the selection AND the focus — asserted as a transition.
+			const moved = await page.evaluate(() => {
+				const first = document.querySelector('.bnd-shell-item[tabindex="0"]');
+				first.focus();
+				const beforeKey = first.getAttribute("data-key");
+				first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+				const now = document.activeElement;
+				return {
+					beforeKey,
+					afterKey: now.classList.contains("bnd-shell-item") ? now.getAttribute("data-key") : null,
+					afterSelected: now.getAttribute && now.getAttribute("aria-selected"),
+				};
+			});
+			expect(moved.afterKey && moved.afterKey !== moved.beforeKey, "ArrowDown moved to the next entry");
+			expectEq(moved.afterSelected, "true", "the focused entry became the selected one");
+		});
+
+		await test("a11y: the board reorders without a pointer", async () => {
+			// Design pick 1A end to end: arm by click (a keyboard Enter on a
+			// button IS a click), nudge with the arrows the armed chip grows,
+			// and land on the same desk_order the drag path writes.
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+				desk_order: "search,inbox,user,home,apps",
+			});
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+			const zoneOk = await page.evaluate(() => {
+				const zone = document.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]');
+				return { tabindex: zone.getAttribute("tabindex"), role: zone.getAttribute("role"), named: !!zone.getAttribute("aria-label") };
+			});
+			expectEq(zoneOk.tabindex, "0", "drop zones are focusable");
+			expectEq(zoneOk.role, "button", "drop zones are controls");
+			expect(zoneOk.named, "drop zones have names");
+			await page.click('.bnd-bd-chip[data-tenant="user"]');
+			await page.waitForSelector(".bnd-bd-nudge", { timeout: 5000 });
+			expectEq(
+				await page.evaluate(() => document.querySelector('.bnd-bd-chip[data-tenant="user"]').getAttribute("aria-pressed")),
+				"true",
+				"the armed chip says it is picked up"
+			);
+			await page.evaluate(() => {
+				const earlier = document.querySelector(".bnd-bd-nudge .bnd-bd-nudge-btn");
+				earlier.click();
+			});
+			await page.waitForFunction(() => window.cur_frm && !window.cur_frm.is_dirty(), { timeout: 20000 });
+			const order = getSettings(["desk_order"]).desk_order;
+			expect(
+				order.indexOf("user") < order.indexOf("inbox"),
+				`one nudge moved user before inbox (${order})`
+			);
+			// And the bar survived its own write — the re-render used to
+			// dismantle the control mid-use.
+			expect(await q(".bnd-bd-nudge"), "the nudge bar is still there after the write");
+		});
+
+		await test("a11y: switches say their state, options say their selection", async () => {
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="crumbs"]');
+			await page.waitForTimeout(600);
+			const shape = await page.evaluate(() => {
+				const toggles = [...document.querySelectorAll(".bnd-cbp-toggle")].filter((n) => n.offsetParent);
+				const opts = [...document.querySelectorAll(".bnd-cbp-opt")].filter((n) => n.offsetParent);
+				return {
+					toggleCount: toggles.length,
+					allSwitches: toggles.every((n) => n.getAttribute("role") === "switch" && ["true", "false"].includes(n.getAttribute("aria-checked"))),
+					knobAgrees: toggles.every((n) => (n.getAttribute("aria-checked") === "true") === !!n.querySelector(".bnd-cbp-knob-on")),
+					optCount: opts.length,
+					allPressed: opts.every((n) => ["true", "false"].includes(n.getAttribute("aria-pressed"))),
+					pressedAgrees: opts.every((n) => (n.getAttribute("aria-pressed") === "true") === n.classList.contains("bnd-cbp-on")),
+				};
+			});
+			expect(shape.toggleCount > 0, "the pane has switches to check");
+			expect(shape.allSwitches, "every toggle is role=switch with aria-checked");
+			expect(shape.knobAgrees, "aria-checked agrees with the visual knob");
+			expect(shape.optCount > 0, "the pane has option chips to check");
+			expect(shape.allPressed, "every option chip carries aria-pressed");
+			expect(shape.pressedAgrees, "aria-pressed agrees with the visual selection");
+		});
+
+		await test("a11y: every icon control has a name", async () => {
+			// The regression net: a control whose accessible name is empty (or
+			// a bare glyph) is invisible to a screen reader. Swept over every
+			// bnd button on a fully-furnished desk.
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+			});
+			await goDesk("/desk/item", ".page-head", 4000);
+			const nameless = await page.evaluate(() => {
+				const out = [];
+				for (const n of document.querySelectorAll('button[class*="bnd-"], [role="button"][class*="bnd-"]')) {
+					if (!n.offsetParent) continue;
+					const name = (n.getAttribute("aria-label") || n.textContent || "").trim();
+					// A one-character name is a glyph, not a name.
+					if (name.length < 2) out.push(n.className.split(" ")[0] + (name ? ` ("${name}")` : " (empty)"));
+				}
+				return [...new Set(out)];
+			});
+			expectEq(nameless.join(", "), "", "no visible bnd control is nameless");
+		});
+
+		await test("a11y: resting controls are identifiable (the 3B rule)", async () => {
+			// Item 32's hand-off, enforced: a control identifies itself at rest
+			// by a >=3:1 border OR a fill delta against its host. These two
+			// rested on a 1.2-1.5:1 hairline with a near-zero delta; the rule
+			// says the delta must be real, so this measures it.
+			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const delta = await page.evaluate(() => {
+				const parse = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				const dist = (a, b) => {
+					const pa = parse(a), pb = parse(b);
+					return Math.max(Math.abs(pa[0] - pb[0]), Math.abs(pa[1] - pb[1]), Math.abs(pa[2] - pb[2]));
+				};
+				const field = document.querySelector(".bnd-search-field");
+				const bar = document.querySelector(".bnd-topbar");
+				return dist(getComputedStyle(field).backgroundColor, getComputedStyle(bar).backgroundColor);
+			});
+			expect(delta >= 5, `the search field's fill differs from the bar (channel delta ${delta})`);
+		});
+
+		await test("a11y: the skip link is the first Tab and it skips", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, sidebar_enabled: 1 });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.evaluate(() => document.activeElement && document.activeElement.blur());
+			await page.keyboard.press("Tab");
+			expect(
+				await page.evaluate(() => document.activeElement.classList.contains("bnd-skip-link")),
+				"first Tab lands on the skip link"
+			);
+			expect(
+				await page.evaluate(() => {
+					const cs = getComputedStyle(document.querySelector(".bnd-skip-link"));
+					return cs.opacity !== "0";
+				}),
+				"the focused skip link is visible"
+			);
+			await page.keyboard.press("Enter");
+			expect(
+				await page.evaluate(() => !!document.activeElement.closest(".main-section")),
+				"activating it moves focus into the page"
+			);
+		});
+
 		await test("console error budget: nothing beyond the allowlist", async () => {
 			const unexpected = consoleErrors.filter((e) => !CONSOLE_ALLOWLIST.some((re) => re.test(e)));
 			expectEq(unexpected.length, 0, `unexpected console errors:\n${unexpected.slice(0, 5).join("\n")}`);

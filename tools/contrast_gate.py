@@ -151,6 +151,39 @@ def pairs():
         ("var(--bnd-border-strong)", "var(--bnd-hover)", None,
          "hover accent alongside a background change; see item 34"),
     ]
+
+    # ── The sidebar kit's own palette (34a) ──────────────────────────────────
+    #
+    # UNMEASURED UNTIL NOW, and the published claim that it carried "no
+    # per-tenant risk because its values are fixed" was checked by the 34a
+    # audit and found false on both halves: the seven --bnd-cat-N hues ARE
+    # fixed, but they are painted as section-label TEXT over pane surfaces
+    # that the colour mode changes entirely — two fixed hexes (Minimal,
+    # Dark Contrast) and two seed-derived ones (Match Theme, Brand). A fixed
+    # ink over a seed-tinted surface is exactly the shape item 32 proved
+    # cannot pass by luck (ink-subtle failed 96 of 96 placements).
+    #
+    # The eight presets reduce to these four pane surfaces: colour mode is
+    # the load-bearing dimension; intensity and wash only scale the 16% hue
+    # chip, which sits UNDER the same label and never carries it alone.
+    #
+    # MEASURED, NOT YET ENFORCED — the same first step item 32 took, and the
+    # same reasoning: if a hue fails on a pane, the fix is fitting the ink
+    # (a design decision about seven colours x four panes), not silencing a
+    # gate. Publishing the numbers is what makes that decision possible; the
+    # enforcement lands with the fitting, in 34a's follow-up slice.
+    SB_PANES = [
+        ("var(--bnd-pane)", "match-theme pane"),
+        ("#fafbfa", "minimal pane"),
+        ("#15181a", "dark-contrast pane"),
+        ("color-mix(in srgb, var(--bnd-brand) 10%, #131a15)", "brand pane"),
+    ]
+    for n in range(1, 8):
+        for pane, pane_label in SB_PANES:
+            out.append((
+                f"var(--bnd-cat-{n})", pane, None,
+                f"sidebar hue {n} as text on the {pane_label}",
+            ))
     return out
 
 

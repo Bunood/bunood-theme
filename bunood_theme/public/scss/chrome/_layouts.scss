@@ -297,3 +297,28 @@ html[data-bnd-own~="user"] {
     }
   }
 }
+
+// ── Skip link (34a) ─────────────────────────────────────────────────────────
+// Invisible until focused — the standard clip pattern, then a pill above every
+// piece of chrome. Never display:none: a hidden control cannot receive the
+// focus that reveals it.
+.bnd-skip-link {
+  position: fixed;
+  inset-inline-start: var(--bnd-sp-3);
+  inset-block-start: var(--bnd-sp-3);
+  z-index: calc(var(--bnd-z-flyout) + 10);
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  transform: translateY(calc(-100% - var(--bnd-sp-5)));
+  opacity: 0;
+  pointer-events: none;
+}
+.bnd-skip-link:focus-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}

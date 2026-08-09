@@ -156,6 +156,30 @@
 		document.documentElement.setAttribute("data-bnd-status", String(label).toLowerCase());
 	})();
 
+	// ── Skip link (34a, design pick 4A) ─────────────────────────────────────
+	// A keyboard user otherwise crosses the whole chrome — pane, bars, dock —
+	// on every page before reaching content. First Tab reveals a pill that
+	// jumps straight to the page. Mounted once, first in the body, so it is
+	// the first Tab stop by document order rather than by tabindex tricks.
+	(function mount_skip_link() {
+		const add = () => {
+			if (!document.body || document.querySelector(".bnd-skip-link")) return;
+			const link = el("button", "bnd-skip-link", { type: "button" });
+			link.textContent = __("Skip to content");
+			link.addEventListener("click", () => {
+				const main =
+					document.querySelector(".main-section .page-container:not([style*='display: none']) .page-head") ||
+					document.querySelector(".main-section");
+				if (!main) return;
+				main.setAttribute("tabindex", "-1");
+				main.focus();
+			});
+			document.body.insertBefore(link, document.body.firstChild);
+		};
+		if (document.body) add();
+		else document.addEventListener("DOMContentLoaded", add);
+	})();
+
 	/** Current layout slug, or "" when the system is inactive. */
 	function layout() {
 		return document.documentElement.getAttribute("data-bnd-layout") || "";
@@ -906,6 +930,9 @@
 	/** Close the open menu, if any. Safe to call always. */
 	function close_menu() {
 		if (open_menu) {
+			if (open_menu._trigger && open_menu._trigger.setAttribute) {
+				open_menu._trigger.setAttribute("aria-expanded", "false");
+			}
 			open_menu.remove();
 			open_menu = null;
 		}
@@ -941,6 +968,13 @@
 
 		const menu = el("div", "bnd-menu", { role: "menu" });
 		menu._trigger = trigger;
+		// Stamped here, in the one place every menu routes through, rather
+		// than at each trigger's build site: a trigger that can open a menu
+		// says so the first time it does, and says whether it is open always.
+		if (trigger && trigger.setAttribute) {
+			trigger.setAttribute("aria-haspopup", "menu");
+			trigger.setAttribute("aria-expanded", "true");
+		}
 
 		for (const item of items) {
 			if (item === "divider") {
@@ -1632,6 +1666,8 @@ function sb_zone_anchor(pane, zone, node) {
 			"data-bnd-part": "bell",
 			"aria-label": __("Notifications"),
 			title: __("Notifications"),
+			"aria-haspopup": "dialog",
+			"aria-expanded": "false",
 		});
 		bell.appendChild(cloned_icon(".sidebar-notification", "icon-bell"));
 		// The unread badge is OURS to build: Frappe's own badge code toggles
@@ -2262,7 +2298,7 @@ function sb_zone_anchor(pane, zone, node) {
 	function mount_topbar() {
 		const header = document.querySelector(".main-section > header");
 		if (!header || header.querySelector(".bnd-topbar")) return;
-		const bar = el("div", "bnd-topbar", { "data-bnd-part": "topbar" });
+		const bar = el("div", "bnd-topbar", { "data-bnd-part": "topbar", role: "navigation", "aria-label": __("Top bar") });
 		// No search here any more: mount_search() places it per the setting,
 		// which may well be this bar — but may equally be the sidebar or the
 		// bottom strip. The bar only owns the cluster it always owned, plus a
@@ -2310,7 +2346,7 @@ function sb_zone_anchor(pane, zone, node) {
 	function mount_statusbar() {
 		if (document.querySelector(".bnd-statusbar")) return;
 
-		const bar = el("div", "bnd-statusbar", { "data-bnd-part": "bottombar" });
+		const bar = el("div", "bnd-statusbar", { "data-bnd-part": "bottombar", role: "navigation", "aria-label": __("Status bar") });
 
 		// Connection: dot + word. State wired to the realtime socket when it
 		// exposes lifecycle events, else to navigator.onLine — both guarded,
@@ -2372,6 +2408,11 @@ function sb_zone_anchor(pane, zone, node) {
 			const fresh = el("button", "bnd-status-item bnd-status-fresh", {
 				type: "button",
 				title: __("Refresh now"),
+				// The visible text is a timestamp ("12s ago"), and content
+				// beats title in the accessible name — so a screen reader
+				// heard the age and never the ACTION. The label names what
+				// pressing it does.
+				"aria-label": __("Refresh now"),
 				"data-bnd-prio": "1",
 			});
 			fresh.addEventListener("click", () => status_poll(true));
@@ -2970,7 +3011,12 @@ function sb_zone_anchor(pane, zone, node) {
 		/** Load the active tab into the page list. */
 		function load() {
 			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
-				btn.classList.toggle("bnd-inbox-tab-on", btn.getAttribute("data-tab") === inbox_tab);
+				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
+				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
+				// The class styles; the attribute SAYS. role=tab without
+				// aria-selected is a tab bar a screen reader cannot read the
+				// state of.
+				btn.setAttribute("aria-selected", tab_on ? "true" : "false");
 			}
 			list.innerHTML = "";
 			const loading = el("div", "bnd-inbox-empty");
@@ -3279,19 +3325,34 @@ function sb_zone_anchor(pane, zone, node) {
 		const shell = el("div", "bnd-palette", { role: "dialog", "aria-modal": "true", "aria-label": __("Command palette") });
 		const head = el("div", "bnd-palette-head");
 		head.appendChild(sprite_icon(sb_existing_symbol(["icon-search", "es-line-search"]) || "icon-search"));
+		// COMBOBOX WIRING (34a). The visual pattern was always "editable field
+		// drives a listbox"; the attributes now say so. Focus stays on the
+		// input for the palette's whole life — the active option is conveyed
+		// by aria-activedescendant, which pal_highlight maintains, so a screen
+		// reader hears the selection move while the caret never leaves the
+		// query. That is the W3C combobox pattern, not a simplification of it.
 		const input = el("input", "bnd-palette-input", {
 			type: "text",
 			placeholder: __("Search or type a command"),
 			"aria-label": __("Search"),
 			spellcheck: "false",
+			role: "combobox",
+			"aria-expanded": "true",
+			"aria-controls": "bnd-pal-list",
+			"aria-autocomplete": "list",
+			"aria-describedby": "bnd-pal-footer",
 		});
 		head.appendChild(input);
 		shell.appendChild(head);
-		const list = el("div", "bnd-palette-list", { role: "listbox" });
+		const list = el("div", "bnd-palette-list", { role: "listbox", id: "bnd-pal-list", "aria-label": __("Results") });
 		shell.appendChild(list);
+		// The result count, announced. Polite: a keystroke's count should never
+		// interrupt the input echo that matters more.
+		const status = el("div", "bnd-palette-status bnd-visually-hidden", { role: "status", "aria-live": "polite" });
+		shell.appendChild(status);
 		let footer = null;
 		if (parseInt(pal_state.footer, 10)) {
-			footer = el("div", "bnd-palette-footer");
+			footer = el("div", "bnd-palette-footer", { id: "bnd-pal-footer" });
 			shell.appendChild(footer);
 		}
 		backdrop.appendChild(shell);
@@ -3302,7 +3363,22 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 		input.addEventListener("input", () => pal_render(input.value.trim()));
 		input.addEventListener("keydown", pal_keydown);
-		pal_nodes = { backdrop, shell, input, list, footer };
+		// aria-modal promises the desk is inert while the palette is up, and
+		// the input is the dialog's only tabbable — so Tab has nowhere honest
+		// to go. Trapping it on the SHELL (capture on the dialog, not the
+		// input) keeps the promise even if focus ever lands elsewhere inside.
+		shell.addEventListener("keydown", (ev) => {
+			if (ev.key === "Tab") {
+				ev.preventDefault();
+				input.focus();
+			} else if (ev.key === "Escape" && ev.target !== input) {
+				// Esc must work wherever focus sits inside the dialog, not
+				// only in the input — pal_keydown is input-bound.
+				ev.preventDefault();
+				pal_close();
+			}
+		});
+		pal_nodes = { backdrop, shell, input, list, footer, status };
 	}
 
 	/** Rows currently rendered, flat, for keyboard traversal. */
@@ -3347,6 +3423,8 @@ function sb_zone_anchor(pane, zone, node) {
 	function pal_row_el(row, flat_index) {
 		const attrs = {
 			role: "option",
+			id: "bnd-pal-opt-" + flat_index,
+			"aria-selected": "false",
 			"data-idx": String(flat_index),
 			// `|| ""` because the fallback rows are hand-built rather than
 			// produced by pal_row(), and the calculator one carries no key.
@@ -3378,6 +3456,13 @@ function sb_zone_anchor(pane, zone, node) {
 			ev.preventDefault();
 			pal_execute(row, ev.ctrlKey || ev.metaKey);
 		});
+		// Click too: assistive tech that synthesises activation sends a plain
+		// click, not the mousedown the pointer path uses. Idempotent — the
+		// mousedown's preventDefault means a real pointer never fires both.
+		item.addEventListener("click", (ev) => {
+			ev.preventDefault();
+			pal_execute(row, ev.ctrlKey || ev.metaKey);
+		});
 		return item;
 	}
 
@@ -3386,11 +3471,19 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!pal_flat.length) return;
 		pal_cursor = ((index % pal_flat.length) + pal_flat.length) % pal_flat.length;
 		const rows = pal_nodes.list.querySelectorAll(".bnd-palette-row");
-		rows.forEach((node) => node.removeAttribute("aria-selected"));
+		// Explicit "false", never absent: with a listbox the unstated case is
+		// undefined behaviour across screen readers, and the attribute is the
+		// contract the suite now asserts.
+		rows.forEach((node) => node.setAttribute("aria-selected", "false"));
 		const active = pal_nodes.list.querySelector('.bnd-palette-row[data-idx="' + pal_cursor + '"]');
 		if (active) {
 			active.setAttribute("aria-selected", "true");
+			// The combobox pattern's moving part: focus stays in the input and
+			// this attribute tells AT which option is current.
+			pal_nodes.input.setAttribute("aria-activedescendant", active.id);
 			active.scrollIntoView({ block: "nearest" });
+		} else {
+			pal_nodes.input.removeAttribute("aria-activedescendant");
 		}
 	}
 
@@ -3403,7 +3496,10 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const group of groups) {
 			const species = PAL_SPECIES[group.species];
 			if (species.title()) {
-				const heading = el("div", "bnd-palette-group");
+				// aria-hidden: a listbox may contain only options, and the
+				// species is already on every row as data + badge text. The
+				// heading is visual grouping, not unique information.
+				const heading = el("div", "bnd-palette-group", { "aria-hidden": "true" });
 				heading.textContent = species.title();
 				pal_nodes.list.appendChild(heading);
 			}
@@ -3413,7 +3509,7 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 		}
 		if (fallbacks.length) {
-			const divider = el("div", "bnd-palette-divider");
+			const divider = el("div", "bnd-palette-divider", { "aria-hidden": "true" });
 			pal_nodes.list.appendChild(divider);
 			for (const row of fallbacks) {
 				pal_nodes.list.appendChild(pal_row_el(row, pal_flat.length));
@@ -3426,6 +3522,13 @@ function sb_zone_anchor(pane, zone, node) {
 			pal_nodes.list.appendChild(empty);
 		}
 		pal_highlight(0);
+		if (pal_nodes.status) {
+			pal_nodes.status.textContent = pal_flat.length
+				? __("{0} results", [pal_flat.length])
+				: txt
+					? __("No matches")
+					: "";
+		}
 		pal_footer_hints();
 
 		// Pro record-search stage: '#query' or any plain query of 3+ chars
@@ -3605,18 +3708,34 @@ function sb_zone_anchor(pane, zone, node) {
 		// is up; our resting slot is below dialogs by design, so lift just
 		// this open above them or the palette would render underneath.
 		pal_nodes.backdrop.style.zIndex = other_modal ? "1055" : "";
+		// Where focus came FROM, so pal_close can put it back. The opener is
+		// whatever was focused at the moment of opening — the search button,
+		// the field-shaped button, or wherever Ctrl+K found the user — and
+		// closing a dialog that dumps focus on <body> strands a keyboard user
+		// at the top of the page.
+		pal_opener = document.activeElement;
 		pal_nodes.backdrop.removeAttribute("hidden");
 		pal_nodes.input.value = seed;
 		pal_render(seed);
 		pal_nodes.input.focus();
 	}
 
-	/** Close and return focus to the page. */
+	/** The element focused when the palette opened; focus returns to it. */
+	let pal_opener = null;
+
+	/** Close and return focus to where it came from. */
 	function pal_close() {
 		if (pal_nodes) {
 			pal_nodes.backdrop.setAttribute("hidden", "");
 			pal_nodes.input.blur();
 		}
+		// Restore, then forget: a stale opener from a page that has since been
+		// torn down fails the isConnected check and focus stays where it is,
+		// which is the honest fallback.
+		if (pal_opener && pal_opener.isConnected && typeof pal_opener.focus === "function") {
+			pal_opener.focus();
+		}
+		pal_opener = null;
 	}
 
 	/**
@@ -3773,6 +3892,25 @@ function sb_zone_anchor(pane, zone, node) {
 		// item-13 suite).
 		const style = document.documentElement.getAttribute("data-bnd-inbox");
 		const mode = !style ? "Off" : (inbox_state && inbox_state.badge) || "Count";
+		// The badge span is INVISIBLE to a screen reader: the bell's aria-label
+		// masks all descendant text under accname rules. So the label is where
+		// the count lives for AT, updated in the same pass that paints it.
+		for (const bell of document.querySelectorAll(".bnd-bell")) {
+			bell.setAttribute(
+				"aria-label",
+				inbox_unread > 0
+					? __("Notifications, {0} unread", [String(inbox_unread)])
+					: __("Notifications")
+			);
+		}
+		// Announce the change too: marking rows read gives no visual feedback
+		// beyond the number shrinking, and no audible feedback at all without
+		// this. Lives on the PANEL so it only speaks while the panel is up.
+		if (inbox_nodes && inbox_nodes.status) {
+			inbox_nodes.status.textContent = inbox_unread > 0
+				? __("{0} unread", [String(inbox_unread)])
+				: __("All read");
+		}
 		for (const node of document.querySelectorAll(".bnd-inbox-badge")) {
 			let text = "";
 			let show = false;
@@ -3990,9 +4128,9 @@ function sb_zone_anchor(pane, zone, node) {
 			role: "option",
 			"data-idx": String(flat_index),
 		});
-		item.appendChild(el("span", "bnd-inbox-dot"));
+		item.appendChild(el("span", "bnd-inbox-dot", { "aria-hidden": "true" }));
 
-		const avatar = el("span", "bnd-inbox-avatar");
+		const avatar = el("span", "bnd-inbox-avatar", { "aria-hidden": "true" });
 		const who = row.from_user || "";
 		avatar.textContent = (who.replace(/@.*/, "").trim().charAt(0) || "?").toUpperCase();
 		item.appendChild(avatar);
@@ -4122,6 +4260,16 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Keyboard triage: arrows move, Enter opens, e marks read, Esc closes. */
 	function inbox_keydown(ev, list, close) {
+		// ESCAPE IS NOT A PREFERENCE. `inbox_keyboard` gates the TRIAGE keys —
+		// j/k/e are power-user vocabulary a user opts into — but Esc is how a
+		// keyboard user LEAVES, and it used to sit behind the same guard: with
+		// "Keyboard shortcuts" off, the panel could be opened from the bell
+		// and never closed again without a mouse. Found by the 34a audit.
+		if (ev.key === "Escape" && close) {
+			ev.preventDefault();
+			close();
+			return;
+		}
 		if (!inbox_state || !parseInt(inbox_state.keyboard, 10)) return;
 		const row = inbox_flat[inbox_cursor];
 		if (ev.key === "ArrowDown" || ev.key === "j") {
@@ -4150,7 +4298,13 @@ function sb_zone_anchor(pane, zone, node) {
 		const backdrop = el("div", "bnd-inbox-backdrop", { hidden: "" });
 		const panel = el("div", "bnd-inbox", {
 			role: "dialog",
+			"aria-modal": "true",
 			"aria-label": __("Notifications"),
+			// Without a tabindex, `panel.focus()` on open is a silent no-op —
+			// a div is not focusable — and keyboard focus stayed on the bell
+			// behind the backdrop. -1: programmatically focusable, not in the
+			// tab order.
+			tabindex: "-1",
 		});
 
 		const head = el("div", "bnd-inbox-head");
@@ -4173,12 +4327,28 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 		const gear = sb_existing_symbol(["icon-setting-gear", "icon-settings", "es-line-settings"]);
 		if (gear) settings.appendChild(sprite_icon(gear));
+		// Design pick 2A: Esc and the backdrop both close, but neither is
+		// VISIBLE — a panel whose only exits are invisible is a panel some
+		// users cannot leave. One labelled X, after the gear.
+		const close_btn = el("button", "bnd-inbox-act bnd-inbox-close", {
+			type: "button",
+			"aria-label": __("Close notifications"),
+			title: __("Close notifications"),
+		});
+		const x_symbol = sb_existing_symbol(["icon-close", "es-line-close", "icon-x"]);
+		if (x_symbol) close_btn.appendChild(sprite_icon(x_symbol));
+		else close_btn.textContent = "×";
+		close_btn.addEventListener("click", (ev) => {
+			ev.stopPropagation();
+			inbox_close();
+		});
 		settings.addEventListener("click", (ev) => {
 			ev.stopPropagation();
 			inbox_close();
 			frappe.set_route("Form", "Notification Settings", frappe.session.user);
 		});
 		head.appendChild(settings);
+		head.appendChild(close_btn);
 		panel.appendChild(head);
 
 		const tabs = el("div", "bnd-inbox-tabs", { role: "tablist" });
@@ -4223,14 +4393,21 @@ function sb_zone_anchor(pane, zone, node) {
 			if (ev.target === backdrop) inbox_close();
 		});
 		panel.addEventListener("keydown", (ev) => inbox_keydown(ev, list, inbox_close));
-		inbox_nodes = { backdrop, panel, list, count, tabs };
+		const status = el("div", "bnd-inbox-status bnd-visually-hidden", { role: "status", "aria-live": "polite" });
+		panel.appendChild(status);
+		inbox_nodes = { backdrop, panel, list, count, tabs, status };
 	}
 
 	/** Load the active tab into the panel. */
 	function inbox_load() {
 		if (!inbox_nodes) return;
 		for (const btn of inbox_nodes.tabs.querySelectorAll(".bnd-inbox-tab")) {
-			btn.classList.toggle("bnd-inbox-tab-on", btn.getAttribute("data-tab") === inbox_tab);
+			const tab_on = btn.getAttribute("data-tab") === inbox_tab;
+			btn.classList.toggle("bnd-inbox-tab-on", tab_on);
+			// The class styles; the attribute SAYS. role=tab without
+			// aria-selected is a tab bar a screen reader cannot read the
+			// state of.
+			btn.setAttribute("aria-selected", tab_on ? "true" : "false");
 		}
 		inbox_nodes.list.innerHTML = "";
 		const loading = el("div", "bnd-inbox-empty");
@@ -4247,6 +4424,9 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 	}
 
+	/** The element focused when the panel opened; focus returns to it. */
+	let inbox_opener = null;
+
 	/** Open the panel (building lazily); a second invocation closes it. */
 	function inbox_open_panel() {
 		if (!inbox_nodes) inbox_build();
@@ -4254,15 +4434,29 @@ function sb_zone_anchor(pane, zone, node) {
 			inbox_close();
 			return;
 		}
+		inbox_opener = document.activeElement;
 		inbox_nodes.backdrop.removeAttribute("hidden");
+		inbox_set_expanded(true);
 		inbox_tab = "unread";
 		inbox_load();
 		inbox_nodes.panel.focus();
 	}
 
-	/** Close the panel. */
+	/** Close the panel and give focus back to whatever opened it. */
 	function inbox_close() {
 		if (inbox_nodes) inbox_nodes.backdrop.setAttribute("hidden", "");
+		inbox_set_expanded(false);
+		if (inbox_opener && inbox_opener.isConnected && typeof inbox_opener.focus === "function") {
+			inbox_opener.focus();
+		}
+		inbox_opener = null;
+	}
+
+	/** Reflect the panel's open state on every bell that can open it. */
+	function inbox_set_expanded(open) {
+		for (const bell of document.querySelectorAll(".bnd-bell")) {
+			bell.setAttribute("aria-expanded", open ? "true" : "false");
+		}
 	}
 
 	/**
@@ -4440,6 +4634,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const brand = el("button", "bnd-dock-item bnd-dock-brand", {
 			type: "button",
 			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
+			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
 		});
 		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
 		brand.addEventListener("click", () => frappe.set_route(""));
@@ -4514,7 +4709,12 @@ function sb_zone_anchor(pane, zone, node) {
 				: String(name).toLowerCase().replace(/ /g, "-");
 		const current_slug = route[0] === "Workspaces" && route[1] ? slug(route[1]) : "";
 		for (const item of dock.querySelectorAll("[data-ws]")) {
-			item.classList.toggle("bnd-active", item.getAttribute("data-ws") === current_slug);
+			const ws_on = item.getAttribute("data-ws") === current_slug;
+			item.classList.toggle("bnd-active", ws_on);
+			// The highlight, stated: without aria-current the active
+			// workspace is indistinguishable from its neighbours to AT.
+			if (ws_on) item.setAttribute("aria-current", "page");
+			else item.removeAttribute("aria-current");
 		}
 	}
 
@@ -4858,6 +5058,14 @@ function sb_zone_anchor(pane, zone, node) {
 		const toggle_pin = () => {
 			pinned = !pinned;
 			container.classList.toggle("bnd-rail-pinned", pinned);
+			// Both toggles SAY what they hold: the expand button controls the
+			// pane's expansion (aria-expanded), the pin holds it (aria-pressed).
+			for (const b of container.querySelectorAll(".bnd-railbtn")) {
+				b.setAttribute("aria-expanded", pinned ? "true" : "false");
+			}
+			for (const b of container.querySelectorAll(".bnd-sb-pin")) {
+				b.setAttribute("aria-pressed", pinned ? "true" : "false");
+			}
 			if (pinned) {
 				clearTimeout(close_timer);
 				container.classList.add("bnd-rail-open");
@@ -4905,7 +5113,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (trigger === "hoverpin") {
 			const header = container.querySelector(".bnd-sb-brand") || container.querySelector(".sidebar-header");
 			if (header) {
-				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open") });
+				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
 				pin.textContent = "⌖";
 				pin.addEventListener("click", (e) => {
 					e.stopPropagation();
@@ -4926,6 +5134,7 @@ function sb_zone_anchor(pane, zone, node) {
 			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos + " bnd-railbtn-" + shape, {
 				type: "button",
 				"aria-label": __("Expand sidebar"),
+				"aria-expanded": "false",
 				title: __("Expand sidebar"),
 			});
 			btn.appendChild(
@@ -5080,6 +5289,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const brand = el("button", "bnd-apps-rail-item bnd-apps-rail-brand", {
 			type: "button",
 			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
+			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
 		});
 		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
 		brand.addEventListener("click", () => frappe.set_route(""));
@@ -5122,7 +5332,12 @@ function sb_zone_anchor(pane, zone, node) {
 			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
 		const current = route[0] === "Workspaces" && route[1] ? slug(route[1]) : "";
 		for (const item of rail.querySelectorAll("[data-ws]")) {
-			item.classList.toggle("bnd-active", item.getAttribute("data-ws") === current);
+			const ws_on = item.getAttribute("data-ws") === current;
+			item.classList.toggle("bnd-active", ws_on);
+			// The highlight, stated: without aria-current the active
+			// workspace is indistinguishable from its neighbours to AT.
+			if (ws_on) item.setAttribute("aria-current", "page");
+			else item.removeAttribute("aria-current");
 		}
 	}
 

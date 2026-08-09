@@ -255,7 +255,15 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
   plus the no-brand-sheet fallback, in CI; the smoke suite ties it to rendered pixels.
   Nothing is ever rejected — Theme Settings reports what it adjusted. See GUIDELINES
   §2.2 "RESOLVED".
-- `[ ]` **34a · Accessibility assertions for the components that already exist** — the
+- `[~]` **34a · Accessibility assertions for the components that already exist** —
+  slice 1 built 2026-08-09 on the `a11y-34a` worktree branch (verification
+  pending the shared bench): palette combobox contract + focus restore, inbox
+  Esc/focus/close-button, shell tablist keyboard, switch/option states, board
+  keyboard + nudge reorder (pick 1A), skip link (4A), resting-fill rule (3B),
+  nine suite contracts, and the sidebar palette measured into the contrast
+  gate — where hue 4 reads 1.97:1 on light panes, so the follow-up slice is
+  ink-fitting (with numbers) plus enforcement plus scoped axe. Original scope
+  text: the
   kits already use ARIA and handle Esc; none of it is asserted. Focus contracts on the
   palette and inbox are cheap because the harness already drives them. See §2.3.
   **Item 32 handed two things to this one:** (a) whether a control whose resting

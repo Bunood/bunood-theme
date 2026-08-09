@@ -45,7 +45,13 @@ html[data-theme] .bnd-search-field {
   padding-inline: var(--bnd-sp-3);
   border: var(--bnd-line) solid var(--bnd-border);
   border-radius: var(--bnd-radius-md);
-  background: var(--bnd-page);
+  // THE RESTING-IDENTIFICATION RULE (34a, design pick 3B): a control is
+  // identifiable at rest by a border with >=3:1 contrast OR by a visible
+  // fill delta against its host. This one keeps the hairline and takes the
+  // delta — var(--bnd-page) alone measured near-identical to the bar
+  // (item 32's 1.22:1 finding), so a 5% ink wash makes the difference
+  // perceptible on every seed in both modes without heavier chrome.
+  background: color-mix(in srgb, var(--bnd-ink) 5%, var(--bnd-page));
   color: var(--bnd-ink-muted);
   font-size: var(--bnd-text-sm);
   cursor: pointer;

@@ -86,6 +86,7 @@ const P = {
 				.map(
 					(i) =>
 						'<button type="button" class="' + cls + (i.value === opts.selected ? " bnd-cbp-on" : "") +
+						'" aria-pressed="' + (i.value === opts.selected ? "true" : "false") +
 						'" data-value="' + bnd_esc(i.value) + '">' +
 						(i.svg ? '<span class="bnd-cbp-thumb">' + i.svg + "</span>" : "") +
 						'<span class="bnd-cbp-name">' + bnd_esc(i.name) + "</span>" +
@@ -113,6 +114,7 @@ const P = {
 					const on = String(i.value) === String(opts.value) ? " bnd-cbp-on" : "";
 					return (
 						'<button type="button" class="bnd-cbp-opt' + on + off + '"' +
+						' aria-pressed="' + (on ? "true" : "false") + '"' +
 						' data-field="' + bnd_esc(opts.field) + '" data-value="' + bnd_esc(i.value) + '"' +
 						(i.reason ? ' title="' + bnd_esc(i.reason) + '" disabled' : "") + ">" +
 						(i.glyph ? '<span class="bnd-cbp-glyph">' + i.glyph + "</span>" : "") +
@@ -139,6 +141,11 @@ const P = {
 			'<button type="button" class="bnd-cbp-toggle' +
 			(t.cls ? " " + t.cls : "") +
 			(t.reason ? " bnd-cbp-dis" : "") + '"' +
+			// A switch, and it says so: the knob class styles the state, the
+			// attribute pair announces it. Every picker's switches route
+			// through this one builder, which is why the fix is one line and
+			// not eight.
+			' role="switch" aria-checked="' + (on ? "true" : "false") + '"' +
 			' data-field="' + bnd_esc(t.field) + '" data-value="' + (on ? 0 : 1) + '"' +
 			(t.reason ? ' title="' + bnd_esc(t.reason) + '" disabled' : "") + ">" +
 			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
@@ -181,7 +188,8 @@ const P = {
 				  (g.resetCls ? " " + g.resetCls : "") +
 				  '"' +
 				  (g.field ? ' data-field="' + bnd_esc(g.field) + '"' : "") +
-				  ' title="' + bnd_esc(g.resetTitle || __("Reset to default")) + '">↺</button>'
+				  ' aria-label="' + bnd_esc(g.resetTitle || __("Reset to default")) +
+				  '" title="' + bnd_esc(g.resetTitle || __("Reset to default")) + '"><span aria-hidden="true">↺</span></button>'
 				: "";
 		// `cls` and `search` exist for the sidebar picker, whose group is this
 		// group plus one responsibility: its filter box hides groups by
@@ -1389,7 +1397,7 @@ function bnd_shell_setup(frm) {
 		nav += `<div class="bnd-shell-group">${bnd_esc(g.group())}</div>`;
 		for (const item of g.items) {
 			nav +=
-				`<button type="button" class="bnd-shell-item" data-key="${bnd_esc(item.key)}">` +
+				`<button type="button" class="bnd-shell-item" role="tab" aria-selected="false" tabindex="-1" data-key="${bnd_esc(item.key)}">` +
 				`<span class="bnd-shell-label">${bnd_esc(item.label())}</span>` +
 				`<span class="bnd-shell-note" data-bnd-note="${bnd_esc(item.key)}"></span>` +
 				`<span class="bnd-shell-dot" data-bnd-dot="${bnd_esc(item.key)}" hidden></span>` +
@@ -1450,6 +1458,31 @@ function bnd_shell_setup(frm) {
 
 	$shell.on("click", ".bnd-shell-item", function () {
 		bnd_shell_select(frm, this.getAttribute("data-key"));
+	});
+
+	// THE TABLIST KEYBOARD CONTRACT. The nav has carried role=tablist since
+	// the shell shipped, and a tablist promises arrow-key movement with a
+	// roving tabindex — one Tab stop for the whole rail, arrows to move
+	// within it. Without this the role was a lie the 34a audit called out:
+	// entries were plain buttons, aria-selected landed on nothing, and Tab
+	// walked all seventeen entries one by one.
+	$shell.on("keydown", ".bnd-shell-item", function (e) {
+		const HORIZ = ["ArrowLeft", "ArrowRight"];
+		const VERT = ["ArrowUp", "ArrowDown"];
+		if (!HORIZ.includes(e.key) && !VERT.includes(e.key) && e.key !== "Home" && e.key !== "End") return;
+		const items = $shell.find(".bnd-shell-item").toArray();
+		const at = items.indexOf(this);
+		if (at === -1) return;
+		e.preventDefault();
+		let next = at;
+		if (e.key === "Home") next = 0;
+		else if (e.key === "End") next = items.length - 1;
+		else {
+			const fwd = e.key === "ArrowDown" || e.key === "ArrowRight";
+			next = (at + (fwd ? 1 : -1) + items.length) % items.length;
+		}
+		bnd_shell_select(frm, items[next].getAttribute("data-key"));
+		items[next].focus();
 	});
 
 	bnd_shell_select(frm, BND_SHELL_GROUPS[0].items[0].key);
@@ -1578,6 +1611,9 @@ function bnd_shell_select(frm, key) {
 		const on = this.getAttribute("data-key") === key;
 		this.classList.toggle("bnd-shell-on", on);
 		this.setAttribute("aria-selected", on ? "true" : "false");
+		// The roving half of the tablist contract: exactly one entry is a Tab
+		// stop, and it is the selected one. Arrows move within the rail.
+		this.setAttribute("tabindex", on ? "0" : "-1");
 	});
 	// A render-entry reads values the OTHER panes write, so it is stale the
 	// moment anything else was touched. Redrawn on selection rather than on
@@ -1755,7 +1791,7 @@ function bnd_render_layout_picker(frm, host) {
 
 	const toolbar =
 		'<div class="bnd-sbp-toolbar">' +
-		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
+		'<input type="search" class="bnd-sbp-search" aria-label="' + __("Search settings") + '" placeholder="' + __("Search settings…") + '">' +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
 		'<span class="bnd-sbp-hint">' + __("Changes apply as you click — there is nothing to save.") + "</span>" +
@@ -2166,7 +2202,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 
 	const toolbar =
 		'<div class="bnd-sbp-toolbar">' +
-		'<input type="search" class="bnd-sbp-search" placeholder="' + __("Search settings…") + '">' +
+		'<input type="search" class="bnd-sbp-search" aria-label="' + __("Search settings") + '" placeholder="' + __("Search settings…") + '">' +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
 		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
 		'<span class="bnd-sbp-hint">' + __("Changes apply as you click — there is nothing to save.") + "</span>" +
@@ -3134,7 +3170,7 @@ function bnd_can_be_off(frm, field) {
 /** One chip. A button first, draggable second — see the header. */
 function bnd_board_chip(t, value) {
 	return (
-		'<button type="button" class="bnd-bd-chip" draggable="true"' +
+		'<button type="button" class="bnd-bd-chip" draggable="true" aria-pressed="false"' +
 		' data-tenant="' + bnd_esc(t.key) + '" data-field="' + bnd_esc(t.field) + '"' +
 		' data-value="' + bnd_esc(value || "Off") + '"' +
 		' title="' + bnd_esc(__("Drag to move, or click to pick up")) + '">' +
@@ -3163,11 +3199,15 @@ function bnd_order_tokens(frm) {
  * list, position meaningful wherever two tenants share a zone, is the whole
  * of E3.
  */
-function bnd_order_move(frm, moved_key, before_key) {
+function bnd_order_move(frm, moved_key, before_key, after_key) {
 	const tokens = bnd_order_tokens(frm).filter((t) => t !== moved_key);
-	const at = before_key ? tokens.indexOf(before_key) : -1;
-	if (at === -1) tokens.push(moved_key);
-	else tokens.splice(at, 0, moved_key);
+	if (after_key && tokens.indexOf(after_key) !== -1) {
+		tokens.splice(tokens.indexOf(after_key) + 1, 0, moved_key);
+	} else {
+		const at = before_key ? tokens.indexOf(before_key) : -1;
+		if (at === -1) tokens.push(moved_key);
+		else tokens.splice(at, 0, moved_key);
+	}
 	const next = tokens.join(",");
 	if (next !== (frm.doc.desk_order || "")) frm.set_value("desk_order", next);
 }
@@ -3209,7 +3249,14 @@ function bnd_render_placement_board(frm, host) {
 					const slot = pair[1];
 					const chips = (placed.get(slot) || []).join("");
 					return (
-						'<div class="bnd-bd-zone" data-slot="' + bnd_esc(slot) + '"' +
+						// A drop target is a control, so it is focusable and
+						// named — a keyboard user arms a chip with Enter and
+						// drops it here the same way. role=button rather than
+						// a real <button> because zones CONTAIN chip buttons,
+						// and buttons cannot nest.
+						'<div class="bnd-bd-zone" role="button" tabindex="0"' +
+						' aria-label="' + bnd_esc(__("{0}, {1} — drop here", [r.label(), (ZONE_NAME[zone] || (() => zone))()])) + '"' +
+						' data-slot="' + bnd_esc(slot) + '"' +
 						' data-region="' + bnd_esc(r.region) + '" data-zone="' + bnd_esc(zone) + '">' +
 						'<span class="bnd-bd-zone-name">' +
 						bnd_esc((ZONE_NAME[zone] || (() => zone))()) +
@@ -3239,7 +3286,7 @@ function bnd_render_placement_board(frm, host) {
 		P.wrap(
 			'<div class="bnd-bd" data-armed="">' +
 				'<div class="bnd-bd-desk">' + regions + "</div>" +
-				'<div class="bnd-bd-tray bnd-bd-zone" data-slot="Off">' +
+				'<div class="bnd-bd-tray bnd-bd-zone" role="button" tabindex="0" aria-label="' + bnd_esc(__("Off — not shown. Drop here to hide.")) + '" data-slot="Off">' +
 				'<span class="bnd-bd-zone-name">' + bnd_esc(__("Off — not shown")) + "</span>" +
 				'<div class="bnd-bd-slot-chips">' + off.join("") + "</div>" +
 				"</div>" +
@@ -3272,13 +3319,69 @@ function bnd_render_placement_board(frm, host) {
 	const $bd = $host.find(".bnd-bd");
 	const arm = (field) => {
 		$bd.attr("data-armed", field || "");
+		// Remembered on the FORM, because every drop re-renders this board
+		// from scratch: without the memory, a nudge (below) would deselect
+		// the chip it just moved and the arrows would vanish under the
+		// user's pointer after every press.
+		frm.__bnd_board_armed = field || "";
 		$bd.find(".bnd-bd-zone").each(function () {
 			const ok = field ? legal(field, this.getAttribute("data-slot")) : false;
 			this.classList.toggle("bnd-bd-ok", !!ok);
 			this.classList.toggle("bnd-bd-no", !!field && !ok);
 		});
-		if (!field) $bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed");
+		$bd.find(".bnd-bd-nudge").remove();
+		if (!field) {
+			$bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed").attr("aria-pressed", "false");
+			return;
+		}
+		// THE NUDGE BAR (design pick 1A): reordering within a zone must not
+		// require a drag — drags exist for neither keyboard nor touch. An
+		// armed chip grows two arrow buttons that swap it with its zone
+		// neighbour; each press writes desk_order through the same
+		// bnd_order_move the drag path uses. Siblings of the chip rather
+		// than children, because the chip is a <button> and buttons cannot
+		// nest.
+		const chip = $bd.find(`.bnd-bd-chip[data-field="${field}"]`)[0];
+		if (!chip || !chip.closest(".bnd-bd-slot-chips")) return;
+		const wrap = chip.closest(".bnd-bd-slot-chips");
+		const chips_of = () => [...wrap.querySelectorAll(".bnd-bd-chip")];
+		if (chips_of().length < 2) return;
+		const moved = tenant_of_field(field);
+		const nudge = document.createElement("span");
+		nudge.className = "bnd-bd-nudge";
+		for (const [dir, glyph, label] of [
+			[-1, "‹", __("Move earlier in this zone")],
+			[1, "›", __("Move later in this zone")],
+		]) {
+			const b = document.createElement("button");
+			b.type = "button";
+			b.className = "bnd-bd-nudge-btn";
+			b.setAttribute("aria-label", label);
+			b.textContent = glyph;
+			b.addEventListener("click", (e) => {
+				e.stopPropagation();
+				const order = chips_of().map((c) => c.getAttribute("data-tenant"));
+				const at = order.indexOf(moved);
+				const target = at + dir;
+				if (at === -1 || target < 0 || target >= order.length) return;
+				if (dir < 0) bnd_order_move(frm, moved, order[target]);
+				else bnd_order_move(frm, moved, null, order[target]);
+				bnd_render_placement_board(frm);
+			});
+			nudge.appendChild(b);
+		}
+		chip.insertAdjacentElement("afterend", nudge);
 	};
+
+	// Re-arm after any re-render: the memory lives on the form, the DOM is
+	// fresh, and a nudge that lost its arrows after one press would be a
+	// control that dismantles itself mid-use.
+	if (frm.__bnd_board_armed && $bd.find(`.bnd-bd-chip[data-field="${frm.__bnd_board_armed}"]`).length) {
+		arm(frm.__bnd_board_armed);
+		$bd.find(`.bnd-bd-chip[data-field="${frm.__bnd_board_armed}"]`)
+			.addClass("bnd-bd-armed")
+			.attr("aria-pressed", "true");
+	}
 
 	$bd.find(".bnd-bd-chip").on("click", function (e) {
 		e.stopPropagation();
@@ -3286,9 +3389,9 @@ function bnd_render_placement_board(frm, host) {
 		// Clicking the armed chip again puts it down. A board that cannot be
 		// disarmed traps the next click on a zone nobody meant to choose.
 		const next = $bd.attr("data-armed") === field ? "" : field;
-		$bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed");
+		$bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed").attr("aria-pressed", "false");
 		arm(next);
-		if (next) window.$(this).addClass("bnd-bd-armed");
+		if (next) window.$(this).addClass("bnd-bd-armed").attr("aria-pressed", "true");
 	});
 
 	$bd.find(".bnd-bd-zone").on("click", function () {
@@ -3296,14 +3399,24 @@ function bnd_render_placement_board(frm, host) {
 		if (!field) return;
 		drop_on(field, this.getAttribute("data-slot"));
 	});
+	// Enter/Space on a focused zone is the keyboard's click. Space must
+	// preventDefault or the pane scrolls.
+	$bd.find(".bnd-bd-zone").on("keydown", function (e) {
+		if (e.key !== "Enter" && e.key !== " ") return;
+		e.preventDefault();
+		this.click();
+	});
 
 	// Dropping ON a chip means "before this chip" — the within-zone position
 	// is the order control (E3), and the zone-level drop stays "at the end".
 	// The chip handler must run before the zone's, so it stops propagation.
-	const tenant_of_field = (field) => {
+	// A declaration, not a const: `arm` runs from the re-arm block above both
+	// of them, and a const here would be a temporal-dead-zone crash the first
+	// time a re-render restored an armed chip.
+	function tenant_of_field(field) {
 		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
 		return t ? t.key : "";
-	};
+	}
 	$bd.find(".bnd-bd-chip").on("drop", function (e) {
 		const ev = e.originalEvent || e;
 		ev.preventDefault();

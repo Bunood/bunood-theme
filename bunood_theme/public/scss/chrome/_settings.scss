@@ -180,7 +180,9 @@ html[data-theme] {
     padding: 0;
     border: 1px dashed var(--bnd-border-strong);
     border-radius: 3px;
-    background: transparent;
+    // Same resting-identification rule as .bnd-search-field (3B): the dashed
+    // hairline alone measured 1.5:1; the wash is the second cue.
+    background: color-mix(in srgb, var(--bnd-ink) 4%, transparent);
     color: var(--text-muted);
     font-size: 9px;
     line-height: 1.1;
