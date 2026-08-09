@@ -18,6 +18,24 @@ msgstr ""
 # locale/inherited.ar.txt. Strings with no entry at all are the
 # still-untranslated tail; `npm run i18n:check` counts them.
 
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Arabic Font"
+msgstr "الخط العربي"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
+msgstr "مستضاف ذاتيًا، خط واحد لكل موقع، يُجلب مرة واحدة ويُخزن مؤقتًا للأبد. «النظام» يستخدم ما يشحنه الجهاز، وهو يختلف من منصة إلى أخرى."
+
+#. Option for 'Arabic Font' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "System"
+msgstr "النظام"
+
 #. In theme_settings.js
 #. src: ai
 #, fuzzy

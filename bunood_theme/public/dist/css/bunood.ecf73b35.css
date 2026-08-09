@@ -263,6 +263,7 @@ html:lang(sd) body,
 html:lang(ug) body,
 html:lang(ks) body {
   letter-spacing: normal;
+  line-height: var(--bnd-lh-arabic, 1.6);
 }
 
 .bnd-sb-letter,

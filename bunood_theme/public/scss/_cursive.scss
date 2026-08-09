@@ -54,6 +54,17 @@ html:lang(sd) body,
 html:lang(ug) body,
 html:lang(ks) body {
   letter-spacing: normal;
+  // Item 7(b): Arabic wants looser leading than Latin, but the right amount
+  // is a PER-FACE fact — Cairo's tall metrics need reining in at 1.62 where
+  // Plex wants 1.7 — so the value comes from the brand sheet, which knows
+  // which face the admin selected (typography.py's table, via brand.py).
+  // The 1.6 fallback serves desks with no brand sheet and the System face:
+  // still Arabic script, still better with air than with Latin's 1.5.
+  //
+  // Declared HERE and not document-wide because leading, unlike the face
+  // itself, has no unicode-range: a body line-height reaches Latin desks
+  // too, so it takes the same language scope as the tracking reset above.
+  line-height: var(--bnd-lh-arabic, 1.6);
 }
 
 // ── 2. Anywhere WE render text the site's users named ──────────────────────

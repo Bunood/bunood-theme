@@ -191,9 +191,12 @@ function assertCursiveSafe(css, name) {
 const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
-	// design and a layout preset must never write them.
+	// design and a layout preset must never write them. Typography joined in
+	// item 7(b): a typeface is an axis in exactly the same sense as a colour.
+	// This block is PERMANENT; the shrink rule below governs violations only.
 	"company_name", "logo", "favicon", "tagline",
 	"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+	"arabic_font",
 	// Generated artefact, not a setting.
 	"brand_css_url",
 	// KNOWN VIOLATIONS, to be renamed by the component rework's patch:
@@ -276,6 +279,51 @@ function assertRegistryIdentity(registrySrc, deskJs) {
 		throw new Error(
 			"Registry identity guard:\n  " + problems.join("\n  ") +
 				"\nIdentity lives in registry.py so the desk and the smoke suite cannot disagree about how to find a component."
+		);
+	}
+}
+
+/**
+ * Typography guard — the face table, the picker and the shipped files agree.
+ *
+ * `typography.py` is the ONE table (key → family, files, fallbacks, leading);
+ * the doctype's `arabic_font` Select is a CONSUMER of it, and a consumer that
+ * drifts is the same-fact-twice defect this repo keeps paying for — the
+ * sidebar picker's preset list has already done exactly that dance. Parsed as
+ * TEXT like assertRegistryIdentity parses registry.py, and for the same
+ * reason: it is Python, this is the JS build, and a regex over well-formed
+ * literal keys is a smaller price than a language boundary.
+ *
+ * The file check is not decoration. A FACES entry naming a woff2 that is not
+ * in public/fonts ships an @font-face whose src 404s — the desk then falls
+ * back silently, which looks exactly like "the picker does nothing" and would
+ * be hunted in the picker.
+ */
+function assertTypographySync(typographySrc, doctypeJson, fontFiles) {
+	const problems = [];
+	const faces = [...typographySrc.matchAll(/^    "([^"]+)":\s*\{/gm)].map((m) => m[1]);
+	if (!faces.length) problems.push("typography.py: no FACES entries found — is the table literal still parseable as text?");
+
+	const field = (doctypeJson.fields || []).find((f) => f.fieldname === "arabic_font");
+	if (!field) {
+		problems.push("theme_settings.json has no arabic_font field");
+	} else {
+		const options = String(field.options || "").split("\n").map((s) => s.trim()).filter(Boolean);
+		const missing = faces.filter((f) => !options.includes(f));
+		const stray = options.filter((o) => !faces.includes(o));
+		if (missing.length) problems.push(`arabic_font options missing: ${missing.join(", ")}`);
+		if (stray.length) problems.push(`arabic_font offers faces typography.py does not define: ${stray.join(", ")}`);
+	}
+
+	for (const m of typographySrc.matchAll(/"file":\s*"([^"]+)"/g)) {
+		if (!fontFiles.includes(m[1])) problems.push(`FACES names ${m[1]}, which is not in public/fonts`);
+	}
+
+	if (problems.length) {
+		throw new Error(
+			"Typography guard:\n  " + problems.join("\n  ") +
+				"\nThe face catalogue lives in typography.py; the Select and the shipped " +
+				"woff2 files must match it exactly. Edit the table, then mirror it."
 		);
 	}
 }
@@ -417,6 +465,16 @@ async function main() {
 	assertRegistryIdentity(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+	);
+	assertTypographySync(
+		await readFile(new URL("./bunood_theme/typography.py", import.meta.url), "utf8").catch(() => ""),
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
+		await readdir(new URL("./bunood_theme/public/fonts", import.meta.url)).catch(() => [])
 	);
 	// Item 7(c). A counted noun has no correct Arabic through a plural-free
 	// dictionary, so it is refused at the source rather than left for a

@@ -26,13 +26,19 @@ WHY THE FILENAME IS HASHED
     immutable, which turns the missing header from a hazard into a non-issue — and
     removes any need for the ``?v=N`` suffixes the previous version maintained by hand.
 
-WHY ONLY ``--bnd-*`` TOKENS
+WHY NEVER FRAPPE'S VARIABLE NAMES
     Frappe implements dark mode by remapping its OWN variable names under
     ``[data-theme="dark"]``. Both that and ``:root`` have specificity (0,1,0), so a
     later sheet setting e.g. ``--bg-color`` at ``:root`` wins in BOTH modes and
     silently kills dark mode. This file therefore emits only our namespaced tokens;
     ``_bridge.scss`` in the compiled bundle maps them onto Frappe's names inside
     correctly scoped blocks. See ARCHITECTURE.md sections 1 and 5.
+
+    (This used to read "why only tokens". Item 7(b) added ``@font-face`` rules and
+    one ``body { font-family }`` — neither touches a Frappe variable name, which
+    was always the actual constraint. The body rule COMPOSES Frappe's stack rather
+    than replacing it: the Arabic family is prepended and ``var(--font-stack)``
+    follows, so Latin text falls through to exactly what Frappe chose.)
 """
 
 import os
@@ -40,6 +46,7 @@ import os
 import frappe
 
 from bunood_theme import palette
+from bunood_theme.typography import DEFAULT_FACE, FACES, ARABIC_RANGE
 
 #: Subdirectory under the site's ``public/files``. Kept in its own folder so reaping
 #: can glob safely without touching user uploads.
@@ -160,6 +167,60 @@ html[data-theme="dark"] {{
 """
 
 
+def render_typography_css(settings) -> str:
+    """The Arabic face block: ``@font-face`` + tokens + one body rule.
+
+    Emitted OUTSIDE ``@media screen`` — a printed Arabic invoice wants the
+    face as much as the desk does, and ``@font-face`` at top level serves both.
+
+    THE MECHANISM IS ``unicode-range``: the face APPLIES only to Arabic
+    glyphs, so Arabic DATA on an English desk (a workspace named in Arabic)
+    gets it, which no language- or direction-scoped rule can do. That is why
+    the body rule is UNSCOPED — prepending an Arabic-only family changes no
+    Latin rendering, ever. The DOWNLOAD is another matter: Chromium fetches on
+    in-range characters anywhere in the DOM, and Frappe's boot script carries
+    native language names on every desk, so in practice every browser fetches
+    the selected face once and caches it forever (measured; see
+    typography.py's docstring for the retraction this sentence replaced).
+
+    Only the SELECTED face is emitted. The unused catalogue is never
+    referenced, so no browser anywhere downloads a face the admin did not
+    choose. "System" emits nothing at all — the honest zero-payload option.
+
+    ``--bnd-lh-arabic`` is declared here but CONSUMED in ``_cursive.scss``,
+    inside the cursive-language scope: leading is a per-face fact (Cairo needs
+    reining in at 1.62 where Plex wants 1.7), but WHERE looser leading applies
+    is a language question, and the stylesheet already owns that list.
+    """
+    face = FACES.get((getattr(settings, "arabic_font", None) or DEFAULT_FACE).strip())
+    if not face or not face.get("family"):
+        return ""
+
+    faces_css = "\n".join(
+        f"""@font-face {{
+  font-family: "{face["family"]}";
+  src: url(/assets/bunood_theme/fonts/{f["file"]}) format("woff2");
+  font-weight: {f["weight"]};
+  font-style: normal;
+  /* swap: a slow font must never block first paint (item 36). The fallback
+     chain renders immediately and the face swaps in when it arrives. */
+  font-display: swap;
+  unicode-range: {ARABIC_RANGE};
+}}"""
+        for f in face["files"]
+    )
+
+    lh = f"\n  --bnd-lh-arabic: {face['line_height']};" if face.get("line_height") else ""
+    return f"""{faces_css}
+:root {{
+  --bnd-font-arabic: "{face["family"]}", {face["fallback"]};{lh}
+}}
+body {{
+  font-family: var(--bnd-font-arabic), var(--font-stack);
+}}
+"""
+
+
 def write_brand_css(settings=None) -> str | None:
     """Generate, write and register the brand stylesheet. Returns its URL or ``None``.
 
@@ -178,7 +239,8 @@ def write_brand_css(settings=None) -> str | None:
         must always declare the complete token set.
     """
     try:
-        css = render_brand_css(settings)
+        s = settings or frappe.get_single("Theme Settings")
+        css = render_brand_css(s) + render_typography_css(s)
 
         # Hash the CONTENT, so an unchanged save keeps the same URL and warm caches
         # stay warm. 8 hex chars is what Frappe's own Website Theme uses.

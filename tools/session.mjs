@@ -57,22 +57,42 @@ export const APP_CONTAINERS = [
  * `/home/frappe/logs/database.log`.
  */
 export function benchPy(code) {
-	return execFileSync(
-		"docker",
-		[
-			"exec", "-i", BACKEND, "bash", "-lc",
-			"cd /home/frappe/frappe-bench/sites && ../env/bin/python -",
-		],
-		{
-			input:
-				"import frappe, json\n" +
-				`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
-				"frappe.connect()\n" +
-				code,
-			encoding: "utf8",
-			stdio: ["pipe", "pipe", "pipe"],
+	// ONE retry, only for MySQL 1020 ("record has changed... try restarting
+	// transaction") — the error's own text names the remedy, and Frappe's
+	// request handling retries it for the same reason. It became routine once
+	// the full apps.json set was installed: ten apps' scheduler jobs now write
+	// Singles and Users in the background, and one colliding write has killed
+	// both a 25-minute suite run and a typography probe mid-restore — the
+	// probe's `finally` never ran, which is the worst place to die. The
+	// suite's own copy of this helper carries the same retry for the same
+	// incident (tests/smoke.mjs).
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return execFileSync(
+				"docker",
+				[
+					"exec", "-i", BACKEND, "bash", "-lc",
+					"cd /home/frappe/frappe-bench/sites && ../env/bin/python -",
+				],
+				{
+					input:
+						"import frappe, json\n" +
+						`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
+						"frappe.connect()\n" +
+						code,
+					encoding: "utf8",
+					stdio: ["pipe", "pipe", "pipe"],
+				}
+			);
+		} catch (err) {
+			const stderr = String(err.stderr || "");
+			if (attempt === 1 && /\b1020\b/.test(stderr)) {
+				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
+				continue;
+			}
+			throw err;
 		}
-	);
+	}
 }
 
 /** The last line of a bench-python run, parsed as JSON. */

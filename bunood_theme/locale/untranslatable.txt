@@ -1,0 +1,14 @@
+# Source strings that deliberately have NO Arabic row, one per line with a
+# tab-separated reason. The coverage gate (`npm run i18n:check`, enforced in
+# `npm run build`) counts these as decided — and refuses any entry naming a
+# string that no longer exists, which is what forces this list to SHRINK when
+# the strings it covers are deleted. Do not grow it to make a build pass.
+#
+# The only classes that belong here:
+#   (i)  runtime dispatch values, when they cannot be derived;
+#   (ii) unit/format literals with no linguistic content;
+#   (iii) STANDALONE proper nouns — never strings that merely contain one.
+IBM Plex Sans Arabic	class (iii): a typeface's proper name. Font pickers show face names in their own branding everywhere, Arabic UIs included — and rendering each name in its own face IS the preview.
+Noto Sans Arabic	class (iii): a typeface's proper name.
+Almarai	class (iii): a typeface's proper name. The Arabic rendering المراعي is the dairy company, not the typeface.
+Cairo	class (iii): a typeface's proper name. القاهرة would read as the city, not the face.

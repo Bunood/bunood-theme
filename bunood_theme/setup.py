@@ -27,6 +27,7 @@ import frappe
 
 from bunood_theme.brand import write_brand_css
 from bunood_theme.registry import default_desk_order
+from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
@@ -77,6 +78,11 @@ DEFAULTS = {
     "company_name": "Bunood",
     "brand_color": "#4d8756",
     "accent_color": "#4463f0",
+    # Item 7(b). Read from the face catalogue, never restated: typography.py is
+    # the one table, and this seeder is just another of its consumers. Seeded
+    # here because a field `default` only applies to NEW records and Theme
+    # Settings already exists on every upgraded site.
+    "arabic_font": _DEFAULT_FACE,
     # Density site default (decision "G with C"). Seeded here because a field
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
