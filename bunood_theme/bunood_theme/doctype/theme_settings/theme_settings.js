@@ -1396,10 +1396,20 @@ function bnd_shell_setup(frm) {
 		}
 	}
 
+	// The VIEWPORT wrapper exists for one reason: a `@container` rule cannot
+	// style the container it queries — only its descendants. `.bnd-shell` used
+	// to carry `container-type` itself, so its own narrow rule (collapse to one
+	// column) never applied while its CHILDREN's narrow rules did: the nav
+	// became a row of wrapped chips inside a still-210px grid column, 83px
+	// items packed two per ragged row. Measured 2026-08-09 on an 800px pane —
+	// the "breaks its format instead of reflowing" report. The wrapper queries;
+	// the shell responds.
 	const $shell = $(
-		`<div class="bnd-shell" data-current="">` +
+		`<div class="bnd-shell-viewport">` +
+			`<div class="bnd-shell" data-current="">` +
 			`<nav class="bnd-shell-nav" role="tablist">${nav}</nav>` +
 			`<div class="bnd-shell-detail"></div>` +
+			`</div>` +
 			`</div>`
 	);
 	field.$wrapper.empty().append($shell);

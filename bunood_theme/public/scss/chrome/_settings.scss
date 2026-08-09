@@ -689,9 +689,22 @@ html[data-theme] {
 // different width depending on whether the desk sidebar is expanded, so a
 // viewport query would answer a question nobody asked. Same reasoning as the
 // status bar's rank collapse.
-.bnd-shell {
+// THE CONTAINER AND THE RESPONDER ARE TWO ELEMENTS, and they have to be: a
+// `@container` rule styles only the container's DESCENDANTS, never the
+// container itself. When `.bnd-shell` carried `container-type`, its own
+// narrow rule below (collapse to one column) could never match — while the
+// nav and the items, being descendants, DID get their narrow rules. The
+// result was the worst of both: a wrap-row chip nav crammed into a grid
+// column that stayed 210px, items shrunk to 83px and packed two per ragged
+// row. Measured 2026-08-09 on an 800px pane; reported as "not responsive,
+// breaks its format" — which is exactly what half-applied breakpoints look
+// like.
+.bnd-shell-viewport {
   container-type: inline-size;
   container-name: bndshell;
+}
+
+.bnd-shell {
   display: grid;
   grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
   gap: var(--bnd-sp-5);
