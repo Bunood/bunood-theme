@@ -154,36 +154,45 @@ def pairs():
 
     # ── The sidebar kit's own palette (34a) ──────────────────────────────────
     #
-    # UNMEASURED UNTIL NOW, and the published claim that it carried "no
-    # per-tenant risk because its values are fixed" was checked by the 34a
-    # audit and found false on both halves: the seven --bnd-cat-N hues ARE
-    # fixed, but they are painted as section-label TEXT over pane surfaces
-    # that the colour mode changes entirely — two fixed hexes (Minimal,
-    # Dark Contrast) and two seed-derived ones (Match Theme, Brand). A fixed
-    # ink over a seed-tinted surface is exactly the shape item 32 proved
-    # cannot pass by luck (ink-subtle failed 96 of 96 placements).
+    # ENFORCED NOW, and per pane FAMILY, because the measurement round proved
+    # no single hex can serve four panes: every one of the seven global
+    # --bnd-cat-N hues failed AA on at least one pane (hue 4 read 1.97:1 on
+    # the light pair, hue 7 read 1.86:1 on the dark pair). Each colour mode
+    # therefore declares its own fits in _sidebar.scss — light modes darken,
+    # dark modes lighten, hue and saturation held, lightness searched until
+    # the worst ratio across every seed here cleared 4.6:1. These rows hold
+    # the gate to exactly those declared values; edit the fits in
+    # _sidebar.scss and these hexes together or the gate says so.
     #
-    # The eight presets reduce to these four pane surfaces: colour mode is
-    # the load-bearing dimension; intensity and wash only scale the 16% hue
-    # chip, which sits UNDER the same label and never carries it alone.
-    #
-    # MEASURED, NOT YET ENFORCED — the same first step item 32 took, and the
-    # same reasoning: if a hue fails on a pane, the fix is fitting the ink
-    # (a design decision about seven colours x four panes), not silencing a
-    # gate. Publishing the numbers is what makes that decision possible; the
-    # enforcement lands with the fitting, in 34a's follow-up slice.
-    SB_PANES = [
-        ("var(--bnd-pane)", "match-theme pane"),
-        ("#fafbfa", "minimal pane"),
-        ("#15181a", "dark-contrast pane"),
-        ("color-mix(in srgb, var(--bnd-brand) 10%, #131a15)", "brand pane"),
+    # The brand pane has no rows: no fixed hue can be fitted to an
+    # arbitrary-seed gradient, so the hues stand down there and section
+    # labels take the mode's own white ink — checked below as a MEASURED row
+    # against the gradient's lightest stop, not enforced, because a
+    # near-white seed makes white-on-brand illegible by construction and
+    # that is the brand mode's own pre-existing design question, not this
+    # palette's.
+    SB_FITS_LIGHT = ["#2469bc", "#b94112", "#127753", "#8e6000", "#c62360", "#007a00", "#4a3aa7"]
+    SB_FITS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00c300", "#a9a0de"]
+    LIGHT_PANES = [("var(--bnd-pane)", "match-theme pane"), ("#fafbfa", "minimal pane")]
+    DARK_PANES = [
+        ("#15181a", "minimal pane, dark desk"),
+        ("color-mix(in srgb, var(--bnd-brand) 10%, #131a15)", "dark-contrast pane"),
     ]
-    for n in range(1, 8):
-        for pane, pane_label in SB_PANES:
-            out.append((
-                f"var(--bnd-cat-{n})", pane, None,
-                f"sidebar hue {n} as text on the {pane_label}",
-            ))
+    for n in range(7):
+        for pane, pane_label in LIGHT_PANES:
+            out.append((SB_FITS_LIGHT[n], pane, AA_TEXT,
+                        f"sidebar hue {n + 1} (light fit) on the {pane_label}", "light"))
+        for pane, pane_label in DARK_PANES:
+            # The dark-contrast pane is dark in BOTH desk themes, but its
+            # hues come from the mode block that also serves dark desks, so
+            # the dark fit is what renders on it always — checked in dark
+            # mode, where --bnd-pane agrees with it.
+            out.append((SB_FITS_DARK[n], pane, AA_TEXT,
+                        f"sidebar hue {n + 1} (dark fit) on the {pane_label}", "dark"))
+    out.append((
+        "#ffffff", "color-mix(in srgb, var(--bnd-brand) 96%, #ffffff)", None,
+        "brand-pane ink at the gradient's lightest stop; see the brand-mode note",
+    ))
     return out
 
 
@@ -322,7 +331,15 @@ def evaluate(seed: str, defaults: dict, mode: str, derived: bool = True):
             # a failing row gets read.
             return [(f"derive({seed})", mode, AA_TEXT, str(exc), None, "underivable")]
     rows = []
-    for ink, bg, need, why in pairs():
+    for pair in pairs():
+        ink, bg, need, why = pair[:4]
+        # A five-element pair names the ONE mode it renders in. The sidebar
+        # fits forced this: the theme-mode pane follows the desk theme and a
+        # different fit serves each side, so testing a light fit against the
+        # dark pane would be measuring a combination the stylesheet never
+        # produces.
+        if len(pair) == 5 and pair[4] != mode:
+            continue
         try:
             bg_c = resolve(bg, v)
             ink_c = resolve(ink, v, over=bg)

@@ -51,6 +51,20 @@
 // Each mode sets the full set; components below never look elsewhere.
 
 html[data-bnd-sb-color="theme"] {
+  // The category hues, FITTED to this mode's pane (34a): every global
+  // --bnd-cat-N failed AA somewhere across the four panes — hue 4 read
+  // 1.97:1 here — so each colour mode carries its own fits, produced by
+  // holding hue and saturation and searching lightness until the WORST
+  // ratio across every gate seed's pane clears 4.6:1. Same working-set
+  // pattern as every variable below; the global tokens are untouched for
+  // their other consumers.
+  --bnd-sb-cat-1: #2469bc;
+  --bnd-sb-cat-2: #b94112;
+  --bnd-sb-cat-3: #127753;
+  --bnd-sb-cat-4: #8e6000;
+  --bnd-sb-cat-5: #c62360;
+  --bnd-sb-cat-6: #007a00;
+  --bnd-sb-cat-7: #4a3aa7;
   --bnd-sb-bg: var(--bnd-pane);
   --bnd-sb-ink: var(--bnd-ink);
   --bnd-sb-ink-muted: var(--bnd-ink-muted);
@@ -62,6 +76,13 @@ html[data-bnd-sb-color="theme"] {
 }
 
 html[data-bnd-sb-color="minimal"] {
+  --bnd-sb-cat-1: #2469bc;
+  --bnd-sb-cat-2: #b94112;
+  --bnd-sb-cat-3: #127753;
+  --bnd-sb-cat-4: #8e6000;
+  --bnd-sb-cat-5: #c62360;
+  --bnd-sb-cat-6: #007a00;
+  --bnd-sb-cat-7: #4a3aa7;
   --bnd-sb-bg: #fafbfa;
   --bnd-sb-ink: #2c2f2d;
   --bnd-sb-ink-muted: #6d7570;
@@ -72,6 +93,13 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-active-ink: #ffffff;
 }
 html[data-theme="dark"][data-bnd-sb-color="minimal"] {
+  --bnd-sb-cat-1: #7aabe5;
+  --bnd-sb-cat-2: #f08e66;
+  --bnd-sb-cat-3: #1dbe84;
+  --bnd-sb-cat-4: #eda100;
+  --bnd-sb-cat-5: #eb8aae;
+  --bnd-sb-cat-6: #00c300;
+  --bnd-sb-cat-7: #a9a0de;
   --bnd-sb-bg: #15181a;
   --bnd-sb-ink: #d7dad8;
   --bnd-sb-ink-muted: #8b938e;
@@ -83,6 +111,13 @@ html[data-theme="dark"][data-bnd-sb-color="minimal"] {
 // Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
 // from the brand seed so tenants get a tinted ink, not generic charcoal.
 html[data-bnd-sb-color="dark"] {
+  --bnd-sb-cat-1: #7aabe5;
+  --bnd-sb-cat-2: #f08e66;
+  --bnd-sb-cat-3: #1dbe84;
+  --bnd-sb-cat-4: #eda100;
+  --bnd-sb-cat-5: #eb8aae;
+  --bnd-sb-cat-6: #00c300;
+  --bnd-sb-cat-7: #a9a0de;
   --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 10%, #131a15);
   --bnd-sb-ink: #eef3ef;
   --bnd-sb-ink-muted: #b7c2ba;
@@ -94,6 +129,17 @@ html[data-bnd-sb-color="dark"] {
 }
 
 html[data-bnd-sb-color="brand"] {
+  // No hue can be FITTED to an arbitrary-seed gradient, so on the brand pane
+  // the hues stand down and section labels take the mode's own ink. A colour
+  // that cannot be made legible is not offered — the same honesty rule as
+  // every picker.
+  --bnd-sb-cat-1: var(--bnd-sb-ink);
+  --bnd-sb-cat-2: var(--bnd-sb-ink);
+  --bnd-sb-cat-3: var(--bnd-sb-ink);
+  --bnd-sb-cat-4: var(--bnd-sb-ink);
+  --bnd-sb-cat-5: var(--bnd-sb-ink);
+  --bnd-sb-cat-6: var(--bnd-sb-ink);
+  --bnd-sb-cat-7: var(--bnd-sb-ink);
   --bnd-sb-bg: linear-gradient(
     170deg,
     color-mix(in srgb, var(--bnd-brand) 96%, #ffffff),
@@ -106,6 +152,16 @@ html[data-bnd-sb-color="brand"] {
   --bnd-sb-chip-ink: #ffffff;
   --bnd-sb-card-base: rgba(255, 255, 255, 0.1);
   --bnd-sb-active-ink: var(--bnd-brand);
+}
+
+html[data-theme="dark"][data-bnd-sb-color="theme"] {
+  --bnd-sb-cat-1: #7aabe5;
+  --bnd-sb-cat-2: #f08e66;
+  --bnd-sb-cat-3: #1dbe84;
+  --bnd-sb-cat-4: #eda100;
+  --bnd-sb-cat-5: #eb8aae;
+  --bnd-sb-cat-6: #00c300;
+  --bnd-sb-cat-7: #a9a0de;
 }
 
 // ── Pane surface: color + material + placement ──────────────────────────────
@@ -504,7 +560,11 @@ html[data-bnd-sb-intensity="5"] {
 // level decides how strongly the card and chips take the hue.
 @for $i from 1 through 7 {
   html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="#{$i}"] {
-    --bnd-sb-hue: var(--bnd-cat-#{$i});
+    // The MODE's fitted hue, never the global token: the global is one hex
+    // for four panes and failed AA on at least one of them for every hue.
+    // Falls back to the global where a mode block has not defined the fit,
+    // which is the pre-34a rendering, not a blank.
+    --bnd-sb-hue: var(--bnd-sb-cat-#{$i}, var(--bnd-cat-#{$i}));
   }
 }
 
