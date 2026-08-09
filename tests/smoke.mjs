@@ -4632,6 +4632,21 @@ async function main() {
 			}
 		});
 
+		await test("payload: the bundle is within its budget", async () => {
+			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
+			// raw to 92/247 across five releases with nobody deciding it,
+			// because nothing measured it. tools/payload.mjs owns the ledger
+			// and the ceilings; this test makes every verify a checkpoint. The
+			// gate failing is the process working — raise the ceiling in
+			// payload-budget.json in the same commit as the growth, with the
+			// why in its message.
+			const res = spawnSync(process.execPath, ["tools/payload.mjs", "--check"], {
+				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				encoding: "utf8",
+			});
+			expectEq(res.status, 0, `payload check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+		});
+
 		await test("console error budget: nothing beyond the allowlist", async () => {
 			const unexpected = consoleErrors.filter((e) => !CONSOLE_ALLOWLIST.some((re) => re.test(e)));
 			expectEq(unexpected.length, 0, `unexpected console errors:\n${unexpected.slice(0, 5).join("\n")}`);

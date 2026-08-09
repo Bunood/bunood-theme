@@ -270,9 +270,15 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
   boundary is a 1.22:1 hairline is identifiable at all — a per-component judgement, not
   a token value; (b) the sidebar style kit's own 8-preset palette, which is outside the
   contrast gate. Both are measured and published, neither is enforced.
-- `[ ]` **Payload budget** *(from GUIDELINES §2.5, not a numbered item)* — record CSS
-  and JS bytes in each release commit and set a ceiling that requires a decision to
-  cross. Currently 78 KB / 183 KB, unmeasured across every release so far.
+- `[x]` **Payload budget** *(from GUIDELINES §2.5)* — *done 2026-08-09.* The first
+  measurement ever taken showed the drift the item predicted: 78/183 KB raw had
+  become 92/247 across five releases with nobody deciding it. `payload-budget.json`
+  holds the ledger and the gzip ceilings (~15% over v0.12.0); `tools/payload.mjs`
+  measures, checks and records; the suite enforces the ceiling on every verify, and
+  the release chain appends a history row at tag time. The ceiling failing is the
+  process working — raising it is one edit in the same commit as the growth, with
+  the why in the message. (A build.mjs hook joins the other guards once item 7's
+  edits to that file land.)
 
 ## Phase 2 — two real callers
 
