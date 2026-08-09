@@ -202,6 +202,91 @@ def _warn_unreachable_rtl() -> None:
         frappe.log_error("bunood_theme: _warn_unreachable_rtl failed")
 
 
+def _defend_identity_overrides(lang: str = "ar") -> None:
+    """Restore our translations that a later app erased with identity rows.
+
+    The runtime dictionary is one flat merge in ``installed_apps`` order and
+    this app sits third of ten, so any later app's row wins. Measured
+    2026-08-10: ksa_compliance ships rows whose "translation" IS the English
+    source — ``Errors → Errors``, ``Live → Live``, ``My Profile``, ``Toggle
+    Full Width`` — which erased our Arabic for those strings on every desk.
+
+    A ``Translation`` doctype row outranks every app file, and THIS defect
+    class is mechanically recognisable: the merged dict serving exactly the
+    msgid while our own file ships a real translation is never a vocabulary
+    choice, it is a hole punched by a lazily-exported file. So the defense is
+    DERIVED on every migrate rather than listed: recompute, upsert a
+    ``Translation`` row per hole, delete our row when the hole closes. A later
+    app's genuinely DIFFERENT translation is deliberately left to win — that
+    is a vocabulary question for the human review pass, not for a migrate
+    hook.
+
+    Upsert, never insert: ``Translation`` has no uniqueness constraint, and N
+    rows for one (language, source_text) make the winner arbitrary.
+    """
+    try:
+        from frappe.translate import get_translations_from_apps, get_translation_dict_from_file
+
+        ours = get_translation_dict_from_file(
+            frappe.get_app_path("bunood_theme", "translations", f"{lang}.csv"),
+            lang,
+            "bunood_theme",
+        )
+        if not ours:
+            return
+        # THE FILE LAYER ONLY, never the merged dict: our own defensive
+        # Translation rows feed the merge and outrank every file, so asking
+        # the merged dict "is the hole still there?" always answers no while
+        # the defense exists — the first draft of this flapped heal/release
+        # on alternate migrates for exactly that reason. The files are where
+        # the hole lives, so the files are what gets asked.
+        files = get_translations_from_apps(lang)
+
+        healed, released = 0, 0
+        for msgid, our_value in ours.items():
+            hole = files.get(msgid) == msgid and our_value != msgid
+            existing = frappe.db.get_value(
+                "Translation",
+                {"language": lang, "source_text": msgid, "contributed": 0},
+                ["name", "translated_text"],
+                as_dict=True,
+            )
+            if hole:
+                if existing:
+                    if existing.translated_text != our_value:
+                        frappe.db.set_value("Translation", existing.name, "translated_text", our_value)
+                        healed += 1
+                else:
+                    frappe.get_doc(
+                        {
+                            "doctype": "Translation",
+                            "language": lang,
+                            "source_text": msgid,
+                            "translated_text": our_value,
+                        }
+                    ).insert(ignore_permissions=True)
+                    healed += 1
+            elif existing and existing.translated_text == our_value:
+                # Our defensive row, for a hole that has since closed (the
+                # offending app fixed its file, or left). Release it so the
+                # file layer answers again — a defense that outlives its
+                # defect is just another stale override. Only rows carrying
+                # exactly OUR value are released: a row a human edited in the
+                # desk is theirs, not ours to reap.
+                frappe.delete_doc("Translation", existing.name, ignore_permissions=True, force=True)
+                released += 1
+
+        if healed or released:
+            frappe.db.commit()
+            frappe.translate.clear_cache()
+            print(
+                "bunood_theme: defended %d translation(s) a later app had erased with "
+                "identity rows; released %d whose hole has closed" % (healed, released)
+            )
+    except Exception:
+        frappe.log_error("bunood_theme: _defend_identity_overrides failed")
+
+
 def after_migrate() -> None:
     """Re-seed newly added fields and regenerate the brand stylesheet.
 
@@ -212,6 +297,7 @@ def after_migrate() -> None:
     _seed_navbar_density_item()
     write_brand_css()
     _warn_unreachable_rtl()
+    _defend_identity_overrides()
 
 
 def _seed_navbar_density_item() -> None:

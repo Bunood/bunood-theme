@@ -31,6 +31,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
+// The i18n gates DERIVE their expectation sets from the same tooling the
+// build's coverage gate uses — restating "which strings are ours" here would
+// be the second copy of the catalogue, and it is the catalogue that moves.
+import { extractCatalogue, readExempt, readInherited, readTranslations } from "../tools/i18n.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -4226,6 +4230,153 @@ async function main() {
 			for (const code of rtlLangs) {
 				expectEq(await derived(code), "rtl", `setup.RTL_LANGS lists ${code}, but CLDR says`);
 			}
+		});
+
+		// ── Item 7(e): the runtime translation gates ───────────────────────
+		//
+		// COVERAGE IS NOT MEASURED HERE. It is a set property of two files and
+		// the BUILD enforces it (tools/i18n.mjs); a DOM render can see ~15% of
+		// the catalogue at best — 285 msgids live on one settings page, 18 are
+		// aria-labels invisible to innerText, and every toast and empty state
+		// is mutually exclusive with a healthy run. These two tests assert the
+		// two things only a runtime CAN know: that the merged dictionary the
+		// server ships actually carries the decisions, and that what the desk
+		// paints agrees with them where we looked.
+
+		await test("i18n: the merged dict serves every decision, none as itself", async () => {
+			const shipped = readTranslations("bunood_theme/translations/ar.csv");
+			const inherited = readInherited("bunood_theme/locale/inherited.ar.txt");
+			await withLang("ar", async () => {
+				await goDesk("/desk/item", ".page-head", 2000);
+				const probe = await page.evaluate(
+					(ids) => {
+						const dict = (window.frappe && frappe.boot && frappe.boot.__messages) || {};
+						const identity = [];
+						const missing = [];
+						for (const id of ids) {
+							const got = dict[id];
+							if (got === undefined) missing.push(id);
+							else if (got === id) identity.push(id);
+						}
+						return { identity, missing, size: Object.keys(dict).length };
+					},
+					[...new Set([...shipped.keys(), ...inherited])]
+				);
+				// Sentinels pin EXACT values where collision with another app is
+				// implausible — a placeholder and a brand-name preset. These
+				// prove OUR file is the one being read, not merely that some
+				// translation exists.
+				const sentinels = await page.evaluate(() => ({
+					density: frappe.boot.__messages["Density: {0}"],
+					preset: frappe.boot.__messages["Bunood Night"],
+				}));
+				expectEq(sentinels.density, "الكثافة: {0}", "sentinel Density: {0}");
+				expectEq(sentinels.preset, "بنود ليلي", "sentinel Bunood Night");
+
+				// MISSING means the row never reached the runtime — the exact
+				// shape of the crm/helpdesk gap, where a PO existed and its .mo
+				// was never compiled, and the desk sat English under a green
+				// coverage gate. Inherited entries are held to the same bar for
+				// that reason: this is the test that notices a recreated
+				// sites/ volume silently dropping every compiled .mo.
+				expectEq(probe.missing.join("\n"), "", "decisions absent from the merged dict");
+				// IDENTITY means a later app erased a translation with a
+				// source-as-translation row (ksa_compliance shipped four such;
+				// _defend_identity_overrides now heals them on migrate). A
+				// GENUINELY different translation from a later app passes
+				// here on purpose — which word wins is a vocabulary question
+				// for the human review pass, not for a gate.
+				expectEq(probe.identity.join("\n"), "", "decisions erased by identity rows");
+			});
+		});
+
+		await test("i18n: no visible theme-owned label equals its msgid", async () => {
+			// THE HONEST NAME for what a DOM assertion can promise: on the
+			// pages this test visited, nothing the theme painted showed a
+			// source string that has a translation. Never "the desk is
+			// translated" — see the section comment.
+			const shipped = readTranslations("bunood_theme/translations/ar.csv");
+			const inherited = readInherited("bunood_theme/locale/inherited.ar.txt");
+			const exempt = readExempt("bunood_theme/locale/untranslatable.txt");
+			const translated = [...new Set([...shipped.keys(), ...inherited])].filter(
+				(m) => !exempt.has(m)
+			);
+
+			// WHOLE-STRING EQUALITY, never substring: "Price List" contains
+			// "List" and is ERPNext's data, not our failure. Attributes are
+			// searched too — 18 of our msgids are aria-labels, invisible to
+			// innerText, and they are exactly the accessibility strings item 7
+			// most owes a translation.
+			const collect = () =>
+				page.evaluate((ids) => {
+					const set = new Set(ids);
+					const seen = [];
+					const vis = (el) => {
+						// The suite's one visibility predicate (rect + display),
+						// as used by the critical-reach tests. Do not invent a
+						// second; two predicates is how a box gets counted by
+						// one test and denied by another.
+						const r = el.getBoundingClientRect();
+						return getComputedStyle(el).display !== "none" && r.width > 0 && r.height > 0;
+					};
+					// Parts AND classes, because each misses what the other
+					// covers: parts miss the palette rows and pickers; classes
+					// miss the pagehead cluster, which is stamped onto Frappe's
+					// own DOM. Plus the two out-of-tree hosts our toasts and
+					// dialogs actually land in.
+					const roots = document.querySelectorAll(
+						'[data-bnd-part], [class*="bnd-"], .msgprint-dialog, #alert-container'
+					);
+					const record = (el, text, how) => {
+						const t = (text || "").trim();
+						if (t && set.has(t)) {
+							seen.push(`${how} ${JSON.stringify(t)} in ${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0]}`);
+						}
+					};
+					for (const root of roots) {
+						for (const el of [root, ...root.querySelectorAll("*")]) {
+							// Server-supplied record text is whoever created the
+							// record's, in whatever language they typed it.
+							if (el.closest("[data-doctype], [data-name]")) continue;
+							if (!vis(el)) continue;
+							if (el.children.length === 0) record(el, el.textContent, "text");
+							for (const attr of ["aria-label", "title", "placeholder"]) {
+								record(el, el.getAttribute(attr), attr);
+							}
+						}
+					}
+					return [...new Set(seen)];
+				}, translated);
+
+			await withLang("ar", async () => {
+				const offenders = [];
+				// The chrome: bars, sidebar utils, crumbs, status segments.
+				await goDesk("/desk/item", ".page-head", 2500);
+				offenders.push(...(await collect()).map((o) => `desk: ${o}`));
+				// The palette, open with its empty-state suggestions.
+				setSettings({ palette_style: "Bunood Palette", enable_command_palette: 1 });
+				await goDesk("/desk/item", ".page-head", 2500);
+				await page.keyboard.press("Control+k");
+				await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 6000 }).catch(() => {});
+				offenders.push(...(await collect()).map((o) => `palette: ${o}`));
+				await page.keyboard.press("Escape");
+				// The inbox panel, by identity, tolerating a desk whose bell
+				// placement leaves no themed bell — the panel is then not ours
+				// to inspect.
+				const bell = await q('[data-bnd-part="bell"]');
+				if (bell) {
+					await page.click('[data-bnd-part="bell"]');
+					await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 6000 }).catch(() => {});
+					offenders.push(...(await collect()).map((o) => `inbox: ${o}`));
+					await page.keyboard.press("Escape");
+				}
+				// The stacked settings form — the single densest surface: 285
+				// of the catalogue's msgids render only here.
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+				offenders.push(...(await collect()).map((o) => `settings: ${o}`));
+
+				expectEq(offenders.join("\n"), "", "theme-owned strings rendering untranslated");
+			});
 		});
 
 		await test("placement: Off never removes the LAST route to a critical control", async () => {
