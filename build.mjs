@@ -42,7 +42,7 @@ import * as sass from "sass";
 
 // The translation catalogue and its guards. Derived, never listed — see
 // tools/i18n.mjs for why the string inventory is recomputed on every build.
-import { assertNoCountGoverned } from "./tools/i18n.mjs";
+import { assertNoCountGoverned, assertTranslationCoverage } from "./tools/i18n.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const APP = join(ROOT, "bunood_theme");
@@ -420,10 +420,16 @@ async function main() {
 	);
 	// Item 7(c). A counted noun has no correct Arabic through a plural-free
 	// dictionary, so it is refused at the source rather than left for a
-	// translator who cannot fix it. Green as of this commit; the COVERAGE gate
-	// (`npm run i18n:check`) deliberately stays out of the build until
-	// translations/ar.csv exists, because a red build blocks every deploy.
+	// translator who cannot fix it.
 	assertNoCountGoverned();
+	// Item 7(d). Held out of the build while it was red — a red build blocks
+	// every deploy — and wired in the moment translations/ar.csv shipped. From
+	// here a NEW `__()` string fails the build until someone decides what it
+	// says in Arabic (a row in locale/ar.po + emit) or why it says nothing
+	// (locale/untranslatable.txt, with a reason). That is the mechanism the
+	// roadmap item asked for: coverage is a property the build maintains, not
+	// a number that rots in a document.
+	assertTranslationCoverage();
 
 	const built = [];
 	for (const entry of ENTRIES) {

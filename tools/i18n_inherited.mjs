@@ -142,6 +142,24 @@ for (const app of APPS) {
 		console.log(`  ${app}: no ${LANG}.po (ships no ${LANG} translations)`);
 		continue;
 	}
+	// A PO the runtime cannot see is a claim, not a translation. The runtime
+	// reads the COMPILED .mo under sites/assets/locale, and `bench get-app`
+	// does not compile — crm and helpdesk sat exactly here: their POs fed this
+	// list, the desk served English, and the coverage gate was green over a
+	// gap. Warn loudly; the fix is one command.
+	try {
+		execFileSync(
+			"docker",
+			["exec", BACKEND, "bash", "-lc",
+			 `test -f /home/frappe/frappe-bench/sites/assets/locale/${LANG}/LC_MESSAGES/${app}.mo`],
+			{ encoding: "utf8" }
+		);
+	} catch {
+		console.error(
+			`  WARNING: ${app} ships ${LANG}.po but has NO compiled .mo — the runtime ` +
+				`serves NONE of it. Run: bench --site <site> compile-po-to-mo`
+		);
+	}
 	for (const [id, s] of parsePo(po)) if (!upstream.has(id)) upstream.set(id, { app, ar: s });
 	console.log(`  ${app}: ${parsePo(po).size} translated msgids`);
 }

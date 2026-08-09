@@ -397,6 +397,22 @@ export function assertTranslationCoverage(lang = "ar") {
 	// fact, and it silently overrides upstream desk-wide the moment their
 	// wording changes. Cheap to check, so it is checked.
 	const redundant = [...shipped.keys()].filter((m) => inherited.has(m));
+	// PLACEHOLDERS MUST SURVIVE TRANSLATION. `{0}` and `{details}` are the
+	// contract between the string and its call site; a translation that drops
+	// or invents one renders "الكثافة: {0}" as a literal or throws at format
+	// time. This repo has already shipped that bug once in the other direction
+	// — "{0} List" reordered to "قائمة {0}" broke the palette's badge regex —
+	// so the SET of tokens is compared, not their order: reordering is what
+	// Arabic legitimately does.
+	const token = /\{[A-Za-z0-9_]+\}/g;
+	const placeholderBroken = [...shipped.entries()]
+		.filter(([id]) => catalogue.has(id))
+		.filter(([id, str]) => {
+			const a = new Set(id.match(token) || []);
+			const b = new Set(str.match(token) || []);
+			return a.size !== b.size || [...a].some((t) => !b.has(t));
+		})
+		.map(([id]) => id);
 
 	const problems = [];
 	if (missing.length) {
@@ -419,6 +435,13 @@ export function assertTranslationCoverage(lang = "ar") {
 				`from frappe/erpnext. Delete the row and let the shared dictionary answer, or ` +
 				`remove it from inherited.${lang}.txt if we mean to override:\n    ` +
 				redundant.slice(0, 8).map((m) => JSON.stringify(m)).join("\n    ")
+		);
+	}
+	if (placeholderBroken.length) {
+		problems.push(
+			`${placeholderBroken.length} translation(s) drop or invent a {placeholder} — the ` +
+				`call site will render a literal or throw at format time:\n    ` +
+				placeholderBroken.slice(0, 8).map((m) => JSON.stringify(m)).join("\n    ")
 		);
 	}
 	if (problems.length) {
