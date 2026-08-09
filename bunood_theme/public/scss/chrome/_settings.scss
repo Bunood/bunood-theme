@@ -854,3 +854,188 @@ html[data-theme] {
     display: none;
   }
 }
+
+// ── The placement board (E2) ────────────────────────────────────────────────
+//
+// One desk, drawn big enough to drop things onto. The per-component thumbnails
+// above are 300x180 and absolutely positioned because they are PICTURES; this
+// is a WORKSPACE, so it is laid out as a grid and sized in rem — a drop target
+// has to be comfortably bigger than the pointer, which a scaled thumbnail
+// never is.
+//
+// Logical properties throughout, as everywhere else here: the board mirrors in
+// RTL for free, which matters more than usual because "Start" and "End" are
+// the words on the zones.
+.bnd-bd {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+// The desk: a side pane column beside a stack of bars, which is the shape of
+// the thing being configured. `grid` rather than absolute positioning so the
+// bars grow with their content instead of clipping it.
+.bnd-bd-desk {
+	display: grid;
+	grid-template-columns: minmax(9rem, 1fr) minmax(0, 3fr);
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border-radius: var(--bnd-radius-lg, 12px);
+	background: var(--bnd-surface-2, var(--fg-color));
+}
+
+// The side pane is a column and spans every bar row beside it, exactly as it
+// does on the desk.
+.bnd-bd-region[data-region="sidepane"] {
+	grid-column: 1;
+	grid-row: 1 / -1;
+}
+.bnd-bd-region:not([data-region="sidepane"]) {
+	grid-column: 2;
+}
+
+.bnd-bd-region {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	padding: 0.5rem;
+	border: 1px dashed var(--bnd-hairline, var(--border-color));
+	border-radius: var(--bnd-radius, 8px);
+	background: var(--bnd-surface, var(--card-bg));
+	min-block-size: 4rem;
+}
+
+// A region the current layout cannot mount. WARNS, never blocks — the runtime
+// falls back either way, and greying it out would hide where things would go
+// if the container were switched back on.
+.bnd-bd-region.bnd-bd-unavailable {
+	opacity: 0.55;
+}
+
+.bnd-bd-region-name {
+	margin: 0;
+	font-size: var(--text-xs, 0.75rem);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.bnd-bd-warn {
+	font-weight: 400;
+	text-transform: none;
+	letter-spacing: 0;
+	color: var(--text-light);
+}
+
+// Zones sit along the bar; in the side pane they stack down it. Same rule,
+// different axis — which is what start/end mean.
+.bnd-bd-zones {
+	display: flex;
+	gap: 0.375rem;
+	flex: 1;
+}
+.bnd-bd-region[data-region="sidepane"] .bnd-bd-zones {
+	flex-direction: column;
+}
+.bnd-bd-region:not([data-region="sidepane"]) .bnd-bd-zones > .bnd-bd-zone {
+	flex: 1;
+}
+
+// THE DROP TARGET. Sized for a pointer, not for a thumbnail: 3.25rem is about
+// twice the height of a chip, so an imprecise drop still lands.
+.bnd-bd-zone {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-block-size: 3.25rem;
+	padding: 0.375rem;
+	border: 1px solid transparent;
+	border-radius: var(--bnd-radius-sm, 6px);
+	background: var(--bnd-surface-3, var(--control-bg));
+	cursor: pointer;
+	transition: background 120ms ease, border-color 120ms ease;
+}
+
+.bnd-bd-zone-name {
+	font-size: var(--text-xs, 0.75rem);
+	color: var(--text-light);
+}
+
+.bnd-bd-slot-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	flex: 1;
+	align-content: flex-start;
+}
+
+// Armed state: which zones will accept what is being carried. Shown on BOTH
+// gestures — the drag and the click-to-pick-up run through the same `arm()`.
+.bnd-bd[data-armed=""] .bnd-bd-zone {
+	border-color: transparent;
+}
+.bnd-bd-zone.bnd-bd-ok {
+	border-color: var(--bnd-accent, var(--primary));
+	background: var(--bnd-accent-wash, var(--control-bg));
+}
+.bnd-bd-zone.bnd-bd-no {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+// The chip. A button, so it is reachable by keyboard and readable by a screen
+// reader; draggable is an enhancement layered on top.
+.bnd-bd-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border-radius: 999px;
+	background: var(--bnd-surface, var(--card-bg));
+	color: var(--text-color);
+	font-size: var(--text-sm, 0.8125rem);
+	line-height: 1.4;
+	cursor: grab;
+}
+.bnd-bd-chip:active {
+	cursor: grabbing;
+}
+.bnd-bd-chip.bnd-bd-armed {
+	border-color: var(--bnd-accent, var(--primary));
+	box-shadow: 0 0 0 2px var(--bnd-accent-wash, transparent);
+}
+.bnd-bd-chip.bnd-bd-dragging {
+	opacity: 0.5;
+}
+
+.bnd-bd-dot {
+	inline-size: 0.5rem;
+	block-size: 0.5rem;
+	border-radius: 50%;
+	background: var(--bnd-accent, var(--primary));
+	flex: none;
+}
+
+// The Off tray is a zone like any other, which is why "off" needs no special
+// handling in the drop path — it is a place a chip can be, not a mode.
+.bnd-bd-tray {
+	border: 1px dashed var(--bnd-hairline, var(--border-color));
+	background: transparent;
+}
+
+// Narrow panes: the desk stops pretending to be a desk and stacks, rather than
+// squeezing five regions into a column too thin to drop onto.
+@container (max-width: 34rem) {
+	.bnd-bd-desk {
+		grid-template-columns: 1fr;
+	}
+	.bnd-bd-region[data-region="sidepane"] {
+		grid-row: auto;
+	}
+	.bnd-bd-region:not([data-region="sidepane"]) {
+		grid-column: 1;
+	}
+}

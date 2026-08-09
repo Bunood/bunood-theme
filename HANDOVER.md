@@ -59,7 +59,86 @@ Also shipped this session, and both worth knowing about:
   server-side and then navigates, so the whole click-to-desk path can be
   broken with the suite fully green. Drive the control.
 
-**NEXT: the honest-picker audit** — `bnd_region_blocker` covers placement; the
+**E1 IS DONE** (2026-08-08). The slot vocabulary — every placement is
+"<Region> Start|Center|End", every consumer reading `registry.slots_for` —
+landed the hard way: the vocabulary changed under FIVE consumers that carried
+their own copies (the pickers' slot lists, the desk-diagram geometry tables,
+`SEARCH_SLOTS`, `sb_mount_utils`'s bar table, `LAYOUT_TENANTS`), and each was a
+place placement silently stopped working. All five now read the field or parse
+the slot; none carries a list. Three decisions worth keeping:
+
+* **The side pane has TWO zones** (`registry.ZONES_BY_REGION`). Measured three
+  ways: its content fills the column, so "after the workspace list" and "the
+  foot" are the same position. A third choice that cannot differ is the
+  two-options-one-pixel defect this vocabulary exists to delete.
+* **A component offers only the zones its runtime implements** (the `zones` key
+  on the component). Search has no page-header slug and Home mounts at
+  `firstChild` only; offering more would be a dishonest picker. Search's bar
+  "End" is genuinely missing and worth building.
+* **An illegal Select value on a Single fails the WHOLE document.** One stale
+  `inbox_placement` broke six unrelated save tests with nothing naming
+  placement. `heal_unknown_placements` (runs on every migrate, forever) falls
+  any un-offered value back to `setup.SHIPPED`; two suite tests pin that
+  nothing this app writes and nothing the site holds can be un-offered.
+
+**E2 IS DONE — the placement board.** One desk drawn big (`placement_board`
+HTML field, `bnd_render_placement_board`), every control a chip sitting where
+it is, moved by HTML5 drag OR click-to-pick/click-to-drop — both gestures end
+in the same `drop_on`, so neither rots alone. Zones come from
+`bnd_field_slots`, which reads the FIELD's options (generated from
+`slots_for`), so an illegal drop is refused rather than accepted-and-dropped
+elsewhere. Three suite tests own it (`board:`). The per-component pickers
+remain as the detail view.
+
+**The notifications panel follows the BELL now** (`data-bnd-bell`, stamped by
+`mount_placed_tenants` from where the mount landed, cleared on off/absent/no
+host). The four `_layouts.scss` panel rules key on it — the last "the layout
+decides" in the sheet, and §8's oldest open item, closed.
+
+**reserve_cluster once nested a cluster inside a cluster** — several host
+lookups return the cluster when one exists, and blind `querySelector` from
+there built a second, giving a bar two "end" zones (tenants in one, every
+measurement reading the other). It now recognises a host that IS the cluster.
+
+**The settings sweep** (`tools/sweep-settings.mjs`, new) clicks every option
+of every picker through the user's own click path — 186 options across four
+kinds (option buttons, style cards, toggles, preset cards, plus stock
+checkboxes and selects) — and demands each click saves, lands, and stays
+console-clean. It found four real defects its first day, all shipped fixed:
+
+* **The status picker's "Off" card wrote a value the field refuses.**
+  `status_style` lost "Off" on 2026-08-06; the card survived, and one click
+  failed validation for the WHOLE Single — the form read "Not Saved" forever
+  and every later control timed out behind it. Card deleted; the card list now
+  filters against the field's own options.
+* **Every status toggle was inert.** The status `P.toggle` call omitted
+  `cls: "bnd-stp-toggle"`, so the handler bound a class the markup never
+  carried — the exact port defect P.toggle's docstring warns about. The knob
+  looked right; the click did nothing; no error anywhere.
+* **Autosave could fabricate permanent dirtiness.** `bnd_merge_and_retry`'s
+  give-up branch set `__unsaved = 1` with an empty diff — a state no save can
+  clear. Empty-diff give-ups now return clean, mid-retry refusals reschedule,
+  and `bnd_autosave` heals a dirty form whose diff is empty.
+* **The stale brand CSS** — see the closed item in §8.
+
+**Shipped sidebar defaults changed** (the user's re-chosen combination,
+2026-08-08): Bunood Night is now Attached + Solid + Match Theme + width 3 +
+Always Expanded + rail button None. "Bunood Light" keeps the old
+floating-glass rail look one click away. Two defects fell out of verifying it
+in the browser rather than trusting the values:
+
+* **The width stops above 220px never rendered.** The pane is a flex child
+  with Frappe's `flex: 0 1 auto`, so the width was only a basis and
+  flex-shrink handed back the difference — variable 240px, inline 240px, pane
+  220.9px. `flex-shrink: 0` in expanded mode pins it; the main section
+  absorbs, which is what a flexible main pane is for.
+* **The rail button floated over the workspace list when the pane opened.**
+  It is absolute against the CONTAINER (52px), and the open pane is an overlay
+  that grows past it — so opening slid the pane out from under the button.
+  Every placement now has an at-rest offset and an OPEN offset derived from
+  the same two widths the pane uses, and glides with the same duration.
+
+**THEN: the honest-picker audit** — `bnd_region_blocker` covers placement; the
 rest is unaudited. Two concrete items for it are in §8.
 
 After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
@@ -298,24 +377,23 @@ placement on every route change.
 
 **Still open, and mine:**
 
-- **An open desk tab loses its brand colours when somebody changes them.**
-  `brand.write_brand_css` names the file by a digest of its contents and
-  `_reap_old` deletes the previous one immediately, so a page loaded BEFORE the
-  change still points at a filename that no longer exists, gets Frappe's HTML
-  404 body, and the browser refuses it as a stylesheet. The window always
-  existed; autosave makes it frequent, because every click on Colours writes a
-  new digest. Two cheap fixes if it is worth closing: keep the previous file or
-  two rather than reaping immediately, or serve a stable name with a
-  cache-busting query. Not done — it is a product call.
+- ~~An open desk tab loses its brand colours when somebody changes them~~ —
+  CLOSED 2026-08-08, found live by the settings sweep as a stale-brand-CSS
+  MIME error on page load. Both halves landed: `_reap_old` keeps the newest
+  eight files instead of one (a tab holding any recent URL keeps its
+  stylesheet), and `context._append_brand_css` self-heals — one stat per desk
+  render, and a stored URL whose file is missing triggers `write_brand_css`
+  before serving. The second half also fixes the case the first cannot: a
+  database-only restore (the suite and the sweep write tabSingles back raw)
+  reviving a URL whose file was reaped long ago.
 - **Saving Theme Settings still writes the WHOLE document.** The merge above
   makes that safe for the user's click, but it is a property of Frappe Singles,
   not something this app chose, and any future writer of the Single should
   expect to be overwritten between a form's load and its next save.
 
-- **The notifications panel still guesses where the bell is, from the layout.**
-  Unchanged by the audit: keying all four panel rules on `inbox_placement` is a
-  behaviour change, and behaviour does not ride along with an audit. It is the
-  one honest-picker finding left open.
+- ~~The notifications panel guesses where the bell is~~ — CLOSED 2026-08-08:
+  the panel keys on `data-bnd-bell`, stamped from where the bell's mount
+  actually landed. See §1.
 - **`chrome_placement.py` maps Classic to `"Side Pane"`, and its own comment
   says "nothing of ours -> the sidebar's own bell and user button".** Those
   disagree: `"Side Pane"` mounts OUR bell into Frappe's sidebar and stamps
@@ -331,18 +409,9 @@ placement on every route change.
   unclickable — a soft failure, and the only unguarded modern-CSS dependency
   in the sheet.
 
-- **The notifications panel guesses where the bell is, from the layout.**
-  `inbox_placement` is the thing that knows, and has been its own setting since
-  slice 1a — so a Top Bar desk with the bell in the side pane already gets a
-  panel pinned under the top bar, nowhere near it. Slice 2c-1 makes one more
-  such state reachable (a top bar on a Dock desk: both selectors match at equal
-  specificity and source order gives it to the dock) and names it in
-  `_layouts.scss` rather than fixing it, because keying all four rules on the
-  bell's real region is a behaviour change and behaviour does not ride along
-  with a refactor. It is one line of the honest-picker audit.
-- `home_placement` / `apps_placement` accept `"Dock"`, which no runtime branch
-  handles — it falls through to the sidebar. Either handle it or remove it from
-  the field's options.
+- ~~`home_placement` / `apps_placement` accept "Dock" with no runtime branch~~
+  — CLOSED by E1: `sb_mount_utils` resolves every slot through `parse_slot`
+  against `BAR_HOSTS`, and the dock is one of them.
 - Clicking a slot in the User or Home/All-Apps picker does not repaint that
   picker, so the selection does not move until the form is refreshed.
 - `tools/fingerprint.mjs` hardcodes an absolute path to one machine

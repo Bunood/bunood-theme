@@ -51,29 +51,39 @@ SIDEBAR_FIELDS = [
     "sidebar_scroll_fades",
 ]
 
-#: The preset catalogue. "Bunood Night" is the shipped default (the user's
-#: chosen combination); "Bunood Light" is its daylight sibling — identical in
-#: every option except the pane color, which follows the theme instead of
-#: staying dark.
+#: The preset catalogue. "Bunood Night" is the shipped default — the user's
+#: chosen combination, re-chosen on 2026-08-08: attached and solid rather than
+#: floating glass, a step wider, the pane following the theme colour, and no
+#: rail button (its rendering was broken; the rail still opens on hover).
+#: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
+#: appearance remains one click away rather than gone.
 SIDEBAR_PRESETS = {
     "Bunood Night": {
-        "sidebar_placement": "Floating",
-        "sidebar_material": "Glass",
+        "sidebar_placement": "Attached",
+        "sidebar_material": "Solid",
+        # Inert while the material is Solid, kept so flipping back to Glass
+        # restores the look that was tuned, not a default.
         "sidebar_glass_opacity": "4",
         "sidebar_blur": "Soft",
-        "sidebar_color": "Dark Contrast",
+        "sidebar_color": "Match Theme",
         "sidebar_icon_style": "Colored Chips",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_surface_intensity": "3",
-        "sidebar_menu_rail": "Rail",
+        # Always expanded, because the re-chosen look is "attached, solid, a
+        # step wider" — a pane that collapses to a 52px rail shows none of
+        # those. The rail lives on in Bunood Light and the picker.
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "Edge",
+        "sidebar_rail_button": "None",
+        # Trigger, shape and icon are inert while the mode has no rail and the
+        # button is None — kept so flipping back restores a tuned look, same
+        # rule as the glass fields above.
         "sidebar_rail_button_shape": "Circle",
         "sidebar_rail_button_icon": "Chevron",
         "sidebar_icon_source": "Smart",
-        "sidebar_pane_width": "2",
+        "sidebar_pane_width": "3",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
@@ -377,11 +387,11 @@ PLACEMENTS = ("Off", "Top Bar", "Bottom Bar", "Page Header", "Side Pane", "Dock"
 #: separated. `registry.py` has always called them two components; these are
 #: their settings, and a sidebar preset no longer writes them.
 LINKS_DEFAULTS = {
-    "home_placement": "Sidebar Top",
-    "apps_placement": "Sidebar Top",
+    "home_placement": "Side Pane Start",
+    "apps_placement": "Side Pane Start",
 }
 
-USER_DEFAULTS = {"user_placement": "Top Bar"}
+USER_DEFAULTS = {"user_placement": "Top Bar End"}
 
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
@@ -427,7 +437,7 @@ INBOX_DEFAULTS = {
     # it away from every existing site on upgrade. The migration patch writes
     # what each layout ACTUALLY rendered; this is only what a fresh install
     # gets, and a fresh install gets the Top Bar layout.
-    "inbox_placement": "Top Bar",
+    "inbox_placement": "Top Bar End",
     "inbox_badge": "Count",
     "inbox_arrival": "Approvals Only",
     # Checks: behaviours inside a user-invoked panel, invisible until opened.

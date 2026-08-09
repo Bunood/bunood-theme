@@ -218,22 +218,51 @@ def write_brand_css(settings=None) -> str | None:
         return None
 
 
+#: How many superseded brand files to keep. Generous on purpose: a file is a
+#: couple of KB, and every file deleted too early is a desk that loses its
+#: colours mid-session.
+REAP_KEEP = 8
+
+
 def _reap_old(folder: str, keep: str) -> None:
-    """Delete superseded brand files, keeping ``keep``.
+    """Delete old brand files, keeping ``keep`` plus the ``REAP_KEEP`` newest.
 
-    Old hashed files are left behind by every colour change. They are harmless but
-    unbounded, so they are removed here rather than by a scheduled job.
+    Old hashed files are left behind by every colour change. They are unbounded,
+    so they are pruned here rather than by a scheduled job — but NOT to one.
+    Keeping only the current file guaranteed a 404 for every holder of an older
+    URL, and both holders are real, measured 2026-08-08:
 
-    Deliberately tolerant: a failure to delete must never fail the save. During a
-    rolling deploy an old file may still be requested by a page rendered seconds ago,
-    which is precisely why the previous URL stays fetchable until this runs.
+    * An OPEN TAB. Its ``<link>`` was rendered before the colour change; the
+      desk is an SPA, so that head element lives for the whole session, and its
+      next revalidation answered 404-as-HTML — "Refused to apply style ...
+      MIME type ('text/html')", and a desk with no brand colours. This was
+      HANDOVER's "open tab loses brand colours" item.
+    * A DATABASE-ONLY RESTORE. The smoke suite and the settings sweep snapshot
+      ``tabSingles`` and write it back raw, which restores ``brand_css_url``
+      pointing at a hash whose file the sweep's own saves had reaped. The
+      stored URL and the disk then disagree until something calls
+      :func:`write_brand_css` again — found as a stale-brand-CSS console error
+      the suite had been allowlisting rather than explaining.
+
+    A window of eight outlives both: tabs get a working stylesheet for the
+    last several changes, and a restore lands on a URL whose file still
+    exists. Deliberately tolerant: a failure to delete must never fail the
+    save.
     """
     try:
+        candidates = []
         for name in os.listdir(folder):
             if name.startswith(BRAND_STEM) and name.endswith(".css") and name != keep:
+                path = os.path.join(folder, name)
                 try:
-                    os.remove(os.path.join(folder, name))
+                    candidates.append((os.path.getmtime(path), path))
                 except OSError:
                     pass
+        candidates.sort(reverse=True)
+        for _, path in candidates[REAP_KEEP:]:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
     except OSError:
         pass

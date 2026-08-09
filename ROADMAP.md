@@ -200,8 +200,22 @@ defect in 0.10.0.
     now". Three of the five findings were runtime lies rather than silent
     pickers — `"Dock"` fell through to the sidebar, links placed in a bar needed
     the side pane, and `registry.py` named the wrong element for BOTH link
-    components. The notifications panel's position is the one finding left open
-    (behaviour, not honesty)
+    components. ~~The notifications panel's position is the one finding left
+    open~~ — closed with E1 (`data-bnd-bell`, stamped from the mount's outcome)
+  - `[x]` **E1 · One slot vocabulary** *(2026-08-08)*. Every placement is
+    "<Region> Start|Center|End" derived from `registry.slots_for`; the side pane
+    honestly offers two zones; a component offers only the zones its runtime
+    implements. The migration maps each old value to what it MEASURABLY
+    rendered; `heal_unknown_placements` runs on every migrate forever, because
+    one un-offered Select value on a Single silently fails every later save of
+    the whole document (measured: six unrelated tests red)
+  - `[x]` **E2 · The desk is the form** *(2026-08-08)*. The placement board —
+    one desk drawn big, every control a chip where it is, drag OR
+    click-to-pick/click-to-drop, both ending in the same `drop_on`. Zones read
+    from the field's own options, so the board cannot offer what a field
+    refuses. Suite: `board:` tests
+  - `[ ]` **E3 · Order within a zone** — `chrome_order`; two tenants sharing a
+    zone hold a stable, chosen order
 
 ## Phase 1 — contracts with no design uncertainty
 

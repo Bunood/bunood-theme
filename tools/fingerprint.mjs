@@ -30,7 +30,11 @@ print("ok")
 const shipped = JSON.parse(py(`from bunood_theme.setup import SHIPPED
 print(json.dumps(SHIPPED))
 `).trim().split(/\r?\n/).pop());
-const SHAPE_STATE = { ...shipped, desk_layout: "Top Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" };
+// E1 VOCABULARY. This said "Top Bar", which the fields no longer accept — and a
+// pinned state the site cannot hold is not a baseline, it is a guess. The
+// comment below is emphatic that a capture must show the pinned state; an
+// illegal value is the one way to violate that without the check noticing.
+const SHAPE_STATE = { ...shipped, desk_layout: "Top Bar", inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
 set(SHAPE_STATE);
 const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
 await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
@@ -71,7 +75,7 @@ async function settleOnPinnedState() {
 await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
-  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker"]) {
+  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker","placement_board"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}
     const nodes=[];

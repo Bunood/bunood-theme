@@ -18,3 +18,12 @@ bunood_theme.patches.v0_11_0.container_pagehead
 bunood_theme.patches.v0_11_0.container_dock
 bunood_theme.patches.v0_11_0.container_sidepane
 bunood_theme.patches.v0_11_0.container_bottombar
+# E1: every placement moves onto "<Region> <Zone>". Runs AFTER the container
+# patches because it does not depend on them, and last is where a vocabulary
+# change belongs — the ones above still speak the old one.
+bunood_theme.patches.v0_11_0.slot_vocabulary
+# Last, and it stays: whatever the translation above could not map, this makes
+# legal. An out-of-range Select on a Single fails validation for the WHOLE
+# document, so one stale placement silently breaks every later save of every
+# other setting — measured 2026-08-08, six unrelated checks red.
+bunood_theme.patches.v0_11_0.heal_unknown_placements

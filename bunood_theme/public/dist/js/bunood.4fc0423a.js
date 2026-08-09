@@ -1136,18 +1136,32 @@
 		sidepane: () => (sidebar_is_hidden() ? null : document.querySelector(".body-sidebar")),
 	};
 
-	/** The node for a region, or null when this desk has no such region now. */
-	function host_for(region) {
+	/**
+	 * The node a tenant goes in, for a region AND a zone within it.
+	 *
+	 * The region answer is still the DOM's — a region backed by a hidden
+	 * container is absent, because a tenant placed there would be invisible.
+	 * The zone is then a child of it, so "Top Bar End" resolves to one element
+	 * and cannot be confused with "Top Bar Start".
+	 *
+	 * The side pane is the exception: its zones are Frappe's own rows, not a
+	 * cluster we built, so it returns the pane itself and the caller places by
+	 * `order` (see sb_zone_style). Wrapping the pane's contents in three divs
+	 * would be redrawing Frappe's DOM, which this theme does not do.
+	 */
+	function host_for(region, zone) {
 		const get = HOSTS[region];
 		if (!get) return null;
 		try {
-			return get() || null;
+			const host = get() || null;
+			if (!host || region === "sidepane") return host;
+			return zone ? zone_in(host, zone) : host;
 		} catch (e) {
 			return null;
 		}
 	}
 
-	/** Theme Settings label -> region key. "Off" resolves to nothing at all. */
+	/** Theme Settings region label -> region key. */
 	const PLACEMENT_REGIONS = {
 		"Top Bar": "topbar",
 		"Bottom Bar": "bottombar",
@@ -1155,6 +1169,32 @@
 		"Side Pane": "sidepane",
 		Dock: "dock",
 	};
+
+	/**
+	 * "Top Bar End" -> { region: "topbar", zone: "end" }.
+	 *
+	 * The mirror of `registry.parse_slot`, which is the same split in Python.
+	 * Two implementations of one rule is normally this codebase's cardinal sin;
+	 * here the alternative is shipping the table through boot on every desk
+	 * load to save a `startsWith`, and the rule is "the label is the region
+	 * name, a space, and one of three words" — small enough that the smoke
+	 * suite's vocabulary test pins both ends against `slots_for`.
+	 *
+	 * An unknown label yields no region, which every caller reads as "absent"
+	 * and therefore LEAVES WHAT IS THERE. That is the fail-open a site holding
+	 * a pre-migration value depends on.
+	 */
+	function parse_slot(label) {
+		if (!label || label === "Off") return { region: "", zone: "" };
+		for (const [name, region] of Object.entries(PLACEMENT_REGIONS)) {
+			if (label === name) return { region, zone: "end" }; // legacy, pre-E1
+			if (label.startsWith(name + " ")) {
+				const zone = label.slice(name.length + 1).toLowerCase();
+				return { region, zone: ZONES.includes(zone) ? zone : "end" };
+			}
+		}
+		return { region: "", zone: "" };
+	}
 
 	/** Boot's placement choices, replaced by live preview. */
 	let placement_state = (window.frappe && frappe.boot && frappe.boot.bnd_placement) || null;
@@ -1180,9 +1220,15 @@
 	function placement_for(tenant) {
 		const label = (placement_state && placement_state[tenant]) || "";
 		if (label === "Off") return "off";
-		const region = PLACEMENT_REGIONS[label];
+		const { region, zone } = parse_slot(label);
 		if (!region) return "absent";
-		return host_for(region) ? region : "absent";
+		return host_for(region, zone) ? region : "absent";
+	}
+
+	/** The zone a tenant asked for, for the region it resolved to. */
+	function zone_for(tenant) {
+		const label = (placement_state && placement_state[tenant]) || "";
+		return parse_slot(label).zone || "end";
 	}
 
 	/**
@@ -1209,14 +1255,44 @@
 	 * which is what makes "exactly one, where you asked" true by construction
 	 * rather than by everyone remembering.
 	 */
+	/** Where inside a container a tenant sits. Logical: start/end mirror in RTL. */
+	const ZONES = ["start", "center", "end"];
+
 	function reserve_cluster(host) {
 		if (!host) return null;
-		let cluster = host.querySelector(".bnd-cluster");
+		// THE HOST MAY BE THE CLUSTER. Several host lookups return
+		// `.bnd-topbar .bnd-cluster` when one exists and the bar itself
+		// otherwise — a shape that predates zones and was harmless while a
+		// cluster was only a box to append to. Searching blindly from here
+		// nested a SECOND cluster inside the first, so the bar carried two
+		// "end" zones: the tenants went into one, and every measurement of the
+		// trailing edge found the other, which was empty and earlier in the
+		// DOM. Measured 2026-08-08 — clusters=2, endZones=2, bell@end, and the
+		// zone the assertion read holding nothing.
+		let cluster = host.classList.contains("bnd-cluster")
+			? host
+			: host.querySelector(".bnd-cluster");
 		if (!cluster) {
 			cluster = el("div", "bnd-cluster");
 			host.appendChild(cluster);
 		}
+		// Three zones inside it, always, in document order. Always rather than
+		// on demand because their ORDER is what start/centre/end means — created
+		// lazily, the first tenant to arrive would define the sequence and
+		// "start" could end up after "end".
+		for (const zone of ZONES) {
+			if (!cluster.querySelector(`.bnd-zone[data-zone="${zone}"]`)) {
+				cluster.appendChild(el("div", "bnd-zone", { "data-zone": zone }));
+			}
+		}
 		return cluster;
+	}
+
+	/** The zone element inside a container, creating the cluster if needed. */
+	function zone_in(host, zone) {
+		const cluster = reserve_cluster(host);
+		if (!cluster) return null;
+		return cluster.querySelector(`.bnd-zone[data-zone="${ZONES.includes(zone) ? zone : "end"}"]`);
 	}
 
 	// `mount_cluster` and `build_cluster` were deleted here on 2026-08-07,
@@ -1249,6 +1325,83 @@
 		return !!(pane && getComputedStyle(pane).display !== "none");
 	}
 
+/**
+ * Put a node at a zone of the SIDE PANE, by DOM position.
+ *
+ * TWO ZONES, NOT THREE. The pane is the one region that does not get a centre,
+ * and `registry.ZONES_BY_REGION` is where that is declared — this function is
+ * only where it is carried out. The reason is measured, not stylistic: the
+ * pane's content FILLS the column, so "after the workspace list" and "the foot
+ * of the pane" are the same position, because the list is the last thing in it.
+ * Three attempts said so — CSS `order` with auto margins put start, centre and
+ * end on an identical y; inserting the end before Frappe's pinned bottom strip
+ * put it ABOVE the centre; inserting it at the true last child matched the
+ * centre exactly. A third choice that lands where the second one does is the
+ * "two options, one pixel" defect this vocabulary exists to delete, and the
+ * pane already had it — search's old Sidebar Top and Sidebar Bottom both
+ * measured y 228 for months.
+ *
+ *   start   after the pane's header, above the workspaces
+ *   end     the foot of the pane, below the workspace list
+ *
+ * Position, not `order`, is what decides here — see the measurement above.
+ * Falls back outward at every step: a pane missing its header or its bottom
+ * strip still gets the node, at the nearest honest place, rather than not at
+ * all.
+ */
+function sb_zone_anchor(pane, zone, node) {
+	const bottom = pane.querySelector(".body-sidebar-bottom");
+	const header = pane.querySelector(".bnd-sb-brand") || pane.querySelector(".sidebar-header");
+
+	if (zone === "start") {
+		if (header) return header.insertAdjacentElement("afterend", node);
+		return pane.insertBefore(node, pane.firstChild);
+	}
+	// No "center" branch: the pane has two zones, because a third could not be
+	// made to differ from the second (see registry.ZONES_BY_REGION). A value
+	// from a site that stored one before this settled falls through to the foot,
+	// which is where it rendered anyway.
+	// "end" means the FOOT of the pane, and `.body-sidebar-bottom` is only that
+	// when it is genuinely last. Inserting before it unconditionally put the end
+	// zone ABOVE the centre one (measured: y 1009 against 1064), because the
+	// strip is pinned while the workspace list keeps going below it.
+	if (bottom && bottom === pane.lastElementChild) {
+		return bottom.insertAdjacentElement("beforebegin", node);
+	}
+	return pane.appendChild(node);
+}
+
+	/**
+	 * Tell the stylesheet where the BELL really is.
+	 *
+	 * The notifications panel used to be pinned by four rules keyed on the
+	 * LAYOUT — the last "the layout decides" left in the sheet, named in
+	 * _layouts.scss since slice 2c and finally retired here. `inbox_placement`
+	 * is the thing that knows, so a Top Bar desk with the bell in the side pane
+	 * pinned the panel under the top bar, nowhere near it; a top bar on a Dock
+	 * desk matched two of the rules at once and source order picked the dock.
+	 *
+	 * A stamp, not a declaration: written from where the mount LANDED, after it
+	 * landed, exactly like `data-bnd-own` — and removed when the bell is off or
+	 * native, which hands the panel back to Frappe's own anchoring beside the
+	 * sidebar.
+	 */
+	function stamp_bell_region(region) {
+		if (region) document.documentElement.setAttribute("data-bnd-bell", region);
+		else document.documentElement.removeAttribute("data-bnd-bell");
+	}
+
+	/** The region a mounted node is ACTUALLY in, measured from its ancestry. */
+	function region_of_node(node) {
+		if (!node) return "";
+		if (node.closest(".bnd-topbar")) return "topbar";
+		if (node.closest(".bnd-statusbar")) return "bottombar";
+		if (node.closest(".bnd-dock")) return "dock";
+		if (node.closest(".page-head")) return "pagehead";
+		if (node.closest(".body-sidebar")) return "sidepane";
+		return "";
+	}
+
 	function mount_placed_tenants() {
 		if (!placement_state) return;
 		// `native` mirrors registry.py, which is the table that says what each
@@ -1260,6 +1413,12 @@
 			["user", "user", "bnd-avatar-btn", build_user],
 		]) {
 			const region = placement_for(tenant);
+			// The panel stamp follows the OUTCOME of every branch below: only a
+			// mount that actually happened stamps its region, and every other
+			// exit clears — off, absent, and a host that is not there. Stamping
+			// from the SETTING instead would be the same guess the stamp
+			// replaces, one table to the left.
+			const stamp = (r) => tenant === "inbox" && stamp_bell_region(r);
 			// ALL of them, not the first. This was `querySelector`, which was
 			// correct while exactly one container mounted per layout and became
 			// wrong the moment containers turned independent: three containers
@@ -1292,6 +1451,11 @@
 			// really there. Doing anything else deletes chrome.
 			if (region === "absent") {
 				if (existing.length) bnd_own(token);
+				// The kept bell is somewhere — ASK IT, rather than clearing and
+				// letting the panel anchor to a sidebar the bell is not in. The
+				// setting cannot answer here (it names a region this desk does
+				// not have); the node's ancestry can.
+				stamp(region_of_node(existing[0]));
 				continue;
 			}
 
@@ -1317,14 +1481,20 @@
 					// placed.
 					for (const node of existing.slice(1)) node.remove();
 					bnd_own(token);
+					// Same rule as "absent": the kept bell knows where it is.
+					stamp(region_of_node(existing[0]));
 					continue;
 				}
 				for (const node of existing) node.remove();
+				stamp("");
 				continue;
 			}
 
-			const host = host_for(region);
-			if (!host) continue;
+			const host = host_for(region, zone_for(tenant));
+			if (!host) {
+				stamp("");
+				continue;
+			}
 			// Keep at most one, and only if it is already in the right host;
 			// everything else goes, wherever it is.
 			let keeper = null;
@@ -1332,8 +1502,24 @@
 				if (!keeper && host.contains(node)) keeper = node;
 				else node.remove();
 			}
-			if (!keeper) reserve_cluster(host).appendChild(build());
+			// `host` is already the zone for every region but the side pane,
+			// where it is the pane itself and CSS `order` does the placing —
+			// so the node carries the zone and the stylesheet reads it. The
+			// pane is Frappe's DOM and this theme does not redraw it.
+			const zone = zone_for(tenant);
+			if (!keeper) {
+				const node = build();
+				node.setAttribute("data-bnd-zone", zone);
+				if (region === "sidepane") sb_zone_anchor(host, zone, node);
+				else host.appendChild(node);
+			} else if (region === "sidepane" && keeper.getAttribute("data-bnd-zone") !== zone) {
+				// The zone changed under a node that is already in the pane;
+				// move it rather than rebuild, so nothing bound to it is lost.
+				keeper.setAttribute("data-bnd-zone", zone);
+				sb_zone_anchor(host, zone, keeper);
+			}
 			bnd_own(token);
+			stamp(region);
 		}
 	}
 
@@ -1718,14 +1904,40 @@
 	//     search (proxy, don't reimplement).
 	//   bar slots     -> inject our field, since those bars are ours.
 
-	/** Theme Settings label -> slot slug. */
+	/**
+	 * Theme Settings label -> slot slug.
+	 *
+	 * The E1 vocabulary first, then the retired labels as ALIASES. Both halves
+	 * are load-bearing:
+	 *
+	 *   The new keys are the ones the field can now hold. Without them every
+	 *   value except the two "Center" ones missed this table and fell to
+	 *   `|| "topcenter"` — so "Top Bar Start" and "Side Pane End" would both
+	 *   have put search in the middle of the top bar, silently. That would have
+	 *   been a REGRESSION INTRODUCED BY THE FIX: `LAYOUT_TENANTS` now writes
+	 *   "Side Pane Start" for Compact and Classic, which the old table did not
+	 *   know, so those two layouts would have lost their sidebar search row.
+	 *
+	 *   The old keys stay because an upgrade is not instant. `slot_vocabulary`
+	 *   runs during migrate, but a desk already open in another tab holds a
+	 *   boot payload from before it, and this file is asked for that tab's
+	 *   placement on every render until it reloads. Four dead keys are cheaper
+	 *   than a blank search field for whoever had the desk open. They cost
+	 *   nothing once no site emits them, and `slots_for` no longer offers them,
+	 *   so nothing new can arrive here holding one.
+	 */
 	const SEARCH_SLOTS = {
+		"Top Bar Start": "topedge",
+		"Top Bar Center": "topcenter",
+		"Bottom Bar Start": "botedge",
+		"Bottom Bar Center": "botcenter",
+		"Side Pane Start": "sbtop",
+		"Side Pane End": "sbbottom",
+		// Retired 2026-08-08 (E1). Upgrade-window aliases only.
 		"Sidebar Top": "sbtop",
 		"Sidebar Bottom": "sbbottom",
 		"Top Bar Edge": "topedge",
-		"Top Bar Center": "topcenter",
 		"Bottom Bar Edge": "botedge",
-		"Bottom Bar Center": "botcenter",
 	};
 
 	//: The dock is a slot too, reachable only by fallback. It is deliberately
@@ -4373,7 +4585,7 @@
 		// so reading it would be a branch that can never be taken pretending to
 		// be a safety net.
 		const place = (which) =>
-			(placement_state && placement_state[which]) || "Sidebar Top";
+			(placement_state && placement_state[which]) || "Side Pane Start";
 
 		// Group by destination so two links landing in the same place share one
 		// wrapper — otherwise the pane grows two containers with one row each,
@@ -4392,15 +4604,25 @@
 		// registry.py permits, quietly put the link in the side pane instead
 		// and said nothing. Found by the honest-picker audit; there were no
 		// tests for these two components at all.
+		//
+		// KEYED BY REGION, not by placement value, and `parse_slot` is what
+		// turns one into the other. This table used to be keyed by the whole
+		// value — "Top Bar", "Dock" — which was the same string only while the
+		// vocabulary had no zones in it. After E1 a stored "Top Bar Start"
+		// matched nothing here and fell through to the sidebar: the exact
+		// silent-wrong-place bug the comment above says this table was written
+		// to fix, reintroduced by a vocabulary change that missed one consumer.
+		// Going through `parse_slot` means the next one cannot.
 		const BAR_HOSTS = {
-			"Top Bar": () => document.querySelector(".bnd-topbar"),
-			"Bottom Bar": () => document.querySelector(".bnd-statusbar"),
-			Dock: () => document.querySelector(".bnd-dock"),
+			topbar: () => document.querySelector(".bnd-topbar"),
+			bottombar: () => document.querySelector(".bnd-statusbar"),
+			dock: () => document.querySelector(".bnd-dock"),
 		};
 
 		for (const [where, members] of groups) {
-			if (BAR_HOSTS[where]) {
-				const bar = BAR_HOSTS[where]();
+			const { region, zone } = parse_slot(where);
+			if (BAR_HOSTS[region]) {
+				const bar = BAR_HOSTS[region]();
 				// That container is not on this desk. Leave it: the setting is
 				// honoured when the region exists, and inventing a home for it
 				// elsewhere would be a placement nobody chose — which is
@@ -4421,7 +4643,9 @@
 			const utils = el("div", "bnd-sb-utils");
 			for (const which of members) utils.appendChild(build_quick_link(which, false));
 
-			if (where === "Sidebar Bottom") {
+			// The pane's two zones, by the same rule as every other tenant:
+			// "end" is the foot, anything else is under the header.
+			if (zone === "end") {
 				const bottom = document.querySelector(".body-sidebar-bottom");
 				if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
 				else sidebar.appendChild(utils);

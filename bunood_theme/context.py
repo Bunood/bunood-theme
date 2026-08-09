@@ -98,6 +98,24 @@ def _append_brand_css(context):
     would silently break dark mode.
     """
     url = frappe.get_cached_value("Theme Settings", "Theme Settings", "brand_css_url")
+
+    # SELF-HEAL BEFORE SERVING. The URL is derived state, and derived state can
+    # be restored without the file it derives from: a database-only restore
+    # (the smoke suite and the settings sweep both write tabSingles back raw)
+    # leaves `brand_css_url` pointing at a hash whose file a later save had
+    # reaped. Serving that URL hands every desk a 404-as-HTML stylesheet and
+    # the brand colours are simply gone — measured 2026-08-08 as the stale
+    # brand CSS console error the suite had been allowlisting. One stat per
+    # desk render is the price of never doing that; on the happy path it is
+    # the only cost.
+    if url:
+        import os
+
+        from bunood_theme.brand import write_brand_css
+
+        on_disk = os.path.join(frappe.get_site_path("public"), *url.lstrip("/").split("/"))
+        if not os.path.exists(on_disk):
+            url = write_brand_css()
     if not url:
         return
 

@@ -81,6 +81,8 @@
   "inbox_chips",
   "inbox_row_actions",
   "inbox_keyboard",
+  "section_placement",
+  "placement_board",
   "section_search",
   "search_placement",
   "search_picker",
@@ -585,8 +587,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Notifications Placement",
-   "options": "Off\nTop Bar\nBottom Bar\nPage Header\nSide Pane\nDock",
-   "default": "Top Bar",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
    "description": "Where the notifications bell lives. Off removes it and leaves ERPNext's own."
   },
   {
@@ -594,8 +595,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "User Menu Placement",
-   "options": "Off\nTop Bar\nBottom Bar\nPage Header\nSide Pane\nDock",
-   "default": "Top Bar",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
    "description": "Where the profile avatar and its menu live. Carries Log Out, so it is never left unreachable."
   },
   {
@@ -656,7 +656,7 @@
    "fieldname": "search_placement",
    "fieldtype": "Select",
    "label": "Search Placement",
-   "options": "Sidebar Top\nSidebar Bottom\nTop Bar Edge\nTop Bar Center\nBottom Bar Edge\nBottom Bar Center",
+   "options": "Top Bar Start\nTop Bar Center\nBottom Bar Start\nBottom Bar Center\nSide Pane Start\nSide Pane End",
    "default": "Top Bar Center",
    "hidden": 1,
    "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
@@ -746,6 +746,16 @@
    "hidden": 1
   },
   {
+   "fieldname": "section_placement",
+   "fieldtype": "Section Break",
+   "label": "Placement"
+  },
+  {
+   "fieldname": "placement_board",
+   "fieldtype": "HTML",
+   "label": "Placement Board"
+  },
+  {
    "fieldname": "section_search",
    "fieldtype": "Section Break",
    "label": "Search"
@@ -784,16 +794,14 @@
    "fieldname": "home_placement",
    "fieldtype": "Select",
    "label": "Home Link Placement",
-   "options": "Off\nSidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar\nDock",
-   "default": "Sidebar Top",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
    "hidden": 1
   },
   {
    "fieldname": "apps_placement",
    "fieldtype": "Select",
    "label": "All Apps Link Placement",
-   "options": "Off\nSidebar Top\nSidebar Bottom\nTop Bar\nBottom Bar\nDock",
-   "default": "Sidebar Top",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
    "hidden": 1
   }
  ],

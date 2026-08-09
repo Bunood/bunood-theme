@@ -838,19 +838,39 @@ async function main() {
 				);
 			},
 		};
+		// WHAT "layout: X" MEANS SINCE THE SPLIT: a fresh pick of the layout in
+		// the form. Picking one writes `registry.layout_settings(layout)` — the
+		// container toggles AND the tenant placements — and then stops deciding.
+		// These tests used to set only `desk_layout` and inherit the toggles,
+		// which was the layout-decides-mounts contract surviving in the suite
+		// after the split deleted it from the code: "Bottom Bar" ran with
+		// whatever top bar the previous state left switched on, search resolved
+		// into it, and the fallback assertion timed out (2026-08-08, the run
+		// after the fingerprint tool re-seeded shipped defaults).
+		const layoutSettings = (layout) =>
+			JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import layout_settings\n" +
+					`print(json.dumps(layout_settings(${JSON.stringify(layout)})))\n`
+				).trim().split("\n").pop()
+			);
 		for (const [layout, checks] of Object.entries(LAYOUT_CHECKS)) {
 			await test(`layout: ${layout}`, async () => {
 				// Search placement is a SEPARATE setting since item 14, and these
-				// checks assert where search ends up — so they must state it
-				// rather than inherit whatever the site happens to hold. Left
-				// implicit, a bench sitting on "Sidebar Top" failed Top Bar and
-				// Bottom Bar for reasons that were entirely correct behaviour.
-				setSettings({ desk_layout: layout, search_placement: "Top Bar Center" });
+				// checks assert where search ends up — so it is stated LAST,
+				// overriding the preset's own choice: several checks assert the
+				// FALLBACK from a top bar the layout does not mount, which the
+				// preset's honest placement would never exercise.
+				setSettings({
+					...layoutSettings(layout),
+					desk_layout: layout,
+					search_placement: "Top Bar Center",
+				});
 				await goDesk("/desk/sales-invoice", ".page-head");
 				await checks();
 			});
 		}
-		setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+		setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);
@@ -1244,7 +1264,11 @@ async function main() {
 		});
 
 		await test("inbox: Original leaves the stock panel and shows no badge", async () => {
-			setSettings({ inbox_style: "Original" });
+			// The bell's placement is stated because the panel's box now follows
+			// the BELL, not the layout: the fixed-position relocation this test
+			// measures keys on `data-bnd-bell="topbar"`, which only a bell
+			// mounted in the top bar stamps.
+			setSettings({ inbox_style: "Original", desk_layout: "Top Bar", topbar_enabled: 1, inbox_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 2500);
 			expectEq(await attr("data-bnd-inbox"), null, "no style attr");
 			expect(!(await q(".bnd-inbox-badge:not([hidden])")), "no badge");
@@ -1368,13 +1392,43 @@ async function main() {
 
 		// ── Search placement + status bar (item 14) ─────────────────────────
 		const SEARCH_SLOTS = {
-			"Top Bar Center": "topcenter", "Top Bar Edge": "topedge",
-			"Sidebar Top": "sbtop", "Sidebar Bottom": "sbbottom",
-			"Bottom Bar Center": "botcenter", "Bottom Bar Edge": "botedge",
+			// Every slot `search_placement` offers, and the slug each resolves
+			// to. E1 renamed all six; the pairs are what they MEASURED before
+			// the rename, taken from patches/v0_11_0/slot_vocabulary.py.
+			"Top Bar Start": "topedge", "Top Bar Center": "topcenter",
+			"Bottom Bar Start": "botedge", "Bottom Bar Center": "botcenter",
+			"Side Pane Start": "sbtop", "Side Pane End": "sbbottom",
 		};
 		for (const [label, slug] of Object.entries(SEARCH_SLOTS)) {
 			await test(`search: placed at ${label}`, async () => {
-				setSettings({ desk_layout: "Top Bar", search_placement: label, status_style: "Quiet" });
+				// THE CONTAINERS ARE STATED, and they have to be since the split.
+				// This used to say only `desk_layout: "Top Bar"`, which was
+				// sufficient while the layout DECIDED which containers mounted.
+				// Slice 2c gave every container its own switch, so a layout is
+				// now a starting point a user can override — and a toggle left
+				// off by whatever test ran before is inherited. That is not a
+				// hypothetical: these three slots resolved to their FALLBACKS in
+				// the full suite (topedge -> topcenter, sbtop -> topcenter,
+				// sbbottom -> botcenter) and every one of them passed when run
+				// alone, which is precisely the shape of a test asserting a desk
+				// it never asked for.
+				//
+				// Each slot needs its host present: topedge/topcenter a top bar,
+				// botedge/botcenter the status bar, sbtop/sbbottom a VISIBLE side
+				// pane. All three are switched on, so the fallback chain is
+				// never what is being measured here — the tests either side of
+				// this loop are the ones that measure fallback.
+				setSettings({
+					...CHROME_DEFAULTS,
+					desk_layout: "Top Bar",
+					topbar_enabled: 1,
+					bottombar_enabled: 1,
+					sidebar_enabled: 1,
+					pagehead_enabled: 0,
+					dock_enabled: 0,
+					search_placement: label,
+					status_style: "Quiet",
+				});
 				await goDesk("/desk/item", ".page-head", 4500);
 				expectEq(await attr("data-bnd-search"), slug, "resolved slot");
 				const where = await page.evaluate(() => {
@@ -1409,7 +1463,7 @@ async function main() {
 			// container, so an existence check "places" search into a hidden
 			// box and it disappears with no error anywhere. Whatever slot is
 			// chosen, the field must end up somewhere a user can see.
-			setSettings({ desk_layout: "Dock", search_placement: "Sidebar Top" });
+			setSettings({ desk_layout: "Dock", search_placement: "Side Pane Start" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			// Falls back to the DOCK, not the status bar: the pill is the one
 			// piece of chrome this layout always has, and it is where the
@@ -1517,25 +1571,52 @@ async function main() {
 
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
 			// The centre search slot must not flex: flexible lengths resolve
-			// before auto margins, so a flexing sibling cancels the cluster's
-			// `margin-inline-start: auto` and drags the bell and avatar to the
-			// leading edge.
-			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+			// before auto margins, so a flexing sibling cancels the trailing
+			// zone's `margin-inline-start: auto` and drags the bell and avatar to
+			// the leading edge.
+			//
+			// MEASURED ON THE END ZONE, NOT THE CLUSTER. It used to be the
+			// cluster, and E1 made that assertion meaningless without making it
+			// fail honestly: the cluster now CARRIES the three zones, so it
+			// spans the bar and sits 16px from both edges. "Trailing edge" is a
+			// claim about where the tenants land, and after E1 the element that
+			// answers that is `.bnd-zone[data-zone="end"]`.
+			// The tenants are stated for the same reason the containers are: the
+			// end zone can only sit at the trailing edge if something is IN it,
+			// and what lands there is inbox_placement / user_placement — which
+			// this test inherited from whatever ran before it.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1,
+				search_placement: "Top Bar Center",
+				inbox_placement: "Top Bar End",
+				user_placement: "Top Bar End",
+			});
 			await goDesk("/desk/item", ".page-head", 4000);
 			const geom = await page.evaluate(() => {
 				const bar = document.querySelector(".bnd-topbar");
-				const cluster = document.querySelector(".bnd-topbar .bnd-cluster");
+				const end = document.querySelector('.bnd-topbar .bnd-zone[data-zone="end"]');
 				const field = document.querySelector(".bnd-topbar .bnd-search-field");
-				if (!bar || !cluster || !field) return null;
-				const b = bar.getBoundingClientRect(), c = cluster.getBoundingClientRect(), f = field.getBoundingClientRect();
+				if (!bar || !end || !field) return null;
+				const b = bar.getBoundingClientRect(), c = end.getBoundingClientRect(), f = field.getBoundingClientRect();
 				return {
-					clusterFromEnd: Math.round(b.right - c.right),
-					clusterFromStart: Math.round(c.left - b.left),
+					zoneEmpty: end.children.length === 0,
+					clusters: bar.querySelectorAll(".bnd-cluster").length,
+					endZones: bar.querySelectorAll('.bnd-zone[data-zone="end"]').length,
+					topbarParts: Array.from(bar.querySelectorAll("[data-bnd-part]"))
+						.map((n) => n.getAttribute("data-bnd-part") + "@" + (n.closest(".bnd-zone") ? n.closest(".bnd-zone").getAttribute("data-zone") : "loose"))
+						.join(","),
+					endFromEnd: Math.round(b.right - c.right),
+					endFromStart: Math.round(c.left - b.left),
 					offCentre: Math.abs(Math.round((f.left + f.right) / 2 - (b.left + b.right) / 2)),
 				};
 			});
-			expect(geom, "top bar, cluster and search all present");
-			expect(geom.clusterFromEnd < geom.clusterFromStart, `cluster sits at the end (${JSON.stringify(geom)})`);
+			expect(geom, "top bar, end zone and search all present");
+			// An empty zone collapses to zero width and would hug the trailing
+			// edge whatever the rule did, which is a pass that proves nothing.
+			expect(!geom.zoneEmpty, `the end zone actually holds something (clusters=${geom.clusters} endZones=${geom.endZones} topbar: ${geom.topbarParts || "nothing"})`);
+			expect(geom.endFromEnd < geom.endFromStart, `the end zone sits at the end (${JSON.stringify(geom)})`);
 			expect(geom.offCentre <= 8, `search is centred on the bar (off by ${geom.offCentre}px)`);
 		});
 
@@ -1835,7 +1916,12 @@ async function main() {
 
 		// ── Rail behaviour (Bunood Night: hover trigger + edge button) ─────
 		await test("rail: hover opens (with intent delay), leave closes (with grace)", async () => {
-			setSettings({ ...presets["Bunood Night"], sidebar_preset: "Bunood Night" });
+			// "Bunood Light", because it is the preset that HAS a rail. Night
+			// was, until the 2026-08-08 re-choice made it attached, solid and
+			// always expanded — after which this test was exercising a rail
+			// that never mounted and passing on nothing. The behaviour under
+			// test did not change; the preset carrying it did.
+			setSettings({ ...presets["Bunood Light"], sidebar_preset: "Bunood Light" });
 			await goDesk("/desk/sales-invoice", ".page-head", 3000);
 			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(300);
@@ -2192,7 +2278,7 @@ async function main() {
 		await test("placement: the bell and the avatar can be separated", async () => {
 			// The whole point of splitting build_cluster: these two were one
 			// DOM node with four call sites, so they could never be apart.
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Side Pane", user_placement: "Top Bar" });
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Side Pane End", user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const where = await page.evaluate(() => ({
 				bellInSidebar: !!document.querySelector(".body-sidebar .bnd-bell"),
@@ -2205,7 +2291,7 @@ async function main() {
 		});
 
 		await test("placement: Off removes ours and gives ERPNext its own back", async () => {
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Top Bar" });
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const state = await page.evaluate(() => {
 				const vis = (sel) => {
@@ -2223,7 +2309,7 @@ async function main() {
 			expect(!state.ours, "our bell is gone");
 			expect(!/\bbell\b/.test(state.own), "and the token is released");
 			expect(state.native, "so ERPNext's own bell is visible again");
-			setSettings({ inbox_placement: "Top Bar" });
+			setSettings({ inbox_placement: "Top Bar End" });
 		});
 
 		await test("placement: exactly one of each, wherever it was placed", async () => {
@@ -2263,11 +2349,11 @@ async function main() {
 				}, part);
 
 			for (const [where, host] of [
-				["Top Bar", "topbar"],
-				["Bottom Bar", "bottombar"],
-				["Page Header", "pagehead"],
-				["Dock", "dock"],
-				["Side Pane", "sidepane"],
+				["Top Bar End", "topbar"],
+				["Bottom Bar End", "bottombar"],
+				["Page Header End", "pagehead"],
+				["Dock End", "dock"],
+				["Side Pane End", "sidepane"],
 			]) {
 				setSettings({ ...ALL_ON, inbox_placement: where, user_placement: where });
 				await goDesk("/desk/item", ".page-head", 4500);
@@ -2299,6 +2385,268 @@ async function main() {
 			expect(natives.bell && natives.user, "and Frappe's own are visible instead");
 		});
 
+		await test("slots: every component offers the same vocabulary", async () => {
+			// E1. Before this, each component spelled the same wall differently —
+			// search said "Sidebar Top", the bell said "Side Pane", and Home said
+			// "Sidebar Top" again but meant a different thing. And no component
+			// except search could say WHERE in a region it sat, which is what
+			// made "put the bell on the left" unaskable.
+			//
+			// The field options are read from `registry.slots_for` rather than
+			// compared against a list here: a list would be the second copy, and
+			// the second copy is how "Dock" got onto a field whose runtime
+			// dropped it in the sidebar.
+			const reg = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import slots_for, COMPONENTS\n" +
+					"print(json.dumps({c['key']: slots_for(c['key']) for c in COMPONENTS if c['type'] == 'tenant'}))\n"
+				).trim().split("\n").pop()
+			);
+			const FIELD = {
+				search: "search_placement", inbox: "inbox_placement", user: "user_placement",
+				home: "home_placement", apps: "apps_placement",
+			};
+			for (const [key, field] of Object.entries(FIELD)) {
+				const opts = JSON.parse(
+					benchPy(
+						`print(json.dumps(frappe.get_meta("Theme Settings").get_field("${field}").options.split("\\n")))\n`
+					).trim().split("\n").pop()
+				).filter(Boolean);
+				expectEq(
+					JSON.stringify(opts),
+					JSON.stringify(reg[key]),
+					`${field} offers exactly what the registry says`
+				);
+			}
+			// Search is the one tenant with no "Off" — a desk nobody can search
+			// is not a configuration this theme offers.
+			expect(!reg.search.includes("Off"), "search has no Off");
+			for (const k of ["inbox", "user", "home", "apps"]) {
+				expect(reg[k].includes("Off"), `${k} can be switched off`);
+			}
+		});
+
+		await test("board: the desk is the form — pick, drop, and it saves", async () => {
+			// E2. One board, every control shown where it is, moved by pointing
+			// at where it should be. Asserted through the same two gestures a
+			// user has: click-to-pick/click-to-drop here, and the drag path in
+			// the next test — both end in the same drop_on, but each half's
+			// EVENTS can break independently, so each is exercised.
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1,
+				bottombar_enabled: 1,
+				inbox_placement: "Top Bar End",
+				user_placement: "Top Bar End",
+			});
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+
+			// One chip per tenant, each in the zone its field says.
+			const shape = await page.evaluate(() => {
+				const bd = document.querySelector(".bnd-bd");
+				const chip = bd.querySelector('.bnd-bd-chip[data-tenant="inbox"]');
+				return {
+					chips: bd.querySelectorAll(".bnd-bd-chip").length,
+					bellIn: chip && chip.closest(".bnd-bd-zone").getAttribute("data-slot"),
+					zoneH: Math.round(
+						bd.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]').getBoundingClientRect().height
+					),
+				};
+			});
+			expectEq(shape.chips, 5, "one chip per tenant");
+			expectEq(shape.bellIn, "Top Bar End", "the bell chip sits where its field says");
+			// A drop target has to be bigger than a pointer. The old thumbnails'
+			// slots were ~20px tall, which is what "needs to be bigger" meant.
+			expect(shape.zoneH >= 48, `a zone is a real drop target (${shape.zoneH}px tall)`);
+
+			// Pick, drop — the value lands and SAVES, because click-to-apply is
+			// the contract of this form since the autosave slice.
+			await page.click('.bnd-bd-chip[data-tenant="inbox"]');
+			await page.click('.bnd-bd-zone[data-slot="Bottom Bar Start"]');
+			// SAVED, not merely set: click-to-apply is this form's contract, so
+			// the assertion is against the database, polled — never sampled.
+			await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+			expectEq(
+				getSettings(["inbox_placement"]).inbox_placement,
+				"Bottom Bar Start",
+				"the drop wrote and saved inbox_placement"
+			);
+
+			// The board re-renders from the saved document: the chip MOVED.
+			await page.waitForFunction(
+				() => {
+					const c = document.querySelector('.bnd-bd-chip[data-tenant="inbox"]');
+					const z = c && c.closest(".bnd-bd-zone");
+					return z && z.getAttribute("data-slot") === "Bottom Bar Start";
+				},
+				{ timeout: 8000 }
+			);
+		});
+
+		await test("board: an illegal zone refuses the drop", async () => {
+			// Search has no Off and no page-header slug — the board must refuse
+			// those, not accept them and let the runtime fall back silently.
+			// This is the board's half of the "nothing ships a value the field
+			// will not accept" contract: the OTHER half checks what the code
+			// writes, this half checks what a user can ask for.
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+			const refused = await page.evaluate(() => {
+				const bd = document.querySelector(".bnd-bd");
+				bd.querySelector('.bnd-bd-chip[data-tenant="search"]').click();
+				const no = Array.from(bd.querySelectorAll(".bnd-bd-zone.bnd-bd-no")).map((z) =>
+					z.getAttribute("data-slot")
+				);
+				// Try the illegal drop anyway — the guard is drop_on, not the class.
+				const before = cur_frm.doc.search_placement;
+				const off = bd.querySelector('.bnd-bd-zone[data-slot="Off"]');
+				if (off) off.click();
+				bd.querySelector('.bnd-bd-chip[data-tenant="search"]').click(); // disarm if still armed
+				return { no: no.sort(), before, after: cur_frm.doc.search_placement };
+			});
+			expect(refused.no.includes("Off"), "search cannot be dropped on Off");
+			expect(
+				refused.no.includes("Page Header Start"),
+				"search cannot be dropped on a zone it has no slug for"
+			);
+			expectEq(refused.after, refused.before, "the refused drop wrote nothing");
+		});
+
+		await test("board: the drag gesture lands in the same place", async () => {
+			// The HTML5 drag path, synthetically: dragstart arms, dragover on a
+			// legal zone accepts, drop writes. Synthetic because Playwright's
+			// mouse-move drag does not produce HTML5 drag events reliably in
+			// headless — and the HANDLERS are what this test owns; the browser's
+			// own gesture recognition is not ours to test.
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+			const result = await page.evaluate(() => {
+				const bd = document.querySelector(".bnd-bd");
+				const chip = bd.querySelector('.bnd-bd-chip[data-tenant="inbox"]');
+				const zone = bd.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]');
+				const dt = new DataTransfer();
+				chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+				const armed = bd.getAttribute("data-armed");
+				const over = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt });
+				zone.dispatchEvent(over);
+				const accepted = over.defaultPrevented;
+				zone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+				chip.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
+				return { armed, accepted };
+			});
+			expectEq(result.armed, "inbox_placement", "dragstart arms the board");
+			expect(result.accepted, "dragover on a legal zone accepts");
+			await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+			expectEq(
+				getSettings(["inbox_placement"]).inbox_placement,
+				"Top Bar End",
+				"the drag-drop wrote and saved inbox_placement"
+			);
+		});
+
+		await test("slots: nothing ships a value the field will not accept", async () => {
+			// THE CHECK THAT WAS MISSING, and its absence cost a whole suite run.
+			// The vocabulary test above pins the FIELD OPTIONS to the registry.
+			// Nothing pinned the values this app WRITES into those fields, so
+			// `LAYOUT_TENANTS` kept the old region-only vocabulary through E1 —
+			// picking any layout would have written "Top Bar" into a field that
+			// now offers "Top Bar End".
+			//
+			// And an illegal value is not a local failure. Theme Settings is a
+			// Single: Frappe validates every Select on save, so one bad value
+			// fails validation for the WHOLE document and every later write of
+			// every OTHER setting fails with it. Measured 2026-08-08 — the bench
+			// held `inbox_placement = "Side Pane Center"` and six checks that
+			// never touch placement went red, none of them naming the reason.
+			//
+			// Both writers are checked here because both are writers: the layout
+			// presets, and the shipped defaults the seeder fills empty fields
+			// from. `heal_unknown_placements` repairs a site that already holds
+			// one; this is what stops us shipping the next one.
+			const bad = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import slots_for, COMPONENTS, TENANT, LAYOUT_TENANTS\n" +
+					"from bunood_theme.setup import SHIPPED\n" +
+					"legal = {c['key'] + '_placement': slots_for(c['key']) for c in COMPONENTS if c['type'] == TENANT}\n" +
+					"bad = []\n" +
+					"for layout, values in LAYOUT_TENANTS.items():\n" +
+					"    for field, value in values.items():\n" +
+					"        if field in legal and value not in legal[field]:\n" +
+					"            bad.append('layout ' + layout + ': ' + field + ' = ' + repr(value))\n" +
+					"for field, options in legal.items():\n" +
+					"    if field in SHIPPED and SHIPPED[field] not in options:\n" +
+					"        bad.append('shipped default: ' + field + ' = ' + repr(SHIPPED[field]))\n" +
+					"print(json.dumps(bad))\n"
+				).trim().split("\n").pop()
+			);
+			expectEq(bad.join(" | "), "", "every written placement is one the field offers");
+
+			// Belt and braces on the live site: whatever it is holding RIGHT NOW
+			// must be acceptable too, or the next save of any setting dies. This
+			// catches a bench poisoned by an earlier test in this very run, which
+			// is how the value above got there.
+			const stored = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import slots_for, COMPONENTS, TENANT\n" +
+					"doc = frappe.get_single('Theme Settings')\n" +
+					"bad = [c['key'] + '_placement=' + repr(doc.get(c['key'] + '_placement'))\n" +
+					"       for c in COMPONENTS if c['type'] == TENANT\n" +
+					"       and doc.get(c['key'] + '_placement') not in slots_for(c['key'])]\n" +
+					"print(json.dumps(bad))\n"
+				).trim().split("\n").pop()
+			);
+			expectEq(stored.join(" | "), "", "the site holds no placement its field rejects");
+		});
+
+		await test("slots: every zone a region offers is a different place", async () => {
+			// The claim the whole slot vocabulary exists for. Asserted as
+			// POSITION, not as "it mounted": the old "Top Bar Edge" and
+			// "Sidebar Top"/"Sidebar Bottom" both mounted fine and landed in the
+			// same pixel, which is how the sidebar pair went unnoticed —
+			// measured 2026-08-07, y 228 for both.
+			const ALL_ON = {
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				pagehead_enabled: 0, dock_enabled: 0,
+			};
+			const at = (part) =>
+				page.evaluate((p) => {
+					const el = document.querySelector(`[data-bnd-part="${p}"]`);
+					if (!el) return null;
+					const r = el.getBoundingClientRect();
+					return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+				}, part);
+
+			// A bar runs along the inline axis: start / centre / end must differ in x.
+			const bar = {};
+			for (const zone of ["Start", "Center", "End"]) {
+				setSettings({ ...ALL_ON, inbox_placement: `Top Bar ${zone}` });
+				await goDesk("/desk/item", ".page-head", 4000);
+				bar[zone] = await at("bell");
+				expect(bar[zone], `the bell mounted for "Top Bar ${zone}"`);
+			}
+			expect(bar.Start.x < bar.Center.x, `start is before centre (${bar.Start.x} < ${bar.Center.x})`);
+			expect(bar.Center.x < bar.End.x, `centre is before end (${bar.Center.x} < ${bar.End.x})`);
+
+			// The side pane is a column and offers TWO zones, not three — see
+			// registry.ZONES_BY_REGION. Its content fills the column, so a
+			// centre could not be made to land anywhere the end did not, and a
+			// choice that cannot differ is one this vocabulary exists to delete.
+			const pane = {};
+			for (const zone of ["Start", "End"]) {
+				setSettings({ ...ALL_ON, inbox_placement: `Side Pane ${zone}` });
+				await goDesk("/desk/item", ".page-head", 4000);
+				pane[zone] = await at("bell");
+				expect(pane[zone], `the bell mounted for "Side Pane ${zone}"`);
+			}
+			expect(pane.Start.y < pane.End.y, `top is above bottom (${pane.Start.y} < ${pane.End.y})`);
+		});
+
 		// ── Honest pickers ─────────────────────────────────────────────────
 		//
 		// A control is DISHONEST when it offers something that does not happen,
@@ -2316,9 +2664,9 @@ async function main() {
 			// Every region the field offers is walked, so the next one added
 			// cannot quietly do the same.
 			for (const [where, host] of [
-				["Top Bar", ".bnd-topbar"],
-				["Bottom Bar", ".bnd-statusbar"],
-				["Dock", ".bnd-dock"],
+				["Top Bar Start", ".bnd-topbar"],
+				["Bottom Bar Start", ".bnd-statusbar"],
+				["Dock Start", ".bnd-dock"],
 			]) {
 				setSettings({
 					...CHROME_DEFAULTS,
@@ -2327,7 +2675,7 @@ async function main() {
 					bottombar_enabled: 1,
 					dock_enabled: 1,
 					home_placement: where,
-					apps_placement: "Sidebar Top",
+					apps_placement: "Side Pane Start",
 				});
 				await goDesk("/desk/item", ".page-head", 4500);
 				// BY IDENTITY: in a bar the link is `.bnd-icon-btn.bnd-sb-util`, in
@@ -2352,8 +2700,8 @@ async function main() {
 				desk_layout: "Top Bar",
 				topbar_enabled: 1,
 				sidebar_enabled: 0,
-				home_placement: "Top Bar",
-				apps_placement: "Top Bar",
+				home_placement: "Top Bar Start",
+				apps_placement: "Top Bar Start",
 			});
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await q('.bnd-topbar [data-bnd-part="home"]'), "Home is in the top bar with no side pane");
@@ -2405,8 +2753,8 @@ async function main() {
 				...CHROME_DEFAULTS,
 				desk_layout: "Bottom Bar",
 				topbar_enabled: 0,
-				inbox_placement: "Top Bar",
-				user_placement: "Top Bar",
+				inbox_placement: "Top Bar End",
+				user_placement: "Top Bar End",
 			});
 			await goDesk("/desk/item", ".page-head", 4500);
 			const state = await page.evaluate(() => {
@@ -2762,12 +3110,12 @@ async function main() {
 			// No bar anywhere: everything must fall back to the natives.
 			["Classic", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
 			// Sidebar hidden outright — the natives are NOT available here.
-			["Dock", "Quiet", "Sidebar Top", { bottombar_enabled: 0, }],
+			["Dock", "Quiet", "Side Pane Start", { bottombar_enabled: 0, }],
 			["Dock", "Quiet", "Top Bar Center", {}],
 			// Compact keeps its native search row; the layout mounts no top bar.
 			["Compact", "Minimal", "Top Bar Center", {}],
 			// Search asked for a bar that this layout does not mount.
-			["Classic", "Quiet", "Bottom Bar Edge", {}],
+			["Classic", "Quiet", "Bottom Bar Start", {}],
 			// The layout that always mounted a top bar, with the top bar off,
 			// and search still asking for it. Search must fall back rather
 			// than vanish — the same failure the placement chain was built for,
@@ -2779,7 +3127,7 @@ async function main() {
 			["Dock", "Quiet", "Top Bar Center", { topbar_enabled: 1 }],
 			// A top bar on a Classic desk — a container contradicting its
 			// layout in the direction nothing else in this list covers.
-			["Classic", "Quiet", "Top Bar Edge", { bottombar_enabled: 0,  topbar_enabled: 1 }],
+			["Classic", "Quiet", "Top Bar Start", { bottombar_enabled: 0,  topbar_enabled: 1 }],
 			// Compact with its cluster off and no top bar either: the layout
 			// defined by NOT growing chrome, now with none of ours at all. Every
 			// route to everything is a native one, which is the case the
@@ -2954,12 +3302,18 @@ async function main() {
 				// slots now — its six thumbnails became six positions on one
 				// shared desk. The bell's `opts` went 7 -> 8 for the "Off" chip,
 				// which sits BESIDE the diagram because "not shown" is not a place.
-				inbox_picker: { cards: 4, slots: 5, toggles: 4, opts: 8 },
-				user_picker: { cards: 0, slots: 5, opts: 1 },
+				// 14, not 5: E1 replaced five whole-region slots with the same
+				// five regions times their zones, minus "Off" which is drawn as
+				// a chip beside the diagram rather than as a place on the desk.
+				inbox_picker: { cards: 4, slots: 14, toggles: 4, opts: 8 },
+				user_picker: { cards: 0, slots: 14, opts: 1 },
 				search_picker: { cards: 0, slots: 6 },
 				// 7, not 8: `status_in_classic` was deleted when the status bar stopped
 				// being a property of the layout.
-				status_picker: { cards: 4, toggles: 7, opts: 7 },
+				// 3, not 4: the "Off" style card is deleted — the option left the
+				// FIELD on 2026-08-06 and the surviving card wrote a value the
+				// Select refused, wedging every later save of the Single.
+				status_picker: { cards: 3, toggles: 7, opts: 7 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
@@ -3203,17 +3557,34 @@ async function main() {
 					}));
 				}, key);
 
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar End", status_style: "Quiet" });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			await page.click('.bnd-shell-item[data-key="inbox"]');
 			await page.waitForTimeout(500);
 			let s1 = await slots("inbox");
-			expect(!!s1 && s1.length === 5, `bell diagram has ${s1 ? s1.length : 0} slots, expected 5`);
-			expectEq(s1.filter((x) => x.on).map((x) => x.v).join(","), "Top Bar", "wrong slot marked current");
+			// Counted against the FIELD, not a number typed here: E1 turned five
+			// whole-region slots into fifteen zoned ones, and a literal 5 would
+			// have had to be found and changed by hand — which is how every
+			// other copy of this vocabulary went stale.
+			const offered = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import slots_for\n" +
+					"print(json.dumps([s for s in slots_for('inbox') if s != 'Off']))\n"
+				).trim().split("\n").pop()
+			);
+			expectEq(s1 ? s1.length : 0, offered.length, "bell diagram draws every slot the field offers");
+			expectEq(s1.filter((x) => x.on).map((x) => x.v).join(","), "Top Bar End", "wrong slot marked current");
 			// Top Bar layout: no dock, and only Compact fills the title row.
+			// DERIVED, because the warning is a property of the REGION and E1
+			// gave every region three slots — typing the list out again is how
+			// the last copy of this vocabulary went stale.
+			const unhonoured = offered
+				.filter((v) => v.startsWith("Dock") || v.startsWith("Page Header"))
+				.sort()
+				.join(",");
 			expectEq(
 				s1.filter((x) => x.warn).map((x) => x.v).sort().join(","),
-				"Dock,Page Header",
+				unhonoured,
 				"wrong slots warned for the Top Bar layout"
 			);
 
@@ -3232,7 +3603,7 @@ async function main() {
 		});
 
 		await test("overview: one mark per placed component, each a route to its control", async () => {
-			setSettings({ inbox_placement: "Top Bar", user_placement: "Side Pane" });
+			setSettings({ inbox_placement: "Top Bar End", user_placement: "Side Pane End" });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			await page.click('.bnd-shell-item[data-key="overview"]');
 			await page.waitForTimeout(600);
@@ -3264,7 +3635,7 @@ async function main() {
 				"user",
 				"clicking the user mark did not select the user menu entry"
 			);
-			setSettings({ user_placement: "Top Bar" });
+			setSettings({ user_placement: "Top Bar End" });
 		});
 
 		await test("bands: headings appear only where there is more than one", async () => {
@@ -3664,7 +4035,7 @@ async function main() {
 				"Top Bar + user Off: the stock button must be released, not left hidden"
 			);
 
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar", user_placement: "Top Bar" });
+			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar End", user_placement: "Top Bar End" });
 		});
 
 		await test("placement: Compact keeps it across a route change", async () => {
@@ -3690,7 +4061,7 @@ async function main() {
 				"Compact lost every reachable route to the user menu after a route change"
 			);
 
-			setSettings({ desk_layout: "Top Bar", user_placement: "Top Bar", inbox_placement: "Top Bar" });
+			setSettings({ desk_layout: "Top Bar", user_placement: "Top Bar End", inbox_placement: "Top Bar End" });
 		});
 
 		// ── Console error budget ───────────────────────────────────────────

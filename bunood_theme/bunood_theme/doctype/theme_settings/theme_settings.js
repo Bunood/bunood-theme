@@ -241,31 +241,77 @@ const BND_DESK_GEOM = {
 	bottombar: { x: 68, y: 152, w: 226, h: 22 },
 };
 
-/** Slot label -> the rectangle it occupies. Percentages are derived, never typed. */
-const BND_DESK_SLOTS = {
-	// Whole regions — what a tenant with a simple placement chooses from.
-	"Top Bar": BND_DESK_GEOM.topbar,
-	"Bottom Bar": BND_DESK_GEOM.bottombar,
-	"Page Header": BND_DESK_GEOM.pagehead,
-	"Side Pane": BND_DESK_GEOM.sidepane,
-	Dock: BND_DESK_GEOM.dock,
-	// Parts of a region — search, which cares where in the bar it sits.
-	"Top Bar Center": { x: 140, y: 9, w: 82, h: 16 },
-	"Top Bar Edge": { x: 250, y: 9, w: 40, h: 16 },
-	"Bottom Bar Center": { x: 140, y: 155, w: 82, h: 16 },
-	"Bottom Bar Edge": { x: 250, y: 155, w: 40, h: 16 },
-	"Sidebar Top": { x: 10, y: 10, w: 50, h: 30 },
-	"Sidebar Bottom": { x: 10, y: 140, w: 50, h: 30 },
-};
-
-/** Which desk region each placement label resolves to, for availability. */
-const BND_SLOT_REGION = {
-	"Top Bar": "topbar", "Top Bar Center": "topbar", "Top Bar Edge": "topbar",
-	"Bottom Bar": "bottombar", "Bottom Bar Center": "bottombar", "Bottom Bar Edge": "bottombar",
+/**
+ * Slot label -> the rectangle it occupies, DERIVED.
+ *
+ * Two hand-written tables used to live here — one of rectangles, one of
+ * regions — both keyed by whole placement labels. E1 changed those labels and
+ * they were missed, so every new value ("Top Bar End", "Side Pane Start")
+ * looked up `undefined`, and `bnd_desk_diagram` drops a slot whose geometry is
+ * missing (`if (!g) return ""`). The picker would have rendered with the
+ * chosen slot simply absent.
+ *
+ * A label is a region and a zone, so the rectangle is a region's box and the
+ * zone's share of it. Deriving means the tables cannot be the thing that is
+ * out of date again: a slot the registry starts offering draws itself.
+ *
+ * A bar divides along its LENGTH and the pane divides down its HEIGHT, which
+ * is what start/end mean on each axis — the same reasoning `sb_zone_anchor`
+ * follows in bunood.js, and the reason the vocabulary is logical rather than
+ * left/right.
+ */
+const BND_REGION_BY_LABEL = {
+	"Top Bar": "topbar",
+	"Bottom Bar": "bottombar",
 	"Page Header": "pagehead",
-	"Side Pane": "sidepane", "Sidebar Top": "sidepane", "Sidebar Bottom": "sidepane",
+	"Side Pane": "sidepane",
 	Dock: "dock",
 };
+
+/** "Top Bar End" -> { region: "topbar", zone: "end" }. Mirrors registry.parse_slot. */
+function bnd_parse_slot(label) {
+	if (!label || label === "Off") return { region: "", zone: "" };
+	for (const [name, region] of Object.entries(BND_REGION_BY_LABEL)) {
+		// A bare region is pre-E1 and means the trailing end, which is where
+		// those values measured. Kept for a form opened before a migration.
+		if (label === name) return { region, zone: "end" };
+		if (label.startsWith(name + " ")) {
+			const zone = label.slice(name.length + 1).toLowerCase();
+			return { region, zone: ["start", "center", "end"].includes(zone) ? zone : "end" };
+		}
+	}
+	return { region: "", zone: "" };
+}
+
+/** Which desk region a placement label resolves to, for availability. */
+function bnd_slot_region(label) {
+	return bnd_parse_slot(label).region;
+}
+
+/** The rectangle a placement label occupies in the 300x180 diagram. */
+function bnd_slot_geom(label) {
+	const { region, zone } = bnd_parse_slot(label);
+	const box = BND_DESK_GEOM[region];
+	if (!box) return null;
+	const inset = 3;
+	if (region === "sidepane") {
+		// A column: the zones are bands down its height. Two of them, because
+		// the pane has two — see registry.ZONES_BY_REGION.
+		const h = 30;
+		return {
+			x: box.x + inset,
+			y: zone === "end" ? box.y + box.h - h - inset : box.y + inset,
+			w: box.w - inset * 2,
+			h: h,
+		};
+	}
+	// A bar: thirds along its length, so the diagram shows the same three
+	// places the desk has.
+	const w = Math.round((box.w - inset * 2) / 3);
+	const lead = box.x + inset;
+	const x = zone === "center" ? lead + w : zone === "end" ? lead + w * 2 : lead;
+	return { x: x, y: box.y + inset, w: w, h: box.h - inset * 2 };
+}
 
 /**
  * Why a region cannot hold anything in the configuration on screen — "" if it can.
@@ -387,7 +433,7 @@ function bnd_desk_diagram(o) {
 	const pc = (n, total) => (Math.round((n / total) * 10000) / 100) + "%";
 	const buttons = o.slots
 		.map((label) => {
-			const g = BND_DESK_SLOTS[label];
+			const g = bnd_slot_geom(label);
 			if (!g) return "";
 			const reason = o.blocker ? o.blocker(label) : "";
 			const on = label === o.value;
@@ -408,6 +454,48 @@ function bnd_desk_diagram(o) {
 }
 
 /**
+ * What a placement picker may offer: the FIELD'S OWN OPTIONS.
+ *
+ * NOT a list written here. Every picker in this file used to carry its own,
+ * and E1 changed the vocabulary underneath all of them at once — the bell's
+ * picker still offered bare "Top Bar", search still offered "Sidebar Top", and
+ * clicking either WROTE that value into a field that no longer accepts it.
+ * Theme Settings is a Single, so Frappe then failed validation for the whole
+ * document and every other setting stopped saving with it.
+ *
+ * The doctype's options are generated from `registry.slots_for`, so reading
+ * them here makes the form and the desk the same list by construction. A slot
+ * the registry adds appears in the picker with no edit; one it retires
+ * disappears from it. "Off" is excluded because it is drawn as a chip beside
+ * the diagram, not as a place on the desk.
+ */
+function bnd_field_slots(frm, field) {
+	// META FIRST, and the order matters. `frm.fields_dict[field].df.options` is
+	// whatever the form layer last put there, and for a Select that is not
+	// reliably the newline string the doctype stores — it can already be a list
+	// of {value, label}. Read as a string, a list stringifies to one
+	// comma-joined line, every "slot" fails `bnd_slot_geom`, and the diagram
+	// draws NOTHING: `.bnd-dgm-slot` never appears and the picker is an empty
+	// box. Meta is the doctype's own copy and is always the string.
+	const meta_df =
+		(frappe.meta &&
+			frappe.meta.get_docfield("Theme Settings", field, frm && frm.doc && frm.doc.name)) ||
+		null;
+	const form_df = frm && frm.fields_dict && frm.fields_dict[field] && frm.fields_dict[field].df;
+	const options = (meta_df && meta_df.options) || (form_df && form_df.options) || "";
+	const list = Array.isArray(options) ? options : String(options).split(/\r?\n/);
+	return list
+		.map((v) => (v && typeof v === "object" ? v.value : v) || "")
+		.map((v) => String(v).trim())
+		.filter((v) => v && v !== "Off");
+}
+
+/** The value a picker shows when the field is empty: the first slot it offers. */
+function bnd_field_first_slot(frm, field) {
+	return bnd_field_slots(frm, field)[0] || "";
+}
+
+/**
  * The placement control for a tenant that takes a whole region.
  *
  * `Off` is rendered as a chip beside the diagram rather than as a slot on it,
@@ -415,13 +503,13 @@ function bnd_desk_diagram(o) {
  * make the picture claim there is somewhere the bell goes when it is off.
  */
 function bnd_placement_control(frm, field, note) {
-	const current = frm.doc[field] || "Top Bar";
+	const current = frm.doc[field] || bnd_field_first_slot(frm, field);
 	return (
 		bnd_desk_diagram({
 			field: field,
-			slots: ["Top Bar", "Page Header", "Side Pane", "Dock", "Bottom Bar"],
+			slots: bnd_field_slots(frm, field),
 			value: current,
-			blocker: (label) => bnd_region_blocker(frm, BND_SLOT_REGION[label] || ""),
+			blocker: (label) => bnd_region_blocker(frm, bnd_slot_region(label)),
 		}) +
 		P.options([{ value: "Off", name: __("Off — not shown") }], { field: field, value: current }) +
 		(note ? P.note(note) : "")
@@ -660,6 +748,22 @@ function bnd_autosave(frm) {
 	// replaces `frm.doc` — taking the user's click with it.
 	const mine = bnd_changed_since_clean(frm);
 
+	// DIRTY WITH AN EMPTY DIFF IS A FABRICATED STATE, AND IT IS HEALED HERE.
+	// The snapshot spans every meta field, so an empty diff means the document
+	// matches what the server last agreed to — there is nothing to save, and a
+	// dirty flag over nothing is a flag somebody set by hand. The one hand was
+	// `bnd_merge_and_retry`'s give-up branch (fixed alongside this), and the
+	// wedge it produced was measured live on 2026-08-08: form dirty for
+	// minutes, diff empty, timestamps agreeing, `frm.save()` resolving without
+	// effect — and every later click in the pane timing out behind it. Clearing
+	// the flag is the honest action: it makes "dirty" mean "a diff exists"
+	// again, whoever fabricates it next.
+	if (!Object.keys(mine).length) {
+		frm.doc.__unsaved = 0;
+		if (frm.refresh_header) frm.refresh_header();
+		return;
+	}
+
 	// FRAPPE RESOLVES ITS SAVE PROMISE EVEN WHEN THE SAVE WAS REFUSED.
 	// Measured 2026-08-08: with the document changed underneath it, `frm.save()`
 	// settled "resolved", the value never reached the database, and the form
@@ -726,8 +830,20 @@ const BND_RETRY_MS = 700;
  * failure worse than a visible error.
  */
 function bnd_merge_and_retry(frm, mine) {
-	if (frm.__bnd_retrying || !Object.keys(mine || {}).length) {
+	// NOTHING TO DEFEND, NOTHING TO FABRICATE. This branch used to set
+	// `__unsaved = 1` for an empty `mine` too, and that flag is a lie with
+	// consequences: dirty with an empty diff is a state no save can clear
+	// (there is nothing to send) and autosave rightly declines, so the form
+	// reads "Not Saved" forever and every later check that waits on a clean
+	// form times out behind it — the settings sweep lost a whole pane to it,
+	// measured 2026-08-08.
+	if (!Object.keys(mine || {}).length) return;
+	if (frm.__bnd_retrying) {
+		// A real unsaved edit exists but a retry is already in flight. Mark it
+		// AND come back — marking alone parked the edit on a flag nothing was
+		// scheduled to act on.
 		frm.doc.__unsaved = 1;
+		bnd_schedule_autosave(frm);
 		return;
 	}
 	frm.__bnd_retrying = true;
@@ -780,6 +896,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
+		bnd_render_placement_board(frm);
 		// AFTER the pickers, never before: the shell relocates the sections they
 		// were just drawn into, and moving a node the renderer is about to look
 		// for is how the host resolver ends up pointing at a detached wrapper.
@@ -867,6 +984,7 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_user_picker(frm);
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
+		bnd_render_placement_board(frm);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -933,6 +1051,10 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Controls"),
 		items: [
+			// FIRST in the group, because it is the one that answers "where does
+			// everything live" — the per-component pickers below it answer the
+			// same question five times, each for one control.
+			{ key: "placement", label: () => __("Placement"), anchors: ["placement_board"] },
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
@@ -1009,6 +1131,19 @@ const BND_SHELL_OWNS = {
 	inbox: { prefixes: ["inbox_"] },
 	user: { fields: ["user_placement"] },
 	links: { fields: ["home_placement", "apps_placement"] },
+	// The board OWNS the five placement fields it draws — deliberately the
+	// same fields the four entries around it own. It is a second view over one
+	// state, so a moved bell lights both its dot and the bell's: both claims
+	// are true, and a silent board over changed placements would be the lie.
+	placement: {
+		fields: [
+			"search_placement",
+			"inbox_placement",
+			"user_placement",
+			"home_placement",
+			"apps_placement",
+		],
+	},
 	// The container and the content it shows are one entry: "is there a bar"
 	// and "what does it say" are the same component to a reader, even though the
 	// split deliberately made them two fields.
@@ -1128,8 +1263,8 @@ function bnd_match_layout(frm) {
  */
 const BND_OVERVIEW_TENANTS = [
 	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Top Bar Center" },
-	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Top Bar" },
-	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Top Bar" },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Top Bar End" },
+	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Top Bar End" },
 ];
 
 function bnd_render_overview(frm, $pane) {
@@ -1139,12 +1274,12 @@ function bnd_render_overview(frm, $pane) {
 
 	BND_OVERVIEW_TENANTS.forEach((t, i) => {
 		const value = frm.doc[t.field] || t.fallback;
-		const g = BND_DESK_SLOTS[value];
+		const g = bnd_slot_geom(value);
 		if (!g) {
 			off.push(t);
 			return;
 		}
-		const reason = bnd_region_blocker(frm, BND_SLOT_REGION[value] || "");
+		const reason = bnd_region_blocker(frm, bnd_slot_region(value));
 		// Stack markers inside a region rather than overlapping them: three
 		// things in the top bar is the COMMON case, not an edge case.
 		const seen = placed.filter((x) => x.value === value).length;
@@ -2844,17 +2979,30 @@ function bnd_search_slot_blocker(frm, slot) {
 	// the bell and the user menu would have needed the same reasoning restated
 	// in theirs — three copies of "which regions does this layout actually
 	// mount". One copy, keyed by region.
-	return bnd_region_blocker(frm, BND_SLOT_REGION[slot] || "");
+	return bnd_region_blocker(frm, bnd_slot_region(slot));
 }
 
-const BND_SEARCH_SLOTS = [
-	{ value: "Top Bar Center", blurb: () => __("Centred in the top bar — the modern default.") },
-	{ value: "Top Bar Edge", blurb: () => __("At the start of the top bar, beside the page.") },
-	{ value: "Sidebar Top", blurb: () => __("ERPNext's own search row, at the top of the sidebar.") },
-	{ value: "Sidebar Bottom", blurb: () => __("The same row, pinned to the sidebar's foot.") },
-	{ value: "Bottom Bar Center", blurb: () => __("Centred in the bottom strip, beside the status signals.") },
-	{ value: "Bottom Bar Edge", blurb: () => __("At the start of the bottom strip.") },
-];
+/**
+ * What each search slot MEANS, by value. The list itself comes from the field —
+ * see `bnd_field_slots`. This is prose, not vocabulary: a slot with no entry
+ * here still renders, it just describes itself.
+ */
+const BND_SEARCH_BLURBS = {
+	"Top Bar Center": () => __("Centred in the top bar — the modern default."),
+	"Top Bar Start": () => __("At the start of the top bar, beside the page."),
+	"Side Pane Start": () => __("ERPNext's own search row, at the top of the sidebar."),
+	"Side Pane End": () => __("The same row, pinned to the sidebar's foot."),
+	"Bottom Bar Center": () => __("Centred in the bottom strip, beside the status signals."),
+	"Bottom Bar Start": () => __("At the start of the bottom strip."),
+};
+
+/** The search slots on offer, each with its blurb. */
+function bnd_search_slots(frm) {
+	return bnd_field_slots(frm, "search_placement").map((value) => ({
+		value: value,
+		blurb: BND_SEARCH_BLURBS[value] || (() => value),
+	}));
+}
 
 /**
  * The user menu's placement.
@@ -2895,6 +3043,238 @@ function bnd_render_user_picker(frm, host) {
  * preset decided where both lived and neither could move without the other.
  * Two controls, because `registry.py` has always described two components.
  */
+/**
+ * THE PLACEMENT BOARD — the desk is the form (option E).
+ *
+ * WHY IT EXISTS
+ *     Placement used to be five separate pickers, each a 300x180 thumbnail with
+ *     one component's name on it, each answering "where does THIS go?" in
+ *     isolation. That asks the reader to hold the desk in their head and
+ *     assemble it from five small answers. The board inverts it: one desk,
+ *     drawn big, with every control shown WHERE IT IS. Moving something is
+ *     moving it.
+ *
+ * PICK AND DROP, BOTH
+ *     Drag is the headline gesture and it is not sufficient alone — it is
+ *     unavailable on touch, awkward on a trackpad, and invisible to a keyboard.
+ *     So every chip is also a BUTTON: click it to pick it up, click a zone to
+ *     drop it. Both paths end in the same `drop_on`, so neither can rot while
+ *     the other is exercised.
+ *
+ * IT INVENTS NO VOCABULARY
+ *     Zones come from `bnd_field_slots`, which reads the field's own options,
+ *     which the doctype generates from `registry.slots_for`. A component is
+ *     offered exactly the places its runtime implements — search has no page
+ *     header because it has no slug for one, and the side pane has two zones
+ *     rather than three. A zone a chip may not take REFUSES the drop instead of
+ *     accepting it and silently landing elsewhere, which is the whole reason
+ *     the vocabulary slice came first.
+ */
+const BND_BOARD_TENANTS = [
+	{ key: "search", field: "search_placement", label: () => __("Search") },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Notifications") },
+	{ key: "user", field: "user_placement", label: () => __("You") },
+	{ key: "home", field: "home_placement", label: () => __("Home") },
+	{ key: "apps", field: "apps_placement", label: () => __("All Apps") },
+];
+
+/** The regions the board draws, in the order they sit on a desk. */
+const BND_BOARD_REGIONS = [
+	{ region: "sidepane", label: () => __("Side Pane") },
+	{ region: "topbar", label: () => __("Top Bar") },
+	{ region: "pagehead", label: () => __("Page Header") },
+	{ region: "dock", label: () => __("Dock") },
+	{ region: "bottombar", label: () => __("Bottom Bar") },
+];
+
+/** Every zone any component can occupy, grouped by region, in desk order. */
+function bnd_board_zones(frm) {
+	const seen = new Map();
+	for (const t of BND_BOARD_TENANTS) {
+		for (const slot of bnd_field_slots(frm, t.field)) {
+			const parsed = bnd_parse_slot(slot);
+			if (!parsed.region) continue;
+			if (!seen.has(parsed.region)) seen.set(parsed.region, new Map());
+			// A Map keeps insertion order and de-duplicates without caring
+			// which component contributed the zone first.
+			if (!seen.get(parsed.region).has(parsed.zone)) {
+				seen.get(parsed.region).set(parsed.zone, slot);
+			}
+		}
+	}
+	return seen;
+}
+
+/**
+ * May this component be switched off at all?
+ *
+ * Search may not: a desk nobody can search is not a configuration this theme
+ * offers, and the field says so by having no "Off" option. Asked of the FIELD
+ * rather than remembered here, for the same reason as everything else here.
+ */
+function bnd_can_be_off(frm, field) {
+	const meta_df =
+		frappe.meta &&
+		frappe.meta.get_docfield("Theme Settings", field, frm && frm.doc && frm.doc.name);
+	const options = (meta_df && meta_df.options) || "";
+	return String(options).split(/\r?\n/).indexOf("Off") !== -1;
+}
+
+/** One chip. A button first, draggable second — see the header. */
+function bnd_board_chip(t, value) {
+	return (
+		'<button type="button" class="bnd-bd-chip" draggable="true"' +
+		' data-tenant="' + bnd_esc(t.key) + '" data-field="' + bnd_esc(t.field) + '"' +
+		' data-value="' + bnd_esc(value || "Off") + '"' +
+		' title="' + bnd_esc(__("Drag to move, or click to pick up")) + '">' +
+		'<span class="bnd-bd-dot" aria-hidden="true"></span>' +
+		'<span class="bnd-bd-chip-label">' + bnd_esc(t.label()) + "</span>" +
+		"</button>"
+	);
+}
+
+function bnd_render_placement_board(frm, host) {
+	const $host = bnd_picker_host(frm, "placement_board", host);
+	if (!$host) return;
+
+	const placed = new Map();
+	const off = [];
+	for (const t of BND_BOARD_TENANTS) {
+		const value = frm.doc[t.field] || bnd_field_first_slot(frm, t.field);
+		if (!value || value === "Off") {
+			off.push(bnd_board_chip(t, "Off"));
+			continue;
+		}
+		if (!placed.has(value)) placed.set(value, []);
+		placed.get(value).push(bnd_board_chip(t, value));
+	}
+
+	const zones = bnd_board_zones(frm);
+	const ZONE_NAME = {
+		start: () => __("Start"),
+		center: () => __("Center"),
+		end: () => __("End"),
+	};
+	const regions = BND_BOARD_REGIONS.filter((r) => zones.has(r.region))
+		.map((r) => {
+			const reason = bnd_region_blocker(frm, r.region);
+			const cells = Array.from(zones.get(r.region).entries())
+				.map((pair) => {
+					const zone = pair[0];
+					const slot = pair[1];
+					const chips = (placed.get(slot) || []).join("");
+					return (
+						'<div class="bnd-bd-zone" data-slot="' + bnd_esc(slot) + '"' +
+						' data-region="' + bnd_esc(r.region) + '" data-zone="' + bnd_esc(zone) + '">' +
+						'<span class="bnd-bd-zone-name">' +
+						bnd_esc((ZONE_NAME[zone] || (() => zone))()) +
+						"</span>" +
+						'<div class="bnd-bd-slot-chips">' + chips + "</div>" +
+						"</div>"
+					);
+				})
+				.join("");
+			return (
+				'<section class="bnd-bd-region' + (reason ? " bnd-bd-unavailable" : "") + '"' +
+				' data-region="' + bnd_esc(r.region) + '"' +
+				(reason ? ' title="' + bnd_esc(reason) + '"' : "") +
+				">" +
+				'<h4 class="bnd-bd-region-name">' + bnd_esc(r.label()) +
+				(reason
+					? ' <span class="bnd-bd-warn">' + bnd_esc(__("not on this desk")) + "</span>"
+					: "") +
+				"</h4>" +
+				'<div class="bnd-bd-zones">' + cells + "</div>" +
+				"</section>"
+			);
+		})
+		.join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-bd" data-armed="">' +
+				'<div class="bnd-bd-desk">' + regions + "</div>" +
+				'<div class="bnd-bd-tray bnd-bd-zone" data-slot="Off">' +
+				'<span class="bnd-bd-zone-name">' + bnd_esc(__("Off — not shown")) + "</span>" +
+				'<div class="bnd-bd-slot-chips">' + off.join("") + "</div>" +
+				"</div>" +
+				P.note(
+					__("Drag a control onto the desk, or click it and then click where it should go.")
+				) +
+				"</div>"
+		)
+	);
+
+	const legal = (field, slot) =>
+		slot === "Off"
+			? bnd_can_be_off(frm, field)
+			: bnd_field_slots(frm, field).indexOf(slot) !== -1;
+
+	const drop_on = (field, slot) => {
+		if (!field || !slot || !legal(field, slot)) return;
+		bnd_inbox_set(frm, field, slot);
+	};
+
+	const $bd = $host.find(".bnd-bd");
+	const arm = (field) => {
+		$bd.attr("data-armed", field || "");
+		$bd.find(".bnd-bd-zone").each(function () {
+			const ok = field ? legal(field, this.getAttribute("data-slot")) : false;
+			this.classList.toggle("bnd-bd-ok", !!ok);
+			this.classList.toggle("bnd-bd-no", !!field && !ok);
+		});
+		if (!field) $bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed");
+	};
+
+	$bd.find(".bnd-bd-chip").on("click", function (e) {
+		e.stopPropagation();
+		const field = this.getAttribute("data-field");
+		// Clicking the armed chip again puts it down. A board that cannot be
+		// disarmed traps the next click on a zone nobody meant to choose.
+		const next = $bd.attr("data-armed") === field ? "" : field;
+		$bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed");
+		arm(next);
+		if (next) window.$(this).addClass("bnd-bd-armed");
+	});
+
+	$bd.find(".bnd-bd-zone").on("click", function () {
+		const field = $bd.attr("data-armed");
+		if (!field) return;
+		drop_on(field, this.getAttribute("data-slot"));
+	});
+
+	$bd.find(".bnd-bd-chip").on("dragstart", function (e) {
+		const ev = e.originalEvent || e;
+		const field = this.getAttribute("data-field");
+		if (ev.dataTransfer) {
+			ev.dataTransfer.setData("text/plain", field);
+			ev.dataTransfer.effectAllowed = "move";
+		}
+		arm(field);
+		window.$(this).addClass("bnd-bd-dragging");
+	});
+
+	$bd.find(".bnd-bd-chip").on("dragend", function () {
+		window.$(this).removeClass("bnd-bd-dragging");
+		arm("");
+	});
+
+	$bd.find(".bnd-bd-zone").on("dragover", function (e) {
+		const ev = e.originalEvent || e;
+		const field = $bd.attr("data-armed");
+		if (!field || !legal(field, this.getAttribute("data-slot"))) return;
+		ev.preventDefault();
+		if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
+	});
+
+	$bd.find(".bnd-bd-zone").on("drop", function (e) {
+		const ev = e.originalEvent || e;
+		ev.preventDefault();
+		const field = (ev.dataTransfer && ev.dataTransfer.getData("text/plain")) || $bd.attr("data-armed");
+		drop_on(field, this.getAttribute("data-slot"));
+	});
+}
+
 function bnd_render_links_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "links_picker", host);
 	if (!$host) return;
@@ -2905,16 +3285,17 @@ function bnd_render_links_picker(frm, host) {
 			field: field,
 			body: bnd_desk_diagram({
 				field: field,
-				// Sidebar Top and Sidebar Bottom are kept as distinct slots: the
-				// old field had them, and collapsing both to "Side Pane" would
-				// silently move every site that chose the bottom.
-				slots: ["Sidebar Top", "Sidebar Bottom", "Top Bar", "Bottom Bar"],
-				value: frm.doc[field] || "Sidebar Top",
-				blocker: (slot) => bnd_region_blocker(frm, BND_SLOT_REGION[slot] || ""),
+				// From the field, not from a list here: these two are the
+				// components whose picker offered "Dock" while the runtime put
+				// the link in the pane (2026-08-07), and then offered the whole
+				// pre-E1 vocabulary while the field accepted none of it.
+				slots: bnd_field_slots(frm, field),
+				value: frm.doc[field] || bnd_field_first_slot(frm, field),
+				blocker: (slot) => bnd_region_blocker(frm, bnd_slot_region(slot)),
 			}) +
 				P.options([{ value: "Off", name: __("Off — not shown") }], {
 					field: field,
-					value: frm.doc[field] || "Sidebar Top",
+					value: frm.doc[field] || bnd_field_first_slot(frm, field),
 				}),
 		});
 
@@ -2937,7 +3318,7 @@ function bnd_render_links_picker(frm, host) {
 	});
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
-		bnd_inbox_set(frm, this.getAttribute("data-field"), "Sidebar Top");
+		bnd_inbox_set(frm, this.getAttribute("data-field"), bnd_field_first_slot(frm, this.getAttribute("data-field")));
 	});
 }
 
@@ -2951,7 +3332,7 @@ function bnd_render_search_picker(frm, host) {
 	// thumbnails of the same desk that each had to stay truthful on their own.
 	const diagram = bnd_desk_diagram({
 		field: "search_placement",
-		slots: BND_SEARCH_SLOTS.map((s) => s.value),
+		slots: bnd_search_slots(frm).map((s) => s.value),
 		value: current,
 		blocker: (label) => bnd_search_slot_blocker(frm, label),
 	});
@@ -3016,14 +3397,18 @@ const BND_STATUS_STYLES = [
 			'<rect x="90" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
 			'<rect x="105" y="45" width="9" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
 	},
-	{
-		value: "Off",
-		blurb: () =>
-			__("No status bar at all, and the page takes the space back. The Bottom Bar layout keeps its strip — that one carries notifications and your profile."),
-		svg:
-			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="30" y="20" width="60" height="5" rx="2" fill="currentColor" opacity=".1"/></svg>',
-	},
+	// "Off" is NOT a style, and its card is deleted, not commented. The option
+	// left the FIELD on 2026-08-06 when the status bar became a component —
+	// "is there a strip" is `bottombar_enabled`, the container switch that
+	// lives in this same pane — but the card survived, still describing the
+	// pre-split behaviour, and still writing "Off" into a Select that refuses
+	// it. Theme Settings is a Single, so that one click failed validation for
+	// the WHOLE document: the form read "Not Saved" forever and every control
+	// clicked after it timed out behind the wedge — found live by the settings
+	// sweep on 2026-08-08, the same day the same class of bug was fixed for
+	// the placement pickers. The render below also filters this list against
+	// the field's own options, so the NEXT option an update removes takes its
+	// card with it instead of lying in wait.
 ];
 
 const BND_STATUS_SELECTS = [
@@ -3066,8 +3451,20 @@ function bnd_render_status_picker(frm, host) {
 	const off = bnd_component_blocker(frm, "status");
 	const minimal = current === "Minimal";
 
+	// Filtered against the FIELD's options — the same rule every placement
+	// picker follows since E1. The hand-authored list carries the art and the
+	// prose; the field says which of them exist. This is what retired the
+	// "Off" card's whole class of bug: a card whose value the doctype dropped
+	// stops rendering instead of writing a value the Select refuses and
+	// wedging every later save of the Single.
+	const offered = bnd_field_slots(frm, "status_style");
 	const cards = P.cards(
-		BND_STATUS_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		BND_STATUS_STYLES.filter((s) => offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
 		{ selected: current, cls: "bnd-cbp-style bnd-stp-style" }
 	);
 
@@ -3100,6 +3497,15 @@ function bnd_render_status_picker(frm, host) {
 			name: t.name(),
 			desc: t.desc(),
 			reason,
+			// The picker's own hook class, which the handler below binds. It was
+			// MISSING — the toggles rendered with only the shared class, the
+			// handler matched nothing, and every status switch was inert: the
+			// knob looked right, the click did nothing, no error anywhere. This
+			// is the exact port defect P.toggle's docstring warns about, found
+			// by the settings sweep on 2026-08-08 as three "value did not land"
+			// rows (the other four toggles were disabled at that moment, or it
+			// would have been seven).
+			cls: "bnd-stp-toggle",
 		});
 	}).join("");
 

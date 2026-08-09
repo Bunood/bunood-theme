@@ -59,6 +59,22 @@ REGION_LABELS = {
 #: bands; that is a label for a reader, not a second set of values.
 ZONES = ("Start", "Center", "End")
 
+#: Zones a given region actually HAS. Bars have three; the side pane has two.
+#:
+#: NOT AN OVERSIGHT — measured, then decided. A bar's centre is a real place
+#: because a bar has free space along its length. The pane's does not exist: its
+#: content fills the column, so "after the workspace list" and "the foot of the
+#: pane" are the same position (the list IS the last thing in it), and three
+#: separate attempts put centre and end on an identical y. Offering a third
+#: choice that lands where the second one does is the "two options, one pixel"
+#: defect this vocabulary was written to remove — search's old "Sidebar Top" and
+#: "Sidebar Bottom" did exactly that for months.
+#:
+#: So the pane says two, and says it honestly. If a place below Frappe's own
+#: bottom strip is ever wanted, that is a new zone with a new name, not a
+#: centre that isn't one.
+ZONES_BY_REGION = {"sidepane": ("Start", "End")}
+
 #: Every placement value in existence: "<Region> <Zone>", plus "Off".
 #:
 #: WHY IT IS DERIVED AND NOT LISTED
@@ -68,15 +84,25 @@ ZONES = ("Start", "Center", "End")
 #:     dropped it in the sidebar (found 2026-08-07). Here the field options,
 #:     the desk diagram's slots and the migration all read the same function.
 def slots_for(key: str) -> list:
-    """Placement values a component may take, in desk order. "Off" first."""
+    """Placement values a component may take, in desk order. "Off" first.
+
+    A component offers a zone only if its RUNTIME implements that zone — see
+    the ``zones`` key on the component. Region x zone was the first cut and it
+    was too generous: it offered search a Page Header it has no slug for, and
+    offered Home a bar centre when ``sb_mount_utils`` inserts at ``firstChild``
+    and nowhere else. Both would have been dishonest pickers, which is the one
+    thing this vocabulary exists to abolish.
+    """
     component = next((c for c in COMPONENTS if c["key"] == key), None)
     if not component:
         return []
     out = ["Off"] if component.get("offable") else []
+    limits = component.get("zones") or {}
     for region in REGIONS:
         if region not in component["regions"]:
             continue
-        for zone in ZONES:
+        zones = limits.get(region, ZONES_BY_REGION.get(region, ZONES))
+        for zone in zones:
             out.append(f"{REGION_LABELS[region]} {zone}")
     return out
 
@@ -115,6 +141,13 @@ def parse_slot(value: str):
 #:               the one tenant with no Off — a desk nobody can search is not a
 #:               configuration this theme offers, and Ctrl+K does not count
 #:               because it is unreachable on touch.
+#: ``zones``     per region, the zones this component's RUNTIME implements, when
+#:               that is narrower than the region has. Absent means "all of
+#:               them". An empty tuple means the field does not offer that
+#:               region at all, though the component may still reach it by
+#:               fallback — search's dock is exactly that. This exists because
+#:               region x zone offered search a Page Header with no slug behind
+#:               it and Home a bar centre `sb_mount_utils` cannot produce.
 #: ``critical``  losing every route to this leaves a user unable to work.
 #:               These are the invariants the smoke matrix asserts in EVERY
 #:               state, because no single kit owns them and so no per-feature
@@ -192,9 +225,25 @@ COMPONENTS = [
         "regions": REGIONS,
         "toggle": None,
         "offable": False,
-        "offable": False,
-        "regions": REGIONS,
-        "toggle": None,
+        # WHAT THE FIELD OFFERS, which is narrower than where search can END UP.
+        # `mount_search_at` works in slugs — sbtop, sbbottom, topedge, topcenter,
+        # botedge, botcenter — and a placement with no slug behind it is a
+        # picker that does nothing. Two regions are therefore empty:
+        #   pagehead  no slug exists at all; offering it would have been the
+        #             "Dock on a field whose runtime dropped it in the sidebar"
+        #             defect over again (2026-08-07).
+        #   dock      a slug DOES exist, but no admin picks it: the Dock layout
+        #             reaches it through the fallback chain, which is where the
+        #             icon form belongs. Offering it directly would let someone
+        #             ask for a dock search on a desk with no dock.
+        # The bars carry no "End" because no slug does; that is the next thing
+        # to build, not something to offer before it exists.
+        "zones": {
+            "topbar": ("Start", "Center"),
+            "bottombar": ("Start", "Center"),
+            "pagehead": (),
+            "dock": (),
+        },
         # Ctrl+K does NOT satisfy this: it is unreachable on touch, and a
         # user who cannot find anything cannot work.
         "critical": True,
@@ -246,6 +295,13 @@ COMPONENTS = [
         "regions": ("topbar", "bottombar", "sidepane", "dock"),
         "toggle": None,
         "offable": True,
+        # START ONLY on the bars and the dock, because that is all
+        # `sb_mount_utils` does: it inserts the link wrap at `firstChild` and
+        # has no other anchor. The quick links are leading-edge navigation —
+        # Home and All Apps sit where a user reaches first — so this is a
+        # statement about the component, not a gap waiting to be filled. The
+        # pane keeps both of its zones, which it genuinely has.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
         "critical": False,
     },
     {
@@ -264,6 +320,13 @@ COMPONENTS = [
         "regions": ("topbar", "bottombar", "sidepane", "dock"),
         "toggle": None,
         "offable": True,
+        # START ONLY on the bars and the dock, because that is all
+        # `sb_mount_utils` does: it inserts the link wrap at `firstChild` and
+        # has no other anchor. The quick links are leading-edge navigation —
+        # Home and All Apps sit where a user reaches first — so this is a
+        # statement about the component, not a gap waiting to be filled. The
+        # pane keeps both of its zones, which it genuinely has.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
         "critical": False,
     },
 ]
@@ -347,18 +410,35 @@ LAYOUT_CHROME = {
 #: to share the constant: that patch answers "what did this site RENDER", once,
 #: and this answers "what does this layout MEAN", forever. They are free to
 #: diverge and one day will.
+#: THE VALUES ARE SLOTS, and every one of them must be in `slots_for` for that
+#: field. This table wrote the OLD region-only vocabulary until E1 and was
+#: missed when the vocabulary changed — "Top Bar", "Page Header", "Dock",
+#: "Sidebar Top". Frappe rejects an out-of-range Select on save, and Theme
+#: Settings is a Single, so ONE illegal value here does not merely lose its own
+#: setting: it makes every later write of the whole document fail validation.
+#: The bench proved it, with `inbox_placement = "Side Pane Center"` left behind
+#: by a test — six unrelated save checks failed until it was healed.
+#:
+#: The zone each one gains is the one it MEASURED, taken from
+#: `patches/v0_11_0/slot_vocabulary.py`, which read the 0.10.0 desk rather than
+#: guessing from the names: the bell and the user menu landed in the trailing
+#: third of a bar, so they become "End"; search's centre was already a slot.
+#: `tests/smoke.mjs` now asserts this table against `slots_for` directly, so
+#: the next value added cannot be one the field will not accept.
 LAYOUT_TENANTS = {
     "Top Bar": {
-        "inbox_placement": "Top Bar",
-        "user_placement": "Top Bar",
+        "inbox_placement": "Top Bar End",
+        "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
     },
     "Compact": {
-        "inbox_placement": "Page Header",
-        "user_placement": "Page Header",
+        "inbox_placement": "Page Header End",
+        "user_placement": "Page Header End",
         # Compact exists to NOT grow chrome, so search stays in the sidebar row
         # Frappe already renders rather than widening the page-head strip.
-        "search_placement": "Sidebar Top",
+        # "Side Pane Start" is that row: it is where "Sidebar Top" pointed, and
+        # the pane's start zone is the only place the row has ever been.
+        "search_placement": "Side Pane Start",
     },
     "Classic": {
         # "Off", NOT "Side Pane", and the difference is the whole meaning of
@@ -374,19 +454,19 @@ LAYOUT_TENANTS = {
         # sites; see HANDOVER for the open question of whether to correct them.
         "inbox_placement": "Off",
         "user_placement": "Off",
-        # Search is different and "Sidebar Top" is right: that slot is pure CSS
-        # revealing Frappe's OWN row, and mount_search_at deliberately does not
-        # claim it. Stock behaviour, reached by naming it.
-        "search_placement": "Sidebar Top",
+        # Search is different and the pane's start zone is right: that slot is
+        # pure CSS revealing Frappe's OWN row, and mount_search_at deliberately
+        # does not claim it. Stock behaviour, reached by naming it.
+        "search_placement": "Side Pane Start",
     },
     "Bottom Bar": {
-        "inbox_placement": "Bottom Bar",
-        "user_placement": "Bottom Bar",
+        "inbox_placement": "Bottom Bar End",
+        "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
     },
     "Dock": {
-        "inbox_placement": "Dock",
-        "user_placement": "Dock",
+        "inbox_placement": "Dock End",
+        "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form
         # and mount_search resolves it through the fallback chain, which puts
         # the dock first for this layout. Naming a slot the field does not offer
@@ -414,7 +494,11 @@ def layout_settings(layout: str) -> dict:
     chrome = LAYOUT_CHROME.get(layout)
     if not chrome:
         return {}
-    values = {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
+    # Annotated because the two halves are genuinely different types — a
+    # container's cell is 0/1 and a tenant's is a slot label — and the checker
+    # otherwise infers dict[str, int] from the comprehension and rejects the
+    # update. The mixed type is the point: this returns FIELD -> VALUE.
+    values: dict = {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
     values.update(LAYOUT_TENANTS.get(layout, {}))
     return values
 

@@ -213,12 +213,22 @@ html[data-bnd-topbar] .page-head {
 }
 
 // ── Notifications panel relocation ──────────────────────────────────────────
-// Pinned next to whichever bell the layout owns. Sized defensively: the panel
-// brings its own internal layout; we only place and bound it.
-html[data-bnd-topbar] .dropdown-notifications,
-html[data-bnd-pagehead] .dropdown-notifications,
-html[data-bnd-layout="bottombar"] .dropdown-notifications,
-html[data-bnd-dock] .dropdown-notifications {
+// Pinned next to the bell that IS — keyed on `data-bnd-bell`, the region the
+// mount actually landed in, stamped by mount_placed_tenants the same way
+// ownership is. These four rules used to guess by LAYOUT, which was the last
+// "the layout decides" in the sheet: a Top Bar desk with the bell placed in
+// the side pane pinned the panel under the top bar, nowhere near it, and a
+// top bar on a Dock desk matched two rules at once with source order picking
+// the dock. The stamp clears when the bell is off, native, or in the side
+// pane is stamped truthfully and matches none of these rules — Frappe's own
+// anchoring beside the sidebar is right for a pane bell, a native bell, and no
+// bell alike.
+// Sized defensively: the panel brings its own internal layout; we only place
+// and bound it.
+html[data-bnd-bell="topbar"] .dropdown-notifications,
+html[data-bnd-bell="pagehead"] .dropdown-notifications,
+html[data-bnd-bell="bottombar"] .dropdown-notifications,
+html[data-bnd-bell="dock"] .dropdown-notifications {
   position: fixed;
   z-index: var(--bnd-z-panel);
   inset-inline-end: var(--bnd-sp-2);
@@ -240,35 +250,22 @@ html[data-bnd-dock] .dropdown-notifications {
     inline-size: 100%;
   }
 }
-// THESE FOUR RULES GUESS WHERE THE BELL IS, and they have always guessed by
-// layout. `inbox_placement` is the thing that actually knows — it has been a
-// setting of its own since slice 1a — so the panel can already hang from the
-// wrong piece of chrome today: a Top Bar desk with the bell placed in the side
-// pane gets a panel pinned under the top bar, nowhere near it.
-//
-// The split makes one more such state reachable (a top bar on a Dock desk:
-// both selectors match, equal specificity, and source order gives it to the
-// dock), which is why it is written down here rather than left implicit. It is
-// NOT fixed in this slice — keying all four on the bell's real region is a
-// behaviour change, and behaviour does not ride along with a refactor. It is
-// one line of the honest-picker audit, which is where every remaining "the
-// layout decides" gets found.
-//
-// Source order below is therefore left exactly as it was, so no configuration
-// that worked yesterday moves today.
-html[data-bnd-topbar] .dropdown-notifications {
+// One rule per region the bell can occupy, mutually exclusive by construction:
+// the stamp is a single attribute, so exactly one can match — the two-rules-
+// at-equal-specificity collision the layout keying had is not possible here.
+html[data-bnd-bell="topbar"] .dropdown-notifications {
   inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
   inset-block-end: auto;
 }
-html[data-bnd-pagehead] .dropdown-notifications {
+html[data-bnd-bell="pagehead"] .dropdown-notifications {
   inset-block-start: 56px; // just below the page-head strip that holds the bell
   inset-block-end: auto;
 }
-html[data-bnd-layout="bottombar"] .dropdown-notifications {
+html[data-bnd-bell="bottombar"] .dropdown-notifications {
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
   inset-block-start: auto;
 }
-html[data-bnd-dock] .dropdown-notifications {
+html[data-bnd-bell="dock"] .dropdown-notifications {
   inset-block-end: calc(var(--bnd-dock-h) + var(--bnd-sp-3));
   inset-block-start: auto;
 }

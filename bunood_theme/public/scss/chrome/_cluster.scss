@@ -167,3 +167,55 @@ html[data-theme] .bnd-dock-item:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 1px;
 }
+
+// ── Zones: start · centre · end, inside every container ─────────────────────
+// The slot vocabulary of E1. Three boxes in document order inside each
+// container's cluster, so "Top Bar End" is an element rather than a convention
+// about who appended last.
+//
+// LOGICAL, NOT LEFT/RIGHT. `start` is the leading edge — left in English, right
+// in Arabic — with no second ruleset, which is the same reason this codebase
+// uses logical properties everywhere and the build enforces it.
+//
+// The centre is centred against the BAR, not between its neighbours: a pair of
+// flexing spacers would centre it between whatever happens to sit either side,
+// and would also cancel the end zone's auto margin and drag it to the leading
+// edge. That regression shipped once already (item 14) and is why
+// `.bnd-search-center` works this way too.
+html[data-theme] .bnd-cluster {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: var(--bnd-sp-2);
+  position: relative;
+}
+
+html[data-theme] .bnd-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-zone[data-zone="start"] {
+  margin-inline-end: auto;
+}
+
+html[data-theme] .bnd-zone[data-zone="center"] {
+  position: absolute;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: fit-content;
+  justify-content: center;
+}
+
+html[data-theme] .bnd-zone[data-zone="end"] {
+  margin-inline-start: auto;
+}
+
+// ── The side pane is a column, and position decides ────────────────────────
+// No `order` rules here on purpose. The pane's content fills the column, so
+// auto margins resolve to zero and all three zones land on the same line —
+// measured, identical y for centre and end. `sb_zone_anchor` in bunood.js
+// places by DOM position instead: after the header, after the workspace list,
+// or at the foot. The attribute below is kept for styling and for the settings
+// form to read; it does not position anything.
