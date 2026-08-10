@@ -1,0 +1,33 @@
+{#- Managed by bunood_theme: edits here are overwritten on every migrate.
+    بونود — فاتورة (نقطي / Dot-Matrix). هيكل أساس للنماذج المستمرة/المطبوعة مسبقاً:
+    خط Courier أحادي العرض، بلا حدود/خلفيات/صور (رؤوس النموذج مطبوعة مسبقاً غالباً).
+    يُنسخ ويُعدَّل لكل عميل حسب مقاسات نموذجه — هذا هو الأساس الرقيق المقصود.
+    ⚠ نطاق: للنسخ الداخلية/التسليم فقط — النموذج المطبوع مسبقاً قد يوفّر هوية
+    البائع، لكن ZATCA QR وتفصيل الضريبة لا يُطبعان مسبقاً؛ أي نسخة ضريبية
+    مشتقة من هذا الأساس يجب أن تضيف zatca_qr + الضريبة الصافية. -#}
+<div class="bnd-p bnd-p--matrix">
+  <table>
+    <tr><td>فاتورة رقم: <span dir="ltr">{{ doc.name | e }}</span></td>
+        <td style="text-align:left" dir="ltr">{{ doc.get_formatted("posting_date") if doc.get("posting_date") else "" }}</td></tr>
+    <tr><td colspan="2">العميل: {{ (doc.get("customer_name") or "") | e }}</td></tr>
+    {% if doc.get("tax_id") %}<tr><td colspan="2">الرقم الضريبي: <span dir="ltr">{{ doc.tax_id | e }}</span></td></tr>{% endif %}
+  </table>
+  <br>
+  <table>
+    <thead><tr><th>الصنف</th><th>كمية</th><th>سعر</th><th>إجمالي</th></tr></thead>
+    <tbody>
+    {% for row in doc.items %}
+      <tr><td>{{ row.item_name | e }}</td>
+          <td dir="ltr">{{ row.get_formatted("qty") }}</td>
+          <td dir="ltr">{{ row.get_formatted("rate", doc) }}</td>
+          <td dir="ltr">{{ row.get_formatted("amount", doc) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <br>
+  <table>
+    <tr><td>قبل الضريبة:</td><td dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
+    <tr><td>الضريبة:</td><td dir="ltr">{{ doc.get_formatted("total_taxes_and_charges") }}</td></tr>
+    <tr><td><b>الإجمالي:</b></td><td dir="ltr"><b>{{ doc.get_formatted("grand_total") }}</b></td></tr>
+  </table>
+</div>

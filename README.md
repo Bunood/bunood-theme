@@ -41,6 +41,13 @@ forks, no `@layer`, no `?v=` cache-busters, and (almost) no `!important`.
   broken desk. An unknown or missing layout value fails open to stock chrome.
 - **Print** — in-bundle `@media print`: force-light through the token
   pipeline, repeating table headers, unsplit rows, ink-friendly output.
+- **Business documents** — seven managed ZATCA-aware Print Formats
+  (tax/simplified invoices A4 + 80mm thermal + dot-matrix, payment and
+  journal vouchers), a global Print Style, and a bilingual Letter Head
+  driven entirely by `Company` data. Synced from files on install/migrate
+  (idempotent, non-blocking); a stock print style is displaced, an admin's
+  choice never is. Details in `bunood_theme/printing/README.md` and
+  `bunood_theme/letterhead/README.md`.
 - **RTL** — logical properties only, enforced by a build-time guard that
   fails the build on any physical property. One sheet serves LTR and Arabic
   with no rtlcss pass.

@@ -26,6 +26,7 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
+from bunood_theme.printing.install import sync_print_theme
 from bunood_theme.registry import default_desk_order
 from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
@@ -135,10 +136,16 @@ NAVBAR_DENSITY_LABEL = "Toggle Density"
 
 
 def after_install() -> None:
-    """Seed defaults, the navbar toggle, and the first brand stylesheet."""
+    """Seed defaults, the navbar toggle, the first brand stylesheet, and print."""
     _seed_defaults()
     _seed_navbar_density_item()
     write_brand_css()
+    # Print Style "Bunood" + the business Print Formats + the bilingual Letter
+    # Head, synced from the files in printing/ and letterhead/ (the source of
+    # truth). Internally guarded step by step — a failure logs and never blocks
+    # an install, and defaults are claimed only from vacancy (a stock print
+    # style, a site with no default letter head).
+    sync_print_theme()
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -296,6 +303,11 @@ def after_migrate() -> None:
     _seed_defaults()
     _seed_navbar_density_item()
     write_brand_css()
+    # Same contract as after_install: the files in printing/ and letterhead/
+    # are the source of truth, so every migrate re-syncs the managed records
+    # (drift self-heals; local edits to MANAGED records are overwritten by
+    # design — duplicate a format to customize, see printing/README.md).
+    sync_print_theme()
     _warn_unreachable_rtl()
     _defend_identity_overrides()
 
