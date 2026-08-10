@@ -1,0 +1,321 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// FORM VIEW — checklist item 18. The second SURFACE partial.
+//
+// WHAT
+//   Section containers, the tab bar's active marker, child-grid rows and the
+//   form sidebar for Frappe's form view, as a CSS matrix keyed on attributes
+//   bunood.js derives from Theme Settings (boot -> data-bnd-form*). A surface
+//   kit colours Frappe's own DOM and mounts nothing — there is no node to
+//   stand down and no native to release; absent attributes ARE the
+//   stand-down, so "Original" is a pure clearing and the stock form renders
+//   untouched.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-form            hairline | open | cards | sheet   (the style;
+//                            the ANCHOR — absent = every rule here inert)
+//   data-bnd-form-tabs       underline | segment | pill  (active tab marker)
+//   data-bnd-form-side       edge | pane | card          (the form sidebar)
+//   data-bnd-form-ckreveal   (presence = grid checkboxes rest hidden;
+//                             revealed on row hover, :focus-within, or while
+//                             ANY row is checked; stands down (hover: none))
+//
+// THE FACTS THIS FILE IS BUILT ON (all measured live, 2026-08-10, Frappe
+// 16.27.0, /desk/item/BND-TEST-001..2)
+//   * .form-page is the white canvas (its bg is the ONLY opaque paint under
+//     .layout-main-section) and .form-tabs-list is sticky (z-5) with its own
+//     white bg — the canvas variable must paint BOTH or the bar strobes over
+//     scrolled content.
+//   * The section separator IS .form-section's own border-bottom (1px,
+//     bridged border colour), and .hide-border zeroes it. Sections carry
+//     state classes (visible-section / empty-section / hide-border);
+//     .section-head holds a span.collapse-indicator that EXISTS at rest
+//     inline-hidden — a node's presence is not a signal (the item-16
+//     .checkbox-actions lesson), so nothing here gates on it.
+//   * The child grid does NOT share list DOM. .form-grid already has a 1px
+//     frame, 10px radius and a TINTED body (bridged); .grid-heading-row and
+//     the data rows share .data-row anatomy, and the heading carries its own
+//     select-all .grid-row-check — reveal rules scope to .grid-body so the
+//     header's entry to selection stays visible (the list kit's 3B
+//     judgement). Data rows are .grid-row[data-idx]; rest state carries no
+//     class; the editor state is .grid-row-open, NOT probed at rest (the
+//     hover-only pencil blocked the click), so it gets one background rule
+//     and nothing else — styling an unprobed state is the inference error
+//     the bulk header punished.
+//   * The sidebar column .layout-side-section.right is sticky and sized by
+//     chrome/_layouts.scss against --bnd-bottom-reserve at (0,3,2) — this
+//     file paints, it never sizes. The stock separation is the column's own
+//     1px border-left; the inner .form-sidebar is transparent, unpadded.
+//   * Inputs are 28px, borderless, filled. --bnd-control-h (30/26px) has
+//     waited in _tokens.scss since item 4 for exactly this file; its
+//     consumption is scoped html[data-theme], NOT the kit anchor — density
+//     is its own contract and keeps working under Original.
+//
+// DESIGN RECORD (item-18 wireframe round, 2026-08-10): defaults are the
+// user's picks 1C Floating Panels · 2C Solid Pill · 3C Floating Pane · 4A
+// reveal — the bolder option each time, consistent with item 16. Fusions:
+// sections + the grid frame + .form-dashboard are ONE container statement
+// (the anchor); the tab BAR colour rides the canvas and only the MARKER is
+// an axis; the sidebar is styling-only (no Off — attachments and
+// assignments must stay reachable). Under cards, hide-border sections keep
+// their own card rather than merging with the previous one — a recorded
+// trim, not an oversight. References: Salesforce record panels / shadcn Card
+// (cards), Odoo's document sheet (sheet), Directus item detail (hairline,
+// pane), Linear/Notion (open), Material 3 / Gmail (pill), iOS segmented /
+// shadcn Tabs (segment), GitHub PR sidebar (edge).
+//
+// Scoped html[data-bnd-form] throughout; fails open to stock on absent
+// attributes, unknown slugs, or upstream class renames (selectors simply
+// stop matching — no JS reads form DOM, so no errors either). Logical
+// properties only. No !important. One deviation from _list.scss's
+// declare-everything working set, made for payload: a style block omits a
+// variable when the component rule's var() fallback IS the quiet value.
+// ============================================================================
+
+// ── Density geometry (--bnd-control-h consumption, completing item 4) ───────
+// html[data-theme]-scoped, NOT the kit anchor: density is its own contract
+// (site default + per-user override) and must keep working under Original.
+// input/select only — a textarea sizes by content and a checkbox would
+// balloon; .like-disabled-input is the read-only value's box and follows so
+// editable and read-only rows keep one rhythm.
+html[data-theme] .frappe-control input.form-control:not([type="checkbox"]),
+html[data-theme] .frappe-control select.form-control {
+  block-size: var(--bnd-control-h);
+}
+html[data-theme] .frappe-control .control-value.like-disabled-input {
+  min-block-size: var(--bnd-control-h);
+}
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style value; every component
+// rule below consumes ONLY these (quiet values ride the var() fallbacks).
+html[data-bnd-form="hairline"] {
+  --bnd-form-sec-border: var(--bnd-border);
+  --bnd-form-sec-radius: var(--bnd-radius-md);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+}
+// Open Canvas: separators erased, whitespace and section titles carry the
+// structure. The grid keeps its row hairlines (a table without them stops
+// being a table) but loses its outer frame.
+html[data-bnd-form="open"] {
+  --bnd-form-sec-gap: var(--bnd-sp-4);
+  --bnd-form-content-pad: var(--bnd-sp-2);
+  --bnd-form-grid-frame: transparent;
+}
+html[data-bnd-form="cards"] {
+  --bnd-form-canvas: var(--bnd-page);
+  --bnd-form-sec-bg: var(--bnd-surface);
+  --bnd-form-sec-border: var(--bnd-border);
+  --bnd-form-sec-radius: var(--bnd-radius-lg);
+  --bnd-form-sec-shadow: var(--bnd-shadow-sm);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+// Paper Sheet: ONE elevated paper on the tinted canvas; sections divide
+// inside it by hairlines. The shell variables exist for this style alone.
+html[data-bnd-form="sheet"] {
+  --bnd-form-canvas: var(--bnd-page);
+  --bnd-form-sec-sep: var(--bnd-border);
+  --bnd-form-shell-bg: var(--bnd-surface);
+  --bnd-form-shell-radius: var(--bnd-radius-lg);
+  --bnd-form-shell-shadow: var(--bnd-shadow-md);
+  --bnd-form-shell-margin: var(--bnd-sp-4);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+
+// Tab marker treatments. Hover stays a neutral wash in every option — hover
+// is "you are here", the active fill is "this is chosen" (the list kit's
+// hue law, restated for tabs).
+html[data-bnd-form][data-bnd-form-tabs="underline"] {
+  --bnd-form-tab-marker-size: 2px;
+  --bnd-form-tab-marker-ink: var(--bnd-brand-solid, var(--bnd-brand));
+}
+html[data-bnd-form][data-bnd-form-tabs="segment"] {
+  --bnd-form-tab-track-bg: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface));
+  --bnd-form-tab-active-bg: var(--bnd-surface);
+  --bnd-form-tab-radius: var(--bnd-radius-md);
+  --bnd-form-tab-active-shadow: var(--bnd-shadow-sm);
+}
+html[data-bnd-form][data-bnd-form-tabs="pill"] {
+  --bnd-form-tab-active-bg: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-form-tab-active-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+  --bnd-form-tab-radius: var(--bnd-radius-pill);
+}
+
+// Sidebar treatments. Deliberately NO brand-solid option: the pane's
+// interior is Frappe's own controls, whose inks are not ours to recolour —
+// brand under third-party muted ink is the recorded 1.79:1 failure class.
+html[data-bnd-form][data-bnd-form-side="edge"] {
+  --bnd-form-side-edge: var(--bnd-border);
+}
+html[data-bnd-form][data-bnd-form-side="card"] {
+  --bnd-form-side-bg: var(--bnd-surface);
+  --bnd-form-side-border: var(--bnd-border);
+  --bnd-form-side-radius: var(--bnd-radius-lg);
+  --bnd-form-side-shadow: var(--bnd-shadow-sm);
+  --bnd-form-side-inset: var(--bnd-sp-3);
+}
+
+// ── Canvas ──────────────────────────────────────────────────────────────────
+// Both paints or the sticky bar strobes (measured: each has its own white).
+html[data-bnd-form] .form-page,
+html[data-bnd-form] .form-tabs-list {
+  background: var(--bnd-form-canvas, var(--bnd-surface));
+}
+html[data-bnd-form] .form-tab-content {
+  padding: var(--bnd-form-content-pad, 0);
+}
+// The sheet's shell — inert for every other style (all fallbacks quiet).
+html[data-bnd-form] .form-layout {
+  background: var(--bnd-form-shell-bg, transparent);
+  border-radius: var(--bnd-form-shell-radius, 0);
+  box-shadow: var(--bnd-form-shell-shadow, none);
+  margin: var(--bnd-form-shell-margin, 0);
+}
+
+// ── Sections ────────────────────────────────────────────────────────────────
+// The stock separator is the section's own border-bottom; the shorthand
+// below owns all four sides, then the separator variable re-colours the
+// block-end edge (boxed styles fall back to their own border colour there).
+html[data-bnd-form] .form-layout .form-section {
+  background: var(--bnd-form-sec-bg, transparent);
+  border: var(--bnd-line) solid var(--bnd-form-sec-border, transparent);
+  border-block-end-color: var(--bnd-form-sec-sep, var(--bnd-form-sec-border, transparent));
+  border-radius: var(--bnd-form-sec-radius, 0);
+  box-shadow: var(--bnd-form-sec-shadow, none);
+  margin-block-end: var(--bnd-form-sec-gap, 0);
+  padding-block-end: var(--bnd-form-sec-pad, 0);
+}
+// Under the sheet, hide-border keeps its stock meaning: no separator.
+// (Boxed styles keep their full border — a hide-border section is still its
+// own panel there, the recorded trim above.)
+html[data-bnd-form="sheet"] .form-layout .form-section.hide-border {
+  border-block-end-color: transparent;
+}
+// The connections dashboard is a container too — the fusion. Its stock
+// padding is zero; the inline padding aligns it with the sections' own.
+html[data-bnd-form] .form-dashboard {
+  background: var(--bnd-form-sec-bg, transparent);
+  border: var(--bnd-line) solid var(--bnd-form-sec-border, transparent);
+  border-radius: var(--bnd-form-sec-radius, 0);
+  box-shadow: var(--bnd-form-sec-shadow, none);
+  margin-block-end: var(--bnd-form-sec-gap, 0);
+  padding-inline: var(--bnd-sp-4);
+  padding-block: var(--bnd-form-sec-pad, 0);
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+html[data-bnd-form] .form-tabs .nav-link {
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-form] .form-tabs .nav-link:not(.active):hover {
+  background: var(--bnd-hover);
+  border-radius: var(--bnd-form-tab-radius, var(--bnd-radius-sm));
+}
+html[data-bnd-form] .form-tabs .nav-link.active {
+  color: var(--bnd-form-tab-active-ink, var(--bnd-ink));
+  background: var(--bnd-form-tab-active-bg, transparent);
+  border-radius: var(--bnd-form-tab-radius, 0);
+  box-shadow: var(--bnd-form-tab-active-shadow, none);
+  border-block-end: var(--bnd-form-tab-marker-size, 0) solid var(--bnd-form-tab-marker-ink, transparent);
+}
+html[data-bnd-form] ul.form-tabs {
+  background: var(--bnd-form-tab-track-bg, transparent);
+  border-radius: var(--bnd-radius-md);
+}
+// Contained markers need room the stock content-width underline does not:
+// the links gain a fill, so spacing moves from text-gap to pill-gap. Shared
+// geometry for the two contained options, written directly (the list kit's
+// single-style-rules-direct precedent).
+html[data-bnd-form][data-bnd-form-tabs="segment"] .form-tabs .nav-link,
+html[data-bnd-form][data-bnd-form-tabs="pill"] .form-tabs .nav-link {
+  margin-inline: var(--bnd-sp-1);
+  margin-block: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-3);
+  padding-block: var(--bnd-sp-1);
+}
+html[data-bnd-form][data-bnd-form-tabs="segment"] .form-tabs-list,
+html[data-bnd-form][data-bnd-form-tabs="pill"] .form-tabs-list {
+  padding-inline: var(--bnd-sp-3);
+}
+
+// ── Child grid ──────────────────────────────────────────────────────────────
+// The frame consumes the SECTION vocabulary — the fusion again: no separate
+// grid frame variables, so a style cannot ship a floating section beside an
+// alien grid. The interior whitens so rows read as a table, not a tint.
+html[data-bnd-form] .form-grid {
+  background: var(--bnd-surface);
+  border-color: var(--bnd-form-grid-frame, var(--bnd-form-sec-border, var(--bnd-border)));
+}
+html[data-bnd-form] .grid-heading-row {
+  background: var(--bnd-form-grid-head-bg, transparent);
+  border-start-start-radius: var(--bnd-radius-lg);
+  border-start-end-radius: var(--bnd-radius-lg);
+}
+html[data-bnd-form] .form-grid .grid-row {
+  border-block-end-color: var(--bnd-border);
+}
+html[data-bnd-form] .form-grid .grid-body .grid-row:hover {
+  background: var(--bnd-hover);
+}
+// Checked rows: the LIST kit's exact selection wash — one selection colour
+// across surfaces, already in the contrast gate. Same soft-failure class as
+// every :has() in this repo: without it the checked mark alone indicates.
+html[data-bnd-form] .form-grid .grid-body .grid-row:has(.grid-row-check:checked) {
+  background: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+}
+// The editor state, unprobed at rest: one background so no alien slab sits
+// inside a styled grid, and NOTHING else.
+html[data-bnd-form] .form-grid .grid-row-open {
+  background: var(--bnd-surface);
+}
+
+// ── Grid checkbox reveal ────────────────────────────────────────────────────
+// The list kit's three-door contract verbatim, scoped to .grid-body so the
+// heading's select-all stays visible as the discoverable entry (3B).
+// opacity, never display:none — the box stays in the tab order.
+html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row:hover .grid-row-check,
+html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row:focus-within .grid-row-check,
+html[data-bnd-form][data-bnd-form-ckreveal] .form-grid:has(.grid-row-check:checked) .grid-body .grid-row-check {
+  opacity: 1;
+}
+// Touch has no hover: the option stands down wholesale.
+@media (hover: none) {
+  html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
+    opacity: 1;
+  }
+}
+// Reduced motion: the reveal snaps instead of fading.
+@media (prefers-reduced-motion: reduce) {
+  html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
+    transition: none;
+  }
+}
+
+// ── Sidebar ─────────────────────────────────────────────────────────────────
+// Two consumers: the column's stock hairline (edge re-colours it, the other
+// options let it fall transparent), and the inner pane (the card). The
+// column's geometry belongs to chrome/_layouts.scss — paint only.
+html[data-bnd-form] .layout-side-section {
+  border-inline-start-color: var(--bnd-form-side-edge, transparent);
+}
+html[data-bnd-form] .form-sidebar {
+  background: var(--bnd-form-side-bg, transparent);
+  border: var(--bnd-line) solid var(--bnd-form-side-border, transparent);
+  border-radius: var(--bnd-form-side-radius, 0);
+  box-shadow: var(--bnd-form-side-shadow, none);
+  margin: var(--bnd-form-side-inset, 0);
+}
+// The quiet pane fills its whole sticky column, not just the content run —
+// a room, not a box. Single-option rule, written directly.
+html[data-bnd-form][data-bnd-form-side="pane"] .layout-side-section {
+  background: var(--bnd-raised);
+}

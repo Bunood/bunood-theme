@@ -244,6 +244,26 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_list = {f: list_(f) for f in LIST_DEFAULTS}
 
+        # ── Form view kit (item 18) ─────────────────────────────────────
+        # Fieldname keys, the list shape — one shape, no resolver ladder.
+        # Selects fall back to the shipped default when empty; the Check
+        # falls back only when never set, because 0 is a real choice.
+        #
+        # The no-flash argument this payload owes the file header: form
+        # sections, tabs and grids are painted by Frappe's form/layout.js
+        # AFTER boot, so an attribute set from this payload is on <html>
+        # before the first section exists — there is nothing stale to
+        # repaint. Same exemption as the list kit above.
+        from bunood_theme.presets import FORM_DEFAULTS
+
+        def form_(field):
+            value = settings.get(field)
+            if isinstance(FORM_DEFAULTS[field], int):
+                return FORM_DEFAULTS[field] if value is None else value
+            return FORM_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_form = {f: form_(f) for f in FORM_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

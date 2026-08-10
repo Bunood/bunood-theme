@@ -723,6 +723,83 @@
 		apply_list_attrs({ ...(list_state || {}), ...values });
 	};
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Form view kit (item 18) — the second SURFACE kit
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// Same construction as the list kit above: attributes on <html> and a
+	// stylesheet over Frappe's own form DOM (surfaces/_form.scss). Nothing
+	// mounted, nothing hidden — absent attributes ARE the stand-down, which
+	// is what lets "Original" be a pure clearing.
+
+	/**
+	 * Theme Settings label -> slug, per option. Each option fails open
+	 * INDEPENDENTLY: an unknown label sets no attribute for that option and
+	 * the others still apply. "Original" maps the anchor to "" — the whole
+	 * kit stands down and the stock form renders.
+	 */
+	const FORM_SLUGS = {
+		style: { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet" },
+		tabs: { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" },
+		sidebar: { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" },
+	};
+
+	/**
+	 * The form options currently IN EFFECT — boot's at load, possibly
+	 * replaced by a live preview (bunood.form_apply). Mounts read THIS,
+	 * never frappe.boot, so preview is a re-application, not a mode.
+	 */
+	let form_state = (window.frappe && frappe.boot && frappe.boot.bnd_form) || null;
+
+	/**
+	 * Reflect the form options onto <html>, clearing whatever set came
+	 * before — attributes are wholly derived state. A falsy style slug
+	 * (Original / unknown / no boot) clears everything and sets nothing.
+	 * Payload keys are FIELDNAMES (the list shape): no mirror map exists
+	 * to fall out of step with presets.FORM_FIELDS.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_form_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-form" || a.name.startsWith("data-bnd-form-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		form_state = v;
+		const style = FORM_SLUGS.style[v.form_style];
+		if (!style) return;
+		html.setAttribute("data-bnd-form", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-form-" + name, value);
+		set("tabs", FORM_SLUGS.tabs[v.form_tabs]);
+		set("side", FORM_SLUGS.sidebar[v.form_sidebar]);
+		// Presence-only: grid checkbox reveal, matched as
+		// [data-bnd-form-ckreveal] and stood down wholesale under
+		// (hover: none) in the stylesheet.
+		if (parseInt(v.form_grid_checkbox_reveal, 10)) html.setAttribute("data-bnd-form-ckreveal", "");
+	}
+
+	// Before Frappe renders the first section — same timing rule as every kit.
+	apply_form_attrs(form_state);
+
+	/** True when the form kit is active (the style attribute is the anchor). */
+	function form_active() {
+		return document.documentElement.hasAttribute("data-bnd-form");
+	}
+
+	/**
+	 * LIVE PREVIEW for the form kit. Accepts the fieldname shape (which is
+	 * also the boot shape — one shape, no resolver ladder). Mandatory from
+	 * day one: the status kit shipped without its apply hook and that is the
+	 * recorded failure class — settings that save but visibly do nothing.
+	 * @param {Object} values
+	 */
+	bunood.form_apply = function (values) {
+		if (!values) return;
+		apply_form_attrs({ ...(form_state || {}), ...values });
+	};
+
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },

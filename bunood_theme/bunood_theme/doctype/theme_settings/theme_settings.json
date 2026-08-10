@@ -116,6 +116,12 @@
   "list_hover",
   "list_selection",
   "list_checkbox_reveal",
+  "section_form",
+  "form_picker",
+  "form_style",
+  "form_tabs",
+  "form_sidebar",
+  "form_grid_checkbox_reveal",
   "section_generated",
   "brand_css_url"
  ],
@@ -838,6 +844,51 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Reveal Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_form",
+   "fieldtype": "Section Break",
+   "label": "Form View"
+  },
+  {
+   "fieldname": "form_picker",
+   "fieldtype": "HTML",
+   "label": "Form Picker"
+  },
+  {
+   "default": "Floating Panels",
+   "description": "Set by the picker above. How the form's containers sit on the page.",
+   "fieldname": "form_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Style",
+   "options": "Original\nHairline Panels\nOpen Canvas\nFloating Panels\nPaper Sheet"
+  },
+  {
+   "default": "Solid Pill",
+   "description": "Set by the picker above. How the active tab announces itself.",
+   "fieldname": "form_tabs",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Tabs",
+   "options": "Brand Underline\nSegment Pills\nSolid Pill"
+  },
+  {
+   "default": "Floating Pane",
+   "description": "Set by the picker above. How the record's sidebar separates from the document.",
+   "fieldname": "form_sidebar",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Sidebar",
+   "options": "Hairline Edge\nQuiet Pane\nFloating Pane"
+  },
+  {
+   "default": "1",
+   "description": "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
+   "fieldname": "form_grid_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Grid Checkboxes on Hover"
   },
   {
    "fieldname": "section_user",

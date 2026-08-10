@@ -498,6 +498,19 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "form",
+        "part": "form",
+        "label": "Form view",
+        "type": SURFACE,
+        # Item 18. Sections, tabs, child grids and the form sidebar, all
+        # scoped under html[data-bnd-form]; "Original" clears it.
+        "selector": 'html[data-bnd-form]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

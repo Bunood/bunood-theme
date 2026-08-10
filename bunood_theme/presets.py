@@ -426,6 +426,34 @@ LIST_DEFAULTS = {
     "list_checkbox_reveal": 1,
 }
 
+#: Form view kit fields (item 18), matching theme_settings.json. Like the
+#: list and unlike the sidebar, there is NO preset catalogue: the style IS
+#: the top-level choice and the treatments compose with any style.
+FORM_FIELDS = [
+    "form_style",
+    "form_tabs",
+    "form_sidebar",
+    "form_grid_checkbox_reveal",
+]
+
+#: The shipped form defaults — the user's own picks from the item-18 wireframe
+#: round (2026-08-10): 1C Floating Panels, 2C Solid Pill, 3C Floating Pane,
+#: 4A reveal. The bolder option each time, consistent with the item-16 round.
+#: "Original" stays one click away for anyone who wants the stock form.
+FORM_DEFAULTS = {
+    # One treatment for sections, the child grid's frame AND the connections
+    # dashboard: they are one container statement, and splitting them is how
+    # a floating section ends up beside a naked flat grid.
+    "form_style": "Floating Panels",
+    "form_tabs": "Solid Pill",
+    # Styling only — the sidebar has no Off here. Hiding chrome is a
+    # container concern; attachments and assignments must stay reachable.
+    "form_sidebar": "Floating Pane",
+    # A Check, default-on: the same three-door contract as the list kit's
+    # reveal (hover, :focus-within, any-checked), stood down on touch.
+    "form_grid_checkbox_reveal": 1,
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

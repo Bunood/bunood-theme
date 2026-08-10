@@ -3232,3 +3232,163 @@ msgstr "«الأصلي» يترك القائمة الأصلية كما هي — 
 #. src: ai
 msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."
 msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على اللمس."
+
+#. src: ai
+#, fuzzy
+msgid "Form View"
+msgstr "عرض النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Form Picker"
+msgstr "منتقي النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Form Style"
+msgstr "نمط النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How the form's containers sit on the page."
+msgstr "يضبطه المنتقي أعلاه. كيف تستقر حاويات النموذج على الصفحة."
+
+#. src: ai
+#, fuzzy
+msgid "Hairline Panels"
+msgstr "لوحات بخط شعري"
+
+#. src: ai
+#, fuzzy
+msgid "Open Canvas"
+msgstr "مساحة مفتوحة"
+
+#. src: ai
+#, fuzzy
+msgid "Floating Panels"
+msgstr "لوحات عائمة"
+
+#. src: ai
+#, fuzzy
+msgid "Paper Sheet"
+msgstr "صفحة ورقية"
+
+#. src: ai
+#, fuzzy
+msgid "Form Tabs"
+msgstr "تبويبات النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How the active tab announces itself."
+msgstr "يضبطه المنتقي أعلاه. كيف يعلن التبويب النشط عن نفسه."
+
+#. src: ai
+#, fuzzy
+msgid "Brand Underline"
+msgstr "تسطير بلون العلامة"
+
+#. src: ai
+#, fuzzy
+msgid "Segment Pills"
+msgstr "كبسولات مقسّمة"
+
+#. src: ai
+#, fuzzy
+msgid "Form Sidebar"
+msgstr "الشريط الجانبي للنموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How the record's sidebar separates from the document."
+msgstr "يضبطه المنتقي أعلاه. كيف ينفصل الشريط الجانبي للسجل عن المستند."
+
+#. src: ai
+#, fuzzy
+msgid "Hairline Edge"
+msgstr "حافة بخط شعري"
+
+#. src: ai
+#, fuzzy
+msgid "Quiet Pane"
+msgstr "لوح هادئ"
+
+#. src: ai
+#, fuzzy
+msgid "Floating Pane"
+msgstr "لوح عائم"
+
+#. src: ai
+#, fuzzy
+msgid "Reveal Grid Checkboxes on Hover"
+msgstr "إظهار مربعات اختيار الجدول عند التحويم"
+
+#. src: ai
+#, fuzzy
+msgid "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens."
+msgstr "مربعات اختيار الجدول تستقر مخفية وتظهر عند التحويم أو تركيز لوحة المفاتيح أو ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
+
+#. src: ai
+#, fuzzy
+msgid "Form view"
+msgstr "عرض النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "The stock form, untouched. The whole kit stands down."
+msgstr "النموذج الأصلي، من غير مساس. العدة كلها تتنحى."
+
+#. src: ai
+#, fuzzy
+msgid "Each section a bordered panel on the flat canvas."
+msgstr "كل قسم لوحة بإطار على الخلفية المسطحة."
+
+#. src: ai
+#, fuzzy
+msgid "Separators erased — whitespace and titles carry the structure."
+msgstr "الفواصل ممحوة — المسافات والعناوين تحمل البنية."
+
+#. src: ai
+#, fuzzy
+msgid "Sections float as raised cards on a tinted canvas — the list kit's sibling."
+msgstr "الأقسام تطفو بطاقات مرتفعة على خلفية مصبوغة — شقيق عدة القائمة."
+
+#. src: ai
+#, fuzzy
+msgid "One elevated sheet; sections divide inside it."
+msgstr "صفحة واحدة مرتفعة؛ الأقسام تنقسم داخلها."
+
+#. src: ai
+#, fuzzy
+msgid "Tabs"
+msgstr "التبويبات"
+
+#. src: ai
+#, fuzzy
+msgid "How the active tab announces itself."
+msgstr "كيف يعلن التبويب النشط عن نفسه."
+
+#. src: ai
+#, fuzzy
+msgid "Sidebar"
+msgstr "الشريط الجانبي"
+
+#. src: ai
+#, fuzzy
+msgid "How the record's sidebar separates from the document."
+msgstr "كيف ينفصل الشريط الجانبي للسجل عن المستند."
+
+#. src: ai
+#, fuzzy
+msgid "Reveal grid checkboxes on hover"
+msgstr "إظهار مربعات اختيار الجدول عند التحويم"
+
+#. src: ai
+#, fuzzy
+msgid "Grid rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."
+msgstr "صفوف الجدول تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على اللمس."
+
+#. src: ai
+#, fuzzy
+msgid "Original leaves the stock form untouched — nothing below applies."
+msgstr "«الأصلي» يترك النموذج الأصلي كما هو — لا شيء أدناه يسري."

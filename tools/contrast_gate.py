@@ -204,6 +204,18 @@ def pairs():
         ("var(--bnd-brand-solid, var(--bnd-brand))", SEL_BG, AA_NON_TEXT,
          "list selection rail against the selected wash"),
     ]
+    # ── Form view kit (item 18) ──────────────────────────────────────────────
+    # The Segment Pills track is the kit's only NEW colour relationship —
+    # everything else is built from already-gated cross-products (surfaces ×
+    # inks, brand fill × its label, and the list kit's SEL_BG, which the grid's
+    # checked rows reuse verbatim so one selection colour serves both
+    # surfaces). The track string is character-identical to _form.scss.
+    TRACK_BG = "color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface))"
+    out += [
+        ("var(--bnd-ink)", TRACK_BG, AA_TEXT, "form tab label on the segment track"),
+        ("var(--bnd-ink-muted)", TRACK_BG, AA_TEXT,
+         "form tab, inactive label on the segment track"),
+    ]
     return out
 
 

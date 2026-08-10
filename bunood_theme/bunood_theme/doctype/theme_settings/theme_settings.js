@@ -903,6 +903,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_search_picker(frm);
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
+		bnd_render_form_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
 		bnd_render_placement_board(frm);
@@ -919,6 +920,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_palette_preview(frm);
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
+			bnd_form_preview(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -1076,6 +1078,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
 			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
+			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
 		],
 	},
 	{
@@ -1174,6 +1177,7 @@ const BND_SHELL_OWNS = {
 	search: { prefixes: ["search_"] },
 	crumbs: { prefixes: ["crumb_"] },
 	list: { prefixes: ["list_"] },
+	form: { prefixes: ["form_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -3379,6 +3383,205 @@ function bnd_list_set(frm, fieldname, value) {
 	bnd_render_list_picker(frm);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Form View picker (item 18) — the second surface kit's settings
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.FORM_FIELDS — keep in sync. */
+const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
+
+/** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
+const BND_FORM_DEFAULTS = {
+	form_style: "Floating Panels",
+	form_tabs: "Solid Pill",
+	form_sidebar: "Floating Pane",
+	form_grid_checkbox_reveal: 1,
+};
+
+/** The style catalogue. Thumbnails are abstract form diagrams: a tab strip,
+ * then the section containers the style is actually about. */
+const BND_FORM_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock form, untouched. The whole kit stands down."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<line x1="8" y1="13" x2="112" y2="13" stroke="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="19" width="36" height="4" rx="2" fill="currentColor" opacity=".35"/>' +
+			'<line x1="8" y1="31" x2="112" y2="31" stroke="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="37" width="28" height="4" rx="2" fill="currentColor" opacity=".35"/></svg>',
+	},
+	{
+		value: "Hairline Panels",
+		blurb: () => __("Each section a bordered panel on the flat canvas."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="15" width="108" height="15" rx="3" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="12" y="20" width="32" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="6" y="35" width="108" height="13" rx="3" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="12" y="40" width="26" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Open Canvas",
+		blurb: () => __("Separators erased — whitespace and titles carry the structure."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="8" y="18" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="26" width="60" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="40" width="28" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="48" width="52" height="3" rx="1.5" fill="currentColor" opacity=".15"/></svg>',
+	},
+	{
+		value: "Floating Panels",
+		blurb: () => __("Sections float as raised cards on a tinted canvas — the list kit's sibling."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="16" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
+			'<rect x="12" y="20" width="32" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="6" y="34" width="108" height="14" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
+			'<rect x="12" y="39" width="26" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Paper Sheet",
+		blurb: () => __("One elevated sheet; sections divide inside it."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="34" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
+			'<rect x="12" y="20" width="32" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<line x1="12" y1="32" x2="108" y2="32" stroke="currentColor" opacity=".2"/>' +
+			'<rect x="12" y="38" width="26" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+];
+
+/** The two composing option groups. */
+const BND_FORM_GROUPS = [
+	{
+		field: "form_tabs",
+		title: () => __("Tabs"),
+		desc: () => __("How the active tab announces itself."),
+		options: [
+			{ value: "Brand Underline", name: () => __("Brand Underline") },
+			{ value: "Segment Pills", name: () => __("Segment Pills") },
+			{ value: "Solid Pill", name: () => __("Solid Pill") },
+		],
+	},
+	{
+		field: "form_sidebar",
+		title: () => __("Sidebar"),
+		desc: () => __("How the record's sidebar separates from the document."),
+		options: [
+			{ value: "Hairline Edge", name: () => __("Hairline Edge") },
+			{ value: "Quiet Pane", name: () => __("Quiet Pane") },
+			{ value: "Floating Pane", name: () => __("Floating Pane") },
+		],
+	},
+];
+
+const BND_FORM_TOGGLES = [
+	{
+		field: "form_grid_checkbox_reveal",
+		name: () => __("Reveal grid checkboxes on hover"),
+		desc: () => __("Grid rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."),
+	},
+];
+
+/** Render the form picker. */
+function bnd_render_form_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "form_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.form_style || BND_FORM_DEFAULTS.form_style;
+	const off = current === "Original";
+
+	// Filtered against the field's real options — the rule that retired the
+	// status Off-card wedge class of bug.
+	const offered = bnd_field_slots(frm, "form_style");
+	const cards = P.cards(
+		BND_FORM_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-fvp-style" }
+	);
+
+	const reason = off ? __("Original leaves the stock form untouched — nothing below applies.") : "";
+	const groups = BND_FORM_GROUPS.map((g) =>
+		P.group({
+			title: g.title(),
+			desc: g.desc(),
+			field: g.field,
+			body: P.options(
+				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: g.field, value: frm.doc[g.field] || BND_FORM_DEFAULTS[g.field] }
+			),
+		})
+	).join("");
+
+	const toggles = BND_FORM_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			reason,
+			// The picker's own hook class — omitting it is the recorded
+			// inert-switch failure (the status kit's toggles, 2026-08-08).
+			cls: "bnd-fvp-toggle",
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-fvp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups + '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-fvp-style").on("click", function () {
+		bnd_form_set(frm, "form_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt, .bnd-fvp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_form_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_form_set(frm, f, BND_FORM_DEFAULTS[f]);
+	});
+}
+
+/** Hand the form's current form-kit values to the desk engine — live preview. */
+function bnd_form_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.form_apply) return;
+	const values = {};
+	for (const f of BND_FORM_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.form_apply(values);
+}
+
+/** Set one form option, preview, re-render. */
+function bnd_form_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_form_preview(frm);
+	bnd_render_form_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -4131,7 +4334,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -4160,7 +4363,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
