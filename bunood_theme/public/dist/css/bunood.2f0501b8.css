@@ -3495,14 +3495,14 @@ html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked):
   background: var(--bnd-list-sel-rail, transparent);
 }
 
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) {
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head {
   background: var(--bnd-list-head-bg);
   border-radius: var(--bnd-list-radius);
 }
 
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .checkbox-actions,
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .btn,
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .list-check-all + span {
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .checkbox-actions,
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .btn,
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .list-check-all + span {
   color: var(--bnd-list-head-ink);
 }
 

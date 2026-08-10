@@ -3915,20 +3915,19 @@ async function main() {
 				return m.join(",");
 			};
 
-			// The placement family is stated too, at its shipped values: the
-			// E3 order tests run earlier in this suite and leave desk_order and
-			// three placements moved, and "no dot at defaults" is only a claim
-			// about a desk that IS at defaults. Inheriting made the placement
-			// dot light for a change this test never made.
-			setSettings({
-				crumb_hover: shipped.crumb_hover,
-				desk_order: shipped.desk_order,
-				inbox_placement: shipped.inbox_placement,
-				user_placement: shipped.user_placement,
-				home_placement: shipped.home_placement,
-				apps_placement: shipped.apps_placement,
-				search_placement: shipped.search_placement,
-			});
+			// EVERYTHING mutable is pinned to shipped, not a hand-picked list:
+			// "no dot at defaults" is a claim about a desk that IS at defaults,
+			// and the hand-picked version was patched twice — first placement
+			// (the E3 tests' leavings), then colors lit in a full run for a
+			// field nobody listed. Fields outside MUTABLE_FIELDS (colours,
+			// branding) are asserted-by-omission: the suite never writes them,
+			// so shipped is what they hold, and if that ever stops being true
+			// this test failing IS the announcement.
+			setSettings(
+				Object.fromEntries(
+					Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
+				)
+			);
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			const entries = await page.evaluate(
 				() => document.querySelectorAll(".bnd-shell-item").length
@@ -4935,7 +4934,12 @@ async function main() {
 				// One computed-pixel proof per style — an attribute alone is a
 				// green test that asserts existence, not correctness.
 				const px = await page.evaluate(() => {
-					const rows = document.querySelectorAll(".result .list-row-container");
+					// DATA rows only: the first .list-row-container holds the
+					// HEADER (probed), and .result can interleave non-row
+					// nodes — so "consecutive data rows" is the honest unit
+					// for zebra, not raw child positions.
+					const rows = [...document.querySelectorAll(".result .list-row-container")]
+						.filter((n) => n.querySelector(".list-row-checkbox"));
 					const first = getComputedStyle(rows[0]);
 					const second = rows[1] ? getComputedStyle(rows[1]) : null;
 					return {
@@ -5030,11 +5034,15 @@ async function main() {
 				getComputedStyle(document.querySelector(".result .list-row-checkbox")).opacity
 			);
 			expectEq(rest, "0", "checkboxes rest hidden");
-			await page.hover(".result .list-row-container");
+			// Hover a DATA row — the first container is the header and holds
+			// no checkbox, which made the first cut of this test throw.
+			await page.hover(".result .list-row-container:has(.list-row-checkbox)");
 			await page.waitForTimeout(300);
-			const hovered = await page.evaluate(() =>
-				getComputedStyle(document.querySelector(".result .list-row-container:hover .list-row-checkbox")).opacity
-			);
+			const hovered = await page.evaluate(() => {
+				const row = document.querySelector(".result .list-row-container:hover");
+				const box = row && row.querySelector(".list-row-checkbox");
+				return box ? getComputedStyle(box).opacity : "no hovered checkbox";
+			});
 			expectEq(hovered, "1", "hover reveals the row's checkbox");
 		});
 

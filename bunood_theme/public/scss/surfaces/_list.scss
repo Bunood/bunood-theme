@@ -213,15 +213,20 @@ html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked):
   background: var(--bnd-list-sel-rail, transparent);
 }
 
-// The bulk header — .checkbox-actions appears inside .list-row-head when
-// rows are checked (probed); the head is restyled in place.
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) {
+// The bulk header, gated on the SAME signal as the rows: any checked
+// checkbox. NOT on .checkbox-actions presence — that node exists at rest,
+// hidden by Frappe's own stylesheet with no inline marker (probed twice:
+// the first probe's truncated HTML said "added on demand" and the axe diff
+// caught the consequence the same day — the header painted brand-solid at
+// rest with Frappe's muted ink on it, 1.79:1 on seven nodes). The checked
+// state is a real signal :has() can see; a node's mere existence is not.
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head {
   background: var(--bnd-list-head-bg);
   border-radius: var(--bnd-list-radius);
 }
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .checkbox-actions,
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .btn,
-html[data-bnd-list] .list-row-head:has(.checkbox-actions) .list-check-all + span {
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .checkbox-actions,
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .btn,
+html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .list-check-all + span {
   color: var(--bnd-list-head-ink);
 }
 
