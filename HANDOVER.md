@@ -90,6 +90,41 @@ in the same `drop_on`, so neither rots alone. Zones come from
 elsewhere. Three suite tests own it (`board:`). The per-component pickers
 remain as the detail view.
 
+**ITEM 16 IS DONE** (2026-08-10) — the list view, the first surface kit and
+the first Phase 2 item. Five `list_*` fields, `surfaces/_list.scss` with the
+working-set pattern, `bunood.list_apply` from day one (the status kit's
+missing-hook failure class, not repeated), the bulk header restyled in place
+(probed live: `.checkbox-actions` inside `.list-row-head`; checked rows carry
+NO native class, so selection rides `:has()` with the stock-mark soft
+failure). Three new contrast pairs enforced (1,848 total). The two test bugs
+its own family caught: the first `.list-row-container` is the HEADER, and
+`.result` interleaves non-row nodes — "consecutive data rows" is the honest
+zebra unit, not child parity.
+
+**ITEM 7 IS DONE** (2026-08-09) — RTL & Arabic as a MECHANISM. Nothing lists
+the strings: `tools/i18n.mjs` derives the catalogue every build (Frappe's own
+doctype extractor ported; self-checking regexes over `__()`/`_()`, because a
+hand-rolled scanner silently lost 152 of 308 call sites and under-extraction
+reads as full coverage). Decisions live in `locale/ar.po` — 649 rows, machine-
+filled, bulk-approved by the user (c89d0ae); `translations/ar.csv` is GENERATED
+from it, 48 strings are inherited by OMISSION (generated ledger, REJECT map for
+false friends), 8 exempt with reasons the gate forces to shrink. Five build
+gates: coverage in both directions, placeholder token-SET equality, the plural
+guard (empty exceptions map — reshape the string), cursive safety, typography
+sync. `arabic_font` is a settings axis — four self-hosted faces + System,
+unicode-range `@font-face`; honest cost ~60–90KB once, since Chromium downloads
+on in-range DOM chars and boot carries native language names. Direction is
+DETECTED AND REFUSED, never corrected: upstream `is_rtl` exact-matches four
+codes, and correcting `dir` alone half-flips the desk (the `rtl_` sheet keys
+off the same check); the suite's CLDR cross-check is what kept `ku` out
+(Kurmanji is Latin-script). The merge-order inversion — we are 3rd of 10 apps,
+later apps override our rows — is defended at the FILE layer
+(`_defend_identity_overrides` upserts Translation rows for identity holes and
+releases closed ones). Beyond the item, at the user's direction: the
+**Translations surface** in Theme Settings — a scan ledger over every installed
+app (22,433 sources / 6,983 missing at first scan), providers writing
+spend-capped PROPOSALS only, export/import, manual save.
+
 **E3 IS DONE** (2026-08-09) — order within a zone. `desk_order` holds tenant
 keys in desk order (one global list; position is meaningful wherever two
 tenants share a zone). Enforcement is `enforce_desk_order()` in bunood.js — a
@@ -165,6 +200,14 @@ After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
    three gates: CI green (is), smoke green (is), adversarial release review clean
    (not yet run for this batch).
+2. **A provider key.** Bunood Translation Settings takes a Claude / DeepL /
+   Google / Microsoft key; the provider path has run only against the estimate
+   step. A live run needs a real key — it writes proposals only, under the
+   spend cap.
+3. **The upstream `is_rtl` filing.** `docs/upstream/frappe-is-rtl.md` is
+   drafted (exact-match four-language list, no parent resolution, suggested
+   one-line fix). Filing against frappe/frappe is an outward act, so it waits
+   here.
 
 ---
 
@@ -261,6 +304,24 @@ pays for them a third time.
   run B then faithfully restores *that* on the way out. Two runs were voided this
   way on 2026-08-01 and it happened again on 2026-08-07. After any abort, reset
   the bench to `setup.SHIPPED` before trusting what you see.
+- **The full suite needs a QUIET machine.** The host has 6GB with the stack
+  capped at 3.8GiB; the same tree gave 156/156 quiet and rotating phantom sets
+  loaded (one loaded run started at 132MB host-free). Check free memory and
+  that no second session is working before burning a ~25-minute run.
+- **Stale desk sessions degrade the suite.** 382 rows in `tabSessions` took a
+  run from 125 to 114 of 137; the suite now reaps sessions older than an hour
+  in `main()`. If failure sets rotate for no reason, look at the session table
+  before the tests.
+- **MySQL error 1020 is a transient, not a defect.** Ten apps' scheduler jobs
+  contend on `tabSingles`/`tabUser`; both `benchPy` copies (suite and
+  `tools/session.mjs`) retry a 1020 once. It has killed a run at startup and a
+  probe inside its own `finally` — treat a lone 1020 as weather.
+- **Seven of the ten installed apps live in the container writable layer.**
+  `compose down` destroys them; a rebuild from `apps.json` also needs
+  `telephony` added (ships only on frappe's develop branch, and helpdesk
+  imports it at boot — its absence 500s the whole desk). After any `get-app`,
+  run `bench --site demo.bunood.test compile-po-to-mo` or the new apps'
+  translations silently do not serve (get-app does not compile them).
 
 ---
 

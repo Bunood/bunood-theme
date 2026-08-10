@@ -7,6 +7,52 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The desk speaks Arabic, and the build can prove it
+
+Item 7 had reopened because "done" once meant direction only. It closes as
+a mechanism: nothing lists the translatable strings — `tools/i18n.mjs`
+derives the catalogue every build from the places strings actually live
+(DocType JSON through a port of Frappe's own extractor; `__()`/`_()` calls
+through self-checking regexes that refuse on under-extraction, because a
+hand-rolled scanner once lost 152 of 308 call sites in silence, and
+under-extraction reads exactly like full coverage).
+
+The decisions live in `locale/ar.po` — 649 rows, machine-proposed, then
+approved — and `translations/ar.csv` is generated from it. 48 strings ship
+no row at all: the runtime dictionary is one flat map shared by every
+installed app, so a string frappe or crm already translates is inherited
+by omission (a generated ledger, with a REJECT map for false friends —
+upstream's "Operator" is a machine operator, which is why ours became
+Workbench). Eight are exempt with recorded reasons, and the gate fails
+when an exemption names a string that no longer exists, so that list can
+only shrink.
+
+Five build gates hold it: coverage in both directions; placeholder
+token-set equality (Arabic legitimately reorders, so the *set* is compared,
+never the order); a plural guard that refuses count-governed strings
+outright — the dictionary has no plural forms and Arabic has six
+categories, so the fix is `Errors: {0}` by design, never translation;
+cursive safety (no letter-spacing survives to compiled CSS, because
+tracking breaks Arabic joining); and typography sync.
+
+Typography is a setting now: `arabic_font` — four self-hosted faces plus
+System, applied through unicode-range `@font-face` so Latin text never
+changes. Direction is detected and refused, never corrected: Frappe's
+`is_rtl` exact-matches four languages, and correcting `dir` alone would
+half-flip the desk, since the `rtl_` stylesheet keys off the same check.
+The suite cross-checks the refusal list against CLDR — which is what kept
+Kurmanji (Latin-script) out of it.
+
+### Translations are an operable surface, not a one-time fill
+
+Theme Settings grew a Translations pane: scan every installed app for
+strings the merged dictionary cannot answer (22,433 sources, 6,983 missing
+on the first scan), ledger the result per app, and close gaps three ways —
+a manual row, CSV export/import, or a provider run (Claude, DeepL, Google,
+Microsoft) that writes spend-capped PROPOSALS for a human to accept or
+reject. Nothing writes a live translation except a person's decision, and
+identity overrides from later apps are detected and defended automatically.
+
 ### A click can no longer be swallowed by a concurrent write
 
 Saving a Frappe **Single** writes the whole document:

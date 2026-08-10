@@ -229,24 +229,39 @@ defect in 0.10.0.
 
 Cheap now, expensive after ten surfaces, and none of them needs a future caller.
 
-- `[~]` **7 · RTL & internationalisation** *(reopened 2026-08-01)* — 0.2.1 shipped
-  direction only; marking it done made Arabic *look* covered when half was missing.
-  Do (a)–(c) here; (d) and (e) can follow phase 2.
-  - **(a) Rendering defects inside the original scope.** `letter-spacing` of
-    0.02/0.04/0.05em breaks Arabic cursive *joining* (worst: `_sidebar.scss`, tracking
-    and uppercase on one rule, where uppercase is a no-op in Arabic). The clock's
-    `toLocaleTimeString([], …)` pins `hour12` but not the numbering system, so `ar-SA`
-    renders `٠٩:٤٥` beside Frappe's Western digits. Extend the build guard to tracking.
-  - **(b) Typography.** No Arabic face is declared, so Arabic falls back to whatever
-    the OS has and the desk differs per platform. Pair a metric-matched face, raise
-    RTL line-height.
-  - **(c) String design, before translating.** Frappe's translation layer is flat
-    key→value with no plural support; Arabic has singular, dual and two plurals.
-    `__("{0} failed")` cannot be correct for n=1,2,3–10,11+. Rewrite as label+value.
-    **This is the item that must precede the surfaces.**
-  - **(d) Translation** — no `translations/` exists; 356 strings. Glossary against
-    ERPNext core's `ar.csv` first, or the desk speaks two vocabularies.
-  - **(e) Gate** — render in `ar`, assert no theme-owned source string appears verbatim.
+- `[x]` **7 · RTL & internationalisation** — *reopened 2026-08-01, done 2026-08-09.*
+  0.2.1 had shipped direction only; the reopened item closed as a MECHANISM — the
+  catalogue is derived every build (`tools/i18n.mjs` ports Frappe's doctype
+  extractor; the JS/PY halves refuse on under-extraction), so no count in this
+  file can go stale again ("356 strings" was hand-counted; the derived number
+  was 704).
+  - **(a)** closed by `_cursive.scss` (language-scoped tracking reset, raised
+    line-height) plus a build guard: no `letter-spacing` other than normal/0
+    survives to compiled CSS. The clock pins Western numerals everywhere — the
+    user's decision, made once.
+  - **(b)** closed by `arabic_font` — four self-hosted faces + System,
+    unicode-range `@font-face`, per-face line-height; `typography.py` is the one
+    table and a build guard keeps FACES, the Select options and the shipped
+    woff2 files identical.
+  - **(c)** closed by the plural guard: count-governed strings are refused at
+    build with an EMPTY exceptions map — the fix is reshaping to label+value,
+    never translation.
+  - **(d)** closed by `locale/ar.po` as the decisions file — 649 rows filled,
+    bulk-approved (c89d0ae) — emitting `translations/ar.csv`; 48 strings
+    inherited by omission from other apps' POs (generated ledger, REJECT map for
+    false friends), 8 exempt with shrink-enforced reasons. The merge-order
+    inversion (3rd of 10 apps) is defended by `_defend_identity_overrides` at
+    the file layer.
+  - **(e)** closed twice: the build coverage gate, and runtime — the merged dict
+    serves every decision none-as-itself, and no visible theme-owned label
+    equals its msgid across four surfaces. Direction is detect-and-refuse with a
+    CLDR cross-check (`ku` is Latin-script and stays out; the upstream `is_rtl`
+    fix is drafted in `docs/upstream/frappe-is-rtl.md`, filing waits on the
+    user).
+  - Beyond scope, at the user's direction: the **Translations surface** in Theme
+    Settings — scan ledger over every installed app, provider runs as
+    spend-capped proposals, export/import, manual save. A live provider run
+    waits on a real key.
 - `[x]` **32 · Contrast validation** — *done 2026-08-06.* Target stated (WCAG 2.2 AA);
   the brand split into three roles so the seed contributes hue and the system controls
   lightness; inks fitted per tenant against the surfaces that seed produces, because
@@ -285,7 +300,19 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
 The highest-traffic surfaces in an ERP by a wide margin. Built here so the phase-3
 contracts have something real to be designed against.
 
-- `[ ]` **16 · List view** — rows, hover, selection, bulk bar
+- `[x]` **16 · List view** — *done 2026-08-10.* Rows, hover, selection, bulk
+  bar, as the first SURFACE kit: attributes over Frappe's own DOM, nothing
+  mounted, absent attributes ARE the stand-down. Wireframed and picked
+  2026-08-09 (five style options after the market-survey round): **1C Floating
+  Cards · 2B Edge Rail · 3C Bold Bar · 4A reveal-on-hover**, Open Rows joining
+  from the survey; the floating selection bar (Linear/Attio) is DEFERRED with
+  its `list_selection` slot reserved. On-screen tabular numerals landed with
+  it; the density rules migrated in from `_density.scss` per its lifecycle
+  note, proven a move by a baseline test written first. Phase-3 evidence: the
+  picker is the sprite's second caller (33), the reveal's `:focus-within` path
+  and the 3B judgements are recorded (34), the `(hover: none)` stand-down is
+  the narrow-input statement (35). References: frappe-ui ListRow/SelectBanner,
+  Directus tabular + `_list-interface.scss`, Discourse `_topic-list.scss`.
 - `[ ]` **18 · Form view** — sections, tabs, child grids, sidebar
 
 ## Phase 3 — freeze the contracts against those callers
