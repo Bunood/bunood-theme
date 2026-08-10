@@ -7,6 +7,8 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-08-10 — Business documents: the print suite (port phase A1)
+
 ### The business documents arrive — ported from the sibling repo
 
 Two theme repos had grown in parallel: this one (the desk engine, what
@@ -49,6 +51,14 @@ the first paint).
 **Out of scope here, by decision.** The sibling's hand-rolled desk skin is
 NOT ported (this repo's token/bridge pipeline owns the chrome); the command
 center and the silent de-ERPNext whitelabel follow as phases A2/A3.
+
+## [0.11.0 – 0.12.0] — 2026-08-08 / 2026-08-09 — sections pending attribution
+
+> NOTE (2026-08-10): everything from here down to [0.10.0] shipped in
+> v0.11.0/v0.12.0 — both tags were cut without moving their entries out of
+> [Unreleased]. Splitting them per tag is pending housekeeping.
+
+### A click can no longer be swallowed by a concurrent write
 
 Saving a Frappe **Single** writes the whole document:
 `Document.update_single` deletes every `tabSingles` row and re-inserts
