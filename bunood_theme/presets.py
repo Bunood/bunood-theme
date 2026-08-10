@@ -401,6 +401,31 @@ LINKS_DEFAULTS = {
 
 USER_DEFAULTS = {"user_placement": "Top Bar End"}
 
+#: List view kit fields (item 16), matching theme_settings.json. Like crumbs
+#: and unlike the sidebar, there is NO preset catalogue: the style IS the
+#: top-level choice and the two treatments compose with any style.
+LIST_FIELDS = [
+    "list_style",
+    "list_hover",
+    "list_selection",
+    "list_checkbox_reveal",
+]
+
+#: The shipped list defaults — the user's own picks from the item-16 wireframe
+#: round (2026-08-09): 1C Floating Cards, 2B Edge Rail, 3C Bold Bar, 4A reveal.
+#: The bolder option each time, consistent with the sidebar re-choice the day
+#: before. "Original" stays one click away for anyone who wants stock rows.
+LIST_DEFAULTS = {
+    "list_style": "Floating Cards",
+    "list_hover": "Edge Rail",
+    # One treatment for checked rows AND the bulk header: they are one state,
+    # and splitting them is how a solid brand bar ends up over neutral rows.
+    "list_selection": "Bold Bar",
+    # A Check, and default-on: rows rest clean, selection is one gesture away,
+    # and the option stands down wholesale on touch screens ((hover: none)).
+    "list_checkbox_reveal": 1,
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

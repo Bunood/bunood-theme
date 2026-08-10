@@ -75,7 +75,8 @@ async function settleOnPinnedState() {
 await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
-  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker","placement_board"]) {
+  for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker",
+	"list_picker","placement_board"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}
     const nodes=[];

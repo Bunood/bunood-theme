@@ -12,3 +12,7 @@ IBM Plex Sans Arabic	class (iii): a typeface's proper name. Font pickers show fa
 Noto Sans Arabic	class (iii): a typeface's proper name.
 Almarai	class (iii): a typeface's proper name. The Arabic rendering المراعي is the dairy company, not the typeface.
 Cairo	class (iii): a typeface's proper name. القاهرة would read as the city, not the face.
+Claude	class (iii): a product's proper name, as-is in every locale.
+DeepL	class (iii): a product's proper name.
+Google Translate	class (iii): a product's proper name.
+Microsoft Translator	class (iii): a product's proper name.

@@ -1,0 +1,257 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// LIST VIEW — checklist item 16. The first SURFACE partial.
+//
+// WHAT
+//   Row boundaries, hover, selection and the bulk header for Frappe's list
+//   view, as a CSS matrix keyed on attributes bunood.js derives from Theme
+//   Settings (boot -> data-bnd-list*). A surface kit colours Frappe's own
+//   DOM and mounts nothing — there is no node to stand down and no native to
+//   release; absent attributes ARE the stand-down, so "Original" is a pure
+//   clearing and stock rows render untouched.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-list            hairline | open | zebra | cards   (the style; the
+//                            ANCHOR — absent = every rule here inert)
+//   data-bnd-list-hover      wash | rail                (row hover treatment)
+//   data-bnd-list-select     soft | rail | bold  (checked rows + bulk header)
+//   data-bnd-list-ckreveal   (presence = checkboxes rest hidden; revealed on
+//                             row hover, :focus-within, or while ANY row is
+//                             checked; stands down under (hover: none))
+//
+// THE FACTS THIS FILE IS BUILT ON (all measured)
+//   * .list-row has NO height or padding rule upstream — its height is
+//     content-driven via .level-left {padding: 5px 0} / .level-right
+//     {padding: 9px 10px} (~41px stock). The density rules below drive the
+//     real contributors; they MIGRATED here from _density.scss when this
+//     partial shipped, per that file's own lifecycle note, and stay scoped
+//     html[data-theme] — density is its own contract and keeps working under
+//     Original.
+//   * The bulk affordance is .checkbox-actions INSIDE .list-row-head, added
+//     when rows are checked while the normal header columns get inline
+//     display:none (probed live 2026-08-09). The bulk treatment therefore
+//     styles the head in place — the Gmail/GitHub transform, not a floating
+//     pill. (The floating pill is DEFERRED with its slot reserved: a fourth
+//     list_selection option, needing injected chrome + bulk-action proxying.)
+//   * Checked rows get NO native class (probed) — selection styling needs
+//     :has(.list-row-checkbox:checked). On a browser without :has() the
+//     checked mark is the selection indicator, which is the stock behaviour:
+//     a soft failure, same class as _statusbar.scss's :has() note.
+//   * .result children are .list-row-container plus a trailing "freeze"
+//     placeholder (probed) — zebra's nth-child parity holds for every row
+//     above it.
+//   * .result is overflow: auto hidden and Frappe sizes the list from
+//     .main-section's BORDER BOX (base_list.js:452 via ARCHITECTURE §11) —
+//     nothing in this file touches .main-section, paging, or any 100vh math;
+//     cards' gaps live inside the scrolling box, which that arithmetic is
+//     indifferent to. Shadows appear on hover only, so overflow-y: hidden
+//     clips nothing at rest.
+//
+// DESIGN RECORD (item-16 wireframe round, 2026-08-09): defaults are the
+// user's picks 1C Floating Cards · 2B Edge Rail · 3C Bold Bar · 4A reveal.
+// "Open Rows" joined in the market-survey round (the Linear/Notion look).
+// References: frappe-ui ListRow (hover/selected precedence), Directus tabular
+// (checkbox reveal), Directus _list-interface.scss (the working-set shape),
+// Discourse _topic-list.scss (zebra/hairline coexistence).
+//
+// Scoped html[data-bnd-list] throughout; fails open to stock on absent
+// attributes, unknown slugs, or upstream class renames (selectors simply stop
+// matching — no JS reads list DOM, so no errors either). Logical properties
+// only. No !important.
+// ============================================================================
+
+// ── Density geometry (migrated verbatim from _density.scss) ─────────────────
+// html[data-theme]-scoped, NOT the kit anchor: density is its own contract
+// (site default + per-user override) and must keep working under Original.
+html[data-theme] .list-row {
+  min-height: var(--bnd-row-h);
+}
+// The real height drivers. padding-block (logical) so RTL needs nothing.
+html[data-theme] .list-row .level-left,
+html[data-theme] .list-row .level-right,
+html[data-theme] .list-row-head .level-left,
+html[data-theme] .list-row-head .level-right {
+  padding-block: var(--bnd-pad-y);
+}
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style value; every component
+// rule below consumes ONLY these. Adding a style is one block, never new
+// component rules (the _sidebar.scss pattern).
+html[data-bnd-list="hairline"] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: var(--bnd-border);
+  --bnd-list-radius: 0px;
+}
+// Open Rows: nothing at rest — whitespace separates, hover defines. The
+// Linear/Notion look; every variable is the quiet value on purpose.
+html[data-bnd-list="open"] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: var(--bnd-radius-sm, 6px);
+}
+html[data-bnd-list="zebra"] {
+  --bnd-list-row-bg: transparent;
+  // 3% ink: perceptible on every seed in both modes without reading as a
+  // selected state — selection's wash is brand-tinted, this is neutral.
+  --bnd-list-alt-bg: color-mix(in srgb, var(--bnd-ink) 3%, transparent);
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: 0px;
+}
+html[data-bnd-list="cards"] {
+  --bnd-list-row-bg: var(--bnd-surface);
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: var(--bnd-radius-md);
+}
+
+// Hover treatments.
+html[data-bnd-list-hover="wash"] {
+  --bnd-list-hover-bg: var(--bnd-hover);
+  --bnd-list-hover-rail: transparent;
+}
+html[data-bnd-list-hover="rail"] {
+  --bnd-list-hover-bg: var(--bnd-hover);
+  // Neutral, not brand: hover is "you are here", selection is "this is
+  // chosen" — one hue for both would blur the two states zebra/cards keep
+  // apart by fill alone.
+  --bnd-list-hover-rail: color-mix(in srgb, var(--bnd-ink) 25%, transparent);
+}
+
+// Selection treatments — checked rows AND the bulk header, one state.
+// The wash is a brand TINT into surface, the rail/bold pieces are
+// --bnd-brand-solid with --bnd-on-brand ink: the raw seed appears nowhere
+// (the three-token brand law), and every pair below is in the contrast gate.
+html[data-bnd-list-select="soft"] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: transparent;
+  --bnd-list-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-head-ink: var(--bnd-ink);
+}
+html[data-bnd-list-select="rail"] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-head-ink: var(--bnd-ink);
+}
+html[data-bnd-list-select="bold"] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-bg: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+}
+
+// ── Rows ────────────────────────────────────────────────────────────────────
+html[data-bnd-list] .result .list-row-container {
+  background: var(--bnd-list-row-bg);
+  border-block-end: var(--bnd-line) solid var(--bnd-list-sep);
+  border-radius: var(--bnd-list-radius);
+  // The rail ::before positions against the row.
+  position: relative;
+}
+html[data-bnd-list] .result .list-row-container:nth-child(even) {
+  background: var(--bnd-list-alt-bg, var(--bnd-list-row-bg));
+}
+
+// Numerals line up on screen as they already do in print. Scoped under the
+// anchor so Original's stand-down is total — _print.scss owns paper.
+html[data-bnd-list] .list-row-col {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+// Cards only: the gap between cards and the hover lift. Single-style rules
+// are written directly rather than earning working-set variables.
+html[data-bnd-list="cards"] .result .list-row-container {
+  margin-block-end: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-list="cards"] .result .list-row-container:hover {
+  box-shadow: var(--bnd-shadow-sm);
+}
+
+// ── Hover ───────────────────────────────────────────────────────────────────
+html[data-bnd-list] .result .list-row-container:hover {
+  background: var(--bnd-list-hover-bg);
+}
+// The rail: an absolutely positioned ::before, because box-shadow has no
+// logical variant and a border would shift content. inset-inline-start
+// mirrors in RTL for free.
+html[data-bnd-list] .result .list-row-container::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0;
+  inline-size: 3px;
+  border-start-start-radius: var(--bnd-list-radius);
+  border-end-start-radius: var(--bnd-list-radius);
+  background: transparent;
+  pointer-events: none;
+}
+html[data-bnd-list] .result .list-row-container:hover::before {
+  background: var(--bnd-list-hover-rail, transparent);
+}
+
+// ── Selection ───────────────────────────────────────────────────────────────
+// :has() is the only way to reach a checked row — probed live: Frappe adds
+// no row-level class. Without :has() support these rules never match and the
+// checked mark alone indicates selection, which is stock behaviour — a soft
+// failure, not a broken one.
+//
+// RESTING IDENTIFICATION (3B), the per-control judgement:
+//   * A row is identified at rest by its boundary (hairline sep / zebra fill
+//     / card fill) PLUS the subject link's ink — the hairline alone measures
+//     1.22:1 and would fail 3:1; the link ink is what carries it. (The same
+//     judgement item 32 left open, recorded here, fed to item 34.)
+//   * A selected row is never colour alone: the checked mark is always
+//     visible (the reveal rules force it) and rail/bold add the 3:1 rail.
+html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked) {
+  background: var(--bnd-list-sel-bg);
+}
+html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked)::before {
+  background: var(--bnd-list-sel-rail, transparent);
+}
+
+// The bulk header — .checkbox-actions appears inside .list-row-head when
+// rows are checked (probed); the head is restyled in place.
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) {
+  background: var(--bnd-list-head-bg);
+  border-radius: var(--bnd-list-radius);
+}
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .checkbox-actions,
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .btn,
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .list-check-all + span {
+  color: var(--bnd-list-head-ink);
+}
+
+// ── Checkbox reveal ─────────────────────────────────────────────────────────
+// Rest-hidden, revealed on hover, keyboard focus, or while ANY row is
+// checked. opacity, never display:none — the checkbox stays in the tab
+// order, and rows carry tabindex=1 upstream so tabbing onto one reveals its
+// own box (:focus-within).
+//
+// 3B judgement: the resting checkbox is DELIBERATELY not identifiable — the
+// header's select-all stays visible as the discoverable entry to selection.
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-container:hover .list-row-checkbox,
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-container:focus-within .list-row-checkbox,
+html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:checked) .list-row-checkbox {
+  opacity: 1;
+}
+// Touch has no hover: the option stands down wholesale and checkboxes stay
+// visible — part of the option's definition, not an afterthought.
+@media (hover: none) {
+  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+    opacity: 1;
+  }
+}
+// Reduced motion: the reveal snaps instead of fading.
+@media (prefers-reduced-motion: reduce) {
+  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+    transition: none;
+  }
+}

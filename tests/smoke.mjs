@@ -627,7 +627,8 @@ const ATTR_OF = {
 
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
 const MUTABLE_FIELDS = [
-	"desk_layout", "desk_order", "sidebar_preset", "sidebar_placement", "sidebar_material",
+	"desk_layout", "desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
+	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color", "sidebar_icon_style",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
@@ -3990,11 +3991,15 @@ async function main() {
 
 			for (const [key, note] of Object.entries(notes)) {
 				if (key === "sidepane" || key === "layout") continue;
-				// The Overview owns no fields — it READS them — so it has no state
-				// to report and must stay silent. Saying "Default" under it would
-				// claim otherwise, and would go on saying it while every component
-				// it displays had been changed.
-				const allowed = key === "overview" ? [""] : ["Default", "Changed"];
+				// RENDER-ONLY ENTRIES OWN NO FIELDS — they read state or hold it
+				// in their own doctypes — so they have no Default/Changed to
+				// report and must stay silent. Saying "Default" under the
+				// Overview would claim a state it does not own, and go on
+				// claiming it while every component it displays had changed;
+				// the Translations surface (item 7 part 2) is the same class,
+				// its state living in Bunood Translation Scan/Proposal.
+				const RENDER_ONLY = ["overview", "translations"];
+				const allowed = RENDER_ONLY.includes(key) ? [""] : ["Default", "Changed"];
 				expect(
 					allowed.includes(note),
 					`${key} shows "${note}"; expected one of ${JSON.stringify(allowed)}`
@@ -4377,6 +4382,42 @@ async function main() {
 
 				expectEq(offenders.join("\n"), "", "theme-owned strings rendering untranslated");
 			});
+		});
+
+		await test("i18n: the Translations surface renders and its manual save lands", async () => {
+			// The scan itself is NOT run here — a ten-app sweep is minutes of
+			// queue time, and the ledger's arithmetic is held by its own
+			// cross-check (scan set == direct measure, verified at build-out).
+			// What the suite holds is the click path the plan named as this
+			// feature's bar: the shell entry opens, the pane paints from
+			// whatever state the server has, and a translation typed into the
+			// pane's own inputs reaches the merged dictionary.
+			await goDesk("/desk/theme-settings", ".bnd-shell", 2500);
+			await page.evaluate(() => {
+				const hit = [...document.querySelectorAll('.bnd-shell [data-key="translations"]')][0];
+				if (hit) hit.click();
+			});
+			await page.waitForSelector(".bnd-tc", { timeout: 15000 });
+			await page.waitForTimeout(800);
+			expect(
+				await page.evaluate(() => !!(document.querySelector(".bnd-tc-status") || {}).textContent),
+				"the pane paints a status line"
+			);
+			await page.fill(".bnd-tc-src", "BND Suite Probe");
+			await page.fill(".bnd-tc-dst", "تجربة الحزمة");
+			await page.click('[data-act="save"]');
+			await page.waitForTimeout(1500);
+			const served = benchPy(
+				`from frappe.translate import get_all_translations\n` +
+				`frappe.translate.clear_cache()\n` +
+				`print("SERVED=" + get_all_translations("ar").get("BND Suite Probe", "(missing)"))\n` +
+				// Reap in the same call: a probe row must not outlive its test,
+				// or the next i18n gate counts it as somebody's translation.
+				`for n in frappe.get_all("Translation", filters={"language": "ar", "source_text": "BND Suite Probe"}, pluck="name"):\n` +
+				`    frappe.delete_doc("Translation", n, force=True, ignore_permissions=True)\n` +
+				`frappe.db.commit(); frappe.translate.clear_cache()\n`
+			).match(/SERVED=(.*)/)[1];
+			expectEq(served, "تجربة الحزمة", "the pane's save reaches the merged dict");
 		});
 
 		await test("placement: Off never removes the LAST route to a critical control", async () => {
@@ -4849,6 +4890,177 @@ async function main() {
 				}
 				expectEq(worse.join("\n"), "", `no new axe violations on ${route}`);
 			}
+		});
+
+		// ── List view kit (item 16) — the first surface family ─────────────
+		//
+		// Picks recorded 2026-08-09: 1C Floating Cards · 2B Edge Rail ·
+		// 3C Bold Bar · 4A reveal · +Open Rows from the market-survey round.
+
+		await test("list: density geometry survives the migration", async () => {
+			// WRITTEN BEFORE THE MIGRATION and green against _density.scss's
+			// rules; the same assertions hold after they move into
+			// surfaces/_list.scss — which is what makes the move provably a
+			// move and not a rewrite. Density is its own contract: it must
+			// hold under Original, so that is the state it is measured in.
+			setSettings({ list_style: "Original" });
+			await goDesk("/desk/item", ".list-row-container", 3000);
+			const geom = await page.evaluate(() => {
+				const row = document.querySelector(".list-row");
+				const left = document.querySelector(".list-row .level-left");
+				const html = getComputedStyle(document.documentElement);
+				return {
+					minH: getComputedStyle(row).minHeight,
+					padY: getComputedStyle(left).paddingBlockStart,
+					rowVar: html.getPropertyValue("--bnd-row-h").trim(),
+					padVar: html.getPropertyValue("--bnd-pad-y").trim(),
+				};
+			});
+			expectEq(geom.minH, geom.rowVar, "row min-height resolves from --bnd-row-h");
+			expectEq(geom.padY, geom.padVar, "level padding resolves from --bnd-pad-y");
+		});
+
+		const LIST_STYLE_SLUG = {
+			"Hairline Rows": "hairline", "Open Rows": "open",
+			"Zebra Stripes": "zebra", "Floating Cards": "cards",
+		};
+		for (const [label, slug] of Object.entries(LIST_STYLE_SLUG)) {
+			await test(`list: ${label}`, async () => {
+				setSettings({
+					list_style: label, list_hover: "Soft Wash",
+					list_selection: "Soft Tint", list_checkbox_reveal: 0,
+				});
+				await goDesk("/desk/item", ".list-row-container", 3000);
+				expectEq(await attr("data-bnd-list"), slug, "style attribute");
+				// One computed-pixel proof per style — an attribute alone is a
+				// green test that asserts existence, not correctness.
+				const px = await page.evaluate(() => {
+					const rows = document.querySelectorAll(".result .list-row-container");
+					const first = getComputedStyle(rows[0]);
+					const second = rows[1] ? getComputedStyle(rows[1]) : null;
+					return {
+						sep: first.borderBlockEndColor,
+						sepWidth: first.borderBlockEndWidth,
+						firstBg: first.backgroundColor,
+						secondBg: second ? second.backgroundColor : null,
+						radius: first.borderRadius,
+						numeric: getComputedStyle(document.querySelector(".list-row-col")).fontVariantNumeric,
+					};
+				});
+				expectEq(px.numeric, "tabular-nums", "numerals are tabular on screen");
+				if (slug === "hairline") {
+					expect(px.sepWidth !== "0px", `hairline draws a separator (${px.sepWidth})`);
+				}
+				if (slug === "open") {
+					expect(px.sepWidth === "0px" || px.sep.includes("0)"), "open rows draw no separator");
+					expectEq(px.firstBg, px.secondBg, "open rows draw no zebra either");
+				}
+				if (slug === "zebra") {
+					expect(px.firstBg !== px.secondBg, `zebra alternates (${px.firstBg} vs ${px.secondBg})`);
+				}
+				if (slug === "cards") {
+					expect(px.radius !== "0px", `cards are rounded (${px.radius})`);
+				}
+			});
+		}
+
+		await test("list: Original applies nothing at all", async () => {
+			setSettings({ list_style: "Original" });
+			await goDesk("/desk/item", ".list-row-container", 3000);
+			const state = await page.evaluate(() => ({
+				attrs: [...document.documentElement.attributes].filter((a) => a.name.startsWith("data-bnd-list")).map((a) => a.name),
+				numeric: getComputedStyle(document.querySelector(".list-row-col")).fontVariantNumeric,
+			}));
+			expectEq(state.attrs.join(","), "", "no list attribute survives Original");
+			expectEq(state.numeric, "normal", "even the numeral rule stands down");
+		});
+
+		await test("list: live preview flips the style and back", async () => {
+			setSettings({ list_style: "Floating Cards", list_hover: "Edge Rail", list_selection: "Bold Bar", list_checkbox_reveal: 1 });
+			await goDesk("/desk/item", ".list-row-container", 3000);
+			expectEq(await attr("data-bnd-list"), "cards", "boot applied cards");
+			await page.evaluate(() => window.bunood_theme.list_apply({ list_style: "Zebra Stripes" }));
+			expectEq(await attr("data-bnd-list"), "zebra", "preview flipped to zebra");
+			await page.evaluate(() => window.bunood_theme.list_apply({ list_style: "Floating Cards" }));
+			expectEq(await attr("data-bnd-list"), "cards", "and back");
+		});
+
+		await test("list: selection is never colour alone, and Bold owns the header", async () => {
+			setSettings({
+				list_style: "Floating Cards", list_selection: "Bold Bar",
+				list_checkbox_reveal: 1, list_hover: "Edge Rail",
+			});
+			await goDesk("/desk/item", ".list-row-container", 3000);
+			await page.evaluate(() => {
+				const boxes = document.querySelectorAll(".list-row-checkbox");
+				boxes[0] && boxes[0].click();
+			});
+			await page.waitForTimeout(600);
+			const sel = await page.evaluate(() => {
+				const box = document.querySelector(".list-row-checkbox:checked");
+				const row = box && box.closest(".list-row-container");
+				const rail = row && getComputedStyle(row, "::before").backgroundColor;
+				const head = document.querySelector(".list-row-head");
+				return {
+					checked: !!box,
+					boxVisible: box && getComputedStyle(box).opacity !== "0",
+					rowBg: row && getComputedStyle(row).backgroundColor,
+					rail,
+					headBg: head && getComputedStyle(head).backgroundColor,
+					bulk: !!document.querySelector(".checkbox-actions"),
+				};
+			});
+			expect(sel.checked, "a row is checked");
+			expect(sel.boxVisible, "the checked mark is visible — selection is never colour alone");
+			expect(sel.rail && !sel.rail.includes("0)"), `the rail is painted (${sel.rail})`);
+			if (sel.bulk) {
+				expect(sel.headBg && sel.headBg !== "rgba(0, 0, 0, 0)", `Bold Bar owns the header (${sel.headBg})`);
+			}
+			// Uncheck for the tests after this one.
+			await page.evaluate(() => {
+				const box = document.querySelector(".list-row-checkbox:checked");
+				box && box.click();
+			});
+		});
+
+		await test("list: checkboxes reveal on hover and stand down for touch", async () => {
+			setSettings({ list_style: "Hairline Rows", list_checkbox_reveal: 1, list_selection: "Soft Tint", list_hover: "Soft Wash" });
+			await goDesk("/desk/item", ".list-row-container", 3000);
+			const rest = await page.evaluate(() =>
+				getComputedStyle(document.querySelector(".result .list-row-checkbox")).opacity
+			);
+			expectEq(rest, "0", "checkboxes rest hidden");
+			await page.hover(".result .list-row-container");
+			await page.waitForTimeout(300);
+			const hovered = await page.evaluate(() =>
+				getComputedStyle(document.querySelector(".result .list-row-container:hover .list-row-checkbox")).opacity
+			);
+			expectEq(hovered, "1", "hover reveals the row's checkbox");
+		});
+
+		await test("list: cards keep the paging row clear of the bottom chrome", async () => {
+			// The worst-geometry configuration: cards' gaps at compact density
+			// over the Top Bar layout's status bar. ARCHITECTURE §11's contract
+			// — the kit must not move the paging row under the bar.
+			setSettings({
+				list_style: "Floating Cards", desk_layout: "Top Bar",
+				topbar_enabled: 1, bottombar_enabled: 1, status_style: "Quiet",
+			});
+			await goDesk("/desk/item", ".frappe-list", 4000);
+			const geom = await page.evaluate(() => {
+				const paging = document.querySelector(".list-paging-area");
+				const bar = document.querySelector(".bnd-statusbar");
+				if (!paging || !bar) return null;
+				return {
+					pagingBottom: Math.round(paging.getBoundingClientRect().bottom),
+					barTop: Math.round(bar.getBoundingClientRect().top),
+				};
+			});
+			expect(geom, "paging row and status bar both present");
+			expect(
+				geom.pagingBottom <= geom.barTop,
+				`the paging row clears the bar (${geom.pagingBottom} <= ${geom.barTop})`
+			);
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

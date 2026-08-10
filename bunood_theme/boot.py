@@ -222,6 +222,28 @@ def extend_bootinfo(bootinfo):
             value = settings.get(field)
             return STATUS_DEFAULTS[field] if value in (None, "") else value
 
+        # ── List view kit (item 16) ─────────────────────────────────────
+        # Fieldname keys, the status shape — no mirror map to keep in step
+        # client-side. Selects fall back to the shipped default when empty (a
+        # half-migrated site still renders coherent rows); the Check falls
+        # back only when never set, because 0 is a real choice.
+        #
+        # The no-flash argument this payload owes the file header: list rows
+        # are painted by Frappe's base_list.js AFTER boot, so an attribute set
+        # from this payload is on <html> before the first row exists — there
+        # is nothing stale to repaint. The list CONTAINER is server-rendered,
+        # but the kit's container rules key on the same attributes, which are
+        # set by bunood.js before DOMContentLoaded, ahead of first paint.
+        from bunood_theme.presets import LIST_DEFAULTS
+
+        def list_(field):
+            value = settings.get(field)
+            if isinstance(LIST_DEFAULTS[field], int):
+                return LIST_DEFAULTS[field] if value is None else value
+            return LIST_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_list = {f: list_(f) for f in LIST_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

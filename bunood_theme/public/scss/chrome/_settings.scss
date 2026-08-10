@@ -1056,3 +1056,69 @@ html[data-theme] {
 		grid-column: 1;
 	}
 }
+
+// ── The Translations surface (item 7, part 2) ───────────────────────────────
+// Text-and-buttons chrome; the heavy lifting is server-side. Logical
+// properties throughout, no tracking (assertCursiveSafe), tokens only.
+.bnd-tc {
+	display: grid;
+	gap: var(--bnd-sp-3);
+}
+
+.bnd-tc-table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	font-size: var(--bnd-text-sm);
+
+	th,
+	td {
+		text-align: start;
+		padding-block: var(--bnd-sp-1);
+		padding-inline-end: var(--bnd-sp-3);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+	}
+
+	th {
+		color: var(--bnd-ink-muted);
+		font-weight: var(--bnd-weight-medium);
+	}
+}
+
+.bnd-tc-actions,
+.bnd-tc-manual {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--bnd-sp-2);
+	align-items: center;
+}
+
+.bnd-tc-manual .form-control {
+	// Two inputs sharing a row; auto direction on the target field lets an
+	// Arabic value align itself without the pane taking a side.
+	flex: 1 1 14rem;
+	min-inline-size: 10rem;
+}
+
+.bnd-tc-prow {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto auto auto;
+	gap: var(--bnd-sp-2);
+	align-items: center;
+	padding-block: var(--bnd-sp-1);
+	border-block-end: var(--bnd-line) solid var(--bnd-border);
+	font-size: var(--bnd-text-sm);
+}
+
+.bnd-tc-psrc {
+	color: var(--bnd-ink-muted);
+	overflow-wrap: anywhere;
+}
+
+.bnd-tc-pdst {
+	overflow-wrap: anywhere;
+}
+
+.bnd-tc-papp {
+	color: var(--bnd-ink-subtle);
+	font-size: var(--bnd-text-xs);
+}

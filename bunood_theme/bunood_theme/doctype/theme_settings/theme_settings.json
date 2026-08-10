@@ -109,6 +109,12 @@
   "status_freshness",
   "status_escalate",
   "section_density",
+  "section_list",
+  "list_picker",
+  "list_style",
+  "list_hover",
+  "list_selection",
+  "list_checkbox_reveal",
   "default_density",
   "section_generated",
   "brand_css_url"
@@ -787,6 +793,51 @@
    "fieldname": "section_density",
    "fieldtype": "Section Break",
    "label": "Density"
+  },
+  {
+   "fieldname": "section_list",
+   "fieldtype": "Section Break",
+   "label": "List View"
+  },
+  {
+   "fieldname": "list_picker",
+   "fieldtype": "HTML",
+   "label": "List Picker"
+  },
+  {
+   "default": "Floating Cards",
+   "description": "Set by the picker above. How rows draw their boundaries.",
+   "fieldname": "list_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Style",
+   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How a row answers the pointer.",
+   "fieldname": "list_hover",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Hover",
+   "options": "Soft Wash\nEdge Rail"
+  },
+  {
+   "default": "Bold Bar",
+   "description": "Set by the picker above. Checked rows and the bulk header, as one treatment.",
+   "fieldname": "list_selection",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Selection",
+   "options": "Soft Tint\nAccent Rail\nBold Bar"
+  },
+  {
+   "default": "1",
+   "description": "Checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
+   "fieldname": "list_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Checkboxes on Hover"
   },
   {
    "fieldname": "section_user",

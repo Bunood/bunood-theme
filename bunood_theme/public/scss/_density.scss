@@ -32,14 +32,7 @@
 // by specificity, never by @layer. See ARCHITECTURE.md section 2.
 // ============================================================================
 
-html[data-theme] .list-row {
-  min-height: var(--bnd-row-h);
-}
 
-// The real height drivers. padding-block (logical) so RTL needs nothing.
-html[data-theme] .list-row .level-left,
-html[data-theme] .list-row .level-right,
-html[data-theme] .list-row-head .level-left,
-html[data-theme] .list-row-head .level-right {
-  padding-block: var(--bnd-pad-y);
-}
+// The list rules that lived here MIGRATED to surfaces/_list.scss when item 16
+// landed, exactly as the lifecycle note above promised. This file keeps only
+// what has no shipped surface partial yet (item 18's --bnd-control-h).

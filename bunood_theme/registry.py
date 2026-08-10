@@ -476,6 +476,30 @@ LAYOUT_TENANTS = {
 }
 
 
+#: Surfaces — content the frame contains, as opposed to chrome that owns
+#: space (containers) or sits in it (tenants). A surface mounts nothing and
+#: injects nothing: it is attributes on <html> and a stylesheet over Frappe's
+#: own DOM, so it has no selector to stand down and no native to release —
+#: absent attributes ARE the stand-down. Item 16's list view is the first;
+#: the form view (item 18) joins it here.
+SURFACE = "surface"
+
+SURFACES = [
+    {
+        "key": "list",
+        "part": "list",
+        "label": "List view",
+        "type": SURFACE,
+        # The anchor attribute, not a mounted node: everything the kit does is
+        # scoped under html[data-bnd-list], and "Original" clears it.
+        "selector": 'html[data-bnd-list]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+]
+
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's
 #: `desk_order` field seeds from this and the runtime falls back to it, so
 #: "the order the registry declares components in" and "the order they sit on

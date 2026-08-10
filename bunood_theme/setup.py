@@ -31,6 +31,7 @@ from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
+    LIST_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
     INBOX_DEFAULTS,
@@ -56,6 +57,7 @@ CHECK_DEFAULTS = {
     field: value
     for defaults in (
         CRUMB_DEFAULTS,
+        LIST_DEFAULTS,
         PALETTE_DEFAULTS,
         INBOX_DEFAULTS,
         STATUS_DEFAULTS,
@@ -109,6 +111,7 @@ DEFAULTS = {
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.
     **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in LIST_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

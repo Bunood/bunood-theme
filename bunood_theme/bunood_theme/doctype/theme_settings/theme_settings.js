@@ -902,6 +902,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_inbox_picker(frm);
 		bnd_render_search_picker(frm);
 		bnd_render_status_picker(frm);
+		bnd_render_list_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
 		bnd_render_placement_board(frm);
@@ -917,6 +918,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_crumb_preview(frm);
 			bnd_palette_preview(frm);
 			bnd_inbox_preview(frm);
+			bnd_list_preview(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -1073,6 +1075,7 @@ const BND_SHELL_GROUPS = [
 			// "Features" heading over nothing and evicted the density control.
 			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
+			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
 		],
 	},
 	{
@@ -1093,6 +1096,17 @@ const BND_SHELL_GROUPS = [
 			// Measured: 636px against every other Select's 273px. The fallback is
 			// still there for the next collision; this one is fixed at the root.
 			{ key: "density", label: () => __("Density"), anchors: ["default_density"] },
+		],
+	},
+	{
+		group: () => __("Language"),
+		items: [
+			// Renders rather than relocating, like the overview: the surface's
+			// state lives in its own doctypes (Bunood Translation Settings /
+			// Scan / Proposal), not in Theme Settings fields — which is what
+			// keeps the FIELD_PREFIXES guard out of a feature that is not a
+			// desk component.
+			{ key: "translations", label: () => __("Translations"), render: bnd_render_translations },
 		],
 	},
 ];
@@ -1159,6 +1173,7 @@ const BND_SHELL_OWNS = {
 	status: { prefixes: ["status_", "bottombar_"] },
 	search: { prefixes: ["search_"] },
 	crumbs: { prefixes: ["crumb_"] },
+	list: { prefixes: ["list_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -1336,6 +1351,181 @@ function bnd_render_overview(frm, $pane) {
 	$pane.find(".bnd-dgm-mark").on("click", function () {
 		bnd_shell_select(frm, this.getAttribute("data-goto"));
 	});
+}
+
+/**
+ * The Translations surface (item 7, part 2).
+ *
+ * WHAT IT SHOWS
+ *   The latest scan's ledger — per app: how many strings it has, how many have
+ *   no translation — plus what is NEW since the previous scan, which is how a
+ *   freshly installed module announces itself. Below it, the ways to close the
+ *   gap, in the order they should be tried: a provider run (machine proposals,
+ *   reviewed row by row), export/import for a human translator, and a direct
+ *   editor for one-off fixes.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO
+ *   Apply machine output. A provider run writes PROPOSALS; each row is
+ *   accepted or rejected here, by a person. Manual saves and imported files
+ *   apply directly — a file someone filled and chose to upload IS the review.
+ *
+ * All state lives server-side (Bunood Translation Scan / Proposal); this
+ * function only draws and calls. A scan runs on the LONG queue — a ten-app
+ * sweep is minutes, and the realtime events repaint this pane as it goes.
+ */
+function bnd_render_translations(frm, $pane) {
+	const lang = "ar";
+	const call = (method, args) =>
+		frappe.call({ method: "bunood_theme.i18n.api." + method, args: args || {} }).then((r) => r.message);
+
+	const paint = (state) => {
+		const scan = state.scan;
+		let rows = "";
+		if (scan && scan.apps) {
+			rows = Object.entries(scan.apps)
+				.sort((a, b) => b[1].missing - a[1].missing)
+				.map(
+					([app, t]) =>
+						"<tr><td>" + bnd_esc(app) + "</td><td>" + t.total + "</td><td>" +
+						(t.missing ? "<strong>" + t.missing + "</strong>" : "0") + "</td></tr>"
+				)
+				.join("");
+		}
+		const scanLine = !scan
+			? __("No scan yet. Run one to see what needs translating.")
+			: scan.status === "Failed"
+				? __("Scan failed") + ": " + bnd_esc((scan.error || "").split("\n").pop() || "")
+				: __("Untranslated: {0}", [String(scan.missing_total)]) +
+					" · " + __("New since previous scan: {0}", [String(scan.new_since_previous || 0)]);
+
+		$pane.html(
+			'<div class="bnd-tc">' +
+				'<div class="bnd-cbp-note bnd-tc-status">' +
+					bnd_esc(scanLine) +
+					(state.running ? " — " + bnd_esc(__("Scan running…")) : "") +
+				"</div>" +
+				(rows
+					? '<table class="bnd-tc-table"><thead><tr><th>' +
+						[__("App"), __("Strings"), __("Missing")].map(bnd_esc).join("</th><th>") +
+						"</th></tr></thead><tbody>" + rows + "</tbody></table>"
+					: "") +
+				'<div class="bnd-tc-actions">' +
+					'<button type="button" class="btn btn-sm btn-default" data-act="scan"' + (state.running ? " disabled" : "") + ">" +
+						bnd_esc(__("Scan now")) + "</button>" +
+					(scan && scan.status === "Completed"
+						? '<button type="button" class="btn btn-sm btn-default" data-act="export">' +
+								bnd_esc(__("Export untranslated (CSV)")) + "</button>" +
+							'<button type="button" class="btn btn-sm btn-default" data-act="import">' +
+								bnd_esc(__("Import a filled CSV…")) + "</button>" +
+							'<button type="button" class="btn btn-sm btn-default" data-act="provider">' +
+								bnd_esc(__("Run {0}", [state.provider])) + "</button>"
+						: "") +
+				"</div>" +
+				(scan && scan.status === "Completed" && !state.provider_ready
+					? '<div class="bnd-cbp-note">' + bnd_esc(state.provider_reason) + "</div>"
+					: "") +
+				'<div class="bnd-tc-manual">' +
+					'<input class="form-control bnd-tc-src" type="text" placeholder="' + bnd_esc(__("Source string, exactly as the app spells it")) + '">' +
+					'<input class="form-control bnd-tc-dst" type="text" dir="auto" placeholder="' + bnd_esc(__("Its translation")) + '">' +
+					'<button type="button" class="btn btn-sm btn-default" data-act="save">' + bnd_esc(__("Save translation")) + "</button>" +
+				"</div>" +
+				'<div class="bnd-tc-proposals" data-count="' + state.pending_proposals + '">' +
+					(state.pending_proposals
+						? '<div class="bnd-cbp-note">' + bnd_esc(__("Proposals to review: {0}", [String(state.pending_proposals)])) + "</div>" +
+							'<div class="bnd-tc-plist"></div>'
+						: "") +
+				"</div>" +
+			"</div>"
+		);
+
+		$pane.find("[data-act=scan]").on("click", () =>
+			call("start_scan", { language: lang }).then(refresh)
+		);
+		$pane.find("[data-act=export]").on("click", () => {
+			window.open("/api/method/bunood_theme.i18n.api.export_untranslated?scan=" + encodeURIComponent(scan.name));
+		});
+		$pane.find("[data-act=import]").on("click", () => {
+			const picker = document.createElement("input");
+			picker.type = "file";
+			picker.accept = ".csv,text/csv";
+			picker.onchange = () => {
+				const file = picker.files && picker.files[0];
+				if (!file) return;
+				file.text().then((content) =>
+					call("import_csv", { language: lang, content }).then((counts) => {
+						frappe.show_alert({
+							message: __("Imported — created: {0}, updated: {1}, left empty: {2}", [
+								counts.created, counts.updated, counts.skipped_empty,
+							]),
+							indicator: counts.skipped_empty ? "orange" : "green",
+						});
+						refresh();
+					})
+				);
+			};
+			picker.click();
+		});
+		$pane.find("[data-act=provider]").on("click", () =>
+			call("estimate_provider_run", { scan: scan.name }).then((est) => {
+				frappe.confirm(
+					__("Provider: {0}. Strings: {1}. Estimated cost: ${2}. Cap: ${3}. Every result lands as a proposal to review — nothing is applied on its own.", [
+						est.provider, est.strings, est.usd, est.cap,
+					]),
+					() => call("start_provider_run", { scan: scan.name }).then(refresh)
+				);
+			})
+		);
+		$pane.find("[data-act=save]").on("click", function () {
+			const src = $pane.find(".bnd-tc-src").val().trim();
+			const dst = $pane.find(".bnd-tc-dst").val().trim();
+			if (!src || !dst) return;
+			call("save_translation", { language: lang, source_text: src, translated_text: dst }).then(() => {
+				frappe.show_alert({ message: __("Saved — applies on the next page load."), indicator: "green" });
+				$pane.find(".bnd-tc-src, .bnd-tc-dst").val("");
+			});
+		});
+
+		if (state.pending_proposals) paint_proposals();
+	};
+
+	const paint_proposals = () =>
+		call("list_proposals", { language: lang, page_length: 20 }).then((data) => {
+			const $list = $pane.find(".bnd-tc-plist");
+			if (!$list.length) return;
+			$list.html(
+				data.rows
+					.map(
+						(p) =>
+							'<div class="bnd-tc-prow" data-name="' + bnd_esc(p.name) + '">' +
+								'<span class="bnd-tc-psrc">' + bnd_esc(p.source_text) + "</span>" +
+								'<span class="bnd-tc-pdst" dir="auto">' + bnd_esc(p.proposed_text || "") + "</span>" +
+								'<span class="bnd-tc-papp">' + bnd_esc(p.app || "") + "</span>" +
+								'<button type="button" class="btn btn-xs btn-default" data-review="accept">' + bnd_esc(__("Accept")) + "</button>" +
+								'<button type="button" class="btn btn-xs btn-default" data-review="reject">' + bnd_esc(__("Reject")) + "</button>" +
+							"</div>"
+					)
+					.join("")
+			);
+			$list.find("[data-review]").on("click", function () {
+				const row = this.closest(".bnd-tc-prow");
+				call("review_proposal", { name: row.getAttribute("data-name"), action: this.getAttribute("data-review") }).then(() => {
+					row.remove();
+					const left = $list.find(".bnd-tc-prow").length;
+					if (!left) refresh();
+				});
+			});
+		});
+
+	const refresh = () => call("get_state", { language: lang }).then(paint);
+
+	// Repaint as the queue reports. Bound each render; frappe.realtime.on is
+	// idempotent enough for a settings pane that is rebuilt wholesale, and the
+	// events carry no payload this pane trusts — it always re-asks get_state.
+	frappe.realtime.on("bnd_translation_scan", refresh);
+	frappe.realtime.on("bnd_translation_provider", refresh);
+
+	$pane.html('<div class="bnd-cbp-note">' + bnd_esc(__("Loading…")) + "</div>");
+	refresh();
 }
 
 /**
@@ -2997,6 +3187,198 @@ function bnd_inbox_set(frm, fieldname, value) {
 // Search placement picker (item 14 companion) — deliberately its OWN section
 // ════════════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════════════
+// List View picker (item 16) — the first surface kit's settings
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.LIST_FIELDS — keep in sync. */
+const BND_LIST_FIELDS = ["list_style", "list_hover", "list_selection", "list_checkbox_reveal"];
+
+/** Client mirror of presets.LIST_DEFAULTS — keep in sync. */
+const BND_LIST_DEFAULTS = {
+	list_style: "Floating Cards",
+	list_hover: "Edge Rail",
+	list_selection: "Bold Bar",
+	list_checkbox_reveal: 1,
+};
+
+/**
+ * The style catalogue. Thumbnails are abstract row diagrams; the tick glyph
+ * in the selection card is pulled through the sprite (the settings form is
+ * the item-33 icon system's second real caller — a deliberate exercise, not
+ * a convenience).
+ */
+const BND_LIST_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("Stock ERPNext rows, untouched. The whole kit stands down."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="8" y1="18" x2="112" y2="18" stroke="currentColor" opacity=".15"/>' +
+			'<line x1="8" y1="32" x2="112" y2="32" stroke="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="9" width="40" height="4" rx="2" fill="currentColor" opacity=".35"/></svg>',
+	},
+	{
+		value: "Hairline Rows",
+		blurb: () => __("Quiet separators, maximum density — the classic admin look."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="8" y1="19" x2="112" y2="19" stroke="currentColor" opacity=".3"/>' +
+			'<line x1="8" y1="33" x2="112" y2="33" stroke="currentColor" opacity=".3"/>' +
+			'<rect x="8" y="10" width="44" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="24" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="38" width="40" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Open Rows",
+		blurb: () => __("No lines at all — spacing separates, hover defines."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="9" width="44" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="6" y="21" width="108" height="12" rx="3" fill="currentColor" opacity=".08"/>' +
+			'<rect x="8" y="25" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="41" width="40" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Zebra Stripes",
+		blurb: () => __("Alternating fill — the easiest row-tracking on wide tables."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="4" y="18" width="112" height="13" fill="currentColor" opacity=".08"/>' +
+			'<rect x="8" y="8" width="44" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="22" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="8" y="38" width="40" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Floating Cards",
+		blurb: () => __("Each row a raised card — the modern look, a small density cost."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="6" y="7" width="108" height="16" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
+			'<rect x="12" y="13" width="40" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
+			'<rect x="6" y="30" width="108" height="16" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
+			'<rect x="12" y="36" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+];
+
+/** The two composing option groups. */
+const BND_LIST_GROUPS = [
+	{
+		field: "list_hover",
+		title: () => __("Hover"),
+		desc: () => __("How a row answers the pointer."),
+		options: [
+			{ value: "Soft Wash", name: () => __("Soft Wash") },
+			{ value: "Edge Rail", name: () => __("Edge Rail") },
+		],
+	},
+	{
+		field: "list_selection",
+		title: () => __("Selection"),
+		desc: () => __("Checked rows and the bulk header, as one treatment."),
+		options: [
+			{ value: "Soft Tint", name: () => __("Soft Tint") },
+			{ value: "Accent Rail", name: () => __("Accent Rail") },
+			{ value: "Bold Bar", name: () => __("Bold Bar") },
+		],
+	},
+];
+
+const BND_LIST_TOGGLES = [
+	{
+		field: "list_checkbox_reveal",
+		name: () => __("Reveal checkboxes on hover"),
+		desc: () => __("Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."),
+	},
+];
+
+/** Render the list picker. */
+function bnd_render_list_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "list_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.list_style || BND_LIST_DEFAULTS.list_style;
+	const off = current === "Original";
+
+	// Filtered against the field's real options — the rule that retired the
+	// status Off-card wedge class of bug.
+	const offered = bnd_field_slots(frm, "list_style");
+	const cards = P.cards(
+		BND_LIST_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-lvp-style" }
+	);
+
+	const reason = off ? __("Original leaves the stock list untouched — nothing below applies.") : "";
+	const groups = BND_LIST_GROUPS.map((g) =>
+		P.group({
+			title: g.title(),
+			desc: g.desc(),
+			field: g.field,
+			body: P.options(
+				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: g.field, value: frm.doc[g.field] || BND_LIST_DEFAULTS[g.field] }
+			),
+		})
+	).join("");
+
+	const toggles = BND_LIST_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field,
+			on: !!parseInt(frm.doc[t.field], 10),
+			name: t.name(),
+			desc: t.desc(),
+			reason,
+			// The picker's own hook class — omitting it is the recorded
+			// inert-switch failure (the status kit's toggles, 2026-08-08).
+			cls: "bnd-lvp-toggle",
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-lvp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups + '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-lvp-style").on("click", function () {
+		bnd_list_set(frm, "list_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt, .bnd-lvp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_list_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_list_set(frm, f, BND_LIST_DEFAULTS[f]);
+	});
+}
+
+/** Hand the form's current list values to the desk engine — live preview. */
+function bnd_list_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.list_apply) return;
+	const values = {};
+	for (const f of BND_LIST_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.list_apply(values);
+}
+
+/** Set one list option, preview, re-render. */
+function bnd_list_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_list_preview(frm);
+	bnd_render_list_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -3749,7 +4131,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -3791,12 +4173,14 @@ function bnd_sb_import(frm) {
 			bnd_crumb_preview(frm);
 			bnd_palette_preview(frm);
 			bnd_inbox_preview(frm);
+			bnd_list_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
 			bnd_render_palette_picker(frm);
 			bnd_render_inbox_picker(frm);
 			bnd_render_search_picker(frm);
 			bnd_render_status_picker(frm);
+		bnd_render_list_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
 			// Frappe's plural-free dictionary.

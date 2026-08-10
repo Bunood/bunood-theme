@@ -242,17 +242,6 @@ html[data-theme=dark] {
     --list-row-height: var(--bnd-row-h);
   }
 }
-html[data-theme] .list-row {
-  min-height: var(--bnd-row-h);
-}
-
-html[data-theme] .list-row .level-left,
-html[data-theme] .list-row .level-right,
-html[data-theme] .list-row-head .level-left,
-html[data-theme] .list-row-head .level-right {
-  padding-block: var(--bnd-pad-y);
-}
-
 html:lang(ar) body,
 html:lang(fa) body,
 html:lang(ps) body,
@@ -3323,6 +3312,219 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   }
   .bnd-bd-region:not([data-region=sidepane]) {
     grid-column: 1;
+  }
+}
+.bnd-tc {
+  display: grid;
+  gap: var(--bnd-sp-3);
+}
+
+.bnd-tc-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--bnd-text-sm);
+}
+.bnd-tc-table th,
+.bnd-tc-table td {
+  text-align: start;
+  padding-block: var(--bnd-sp-1);
+  padding-inline-end: var(--bnd-sp-3);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+.bnd-tc-table th {
+  color: var(--bnd-ink-muted);
+  font-weight: var(--bnd-weight-medium);
+}
+
+.bnd-tc-actions,
+.bnd-tc-manual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+  align-items: center;
+}
+
+.bnd-tc-manual .form-control {
+  flex: 1 1 14rem;
+  min-inline-size: 10rem;
+}
+
+.bnd-tc-prow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto auto;
+  gap: var(--bnd-sp-2);
+  align-items: center;
+  padding-block: var(--bnd-sp-1);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  font-size: var(--bnd-text-sm);
+}
+
+.bnd-tc-psrc {
+  color: var(--bnd-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.bnd-tc-pdst {
+  overflow-wrap: anywhere;
+}
+
+.bnd-tc-papp {
+  color: var(--bnd-ink-subtle);
+  font-size: var(--bnd-text-xs);
+}
+
+html[data-theme] .list-row {
+  min-height: var(--bnd-row-h);
+}
+
+html[data-theme] .list-row .level-left,
+html[data-theme] .list-row .level-right,
+html[data-theme] .list-row-head .level-left,
+html[data-theme] .list-row-head .level-right {
+  padding-block: var(--bnd-pad-y);
+}
+
+html[data-bnd-list=hairline] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: var(--bnd-border);
+  --bnd-list-radius: 0px;
+}
+
+html[data-bnd-list=open] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: var(--bnd-radius-sm, 6px);
+}
+
+html[data-bnd-list=zebra] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: color-mix(in srgb, var(--bnd-ink) 3%, transparent);
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: 0px;
+}
+
+html[data-bnd-list=cards] {
+  --bnd-list-row-bg: var(--bnd-surface);
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: transparent;
+  --bnd-list-radius: var(--bnd-radius-md);
+}
+
+html[data-bnd-list-hover=wash] {
+  --bnd-list-hover-bg: var(--bnd-hover);
+  --bnd-list-hover-rail: transparent;
+}
+
+html[data-bnd-list-hover=rail] {
+  --bnd-list-hover-bg: var(--bnd-hover);
+  --bnd-list-hover-rail: color-mix(in srgb, var(--bnd-ink) 25%, transparent);
+}
+
+html[data-bnd-list-select=soft] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: transparent;
+  --bnd-list-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-head-ink: var(--bnd-ink);
+}
+
+html[data-bnd-list-select=rail] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-head-ink: var(--bnd-ink);
+}
+
+html[data-bnd-list-select=bold] {
+  --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-bg: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-head-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+}
+
+html[data-bnd-list] .result .list-row-container {
+  background: var(--bnd-list-row-bg);
+  border-block-end: var(--bnd-line) solid var(--bnd-list-sep);
+  border-radius: var(--bnd-list-radius);
+  position: relative;
+}
+
+html[data-bnd-list] .result .list-row-container:nth-child(even) {
+  background: var(--bnd-list-alt-bg, var(--bnd-list-row-bg));
+}
+
+html[data-bnd-list] .list-row-col {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-bnd-list=cards] .result .list-row-container {
+  margin-block-end: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border);
+}
+
+html[data-bnd-list=cards] .result .list-row-container:hover {
+  box-shadow: var(--bnd-shadow-sm);
+}
+
+html[data-bnd-list] .result .list-row-container:hover {
+  background: var(--bnd-list-hover-bg);
+}
+
+html[data-bnd-list] .result .list-row-container::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0;
+  inline-size: 3px;
+  border-start-start-radius: var(--bnd-list-radius);
+  border-end-start-radius: var(--bnd-list-radius);
+  background: transparent;
+  pointer-events: none;
+}
+
+html[data-bnd-list] .result .list-row-container:hover::before {
+  background: var(--bnd-list-hover-rail, transparent);
+}
+
+html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked) {
+  background: var(--bnd-list-sel-bg);
+}
+
+html[data-bnd-list] .result .list-row-container:has(.list-row-checkbox:checked)::before {
+  background: var(--bnd-list-sel-rail, transparent);
+}
+
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) {
+  background: var(--bnd-list-head-bg);
+  border-radius: var(--bnd-list-radius);
+}
+
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .checkbox-actions,
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .btn,
+html[data-bnd-list] .list-row-head:has(.checkbox-actions) .list-check-all + span {
+  color: var(--bnd-list-head-ink);
+}
+
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-container:hover .list-row-checkbox,
+html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-container:focus-within .list-row-checkbox,
+html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:checked) .list-row-checkbox {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
+    transition: none;
   }
 }
 @media print {

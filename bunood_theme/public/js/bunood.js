@@ -646,7 +646,85 @@
 	 * v16's stock trail is untouched, the same escape hatch the desk-layout
 	 * picker offers with "Classic". Unknown labels behave identically.
 	 */
+	// ════════════════════════════════════════════════════════════════════════
+	// List view kit (item 16) — the first SURFACE kit
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// Unlike every chrome kit above and below, this one mounts NOTHING and
+	// injects nothing: it is attributes on <html> and a stylesheet over
+	// Frappe's own .list-row* DOM (surfaces/_list.scss). No node to build, no
+	// native to release, no ownership stamp — absent attributes ARE the
+	// stand-down, which is what lets "Original" be a pure clearing.
+
+	/**
+	 * Theme Settings label -> slug, per option. Each option fails open
+	 * INDEPENDENTLY: an unknown label sets no attribute for that option and
+	 * the others still apply. "Original" maps the anchor to "" — the whole
+	 * kit stands down and stock rows render.
+	 */
+	const LIST_SLUGS = {
+		style: { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards" },
+		hover: { "Soft Wash": "wash", "Edge Rail": "rail" },
+		selection: { "Soft Tint": "soft", "Accent Rail": "rail", "Bold Bar": "bold" },
+	};
+
+	/**
+	 * The list options currently IN EFFECT — boot's at load, possibly
+	 * replaced by a live preview (bunood.list_apply). Mounts read THIS,
+	 * never frappe.boot, so preview is a re-application, not a mode.
+	 */
+	let list_state = (window.frappe && frappe.boot && frappe.boot.bnd_list) || null;
+
+	/**
+	 * Reflect the list options onto <html>, clearing whatever set came
+	 * before — attributes are wholly derived state. A falsy style slug
+	 * (Original / unknown / no boot) clears everything and sets nothing.
+	 * Payload keys are FIELDNAMES (the status shape): no mirror map exists
+	 * to fall out of step with presets.LIST_FIELDS.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_list_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-list" || a.name.startsWith("data-bnd-list-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		list_state = v;
+		const style = LIST_SLUGS.style[v.list_style];
+		if (!style) return;
+		html.setAttribute("data-bnd-list", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-list-" + name, value);
+		set("hover", LIST_SLUGS.hover[v.list_hover]);
+		set("select", LIST_SLUGS.selection[v.list_selection]);
+		// Presence-only: checkbox reveal, matched as [data-bnd-list-ckreveal]
+		// and stood down wholesale under (hover: none) in the stylesheet.
+		if (parseInt(v.list_checkbox_reveal, 10)) html.setAttribute("data-bnd-list-ckreveal", "");
+	}
+
+	// Before Frappe renders the first row — same timing rule as every kit.
+	apply_list_attrs(list_state);
+
+	/** True when the list kit is active (the style attribute is the anchor). */
+	function list_active() {
+		return document.documentElement.hasAttribute("data-bnd-list");
+	}
+
+	/**
+	 * LIVE PREVIEW for the list kit. Accepts the fieldname shape (which is
+	 * also the boot shape — one shape, no resolver ladder). Mandatory from
+	 * day one: the status kit shipped without its apply hook and that is the
+	 * recorded failure class — settings that save but visibly do nothing.
+	 * @param {Object} values
+	 */
+	bunood.list_apply = function (values) {
+		if (!values) return;
+		apply_list_attrs({ ...(list_state || {}), ...values });
+	};
+
 	const CRUMB_SLUGS = {
+
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },
 		separator: { "Slash": "slash", "Chevron": "chevron", "Dot": "dot", "Arrow": "arrow" },
 		icons: { "Off": "off", "First Crumb": "first", "Every Crumb": "every" },

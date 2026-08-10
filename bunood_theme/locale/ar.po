@@ -3293,3 +3293,591 @@ msgstr "منذ {0} ث"
 #, fuzzy
 msgid "↑↓ move · ↵ open · e read"
 msgstr "↑↓ تنقّل · ↵ فتح · e مقروء"
+
+#. Name of a DocType
+#. src: ai
+#, fuzzy
+msgid "Bunood Translation Proposal"
+msgstr "مقترح ترجمة بنود"
+
+#. Label of a Data field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Language"
+msgstr "اللغة"
+
+#. Label of a Select field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Status"
+msgstr "الحالة"
+
+#. Option for 'Status' in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Pending"
+msgstr "قيد الانتظار"
+
+#. Option for 'Status' in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Accepted"
+msgstr "مقبول"
+
+#. Option for 'Status' in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Rejected"
+msgstr "مرفوض"
+
+#. Label of a Data field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Provider"
+msgstr "المزوِّد"
+
+#. Label of a Data field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "App"
+msgstr "التطبيق"
+
+#. Description of a Data field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Which app's catalogue the source string came from — context for the reviewer, not a key."
+msgstr "من كتالوج أي تطبيق جاء النص المصدر — سياق للمراجع، لا مفتاح."
+
+#. Label of a Link field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Scan"
+msgstr "الفحص"
+
+#. Label of a Code field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Source Text"
+msgstr "النص المصدر"
+
+#. Label of a Code field in DocType 'Bunood Translation Proposal'
+#. src: ai
+#, fuzzy
+msgid "Proposed Text"
+msgstr "النص المقترح"
+
+#. Name of a DocType
+#. src: ai
+#, fuzzy
+msgid "Bunood Translation Scan"
+msgstr "فحص ترجمة بنود"
+
+#. Option for 'Status' in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Queued"
+msgstr "في قائمة الانتظار"
+
+#. Option for 'Status' in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Running"
+msgstr "قيد التشغيل"
+
+#. Option for 'Status' in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Completed"
+msgstr "مكتمل"
+
+#. Option for 'Status' in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Failed"
+msgstr "فشل"
+
+#. Label of a Datetime field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Started At"
+msgstr "بدأ في"
+
+#. Label of a Datetime field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Finished At"
+msgstr "انتهى في"
+
+#. Label of a Section Break field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Totals"
+msgstr "الإجماليات"
+
+#. Label of an Int field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Total Strings"
+msgstr "إجمالي النصوص"
+
+#. Label of an Int field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Missing Total"
+msgstr "إجمالي الناقص"
+
+#. Label of an Int field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "New Since Previous"
+msgstr "الجديد منذ السابق"
+
+#. Description of an Int field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Msgids missing now that were not missing in the previous completed scan of this language — how a newly installed module announces itself."
+msgstr "معرّفات نصوص ناقصة الآن ولم تكن ناقصة في الفحص المكتمل السابق لهذه اللغة — هكذا تعلن وحدة مثبتة حديثًا عن نفسها."
+
+#. Label of a Section Break field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Payload"
+msgstr "الحمولة"
+
+#. Label of a Code field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Apps JSON"
+msgstr "JSON التطبيقات"
+
+#. Description of a Code field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Per-app totals, as JSON: {app: {total, missing}}."
+msgstr "الإجماليات لكل تطبيق بصيغة JSON: ‏{app: {total, missing}}."
+
+#. Label of a Code field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Missing JSON"
+msgstr "JSON الناقص"
+
+#. Description of a Code field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "The untranslated msgids per app, as JSON: {app: [msgid, ...]}. The export, the providers and the delta all read THIS scan rather than re-scanning."
+msgstr "معرّفات النصوص غير المترجمة لكل تطبيق بصيغة JSON: ‏{app: [msgid, ...]}. التصدير والمزوّدون والفرق كلها تقرأ هذا الفحص بعينه بدلًا من إعادة الفحص."
+
+#. Label of a Small Text field in DocType 'Bunood Translation Scan'
+#. src: ai
+#, fuzzy
+msgid "Error"
+msgstr "الخطأ"
+
+#. Name of a DocType
+#. src: ai
+#, fuzzy
+msgid "Bunood Translation Settings"
+msgstr "إعدادات ترجمة بنود"
+
+#. Label of a Section Break field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Machine Translation"
+msgstr "الترجمة الآلية"
+
+#. Description of a Select field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Who fills the gaps when you run a provider. Every run produces proposals to review — nothing is applied on its own."
+msgstr "من يملأ الفجوات عندما تشغّل مزوّدًا. كل تشغيل ينتج مقترحات للمراجعة — لا شيء يُطبَّق من تلقاء نفسه."
+
+#. Label of a Data field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Claude Model"
+msgstr "نموذج Claude"
+
+#. Label of an Int field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Batch Size"
+msgstr "حجم الدفعة"
+
+#. Description of an Int field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Strings per request. Smaller batches survive flaky networks; larger ones are cheaper per call."
+msgstr "عدد النصوص في الطلب الواحد. الدفعات الأصغر تنجو من الشبكات المتقلبة؛ والأكبر أرخص لكل نداء."
+
+#. Label of a Float field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Spend Cap (USD)"
+msgstr "سقف الإنفاق (دولار)"
+
+#. Description of a Float field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "A run stops before its estimate crosses this. Raise it deliberately, per run, not permanently."
+msgstr "يتوقف التشغيل قبل أن يتجاوز تقديره هذا السقف. ارفعه عن عمد، لكل تشغيل، لا بشكل دائم."
+
+#. Label of a Section Break field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "API Keys"
+msgstr "مفاتيح API"
+
+#. Description of a Section Break field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Keys stay on the server: every provider call is made from Python, and a Password field is encrypted at rest and never enters the boot payload."
+msgstr "المفاتيح تبقى على الخادم: كل نداء مزوّد يُجرى من Python، وحقل كلمة المرور مشفّر في التخزين ولا يدخل حمولة الإقلاع أبدًا."
+
+#. Label of a Password field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Claude API Key"
+msgstr "مفتاح Claude API"
+
+#. Label of a Password field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "DeepL API Key"
+msgstr "مفتاح DeepL API"
+
+#. Label of a Password field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Google Translate API Key"
+msgstr "مفتاح Google Translate API"
+
+#. Label of a Password field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Microsoft Translator API Key"
+msgstr "مفتاح Microsoft Translator API"
+
+#. Label of a Data field in DocType 'Bunood Translation Settings'
+#. src: ai
+#, fuzzy
+msgid "Microsoft Region"
+msgstr "منطقة Microsoft"
+
+#. In theme_settings.js — the Language shell group's entry
+#. src: ai
+#, fuzzy
+msgid "Translations"
+msgstr "الترجمات"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "No scan yet. Run one to see what needs translating."
+msgstr "لا فحص بعد. شغّل واحدًا لترى ما يحتاج ترجمة."
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Scan failed"
+msgstr "فشل الفحص"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Untranslated: {0}"
+msgstr "غير المترجم: {0}"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "New since previous scan: {0}"
+msgstr "الجديد منذ الفحص السابق: {0}"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Scan running…"
+msgstr "الفحص جارٍ…"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Strings"
+msgstr "النصوص"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Missing"
+msgstr "الناقص"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Scan now"
+msgstr "افحص الآن"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Export untranslated (CSV)"
+msgstr "تصدير غير المترجم (CSV)"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Import a filled CSV…"
+msgstr "استيراد CSV معبأ…"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Run {0}"
+msgstr "تشغيل {0}"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Source string, exactly as the app spells it"
+msgstr "النص المصدر، حرفيًا كما يكتبه التطبيق"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Its translation"
+msgstr "ترجمته"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Save translation"
+msgstr "حفظ الترجمة"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Proposals to review: {0}"
+msgstr "مقترحات للمراجعة: {0}"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Imported — created: {0}, updated: {1}, left empty: {2}"
+msgstr "استُورد — أُنشئ: {0}، حُدّث: {1}، تُرك فارغًا: {2}"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Provider: {0}. Strings: {1}. Estimated cost: ${2}. Cap: ${3}. Every result lands as a proposal to review — nothing is applied on its own."
+msgstr "المزوِّد: {0}. النصوص: {1}. التكلفة المقدرة: ${2}. السقف: ${3}. كل نتيجة تصل مقترحًا للمراجعة — لا شيء يُطبَّق من تلقاء نفسه."
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Saved — applies on the next page load."
+msgstr "حُفظ — يسري عند تحميل الصفحة التالي."
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Accept"
+msgstr "قبول"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Reject"
+msgstr "رفض"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Loading…"
+msgstr "جارٍ التحميل…"
+
+#. In i18n/api.py
+#. src: ai
+#, fuzzy
+msgid "Only a System Manager can manage translations."
+msgstr "لا يدير الترجمات إلا مدير النظام."
+
+#. In i18n/api.py
+#. src: ai
+#, fuzzy
+msgid "Unknown action."
+msgstr "إجراء غير معروف."
+
+#. In i18n/apply.py
+#. src: ai
+#, fuzzy
+msgid "This proposal has no text to accept."
+msgstr "هذا المقترح لا نص فيه ليُقبل."
+
+#. In i18n/providers.py
+#. src: ai
+#, fuzzy
+msgid "Bunood Translation Settings has no {0}."
+msgstr "إعدادات ترجمة بنود لا تحوي {0}."
+
+#. In i18n/scan.py
+#. src: ai
+#, fuzzy
+msgid "A scan is already running."
+msgstr "ثمة فحص قيد التشغيل بالفعل."
+
+#. The list-view kit (34a-adjacent, authored by the concurrent session).
+#. src: ai
+#, fuzzy
+msgid "List View"
+msgstr "عرض القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "List Picker"
+msgstr "منتقي القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "List Style"
+msgstr "نمط القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How rows draw their boundaries."
+msgstr "يضبطه المنتقي أعلاه. كيف ترسم الصفوف حدودها."
+
+#. src: ai
+#, fuzzy
+msgid "Hairline Rows"
+msgstr "صفوف بخط شعري"
+
+#. src: ai
+#, fuzzy
+msgid "Open Rows"
+msgstr "صفوف مفتوحة"
+
+#. src: ai
+#, fuzzy
+msgid "Zebra Stripes"
+msgstr "تظليل متناوب"
+
+#. src: ai
+#, fuzzy
+msgid "Floating Cards"
+msgstr "بطاقات عائمة"
+
+#. src: ai
+#, fuzzy
+msgid "List Hover"
+msgstr "تحويم القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How a row answers the pointer."
+msgstr "يضبطه المنتقي أعلاه. كيف يجيب الصف المؤشر."
+
+#. src: ai
+#, fuzzy
+msgid "Soft Wash"
+msgstr "صبغة ناعمة"
+
+#. src: ai
+#, fuzzy
+msgid "Edge Rail"
+msgstr "خط الحافة"
+
+#. src: ai
+#, fuzzy
+msgid "List Selection"
+msgstr "تحديد القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. Checked rows and the bulk header, as one treatment."
+msgstr "يضبطه المنتقي أعلاه. الصفوف المحددة ورأس الإجراءات الجماعية بمعالجة واحدة."
+
+#. src: ai
+#, fuzzy
+msgid "Soft Tint"
+msgstr "صبغة خفيفة"
+
+#. src: ai
+#, fuzzy
+msgid "Bold Bar"
+msgstr "شريط بارز"
+
+#. src: ai
+#, fuzzy
+msgid "Reveal Checkboxes on Hover"
+msgstr "إظهار مربعات الاختيار عند التحويم"
+
+#. src: ai
+#, fuzzy
+msgid "Checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens."
+msgstr "مربعات الاختيار تستقر مخفية وتظهر عند التحويم أو تركيز لوحة المفاتيح أو ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
+
+#. src: ai
+#, fuzzy
+msgid "List view"
+msgstr "عرض القائمة"
+
+#. src: ai
+#, fuzzy
+msgid "Stock ERPNext rows, untouched. The whole kit stands down."
+msgstr "صفوف ERPNext الأصلية، من غير مساس. العدة كلها تتنحى."
+
+#. src: ai
+#, fuzzy
+msgid "Quiet separators, maximum density — the classic admin look."
+msgstr "فواصل هادئة وأقصى كثافة — مظهر الإدارة الكلاسيكي."
+
+#. src: ai
+#, fuzzy
+msgid "No lines at all — spacing separates, hover defines."
+msgstr "بلا خطوط إطلاقًا — التباعد يفصل والتحويم يعرّف."
+
+#. src: ai
+#, fuzzy
+msgid "Alternating fill — the easiest row-tracking on wide tables."
+msgstr "تعبئة متناوبة — أسهل تتبع للصفوف في الجداول العريضة."
+
+#. src: ai
+#, fuzzy
+msgid "Each row a raised card — the modern look, a small density cost."
+msgstr "كل صف بطاقة مرتفعة — المظهر العصري، بكلفة كثافة صغيرة."
+
+#. src: ai
+#, fuzzy
+msgid "How a row answers the pointer."
+msgstr "كيف يجيب الصف المؤشر."
+
+#. src: ai
+#, fuzzy
+msgid "Selection"
+msgstr "التحديد"
+
+#. src: ai
+#, fuzzy
+msgid "Checked rows and the bulk header, as one treatment."
+msgstr "الصفوف المحددة ورأس الإجراءات الجماعية بمعالجة واحدة."
+
+#. src: ai
+#, fuzzy
+msgid "Reveal checkboxes on hover"
+msgstr "إظهار مربعات الاختيار عند التحويم"
+
+#. src: ai
+#, fuzzy
+msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch screens."
+msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
+
+#. src: ai
+#, fuzzy
+msgid "Original leaves the stock list untouched — nothing below applies."
+msgstr "«الأصلي» يترك القائمة الأصلية كما هي — لا شيء أدناه يسري."
+
+#. src: ai
+#, fuzzy
+msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."
+msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على اللمس."

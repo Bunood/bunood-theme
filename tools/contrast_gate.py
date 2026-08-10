@@ -193,6 +193,17 @@ def pairs():
         "#ffffff", "color-mix(in srgb, var(--bnd-brand) 96%, #ffffff)", None,
         "brand-pane ink at the gradient's lightest stop; see the brand-mode note",
     ))
+    # ── List view kit (item 16) ──────────────────────────────────────────────
+    # The selection wash and its inks, plus the rail against the wash. The
+    # wash is brand-tinted so it moves with every seed — exactly the shape
+    # item 32 proved cannot pass by luck.
+    SEL_BG = "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))"
+    out += [
+        ("var(--bnd-ink)", SEL_BG, AA_TEXT, "list selected-row text"),
+        ("var(--bnd-ink-muted)", SEL_BG, AA_TEXT, "list selected-row secondary text"),
+        ("var(--bnd-brand-solid, var(--bnd-brand))", SEL_BG, AA_NON_TEXT,
+         "list selection rail against the selected wash"),
+    ]
     return out
 
 
