@@ -90,16 +90,65 @@ in the same `drop_on`, so neither rots alone. Zones come from
 elsewhere. Three suite tests own it (`board:`). The per-component pickers
 remain as the detail view.
 
-**ITEM 16 IS DONE** (2026-08-10) — the list view, the first surface kit and
-the first Phase 2 item. Five `list_*` fields, `surfaces/_list.scss` with the
-working-set pattern, `bunood.list_apply` from day one (the status kit's
-missing-hook failure class, not repeated), the bulk header restyled in place
-(probed live: `.checkbox-actions` inside `.list-row-head`; checked rows carry
-NO native class, so selection rides `:has()` with the stock-mark soft
-failure). Three new contrast pairs enforced (1,848 total). The two test bugs
-its own family caught: the first `.list-row-container` is the HEADER, and
-`.result` interleaves non-row nodes — "consecutive data rows" is the honest
-zebra unit, not child parity.
+**NEXT SESSION: ITEM 18 — Form view** (sections, tabs, child grids, form
+sidebar), to be opened IN PLAN MODE per the user. What that session needs:
+
+* **Release state**: item 16 is committed (implementation rode in `3c85e7c`
+  with its translations; verification closed in `1676b0c`) but **v0.13.0 is
+  NOT released — nothing is pushed**. The moment the user says "push it",
+  the standing chain runs unprompted: push theme `main` → annotated tag
+  `v0.13.0` → `node tools/payload.mjs --record v0.13.0` + commit the ledger
+  row → push the tag → bump the pin in the bunood repo's `apps.json`
+  (`ci: pin bunood-theme v0.13.0 — …`, rebase if origin moved) → push
+  (Coolify deploys; the compose `migrate` service migrates). Never start it
+  uninvited.
+* **Item 18 is the SECOND surface kit** — same anatomy as the list kit, in
+  the same 16-file order (registry SURFACES entry → doctype fields →
+  presets → setup → boot → `apply_*_attrs` + the MANDATORY `bunood.*_apply`
+  hook → `surfaces/_form.scss` working-set blocks → picker trio →
+  contrast pairs → fingerprint → ar.csv → suite family). The list kit is
+  the template to diff against, `surfaces/_list.scss`'s header the contract
+  to copy the shape of.
+* **Probe BEFORE designing** (the bulk-header lesson, below, is why): the
+  form DOM unknowns are section/column markup (`.form-section`?), the tabs
+  bar element and its active marker, child grid rows (`.grid-body`,
+  `.grid-row` — does the grid share list DOM?), the form sidebar element,
+  and whether any of these carry state classes or only stylesheet-hidden
+  nodes. Probe with `tools/session.mjs` against a doctype that HAS tabs +
+  child tables (Item or Sales Order). Distrust truncated HTML dumps — the
+  300-char truncation is what caused the wrong bulk-header inference.
+* **Wireframes are the user's decision point**: options per axis, the user
+  picks; they have consistently preferred the bolder option (Floating
+  Cards, Bold Bar, solid side pane). Record picks in commit body + ROADMAP.
+* **Known traps that WILL recur**: any new picker card class must join the
+  sweep's CRUMBS_ONLY exclusion AND its IMPLICIT map (`.bnd-lvp-style` was
+  the fourth incident); the change-dot test now pins ALL of MUTABLE_FIELDS
+  to shipped — never re-add a hand-picked polluter list; new suite fields
+  join MUTABLE_FIELDS or teardown clobbers them; the other session may
+  commit your working tree (3c85e7c did) — check `git log -- <file>` before
+  assuming your files are uncommitted; cold bench after deploy = §4.
+* **Deferred and waiting, not lost**: the floating selection bar
+  (frappe-ui ListSelectBanner precedent, ~2 KB injected JS, must respect
+  `--bnd-bottom-reserve`), with a fourth `list_selection` option slot
+  reserved so the field doesn't churn. It is its own follow-up slice, not
+  part of item 18.
+
+**ITEM 16 IS DONE** (2026-08-10, closed at `1676b0c` — full gate 173/173,
+sweep clean, contrast 1,848 pairs, payload within ceiling) — the list view,
+the first surface kit and the first Phase 2 item. Five `list_*` fields,
+`surfaces/_list.scss` with the working-set pattern, `bunood.list_apply` from
+day one (the status kit's missing-hook failure class, not repeated), the bulk
+header restyled in place (probed live: `.checkbox-actions` inside
+`.list-row-head`; checked rows carry NO native class, so selection rides
+`:has()` with the stock-mark soft failure). Three new contrast pairs enforced
+(1,848 total). The two test bugs its own family caught: the first
+`.list-row-container` is the HEADER, and `.result` interleaves non-row nodes
+— "consecutive data rows" is the honest zebra unit, not child parity. And the
+kit bug only axe caught: `.checkbox-actions` EXISTS at rest (stylesheet-
+hidden, no inline marker), so gating the bulk header on `:has()` of its mere
+presence painted every header brand-solid under Frappe's muted ink (1.79:1).
+The regate rides `.frappe-list:has(.list-row-checkbox:checked)` — style on
+the *user's signal*, never on a node's existence.
 
 **ITEM 7 IS DONE** (2026-08-09) — RTL & Arabic as a MECHANISM. Nothing lists
 the strings: `tools/i18n.mjs` derives the catalogue every build (Frappe's own
