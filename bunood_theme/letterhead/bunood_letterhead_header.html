@@ -1,0 +1,40 @@
+{#- ============================================================================
+    Bunood Letter Head — HEADER (bilingual)
+    ----------------------------------------------------------------------------
+    Layout: Arabic legal name on the RIGHT · logo in the CENTER · English name
+    on the LEFT. The right/left placement is a DELIBERATE bilingual-letterhead
+    convention (physical), not RTL — keep it fixed.
+
+    SELF-CONTAINED: styles are inline because a PDF header renders in isolation
+    (parent/theme CSS + design tokens do NOT reach it). The hex values mirror the
+    Bunood primitives (green #1F5145 / gold #C8923C / ink #12251F / muted
+    #5C6B66) — keep in sync with docs/design-tokens.md by hand.
+
+    DATA: map the variables to YOUR Company fields on the bench. `name_ar` reads
+    an Arabic-name field ONLY (no Latin fallback), so if it is unmapped the right
+    cell is intentionally blank rather than duplicating the English name. Requires
+    an Arabic font (Cairo/Amiri/Tajawal, or the Noto Arabic fallbacks) installed
+    on the PDF server — see letterhead/README.md.
+    ============================================================================ -#}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
+{%- set name_ar = (_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") -%}
+{%- set name_en = (_c.company_name if _c else "") -%}
+{%- set logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:#12251F; padding:4px 6px 0;">
+  <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+    <tr>
+      <td style="width:39%; text-align:right; vertical-align:middle; font-size:15px; font-weight:700; line-height:1.35;">
+        {{ name_ar | e }}
+      </td>
+      <td style="width:22%; text-align:center; vertical-align:middle;">
+        {% if logo %}<img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">{% endif %}
+      </td>
+      <td style="width:39%; text-align:left; vertical-align:middle; direction:ltr; font-size:13px; font-weight:600; color:#5C6B66; line-height:1.35;">
+        {{ name_en | e }}
+      </td>
+    </tr>
+  </table>
+  {#- brand rule as BORDERS (not background) so it prints on every engine incl. headless Chrome -#}
+  <div style="border-top:2px solid #C8923C; margin-top:8px;"></div>
+  <div style="border-top:2px solid #1F5145;"></div>
+</div>

@@ -1,0 +1,34 @@
+{#- Managed by bunood_theme: edits here are overwritten on every migrate.
+    بونود — سند قيد (Journal Entry). جدول مدين/دائن + الإجماليات. -#}
+{% from "templates/bunood_print_macros.html" import doc_title, sig_row %}
+<div class="bnd-p bnd-p--a4">
+  {{ doc_title("سند قيد", "JOURNAL VOUCHER") }}
+  <table class="bnd-p-meta">
+    <tr><td>رقم القيد / Entry No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+    <tr><td>التاريخ / Date</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>
+    {% if doc.get("cheque_no") %}<tr><td>المرجع / Ref</td><td dir="ltr">{{ doc.cheque_no | e }}{% if doc.get("cheque_date") %} — {{ doc.get_formatted("cheque_date") }}{% endif %}</td></tr>{% endif %}
+  </table>
+
+  <table class="bnd-p-items">
+    <thead><tr>
+      <th>الحساب / Account</th><th class="n">مدين / Debit</th><th class="n">دائن / Credit</th>
+    </tr></thead>
+    <tbody>
+    {% for r in doc.accounts %}
+      <tr>
+        <td>{{ r.account | e }}{% if r.get("party") %}<div class="bnd-p-items__d">{{ r.party_type | e }}: {{ r.party | e }}</div>{% endif %}</td>
+        <td class="n num">{{ r.get_formatted("debit", doc) }}</td>
+        <td class="n num">{{ r.get_formatted("credit", doc) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <th>الإجمالي / Total</th>
+      <th class="n num">{{ doc.get_formatted("total_debit") }}</th>
+      <th class="n num">{{ doc.get_formatted("total_credit") }}</th>
+    </tr></tfoot>
+  </table>
+
+  {% if doc.get("user_remark") %}<div class="bnd-p-words">البيان: {{ doc.user_remark | e }}</div>{% endif %}
+  {{ sig_row() }}
+</div>

@@ -1,0 +1,121 @@
+/* ============================================================================
+   Bunood Print Style — GLOBAL print CSS, installed as Print Style "Bunood" and
+   set as the system default (Print Settings.print_style, once). Every print
+   format in every app — current and future — inherits it automatically.
+
+   NOTE: the .print-format block intentionally retypesets ALL formats site-wide
+   (that is the point of a system default); everything else stays bnd-p-
+   namespaced so third-party formats are never touched structurally.
+
+   ENGINE RULES (wkhtmltopdf = old WebKit 534):
+   - TABLES, never flex (display:flex is dropped silently there).
+   - TTF @font-face below (woff2 unsupported); ALSO install an Arabic font on
+     the PDF server (Cairo/Amiri, or fonts-noto-naskh-arabic) — @font-face over
+     http can still fail on locked-down setups, fontconfig is the safety net.
+   - Hex mirrors the Bunood primitives (green #1F5145 / gold #C8923C / ink
+     #12251F / muted #5C6B66 / border #DCE6E2) — tokens can't reach the PDF
+     engine; keep in sync with docs/design-tokens.md by hand.
+   ============================================================================ */
+
+/* Brand fonts, self-hosted TTF (old wkhtmltopdf can't read woff2) */
+@font-face { font-family: 'Cairo'; src: url('/assets/bunood_theme/fonts/cairo/Cairo-Variable.ttf') format('truetype'); font-weight: 200 900; font-display: swap; }
+@font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+
+.print-format {
+  font-family: 'Cairo', 'Amiri', 'Tajawal', 'Noto Naskh Arabic', 'Noto Sans Arabic', sans-serif;
+  color: #12251F;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.print-format .num { font-variant-numeric: tabular-nums; }
+
+/* Bunood formats are Arabic-first: pin RTL regardless of the print-dialog
+   language (numeric/ID cells carry explicit dir="ltr" in the markup).
+   Non-Bunood formats (no .bnd-p wrapper) are untouched. */
+.bnd-p { direction: rtl; }
+.bnd-p-lat { letter-spacing: 1px; }
+
+/* ===== bilingual title ===== */
+.bnd-p-title { text-align: center; margin: 6px 0 12px; }
+.bnd-p-title__ar { font-size: 19px; font-weight: 800; color: #1F5145; }
+.bnd-p-title__en { font-size: 12px; font-weight: 600; color: #5C6B66; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ===== head row (meta + QR) — TABLE, not flex ===== */
+.bnd-p-head { width: 100%; border-collapse: collapse; }
+.bnd-p-head td { border: none; padding: 0; vertical-align: top; }
+.bnd-p-head__qr { width: 130px; text-align: left; }
+.bnd-p-qr { border: 1px solid #DCE6E2; padding: 3px; }
+.bnd-p-qr-missing {
+  width: 120px; border: 2px dashed #DC2626; color: #DC2626;
+  font-size: 9px; font-weight: 700; text-align: center; padding: 8px 6px;
+}
+
+/* ===== meta box ===== */
+.bnd-p-meta { border-collapse: collapse; margin-bottom: 10px; }
+.bnd-p-meta td { border: 1px solid #DCE6E2; padding: 4px 10px; }
+.bnd-p-meta td:first-child {
+  color: #5C6B66; background: #F6F8F7;
+  -webkit-print-color-adjust: exact; color-adjust: exact; print-color-adjust: exact;
+}
+
+/* ===== party block ===== */
+.bnd-p-party { width: 100%; border-collapse: collapse; margin: 8px 0 12px; table-layout: fixed; }
+.bnd-p-party td { border: 1px solid #DCE6E2; padding: 8px 10px; vertical-align: top; }
+.bnd-p-party__h { font-size: 10px; font-weight: 700; color: #C8923C; margin-bottom: 3px; }
+.bnd-p-party__n { font-weight: 700; }
+.bnd-p-party__a { color: #5C6B66; font-size: 11px; }
+
+/* ===== items table ===== */
+.bnd-p-items { width: 100%; border-collapse: collapse; margin: 6px 0 10px; }
+.bnd-p-items th {
+  border: 1px solid #1F5145; border-bottom-width: 2px; padding: 6px 8px;
+  background: #F6F8F7; color: #1F5145; font-weight: 700; font-size: 11px;
+  -webkit-print-color-adjust: exact; color-adjust: exact; print-color-adjust: exact;
+}
+.bnd-p-items td { border: 1px solid #DCE6E2; padding: 6px 8px; }
+.bnd-p-items .c { text-align: center; width: 28px; }
+.bnd-p-items .n { text-align: left; direction: ltr; white-space: nowrap; }
+.bnd-p-items__d { color: #5C6B66; font-size: 10px; }
+
+/* ===== totals (old-WebKit prefixed margin first, standard last) ===== */
+.bnd-p-totals { border-collapse: collapse; -webkit-margin-start: auto; margin-inline-start: auto; min-width: 46%; }
+.bnd-p-totals td { border: 1px solid #DCE6E2; padding: 5px 10px; }
+.bnd-p-totals td:first-child { color: #5C6B66; }
+.bnd-p-totals .g td { border-top: 2px solid #C8923C; font-weight: 800; color: #1F5145; font-size: 13px; }
+.bnd-p-words { margin-top: 6px; padding: 6px 10px; border: 1px dashed #DCE6E2; color: #5C6B66; font-size: 11px; }
+
+/* ===== signatures ===== */
+.bnd-p-sigs { width: 100%; border-collapse: collapse; margin-top: 34px; text-align: center; color: #5C6B66; font-size: 11px; }
+.bnd-p-sigs td { padding: 0 16px; }
+.bnd-p-sigs__line { border-bottom: 1px solid #12251F; margin-bottom: 5px; height: 26px; }
+
+/* ===== voucher amount box ===== */
+.bnd-p-amountbox { border: 2px solid #1F5145; border-radius: 6px; padding: 10px 16px; text-align: center; margin: 10px 0; }
+.bnd-p-amountbox__v { font-size: 20px; font-weight: 800; color: #1F5145; direction: ltr; }
+.bnd-p-amountbox__l { font-size: 10px; color: #5C6B66; }
+
+/* ===== thermal (80mm) — pure black ink: 203dpi monochrome heads have no
+   grayscale (mid-grays dither/vanish); brand color stays on A4/browser ===== */
+.bnd-p--thermal { width: 72mm; margin: 0 auto; font-size: 10.5px; text-align: center; color: #000; }
+.bnd-p-th-co { font-weight: 800; font-size: 13px; color: #000; }
+.bnd-p-th-sub { color: #000; font-size: 9.5px; }
+.bnd-p-th-title { font-weight: 800; font-size: 12px; margin: 3px 0; }
+.bnd-p-th-title span { font-weight: 600; font-size: 9.5px; color: #000; letter-spacing: 1px; }
+.bnd-p-th-rule { border-top: 1px dashed #000; margin: 5px 0; }
+.bnd-p-th-item__n { text-align: right; font-weight: 700; }
+/* label/amount pairs — TABLE (flex collapses in wkhtmltopdf) */
+.bnd-p-th-l { width: 100%; border-collapse: collapse; }
+.bnd-p-th-l td { border: none; padding: 1px 0; }
+.bnd-p-th-l .s { text-align: right; }
+.bnd-p-th-l .e { text-align: left; }
+.bnd-p-th-l--g { font-weight: 800; font-size: 12.5px; border-top: 1px solid #000; margin-top: 3px; }
+.bnd-p-th-l--g td { padding-top: 3px; }
+.bnd-p--thermal .bnd-p-qr, .bnd-p--thermal .bnd-p-qr-missing { margin: 6px auto 2px; display: block; }
+
+/* ===== dot-matrix base (pre-printed / continuous forms) — Courier has no
+   Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced ===== */
+.bnd-p--matrix { font-family: 'Courier New', 'Cairo', 'Noto Naskh Arabic', monospace; font-size: 11px; color: #000; }
+.bnd-p--matrix table { border-collapse: collapse; width: 100%; }
+.bnd-p--matrix th, .bnd-p--matrix td { border: none; padding: 2px 6px; }
+.bnd-p--matrix th { border-bottom: 1px solid #000; text-align: right; }

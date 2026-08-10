@@ -1,0 +1,157 @@
+{#- ============================================================================
+    Bunood Print Macros — SHARED print building blocks for ALL apps.
+    ----------------------------------------------------------------------------
+    Any print format in ANY app (bunood_realestate, future apps…) imports these:
+
+        {% from "templates/bunood_print_macros.html" import
+           doc_title, invoice_meta, party_block, items_table, totals_block,
+           zatca_qr, thermal_head, thermal_items, thermal_totals, sig_row %}
+
+    Styling comes from the global Print Style "Bunood" (bunood_print_style.css).
+    Layout uses TABLES (not flex) — wkhtmltopdf's old WebKit drops display:flex.
+    Server helpers (hooks jinja.methods, guarded with `is defined` so copies of
+    these macros never crash elsewhere): bunood_zatca_qr_src (QR incl.
+    ksa_compliance Additional Fields), bunood_vat_totals (VAT-only, never
+    freight), bunood_item_vat_map (per-line VAT rate/amount).
+    ============================================================================ -#}
+
+{#- Bilingual document title -#}
+{% macro doc_title(ar, en) -%}
+<div class="bnd-p-title"><div class="bnd-p-title__ar">{{ ar | e }}</div><div class="bnd-p-title__en">{{ en | e }}</div></div>
+{%- endmacro %}
+
+{#- Invoice meta box: number / dates / credit-note reference / supply date -#}
+{% macro invoice_meta(doc) -%}
+<table class="bnd-p-meta">
+  <tr><td>رقم الفاتورة / Invoice No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+  {% if doc.get("return_against") %}<tr><td>مرجع الفاتورة الأصلية / Original Invoice</td><td dir="ltr">{{ doc.return_against | e }}</td></tr>{% endif %}
+  {% if doc.get("posting_date") %}<tr><td>التاريخ / Date</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>{% endif %}
+  {% if doc.get("posting_time") %}<tr><td>الوقت / Time</td><td dir="ltr">{{ doc.get_formatted("posting_time") }}</td></tr>{% endif %}
+  {% if doc.get("custom_supply_date") %}<tr><td>تاريخ التوريد / Supply Date</td><td dir="ltr">{{ doc.get_formatted("custom_supply_date") }}</td></tr>{% endif %}
+  {% if doc.get("due_date") %}<tr><td>الاستحقاق / Due</td><td dir="ltr">{{ doc.get_formatted("due_date") }}</td></tr>{% endif %}
+</table>
+{%- endmacro %}
+
+{#- ZATCA QR. required=True (simplified invoices) renders a visible warning
+    instead of silence when the QR is missing — QR is mandatory there. -#}
+{% macro zatca_qr(doc, size=110, required=False) -%}
+{%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
+{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ size }}px;height:{{ size }}px">
+{% elif required %}<div class="bnd-p-qr-missing">رمز الاستجابة QR غير متوفر — لا تصلح فاتورة ضريبية مبسطة<br>QR missing — not valid as a simplified tax invoice</div>{% endif %}
+{%- endmacro %}
+
+{#- Seller/Buyer block. Seller VAT ALWAYS renders (placeholder when unset —
+    a mandatory field silently missing is how audits are failed). -#}
+{% macro party_block(doc, simplified=False) -%}
+<table class="bnd-p-party">
+  <tr>
+    <td>
+      <div class="bnd-p-party__h">البائع / <span class="bnd-p-lat">Seller</span></div>
+      <div class="bnd-p-party__n">{{ doc.get("company") | e }}</div>
+      <div>الرقم الضريبي / VAT: {% if doc.get("company_tax_id") %}<span dir="ltr">{{ doc.company_tax_id | e }}</span>{% else %}<b>غير مُعدّ / NOT SET</b>{% endif %}</div>
+      {% if doc.get("company_address_display") %}<div class="bnd-p-party__a">{{ doc.get("company_address_display") }}</div>{% endif %}
+    </td>
+    <td>
+      <div class="bnd-p-party__h">المشتري / <span class="bnd-p-lat">Buyer</span></div>
+      <div class="bnd-p-party__n">{{ (doc.get("customer_name") or doc.get("party_name") or "") | e }}</div>
+      {% if not simplified %}
+        {% if doc.get("tax_id") %}<div>الرقم الضريبي / VAT: <span dir="ltr">{{ doc.tax_id | e }}</span></div>
+        {% elif doc.get("custom_buyer_cr") %}<div>السجل التجاري / CR: <span dir="ltr">{{ doc.custom_buyer_cr | e }}</span></div>{% endif %}
+        {% if doc.get("address_display") %}<div class="bnd-p-party__a">{{ doc.get("address_display") }}</div>{% endif %}
+      {% endif %}
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{#- A4 items table with per-line VAT rate/amount (mixed-rate invoices — e.g.
+    exempt residential rent + 15% commercial — stay readable) -#}
+{% macro items_table(doc) -%}
+{%- set vmap = bunood_item_vat_map(doc) if bunood_item_vat_map is defined else {} -%}
+<table class="bnd-p-items">
+  <thead><tr>
+    <th class="c">#</th><th>الصنف / Item</th><th class="n">الكمية<br>Qty</th>
+    <th class="n">السعر<br>Rate</th><th class="n">الضريبة٪<br>VAT%</th><th class="n">الإجمالي<br>Amount</th>
+  </tr></thead>
+  <tbody>
+  {% for row in doc.items %}
+    {%- set v = vmap.get(row.get("item_code")) if vmap else None -%}
+    <tr>
+      <td class="c">{{ loop.index }}</td>
+      <td>{{ row.item_name | e }}{% if row.get("description") and row.description != row.item_name %}<div class="bnd-p-items__d">{{ row.description }}</div>{% endif %}</td>
+      <td class="n num">{{ row.get_formatted("qty") }}</td>
+      <td class="n num">{{ row.get_formatted("rate", doc) }}</td>
+      <td class="n num">{% if v %}{{ v.rate }}%{% else %}&mdash;{% endif %}</td>
+      <td class="n num">{{ row.get_formatted("amount", doc) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{%- endmacro %}
+
+{#- Totals: net / discount / VAT-only / rounding / payable + SAR row for
+    foreign-currency invoices (KSA Art.53: VAT must show in SAR) -#}
+{% macro totals_block(doc) -%}
+{%- set vt = bunood_vat_totals(doc) if bunood_vat_totals is defined else None -%}
+{%- set use_rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") -%}
+<table class="bnd-p-totals">
+  <tr><td>الإجمالي قبل الضريبة / Subtotal</td><td class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
+  {% if doc.get("discount_amount") %}<tr><td>الخصم / Discount</td><td class="num" dir="ltr">{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
+  <tr><td>ضريبة القيمة المضافة / VAT{% if vt and vt.rate %} ({{ vt.rate }}%){% endif %}</td>
+      <td class="num" dir="ltr">{% if vt and vt.vat %}{{ vt.vat }}{% else %}{{ doc.get_formatted("total_taxes_and_charges") }}{% endif %}</td></tr>
+  {% if vt and vt.vat_base %}<tr><td>الضريبة بالريال / VAT (SAR)</td><td class="num" dir="ltr">{{ vt.vat_base }}</td></tr>{% endif %}
+  {% if use_rounded %}
+  <tr><td>الإجمالي / Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
+  {% if doc.get("rounding_adjustment") %}<tr><td>تسوية التقريب / Rounding</td><td class="num" dir="ltr">{{ doc.get_formatted("rounding_adjustment") }}</td></tr>{% endif %}
+  <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("rounded_total") }}</td></tr>
+  {% else %}
+  <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
+  {% endif %}
+</table>
+{% if doc.get("in_words") %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{%- endmacro %}
+
+{#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}
+{% macro thermal_head(doc, title_ar, title_en) -%}
+<div class="bnd-p-th-co">{{ doc.get("company") | e }}</div>
+<div class="bnd-p-th-sub">الرقم الضريبي: {% if doc.get("company_tax_id") %}<span dir="ltr">{{ doc.company_tax_id | e }}</span>{% else %}<b>غير مُعدّ</b>{% endif %}</div>
+{% if doc.get("company_address_display") %}<div class="bnd-p-th-sub">{{ doc.get("company_address_display") }}</div>{% endif %}
+<div class="bnd-p-th-rule"></div>
+<div class="bnd-p-th-title">{{ title_ar | e }}<br><span>{{ title_en | e }}</span></div>
+<div class="bnd-p-th-sub" dir="ltr">{{ doc.name | e }}</div>
+{% if doc.get("posting_date") %}<div class="bnd-p-th-sub" dir="ltr">{{ doc.get_formatted("posting_date") }} {{ doc.get_formatted("posting_time") if doc.get("posting_time") else "" }}</div>{% endif %}
+<div class="bnd-p-th-rule"></div>
+{%- endmacro %}
+
+{#- Thermal item lines — table-based (flex is dropped by wkhtmltopdf) -#}
+{% macro thermal_items(doc) -%}
+{% for row in doc.items %}
+<div class="bnd-p-th-item__n">{{ row.item_name | e }}</div>
+<table class="bnd-p-th-l"><tr>
+  <td class="s"><span class="num" dir="ltr">{{ row.get_formatted("qty") }} × {{ row.get_formatted("rate", doc) }}</span></td>
+  <td class="e"><span class="num" dir="ltr">{{ row.get_formatted("amount", doc) }}</span></td>
+</tr></table>
+{% endfor %}
+<div class="bnd-p-th-rule"></div>
+{%- endmacro %}
+
+{#- Thermal totals — table-based; VAT-only; rounded-total aware; no hardcoded rate -#}
+{% macro thermal_totals(doc) -%}
+{%- set vt = bunood_vat_totals(doc) if bunood_vat_totals is defined else None -%}
+{%- set use_rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") -%}
+<table class="bnd-p-th-l">
+  <tr><td class="s">قبل الضريبة</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</span></td></tr>
+  <tr><td class="s">ضريبة القيمة المضافة{% if vt and vt.rate %} {{ vt.rate }}%{% endif %}</td>
+      <td class="e"><span class="num" dir="ltr">{% if vt and vt.vat %}{{ vt.vat }}{% else %}{{ doc.get_formatted("total_taxes_and_charges") }}{% endif %}</span></td></tr>
+</table>
+<table class="bnd-p-th-l bnd-p-th-l--g">
+  <tr><td class="s">الإجمالي</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("rounded_total") if use_rounded else doc.get_formatted("grand_total") }}</span></td></tr>
+</table>
+{%- endmacro %}
+
+{#- Signatures row (vouchers / A4) -#}
+{% macro sig_row(labels=["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"]) -%}
+<table class="bnd-p-sigs"><tr>
+  {% for l in labels %}<td><div class="bnd-p-sigs__line"></div>{{ l | e }}</td>{% endfor %}
+</tr></table>
+{%- endmacro %}

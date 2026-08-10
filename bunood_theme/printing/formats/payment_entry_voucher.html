@@ -1,0 +1,35 @@
+{#- Managed by bunood_theme: edits here are overwritten on every migrate.
+    بونود — سند قبض/صرف (Payment Entry). العنوان يتبدّل حسب نوع الحركة. -#}
+{% from "templates/bunood_print_macros.html" import doc_title, sig_row %}
+{% set is_receive = doc.payment_type == "Receive" %}
+<div class="bnd-p bnd-p--a4">
+  {{ doc_title("سند قبض" if is_receive else ("سند صرف" if doc.payment_type == "Pay" else "سند تحويل داخلي"),
+               "RECEIPT VOUCHER" if is_receive else ("PAYMENT VOUCHER" if doc.payment_type == "Pay" else "INTERNAL TRANSFER")) }}
+  <table class="bnd-p-meta">
+    <tr><td>رقم السند / Voucher No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+    <tr><td>التاريخ / Date</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>
+    {% if doc.get("mode_of_payment") %}<tr><td>طريقة الدفع / Mode</td><td>{{ doc.mode_of_payment | e }}</td></tr>{% endif %}
+    {% if doc.get("reference_no") %}<tr><td>رقم المرجع / Ref</td><td dir="ltr">{{ doc.reference_no | e }}{% if doc.get("reference_date") %} — {{ doc.get_formatted("reference_date") }}{% endif %}</td></tr>{% endif %}
+  </table>
+
+  <div class="bnd-p-amountbox">
+    <div class="bnd-p-amountbox__l">{{ "استلمنا من" if is_receive else "صرفنا إلى" }} / {{ "Received From" if is_receive else "Paid To" }}</div>
+    <div class="bnd-p-party__n">{{ (doc.get("party_name") or doc.get("party") or "—") | e }}</div>
+    <div class="bnd-p-amountbox__v num">{{ doc.get_formatted("paid_amount") }} {{ doc.get("paid_from_account_currency") or "" }}</div>
+  </div>
+
+  {% if doc.get("references") %}
+  <table class="bnd-p-items">
+    <thead><tr><th>المستند / Against</th><th class="n">المبلغ / Allocated</th></tr></thead>
+    <tbody>
+    {% for r in doc.references %}
+      <tr><td>{{ r.reference_doctype | e }} — <span dir="ltr">{{ r.reference_name | e }}</span></td>
+          <td class="n num">{{ r.get_formatted("allocated_amount", doc) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if doc.get("remarks") %}<div class="bnd-p-words">البيان: {{ doc.remarks | e }}</div>{% endif %}
+  {{ sig_row() }}
+</div>

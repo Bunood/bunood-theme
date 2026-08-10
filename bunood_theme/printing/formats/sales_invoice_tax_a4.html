@@ -1,0 +1,16 @@
+{#- Managed by bunood_theme: edits here are overwritten on every migrate.
+    Duplicate this Print Format in Desk to customize per client.
+    بونود — فاتورة ضريبية (A4). Letter Head يوفّر ترويسة الشركة؛ هنا جسم الفاتورة.
+    مرتجع (is_return) يُعنون تلقائياً «إشعار دائن» ويعرض مرجع الفاتورة الأصلية. -#}
+{% from "templates/bunood_print_macros.html" import doc_title, invoice_meta, party_block, items_table, totals_block, zatca_qr, sig_row %}
+<div class="bnd-p bnd-p--a4">
+  {% if doc.get("is_return") %}{{ doc_title("إشعار دائن", "CREDIT NOTE") }}{% else %}{{ doc_title("فاتورة ضريبية", "TAX INVOICE") }}{% endif %}
+  <table class="bnd-p-head"><tr>
+    <td>{{ invoice_meta(doc) }}</td>
+    <td class="bnd-p-head__qr">{{ zatca_qr(doc, 110) }}</td>
+  </tr></table>
+  {{ party_block(doc, simplified=False) }}
+  {{ items_table(doc) }}
+  {{ totals_block(doc) }}
+  {{ sig_row() }}
+</div>
