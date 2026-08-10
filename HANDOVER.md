@@ -411,6 +411,20 @@ wsl -- bash -lc 'cp ~/bunood/compose.local.yaml.bak ~/bunood/compose.local.yaml 
 Reads through the mount are ~3.4× slower than the image filesystem (0.54 ms vs
 0.16 ms per read) — measured, and small enough not to matter.
 
+**The second sharp edge — the empty mount on engine start** (hit 2026-08-09).
+WSL died mid-suite under memory pressure and took the Docker engine with it;
+on relaunch, the containers auto-start with the engine (restart policy) and
+RACE the Ubuntu distro. If they mount before Ubuntu's filesystem is up, the
+mirror resolves EMPTY: `apps/bunood_theme` exists but has nothing in it,
+`apps.txt` is intact, and every request dies with `ModuleNotFoundError:
+No module named 'bunood_theme'`. The recovery is NOT a recreate (that is the
+first sharp edge): start Ubuntu, confirm the mirror has content
+(`wsl -d Ubuntu -- ls ~/bunood-theme`), then plain-`docker restart` the app
+containers — the remount resolves correctly and nothing in the writable
+layers is touched. Related watcher lesson: **0% backend CPU is also what
+dead looks like** — any "machine is quiet" check must include a liveness
+probe (an HTTP 200 from the site), or it will read a dying stack as calm.
+
 ---
 
 ## 6. Where the new code lives
