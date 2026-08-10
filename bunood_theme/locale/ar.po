@@ -20,3864 +20,3215 @@ msgstr ""
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Arabic Font"
 msgstr "الخط العربي"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
 msgstr "مستضاف ذاتيًا، خط واحد لكل موقع، يُجلب مرة واحدة ويُخزن مؤقتًا للأبد. «النظام» يستخدم ما يشحنه الجهاز، وهو يختلف من منصة إلى أخرى."
 
 #. Option for 'Arabic Font' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "System"
 msgstr "النظام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "1 minute"
 msgstr "دقيقة واحدة"
 
 #. Option for 'Clock' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "12 Hour"
 msgstr "12 ساعة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "12 hour"
 msgstr "12 ساعة"
 
 #. Option for 'Clock' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "24 Hour"
 msgstr "24 ساعة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "24 hour"
 msgstr "24 ساعة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "30 seconds"
 msgstr "30 ثانية"
 
 #. Option for 'Refresh Interval' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "30s"
 msgstr "30 ث"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "5 minutes"
 msgstr "5 دقائق"
 
 #. Option for 'Refresh Interval' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "5min"
 msgstr "5 د"
 
 #. Option for 'Refresh Interval' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "60s"
 msgstr "60 ث"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "A copy button appears on the last crumb when the title row is hovered."
 msgstr "يظهر زر نسخ على العنصر الأخير عند التحويم على صف العنوان."
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "A floating pill of workspace icons. It replaces the side pane rather than joining it: while the dock is shown the side pane is hidden, and switching the dock off gives the side pane straight back. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
 msgstr "كبسولة عائمة من أيقونات مساحات العمل. تحل محل اللوحة الجانبية ولا تنضم إليها: ما دام شريط الإرساء ظاهرًا تبقى اللوحة الجانبية مخفية، وإيقافه يعيدها فورًا. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي."
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
 msgstr "شريط عام فوق كل صفحة يحمل ما تضعه فيه. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "A healthy desk shows almost nothing. A signal appears only once it needs you."
 msgstr "المكتب السليم لا يكاد يعرض شيئًا. الإشارة تظهر فقط حين تحتاج إليك."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "A leading > # or / narrows to actions, documents, or reports."
 msgstr "بدء السطر بـ > أو # أو / يحصر النتائج في الإجراءات أو المستندات أو التقارير."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "A separate slim strip of every app for one-click switching."
 msgstr "شريط رفيع منفصل يعرض كل تطبيق للتبديل بنقرة واحدة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "A slim keycap legend along the palette's bottom edge."
 msgstr "دليل مفاتيح رفيع على الحافة السفلية للوحة."
 
 #. Label of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Accent Color"
 msgstr "اللون المميز"
 
 #. Label of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Accent Color (Dark Mode)"
 msgstr "اللون المميز (الوضع الداكن)"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Accent Rail"
 msgstr "الخط المميز"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Accent rail"
 msgstr "الخط المميز"
 
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Accordion Cards"
 msgstr "بطاقات قابلة للطي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Accordion cards"
 msgstr "بطاقات قابلة للطي"
 
 #. Option for 'Bell Badge' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Action Count"
 msgstr "عدد المهام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Action count"
 msgstr "عدد المهام"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Active Link Style"
 msgstr "نمط الرابط النشط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Active link"
 msgstr "الرابط النشط"
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Adjusted for readability"
 msgstr "عُدّل من أجل المقروئية"
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Adjusted for readability: {details}"
 msgstr "عُدّل من أجل المقروئية: {details}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Airy"
 msgstr "هوائي"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "All Apps"
 msgstr "كل التطبيقات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "All Apps Link Placement"
 msgstr "موضع رابط كل التطبيقات"
 
 #. Option for 'Arrival Behaviour' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "All Toasts"
 msgstr "كل التنبيهات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "All read"
 msgstr "الكل مقروء"
 
 #. Option for 'Menu Rail' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Always Expanded"
 msgstr "موسعة دائمًا"
 
 #. Option for 'Status Bar' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Always On"
 msgstr "دائم العرض"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Always expanded"
 msgstr "موسعة دائمًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "An always-visible expand/collapse control on the rail."
 msgstr "زر توسيع/طي ظاهر دائمًا على السكة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "An approval that blocks a document earns an interruption; a share notification does not."
 msgstr "الموافقة التي تعطّل مستندًا تستحق المقاطعة؛ أما إخطار المشاركة فلا."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Appearance"
 msgstr "المظهر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Applies as you click."
 msgstr "يسري وأنت تنقر."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Approval"
 msgstr "موافقة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Approvals"
 msgstr "الموافقات"
 
 #. Option for 'Arrival Behaviour' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Approvals Only"
 msgstr "الموافقات فقط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Approvals only"
 msgstr "الموافقات فقط"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Apps Rail"
 msgstr "شريط التطبيقات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Apps rail"
 msgstr "شريط التطبيقات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Arrival Behaviour"
 msgstr "سلوك الوصول"
 
 #. Option for 'Crumb Separator' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Arrow"
 msgstr "سهم"
 
 #. Option for 'Rail Button Icon' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Arrows"
 msgstr "سهمان"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Arrows or j/k to move, Enter to open, e to mark read and advance to the next."
 msgstr "الأسهم أو j/k للتنقل، وEnter للفتح، وe لوضع علامة مقروء والتقدم إلى التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "At the start of the bottom strip."
 msgstr "في بداية الشريط السفلي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "At the start of the top bar, beside the page."
 msgstr "في بداية الشريط العلوي، إلى جوار الصفحة."
 
 #. Option for 'Pane Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Attached"
 msgstr "ملتصقة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Attached tinted pane, chips, solid pill. The safe beauty."
 msgstr "لوحة ملتصقة مصبوغة وشرائح وكبسولة معتمة. الجمال الآمن."
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Aurora"
 msgstr "شفق"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Back crumb on small screens"
 msgstr "رابط رجوع على الشاشات الصغيرة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Background jobs"
 msgstr "المهام الخلفية"
 
 #. Option for 'Arrival Behaviour' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Badge Only"
 msgstr "الشارة فقط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Badge only"
 msgstr "الشارة فقط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Bars & panes"
 msgstr "الأشرطة واللوحات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Bell"
 msgstr "الجرس"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bell Badge"
 msgstr "شارة الجرس"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Bell badge"
 msgstr "شارة الجرس"
 
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bottom Bar"
 msgstr "الشريط السفلي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bottom Bar Center"
 msgstr "وسط الشريط السفلي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bottom Bar End"
 msgstr "نهاية الشريط السفلي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bottom Bar Start"
 msgstr "بداية الشريط السفلي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Bottom bar"
 msgstr "الشريط السفلي"
 
 #. Label of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Brand Color"
 msgstr "لون الهوية"
 
 #. Label of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Brand Color (Dark Mode)"
 msgstr "لون الهوية (الوضع الداكن)"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Brand Lines"
 msgstr "خطوط الهوية"
 
 #. Label of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Brand Stylesheet URL"
 msgstr "رابط ورقة أنماط الهوية"
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Brand fills in dark mode use {used} rather than {chosen}, so their labels stay readable and the fill stays visible against the chrome."
 msgstr "تعبئات الهوية في الوضع الداكن تستخدم {used} بدلًا من {chosen}، لتبقى تسمياتها مقروءة وتبقى التعبئة مرئية على الإطار."
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Brand fills use {used} rather than {chosen}, so their labels stay readable and the fill stays visible against the chrome."
 msgstr "تعبئات الهوية تستخدم {used} بدلًا من {chosen}، لتبقى تسمياتها مقروءة وتبقى التعبئة مرئية على الإطار."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Brand lines"
 msgstr "خطوط الهوية"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Branding"
 msgstr "الهوية"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Breadcrumb Picker"
 msgstr "منتقي مسار التصفح"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Breadcrumb Style"
 msgstr "نمط مسار التصفح"
 
 #. Option for 'Notification Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bunood Inbox"
 msgstr "وارد بنود"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bunood Light"
 msgstr "بنود فاتح"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bunood Night"
 msgstr "بنود ليلي"
 
 #. Option for 'Palette Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bunood Palette"
 msgstr "لوحة بنود"
 
 #. Option for 'Rail Expand Trigger' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Button Only"
 msgstr "الزر فقط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Button only"
 msgstr "الزر فقط"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Carbon"
 msgstr "كربون"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Center"
 msgstr "الوسط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Centred in the bottom strip, beside the status signals."
 msgstr "في وسط الشريط السفلي، إلى جوار إشارات الحالة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Centred in the top bar — the modern default."
 msgstr "في وسط الشريط العلوي — الافتراضي العصري."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Changed"
 msgstr "مُغيَّر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Changes apply as you click — there is nothing to save."
 msgstr "التغييرات تسري وأنت تنقر — لا شيء يحتاج حفظًا."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Changes apply on the palette's next open — press Ctrl+K to try it."
 msgstr "التغييرات تسري عند فتح اللوحة القادم — اضغط Ctrl+K لتجربتها."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Changes apply the next time the panel opens — click the bell to try it."
 msgstr "التغييرات تسري عند فتح اللوحة في المرة القادمة — انقر الجرس لتجربتها."
 
 #. Option for 'Rail Button Icon' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Chevron"
 msgstr "سهم زاوي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Chevron and arrow mirror automatically in right-to-left languages."
 msgstr "السهم الزاوي والسهم ينعكسان تلقائيًا في اللغات التي تُكتب من اليمين إلى اليسار."
 
 #. Option for 'Rail Button Shape' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Circle"
 msgstr "دائرة"
 
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Classic"
 msgstr "الكلاسيكي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Clears what the frecency ranking has learned for your user."
 msgstr "يمسح ما تعلمه ترتيب الاستخدام لمستخدمك."
 
 #. Option for 'Rail Expand Trigger' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Click"
 msgstr "النقر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Click to cycle row density."
 msgstr "انقر للتنقل بين كثافات الصفوف."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Clock"
 msgstr "الساعة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Close notifications"
 msgstr "إغلاق الإخطارات"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Collapse to Back Crumb on Narrow Screens"
 msgstr "الطي إلى رابط رجوع على الشاشات الضيقة"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Colored Chips"
 msgstr "شرائح ملونة"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Colored Dots"
 msgstr "نقاط ملونة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Colored chips"
 msgstr "شرائح ملونة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Colored dots"
 msgstr "نقاط ملونة"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Colors"
 msgstr "الألوان"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Colours"
 msgstr "الألوان"
 
 #. Option for 'Default Density' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Comfortable"
 msgstr "مريحة"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Command Palette"
 msgstr "لوحة الأوامر"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Command palette"
 msgstr "لوحة الأوامر"
 
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Compact"
 msgstr "المضغوط"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Connection Segment"
 msgstr "مقطع الاتصال"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Connection, density and the clock only. No server calls at all."
 msgstr "الاتصال والكثافة والساعة فقط. بلا أي نداءات للخادم."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Controls"
 msgstr "عناصر التحكم"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Copy Link on Last Crumb"
 msgstr "زر نسخ الرابط على العنصر الأخير"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Copy link"
 msgstr "نسخ الرابط"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Could not copy"
 msgstr "تعذر النسخ"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Could not load sidebar presets."
 msgstr "تعذر تحميل الأنماط الجاهزة للشريط الجانبي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Could not reset ranking"
 msgstr "تعذر إعادة تعيين الترتيب"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Could not save"
 msgstr "تعذر الحفظ"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Could not save density preference"
 msgstr "تعذر حفظ تفضيل الكثافة"
 
 #. Option for 'Bell Badge' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Count"
 msgstr "عدد"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Count Badges"
 msgstr "شارات العدد"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Count badges"
 msgstr "شارات العدد"
 
 #. Option for 'Count Badges' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Counts"
 msgstr "أعداد"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Crumb Hover"
 msgstr "تحويم المسار"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Crumb Module Icons"
 msgstr "أيقونات الوحدات في المسار"
 
 #. Option for 'Breadcrumb Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Crumb Pills"
 msgstr "كبسولات المسار"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Crumb Separator"
 msgstr "فاصل المسار"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Ctrl+Enter Opens a New Tab"
 msgstr "Ctrl+Enter يفتح تبويبًا جديدًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Ctrl+Enter opens a new tab"
 msgstr "Ctrl+Enter يفتح تبويبًا جديدًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Custom — your own combination."
 msgstr "مخصص — تركيبتك الخاصة."
 
 #. Option for 'Pane Color' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dark Contrast"
 msgstr "داكن متباين"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Dark contrast"
 msgstr "داكن متباين"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Dark glass float, hue-washed cards, hover rail. The default."
 msgstr "زجاج داكن عائم وبطاقات مصبوغة وسكة تنفتح بالتحويم. النمط الافتراضي."
 
 #. Option for 'Crumb Hover' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Darken"
 msgstr "تعتيم"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Daylight"
 msgstr "ضوء النهار"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Deep dark, glow actives."
 msgstr "داكن عميق بعناصر نشطة متوهجة."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Default Density"
 msgstr "الكثافة الافتراضية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Dense"
 msgstr "كثيف"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Dense rows, live counts, hairline actives."
 msgstr "صفوف كثيفة وأعداد حية وعلامات شعرية."
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Density"
 msgstr "الكثافة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Density Segment"
 msgstr "مقطع الكثافة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Density toggle"
 msgstr "مبدّل الكثافة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Density: following site default"
 msgstr "الكثافة: بحسب افتراضي الموقع"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Density: {0}"
 msgstr "الكثافة: {0}"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Desk Layout"
 msgstr "تخطيط المكتب"
 
 #. Label of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Desk Order"
 msgstr "ترتيب المكتب"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Desk Settings"
 msgstr "إعدادات المكتب"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Desktop"
 msgstr "سطح المكتب"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Differs from default"
 msgstr "يختلف عن الافتراضي"
 
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Divided"
 msgstr "مقسّم"
 
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dock"
 msgstr "شريط الإرساء"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dock Center"
 msgstr "وسط شريط الإرساء"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dock End"
 msgstr "نهاية شريط الإرساء"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dock Start"
 msgstr "بداية شريط الإرساء"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Documents"
 msgstr "المستندات"
 
 #. Option for 'Crumb Separator' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dot"
 msgstr "نقطة"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dot Marker"
 msgstr "علامة نقطية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Dot marker"
 msgstr "علامة نقطية"
 
 #. Option for 'Count Badges' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Dots"
 msgstr "نقاط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Drag a control onto the desk, or click it and then click where it should go."
 msgstr "اسحب عنصر تحكم إلى المكتب، أو انقره ثم انقر حيث ينبغي أن يذهب."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Drag to move, or click to pick up"
 msgstr "اسحب للنقل، أو انقر للالتقاط"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Duotone"
 msgstr "ثنائي اللون"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext renders no unread indicator at all — this one is the theme's."
 msgstr "لا يعرض ERPNext أي مؤشر لغير المقروء — هذه الشارة من المظهر."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext's own panel and its three tabs, restyled through the theme tokens, plus the missing unread badge."
 msgstr "لوحة ERPNext نفسها بتبويباتها الثلاثة بعد إعادة تنسيقها عبر رموز المظهر، مع شارة غير المقروء الناقصة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext's own search row, at the top of the sidebar."
 msgstr "صف بحث ERPNext نفسه، في أعلى الشريط الجانبي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext's stock Ctrl+K modal, completely untouched."
 msgstr "نافذة Ctrl+K الأصلية في ERPNext، من غير أي مساس."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext's stock notification panel, completely untouched — no badge either."
 msgstr "لوحة إخطارات ERPNext الأصلية، من غير أي مساس — وبلا شارة أيضًا."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "ERPNext's stock trail, completely untouched."
 msgstr "مسار ERPNext الأصلي، من غير أي مساس."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Each section keeps its own color family; actives take the section hue."
 msgstr "كل قسم يحتفظ بعائلته اللونية؛ والعناصر النشطة تأخذ لون قسمها."
 
 #. Option for 'Rail Expand Button' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Edge"
 msgstr "الحافة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Elevated"
 msgstr "مرتفع"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Empty-State Suggestions"
 msgstr "اقتراحات قبل الكتابة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Empty-state suggestions"
 msgstr "اقتراحات قبل الكتابة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Enable Command Palette"
 msgstr "تفعيل لوحة الأوامر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "End"
 msgstr "النهاية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Errors"
 msgstr "الأخطاء"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Errors Segment"
 msgstr "مقطع الأخطاء"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Errors: {0}"
 msgstr "أخطاء: {0}"
 
 #. Option for 'Crumb Module Icons' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Every Crumb"
 msgstr "كل عنصر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Every count on screen at all times, with a freshness stamp and manual refresh."
 msgstr "كل عدد على الشاشة في كل وقت، مع مؤشر حداثة وتحديث يدوي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Every crumb"
 msgstr "كل عنصر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Every crumb is a soft pill; the current page is the filled one."
 msgstr "كل عنصر كبسولة ناعمة؛ والصفحة الحالية هي المعبأة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Everything"
 msgstr "كل شيء"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Everything stays in the sidebar — closest to standard ERPNext."
 msgstr "كل شيء يبقى في الشريط الجانبي — الأقرب إلى ERPNext القياسي."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Expand sidebar"
 msgstr "توسيع الشريط الجانبي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Explicit, not inferred from the locale."
 msgstr "صريح، لا يُستنتج من الإعدادات المحلية."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Extras"
 msgstr "إضافات"
 
 #. Option for 'Breadcrumb Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Eyebrow Title"
 msgstr "عنوان بسطر تمهيدي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Failed and running counts. System Managers only — nobody else is even asked about."
 msgstr "عددا الفاشل وقيد التشغيل. لمديري النظام فقط — ولا يُسأل عنها أحد سواهم."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Failed: {0}"
 msgstr "فشل: {0}"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Fallback Rows"
 msgstr "صفوف احتياطية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Fallback rows"
 msgstr "صفوف احتياطية"
 
 #. Label of a Attach Image field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Favicon"
 msgstr "أيقونة الموقع"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Filled Color"
 msgstr "تعبئة ملونة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Filled color"
 msgstr "تعبئة ملونة"
 
 #. Option for 'Crumb Module Icons' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "First Crumb"
 msgstr "أول عنصر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "First crumb"
 msgstr "أول عنصر"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Five stops from 200px to 280px; stop 2 is the original 220px."
 msgstr "خمس درجات من 200px إلى 280px؛ الدرجة 2 هي 220px الأصلية."
 
 #. Option for 'Pane Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Floating"
 msgstr "عائمة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Floating card"
 msgstr "بطاقة عائمة"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Folder Tab"
 msgstr "لسان مجلد"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Folder Tab needs an attached pane — active link set to Solid Pill."
 msgstr "«لسان مجلد» يتطلب لوحة ملتصقة — ضُبط الرابط النشط على «كبسولة معتمة»."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Folder tab"
 msgstr "لسان مجلد"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Footer Hint Bar"
 msgstr "شريط تلميحات سفلي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Footer hint bar"
 msgstr "شريط تلميحات سفلي"
 
 #. Description of a Attach Image field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Frappe also reads Website Settings and Navbar Settings for a logo; set it there to have it appear before this app's JS runs."
 msgstr "يقرأ Frappe الشعار أيضًا من إعدادات الموقع وإعدادات شريط التنقل؛ عيّنه هناك ليظهر قبل تشغيل JavaScript الخاص بهذا التطبيق."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Frappe emits no live event for background jobs, so counts are polled. Longer is cheaper."
 msgstr "لا يصدر Frappe حدثًا حيًا للمهام الخلفية، لذا تُستطلع الأعداد استطلاعًا. الفاصل الأطول أرخص."
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Frappe's own left pane, and the home of its search row, notifications and user button. Independent of every other container: a dock and a side pane can both be shown. Switching it off is refused while nothing else can reach search, notifications or Log Out. Applies site-wide on the next page load."
 msgstr "لوحة Frappe اليسرى نفسها، وموطن صف البحث والإخطارات وزر المستخدم فيها. مستقلة عن كل حاوية أخرى: يمكن إظهار شريط الإرساء واللوحة الجانبية معًا. يُرفض إيقافها ما دام لا شيء غيرها يوصل إلى البحث أو الإخطارات أو تسجيل الخروج. يسري على الموقع كله عند تحميل الصفحة التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Frappe's own search modal, restyled through the theme tokens. No new behavior — the list stays flat."
 msgstr "نافذة بحث Frappe نفسها بعد إعادة تنسيقها عبر رموز المظهر. لا سلوك جديد — تبقى القائمة مسطحة."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Frecency Ranking"
 msgstr "الترتيب بحسب الاستخدام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Frecency ranking"
 msgstr "الترتيب بحسب الاستخدام"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Frequent"
 msgstr "الأكثر استخدامًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Frequent and recent destinations appear before you type."
 msgstr "الوجهات الأكثر استخدامًا والأحدث تظهر قبل أن تكتب."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Freshness Stamp"
 msgstr "مؤشر الحداثة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Freshness stamp"
 msgstr "مؤشر الحداثة"
 
 #. Option for 'Glass Blur' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Full"
 msgstr "كامل"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Full steps down automatically on weak devices and honors the OS reduce-transparency setting."
 msgstr "«كامل» ينخفض تلقائيًا على الأجهزة الضعيفة ويحترم إعداد تقليل الشفافية في نظام التشغيل."
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Glass"
 msgstr "زجاجية"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Glass Blur"
 msgstr "تمويه الزجاج"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Glass Opacity"
 msgstr "عتامة الزجاج"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Glass blur"
 msgstr "تمويه الزجاج"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Glass lets the page glow through; opacity and blur below tune it."
 msgstr "الزجاج يدع الصفحة تشعّ من خلفه؛ العتامة والتمويه أدناه يضبطانه."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Glass opacity"
 msgstr "عتامة الزجاج"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Global search, notifications and profile in a bar along the bottom edge."
 msgstr "البحث العام والإخطارات والملف الشخصي في شريط على الحافة السفلية."
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Glow Ring"
 msgstr "حلقة متوهجة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Glow ring"
 msgstr "حلقة متوهجة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Group by Document"
 msgstr "تجميع بحسب المستند"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Group by document"
 msgstr "تجميع بحسب المستند"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Hairline"
 msgstr "شعري"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Home & All Apps"
 msgstr "الرئيسية وكل التطبيقات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Home Link Placement"
 msgstr "موضع رابط الرئيسية"
 
 #. Option for 'Rail Expand Trigger' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Hover"
 msgstr "التحويم"
 
 #. Option for 'Rail Expand Trigger' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Hover + Pin"
 msgstr "التحويم مع التثبيت"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Hover + pin"
 msgstr "التحويم مع التثبيت"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Hover Row Actions"
 msgstr "إجراءات الصف عند التحويم"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Hover row actions"
 msgstr "إجراءات الصف عند التحويم"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How ancestor crumbs react to the pointer."
 msgstr "كيف تتجاوب عناصر المسار السالفة مع المؤشر."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How link icons are drawn."
 msgstr "كيف تُرسم أيقونات الروابط."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How old the counts are, and a button to refresh them now."
 msgstr "كم عمر الأعداد، وزر لتحديثها الآن."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How the current page is marked."
 msgstr "كيف تُعلَّم الصفحة الحالية."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How the pane's link groups are presented."
 msgstr "كيف تُعرض مجموعات روابط اللوحة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How the rail opens. Applies when Menu rail is set to Rail."
 msgstr "كيف تنفتح السكة. يسري عندما تكون «سكة القائمة» على «سكة»."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How the sidebar sits against the page."
 msgstr "كيف تجلس اللوحة الجانبية إلى جوار الصفحة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "How your sidebar rests. Separate from the apps rail below."
 msgstr "كيف يستقر شريطك الجانبي. منفصل عن شريط التطبيقات أدناه."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Hue Wash"
 msgstr "الصبغة اللونية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Hue wash"
 msgstr "الصبغة اللونية"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Icon Source"
 msgstr "مصدر الأيقونات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Icon Style"
 msgstr "نمط الأيقونات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Icon source"
 msgstr "مصدر الأيقونات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Icon style"
 msgstr "نمط الأيقونات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Import theme"
 msgstr "استيراد مظهر"
 
 #. Option for 'Notification Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Inbox + Page"
 msgstr "الوارد مع صفحة"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Ink"
 msgstr "حبر"
 
 #. Description of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Interactive elements: links, focus rings, primary actions."
 msgstr "العناصر التفاعلية: الروابط وحلقات التركيز والإجراءات الأساسية."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Jobs OK"
 msgstr "المهام سليمة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Jobs Segment"
 msgstr "مقطع المهام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Keep each user's opened groups between visits."
 msgstr "الاحتفاظ بالمجموعات التي فتحها كل مستخدم بين الزيارات."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Keyboard Triage"
 msgstr "الفرز بلوحة المفاتيح"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Keyboard triage"
 msgstr "الفرز بلوحة المفاتيح"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Label each row Approval / Mention / Share so a mixed list stays scannable."
 msgstr "وسم كل صف بموافقة / إشارة / مشاركة لتبقى القائمة المختلطة سهلة المسح."
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Labels on brand fills are dark rather than white."
 msgstr "التسميات على تعبئات الهوية داكنة لا بيضاء."
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "Labels on brand fills in dark mode are dark rather than white."
 msgstr "التسميات على تعبئات الهوية في الوضع الداكن داكنة لا بيضاء."
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Layout Picker"
 msgstr "منتقي التخطيط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Layout preset"
 msgstr "نمط التخطيط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Layout preset: {0}. Each mark is a control — select it to change where that piece lives."
 msgstr "نمط التخطيط: {0}. كل علامة عنصر تحكم — اختره لتغيير مكانه."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side."
 msgstr "القيم المخزنة القديمة Hover-Expand و Hover + Pin ما تزال تُحل إلى «سكة» لدى العميل."
 
 #. Option for 'Icon Source' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Letters"
 msgstr "حروف"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Link copied"
 msgstr "نُسخ الرابط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Links & icons"
 msgstr "الروابط والأيقونات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Live"
 msgstr "مباشر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Live record indicators on links."
 msgstr "مؤشرات حية لعدد السجلات على الروابط."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Live updates"
 msgstr "التحديثات الحية"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Log Out"
 msgstr "تسجيل الخروج"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Luminous light glass."
 msgstr "زجاج فاتح مضيء."
 
 #. Option for 'Menu Rail' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Manual Collapse"
 msgstr "طي يدوي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Manual collapse"
 msgstr "طي يدوي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Manual only"
 msgstr "يدوي فقط"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Mark all read"
 msgstr "وضع علامة مقروء على الكل"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Mark as done"
 msgstr "وضع علامة منجز"
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Master gate for the palette kit: unchecked forces the stock Ctrl+K modal (Original) whatever the picker says."
 msgstr "البوابة الرئيسية لعدة لوحة الأوامر: إلغاء التحديد يفرض نافذة Ctrl+K الأصلية مهما قال المنتقي."
 
 #. Option for 'Pane Color' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Match Theme"
 msgstr "مطابق للمظهر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Match theme"
 msgstr "مطابق للمظهر"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Mention"
 msgstr "إشارة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Mentions"
 msgstr "الإشارات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Menu Rail"
 msgstr "سكة القائمة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Menu rail"
 msgstr "سكة القائمة"
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
 msgstr "يدمج عناصر التحكم العامة في صف عنوان كل صفحة بدلًا من منحها شريطًا خاصًا بها. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي."
 
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Mini-Cards"
 msgstr "بطاقات مصغرة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Mini-cards"
 msgstr "بطاقات مصغرة"
 
 #. Option for 'Pane Color' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Minimal"
 msgstr "بسيط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Minimal polls nothing"
 msgstr "«بسيط» لا يستطلع شيئًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Minimal shows no live signals"
 msgstr "«بسيط» لا يعرض إشارات حية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Minimal: mono icons, soft pill, no decoration."
 msgstr "بسيط: أيقونات أحادية وكبسولة ناعمة وبلا زخرفة."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Mode Sigils (Pro)"
 msgstr "رموز الأنماط (الاحترافية)"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Mode sigils"
 msgstr "رموز الأنماط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Module icons"
 msgstr "أيقونات الوحدات"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Monochrome"
 msgstr "أحادي اللون"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "More"
 msgstr "المزيد"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "More workspaces"
 msgstr "مزيد من مساحات العمل"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Move earlier in this zone"
 msgstr "تقديم داخل هذه المنطقة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Move later in this zone"
 msgstr "تأخير داخل هذه المنطقة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Muted small ancestors, strong last crumb. Typography does the wayfinding."
 msgstr "أسلاف صغيرة خافتة وعنصر أخير قوي. الطباعة هي التي ترشدك."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "My Profile"
 msgstr "ملفي الشخصي"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Navigate"
 msgstr "تنقّل"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Needs an attached pane"
 msgstr "يتطلب لوحة ملتصقة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Needs the Bunood panel"
 msgstr "يتطلب لوحة بنود"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "New notification"
 msgstr "إخطار جديد"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "No data"
 msgstr "لا بيانات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "No errors"
 msgstr "لا أخطاء"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "No extra bars — global controls share the page title row. Most space for data."
 msgstr "بلا أشرطة إضافية — عناصر التحكم العامة تشارك صف عنوان الصفحة. أكبر مساحة للبيانات."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "No live updates"
 msgstr "لا تحديثات حية"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "No matches"
 msgstr "لا نتائج مطابقة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "No one has mentioned you"
 msgstr "لم يُشِر إليك أحد"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "No sidebar — workspaces float in a bottom dock. Full-width pages."
 msgstr "بلا شريط جانبي — مساحات العمل تطفو في شريط إرساء سفلي. صفحات بكامل العرض."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Not done"
 msgstr "غير منجز"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Not shown anywhere: {0}"
 msgstr "لا يُعرض في أي مكان: {0}"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Nothing here yet"
 msgstr "لا شيء هنا بعد"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Nothing waiting on your approval"
 msgstr "لا شيء ينتظر موافقتك"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Notification Picker"
 msgstr "منتقي الإخطارات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Notification Style"
 msgstr "نمط الإخطارات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Notification settings"
 msgstr "إعدادات الإخطارات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Notifications Placement"
 msgstr "موضع الإخطارات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Off — not shown"
 msgstr "إيقاف — لا يُعرض"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Off — not shown. Drop here to hide."
 msgstr "إيقاف — لا يُعرض. أفلت هنا للإخفاء."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "One submitted invoice can fire assignment, share and workflow notifications within a minute — this collects them under the document."
 msgstr "فاتورة معتمدة واحدة قد تطلق إخطارات تكليف ومشاركة وسير عمل في دقيقة — هذا يجمعها تحت المستند."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Open in a new tab"
 msgstr "فتح في تبويب جديد"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Open in a new tab, or mark done, without leaving the panel."
 msgstr "افتح في تبويب جديد أو ضع علامة منجز من غير مغادرة اللوحة."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Open inbox page"
 msgstr "فتح صفحة الوارد"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Open the command palette"
 msgstr "افتح لوحة الأوامر"
 
 #. Description of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Optional."
 msgstr "اختياري."
 
 #. Description of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Optional. Dark mode is selected, not inverted; leave empty to reuse the light value."
 msgstr "اختياري. الوضع الداكن يُختار ولا يُعكس؛ اتركه فارغًا لإعادة استخدام قيمة الوضع الفاتح."
 
 #. Option for 'Icon Source' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Original"
 msgstr "الأصلي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves ERPNext's Ctrl+K modal untouched — the options below apply to the other styles."
 msgstr "«الأصلي» يترك نافذة Ctrl+K في ERPNext كما هي — الخيارات أدناه تسري على الأنماط الأخرى."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves ERPNext's panel untouched — including the missing unread badge."
 msgstr "«الأصلي» يترك لوحة ERPNext كما هي — بما في ذلك شارة غير المقروء الناقصة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves ERPNext's trail untouched — the options below apply to the other styles."
 msgstr "«الأصلي» يترك مسار ERPNext كما هو — الخيارات أدناه تسري على الأنماط الأخرى."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves the stock modal"
 msgstr "«الأصلي» يُبقي النافذة الأصلية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves the stock panel"
 msgstr "«الأصلي» يُبقي اللوحة الأصلية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Original leaves the stock trail"
 msgstr "«الأصلي» يُبقي المسار الأصلي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Our palette over Frappe's own search: grouped results, pinned fallbacks, per-user frecency, footer hints."
 msgstr "لوحتنا فوق بحث Frappe نفسه: نتائج مجمّعة وصفوف احتياطية مثبتة وترتيب استخدام لكل مستخدم وتلميحات سفلية."
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Outline"
 msgstr "إطار"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Overflowing links fade at the edges instead of clipping."
 msgstr "الروابط الفائضة تتلاشى عند الحواف بدلًا من أن تُقتطع."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Overview"
 msgstr "نظرة عامة"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Page Header"
 msgstr "رأس الصفحة"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Page Header Center"
 msgstr "وسط رأس الصفحة"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Page Header End"
 msgstr "نهاية رأس الصفحة"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Page Header Start"
 msgstr "بداية رأس الصفحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Page header"
 msgstr "رأس الصفحة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Pages & Workspaces"
 msgstr "الصفحات ومساحات العمل"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Palette Picker"
 msgstr "منتقي اللوحة"
 
 #. Option for 'Palette Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Palette Pro"
 msgstr "اللوحة الاحترافية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Palette Pro only"
 msgstr "اللوحة الاحترافية فقط"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Palette Style"
 msgstr "نمط اللوحة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Pane Color"
 msgstr "لون اللوحة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Pane Material"
 msgstr "خامة اللوحة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Pane Placement"
 msgstr "موضع اللوحة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Pane Width"
 msgstr "عرض اللوحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pane color"
 msgstr "لون اللوحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pane material"
 msgstr "خامة اللوحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pane placement"
 msgstr "موضع اللوحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pane surface"
 msgstr "سطح اللوحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pane width"
 msgstr "عرض اللوحة"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Paper"
 msgstr "ورق"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Paste theme JSON"
 msgstr "الصق JSON المظهر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pills draw no separators"
 msgstr "الكبسولات لا ترسم فواصل"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pills have their own hover"
 msgstr "للكبسولات تحويمها الخاص"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Pin sidebar open"
 msgstr "تثبيت الشريط الجانبي مفتوحًا"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Placement"
 msgstr "الموضع"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Placement Board"
 msgstr "لوحة المواضع"
 
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Plain"
 msgstr "سادة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Points"
 msgstr "نقاط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Pushes the document's Draft / Submitted pill to the row's end and calms its shape."
 msgstr "يدفع كبسولة حالة المستند (مسودة / معتمد) إلى نهاية الصف ويهدّئ شكلها."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Put controls in the page title row"
 msgstr "وضع عناصر التحكم في صف عنوان الصفحة"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Quick Links Picker"
 msgstr "منتقي الروابط السريعة"
 
 #. Option for 'Status Bar' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Quiet"
 msgstr "هادئ"
 
 #. Option for 'Breadcrumb Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Quiet Trail"
 msgstr "مسار هادئ"
 
 #. Option for 'Menu Rail' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rail"
 msgstr "سكة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rail Button Icon"
 msgstr "أيقونة زر السكة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rail Button Shape"
 msgstr "شكل زر السكة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rail Expand Button"
 msgstr "زر توسيع السكة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rail Expand Trigger"
 msgstr "مشغّل توسيع السكة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Rail button icon"
 msgstr "أيقونة زر السكة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Rail button shape"
 msgstr "شكل زر السكة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Rail expand button"
 msgstr "زر توسيع السكة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Rail expand trigger"
 msgstr "مشغّل توسيع السكة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Ranking reset"
 msgstr "أُعيد تعيين الترتيب"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Reason Chips"
 msgstr "شرائح السبب"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Reason chips"
 msgstr "شرائح السبب"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Recent"
 msgstr "الأحدث"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Recolour the Bar on Failure"
 msgstr "تلوين الشريط عند الفشل"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Recolour the bar on failure"
 msgstr "تلوين الشريط عند الفشل"
 
 #. Option for 'Palette Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Refined"
 msgstr "مصقول"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Refresh Interval"
 msgstr "فاصل التحديث"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Refresh now"
 msgstr "حدّث الآن"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Remember Sections"
 msgstr "تذكّر الأقسام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Remember sections"
 msgstr "تذكّر الأقسام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Replaced by the component settings below. Kept visible for reference; it no longer decides anything on its own."
 msgstr "حلّت محله إعدادات المكونات أدناه. أُبقي ظاهرًا للمرجعية؛ لم يعد يقرر شيئًا بنفسه."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Report"
 msgstr "تقرير"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Reports"
 msgstr "التقارير"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Reset my ranking"
 msgstr "إعادة تعيين ترتيبي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Reset to default"
 msgstr "إعادة التعيين إلى الافتراضي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Reset to preset value"
 msgstr "إعادة التعيين إلى قيمة النمط الجاهز"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Results"
 msgstr "النتائج"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Results: {0}"
 msgstr "النتائج: {0}"
 
 #. Option for 'Hue Wash' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Rich"
 msgstr "غنية"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Running: {0}"
 msgstr "قيد التشغيل: {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Says when the realtime connection is down. The desk still works — what stops is anything updating on its own."
 msgstr "يخبرك عندما ينقطع الاتصال اللحظي. المكتب يظل يعمل — ما يتوقف هو تحدّث أي شيء من تلقاء نفسه."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Scheduler"
 msgstr "المجدول"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Scheduler Segment"
 msgstr "مقطع المجدول"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Scheduler on"
 msgstr "المجدول يعمل"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Scheduler paused"
 msgstr "المجدول متوقف"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Scroll Fades"
 msgstr "تلاشي التمرير"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Scroll fades"
 msgstr "تلاشي التمرير"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Search & Status Picker"
 msgstr "منتقي البحث والحالة"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Search Picker"
 msgstr "منتقي البحث"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Search Placement"
 msgstr "موضع البحث"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Search all documents for “{0}”"
 msgstr "ابحث في كل المستندات عن «{0}»"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Search or type a command"
 msgstr "ابحث أو اكتب أمرًا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Search settings"
 msgstr "البحث في الإعدادات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Search settings…"
 msgstr "ابحث في الإعدادات…"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Search, notifications and profile in a bar above the page. Slim status bar below."
 msgstr "البحث والإخطارات والملف الشخصي في شريط فوق الصفحة، وشريط حالة رفيع أسفلها."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Section Layout"
 msgstr "تخطيط الأقسام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Sections"
 msgstr "الأقسام"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Select a notification"
 msgstr "اختر إخطارًا"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Set by the picker below. Original leaves ERPNext's stock Ctrl+K modal untouched."
 msgstr "يضبطه المنتقي أدناه. «الأصلي» يترك نافذة Ctrl+K الأصلية في ERPNext كما هي."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Set by the picker below. Original leaves ERPNext's stock notification panel untouched."
 msgstr "يضبطه المنتقي أدناه. «الأصلي» يترك لوحة إخطارات ERPNext الأصلية كما هي."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Set by the picker below. Original leaves ERPNext's stock trail untouched."
 msgstr "يضبطه المنتقي أدناه. «الأصلي» يترك مسار ERPNext كما هو."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Set by the picker below. Values live in the individual style fields; the preset is a label."
 msgstr "يضبطه المنتقي أدناه. القيم تقيم في حقول النمط المفردة؛ النمط الجاهز مجرد تسمية."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Settings applied: {0} — Save to keep"
 msgstr "الإعدادات المطبقة: {0} — احفظ للإبقاء"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Show the bottom bar"
 msgstr "إظهار الشريط السفلي"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Show the dock"
 msgstr "إظهار شريط الإرساء"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Show the side pane"
 msgstr "إظهار اللوحة الجانبية"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Show the top bar"
 msgstr "إظهار الشريط العلوي"
 
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Shown in the sidebar and the browser tab."
 msgstr "يظهر في الشريط الجانبي وفي تبويب المتصفح."
 
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Shown on the login page."
 msgstr "يظهر في صفحة تسجيل الدخول."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Side Pane"
 msgstr "اللوحة الجانبية"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Side Pane End"
 msgstr "نهاية اللوحة الجانبية"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Side Pane Start"
 msgstr "بداية اللوحة الجانبية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Side pane"
 msgstr "اللوحة الجانبية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Side-by-side documents without losing the one you came from."
 msgstr "مستندات جنبًا إلى جنب من غير أن تفقد المستند الذي جئت منه."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Sidebar Preset"
 msgstr "النمط الجاهز"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Sidebar Style"
 msgstr "نمط الشريط الجانبي"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Sidebar Style Picker"
 msgstr "منتقي نمط الشريط الجانبي"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Sidebar: following the site"
 msgstr "الشريط الجانبي: بحسب الموقع"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Sidebar: {0}"
 msgstr "الشريط الجانبي: {0}"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Site Default"
 msgstr "افتراضي الموقع"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Site-wide default row and control height. Each user can override it from the settings menu; Compact shortens rows and padding but never the text size."
 msgstr "الارتفاع الافتراضي للصفوف وعناصر التحكم على مستوى الموقع. يمكن لكل مستخدم تجاوزه من قائمة الإعدادات؛ «مضغوطة» تقصّر الصفوف والحشوات ولا تمس حجم النص أبدًا."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Skip to content"
 msgstr "تخطٍّ إلى المحتوى"
 
 #. Option for 'Crumb Separator' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Slash"
 msgstr "شرطة مائلة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Small trail line above a large title. Long names wrap without deforming the trail."
 msgstr "سطر مسار صغير فوق عنوان كبير. الأسماء الطويلة تلتف دون أن تشوه المسار."
 
 #. Option for 'Icon Source' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Smart"
 msgstr "ذكي"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
 msgstr "«ذكي» يحتفظ بالأيقونات الموجودة ويستنتج الناقصة ويرجع إلى شرائح الحروف عند الحاجة. «الأصلي» يترك أيقونات Frappe كما هي."
 
 #. Option for 'Glass Blur' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Soft"
 msgstr "ناعم"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Soft Pill"
 msgstr "كبسولة ناعمة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Soft pill"
 msgstr "كبسولة ناعمة"
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Solid"
 msgstr "معتمة"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Solid Pill"
 msgstr "كبسولة معتمة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Solid pill"
 msgstr "كبسولة معتمة"
 
 #. Option for 'Rail Button Shape' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Square"
 msgstr "مربع"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Start"
 msgstr "البداية"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Status Bar"
 msgstr "شريط الحالة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Status Pill in Trail Row"
 msgstr "كبسولة الحالة في صف المسار"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Status bar"
 msgstr "شريط الحالة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Status in the trail row"
 msgstr "الحالة في صف المسار"
 
 #. Option for 'Hue Wash' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Subtle"
 msgstr "خفيفة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Surface Intensity"
 msgstr "حضور السطح"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Surface intensity"
 msgstr "حضور السطح"
 
 #. Option for 'Rail Button Shape' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Tab"
 msgstr "لسان"
 
 #. Label of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Tagline"
 msgstr "الشعار النصي"
 
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here."
 msgstr "مفاتيح العناصر بترتيب المكتب. تكتبها لوحة المواضع؛ العنصران المتشاركان في منطقة واحدة يترتبان بموقعهما هنا."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "That is not valid JSON."
 msgstr "هذا ليس JSON صالحًا."
 
 #. In bnd_inbox.js
 #. src: ai
-#, fuzzy
 msgid "The Bunood inbox is not active. Enable it in Theme Settings."
 msgstr "وارد بنود غير مفعّل. فعّله من إعدادات المظهر."
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "The fixed strip along the foot of the desk. Whether it EXISTS is this setting; what it shows is \"Status Bar\" below. Independent of the desk layout: a layout preset writes this, it no longer decides it. Applies site-wide on the next page load."
 msgstr "الشريط الثابت على قدم المكتب. وجودُه من عدمه هو هذا الإعداد؛ أما ما يعرضه فهو «شريط الحالة» أدناه. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي."
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "The focus ring in dark mode uses {used} rather than {chosen}, to stay visible on every surface."
 msgstr "حلقة التركيز في الوضع الداكن تستخدم {used} بدلًا من {chosen}، لتبقى مرئية على كل سطح."
 
 #. In theme_settings.py
 #. src: ai
-#, fuzzy
 msgid "The focus ring uses {used} rather than {chosen}, to stay visible on every surface."
 msgstr "حلقة التركيز تستخدم {used} بدلًا من {chosen}، لتبقى مرئية على كل سطح."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The last crumb IS the page title — one row, maximum vertical economy."
 msgstr "العنصر الأخير هو عنوان الصفحة نفسه — صف واحد وأقصى اقتصاد رأسي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The palette plus mode sigils (> actions, # documents, / reports) and record search — actual invoices by name."
 msgstr "اللوحة مع رموز الأنماط (> إجراءات، # مستندات، / تقارير) وبحث في السجلات — فواتير فعلية بالاسم."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The panel only: filter tabs, grouping by document, reason chips, hover actions, a real unread badge."
 msgstr "اللوحة فقط: تبويبات تصفية وتجميع بحسب المستند وشرائح سبب وإجراءات تحويم وشارة غير مقروء حقيقية."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The panel plus a full-page triage surface: list beside a detail pane, keyboard loop with auto-advance."
 msgstr "اللوحة مع سطح فرز بصفحة كاملة: قائمة إلى جوار لوحة تفاصيل وحلقة لوحة مفاتيح بتقدم تلقائي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The same design in daylight: white glass, soft hue cards."
 msgstr "التصميم نفسه في وضح النهار: زجاج أبيض وبطاقات بصبغة ناعمة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The same row, pinned to the sidebar's foot."
 msgstr "الصف نفسه مثبتًا في قدم الشريط الجانبي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The sidebar's own color world — independent of light or dark mode."
 msgstr "عالم الألوان الخاص باللوحة — مستقل عن الوضع الفاتح أو الداكن."
 
 #. Description of a Color field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "The single seed. Every surface, hover and border is derived from it with color-mix()."
 msgstr "البذرة الوحيدة: كل سطح وتحويم وحد مشتق منها عبر color-mix()‎."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "The workspace's own icon as a small chip in the trail."
 msgstr "أيقونة مساحة العمل نفسها كشريحة صغيرة في المسار."
 
 #. Name of a DocType
 #. src: ai
-#, fuzzy
 msgid "Theme Settings"
 msgstr "إعدادات المظهر"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Theme exported (downloaded and copied)"
 msgstr "صُدّر المظهر (نُزّل ونُسخ)"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored."
 msgstr "يصبغ الشريط كله عندما يفشل شيء. موقوف افتراضيًا — الشريط الذي يصرخ يُتجاهَل."
 
 #. Option for 'Breadcrumb Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Title Fusion"
 msgstr "اندماج العنوان"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Toggle Density"
 msgstr "تبديل الكثافة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Toggle Full Width"
 msgstr "تبديل العرض الكامل"
 
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Top Bar"
 msgstr "الشريط العلوي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Top Bar Center"
 msgstr "وسط الشريط العلوي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Top Bar End"
 msgstr "نهاية الشريط العلوي"
 
 #. Option for 'Notifications Placement' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Top Bar Start"
 msgstr "بداية الشريط العلوي"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Top bar"
 msgstr "الشريط العلوي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Two links, placed independently. Applies on the next page load."
 msgstr "رابطان يوضعان باستقلال. يسري عند تحميل الصفحة التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Under tablet width the trail becomes a single labeled link to the parent."
 msgstr "دون عرض الجهاز اللوحي يصبح المسار رابطًا واحدًا مسمى إلى الأصل."
 
 #. Option for 'Crumb Hover' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Underline"
 msgstr "تسطير"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Unread: {0}"
 msgstr "غير المقروء: {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Unseen error count, using ERPNext's own permission-filtered counter."
 msgstr "عدد الأخطاء غير المطالَعة، عبر عدّاد ERPNext نفسه المرشّح بالصلاحيات."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Updates: {0}"
 msgstr "التحديثات: {0}"
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "User Menu"
 msgstr "قائمة المستخدم"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "User Menu Picker"
 msgstr "منتقي قائمة المستخدم"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "User Menu Placement"
 msgstr "موضع قائمة المستخدم"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "User menu"
 msgstr "قائمة المستخدم"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Warm and editorial."
 msgstr "دافئ بطابع تحريري."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only."
 msgstr "ينبه عندما يتوقف المجدول — العطل الصامت وراء معظم تذاكر «لماذا لم يعمل شيء». لمديري النظام فقط."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "When something arrives"
 msgstr "عندما يصل شيء"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Where global search, notifications and your profile live. Applies site-wide on the next page load; pick visually below."
 msgstr "أين يقيم البحث العام والإخطارات وملفك الشخصي. يسري على الموقع كله عند تحميل الصفحة التالي؛ اختر بصريًا أدناه."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Where link glyphs come from - most workspace links ship no icon of their own."
 msgstr "من أين تأتي رموز الروابط — معظم روابط مساحات العمل لا تشحن أيقونة خاصة بها."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Where the avatar and its menu sit. Applies on the next page load."
 msgstr "أين تجلس الصورة الرمزية وقائمتها. يسري عند تحميل الصفحة التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Where the bell sits. Applies on the next page load."
 msgstr "أين يجلس الجرس. يسري عند تحميل الصفحة التالي."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Where the notifications bell lives. Off removes it and leaves ERPNext's own."
 msgstr "أين يقيم جرس الإخطارات. «إيقاف» يزيله ويُبقي جرس ERPNext نفسه."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Where the profile avatar and its menu live. Carries Log Out, so it is never left unreachable."
 msgstr "أين تقيم صورة الملف الشخصي وقائمتها. تحمل «تسجيل الخروج»، فلا تُترك بعيدة المنال أبدًا."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Where the search field lives, independent of the desk layout. Applies on the next page load."
 msgstr "أين يقيم حقل البحث، باستقلال عن تخطيط المكتب. يسري عند تحميل الصفحة التالي."
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
 msgstr "أين يجلس حقل البحث. المواضع التي لا يملكها التخطيط ترجع إلى أقرب موضع متاح."
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Workbench"
 msgstr "ورشة"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "Workspaces"
 msgstr "مساحات العمل"
 
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Written by bunood_theme.brand on every save. Content-hashed, so the URL is immutable and needs no cache-busting query string."
 msgstr "يكتبه bunood_theme.brand عند كل حفظ. مُجزأ بحسب المحتوى، فالرابط ثابت ولا يحتاج معامل استعلام لكسر التخزين المؤقت."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "You're all caught up"
 msgstr "أنت على اطلاع تام"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Your most-used entries rise to the top. Stored per user on the server — follows you across devices."
 msgstr "أكثر ما تستخدمه يصعد إلى القمة. يُخزن لكل مستخدم على الخادم — يتبعك عبر الأجهزة."
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "actions"
 msgstr "إجراءات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "close"
 msgstr "إغلاق"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "documents"
 msgstr "مستندات"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "navigate"
 msgstr "تنقّل"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "new tab"
 msgstr "تبويب جديد"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "not on this desk"
 msgstr "ليس على هذا المكتب"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "open"
 msgstr "فتح"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "reports"
 msgstr "تقارير"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "the bottom bar is switched off"
 msgstr "الشريط السفلي موقوف"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "the dock is switched off"
 msgstr "شريط الإرساء موقوف"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "the page title row is not carrying controls"
 msgstr "صف عنوان الصفحة لا يحمل عناصر تحكم"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "the side pane is switched off"
 msgstr "اللوحة الجانبية موقوفة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "the top bar is switched off"
 msgstr "الشريط العلوي موقوف"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "{0} — not available: {1}. Falls back to the nearest slot."
 msgstr "{0} — غير متاح: {1}. يرجع إلى أقرب موضع."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "{0}, {1} — drop here"
 msgstr "{0}، {1} — أفلت هنا"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "{0}: {1} — not available: {2}"
 msgstr "{0}: {1} — غير متاح: {2}"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "{0}m ago"
 msgstr "منذ {0} د"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "{0}s ago"
 msgstr "منذ {0} ث"
 
 #. In bunood.js
 #. src: ai
-#, fuzzy
 msgid "↑↓ move · ↵ open · e read"
 msgstr "↑↓ تنقّل · ↵ فتح · e مقروء"
 
 #. Name of a DocType
 #. src: ai
-#, fuzzy
 msgid "Bunood Translation Proposal"
 msgstr "مقترح ترجمة بنود"
 
 #. Label of a Data field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Language"
 msgstr "اللغة"
 
 #. Label of a Select field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Status"
 msgstr "الحالة"
 
 #. Option for 'Status' in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Pending"
 msgstr "قيد الانتظار"
 
 #. Option for 'Status' in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Accepted"
 msgstr "مقبول"
 
 #. Option for 'Status' in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Rejected"
 msgstr "مرفوض"
 
 #. Label of a Data field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Provider"
 msgstr "المزوِّد"
 
 #. Label of a Data field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "App"
 msgstr "التطبيق"
 
 #. Description of a Data field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Which app's catalogue the source string came from — context for the reviewer, not a key."
 msgstr "من كتالوج أي تطبيق جاء النص المصدر — سياق للمراجع، لا مفتاح."
 
 #. Label of a Link field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Scan"
 msgstr "الفحص"
 
 #. Label of a Code field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Source Text"
 msgstr "النص المصدر"
 
 #. Label of a Code field in DocType 'Bunood Translation Proposal'
 #. src: ai
-#, fuzzy
 msgid "Proposed Text"
 msgstr "النص المقترح"
 
 #. Name of a DocType
 #. src: ai
-#, fuzzy
 msgid "Bunood Translation Scan"
 msgstr "فحص ترجمة بنود"
 
 #. Option for 'Status' in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Queued"
 msgstr "في قائمة الانتظار"
 
 #. Option for 'Status' in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Running"
 msgstr "قيد التشغيل"
 
 #. Option for 'Status' in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Completed"
 msgstr "مكتمل"
 
 #. Option for 'Status' in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Failed"
 msgstr "فشل"
 
 #. Label of a Datetime field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Started At"
 msgstr "بدأ في"
 
 #. Label of a Datetime field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Finished At"
 msgstr "انتهى في"
 
 #. Label of a Section Break field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Totals"
 msgstr "الإجماليات"
 
 #. Label of an Int field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Total Strings"
 msgstr "إجمالي النصوص"
 
 #. Label of an Int field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Missing Total"
 msgstr "إجمالي الناقص"
 
 #. Label of an Int field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "New Since Previous"
 msgstr "الجديد منذ السابق"
 
 #. Description of an Int field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Msgids missing now that were not missing in the previous completed scan of this language — how a newly installed module announces itself."
 msgstr "معرّفات نصوص ناقصة الآن ولم تكن ناقصة في الفحص المكتمل السابق لهذه اللغة — هكذا تعلن وحدة مثبتة حديثًا عن نفسها."
 
 #. Label of a Section Break field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Payload"
 msgstr "الحمولة"
 
 #. Label of a Code field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Apps JSON"
 msgstr "JSON التطبيقات"
 
 #. Description of a Code field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Per-app totals, as JSON: {app: {total, missing}}."
 msgstr "الإجماليات لكل تطبيق بصيغة JSON: ‏{app: {total, missing}}."
 
 #. Label of a Code field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Missing JSON"
 msgstr "JSON الناقص"
 
 #. Description of a Code field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "The untranslated msgids per app, as JSON: {app: [msgid, ...]}. The export, the providers and the delta all read THIS scan rather than re-scanning."
 msgstr "معرّفات النصوص غير المترجمة لكل تطبيق بصيغة JSON: ‏{app: [msgid, ...]}. التصدير والمزوّدون والفرق كلها تقرأ هذا الفحص بعينه بدلًا من إعادة الفحص."
 
 #. Label of a Small Text field in DocType 'Bunood Translation Scan'
 #. src: ai
-#, fuzzy
 msgid "Error"
 msgstr "الخطأ"
 
 #. Name of a DocType
 #. src: ai
-#, fuzzy
 msgid "Bunood Translation Settings"
 msgstr "إعدادات ترجمة بنود"
 
 #. Label of a Section Break field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Machine Translation"
 msgstr "الترجمة الآلية"
 
 #. Description of a Select field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Who fills the gaps when you run a provider. Every run produces proposals to review — nothing is applied on its own."
 msgstr "من يملأ الفجوات عندما تشغّل مزوّدًا. كل تشغيل ينتج مقترحات للمراجعة — لا شيء يُطبَّق من تلقاء نفسه."
 
 #. Label of a Data field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Claude Model"
 msgstr "نموذج Claude"
 
 #. Label of an Int field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Batch Size"
 msgstr "حجم الدفعة"
 
 #. Description of an Int field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Strings per request. Smaller batches survive flaky networks; larger ones are cheaper per call."
 msgstr "عدد النصوص في الطلب الواحد. الدفعات الأصغر تنجو من الشبكات المتقلبة؛ والأكبر أرخص لكل نداء."
 
 #. Label of a Float field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Spend Cap (USD)"
 msgstr "سقف الإنفاق (دولار)"
 
 #. Description of a Float field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "A run stops before its estimate crosses this. Raise it deliberately, per run, not permanently."
 msgstr "يتوقف التشغيل قبل أن يتجاوز تقديره هذا السقف. ارفعه عن عمد، لكل تشغيل، لا بشكل دائم."
 
 #. Label of a Section Break field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "API Keys"
 msgstr "مفاتيح API"
 
 #. Description of a Section Break field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Keys stay on the server: every provider call is made from Python, and a Password field is encrypted at rest and never enters the boot payload."
 msgstr "المفاتيح تبقى على الخادم: كل نداء مزوّد يُجرى من Python، وحقل كلمة المرور مشفّر في التخزين ولا يدخل حمولة الإقلاع أبدًا."
 
 #. Label of a Password field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Claude API Key"
 msgstr "مفتاح Claude API"
 
 #. Label of a Password field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "DeepL API Key"
 msgstr "مفتاح DeepL API"
 
 #. Label of a Password field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Google Translate API Key"
 msgstr "مفتاح Google Translate API"
 
 #. Label of a Password field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Microsoft Translator API Key"
 msgstr "مفتاح Microsoft Translator API"
 
 #. Label of a Data field in DocType 'Bunood Translation Settings'
 #. src: ai
-#, fuzzy
 msgid "Microsoft Region"
 msgstr "منطقة Microsoft"
 
 #. In theme_settings.js — the Language shell group's entry
 #. src: ai
-#, fuzzy
 msgid "Translations"
 msgstr "الترجمات"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "No scan yet. Run one to see what needs translating."
 msgstr "لا فحص بعد. شغّل واحدًا لترى ما يحتاج ترجمة."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Scan failed"
 msgstr "فشل الفحص"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Untranslated: {0}"
 msgstr "غير المترجم: {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "New since previous scan: {0}"
 msgstr "الجديد منذ الفحص السابق: {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Scan running…"
 msgstr "الفحص جارٍ…"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Strings"
 msgstr "النصوص"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Missing"
 msgstr "الناقص"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Scan now"
 msgstr "افحص الآن"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Export untranslated (CSV)"
 msgstr "تصدير غير المترجم (CSV)"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Import a filled CSV…"
 msgstr "استيراد CSV معبأ…"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Run {0}"
 msgstr "تشغيل {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Source string, exactly as the app spells it"
 msgstr "النص المصدر، حرفيًا كما يكتبه التطبيق"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Its translation"
 msgstr "ترجمته"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Save translation"
 msgstr "حفظ الترجمة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Proposals to review: {0}"
 msgstr "مقترحات للمراجعة: {0}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Imported — created: {0}, updated: {1}, left empty: {2}"
 msgstr "استُورد — أُنشئ: {0}، حُدّث: {1}، تُرك فارغًا: {2}"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Provider: {0}. Strings: {1}. Estimated cost: ${2}. Cap: ${3}. Every result lands as a proposal to review — nothing is applied on its own."
 msgstr "المزوِّد: {0}. النصوص: {1}. التكلفة المقدرة: ${2}. السقف: ${3}. كل نتيجة تصل مقترحًا للمراجعة — لا شيء يُطبَّق من تلقاء نفسه."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Saved — applies on the next page load."
 msgstr "حُفظ — يسري عند تحميل الصفحة التالي."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Accept"
 msgstr "قبول"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Reject"
 msgstr "رفض"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Loading…"
 msgstr "جارٍ التحميل…"
 
 #. In i18n/api.py
 #. src: ai
-#, fuzzy
 msgid "Only a System Manager can manage translations."
 msgstr "لا يدير الترجمات إلا مدير النظام."
 
 #. In i18n/api.py
 #. src: ai
-#, fuzzy
 msgid "Unknown action."
 msgstr "إجراء غير معروف."
 
 #. In i18n/apply.py
 #. src: ai
-#, fuzzy
 msgid "This proposal has no text to accept."
 msgstr "هذا المقترح لا نص فيه ليُقبل."
 
 #. In i18n/providers.py
 #. src: ai
-#, fuzzy
 msgid "Bunood Translation Settings has no {0}."
 msgstr "إعدادات ترجمة بنود لا تحوي {0}."
 
 #. In i18n/scan.py
 #. src: ai
-#, fuzzy
 msgid "A scan is already running."
 msgstr "ثمة فحص قيد التشغيل بالفعل."
 
 #. The list-view kit (34a-adjacent, authored by the concurrent session).
 #. src: ai
-#, fuzzy
 msgid "List View"
 msgstr "عرض القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "List Picker"
 msgstr "منتقي القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "List Style"
 msgstr "نمط القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "Set by the picker above. How rows draw their boundaries."
 msgstr "يضبطه المنتقي أعلاه. كيف ترسم الصفوف حدودها."
 
 #. src: ai
-#, fuzzy
 msgid "Hairline Rows"
 msgstr "صفوف بخط شعري"
 
 #. src: ai
-#, fuzzy
 msgid "Open Rows"
 msgstr "صفوف مفتوحة"
 
 #. src: ai
-#, fuzzy
 msgid "Zebra Stripes"
 msgstr "تظليل متناوب"
 
 #. src: ai
-#, fuzzy
 msgid "Floating Cards"
 msgstr "بطاقات عائمة"
 
 #. src: ai
-#, fuzzy
 msgid "List Hover"
 msgstr "تحويم القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "Set by the picker above. How a row answers the pointer."
 msgstr "يضبطه المنتقي أعلاه. كيف يجيب الصف المؤشر."
 
 #. src: ai
-#, fuzzy
 msgid "Soft Wash"
 msgstr "صبغة ناعمة"
 
 #. src: ai
-#, fuzzy
 msgid "Edge Rail"
 msgstr "خط الحافة"
 
 #. src: ai
-#, fuzzy
 msgid "List Selection"
 msgstr "تحديد القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "Set by the picker above. Checked rows and the bulk header, as one treatment."
 msgstr "يضبطه المنتقي أعلاه. الصفوف المحددة ورأس الإجراءات الجماعية بمعالجة واحدة."
 
 #. src: ai
-#, fuzzy
 msgid "Soft Tint"
 msgstr "صبغة خفيفة"
 
 #. src: ai
-#, fuzzy
 msgid "Bold Bar"
 msgstr "شريط بارز"
 
 #. src: ai
-#, fuzzy
 msgid "Reveal Checkboxes on Hover"
 msgstr "إظهار مربعات الاختيار عند التحويم"
 
 #. src: ai
-#, fuzzy
 msgid "Checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens."
 msgstr "مربعات الاختيار تستقر مخفية وتظهر عند التحويم أو تركيز لوحة المفاتيح أو ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
 
 #. src: ai
-#, fuzzy
 msgid "List view"
 msgstr "عرض القائمة"
 
 #. src: ai
-#, fuzzy
 msgid "Stock ERPNext rows, untouched. The whole kit stands down."
 msgstr "صفوف ERPNext الأصلية، من غير مساس. العدة كلها تتنحى."
 
 #. src: ai
-#, fuzzy
 msgid "Quiet separators, maximum density — the classic admin look."
 msgstr "فواصل هادئة وأقصى كثافة — مظهر الإدارة الكلاسيكي."
 
 #. src: ai
-#, fuzzy
 msgid "No lines at all — spacing separates, hover defines."
 msgstr "بلا خطوط إطلاقًا — التباعد يفصل والتحويم يعرّف."
 
 #. src: ai
-#, fuzzy
 msgid "Alternating fill — the easiest row-tracking on wide tables."
 msgstr "تعبئة متناوبة — أسهل تتبع للصفوف في الجداول العريضة."
 
 #. src: ai
-#, fuzzy
 msgid "Each row a raised card — the modern look, a small density cost."
 msgstr "كل صف بطاقة مرتفعة — المظهر العصري، بكلفة كثافة صغيرة."
 
 #. src: ai
-#, fuzzy
 msgid "How a row answers the pointer."
 msgstr "كيف يجيب الصف المؤشر."
 
 #. src: ai
-#, fuzzy
 msgid "Selection"
 msgstr "التحديد"
 
 #. src: ai
-#, fuzzy
 msgid "Checked rows and the bulk header, as one treatment."
 msgstr "الصفوف المحددة ورأس الإجراءات الجماعية بمعالجة واحدة."
 
 #. src: ai
-#, fuzzy
 msgid "Reveal checkboxes on hover"
 msgstr "إظهار مربعات الاختيار عند التحويم"
 
 #. src: ai
-#, fuzzy
 msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch screens."
 msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
 
 #. src: ai
-#, fuzzy
 msgid "Original leaves the stock list untouched — nothing below applies."
 msgstr "«الأصلي» يترك القائمة الأصلية كما هي — لا شيء أدناه يسري."
 
 #. src: ai
-#, fuzzy
 msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch."
 msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على اللمس."
