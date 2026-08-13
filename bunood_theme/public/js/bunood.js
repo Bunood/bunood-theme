@@ -2630,7 +2630,13 @@ function sb_zone_anchor(pane, zone, node) {
 	function mount_statusbar() {
 		if (document.querySelector(".bnd-statusbar")) return;
 
-		const bar = el("div", "bnd-statusbar", { "data-bnd-part": "bottombar", role: "navigation", "aria-label": __("Status bar") });
+		// role="region", not "navigation" (item 22): a clock, a connection dot
+		// and job counts are not navigation, and a wrong role is discoverable
+		// only by AT testing — GUIDELINES §1.5's own words. "status" would be
+		// worse: a live region that announces every clock tick. A named
+		// region is still a landmark a screen-reader user can jump to, which
+		// is the property this container actually has.
+		const bar = el("div", "bnd-statusbar", { "data-bnd-part": "bottombar", role: "region", "aria-label": __("Status bar") });
 
 		// Connection: dot + word. State wired to the realtime socket when it
 		// exposes lifecycle events, else to navigator.onLine — both guarded,
@@ -3218,9 +3224,16 @@ function sb_zone_anchor(pane, zone, node) {
 		container.innerHTML = "";
 		const frame = el("div", "bnd-inbox-page");
 		const left = el("div", "bnd-inbox-page-list");
-		const tabs = el("div", "bnd-inbox-tabs", { role: "tablist" });
+		// role="group" of aria-pressed toggles, not role="tablist" (item 22):
+		// what these filter is a role="listbox" a few lines down, which
+		// cannot ALSO be a tabpanel, and a tablist promises arrow-key
+		// movement that inbox_keydown already owns here for row triage —
+		// two arrow contracts in one dialog is the two-options-one-pixel
+		// defect in keyboard form. aria-pressed is this codebase's existing
+		// idiom for "an option chip that says its own selection".
+		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
 		for (const tab of INBOX_TABS) {
-			const btn = el("button", "bnd-inbox-tab", { type: "button", role: "tab", "data-tab": tab.id });
+			const btn = el("button", "bnd-inbox-tab", { type: "button", "aria-pressed": "false", "data-tab": tab.id });
 			btn.textContent = tab.label();
 			btn.addEventListener("click", () => {
 				inbox_tab = tab.id;
@@ -3302,10 +3315,8 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
 				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
 				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
-				// The class styles; the attribute SAYS. role=tab without
-				// aria-selected is a tab bar a screen reader cannot read the
-				// state of.
-				btn.setAttribute("aria-selected", tab_on ? "true" : "false");
+				// The class styles; the attribute SAYS which filter is on.
+				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
 			}
 			list.innerHTML = "";
 			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
@@ -4667,11 +4678,13 @@ function sb_zone_anchor(pane, zone, node) {
 		head.appendChild(close_btn);
 		panel.appendChild(head);
 
-		const tabs = el("div", "bnd-inbox-tabs", { role: "tablist" });
+		// role="group" of aria-pressed toggles — see the matching comment on
+		// bunood.inbox_render_page's tabs, above; the same shape, twice.
+		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
 		for (const tab of INBOX_TABS) {
 			const btn = el("button", "bnd-inbox-tab", {
 				type: "button",
-				role: "tab",
+				"aria-pressed": "false",
 				"data-tab": tab.id,
 			});
 			btn.textContent = tab.label();
@@ -4720,10 +4733,8 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const btn of inbox_nodes.tabs.querySelectorAll(".bnd-inbox-tab")) {
 			const tab_on = btn.getAttribute("data-tab") === inbox_tab;
 			btn.classList.toggle("bnd-inbox-tab-on", tab_on);
-			// The class styles; the attribute SAYS. role=tab without
-			// aria-selected is a tab bar a screen reader cannot read the
-			// state of.
-			btn.setAttribute("aria-selected", tab_on ? "true" : "false");
+			// The class styles; the attribute SAYS which filter is on.
+			btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
 		}
 		inbox_nodes.list.innerHTML = "";
 		const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });

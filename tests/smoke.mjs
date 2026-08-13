@@ -4670,6 +4670,54 @@ async function main() {
 			);
 		});
 
+		await test("a11y: the inbox's filters say which one is on", async () => {
+			// Downgraded from role=tablist/tab (item 22): what these filter is
+			// a role=listbox a few lines down, which cannot ALSO be a
+			// tabpanel, and a tablist promises arrow-key movement that
+			// inbox_keydown already owns here for row triage — two arrow
+			// contracts in one dialog. aria-pressed is this codebase's
+			// existing idiom for an option chip that says its own selection.
+			// axe cannot catch a wrong role here — no wcag2a/2aa rule
+			// requires a tabpanel, and .bnd-inbox is already in the hard
+			// gate and green — so this suite contract is the only mechanism,
+			// which is §2.3's whole thesis.
+			setSettings({
+				desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
+				inbox_placement: "Top Bar End",
+			});
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click(".bnd-bell");
+			await page.waitForSelector(".bnd-inbox-tabs", { timeout: 5000 });
+
+			const state = () =>
+				page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-inbox-tab")].map((b) => ({
+						pressed: b.getAttribute("aria-pressed"),
+						on: b.classList.contains("bnd-inbox-tab-on"),
+					}))
+				);
+			let s = await state();
+			expectEq(s.length, 5, `all five filters are present (found ${s.length})`);
+			expect(
+				s.every((t) => t.pressed === "true" || t.pressed === "false"),
+				"every filter states pressed true or false, never absent"
+			);
+			expectEq(s.filter((t) => t.pressed === "true").length, 1, "exactly one filter reads pressed");
+			expect(s.every((t) => (t.pressed === "true") === t.on), "the attribute agrees with the visual state");
+
+			// Click a different filter, and assert BOTH halves moved together.
+			await page.evaluate(() => {
+				const btns = [...document.querySelectorAll(".bnd-inbox-tab")];
+				const off = btns.find((b) => b.getAttribute("aria-pressed") !== "true");
+				if (off) off.click();
+			});
+			await page.waitForTimeout(500);
+			s = await state();
+			expectEq(s.filter((t) => t.pressed === "true").length, 1, "still exactly one, after the click");
+			expect(s.every((t) => (t.pressed === "true") === t.on), "the attribute and the visual state moved together");
+			await page.keyboard.press("Escape");
+		});
+
 		await test("a11y: the bell's name and badge agree about unread", async () => {
 			// The badge's text is masked by the bell's aria-label under accname
 			// rules, so the LABEL carries the count. The two must agree: digits
@@ -5109,6 +5157,163 @@ async function main() {
 			await page.keyboard.press("Escape");
 		});
 
+		// ── Landmarks, the open workspace, and honest popup triggers (item 22) ──
+		// Three ARIA promises 34a slice 1 made and never asserted: role=
+		// navigation landmarks, aria-current on the open workspace, and
+		// aria-haspopup on a trigger that has never yet been clicked.
+
+		await test("a11y: every container is a named landmark, and no two share a name", async () => {
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, dock_enabled: 1, bottombar_enabled: 1, pagehead_enabled: 0,
+			});
+			await goDesk("/desk/item", ".page-head", 3000);
+			const landmarks = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-topbar, .bnd-statusbar, .bnd-dock")].map((el) => ({
+					role: el.getAttribute("role"),
+					label: el.getAttribute("aria-label"),
+				}))
+			);
+			// Count FIRST: every() over an empty list is vacuously true, and a
+			// build that mounted nothing would otherwise pass this silently.
+			expectEq(landmarks.length, 3, `topbar, statusbar and dock are all mounted (found ${landmarks.length})`);
+			expect(
+				landmarks.every((l) => l.role === "navigation" || l.role === "region"),
+				`every container carries a landmark role (got: ${landmarks.map((l) => l.role).join(", ")})`
+			);
+			expect(landmarks.every((l) => !!l.label), "every container is named");
+			const names = landmarks.map((l) => l.label);
+			// landmark-unique is best-practice, not wcag2a/2aa, so the axe
+			// gate's tag filter never checks this — it lives here instead.
+			expectEq(new Set(names).size, names.length, `no two containers share a name (${names.join(", ")})`);
+		});
+
+		await test("a11y: the open workspace says so, in the dock and in the rail", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Dock", dock_enabled: 1 });
+			await goDesk("/desk/item", ".bnd-dock", 3000);
+			// The negative half is the point: update_dock_active REMOVES the
+			// attribute, and a positive-only test would pass on a build that
+			// never removes it.
+			expectEq(
+				await page.evaluate(() => document.querySelectorAll("[aria-current]").length),
+				0,
+				"no dock item claims aria-current on a non-workspace route"
+			);
+			const dockWs = await page.evaluate(() => {
+				const el = document.querySelector(".bnd-dock-item[data-ws]");
+				return el ? el.getAttribute("data-ws") : null;
+			});
+			expect(dockWs, "at least one real workspace is in the dock to click");
+			await page.click(`.bnd-dock-item[data-ws="${dockWs}"]`);
+			await page.waitForTimeout(1500);
+			const dockAfter = await page.evaluate((ws) => {
+				const current = [...document.querySelectorAll("[aria-current]")];
+				return { count: current.length, onRightOne: current.some((el) => el.getAttribute("data-ws") === ws) };
+			}, dockWs);
+			expectEq(dockAfter.count, 1, `exactly one dock item claims aria-current after opening ${dockWs}`);
+			expect(dockAfter.onRightOne, "aria-current lands on the workspace that was actually opened");
+			await goDesk("/desk/item", ".page-head", 2000);
+			expectEq(
+				await page.evaluate(() => document.querySelectorAll("[aria-current]").length),
+				0,
+				"aria-current is removed once the route leaves that workspace"
+			);
+
+			// The apps rail: a different mount, the same mechanism
+			// (sb_update_apps_rail_active mirrors update_dock_active).
+			setSettings({ ...CHROME_DEFAULTS, sidebar_apps_rail: 1 });
+			await goDesk("/desk/item", ".bnd-apps-rail", 3000);
+			const railWs = await page.evaluate(() => {
+				const el = document.querySelector(".bnd-apps-rail-item[data-ws]");
+				return el ? el.getAttribute("data-ws") : null;
+			});
+			expect(railWs, "at least one real workspace is in the apps rail to click");
+			await page.click(`.bnd-apps-rail-item[data-ws="${railWs}"]`);
+			await page.waitForTimeout(1500);
+			const railAfter = await page.evaluate((ws) => {
+				const current = [...document.querySelectorAll(".bnd-apps-rail-item[aria-current]")];
+				return { count: current.length, onRightOne: current.some((el) => el.getAttribute("data-ws") === ws) };
+			}, railWs);
+			expectEq(railAfter.count, 1, `exactly one rail item claims aria-current after opening ${railWs}`);
+			expect(railAfter.onRightOne, "aria-current lands on the workspace that was actually opened");
+		});
+
+		await test("a11y: a trigger that opens a popup says so before it is opened", async () => {
+			// On a FRESH load, before any menu has ever been clicked — this
+			// fails without menu_trigger(), correctly: aria-haspopup used to
+			// be stamped inside show_menu() itself, only after a menu had
+			// already been opened once.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const avatar = await page.evaluate(() => {
+				const el = document.querySelector('[data-bnd-part="user"]');
+				return el ? { haspopup: el.getAttribute("aria-haspopup"), expanded: el.getAttribute("aria-expanded") } : null;
+			});
+			expect(avatar, "the avatar trigger is mounted");
+			expectEq(avatar.haspopup, "menu", "the avatar says it opens a menu before it is ever clicked");
+			expectEq(avatar.expanded, "false", "and says it starts collapsed");
+		});
+
+		// ── Breadcrumbs are ours (item 22) ──────────────────────────────────
+		// GUIDELINES §1.5 names breadcrumbs explicitly as a component this
+		// theme owns, yet the kit had no a11y assertion and sat outside the
+		// axe hard gate's OURS list.
+
+		await test("a11y: decorating a crumb does not rename it", async () => {
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				crumb_style: "Quiet Trail", crumb_icons: "Off",
+			});
+			await goDesk("/desk/item", ".page-head", 3000);
+			const original = await page.evaluate(() =>
+				[...document.querySelectorAll(".page-head .navbar-breadcrumbs a")].map((a) => a.textContent.trim())
+			);
+			expect(original.length > 0, "the trail has at least one crumb to decorate");
+
+			setSettings({ crumb_icons: "Every Crumb" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			const decorated = await page.evaluate(() => ({
+				text: [...document.querySelectorAll(".page-head .navbar-breadcrumbs a")].map((a) => a.textContent.trim()),
+				chips: document.querySelectorAll(".bnd-crumb-chip").length,
+				// A decorative icon must add no name of its own — sprite_icon()
+				// never sets one, asserted here rather than assumed.
+				namedIcons: document.querySelectorAll(".bnd-crumb-chip svg title, .bnd-crumb-chip svg[aria-label]").length,
+			}));
+			// Assert the decoration actually happened FIRST — an undecorated
+			// trail would pass "unchanged" trivially.
+			expect(decorated.chips > 0, "icons actually decorated the trail");
+			expectEq(decorated.text.join("|"), original.join("|"), "the crumbs' own text is unchanged by decoration");
+			expectEq(decorated.namedIcons, 0, "the injected icon carries no name of its own");
+		});
+
+		await test("a11y: the copy-link button shows itself when focus arrives", async () => {
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				crumb_style: "Quiet Trail", crumb_copy_link: 1,
+			});
+			await goDesk("/desk/item", ".page-head", 3000);
+			// crumb_copy_button() fails open with no navigator.clipboard —
+			// localhost is a secure context, so it should mount here.
+			expect(await q(".bnd-crumb-copy"), "the copy-link button mounted");
+			await page.evaluate(() => {
+				const links = [...document.querySelectorAll(".page-head .navbar-breadcrumbs a")];
+				(links[links.length - 1] || document.body).focus();
+			});
+			await page.keyboard.press("Tab");
+			// The reveal is a CSS transition (--bnd-dur-fast, 120ms) — read
+			// the settled value, not a frame mid-fade.
+			await page.waitForTimeout(250);
+			const after = await page.evaluate(() => {
+				const el = document.activeElement;
+				return {
+					onButton: !!(el && el.classList.contains("bnd-crumb-copy")),
+					opacity: el ? getComputedStyle(el).opacity : null,
+				};
+			});
+			expect(after.onButton, "Tab from the last crumb lands on the copy-link button");
+			expectEq(after.opacity, "1", "and it is visible once focused, though opacity:0 at rest");
+		});
+
 		// ── 34a: axe, scoped honestly ──────────────────────────────────────
 		//
 		// GUIDELINES §2.3's exact prescription, built as written: a HARD gate
@@ -5125,6 +5330,7 @@ async function main() {
 				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
 				".bnd-apps-rail", ".bnd-sb-utils", ".bnd-sb-brand",
 				".bnd-palette", ".bnd-inbox", ".bnd-menu",
+				".bnd-crumb-chip", ".bnd-crumb-copy",
 			];
 			// Deliberate exceptions, each with the reason axe cannot know.
 			// The same allowlist contract as CONSOLE_ALLOWLIST: scoped to the
@@ -5144,6 +5350,7 @@ async function main() {
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
+				crumb_style: "Quiet Trail", crumb_copy_link: 1, crumb_icons: "Every Crumb",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 

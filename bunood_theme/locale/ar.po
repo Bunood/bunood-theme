@@ -3120,6 +3120,12 @@ msgstr "رفض"
 msgid "Loading…"
 msgstr "جارٍ التحميل…"
 
+#. In bunood.js — item 22, the inbox filter row's accessible group name.
+#, fuzzy
+#. src: ai
+msgid "Filter"
+msgstr "تصفية"
+
 #. In i18n/api.py
 #. src: ai
 msgid "Only a System Manager can manage translations."
