@@ -397,7 +397,7 @@ html[data-theme] {
     border-radius: 99px;
     background: var(--border-color);
     flex: none;
-    transition: background 0.15s;
+    transition: background var(--bnd-dur-fast);
 
     &::after {
       content: "";
@@ -408,7 +408,7 @@ html[data-theme] {
       block-size: 13px;
       border-radius: 50%;
       background: #fff;
-      transition: inset-inline-start 0.15s;
+      transition: inset-inline-start var(--bnd-dur-fast);
     }
   }
 
@@ -972,7 +972,7 @@ html[data-theme] {
 	border-radius: var(--bnd-radius-sm, 6px);
 	background: var(--bnd-surface-3, var(--control-bg));
 	cursor: pointer;
-	transition: background 120ms ease, border-color 120ms ease;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
 
 .bnd-bd-zone-name {

@@ -168,6 +168,50 @@ function assertCursiveSafe(css, name) {
 }
 
 /**
+ * Motion-primitive guard — no literal duration may reach compiled CSS.
+ *
+ * `_tokens.scss`'s own comment on the reduced-motion block says outright:
+ * "Zeroing the duration tokens disables every transition in the theme at
+ * once, because nothing hardcodes a duration." That claim was false in
+ * three places the day this guard was written — the settings toggle knob
+ * (`0.15s` twice) and the placement board's zone hover (`120ms`) each
+ * shipped a literal, so both kept animating under
+ * `prefers-reduced-motion: reduce` from the day they landed.
+ *
+ * Scoped to the properties that actually carry timing — `transition`,
+ * `animation`, and their `-duration` longhands — so `--bnd-dur-fast: 120ms`
+ * itself never matches: it is a custom-property declaration, not a
+ * transition/animation property. A bare zero (`0`, `0s`, `0ms`) is always
+ * allowed, because that IS the reduced-motion value; any other literal
+ * time value fails the build. Checked on COMPILED css, like the RTL and
+ * cursive guards, so nothing slips through a mixin or an import.
+ */
+function assertMotionPrimitive(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [];
+	const TIME = /-?\d*\.?\d+(?:ms|s)\b/g;
+	for (const m of stripped.matchAll(/\b(transition|animation)(-duration)?\s*:\s*([^;}]+)/g)) {
+		const value = m[3].trim();
+		for (const t of value.matchAll(TIME)) {
+			if (!/^0+(\.0+)?(ms|s)?$/.test(t[0])) {
+				offenders.push(`${m[1]}${m[2] || ""}: ${value}`);
+				break;
+			}
+		}
+	}
+	if (offenders.length) {
+		throw new Error(
+			`Motion-primitive guard: ${name} hardcodes a duration outside the tokens:\n  ` +
+				[...new Set(offenders)].join("\n  ") +
+				"\n_tokens.scss's reduced-motion block zeroes --bnd-dur-fast/-base/-slow and " +
+				"nothing else — a literal time value here keeps animating under " +
+				"prefers-reduced-motion: reduce. Use var(--bnd-dur-fast), var(--bnd-dur-base) " +
+				"or var(--bnd-dur-slow)."
+		);
+	}
+}
+
+/**
  * Field-naming guard — fail the build if a Theme Settings field for a component
  * is not named `<component>_<property>`.
  *
@@ -374,6 +418,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertLogicalOnly(result.css, `${key}.css`);
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
+	assertMotionPrimitive(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;
