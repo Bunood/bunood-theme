@@ -4910,6 +4910,137 @@ async function main() {
 			);
 		});
 
+		// ── The avatar menu (item 22) ────────────────────────────────────────
+		//
+		// .bnd-menu is body-appended, outside every axe root, and until now had
+		// no focus contract, no keyboard path and no test — despite carrying
+		// Log Out, the critical-reach function HANDOVER §7 exists to protect.
+		// The avatar's own menu is scanned/driven here because it carries the
+		// identity header, the one content-model risk none of the other three
+		// show_menu() callers has.
+
+		await test("a11y: the menu takes focus when it opens, and gives it back", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			const opened = await page.evaluate(() => {
+				const active = document.activeElement;
+				return {
+					insideMenu: !!(active && active.closest(".bnd-menu")),
+					isFirstItem: !!(active && active === document.querySelector(".bnd-menu .bnd-menu-item")),
+					expanded: document.querySelector('[data-bnd-part="user"]').getAttribute("aria-expanded"),
+				};
+			});
+			expect(opened.insideMenu, "focus moved inside the menu on open");
+			expect(opened.isFirstItem, "focus landed on the first menu item");
+			expectEq(opened.expanded, "true", "the trigger says it is expanded");
+
+			// Esc: closes, restores focus, must not leave it on <body> — the
+			// exact defect e2a4926 fixed for the palette/inbox, by consuming
+			// the keypress before Frappe's own document-level handling reacts
+			// too. Report where focus actually landed, per that fix's lesson.
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
+			const closed = await page.evaluate(() => ({
+				gone: !document.querySelector(".bnd-menu"),
+				onTrigger: document.activeElement === document.querySelector('[data-bnd-part="user"]'),
+				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
+				expanded: document.querySelector('[data-bnd-part="user"]').getAttribute("aria-expanded"),
+			}));
+			expect(closed.gone, "Escape removed the menu");
+			expect(closed.onTrigger, `focus returned to the trigger (landed on: ${closed.at})`);
+			expectEq(closed.expanded, "false", "the trigger says it is collapsed again");
+		});
+
+		await test("a11y: the menu moves on arrows, wraps, and Home/End jump", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+
+			const label = () =>
+				page.evaluate(() => (document.activeElement && document.activeElement.textContent || "").trim());
+			const lastLabel = () =>
+				page.evaluate(() => {
+					const items = [...document.querySelectorAll(".bnd-menu .bnd-menu-item")];
+					return (items[items.length - 1].textContent || "").trim();
+				});
+
+			const first = await label();
+			await page.keyboard.press("ArrowDown");
+			const second = await label();
+			expect(second !== first, `ArrowDown moved focus (was "${first}", now "${second}")`);
+
+			await page.keyboard.press("ArrowUp");
+			expectEq(await label(), first, "ArrowUp moved back to the first item");
+
+			// From the first item, ArrowUp wraps to the LAST — the case a
+			// naive index - 1 gets wrong.
+			await page.keyboard.press("ArrowUp");
+			const last = await lastLabel();
+			expectEq(await label(), last, "ArrowUp from the first item wraps to the last");
+
+			await page.keyboard.press("Home");
+			expectEq(await label(), first, "Home jumps to the first item");
+
+			await page.keyboard.press("End");
+			expectEq(await label(), last, "End jumps to the last item");
+
+			await page.keyboard.press("Escape");
+		});
+
+		await test("a11y: Tab leaves the menu — it is a popup, not a modal", async () => {
+			// Contrast the palette, which traps Tab on purpose ("a11y: the
+			// palette is a combobox and focus comes back where it left").
+			// Two overlays, two different correct answers: a dialog earns a
+			// trap, a menu anchored to a trigger in the middle of the page
+			// does not.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			await page.keyboard.press("Tab");
+			await page.waitForTimeout(300);
+			const after = await page.evaluate(() => ({
+				gone: !document.querySelector(".bnd-menu"),
+				onBody: document.activeElement === document.body,
+				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
+			}));
+			expect(after.gone, "Tab closed the menu");
+			expect(!after.onBody, `focus did not fall through to <body> (landed on: ${after.at})`);
+		});
+
+		await test("a11y: role=menu owns only menuitems and separators", async () => {
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			await goDesk("/desk/item", ".page-head", 3000);
+			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			const model = await page.evaluate(() => {
+				const list = document.querySelector(".bnd-menu-list");
+				const items = [...document.querySelectorAll(".bnd-menu .bnd-menu-item")];
+				const header = document.querySelector(".bnd-menu .bnd-menu-header");
+				return {
+					listRole: list && list.getAttribute("role"),
+					menuOwnRole: document.querySelector(".bnd-menu").getAttribute("role"),
+					headerOutsideList: !!(header && list && !list.contains(header)),
+					childRoles: list ? [...list.children].map((c) => c.getAttribute("role")) : [],
+					itemsAreButtons: items.every((n) => n.tagName === "BUTTON"),
+					itemsTabindex: items.map((n) => n.getAttribute("tabindex")),
+				};
+			});
+			expectEq(model.listRole, "menu", "the item list carries role=menu");
+			expect(!model.menuOwnRole, "the outer popup surface carries no role of its own");
+			expect(model.headerOutsideList, "the identity header sits outside role=menu, as its sibling");
+			expect(
+				model.childRoles.every((r) => r === "menuitem" || r === "separator"),
+				`every role=menu child is menuitem or separator (got: ${model.childRoles.join(", ")})`
+			);
+			expect(model.itemsAreButtons, "every menu item is a real <button>");
+			expect(model.itemsTabindex.every((t) => t === "-1"), "every menu item is tabindex=-1, out of the tab order");
+			await page.keyboard.press("Escape");
+		});
+
 		// ── 34a: axe, scoped honestly ──────────────────────────────────────
 		//
 		// GUIDELINES §2.3's exact prescription, built as written: a HARD gate
@@ -4925,7 +5056,7 @@ async function main() {
 			const OURS = [
 				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
 				".bnd-apps-rail", ".bnd-sb-utils", ".bnd-sb-brand",
-				".bnd-palette", ".bnd-inbox",
+				".bnd-palette", ".bnd-inbox", ".bnd-menu",
 			];
 			// Deliberate exceptions, each with the reason axe cannot know.
 			// The same allowlist contract as CONSOLE_ALLOWLIST: scoped to the
@@ -4976,6 +5107,15 @@ async function main() {
 			await page.click(".bnd-bell");
 			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 5000 });
 			bad = bad.concat(await scan("inbox open"));
+			await page.keyboard.press("Escape");
+
+			// The avatar's own menu: body-appended (outside every root above
+			// until .bnd-menu joined OURS), never open at rest, and the
+			// instance carrying the identity header — the one content-model
+			// risk none of the other three show_menu() callers has.
+			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			bad = bad.concat(await scan("menu open"));
 			await page.keyboard.press("Escape");
 
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);

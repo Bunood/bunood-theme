@@ -1122,18 +1122,42 @@
 	/** The one open .bnd-menu, so opening another closes it first. */
 	let open_menu = null;
 
-	/** Close the open menu, if any. Safe to call always. */
-	function close_menu() {
-		if (open_menu) {
-			if (open_menu._trigger && open_menu._trigger.setAttribute) {
-				open_menu._trigger.setAttribute("aria-expanded", "false");
-			}
-			open_menu.remove();
-			open_menu = null;
-		}
+	/**
+	 * Mark a trigger as ABLE to open a menu — knowable at build time, unlike
+	 * whether one is open right now. Call once, when the trigger is built.
+	 * `aria-expanded` is deliberately NOT set here: that is a fact about
+	 * CURRENT state, and show_menu()/close_menu() are the one choke point
+	 * every open and close already passes through, so it stays there.
+	 */
+	function menu_trigger(btn) {
+		btn.setAttribute("aria-haspopup", "menu");
+		btn.setAttribute("aria-expanded", "false");
 	}
 
-	// One set of global closers for every menu instance.
+	/**
+	 * Close the open menu, if any. Safe to call always. Restores focus to
+	 * the trigger ONLY when focus is currently inside the menu — the
+	 * outside-pointerdown closer below fires for clicks that were never
+	 * IN the menu at all, and yanking focus from wherever the user
+	 * actually is would be its own defect.
+	 */
+	function close_menu() {
+		if (!open_menu) return;
+		const trigger = open_menu._trigger;
+		const had_focus = open_menu.contains(document.activeElement);
+		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "false");
+		open_menu.remove();
+		open_menu = null;
+		if (had_focus && trigger && trigger.focus) trigger.focus();
+	}
+
+	// One set of global closers for every menu instance. The menu's OWN
+	// keydown listener (below) consumes Escape and Tab before either of
+	// these — or Frappe's own document-level Escape handling — ever sees
+	// them: letting two handlers react to the same Escape is what blurred a
+	// just-placed focus restore once already, for the palette and inbox
+	// (e2a4926). This pointerdown closer has no such conflict; it stays global
+	// because nothing inside the menu needs to see an outside click.
 	document.addEventListener("pointerdown", (e) => {
 		if (open_menu && !open_menu.contains(e.target)) close_menu();
 	});
@@ -1141,15 +1165,45 @@
 		if (e.key === "Escape") close_menu();
 	});
 
+	/** The menu's own focusable items, in DOM order. */
+	function menu_items(menu) {
+		return [...menu.querySelectorAll(".bnd-menu-item")];
+	}
+
 	/**
 	 * Open a .bnd-menu anchored to a trigger button.
+	 *
+	 * FOCUS CONTRACT: opening moves focus to the first item. ArrowDown/
+	 * ArrowUp move among items with wrap, Home/End jump to the ends. Escape
+	 * closes, restores focus, and is consumed on the way — see the listener
+	 * below. Tab closes too, but is deliberately NOT prevented: this is a
+	 * POPUP, not a modal (the palette traps Tab on purpose; this is the
+	 * opposite choice for the opposite kind of surface) — closing and
+	 * refocusing the trigger synchronously, before the browser's own Tab
+	 * handling runs, means the default action continues from THAT element,
+	 * landing exactly where Tab/Shift+Tab would if the menu had never
+	 * opened. Verified with a standalone probe before writing this: a
+	 * keydown handler that mutates focus and removes the focused element
+	 * without preventDefault is still followed by the browser's default
+	 * action, computed against the NEW activeElement, in both directions.
+	 * Every item carries tabindex="-1": this is a transient, body-appended
+	 * surface, and nothing about it belongs in the page's own tab order.
+	 *
+	 * CONTENT MODEL: the popup surface (.bnd-menu) carries no role of its
+	 * own. role="menu" belongs to ITS OWN child, .bnd-menu-list, because
+	 * ARIA's menu role only permits menuitem/separator/group children — the
+	 * identity header is neither, so it is the LIST's sibling, not its
+	 * child. (aria-required-children is wcag2a and was already firing on
+	 * the settings-form baseline before this; a header inside role="menu"
+	 * would have tripped it here too the moment this surface joined a scan.)
 	 *
 	 * Positioning is computed from viewport rects in PHYSICAL coordinates
 	 * (rects are physical by nature, so this is RTL-correct without any dir
 	 * checks): the menu's near edge aligns with the trigger's near edge, and
 	 * it opens upward when the trigger sits in the lower half of the window.
 	 *
-	 * @param {HTMLElement} trigger - the button the menu hangs off.
+	 * @param {HTMLElement} trigger - the button the menu hangs off. Should
+	 *   already carry aria-haspopup via menu_trigger() at build time.
 	 * @param {Array<Object|"divider">} items - "divider" or
 	 *   {label, icon?, run?, danger?, header?} where header items render the
 	 *   identity block instead of a button.
@@ -1161,19 +1215,15 @@
 		}
 		close_menu();
 
-		const menu = el("div", "bnd-menu", { role: "menu" });
+		const menu = el("div", "bnd-menu");
 		menu._trigger = trigger;
-		// Stamped here, in the one place every menu routes through, rather
-		// than at each trigger's build site: a trigger that can open a menu
-		// says so the first time it does, and says whether it is open always.
-		if (trigger && trigger.setAttribute) {
-			trigger.setAttribute("aria-haspopup", "menu");
-			trigger.setAttribute("aria-expanded", "true");
-		}
+		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "true");
+
+		const list = el("div", "bnd-menu-list", { role: "menu" });
 
 		for (const item of items) {
 			if (item === "divider") {
-				menu.appendChild(el("div", "bnd-menu-divider"));
+				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
 				continue;
 			}
 			if (item.header) {
@@ -1186,12 +1236,13 @@
 					mail.textContent = item.header.email;
 					head.appendChild(mail);
 				}
-				menu.appendChild(head);
+				menu.appendChild(head); // sibling of the list, never its child
 				continue;
 			}
 			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
 				type: "button",
 				role: "menuitem",
+				tabindex: "-1",
 			});
 			if (item.icon) btn.appendChild(sprite_icon(item.icon));
 			btn.appendChild(document.createTextNode(item.label));
@@ -1203,8 +1254,35 @@
 					console.error("bunood_theme menu action failed", e); // eslint-disable-line no-console
 				}
 			});
-			menu.appendChild(btn);
+			list.appendChild(btn);
 		}
+
+		menu.appendChild(list);
+
+		menu.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation(); // see the FOCUS CONTRACT note above
+				close_menu();
+				return;
+			}
+			if (e.key === "Tab") {
+				close_menu(); // NOT prevented — see the FOCUS CONTRACT note above
+				return;
+			}
+			const nodes = menu_items(menu);
+			if (!nodes.length) return;
+			const at = nodes.indexOf(document.activeElement);
+			let next = -1;
+			if (e.key === "ArrowDown") next = at < 0 ? 0 : (at + 1) % nodes.length;
+			else if (e.key === "ArrowUp") next = at < 0 ? nodes.length - 1 : (at - 1 + nodes.length) % nodes.length;
+			else if (e.key === "Home") next = 0;
+			else if (e.key === "End") next = nodes.length - 1;
+			if (next !== -1) {
+				e.preventDefault();
+				nodes[next].focus();
+			}
+		});
 
 		document.body.appendChild(menu);
 		open_menu = menu;
@@ -1217,6 +1295,9 @@
 		let left = Math.min(Math.max(8, r.right - mw), window.innerWidth - mw - 8);
 		menu.style.left = left + "px";
 		menu.style.top = opens_up ? Math.max(8, r.top - mh - 6) + "px" : r.bottom + 6 + "px";
+
+		const first = menu_items(menu)[0];
+		if (first) first.focus();
 	}
 
 	// ── The avatar menu ─────────────────────────────────────────────────────
@@ -1895,6 +1976,7 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": __("User menu"),
 		});
 		avatar.innerHTML = user_avatar_html();
+		menu_trigger(avatar);
 		avatar.addEventListener("click", () => show_menu(avatar, avatar_menu_items()));
 		return avatar;
 	}
@@ -4895,6 +4977,7 @@ function sb_zone_anchor(pane, zone, node) {
 				"aria-label": __("More workspaces"),
 			});
 			more.textContent = "⋯";
+			menu_trigger(more);
 			more.addEventListener("click", () =>
 				show_menu(
 					more,
@@ -5538,6 +5621,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (rest.length) {
 			const more = el("button", "bnd-apps-rail-item", { type: "button", "aria-label": __("More") });
 			more.textContent = "⋯";
+			menu_trigger(more);
 			more.addEventListener("click", () =>
 				show_menu(more, rest.map((ws) => ({
 					label: ws.title,
