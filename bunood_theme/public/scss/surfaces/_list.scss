@@ -254,9 +254,3 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
     opacity: 1;
   }
 }
-// Reduced motion: the reveal snaps instead of fading.
-@media (prefers-reduced-motion: reduce) {
-  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
-    transition: none;
-  }
-}

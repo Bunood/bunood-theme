@@ -3522,11 +3522,6 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
     opacity: 1;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
-    transition: none;
-  }
-}
 html[data-theme] .frappe-control input.form-control:not([type=checkbox]),
 html[data-theme] .frappe-control select.form-control {
   block-size: var(--bnd-control-h);
@@ -3723,11 +3718,6 @@ html[data-bnd-form][data-bnd-form-ckreveal] .form-grid:has(.grid-row-check:check
 @media (hover: none) {
   html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
     opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
-    transition: none;
   }
 }
 html[data-bnd-form] .layout-side-section {

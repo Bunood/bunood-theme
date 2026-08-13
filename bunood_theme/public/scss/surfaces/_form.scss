@@ -311,13 +311,6 @@ html[data-bnd-form][data-bnd-form-ckreveal] .form-grid:has(.grid-row-check:check
     opacity: 1;
   }
 }
-// Reduced motion: the reveal snaps instead of fading.
-@media (prefers-reduced-motion: reduce) {
-  html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {
-    transition: none;
-  }
-}
-
 // ── Sidebar ─────────────────────────────────────────────────────────────────
 // Two consumers: the column's stock hairline (edge re-colours it, the other
 // options let it fall transparent), and the inner pane (the card). The
