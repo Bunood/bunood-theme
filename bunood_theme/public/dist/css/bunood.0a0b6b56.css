@@ -3190,7 +3190,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 }
 
 .bnd-bd-region.bnd-bd-unavailable {
-  opacity: 0.55;
+  background: var(--bnd-hover, var(--control-bg));
 }
 
 .bnd-bd-region-name {
@@ -3201,11 +3201,19 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   color: var(--text-muted);
 }
 
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-region-name {
+  color: var(--bnd-ink-subtle, var(--text-muted));
+}
+
 .bnd-bd-warn {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-light);
+}
+
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-warn {
+  color: var(--bnd-ink-subtle, var(--text-light));
 }
 
 .bnd-bd-zones {
@@ -3238,6 +3246,10 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 .bnd-bd-zone-name {
   font-size: var(--text-xs, 0.75rem);
   color: var(--text-light);
+}
+
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-zone-name {
+  color: var(--bnd-ink-subtle, var(--text-light));
 }
 
 .bnd-bd-slot-chips {

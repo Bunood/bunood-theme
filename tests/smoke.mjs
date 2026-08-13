@@ -448,6 +448,39 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 	await page.waitForTimeout(settle);
 }
 
+/** Every settings shell pane, in the order BND_SHELL_GROUPS declares them. */
+const SETTINGS_PANE_KEYS = [
+	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search",
+	"placement", "inbox", "user", "links", "palette", "crumbs", "list", "form",
+	"layout", "branding", "colors", "density", "translations",
+];
+
+/**
+ * Click every settings pane and run fn(key) against it once the pane has
+ * actually rendered. The shell shows ONE pane at a time and hides the rest
+ * ([hidden] on every .bnd-shell-pane but the current one), and axe skips
+ * hidden subtrees entirely — so a walk that does not wait for content sees
+ * roughly one twentieth of the surface and calls that coverage.
+ */
+async function walkSettingsPanes(fn) {
+	for (const key of SETTINGS_PANE_KEYS) {
+		await page.click(`.bnd-shell-item[data-key="${key}"]`);
+		await page.waitForFunction(
+			(k) => {
+				const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
+				if (!pane || pane.hidden || pane.children.length === 0) return false;
+				// The Translations pane fills from an xcall and shows this
+				// note first — waiting past it is what makes the pane mean
+				// something rather than an empty div axe would call clean.
+				return pane.textContent.trim() !== "Loading…";
+			},
+			key,
+			{ timeout: 15000 }
+		);
+		await fn(key);
+	}
+}
+
 /** Does the selector match anything on the current page? */
 const q = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
 /** Read an attribute off <html> (where all data-bnd-* state lives). */
@@ -4911,25 +4944,39 @@ async function main() {
 
 		await test("a11y: every icon control has a name", async () => {
 			// The regression net: a control whose accessible name is empty (or
-			// a bare glyph) is invisible to a screen reader. Swept over every
-			// bnd button on a fully-furnished desk.
+			// a bare glyph) is invisible to a screen reader. One contract, two
+			// routes — a fully-furnished desk AND every settings pane, not
+			// two separate tests, because splitting by route would let one
+			// route's failure hide behind the other's name. The settings
+			// route is the one that matters here: axe never flags a
+			// single-digit aria-label (it IS an accessible name), only this
+			// sweep's own stricter length rule does.
+			const findNameless = () =>
+				page.evaluate(() => {
+					const out = [];
+					for (const n of document.querySelectorAll('button[class*="bnd-"], [role="button"][class*="bnd-"]')) {
+						if (!n.offsetParent) continue;
+						const name = (n.getAttribute("aria-label") || n.textContent || "").trim();
+						// A one-character name is a glyph, not a name.
+						if (name.length < 2) out.push(n.className.split(" ")[0] + (name ? ` ("${name}")` : " (empty)"));
+					}
+					return out;
+				});
+
 			setSettings({
 				...CHROME_DEFAULTS, desk_layout: "Top Bar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
-			const nameless = await page.evaluate(() => {
-				const out = [];
-				for (const n of document.querySelectorAll('button[class*="bnd-"], [role="button"][class*="bnd-"]')) {
-					if (!n.offsetParent) continue;
-					const name = (n.getAttribute("aria-label") || n.textContent || "").trim();
-					// A one-character name is a glyph, not a name.
-					if (name.length < 2) out.push(n.className.split(" ")[0] + (name ? ` ("${name}")` : " (empty)"));
-				}
-				return [...new Set(out)];
+			const nameless = new Set(await findNameless());
+
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await walkSettingsPanes(async () => {
+				for (const n of await findNameless()) nameless.add(n);
 			});
-			expectEq(nameless.join(", "), "", "no visible bnd control is nameless");
+
+			expectEq([...nameless].join(", "), "", "no visible bnd control is nameless");
 		});
 
 		await test("a11y: resting controls are identifiable (the 3B rule)", async () => {
@@ -5351,13 +5398,27 @@ async function main() {
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1, crumb_icons: "Every Crumb",
+				sidebar_apps_rail: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 
+			// Non-matching includes are silently tolerated by axe-core — a
+			// selector present in zero of the states below never errors, it
+			// just scans nothing (proven: .bnd-palette/.bnd-inbox pass at the
+			// very first "desk" scan, before either has ever been opened,
+			// because neither exists yet and an absent include is a no-op).
+			// That tolerance means a typo in OURS is invisible unless
+			// something separately tracks which selectors ever matched.
+			const matched = new Set();
 			const scan = async (label) => {
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS) builder = builder.include(root);
 				const res = await builder.analyze();
+				const present = await page.evaluate(
+					(sels) => sels.filter((s) => document.querySelector(s)),
+					OURS
+				);
+				for (const s of present) matched.add(s);
 				return res.violations
 					.filter(
 						(v) =>
@@ -5393,10 +5454,59 @@ async function main() {
 			bad = bad.concat(await scan("menu open"));
 			await page.keyboard.press("Escape");
 
+			// This pass proves our CHROME is unbroken on a non-list route — it
+			// is not settings-surface coverage, which is a different test
+			// below with a different root list (P.wrap gives every picker
+			// .bnd-cbp, not .bnd-shell).
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			bad = bad.concat(await scan("settings shell"));
+			bad = bad.concat(await scan("our chrome on the settings route"));
+
+			// .bnd-dock only exists in the Dock layout, which hides the side pane
+			// entirely — mutually exclusive with every state set above, so it
+			// gets its own pass rather than a setting flipped in place.
+			setSettings({ ...layoutSettings("Dock"), desk_layout: "Dock" });
+			await goDesk("/desk/item", ".bnd-dock", 4000);
+			bad = bad.concat(await scan("dock layout"));
 
 			expectEq(bad.join("\n"), "", "axe over our chrome, all states");
+			const missed = OURS.filter((s) => !matched.has(s));
+			expectEq(missed.join(","), "", `every OURS selector matched in some state (missed: ${missed.join(", ")})`);
+		});
+
+		await test("a11y: axe over the settings pickers, every pane", async () => {
+			// P.wrap gives every picker one root class, .bnd-cbp — except the
+			// sidebar picker's own .bnd-sbp — so the SURFACE is three
+			// selectors, not .bnd-shell/.bnd-shell-viewport: the shell
+			// RELOCATES Frappe's own .form-section nodes into its panes, and
+			// including it would drag every stock control along, the exact
+			// objection the chrome test's OURS comment makes about
+			// .body-sidebar. Panes whose content is only stock Frappe
+			// controls stay covered by the baseline-diff test below, not
+			// this hard gate — correct by the layer model, not a gap.
+			const OURS_SETTINGS = [".bnd-shell-nav", ".bnd-cbp", ".bnd-sbp"];
+			const PAGE_RULES = ["region", "page-has-heading-one", "landmark-one-main", "bypass"];
+
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+
+			const matched = new Set();
+			const bad = [];
+			await walkSettingsPanes(async (key) => {
+				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
+				for (const root of OURS_SETTINGS) builder = builder.include(root);
+				const res = await builder.analyze();
+				for (const v of res.violations) {
+					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
+				}
+				const present = await page.evaluate(
+					(sels) => sels.filter((s) => document.querySelector(s)),
+					OURS_SETTINGS
+				);
+				for (const s of present) matched.add(s);
+			});
+
+			expectEq(bad.join("\n"), "", "axe over every settings pane");
+			const missed = OURS_SETTINGS.filter((s) => !matched.has(s));
+			expectEq(missed.join(","), "", `every settings root matched in some pane (missed: ${missed.join(", ")})`);
 		});
 
 		await test("a11y: axe over the Desk only fails on NEW violations", async () => {

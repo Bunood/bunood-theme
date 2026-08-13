@@ -2077,7 +2077,7 @@ const BND_SB_GROUPS = [
 		options: [
 			{ value: "Smart", name: () => __("Smart"), thumb: '<span class="bnd-sbp-glyph">▤ + A</span>' },
 			{ value: "Original", name: () => __("Original"), thumb: '<span class="bnd-sbp-glyph">▢</span>' },
-			{ value: "Letters", name: () => __("Letters"), thumb: '<span class="bnd-sbp-glyph" style="color:var(--primary,#4d8756);font-weight:600">A B C</span>' },
+			{ value: "Letters", name: () => __("Letters"), thumb: '<span class="bnd-sbp-glyph" style="color:var(--bnd-brand-ink, var(--bnd-brand));font-weight:600;opacity:1">A B C</span>' },
 		],
 	},
 	{
@@ -2187,7 +2187,7 @@ const BND_SB_GROUPS = [
 		options: [
 			{ value: "Off", name: () => __("Off"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span>' },
 			{ value: "Dots", name: () => __("Dots"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:#E24B4A"></span>' },
-			{ value: "Counts", name: () => __("Counts"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:10px;inset-block-start:50%;translate:0 -50%;font-size:9px;background:color-mix(in srgb, var(--primary,#4d8756) 18%, transparent);color:var(--primary,#4d8756);border-radius:8px;padding-inline:5px">12</span>' },
+			{ value: "Counts", name: () => __("Counts"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:10px;inset-block-start:50%;translate:0 -50%;font-size:9px;background:color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));color:var(--bnd-ink);border-radius:8px;padding-inline:5px">12</span>' },
 		],
 	},
 ];
@@ -2347,7 +2347,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		add(group.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (group.title() + " " + group.field).toLowerCase() + '">' +
 			'<div class="bnd-cbp-title">' + group.title() +
-			'<button type="button" class="bnd-cbp-reset bnd-sbp-reset" data-field="' + group.field + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
+			'<button type="button" class="bnd-cbp-reset bnd-sbp-reset" data-field="' + group.field +
+			'" aria-label="' + __("Reset to preset value") + '" title="' + __("Reset to preset value") + '">↺</button></div>' +
 			(group.desc ? '<div class="bnd-cbp-desc">' + group.desc() + "</div>" : "") +
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
 		));
@@ -2360,7 +2361,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			.map(
 				(n) =>
 					'<button type="button" class="bnd-sbp-stop' + (n === current ? " bnd-sbp-on" : "") +
-					'" data-field="' + s.field + '" data-value="' + n + '" aria-label="' + n + '"></button>'
+					'" data-field="' + s.field + '" data-value="' + n + '" aria-label="' + bnd_esc(s.title()) + ": " + n + '"></button>'
 			)
 			.join("");
 		add(s.zone, (

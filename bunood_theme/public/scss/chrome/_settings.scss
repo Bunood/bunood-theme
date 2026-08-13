@@ -924,8 +924,16 @@ html[data-theme] {
 // A region the current layout cannot mount. WARNS, never blocks — the runtime
 // falls back either way, and greying it out would hide where things would go
 // if the container were switched back on.
+//
+// NOT opacity (item 22): `opacity` composites the WHOLE subtree — text
+// included — against whatever sits behind the region, so it cannot be
+// confined to the border/background it was meant to fade. Frappe's own
+// --text-muted/--text-light measured borderline at full strength and failed
+// outright once faded (2.76:1, axe-caught on the settings surface scan).
+// Muted look, guaranteed legible: our own fitted ink on the region's own
+// unfaded surface, plus a quieter fill/border that needs no compositing.
 .bnd-bd-region.bnd-bd-unavailable {
-	opacity: 0.55;
+	background: var(--bnd-hover, var(--control-bg));
 }
 
 .bnd-bd-region-name {
@@ -939,11 +947,19 @@ html[data-theme] {
 	color: var(--text-muted);
 }
 
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-region-name {
+	color: var(--bnd-ink-subtle, var(--text-muted));
+}
+
 .bnd-bd-warn {
 	font-weight: 400;
 	text-transform: none;
 	letter-spacing: 0;
 	color: var(--text-light);
+}
+
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-warn {
+	color: var(--bnd-ink-subtle, var(--text-light));
 }
 
 // Zones sit along the bar; in the side pane they stack down it. Same rule,
@@ -978,6 +994,13 @@ html[data-theme] {
 .bnd-bd-zone-name {
 	font-size: var(--text-xs, 0.75rem);
 	color: var(--text-light);
+}
+
+// Same fix as the region name/warn above, for the zones inside an
+// unavailable region (Page Header, Dock zones when those containers are
+// off) — the same opacity-compositing failure axe caught there.
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-zone-name {
+	color: var(--bnd-ink-subtle, var(--text-light));
 }
 
 .bnd-bd-slot-chips {
