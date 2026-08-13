@@ -168,6 +168,24 @@ html[data-theme] .bnd-dock-item:focus-visible {
   outline-offset: 1px;
 }
 
+// The rest of every control build.mjs's assertRingCoverage guard can see —
+// apps rail, sidebar utils, inbox, status bar, the placement board's chip,
+// and the settings pickers' shared primitives (which covers nearly every
+// picker option/toggle/reset in one shot, since bnd-cbp-* is what the
+// generic option-chip HTML actually emits under each picker's own prefix).
+// One :is() group, not one selector per class — gzip cost matters against a
+// payload ceiling with single-digit-percent headroom.
+html[data-theme] :is(
+  .bnd-apps-rail-item, .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
+  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-brand, .bnd-sb-item, .bnd-sb-module,
+  .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
+  .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
+  .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank
+):focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
 // ── Zones: start · centre · end, inside every container ─────────────────────
 // The slot vocabulary of E1. Three boxes in document order inside each
 // container's cluster, so "Top Bar End" is an element rather than a convention

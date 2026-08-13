@@ -377,6 +377,60 @@ function assertTypographySync(typographySrc, doctypeJson, fontFiles) {
 	}
 }
 
+/**
+ * Focus-ring coverage guard — every control our source constructs must be
+ * reachable by a `:focus-visible` rule in compiled CSS, directly or through a
+ * co-class it always renders with (`.bnd-bell` ships as class
+ * `"bnd-icon-btn bnd-bell"`; `.bnd-icon-btn` carrying the rule covers it).
+ *
+ * Two sources, parsed as TEXT for the same reason `assertRegistryIdentity`
+ * parses registry.py rather than importing it: `el("button", "…", …)` calls
+ * in bunood.js, and `<button … class="…">` HTML string literals in
+ * theme_settings.js — everywhere either file builds a control. A class
+ * fragment produced by string concatenation (`"bnd-railbtn-" + shape`) is
+ * filtered out — it ends in `-` and is not a real class name until runtime —
+ * but the identity class beside it in the same literal is still checked.
+ * A literal that resolves to an empty prefix (the whole class list built
+ * from a variable) is invisible to this guard, the same blind spot
+ * `assertRegistryIdentity` accepts for the same reason.
+ *
+ * THIS DOES NOT PROVE A RING RENDERS. It proves a rule EXISTS that could
+ * match. An upstream `outline: none` at higher specificity still wins —
+ * `a11y: focus draws a ring on every control that takes it` in the smoke
+ * suite walks the real tab order and checks the rendered value.
+ */
+function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
+	const groups = [];
+	for (const m of bunoodJs.matchAll(/el\(\s*"button"\s*,\s*"([^"]*)"/g)) groups.push(m[1]);
+	for (const m of themeSettingsJs.matchAll(/<button\b[^>]*\bclass="([^"'`]*)/g)) groups.push(m[1]);
+
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const ringCovered = new Set();
+	for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+		const selector = m[1];
+		if (!selector.includes(":focus-visible")) continue;
+		for (const c of selector.matchAll(/\.([a-zA-Z0-9_-]+)/g)) ringCovered.add(c[1]);
+	}
+
+	const offenders = new Set();
+	for (const group of groups) {
+		const classes = group.split(/\s+/).filter((c) => /^bnd-[a-z0-9-]*[a-z0-9]$/.test(c));
+		if (!classes.length) continue;
+		if (classes.some((c) => ringCovered.has(c))) continue;
+		for (const c of classes) offenders.add(c);
+	}
+
+	if (offenders.size) {
+		throw new Error(
+			`Focus-ring guard: no :focus-visible rule covers ${[...offenders].sort().join(", ")}.\n` +
+				"Every control bunood.js or theme_settings.js constructs needs a ring rule, " +
+				"directly on its own class or via a co-class it always renders beside. Add it " +
+				"to an html[data-theme] :is(...):focus-visible group — outline: 2px solid " +
+				"var(--bnd-accent); outline-offset: 1px matches every existing ring."
+		);
+	}
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -436,7 +490,7 @@ async function buildEntry({ key, src, pyid }) {
 
 	await writeFile(join(DIST_CSS, filename), result.css, "utf8");
 
-	return { pyid, url: `/assets/bunood_theme/dist/css/${filename}` };
+	return { pyid, url: `/assets/bunood_theme/dist/css/${filename}`, css: result.css };
 }
 
 /**
@@ -550,6 +604,19 @@ async function main() {
 		built.push(out);
 		console.log(`built  ${out.url}`);
 	}
+
+	// Compiled CSS is in hand from the loop above; needs both JS sources too,
+	// so it runs here rather than beside the naming/registry/typography/i18n
+	// guards, which all run BEFORE compilation on source alone.
+	assertRingCoverage(
+		built.map((b) => b.css || "").join("\n"),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		)
+	);
+
 	await writeAssetsPy(built);
 	console.log("wrote  bunood_theme/assets.py");
 

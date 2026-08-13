@@ -5509,6 +5509,91 @@ async function main() {
 			expectEq(missed.join(","), "", `every settings root matched in some pane (missed: ${missed.join(", ")})`);
 		});
 
+		await test("a11y: focus draws a ring on every control that takes it", async () => {
+			// build.mjs's assertRingCoverage proves a :focus-visible RULE exists
+			// for every control our source constructs. It cannot prove the ring
+			// RENDERS — an upstream `outline: none` at higher specificity still
+			// wins. This walks the REAL tab order (never element.focus():
+			// :focus-visible is a Chromium heuristic a programmatic focus can
+			// fail to match) and reads the rendered outline at each stop.
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
+				crumb_style: "Quiet Trail", crumb_copy_link: 1,
+			});
+			await goDesk("/desk/item", ".page-head", 4000);
+			await page.evaluate(() => {
+				document.activeElement && document.activeElement.blur();
+				window.__bndPrevFocus = null;
+			});
+
+			// Suppressed with reasons, not silently skipped. .bnd-palette-input
+			// is the command palette's only tab stop — a caret is the indicator,
+			// not a ring, and it is a deliberate trap so it never yields the
+			// "moved" assertion below. .bnd-inbox / .bnd-inbox-list are
+			// tabindex=-1 containers, never real tab stops themselves.
+			const SUPPRESS = [".bnd-palette-input", ".bnd-inbox", ".bnd-inbox-list"];
+
+			const seenClasses = new Set();
+			const ringFailures = [];
+			const stalls = [];
+			// The skip link's tabindex=1 and Frappe's own list rows dominate
+			// early tab order — a short walk never reaches our controls and
+			// checks nothing, so this walks the whole forward order, stopping
+			// only when Tab runs off the end (focus lands on <body>), which is
+			// the browser's normal end-of-sequence behaviour, not a stall.
+			// "Moved" is real DOM-node identity, stashed on `window` between
+			// evaluate calls — a content/class key produces false stalls on
+			// Frappe's list rows, several of which render identical text.
+			for (let i = 0; i < 90; i++) {
+				await page.keyboard.press("Tab");
+				const info = await page.evaluate((suppress) => {
+					const el = document.activeElement;
+					if (!el || el === document.body) return { atEnd: true };
+					const moved = el !== window.__bndPrevFocus;
+					window.__bndPrevFocus = el;
+					const cls = el.className && el.className.toString ? el.className.toString() : "";
+					const bndClass = cls.split(/\s+/).find((c) => /^bnd-/.test(c));
+					let suppressed = false;
+					for (const s of suppress) {
+						try {
+							if (el.matches(s)) suppressed = true;
+						} catch {
+							/* not a valid selector for this element — not suppressed */
+						}
+					}
+					const cs = getComputedStyle(el);
+					return {
+						atEnd: false,
+						moved,
+						bndClass: bndClass || null,
+						suppressed,
+						outlineStyle: cs.outlineStyle,
+						outlineWidth: parseFloat(cs.outlineWidth) || 0,
+						label: cls.split(" ")[0] || el.tagName,
+					};
+				}, SUPPRESS);
+
+				if (info.atEnd) break;
+				if (!info.moved) stalls.push(`step ${i}: ${info.label}`);
+
+				if (info.bndClass && !info.suppressed) {
+					seenClasses.add(info.bndClass);
+					if (info.outlineStyle === "none" || info.outlineWidth < 2) {
+						ringFailures.push(`${info.bndClass}: outline ${info.outlineStyle}/${info.outlineWidth}px`);
+					}
+				}
+			}
+
+			expectEq(stalls.join("\n"), "", "focus moved on every Tab press");
+			expect(
+				seenClasses.size >= 8,
+				`the walk reached our controls (saw ${seenClasses.size} distinct bnd- classes: ${[...seenClasses].sort().join(", ")})`
+			);
+			expectEq(ringFailures.join("\n"), "", "every reached, unsuppressed control shows a real ring");
+		});
+
 		await test("a11y: axe over the Desk only fails on NEW violations", async () => {
 			// Upstream's violations are not ours to fix and a gate that fails
 			// on them gets deleted. The BASELINE records what the Desk scores
