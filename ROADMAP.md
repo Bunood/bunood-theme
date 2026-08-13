@@ -5,9 +5,57 @@
 > everyone else and lost the moment that memory was. `GUIDELINES.md` §2.1 calls that
 > governance drift; this file closes it.
 
-**Item numbers are identity, not sequence.** They are referenced by `CHANGELOG.md` and
-by commit messages ("item 13", "item 14"), so they never change. The *order of work* is
-the phases below.
+**Item numbers are work order, as of 2026-08-13.** Before this date they were identity, not
+sequence, assigned by topic (foundation, chrome, surfaces, web, config, quality) — which read
+sensibly and sequenced badly, so `CHANGELOG.md` and commit messages cite the OLD numbers for
+everything shipped before this date. Renumbering broke those back-references on purpose: the
+alternative was staying confused about what's next forever to keep old citations exact. The
+mapping below is permanent — it is how an old citation resolves.
+
+**Old → new**, where they differ (items 1–14 are unchanged and are not listed):
+
+| new | item | was |
+|---|---|---|
+| 15 | List view | 16 |
+| 16 | Form view | 18 |
+| 17 | Contrast validation | 32 |
+| 18 | No-FOUC first paint | 36 |
+| 19 | Cache correctness | 37 |
+| 20 | Upgrade resilience | 38 |
+| 21 | Payload budget | *(shipped unnumbered, from `GUIDELINES.md` §2.5)* |
+| 22 | Accessibility | 34 + 34a *(merged — 34a's own slice 2 delivered 34's stated scope; see below)* |
+| 23 | Icon system | 33 |
+| 24 | Responsive | 35 |
+| 25 | Workspace/dashboard landing, charts and number cards | 15 + 20 *(already "deliberately together" — now also numbered together)* |
+| 26 | Report view / datatable | 17 |
+| 27 | Alternate views | 19 |
+| 28 | Overlays | 21 |
+| 29 | Empty states | 22 |
+| 30 | Skeletons | 23 |
+| 31 | Filters + saved views | 24 |
+| 32 | Login / signup / forgot | 25 |
+| 33 | Website base + portal | 26 |
+| 34 | Email templates | 27 |
+| 35 | Print formats / PDF | 28 |
+| 36 | Settings singleton | 29 |
+| 37 | Presets | 30 |
+| 38 | Per-user preferences | 31 |
+
+**Worst collisions, called out because the numbers now mean something different**: new 32 is
+*login*, old 32 was *contrast validation* (now 17). New 33/34/35 are
+*website/email/print*, old 33/34/35 were *icons/accessibility/responsive* (now 23/22/24).
+A citation of "item 34" in any commit or `CHANGELOG` entry dated before 2026-08-13 means the
+OLD item 34 (accessibility) — check this table, not the number alone.
+
+**Why 34 and 34a merged into one item (22).** 34a was always "item 34, part a" — the letter
+suffix existed because item 34's own Phase-3 placement required two real surface callers to
+exist first (`GUIDELINES` Part 3: don't freeze an interface before it has two consumers), so a
+first slice was pulled forward into Phase 1 wherever no design uncertainty blocked it. That
+slice's own second half — "ink-fitting (with numbers) plus enforcement plus scoped axe" — is
+*verbatim* item 34's original scope statement ("axe scoped honestly: hard gate on our
+components, baseline-diff over Desk pages"), and it shipped in `ce6995d` / `50373ff` before
+either item was ever marked `[x]`. Carrying two numbers for one piece of work past the point
+where the split stopped meaning anything was the confusion this renumber exists to remove.
 
 **Versioning.** SemVer, pre-1.0. MINOR = an item (or feature set) ships; PATCH = fixes.
 **v1.0.0 is reserved for all 38 complete.** Every release is an annotated tag and
@@ -21,12 +69,14 @@ gates: CI green, smoke suite green, adversarial release review clean.
 
 ## Why this order
 
-The original order was by layer — foundation, chrome, surfaces, web, config, quality —
-which reads sensibly and sequences badly. It defers every **cross-cutting contract** to
-the end, and those are precisely the items whose cost grows with each surface already
-built.
+The original numbering was by layer — foundation, chrome, surfaces, web, config, quality —
+which is not the order things were built in, either. Work has always followed the reasoning
+below; only the item *numbers* lagged behind it until this file caught up.
 
-| kind | items | cost of delaying |
+It defers every **cross-cutting contract** to the end, and those are precisely the items whose
+cost grows with each surface already built.
+
+| kind | items (old numbers) | cost of delaying |
 |---|---|---|
 | **Contracts** | 7, 32, 33, 34, 35 | grows linearly — every surface built first is a surface to retrofit |
 | **Surfaces** | 15–28 | roughly flat — a list view costs the same whenever it is built |
@@ -38,17 +88,22 @@ focus contract after ten and you retrofit ten.
 So: contracts before surfaces — **except** where a contract needs real callers to be
 designed correctly. `GUIDELINES.md` Part 3 is explicit that an interface should not be
 frozen until it has two. The icon system, the responsive contract and the full
-accessibility contract are all in that category, so they sit *after* two high-traffic
-surfaces rather than before.
+accessibility contract were all in that category, so they were built *after* two
+high-traffic surfaces rather than before — which is why item 22 (accessibility) sits
+after items 15 and 16 (the two surface kits) in the new numbering, even though its
+first slice shipped alongside the other contracts.
 
-The result is five phases. Phase 1 is what is cheap now and expensive later; phase 2
-supplies the callers; phase 3 freezes the contracts against them.
+The result was five phases, kept below as historical rationale for *why* things landed
+when they did. The item numbers no longer follow the phase groups exactly — item 22
+folds together work that started in the "cheap now" phase and finished in the "freeze
+against real callers" phase — but the phases explain the reasoning, and the table above
+is the map from any old phase-relative number to where it lives now.
 
 ---
 
 ## Phase 0 — in flight: the component rework
 
-Not a numbered item; a restructuring that items 15–38 will be built on. Desk chrome is
+Not a numbered item; a restructuring that the numbered items are built on. Desk chrome is
 governed three ways at once — a monolithic `desk_layout` preset, per-component
 settings, and hard-coded mount branches — and the seam between them produced every
 defect in 0.10.0.
@@ -225,9 +280,18 @@ defect in 0.10.0.
     render in desk order, drop ON a chip means before it, drop on blank zone
     means after its chips
 
-## Phase 1 — contracts with no design uncertainty
+---
 
-Cheap now, expensive after ten surfaces, and none of them needs a future caller.
+## The 38 items, in the order we work them
+
+Items 1–14 are unchanged from before the renumber and are all done: 1 tokens · 2 Frappe
+bridge · 3 light/dark/automatic · 4 density · 5 type scale · 6 motion · 7 RTL &
+internationalisation · 8 print · 9 layouts · 10 sidebar kit · 11 breadcrumbs · 12 command
+palette · 13 notification centre · 14 status bar + search placement.
+
+Full detail on the two most recent (7, and the two surface kits) is kept below, since it's
+long and still worth having on hand. Item 7 in particular reopened once already — see its
+entry.
 
 - `[x]` **7 · RTL & internationalisation** — *reopened 2026-08-01, done 2026-08-09.*
   0.2.1 had shipped direction only; the reopened item closed as a MECHANISM — the
@@ -261,52 +325,14 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
   - Beyond scope, at the user's direction: the **Translations surface** in Theme
     Settings — scan ledger over every installed app, provider runs as
     spend-capped proposals, export/import, manual save. A live provider run
-    waits on a real key.
-- `[x]` **32 · Contrast validation** — *done 2026-08-06.* Target stated (WCAG 2.2 AA);
-  the brand split into three roles so the seed contributes hue and the system controls
-  lightness; inks fitted per tenant against the surfaces that seed produces, because
-  seed-tinted surfaces mean no fixed value can pass for every seed (`ink-subtle` failed
-  96 of 96 placements). `npm run contrast` recomputes 1,080 pairs over 11 seeds × 2 modes
-  plus the no-brand-sheet fallback, in CI; the smoke suite ties it to rendered pixels.
-  Nothing is ever rejected — Theme Settings reports what it adjusted. See GUIDELINES
-  §2.2 "RESOLVED".
-- `[~]` **34a · Accessibility assertions for the components that already exist** —
-  slice 1 built 2026-08-09 on the `a11y-34a` worktree branch (verification
-  pending the shared bench): palette combobox contract + focus restore, inbox
-  Esc/focus/close-button, shell tablist keyboard, switch/option states, board
-  keyboard + nudge reorder (pick 1A), skip link (4A), resting-fill rule (3B),
-  nine suite contracts, and the sidebar palette measured into the contrast
-  gate — where hue 4 reads 1.97:1 on light panes, so the follow-up slice is
-  ink-fitting (with numbers) plus enforcement plus scoped axe. Original scope
-  text: the
-  kits already use ARIA and handle Esc; none of it is asserted. Focus contracts on the
-  palette and inbox are cheap because the harness already drives them. See §2.3.
-  **Item 32 handed two things to this one:** (a) whether a control whose resting
-  boundary is a 1.22:1 hairline is identifiable at all — a per-component judgement, not
-  a token value; (b) the sidebar style kit's own 8-preset palette, which is outside the
-  contrast gate. Both are measured and published, neither is enforced.
-- `[x]` **Payload budget** *(from GUIDELINES §2.5)* — *done 2026-08-09.* The first
-  measurement ever taken showed the drift the item predicted: 78/183 KB raw had
-  become 92/247 across five releases with nobody deciding it. `payload-budget.json`
-  holds the ledger and the gzip ceilings (~15% over v0.12.0); `tools/payload.mjs`
-  measures, checks and records; the suite enforces the ceiling on every verify, and
-  the release chain appends a history row at tag time. The ceiling failing is the
-  process working — raising it is one edit in the same commit as the growth, with
-  the why in the message. (A build.mjs hook joins the other guards once item 7's
-  edits to that file land.)
+    waits on a real key. Run at full scale 2026-08-13 (see `HANDOVER.md`): 6,983
+    missing strings across all 10 apps translated and merged, missing count down
+    to 262 verified non-linguistic. Surfaced and fixed two pre-existing data-loss
+    defects in `import_translations_csv`/`upsert_translation` (whitespace-bearing
+    sources silently corrupted; MariaDB case-insensitive collation silently
+    merged translations across case) — `484b814`, each pinned by a suite test.
 
-## Phase 2 — two real callers
-
-The highest-traffic surfaces in an ERP by a wide margin. Built here so the phase-3
-contracts have something real to be designed against.
-
-**Both callers exist as of 2026-08-10**, and the anatomy they share is now a
-proven template rather than a proposal: the second kit was replicated from the
-first in the same file order, and the differences between them are all design,
-not construction. Phase 3 can be designed against real evidence — three sprite
-callers, two `:has()` soft failures, three resting-identification judgements.
-
-- `[x]` **16 · List view** — *done 2026-08-10.* Rows, hover, selection, bulk
+- `[x]` **15 · List view** *(was 16, done 2026-08-10)* — Rows, hover, selection, bulk
   bar, as the first SURFACE kit: attributes over Frappe's own DOM, nothing
   mounted, absent attributes ARE the stand-down. Wireframed and picked
   2026-08-09 (five style options after the market-survey round): **1C Floating
@@ -315,12 +341,13 @@ callers, two `:has()` soft failures, three resting-identification judgements.
   its `list_selection` slot reserved. On-screen tabular numerals landed with
   it; the density rules migrated in from `_density.scss` per its lifecycle
   note, proven a move by a baseline test written first. Phase-3 evidence: the
-  picker is the sprite's second caller (33), the reveal's `:focus-within` path
-  and the 3B judgements are recorded (34), the `(hover: none)` stand-down is
-  the narrow-input statement (35). References: frappe-ui ListRow/SelectBanner,
+  picker is the sprite's second caller (23), the reveal's `:focus-within` path
+  and the 3B judgements are recorded (22), the `(hover: none)` stand-down is
+  the narrow-input statement (24). References: frappe-ui ListRow/SelectBanner,
   Directus tabular + `_list-interface.scss`, Discourse `_topic-list.scss`.
-- `[x]` **18 · Form view** — *done 2026-08-10.* Sections, tabs, child grids and
-  the form sidebar, as the second SURFACE kit — the same construction as 16,
+
+- `[x]` **16 · Form view** *(was 18, done 2026-08-10)* — Sections, tabs, child grids and
+  the form sidebar, as the second SURFACE kit — the same construction as 15,
   which is the point: the anatomy was replicated, not reinvented. Probed live
   BEFORE designing (Frappe 16.27.0, an Item with tabs and a child table), then
   wireframed and picked: **1C Floating Panels · 2C Solid Pill · 3C Floating
@@ -335,10 +362,10 @@ callers, two `:has()` soft failures, three resting-identification judgements.
   real defects, both the same lesson — upstream owns `.form-page` at (0,3,0)
   and every tab link at (0,4,0), so the kit's shorter selectors lost the
   cascade outright: measure the selector you are overriding. Phase-3 evidence:
-  the picker is the sprite's third caller (33), the active tab's fill+shape
+  the picker is the sprite's third caller (23), the active tab's fill+shape
   and 2px width channels are the never-colour-alone statement and the grid
-  reveal's `:focus-within`/any-checked doors are recorded (34), the
-  `(hover: none)` stand-down repeats (35). Axe honesty: the new form route's
+  reveal's `:focus-within`/any-checked doors are recorded (22), the
+  `(hover: none)` stand-down repeats (24). Axe honesty: the new form route's
   baseline was scanned with the kit ON and with `Original`, identical counts —
   all six contrast failures are upstream's own `#999999` help text, so the kit
   banks none of its own. References: Salesforce record panels + shadcn Card
@@ -346,57 +373,137 @@ callers, two `:has()` soft failures, three resting-identification judgements.
   (Hairline Panels, Quiet Pane), Linear/Notion (Open Canvas), Material 3 +
   Gmail (Solid Pill), iOS segmented + shadcn Tabs (Segment Pills).
 
-## Phase 3 — freeze the contracts against those callers
+- `[x]` **17 · Contrast validation** *(was 32, done 2026-08-06)* — Target stated (WCAG
+  2.2 AA); the brand split into three roles so the seed contributes hue and the
+  system controls lightness; inks fitted per tenant against the surfaces that
+  seed produces, because seed-tinted surfaces mean no fixed value can pass for
+  every seed (`ink-subtle` failed 96 of 96 placements). `npm run contrast`
+  recomputes the full pair set over 11 seeds × 2 modes plus the no-brand-sheet
+  fallback, in CI; the smoke suite ties it to rendered pixels. Nothing is ever
+  rejected — Theme Settings reports what it adjusted. See `GUIDELINES.md` §2.2
+  "RESOLVED". Two things it handed to item 22: (a) whether a control whose
+  resting boundary is a 1.22:1 hairline is identifiable at all — a
+  per-component judgement, not a token value; (b) the sidebar style kit's own
+  8-preset palette, which was outside the contrast gate at the time. Both are
+  now answered — see item 22.
 
-- `[ ]` **33 · Icon system** — SVG sprite via `app_include_icons`. Already used
+- `[x]` **18 · No-FOUC first paint** *(was 36)*
+- `[x]` **19 · Cache correctness** *(was 37)*
+- `[x]` **20 · Upgrade resilience** *(was 38)*
+
+- `[x]` **21 · Payload budget** *(shipped unnumbered, from `GUIDELINES.md` §2.5; done
+  2026-08-09)* — The first measurement ever taken showed the drift the item predicted:
+  78/183 KB raw had become 92/247 across five releases with nobody deciding it.
+  `payload-budget.json` holds the ledger and the gzip ceilings (~15% over v0.12.0);
+  `tools/payload.mjs` measures, checks and records; the suite enforces the ceiling on
+  every verify, and the release chain appends a history row at tag time. The ceiling
+  failing is the process working — raising it is one edit in the same commit as the
+  growth, with the why in the message. Its own `--check` joins `build.mjs`'s other
+  guards as of item 22, commit 1.
+
+- `[~]` **22 · Accessibility** *(was 34 + 34a — see the merge note above)* — **the item
+  this file is currently tracking.** Full plan: `we-are-working-here-elegant-lollipop.md`.
+
+  **What 34a slice 1 built** (2026-08-09, `4535c51`, on the `a11y-34a` worktree branch,
+  merged): nine suite contracts (`a11y:` family), ARIA across every kit — menu triggers,
+  landmarks (partial), the palette's dialog/combobox/listbox structure, the inbox panel's
+  focus contract, the settings shell's real tablist with roving tabindex, switch/option
+  states, the placement board's `role="button"` zones plus a keyboard nudge bar, the skip
+  link. Design pick 1A (nudge bar over an arrow-key zone model).
+
+  **What 34a slice 2 built** (2026-08-09, `ce6995d` / `50373ff` / `e2a4926` / `8678e2a`,
+  all merged before item 34 was ever marked `[x]` — the reason the two items merge):
+  the sidebar kit's palette ink-fitted per pane and held there by the gate (28 rows,
+  ENFORCED — every global `--bnd-cat-N` hue had failed AA on at least one of the four
+  panes, hue 4 at 1.97:1); axe scoped honestly — a hard gate on our chrome roots
+  (`OURS`), a baseline-diff over Desk pages so only NEW violations fail
+  (`tools/axe-baseline.mjs`, `tests/fixtures/axe-baseline.json`); Escape-consumption
+  fixes for the palette and inbox; the bell's accessible name handled by identity
+  (`data-bnd-part`) once it became state-dependent. Suite reported green at 156/156.
+
+  **What was found still open, verifying "what's left" for this item** (2026-08-13):
+  a live WCAG failure on the SHIPPED DEFAULT preset — the sidebar's active-item pill
+  paints a category hue as a FILL under a label, when every one of those hues was fitted
+  to be INK on a pane. Match Theme + Solid Pill at seed `#7f7f7f` (already a gate seed)
+  measures 2.08:1; Dark Contrast + Solid Pill measures 2.17–2.40:1 across all seven
+  hues; the brand pane with the wash off measures 1.00:1 (the raw seed under
+  brand-solid — the same colour twice). Design answer, grounded in `_reference/`: no
+  vendored product (Discourse, shadcn/ui, frappe-ui, Directus) puts a label on a
+  category-coloured fill — the hue keeps exactly one role (text and marks), the pill
+  is always the brand pair. Also found: the placement board's drop zones are
+  `role="button"` containing chip `<button>`s (a `nested-interactive` violation — the
+  chips that ARE the components can be flattened away in the accessibility tree); the
+  avatar menu (`.bnd-menu`) is body-appended, outside every axe root, with no focus
+  contract despite carrying Log Out; several ARIA promises made in slice 1
+  (`aria-current`, `role="navigation"` landmarks, `aria-haspopup`) have never been
+  asserted; the inbox's filter row promises a tablist it cannot deliver (its panel is
+  a listbox); the settings surface itself was never brought into the axe hard gate; a
+  documented invariant ("nothing hardcodes a duration") was already false in three
+  places; and 15+ controls this app's own JS builds have no `:focus-visible` rule at
+  all. `CHANGELOG.md` carries zero accessibility entries for any of the above — this
+  item's last commit closes that too.
+
+  Answers the resting-boundary question item 17 handed off: **a control is
+  identifiable at rest by a border with ≥3:1 contrast OR by a visible fill delta
+  against its host** — already written at `_navbar.scss:48-50`, now enforced
+  structurally (a build guard) rather than by raising `--bnd-border`, which would
+  repaint every stock Frappe control via `_bridge.scss:61-62`.
+
+- `[ ]` **23 · Icon system** *(was 33)* — SVG sprite via `app_include_icons`. Already used
   informally by the chrome (`sprite_icon`); formalised here, with two surfaces proving
-  the interface
-- `[ ]` **34 · Accessibility, full** — focus rings, ARIA, keyboard paths, contrast, as
-  a property of the component library rather than a per-surface effort. `axe` scoped
-  honestly: hard gate on our components, baseline-diff over Desk pages
-- `[ ]` **35 · Responsive** — including a mobile navigation mode. *Known defect:* below
-  ~480px the Top Bar layout mounts no bar at all, because Frappe renders no
-  `.main-section > header` at that width; it degrades toward Classic and the
+  the interface. Caution for whoever picks this up: `theme_settings.js` claims in a
+  comment to be the sprite's second real caller and is not — verify actual callers
+  before designing the interface against them.
+
+- `[ ]` **24 · Responsive** *(was 35)* — including a mobile navigation mode. *Known
+  defect:* below ~480px the Top Bar layout mounts no bar at all, because Frappe renders
+  no `.main-section > header` at that width; it degrades toward Classic and the
   bell/avatar cluster is simply absent on phones
 
-## Phase 4 — the remaining surfaces
+- `[ ]` **25 · Workspace/dashboard landing with charts and number cards** *(was 15 + 20,
+  already numbered together — the two were "deliberately together" from the start: a
+  dashboard without its cards is half a feature, and doing them apart means designing
+  the same grid twice)* — Charts need a validated categorical palette and recessive
+  gridlines. Note for whoever designs the palette: item 22 established that a
+  categorical hue should keep one role (text/marks), never a fill under a label — the
+  same rule likely applies to chart series labels vs. chart fills.
 
-Cheap and consistent now that the contracts exist.
+- `[ ]` **26 · Report view / datatable** *(was 17)* — sticky headers, tabular numerals,
+  grouping
+- `[ ]` **27 · Alternate views** *(was 19)* — kanban, calendar, gantt, gallery
+- `[ ]` **28 · Overlays** *(was 21)* — modals, dropdowns, toasts
+- `[ ]` **29 · Empty states** *(was 22)* — an action, not a zero
+- `[ ]` **30 · Skeletons** *(was 23)* — loading that does not reflow
+- `[ ]` **31 · Filters + saved views** *(was 24)*
 
-- `[ ]` **15 + 20 · Workspace/dashboard landing with charts and number cards** —
-  deliberately together. A dashboard without its cards is half a feature, and doing
-  them apart means designing the same grid twice. Charts need a validated categorical
-  palette and recessive gridlines
-- `[ ]` **17 · Report view / datatable** — sticky headers, tabular numerals, grouping
-- `[ ]` **19 · Alternate views** — kanban, calendar, gantt, gallery
-- `[ ]` **21 · Overlays** — modals, dropdowns, toasts
-- `[ ]` **22 · Empty states** — an action, not a zero
-- `[ ]` **23 · Skeletons** — loading that does not reflow
-- `[ ]` **24 · Filters + saved views**
-
-## Phase 5 — web side and remaining configuration
-
-- `[ ]` **25 · Login / signup / forgot** — separate sheet; Frappe's login bundle loads
-  after ours
-- `[ ]` **26 · Website base + portal**
-- `[ ]` **27 · Email templates**
-- `[ ]` **28 · Print formats / PDF**
-- `[~]` **29 · Settings singleton** — brand, logo, favicon exist; being restructured by
-  phase 0 and effectively completed by it
-- `[~]` **30 · Presets** — sidebar preset system shipped in 0.5.0; remaining:
-  colour-palette seeds per preset, more palettes. Blocked on 32 — a preset that ships
+- `[ ]` **32 · Login / signup / forgot** *(was 25)* — separate sheet; Frappe's login
+  bundle loads after ours
+- `[ ]` **33 · Website base + portal** *(was 26)*
+- `[ ]` **34 · Email templates** *(was 27)*
+- `[ ]` **35 · Print formats / PDF** *(was 28)*
+- `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being
+  restructured by phase 0 and effectively completed by it
+- `[~]` **37 · Presets** *(was 30)* — sidebar preset system shipped in 0.5.0; remaining:
+  colour-palette seeds per preset, more palettes. Blocked on 17 — a preset that ships
   an illegible seed is worse than no preset
-- `[ ]` **31 · Per-user preferences** — via `User.desk_theme`, never a parallel
+- `[ ]` **38 · Per-user preferences** *(was 31)* — via `User.desk_theme`, never a parallel
   localStorage
 
-## Done
+---
 
-**Foundation** — 1 tokens · 2 Frappe bridge · 3 light/dark/automatic · 4 density ·
-5 type scale · 6 motion · 8 print
-**Desk chrome** — 9 layouts · 10 sidebar kit · 11 breadcrumbs · 12 command palette ·
-13 notification centre · 14 status bar + search placement *(0.10.0, tagged locally,
-unpushed)*
-**Quality** — 36 no-FOUC first paint · 37 cache correctness · 38 upgrade resilience
+## Open, unnumbered threads
+
+Carried forward regardless of the renumber — neither is one of the 38.
+
+- **The honest-picker audit.** `bnd_region_blocker` covers placement; the rest was
+  unaudited as of the 2026-08-06/07 review. Item 22 closes several concrete findings
+  from it (the board's ARIA role, the menu's focus contract); what remains is a
+  systematic pass, not yet scheduled.
+- **The floating selection bar**, deferred from item 15 (list view): frappe-ui
+  ListSelectBanner precedent, ~2 KB injected JS, must respect `--bnd-bottom-reserve`.
+  A fourth `list_selection` option slot is reserved so the field doesn't churn. Not a
+  surface by the registry's definition, since it injects chrome — which is why both
+  surface kits left it alone.
 
 ---
 

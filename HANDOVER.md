@@ -21,7 +21,7 @@ Shipped this session, all committed, all verified:
 
 | | what |
 |---|---|
-| **Item 32 — contrast** | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,080 pairs over 11 seeds × 2 modes in CI |
+| **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,080 pairs over 11 seeds × 2 modes in CI |
 | **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
@@ -135,13 +135,13 @@ the Density section rendered empty and its control sat under "List View";
 and the theme export listed `BND_LIST_FIELDS` while the import's `known` set
 did not, so exported list values were silently refused on re-import.
 
-**Item 16's `list_picker` is still missing from the full-complement test's
+**Item 15's (was 16) `list_picker` is still missing from the full-complement test's
 EXPECTED map** — `form_picker` was added to both of its literals, list was
 deliberately not back-filled there (separate concern, one line, free).
 
 What that work needed, kept for the next surface kit:
 
-* **Release state**: items 7, 16 and 18 are all committed and **nothing is
+* **Release state**: items 7, 15 (was 16) and 16 (was 18) are all committed and **nothing is
   pushed** — `main` is now well ahead of `origin/main`, and v0.13.0 was never
   released. `app_version` in hooks.py is unbumped and `[Unreleased]` holds
   three items' worth of changelog. The moment the user says "push it",
@@ -160,9 +160,9 @@ What that work needed, kept for the next surface kit:
   easy to miss: `build.mjs` FIELD_PREFIXES, the sweep's CRUMBS_ONLY **and**
   IMPLICIT, `bunood.scss`'s `@use`, the shell nav entry + `BND_SHELL_OWNS`
   prefix, the export **and** import field lists, and MUTABLE_FIELDS.
-* **Probe BEFORE designing, and probe the CASCADE too.** Item 16 taught
-  "probe the DOM"; item 18 added "probe the rules". Both of its defects were
-  upstream selectors out-specifying ours (see the item-18 block above).
+* **Probe BEFORE designing, and probe the CASCADE too.** Item 15 (was 16) taught
+  "probe the DOM"; item 16 (was 18) added "probe the rules". Both of its defects were
+  upstream selectors out-specifying ours (see the item-16 block above).
   Distrust truncated HTML dumps — the 300-char truncation caused the wrong
   bulk-header inference.
 * **Wireframes are the user's decision point**: options per axis, the user
@@ -342,7 +342,7 @@ A release is also owed — see the release-state bullet above.
 
 ## 2. Waiting on the user
 
-1. **Release.** Item 32 is a MINOR by the versioning policy but sits in
+1. **Release.** Item 17 (was 32) is a MINOR by the versioning policy but sits in
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
    three gates: CI green (is), smoke green (is), adversarial release review clean
    (not yet run for this batch).
@@ -704,16 +704,17 @@ placement on every route change.
 
 **Older, still true:**
 
-- The sidebar style kit's own 8-preset palette is outside the contrast gate.
-  Fixed values, so no per-tenant risk, but unmeasured. Item 34.
+- ~~The sidebar style kit's own 8-preset palette is outside the contrast gate~~
+  — CLOSED by 34a slice 2 (`ce6995d`), ink-fitted per pane and enforced, 28
+  rows. Item 22 (was 34/34a).
 - `--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
   deliberately not enforced; whether a control needs a 3:1 resting boundary is
-  a per-component question. Item 34. **Both surface kits have now fed this the
+  a per-component question. Item 22 (was 34). **Both surface kits have now fed this the
   same shape of judgement**: a list row is identified at rest by its boundary
   plus the subject link's ink, and a Floating Panel by its border plus shadow
   plus its title ink (~1.05:1 fill-vs-canvas on its own). Segment Pills' active
   fill against its 4%-ink track is the third (~1.1:1, carried by shadow, ink
-  weight and the AA-passing label). Three data points, one question: item 34
+  weight and the AA-passing label). Three data points, one question: item 22
   should now be able to answer it as a rule rather than case by case.
 - `--bnd-ink-inverse` has zero in-repo callers. Kept because token names are a
   contract; do not reach for it for a brand fill.

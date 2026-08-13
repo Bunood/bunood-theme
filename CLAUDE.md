@@ -88,7 +88,7 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 Accessibility is present in the components but asserted nowhere. Bidi isolation is
 absent. Payload is unmeasured. Item 7 (RTL **and** Arabic) is reopened.
 
-Contrast is **closed** (item 32, 2026-08-06): WCAG 2.2 AA, enforced by
-`npm run contrast` over 11 seeds x 2 modes. Two things it handed to item 34 — whether a
+Contrast is **closed** (item 17, was 32, 2026-08-06): WCAG 2.2 AA, enforced by
+`npm run contrast` over 11 seeds x 2 modes. Two things it handed to item 22 — whether a
 1.22:1 resting hairline identifies a control, and the sidebar kit's own palette — are
 measured and published but not enforced.

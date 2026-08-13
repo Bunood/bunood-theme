@@ -5,6 +5,11 @@ feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
 the completion of all 38 coverage items.** Every release is an annotated git
 tag, and `app_version` in hooks.py always matches the latest tag.
 
+**Item numbers below are as of the release date.** `ROADMAP.md` items were renumbered
+to work order on 2026-08-13; entries here keep the numbers that were current when they
+shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
+an "item N" cited below against today's numbering.
+
 ## [Unreleased]
 
 ## [0.14.0] — 2026-08-10 — Surface kits, Arabic & RTL, operable translations (items 7, 16, 18)
