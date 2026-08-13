@@ -35,9 +35,12 @@
 
 @use "tokens";
 @use "bridge";
-// Geometry consumption for density (item 4). Shrinks into surface partials
-// as items 16-18 ship — see the file header.
-@use "density";
+// _density.scss RETIRED at item 18, exactly as its own lifecycle note
+// promised: the list rules left for surfaces/_list.scss with item 16, and
+// --bnd-control-h found its consumer in surfaces/_form.scss. Density is not
+// gone — it is a token contract in _tokens.scss, consumed by the surface
+// partials that own the elements, each scoped html[data-theme] so density
+// keeps working under a kit's "Original".
 
 // ── Base ────────────────────────────────────────────────────────────────────
 // @use "base";
