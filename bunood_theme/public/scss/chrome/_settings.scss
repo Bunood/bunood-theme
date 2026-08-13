@@ -1028,6 +1028,52 @@ html[data-theme] {
 	opacity: 0.5;
 }
 
+// THE ARMED CONTROLS (item 22): siblings of the armed chip, appearing
+// together — a chip is a <button> and buttons cannot nest. The reorder
+// arrows (design pick 1A) only render when a neighbour exists to swap
+// with; the "Move to…" trigger always does, so an armed chip always
+// offers a complete keyboard path to both facts it can change.
+.bnd-bd-nudge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+.bnd-bd-nudge-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	padding: 0;
+	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border-radius: var(--bnd-radius-sm, 6px);
+	background: var(--bnd-surface, var(--card-bg));
+	color: var(--text-color);
+	font-size: 0.875rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+.bnd-bd-nudge-btn:hover {
+	background: var(--bnd-hover, var(--control-bg));
+	border-color: var(--bnd-accent, var(--primary));
+}
+.bnd-bd-move-btn {
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border-radius: 999px;
+	background: var(--bnd-surface, var(--card-bg));
+	color: var(--text-color);
+	font-size: var(--text-sm, 0.8125rem);
+	line-height: 1.4;
+	cursor: pointer;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+.bnd-bd-move-btn:hover {
+	background: var(--bnd-hover, var(--control-bg));
+	border-color: var(--bnd-accent, var(--primary));
+}
+
 .bnd-bd-dot {
 	inline-size: 0.5rem;
 	block-size: 0.5rem;

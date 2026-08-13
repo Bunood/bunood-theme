@@ -3719,6 +3719,24 @@ const BND_BOARD_REGIONS = [
 	{ region: "bottombar", label: () => __("Bottom Bar") },
 ];
 
+/** A zone's own name within its region — module scope so the board's zone
+ * badges and the "Move to…" menu (item 22) read the same three words. */
+const BND_ZONE_NAME = {
+	start: () => __("Start"),
+	center: () => __("Center"),
+	end: () => __("End"),
+};
+
+/** "Top Bar End" -> "Top Bar · End", for anywhere a slot needs a human label. */
+function bnd_slot_label(slot) {
+	if (slot === "Off") return __("Off");
+	const parsed = bnd_parse_slot(slot);
+	const region = BND_BOARD_REGIONS.find((r) => r.region === parsed.region);
+	const zoneName = BND_ZONE_NAME[parsed.zone];
+	if (!region || !zoneName) return slot; // an unparsed slot still needs SOME label
+	return region.label() + " · " + zoneName();
+}
+
 /** Every zone any component can occupy, grouped by region, in desk order. */
 function bnd_board_zones(frm) {
 	const seen = new Map();
@@ -3820,11 +3838,6 @@ function bnd_render_placement_board(frm, host) {
 	}
 
 	const zones = bnd_board_zones(frm);
-	const ZONE_NAME = {
-		start: () => __("Start"),
-		center: () => __("Center"),
-		end: () => __("End"),
-	};
 	const regions = BND_BOARD_REGIONS.filter((r) => zones.has(r.region))
 		.map((r) => {
 			const reason = bnd_region_blocker(frm, r.region);
@@ -3834,17 +3847,19 @@ function bnd_render_placement_board(frm, host) {
 					const slot = pair[1];
 					const chips = (placed.get(slot) || []).join("");
 					return (
-						// A drop target is a control, so it is focusable and
-						// named — a keyboard user arms a chip with Enter and
-						// drops it here the same way. role=button rather than
-						// a real <button> because zones CONTAIN chip buttons,
-						// and buttons cannot nest.
-						'<div class="bnd-bd-zone" role="button" tabindex="0"' +
-						' aria-label="' + bnd_esc(__("{0}, {1} — drop here", [r.label(), (ZONE_NAME[zone] || (() => zone))()])) + '"' +
+						// A DROP target — the pointer/drag path still targets the
+						// whole zone — but no longer a keyboard CONTROL: role=button
+						// gave every chip inside it Children Presentational: True,
+						// so the chips that ARE the components could be flattened
+						// out of the accessibility tree entirely. role=group names
+						// the region without claiming to act; the keyboard path is
+						// the armed chip's own "Move to…" menu, below.
+						'<div class="bnd-bd-zone" role="group"' +
+						' aria-label="' + bnd_esc(__("{0}, {1}", [r.label(), (BND_ZONE_NAME[zone] || (() => zone))()])) + '"' +
 						' data-slot="' + bnd_esc(slot) + '"' +
 						' data-region="' + bnd_esc(r.region) + '" data-zone="' + bnd_esc(zone) + '">' +
 						'<span class="bnd-bd-zone-name">' +
-						bnd_esc((ZONE_NAME[zone] || (() => zone))()) +
+						bnd_esc((BND_ZONE_NAME[zone] || (() => zone))()) +
 						"</span>" +
 						'<div class="bnd-bd-slot-chips">' + chips + "</div>" +
 						"</div>"
@@ -3871,13 +3886,14 @@ function bnd_render_placement_board(frm, host) {
 		P.wrap(
 			'<div class="bnd-bd" data-armed="">' +
 				'<div class="bnd-bd-desk">' + regions + "</div>" +
-				'<div class="bnd-bd-tray bnd-bd-zone" role="button" tabindex="0" aria-label="' + bnd_esc(__("Off — not shown. Drop here to hide.")) + '" data-slot="Off">' +
+				'<div class="bnd-bd-tray bnd-bd-zone" role="group" aria-label="' + bnd_esc(__("Off — not shown")) + '" data-slot="Off">' +
 				'<span class="bnd-bd-zone-name">' + bnd_esc(__("Off — not shown")) + "</span>" +
 				'<div class="bnd-bd-slot-chips">' + off.join("") + "</div>" +
 				"</div>" +
 				P.note(
-					__("Drag a control onto the desk, or click it and then click where it should go.")
+					__("Drag a control onto the desk, click it and then click where it should go, or pick it up and use its Move to menu.")
 				) +
+				'<div class="bnd-bd-status bnd-visually-hidden" role="status" aria-live="polite"></div>' +
 				"</div>"
 		)
 	);
@@ -3887,8 +3903,21 @@ function bnd_render_placement_board(frm, host) {
 			? bnd_can_be_off(frm, field)
 			: bnd_field_slots(frm, field).indexOf(slot) !== -1;
 
+	const $bd = $host.find(".bnd-bd");
+	// The board's one announcer: arm, move, nudge and a refused drop were all
+	// silent before item 22 — a refused drop was indistinguishable from a
+	// successful one. Visually hidden, so a mouse user sees nothing new.
+	const status = $bd.find(".bnd-bd-status")[0];
+	const announce = (msg) => {
+		if (status) status.textContent = msg;
+	};
+
 	const drop_on = (field, slot, order_settled) => {
-		if (!field || !slot || !legal(field, slot)) return;
+		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
+		if (!field || !slot || !legal(field, slot)) {
+			if (t) announce(__("Cannot move: {0}", [t.label()]));
+			return;
+		}
 		// Landing at a zone's blank space means AFTER its current chips, and
 		// the order list has to say so too or the desk would render the new
 		// arrival wherever its old rank put it — before chips the user just
@@ -3896,12 +3925,11 @@ function bnd_render_placement_board(frm, host) {
 		// ("before this chip") and says so — appending here as well would
 		// clobber the position it just chose, which is exactly what the first
 		// cut did: every before-drop measured as an after-drop.
-		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
 		if (t && slot !== "Off" && !order_settled) bnd_order_move(frm, t.key, null);
 		bnd_inbox_set(frm, field, slot);
+		if (t) announce(__("Moved: {0} — {1}", [t.label(), bnd_slot_label(slot)]));
 	};
 
-	const $bd = $host.find(".bnd-bd");
 	const arm = (field) => {
 		$bd.attr("data-armed", field || "");
 		// Remembered on the FORM, because every drop re-renders this board
@@ -3919,53 +3947,98 @@ function bnd_render_placement_board(frm, host) {
 			$bd.find(".bnd-bd-chip").removeClass("bnd-bd-armed").attr("aria-pressed", "false");
 			return;
 		}
-		// THE NUDGE BAR (design pick 1A): reordering within a zone must not
-		// require a drag — drags exist for neither keyboard nor touch. An
-		// armed chip grows two arrow buttons that swap it with its zone
-		// neighbour; each press writes desk_order through the same
-		// bnd_order_move the drag path uses. Siblings of the chip rather
-		// than children, because the chip is a <button> and buttons cannot
-		// nest.
+		const t = BND_BOARD_TENANTS.find((x) => x.field === field);
 		const chip = $bd.find(`.bnd-bd-chip[data-field="${field}"]`)[0];
-		if (!chip || !chip.closest(".bnd-bd-slot-chips")) return;
-		const wrap = chip.closest(".bnd-bd-slot-chips");
-		const chips_of = () => [...wrap.querySelectorAll(".bnd-bd-chip")];
-		if (chips_of().length < 2) return;
-		const moved = tenant_of_field(field);
+		if (!chip) return;
+		if (t) announce(__("Picked up: {0}", [t.label()]));
+
+		// THE ARMED CONTROLS — siblings of the chip, never children: the chip
+		// is a <button> and buttons cannot nest. Two of them, for two
+		// DIFFERENT facts a chip has: reordering WITHIN a zone (design pick
+		// 1A, unchanged) needs a neighbour to swap with, so those arrows only
+		// appear when one exists; changing WHICH zone (item 22) is meaningful
+		// even for a chip alone in its zone, so the menu always appears.
+		// Splitting the board's one Enter-anywhere keyboard path into two
+		// controls this way is also what makes the 9-of-15-zones-silently-
+		// refuse problem disappear: the menu only ever lists LEGAL zones.
 		const nudge = document.createElement("span");
 		nudge.className = "bnd-bd-nudge";
-		for (const [dir, glyph, label] of [
-			[-1, "‹", __("Move earlier in this zone")],
-			[1, "›", __("Move later in this zone")],
-		]) {
-			const b = document.createElement("button");
-			b.type = "button";
-			b.className = "bnd-bd-nudge-btn";
-			b.setAttribute("aria-label", label);
-			b.textContent = glyph;
-			b.addEventListener("click", (e) => {
-				e.stopPropagation();
-				const order = chips_of().map((c) => c.getAttribute("data-tenant"));
-				const at = order.indexOf(moved);
-				const target = at + dir;
-				if (at === -1 || target < 0 || target >= order.length) return;
-				if (dir < 0) bnd_order_move(frm, moved, order[target]);
-				else bnd_order_move(frm, moved, null, order[target]);
-				bnd_render_placement_board(frm);
-			});
-			nudge.appendChild(b);
+
+		const wrap = chip.closest(".bnd-bd-slot-chips");
+		if (wrap) {
+			const chips_of = () => [...wrap.querySelectorAll(".bnd-bd-chip")];
+			if (chips_of().length >= 2) {
+				const moved = tenant_of_field(field);
+				for (const [dir, glyph, label] of [
+					[-1, "‹", __("Move earlier in this zone")],
+					[1, "›", __("Move later in this zone")],
+				]) {
+					const b = document.createElement("button");
+					b.type = "button";
+					b.className = "bnd-bd-nudge-btn";
+					b.setAttribute("aria-label", label);
+					b.textContent = glyph;
+					b.addEventListener("click", (e) => {
+						e.stopPropagation();
+						const order = chips_of().map((c) => c.getAttribute("data-tenant"));
+						const at = order.indexOf(moved);
+						const target = at + dir;
+						if (at === -1 || target < 0 || target >= order.length) return;
+						if (dir < 0) bnd_order_move(frm, moved, order[target]);
+						else bnd_order_move(frm, moved, null, order[target]);
+						if (t) {
+							const zoneLabel = bnd_slot_label(chip.closest(".bnd-bd-zone").getAttribute("data-slot"));
+							announce(
+								dir < 0
+									? __("Moved earlier: {0} — {1}", [t.label(), zoneLabel])
+									: __("Moved later: {0} — {1}", [t.label(), zoneLabel])
+							);
+						}
+						bnd_render_placement_board(frm);
+					});
+					nudge.appendChild(b);
+				}
+			}
 		}
+
+		const move_btn = document.createElement("button");
+		move_btn.type = "button";
+		move_btn.className = "bnd-bd-move-btn";
+		move_btn.textContent = __("Move to…");
+		if (window.bunood_theme && window.bunood_theme.menu_trigger) {
+			window.bunood_theme.menu_trigger(move_btn);
+		}
+		move_btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			if (!window.bunood_theme || !window.bunood_theme.menu) return;
+			const items = bnd_field_slots(frm, field).map((slot) => ({
+				label: bnd_slot_label(slot),
+				run: () => drop_on(field, slot),
+			}));
+			if (bnd_can_be_off(frm, field)) {
+				items.push("divider");
+				items.push({ label: __("Off — not shown"), run: () => drop_on(field, "Off") });
+			}
+			window.bunood_theme.menu(move_btn, items);
+		});
+		nudge.appendChild(move_btn);
+
 		chip.insertAdjacentElement("afterend", nudge);
 	};
 
 	// Re-arm after any re-render: the memory lives on the form, the DOM is
 	// fresh, and a nudge that lost its arrows after one press would be a
-	// control that dismantles itself mid-use.
+	// control that dismantles itself mid-use. Focus follows it — every
+	// mutation (drop, nudge, menu pick) replaces the whole board via
+	// $host.html() above, and nothing used to call .focus() afterward, so a
+	// keyboard user's focus fell out of the document on every single action.
 	if (frm.__bnd_board_armed && $bd.find(`.bnd-bd-chip[data-field="${frm.__bnd_board_armed}"]`).length) {
 		arm(frm.__bnd_board_armed);
-		$bd.find(`.bnd-bd-chip[data-field="${frm.__bnd_board_armed}"]`)
+		const $chip = $bd
+			.find(`.bnd-bd-chip[data-field="${frm.__bnd_board_armed}"]`)
 			.addClass("bnd-bd-armed")
 			.attr("aria-pressed", "true");
+		$chip[0].focus();
 	}
 
 	$bd.find(".bnd-bd-chip").on("click", function (e) {
@@ -3979,17 +4052,13 @@ function bnd_render_placement_board(frm, host) {
 		if (next) window.$(this).addClass("bnd-bd-armed").attr("aria-pressed", "true");
 	});
 
+	// Pointer drop target only now — zones are role="group" and carry no
+	// tabindex, so there is no keyboard Enter/Space path here to maintain.
+	// The keyboard route is the armed chip's own "Move to…" menu, above.
 	$bd.find(".bnd-bd-zone").on("click", function () {
 		const field = $bd.attr("data-armed");
 		if (!field) return;
 		drop_on(field, this.getAttribute("data-slot"));
-	});
-	// Enter/Space on a focused zone is the keyboard's click. Space must
-	// preventDefault or the pane scrolls.
-	$bd.find(".bnd-bd-zone").on("keydown", function (e) {
-		if (e.key !== "Enter" && e.key !== " ") return;
-		e.preventDefault();
-		this.click();
 	});
 
 	// Dropping ON a chip means "before this chip" — the within-zone position

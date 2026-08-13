@@ -849,14 +849,51 @@ msgid "Dots"
 msgstr "نقاط"
 
 #. In theme_settings.js
+#, fuzzy
 #. src: ai
-msgid "Drag a control onto the desk, or click it and then click where it should go."
-msgstr "اسحب عنصر تحكم إلى المكتب، أو انقره ثم انقر حيث ينبغي أن يذهب."
+msgid "Drag a control onto the desk, click it and then click where it should go, or pick it up and use its Move to menu."
+msgstr "اسحب عنصر تحكم إلى المكتب، أو انقره ثم انقر حيث ينبغي أن يذهب، أو التقطه واستخدم قائمة «نقل إلى» الخاصة به."
 
 #. In theme_settings.js
 #. src: ai
 msgid "Drag to move, or click to pick up"
 msgstr "اسحب للنقل، أو انقر للالتقاط"
+
+#. In theme_settings.js — item 22, the board's live-region announcer.
+#, fuzzy
+#. src: ai
+msgid "Cannot move: {0}"
+msgstr "لا يمكن النقل: {0}"
+
+#. In theme_settings.js — item 22.
+#, fuzzy
+#. src: ai
+msgid "Moved: {0} — {1}"
+msgstr "نقل: {0} — {1}"
+
+#. In theme_settings.js — item 22.
+#, fuzzy
+#. src: ai
+msgid "Picked up: {0}"
+msgstr "التقاط: {0}"
+
+#. In theme_settings.js — item 22.
+#, fuzzy
+#. src: ai
+msgid "Moved earlier: {0} — {1}"
+msgstr "تقديم: {0} — {1}"
+
+#. In theme_settings.js — item 22.
+#, fuzzy
+#. src: ai
+msgid "Moved later: {0} — {1}"
+msgstr "تأخير: {0} — {1}"
+
+#. In theme_settings.js — item 22, the "Move to…" trigger on an armed chip.
+#, fuzzy
+#. src: ai
+msgid "Move to…"
+msgstr "نقل إلى…"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai

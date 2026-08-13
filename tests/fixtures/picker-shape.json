@@ -1482,9 +1482,9 @@
    ]
   },
   "placement_board": {
-   "n": 81,
+   "n": 82,
    "svgs": 0,
-   "text": 264,
+   "text": 301,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-bd",
@@ -1566,7 +1566,8 @@
     "div.bnd-bd-tray.bnd-bd-zone",
     "span.bnd-bd-zone-name",
     "div.bnd-bd-slot-chips",
-    "div.bnd-cbp-note"
+    "div.bnd-cbp-note",
+    "div.bnd-bd-status.bnd-visually-hidden"
    ]
   }
  }

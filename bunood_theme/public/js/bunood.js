@@ -1300,6 +1300,12 @@
 		if (first) first.focus();
 	}
 
+	// The placement board (theme_settings.js, item 22) is the first caller
+	// outside this file — its chip-level "Move to…" control opens the SAME
+	// menu with the SAME focus contract rather than growing a second one.
+	bunood.menu = show_menu;
+	bunood.menu_trigger = menu_trigger;
+
 	// ── The avatar menu ─────────────────────────────────────────────────────
 
 	/**

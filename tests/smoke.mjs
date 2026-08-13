@@ -4732,6 +4732,14 @@ async function main() {
 			// Design pick 1A end to end: arm by click (a keyboard Enter on a
 			// button IS a click), nudge with the arrows the armed chip grows,
 			// and land on the same desk_order the drag path writes.
+			//
+			// The zone itself is asserted as role=group, NOT role=button
+			// (item 22): role=button gave every chip inside it Children
+			// Presentational: True, so the chips that ARE the components
+			// could be flattened out of the accessibility tree. It carries
+			// no tabindex either — the keyboard route to a DIFFERENT zone is
+			// the armed chip's own "Move to…" menu (the next test), never
+			// the zone itself.
 			setSettings({
 				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
@@ -4744,8 +4752,8 @@ async function main() {
 				const zone = document.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]');
 				return { tabindex: zone.getAttribute("tabindex"), role: zone.getAttribute("role"), named: !!zone.getAttribute("aria-label") };
 			});
-			expectEq(zoneOk.tabindex, "0", "drop zones are focusable");
-			expectEq(zoneOk.role, "button", "drop zones are controls");
+			expectEq(zoneOk.tabindex, null, "drop zones carry no tabindex — nothing about them is a keyboard stop");
+			expectEq(zoneOk.role, "group", "drop zones are named groups, not controls");
 			expect(zoneOk.named, "drop zones have names");
 			await page.click('.bnd-bd-chip[data-tenant="user"]');
 			await page.waitForSelector(".bnd-bd-nudge", { timeout: 5000 });
@@ -4767,6 +4775,66 @@ async function main() {
 			// And the bar survived its own write — the re-render used to
 			// dismantle the control mid-use.
 			expect(await q(".bnd-bd-nudge"), "the nudge bar is still there after the write");
+			// Focus follows the chip through the re-render (item 22) — every
+			// mutation used to drop focus out of the document entirely.
+			expect(
+				await page.evaluate(
+					() => document.activeElement === document.querySelector('.bnd-bd-chip[data-tenant="user"]')
+				),
+				"focus stayed on the moved chip after the re-render"
+			);
+		});
+
+		await test("a11y: a chip moves zone without a pointer", async () => {
+			// The other half of the split: WHICH zone is now a menu on the
+			// armed chip, listing only what bnd_field_slots offers — the
+			// 9-of-15-zones-silently-refuse problem search's own narrow slot
+			// list used to create (search has no Off, no page header, no `*`
+			// End) simply cannot happen when the menu never lists them.
+			setSettings({
+				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, bottombar_enabled: 1,
+				search_placement: "Top Bar Center",
+			});
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="placement"]');
+			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
+
+			await page.click('.bnd-bd-chip[data-tenant="search"]');
+			await page.waitForSelector(".bnd-bd-move-btn", { timeout: 5000 });
+			await page.click(".bnd-bd-move-btn");
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+
+			const offered = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-menu .bnd-menu-item")].map((n) => n.textContent.trim())
+			);
+			expect(offered.length > 0, "the menu lists at least one legal zone");
+			expect(
+				!offered.some((label) => /off/i.test(label)),
+				`search has no Off, so the menu never offers it (offered: ${offered.join(", ")})`
+			);
+			expect(
+				!offered.some((label) => /page header/i.test(label)),
+				`search has no page-header slug, so the menu never offers it (offered: ${offered.join(", ")})`
+			);
+
+			// Pick the option that is not where search already is.
+			await page.evaluate(() => {
+				const items = [...document.querySelectorAll(".bnd-menu .bnd-menu-item")];
+				const other = items.find((n) => n.textContent.trim() !== "Top Bar · Center") || items[0];
+				other.click();
+			});
+			await page.waitForFunction(() => window.cur_frm && !window.cur_frm.is_dirty(), { timeout: 20000 });
+			expect(
+				getSettings(["search_placement"]).search_placement !== "Top Bar Center",
+				`the menu pick moved search_placement off its starting slot (now: ${getSettings(["search_placement"]).search_placement})`
+			);
+			// The live region said so, and focus followed the chip.
+			const after = await page.evaluate(() => ({
+				status: (document.querySelector(".bnd-bd-status") || {}).textContent || "",
+				onChip: document.activeElement === document.querySelector('.bnd-bd-chip[data-tenant="search"]'),
+			}));
+			expect(after.status.length > 0, `the board announced the move (status: "${after.status}")`);
+			expect(after.onChip, "focus followed the moved chip");
 		});
 
 		await test("a11y: switches say their state, options say their selection", async () => {
