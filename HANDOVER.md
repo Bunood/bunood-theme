@@ -226,6 +226,44 @@ releases closed ones). Beyond the item, at the user's direction: the
 app (22,433 sources / 6,983 missing at first scan), providers writing
 spend-capped PROPOSALS only, export/import, manual save.
 
+**THE CROSS-APP TRANSLATIONS SURFACE WAS RUN AT FULL SCALE** (2026-08-13, at
+the user's direction: "translate all scanned strings here and add them").
+6,983 missing strings across all 10 apps, translated in 62 batches of ~120
+(one agent translates, an independent second agent reviews and fixes —
+98 real defects caught this way: gender agreement, wrong technical sense,
+an accounting Dr/Credit inversion, cross-batch glossary drift), merged with a
+mechanical gate (placeholder/format-token equality, digit rule, script
+presence), applied through `import_translations_csv`. Missing count: 6,983 →
+262, and the remainder is verified non-linguistic (naming-series patterns,
+CSS units, minified-JS extraction artifacts Frappe's own scanner picks up,
+paper sizes) — not a shortfall.
+
+Doing this at scale surfaced two real, pre-existing defects in
+`bunood_theme/i18n/apply.py`'s `import_translations_csv`/`upsert_translation`
+— both now fixed and each pinned by a suite test:
+  - **Whitespace-bearing sources were silently corrupted.** `.strip()` on
+    both CSV columns before storing meant a source of `" App Name"` (a real
+    msgid — Frappe's dictionary is exact-match) landed under the DIFFERENT
+    key `"App Name"`. 55 rows, mostly multi-line HTML help text, rendered
+    English forever with no error anywhere. `import_translations_csv` now
+    stores exactly what the row carries; `.strip()` is still used to test for
+    an empty cell, never to decide what gets written.
+  - **MariaDB's case-insensitive collation silently merged translations
+    across case.** `upsert_translation`'s lookup filter matches "Amber"
+    against an existing row storing "amber" — and updating THAT row left
+    `source_text` lowercase while Frappe's dictionary is a case-sensitive
+    Python dict, so the correctly-cased lookup never found it. 65 rows
+    vanished this way, each looking like a clean "updated" at the time.
+    The row the database hands back is now re-checked byte-for-byte in
+    Python before being trusted as a match — portable to Postgres too, since
+    it doesn't rely on a MariaDB-specific collation override.
+  - **A related, smaller trap for whoever documents this file next:** don't
+    write an ``_()`` call inside a docstring as an illustration, even in
+    prose — `tools/i18n.mjs` cannot tell an example from a real call site,
+    and two such examples in these same docstrings briefly broke `npm run
+    build`'s OWN coverage gate (item 7d, a different mechanism from the
+    cross-app one above) for strings no UI ever shows.
+
 **E3 IS DONE** (2026-08-09) — order within a zone. `desk_order` holds tenant
 keys in desk order (one global list; position is meaningful wherever two
 tenants share a zone). Enforcement is `enforce_desk_order()` in bunood.js — a
@@ -308,10 +346,13 @@ A release is also owed — see the release-state bullet above.
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
    three gates: CI green (is), smoke green (is), adversarial release review clean
    (not yet run for this batch).
-2. **A provider key.** Bunood Translation Settings takes a Claude / DeepL /
-   Google / Microsoft key; the provider path has run only against the estimate
-   step. A live run needs a real key — it writes proposals only, under the
-   spend cap.
+2. **A provider key — lower priority now.** The 2026-08-13 full-scale fill
+   (see above) closed the missing-string count directly via multi-agent
+   translation + `import_translations_csv`, bypassing `providers.py` entirely
+   — so `Bunood Translation Settings`' Claude/DeepL/Google/Microsoft path is
+   STILL never exercised end to end with a real key, only against the
+   estimate step. Worth doing eventually to prove that specific code path,
+   but the content gap it exists to close is gone.
 3. **The upstream `is_rtl` filing.** `docs/upstream/frappe-is-rtl.md` is
    drafted (exact-match four-language list, no parent resolution, suggested
    one-line fix). Filing against frappe/frappe is an outward act, so it waits

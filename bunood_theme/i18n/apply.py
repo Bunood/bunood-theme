@@ -24,13 +24,36 @@ def upsert_translation(language: str, source_text: str, translated_text: str) ->
 
     Returns "updated", "created" or "unchanged". ``contributed=0`` scopes the
     lookup to locally-authored rows, matching the defense in ``setup.py``.
+
+    THE MATCH MUST BE EXACT, NOT WHATEVER THE DATABASE COLLATION DECIDES.
+    MariaDB's default text collation is case-INSENSITIVE, so a same-language
+    filter on one differently-cased word also matches a row already storing
+    the lowercase spelling of that word — and ``set_value`` on THAT row's
+    translated_text leaves its source lowercase forever. Frappe's runtime
+    dictionary is a plain Python dict, which is case-SENSITIVE, so the
+    correctly-cased lookup then never finds it: the write looked like a clean
+    "updated" and silently translated the wrong key. 65 of the 6,721-row
+    cross-app Arabic fill vanished exactly this way (2026-08-13), each
+    colliding with an unrelated differently-cased row already in the table.
+    The row the database hands back is therefore re-checked byte-for-byte in
+    Python before being trusted as "the same source" — a near-miss is treated
+    as no match, and a fresh row is created for the exact key, on both
+    MariaDB and Postgres alike.
+
+    A NOTE FOR WHOEVER NEXT DOCUMENTS THIS FILE: do not write an ``_()`` call
+    inside a docstring as an example, even in prose — ``tools/i18n.mjs`` scans
+    every ``.py`` file for exactly that pattern with no way to tell an
+    illustration from a real call site, and two such examples in this file's
+    docstrings (this one, and the whitespace note below) briefly broke
+    ``npm run build``'s coverage gate for strings nobody's UI ever shows.
     """
-    existing = frappe.db.get_value(
+    candidate = frappe.db.get_value(
         "Translation",
         {"language": language, "source_text": source_text, "contributed": 0},
-        ["name", "translated_text"],
+        ["name", "source_text", "translated_text"],
         as_dict=True,
     )
+    existing = candidate if candidate and candidate.source_text == source_text else None
     if existing:
         if existing.translated_text == translated_text:
             return "unchanged"
@@ -77,14 +100,25 @@ def import_translations_csv(language: str, content: str) -> dict:
     where nobody has looked yet. Returns counts, including how many rows were
     skipped for having no translation, so a half-filled file reports itself
     honestly instead of looking fully applied.
+
+    SOURCE IS STORED EXACTLY AS THE ROW CARRIES IT — NEVER .strip()PED.
+    Frappe's dictionary is an exact-match lookup, so a source that carries a
+    leading or trailing space needs its Translation row keyed with that space
+    intact, byte for byte. `.strip()` on `row[0]` used to normalise that away
+    before storing — a silently DIFFERENT key that the real lookup, space and
+    all, never finds, so the desk renders English forever with no error
+    anywhere. Caught auditing the 6,721-row cross-app Arabic fill
+    (2026-08-13): 55 rows carried meaningful whitespace this way. `.strip()`
+    is still the right test for "is this cell empty" — CSV editors leave
+    stray blank cells — it just must never touch what gets STORED.
     """
     counts = {"created": 0, "updated": 0, "unchanged": 0, "skipped_empty": 0}
     for row in csv.reader(io.StringIO(content)):
         if not row or not (row[0] or "").strip():
             continue
-        source = row[0].strip()
-        translated = (row[1] if len(row) > 1 else "").strip()
-        if not translated:
+        source = row[0]
+        translated = row[1] if len(row) > 1 else ""
+        if not translated.strip():
             counts["skipped_empty"] += 1
             continue
         counts[upsert_translation(language, source, translated)] += 1

@@ -4427,6 +4427,88 @@ async function main() {
 			expectEq(served, "تجربة الحزمة", "the pane's save reaches the merged dict");
 		});
 
+		await test("i18n: import_translations_csv preserves whitespace-bearing sources", async () => {
+			// Found auditing the 6,721-row cross-app Arabic fill (2026-08-13): 55 of
+			// those rows carried meaningful leading/trailing whitespace (" App Name",
+			// help-text blocks with a trailing "\n"). import_translations_csv called
+			// `.strip()` on both CSV columns before storing them, so a source of
+			// " App Name" landed under the DIFFERENT key "App Name" — Frappe's
+			// dictionary is exact-match, so `_(" App Name")` never found it and
+			// silently rendered English forever. The scan ledger even reported the
+			// string "missing" AFTER a successful-looking import, which is what
+			// surfaced this: a re-scan is the only way this class of defect shows.
+			const probeSrc = " BND Whitespace Probe ";
+			const probeDst = " ترجمة تجريبية ";
+			const csv = `"${probeSrc}","${probeDst}"\n`;
+			const out = benchPy(
+				`import json\n` +
+					`from bunood_theme.i18n.apply import import_translations_csv\n` +
+					`content = json.loads(${JSON.stringify(JSON.stringify(csv))})\n` +
+					`probe_src = json.loads(${JSON.stringify(JSON.stringify(probeSrc))})\n` +
+					`counts = import_translations_csv("ar", content)\n` +
+					`from frappe.translate import get_all_translations\n` +
+					`frappe.translate.clear_cache()\n` +
+					`served = get_all_translations("ar").get(probe_src, "(missing)")\n` +
+					`print("RESULT=" + json.dumps({"counts": counts, "served": served}))\n` +
+					`for n in frappe.get_all("Translation", filters={"language": "ar", "source_text": probe_src}, pluck="name"):\n` +
+					`    frappe.delete_doc("Translation", n, force=True, ignore_permissions=True)\n` +
+					`frappe.db.commit(); frappe.translate.clear_cache()\n`
+			).match(/RESULT=(.*)/)[1];
+			const { counts, served } = JSON.parse(out);
+			expectEq(counts.created, 1, "the whitespace-bearing probe row must be created");
+			expectEq(
+				served,
+				probeDst,
+				"a whitespace-bearing source must round-trip through CSV import under its EXACT key"
+			);
+		});
+
+		await test("i18n: upsert_translation does not merge across a case collision", async () => {
+			// Found in the SAME audit as the whitespace defect above, minutes later:
+			// MariaDB's default collation is case-INSENSITIVE, so upsert_translation's
+			// lookup filter `{"source_text": "Amber"}` also matched a pre-existing row
+			// storing "amber" (lowercase) — and updating THAT row's translated_text
+			// left source_text lowercase forever. Frappe's runtime dictionary is a
+			// plain, case-SENSITIVE Python dict, so `_("Amber")` never found it: 65 of
+			// the 6,721-row fill vanished this way, each looking like a clean
+			// "updated" at the time it happened. This probe manufactures the exact
+			// collision — a pre-existing lowercase row, then an upsert of the
+			// differently-cased source — and requires BOTH a new row AND the old
+			// row's untouched survival, because a fix that deletes/merges the
+			// lowercase row would break whatever legitimately looks it up.
+			const lower = "bnd case probe";
+			const upper = "BND Case Probe";
+			const out = benchPy(
+				`import json\n` +
+					`from bunood_theme.i18n.apply import upsert_translation\n` +
+					`lower = json.loads(${JSON.stringify(JSON.stringify(lower))})\n` +
+					`upper = json.loads(${JSON.stringify(JSON.stringify(upper))})\n` +
+					`frappe.get_doc({"doctype": "Translation", "language": "ar", "source_text": lower, "translated_text": "الأصل"}).insert(ignore_permissions=True)\n` +
+					`frappe.db.commit()\n` +
+					`outcome = upsert_translation("ar", upper, "الصحيح")\n` +
+					`frappe.db.commit(); frappe.translate.clear_cache()\n` +
+					`from frappe.translate import get_all_translations\n` +
+					`d = get_all_translations("ar")\n` +
+					// A plain get_value filtered by source_text is ITSELF subject to the
+					// same case-insensitive collation this test exists to catch — with
+					// both rows now present, MariaDB's LIMIT 1 (no ORDER BY) is free to
+					// return either one. The verification has to do exactly what the fix
+					// does: pull every case-insensitive match, then keep only the row
+					// whose source_text is byte-for-byte the one asked for.
+					`candidates = frappe.db.sql("SELECT source_text, translated_text FROM \`tabTranslation\` WHERE language=%s AND source_text=%s", ("ar", lower), as_dict=True)\n` +
+					`exact = [r for r in candidates if r.source_text == lower]\n` +
+					`lower_row = exact[0].translated_text if exact else "(missing)"\n` +
+					`print("RESULT=" + json.dumps({"outcome": outcome, "served_upper": d.get(upper, "(missing)"), "lower_row_survived": lower_row}))\n` +
+					`for n in frappe.get_all("Translation", filters={"language": "ar", "source_text": ["in", [lower, upper]]}, pluck="name"):\n` +
+					`    frappe.delete_doc("Translation", n, force=True, ignore_permissions=True)\n` +
+					`frappe.db.commit(); frappe.translate.clear_cache()\n`
+			).match(/RESULT=(.*)/)[1];
+			const { outcome, served_upper, lower_row_survived } = JSON.parse(out);
+			expectEq(outcome, "created", "a case-different source must CREATE, never merge into the existing row");
+			expectEq(served_upper, "الصحيح", "the exact-case key must serve its own translation");
+			expectEq(lower_row_survived, "الأصل", "the pre-existing differently-cased row must be untouched");
+		});
+
 		await test("placement: Off never removes the LAST route to a critical control", async () => {
 			// The Dock layout hides the whole sidebar by layout rule, so the stock
 			// bell and user button exist but cannot be clicked. Switching our
