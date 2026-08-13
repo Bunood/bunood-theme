@@ -168,51 +168,25 @@ def after_install() -> None:
 RTL_LANGS = frozenset({"ar", "he", "fa", "ps", "ur", "ckb", "sd", "ug", "yi", "dv", "ks"})
 
 
-def _warn_unreachable_rtl() -> None:
-    """Warn, at migrate time, about enabled languages Frappe will render wrong.
+def is_rtl(lang: str | None = None) -> bool:
+    """Whether ``lang`` (or the current request's language) is RTL — CORRECTLY.
 
-    ``frappe.utils.jinja_globals.is_rtl`` is an exact-match list of four codes
-    with no parent-language resolution, while ``get_all_translations`` DOES
-    resolve parents — so a site language like ``ur`` (or any hand-created
-    ``ar-*`` dialect row) gets Arabic-script translations on a left-to-right
-    desk. The theme deliberately does NOT correct it: ``bundled_asset`` picks
-    Frappe's ``rtl_`` stylesheet variant off the same broken check, so forcing
-    ``dir`` alone produces a half-flipped desk — strictly worse than a
-    consistently wrong one. Detection preserves consistency; correction breaks
-    it. The one-line fix belongs upstream (docs/upstream/frappe-is-rtl.md).
+    THE SINGLE SOURCE OF TRUTH for the fix described in
+    ``bunood_theme/i18n/rtl_patch.py``, ``hooks.py``'s ``jinja.methods`` entry,
+    and ``context.py::desk_context``'s ``layout_direction`` override — all
+    three call THIS function rather than each carrying its own language-list
+    logic, so ``RTL_LANGS`` stays the one place that can go stale.
 
-    Frappe's verdict is obtained by ASKING ``is_rtl`` per code, never by
-    restating its list — a copy here would go stale the day upstream fixes it,
-    and this warning would then cry wolf forever.
+    Resolves to the parent language exactly the way
+    ``frappe.translate.get_all_translations`` already does for the dialect
+    case (strip everything from the first ``-`` or ``_``) — the same
+    resolution ``_warn_unreachable_rtl`` used to perform before checking
+    Frappe's broken ``is_rtl()``; this function now performs it and answers
+    correctly instead of just noticing the mismatch.
     """
-    try:
-        from frappe.utils.jinja_globals import is_rtl
-
-        enabled = frappe.get_all("Language", filters={"enabled": 1}, pluck="name")
-        saved_lang = getattr(frappe.local, "lang", None)
-        missed = []
-        for code in enabled:
-            parent = code.split("-")[0].split("_")[0]
-            if parent not in RTL_LANGS:
-                continue
-            frappe.local.lang = code
-            if not is_rtl():
-                missed.append(code)
-        frappe.local.lang = saved_lang
-
-        if missed:
-            print(
-                "\n⚠  bunood_theme: %s enabled language(s) will render LEFT-TO-RIGHT "
-                "with right-to-left translations: %s.\n"
-                "   frappe's is_rtl() matches four codes exactly and never resolves "
-                "parents. Until that is fixed upstream, point affected users at a "
-                "code it does handle (e.g. 'ar'), or disable the row."
-                % (len(missed), ", ".join(sorted(missed)))
-            )
-    except Exception:
-        # A warning must never break a migrate. Everything above is read-only
-        # except the local.lang save/restore.
-        frappe.log_error("bunood_theme: _warn_unreachable_rtl failed")
+    code = lang or getattr(frappe.local, "lang", None) or ""
+    parent = code.split("-")[0].split("_")[0]
+    return parent in RTL_LANGS
 
 
 def _defend_identity_overrides(lang: str = "ar") -> None:
@@ -314,7 +288,11 @@ def after_migrate() -> None:
     # (drift self-heals; local edits to MANAGED records are overwritten by
     # design — duplicate a format to customize, see printing/README.md).
     sync_print_theme()
-    _warn_unreachable_rtl()
+    # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
+    # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
+    # .rtl_patch now reaches them at RENDER time (see that module and
+    # is_rtl() above) — a language that used to trigger this warning now
+    # renders correctly, so warning about it would be noise, not signal.
     _defend_identity_overrides()
 
 

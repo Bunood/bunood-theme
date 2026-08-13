@@ -284,6 +284,50 @@ Doing this at scale surfaced two real, pre-existing defects in
     build`'s OWN coverage gate (item 7d, a different mechanism from the
     cross-app one above) for strings no UI ever shows.
 
+**THE UPSTREAM `is_rtl()` DEFECT NOW HAS A LOCAL FIX** (2026-08-13, user
+asked directly: "is there a fix you can do for it"). Full mapping saved at
+`~/.claude/plans/tender-leaping-stallman.md` before implementation, for
+anyone picking this up cold. Frappe's `is_rtl()` — a four-language exact
+match, no parent resolution — is duplicated TWICE: once in
+`frappe/utils/jinja_globals.py` (consumed by `desk.py`, `printview.py`,
+`pdf.py` via import-time binding, and by `bundled_asset()` internally,
+which picks the `rtl_`-equivalent CSS bundle off the same check), and again,
+independently, in client JS (`frappe.utils.is_rtl()`,
+`public/js/frappe/utils/utils.js` — NOT derived from any boot field). The fix
+closes both, without touching Frappe core:
+  - `bunood_theme/setup.py::is_rtl(lang)` — the one corrected source of
+    truth, built on the existing `RTL_LANGS`. `_warn_unreachable_rtl`
+    retired: it existed because these codes were unreachable, and warning
+    about a reachable one would be noise.
+  - `bunood_theme/i18n/rtl_patch.py` — the ONE monkey-patch in this app,
+    and why it's safe: Python's `from X import Y` binds a name at import
+    time (which is why `desk.py`/`printview.py`/`pdf.py` can't be reached
+    this way), but `bundled_asset()`'s internal call to `is_rtl(rtl)`
+    resolves fresh from ITS OWN module namespace every call — so patching
+    the `jinja_globals.is_rtl` attribute, once, at app-load
+    (`bunood_theme/__init__.py` imports this module first thing), fixes
+    the CSS-bundle selection reliably, no import-order race.
+  - `context.py::desk_context` now also overwrites `layout_direction` —
+    already runs AFTER `desk.py::get_context` per this file's own call-path
+    trace, so no patching needed for the desk shell's `dir` attribute.
+  - `bunood.js`'s `frappe.utils.is_rtl` gets reassigned client-side, fed by
+    a NEW `bnd_rtl_langs` boot key (`RTL_LANGS`, threaded through rather
+    than hand-copied — the boot doctrine's "keep this minimal" lost to "the
+    same fact in two places" here, deliberately).
+  - **The desk shell is complete; print preview and PDF generation are a
+    known, accepted gap** — `printview.py`/`pdf.py` import-time-bind
+    `is_rtl` from code this app doesn't own, and Frappe documents no hook
+    into either. Not worse than before, just not improved.
+  - Proven, not asserted: the new suite test
+    (`direction: the desk's dir, CSS bundle and JS agree...`) was run against
+    the patch DISABLED first — `dir=rtl` but `coreBundleDirs` all `ltr`,
+    exactly the half-flipped desk this whole design avoids — then against
+    the real fix, green. `docs/upstream/frappe-is-rtl.md` updated (stale
+    `www/app.py` → `www/desk.py`, `ku` dropped from the suggested patch,
+    the JS-side duplicate added) — filing is still the user's call; the
+    local fix removes the urgency, not the reason, since only upstream also
+    reaches print/PDF.
+
 **E3 IS DONE** (2026-08-09) — order within a zone. `desk_order` holds tenant
 keys in desk order (one global list; position is meaningful wherever two
 tenants share a zone). Enforcement is `enforce_desk_order()` in bunood.js — a
@@ -422,6 +466,17 @@ happened; do not do it.
 Each of these was worked out more than once. They are written down so nobody
 pays for them a third time.
 
+- **`bunood_theme/__init__.py` runs on ANY import of the package, including
+  with no Frappe environment at all.** `tools/contrast_gate.py` imports
+  `bunood_theme.palette` as plain Python (no bench, no site) — that's the
+  whole point of `palette.py`/`contrast.py` being "pure math". Adding an
+  unconditional `import frappe` to `__init__.py` (the RTL fix, 2026-08-13)
+  crashed it instantly with `ModuleNotFoundError`, caught by the full suite,
+  not by the targeted change. Any future `__init__.py` addition that touches
+  Frappe needs the same guard already there: check `frappe` is importable
+  first, rather than a blanket `except ImportError` around everything — that
+  way a genuine bug inside the guarded code still fails loudly in a real
+  Frappe environment.
 - **`field_order` is what renders, not `fields`.** In a Frappe doctype JSON the
   two arrays are in *different* orders, and only `field_order` decides layout.
   Reasoning from `fields` put two shell entries on one section and cost a

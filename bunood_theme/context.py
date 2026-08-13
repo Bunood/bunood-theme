@@ -76,6 +76,7 @@ def desk_context(context):
             return
 
         _append_brand_css(context)
+        _correct_layout_direction(context)
 
     except Exception:
         # Never break the website router. A missing brand sheet degrades to the
@@ -124,3 +125,21 @@ def _append_brand_css(context):
     # across requests in some Frappe versions, and appending in place would grow it
     # unboundedly.
     context.app_include_css = [*(context.get("app_include_css") or []), url]
+
+
+def _correct_layout_direction(context):
+    """Overwrite ``layout_direction``, which ``desk.py`` has already computed
+    WRONG for every RTL language Frappe's ``is_rtl()`` doesn't exact-match.
+
+    This runs AFTER ``frappe/www/desk.py::get_context`` (see the call-path
+    trace in the module docstring), so ``context["layout_direction"]``
+    already holds Frappe's verdict — this replaces it with
+    :func:`bunood_theme.setup.is_rtl`'s. Safe to do alone, unlike a naive
+    "just flip dir": ``bunood_theme.i18n.rtl_patch`` closes the matching
+    half — which CSS bundle ``bundled_asset()`` serves — at app load, so the
+    two never disagree. See that module for the full reasoning and its
+    documented gap (print preview, PDF generation).
+    """
+    from bunood_theme.setup import is_rtl
+
+    context.layout_direction = "rtl" if is_rtl() else "ltr"

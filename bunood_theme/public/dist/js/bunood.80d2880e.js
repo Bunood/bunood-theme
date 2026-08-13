@@ -116,6 +116,28 @@
 	apply_density((window.frappe && frappe.boot && frappe.boot.bnd_density) || "");
 
 	// ════════════════════════════════════════════════════════════════════════
+	// RTL correction — see bunood_theme/i18n/rtl_patch.py for the Python half.
+	// ════════════════════════════════════════════════════════════════════════
+
+	// frappe.utils.is_rtl() independently hardcodes the same four-language
+	// list as its Python counterpart (public/js/frappe/utils/utils.js) — not
+	// derived from any boot field, so the Python-side patch does not reach
+	// it; this is a second, separate copy of the same defect. Every consumer
+	// (toolbar, sidebar, menu, report views, print) calls this ONE function,
+	// and unlike Python's import-time name binding, a JS object's property
+	// lookup is live at call time — so reassigning it here, before anything
+	// has had a chance to call it, is safe regardless of script load order.
+	(function patch_is_rtl() {
+		const rtl_langs = (window.frappe && frappe.boot && frappe.boot.bnd_rtl_langs) || [];
+		if (!frappe.utils || !rtl_langs.length) return;
+		frappe.utils.is_rtl = function (lang) {
+			const code = lang || frappe.boot.lang || "";
+			const parent = code.split("-")[0].split("_")[0];
+			return rtl_langs.indexOf(parent) !== -1;
+		};
+	})();
+
+	// ════════════════════════════════════════════════════════════════════════
 	// Desk layouts (item 9)
 	// ════════════════════════════════════════════════════════════════════════
 

@@ -4209,8 +4209,8 @@ async function main() {
 			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
-		// ── Direction (item 7d) ────────────────────────────────────────────
-		await test("direction: the desk's dir agrees with the language's script", async () => {
+		// ── Direction (item 7d/7-followup) ──────────────────────────────────
+		await test("direction: the desk's dir, CSS bundle and JS agree with the language's script", async () => {
 			// The EXPECTATION IS DERIVED, never listed: the browser's own CLDR
 			// (Intl.Locale textInfo) says which way a language runs. Restating
 			// Frappe's ["ar","he","fa","ps"] here would be a second copy of the
@@ -4224,47 +4224,63 @@ async function main() {
 					return (loc.getTextInfo ? loc.getTextInfo() : loc.textInfo).direction;
 				}, lang);
 
-			// Languages Frappe RENDERS WRONG, each with the upstream defect
-			// named. `frappe.utils.jinja_globals.is_rtl` is a four-element
-			// exact-match list with no parent-language resolution, so every
-			// other RTL language gets translations (get_all_translations DOES
-			// resolve parents) on an LTR desk. Verified strict first: this
-			// test failed `dir for lang=ur: wanted "rtl", got "ltr"` before
-			// this map existed. The theme does NOT correct it — bundled_asset
-			// picks the rtl_ stylesheet variant off the same broken check, so
-			// forcing dir alone produces a HALF-FLIPPED desk, which is worse
-			// (measured reasoning in the item-7 plan, R1).
-			//
-			// THIS MAP MUST SHRINK: when upstream fixes is_rtl, the agreement
-			// below flips this test red, and the fix is to DELETE the entry
-			// (and the matching after_migrate warning basis in setup.py).
-			const KNOWN_BROKEN = new Map([
-				["ur", "frappe/frappe is_rtl(): exact-match list, no parent resolution"],
-			]);
-
+			// Both `ar` (always correct upstream) and `ur` (was broken — see
+			// docs/upstream/frappe-is-rtl.md) now go through the SAME path:
+			// bunood_theme.i18n.rtl_patch corrects frappe.utils.jinja_globals
+			// .is_rtl at the module level, which is what bundled_asset() (same
+			// module) reads to pick the stylesheet directory, and
+			// context.py::desk_context overwrites layout_direction using the
+			// same corrected verdict — so `ur` is no longer a KNOWN_BROKEN
+			// special case; it is asserted exactly like `ar`, on THREE
+			// things that must move together or not at all:
+			//   1. <html dir> — the desk shell's own render.
+			//   2. Which directory Frappe's own CSS bundles serve from —
+			//      measured live (2026-08-13): RTL swaps every frappe/erpnext
+			//      /hrms bundle from `/dist/css/` to `/dist/css-rtl/`, not a
+			//      `rtl_` filename prefix as jinja_globals.py's source reads;
+			//      trust the measurement, not the source text.
+			//   3. frappe.utils.is_rtl() — the INDEPENDENT client-side copy of
+			//      the same defect (see bunood.js's patch_is_rtl), with no
+			//      shared boot field linking it to #1/#2 other than both being
+			//      fed the same corrected answer.
+			// This is exactly the "half-flip" check the theme's own docs (and
+			// setup.py, before this fix) said a partial correction risked —
+			// this test is what proves the fix closes both sides together.
 			for (const lang of ["ar", "ur"]) {
 				await withLang(lang, async () => {
 					await goDesk("/desk/item", ".page-head", 2000);
 					const want = await derived(lang);
-					const got = await page.evaluate(() => document.documentElement.dir || "ltr");
-					if (KNOWN_BROKEN.has(lang)) {
-						expect(
-							got !== want,
-							`lang=${lang} now renders ${want} — upstream fixed is_rtl ` +
-								`(${KNOWN_BROKEN.get(lang)}). Delete it from KNOWN_BROKEN and ` +
-								`from setup.py's warning basis; the defect this documented is gone.`
+					const got = await page.evaluate((lang) => {
+						const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) =>
+							l.getAttribute("href")
 						);
-					} else {
-						expectEq(got, want, `dir for lang=${lang}`);
-					}
+						return {
+							dir: document.documentElement.dir || "ltr",
+							coreBundleDirs: links
+								.filter((h) => /\/(frappe|erpnext|hrms)\/dist\/css/.test(h || ""))
+								.map((h) => (/\/css-rtl\//.test(h) ? "rtl" : "ltr")),
+							jsIsRtl:
+								window.frappe && frappe.utils && frappe.utils.is_rtl
+									? frappe.utils.is_rtl(lang)
+									: null,
+						};
+					}, lang);
+					const wantRtl = want === "rtl";
+					expectEq(got.dir, want, `dir for lang=${lang}`);
+					expect(got.coreBundleDirs.length > 0, `lang=${lang}: no core CSS bundles found to check`);
+					expect(
+						got.coreBundleDirs.every((d) => d === (wantRtl ? "rtl" : "ltr")),
+						`lang=${lang}: core CSS bundle directories disagree with dir=${want} ` +
+							`(${JSON.stringify(got.coreBundleDirs)}) — a half-flipped desk`
+					);
+					expectEq(got.jsIsRtl, wantRtl, `frappe.utils.is_rtl(${lang}) client-side`);
 				});
 			}
 
-			// The after_migrate warning derives from setup.RTL_LANGS, a Python
-			// fact table this browser cannot import — so the suite holds the
-			// two to the same CLDR here: every code that list calls RTL must
-			// be RTL per Intl too. A typo in the list fails HERE, not in a
-			// warning nobody sees until a tenant is already broken.
+			// setup.RTL_LANGS is a Python fact table this browser cannot
+			// import — so the suite holds it to the same CLDR here: every
+			// code that list calls RTL must be RTL per Intl too. A typo in
+			// the list fails HERE, not silently at render time.
 			const rtlLangs = JSON.parse(
 				benchPy(
 					`from bunood_theme.setup import RTL_LANGS\n` +

@@ -12,6 +12,37 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### A known upstream defect gets a local fix, without touching Frappe core
+
+`is_rtl()` — Frappe's own RTL detector — exact-matches four language codes
+with no parent-language resolution, and duplicates that same mistake a
+second time in client JS, independently. Every language bunood_theme already
+listed as RTL but Frappe didn't recognize (Urdu, Sindhi, Sorani Kurdish,
+Uyghur, Yiddish, Dhivehi, Kashmiri) rendered left-to-right with right-to-left
+translations. The theme used to only detect and warn about this, deliberately
+never correcting it: the same broken check also decides which CSS bundle
+Frappe serves, so fixing the `dir` attribute alone would have shipped RTL
+markup styled by an LTR stylesheet — worse than doing nothing.
+
+The fix closes both sides together. A single corrected function
+(`bunood_theme/i18n/rtl_patch.py`) replaces the relevant module attribute
+once, at app load — safe specifically because the CSS-bundle-selection
+code resolves that name fresh on every call, unlike the desk shell's own
+`dir` attribute, which Python binds at import time and no hook can reach;
+that gets corrected separately, by overwriting it in the theme's existing
+context hook after Frappe has already computed the wrong value. Client-side
+JS gets its own matching correction, fed by the same language list via boot
+rather than a second hand-copied one. Proven with the fix deliberately
+disabled first: the desk rendered `dir="rtl"` styled by left-to-right
+Frappe-core CSS — exactly the half-flipped failure this design exists to
+prevent — before the real fix went back in and every check passed.
+
+The one thing this cannot reach: print preview and PDF generation, which
+bind Frappe's own broken check in code this app doesn't own, with no
+documented way in. Not worse than before, just not improved — and itself
+the argument for still filing the upstream fix this local patch was always
+meant to make unnecessary someday.
+
 ### Accessibility closes as an item — and reclaims an undocumented batch
 
 Two batches land here together, because the second exists to fix a gap the first

@@ -95,10 +95,19 @@ doc_events = {
 # Formats, Letter Head) are synced from files in printing/ and letterhead/ by
 # bunood_theme.printing.install.sync_print_theme, called from setup.py's
 # lifecycle hooks.
+#
+# The last entry, named "is_rtl", is a corrected drop-in for Frappe's own
+# jinja_globals.is_rtl — installed_apps order puts bunood_theme after frappe
+# (confirmed live: frappe, erpnext, bunood_theme, ...), so a same-named later
+# entry wins in Jinja's globals dict. This closes templates/base.html's
+# generic doc-page {{ is_rtl() }} call; the desk shell and bundled_asset()'s
+# CSS-bundle selection are closed separately — see bunood_theme/i18n
+# /rtl_patch.py for the full picture and why one hook alone isn't enough.
 jinja = {
     "methods": [
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",
+        "bunood_theme.i18n.rtl_patch.is_rtl",
     ]
 }

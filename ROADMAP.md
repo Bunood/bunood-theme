@@ -318,10 +318,14 @@ entry.
     the file layer.
   - **(e)** closed twice: the build coverage gate, and runtime — the merged dict
     serves every decision none-as-itself, and no visible theme-owned label
-    equals its msgid across four surfaces. Direction is detect-and-refuse with a
-    CLDR cross-check (`ku` is Latin-script and stays out; the upstream `is_rtl`
-    fix is drafted in `docs/upstream/frappe-is-rtl.md`, filing waits on the
-    user).
+    equals its msgid across four surfaces. Direction was detect-and-refuse
+    with a CLDR cross-check through 2026-08-09; **corrected locally 2026-08-13**
+    (`bunood_theme/i18n/rtl_patch.py`) — see the HANDOVER entry for the full
+    mechanism and its one accepted gap (print/PDF). `ku` stays out of
+    `RTL_LANGS` (Latin-script per CLDR); the upstream `is_rtl` fix is drafted
+    in `docs/upstream/frappe-is-rtl.md`, filing still waits on the user — the
+    local fix removes the URGENCY, not the reason: upstream is the only route
+    that also reaches print/PDF.
   - Beyond scope, at the user's direction: the **Translations surface** in Theme
     Settings — scan ledger over every installed app, provider runs as
     spend-capped proposals, export/import, manual save. A live provider run

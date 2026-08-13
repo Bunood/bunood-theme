@@ -52,6 +52,21 @@ def extend_bootinfo(bootinfo):
     try:
         settings = frappe.get_cached_doc("Theme Settings")
 
+        # RTL language set (item 7 follow-up). A pure constant — no Theme
+        # Settings read, no per-user variance — so it is the cheapest thing
+        # this function adds. bunood.js reads it to correct
+        # frappe.utils.is_rtl(), which independently hardcodes Frappe's own
+        # four-language list and is not reachable from the Python-side patch
+        # in bunood_theme/i18n/rtl_patch.py (a separate runtime, a separate
+        # copy of the same defect). Threaded through boot rather than
+        # hand-copied into bunood.js so RTL_LANGS in setup.py stays the one
+        # place this list can go stale. Same flash exemption as density and
+        # layout: every consumer (toolbar, sidebar, menu, report views) is
+        # built by Frappe's JS after the splash.
+        from bunood_theme.setup import RTL_LANGS
+
+        bootinfo.bnd_rtl_langs = sorted(RTL_LANGS)
+
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them
