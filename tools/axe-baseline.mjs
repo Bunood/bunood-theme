@@ -32,10 +32,11 @@ const SITE = "demo.bunood.test";
 const BACKEND = "bunood-backend-1";
 const URL_BASE = "http://localhost:8080";
 
-// The same routes the suite's baseline test walks — the two page shapes a
-// desk session lives in: a list view and the settings form.
+// The same routes the suite's baseline test walks — the three page shapes a
+// desk session lives in: a list view, a document form, and the settings form.
 const ROUTES = [
 	["/desk/item", ".page-head"],
+	["/desk/item/BND-TEST-001", ".form-tabs-list"],
 	["/desk/theme-settings?shell=1", ".bnd-shell"],
 ];
 

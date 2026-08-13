@@ -22,10 +22,14 @@
 //
 // THE FACTS THIS FILE IS BUILT ON (all measured live, 2026-08-10, Frappe
 // 16.27.0, /desk/item/BND-TEST-001..2)
-//   * .form-page is the white canvas (its bg is the ONLY opaque paint under
-//     .layout-main-section) and .form-tabs-list is sticky (z-5) with its own
-//     white bg — the canvas variable must paint BOTH or the bar strobes over
-//     scrolled content.
+//   * The page sheet is .std-form-layout > .form-layout > .form-page, and
+//     upstream paints it at (0,3,0): `background-color: var(--card-bg)` on
+//     exactly that chain — the kit's page rule rides the same chain to
+//     outrank it. Upstream also fills EVERY tab link via
+//     `.form-tabs-list .form-tabs .nav-item .nav-link { background-color:
+//     var(--card-bg) }` at (0,4,0), so the tab rules carry the full
+//     .form-tabs-list chain. The sticky bar (z-5) needs an opaque bg that
+//     matches whatever is behind it or it strobes over scrolled content.
 //   * The section separator IS .form-section's own border-bottom (1px,
 //     bridged border colour), and .hide-border zeroes it. Sections carry
 //     state classes (visible-section / empty-section / hide-border);
@@ -106,6 +110,10 @@ html[data-bnd-form="open"] {
 }
 html[data-bnd-form="cards"] {
   --bnd-form-canvas: var(--bnd-page);
+  // The page sheet steps aside so the canvas shows between the cards; the
+  // sticky tab bar then needs the canvas colour itself to stay opaque.
+  --bnd-form-page-bg: transparent;
+  --bnd-form-tabbar-bg: var(--bnd-page);
   --bnd-form-sec-bg: var(--bnd-surface);
   --bnd-form-sec-border: var(--bnd-border);
   --bnd-form-sec-radius: var(--bnd-radius-lg);
@@ -116,11 +124,12 @@ html[data-bnd-form="cards"] {
   --bnd-form-grid-head-bg: var(--bnd-raised);
 }
 // Paper Sheet: ONE elevated paper on the tinted canvas; sections divide
-// inside it by hairlines. The shell variables exist for this style alone.
+// inside it by hairlines. The paper IS the page sheet (.form-page — the tab
+// bar lives on it, which is right: tabs belong to the document); the shell
+// variables shape it and exist for this style alone.
 html[data-bnd-form="sheet"] {
   --bnd-form-canvas: var(--bnd-page);
   --bnd-form-sec-sep: var(--bnd-border);
-  --bnd-form-shell-bg: var(--bnd-surface);
   --bnd-form-shell-radius: var(--bnd-radius-lg);
   --bnd-form-shell-shadow: var(--bnd-shadow-md);
   --bnd-form-shell-margin: var(--bnd-sp-4);
@@ -161,20 +170,24 @@ html[data-bnd-form][data-bnd-form-side="card"] {
 }
 
 // ── Canvas ──────────────────────────────────────────────────────────────────
-// Both paints or the sticky bar strobes (measured: each has its own white).
-html[data-bnd-form] .form-page,
-html[data-bnd-form] .form-tabs-list {
-  background: var(--bnd-form-canvas, var(--bnd-surface));
+// The canvas paints the COLUMN; the page sheet and the sticky tab bar each
+// take their own per-style paint. The page rule rides upstream's own
+// (0,3,0) chain to outrank it (the FACTS header has the measured selector);
+// the shell variables shape the sheet's paper and stay quiet elsewhere.
+html[data-bnd-form] .layout-main-section {
+  background: var(--bnd-form-canvas, transparent);
 }
-html[data-bnd-form] .form-tab-content {
-  padding: var(--bnd-form-content-pad, 0);
-}
-// The sheet's shell — inert for every other style (all fallbacks quiet).
-html[data-bnd-form] .form-layout {
-  background: var(--bnd-form-shell-bg, transparent);
+html[data-bnd-form] .std-form-layout > .form-layout > .form-page {
+  background: var(--bnd-form-page-bg, var(--bnd-surface));
   border-radius: var(--bnd-form-shell-radius, 0);
   box-shadow: var(--bnd-form-shell-shadow, none);
   margin: var(--bnd-form-shell-margin, 0);
+}
+html[data-bnd-form] .form-tabs-list {
+  background: var(--bnd-form-tabbar-bg, var(--bnd-surface));
+}
+html[data-bnd-form] .form-tab-content {
+  padding: var(--bnd-form-content-pad, 0);
 }
 
 // ── Sections ────────────────────────────────────────────────────────────────
@@ -209,14 +222,19 @@ html[data-bnd-form] .form-dashboard {
 }
 
 // ── Tabs ────────────────────────────────────────────────────────────────────
-html[data-bnd-form] .form-tabs .nav-link {
+// The full .form-tabs-list chain throughout: upstream fills every link at
+// (0,4,0), so anything shorter silently loses the cascade (measured — the
+// first cut's inactive links stayed white boxes on the tinted bar).
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link {
   color: var(--bnd-ink-muted);
+  // The bar's paint is the bar's — a link at rest adds nothing.
+  background: transparent;
 }
-html[data-bnd-form] .form-tabs .nav-link:not(.active):hover {
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link:not(.active):hover {
   background: var(--bnd-hover);
   border-radius: var(--bnd-form-tab-radius, var(--bnd-radius-sm));
 }
-html[data-bnd-form] .form-tabs .nav-link.active {
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link.active {
   color: var(--bnd-form-tab-active-ink, var(--bnd-ink));
   background: var(--bnd-form-tab-active-bg, transparent);
   border-radius: var(--bnd-form-tab-radius, 0);
@@ -231,8 +249,8 @@ html[data-bnd-form] ul.form-tabs {
 // the links gain a fill, so spacing moves from text-gap to pill-gap. Shared
 // geometry for the two contained options, written directly (the list kit's
 // single-style-rules-direct precedent).
-html[data-bnd-form][data-bnd-form-tabs="segment"] .form-tabs .nav-link,
-html[data-bnd-form][data-bnd-form-tabs="pill"] .form-tabs .nav-link {
+html[data-bnd-form][data-bnd-form-tabs="segment"] .form-tabs-list .form-tabs .nav-link,
+html[data-bnd-form][data-bnd-form-tabs="pill"] .form-tabs-list .form-tabs .nav-link {
   margin-inline: var(--bnd-sp-1);
   margin-block: var(--bnd-sp-1);
   padding-inline: var(--bnd-sp-3);

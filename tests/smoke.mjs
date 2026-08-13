@@ -628,6 +628,8 @@ const ATTR_OF = {
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
 const MUTABLE_FIELDS = [
 	"desk_layout", "desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
+	// Form view kit (item 18).
+	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color", "sidebar_icon_style",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -3465,12 +3467,18 @@ async function main() {
 				// FIELD on 2026-08-06 and the surviving card wrote a value the
 				// Select refused, wedging every later save of the Single.
 				status_picker: { cards: 3, toggles: 7, opts: 7 },
+				// Form view kit (item 18): 5 style cards (Original + 4), the two
+				// option groups (3 tab markers + 3 sidebar treatments), one
+				// toggle. list_picker is a known omission from item 16 — noted
+				// in HANDOVER, back-filled separately, not smuggled in here.
+				form_picker: { cards: 5, toggles: 1, opts: 6 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
+					form_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -4875,6 +4883,7 @@ async function main() {
 			);
 			for (const [route, waitFor] of [
 				["/desk/item", ".page-head"],
+				["/desk/item/BND-TEST-001", ".form-tabs-list"],
 				["/desk/theme-settings?shell=1", ".bnd-shell"],
 			]) {
 				await goDesk(route, waitFor, 4000);
@@ -5069,6 +5078,288 @@ async function main() {
 				geom.pagingBottom <= geom.barTop,
 				`the paging row clears the bar (${geom.pagingBottom} <= ${geom.barTop})`
 			);
+		});
+
+		// ── Form view kit (item 18) — the second surface family ─────────────
+		//
+		// Picks recorded 2026-08-10: 1C Floating Panels · 2C Solid Pill ·
+		// 3C Floating Pane · 4A reveal.
+		//
+		// Every test walks /desk/item/BND-TEST-001 — a doctype with tabs AND a
+		// child grid (the uoms table, on the UOM tab). The first test ensures
+		// the fixture idempotently: the suite must never assume a hand-made
+		// doc survived, and the grid needs two rows so hover exercises a real
+		// row set.
+
+		const FORM_ROUTE = "/desk/item/BND-TEST-001";
+
+		await test("form: control height obeys density under Original", async () => {
+			// The fixture-ensure. benchPy is idempotent here: an existing doc
+			// with two uoms rows is a no-op.
+			benchPy(
+				'if not frappe.db.exists("Item", "BND-TEST-001"):\n' +
+					'    doc = frappe.new_doc("Item")\n' +
+					'    doc.item_code = "BND-TEST-001"\n' +
+					'    doc.item_group = frappe.get_all("Item Group", limit=1)[0]["name"]\n' +
+					'    doc.stock_uom = "Nos"\n' +
+					"    doc.insert()\n" +
+					'doc = frappe.get_doc("Item", "BND-TEST-001")\n' +
+					"if len(doc.uoms) < 2:\n" +
+					"    have = {r.uom for r in doc.uoms}\n" +
+					'    for u in frappe.get_all("UOM", limit=6):\n' +
+					'        if u["name"] not in have:\n' +
+					'            doc.append("uoms", {"uom": u["name"], "conversion_factor": 12})\n' +
+					'            have.add(u["name"])\n' +
+					"        if len(doc.uoms) >= 2:\n" +
+					"            break\n" +
+					"    doc.save()\n" +
+					"frappe.db.commit()\n" +
+					'print("ok")\n'
+			);
+			// Density is its own contract: it must hold under Original, so that
+			// is the state it is measured in — which also pins the rule to the
+			// html[data-theme] scope, never the kit anchor.
+			setSettings({ form_style: "Original" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			const geom = await page.evaluate(() => {
+				const input = document.querySelector('.frappe-control[data-fieldtype="Data"] input.form-control');
+				const html = getComputedStyle(document.documentElement);
+				return {
+					h: input ? getComputedStyle(input).blockSize : "no data input on the form",
+					want: html.getPropertyValue("--bnd-control-h").trim(),
+				};
+			});
+			expectEq(geom.h, geom.want, "input height resolves from --bnd-control-h under Original");
+		});
+
+		const FORM_STYLE_SLUG = {
+			"Hairline Panels": "hairline", "Open Canvas": "open",
+			"Floating Panels": "cards", "Paper Sheet": "sheet",
+		};
+		for (const [label, slug] of Object.entries(FORM_STYLE_SLUG)) {
+			await test(`form: ${label}`, async () => {
+				setSettings({
+					form_style: label, form_tabs: "Brand Underline",
+					form_sidebar: "Hairline Edge", form_grid_checkbox_reveal: 0,
+				});
+				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				expectEq(await attr("data-bnd-form"), slug, "style attribute");
+				// One computed-pixel proof per style — an attribute alone is a
+				// green test that asserts existence, not correctness.
+				const px = await page.evaluate(() => {
+					const sec = [...document.querySelectorAll(".form-layout .form-section")]
+						.find((s) => getComputedStyle(s).display !== "none");
+					const s = getComputedStyle(sec);
+					const paper = getComputedStyle(document.querySelector(".std-form-layout > .form-layout > .form-page"));
+					return {
+						sideWidth: s.borderInlineStartWidth,
+						sideColor: s.borderInlineStartColor,
+						sep: s.borderBlockEndColor,
+						secBg: s.backgroundColor,
+						radius: s.borderRadius,
+						canvasBg: getComputedStyle(document.querySelector(".layout-main-section")).backgroundColor,
+						paperBg: paper.backgroundColor,
+						paperShadow: paper.boxShadow,
+					};
+				});
+				if (slug === "hairline") {
+					expect(px.sideWidth !== "0px" && px.sideColor !== "rgba(0, 0, 0, 0)",
+						`hairline boxes the section (${px.sideWidth} ${px.sideColor})`);
+				}
+				if (slug === "open") {
+					expectEq(px.sep, "rgba(0, 0, 0, 0)", "open erases the separator");
+					expectEq(px.secBg, "rgba(0, 0, 0, 0)", "and paints no panel");
+				}
+				if (slug === "cards") {
+					// The canvas is the column; the page sheet steps aside
+					// (measured: upstream owns .form-page at (0,3,0)).
+					expect(px.canvasBg !== "rgba(0, 0, 0, 0)", `the column canvas is painted (${px.canvasBg})`);
+					expectEq(px.paperBg, "rgba(0, 0, 0, 0)", "the page sheet steps aside so the canvas shows");
+					expect(px.secBg !== px.canvasBg, `cards float on the tinted canvas (${px.secBg} vs ${px.canvasBg})`);
+					expect(px.radius !== "0px", `cards are rounded (${px.radius})`);
+				}
+				if (slug === "sheet") {
+					expect(px.canvasBg !== "rgba(0, 0, 0, 0)", `the column canvas is painted (${px.canvasBg})`);
+					expect(px.paperBg !== "rgba(0, 0, 0, 0)", `the paper is opaque (${px.paperBg})`);
+					expect(px.paperShadow !== "none", `and elevated (${px.paperShadow.slice(0, 40)}…)`);
+					expectEq(px.secBg, "rgba(0, 0, 0, 0)", "sections stay transparent inside it");
+				}
+			});
+		}
+
+		await test("form: Original applies nothing at all", async () => {
+			setSettings({ form_style: "Original" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			const state = await page.evaluate(() => ({
+				attrs: [...document.documentElement.attributes]
+					.filter((a) => a.name.startsWith("data-bnd-form")).map((a) => a.name),
+				// The stock separator returns whole: 1px, not the kit's
+				// --bnd-line half-pixel (probed 2026-08-10) — a kit-owned rule
+				// visibly standing down, the list family's numeric analogue.
+				sepWidth: (() => {
+					const sec = [...document.querySelectorAll(".form-layout .form-section")]
+						.find((s) => getComputedStyle(s).display !== "none" && !s.classList.contains("hide-border"));
+					return sec ? getComputedStyle(sec).borderBlockEndWidth : "no section";
+				})(),
+			}));
+			expectEq(state.attrs.join(","), "", "no form attribute survives Original");
+			expectEq(state.sepWidth, "1px", "the stock separator returns untouched");
+		});
+
+		await test("form: live preview flips the style and back", async () => {
+			setSettings({
+				form_style: "Floating Panels", form_tabs: "Solid Pill",
+				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
+			});
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form"), "cards", "boot applied cards");
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_style: "Paper Sheet" }));
+			expectEq(await attr("data-bnd-form"), "sheet", "preview flipped to sheet");
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_style: "Floating Panels" }));
+			expectEq(await attr("data-bnd-form"), "cards", "and back");
+		});
+
+		await test("form: the active tab is never colour alone", async () => {
+			setSettings({
+				form_style: "Floating Panels", form_tabs: "Solid Pill",
+				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
+			});
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			const pill = await page.evaluate(() => {
+				const active = document.querySelector(".form-tabs .nav-link.active");
+				const other = document.querySelector(".form-tabs .nav-link:not(.active)");
+				return {
+					activeBg: getComputedStyle(active).backgroundColor,
+					activeRadius: getComputedStyle(active).borderRadius,
+					activeInk: getComputedStyle(active).color,
+					otherBg: other ? getComputedStyle(other).backgroundColor : null,
+					otherInk: other ? getComputedStyle(other).color : null,
+				};
+			});
+			expect(pill.activeBg !== "rgba(0, 0, 0, 0)", `Solid Pill fills the active tab (${pill.activeBg})`);
+			expect(pill.activeRadius !== "0px", `and rounds it (${pill.activeRadius}) — fill + shape, not hue alone`);
+			expectEq(pill.otherBg, "rgba(0, 0, 0, 0)", "inactive tabs stay quiet");
+			expect(pill.activeInk !== pill.otherInk, "the ink swaps with the fill");
+			// The underline option's channel is the marker bar — drive it
+			// through the live hook, which doubles as the hook's second proof.
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_tabs: "Brand Underline" }));
+			const bar = await page.evaluate(() => ({
+				active: getComputedStyle(document.querySelector(".form-tabs .nav-link.active")).borderBlockEndWidth,
+				other: getComputedStyle(document.querySelector(".form-tabs .nav-link:not(.active)")).borderBlockEndWidth,
+			}));
+			expectEq(bar.active, "2px", "the underline is a 2px bar — a width channel, not a hue");
+			expectEq(bar.other, "0px", "only under the active tab");
+		});
+
+		await test("form: grid rows take the treatment and checkboxes reveal", async () => {
+			setSettings({
+				form_style: "Floating Panels", form_tabs: "Solid Pill",
+				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
+			});
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			// The uoms grid lives on the UOM tab — activate it first.
+			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
+			await page.waitForTimeout(800);
+			const g = await page.evaluate(() => {
+				// DATA rows only, by [data-idx]: the heading shares .data-row
+				// anatomy and even carries its own select-all checkbox (probed
+				// 2026-08-10) — the list family's header-row lesson transposed.
+				const pane = document.querySelector(".tab-pane.active");
+				const heading = pane && pane.querySelector(".grid-heading-row");
+				const rows = pane ? [...pane.querySelectorAll(".grid-body .grid-row[data-idx]")] : [];
+				const check = rows[0] && rows[0].querySelector(".grid-row-check");
+				const headCheck = heading && heading.querySelector(".grid-row-check");
+				return {
+					rowCount: rows.length,
+					headingBg: heading ? getComputedStyle(heading).backgroundColor : null,
+					rowBg: rows[0] ? getComputedStyle(rows[0]).backgroundColor : null,
+					checkOpacity: check ? getComputedStyle(check).opacity : null,
+					headCheckOpacity: headCheck ? getComputedStyle(headCheck).opacity : null,
+				};
+			});
+			expect(g.rowCount >= 2, `the fixture grid has two rows (got ${g.rowCount})`);
+			expect(g.headingBg && g.headingBg !== "rgba(0, 0, 0, 0)", `the heading takes the raised fill (${g.headingBg})`);
+			expect(g.headingBg !== g.rowBg, "and stays distinct from the rows");
+			expectEq(g.checkOpacity, "0", "grid checkboxes rest hidden (4A)");
+			expectEq(g.headCheckOpacity, "1", "the heading's select-all stays visible — the discoverable entry (3B)");
+			await page.hover('.tab-pane.active .grid-body .grid-row[data-idx="1"]');
+			await page.waitForTimeout(300);
+			const hovered = await page.evaluate(() => {
+				const row = document.querySelector('.tab-pane.active .grid-body .grid-row[data-idx="1"]');
+				const box = row && row.querySelector(".grid-row-check");
+				return box ? getComputedStyle(box).opacity : "no checkbox";
+			});
+			expectEq(hovered, "1", "hover reveals the row's checkbox");
+		});
+
+		await test("form: the sidebar is a card and clears the bottom chrome", async () => {
+			setSettings({
+				form_style: "Floating Panels", form_sidebar: "Floating Pane",
+				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1,
+				desk_layout: "Top Bar", topbar_enabled: 1, bottombar_enabled: 1,
+				status_style: "Quiet",
+			});
+			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			// Measure the PINNED state: the _layouts.scss sizing is written for
+			// the stuck column (top: 48px). At natural scroll the column sits
+			// ~45px lower (the tab bar's height above it) and tucks under the
+			// bar by exactly that much — a pre-existing tabbed-form fact,
+			// measured 2026-08-10 and recorded in HANDOVER §8, not a kit
+			// regression. Scroll first; the pinned geometry is the contract.
+			await page.evaluate(() => {
+				const scroller = document.querySelector(".main-section");
+				if (scroller) scroller.scrollTop = 400;
+			});
+			await page.waitForTimeout(400);
+			const geom = await page.evaluate(() => {
+				const side = document.querySelector(".layout-side-section");
+				const pane = document.querySelector(".form-sidebar");
+				const bar = document.querySelector(".bnd-statusbar");
+				return {
+					paneBg: getComputedStyle(pane).backgroundColor,
+					paneRadius: getComputedStyle(pane).borderRadius,
+					sideBottom: side && Math.round(side.getBoundingClientRect().bottom),
+					barTop: bar && Math.round(bar.getBoundingClientRect().top),
+				};
+			});
+			expect(geom.paneBg !== "rgba(0, 0, 0, 0)", `the pane is filled (${geom.paneBg})`);
+			expect(geom.paneRadius !== "0px", `and rounded (${geom.paneRadius}) — a sibling card`);
+			expect(geom.barTop !== null, "the status bar is present");
+			// Riding chrome/_layouts.scss's --bnd-bottom-reserve sizing — the
+			// kit paints the column, that rule sizes it; this asserts the two
+			// compose instead of fighting.
+			expect(
+				geom.sideBottom <= geom.barTop,
+				`the pinned sidebar clears the bar (${geom.sideBottom} <= ${geom.barTop})`
+			);
+		});
+
+		await test("form: the grid edit state stays coherent", async () => {
+			setSettings({
+				form_style: "Floating Panels", form_tabs: "Solid Pill",
+				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 0,
+			});
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
+			await page.waitForTimeout(800);
+			// The pencil reveals on row hover (probed: an un-hovered click
+			// times out on visibility) — hover first, then open.
+			await page.hover('.tab-pane.active .grid-body .grid-row[data-idx="1"]');
+			await page.click('.tab-pane.active .grid-body .grid-row[data-idx="1"] .btn-open-row');
+			await page.waitForTimeout(600);
+			const open = await page.evaluate(() => {
+				const row = document.querySelector(".grid-row-open");
+				return {
+					open: !!row,
+					editor: !!document.querySelector(".form-in-grid"),
+					bg: row ? getComputedStyle(row).backgroundColor : null,
+				};
+			});
+			expect(open.open, "the row editor opened (.grid-row-open)");
+			expect(open.editor, "and rendered its form (.form-in-grid)");
+			expect(open.bg !== "rgba(0, 0, 0, 0)", `the open row is opaque, no alien slab (${open.bg})`);
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

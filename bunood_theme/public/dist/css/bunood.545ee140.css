@@ -3552,6 +3552,8 @@ html[data-bnd-form=open] {
 
 html[data-bnd-form=cards] {
   --bnd-form-canvas: var(--bnd-page);
+  --bnd-form-page-bg: transparent;
+  --bnd-form-tabbar-bg: var(--bnd-page);
   --bnd-form-sec-bg: var(--bnd-surface);
   --bnd-form-sec-border: var(--bnd-border);
   --bnd-form-sec-radius: var(--bnd-radius-lg);
@@ -3565,7 +3567,6 @@ html[data-bnd-form=cards] {
 html[data-bnd-form=sheet] {
   --bnd-form-canvas: var(--bnd-page);
   --bnd-form-sec-sep: var(--bnd-border);
-  --bnd-form-shell-bg: var(--bnd-surface);
   --bnd-form-shell-radius: var(--bnd-radius-lg);
   --bnd-form-shell-shadow: var(--bnd-shadow-md);
   --bnd-form-shell-margin: var(--bnd-sp-4);
@@ -3602,20 +3603,23 @@ html[data-bnd-form][data-bnd-form-side=card] {
   --bnd-form-side-inset: var(--bnd-sp-3);
 }
 
-html[data-bnd-form] .form-page,
+html[data-bnd-form] .layout-main-section {
+  background: var(--bnd-form-canvas, transparent);
+}
+
+html[data-bnd-form] .std-form-layout > .form-layout > .form-page {
+  background: var(--bnd-form-page-bg, var(--bnd-surface));
+  border-radius: var(--bnd-form-shell-radius, 0);
+  box-shadow: var(--bnd-form-shell-shadow, none);
+  margin: var(--bnd-form-shell-margin, 0);
+}
+
 html[data-bnd-form] .form-tabs-list {
-  background: var(--bnd-form-canvas, var(--bnd-surface));
+  background: var(--bnd-form-tabbar-bg, var(--bnd-surface));
 }
 
 html[data-bnd-form] .form-tab-content {
   padding: var(--bnd-form-content-pad, 0);
-}
-
-html[data-bnd-form] .form-layout {
-  background: var(--bnd-form-shell-bg, transparent);
-  border-radius: var(--bnd-form-shell-radius, 0);
-  box-shadow: var(--bnd-form-shell-shadow, none);
-  margin: var(--bnd-form-shell-margin, 0);
 }
 
 html[data-bnd-form] .form-layout .form-section {
@@ -3642,16 +3646,17 @@ html[data-bnd-form] .form-dashboard {
   padding-block: var(--bnd-form-sec-pad, 0);
 }
 
-html[data-bnd-form] .form-tabs .nav-link {
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link {
   color: var(--bnd-ink-muted);
+  background: transparent;
 }
 
-html[data-bnd-form] .form-tabs .nav-link:not(.active):hover {
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link:not(.active):hover {
   background: var(--bnd-hover);
   border-radius: var(--bnd-form-tab-radius, var(--bnd-radius-sm));
 }
 
-html[data-bnd-form] .form-tabs .nav-link.active {
+html[data-bnd-form] .form-tabs-list .form-tabs .nav-link.active {
   color: var(--bnd-form-tab-active-ink, var(--bnd-ink));
   background: var(--bnd-form-tab-active-bg, transparent);
   border-radius: var(--bnd-form-tab-radius, 0);
@@ -3664,8 +3669,8 @@ html[data-bnd-form] ul.form-tabs {
   border-radius: var(--bnd-radius-md);
 }
 
-html[data-bnd-form][data-bnd-form-tabs=segment] .form-tabs .nav-link,
-html[data-bnd-form][data-bnd-form-tabs=pill] .form-tabs .nav-link {
+html[data-bnd-form][data-bnd-form-tabs=segment] .form-tabs-list .form-tabs .nav-link,
+html[data-bnd-form][data-bnd-form-tabs=pill] .form-tabs-list .form-tabs .nav-link {
   margin-inline: var(--bnd-sp-1);
   margin-block: var(--bnd-sp-1);
   padding-inline: var(--bnd-sp-3);
