@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "sales@bunood.com"  # TODO: confirm the real address before release
 app_license = "MIT"
-app_version = "0.10.0"
+app_version = "0.13.0"
 
 required_apps = []
 
@@ -83,4 +83,22 @@ doc_events = {
         # Regenerate the per-site brand stylesheet whenever colours change.
         "on_update": "bunood_theme.setup.on_theme_settings_update",
     },
+}
+
+# ── Print Jinja helpers ─────────────────────────────────────────────────────────
+# Whitelisted into every print format's Jinja context, for ANY app's formats:
+# ZATCA QR resolution (including ksa_compliance's "Sales Invoice Additional
+# Fields" doctype, where the QR actually lives from 0.18 on), VAT-only totals
+# (never freight/'Actual' rows), and the per-line VAT map. All defensive: they
+# return empty values instead of raising, so a print never breaks because of a
+# missing app, field or bad data. The records these feed (Print Style, Print
+# Formats, Letter Head) are synced from files in printing/ and letterhead/ by
+# bunood_theme.printing.install.sync_print_theme, called from setup.py's
+# lifecycle hooks.
+jinja = {
+    "methods": [
+        "bunood_theme.printing.jinja.bunood_zatca_qr_src",
+        "bunood_theme.printing.jinja.bunood_vat_totals",
+        "bunood_theme.printing.jinja.bunood_item_vat_map",
+    ]
 }

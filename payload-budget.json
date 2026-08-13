@@ -26,6 +26,15 @@
 			"js_raw": 247420,
 			"js_gzip": 76718,
 			"note": "first measurement ever recorded; GUIDELINES' 78/183 KB raw figures had silently grown to 92/247"
+		},
+		{
+			"version": "v0.13.0",
+			"date": "2026-08-10",
+			"css_raw": 91874,
+			"css_gzip": 12610,
+			"js_raw": 247420,
+			"js_gzip": 76718,
+			"note": "css +13b, js +0b gzip vs v0.12.0"
 		}
 	]
 }

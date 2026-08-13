@@ -91,6 +91,57 @@ Microsoft) that writes spend-capped PROPOSALS for a human to accept or
 reject. Nothing writes a live translation except a person's decision, and
 identity overrides from later apps are detected and defended automatically.
 
+## [0.13.0] — 2026-08-10 — Business documents: the print suite (port phase A1)
+
+### The business documents arrive — ported from the sibling repo
+
+Two theme repos had grown in parallel: this one (the desk engine, what
+`apps.json` deploys) and `Bunood/bunood_theme`, whose PR #1 (`77a33da`)
+shipped a business-document layer this repo never had. The reconciliation
+verdict — recorded in `bunood_erpnext/docs/comparison-theme-repos.md` —
+kept this repo canonical and ports that layer here. This is phase A1: the
+print suite and the Letter Head, verbatim from the source commit.
+
+**What lands.** `printing/`: seven managed Jinja Print Formats (ZATCA
+tax/simplified invoices A4 + 80mm thermal + dot-matrix, payment and
+journal vouchers), a global Print Style "Bunood", shared macros in
+`templates/bunood_print_macros.html`, and three whitelisted Jinja helpers
+— ZATCA QR resolution (which knows ksa_compliance ≥ 0.18 keeps the QR on
+"Sales Invoice Additional Fields", not on the invoice), VAT-only totals
+(freight and 'Actual' rows never pollute the figure), and a per-line VAT
+map. `letterhead/`: the bilingual Letter Head (Arabic legal name right,
+logo centre, English left — a deliberate physical convention, not RTL),
+fully dynamic: every value is read from `Company` fields at render time,
+so tenant branding lives in data and the managed HTML carries none of it.
+
+**The sync contract.** `sync_print_theme` runs from `setup.py`'s existing
+lifecycle (install + every migrate). Files are the source of truth: managed
+records self-heal on drift, and every step is individually guarded — a
+failure logs to Error Log and never blocks a migrate. Defaults are claimed
+only from vacancy: the Print Style displaces stock styles (`Modern`/
+`Classic`/`Standard`) and nothing else; the Letter Head takes `is_default`
+only on a site that has none. An admin's deliberate choice survives every
+upgrade.
+
+**Why TTF fonts join the woff2.** The PDF engine (wkhtmltopdf, WebKit 534)
+cannot read woff2, drops `display:flex` silently, and renders the letter
+head in isolation — no theme CSS, no tokens reach it. So the print layer
+carries its own rules: inline styles in the letter head, tables never flex,
+and Cairo/Amiri as TTF under `public/fonts/`, referenced by absolute
+`/assets/` path. The desk bundle is untouched — the payload budget does
+not move (dist CSS/JS unchanged; fonts are fetched by the PDF engine, not
+the first paint).
+
+**Out of scope here, by decision.** The sibling's hand-rolled desk skin is
+NOT ported (this repo's token/bridge pipeline owns the chrome); the command
+center and the silent de-ERPNext whitelabel follow as phases A2/A3.
+
+## [0.11.0 – 0.12.0] — 2026-08-08 / 2026-08-09 — sections pending attribution
+
+> NOTE (2026-08-10): everything from here down to [0.10.0] shipped in
+> v0.11.0/v0.12.0 — both tags were cut without moving their entries out of
+> [Unreleased]. Splitting them per tag is pending housekeeping.
+
 ### A click can no longer be swallowed by a concurrent write
 
 Saving a Frappe **Single** writes the whole document:
