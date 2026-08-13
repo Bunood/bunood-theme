@@ -21,7 +21,7 @@ Shipped this session, all committed, all verified:
 
 | | what |
 |---|---|
-| **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,080 pairs over 11 seeds × 2 modes in CI |
+| **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,656 pairs over 11 seeds × 2 modes in CI (1,080 at this item's own release; item 22 added the sidebar pill/mark/stand-down rows) |
 | **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
@@ -90,6 +90,21 @@ in the same `drop_on`, so neither rots alone. Zones come from
 elsewhere. Three suite tests own it (`board:`). The per-component pickers
 remain as the detail view.
 
+**Corrected by item 22, commit 5 (2026-08-13).** This paragraph's "both gestures
+end in the same `drop_on`" was never quite true for the click path: clicking chip
+B while chip A was armed re-armed to B without ever dropping A, silently losing
+the pick with nothing to show for it — a real defect, found while restructuring
+the board's ARIA (zones went from `role="button"` to `role="group"`, since a
+button's *Children Presentational: True* was flattening the chips that ARE the
+components out of the accessibility tree). The rewrite splits the board by FACT
+rather than by gesture: **which zone** is now decided by an honest "Move to…"
+menu on the armed chip (built from `bnd_field_slots`, so it can never list an
+illegal target) reachable by click or Enter; **what order** is still the nudge
+arrows, bounds-checked to the chip's own zone, exactly as `bnd_order_move`
+always worked. Clicking a different chip now only changes which one is armed —
+it never drops anything. A `role="status"` live region announces every pick,
+move and refusal, and focus returns to the moved chip after each re-render.
+
 **ITEM 18 IS DONE** (2026-08-10) — the form view, the second surface kit, in
 four commits: a repair, the kit, the family, and a retirement.
 
@@ -141,16 +156,21 @@ deliberately not back-filled there (separate concern, one line, free).
 
 What that work needed, kept for the next surface kit:
 
-* **Release state**: items 7, 15 (was 16) and 16 (was 18) are all committed and **nothing is
-  pushed** — `main` is now well ahead of `origin/main`, and v0.13.0 was never
-  released. `app_version` in hooks.py is unbumped and `[Unreleased]` holds
-  three items' worth of changelog. The moment the user says "push it",
-  the standing chain runs unprompted: push theme `main` → annotated tag
-  `v0.13.0` → `node tools/payload.mjs --record v0.13.0` + commit the ledger
-  row → push the tag → bump the pin in the bunood repo's `apps.json`
-  (`ci: pin bunood-theme v0.13.0 — …`, rebase if origin moved) → push
-  (Coolify deploys; the compose `migrate` service migrates). Never start it
-  uninvited.
+* **Release state (updated 2026-08-13):** v0.14.0 shipped — `app_version` is
+  `"0.14.0"`, the tag exists locally, and `payload-budget.json` carries its ledger
+  row (14,211b css gzip). Its release COMMIT reached `origin/main`, but the standing
+  chain stopped there: `git ls-remote --tags origin` shows no `v0.14.0` (nor any tag
+  since `v0.9.0`), so the annotated tag was never pushed and the bunood repo's
+  `apps.json` pin was never bumped. On top of that, **11 more commits are local-only
+  and unpushed** — the ROADMAP renumber plus all eleven of item 22 (was 34 + 34a) —
+  so `main` is now well ahead of `origin/main` on two fronts at once: an unfinished
+  v0.14.0 chain and a whole unreleased item. The moment the user says "push it",
+  the standing chain runs unprompted: push theme `main` → push the existing
+  `v0.14.0` tag (already made — do not re-tag) → bump the pin in the bunood repo's
+  `apps.json` (`ci: pin bunood-theme v0.14.0 — …`, rebase if origin moved) → push
+  (Coolify deploys; the compose `migrate` service migrates). Item 22's own
+  `[Unreleased]` entry in `CHANGELOG.md` is the next release's content once that
+  chain closes. Never start it uninvited.
 * **The surface-kit anatomy is now proven twice**, in the same 16-file order
   (registry SURFACES entry → doctype fields → presets → setup → boot →
   `apply_*_attrs` + the MANDATORY `bunood.*_apply` hook → `surfaces/_*.scss`
@@ -329,14 +349,14 @@ in the browser rather than trusting the values:
 **THEN: the honest-picker audit** — `bnd_region_blocker` covers placement; the
 rest is unaudited. Two concrete items for it are in §8.
 
-**NEXT**: items 7 and 16 and 18 are closed, so Phase 2's surface work is done
-apart from the report view. The open threads, in the order they earn their
-place: **34a** (the sidebar kit's own 8-preset palette, still outside the
-contrast gate, plus the two measured-not-enforced hairline judgements the
-list and form kits have now both fed it); **33** (the icon sprite — three
-callers exist now, which is the evidence Phase 3 wanted before freezing the
-interface); the honest-picker audit; and the deferred floating selection bar.
-A release is also owed — see the release-state bullet above.
+**NEXT (updated 2026-08-13)**: items 7, 15, 16 and now **22** (was 34 + 34a) are
+closed, so Phase 2's surface work is done apart from the report view, and
+accessibility is no longer an open thread — see ROADMAP item 22 and this file's E2
+correction and §8 above for what it changed. The open threads, in the order they
+earn their place: **23** (the icon sprite, was 33 — three callers exist now, which
+is the evidence Phase 3 wanted before freezing the interface); the honest-picker
+audit; and the deferred floating selection bar. A release is also owed, and now a
+larger one than usual — see the release-state bullet above.
 
 ---
 
@@ -386,9 +406,9 @@ await goto(page, "/desk/theme-settings", ".bnd-shell");  // shell is the default
 
 ```bash
 npm run build      # SCSS -> hashed CSS + assets.py codegen. Node only.
-npm run contrast   # WCAG gate, 1,080 pairs. Needs Python.
+npm run contrast   # WCAG gate, 1,656 pairs. Needs Python.
 npm run deploy     # build + ship to 5 containers + mirror to WSL + restart if hashes moved
-npm run verify     # the full browser suite (132). NEVER while deploying.
+npm run verify     # the full browser suite (200). NEVER while deploying.
 npm run verify -- --only "container:"   # ~90s inner loop; says FILTERED, never a gate
 ```
 
@@ -707,15 +727,21 @@ placement on every route change.
 - ~~The sidebar style kit's own 8-preset palette is outside the contrast gate~~
   — CLOSED by 34a slice 2 (`ce6995d`), ink-fitted per pane and enforced, 28
   rows. Item 22 (was 34/34a).
-- `--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
+- ~~`--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
   deliberately not enforced; whether a control needs a 3:1 resting boundary is
-  a per-component question. Item 22 (was 34). **Both surface kits have now fed this the
-  same shape of judgement**: a list row is identified at rest by its boundary
-  plus the subject link's ink, and a Floating Panel by its border plus shadow
-  plus its title ink (~1.05:1 fill-vs-canvas on its own). Segment Pills' active
-  fill against its 4%-ink track is the third (~1.1:1, carried by shadow, ink
-  weight and the AA-passing label). Three data points, one question: item 22
-  should now be able to answer it as a rule rather than case by case.
+  a per-component question~~ — CLOSED by item 22 (was 34), 2026-08-13, **answered
+  as a rule**: a control is identifiable at rest by a border clearing 3:1 **or**
+  by a visible fill delta against its host — already written at
+  `_navbar.scss:48-50` (the search field, the rule's original case) and matched
+  by four more: the diagram slot's dashed hairline plus wash
+  (`_settings.scss`), a list row's boundary plus the subject link's ink, a
+  Floating Panel's border plus shadow plus title ink (~1.05:1 fill-vs-canvas on
+  its own), and Segment Pills' active fill against its 4%-ink track (~1.1:1,
+  carried by shadow, ink weight and the AA-passing label). Enforced
+  structurally — the pattern applied everywhere it's needed, checked by the
+  suite's `a11y: resting controls are identifiable` test — not by re-stepping
+  `--bnd-border`, which `_bridge.scss:61-62` would push through every stock
+  Frappe control too.
 - `--bnd-ink-inverse` has zero in-repo callers. Kept because token names are a
   contract; do not reach for it for a brand fill.
 - The first test of a cold stack routinely exceeds a 30s budget because

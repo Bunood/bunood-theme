@@ -33,8 +33,9 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - **Tokens, never raw hex/px in a rule.** New tokens go in `_tokens.scss`, documented.
 - **A colour token has one role.** The brand is three tokens — wash / fill+ink / text —
   because the three have different contrast requirements. Never paint with the raw seed.
-  Adding or re-stepping a colour means running `npm run contrast`; it is build-enforced
-  that `_tokens.scss` matches `palette.derive()`.
+  Adding or re-stepping a colour means running `npm run contrast`; `check_defaults_agree`
+  in `tools/contrast_gate.py` asserts `_tokens.scss` matches `palette.derive()` — CI-
+  enforced via `npm run contrast`, not `build.mjs`, which carries no colour guard.
 - **Frappe variables only inside `[data-theme]`.** A neutral in bare `:root` is the
   light-leaks-into-dark bug.
 - **`!important`** only in the two sanctioned places.
@@ -76,7 +77,8 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - `tools/deploy.sh` (`npm run deploy`) — build, ship to all five containers,
   mirror to WSL, restart only when hashes moved, and fail if the stack is not
   serving the build it just made.
-- `build.mjs` — RTL, ownership polarity, field naming, registry identity guards.
+- `build.mjs` — RTL, ownership polarity, field naming, registry identity, typography
+  sync, i18n coverage, motion-primitive, focus-ring coverage and payload-budget guards.
 - `contrast.py` (colour maths) · `palette.py` (the seed-dependent token set) ·
   `tools/contrast_gate.py` (`npm run contrast`). One derivation, two consumers:
   `brand.py` formats it, the gate measures it. Never reimplement either in JS.
@@ -85,10 +87,17 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 
 ## Open, from the audit
 
-Accessibility is present in the components but asserted nowhere. Bidi isolation is
-absent. Payload is unmeasured. Item 7 (RTL **and** Arabic) is reopened.
+Bidi isolation is absent. Item 7 (RTL **and** Arabic) is reopened.
 
 Contrast is **closed** (item 17, was 32, 2026-08-06): WCAG 2.2 AA, enforced by
-`npm run contrast` over 11 seeds x 2 modes. Two things it handed to item 22 — whether a
-1.22:1 resting hairline identifies a control, and the sidebar kit's own palette — are
-measured and published but not enforced.
+`npm run contrast` over 11 seeds x 2 modes.
+
+Accessibility is **closed** (item 22, was 34 + 34a, 2026-08-13): the two things
+contrast handed off are both answered — a control is identifiable at rest by a border
+clearing 3:1 **or** a visible fill delta against its host (five data points now, not a
+token value), and the sidebar kit's own palette is fitted and gated. ARIA is asserted
+(menu, board, landmarks, breadcrumbs, inbox), the settings surface is in the axe hard
+gate, and every control our JS builds is checked against a `:focus-visible` rule.
+
+Payload is **closed** (item 21, shipped unnumbered, 2026-08-09): `tools/payload.mjs`
+measures, gates and records at tag time; its `--check` runs inside `build.mjs`.

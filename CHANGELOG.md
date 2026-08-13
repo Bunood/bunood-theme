@@ -12,6 +12,99 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Accessibility closes as an item — and reclaims an undocumented batch
+
+Two batches land here together, because the second exists to fix a gap the first
+left in the record. `ce6995d` / `50373ff` / `e2a4926` / `8678e2a` shipped inside
+v0.14.0 — the sidebar kit's own palette ink-fitted per pane and gated (28 rows,
+every global `--bnd-cat-N` hue had failed AA on at least one pane), `axe` scoped
+honestly (a hard gate on `OURS`, a baseline-diff over Desk pages so only *new*
+violations fail), Escape-consumption fixes for the palette and inbox, the bell's
+accessible name handled by identity once it became state-dependent — and
+`CHANGELOG.md` never said so.
+
+Verifying "what's left" for that batch found a live WCAG failure on the SHIPPED
+DEFAULT: the sidebar's active-item pill painted a category hue as a *fill under a
+label*, when every one of those hues had only ever been fitted as ink on a pane.
+Match Theme + Solid Pill at seed `#7f7f7f` measured 2.08:1; Dark Contrast + Solid
+Pill measured 2.17–2.40:1 across every hue; the brand pane with the wash off
+measured 1.00:1 — the raw seed under its own brand-solid fill, the same colour
+twice. Eleven commits closed it as item 22 (was 34 + 34a):
+
+- **The hue keeps one role.** The pill is always the brand pair
+  (`--bnd-brand-solid` / `--bnd-on-brand`); a hue only ever marks (the accent
+  rail, the dot, the glow ring, the outline) or tints (Soft Pill). New gate rows
+  enforce the pill fill against every pane, each hue as a mark, and the brand
+  pane's fixed-value stand-down — 1,656 pairs now, up from 1,080.
+- **The avatar menu keeps its own promises.** `role="menu"` moved from a bare
+  claim to a real contract: focus enters on open and returns on close, arrow
+  keys move and wrap, Home/End jump, Tab leaves it (it's a popup, not the
+  palette's deliberate trap), Escape consumes the keypress before Frappe's own
+  handling can react to it too. Exported as `bunood.menu` so the placement
+  board's keyboard route reuses one implementation instead of growing a second.
+- **The placement board splits by fact.** Which zone and what order were always
+  two different questions answered by one gesture. Zones dropped
+  `role="button"` (whose *Children Presentational: True* was flattening the
+  chips that ARE the components out of the accessibility tree) for
+  `role="group"`; which zone is now an honest "Move to…" menu built from the
+  field's own legal options, reachable by click or Enter; what order is still
+  the nudge arrows. A `role="status"` region announces every pick, move and
+  refusal — previously silent, so a refusal read as success. Fixed along the
+  way: clicking a different chip while one was armed used to re-arm silently
+  and lose the first pick with nothing to show for it.
+- **Landmarks, `aria-current` and `aria-haspopup` are asserted**, not just
+  emitted — including the negative case (the dock/rail's `[aria-current]`
+  clears on navigating away, which `update_dock_active` already did and
+  nothing checked). `.bnd-statusbar` changed `role="navigation"` to
+  `role="region"`, honest about carrying a clock and job counts, not a nav.
+- **Breadcrumbs and the inbox's filter row join the audited surface.**
+  Decorating a crumb no longer risks renaming it (an injected icon carries no
+  `<title>`); the copy-link button's focus reveal is asserted, not assumed.
+  The inbox's `role="tablist"` downgraded to a labelled `role="group"` of
+  `aria-pressed` toggles — what it controls is a listbox with its own arrow-key
+  contract, and a tablist promises a second one over the same rows.
+- **The settings surface joins the axe hard gate.** `OURS` held no settings
+  selector, so the gate's fourth pass re-scanned whatever chrome was already
+  on the route. `walkSettingsPanes()` scans all seventeen, catching two real
+  findings — the sidebar icon-source picker's preview thumbnails and the
+  placement board's unavailable-region text, both degraded below AA by a raw
+  Frappe variable or a blanket `opacity`. Include-coverage tracking (a
+  selector that never matches is otherwise silently tolerated) now applies to
+  the original chrome scan too, and found two more gaps: `.bnd-dock` only
+  exists in the Dock layout, `.bnd-apps-rail` needed its own setting turned on
+  rather than an ambient site value.
+- **`assertMotionPrimitive` and `assertRingCoverage` join `build.mjs`.**
+  `_tokens.scss` had claimed since item 7 that zeroing its duration tokens
+  disables every transition at once "because nothing hardcodes a duration" —
+  false in three places, now a build-time guard. `assertRingCoverage` parses
+  every control bunood.js or theme_settings.js constructs and fails the build
+  if none of its classes carries a `:focus-visible` rule; red on unmodified
+  code for 21 controls across four items. A rendered-ring suite test walks the
+  real tab order and found one more: the skip link's own rule set no outline
+  at all, relying on the browser default.
+- **The payload guard joins `build.mjs` too** — `tools/payload.mjs --check`
+  now fails the build instead of failing 25 minutes into a suite run.
+
+### Two silent data-loss defects in the cross-app translations import
+
+Found filling all ten apps' translation gaps at scale (`484b814`), both in
+`bunood_theme/i18n/apply.py`:
+
+- **Whitespace-bearing sources were silently corrupted.** `import_translations_csv`
+  called `.strip()` on both CSV columns before storing — a source of
+  `" App Name"` (a real msgid; Frappe's dictionary is exact-match) landed under
+  the different key `"App Name"` and rendered English forever, no error
+  anywhere. 55 rows, mostly multi-line HTML help text. Fixed: the row is now
+  stored exactly as it carries; `.strip()` only tests for an empty cell.
+- **MariaDB's case-insensitive collation silently merged translations across
+  case.** `upsert_translation`'s lookup matched "Amber" against an existing row
+  storing "amber", and updating THAT row left `source_text` lowercase while
+  Frappe's dictionary is a case-sensitive Python dict — the correctly-cased
+  lookup never found it again. 65 rows vanished this way, each looking like a
+  clean "updated" at the time. Fixed: the row the database hands back is
+  re-checked byte-for-byte in Python before being trusted as a match, which is
+  also portable to Postgres.
+
 ## [0.14.0] — 2026-08-10 — Surface kits, Arabic & RTL, operable translations (items 7, 16, 18)
 
 ### The list and the form are dressed by the same tailor

@@ -401,8 +401,17 @@ entry.
   growth, with the why in the message. Its own `--check` joins `build.mjs`'s other
   guards as of item 22, commit 1.
 
-- `[~]` **22 · Accessibility** *(was 34 + 34a — see the merge note above)* — **the item
-  this file is currently tracking.** Full plan: `we-are-working-here-elegant-lollipop.md`.
+- `[x]` **22 · Accessibility** *(was 34 + 34a, done 2026-08-13)* — closed in eleven
+  commits (the renumber, then ten): the payload and motion-primitive guards joined
+  `build.mjs`; the sidebar's active-item pill stopped painting a category hue as a fill
+  under a label; the avatar menu gained a full focus/keyboard contract other callers
+  now share; the placement board split "which zone" (an honest menu) from "what order"
+  (the nudge arrows, unchanged) and gained a live region; landmarks, `aria-current` and
+  `aria-haspopup` are asserted; breadcrumbs and the inbox's filter row joined the
+  audited surface; the settings surface joined the axe hard gate; and
+  `assertRingCoverage` closed the last hole — every control this app's own JS builds
+  now has a checked `:focus-visible` rule. See `CHANGELOG.md`'s `[Unreleased]` section
+  for the full account.
 
   **What 34a slice 1 built** (2026-08-09, `4535c51`, on the `a11y-34a` worktree branch,
   merged): nine suite contracts (`a11y:` family), ARIA across every kit — menu triggers,
@@ -445,9 +454,11 @@ entry.
 
   Answers the resting-boundary question item 17 handed off: **a control is
   identifiable at rest by a border with ≥3:1 contrast OR by a visible fill delta
-  against its host** — already written at `_navbar.scss:48-50`, now enforced
-  structurally (a build guard) rather than by raising `--bnd-border`, which would
-  repaint every stock Frappe control via `_bridge.scss:61-62`.
+  against its host** — already written at `_navbar.scss:48-50`, enforced
+  structurally (a design pattern applied everywhere it's needed, checked by the
+  suite's `a11y: resting controls are identifiable` test) rather than by raising
+  `--bnd-border`, which would repaint every stock Frappe control via
+  `_bridge.scss:61-62`.
 
 - `[ ]` **23 · Icon system** *(was 33)* — SVG sprite via `app_include_icons`. Already used
   informally by the chrome (`sprite_icon`); formalised here, with two surfaces proving
