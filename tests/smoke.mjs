@@ -2042,6 +2042,49 @@ async function main() {
 			await page.mouse.move(1400, 500);
 		});
 
+		// The engine test above counts <use> elements and so is blind to a
+		// glyph that resolved but renders the wrong SIZE — which is exactly how
+		// the 8x15 squash shipped green (measured live 2026-08-13: Frappe's
+		// `.item-anchor .sidebar-item-icon` at (0,4,0) wins `display:flex` and
+		// `padding:7px` over our (0,3,1), so the box collapses to an 8px content
+		// box and the svg, a flex item, is shrunk to 8x15). getComputedStyle
+		// reads the cascade's 22px/15px, not the resolved box — the whole
+		// suite's ~60 geometry checks would pass — so this measures
+		// getBoundingClientRect. Three invariants, one per failure mode the
+		// squash produced: the CHIP box (was 8x8) is square, the SVG (was 8x15)
+		// is square, and the LETTER (was 8x8 or 0x0) is not collapsed. A letter
+		// is a centred character, naturally narrower than tall, so it is checked
+		// for collapse, not for squareness.
+		await test("icon engine: chip and glyphs render at size, not squashed", async () => {
+			await page.hover(".body-sidebar-container");
+			await page.waitForTimeout(400);
+			const m = await page.evaluate(() => {
+				const chips = [], svgs = [], letters = [];
+				for (const span of document.querySelectorAll(".body-sidebar .item-anchor .sidebar-item-icon")) {
+					const cr = span.getBoundingClientRect();
+					if (cr.width === 0) continue; // not visible
+					chips.push({ w: Math.round(cr.width), h: Math.round(cr.height) });
+					const svg = span.querySelector("svg");
+					if (svg) { const r = svg.getBoundingClientRect(); svgs.push({ w: Math.round(r.width), h: Math.round(r.height) }); }
+					const lt = span.querySelector(".bnd-sb-letter");
+					if (lt) { const r = lt.getBoundingClientRect(); letters.push({ w: Math.round(r.width), h: Math.round(r.height) }); }
+				}
+				return { chips, svgs, letters };
+			});
+			// Vacuous-pass guard: an empty pane passes every check below trivially.
+			expect(m.chips.length >= 4, `there are visible chips to measure (found ${m.chips.length})`);
+			const notSquare = (g) => g.w < 2 || g.h < 2 || Math.abs(g.w - g.h) > 1;
+			const chipBad = m.chips.filter(notSquare);
+			expectEq(chipBad.length, 0, `every chip box is square (offenders: ${JSON.stringify(chipBad.slice(0, 4))} of ${m.chips.length})`);
+			const svgBad = m.svgs.filter(notSquare);
+			expectEq(svgBad.length, 0, `every icon glyph is square (offenders: ${JSON.stringify(svgBad.slice(0, 4))} of ${m.svgs.length})`);
+			// A collapsed letter is the 0x0 / 8x8 failure; a healthy one is a
+			// centred character filling the tile's height.
+			const letterBad = m.letters.filter((g) => g.w < 3 || g.h < 14);
+			expectEq(letterBad.length, 0, `every letter fallback is uncollapsed (offenders: ${JSON.stringify(letterBad.slice(0, 4))} of ${m.letters.length})`);
+			await page.mouse.move(1400, 500);
+		});
+
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2000);

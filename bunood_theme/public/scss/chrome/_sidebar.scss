@@ -368,21 +368,45 @@ html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
 // The native .sidebar-item-icon span already wraps each link's svg — we style
 // IT as the chip, so no markup changes. The hue comes from the section via
 // --bnd-sb-hue (stamped by the wash engine below); neutral otherwise.
-html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon,
+//
+// SPLIT INTO TWO ARMS ON PURPOSE (2026-08-13, the 8×15 squash). Frappe owns
+// `.body-sidebar .standard-sidebar-item .item-anchor .sidebar-item-icon` at
+// (0,4,0) and sets `display: flex; padding: 7px` there. The old single selector
+// here was only (0,3,1) and lost BOTH: the padding shrank the 22px box to an
+// 8px content box, and `display: flex` made the inner svg a flex item whose
+// 15px basis was then shrunk to fit it — measured live as 8×15 across 20/20
+// native icons, with the letter chip at 8×8 or 0×0. A comma list keeps
+// per-selector specificity, so the NATIVE arm names `.item-anchor` to reach
+// (0,4,1) and win; our own `.bnd-sb-chip`, which Frappe has never heard of,
+// needs no such help and stays put. No `!important` — measured specificity is
+// the house rule (see _print.scss, _cursive.scss).
+html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+  padding: 0; // beats Frappe's padding:7px, which is what shrank the box
+}
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;
   place-items: center;
   inline-size: 22px;
   block-size: 22px;
   flex: none;
+}
 
-  // Sprite symbols have no intrinsic size limit — an unsized <use> svg
-  // renders enormous (measured: the module row's icon painted as a giant
-  // outline). Every chip bounds its glyph explicitly.
-  svg {
-    inline-size: 15px;
-    block-size: 15px;
-  }
+// Sprite symbols have no intrinsic size limit — an unsized <use> svg renders
+// enormous (measured: the module row's icon painted as a giant outline). Every
+// chip bounds its glyph explicitly. `flex: none` on the svg is the cheap
+// invariant that survives a future upstream `display: flex` on the parent —
+// under grid it costs nothing, and it is the line whose absence let the squash
+// through.
+html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
+html[data-bnd-sb-icons] .bnd-sb-chip svg {
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
 }
 
 html[data-bnd-sb-icons="chips"] .body-sidebar .sidebar-item-icon,

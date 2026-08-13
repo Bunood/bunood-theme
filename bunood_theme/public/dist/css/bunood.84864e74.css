@@ -1379,7 +1379,15 @@ html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn svg {
   block-size: 13px;
 }
 
-html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+  padding: 0;
+}
+
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;
   place-items: center;
@@ -1387,10 +1395,12 @@ html[data-bnd-sb-icons] .bnd-sb-chip {
   block-size: 22px;
   flex: none;
 }
-html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon svg,
+
+html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
   inline-size: 15px;
   block-size: 15px;
+  flex: none;
 }
 
 html[data-bnd-sb-icons=chips] .body-sidebar .sidebar-item-icon,
