@@ -900,16 +900,43 @@
 	 */
 	function sprite_icon(symbol) {
 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		// Frappe's own `icon` class is load-bearing, not cosmetic: many sprite
-		// symbols (the es-line set, icon-stock, ...) are STROKE drawings whose
-		// paths carry no fill attribute — an unstyled <svg> fills them black
-		// and they render as solid blobs (caught by the item-11 visual sweep).
-		// Frappe's icon stylesheet keys fill/stroke defaults on this class.
-		svg.setAttribute("class", "icon");
+		// Frappe's icon class is load-bearing, not cosmetic, and the RIGHT class
+		// depends on the symbol's FAMILY. The `icon-*` sets (timeless, lucide)
+		// are STROKE drawings whose paths carry no fill, so `.icon` paints them
+		// with `stroke: var(--icon-stroke); fill: transparent` — an unstyled
+		// <svg> would fill them black. The `es-*` set is the OPPOSITE: those are
+		// FILL drawings (a single fill-rule path, no stroke geometry), and
+		// `.es-icon` inverts the polarity to `fill: var(--icon-stroke);
+		// stroke-width: 0`. Stamping plain `.icon` on an es-* symbol traces a
+		// 1.5px stroke around a hollow silhouette — the inbox "open in a new tab"
+		// arrow (es-line-arrow-up-right) rendered exactly that way until here.
+		// `frappe.utils.icon` chooses the class the same way; match its output.
+		const cls =
+			symbol && symbol.indexOf("es-") === 0
+				? symbol.indexOf("es-solid-") === 0
+					? "es-icon es-solid"
+					: "es-icon es-line"
+				: "icon";
+		svg.setAttribute("class", cls);
 		const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
 		use.setAttribute("href", "#" + symbol);
 		svg.appendChild(use);
 		return svg;
+	}
+
+	/**
+	 * A workspace's sprite id, guarded. `ws.icon` is arbitrary per-site Workspace
+	 * doctype data — an unbounded id set against a bounded sprite — so a wrong or
+	 * unknown value must not paint an empty <use>: under the transparent chip
+	 * styles that is an invisible 22px hole, not a graceful blank. Falls back to
+	 * folder-normal, and to the raw id only when the sprite has not loaded yet
+	 * (sb_existing_symbol needs it in the DOM), which is no worse than before.
+	 * @param {string} [icon] - the bare workspace icon name, e.g. "stock".
+	 * @returns {string} a sprite id that is safe to render.
+	 */
+	function ws_symbol(icon) {
+		const want = "icon-" + (icon || "folder-normal");
+		return sb_existing_symbol([want, "icon-folder-normal"]) || want;
 	}
 
 	/**
@@ -3016,7 +3043,7 @@ function sb_zone_anchor(pane, zone, node) {
 				if (icon_mode !== "off" && !trail.querySelector(".bnd-crumb-chip")) {
 					if (ws_link && ws && ws.icon) {
 						const chip = el("span", "bnd-crumb-chip");
-						chip.appendChild(sprite_icon("icon-" + ws.icon));
+						chip.appendChild(sprite_icon(ws_symbol(ws.icon)));
 						ws_link.insertBefore(chip, ws_link.firstChild);
 					} else if (sb_current_workspace && sb_current_workspace.icon) {
 						// Workspace pages: the current workspace is the trail's
@@ -3032,7 +3059,7 @@ function sb_zone_anchor(pane, zone, node) {
 							trail.querySelector("li:last-child");
 						if (last) {
 							const chip = el("span", "bnd-crumb-chip");
-							chip.appendChild(sprite_icon("icon-" + sb_current_workspace.icon));
+							chip.appendChild(sprite_icon(ws_symbol(sb_current_workspace.icon)));
 							last.insertBefore(chip, last.firstChild);
 						}
 					}
@@ -3409,13 +3436,21 @@ function sb_zone_anchor(pane, zone, node) {
 
 	// ── Sources ─────────────────────────────────────────────────────────────
 
-	/** Species metadata: group title, badge, sprite candidates for row icons. */
+	/**
+	 * Species metadata: group title, badge, sprite candidates for row icons.
+	 * The candidate lists dropped four ids that exist in NO sprite this Frappe
+	 * ships (verified live: `es-line-list`, `icon-unordered-list`,
+	 * `es-line-graph`, `es-line-file`) — each sat behind an `icon-*` that always
+	 * won, so they were pure dead weight, never the reason a row lost its icon.
+	 * `es-line-add` stays: it exists and is a real (if shadowed) fallback, now
+	 * that sprite_icon gives the es-* family its correct fill polarity.
+	 */
 	const PAL_SPECIES = {
 		action: { title: () => __("Actions"), badge: () => __("Action"), icons: ["icon-add", "es-line-add", "icon-small-add"] },
-		navigate: { title: () => __("Navigate"), badge: () => __("List"), icons: ["icon-list", "es-line-list", "icon-unordered-list"] },
-		report: { title: () => __("Reports"), badge: () => __("Report"), icons: ["icon-chart", "es-line-graph", "icon-table"] },
-		page: { title: () => __("Pages & Workspaces"), badge: () => __("Page"), icons: ["icon-file", "es-line-file", "icon-small-file"] },
-		doc: { title: () => __("Documents"), badge: () => __("Document"), icons: ["icon-file", "es-line-file", "icon-small-file"] },
+		navigate: { title: () => __("Navigate"), badge: () => __("List"), icons: ["icon-list"] },
+		report: { title: () => __("Reports"), badge: () => __("Report"), icons: ["icon-chart", "icon-table"] },
+		page: { title: () => __("Pages & Workspaces"), badge: () => __("Page"), icons: ["icon-file", "icon-small-file"] },
+		doc: { title: () => __("Documents"), badge: () => __("Document"), icons: ["icon-file", "icon-small-file"] },
 		frequent: { title: () => __("Frequent"), badge: () => "", icons: [] },
 		recent: { title: () => __("Recent"), badge: () => "", icons: [] },
 		fallback: { title: () => "", badge: () => "", icons: [] },
@@ -5003,7 +5038,7 @@ function sb_zone_anchor(pane, zone, node) {
 				title: ws.title,
 				"data-ws": slug(ws.name),
 			});
-			item.appendChild(sprite_icon("icon-" + (ws.icon || "folder-normal")));
+			item.appendChild(sprite_icon(ws_symbol(ws.icon)));
 			item.addEventListener("click", () => frappe.set_route(slug(ws.name)));
 			dock.appendChild(item);
 		}
@@ -5022,7 +5057,7 @@ function sb_zone_anchor(pane, zone, node) {
 					more,
 					rest.map((ws) => ({
 						label: ws.title,
-						icon: "icon-" + (ws.icon || "folder-normal"),
+						icon: ws_symbol(ws.icon),
 						run: () => frappe.set_route(slug(ws.name)),
 					}))
 				)
@@ -5351,7 +5386,7 @@ function sb_zone_anchor(pane, zone, node) {
 		row.querySelector(".bnd-sb-module-label").textContent = (ws && ws.title) || __("Workspaces");
 		const chip = row.querySelector(".bnd-sb-module-chip");
 		chip.innerHTML = "";
-		chip.appendChild(sprite_icon("icon-" + ((ws && ws.icon) || "folder-normal")));
+		chip.appendChild(sprite_icon(ws_symbol(ws && ws.icon)));
 	}
 
 	/**
@@ -5652,7 +5687,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 		for (const ws of roots.slice(0, 12)) {
 			const item = el("button", "bnd-apps-rail-item", { type: "button", title: ws.title, "data-ws": slug(ws.name) });
-			item.appendChild(sprite_icon("icon-" + (ws.icon || "folder-normal")));
+			item.appendChild(sprite_icon(ws_symbol(ws.icon)));
 			item.addEventListener("click", () => frappe.set_route(slug(ws.name)));
 			rail.appendChild(item);
 		}
@@ -5664,7 +5699,7 @@ function sb_zone_anchor(pane, zone, node) {
 			more.addEventListener("click", () =>
 				show_menu(more, rest.map((ws) => ({
 					label: ws.title,
-					icon: "icon-" + (ws.icon || "folder-normal"),
+					icon: ws_symbol(ws.icon),
 					run: () => frappe.set_route(slug(ws.name)),
 				})))
 			);
