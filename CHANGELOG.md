@@ -7,6 +7,8 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-08-10 — Surface kits, Arabic & RTL, operable translations (items 7, 16, 18)
+
 ### The list and the form are dressed by the same tailor
 
 Two surface kits landed, and a surface kit is a different animal from the
