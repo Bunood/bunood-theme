@@ -189,6 +189,8 @@ html:not([data-theme]) {
   --border-primary: var(--bnd-brand-solid);
   --progress-bar-bg: var(--bnd-brand-solid);
   --list-row-height: var(--bnd-row-h);
+  --icon-stroke: var(--bnd-ink-muted);
+  --icon-fill: transparent;
 }
 
 html[data-theme=dark] {
@@ -214,6 +216,8 @@ html[data-theme=dark] {
   --border-primary: var(--bnd-brand-solid);
   --progress-bar-bg: var(--bnd-brand-solid);
   --list-row-height: var(--bnd-row-h);
+  --icon-stroke: var(--bnd-ink-muted);
+  --icon-fill: transparent;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -240,6 +244,8 @@ html[data-theme=dark] {
     --border-primary: var(--bnd-brand-solid);
     --progress-bar-bg: var(--bnd-brand-solid);
     --list-row-height: var(--bnd-row-h);
+    --icon-stroke: var(--bnd-ink-muted);
+    --icon-fill: transparent;
   }
 }
 html:lang(ar) body,

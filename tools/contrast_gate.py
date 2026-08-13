@@ -135,6 +135,17 @@ def pairs():
     for bg in SURFACES:
         out.append(Pair("var(--bnd-accent)", bg, AA_NON_TEXT, "focus ring"))
 
+    # Desk icons, now that `_bridge.scss` points Frappe's `--icon-stroke` at our
+    # muted ink instead of its own greys. An icon is a graphic, so 1.4.11's 3:1
+    # is the bar. The colour is `--bnd-ink-muted`, already enforced at the
+    # stricter 4.5:1 as body text above, so these rows pass today — the point is
+    # that icons are now a NAMED gated concern: repoint `--icon-stroke` in the
+    # bridge to anything that fails 3:1 and this is what says so. (Sidebar chip
+    # icons are coloured by the chip kit's own ink, not this token, and are
+    # gated by the 34a pane rows below.)
+    for bg in SURFACES:
+        out.append(Pair("var(--bnd-ink-muted)", bg, AA_NON_TEXT, "desk icon stroke"))
+
     # The brand painted as an opaque graphic — the inbox unread dot, the dock's
     # active tab, the sidebar's active item — against the surfaces it lands on.
     # This is the pair that a seed-tinted chrome makes hard: tint every surface

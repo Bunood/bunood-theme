@@ -83,6 +83,24 @@
   // Density flows through here, which is why density is authored as token
   // VALUES rather than as selector variants.
   --list-row-height: var(--bnd-row-h);
+
+  // ── Icons ─────────────────────────────────────────────────────────────────
+  // Frappe colours EVERY desk icon with `--icon-stroke` (its own `--gray-800`
+  // in light, `--gray-300` in dark; `common/icons.scss` keys `.icon` on it) and
+  // keeps `--icon-fill` transparent for the stroke sets. Until now this bridge
+  // mapped neither, so icons were the last part of the desk still painted from
+  // Frappe's greys — two inks on one sidebar row, and outside `npm run contrast`
+  // entirely. Pointing stroke at our muted ink (recessive at rest, the "Follow
+  // text" default the icon kit will formalise) brings every one of the ~2,085
+  // sprite symbols into the token pipeline in a single line — correct in both
+  // modes because `--bnd-ink-muted` is itself mode-scoped in `_tokens.scss`.
+  //
+  // `--icon-fill` stays transparent DELIBERATELY: the espresso `.es-icon` set is
+  // filled and re-reads `--icon-stroke` for its own fill, so any non-transparent
+  // value here would flood every stroke glyph solid (the polarity trap in
+  // `icons.scss`). Filled-icon backgrounds (`--icon-fill-bg`) are left to Frappe.
+  --icon-stroke: var(--bnd-ink-muted);
+  --icon-fill: transparent;
 }
 
 html[data-theme="light"],
