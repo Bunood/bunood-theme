@@ -90,48 +90,100 @@ in the same `drop_on`, so neither rots alone. Zones come from
 elsewhere. Three suite tests own it (`board:`). The per-component pickers
 remain as the detail view.
 
-**NEXT SESSION: ITEM 18 — Form view** (sections, tabs, child grids, form
-sidebar), to be opened IN PLAN MODE per the user. What that session needs:
+**ITEM 18 IS DONE** (2026-08-10) — the form view, the second surface kit, in
+four commits: a repair, the kit, the family, and a retirement.
 
-* **Release state**: item 16 is committed (implementation rode in `3c85e7c`
-  with its translations; verification closed in `1676b0c`) but **v0.13.0 is
-  NOT released — nothing is pushed**. The moment the user says "push it",
+Picks: **1C Floating Panels · 2C Solid Pill · 3C Floating Pane · 4A
+reveal-on-hover** — the bolder option each time, as every round so far. The
+kit is `form_style` / `form_tabs` / `form_sidebar` /
+`form_grid_checkbox_reveal`, four `data-bnd-form*` attributes, and
+`surfaces/_form.scss`. `bunood.form_apply` shipped on day one.
+
+Things worth carrying forward:
+
+* **THE CASCADE LESSON, TWICE IN ONE FILE.** Upstream owns
+  `.std-form-layout > .form-layout > .form-page` at (0,3,0) and
+  `.form-tabs-list .form-tabs .nav-item .nav-link` at (0,4,0). The kit's
+  first cut used `.form-page` and `.form-tabs .nav-link` — both LOST,
+  silently: the tinted canvas never appeared and every inactive tab stayed a
+  white box on a tinted bar. `html[data-bnd-*]` is not a magic prefix; it
+  adds one attribute's worth of specificity and nothing else. **Measure the
+  selector you are overriding** (the rule-scan probe in the scratchpad reads
+  `document.styleSheets` and prints every competing rule — reach for it
+  before writing a component rule over Frappe's own).
+* **The three fusions**, each one field that could have been two: sections +
+  grid frame + `.form-dashboard` are one container statement; the tab BAR
+  rides the canvas while only the MARKER is an axis; the sidebar is
+  styling-only, no Off.
+* **The grid heading carries its own select-all**, so the reveal scopes to
+  `.grid-body` — the header's checkbox stays visible as the discoverable
+  entry to selection, which is the list kit's 3B judgement transposed.
+* **`.grid-row-open` is styled with ONE background rule and nothing else**,
+  because that state was never probed at rest (the hover-only pencil blocks
+  a cold click). Styling an unprobed state is what the bulk header punished.
+* **The axe baseline was not taken on trust.** A baseline captured with a kit
+  ON banks that kit's own bugs as "standing" — so the new form route was
+  scanned twice, once with `form_style: Original`. Identical counts: all six
+  contrast failures are upstream's `#999999` help text. **Do this for every
+  future surface kit**; it is the only way the axe diff stays meaningful.
+* **`_density.scss` is gone**, its lifecycle note honoured, proven pure by a
+  byte-identical stylesheet (same content hash AND md5 across the deletion).
+
+Two item-16 escapees were repaired first, in their own commit: the list
+block had been inserted BETWEEN `section_density` and `default_density`, so
+the Density section rendered empty and its control sat under "List View";
+and the theme export listed `BND_LIST_FIELDS` while the import's `known` set
+did not, so exported list values were silently refused on re-import.
+
+**Item 16's `list_picker` is still missing from the full-complement test's
+EXPECTED map** — `form_picker` was added to both of its literals, list was
+deliberately not back-filled there (separate concern, one line, free).
+
+What that work needed, kept for the next surface kit:
+
+* **Release state**: items 7, 16 and 18 are all committed and **nothing is
+  pushed** — `main` is now well ahead of `origin/main`, and v0.13.0 was never
+  released. `app_version` in hooks.py is unbumped and `[Unreleased]` holds
+  three items' worth of changelog. The moment the user says "push it",
   the standing chain runs unprompted: push theme `main` → annotated tag
   `v0.13.0` → `node tools/payload.mjs --record v0.13.0` + commit the ledger
   row → push the tag → bump the pin in the bunood repo's `apps.json`
   (`ci: pin bunood-theme v0.13.0 — …`, rebase if origin moved) → push
   (Coolify deploys; the compose `migrate` service migrates). Never start it
   uninvited.
-* **Item 18 is the SECOND surface kit** — same anatomy as the list kit, in
-  the same 16-file order (registry SURFACES entry → doctype fields →
-  presets → setup → boot → `apply_*_attrs` + the MANDATORY `bunood.*_apply`
-  hook → `surfaces/_form.scss` working-set blocks → picker trio →
-  contrast pairs → fingerprint → ar.csv → suite family). The list kit is
-  the template to diff against, `surfaces/_list.scss`'s header the contract
-  to copy the shape of.
-* **Probe BEFORE designing** (the bulk-header lesson, below, is why): the
-  form DOM unknowns are section/column markup (`.form-section`?), the tabs
-  bar element and its active marker, child grid rows (`.grid-body`,
-  `.grid-row` — does the grid share list DOM?), the form sidebar element,
-  and whether any of these carry state classes or only stylesheet-hidden
-  nodes. Probe with `tools/session.mjs` against a doctype that HAS tabs +
-  child tables (Item or Sales Order). Distrust truncated HTML dumps — the
-  300-char truncation is what caused the wrong bulk-header inference.
+* **The surface-kit anatomy is now proven twice**, in the same 16-file order
+  (registry SURFACES entry → doctype fields → presets → setup → boot →
+  `apply_*_attrs` + the MANDATORY `bunood.*_apply` hook → `surfaces/_*.scss`
+  working-set blocks → picker trio → contrast pairs → fingerprint → ar.csv →
+  suite family). Diff against whichever kit is closer; both headers carry the
+  same five-block contract. Six more edits live outside that list and are
+  easy to miss: `build.mjs` FIELD_PREFIXES, the sweep's CRUMBS_ONLY **and**
+  IMPLICIT, `bunood.scss`'s `@use`, the shell nav entry + `BND_SHELL_OWNS`
+  prefix, the export **and** import field lists, and MUTABLE_FIELDS.
+* **Probe BEFORE designing, and probe the CASCADE too.** Item 16 taught
+  "probe the DOM"; item 18 added "probe the rules". Both of its defects were
+  upstream selectors out-specifying ours (see the item-18 block above).
+  Distrust truncated HTML dumps — the 300-char truncation caused the wrong
+  bulk-header inference.
 * **Wireframes are the user's decision point**: options per axis, the user
-  picks; they have consistently preferred the bolder option (Floating
-  Cards, Bold Bar, solid side pane). Record picks in commit body + ROADMAP.
+  picks; they have consistently preferred the bolder option (Floating Cards,
+  Bold Bar, solid side pane, Floating Panels, Solid Pill, Floating Pane).
+  Record picks in the commit body + ROADMAP.
 * **Known traps that WILL recur**: any new picker card class must join the
   sweep's CRUMBS_ONLY exclusion AND its IMPLICIT map (`.bnd-lvp-style` was
-  the fourth incident); the change-dot test now pins ALL of MUTABLE_FIELDS
-  to shipped — never re-add a hand-picked polluter list; new suite fields
-  join MUTABLE_FIELDS or teardown clobbers them; the other session may
-  commit your working tree (3c85e7c did) — check `git log -- <file>` before
-  assuming your files are uncommitted; cold bench after deploy = §4.
+  the fourth incident, `.bnd-fvp-style` the fifth and the first to do it on
+  the same day); the change-dot test pins ALL of MUTABLE_FIELDS to shipped —
+  never re-add a hand-picked polluter list; new suite fields join
+  MUTABLE_FIELDS or teardown clobbers them; a full-complement EXPECTED entry
+  has TWO literals to update, not one; the other session may commit your
+  working tree (`3c85e7c` did) — check `git log -- <file>` before assuming
+  your files are uncommitted; cold bench after deploy = §4.
 * **Deferred and waiting, not lost**: the floating selection bar
   (frappe-ui ListSelectBanner precedent, ~2 KB injected JS, must respect
   `--bnd-bottom-reserve`), with a fourth `list_selection` option slot
-  reserved so the field doesn't churn. It is its own follow-up slice, not
-  part of item 18.
+  reserved so the field doesn't churn. It is its own follow-up slice — and
+  note it is NOT a surface by the registry's definition, since it injects
+  chrome; that is precisely why both kits left it alone.
 
 **ITEM 16 IS DONE** (2026-08-10, closed at `1676b0c` — full gate 173/173,
 sweep clean, contrast 1,848 pairs, payload within ceiling) — the list view,
@@ -239,7 +291,14 @@ in the browser rather than trusting the values:
 **THEN: the honest-picker audit** — `bnd_region_blocker` covers placement; the
 rest is unaudited. Two concrete items for it are in §8.
 
-After phase 0: item 7 (RTL & Arabic, reopened) then 34a.
+**NEXT**: items 7 and 16 and 18 are closed, so Phase 2's surface work is done
+apart from the report view. The open threads, in the order they earn their
+place: **34a** (the sidebar kit's own 8-preset palette, still outside the
+contrast gate, plus the two measured-not-enforced hairline judgements the
+list and form kits have now both fed it); **33** (the icon sprite — three
+callers exist now, which is the evidence Phase 3 wanted before freezing the
+interface); the honest-picker audit; and the deferred floating selection bar.
+A release is also owed — see the release-state bullet above.
 
 ---
 
@@ -425,6 +484,41 @@ layers is touched. Related watcher lesson: **0% backend CPU is also what
 dead looks like** — any "machine is quiet" check must include a liveness
 probe (an HTTP 200 from the site), or it will read a dying stack as calm.
 
+**The THIRD sharp edge — apps.txt truncated to what the entrypoint could
+find** (hit 2026-08-10, same crash class). WSL died again under memory
+pressure mid-session. On relaunch the mount resolved correctly this time —
+but the entrypoint had rewritten `sites/apps.txt` down to **`erpnext` and
+`frappe` alone**, dropping EIGHT of the ten installed apps, while the
+database still listed all ten and `apps/` still held all ten. The §5 recovery
+already on record only re-adds `bunood_theme`; this is the same edge, wider.
+
+**It is nearly invisible from the outside.** `/api/method/ping` returns 200,
+the desk renders, and our CSS/JS assets serve — because runtime app loading
+reads `installed_apps` from the DB. What breaks is MODULE resolution: opening
+Theme Settings 404s on `frappe.desk.form.load.getdoctype` and puts up
+*"Module Bunood Theme not found"*, and the whole settings page renders as
+nothing. **A `bench migrate` in that state would silently skip eight apps.**
+
+Recovery, and note the second half — re-adding the lines is NOT enough,
+because the module→app map is cached:
+
+```bash
+docker exec bunood-backend-1 bash -lc 'cd /home/frappe/frappe-bench && for a in bunood_theme payments hrms ksa_compliance bunood_realestate crm telephony helpdesk; do grep -qx "$a" sites/apps.txt || echo "$a" >> sites/apps.txt; done'
+docker restart bunood-backend-1
+docker exec bunood-backend-1 bash -lc 'cd /home/frappe/frappe-bench && bench --site demo.bunood.test clear-cache'
+```
+
+Get the authoritative order from the database, never from memory —
+`frappe.get_installed_apps()` is the list, and we sit 3rd of ten (which the
+translation merge order depends on).
+
+**Diagnostic worth keeping: a `tools/fingerprint.mjs` timeout on
+`.bnd-dgm-slot` can mean "the settings page did not render AT ALL", not the
+2026-08-07 intermittent.** That is how this was found — it looked exactly
+like the recorded transient, and re-running (the recorded remedy) did not
+clear it. Two runs failing identically is the tell: a transient that
+reproduces is not a transient. Probe the page for a modal before assuming.
+
 ---
 
 ## 6. Where the new code lives
@@ -573,7 +667,13 @@ placement on every route change.
   Fixed values, so no per-tenant risk, but unmeasured. Item 34.
 - `--bnd-border` (1.22:1) and `--bnd-border-strong` (1.45:1) are measured and
   deliberately not enforced; whether a control needs a 3:1 resting boundary is
-  a per-component question. Item 34.
+  a per-component question. Item 34. **Both surface kits have now fed this the
+  same shape of judgement**: a list row is identified at rest by its boundary
+  plus the subject link's ink, and a Floating Panel by its border plus shadow
+  plus its title ink (~1.05:1 fill-vs-canvas on its own). Segment Pills' active
+  fill against its 4%-ink track is the third (~1.1:1, carried by shadow, ink
+  weight and the AA-passing label). Three data points, one question: item 34
+  should now be able to answer it as a rule rather than case by case.
 - `--bnd-ink-inverse` has zero in-repo callers. Kept because token names are a
   contract; do not reach for it for a brand fill.
 - The first test of a cold stack routinely exceeds a 30s budget because

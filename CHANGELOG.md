@@ -7,6 +7,44 @@ tag, and `app_version` in hooks.py always matches the latest tag.
 
 ## [Unreleased]
 
+### The list and the form are dressed by the same tailor
+
+Two surface kits landed, and a surface kit is a different animal from the
+chrome around it: it mounts nothing and injects nothing. It is a handful of
+attributes on `<html>` and a stylesheet over Frappe's own DOM — so there is
+no node to stand down and no native affordance to release, and "Original"
+is a pure clearing rather than a mode. Absent attributes *are* the
+stand-down. Everything is a setting; the shipped values are the chosen ones.
+
+**The list view** (item 16) dresses rows, hover, selection and the bulk
+header: five row styles from hairline to Floating Cards, hover as a soft
+wash or an edge rail, and one treatment covering checked rows *and* the
+bulk header — deliberately one, because splitting them is how a solid brand
+bar ends up sitting over neutral rows. Checkboxes rest hidden and appear on
+hover, keyboard focus, or while anything is selected.
+
+**The form view** (item 18) dresses sections, tabs, child grids and the
+record sidebar: four container styles from hairline panels to Odoo-style
+paper sheet, three ways for the active tab to announce itself, three
+sidebar treatments. Sections, the child grid's frame and the connections
+dashboard take *one* statement, so a style can never ship a floating
+section beside a naked flat grid. The sidebar has no "off" — attachments
+and assignments have to stay reachable, and hiding chrome is a container's
+business, not a surface's.
+
+Both kits are honest about what they *are not* doing. Frappe's own inks
+inside the sidebar are never repainted brand-solid, because painting a
+brand fill under someone else's muted text is exactly how the list kit's
+one real bug happened: a bulk header that looked plausible at rest and
+measured 1.79:1. Style on the user's signal — a checked box — never on a
+node's mere existence.
+
+Density stopped being a file and became a contract. `_density.scss` had
+promised since item 4 that its rules would migrate into surface partials as
+those shipped; with the form kit consuming the last token it had been
+holding, the file retired, and the stylesheet came out byte-for-byte
+identical.
+
 ### The desk speaks Arabic, and the build can prove it
 
 Item 7 had reopened because "done" once meant direction only. It closes as

@@ -300,6 +300,12 @@ Cheap now, expensive after ten surfaces, and none of them needs a future caller.
 The highest-traffic surfaces in an ERP by a wide margin. Built here so the phase-3
 contracts have something real to be designed against.
 
+**Both callers exist as of 2026-08-10**, and the anatomy they share is now a
+proven template rather than a proposal: the second kit was replicated from the
+first in the same file order, and the differences between them are all design,
+not construction. Phase 3 can be designed against real evidence — three sprite
+callers, two `:has()` soft failures, three resting-identification judgements.
+
 - `[x]` **16 · List view** — *done 2026-08-10.* Rows, hover, selection, bulk
   bar, as the first SURFACE kit: attributes over Frappe's own DOM, nothing
   mounted, absent attributes ARE the stand-down. Wireframed and picked
@@ -313,7 +319,32 @@ contracts have something real to be designed against.
   and the 3B judgements are recorded (34), the `(hover: none)` stand-down is
   the narrow-input statement (35). References: frappe-ui ListRow/SelectBanner,
   Directus tabular + `_list-interface.scss`, Discourse `_topic-list.scss`.
-- `[ ]` **18 · Form view** — sections, tabs, child grids, sidebar
+- `[x]` **18 · Form view** — *done 2026-08-10.* Sections, tabs, child grids and
+  the form sidebar, as the second SURFACE kit — the same construction as 16,
+  which is the point: the anatomy was replicated, not reinvented. Probed live
+  BEFORE designing (Frappe 16.27.0, an Item with tabs and a child table), then
+  wireframed and picked: **1C Floating Panels · 2C Solid Pill · 3C Floating
+  Pane · 4A reveal-on-hover**, the bolder option each time. Three fusions carry
+  the design: sections, the child grid's frame and the connections dashboard
+  are ONE container statement (the anchor), so a style cannot ship a floating
+  section beside a naked grid; the tab BAR rides the canvas while only the
+  MARKER is an axis; the sidebar is styling-only — no Off, because attachments
+  and assignments must stay reachable. `--bnd-control-h` finally got its
+  consumer, which let `_density.scss` retire exactly as its lifecycle note
+  promised (proven pure by a byte-identical stylesheet). The family found two
+  real defects, both the same lesson — upstream owns `.form-page` at (0,3,0)
+  and every tab link at (0,4,0), so the kit's shorter selectors lost the
+  cascade outright: measure the selector you are overriding. Phase-3 evidence:
+  the picker is the sprite's third caller (33), the active tab's fill+shape
+  and 2px width channels are the never-colour-alone statement and the grid
+  reveal's `:focus-within`/any-checked doors are recorded (34), the
+  `(hover: none)` stand-down repeats (35). Axe honesty: the new form route's
+  baseline was scanned with the kit ON and with `Original`, identical counts —
+  all six contrast failures are upstream's own `#999999` help text, so the kit
+  banks none of its own. References: Salesforce record panels + shadcn Card
+  (Floating Panels), Odoo's document sheet (Paper Sheet), Directus item detail
+  (Hairline Panels, Quiet Pane), Linear/Notion (Open Canvas), Material 3 +
+  Gmail (Solid Pill), iOS segmented + shadcn Tabs (Segment Pills).
 
 ## Phase 3 — freeze the contracts against those callers
 
