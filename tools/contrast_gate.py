@@ -31,6 +31,7 @@ import json
 import os
 import re
 import sys
+from typing import NamedTuple
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -81,28 +82,50 @@ TEXT_INKS = ["var(--bnd-ink)", "var(--bnd-ink-muted)", "var(--bnd-ink-subtle)"]
 ALARM_BG = "color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface))"
 
 
+class Pair(NamedTuple):
+    """One contrast requirement: ``ink`` on ``bg`` must clear ``need`` — or is
+    merely measured and printed when ``need`` is None (see the module
+    docstring on exemptions). ``mode`` names the ONE desk theme this pair
+    renders in, or None if it renders in both.
+
+    A typed field rather than a variable-length tuple (4 elements for a
+    both-modes pair, 5 for a mode-scoped one): the variable-length shape
+    already broke `check_computed`'s unpacking once — "too many values to
+    unpack" — the first day a desk actually served the mode-scoped sidebar
+    fits, invisible until then because the crash needed that stylesheet
+    deployed. A fifth pair family arriving with this item invites the same
+    crash again; `mode` defaulting to None removes the possibility.
+    """
+
+    ink: str
+    bg: str
+    need: float | None
+    why: str
+    mode: str | None = None
+
+
 def pairs():
     """The full pair list. Generated where it is a cross product, explicit where not."""
     out = []
     for ink in TEXT_INKS:
         for bg in SURFACES:
-            out.append((ink, bg, AA_TEXT, "body text"))
+            out.append(Pair(ink, bg, AA_TEXT, "body text"))
 
     # Text on a brand fill: the sidebar's active item and the dock's active tab.
     # `--bnd-on-brand` / `--bnd-brand-solid` are the derived pair; if they are not
     # declared yet the fallbacks model what ships today, which is the failure this
     # gate exists to catch.
     out += [
-        ("var(--bnd-on-brand, var(--bnd-ink-inverse))",
-         "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
-        ("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),
-        ("var(--bnd-warn)", "var(--bnd-raised)", AA_TEXT, "status segment, warning"),
-        ("var(--bnd-critical)", "var(--bnd-raised)", AA_TEXT, "status segment, bad"),
-        ("var(--bnd-critical)", ALARM_BG, AA_TEXT, "status segment on the alarm tint"),
+        Pair("var(--bnd-on-brand, var(--bnd-ink-inverse))",
+             "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
+        Pair("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),
+        Pair("var(--bnd-warn)", "var(--bnd-raised)", AA_TEXT, "status segment, warning"),
+        Pair("var(--bnd-critical)", "var(--bnd-raised)", AA_TEXT, "status segment, bad"),
+        Pair("var(--bnd-critical)", ALARM_BG, AA_TEXT, "status segment on the alarm tint"),
 
         # 1.4.11 - non-text contrast.
-        ("var(--bnd-good)", "var(--bnd-raised)", AA_NON_TEXT, "status dot, healthy"),
-        ("var(--bnd-serious)", "var(--bnd-pane)", AA_NON_TEXT, "sidebar badge fill"),
+        Pair("var(--bnd-good)", "var(--bnd-raised)", AA_NON_TEXT, "status dot, healthy"),
+        Pair("var(--bnd-serious)", "var(--bnd-pane)", AA_NON_TEXT, "sidebar badge fill"),
     ]
 
     # The focus ring, against every surface it can be drawn over. `outline` paints
@@ -110,14 +133,14 @@ def pairs():
     # control's — which is why this is a cross product and not one pair.
     # 2.4.11 and 1.4.11 both bear on it and both want 3:1.
     for bg in SURFACES:
-        out.append(("var(--bnd-accent)", bg, AA_NON_TEXT, "focus ring"))
+        out.append(Pair("var(--bnd-accent)", bg, AA_NON_TEXT, "focus ring"))
 
     # The brand painted as an opaque graphic — the inbox unread dot, the dock's
     # active tab, the sidebar's active item — against the surfaces it lands on.
     # This is the pair that a seed-tinted chrome makes hard: tint every surface
     # with the seed and a fill of that same seed can disappear into them.
     for bg in SURFACES:
-        out.append((
+        out.append(Pair(
             "var(--bnd-brand-solid, var(--bnd-brand))", bg, AA_NON_TEXT,
             "brand fill against the chrome",
         ))
@@ -127,7 +150,7 @@ def pairs():
     # sites, all `color: var(--bnd-brand)` before this item, all failing at the
     # shipped seed.
     for bg in SURFACES:
-        out.append((
+        out.append(Pair(
             "var(--bnd-brand-ink, var(--bnd-brand))", bg, AA_TEXT, "brand as text",
         ))
 
@@ -143,13 +166,13 @@ def pairs():
     # What is NOT settled is whether a control whose resting boundary is a 1.22:1
     # hairline over a near-identical background is identifiable at all. That is a
     # per-component judgement about which affordances need a boundary, not a
-    # question about a token's value, and it belongs to item 34. Publishing the
+    # question about a token's value, and it belongs to item 22. Publishing the
     # number here is the point: an exemption whose ratio nobody can see is
     # indistinguishable from an oversight.
     out += [
-        ("var(--bnd-border)", "var(--bnd-surface)", None, "separator; see item 34"),
-        ("var(--bnd-border-strong)", "var(--bnd-hover)", None,
-         "hover accent alongside a background change; see item 34"),
+        Pair("var(--bnd-border)", "var(--bnd-surface)", None, "separator; see item 22"),
+        Pair("var(--bnd-border-strong)", "var(--bnd-hover)", None,
+             "hover accent alongside a background change; see item 22"),
     ]
 
     # ── The sidebar kit's own palette (34a) ──────────────────────────────────
@@ -180,31 +203,31 @@ def pairs():
     ]
     for n in range(7):
         for pane, pane_label in LIGHT_PANES:
-            out.append((SB_FITS_LIGHT[n], pane, AA_TEXT,
-                        f"sidebar hue {n + 1} (light fit) on the {pane_label}", "light"))
+            out.append(Pair(SB_FITS_LIGHT[n], pane, AA_TEXT,
+                             f"sidebar hue {n + 1} (light fit) on the {pane_label}", "light"))
         for pane, pane_label in DARK_PANES:
             # The dark-contrast pane is dark in BOTH desk themes, but its
             # hues come from the mode block that also serves dark desks, so
             # the dark fit is what renders on it always — checked in dark
             # mode, where --bnd-pane agrees with it.
-            out.append((SB_FITS_DARK[n], pane, AA_TEXT,
-                        f"sidebar hue {n + 1} (dark fit) on the {pane_label}", "dark"))
-    out.append((
+            out.append(Pair(SB_FITS_DARK[n], pane, AA_TEXT,
+                             f"sidebar hue {n + 1} (dark fit) on the {pane_label}", "dark"))
+    out.append(Pair(
         "#ffffff", "color-mix(in srgb, var(--bnd-brand) 96%, #ffffff)", None,
         "brand-pane ink at the gradient's lightest stop; see the brand-mode note",
     ))
-    # ── List view kit (item 16) ──────────────────────────────────────────────
+    # ── List view kit (item 15, was 16) ───────────────────────────────────────
     # The selection wash and its inks, plus the rail against the wash. The
     # wash is brand-tinted so it moves with every seed — exactly the shape
-    # item 32 proved cannot pass by luck.
+    # item 17 (was 32) proved cannot pass by luck.
     SEL_BG = "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))"
     out += [
-        ("var(--bnd-ink)", SEL_BG, AA_TEXT, "list selected-row text"),
-        ("var(--bnd-ink-muted)", SEL_BG, AA_TEXT, "list selected-row secondary text"),
-        ("var(--bnd-brand-solid, var(--bnd-brand))", SEL_BG, AA_NON_TEXT,
-         "list selection rail against the selected wash"),
+        Pair("var(--bnd-ink)", SEL_BG, AA_TEXT, "list selected-row text"),
+        Pair("var(--bnd-ink-muted)", SEL_BG, AA_TEXT, "list selected-row secondary text"),
+        Pair("var(--bnd-brand-solid, var(--bnd-brand))", SEL_BG, AA_NON_TEXT,
+             "list selection rail against the selected wash"),
     ]
-    # ── Form view kit (item 18) ──────────────────────────────────────────────
+    # ── Form view kit (item 16, was 18) ───────────────────────────────────────
     # The Segment Pills track is the kit's only NEW colour relationship —
     # everything else is built from already-gated cross-products (surfaces ×
     # inks, brand fill × its label, and the list kit's SEL_BG, which the grid's
@@ -212,9 +235,9 @@ def pairs():
     # surfaces). The track string is character-identical to _form.scss.
     TRACK_BG = "color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface))"
     out += [
-        ("var(--bnd-ink)", TRACK_BG, AA_TEXT, "form tab label on the segment track"),
-        ("var(--bnd-ink-muted)", TRACK_BG, AA_TEXT,
-         "form tab, inactive label on the segment track"),
+        Pair("var(--bnd-ink)", TRACK_BG, AA_TEXT, "form tab label on the segment track"),
+        Pair("var(--bnd-ink-muted)", TRACK_BG, AA_TEXT,
+             "form tab, inactive label on the segment track"),
     ]
     return out
 
@@ -355,13 +378,13 @@ def evaluate(seed: str, defaults: dict, mode: str, derived: bool = True):
             return [(f"derive({seed})", mode, AA_TEXT, str(exc), None, "underivable")]
     rows = []
     for pair in pairs():
-        ink, bg, need, why = pair[:4]
-        # A five-element pair names the ONE mode it renders in. The sidebar
+        ink, bg, need, why = pair.ink, pair.bg, pair.need, pair.why
+        # A mode-scoped pair names the ONE mode it renders in. The sidebar
         # fits forced this: the theme-mode pane follows the desk theme and a
         # different fit serves each side, so testing a light fit against the
         # dark pane would be measuring a combination the stylesheet never
         # produces.
-        if len(pair) == 5 and pair[4] != mode:
+        if pair.mode and pair.mode != mode:
             continue
         try:
             bg_c = resolve(bg, v)
@@ -437,17 +460,19 @@ def check_computed() -> int:
             print(f"check-computed: no {mode} tokens supplied")
             return 1
         for pair in pairs():
-            ink, bg, need, why = pair[:4]
-            # A five-element pair names the ONE mode it renders in (the 34a
+            ink, bg, need, why = pair.ink, pair.bg, pair.need, pair.why
+            # A mode-scoped pair names the ONE mode it renders in (the 34a
             # sidebar fits — see the model loop above, which grew this arm at
-            # the same time). This loop kept unpacking four, so the first desk
-            # that actually SERVED the fitted tokens crashed the gate with
-            # "too many values to unpack" — invisible until then, because the
-            # crash needs the 34a stylesheet to be the one deployed. Same
+            # the same time). This loop used to unpack a variable-length
+            # tuple, so the first desk that actually SERVED the fitted tokens
+            # crashed the gate with "too many values to unpack" — invisible
+            # until then, because the crash needed the 34a stylesheet to be
+            # the one deployed. `Pair.mode` replaced the variable length so a
+            # sixth field can never surprise an unpacker again. Same
             # skip-rule as the model: a light fit against the dark pane is a
             # combination the stylesheet never produces, and measuring it
             # would fail rows that no user can see.
-            if len(pair) == 5 and pair[4] != mode:
+            if pair.mode and pair.mode != mode:
                 continue
             if need is None:
                 continue
@@ -504,9 +529,16 @@ def main() -> int:
     runs = [(seed, label, True) for seed, label in seeds]
     runs.append((SEEDS[0][0], "fallback, no brand sheet", False))
 
+    # Counted as evaluate() hands rows back, not derived from len(pairs()) —
+    # a mode-scoped pair is skipped for HALF the runs, so a multiply-out
+    # formula counts rows that were never measured. This is what "measured"
+    # means: what evaluate() actually returned, summed as it is returned, so
+    # the number cannot disagree with the loop that produces it.
+    total = 0
     for seed, label, derived in runs:
         for mode, defaults in (("light", light), ("dark", dark)):
             rows = evaluate(seed, defaults, mode, derived=derived)
+            total += len(rows)
             bad = [r for r in rows if r[2] is not None and (r[4] is None or r[4] < r[2])]
             if bad:
                 failures.extend((seed, label, mode, r) for r in bad)
@@ -529,7 +561,6 @@ def main() -> int:
                 print()
 
     drift = check_defaults_agree(light, dark)
-    total = len(runs) * 2 * len(pairs())
 
     if drift:
         print("_tokens.scss and palette.derive disagree:")
