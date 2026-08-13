@@ -43,6 +43,11 @@ import * as sass from "sass";
 // The translation catalogue and its guards. Derived, never listed — see
 // tools/i18n.mjs for why the string inventory is recomputed on every build.
 import { assertNoCountGoverned, assertTranslationCoverage } from "./tools/i18n.mjs";
+// The payload budget (GUIDELINES §2.5), joining the other guards here as of
+// item 22 commit 1 — tools/payload.mjs's own header said it belonged beside
+// them "once item 7's edits to it land"; item 7 has. Failing here beats
+// failing 25 minutes into a suite run.
+import { budgetExceededMessage, checkPayload } from "./tools/payload.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const APP = join(ROOT, "bunood_theme");
@@ -502,6 +507,12 @@ async function main() {
 	}
 	await writeAssetsPy(built);
 	console.log("wrote  bunood_theme/assets.py");
+
+	// Measures the dist files just written above, so it must run last, not
+	// alongside the naming/registry/typography/i18n guards which all run
+	// BEFORE compilation on source rather than output.
+	const { ok, over } = checkPayload();
+	if (!ok) throw new Error(budgetExceededMessage(over));
 }
 
 main().catch((err) => {
