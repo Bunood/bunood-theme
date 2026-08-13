@@ -4836,6 +4836,55 @@ async function main() {
 			expect(delta >= 5, `the search field's fill differs from the bar (channel delta ${delta})`);
 		});
 
+		await test("a11y: the active sidebar pill's label clears AA on its fill", async () => {
+			// Item 32's OTHER hand-off, and 34a's own bug: the categorical hues
+			// were fitted to be INK on a pane, never a FILL under a label — but
+			// Solid Pill used the wash hue as its fill whenever a wash was on,
+			// with the label set per colour mode independently, and the two
+			// drifted. Three configurations, three different failure families:
+			// Match Theme only failed at a mid-luminance seed (#7f7f7f, already
+			// a contrast_gate.py seed — not reproduced here without touching
+			// brand_color, which is not a suite-mutable field); Dark Contrast
+			// failed at every hue regardless of seed (measured live before the
+			// fix: 2.40:1); the brand pane failed with the wash OFF, the raw
+			// seed under its own brand-solid fill (measured live: 1.07:1).
+			const configs = [
+				{ label: "Match Theme + Rich wash", settings: {
+					sidebar_color: "Match Theme", sidebar_active_style: "Solid Pill",
+					sidebar_hue_wash: "Rich", sidebar_section_layout: "Mini-Cards",
+				} },
+				{ label: "Dark Contrast + Rich wash", settings: {
+					sidebar_color: "Dark Contrast", sidebar_active_style: "Solid Pill",
+					sidebar_hue_wash: "Rich", sidebar_section_layout: "Mini-Cards",
+				} },
+				{ label: "Brand pane, wash off", settings: {
+					sidebar_color: "Brand", sidebar_active_style: "Solid Pill",
+					sidebar_hue_wash: "Off", sidebar_section_layout: "Plain",
+				} },
+			];
+			const pairs = [];
+			for (const { label, settings } of configs) {
+				setSettings(settings);
+				await goDesk("/desk/item", ".body-sidebar-container", 2500);
+				// Frappe's own DOM, not ours — no data-bnd-part, so the native
+				// marker is the honest selector. Assert it was FOUND before
+				// measuring, or a missing element reads as a silent pass.
+				const found = await page.evaluate(() => {
+					const el = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
+					if (!el) return null;
+					const cs = getComputedStyle(el);
+					return { color: cs.color, bg: cs.backgroundColor };
+				});
+				expect(found, `${label}: an active sidebar item exists to measure`);
+				pairs.push({ fg: found.color, bg: found.bg, need: 4.5, why: `sidebar pill, ${label}` });
+			}
+			const gate = spawnSync("node", ["tools/contrast.mjs", "--check-measured"], {
+				input: JSON.stringify(pairs),
+				encoding: "utf8",
+			});
+			expectEq(gate.status, 0, `active-pill label contrast:\n${gate.stdout}${gate.stderr}`);
+		});
+
 		await test("a11y: the skip link is the first Tab and it skips", async () => {
 			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, sidebar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 3000);

@@ -72,7 +72,6 @@ html[data-bnd-sb-color="theme"] {
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
   --bnd-sb-card-base: var(--bnd-surface);
-  --bnd-sb-active-ink: var(--bnd-on-brand);
 }
 
 html[data-bnd-sb-color="minimal"] {
@@ -90,7 +89,6 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-chip-bg: transparent;
   --bnd-sb-chip-ink: #6d7570;
   --bnd-sb-card-base: #ffffff;
-  --bnd-sb-active-ink: #ffffff;
 }
 html[data-theme="dark"][data-bnd-sb-color="minimal"] {
   --bnd-sb-cat-1: #7aabe5;
@@ -105,7 +103,6 @@ html[data-theme="dark"][data-bnd-sb-color="minimal"] {
   --bnd-sb-ink-muted: #8b938e;
   --bnd-sb-line: rgba(255, 255, 255, 0.08);
   --bnd-sb-card-base: #1b1f21;
-  --bnd-sb-active-ink: #101214;
 }
 
 // Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
@@ -125,7 +122,6 @@ html[data-bnd-sb-color="dark"] {
   --bnd-sb-chip-bg: rgba(255, 255, 255, 0.08);
   --bnd-sb-chip-ink: #a9b6ac;
   --bnd-sb-card-base: rgba(255, 255, 255, 0.05);
-  --bnd-sb-active-ink: #ffffff;
 }
 
 html[data-bnd-sb-color="brand"] {
@@ -151,7 +147,15 @@ html[data-bnd-sb-color="brand"] {
   --bnd-sb-chip-bg: rgba(255, 255, 255, 0.16);
   --bnd-sb-chip-ink: #ffffff;
   --bnd-sb-card-base: rgba(255, 255, 255, 0.1);
-  --bnd-sb-active-ink: var(--bnd-brand);
+  // The active pill's fill/ink pair (item 22): no fixed hue survives an
+  // arbitrary-seed gradient, and neither does the brand itself — brand-solid
+  // on a brand gradient is brand on brand (measured 1.00:1 at several seeds,
+  // the raw --bnd-brand label this block used to set was the SAME colour as
+  // the brand-solid fill .active-sidebar falls back to). Same stand-down the
+  // hues already take four lines up: the pill goes white, the label goes
+  // near-black. 16.4:1, fixed on both sides, so no seed can break it.
+  --bnd-sb-brand-pill: var(--bnd-sb-ink);
+  --bnd-sb-brand-pill-ink: #16181d;
 }
 
 html[data-theme="dark"][data-bnd-sb-color="theme"] {
@@ -441,15 +445,28 @@ html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
 
 // ── Active link styles ──────────────────────────────────────────────────────
 // All variants target the native .active-sidebar marker. --bnd-sb-accent is
-// the hue-aware accent: the section hue when washing is on, brand otherwise.
+// the hue-aware accent — the section hue when washing is on, brand otherwise
+// — for the GRAPHIC variants below (rail, glow, outline, dot, soft pill):
+// none of them carries a label on top of it, so the hue's own text-role fit
+// (AA_TEXT against the pane) already clears the looser AA_NON_TEXT graphic
+// bar with room. Solid Pill is different — its fill sits UNDER a label — so
+// it reads a separate pair, --bnd-sb-fill / --bnd-sb-active-ink, that never
+// takes the hue: a categorical hue was fitted to be INK on a pane, never a
+// FILL under one, and 34a shipped exactly that bug (Match Theme + Solid
+// Pill measured 2.08:1 at seed #7f7f7f, Dark Contrast measured 2.17:1 at
+// every hue). Both fall back to the brand's own gated pair
+// (contrast_gate.py's "label on a brand fill" row) and are overridden
+// together only where that pair does not survive — the brand pane, above.
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item.active-sidebar {
   --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand-solid));
+  --bnd-sb-fill: var(--bnd-sb-brand-pill, var(--bnd-brand-solid));
+  --bnd-sb-active-ink: var(--bnd-sb-brand-pill-ink, var(--bnd-on-brand));
   color: var(--bnd-sb-ink);
   font-weight: var(--bnd-weight-medium);
 }
 
 html[data-bnd-sb-active="pill"] .body-sidebar .standard-sidebar-item.active-sidebar {
-  background: var(--bnd-sb-accent);
+  background: var(--bnd-sb-fill);
   color: var(--bnd-sb-active-ink);
 
   .sidebar-item-icon {

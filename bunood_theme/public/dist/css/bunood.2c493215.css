@@ -1094,7 +1094,6 @@ html[data-bnd-sb-color=theme] {
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
   --bnd-sb-card-base: var(--bnd-surface);
-  --bnd-sb-active-ink: var(--bnd-on-brand);
 }
 
 html[data-bnd-sb-color=minimal] {
@@ -1112,7 +1111,6 @@ html[data-bnd-sb-color=minimal] {
   --bnd-sb-chip-bg: transparent;
   --bnd-sb-chip-ink: #6d7570;
   --bnd-sb-card-base: #ffffff;
-  --bnd-sb-active-ink: #ffffff;
 }
 
 html[data-theme=dark][data-bnd-sb-color=minimal] {
@@ -1128,7 +1126,6 @@ html[data-theme=dark][data-bnd-sb-color=minimal] {
   --bnd-sb-ink-muted: #8b938e;
   --bnd-sb-line: rgba(255, 255, 255, 0.08);
   --bnd-sb-card-base: #1b1f21;
-  --bnd-sb-active-ink: #101214;
 }
 
 html[data-bnd-sb-color=dark] {
@@ -1146,7 +1143,6 @@ html[data-bnd-sb-color=dark] {
   --bnd-sb-chip-bg: rgba(255, 255, 255, 0.08);
   --bnd-sb-chip-ink: #a9b6ac;
   --bnd-sb-card-base: rgba(255, 255, 255, 0.05);
-  --bnd-sb-active-ink: #ffffff;
 }
 
 html[data-bnd-sb-color=brand] {
@@ -1168,7 +1164,8 @@ html[data-bnd-sb-color=brand] {
   --bnd-sb-chip-bg: rgba(255, 255, 255, 0.16);
   --bnd-sb-chip-ink: #ffffff;
   --bnd-sb-card-base: rgba(255, 255, 255, 0.1);
-  --bnd-sb-active-ink: var(--bnd-brand);
+  --bnd-sb-brand-pill: var(--bnd-sb-ink);
+  --bnd-sb-brand-pill-ink: #16181d;
 }
 
 html[data-theme=dark][data-bnd-sb-color=theme] {
@@ -1445,12 +1442,14 @@ html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item:hover {
 
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item.active-sidebar {
   --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand-solid));
+  --bnd-sb-fill: var(--bnd-sb-brand-pill, var(--bnd-brand-solid));
+  --bnd-sb-active-ink: var(--bnd-sb-brand-pill-ink, var(--bnd-on-brand));
   color: var(--bnd-sb-ink);
   font-weight: var(--bnd-weight-medium);
 }
 
 html[data-bnd-sb-active=pill] .body-sidebar .standard-sidebar-item.active-sidebar {
-  background: var(--bnd-sb-accent);
+  background: var(--bnd-sb-fill);
   color: var(--bnd-sb-active-ink);
 }
 html[data-bnd-sb-active=pill] .body-sidebar .standard-sidebar-item.active-sidebar .sidebar-item-icon {

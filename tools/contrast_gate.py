@@ -214,8 +214,68 @@ def pairs():
                              f"sidebar hue {n + 1} (dark fit) on the {pane_label}", "dark"))
     out.append(Pair(
         "#ffffff", "color-mix(in srgb, var(--bnd-brand) 96%, #ffffff)", None,
-        "brand-pane ink at the gradient's lightest stop; see the brand-mode note",
+        "brand-pane ink and active-pill fill at the gradient's lightest stop; see the brand-mode note",
     ))
+    out.append(Pair(
+        "#ffffff", "color-mix(in srgb, var(--bnd-brand) 72%, #000000)", None,
+        "brand-pane active-pill fill at the gradient's darkest stop",
+    ))
+
+    # ── The active pill's fill and its label are one derivation (item 22) ────
+    #
+    # 34a fitted the categorical hues to be INK on a pane (AA_TEXT), never a
+    # FILL under a label — Solid Pill used the wash hue as its fill whenever
+    # a wash was on, with the label set independently per colour mode, and
+    # the two drifted: Match Theme + Solid Pill measured 2.08:1 at seed
+    # #7f7f7f (already a gate seed above), Dark Contrast + Solid Pill
+    # measured 2.17-2.40:1 at every hue. The fix routes the pill through the
+    # brand's own gated pair instead (the "label on a brand fill" row above)
+    # in every colour mode except brand, which stands the pair down the same
+    # way its hues already do four lines up — no fixed pair survives an
+    # arbitrary-seed gradient. This row enforces that stand-down; the
+    # general-mode pair is the existing row above, now what actually renders.
+    out.append(Pair(
+        "#16181d", "#ffffff", AA_TEXT,
+        "sidebar active pill label on the brand pane's stand-down fill",
+    ))
+
+    # ── Measured, deliberately not enforced: the fill's own visibility ───────
+    #
+    # The fix above makes the pill's fill legible UNDER its label at every
+    # seed. Whether the fill stays identifiable AS A CONTROL against its own
+    # pane is a different, 1.4.11 boundary question — and this fix exposes it
+    # more often rather than creating it: --bnd-brand-solid already fell back
+    # to this same fill whenever a wash was off, in all four non-theme colour
+    # modes, so wash-on joins wash-off in the exposure rather than being new.
+    # At the seed matrix's pathological ends it fails outright — the
+    # dark-contrast pane at a near-black seed on a LIGHT desk measures
+    # ~1.06:1 (the light-derived fill and the pane are both near-black), and
+    # the brand pane's own lightest gradient stop measures 1.00:1 at a
+    # near-white seed (two rows up). Fixing it needs --bnd-brand-solid fitted
+    # against the sidebar's OWN panes, not just the six global SURFACES — a
+    # palette.derive() change whose blast radius is every brand-solid
+    # consumer site-wide, not just the sidebar. Out of scope for this fix;
+    # measured and published so the gap has a number, not silence, and
+    # recorded as an open thread rather than lost.
+    for pane, pane_label in LIGHT_PANES[1:]:  # skip match-theme: already the global --bnd-pane row
+        out.append(Pair(
+            "var(--bnd-brand-solid, var(--bnd-brand))", pane, None,
+            f"sidebar active pill fill against its own {pane_label}", "light",
+        ))
+    for pane, pane_label in DARK_PANES:
+        out.append(Pair(
+            "var(--bnd-brand-solid, var(--bnd-brand))", pane, None,
+            f"sidebar active pill fill against its own {pane_label}", "dark",
+        ))
+    # Dark Contrast's own pane is dark in BOTH desk themes (see the hue-fit
+    # loop above), so its fill needs checking against a LIGHT-derived
+    # brand-solid too — a light desk with Dark Contrast sidebar mode is a
+    # real, reachable combination.
+    out.append(Pair(
+        "var(--bnd-brand-solid, var(--bnd-brand))", DARK_PANES[1][0], None,
+        "sidebar active pill fill against its own dark-contrast pane, light desk", "light",
+    ))
+
     # ── List view kit (item 15, was 16) ───────────────────────────────────────
     # The selection wash and its inks, plus the rail against the wash. The
     # wash is brand-tinted so it moves with every seed — exactly the shape
@@ -496,6 +556,53 @@ def check_computed() -> int:
     return 0
 
 
+def check_measured() -> int:
+    """Measure ad-hoc (ink, bg) pairs read from stdin — colours that live on an
+    ELEMENT (its computed ``color`` and ``background-color``), not on ``<html>``
+    as custom properties, so they cannot be swept by :func:`check_computed`'s
+    token model. The sidebar's active pill is the first caller: its fill and
+    label are set on the active LIST ITEM, not the root.
+
+    A NEW mode rather than a widened `--check-computed`, on purpose. Widening
+    that pair's SHAPE is exactly what broke it once already (see `Pair`'s
+    docstring) — a second caller with a different shape is a second way to
+    break the first. This one shares only ``parse_color``/``ratio`` with the
+    rest of the file and touches nothing else, so it cannot be broken by a
+    change to `pairs()` and cannot break `--check-computed`.
+
+    Reads a JSON array of ``{"fg": "...", "bg": "...", "need": N, "why": "..."}``
+    on stdin — literal colour strings as ``getComputedStyle`` reports them
+    (``rgb()``/``rgba()``), already resolved, nothing to substitute.
+    """
+    items = json.load(sys.stdin)
+    if not items:
+        print("check-measured: no pairs supplied")
+        return 1
+    failures = []
+    for item in items:
+        fg, bg, need, why = item["fg"], item["bg"], item.get("need", AA_TEXT), item["why"]
+        try:
+            bg_c = parse_color(bg)
+            if bg_c[3] < 1.0:
+                raise ValueError(f"background {bg!r} is translucent — resolve it against its own host before sending it here")
+            fg_c = parse_color(fg)
+            if fg_c[3] < 1.0:
+                fg_c = composite(fg_c, bg_c)
+            r = ratio(fg_c, bg_c)
+        except ValueError as exc:
+            failures.append(f"{why}: {exc}")
+            continue
+        if r < need:
+            failures.append(f"{why}: {fg} on {bg} = {r:.2f}, needs {need}")
+    if failures:
+        print(f"{len(failures)} measured pairs fail:")
+        for f in failures:
+            print(f"   {f}")
+        return 1
+    print(f"{len(items)} measured pairs pass")
+    return 0
+
+
 def emit_defaults() -> int:
     """Print the SCSS declarations for the shipped seed, ready to paste."""
     for mode in ("light", "dark"):
@@ -514,6 +621,8 @@ def main() -> int:
         return emit_defaults()
     if "--check-computed" in args:
         return check_computed()
+    if "--check-measured" in args:
+        return check_measured()
 
     light, dark = read_blocks(TOKENS_SCSS)
     seeds = [(only_seed, "requested")] if only_seed else SEEDS
