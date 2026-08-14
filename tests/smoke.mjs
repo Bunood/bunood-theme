@@ -6267,6 +6267,118 @@ async function main() {
 			await page.waitForTimeout(300);
 		});
 
+		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
+		//
+		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
+		// `window.innerWidth < 768` (utils/common.js). At that width toolbar.js
+		// REPLACES the empty <header> that `mount_topbar` needs (desk.html:38
+		// renders it at every width; the swap, not the width, is what removes it),
+		// so the top-bar cluster does not mount and its tenants fall back. The old
+		// ROADMAP text ("~480px, header not rendered") was wrong on both counts;
+		// item 24 measured the real mechanism and these tests pin it.
+		//
+		// THE VIEWPORT IS SET BEFORE NAVIGATION, ON PURPOSE. The <header> swap is
+		// a BOOT decision — toolbar.js runs once at construction — so
+		// setViewportSize AFTER a load would not re-trigger it (that is the very
+		// "nothing re-evaluates on resize" half of the defect). Every test here
+		// sizes first, then loads, and restores 1920 before returning.
+		{
+			const NARROW = { width: 390, height: 844 };
+			const wideAgain = () =>
+				page.setViewportSize({ width: 1920, height: 1080 }).then(() => page.waitForTimeout(300));
+			const topBar = () => ({
+				...layoutSettings("Top Bar"),
+				desk_layout: "Top Bar",
+				search_placement: "Top Bar Center",
+			});
+			// A tenant is REACHABLE only if some affordance is actually laid out —
+			// a node zero-boxed inside Frappe's collapsed (width:0) sidebar is not.
+			const visSrc = `(s)=>{const n=document.querySelector(s);if(!n)return false;const r=n.getBoundingClientRect();const c=getComputedStyle(n);return r.width>0&&r.height>0&&c.visibility!=="hidden"&&c.display!=="none";}`;
+
+			await test("responsive: the topbar follows the header's real presence at the 768 boundary", async () => {
+				setSettings(topBar());
+				// 768 is the first NON-mobile width (`< 768` is the test), so the
+				// <header> survives, mount_topbar finds it, and the OUTCOME stamp
+				// goes on.
+				await page.setViewportSize({ width: 768, height: 1024 });
+				await goDesk("/desk/item", ".page-head", 3500);
+				const at768 = await page.evaluate(() => ({
+					header: !!document.querySelector(".main-section > header"),
+					topbar: !!document.querySelector(".bnd-topbar"),
+					attr: document.documentElement.hasAttribute("data-bnd-topbar"),
+				}));
+				// 767 is mobile: toolbar.js has swapped the <header>, the query
+				// misses, nothing mounts, and — the whole reason the attribute is
+				// keyed on reality — nothing is stamped.
+				await page.setViewportSize({ width: 767, height: 1024 });
+				await goDesk("/desk/item", ".page-head", 3500);
+				const at767 = await page.evaluate(() => ({
+					header: !!document.querySelector(".main-section > header"),
+					topbar: !!document.querySelector(".bnd-topbar"),
+					attr: document.documentElement.hasAttribute("data-bnd-topbar"),
+				}));
+				await wideAgain();
+				expect(at768.header && at768.topbar && at768.attr, `768 mounts the bar (${JSON.stringify(at768)})`);
+				expect(!at767.header && !at767.topbar && !at767.attr, `767 mounts nothing, stamps nothing (${JSON.stringify(at767)})`);
+			});
+
+			await test("responsive: search reachable, page never scrolls sideways, chrome never overlaps at 390", async () => {
+				setSettings(topBar());
+				for (const [name, route, sel] of [
+					["list", "/desk/item", ".page-head"],
+					["form", FORM_ROUTE, ".page-head"],
+					["settings", "/desk/theme-settings", ".bnd-shell"],
+				]) {
+					await page.setViewportSize(NARROW);
+					await goDesk(route, sel, 3500);
+					const r = await page.evaluate((visStr) => {
+						const vis = eval(visStr);
+						const de = document.documentElement;
+						// Chrome REGIONS must not occupy the same pixels — the
+						// "two things, one pixel" class, at a width the invariant
+						// matrix has never run at. (main-section's own overflow is
+						// Frappe's wide list content, clipped by its overflow-x:
+						// hidden — not ours, so we check the PAGE, not that box.)
+						const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock", ".bnd-apps-rail"];
+						const box = (el) => el.getBoundingClientRect();
+						let overlap = null;
+						const shown = REGIONS.map((s) => [s, document.querySelector(s)]).filter(([, el]) => el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0);
+						for (let i = 0; i < shown.length && !overlap; i++)
+							for (let j = i + 1; j < shown.length && !overlap; j++) {
+								const a = shown[i][1], b = shown[j][1];
+								if (a.contains(b) || b.contains(a)) continue;
+								const ra = box(a), rb = box(b);
+								const ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+								const oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+								if (ox > 2 && oy > 2) overlap = `${shown[i][0]} over ${shown[j][0]} ${Math.round(ox)}x${Math.round(oy)}`;
+							}
+						return {
+							search: vis(".bnd-search-field") || vis(".bnd-search-icon") || vis(".body-sidebar .navbar-search-bar"),
+							pageScroll: de.scrollWidth - de.clientWidth,
+							overlap,
+						};
+					}, visSrc);
+					expect(r.search, `${name}: search reachable at 390`);
+					expect(r.pageScroll <= 1, `${name}: page does not scroll sideways at 390 (${r.pageScroll}px)`);
+					expect(!r.overlap, `${name}: chrome regions do not overlap at 390 (${r.overlap})`);
+				}
+				await wideAgain();
+			});
+
+			await test("responsive: the bottom bar mounts host-free below the boundary", async () => {
+				// mount_statusbar appends to document.body and needs no Frappe
+				// host, so it is the one container that survives the mobile
+				// <header> swap — which is why item 24 (slice C) routes the phone's
+				// bell and user INTO it rather than reviving the top bar.
+				setSettings({ ...topBar(), status_style: "Quiet" });
+				await page.setViewportSize(NARROW);
+				await goDesk("/desk/item", ".page-head", 3500);
+				const bar = await visible(".bnd-statusbar");
+				await wideAgain();
+				expect(bar === true, `bottom bar visible at 390 (${bar})`);
+			});
+		}
+
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
 			// raw to 92/247 across five releases with nobody deciding it,

@@ -191,12 +191,18 @@ html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
 //   layout is Top Bar" no longer answers "is there a top bar": it can be on in
 //   Classic and off in Top Bar. But the deeper reason is the one the ownership
 //   stamps are built on, and it applied before the split too. `mount_topbar`
-//   RETURNS EARLY whenever Frappe rendered no <header>, which is every
-//   viewport under ~480px. Keyed on the declaration, those desks got a page
-//   head pushed down by --bnd-topbar-h with no bar above it — a band of empty
-//   space, from a rule that believed a promise instead of looking. Keyed on
-//   the outcome there is nothing to get wrong: bunood.js stamps this attribute
-//   with the bar already in the document, and only then.
+//   RETURNS EARLY whenever `.main-section > header` is missing — and it is
+//   missing below 768px, because Frappe RENDERS the empty <header> at every
+//   width (desk.html:38) and then `toolbar.js` REPLACES it with a different
+//   element whenever `frappe.is_mobile()` is true (innerWidth < 768) — plus
+//   three width-independent triggers (read_only, impersonation, an
+//   announcement widget) that fire the same swap on a full-size desk. So the
+//   bar's absence is not a mobile-only fact and not the ~480px this comment
+//   once claimed; item 24 measured the real boundary. Keyed on the declaration,
+//   those desks got a page head pushed down by --bnd-topbar-h with no bar above
+//   it — a band of empty space, from a rule that believed a promise instead of
+//   looking. Keyed on the outcome there is nothing to get wrong: bunood.js
+//   stamps this attribute with the bar already in the document, and only then.
 //
 // Same contract as `data-bnd-statusbar`, which has worked this way since
 // item 14 for exactly the same reason.

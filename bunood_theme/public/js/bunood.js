@@ -330,10 +330,15 @@
 	 *
 	 * SAME POLARITY AS `data-bnd-own`, and for the same reason. `data-bnd-
 	 * layout` is a declaration made at boot about what we INTEND to mount;
-	 * `mount_topbar` bails whenever Frappe rendered no <header>, which is every
-	 * viewport under ~480px. A stylesheet keyed on the intention then reserves
-	 * space for a bar that is not there, or sticks a page head below a bar that
-	 * never arrived. Keyed on the outcome there is nothing to get wrong.
+	 * `mount_topbar` bails whenever `.main-section > header` is missing. That is
+	 * NOT "every viewport under ~480px" (this comment's old claim, corrected by
+	 * item 24): Frappe renders the empty <header> at every width (desk.html:38),
+	 * then `toolbar.js` REPLACES it whenever `frappe.is_mobile()` (innerWidth <
+	 * 768) OR read_only OR impersonation OR an announcement widget is set — so
+	 * the bar can be absent on a 1920px desk too. A stylesheet keyed on the
+	 * intention then reserves space for a bar that is not there, or sticks a
+	 * page head below a bar that never arrived. Keyed on the outcome there is
+	 * nothing to get wrong.
 	 *
 	 * `data-bnd-statusbar` has worked this way since item 14 and is the model.
 	 * This generalises it rather than adding a fifth bespoke attribute.

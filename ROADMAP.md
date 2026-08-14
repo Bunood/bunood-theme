@@ -488,10 +488,19 @@ entry.
     finally lands. That is the slice that closes this item. The stale `theme_settings.js`
     "second real caller" comment was retired when `sprite_icon` was reworked.
 
-- `[ ]` **24 · Responsive** *(was 35)* — including a mobile navigation mode. *Known
-  defect:* below ~480px the Top Bar layout mounts no bar at all, because Frappe renders
-  no `.main-section > header` at that width; it degrades toward Classic and the
-  bell/avatar cluster is simply absent on phones
+- `[~]` **24 · Responsive** *(was 35)* — including a mobile navigation mode. *Known
+  defect, re-diagnosed 2026-08-14 against Frappe v16.27 (the old text said "~480px …
+  Frappe renders no `.main-section > header`" — both halves were wrong):* Frappe renders
+  the empty `<header>` at every width (`desk.html:38`), then `toolbar.js:9-21` REPLACES
+  it whenever `frappe.is_mobile()` (`innerWidth < 768`) — or read_only, or impersonation,
+  or an announcement widget, three triggers that fire on a full-size desk too. So
+  `mount_topbar`'s `.main-section > header` query misses, the top-bar cluster does not
+  mount, and below **768px** (not 480) the bell and avatar are unreachable — present only
+  as Frappe's native affordances, zero-boxed inside the collapsed (`width:0`) sidebar.
+  Measured on workspace/list/form/settings: search survives (its fallback chain), bell
+  and user do not. It is a boot-time decision — nothing re-evaluates on resize. Being
+  worked in four gated slices (A measure+record · B breakpoint vocabulary+guard ·
+  C mobile nav, derived from `NARROW_CHROME` · D surfaces+settings+zoom lock)
 
 - `[ ]` **25 · Workspace/dashboard landing with charts and number cards** *(was 15 + 20,
   already numbered together — the two were "deliberately together" from the start: a
