@@ -31,7 +31,9 @@ sys.path.insert(0, ROOT)
 
 from bunood_theme import icons  # noqa: E402
 
-FIXTURE = os.path.join(ROOT, "tests", "fixtures", "sprite-ids.json")
+# The sprite-id manifest is SHIPPED (the runtime doctype-icon map verifies against
+# it too), so it lives in the package, not tests/fixtures — one canonical copy.
+FIXTURE = os.path.join(ROOT, "bunood_theme", "data", "sprite_ids.json")
 
 
 def _emitted_ids():

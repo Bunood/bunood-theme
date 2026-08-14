@@ -207,6 +207,12 @@ def extend_bootinfo(bootinfo):
             "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
         }
 
+        # Item 23: give every sidebar link a title-derived icon, on the server,
+        # before Frappe renders the sidebar — the one place inference works in
+        # Arabic (the label is translated by then; link_to is not). Rewrites
+        # bootinfo.workspace_sidebar_item in place; see bunood_theme.icons.
+        _apply_icon_inference(bootinfo, bootinfo.bnd_sidebar["icon_source"])
+
         # Breadcrumb kit (item 11). Same flash exemption as the sidebar: the
         # trail is rendered by Frappe's JS after the splash, so attributes
         # applied from boot paint nothing stale. Selects fall back to the
@@ -397,3 +403,57 @@ def extend_bootinfo(bootinfo):
     except Exception:
         # A missing DocType (pre-migrate) or a locked table must not break boot.
         frappe.log_error("bunood_theme.boot.extend_bootinfo failed")
+
+
+def _apply_icon_inference(bootinfo, source):
+    """Rewrite each sidebar link's icon to a title-derived sprite id.
+
+    WHY HERE, AND WHY IT IS SAFE
+        Frappe builds ``bootinfo.workspace_sidebar_item`` in ``load_desktop_data``,
+        which runs BEFORE this hook (``frappe/sessions.py`` calls ``extend_bootinfo``
+        after ``get_bootinfo``), so every link is present to rewrite. Frappe's own
+        sidebar template then draws our ``item.icon`` natively — no DOM is touched,
+        and the change cannot flash because it is in the payload the first render
+        reads. Guarded and swallowed like the rest of this file: a failure degrades
+        the icons, never the boot.
+
+    THE MODE, from the Icon Source setting:
+        * ``Original`` — leave every icon as Frappe shipped it.
+        * ``Letters``  — clear icons so Frappe renders no glyph and the client draws
+                         a letter chip (kept client-side: the letter is the display
+                         language's first character, correct only after translation).
+        * anything else (``Smart``) — infer from the untranslated ``link_to``,
+                         OVERRIDING what the record held wherever we have a better
+                         idea, and leaving it untouched where we do not.
+
+    Args:
+        bootinfo: the boot payload; its ``workspace_sidebar_item`` is rewritten.
+        source: the Icon Source label (``"Smart"`` / ``"Original"`` / ``"Letters"``).
+    """
+    mode = (source or "").strip().lower()
+    if mode == "original":
+        return
+    sidebars = getattr(bootinfo, "workspace_sidebar_item", None)
+    if not isinstance(sidebars, dict):
+        return
+    try:
+        from bunood_theme import icons
+        from bunood_theme.api import get_doctype_icon_map
+
+        letters = mode == "letters"
+        doctype_icons = {} if letters else get_doctype_icon_map()
+        for sidebar in sidebars.values():
+            for item in (sidebar or {}).get("items") or []:
+                if not isinstance(item, dict) or item.get("type") != "Link":
+                    continue
+                if letters:
+                    # No <use> renders; the client's letter fallback fills it.
+                    item["icon"] = None
+                    continue
+                symbol = icons.icon_for_item(item, doctype_icons)
+                if symbol:
+                    # item.icon is a BARE name — frappe.utils.icon() prefixes
+                    # "#icon-"; an es-* id is left whole (it renders those as-is).
+                    item["icon"] = symbol[5:] if symbol.startswith("icon-") else symbol
+    except Exception:
+        frappe.log_error("bunood_theme.boot._apply_icon_inference failed")

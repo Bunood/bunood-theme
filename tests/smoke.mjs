@@ -2085,6 +2085,53 @@ async function main() {
 			await page.mouse.move(1400, 500);
 		});
 
+		// The headline of item 23's engine move: inference runs on the SERVER off
+		// `link_to`, which Frappe never translates, so an Arabic desk resolves the
+		// SAME icon for a link as an English one. The old client engine keyed off
+		// the translated label and drew 0 icons in Arabic against 35 in English —
+		// this asserts that gap is closed, by reading the boot payload our
+		// `_apply_icon_inference` produces in each language and demanding they
+		// agree link-for-link. Reads the payload, not the DOM, so it tests OUR
+		// output rather than Frappe's rendering (and dodges sidebar visibility).
+		await test("icon engine: inference is language-independent (Arabic parity)", async () => {
+			const readIcons = async () => {
+				await goDesk("/desk/item", ".page-head", 5000);
+				return page.evaluate(() => {
+					const wsi = (window.frappe && frappe.boot && frappe.boot.workspace_sidebar_item) || {};
+					const out = {};
+					for (const sb of Object.values(wsi)) {
+						for (const it of (sb.items || [])) {
+							if (it.type !== "Link" || !it.link_to) continue;
+							const id = it.icon ? (it.icon.startsWith("es-") ? it.icon : "icon-" + it.icon) : null;
+							// Record the icon only if it actually resolves — a name
+							// that names no symbol is not a resolved icon.
+							out[it.link_to] = id && document.getElementById(id) ? it.icon : null;
+						}
+					}
+					return out;
+				});
+			};
+			const en = await readIcons();
+			const enCount = Object.values(en).filter(Boolean).length;
+			// Baseline guard: if inference produced almost nothing in English the
+			// parity check below would pass vacuously (0 === 0).
+			expect(enCount > 10, `English inference resolved a healthy set of icons (got ${enCount})`);
+
+			const ar = await withLang("ar", readIcons);
+			const arCount = Object.values(ar).filter(Boolean).length;
+			// Every link resolves the SAME icon in both languages. A diff here is
+			// the exact regression the server move exists to prevent: inference
+			// leaking back onto the translated label.
+			const diffs = Object.keys(en)
+				.filter((k) => en[k] !== ar[k])
+				.slice(0, 6)
+				.map((k) => ({ link: k, en: en[k], ar: ar[k] }));
+			expectEq(
+				diffs.length, 0,
+				`Arabic resolves every link's icon identically (en=${enCount} ar=${arCount}; diffs: ${JSON.stringify(diffs)})`
+			);
+		});
+
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2000);

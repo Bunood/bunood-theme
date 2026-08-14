@@ -83,6 +83,11 @@ doc_events = {
         # Regenerate the per-site brand stylesheet whenever colours change.
         "on_update": "bunood_theme.setup.on_theme_settings_update",
     },
+    "DocType": {
+        # The icon inference (item 23) reads each DocType's own icon into a
+        # cached map; drop it when a DocType's icon could have changed.
+        "on_update": "bunood_theme.api.clear_icon_cache",
+    },
 }
 
 # ── Print Jinja helpers ─────────────────────────────────────────────────────────

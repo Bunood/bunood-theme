@@ -35,6 +35,7 @@ import frappe
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
 CACHE_WS_MAP = "bnd_doctype_workspace_map"
 CACHE_WS_LINKS = "bnd_workspace_links::"
+CACHE_ICON_MAP = "bnd_doctype_icon_map"
 
 #: Workspaces that link to everything and therefore OWN nothing. Excluded from the
 #: DocType->Workspace map: they are conveniences, not homes. Without this exclusion,
@@ -157,6 +158,94 @@ def _build_doctype_workspace_map() -> dict:
             frappe.log_error(f"bunood_theme: {doctype} pass failed")
 
     return mapping
+
+
+def get_doctype_icon_map() -> dict:
+    """Map every DocType that carries an icon to a verified sprite id. Cached an hour.
+
+    WHY THIS EXISTS
+        A DocType's own ``icon`` (168 of them carry one) is the highest-precision,
+        language-independent signal for the icon the theme's inference should draw
+        on a sidebar link to that doctype — better than a keyword guess. It is the
+        one inference signal not already in ``frappe.boot``, so it is read here and
+        handed to :func:`bunood_theme.icons.icon_for_item`.
+
+    Site-wide, not per-user; invalidated by :func:`clear_icon_cache` on any DocType
+    change. Values are resolved through ``icons.sprite_for_fa`` so every entry is a
+    sprite id verified to exist — a wrong id renders an empty box.
+    """
+    try:
+        cached = frappe.cache().get_value(CACHE_ICON_MAP)
+        if cached is not None:
+            return cached
+        mapping = _build_doctype_icon_map()
+        frappe.cache().set_value(CACHE_ICON_MAP, mapping, expires_in_sec=3600)
+        return mapping
+    except Exception:
+        frappe.log_error("bunood_theme.api.get_doctype_icon_map failed")
+        return {}
+
+
+def _sprite_ids() -> set:
+    """The set of sprite ids the shipped icon sets actually contain, read once
+    from the committed manifest (`bunood_theme/data/sprite_ids.json`). This is the
+    guard that stops the doctype-icon map from trusting a `DocType.icon` value that
+    names a symbol which does not exist — ERPNext stores plenty (`icon-usd`,
+    `icon-magic`, ...), and each would render an empty box. Cached on the module so
+    the file is read at most once per worker."""
+    global _SPRITE_IDS
+    if _SPRITE_IDS is None:
+        import json
+        import os
+
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sprite_ids.json")
+        try:
+            with open(path, encoding="utf-8") as fh:
+                _SPRITE_IDS = set(json.load(fh).get("ids") or [])
+        except Exception:
+            frappe.log_error("bunood_theme: sprite id manifest unreadable")
+            _SPRITE_IDS = set()
+    return _SPRITE_IDS
+
+
+_SPRITE_IDS = None
+
+
+def _build_doctype_icon_map() -> dict:
+    """``{doctype: sprite_id}`` from each DocType's ``icon`` field.
+
+    ERPNext stores FontAwesome classes there (``fa fa-truck``) and a few literal
+    sprite ids (``icon-list``). ``icons.sprite_for_fa`` maps the FA names it knows,
+    resolves an unknown ``fa fa-<x>`` as ``icon-<x>`` only when that id EXISTS, and
+    passes a literal ``icon-*`` through only when it exists — the existence set
+    (`_sprite_ids`) is what keeps ``icon-usd`` and friends out. An icon it cannot
+    verify yields None, leaving that doctype to the keyword pass, which is both
+    verified and often better than the record's stray FA choice.
+    """
+    from bunood_theme import icons
+
+    ids = _sprite_ids()
+    out: dict[str, str] = {}
+    try:
+        for dt in frappe.get_all(
+            "DocType", filters={"istable": 0}, fields=["name", "icon"]
+        ):
+            symbol = icons.sprite_for_fa(dt.get("icon"), ids)
+            if symbol:
+                out[dt["name"]] = symbol
+    except Exception:
+        frappe.log_error("bunood_theme: doctype icon map pass failed")
+    return out
+
+
+def clear_icon_cache(doc=None, method=None) -> None:
+    """``doc_events`` handler — drop the cached DocType→icon map when a DocType
+    changes. Silent on failure: a stale icon map is cosmetic, and raising here
+    would block the user's save."""
+    try:
+        frappe.cache().delete_value(CACHE_ICON_MAP)
+    except Exception:
+        pass
 
 
 @frappe.whitelist()
