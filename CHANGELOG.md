@@ -12,6 +12,46 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Item 23 — the icon system, reframed around what the desk actually needed
+
+The item assumed the theme had to ship an SVG sprite for coverage. It does not:
+the desk already loads five sprites, 2,085 symbols, no id collisions. So the
+work went where the real problems were.
+
+Three defects were live in v0.14.0 and are fixed. Every workspace-link icon in
+the side pane rendered squashed to about half width (8×15 px) — a chip rule that
+lost a specificity contest to Frappe and set no `flex: none`; the sidebar had
+passing tests because not one of them measured a rendered box, only the cascade's
+declared value, so the new check reads `getBoundingClientRect`. Icons were the
+last part of the desk still coloured by Frappe's own greys, outside the token
+pipeline and the contrast gate — `--icon-stroke` now maps to the theme's muted
+ink. And `sprite_icon` stamped the wrong class on the espresso fill set, so the
+inbox's "open in a new tab" arrow rendered as a hollow outline.
+
+Then the substance. Icon inference — giving a link with no icon of its own a
+sensible one — moved from the browser to the SERVER. The old engine matched
+English keywords against the visible label, which Frappe has already translated
+by the time the sidebar renders, so an Arabic desk drew zero inferred icons
+against thirty-five in English. Inference now runs in `extend_bootinfo` off
+`link_to`, which is never translated, so the same link resolves the same icon in
+every language; a live smoke test asserts the parity. Every id it can emit is
+verified against a shipped manifest of the symbols the loaded sets actually
+contain, because a wrong id renders an empty box.
+
+And the settings consolidated. The icon controls were scattered across the side
+pane and breadcrumb kits, and a sidebar preset reached across and changed your
+icons whenever you changed the pane's look. They are now one Icons section — an
+axis, beside Colours and Density — reached by a card picker with a live glyph
+specimen. Four fields were renamed in through a migration that carries each
+existing site's choice across; the presets let go of icons entirely. One new
+axis lands with it: icon weight, the glyph stroke, which the mixed sprite grids
+had made neither consistent nor adjustable.
+
+Deferred by an explicit scope decision: an icon-set switcher (Lucide↔Tabler) and
+an outline↔filled control. Both need a Tabler subset sprite shipped through
+`app_include_icons` — which is where the item's original sprite-interface idea
+finally belongs, as its closing slice.
+
 ### A known upstream defect gets a local fix, without touching Frappe core
 
 `is_rtl()` — Frappe's own RTL detector — exact-matches four language codes

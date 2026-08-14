@@ -464,11 +464,29 @@ entry.
   `--bnd-border`, which would repaint every stock Frappe control via
   `_bridge.scss:61-62`.
 
-- `[ ]` **23 · Icon system** *(was 33)* — SVG sprite via `app_include_icons`. Already used
-  informally by the chrome (`sprite_icon`); formalised here, with two surfaces proving
-  the interface. Caution for whoever picks this up: `theme_settings.js` claims in a
-  comment to be the sprite's second real caller and is not — verify actual callers
-  before designing the interface against them.
+- `[~]` **23 · Icon system** *(was 33)* — REFRAMED and largely shipped 2026-08-13. The
+  original scope was "an SVG sprite via `app_include_icons`". Investigation found the
+  desk already loads five sprites (2,085 symbols, no collisions), so the coverage problem
+  the item assumed does not exist — the real work was elsewhere, and this delivered it:
+  - **Defects** (all live in v0.14.0): the 8×15 chip squash (a specificity loss to
+    Frappe, plus a test-coverage gap — nothing measured a rendered box); icons brought
+    into the token pipeline (`--icon-stroke` was on Frappe's greys); `sprite_icon`'s
+    es-icon polarity (the inbox arrow rendered hollow); a guarded workspace-id helper;
+    dead sprite ids.
+  - **The engine**: inference moved to the SERVER (`bunood_theme/icons.py`,
+    `extend_bootinfo`), keyed on the untranslated `link_to`, so every link gets a
+    title-derived icon that resolves IDENTICALLY in Arabic — the old client engine drew
+    0 icons in Arabic against 35 in English. Verified by a live parity smoke test. Uses
+    a shipped sprite-id manifest to verify every emitted id; `sb_fix_icons` deleted.
+  - **The consolidation**: one Icons section (an axis, beside Colours/Density). Four
+    fields renamed in from the sidebar and breadcrumb kits via a `v0_15_0` migration; the
+    eight sidebar presets no longer write icons. A card picker with a live specimen, and
+    the one new axis — `icon_weight` (normalised stroke, the thing the mixed grids broke).
+  - **DEFERRED** (the user's explicit scope call, 2026-08-13): `icon_set` (a Lucide↔Tabler
+    switcher) and `icon_fill` (outline↔filled). Both need a shipped Tabler subset sprite
+    via `app_include_icons` — which is where the item's ORIGINAL sprite-interface scope
+    finally lands. That is the slice that closes this item. The stale `theme_settings.js`
+    "second real caller" comment was retired when `sprite_icon` was reworked.
 
 - `[ ]` **24 · Responsive** *(was 35)* — including a mobile navigation mode. *Known
   defect:* below ~480px the Top Bar layout mounts no bar at all, because Frappe renders
