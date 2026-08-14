@@ -2528,7 +2528,9 @@ const BND_ICON_GROUPS = [
 			{ value: "1.25", name: () => "1.25" },
 			{ value: "1.5", name: () => "1.5" },
 			{ value: "1.75", name: () => "1.75" },
-			{ value: "2", name: () => "2" },
+			// Displayed "2.0", not "2": the value stays "2" (the Select option), but
+			// a one-character label is a glyph to the a11y name gate, not a name.
+			{ value: "2", name: () => "2.0" },
 		],
 	},
 	{
