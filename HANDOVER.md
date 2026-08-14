@@ -10,6 +10,44 @@
 
 ## 1. Where the work stands
 
+**ITEM 23 (icons) — largely shipped, LOCAL-ONLY (2026-08-13).** Twelve commits on
+`main` past the item-22 work, none pushed. The item was reframed: the desk already
+loads five sprites (2,085 symbols, no collisions), so the "ship a sprite for coverage"
+premise was wrong and the work went elsewhere. What landed, each its own commit and
+each verified in isolation (the full suite kept OOM-ing on this 3.8 GB host — targeted
+families all green, and the sweep exits CLEAN):
+
+- **Defects (all live in v0.14.0):** the 8×15 chip squash (`_sidebar.scss` lost a
+  specificity contest to Frappe AND set no `flex: none` on the svg — fixed by naming
+  `.item-anchor` to reach (0,4,1); the sidebar's passing tests never measured a rendered
+  box, which is why a `getBoundingClientRect` check now exists); `--icon-stroke`/`--icon-fill`
+  bridged so icons join the token pipeline; `sprite_icon` es-icon polarity (the inbox
+  arrow was hollow); a `ws_symbol` guard for unbounded workspace ids; dead sprite ids.
+- **The engine:** inference moved SERVER-side (`bunood_theme/icons.py`, called from
+  `extend_bootinfo`), keyed on the untranslated `link_to` — so an Arabic desk resolves
+  the SAME icon as English (was 0/44, a live parity test guards it). Emitted ids are
+  verified against a shipped manifest (`bunood_theme/data/sprite_ids.json`, also what
+  `npm run icons:check` gates); the DocType-icon map is cached in `api.py` and
+  invalidated by a `DocType` doc_event. `sb_fix_icons`'s keyword pass is deleted; its
+  letter fallback and a scoped `sb_existing_symbol` remain.
+- **The consolidation:** one Icons section (an axis, beside Colours/Density). Four fields
+  renamed in (`sidebar_icon_style`→`icon_style`, `_source`→`icon_source`,
+  `sidebar_rail_button_icon`→`icon_rail_button`, `crumb_icons`→`icon_crumbs`) via patch
+  `v0_15_0/rename_icon_fields` — migrate verified clean on demo, values carried. The
+  eight sidebar presets no longer write icons. A card picker (`bnd_render_icons_picker`,
+  `.bnd-icp-style` hook) with a live specimen, plus the new `icon_weight` axis
+  (`data-bnd-icon-weight` → `_icons.scss`, measured 2px beating Frappe's 1.5).
+- **KEY LESSON, the same one twice:** the load-bearing simplification was to keep the
+  boot PAYLOAD keys, the `data-bnd-*` attributes and the field LABELS unchanged and
+  rename only fieldnames — that kept every stylesheet and both Arabic files out of the
+  diff. And the icon fields feed THREE runtimes (sidebar / breadcrumb / global weight),
+  so `bnd_icon_preview` calls all three apply hooks; each hook's `set` no-ops on an
+  absent value, so a partial values object never disturbs a pane's other settings.
+- **DEFERRED, the user's explicit scope call:** `icon_set` (Lucide↔Tabler) and `icon_fill`
+  (outline↔filled) need a shipped Tabler subset sprite via `app_include_icons` — the
+  item's ORIGINAL sprite scope, and its closing slice. CSS ceiling was raised 14500→14700
+  for `_icons.scss`.
+
 **Pushed and green** (2026-08-06). `main` is level with
 `origin/main` at `Bunood/bunood-theme`, the `v0.10.0` tag is pushed, and CI passed
 all nine steps including the new contrast gate. The first CI run failed for 14
