@@ -5588,9 +5588,19 @@ function sb_zone_anchor(pane, zone, node) {
 		[/tool|import|export|rename|bulk/i, ["icon-tool"]],
 	];
 
-	/** First sprite id in `candidates` that exists in Frappe's symbol sheet. */
+	/**
+	 * First candidate that names a real sprite <symbol>, or null.
+	 *
+	 * Scoped to an actual <symbol> element, not a bare getElementById: an id is a
+	 * document-wide handle, so an unscoped lookup would treat ANY element that
+	 * happened to carry `id="icon-foo"` as a resolved icon. Frappe's own reader is
+	 * scoped the same way (`#all-symbols > svg > symbol[id]`).
+	 */
 	function sb_existing_symbol(candidates) {
-		for (const id of candidates) if (document.getElementById(id)) return id;
+		for (const id of candidates) {
+			const node = document.getElementById(id);
+			if (node && node.tagName && node.tagName.toLowerCase() === "symbol") return id;
+		}
 		return null;
 	}
 
@@ -5639,23 +5649,18 @@ function sb_zone_anchor(pane, zone, node) {
 
 			if (mode === "letters" || !has_icon) {
 				if (!sb_icon_originals.has(icon_span)) sb_icon_originals.set(icon_span, icon_span.innerHTML);
-				let symbol = null;
-				if (mode === "smart") {
-					for (const [re, candidates] of SB_ICON_HINTS) {
-						if (re.test(label)) {
-							symbol = sb_existing_symbol(candidates);
-							if (symbol) break;
-						}
-					}
-				}
+				// Inference moved to the SERVER in item 23: extend_bootinfo derives
+				// each link's icon from its untranslated link_to before the sidebar
+				// renders. So an item that arrives here with no icon has already
+				// been through inference and had nothing to resolve — a client
+				// keyword pass over the TRANSLATED label (what this used to do) would
+				// only re-guess, and wrongly in Arabic, before landing on the same
+				// letter anyway. Straight to the letter chip. The letter is the
+				// display label's first character, correct in the visible language.
 				icon_span.innerHTML = "";
-				if (symbol) {
-					icon_span.appendChild(sprite_icon(symbol));
-				} else {
-					const letter = el("span", "bnd-sb-letter");
-					letter.textContent = (label || "?").charAt(0);
-					icon_span.appendChild(letter);
-				}
+				const letter = el("span", "bnd-sb-letter");
+				letter.textContent = (label || "?").charAt(0);
+				icon_span.appendChild(letter);
 			}
 		}
 	}
