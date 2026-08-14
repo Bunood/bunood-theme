@@ -10,6 +10,7 @@
 		"test": "node tests/smoke.mjs",
 		"verify": "node tools/verify.mjs",
 		"contrast": "node tools/contrast.mjs",
+		"icons:check": "node tools/icons.mjs",
 		"i18n:check": "node tools/i18n.mjs check",
 		"i18n:list": "node tools/i18n.mjs list",
 		"i18n:inherited": "node tools/i18n_inherited.mjs",
