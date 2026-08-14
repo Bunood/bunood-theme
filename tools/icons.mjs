@@ -11,8 +11,12 @@
  *
  * WHY NOT PART OF `npm run build`
  *   The build stays Node-only and dependency-free. This is a separate gate with
- *   its own interpreter requirement, run by CI and `npm run verify` alongside
- *   `npm run contrast`.
+ *   its own interpreter requirement, run from `tests/smoke.mjs`'s "icon engine:
+ *   every id the module can emit exists in the sprite" test — the same
+ *   spawn-and-check-exit-0 shape as `tools/payload.mjs`'s wiring in the same
+ *   file — so `npm run verify` / `npm test` reaches it. Release review (2026-08-14)
+ *   caught this docstring claiming that wiring before it existed; fixed by adding
+ *   the wiring, not the claim.
  *
  * USAGE
  *   npm run icons:check

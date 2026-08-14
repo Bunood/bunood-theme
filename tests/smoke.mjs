@@ -2029,6 +2029,20 @@ async function main() {
 		});
 
 		// ── Icon engine ────────────────────────────────────────────────────
+		await test("icon engine: every id the module can emit exists in the sprite", async () => {
+			// Release review, v0.15.0: tools/icons.mjs's own docstring claimed
+			// this gate was "run by CI and npm run verify", and it was wired into
+			// neither — CI never touched it and verify.mjs only spawns this file.
+			// No browser session needed (icons.py is pure Python over a static
+			// manifest), so it runs the same way payload.mjs does below: spawn,
+			// assert exit 0. Making the docstring's claim true, not softening it.
+			const res = spawnSync(process.execPath, ["tools/icons.mjs"], {
+				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				encoding: "utf8",
+			});
+			expectEq(res.status, 0, `icons:check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+		});
+
 		await test("icon engine: smart mode leaves no link glyph-less", async () => {
 			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(400);

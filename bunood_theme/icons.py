@@ -27,8 +27,10 @@ WHAT STAYS BOUNDED AND HAND-AUTHORED
     (`accounting`, `buying`, `stock`, `equity`, ...) plus the FontAwesome names
     ERPNext still stores on `DocType.icon`. Everything emitted is a sprite id
     VERIFIED to exist in Frappe v16's loaded sets (lucide 1,640 + timeless 141),
-    asserted by `tests/test_icons.py` against a snapshot of the live sprite — a
-    wrong id renders an empty box, so an unverified guess is worse than a letter.
+    asserted by `tools/check_icons.py` (run via `npm run icons:check`, and gated
+    in `tests/smoke.mjs`'s "icon engine" family) against a snapshot of the live
+    sprite — a wrong id renders an empty box, so an unverified guess is worse
+    than a letter.
 
     The broad long tail (a link whose name matches no rule) is deliberately left
     to the caller's fallback: the workspace's own icon, then a letter chip. The

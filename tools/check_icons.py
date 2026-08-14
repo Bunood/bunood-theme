@@ -8,7 +8,9 @@ Two things this proves, both plain Python — no bench, no site, mirroring
   1. EVERY sprite id the inference can emit exists in Frappe v16's loaded sets.
      A wrong id renders an empty <use> box — worse than a letter chip — so this
      is the load-bearing check. It runs against a committed snapshot of the live
-     sprite (`tests/fixtures/sprite-ids.json`), regenerated deliberately.
+     sprite (`bunood_theme/data/sprite_ids.json` — SHIPPED, not a test fixture,
+     because `bunood_theme/api.py`'s runtime doctype-icon map verifies against
+     the same file), regenerated deliberately.
 
   2. Inference is driven by the UNTRANSLATED name, not the display label. This is
      the whole reason the engine moved to the server: `sprite_for_name` keys off
@@ -53,7 +55,7 @@ def check_ids_exist():
         raise AssertionError(
             "icons.py emits sprite ids that exist in NO loaded set — each renders an "
             "empty box:\n  " + "\n  ".join(missing) +
-            "\nFix the mapping, or regenerate tests/fixtures/sprite-ids.json if the "
+            "\nFix the mapping, or regenerate bunood_theme/data/sprite_ids.json if the "
             "sprite genuinely grew."
         )
     return len(emitted)

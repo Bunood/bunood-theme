@@ -212,18 +212,30 @@ here. Instead we author exclusively in **CSS logical properties**
 (`margin-inline-start`, `inset-inline-start`, `padding-inline`, `text-align: start`)
 and ship one sheet for both directions.
 
-`dir` on `<html>` is correct **exactly for `ar`, `he`, `fa`, `ps`** — the four codes
-`frappe.utils.jinja_globals.is_rtl` matches, exactly, with no parent resolution. Every
-other RTL language (`ur`, `ckb`, a hand-created `ar-SA`…) gets RTL translations on an
-LTR desk, because `get_all_translations` resolves parents and `is_rtl` does not. This
-file used to assert "`dir` is already correct" unconditionally — an unearned claim,
-now held by a test instead of by prose: the suite's `direction:` gate derives the
-expectation from CLDR (`Intl.Locale`), names `ur` as the documented upstream defect,
-and flips red the day frappe fixes it. We deliberately do **not** correct `dir`
-ourselves: `bundled_asset()` (§6) selects the `rtl_` stylesheet variant off the same
-broken check, so forcing `dir` alone yields a half-flipped desk — worse than a
-consistently wrong one. `after_migrate` warns any site with an enabled language in
-the gap; the one-line fix is drafted in `docs/upstream/frappe-is-rtl.md`.
+`frappe.utils.jinja_globals.is_rtl` exact-matches four language codes (`ar`, `he`,
+`fa`, `ps`) with no parent resolution, so every other RTL language (`ur`, `ckb`, a
+hand-created `ar-SA`…) got RTL translations on an LTR desk. **This app now corrects
+both halves together** (item 7(b), 2026-08-13), because correcting only `dir` while
+`bundled_asset()` (§6) still selected the LTR stylesheet off the broken check would
+have produced a half-flipped desk — worse than a consistently wrong one, so neither
+half shipped alone.
+
+The fix is one corrected function, `bunood_theme/i18n/rtl_patch.py::is_rtl`, reached
+three ways: `bundled_asset()` picks it up because `rtl_patch.py` reassigns the module
+attribute `frappe.utils.jinja_globals.is_rtl` itself — safe specifically because
+`bundled_asset` calls it as a plain name resolved from *its own module's* namespace
+on every call, not one bound at import time (the reasoning, and why the same trick
+cannot reach `printview.py`/`pdf.py`, is in that file's own docstring); the desk's
+`dir` attribute is corrected separately, with no patching, via
+`context.py::_correct_layout_direction` hung off the existing
+`update_website_context` hook; and `templates/base.html`'s Jinja-level `{{ is_rtl() }}`
+call is closed through the `jinja.methods` hook entry. `boot.py` also threads
+`bnd_rtl_langs` to the client so `bunood.js` can correct `frappe.utils.is_rtl()`
+client-side, a fourth, independent copy of the same four-code defect. The suite's
+`direction:` gate checks `dir`, the CSS bundle direction and the client correction
+together, against a CLDR-derived (`Intl.Locale`) expectation. The one-line upstream
+fix is drafted in `docs/upstream/frappe-is-rtl.md`, filing is still outward-facing
+and unfiled.
 
 ---
 
@@ -338,3 +350,11 @@ to a strip of viewport nobody can use.
 7. `.main-section` is still `height: 100vh` and still the scroll container, and
    `base_list.js` still sizes the result area from its `getBoundingClientRect()`
    (§11). The `reserve:` checks in `tests/smoke.mjs` fail loudly if not.
+8. `bundled_asset()` still calls `is_rtl(rtl)` as a plain name resolved from its own
+   module's namespace on every call, not one bound at import time (§9) — that is the
+   entire reason `rtl_patch.py`'s module-attribute reassignment is safe. If a Frappe
+   refactor changes this, the patch stops reaching `bundled_asset()` silently:
+   `dir` stays corrected (it goes through `context.py`, independent of the patch)
+   while the CSS bundle reverts to the four-code check — the exact half-flipped
+   desk §9 says is worse than a consistently wrong one. The `direction:` gate in
+   `tests/smoke.mjs` checks both together and would flip red.
