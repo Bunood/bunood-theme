@@ -33,6 +33,7 @@ from bunood_theme.presets import (
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
     FORM_DEFAULTS,
+    ICON_DEFAULTS,
     LIST_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
@@ -60,6 +61,7 @@ CHECK_DEFAULTS = {
     for defaults in (
         CRUMB_DEFAULTS,
         FORM_DEFAULTS,
+        ICON_DEFAULTS,
         LIST_DEFAULTS,
         PALETTE_DEFAULTS,
         INBOX_DEFAULTS,
@@ -121,6 +123,10 @@ DEFAULTS = {
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in USER_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LINKS_DEFAULTS.items() if not isinstance(v, int)},
+    # Icon system (item 23): the relocated sidebar/crumb fields plus the new
+    # axes, all Selects — a fresh install seeds these; existing sites keep their
+    # own via the v0_15_0 patch.
+    **{f: v for f, v in ICON_DEFAULTS.items() if not isinstance(v, int)},
 }
 
 #: The complete shipped-default map: what a fresh install writes, for every

@@ -19,6 +19,11 @@
   "brand_color_dark",
   "accent_color_dark",
   "arabic_font",
+  "section_icons",
+  "icon_style",
+  "icon_source",
+  "icon_rail_button",
+  "icon_crumbs",
   "section_layout",
   "desk_layout",
   "layout_picker",
@@ -37,7 +42,6 @@
   "sidebar_glass_opacity",
   "sidebar_blur",
   "sidebar_color",
-  "sidebar_icon_style",
   "sidebar_active_style",
   "sidebar_section_layout",
   "sidebar_hue_wash",
@@ -46,8 +50,6 @@
   "sidebar_rail_trigger",
   "sidebar_rail_button",
   "sidebar_rail_button_shape",
-  "sidebar_rail_button_icon",
-  "sidebar_icon_source",
   "sidebar_pane_width",
   "sidebar_apps_rail",
   "sidebar_badges",
@@ -57,7 +59,6 @@
   "crumb_style",
   "crumbs_picker",
   "crumb_separator",
-  "crumb_icons",
   "crumb_hover",
   "crumb_copy_link",
   "crumb_status_pill",
@@ -126,6 +127,11 @@
   "brand_css_url"
  ],
  "fields": [
+  {
+   "fieldname": "section_icons",
+   "fieldtype": "Section Break",
+   "label": "Icons"
+  },
   {
    "fieldname": "section_shell",
    "fieldtype": "Section Break",
@@ -327,11 +333,11 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_icon_style",
+   "fieldname": "icon_style",
    "fieldtype": "Select",
    "label": "Icon Style",
    "options": "Colored Chips\nColored Dots\nFilled Color\nDuotone\nBrand Lines\nMonochrome",
-   "hidden": 1
+   "hidden": 0
   },
   {
    "fieldname": "sidebar_active_style",
@@ -391,18 +397,18 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_rail_button_icon",
+   "fieldname": "icon_rail_button",
    "fieldtype": "Select",
    "label": "Rail Button Icon",
    "options": "Chevron\nMenu\nArrows",
-   "hidden": 1
+   "hidden": 0
   },
   {
-   "fieldname": "sidebar_icon_source",
+   "fieldname": "icon_source",
    "fieldtype": "Select",
    "label": "Icon Source",
    "options": "Smart\nOriginal\nLetters",
-   "hidden": 1,
+   "hidden": 0,
    "description": "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
   },
   {
@@ -495,12 +501,12 @@
    "hidden": 1
   },
   {
-   "fieldname": "crumb_icons",
+   "fieldname": "icon_crumbs",
    "fieldtype": "Select",
    "label": "Crumb Module Icons",
    "options": "Off\nFirst Crumb\nEvery Crumb",
    "default": "First Crumb",
-   "hidden": 1
+   "hidden": 0
   },
   {
    "fieldname": "crumb_hover",

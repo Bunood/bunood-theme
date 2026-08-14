@@ -452,7 +452,7 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 const SETTINGS_PANE_KEYS = [
 	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search",
 	"placement", "inbox", "user", "links", "palette", "crumbs", "list", "form",
-	"layout", "branding", "colors", "density", "translations",
+	"layout", "branding", "colors", "icons", "density", "translations",
 ];
 
 /**
@@ -640,7 +640,7 @@ const SLUG = {
 	sidebar_placement: { Attached: "attached", Floating: "floating" },
 	sidebar_material: { Solid: "solid", Glass: "glass" },
 	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
-	sidebar_icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
+	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", "Glow Ring": "glow", Outline: "outline", "Dot Marker": "dot", "Folder Tab": "foldertab" },
 	sidebar_section_layout: { Plain: "plain", Divided: "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
@@ -651,7 +651,7 @@ const ATTR_OF = {
 	sidebar_placement: "data-bnd-sb-placement",
 	sidebar_material: "data-bnd-sb-material",
 	sidebar_color: "data-bnd-sb-color",
-	sidebar_icon_style: "data-bnd-sb-icons",
+	icon_style: "data-bnd-sb-icons",
 	sidebar_active_style: "data-bnd-sb-active",
 	sidebar_section_layout: "data-bnd-sb-sections",
 	sidebar_hue_wash: "data-bnd-sb-wash",
@@ -664,18 +664,20 @@ const MUTABLE_FIELDS = [
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
-	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color", "sidebar_icon_style",
+	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
-	"sidebar_rail_button", "sidebar_rail_button_shape", "sidebar_rail_button_icon",
-	"sidebar_icon_source", "sidebar_pane_width",
+	"sidebar_rail_button", "sidebar_rail_button_shape",
+	"sidebar_pane_width",
 	"sidebar_apps_rail", "sidebar_badges", "sidebar_remember_sections",
 	"sidebar_scroll_fades",
+	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
+	"icon_style", "icon_source", "icon_rail_button", "icon_crumbs",
 	// The save round-trip test writes tagline; release review v0.6.2..HEAD
 	// caught that leaving it out made every run permanently clobber the field.
 	"tagline",
 	// Breadcrumb kit (item 11).
-	"crumb_style", "crumb_separator", "crumb_icons", "crumb_hover",
+	"crumb_style", "crumb_separator", "crumb_hover",
 	"crumb_copy_link", "crumb_status_pill", "crumb_narrow_collapse",
 	// Command palette kit (item 12).
 	"palette_style", "palette_frecency", "palette_footer", "palette_newtab",
@@ -960,7 +962,7 @@ async function main() {
 		for (const [style, slugValue] of Object.entries(CRUMB_STYLE_SLUG)) {
 			await test(`crumbs: ${style}`, async () => {
 				setSettings({
-					crumb_style: style, crumb_separator: "Chevron", crumb_icons: "First Crumb",
+					crumb_style: style, crumb_separator: "Chevron", icon_crumbs: "First Crumb",
 					crumb_hover: "Soft Pill", crumb_copy_link: 1, crumb_status_pill: 0, crumb_narrow_collapse: 1,
 				});
 				await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
@@ -984,14 +986,14 @@ async function main() {
 		});
 
 		await test("crumbs: Every Crumb infers a doctype icon too", async () => {
-			setSettings({ crumb_style: "Quiet Trail", crumb_icons: "Every Crumb" });
+			setSettings({ crumb_style: "Quiet Trail", icon_crumbs: "Every Crumb" });
 			await goDesk("/desk/item/BND-TEST-001", ".page-head", 3000);
 			const chips = await page.evaluate(() => {
 				const trail = [...document.querySelectorAll(".page-head .navbar-breadcrumbs")].find((u) => u.offsetParent);
 				return trail ? trail.querySelectorAll(".bnd-crumb-chip").length : 0;
 			});
 			expect(chips >= 2, `at least 2 chips on the form trail (got ${chips})`);
-			setSettings({ crumb_icons: "First Crumb" });
+			setSettings({ icon_crumbs: "First Crumb" });
 		});
 
 		await test("crumbs: live preview flips the style instantly and back", async () => {
@@ -1968,6 +1970,10 @@ async function main() {
 				setSettings({ ...values, sidebar_preset: name });
 				await goDesk("/desk/sales-invoice", ".page-head", 3000);
 				for (const [field, attrName] of Object.entries(ATTR_OF)) {
+					// A preset only drives the fields it sets. icon_style left the
+					// preset dicts for the Icons axis (item 23), so it is no longer
+					// preset-driven and is asserted by the icon-engine tests instead.
+					if (values[field] === undefined) continue;
 					expectEq(await attr(attrName), SLUG[field][values[field]], `${attrName}`);
 				}
 				expect(await q(".bnd-sb-brand .bnd-sb-brand-name"), "brand block");
@@ -2130,6 +2136,18 @@ async function main() {
 				diffs.length, 0,
 				`Arabic resolves every link's icon identically (en=${enCount} ar=${arCount}; diffs: ${JSON.stringify(diffs)})`
 			);
+		});
+
+		// icon_style relocated to the Icons axis (item 23) but still drives the
+		// sidebar chip attribute — coverage the preset test used to give before
+		// the field left the preset dicts. Set it, reload (the field applies
+		// through boot until the Phase 3 picker adds live preview), read the attr.
+		await test("icon engine: icon_style drives the sidebar chip attribute", async () => {
+			const want = getSettings(["icon_style"]).icon_style === "Monochrome" ? "Colored Dots" : "Monochrome";
+			setSettings({ icon_style: want });
+			await goDesk("/desk/item", ".body-sidebar-container", 4000);
+			expectEq(await attr("data-bnd-sb-icons"), SLUG.icon_style[want], "data-bnd-sb-icons follows icon_style");
+			setSettings({ icon_style: "Colored Chips" });
 		});
 
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
@@ -3571,7 +3589,11 @@ async function main() {
 				// `.bnd-sbp-card`, a decorative part INSIDE a preset thumbnail,
 				// rather than `.bnd-sbp-preset`, the card itself.
 				sidebar_picker: { cards: 8 },
-				crumbs_picker: { cards: 5, toggles: 3, opts: 10 },
+				// opts 10 -> 7: the crumb_icons group (First/Every/Off) left for the
+				// Icons axis (item 23). cards and toggles are unchanged, and the
+				// sidebar picker's own icon options were .bnd-sbp-opt (not counted
+				// here), so its card count holds at 8.
+				crumbs_picker: { cards: 5, toggles: 3, opts: 7 },
 				palette_picker: { cards: 4, toggles: 6 },
 				// `slots` are desk-diagram targets and `cards` are style
 				// thumbnails: different controls, counted apart. Search has only
@@ -5415,7 +5437,7 @@ async function main() {
 		await test("a11y: decorating a crumb does not rename it", async () => {
 			setSettings({
 				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
-				crumb_style: "Quiet Trail", crumb_icons: "Off",
+				crumb_style: "Quiet Trail", icon_crumbs: "Off",
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
 			const original = await page.evaluate(() =>
@@ -5423,7 +5445,7 @@ async function main() {
 			);
 			expect(original.length > 0, "the trail has at least one crumb to decorate");
 
-			setSettings({ crumb_icons: "Every Crumb" });
+			setSettings({ icon_crumbs: "Every Crumb" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			const decorated = await page.evaluate(() => ({
 				text: [...document.querySelectorAll(".page-head .navbar-breadcrumbs a")].map((a) => a.textContent.trim()),
@@ -5503,7 +5525,7 @@ async function main() {
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
-				crumb_style: "Quiet Trail", crumb_copy_link: 1, crumb_icons: "Every Crumb",
+				crumb_style: "Quiet Trail", crumb_copy_link: 1, icon_crumbs: "Every Crumb",
 				sidebar_apps_rail: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 4000);

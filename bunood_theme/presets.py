@@ -33,7 +33,6 @@ SIDEBAR_FIELDS = [
     "sidebar_glass_opacity",
     "sidebar_blur",
     "sidebar_color",
-    "sidebar_icon_style",
     "sidebar_active_style",
     "sidebar_section_layout",
     "sidebar_hue_wash",
@@ -42,8 +41,6 @@ SIDEBAR_FIELDS = [
     "sidebar_rail_trigger",
     "sidebar_rail_button",
     "sidebar_rail_button_shape",
-    "sidebar_rail_button_icon",
-    "sidebar_icon_source",
     "sidebar_pane_width",
     "sidebar_apps_rail",
     "sidebar_badges",
@@ -66,7 +63,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "4",
         "sidebar_blur": "Soft",
         "sidebar_color": "Match Theme",
-        "sidebar_icon_style": "Colored Chips",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Rich",
@@ -81,8 +77,6 @@ SIDEBAR_PRESETS = {
         # button is None — kept so flipping back restores a tuned look, same
         # rule as the glass fields above.
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "3",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -95,7 +89,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "4",
         "sidebar_blur": "Soft",
         "sidebar_color": "Match Theme",
-        "sidebar_icon_style": "Colored Chips",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Rich",
@@ -104,8 +97,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -118,7 +109,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Off",
         "sidebar_color": "Match Theme",
-        "sidebar_icon_style": "Colored Chips",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Subtle",
@@ -127,8 +117,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -141,7 +129,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Off",
         "sidebar_color": "Minimal",
-        "sidebar_icon_style": "Monochrome",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Off",
@@ -150,8 +137,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -164,7 +149,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Off",
         "sidebar_color": "Dark Contrast",
-        "sidebar_icon_style": "Filled Color",
         "sidebar_active_style": "Glow Ring",
         "sidebar_section_layout": "Plain",
         "sidebar_hue_wash": "Subtle",
@@ -173,8 +157,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -187,7 +169,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Off",
         "sidebar_color": "Match Theme",
-        "sidebar_icon_style": "Colored Dots",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Subtle",
@@ -196,8 +177,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -210,7 +189,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Full",
         "sidebar_color": "Match Theme",
-        "sidebar_icon_style": "Colored Chips",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Subtle",
@@ -219,8 +197,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
@@ -241,7 +217,6 @@ SIDEBAR_PRESETS = {
         "sidebar_glass_opacity": "3",
         "sidebar_blur": "Off",
         "sidebar_color": "Minimal",
-        "sidebar_icon_style": "Monochrome",
         "sidebar_active_style": "Accent Rail",
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Off",
@@ -250,8 +225,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
-        "sidebar_rail_button_icon": "Chevron",
-        "sidebar_icon_source": "Smart",
         "sidebar_pane_width": "2",
         "sidebar_apps_rail": 0,
         "sidebar_badges": "Counts",
@@ -270,7 +243,6 @@ DEFAULT_SIDEBAR_PRESET = "Bunood Night"
 CRUMB_FIELDS = [
     "crumb_style",
     "crumb_separator",
-    "crumb_icons",
     "crumb_hover",
     "crumb_copy_link",
     "crumb_status_pill",
@@ -285,7 +257,6 @@ CRUMB_FIELDS = [
 CRUMB_DEFAULTS = {
     "crumb_style": "Quiet Trail",
     "crumb_separator": "Chevron",
-    "crumb_icons": "First Crumb",
     "crumb_hover": "Soft Pill",
     # Checks: 1/0, not labels. Copy-link defaults ON (hover-only affordance,
     # near-zero visual cost). The status pill AND the narrow collapse default
@@ -297,6 +268,25 @@ CRUMB_DEFAULTS = {
     "crumb_copy_link": 1,
     "crumb_status_pill": 0,
     "crumb_narrow_collapse": 0,
+}
+
+
+#: Icon system fields (item 23), relocated from the sidebar and breadcrumb kits
+#: into one axis. Presets no longer write these; a fresh install seeds the
+#: values below, and the v0_15_0 patch carries each existing site's own choice
+#: across the rename. Values are Select LABELS; bunood.js owns label -> css-slug.
+ICON_FIELDS = [
+    "icon_style",
+    "icon_source",
+    "icon_rail_button",
+    "icon_crumbs",
+]
+
+ICON_DEFAULTS = {
+    "icon_style": "Colored Chips",
+    "icon_source": "Smart",
+    "icon_rail_button": "Chevron",
+    "icon_crumbs": "First Crumb",
 }
 
 

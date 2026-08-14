@@ -27,6 +27,10 @@ bunood_theme.patches.v0_11_0.slot_vocabulary
 # cannot also name a sidebar preset and a status style. Two fields, two
 # different replacements, because they never meant the same thing.
 bunood_theme.patches.v0_11_0.rename_operator
+# Item 23: the icon settings moved out of the sidebar and breadcrumb kits into
+# one Icons axis, renaming four fields. This carries each existing site's stored
+# value onto its new fieldname so the icon appearance survives the rename.
+bunood_theme.patches.v0_15_0.rename_icon_fields
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

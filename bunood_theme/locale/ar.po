@@ -1340,6 +1340,11 @@ msgstr "مصدر الأيقونات"
 msgid "Icon style"
 msgstr "نمط الأيقونات"
 
+#. Label of the "section_icons" section in DocType 'Theme Settings'
+#. src: ai
+msgid "Icons"
+msgstr "الأيقونات"
+
 #. In theme_settings.js
 #. src: ai
 msgid "Import theme"

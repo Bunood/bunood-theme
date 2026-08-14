@@ -1090,6 +1090,10 @@ const BND_SHELL_GROUPS = [
 			// the colours that produce it, not in a "Generated" section of its own
 			// at the bottom of the form where nobody connects the two.
 			{ key: "colors", label: () => __("Colours"), anchors: ["brand_color", "brand_css_url"] },
+			// Icons (item 23): an axis, beside Colours and Density. Anchored on a
+			// real field — the four relocated Selects render natively in
+			// section_icons until the card picker lands (Phase 3).
+			{ key: "icons", label: () => __("Icons"), anchors: ["icon_style"] },
 			// `default_density` has its own section as of the shell work. It used
 			// to share `section_features` with `enable_command_palette`, and the
 			// fallback that handles a twice-claimed section handled it — but only
@@ -1182,6 +1186,9 @@ const BND_SHELL_OWNS = {
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
 	colors: { fields: ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark"] },
+	// The Icons axis owns every icon_* field by prefix — the same rule the
+	// components use, and why build.mjs earns the prefix (item 23).
+	icons: { prefixes: ["icon_"] },
 	density: { fields: ["default_density"] },
 };
 
@@ -2055,31 +2062,8 @@ const BND_SB_GROUPS = [
 			{ value: "Brand", name: () => __("Brand"), thumb: bnd_sb_pane("var(--primary, #4d8756)") },
 		],
 	},
-	{
-		field: "sidebar_icon_style",
-		zone: "links",
-		title: () => __("Icon style"),
-		desc: () => __("How link icons are drawn."),
-		options: [
-			{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
-			{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
-			{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
-			{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756);opacity:.5">◪</span>' },
-			{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">○</span>' },
-			{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
-		],
-	},
-	{
-		field: "sidebar_icon_source",
-		zone: "links",
-		title: () => __("Icon source"),
-		desc: () => __("Where link glyphs come from - most workspace links ship no icon of their own."),
-		options: [
-			{ value: "Smart", name: () => __("Smart"), thumb: '<span class="bnd-sbp-glyph">▤ + A</span>' },
-			{ value: "Original", name: () => __("Original"), thumb: '<span class="bnd-sbp-glyph">▢</span>' },
-			{ value: "Letters", name: () => __("Letters"), thumb: '<span class="bnd-sbp-glyph" style="color:var(--bnd-brand-ink, var(--bnd-brand));font-weight:600;opacity:1">A B C</span>' },
-		],
-	},
+	// Icon style and Icon source moved to the Icons axis (item 23). The sidebar
+	// picker no longer draws them; they live in section_icons.
 	{
 		field: "sidebar_active_style",
 		zone: "links",
@@ -2169,16 +2153,7 @@ const BND_SB_GROUPS = [
 			{ value: "Tab", name: () => __("Tab"), thumb: '<span class="bnd-sbp-shape" style="inline-size:9px;block-size:26px;border-radius:0 5px 5px 0;border-inline-start:none"></span>' },
 		],
 	},
-	{
-		field: "sidebar_rail_button_icon",
-		zone: "rail",
-		title: () => __("Rail button icon"),
-		options: [
-			{ value: "Chevron", name: () => __("Chevron"), thumb: '<span class="bnd-sbp-glyph">›</span>' },
-			{ value: "Menu", name: () => __("Menu"), thumb: '<span class="bnd-sbp-glyph">☰</span>' },
-			{ value: "Arrows", name: () => __("Arrows"), thumb: '<span class="bnd-sbp-glyph">⇄</span>' },
-		],
-	},
+	// Rail button icon moved to the Icons axis (item 23).
 	{
 		field: "sidebar_badges",
 		zone: "links",
@@ -2504,6 +2479,18 @@ function bnd_sb_set(frm, fieldname, value) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Icon system (item 23)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Client mirror of presets.ICON_FIELDS — the fields the Icons axis owns, kept in
+ * sync with theme_settings.json and bunood_theme/presets.py. Used by the theme
+ * export/import so an exported theme carries its icon settings. The section
+ * itself renders as native Selects for now; the card picker is Phase 3.
+ */
+const BND_ICON_FIELDS = ["icon_style", "icon_source", "icon_rail_button", "icon_crumbs"];
+
+// ════════════════════════════════════════════════════════════════════════════
 // Breadcrumbs picker (item 11)
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -2514,7 +2501,7 @@ function bnd_sb_set(frm, fieldname, value) {
  * to fetch: the style IS the choice.
  */
 const BND_CRUMB_FIELDS = [
-	"crumb_style", "crumb_separator", "crumb_icons", "crumb_hover",
+	"crumb_style", "crumb_separator", "crumb_hover",
 	"crumb_copy_link", "crumb_status_pill", "crumb_narrow_collapse",
 ];
 
@@ -2522,7 +2509,6 @@ const BND_CRUMB_FIELDS = [
 const BND_CRUMB_DEFAULTS = {
 	crumb_style: "Quiet Trail",
 	crumb_separator: "Chevron",
-	crumb_icons: "First Crumb",
 	crumb_hover: "Soft Pill",
 	crumb_copy_link: 1,
 	crumb_status_pill: 0,
@@ -2619,16 +2605,7 @@ const BND_CRUMB_GROUPS = [
 		disabled: (frm) =>
 			frm.doc.crumb_style === "Crumb Pills" ? __("Pills draw no separators") : "",
 	},
-	{
-		field: "crumb_icons",
-		title: () => __("Module icons"),
-		desc: () => __("The workspace's own icon as a small chip in the trail."),
-		options: [
-			{ value: "First Crumb", name: () => __("First crumb"), glyph: "▣ a › b" },
-			{ value: "Every Crumb", name: () => __("Every crumb"), glyph: "▣ a › ▣ b" },
-			{ value: "Off", name: () => __("Off"), glyph: "a › b" },
-		],
-	},
+	// Module icons (crumb_icons -> icon_crumbs) moved to the Icons axis (item 23).
 	{
 		field: "crumb_hover",
 		title: () => __("Hover"),
@@ -4404,7 +4381,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -4433,7 +4410,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {

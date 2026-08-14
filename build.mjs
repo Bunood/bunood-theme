@@ -235,9 +235,18 @@ function assertMotionPrimitive(css, name) {
 // they were. This list grows when a component is REGISTERED, never to make a
 // build pass — that is what FIELD_EXCEPTIONS below is for, and it shrinks.
 // "topbar" and the container prefixes that follow it are here because a
-// CONTAINER was registered (registry.py), which is the only reason this list
-// is ever allowed to grow — never to make a build pass.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form"];
+// CONTAINER was registered (registry.py); `list` and `form` because a SURFACE
+// was. Those are the only reasons this list is allowed to grow — never to make
+// a build pass.
+//
+// `icon` (item 23) is the first entry earned by neither a component nor a
+// surface but by an AXIS with more than one field. Colour and typography are
+// axes too and sit in FIELD_EXCEPTIONS below — but each is a SINGLE field, so
+// naming it there costs one line. Icons is `icon_set` / `icon_weight` /
+// `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
+// the hand-maintained list a prefix exists to delete. So the axis takes a
+// prefix, the same shape a surface does, and this comment is the registration.
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "icon"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them. Typography joined in

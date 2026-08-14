@@ -177,10 +177,14 @@ def extend_bootinfo(bootinfo):
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the
         # sidebar is built by Frappe's JS after the splash.
-        from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_PRESETS
+        from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, ICON_DEFAULTS, SIDEBAR_PRESETS
 
         preset = SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET]
         get = lambda f: settings.get(f) or preset.get(f)  # noqa: E731
+        # Icon fields are an axis now, not sidebar-preset fields, so they fall
+        # back to ICON_DEFAULTS. Their VALUES feed the sidebar/crumb payload keys
+        # unchanged (item 23 kept the client contract stable across the rename).
+        icon = lambda f: ICON_DEFAULTS[f] if settings.get(f) in (None, "") else settings.get(f)  # noqa: E731
         bootinfo.bnd_sidebar = {
             "preset": settings.get("sidebar_preset") or DEFAULT_SIDEBAR_PRESET,
             "placement": get("sidebar_placement"),
@@ -188,7 +192,11 @@ def extend_bootinfo(bootinfo):
             "glass_opacity": get("sidebar_glass_opacity"),
             "blur": get("sidebar_blur"),
             "color": get("sidebar_color"),
-            "icons": get("sidebar_icon_style"),
+            # Icon fields (item 23) moved to their own axis, so they are read
+            # with ICON_DEFAULTS as the fallback rather than the sidebar preset
+            # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",
+            # "icon_source"), so bunood.js and the SCSS are untouched.
+            "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
             "sections": get("sidebar_section_layout"),
             "wash": get("sidebar_hue_wash"),
@@ -197,8 +205,8 @@ def extend_bootinfo(bootinfo):
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
             "rail_button_shape": get("sidebar_rail_button_shape"),
-            "rail_button_icon": get("sidebar_rail_button_icon"),
-            "icon_source": get("sidebar_icon_source"),
+            "rail_button_icon": icon("icon_rail_button"),
+            "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "apps_rail": settings.get("sidebar_apps_rail") or 0,
@@ -228,7 +236,8 @@ def extend_bootinfo(bootinfo):
         bootinfo.bnd_crumbs = {
             "style": crumb("crumb_style"),
             "separator": crumb("crumb_separator"),
-            "icons": crumb("crumb_icons"),
+            # Moved to the Icons axis (item 23); payload key "icons" unchanged.
+            "icons": icon("icon_crumbs"),
             "hover": crumb("crumb_hover"),
             "copy_link": crumb("crumb_copy_link"),
             "status_pill": crumb("crumb_status_pill"),
@@ -378,7 +387,9 @@ def extend_bootinfo(bootinfo):
                 "sidebar_glass_opacity": "glass_opacity",
                 "sidebar_blur": "blur",
                 "sidebar_color": "color",
-                "sidebar_icon_style": "icons",
+                # Icon fields left this map with item 23: a per-user SIDEBAR
+                # preset no longer reaches across and rewrites the Icons axis
+                # (the whole point of moving them out).
                 "sidebar_active_style": "active",
                 "sidebar_section_layout": "sections",
                 "sidebar_hue_wash": "wash",
@@ -387,8 +398,6 @@ def extend_bootinfo(bootinfo):
                 "sidebar_rail_trigger": "rail_trigger",
                 "sidebar_rail_button": "rail_button",
                 "sidebar_rail_button_shape": "rail_button_shape",
-                "sidebar_rail_button_icon": "rail_button_icon",
-                "sidebar_icon_source": "icon_source",
                 "sidebar_pane_width": "pane_width",
                 "sidebar_apps_rail": "apps_rail",
                 "sidebar_badges": "badges",
