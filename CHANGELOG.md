@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-08-14 — Icon system and accessibility, with RTL and translation fixes (items 22, 23)
+
 ### Item 23 — the icon system, reframed around what the desk actually needed
 
 The item assumed the theme had to ship an SVG sprite for coverage. It does not:
