@@ -115,6 +115,35 @@
 	// Frappe renders anything density affects. See file header.
 	apply_density((window.frappe && frappe.boot && frappe.boot.bnd_density) || "");
 
+	// ── Icon weight (item 23) ─────────────────────────────────────────────────
+	/**
+	 * Stamp the global icon stroke weight on <html>. It applies to EVERY desk
+	 * icon through _icons.scss, so it is a document attribute, applied at boot
+	 * before first paint exactly like density.
+	 * @param {string} weight - "1.25" | "1.5" | "1.75" | "2", or "" to clear.
+	 */
+	function apply_icon_weight(weight) {
+		const html = document.documentElement;
+		if (weight) html.setAttribute("data-bnd-icon-weight", weight);
+		else html.removeAttribute("data-bnd-icon-weight");
+	}
+
+	/**
+	 * Live-apply the global icon axes from the settings form. The Icons picker
+	 * calls this alongside sb_apply / crumb_apply, because its fields feed three
+	 * different runtimes (the sidebar, the breadcrumb, and this document-level
+	 * weight). MANDATORY per the kit contract — a picker that saves without
+	 * applying is the status-kit failure class.
+	 * @param {object} values - a Theme Settings values object (frm.doc is fine).
+	 */
+	bunood.icon_apply = function (values) {
+		if (values && values.icon_weight !== undefined) apply_icon_weight(values.icon_weight);
+	};
+
+	apply_icon_weight(
+		(window.frappe && frappe.boot && frappe.boot.bnd_icons && frappe.boot.bnd_icons.weight) || ""
+	);
+
 	// ════════════════════════════════════════════════════════════════════════
 	// RTL correction — see bunood_theme/i18n/rtl_patch.py for the Python half.
 	// ════════════════════════════════════════════════════════════════════════

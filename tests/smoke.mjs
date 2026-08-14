@@ -672,7 +672,7 @@ const MUTABLE_FIELDS = [
 	"sidebar_apps_rail", "sidebar_badges", "sidebar_remember_sections",
 	"sidebar_scroll_fades",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
-	"icon_style", "icon_source", "icon_rail_button", "icon_crumbs",
+	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
 	// The save round-trip test writes tagline; release review v0.6.2..HEAD
 	// caught that leaving it out made every run permanently clobber the field.
 	"tagline",
@@ -2150,6 +2150,23 @@ async function main() {
 			setSettings({ icon_style: "Colored Chips" });
 		});
 
+		// icon_weight (item 23, Phase 3) is the new axis: it stamps
+		// data-bnd-icon-weight on <html> and _icons.scss maps it onto the RESOLVED
+		// stroke-width of every desk icon — the measured thing, not just the
+		// attribute, because Frappe hard-codes 1.5px and this has to WIN.
+		await test("icon engine: icon_weight sets the rendered stroke", async () => {
+			setSettings({ icon_weight: "2" });
+			await goDesk("/desk/item", ".body-sidebar-container", 4000);
+			const m = await page.evaluate(() => {
+				const html = document.documentElement;
+				const icon = document.querySelector(".body-sidebar .item-anchor .sidebar-item-icon svg, .page-head .icon");
+				return { attr: html.getAttribute("data-bnd-icon-weight"), stroke: icon ? getComputedStyle(icon).strokeWidth : null };
+			});
+			expectEq(m.attr, "2", "data-bnd-icon-weight follows icon_weight");
+			expectEq(m.stroke, "2px", "the rendered stroke-width is 2px, beating Frappe's 1.5px");
+			setSettings({ icon_weight: "1.5" });
+		});
+
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2000);
@@ -3617,13 +3634,18 @@ async function main() {
 				// toggle. list_picker is a known omission from item 16 — noted
 				// in HANDOVER, back-filled separately, not smuggled in here.
 				form_picker: { cards: 5, toggles: 1, opts: 6 },
+				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
+				// option chips across four groups — 4 weights, 3 missing-icon
+				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
+				// specimen is aria-hidden decoration, not a control.
+				icons_picker: { cards: 6, toggles: 0, opts: 13 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
-					form_picker: 1,
+					form_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el

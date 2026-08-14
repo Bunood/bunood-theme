@@ -904,6 +904,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
 		bnd_render_form_picker(frm);
+		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
 		bnd_render_placement_board(frm);
@@ -921,6 +922,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
 			bnd_form_preview(frm);
+			bnd_icon_preview(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -1090,10 +1092,10 @@ const BND_SHELL_GROUPS = [
 			// the colours that produce it, not in a "Generated" section of its own
 			// at the bottom of the form where nobody connects the two.
 			{ key: "colors", label: () => __("Colours"), anchors: ["brand_color", "brand_css_url"] },
-			// Icons (item 23): an axis, beside Colours and Density. Anchored on a
-			// real field — the four relocated Selects render natively in
-			// section_icons until the card picker lands (Phase 3).
-			{ key: "icons", label: () => __("Icons"), anchors: ["icon_style"] },
+			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
+			// own picker like every other kit; the relocated Selects sit hidden
+			// behind the card picker's controls.
+			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
 			// `default_density` has its own section as of the shell work. It used
 			// to share `section_features` with `enable_command_palette`, and the
 			// fallback that handles a twice-claimed section handled it — but only
@@ -2484,11 +2486,189 @@ function bnd_sb_set(frm, fieldname, value) {
 
 /**
  * Client mirror of presets.ICON_FIELDS — the fields the Icons axis owns, kept in
- * sync with theme_settings.json and bunood_theme/presets.py. Used by the theme
- * export/import so an exported theme carries its icon settings. The section
- * itself renders as native Selects for now; the card picker is Phase 3.
+ * sync with theme_settings.json and bunood_theme/presets.py. Drives the picker
+ * below, the change dots, and the theme export/import.
  */
-const BND_ICON_FIELDS = ["icon_style", "icon_source", "icon_rail_button", "icon_crumbs"];
+const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs"];
+
+/** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
+const BND_ICON_DEFAULTS = {
+	icon_style: "Colored Chips",
+	icon_weight: "1.5",
+	icon_source: "Smart",
+	icon_rail_button: "Chevron",
+	icon_crumbs: "First Crumb",
+};
+
+/**
+ * The chip-style cards. These thumbs moved here verbatim from the sidebar
+ * picker (item 23) — the style is the CHIP concern, distinct from the glyph
+ * concerns (weight, the missing-icon fallback) below it.
+ */
+const BND_ICON_STYLES = [
+	{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
+	{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
+	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
+	{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756);opacity:.5">◪</span>' },
+	{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">○</span>' },
+	{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
+];
+
+/**
+ * The option groups. Weight is the new axis; the other three are the relocated
+ * Selects, now chips. Each maps 1:1 to a field the desk already consumes through
+ * an unchanged payload key, so clicking one previews live.
+ */
+const BND_ICON_GROUPS = [
+	{
+		field: "icon_weight",
+		title: () => __("Weight"),
+		desc: () => __("The glyph stroke, normalised across sprite grids so this is the weight you actually get."),
+		options: [
+			{ value: "1.25", name: () => "1.25" },
+			{ value: "1.5", name: () => "1.5" },
+			{ value: "1.75", name: () => "1.75" },
+			{ value: "2", name: () => "2" },
+		],
+	},
+	{
+		field: "icon_source",
+		title: () => __("When an icon is missing"),
+		desc: () => __("Most workspace links ship no icon of their own. Smart infers one from the title."),
+		options: [
+			{ value: "Smart", name: () => __("Smart"), glyph: "▤+A" },
+			{ value: "Original", name: () => __("Original"), glyph: "▢" },
+			{ value: "Letters", name: () => __("Letters"), glyph: "A" },
+		],
+	},
+	{
+		field: "icon_crumbs",
+		title: () => __("Breadcrumb module icon"),
+		desc: () => __("The workspace's own icon as a small chip in the trail."),
+		options: [
+			{ value: "First Crumb", name: () => __("First crumb"), glyph: "▣›b" },
+			{ value: "Every Crumb", name: () => __("Every crumb"), glyph: "▣›▣" },
+			{ value: "Off", name: () => __("Off"), glyph: "a›b" },
+		],
+	},
+	{
+		field: "icon_rail_button",
+		title: () => __("Rail button icon"),
+		desc: () => __("The glyph on the side pane's collapse button."),
+		options: [
+			{ value: "Chevron", name: () => __("Chevron"), glyph: "›" },
+			{ value: "Menu", name: () => __("Menu"), glyph: "☰" },
+			{ value: "Arrows", name: () => __("Arrows"), glyph: "⇄" },
+		],
+	},
+];
+
+/**
+ * The specimen — real sprite glyphs at the current settings, the only honest way
+ * to judge a stroke weight (a card cannot show the difference between 1.5 and
+ * 1.75). They carry `class="icon"`, so `_icons.scss`'s weight rule reaches them
+ * and the sheet re-strokes the instant `data-bnd-icon-weight` changes on <html>.
+ */
+function bnd_icon_specimen() {
+	const ids = [
+		"icon-home", "icon-users", "icon-file-text", "icon-stock",
+		"icon-calendar", "icon-mail", "icon-setting-gear", "icon-chart",
+	];
+	return (
+		'<div class="bnd-icp-specimen" aria-hidden="true">' +
+		ids
+			.map(
+				(id) =>
+					'<svg class="icon" viewBox="0 0 24 24" width="22" height="22">' +
+					'<use href="#' + id + '"></use></svg>'
+			)
+			.join("") +
+		"</div>"
+	);
+}
+
+/**
+ * Full render of the Icons picker — style cards, the glyph option groups, and a
+ * live specimen. Wholesale re-render on every change; state lives in the form
+ * document. Carries the bnd-cbp- vocabulary like the crumbs/list/form pickers,
+ * with `bnd-icp-style` as its own click hook on the style cards.
+ */
+function bnd_render_icons_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "icons_picker", host);
+	if (!$host) return;
+
+	const current_style = frm.doc.icon_style || "Colored Chips";
+	const style_cards = P.cards(
+		BND_ICON_STYLES.map((s) => ({ value: s.value, name: s.name(), svg: s.thumb })),
+		{ selected: current_style, cls: "bnd-cbp-style bnd-icp-style" }
+	);
+
+	const groups = BND_ICON_GROUPS.map((group) =>
+		P.group({
+			title: group.title(),
+			desc: group.desc(),
+			field: group.field,
+			body: P.options(
+				group.options.map((opt) => ({ value: opt.value, name: opt.name(), glyph: opt.glyph })),
+				{ field: group.field, value: frm.doc[group.field] }
+			),
+		})
+	).join("");
+
+	const note = P.note(__("Changes apply as you click — there is nothing to save."));
+
+	const specimen = P.group({
+		title: __("Specimen"),
+		desc: __("The desk's own glyphs at these settings."),
+		body: bnd_icon_specimen(),
+	});
+
+	$host.html(
+		P.wrap(
+			bnd_bands([
+				{ zone: "style", html: style_cards + note + groups },
+				{ zone: "extras", html: specimen },
+			])
+		)
+	);
+
+	$host.find(".bnd-icp-style").on("click", function () {
+		bnd_icon_set(frm, "icon_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_icon_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_icon_set(frm, f, BND_ICON_DEFAULTS[f]);
+	});
+}
+
+/**
+ * LIVE PREVIEW. The Icons fields feed THREE runtimes — the sidebar (style,
+ * source, rail button), the breadcrumb (module icon), and the document-level
+ * weight — so this calls all three apply hooks. Each reads only its own fields
+ * and its `set` is a no-op on an absent value, so a partial icon-values object
+ * never disturbs a pane's other settings.
+ */
+function bnd_icon_preview(frm) {
+	const bt = window.bunood_theme;
+	if (!bt) return;
+	const values = {};
+	for (const f of BND_ICON_FIELDS) values[f] = frm.doc[f];
+	if (bt.sb_apply) bt.sb_apply(values);
+	if (bt.crumb_apply) bt.crumb_apply(values);
+	if (bt.icon_apply) bt.icon_apply(values);
+}
+
+/** Set one icon option, preview, re-render. */
+function bnd_icon_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_icon_preview(frm);
+	bnd_render_icons_picker(frm);
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Breadcrumbs picker (item 11)
@@ -4424,13 +4604,15 @@ function bnd_sb_import(frm) {
 			bnd_palette_preview(frm);
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
+			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
 			bnd_render_palette_picker(frm);
 			bnd_render_inbox_picker(frm);
 			bnd_render_search_picker(frm);
 			bnd_render_status_picker(frm);
-		bnd_render_list_picker(frm);
+			bnd_render_list_picker(frm);
+			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
 			// Frappe's plural-free dictionary.

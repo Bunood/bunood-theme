@@ -592,6 +592,25 @@ html[data-theme] {
     margin-inline-start: 6px;
   }
 
+  // The Icons picker's live specimen (item 23): real sprite glyphs at the
+  // current settings. They carry Frappe's `.icon` class, so the icon bridge
+  // colours them and `_icons.scss`'s weight rule strokes them — the sheet
+  // re-renders the instant an axis changes, which is the whole point of showing
+  // glyphs a card cannot.
+  .bnd-icp-specimen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--bnd-sp-3);
+    align-items: center;
+    padding-block: var(--bnd-sp-2);
+
+    .icon {
+      inline-size: 22px;
+      block-size: 22px;
+      flex: none;
+    }
+  }
+
   .bnd-sbp-row {
     position: absolute;
     inset-inline: 8px;

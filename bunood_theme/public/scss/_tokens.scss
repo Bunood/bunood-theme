@@ -98,6 +98,18 @@
   --bnd-border: rgba(0, 0, 0, 0.09);
   --bnd-border-strong: rgba(0, 0, 0, 0.16);
 
+  // ── Icon stroke weight (item 23) ────────────────────────────────────────────
+  // The four choices the Icons axis offers, as real px so `stroke-width` reads a
+  // token, not a literal. Mode-independent — a stroke weight is the same in
+  // light and dark. Frappe declares 1.5px once in `.icon`; these make it a
+  // control, and make it TRUE across the sprite grids (a symbol's viewBox scales
+  // the declared width, which is why the same 1.5 rendered 1.25–2.5 before item
+  // 23 normalised the base set).
+  --bnd-icon-w-hairline: 1.25px;
+  --bnd-icon-w-regular: 1.5px;
+  --bnd-icon-w-medium: 1.75px;
+  --bnd-icon-w-bold: 2px;
+
   // ── Spacing (4px base) ────────────────────────────────────────────────────
   --bnd-sp-1: 0.25rem;
   --bnd-sp-2: 0.5rem;

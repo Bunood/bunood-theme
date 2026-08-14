@@ -221,6 +221,11 @@ def extend_bootinfo(bootinfo):
         # bootinfo.workspace_sidebar_item in place; see bunood_theme.icons.
         _apply_icon_inference(bootinfo, bootinfo.bnd_sidebar["icon_source"])
 
+        # The global icon axes (Phase 3): weight applies to EVERY desk icon, not
+        # just the sidebar, so it rides its own small payload and the client
+        # stamps it on <html> as data-bnd-icon-weight. Same flash exemption.
+        bootinfo.bnd_icons = {"weight": icon("icon_weight")}
+
         # Breadcrumb kit (item 11). Same flash exemption as the sidebar: the
         # trail is rendered by Frappe's JS after the splash, so attributes
         # applied from boot paint nothing stale. Selects fall back to the

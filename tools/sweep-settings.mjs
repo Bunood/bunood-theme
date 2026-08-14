@@ -162,7 +162,7 @@ for (const key of items) {
 		// EVERY new picker's card class must join both the exclusion below and
 		// the map — the list kit's bnd-lvp-style was the fourth learned the
 		// hard way, reported as crumb_style writes that never landed.
-		const CRUMBS_ONLY = ".bnd-cbp-style:not(.bnd-lp-card):not(.bnd-plp-style):not(.bnd-ibp-style):not(.bnd-stp-style):not(.bnd-lvp-style):not(.bnd-fvp-style)";
+		const CRUMBS_ONLY = ".bnd-cbp-style:not(.bnd-lp-card):not(.bnd-plp-style):not(.bnd-ibp-style):not(.bnd-stp-style):not(.bnd-lvp-style):not(.bnd-fvp-style):not(.bnd-icp-style)";
 		const IMPLICIT = {
 			".bnd-lp-card": "desk_layout",
 			".bnd-plp-style": "palette_style",
@@ -170,6 +170,7 @@ for (const key of items) {
 			".bnd-stp-style": "status_style",
 			".bnd-lvp-style": "list_style",
 			".bnd-fvp-style": "form_style",
+			".bnd-icp-style": "icon_style",
 			[CRUMBS_ONLY]: "crumb_style",
 		};
 		for (const [sel, field] of Object.entries(IMPLICIT)) {

@@ -20,7 +20,9 @@
   "accent_color_dark",
   "arabic_font",
   "section_icons",
+  "icons_picker",
   "icon_style",
+  "icon_weight",
   "icon_source",
   "icon_rail_button",
   "icon_crumbs",
@@ -127,6 +129,19 @@
   "brand_css_url"
  ],
  "fields": [
+  {
+   "fieldname": "icons_picker",
+   "fieldtype": "HTML",
+   "label": "Icons"
+  },
+  {
+   "fieldname": "icon_weight",
+   "fieldtype": "Select",
+   "label": "Icon Weight",
+   "options": "1.25\n1.5\n1.75\n2",
+   "default": "1.5",
+   "hidden": 1
+  },
   {
    "fieldname": "section_icons",
    "fieldtype": "Section Break",
@@ -337,7 +352,7 @@
    "fieldtype": "Select",
    "label": "Icon Style",
    "options": "Colored Chips\nColored Dots\nFilled Color\nDuotone\nBrand Lines\nMonochrome",
-   "hidden": 0
+   "hidden": 1
   },
   {
    "fieldname": "sidebar_active_style",
@@ -401,14 +416,14 @@
    "fieldtype": "Select",
    "label": "Rail Button Icon",
    "options": "Chevron\nMenu\nArrows",
-   "hidden": 0
+   "hidden": 1
   },
   {
    "fieldname": "icon_source",
    "fieldtype": "Select",
    "label": "Icon Source",
    "options": "Smart\nOriginal\nLetters",
-   "hidden": 0,
+   "hidden": 1,
    "description": "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
   },
   {
@@ -506,7 +521,7 @@
    "label": "Crumb Module Icons",
    "options": "Off\nFirst Crumb\nEvery Crumb",
    "default": "First Crumb",
-   "hidden": 0
+   "hidden": 1
   },
   {
    "fieldname": "crumb_hover",

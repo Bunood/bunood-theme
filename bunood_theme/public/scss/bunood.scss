@@ -79,5 +79,8 @@
 // @use "surfaces/charts";
 // @use "surfaces/overlays";
 
+// ── Icons — the global icon axis (item 23) ──────────────────────────────────
+@use "icons";
+
 // ── Print — must stay last: within @media print, later rules win ties ───────
 @use "print";

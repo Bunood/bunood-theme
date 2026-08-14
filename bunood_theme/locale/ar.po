@@ -1345,6 +1345,51 @@ msgstr "نمط الأيقونات"
 msgid "Icons"
 msgstr "الأيقونات"
 
+#. Label of the "icon_weight" field in DocType 'Theme Settings'
+#. src: ai
+msgid "Icon Weight"
+msgstr "وزن الأيقونة"
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "Weight"
+msgstr "الوزن"
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "The glyph stroke, normalised across sprite grids so this is the weight you actually get."
+msgstr "سُمك خط الأيقونة، موحّد عبر شبكات الأيقونات ليكون الوزن الذي تحصل عليه فعلاً."
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "When an icon is missing"
+msgstr "عند غياب الأيقونة"
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "Most workspace links ship no icon of their own. Smart infers one from the title."
+msgstr "معظم روابط مساحة العمل لا تملك أيقونة خاصة بها. الوضع الذكي يستنتج واحدة من العنوان."
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "Breadcrumb module icon"
+msgstr "أيقونة الوحدة في مسار التنقّل"
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "The glyph on the side pane's collapse button."
+msgstr "الأيقونة على زر طيّ اللوحة الجانبية."
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "Specimen"
+msgstr "عيّنة"
+
+#. In theme_settings.js — Icons picker
+#. src: ai
+msgid "The desk's own glyphs at these settings."
+msgstr "أيقونات سطح المكتب بهذه الإعدادات."
+
 #. In theme_settings.js
 #. src: ai
 msgid "Import theme"

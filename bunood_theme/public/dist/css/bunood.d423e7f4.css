@@ -18,6 +18,10 @@
   --bnd-line: 0.5px;
   --bnd-border: rgba(0, 0, 0, 0.09);
   --bnd-border-strong: rgba(0, 0, 0, 0.16);
+  --bnd-icon-w-hairline: 1.25px;
+  --bnd-icon-w-regular: 1.5px;
+  --bnd-icon-w-medium: 1.75px;
+  --bnd-icon-w-bold: 2px;
   --bnd-sp-1: 0.25rem;
   --bnd-sp-2: 0.5rem;
   --bnd-sp-3: 0.75rem;
@@ -2975,6 +2979,18 @@ html[data-theme] .bnd-sbp-ic {
   margin-block-end: 0;
   margin-inline-start: 6px;
 }
+html[data-theme] .bnd-icp-specimen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-3);
+  align-items: center;
+  padding-block: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-icp-specimen .icon {
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+}
 html[data-theme] .bnd-sbp-row {
   position: absolute;
   inset-inline: 8px;
@@ -3817,6 +3833,27 @@ html[data-bnd-form] .form-sidebar {
 
 html[data-bnd-form][data-bnd-form-side=pane] .layout-side-section {
   background: var(--bnd-raised);
+}
+
+html[data-bnd-icon-weight="1.25"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
+}
+
+html[data-bnd-icon-weight="1.5"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-regular);
+}
+
+html[data-bnd-icon-weight="1.75"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-medium);
+}
+
+html[data-bnd-icon-weight="2"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-bold);
+}
+
+html[data-bnd-icon-weight] .icon,
+html[data-bnd-icon-weight] .bnd-sb-chip svg {
+  stroke-width: var(--bnd-icon-stroke-w);
 }
 
 @media print {

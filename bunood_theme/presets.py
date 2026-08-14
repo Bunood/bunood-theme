@@ -277,6 +277,7 @@ CRUMB_DEFAULTS = {
 #: across the rename. Values are Select LABELS; bunood.js owns label -> css-slug.
 ICON_FIELDS = [
     "icon_style",
+    "icon_weight",
     "icon_source",
     "icon_rail_button",
     "icon_crumbs",
@@ -284,6 +285,10 @@ ICON_FIELDS = [
 
 ICON_DEFAULTS = {
     "icon_style": "Colored Chips",
+    # New axis (Phase 3): the glyph stroke, normalised across the sprite grids so
+    # this is the weight you actually get. 1.5 is Frappe's own declared value,
+    # made true everywhere for the first time.
+    "icon_weight": "1.5",
     "icon_source": "Smart",
     "icon_rail_button": "Chevron",
     "icon_crumbs": "First Crumb",
