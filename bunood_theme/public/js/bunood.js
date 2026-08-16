@@ -5715,6 +5715,17 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_apply_width() {
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container) return;
+		// On a phone the pane is Frappe's off-canvas drawer, not a column. An
+		// inline width here would pin it open and reserve a phantom column that
+		// squeezes the desk into a strip (item 24 — measured 150px at 390). An
+		// inline style beats the stylesheet, so the narrow collapse in
+		// _sidebar.scss cannot win while this is set: clear it and let CSS take
+		// the resting container out of flow. Re-runs on the breakpoint change via
+		// mount_sidebar_kit, so widening restores the width.
+		if (is_narrow()) {
+			container.style.width = "";
+			return;
+		}
 		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
 		if (mode === "expanded") container.style.width = "var(--bnd-sb-w)";

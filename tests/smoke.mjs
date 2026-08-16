@@ -6455,6 +6455,35 @@ async function main() {
 				expect(wide2.topbar && !wide2.narrow, `widened back: the top bar returns (${JSON.stringify(wide2)})`);
 			});
 
+			await test("responsive: the side pane collapses to a drawer, not a column (390)", async () => {
+				// The item-24 slice-D fix: our sidebar kit pinned the container to
+				// --bnd-sb-w (an inline width), so below 768 the desk was squeezed
+				// into a ~150px strip beside a phantom column while Frappe had
+				// already collapsed its own pane. Now the resting container is out
+				// of flow and the desk fills the viewport; Frappe's drawer still
+				// overlays on demand.
+				setSettings(topBar());
+				await page.setViewportSize(NARROW);
+				await goDesk("/desk/item", ".page-head", 3500);
+				const rest = await page.evaluate(() => {
+					const ms = document.querySelector(".main-section").getBoundingClientRect();
+					return { left: Math.round(ms.left), w: Math.round(ms.width), vw: window.innerWidth };
+				});
+				await page.evaluate(() => {
+					const t = document.querySelector(".page-head .sidebar-toggle-btn") || document.querySelector(".sidebar-toggle-btn");
+					if (t) t.click();
+				});
+				await page.waitForTimeout(700);
+				const drawer = await page.evaluate(() => {
+					const sb = document.querySelector(".body-sidebar");
+					return sb ? Math.round(sb.getBoundingClientRect().width) : 0;
+				});
+				await wideAgain();
+				expect(rest.left <= 1, `content starts at the edge, no reserved column (left=${rest.left})`);
+				expect(rest.w >= rest.vw - 1, `content fills the viewport (${rest.w}/${rest.vw})`);
+				expect(drawer > 100, `the drawer still opens as an overlay (${drawer}px)`);
+			});
+
 			await test("responsive: the phone-bar toggles gate their tenants (C2)", async () => {
 				// mobile_apps off removes the All Apps button from the narrow bar;
 				// on brings it back. Search has no toggle — it is the only search on

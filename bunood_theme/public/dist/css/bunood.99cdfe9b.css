@@ -1981,6 +1981,13 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-utils {
     backdrop-filter: none;
   }
 }
+html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
+  position: absolute;
+  inline-size: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
 html[data-bnd-palette=refined] .modal.bnd-search-modal .modal-dialog {
   max-inline-size: 640px;
 }

@@ -1071,3 +1071,21 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
     backdrop-filter: none;
   }
 }
+
+// ── Mobile: the sidebar is Frappe's drawer, not a column (item 24) ───────────
+// Below 768 Frappe collapses its inner .body-sidebar to ~0 and opens it on
+// demand as an ABSOLUTE overlay with a scrim. Our kit kept the CONTAINER at
+// --bnd-sb-w, so the desk was squeezed into a ~150px strip (measured 390px).
+// sb_apply_width drops the inline width here (an inline width would beat this
+// rule); this then takes the RESTING container out of flow so it reserves
+// nothing and the desk fills the viewport. `:not(.expanded)` because Frappe's
+// own expanded state re-positions the pane as the overlay — clipping or
+// zero-sizing it then would clip the drawer. A Frappe onboarding widget rides
+// inside the container and does not collapse on mobile; `overflow: hidden` keeps
+// it from spilling over the content while the drawer is closed.
+html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
+  position: absolute;
+  inline-size: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+}
