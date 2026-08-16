@@ -1,0 +1,107 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THE BREAKPOINT VOCABULARY (item 24)
+//
+// WHY THIS FILE EXISTS
+//   Until item 24 the theme had nine raw breakpoint literals scattered across
+//   four partials in two unrelated numbering schemes, and NO guard over any of
+//   them — the one dimension `GUIDELINES.md` §1.3's "no raw px in a rule" never
+//   reached, because breakpoints were never in that sentence's list. The cost
+//   showed up as a PHANTOM: `max-width: 480px` at `_statusbar.scss` and a
+//   "~480px" claim in three docs and comments, none of it derived from anything.
+//   The real Frappe mobile boundary is 768 (`frappe.is_mobile()` is exactly
+//   `innerWidth < 768`), measured 2026-08-14. A vocabulary with a build guard
+//   behind it (`assertBreakpointVocabulary`, build.mjs) makes a stray literal a
+//   build failure instead of the next phantom.
+//
+// TWO SCALES, ON PURPOSE — DO NOT MERGE THEM
+//   A `@media` query asks about the VIEWPORT; a `@container` query asks about a
+//   BOX. They answer different questions and must not share a number line:
+//   conflating them is exactly what made the settings board's unnamed `34rem`
+//   query look like a sibling of the shell's `620px` when one measures the
+//   window and the other the pane. So:
+//     * $bnd-bp  — viewport, for @media. FRAPPE'S OWN $grid-breakpoints
+//       (frappe/public/scss/desk/variables.scss:121), not a house scale:
+//       is_mobile() is a hard `< 768` in JS and the sidebar collapses at
+//       767.98px in CSS, so any value of ours that disagreed would carve out a
+//       band where the desk contradicts itself.
+//     * $bnd-cq  — container, for @container. MEASURED box widths, each named
+//       for the component and the thing it drops. Not aligned to $bnd-bp
+//       because a bar 700px wide is not a 700px window.
+//
+// RANGE SYNTAX, NOT min/max-width
+//   `(width < 768px)` carries one clean value per breakpoint, so the guard's
+//   allowlist is exactly these numbers with no Bootstrap `.98px` twin to also
+//   permit (a second permitted value per breakpoint is a second place drift can
+//   hide). At integer viewport widths it is identical to `max-width: 767px`.
+//   Dart Sass emits it verbatim (verified), and it sits on the same modern-CSS
+//   floor the theme already stands on — unprefixed `:has()`, container queries
+//   and `color-mix()` all ship today.
+// ============================================================================
+
+@use "sass:map";
+
+// Viewport — Frappe's $grid-breakpoints. Keep in lockstep with upstream; the
+// guard reads these exact values as the only ones a @media width may carry.
+$bnd-bp: (
+	sm: 576px,
+	md: 768px,
+	lg: 992px,
+	xl: 1200px,
+	2xl: 1440px,
+);
+
+// Container — measured box widths. Each is a component's own collapse point,
+// named so a change is a one-line edit here and the guard reads these as the
+// only ones a @container width may carry.
+$bnd-cq: (
+	bar-1: 900px, // status/top bar: drop ranks 1-2 (freshness, density)
+	bar-2: 700px, // ...rank 3 (clock) and the search field's label + kbd
+	bar-3: 460px, // ...rank 4 (errors)
+	shell: 620px, // settings master/detail shell -> one column
+	board: 544px, // placement board -> stacked (was an unnamed 34rem)
+);
+
+@function bnd-bp($name) {
+	@if not map.has-key($bnd-bp, $name) {
+		@error "unknown viewport breakpoint #{$name} — add it to $bnd-bp";
+	}
+	@return map.get($bnd-bp, $name);
+}
+
+@function bnd-cq($name) {
+	@if not map.has-key($bnd-cq, $name) {
+		@error "unknown container breakpoint #{$name} — add it to $bnd-cq";
+	}
+	@return map.get($bnd-cq, $name);
+}
+
+// Below a viewport breakpoint (mobile-leaning). `bnd-until(md)` is Frappe's own
+// mobile boundary.
+@mixin bnd-until($name) {
+	@media (width < #{bnd-bp($name)}) {
+		@content;
+	}
+}
+
+// At or above a viewport breakpoint (desktop-leaning).
+@mixin bnd-from($name) {
+	@media (width >= #{bnd-bp($name)}) {
+		@content;
+	}
+}
+
+// Between two viewport breakpoints, half-open [from, until).
+@mixin bnd-between($from, $until) {
+	@media (#{bnd-bp($from)} <= width < #{bnd-bp($until)}) {
+		@content;
+	}
+}
+
+// Below a container breakpoint, for a named container. The container-name is
+// the caller's (bndbar / bndshell), so this stays one mixin for every box.
+@mixin bnd-container-until($container, $name) {
+	@container #{$container} (width < #{bnd-cq($name)}) {
+		@content;
+	}
+}

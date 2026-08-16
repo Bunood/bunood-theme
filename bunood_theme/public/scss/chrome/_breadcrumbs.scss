@@ -39,9 +39,11 @@
 //     `worksapce-breadcrumb`; selectors must reproduce it verbatim.
 // ============================================================================
 
+@use "../breakpoints" as *;
+
 // ── Base (any active style) ─────────────────────────────────────────────────
 
-@media (min-width: 992px) {
+@include bnd-from(lg) {
   html[data-bnd-crumbs] .navbar-breadcrumbs li {
     display: inline-flex;
     align-items: center;
@@ -327,11 +329,11 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
 }
 
 // ── Narrow collapse: a single labeled back crumb ────────────────────────────
-// Under 992px the trail becomes "‹ Parent" — the second-to-last crumb, a
+// Below lg (992px) the trail becomes "‹ Parent" — the second-to-last crumb, a
 // real link one level up. Frappe's own mobile rule (which keeps the LAST
 // crumb) is overridden by specificity; home-only trails keep their one li.
 
-@media (max-width: 991px) {
+@include bnd-until(lg) {
   html[data-bnd-crumbs][data-bnd-crumb-collapse] .navbar-breadcrumbs {
     li {
       display: none;

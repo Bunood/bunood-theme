@@ -30,6 +30,8 @@
 //   than quietly re-engineered during a move.
 // ============================================================================
 
+@use "../breakpoints" as *;
+
 // ── Desk layout picker ──────────────────────────────────────────────────────
 // Nothing of its own. It used to carry `bnd-lp-*`, a second spelling of the
 // shared card — same structure, same rules, differing only in a name one step
@@ -859,11 +861,12 @@ html[data-theme] {
   display: none;
 }
 
-// 620px, not 900: the form's own column is ~840px wide on a 1440 desk with the
-// sidebar expanded, so a 900px threshold collapsed the list into a wrapped row
-// of chips at full size - measured, not guessed. The stacked layout is for a
-// genuinely narrow form, which is why the number is well below the common case.
-@container bndshell (max-width: 620px) {
+// shell (620px), not bar-1 (900): the form's own column is ~840px wide on a 1440
+// desk with the sidebar expanded, so a 900px threshold collapsed the list into a
+// wrapped row of chips at full size - measured, not guessed. The stacked layout
+// is for a genuinely narrow form, which is why the number is well below the
+// common case. (The value lives in $bnd-cq as `shell`.)
+@include bnd-container-until(bndshell, shell) {
   .bnd-shell {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1132,8 +1135,12 @@ html[data-theme] {
 }
 
 // Narrow panes: the desk stops pretending to be a desk and stacks, rather than
-// squeezing five regions into a column too thin to drop onto.
-@container (max-width: 34rem) {
+// squeezing five regions into a column too thin to drop onto. Named `bndshell`
+// explicitly (was an UNNAMED @container that resolved to whatever ancestor
+// happened to carry container-type — .bnd-shell-viewport in practice, but it
+// would silently retarget if an intermediate box ever gained one). Same
+// container, same value (`board` = 544px = the old 34rem).
+@include bnd-container-until(bndshell, board) {
 	.bnd-bd-desk {
 		grid-template-columns: 1fr;
 	}

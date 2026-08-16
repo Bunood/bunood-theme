@@ -18,6 +18,8 @@
 // Refined, where the panel itself stays Frappe's.
 // ============================================================================
 
+@use "../breakpoints" as *;
+
 // ── The bell badge (all styles except Original) ─────────────────────────────
 
 // Both bells anchor the badge: the themed one in the bars, and Frappe's own
@@ -514,7 +516,7 @@ html[data-theme] .bnd-inbox-btn-primary {
 }
 
 // Narrow: the detail pane stacks under the list instead of squeezing it.
-@media (max-width: 991px) {
+@include bnd-until(lg) {
   html[data-theme] .bnd-inbox-page {
     flex-direction: column;
   }

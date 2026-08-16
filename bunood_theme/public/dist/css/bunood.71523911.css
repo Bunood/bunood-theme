@@ -594,13 +594,13 @@ html[data-theme] .bnd-topbar {
   container-name: bndbar;
 }
 
-@container bndbar (max-width: 900px) {
+@container bndbar (width < 900px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
   html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
     display: none;
   }
 }
-@container bndbar (max-width: 700px) {
+@container bndbar (width < 700px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
     display: none;
   }
@@ -609,18 +609,18 @@ html[data-theme] .bnd-topbar {
     display: none;
   }
 }
-@container bndbar (max-width: 460px) {
+@container bndbar (width < 460px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
     display: none;
   }
 }
-@media (max-width: 991px) {
+@media (width < 992px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
   html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
     display: none;
   }
 }
-@media (max-width: 767px) {
+@media (width < 768px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
     display: none;
   }
@@ -632,7 +632,7 @@ html[data-theme] .bnd-topbar {
     inline-size: auto;
   }
 }
-@media (max-width: 480px) {
+@media (width < 576px) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
     display: none;
   }
@@ -877,7 +877,7 @@ html[data-theme] .bnd-zone[data-zone=end] {
   margin-inline-start: auto;
 }
 
-@media (min-width: 992px) {
+@media (width >= 992px) {
   html[data-bnd-crumbs] .navbar-breadcrumbs li {
     display: inline-flex;
     align-items: center;
@@ -1081,7 +1081,7 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill .indicator-pill {
   font-weight: var(--bnd-weight-medium);
 }
 
-@media (max-width: 991px) {
+@media (width < 992px) {
   html[data-bnd-crumbs][data-bnd-crumb-collapse] .navbar-breadcrumbs li {
     display: none;
   }
@@ -2555,7 +2555,7 @@ html[data-theme] .bnd-inbox-btn-primary {
   border-color: transparent;
 }
 
-@media (max-width: 991px) {
+@media (width < 992px) {
   html[data-theme] .bnd-inbox-page {
     flex-direction: column;
   }
@@ -3176,7 +3176,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   display: none;
 }
 
-@container bndshell (max-width: 620px) {
+@container bndshell (width < 620px) {
   .bnd-shell {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3402,7 +3402,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   background: transparent;
 }
 
-@container (max-width: 34rem) {
+@container bndshell (width < 544px) {
   .bnd-bd-desk {
     grid-template-columns: 1fr;
   }

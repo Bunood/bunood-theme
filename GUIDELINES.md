@@ -38,6 +38,7 @@ costs. Rules are grouped by whether a machine enforces them.
 | Every component has an identity, and every identity is real | build **fails** on a registry entry with no `part`, or a `data-bnd-part` the registry never defined | `build.mjs` + `registry.py` |
 | Settings fields are `<component>_<property>` | build **fails**, with a listed and shrinking exceptions set | `build.mjs` |
 | No literal duration reaches compiled CSS — the reduced-motion zero actually zeroes everything | build **fails** on a hardcoded `transition`/`animation` time outside `--bnd-dur-*` | `build.mjs` |
+| Every breakpoint is one of a named, Frappe-aligned set — no raw or off-scale literal | build **fails** on a `@media` width outside `$bnd-bp` or a `@container` width outside `$bnd-cq` (parsed from the SCSS, so guard and vocabulary cannot drift) | `build.mjs` + `_breakpoints.scss` |
 | Every control our JS constructs has a `:focus-visible` rule, directly or via a co-class | build **fails** on a `bnd-*` control class no compiled selector covers | `build.mjs` |
 | No two pieces of our chrome occupy the same pixels; no ragged rows; no unhittable control | layout-invariant helper, run across four layouts | `tests/smoke.mjs` |
 | Every token pair clears WCAG 2.2 AA, **for any brand seed a tenant can enter** | 1,656 pairs recomputed over 11 seeds × 2 modes + the no-brand-sheet fallback (item 22 added the sidebar pill/mark/stand-down rows); `_tokens.scss` asserted equal to `palette.derive()` | `tools/contrast_gate.py`, run in CI as `npm run contrast` |

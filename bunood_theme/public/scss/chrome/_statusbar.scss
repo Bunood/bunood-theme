@@ -24,6 +24,8 @@
 //   _layouts.scss reserves matching padding so content never hides under it.
 // ============================================================================
 
+@use "../breakpoints" as *;
+
 html[data-theme] .bnd-statusbar {
   position: fixed;
   inset-block-end: 0;
@@ -279,14 +281,14 @@ html[data-theme] .bnd-topbar {
   container-name: bndbar;
 }
 
-@container bndbar (max-width: 900px) {
+@include bnd-container-until(bndbar, bar-1) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
   html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
     display: none;
   }
 }
 
-@container bndbar (max-width: 700px) {
+@include bnd-container-until(bndbar, bar-2) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
     display: none;
   }
@@ -297,20 +299,27 @@ html[data-theme] .bnd-topbar {
   }
 }
 
-@container bndbar (max-width: 460px) {
+@include bnd-container-until(bndbar, bar-3) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
     display: none;
   }
 }
 
-@media (max-width: 991px) {
+// The viewport floor beneath the container queries above, for browsers without
+// container-query support — see the header note: a narrow viewport always
+// implies a narrow bar, so the two can only ever agree. Snapped to Frappe's own
+// scale (was 991/767/480, none a Frappe breakpoint): lg and md are behaviourally
+// identical at integer widths, and rank 4's floor moves 480 -> sm(576), which
+// only a no-container-query browser ever sees (the bar-3 container query owns it
+// everywhere else).
+@include bnd-until(lg) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="1"],
   html[data-theme] .bnd-statusbar [data-bnd-prio="2"] {
     display: none;
   }
 }
 
-@media (max-width: 767px) {
+@include bnd-until(md) {
   html[data-theme] .bnd-statusbar [data-bnd-prio="3"] {
     display: none;
   }
@@ -327,7 +336,7 @@ html[data-theme] .bnd-topbar {
   }
 }
 
-@media (max-width: 480px) {
+@include bnd-until(sm) {
   // Last stand: only what is wrong survives, and the connection dot.
   html[data-theme] .bnd-statusbar [data-bnd-prio="4"] {
     display: none;

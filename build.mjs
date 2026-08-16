@@ -35,6 +35,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -207,6 +208,76 @@ function assertMotionPrimitive(css, name) {
 				"nothing else — a literal time value here keeps animating under " +
 				"prefers-reduced-motion: reduce. Use var(--bnd-dur-fast), var(--bnd-dur-base) " +
 				"or var(--bnd-dur-slow)."
+		);
+	}
+}
+
+/**
+ * The sanctioned breakpoint values, PARSED from `_breakpoints.scss` — never
+ * restated here, the same one-source-of-truth contract `tools/contrast_gate.py`
+ * keeps with `_tokens.scss`. Returns two sets of px numbers: viewport values a
+ * `@media` may carry, and container values a `@container` may carry.
+ */
+function parseBreakpointVocabulary() {
+	// Strip `//` line comments FIRST: a value's comment may itself contain a
+	// `)` (e.g. "drop ranks 1-2 (freshness, density)"), which would end the
+	// non-greedy map capture early and silently under-read the scale.
+	const text = readFileSync(join(SCSS, "_breakpoints.scss"), "utf8").replace(/\/\/[^\n]*/g, "");
+	const grab = (mapName) => {
+		const m = text.match(new RegExp(`\\$${mapName}:\\s*\\(([\\s\\S]*?)\\)`));
+		if (!m) throw new Error(`_breakpoints.scss: could not find the $${mapName} map`);
+		const px = new Set();
+		for (const v of m[1].matchAll(/(\d+(?:\.\d+)?)(px|rem)/g)) {
+			px.add(v[2] === "rem" ? Number(v[1]) * 16 : Number(v[1]));
+		}
+		if (!px.size) throw new Error(`_breakpoints.scss: $${mapName} has no px/rem values`);
+		return px;
+	};
+	return { viewport: grab("bnd-bp"), container: grab("bnd-cq") };
+}
+const BREAKPOINTS = parseBreakpointVocabulary();
+
+/**
+ * Breakpoint-vocabulary guard — no raw or off-scale breakpoint may reach
+ * compiled CSS. The one dimension GUIDELINES §1.3's "no raw px in a rule" never
+ * covered: breakpoints were nine literals in two ad-hoc schemes with no guard,
+ * and the cost was a PHANTOM — a `max-width: 480px` and a "~480px" claim in
+ * three places, none derived from anything, when Frappe's real mobile boundary
+ * is 768 (item 24, measured 2026-08-14).
+ *
+ * A `@media` width must be one of `$bnd-bp` (the viewport scale = Frappe's own);
+ * a `@container` width must be one of `$bnd-cq` (the measured box scale). The
+ * two are checked SEPARATELY, structurally enforcing `_breakpoints.scss`'s "do
+ * not merge them" — a `@media (width < 900px)` fails even though 900 is a valid
+ * container value. At-rules with no width (`print`, `prefers-*`) carry no
+ * candidate and are ignored. Values come from `_breakpoints.scss`, so the guard
+ * cannot drift from the vocabulary it enforces. Checked on COMPILED css, like
+ * the RTL and motion guards, so nothing slips through the mixins or an import.
+ */
+function assertBreakpointVocabulary(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [];
+	for (const at of stripped.matchAll(/@(media|container)\b([^{]*)\{/g)) {
+		const kind = at[1];
+		const prelude = at[2];
+		const allowed = kind === "container" ? BREAKPOINTS.container : BREAKPOINTS.viewport;
+		for (const val of prelude.matchAll(/(\d+(?:\.\d+)?)(px|rem)/g)) {
+			const px = val[2] === "rem" ? Number(val[1]) * 16 : Number(val[1]);
+			if (!allowed.has(px)) {
+				offenders.push(`@${kind}(${prelude.trim()}) → ${val[0]}`);
+			}
+		}
+	}
+	if (offenders.length) {
+		const bp = [...BREAKPOINTS.viewport].sort((a, b) => a - b).join(", ");
+		const cq = [...BREAKPOINTS.container].sort((a, b) => a - b).join(", ");
+		throw new Error(
+			`Breakpoint guard: ${name} carries a breakpoint outside the vocabulary:\n  ` +
+				[...new Set(offenders)].join("\n  ") +
+				`\nA @media width must be one of $bnd-bp (${bp}); a @container width one of ` +
+				`$bnd-cq (${cq}). Use the mixins in _breakpoints.scss (bnd-until, bnd-from, ` +
+				`bnd-container-until) — never a raw literal — and if a new value is genuinely ` +
+				`needed, add it to the map with a comment saying why.`
 		);
 	}
 }
@@ -482,6 +553,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
+	assertBreakpointVocabulary(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;
