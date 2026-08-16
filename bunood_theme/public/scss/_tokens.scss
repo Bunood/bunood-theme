@@ -247,6 +247,23 @@
   --bnd-cat-tint: 14%;
   --bnd-cat-wash: 7%;
 
+  // ── Chart series (item 25) ────────────────────────────────────────────────
+  // A DIFFERENT family from --bnd-cat-* on purpose: a chart series index is an
+  // index cycle, which the categorical hues forbid. Paul Tol's "muted" scheme,
+  // colour-vision-safe, lightness-fitted here to clear 3:1 on a white chart card.
+  // DERIVED by palette.series_ramp — literal hex so frappe-charts accepts them
+  // (it rejects var()/color-mix strings); check_defaults_agree holds this block
+  // to the derivation. Fed to charts from JS by getComputedStyle, so they are
+  // authored as plain 6-digit hex and nothing else.
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #332288;
+  --bnd-series-3: #9a8e53;
+  --bnd-series-4: #117733;
+  --bnd-series-5: #6394ad;
+  --bnd-series-6: #882255;
+  --bnd-series-7: #3f9d8d;
+  --bnd-series-other: #808080; // the overflow "Rest" slice — a quiet neutral
+
   // ── Status — RESERVED ─────────────────────────────────────────────────────
   // Never reused as a categorical slot, and never the only signal: always ship
   // an icon and a label alongside, so state survives colour-blindness and
@@ -309,6 +326,17 @@ html[data-theme="dark"] {
   --bnd-cat-tint: 20%;
   --bnd-cat-wash: 11%;
 
+  // Chart series (item 25) — Tol muted re-stepped LIGHTER for the dark card,
+  // same hue identities as light. Fitted to clear 3:1 on the lightest dark tile.
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+
   --bnd-good: #4ac07d;
   --bnd-warn: #e0a33a;
   --bnd-serious: #f08a5d;
@@ -343,6 +371,20 @@ html[data-theme="dark"] {
     --bnd-on-critical: #16181d;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);
+
+    // Chart series must match the dark block here, not fall through to :root's
+    // light values. Unlike everything else in this block, these are read by JS
+    // (getComputedStyle in the chart hook) — and a chart can construct while the
+    // theme is still the unresolved "automatic", so a dark-OS user would get the
+    // LIGHT ramp on dark cards. assertAutomaticParity in build.mjs guards it.
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
   }
 }
 

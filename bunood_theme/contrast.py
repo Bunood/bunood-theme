@@ -234,6 +234,183 @@ def ratio(a, b) -> float:
     return (hi + 0.05) / (lo + 0.05)
 
 
+# ── Categorical separation: CIELAB, CIEDE2000, colour-vision simulation ───────
+#
+# WHY THIS LIVES BESIDE THE WCAG MATHS BUT IS NOT WCAG
+#     A chart series is two problems the ratio above cannot express. First, each
+#     mark must be VISIBLE against the plot (1.4.11, 3:1) — `ratio` handles that.
+#     Second, adjacent marks must be TELLABLE APART FROM EACH OTHER, including by
+#     a viewer with colour-vision deficiency — and that is not a contrast ratio at
+#     all: two hues of identical luminance (ratio 1.00 between them) can be
+#     perfectly distinct, or can collapse to the same colour for a dichromat. The
+#     right measure is perceptual colour DIFFERENCE under a CVD simulation, which
+#     is what `delta_e` + `simulate_cvd` compute. `palette.series_ramp` consumes
+#     them to fit the chart palette; `tools/contrast_gate.py` consumes them to
+#     gate it. One derivation, two consumers — the same rule as everything above.
+#
+# WHY THESE MODELS
+#     CIELAB + CIEDE2000 (CIE 142-2001 / ISO/CIE 11664-6) is the standard
+#     perceptual difference metric — not a draft, which is the same bar the module
+#     docstring holds APCA to. This CIEDE2000 is verified against all 34
+#     Sharma-Wu-Dalal (2005) reference pairs in the suite. The CVD simulation is
+#     Machado, Oliveira & Fernandes (2009) at severity 1.0 — the full dichromat,
+#     the conservative worst case for "can these be told apart" — applied in
+#     LINEAR RGB. Machado is the modern standard and, unlike the older Viénot
+#     single-matrix form, does not collapse designed-CVD-safe palettes (IBM's
+#     five-colour set) to indistinguishable, which is how the model was chosen:
+#     it ranks palettes known-safe above palettes known-unsafe, with a clear gap.
+
+
+def _delinear(c: float) -> float:
+    """Linear-light 0-1 back to sRGB 0-255. The inverse of :func:`_linear`."""
+    c = 0.0 if c < 0 else (1.0 if c > 1 else c)
+    s = 12.92 * c if c <= 0.0031308 else 1.055 * (c ** (1 / 2.4)) - 0.055
+    return s * 255
+
+
+# D65 reference white, 2-degree observer.
+_XN, _YN, _ZN = 0.95047, 1.00000, 1.08883
+
+
+def to_lab(color):
+    """sRGB ``(r, g, b[, a])`` 0-255 to CIELAB ``(L*, a*, b*)`` under D65."""
+    r, g, b = (_linear(c) for c in color[:3])
+    x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
+    y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+    z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
+
+    def f(t):
+        return t ** (1 / 3) if t > 216 / 24389 else (841 / 108) * t + 4 / 29
+
+    fx, fy, fz = f(x / _XN), f(y / _YN), f(z / _ZN)
+    return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
+
+
+def delta_e(lab1, lab2) -> float:
+    """CIEDE2000 colour difference between two CIELAB triples (kL=kC=kH=1).
+
+    Faithful to the Sharma-Wu-Dalal (2005) reference formulation; the suite pins
+    it to all 34 of their published test pairs.
+    """
+    import math
+
+    L1, a1, b1 = lab1
+    L2, a2, b2 = lab2
+    C1 = math.hypot(a1, b1)
+    C2 = math.hypot(a2, b2)
+    Cbar = (C1 + C2) / 2
+    G = 0.5 * (1 - math.sqrt(Cbar ** 7 / (Cbar ** 7 + 25 ** 7))) if Cbar > 0 else 0.5
+    a1p, a2p = (1 + G) * a1, (1 + G) * a2
+    C1p, C2p = math.hypot(a1p, b1), math.hypot(a2p, b2)
+
+    def hue(ap, bp):
+        if ap == 0 and bp == 0:
+            return 0.0
+        h = math.atan2(bp, ap)
+        return h + 2 * math.pi if h < 0 else h
+
+    h1p, h2p = hue(a1p, b1), hue(a2p, b2)
+    dLp = L2 - L1
+    dCp = C2p - C1p
+    if C1p * C2p == 0:
+        dhp = 0.0
+    else:
+        dhp = h2p - h1p
+        if dhp > math.pi:
+            dhp -= 2 * math.pi
+        elif dhp < -math.pi:
+            dhp += 2 * math.pi
+    dHp = 2 * math.sqrt(C1p * C2p) * math.sin(dhp / 2)
+    Lbp = (L1 + L2) / 2
+    Cbp = (C1p + C2p) / 2
+    if C1p * C2p == 0:
+        hbp = h1p + h2p
+    elif abs(h1p - h2p) <= math.pi:
+        hbp = (h1p + h2p) / 2
+    elif (h1p + h2p) < 2 * math.pi:
+        hbp = (h1p + h2p + 2 * math.pi) / 2
+    else:
+        hbp = (h1p + h2p - 2 * math.pi) / 2
+    hd = math.degrees(hbp)
+    T = (
+        1
+        - 0.17 * math.cos(math.radians(hd - 30))
+        + 0.24 * math.cos(math.radians(2 * hd))
+        + 0.32 * math.cos(math.radians(3 * hd + 6))
+        - 0.20 * math.cos(math.radians(4 * hd - 63))
+    )
+    dtheta = math.radians(30) * math.exp(-(((hd - 275) / 25) ** 2))
+    Rc = 2 * math.sqrt(Cbp ** 7 / (Cbp ** 7 + 25 ** 7)) if Cbp > 0 else 0.0
+    Sl = 1 + (0.015 * (Lbp - 50) ** 2) / math.sqrt(20 + (Lbp - 50) ** 2)
+    Sc = 1 + 0.045 * Cbp
+    Sh = 1 + 0.015 * Cbp * T
+    Rt = -math.sin(2 * dtheta) * Rc
+    return math.sqrt(
+        (dLp / Sl) ** 2
+        + (dCp / Sc) ** 2
+        + (dHp / Sh) ** 2
+        + Rt * (dCp / Sc) * (dHp / Sh)
+    )
+
+
+#: Machado 2009 severity-1.0 dichromat matrices, applied in LINEAR RGB.
+_CVD_MATRICES = {
+    "protan": (
+        (0.152286, 1.052583, -0.204868),
+        (0.114503, 0.786281, 0.099216),
+        (-0.003882, -0.048116, 1.051998),
+    ),
+    "deutan": (
+        (0.367322, 0.860646, -0.227968),
+        (0.280085, 0.672501, 0.047413),
+        (-0.011820, 0.042940, 0.968881),
+    ),
+    "tritan": (
+        (1.255528, -0.076749, -0.178779),
+        (-0.078411, 0.930809, 0.147602),
+        (0.004733, 0.691367, 0.303900),
+    ),
+}
+
+#: The vision models a categorical palette is judged under. ``normal`` is the
+#: identity. The floor is enforced over the common cases; ``tritan`` is advisory.
+CVD_COMMON = ("normal", "protan", "deutan")
+CVD_ALL = ("normal", "protan", "deutan", "tritan")
+
+
+def simulate_cvd(color, kind: str):
+    """Simulate a dichromat's perception of an sRGB colour (Machado 2009, sev 1.0).
+
+    ``kind`` is ``"normal"`` (identity), ``"protan"``, ``"deutan"`` or
+    ``"tritan"``. Returns sRGB ``(r, g, b)`` 0-255.
+    """
+    if kind == "normal":
+        return tuple(color[:3])
+    m = _CVD_MATRICES[kind]
+    r, g, b = (_linear(c) for c in color[:3])
+    return tuple(_delinear(m[i][0] * r + m[i][1] * g + m[i][2] * b) for i in range(3))
+
+
+def separation(colors, kinds=CVD_COMMON) -> float:
+    """Worst pairwise CIEDE2000 across ``colors`` under every vision model in ``kinds``.
+
+    The single number a categorical palette lives or dies by: the closest any two
+    marks ever come, for any viewer. Higher is better.
+    """
+    labs = {
+        k: [to_lab(simulate_cvd(parse_color(c) if isinstance(c, str) else c, k)) for c in colors]
+        for k in kinds
+    }
+    worst = float("inf")
+    for i in range(len(colors)):
+        for j in range(i + 1, len(colors)):
+            for k in kinds:
+                d = delta_e(labs[k][i], labs[k][j])
+                if d < worst:
+                    worst = d
+    return worst
+
+
 # ── Derivation ───────────────────────────────────────────────────────────────
 #
 # The functions below are the whole answer to "a white-label theme must refuse

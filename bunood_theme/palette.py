@@ -47,6 +47,7 @@ from bunood_theme.contrast import (
     AA_TEXT,
     fill_pair,
     fit_ink,
+    luminance,
     parse_color,
     to_hex,
 )
@@ -136,6 +137,69 @@ def mix(seed: str, percent: float, base: str) -> str:
     return to_hex(tuple(a[i] * w + b[i] * (1 - w) for i in range(3)))
 
 
+#: The chart SERIES palette — a categorical ramp, and deliberately NOT the
+#: ``--bnd-cat-*`` hues.
+#:
+#: WHY A SEPARATE FAMILY. The categorical hues carry a hard contract
+#: (``_tokens.scss``): assign once per entity, NEVER cycle by index — a module
+#: keeps its hue however the list is sorted or filtered. A chart series index is
+#: exactly an index cycle: filter one series out and every later series would
+#: shift hue. Reusing ``--bnd-cat-*`` would break the one rule they exist to keep.
+#: Measured, they do not qualify as a series ramp anyway — three of the seven fail
+#: 3:1 on a white chart card, and their worst-pair colour-vision separation is
+#: ~4.6, below the floor the gate enforces on this ramp.
+#:
+#: WHY THESE HUES. Paul Tol's "muted" qualitative scheme — designed for data
+#: visualisation and published colour-vision-safe. We keep his hue relationships,
+#: which are the CVD-safe part, and fit only LIGHTNESS per mode (below). Chosen
+#: over a from-scratch optimiser because a proven, harmonious scheme is a better
+#: default than a set of numbers no designer signed off, and it survives the
+#: separation gate with margin in both modes.
+#:
+#: BRAND-INDEPENDENT ON PURPOSE. Unlike the inks, this does not move with the
+#: seed: series 1 is the same colour on every site, so screenshots, docs and
+#: muscle memory transfer. The fit therefore targets the worst-case chart surface
+#: across ALL seeds — see :func:`_chart_binding_bg`.
+SERIES_HUES = ["#CC6677", "#332288", "#DDCC77", "#117733", "#88CCEE", "#882255", "#44AA99"]
+
+#: The surfaces a chart mark actually sits on: the tile (``--bnd-surface``), a
+#: raised tile (Soft Tiles → ``--bnd-raised``) or the canvas (Open Board's
+#: transparent tiles → ``--bnd-page``). Never the hover/active states.
+_CHART_SURFACE_TOKENS = ("--bnd-page", "--bnd-surface", "--bnd-raised")
+
+
+def _chart_binding_bg(mode: str) -> str:
+    """The single hardest chart surface for a mark's 3:1, across every seed.
+
+    A light mark is dark-on-light, so the binding surface is the DARKEST a chart
+    sits on — which occurs at the darkest possible seed; clear 3:1 there and every
+    lighter surface passes too. A dark mark is light-on-dark, so it is the
+    LIGHTEST, at the brightest seed. Computed straight from the surface mix
+    formulas at the extreme seed, because :func:`series_ramp` is called from
+    :func:`derive` and must not recurse into it.
+    """
+    ramp = SURFACES_LIGHT if mode == "light" else SURFACES_DARK
+    extreme = "#000000" if mode == "light" else "#ffffff"
+    cands = [mix(extreme, pct, base) for tok, pct, base in ramp if tok in _CHART_SURFACE_TOKENS]
+    key = lambda hx: luminance(parse_color(hx))
+    return min(cands, key=key) if mode == "light" else max(cands, key=key)
+
+
+def series_ramp(mode: str) -> dict[str, str]:
+    """The chart series palette for one mode: ``--bnd-series-1..7`` plus ``-other``.
+
+    Each hue is fit for 3:1 (1.4.11) against the worst-case chart surface; the
+    ``-other`` overflow/"Rest" slot is a fitted neutral grey, distinct from the
+    seven by having no chroma at all. Brand-independent — see :data:`SERIES_HUES`.
+    """
+    bg = _chart_binding_bg(mode)
+    out: dict[str, str] = {}
+    for i, hue in enumerate(SERIES_HUES, 1):
+        out[f"--bnd-series-{i}"], _ = fit_ink(hue, [bg], target=AA_NON_TEXT)
+    out["--bnd-series-other"], _ = fit_ink("#808080", [bg], target=AA_NON_TEXT)
+    return out
+
+
 def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     """Every seed-dependent token for one mode.
 
@@ -202,6 +266,11 @@ def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     # fill would need to be seen. Passing it again would be a second, weaker
     # constraint that can only be redundant.
     _, out["--bnd-on-critical"], _ = fill_pair(out["--bnd-critical"])
+
+    # The chart series palette. Brand-independent, so its values are identical for
+    # every seed — which is exactly why one static block in `_tokens.scss` can
+    # satisfy `check_defaults_agree` for all of them.
+    out.update(series_ramp(mode))
     return out
 
 

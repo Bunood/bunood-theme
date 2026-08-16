@@ -39,11 +39,28 @@ from bunood_theme import palette  # noqa: E402
 from bunood_theme.contrast import (  # noqa: E402
     AA_NON_TEXT,
     AA_TEXT,
+    CVD_ALL,
+    CVD_COMMON,
     composite,
     parse_color,
     ratio,
+    separation,
     to_hex,
 )
+
+#: Chart series separation floors (item 25). A worst-pair CIEDE2000 under
+#: colour-vision simulation, NOT a WCAG ratio — see contrast.separation.
+#:
+#: The floor is enforced over the COMMON vision models (normal + protan + deutan),
+#: which cover ~99.99% of people including the two common dichromacies. Tritan is
+#: held to a lower ADVISORY floor: tritanopia is ~0.01% of the population and its
+#: simulation is the least validated, so penalising an otherwise-excellent palette
+#: on it would be false precision. Calibrated against published palettes under this
+#: exact model (Machado-linear + CIEDE2000): Okabe-Ito 11.6 and IBM 9.4 (both
+#: designed CVD-safe) clear it; frappe-charts' own default 4.1 and Tableau-10 0.7
+#: do not — a clean gap the floor sits inside.
+SERIES_FLOOR_COMMON = 6.0
+SERIES_FLOOR_TRITAN = 4.5
 
 #: The shipped accent. Held constant while the brand seed varies: the two are
 #: independent settings, and varying both would multiply the matrix without
@@ -310,6 +327,28 @@ def pairs():
         Pair("var(--bnd-ink-muted)", TRACK_BG, AA_TEXT,
              "form tab, inactive label on the segment track"),
     ]
+
+    # ── Chart series marks (item 25) ──────────────────────────────────────────
+    # A series mark is a graphic that carries meaning — 1.4.11's 3:1, NOT 4.5:1
+    # text. The two backgrounds are the only surfaces a chart lands on: the tile
+    # (--bnd-surface) and, for a transparent-tile style, the canvas (--bnd-page).
+    # The ramp is brand-independent, so these hold for every seed at once; the
+    # separation FLOOR between marks is a different measure entirely and is
+    # checked by check_series_separation, not here (a ratio cannot express it).
+    for n in range(1, 8):
+        for bg in ("var(--bnd-surface)", "var(--bnd-page)"):
+            out.append(Pair(f"var(--bnd-series-{n})", bg, AA_NON_TEXT,
+                            f"chart series {n} mark"))
+
+    # ── Measured, deliberately not enforced: the vendor's overflow slice ──────
+    # frappe-charts hard-writes colors[maxSlices-1] = 'grey' (#A6B1B9) for the
+    # "Rest" slice on Pie/Donut (AggregationChart.js), overwriting whatever we
+    # supplied. It is not reachable from our colours array, so we cannot fix it
+    # here — only replace the whole widget's palette, which we do, but the vendor
+    # re-imposes this one slot. Published with its number rather than left silent:
+    # ~2.2:1 on a white card, a live 1.4.11 shortfall we do not control.
+    out.append(Pair("#A6B1B9", "var(--bnd-surface)", None,
+                    "frappe-charts overflow 'Rest' slice; not reachable from our array"))
     return out
 
 
@@ -508,6 +547,96 @@ def check_defaults_agree(light: dict, dark: dict) -> list[str]:
     return problems
 
 
+#: CIEDE2000 reference pairs from Sharma, Wu & Dalal (2005), Table 1 — the data
+#: set every conformant implementation is checked against, chosen to exercise the
+#: hue-quadrant and arctangent edge cases. ``(Lab1, Lab2, expected dE00)``.
+_SHARMA_2005 = [
+    ((50, 2.6772, -79.7751), (50, 0, -82.7485), 2.0425),
+    ((50, 3.1571, -77.2803), (50, 0, -82.7485), 2.8615),
+    ((50, 2.8361, -74.0200), (50, 0, -82.7485), 3.4412),
+    ((50, -1.3802, -84.2814), (50, 0, -82.7485), 1.0000),
+    ((50, -1.1848, -84.8006), (50, 0, -82.7485), 1.0000),
+    ((50, -0.9009, -85.5211), (50, 0, -82.7485), 1.0000),
+    ((50, 0, 0), (50, -1, 2), 2.3669),
+    ((50, -1, 2), (50, 0, 0), 2.3669),
+    # Pairs 9 and 10 differ only in b2's sign-crossing (0.0009 vs 0.0011) and
+    # give DIFFERENT dE00 by design — Sharma's test that the hue quadrant flips.
+    ((50, 2.49, -0.001), (50, -2.49, 0.0009), 7.1792),
+    ((50, 2.49, -0.001), (50, -2.49, 0.0011), 7.2195),
+    ((50, 2.5, 0), (50, 0, -2.5), 4.3065),  # opposite-hue: 4.3065, not 4.8045
+    ((50, 2.5, 0), (73, 25, -18), 27.1492),
+    ((50, 2.5, 0), (61, -5, 29), 22.8977),
+    ((50, 2.5, 0), (56, -27, -3), 31.9030),
+    ((50, 2.5, 0), (58, 24, 15), 19.4535),
+    ((50, 2.5, 0), (50, 3.1736, 0.5854), 1.0000),
+    ((50, 2.5, 0), (50, 3.2972, 0), 1.0000),
+    ((50, 2.5, 0), (50, 1.8634, 0.5757), 1.0000),
+    ((50, 2.5, 0), (50, 3.2592, 0.3350), 1.0000),
+    ((60.2574, -34.0099, 36.2677), (60.4626, -34.1751, 39.4387), 1.2644),
+    ((63.0109, -31.0961, -5.8663), (62.8187, -29.7946, -4.0864), 1.2630),
+    ((61.2901, 3.7196, -5.3901), (61.4292, 2.2480, -4.9620), 1.8731),
+    ((35.0831, -44.1164, 3.7933), (35.0232, -40.0716, 1.5901), 1.8645),
+    ((22.7233, 20.0904, -46.6940), (23.0331, 14.9730, -42.5619), 2.0373),
+    ((36.4612, 47.8580, 18.3852), (36.2715, 50.5065, 21.2231), 1.4146),
+    ((90.8027, -2.0831, 1.4410), (91.1528, -1.6435, 0.0447), 1.4441),
+    ((90.9257, -0.5406, -0.9208), (88.6381, -0.8985, -0.7239), 1.5381),
+    ((6.7747, -0.2908, -2.4247), (5.8714, -0.0985, -2.2286), 0.6377),
+    ((2.0776, 0.0795, -1.1350), (0.9033, -0.0636, -0.5514), 0.9082),
+]
+
+
+def check_deltae_reference() -> list[str]:
+    """Pin ``contrast.delta_e`` to the Sharma-Wu-Dalal reference values.
+
+    The chart-series floor is only as trustworthy as the difference metric under
+    it, so the metric proves itself against the published data every run rather
+    than on trust. Runs inside ``npm run contrast``, so CI enforces it.
+    """
+    from bunood_theme.contrast import delta_e
+
+    problems = []
+    for lab1, lab2, want in _SHARMA_2005:
+        got = delta_e(lab1, lab2)
+        if abs(got - want) > 1e-3:
+            problems.append(f"CIEDE2000({lab1}, {lab2}) = {got:.4f}, reference {want:.4f}")
+    return problems
+
+
+def check_series_separation(light: dict, dark: dict) -> list[str]:
+    """The chart series marks must be tellable apart from EACH OTHER, including
+    under colour-vision deficiency — a floor the pair table cannot express.
+
+    A separate function, sharing only the colour primitives, for the reason
+    `check_measured` is separate: this measures a worst-pairwise DIFFERENCE across
+    a set, not a single ink-on-background ratio, and folding it into `Pair` would
+    widen a shape whose widening already broke `check_computed` once.
+
+    Reads the seven series hexes straight from each mode's parsed block, so it
+    gates exactly what ships. The "other" overflow slot is excluded on purpose: it
+    is the un-highlighted remainder, not a category that has to stand apart.
+    """
+    problems = []
+    for mode, block in (("light", light), ("dark", dark)):
+        try:
+            hues = [block[f"--bnd-series-{n}"] for n in range(1, 8)]
+        except KeyError as exc:
+            problems.append(f"{mode}: _tokens.scss is missing series token {exc}")
+            continue
+        common = separation(hues, CVD_COMMON)
+        allk = separation(hues, CVD_ALL)
+        if common < SERIES_FLOOR_COMMON:
+            problems.append(
+                f"{mode}: series separation {common:.2f} < {SERIES_FLOOR_COMMON} "
+                f"(normal+protan+deutan) — two marks confuse for a common CVD viewer"
+            )
+        if allk < SERIES_FLOOR_TRITAN:
+            problems.append(
+                f"{mode}: series separation {allk:.2f} < {SERIES_FLOOR_TRITAN} "
+                f"(incl. tritan, advisory)"
+            )
+    return problems
+
+
 def check_computed() -> int:
     """Measure the pair table against token values READ OUT OF A BROWSER.
 
@@ -688,7 +817,21 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
-    if failures or drift:
+    ref = check_deltae_reference()
+    if ref:
+        print(f"CIEDE2000 disagrees with the Sharma-Wu-Dalal reference ({len(ref)}):")
+        for r in ref:
+            print(f"   {r}")
+        print()
+
+    sep = check_series_separation(light, dark)
+    if sep:
+        print("chart series separation is below the floor:")
+        for s in sep:
+            print(f"   {s}")
+        print()
+
+    if failures or drift or sep or ref:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
@@ -701,7 +844,8 @@ def main() -> int:
         return 1
 
     print(f"All {total} measured pairs pass: {len(seeds)} seeds plus the no-brand-sheet "
-          "fallback, both modes. _tokens.scss agrees with palette.derive.")
+          "fallback, both modes. _tokens.scss agrees with palette.derive, and the chart "
+          "series clears its separation floor.")
     return 0
 
 

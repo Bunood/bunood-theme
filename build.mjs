@@ -283,6 +283,55 @@ function assertBreakpointVocabulary(css, name) {
 }
 
 /**
+ * Automatic-theme parity for the chart series (item 25).
+ *
+ * WHY ONLY THE SERIES FAMILY, AND WHY IT MATTERS
+ *   The `html[data-theme="automatic"]` block is a deliberately CURATED subset of
+ *   the dark block — it overrides only what would flash before JS resolves the
+ *   theme, and everything else falls through to `:root` (light) by design. That is
+ *   fine for CSS-painted tokens. The chart series is the exception: it is the one
+ *   family read by RUNTIME JS (`getComputedStyle` in the chart colour hook), and a
+ *   chart can construct while the theme is still the unresolved "automatic". Without
+ *   these tokens in the automatic block, a dark-OS user's charts would be handed the
+ *   LIGHT ramp on dark cards. So every `--bnd-series-*` the dark block declares must
+ *   also be declared, identically, in the automatic block. Parsed from
+ *   `_tokens.scss` source, so it cannot drift from the values it guards.
+ */
+function assertAutomaticParity() {
+	const src = readFileSync(join(SCSS, "_tokens.scss"), "utf8").replace(/\/\/[^\n]*/g, "");
+	const blockAfter = (marker) => {
+		const at = src.indexOf(marker);
+		if (at === -1) throw new Error(`_tokens.scss: could not find \`${marker}\``);
+		let i = src.indexOf("{", at), depth = 0, start = i;
+		for (; i < src.length; i++) {
+			if (src[i] === "{") depth++;
+			else if (src[i] === "}" && --depth === 0) break;
+		}
+		return src.slice(start + 1, i);
+	};
+	const series = (body) => {
+		const out = {};
+		for (const m of body.matchAll(/(--bnd-series-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+		return out;
+	};
+	const dark = series(blockAfter('html[data-theme="dark"]'));
+	const auto = series(blockAfter('html[data-theme="automatic"]'));
+	const problems = [];
+	for (const [tok, val] of Object.entries(dark)) {
+		if (!(tok in auto)) problems.push(`automatic block is missing ${tok} (dark has ${val})`);
+		else if (auto[tok] !== val) problems.push(`${tok}: dark is ${val}, automatic is ${auto[tok]}`);
+	}
+	if (problems.length) {
+		throw new Error(
+			"Automatic-parity guard: the chart series must match the dark block in the " +
+				"`@media (prefers-color-scheme: dark) html[data-theme=\"automatic\"]` block, " +
+				"because JS reads these tokens before the theme resolves:\n  " +
+				problems.join("\n  ")
+		);
+	}
+}
+
+/**
  * Field-naming guard — fail the build if a Theme Settings field for a component
  * is not named `<component>_<property>`.
  *
@@ -673,6 +722,9 @@ async function main() {
 	// roadmap item asked for: coverage is a property the build maintains, not
 	// a number that rots in a document.
 	assertTranslationCoverage();
+	// Item 25. The chart series tokens JS reads must be mode-correct under the
+	// unresolved "automatic" theme, or a dark-OS user gets the light ramp.
+	assertAutomaticParity();
 
 	const built = [];
 	for (const entry of ENTRIES) {
