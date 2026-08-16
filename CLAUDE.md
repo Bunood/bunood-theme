@@ -39,7 +39,10 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - **Frappe variables only inside `[data-theme]`.** A neutral in bare `:root` is the
   light-leaks-into-dark bug.
 - **`!important`** only in the two sanctioned places.
-- **Never touch Frappe-generated DOM.** Colour it through tokens.
+- **Never touch Frappe-generated DOM.** Colour it through tokens. The ONE sanctioned
+  exception (item 24): `repair_viewport_meta` in `bunood.js` rewrites the `<head>` viewport
+  `<meta>` to unlock pinch-zoom — a meta tag is neither layout nor styling, there is no
+  hook to reach it, and forking `desk.html` is retired (ARCHITECTURE §4).
 - **Hide a native affordance only from `data-bnd-own`**, stamped after our
   replacement is in the DOM — never from `data-bnd-layout`/`data-bnd-search`, which
   are declarations that can outrun reality. Build-enforced.

@@ -11,4 +11,4 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 """
 
 THEME_CSS = "/assets/bunood_theme/dist/css/bunood.99cdfe9b.css"
-THEME_JS = "/assets/bunood_theme/dist/js/bunood.cc6ac1cd.js"
+THEME_JS = "/assets/bunood_theme/dist/js/bunood.4004edae.js"

@@ -469,6 +469,31 @@
 	apply_viewport_mode();
 
 	/**
+	 * Restore pinch-zoom (item 24). Frappe's desk.html ships a viewport meta that
+	 * LOCKS zoom — `maximum-scale=1.0, minimum-scale=1.0, user-scalable=no` — which
+	 * fails WCAG 2.2 AA 1.4.4 (and axe's meta-viewport rule), and on a phone means
+	 * a low-vision user cannot enlarge the desk at all. We keep the sizing
+	 * (width=device-width, initial-scale) and drop the locks.
+	 *
+	 * THE ONE SANCTIONED TOUCH OF FRAPPE-GENERATED DOM (CLAUDE.md, GUIDELINES §1.3).
+	 * That rule exists to stop us fighting Frappe's LAYOUT through its class names
+	 * (ARCHITECTURE §2); a <head> meta is neither layout nor styling. There is no
+	 * hook to reach it — it is a literal in the template, and update_website_context
+	 * mutates the context dict, not a tag already rendered — and forking desk.html
+	 * is what §4 retired. So JS is the only route that does not fork the template,
+	 * and this is the exception, recorded at both ends. Idempotent and guarded, so
+	 * it no-ops once Frappe (or an upstream fix) stops shipping the locks.
+	 */
+	function repair_viewport_meta() {
+		const meta = document.querySelector('meta[name="viewport"]');
+		if (!meta) return;
+		const content = meta.getAttribute("content") || "";
+		if (!/user-scalable\s*=\s*no|maximum-scale|minimum-scale/.test(content)) return;
+		meta.setAttribute("content", "width=device-width, initial-scale=1.0, minimal-ui");
+	}
+	repair_viewport_meta();
+
+	/**
 	 * Give the side pane back when switching it off would leave a user stranded.
 	 *
 	 * THE RULE, which is the same one `mount_placed_tenants` applies to tenants:
