@@ -167,6 +167,175 @@
 	})();
 
 	// ════════════════════════════════════════════════════════════════════════
+	// Chart series palette (item 25)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// WHAT AND WHY. frappe-charts takes series colours as a JS array and writes
+	// them as inline SVG styles — unreachable from CSS — and when a chart supplies
+	// none it falls back to the vendor's own palette, which no gate has measured
+	// (its default first colour is 2.4:1 on a white card). So the colours come
+	// from us instead: a contrast-validated, colour-vision-safe ramp derived in
+	// palette.series_ramp and shipped as the --bnd-series-* tokens.
+	//
+	// HOW. Every chart in v16 is built through ONE funnel, `new frappe.Chart(...)`
+	// (frappe/public/js/frappe/ui/chart.js). We wrap that constructor — reaching
+	// all seven call sites, where wrapping the widget method would reach only two.
+	// A plain function, NOT `class extends`: frappe-charts' Chart constructor
+	// RETURNS a different object (getChartByType), so a subclass's `this` is
+	// silently rebound and its prototype never joins the chain. Reassigning a
+	// function binding, before anything constructs a chart, is the same safe act
+	// as the is_rtl patch above and for the same live-lookup reason.
+	//
+	// FALLS OPEN. No frappe.Chart, tokens that will not resolve to plain hex, or a
+	// chart type we leave alone (heatmap wants a sequential ramp, not this) — any
+	// of these and we install nothing extra and the chart renders exactly as stock.
+	(function patch_chart_colors() {
+		if (!window.frappe || typeof frappe.Chart !== "function") return;
+
+		const isValidColor = (c) =>
+			typeof c === "string" &&
+			/^(#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\(|hsla?\()/i.test(c.trim());
+
+		// The resolved ramp, cached per theme generation. getComputedStyle returns
+		// the token's computed value; our tokens are authored as plain 6-digit hex
+		// precisely so this is a hex and not a var()/color-mix string frappe-charts
+		// would reject. If ANY slot is not clean hex we return null and leave the
+		// chart on the vendor default — a coherent stock palette beats a mixture of
+		// ours and theirs that looks deliberate.
+		let ramp_cache = null;
+		let ramp_gen = 0;
+		let ramp_cache_gen = -1;
+		function resolve_ramp() {
+			if (ramp_cache && ramp_cache_gen === ramp_gen) return ramp_cache;
+			const cs = getComputedStyle(document.documentElement);
+			const out = [];
+			for (let i = 1; i <= 7; i++) {
+				const v = cs.getPropertyValue("--bnd-series-" + i).trim();
+				if (!/^#[0-9a-f]{6}$/i.test(v)) return null;
+				out.push(v.toLowerCase());
+			}
+			ramp_cache = out;
+			ramp_cache_gen = ramp_gen;
+			return out;
+		}
+
+		// Fill only what the admin left empty. A per-chart colour the admin set on
+		// the Dashboard Chart doc is their data and is kept in place; a hole (a
+		// null field, or the vendor's `[[]]` degenerate for an uncoloured Line/Bar
+		// that otherwise logs `"" is not a valid color`) takes the ramp. Heatmap is
+		// returned untouched.
+		function merged_colors(given, type) {
+			if (type === "heatmap") return given;
+			const ramp = resolve_ramp();
+			if (!ramp) return given;
+			const n = Math.max(ramp.length, given.length);
+			const out = [];
+			for (let i = 0; i < n; i++) {
+				const a = given[i];
+				out[i] = isValidColor(a) ? a : ramp[i % ramp.length];
+			}
+			return out;
+		}
+
+		// Live charts, so a theme flip can repaint them. A plain Set pruned by
+		// `container.isConnected` — the honest synchronous "still on screen" test;
+		// a GC'd chart needs no repaint, so WeakRef would be over-engineering.
+		const live = new Set();
+		const deferred = new Set();
+
+		function repaint_one(c) {
+			if (!c || c._bnd_type === "heatmap" || !c.container || !c.container.isConnected) return;
+			const colors = merged_colors(c._bnd_given || [], c._bnd_type);
+			c.colors = colors;
+			if (c.tip) c.tip.colors = colors; // SvgTip captured the array separately
+			try {
+				// draw(false, false): rebuild components in place, same instance and
+				// container, no refetch, no entry animation. Reconstructing would
+				// strand the widget's reference to this chart.
+				c.draw(false, false);
+			} catch (e) {
+				/* a vendor draw throwing must not take the desk down */
+			}
+		}
+
+		// A repaint destroys an open tooltip, so a chart the user is pointing at or
+		// keyboarding through is parked and flushed when they leave it.
+		function busy(c) {
+			return (
+				(c.container.matches && c.container.matches(":hover")) ||
+				c.container.contains(document.activeElement)
+			);
+		}
+		function repaint_all() {
+			ramp_gen++; // invalidate the cache: the theme moved
+			for (const c of Array.from(live)) {
+				if (!c.container || !c.container.isConnected) {
+					live.delete(c);
+					continue;
+				}
+				if (busy(c)) deferred.add(c);
+				else repaint_one(c);
+			}
+		}
+		function flush_deferred() {
+			for (const c of Array.from(deferred)) {
+				if (!c.container || !c.container.isConnected) {
+					deferred.delete(c);
+					continue;
+				}
+				if (busy(c)) continue;
+				deferred.delete(c);
+				repaint_one(c);
+			}
+		}
+		document.addEventListener("pointerout", flush_deferred, true);
+		document.addEventListener("focusout", flush_deferred, true);
+
+		const NativeChart = frappe.Chart;
+		function BndChart(parent, options) {
+			const given =
+				options && Array.isArray(options.colors) ? options.colors.slice() : [];
+			if (options) options.colors = merged_colors(given, options.type);
+			const chart = new NativeChart(parent, options);
+			if (chart && chart.container) {
+				chart._bnd_given = given;
+				chart._bnd_type = options && options.type;
+				// Prune opportunistically so the set cannot grow without bound on a
+				// long-lived desk that renders many charts.
+				for (const c of live) if (!c.container || !c.container.isConnected) live.delete(c);
+				live.add(chart);
+			}
+			return chart;
+		}
+		BndChart.prototype = NativeChart.prototype;
+		frappe.Chart = BndChart;
+
+		// The ONE honest theme-flip signal: frappe.ui.set_theme writes data-theme
+		// and emits no event. One observer on one node for the document's lifetime
+		// — the leak class is per-chart listeners, which this avoids. Coalesced to
+		// one pass per frame so a flip that also swaps the brand sheet redraws once.
+		let raf_queued = false;
+		if (typeof MutationObserver === "function" && document.documentElement) {
+			new MutationObserver(function () {
+				if (raf_queued) return;
+				raf_queued = true;
+				requestAnimationFrame(function () {
+					raf_queued = false;
+					repaint_all();
+				});
+			}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+		}
+
+		// The MANDATORY live-preview hook, present from day one — a kit that saves
+		// but does not apply is the recorded failure class. A chart settings field
+		// (item 25's chart_grid, or a future series control) calls this and the
+		// live desk repaints without a reload.
+		bunood.chart_apply = function () {
+			repaint_all();
+		};
+	})();
+
+	// ════════════════════════════════════════════════════════════════════════
 	// Desk layouts (item 9)
 	// ════════════════════════════════════════════════════════════════════════
 

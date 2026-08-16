@@ -6276,6 +6276,116 @@ async function main() {
 			await page.waitForTimeout(300);
 		});
 
+		// ── Chart series palette (item 25) ─────────────────────────────────
+		//
+		// A runtime kit, not a settings one: no attribute, no picker — bunood.js
+		// wraps frappe.Chart so every chart draws from the contrast-gated
+		// --bnd-series-* ramp instead of the vendor's own (unmeasured) palette.
+		// Every assertion reads the ramp LIVE from the tokens rather than
+		// hardcoding it — the same fact must not live in the test twice — and
+		// checks the rendered mark's COMPUTED fill, because the vendor writes it as
+		// an inline style attribute a getAttribute would miss. The teeth: a
+		// regression that stops the wrap running paints vendor pink (#f683ae),
+		// which is not in our ramp, so the equality fails.
+		const CHART_ROUTE = "/desk/selling"; // any desk page; frappe.Chart is loaded
+
+		await test("chart: series marks take the derived ramp, not the vendor palette", async () => {
+			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			const r = await page.evaluate(async () => {
+				const html = getComputedStyle(document.documentElement);
+				const ramp = [];
+				for (let i = 1; i <= 7; i++) ramp.push(html.getPropertyValue("--bnd-series-" + i).trim().toLowerCase());
+				const host = document.createElement("div");
+				host.style.width = "420px";
+				document.body.appendChild(host);
+				const chart = new frappe.Chart(host, {
+					type: "bar", height: 200, colors: [],
+					data: { labels: ["a", "b", "c"], datasets: [
+						{ values: [3, 2, 4] }, { values: [2, 4, 3] }, { values: [4, 3, 2] }] },
+				});
+				await new Promise((res) => setTimeout(res, 700));
+				const rgbHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
+					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
+				const fills = [...new Set([...host.querySelectorAll("rect.bar, .dataset-bars rect")]
+					.map((e) => rgbHex(getComputedStyle(e).fill)).filter((f) => f && f !== "none"))];
+				host.remove();
+				return { ramp, fills, patched: frappe.Chart.name === "BndChart" };
+			});
+			expect(r.patched, "frappe.Chart is wrapped (BndChart)");
+			expect(r.fills.length >= 3, `three datasets give three distinct mark colours (got ${r.fills.join(", ")})`);
+			for (const f of r.fills) {
+				expect(r.ramp.includes(f), `mark ${f} is a series token (not the vendor palette)`);
+			}
+			expect(!r.fills.includes("#f683ae"), "no mark is the vendor default pink");
+			expectEq(r.fills.slice(0, 3).join(" "), r.ramp.slice(0, 3).join(" "), "series 1-3 map to ramp 1-3 in order");
+		});
+
+		await test("chart: an admin colour is kept, an empty slot is filled, no warning", async () => {
+			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			const r = await page.evaluate(async () => {
+				const warns = [];
+				const orig = console.warn;
+				console.warn = (...a) => { warns.push(a.join(" ")); };
+				const html = getComputedStyle(document.documentElement);
+				const series1 = html.getPropertyValue("--bnd-series-1").trim().toLowerCase();
+				const rgbHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
+					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
+				const h1 = document.createElement("div"); h1.style.width = "360px"; document.body.appendChild(h1);
+				new frappe.Chart(h1, { type: "line", height: 180, colors: ["#123456"],
+					data: { labels: ["a", "b"], datasets: [{ values: [1, 2] }] } });
+				const h2 = document.createElement("div"); h2.style.width = "360px"; document.body.appendChild(h2);
+				new frappe.Chart(h2, { type: "line", height: 180, colors: [[]],
+					data: { labels: ["a", "b", "c"], datasets: [{ values: [1, 2, 3] }] } });
+				await new Promise((res) => setTimeout(res, 600));
+				const admin = rgbHex(getComputedStyle(h1.querySelector(".line-graph-path")).stroke);
+				const empty = rgbHex(getComputedStyle(h2.querySelector(".line-graph-path")).stroke);
+				console.warn = orig;
+				h1.remove(); h2.remove();
+				return { admin, empty, series1, colorWarns: warns.filter((w) => /is not a valid color/.test(w)).length };
+			});
+			expectEq(r.admin, "#123456", "the admin's per-chart colour is kept verbatim");
+			expectEq(r.empty, r.series1, "an uncoloured chart takes series 1");
+			expectEq(r.colorWarns, 0, "no `is not a valid color` warning — the empty slot is dropped");
+		});
+
+		await test("chart: a theme flip repaints the series in place", async () => {
+			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			const r = await page.evaluate(async () => {
+				const rgbHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
+					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
+				const ramp = () => { const h = getComputedStyle(document.documentElement); const a = [];
+					for (let i = 1; i <= 7; i++) a.push(h.getPropertyValue("--bnd-series-" + i).trim().toLowerCase()); return a; };
+				const host = document.createElement("div"); host.style.width = "420px"; document.body.appendChild(host);
+				new frappe.Chart(host, { type: "bar", height: 200, colors: [],
+					data: { labels: ["a", "b"], datasets: [{ values: [3, 2] }, { values: [2, 4] }] } });
+				await new Promise((res) => setTimeout(res, 600));
+				const before = {
+					fills: [...new Set([...host.querySelectorAll("rect.bar, .dataset-bars rect")]
+						.map((e) => rgbHex(getComputedStyle(e).fill)))] };
+				document.documentElement.setAttribute("data-theme", "dark");
+				if (window.bunood_theme && window.bunood_theme.chart_apply) window.bunood_theme.chart_apply();
+				await new Promise((res) => setTimeout(res, 900));
+				// draw(false,false) rebuilds the chart's own SVG on the SAME instance
+				// in the SAME container — the widget holds the instance, not the SVG,
+				// so nothing is stranded. The observable proof of "in place" is that
+				// the container still holds exactly ONE chart (not 0 = destroyed, not
+				// 2 = duplicated), recoloured.
+				const after = { ramp: ramp(),
+					containers: host.querySelectorAll(".chart-container").length,
+					fills: [...new Set([...host.querySelectorAll("rect.bar, .dataset-bars rect")]
+						.map((e) => rgbHex(getComputedStyle(e).fill)))] };
+				document.documentElement.removeAttribute("data-theme");
+				host.remove();
+				return { hasHook: !!(window.bunood_theme && window.bunood_theme.chart_apply),
+					beforeFills: before.fills, afterFills: after.fills, darkRamp: after.ramp,
+					containers: after.containers };
+			});
+			expect(r.hasHook, "bunood.chart_apply exists (the mandatory live-preview hook)");
+			expectEq(r.containers, 1, "the chart repainted in place — one chart in the container, not destroyed or duplicated");
+			for (const f of r.afterFills) expect(r.darkRamp.includes(f), `after flip, mark ${f} is a dark-ramp token`);
+			expect(r.beforeFills.join() !== r.afterFills.join(), "the flip actually changed the marks");
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
