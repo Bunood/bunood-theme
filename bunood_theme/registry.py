@@ -476,6 +476,43 @@ LAYOUT_TENANTS = {
 }
 
 
+#: MOBILE / NARROW MODE (item 24) — the desk's shape below Frappe's 768 boundary.
+#:
+#: WHY A SEPARATE CATALOGUE AND NOT A LAYOUT
+#:     A layout is a preset the USER picks and it is PERSISTED. This is neither:
+#:     it is what EVERY layout collapses to on a phone, applied at runtime and
+#:     never written back — a resize is not a gesture, and one phone visit must
+#:     not rewrite a desk configured on a monitor. `bunood.js` reads these while
+#:     the viewport is narrow (`is_narrow`) and the stored fields stay untouched,
+#:     so `bnd_match_layout` still names the real layout.
+#:
+#: WHY THESE VALUES
+#:     Below 768 only the bottom bar can stand: it is the one container that
+#:     mounts host-free (`document.body`), while the top bar's <header> host is
+#:     swapped away by `toolbar.js` and the side pane becomes Frappe's own
+#:     off-canvas drawer. `sidepane` STAYS 1 so we do not fight that drawer — its
+#:     top-left menu is the workspace nav, which is why our bar carries only the
+#:     tenants Frappe buries and never a second workspaces control.
+NARROW_CHROME = {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0}
+
+#: Where the tenants sit in the narrow bottom bar. Search is deliberately ABSENT:
+#: it walks a fallback chain (`SEARCH_FALLBACKS`), so tearing the top bar down and
+#: losing Frappe's sidebar search row (dropped on mobile) lands it in the bottom
+#: bar on its own. The tenants that do NOT walk a chain — the bell, the user menu
+#: and the All Apps link — are the ones that must be placed explicitly here, or
+#: `placement_for` returns "absent" and they vanish. Every value is a slot in
+#: `slots_for` for that tenant (apps offers only "Start" on a bar); the suite
+#: asserts it, the same guard `LAYOUT_TENANTS` gets.
+NARROW_PLACEMENT = {
+    "inbox": "Bottom Bar End",
+    "user": "Bottom Bar End",
+    "apps": "Bottom Bar Start",
+    # Home stands down on a phone: the mobile bar is search / alerts / you / apps
+    # (the user's chosen four), and Frappe's own drawer carries the rest.
+    "home": "Off",
+}
+
+
 #: Surfaces — content the frame contains, as opposed to chrome that owns
 #: space (containers) or sits in it (tenants). A surface mounts nothing and
 #: injects nothing: it is attributes on <html> and a stylesheet over Frappe's

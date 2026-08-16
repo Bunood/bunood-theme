@@ -1843,7 +1843,14 @@ async function main() {
 						.map((n) => parseInt(n.dataset.bndPrio, 10))
 				);
 			const wide = await visiblePrios();
-			await page.setViewportSize({ width: 700, height: 900 });
+			// 800, NOT 700: below 768 is Frappe's mobile boundary, where item 24's
+			// narrow mode turns the whole bar into the phone nav and hides EVERY
+			// signal (that full collapse is asserted by the `responsive:` family).
+			// This test is about the viewport-FLOOR rank collapse — the no-container
+			// -query fallback — so it must sit in the 768-992 band, where bnd-until
+			// (lg) drops ranks 1-2 and the rest survive. (700 used to work; item 24
+			// moved the mobile line under it.)
+			await page.setViewportSize({ width: 800, height: 900 });
 			await page.waitForTimeout(600);
 			const narrow = await visiblePrios();
 			await page.setViewportSize({ width: 1920, height: 1080 });
@@ -6376,6 +6383,74 @@ async function main() {
 				const bar = await visible(".bnd-statusbar");
 				await wideAgain();
 				expect(bar === true, `bottom bar visible at 390 (${bar})`);
+			});
+
+			await test("responsive: the mobile bar carries every critical tenant at a touch size (390)", async () => {
+				// The item-24 defect, now closed: below 768 the bell and user were
+				// unreachable (zero-boxed in Frappe's collapsed sidebar). The narrow
+				// preset routes search / apps / alerts / you into the full-width
+				// bottom bar; the status signals stand down; each control clears the
+				// 24px touch floor. This assertion was red before slice C.
+				setSettings(topBar());
+				await page.setViewportSize(NARROW);
+				await goDesk("/desk/item", ".page-head", 3500);
+				const bar = await page.evaluate((visStr) => {
+					const vis = eval(visStr);
+					const b = document.querySelector(".bnd-statusbar");
+					const t = (s) => {
+						const n = b && b.querySelector(s);
+						if (!n) return { v: false, min: 0 };
+						const r = n.getBoundingClientRect();
+						return { v: vis(s), min: Math.round(Math.min(r.width, r.height)) };
+					};
+					return {
+						narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+						start: b ? Math.round(b.getBoundingClientRect().left) : null,
+						signals: b ? [...b.querySelectorAll("[data-bnd-prio]")].filter((n) => getComputedStyle(n).display !== "none").length : -1,
+						search: t(".bnd-search-field, .bnd-search-icon"),
+						bell: t(".bnd-bell"),
+						user: t(".bnd-avatar-btn"),
+						apps: t('[data-bnd-part="apps"]'),
+					};
+				}, visSrc);
+				await wideAgain();
+				expect(bar.narrow, "data-bnd-narrow is stamped at 390");
+				expect(bar.start === 0, `the bar spans the viewport, not a stub beside a phantom column (starts at ${bar.start})`);
+				expect(bar.signals === 0, `the ranked status signals stand down (${bar.signals} still shown)`);
+				for (const name of ["search", "bell", "user", "apps"]) {
+					expect(bar[name].v, `${name} is visible in the mobile bar`);
+					expect(bar[name].min >= 24, `${name} clears the 24px touch floor (${bar[name].min}px)`);
+				}
+			});
+
+			await test("responsive: crossing the boundary remounts the chrome both ways", async () => {
+				// The "nothing re-evaluates on resize" half of the defect: a desk
+				// booted wide and narrowed kept its desktop chrome, and vice versa.
+				// matchMedia now remounts on the threshold. Booted at 1920 (the
+				// suite's width), so this is the desktop-resize case — the one where
+				// Frappe's <header> was never swapped, so the top bar can return.
+				setSettings(topBar());
+				await goDesk("/desk/item", ".page-head", 3500);
+				const wide1 = await page.evaluate(() => ({
+					narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+					topbar: !!document.querySelector(".bnd-topbar"),
+				}));
+				await page.setViewportSize(NARROW);
+				await page.waitForTimeout(800);
+				const narrow = await page.evaluate(() => ({
+					narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+					topbar: !!document.querySelector(".bnd-topbar"),
+					bar: !!document.querySelector(".bnd-statusbar"),
+				}));
+				await page.setViewportSize({ width: 1920, height: 1080 });
+				await page.waitForTimeout(800);
+				const wide2 = await page.evaluate(() => ({
+					narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+					topbar: !!document.querySelector(".bnd-topbar"),
+				}));
+				expect(wide1.topbar && !wide1.narrow, `wide: top bar up, not narrow (${JSON.stringify(wide1)})`);
+				expect(narrow.narrow && !narrow.topbar && narrow.bar, `narrow: top bar down, mobile bar up (${JSON.stringify(narrow)})`);
+				expect(wide2.topbar && !wide2.narrow, `widened back: the top bar returns (${JSON.stringify(wide2)})`);
 			});
 		}
 

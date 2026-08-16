@@ -65,6 +65,7 @@
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
   --bnd-bottom-reserve: 0px;
+  --bnd-tap: 44px;
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
   --bnd-apps-rail-w: 46px;
@@ -640,6 +641,33 @@ html[data-theme] .bnd-topbar {
     gap: var(--bnd-sp-2);
   }
 }
+html[data-bnd-narrow] .bnd-statusbar {
+  inset-inline-start: 0;
+  min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-2));
+  gap: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-3);
+}
+
+html[data-bnd-narrow] .bnd-statusbar [data-bnd-prio] {
+  display: none;
+}
+
+html[data-bnd-narrow] .bnd-statusbar .bnd-icon-btn,
+html[data-bnd-narrow] .bnd-statusbar .bnd-avatar-btn,
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-icon,
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-field,
+html[data-bnd-narrow] .bnd-statusbar .bnd-sb-util {
+  min-inline-size: var(--bnd-tap);
+  min-block-size: var(--bnd-tap);
+  justify-content: center;
+}
+
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-field {
+  flex: 0 0 var(--bnd-tap);
+  inline-size: var(--bnd-tap);
+  padding-inline: 0;
+}
+
 html[data-theme] .bnd-dock {
   position: fixed;
   inset-block-end: var(--bnd-sp-3);

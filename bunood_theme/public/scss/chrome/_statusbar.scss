@@ -346,3 +346,48 @@ html[data-theme] .bnd-topbar {
     gap: var(--bnd-sp-2);
   }
 }
+
+// ── Mobile / narrow mode (item 24) ──────────────────────────────────────────
+// Below Frappe's 768 boundary bunood.js collapses the desk onto this bar and
+// stamps `data-bnd-narrow`. Keyed on the ATTRIBUTE, not a media query: the
+// styling must apply exactly when the runtime made this the mobile nav — the
+// bar itself is JS-mounted, so both the node and the attribute arrive together.
+//
+// The phone bar is NAVIGATION, not telemetry. The ranked status signals stand
+// down wholesale (the user's pick: search / apps / alerts / you, nothing else),
+// and the tenants are sized for a finger.
+html[data-bnd-narrow] .bnd-statusbar {
+  // The sidebar is a drawer OVERLAY at this width, not an inline column, so the
+  // bar spans the whole viewport instead of starting where a 220px+ column
+  // would — the measured `--bnd-sidebar-live-w` describes the desktop pane and
+  // is wrong for a drawer, leaving the bar a ~150px stub on the right (measured
+  // 2026-08-15 at 390px).
+  inset-inline-start: 0;
+  min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-2));
+  gap: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-3);
+}
+html[data-bnd-narrow] .bnd-statusbar [data-bnd-prio] {
+  display: none;
+}
+// Every tenant control is a finger-sized square (44, comfortably over the 24
+// the a11y gate enforces). The search "field" becomes an icon button — its
+// label and shortcut are already hidden below md, and its click opens the
+// palette either way (build_search_field/-icon both call pal_invoke).
+html[data-bnd-narrow] .bnd-statusbar .bnd-icon-btn,
+html[data-bnd-narrow] .bnd-statusbar .bnd-avatar-btn,
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-icon,
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-field,
+html[data-bnd-narrow] .bnd-statusbar .bnd-sb-util {
+  min-inline-size: var(--bnd-tap);
+  min-block-size: var(--bnd-tap);
+  justify-content: center;
+}
+html[data-bnd-narrow] .bnd-statusbar .bnd-search-field {
+  // flex, not just inline-size: the center zone stretches the field to fill
+  // otherwise (measured 125px at 390), and the user's pick is an icon, not a
+  // pill. flex:none pins it to a square regardless of the zone's width.
+  flex: 0 0 var(--bnd-tap);
+  inline-size: var(--bnd-tap);
+  padding-inline: 0;
+}

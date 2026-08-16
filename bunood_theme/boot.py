@@ -173,6 +173,16 @@ def extend_bootinfo(bootinfo):
             for c in CRITICAL
         ]
 
+        # Mobile / narrow mode (item 24). What every layout collapses to below
+        # Frappe's 768 boundary, applied at runtime and never persisted — see
+        # registry.NARROW_CHROME. The client reads these while the viewport is
+        # narrow; carrying them in boot keeps the catalogue in registry.py, the
+        # one place the desk's shape is defined, rather than a copy in JS.
+        from bunood_theme.registry import NARROW_CHROME, NARROW_PLACEMENT
+
+        bootinfo.bnd_narrow_chrome = dict(NARROW_CHROME)
+        bootinfo.bnd_narrow_placement = dict(NARROW_PLACEMENT)
+
         # Sidebar style kit (item 10). One compact dict; every empty field
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the

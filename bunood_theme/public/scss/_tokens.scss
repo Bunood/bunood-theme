@@ -196,6 +196,10 @@
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
   --bnd-bottom-reserve: 0px;
+  // Touch target floor (item 24). WCAG 2.2 AA 2.5.8 requires 24x24; this is the
+  // "design to 44" decision — every control the mobile nav builds is at least
+  // this, comfortably clear of the 24 the a11y gate enforces.
+  --bnd-tap: 44px;
 
   // ── Sidebar style kit (checklist item 10) ─────────────────────────────────
   // Consumed ONLY by chrome/_sidebar.scss. The kit's color-mode blocks set

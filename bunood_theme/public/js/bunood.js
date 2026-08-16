@@ -284,6 +284,38 @@
 	/** Boot's per-container on/off, keyed by registry container key. */
 	const chrome_state = (window.frappe && frappe.boot && frappe.boot.bnd_chrome) || null;
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Mobile / narrow mode (item 24)
+	// ════════════════════════════════════════════════════════════════════════
+	//
+	// Below Frappe's own mobile boundary — `frappe.is_mobile()` is exactly
+	// `innerWidth < 768` — the desktop chrome cannot stand: `toolbar.js` swaps
+	// away the <header> the top bar mounts into (desk.html:38), and Frappe
+	// collapses the side pane to an off-canvas drawer. So the desk COLLAPSES to
+	// one preset, `bnd_narrow_chrome` (registry.NARROW_CHROME): the host-free
+	// bottom bar carries the critical tenants (`bnd_narrow_placement`), and
+	// Frappe's own drawer — reached by its top-left menu — carries workspaces, so
+	// nothing of ours duplicates it.
+	//
+	// APPLIED, NEVER PERSISTED. A resize is not a gesture; if narrow mode wrote
+	// settings, one phone visit would rewrite a desk configured on a monitor. It
+	// is a runtime override read by `container_on` / `active_placement` while
+	// narrow, and touches neither the stored fields nor the layout's derived name.
+	//
+	// REACTS TO THE BREAKPOINT, NOT `resize`. The <header> swap was a boot
+	// decision nothing re-ran, so a desk loaded at 400px and widened kept no top
+	// bar until reload. `matchMedia` fixes both directions: crossing 768 re-runs
+	// the container ladder (`remount_chrome`). Falls open — no payload means
+	// `is_narrow()` is false and every answer comes from the desktop path.
+	const narrow_chrome = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_chrome) || null;
+	const narrow_placement = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_placement) || null;
+	const MOBILE_MQ = typeof window.matchMedia === "function" ? window.matchMedia("(width < 768px)") : null;
+
+	/** Below Frappe's 768 mobile boundary, with a narrow preset to apply. */
+	function is_narrow() {
+		return !!(MOBILE_MQ && MOBILE_MQ.matches && narrow_chrome);
+	}
+
 	/**
 	 * Which containers each layout mounted BEFORE the split — the fallback,
 	 * and the honest record of what the mount ladder used to do.
@@ -319,6 +351,11 @@
 	 * @returns {boolean}
 	 */
 	function container_on(key) {
+		// Narrow mode wins: it is the runtime collapse to the mobile preset, and
+		// it must override both the stored setting and the layout fallback.
+		if (is_narrow() && Object.prototype.hasOwnProperty.call(narrow_chrome, key)) {
+			return !!narrow_chrome[key];
+		}
 		if (chrome_state && Object.prototype.hasOwnProperty.call(chrome_state, key)) {
 			return !!chrome_state[key];
 		}
@@ -399,11 +436,33 @@
 
 	function apply_chrome_off() {
 		if (!chrome_state) return;
-		const off = Object.keys(chrome_state).filter((k) => !chrome_state[k] && HIDES_NATIVE[k]);
+		// Through container_on so it is narrow-aware: a Dock site (side pane off
+		// on the desktop) still gets its pane back as Frappe's drawer on a phone,
+		// because container_on("sidepane") is 1 under the narrow preset.
+		const off = Object.keys(HIDES_NATIVE).filter((k) => !container_on(k));
 		if (off.length) document.documentElement.setAttribute("data-bnd-chrome-off", off.join(" "));
 		else document.documentElement.removeAttribute("data-bnd-chrome-off");
 	}
 	apply_chrome_off();
+
+	/**
+	 * Stamp the viewport-mode attributes on <html>.
+	 *   data-bnd-narrow  — below Frappe's 768 boundary, the mobile collapse is on
+	 *                      (CSS hides the status signals, sizes the bar for touch).
+	 *   data-bnd-touch   — a coarse pointer is present; the reveal-on-hover
+	 *                      affordances stand down and hit targets grow. A separate
+	 *                      axis from width: a touch laptop is wide, a dragged
+	 *                      window is narrow with a mouse.
+	 */
+	function apply_viewport_mode() {
+		const html = document.documentElement;
+		if (is_narrow()) html.setAttribute("data-bnd-narrow", "");
+		else html.removeAttribute("data-bnd-narrow");
+		const coarse = typeof window.matchMedia === "function" && window.matchMedia("(any-pointer: coarse)").matches;
+		if (coarse) html.setAttribute("data-bnd-touch", "");
+		else html.removeAttribute("data-bnd-touch");
+	}
+	apply_viewport_mode();
 
 	/**
 	 * Give the side pane back when switching it off would leave a user stranded.
@@ -502,23 +561,23 @@
 	 *
 	 * @param {Object} values - container key OR toggle fieldname -> 0|1.
 	 */
-	bunood.chrome_apply = function (values) {
-		if (!values || !chrome_state) return;
-
-		// Accept either vocabulary. The settings form thinks in fieldnames and
-		// the desk thinks in container keys; making the caller translate would
-		// put the registry's mapping in a third place.
-		const FIELD_TO_KEY = {
-			topbar_enabled: "topbar",
-			pagehead_enabled: "pagehead",
-			bottombar_enabled: "bottombar",
-			sidebar_enabled: "sidepane",
-			dock_enabled: "dock",
-		};
-		for (const [name, value] of Object.entries(values)) {
-			const key = key_of(name, FIELD_TO_KEY);
-			if (key && key in chrome_state) chrome_state[key] = parseInt(value, 10) ? 1 : 0;
-		}
+	/**
+	 * Tear down the containers now off, (re)mount those now on, then re-place
+	 * every tenant. The shared body of `chrome_apply` and the breakpoint handler:
+	 * both change what `container_on` / `placement_for` answer — chrome_apply
+	 * through `chrome_state`, the breakpoint through `is_narrow()` — and then need
+	 * the live desk to catch up to the new answers.
+	 *
+	 * RELEASE FIRST, THEN RE-PLACE. Tearing a container down takes its tenants
+	 * with it; a token left claimed on <html> would hide Frappe's own affordance
+	 * with nothing in its place — the failure this project has paid for twice. So
+	 * every token is released, then `mount_placed_tenants` re-claims only what it
+	 * really mounts.
+	 */
+	function remount_chrome() {
+		// Same contract as mount_chrome: nothing to remount until the desk is up.
+		// Guards a breakpoint change that fires during the boot poll window.
+		if (!layout()) return;
 		apply_chrome_off();
 
 		for (const token of ["search", "bell", "user"]) bnd_disown(token);
@@ -543,7 +602,44 @@
 		// removed, or absent from the one that has just arrived.
 		sb_mount_utils();
 		defer_bottom_reserve();
+	}
+	bunood.remount_chrome = remount_chrome;
+
+	bunood.chrome_apply = function (values) {
+		if (!values || !chrome_state) return;
+
+		// Accept either vocabulary. The settings form thinks in fieldnames and
+		// the desk thinks in container keys; making the caller translate would
+		// put the registry's mapping in a third place.
+		const FIELD_TO_KEY = {
+			topbar_enabled: "topbar",
+			pagehead_enabled: "pagehead",
+			bottombar_enabled: "bottombar",
+			sidebar_enabled: "sidepane",
+			dock_enabled: "dock",
+		};
+		for (const [name, value] of Object.entries(values)) {
+			const key = key_of(name, FIELD_TO_KEY);
+			if (key && key in chrome_state) chrome_state[key] = parseInt(value, 10) ? 1 : 0;
+		}
+		remount_chrome();
 	};
+
+	/**
+	 * Cross the mobile boundary: re-stamp the viewport attributes and rebuild the
+	 * chrome for the mode we are now in. Registered on `matchMedia` (not `resize`)
+	 * because the mode is a threshold, not a continuum — and because the defect it
+	 * closes is that nothing re-ran the container ladder when the width crossed
+	 * 768, so a desk loaded narrow and widened kept a phone's chrome until reload.
+	 */
+	function on_breakpoint_change() {
+		apply_viewport_mode();
+		remount_chrome();
+	}
+	if (MOBILE_MQ) {
+		if (MOBILE_MQ.addEventListener) MOBILE_MQ.addEventListener("change", on_breakpoint_change);
+		else if (MOBILE_MQ.addListener) MOBILE_MQ.addListener(on_breakpoint_change);
+	}
 
 	/** A container key, from either a key or its toggle fieldname. */
 	function key_of(name, field_map) {
@@ -1616,8 +1712,23 @@
 	 * a control the admin deliberately placed to somewhere they did not ask
 	 * for is worse than leaving it where the layout put it.
 	 */
+	/**
+	 * A tenant's active placement label — the narrow override while a phone-width
+	 * viewport is showing, the stored choice otherwise. Search is deliberately
+	 * NOT in `narrow_placement`: it walks a fallback chain, so tearing down the
+	 * top bar drops it into the bottom bar on its own (SEARCH_FALLBACKS). The
+	 * tenants that do NOT walk a chain — bell, user, apps — are the ones the
+	 * narrow preset has to place explicitly, or they resolve to "absent".
+	 */
+	function active_placement(tenant) {
+		if (is_narrow() && narrow_placement && narrow_placement[tenant]) {
+			return narrow_placement[tenant];
+		}
+		return (placement_state && placement_state[tenant]) || "";
+	}
+
 	function placement_for(tenant) {
-		const label = (placement_state && placement_state[tenant]) || "";
+		const label = active_placement(tenant);
 		if (label === "Off") return "off";
 		const { region, zone } = parse_slot(label);
 		if (!region) return "absent";
@@ -1626,8 +1737,7 @@
 
 	/** The zone a tenant asked for, for the region it resolved to. */
 	function zone_for(tenant) {
-		const label = (placement_state && placement_state[tenant]) || "";
-		return parse_slot(label).zone || "end";
+		return parse_slot(active_placement(tenant)).zone || "end";
 	}
 
 	/**
@@ -5298,9 +5408,10 @@ function sb_zone_anchor(pane, zone, node) {
 
 		// No fallback to the old shared key: boot stopped emitting it in slice 2,
 		// so reading it would be a branch that can never be taken pretending to
-		// be a safety net.
-		const place = (which) =>
-			(placement_state && placement_state[which]) || "Side Pane Start";
+		// be a safety net. Through active_placement so narrow mode reaches the
+		// links: on a phone All Apps moves into the bottom bar and Home stands
+		// down (NARROW_PLACEMENT), without touching either stored setting.
+		const place = (which) => active_placement(which) || "Side Pane Start";
 
 		// Group by destination so two links landing in the same place share one
 		// wrapper — otherwise the pane grows two containers with one row each,
@@ -6026,6 +6137,11 @@ function sb_zone_anchor(pane, zone, node) {
 		// "which containers": empty means boot failed or the theme is inactive,
 		// and a stock desk must be left exactly as Frappe built it.
 		if (!layout()) return;
+
+		// Re-stamp the viewport attributes now the desk is up: the module-scope
+		// call ran at load, but this is the point container_on / placement_for
+		// below are first asked, so data-bnd-narrow must be current here.
+		apply_viewport_mode();
 
 		observe_sidebar_width();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
