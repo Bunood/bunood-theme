@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-08-16 — The workspace and dashboard landing: tiles, number cards, and charts (item 25)
+
 ### Item 25 — the workspace and dashboard landing: tiles, number cards, and charts
 
 The last of the big content surfaces, and the first to reach for JavaScript and

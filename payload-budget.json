@@ -1,15 +1,15 @@
 {
 	"_readme": [
-		"The payload budget (GUIDELINES \u00a72.5). `ceiling` is a HARD gate on the",
-		"built bundle's gzip bytes \u2014 tools/payload.mjs --check fails when the",
+		"The payload budget (GUIDELINES §2.5). `ceiling` is a HARD gate on the",
+		"built bundle's gzip bytes — tools/payload.mjs --check fails when the",
 		"build crosses it, and the suite runs that check on every verify.",
 		"Raising a ceiling is a DECISION: edit the number in the same commit",
 		"as the change that needs it, and say why in that commit's message.",
-		"`history` is the per-release record \u2014 append with",
+		"`history` is the per-release record — append with",
 		"`node tools/payload.mjs --record vX.Y.Z` at tag time. Raw bytes are",
 		"recorded for parse-cost context; the ceiling is gzip because the wire",
 		"is what a first paint waits on.",
-		"Ceilings start at ~15% over the v0.12.0 measurement \u2014 headroom for a",
+		"Ceilings start at ~15% over the v0.12.0 measurement — headroom for a",
 		"normal slice, tight enough that a dependency or a generated blob",
 		"cannot slip in unnoticed."
 	],
@@ -62,6 +62,15 @@
 			"js_raw": 275133,
 			"js_gzip": 85096,
 			"note": "css +571b, js +7057b gzip vs v0.14.0"
+		},
+		{
+			"version": "v0.17.0",
+			"date": "2026-08-16",
+			"css_raw": 119353,
+			"css_gzip": 16104,
+			"js_raw": 287240,
+			"js_gzip": 88889,
+			"note": "css +1322b, js +3793b gzip vs v0.16.0"
 		}
 	]
 }
