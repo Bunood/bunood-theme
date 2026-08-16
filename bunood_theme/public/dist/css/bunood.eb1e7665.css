@@ -3904,6 +3904,49 @@ html[data-bnd-form][data-bnd-form-side=pane] .layout-side-section {
   background: var(--bnd-raised);
 }
 
+html[data-theme] .chart-container {
+  --charts-label-color: var(--bnd-ink-muted);
+  --charts-axis-line-color: var(--bnd-border);
+  --charts-stroke-width: 2px;
+  --charts-dataset-circle-stroke: var(--bnd-surface);
+  --charts-dataset-circle-stroke-width: 2px;
+  --charts-tooltip-bg: var(--bnd-raised);
+  --charts-tooltip-title: var(--bnd-ink-muted);
+  --charts-tooltip-label: var(--bnd-ink-muted);
+  --charts-tooltip-value: var(--bnd-ink);
+  --charts-legend-label: var(--bnd-ink-muted);
+  --charts-legend-value: var(--bnd-ink);
+}
+html[data-theme] .chart-container .graph-svg-tip {
+  border-radius: var(--bnd-radius-sm);
+  box-shadow: var(--bnd-shadow-md);
+}
+html[data-theme] .chart-container .region-fill {
+  opacity: 0;
+}
+
+html[data-bnd-chart-grid=ruled] .chart-container .line-vertical {
+  stroke: transparent;
+}
+
+html[data-bnd-chart-grid=dashed] .chart-container .line-horizontal,
+html[data-bnd-chart-grid=dashed] .chart-container .line-vertical {
+  stroke-dasharray: 4 3;
+}
+
+html[data-bnd-chart-grid=bold] .chart-container {
+  --charts-stroke-width: 3px;
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 55%, var(--bnd-surface));
+  --charts-dataset-circle-stroke-width: 3px;
+}
+
+html[data-bnd-chart-grid=filled] .chart-container {
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 60%, var(--bnd-surface));
+}
+html[data-bnd-chart-grid=filled] .chart-container .region-fill {
+  opacity: 1;
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

@@ -548,6 +548,22 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "chart",
+        "part": "chart",
+        "label": "Charts",
+        "type": SURFACE,
+        # Item 25. frappe-charts' chrome, themed through its --charts-* variables,
+        # with one axis (chart_grid) scoped under html[data-bnd-chart-grid]. Unlike
+        # the list and form kits there is no "Original": the base theming is always
+        # on, since raw vendor hex is never a style anyone chooses. Series COLOUR is
+        # a separate, JS-fed concern (palette.series_ramp) and is not a surface.
+        "selector": 'html[data-bnd-chart-grid]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

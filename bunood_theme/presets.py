@@ -449,6 +449,20 @@ FORM_DEFAULTS = {
     "form_grid_checkbox_reveal": 1,
 }
 
+#: Chart surface fields (item 25), matching theme_settings.json. One axis, and
+#: NO "Original": the base --charts-* theming is always on (raw vendor hex is
+#: worse, never a choice), so the axis picks only where the visual weight sits.
+CHART_FIELDS = [
+    "chart_grid",
+]
+
+#: The shipped chart default — the item-25 wireframe pick (2026-08-16): 3E Filled
+#: Area, the area under a line carrying the chart, over the three-product-agreed
+#: Ruled Baseline and the other frame treatments.
+CHART_DEFAULTS = {
+    "chart_grid": "Filled Area",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

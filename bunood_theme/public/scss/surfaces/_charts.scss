@@ -1,0 +1,128 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Charts — the chart surface (item 25)
+//
+// WHAT
+//   frappe-charts draws every desk chart, and it exposes its CHROME (axis labels,
+//   gridlines, the tooltip, dataset weight) through a set of --charts-* custom
+//   properties. This file takes those over so the chart frame is themed and
+//   mode-correct, and adds one axis — chart_grid — that chooses where the visual
+//   weight sits. Series COLOUR is a separate concern, derived in palette.py and
+//   fed from JS (see bunood.js "Chart series palette"); this file never touches it.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-chart-grid  the weight of the chart frame, ANCHOR of this file:
+//     "axes"    Hairline Axes  — both gridlines, solid hairline
+//     "ruled"   Ruled Baseline — horizontal gridlines only
+//     "dashed"  Dashed Guides  — dashed gridlines, no axis line
+//     "bold"    Bold Data      — chrome to a wash, weight on the series
+//     "filled"  Filled Area    — the area under a line carries it (DEFAULT)
+//   There is no "Original": the base --charts-* mapping is always on, because raw
+//   vendor hex in light and Frappe's greys in dark are strictly worse than a
+//   themed frame, never a style a user would choose.
+//
+// THE FACTS THIS FILE IS BUILT ON (measured live, 2026-08-16, Frappe 16.27,
+// frappe-charts 2.0.0-rc27, /desk with an injected chart)
+//   * The --charts-* variables are live and consumed. Frappe overrides them only
+//     under `[data-theme="dark"] .chart-container` (0,2,1) — including
+//     --charts-stroke-width: 5px, against the vendor's 2px in light, an unexplained
+//     discontinuity this file removes. Light has no Frappe override; the vendor
+//     :root defaults (raw hex) apply. `html[data-theme] .chart-container` is also
+//     (0,2,1) and loads later, so it wins both.
+//   * Gridlines render as `.line-horizontal` / `.line-vertical`, stroked with
+//     --charts-axis-line-color; the x/y axis labels are separate text, so hiding a
+//     gridline never hides a label.
+//   * A line chart has NO region-fill unless lineOptions.regionFill is set — so the
+//     JS wrap sets it for every line chart and this file controls its OPACITY per
+//     style, which keeps chart_grid a pure-CSS choice with instant live preview.
+//     The fill is a gradient generated from OUR series colour, fading to nothing.
+//
+// DESIGN RECORD (item 25 wireframe round, 2026-08-16; artifact recorded in the
+// plan). Axis 3, picked: Filled Area — grounded in shadcn's chart-area and the
+// three-product agreement (frappe-ui / shadcn / Discourse) that a value scale
+// reads best with horizontal rules and no vertical clutter.
+//
+// Scoped html[data-theme] / html[data-bnd-chart-grid] throughout; fails open (no
+// attribute → the base themed frame). Logical properties only. No !important.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Base: theme frappe-charts' own chrome ────────────────────────────────────
+// Mapped to --bnd-* (mode-aware) so ONE block serves light and dark — the tokens
+// carry the mode, not this selector. Wins Frappe's [data-theme="dark"]
+// .chart-container by equal specificity and later source order.
+html[data-theme] .chart-container {
+  --charts-label-color: var(--bnd-ink-muted);
+  --charts-axis-line-color: var(--bnd-border);
+  --charts-stroke-width: 2px; // removes Frappe's 5px-in-dark discontinuity
+
+  --charts-dataset-circle-stroke: var(--bnd-surface); // the point's halo
+  --charts-dataset-circle-stroke-width: 2px;
+
+  --charts-tooltip-bg: var(--bnd-raised);
+  --charts-tooltip-title: var(--bnd-ink-muted);
+  --charts-tooltip-label: var(--bnd-ink-muted);
+  --charts-tooltip-value: var(--bnd-ink);
+
+  --charts-legend-label: var(--bnd-ink-muted);
+  --charts-legend-value: var(--bnd-ink);
+
+  // The tooltip is body-appended and themed through the vars above, but its own
+  // box wants the theme's surface, radius and shadow rather than the vendor's
+  // hard black. `.graph-svg-tip` is the vendor's class.
+  .graph-svg-tip {
+    border-radius: var(--bnd-radius-sm);
+    box-shadow: var(--bnd-shadow-md);
+  }
+
+  // The region-fill exists on every line chart (the JS wrap turns it on); it is
+  // OFF here and switched on only by the Filled Area style, so every other style
+  // gets a clean line. One statement, so no style has to remember to hide it.
+  .region-fill {
+    opacity: 0;
+  }
+}
+
+// ── The working set, per chart_grid style ────────────────────────────────────
+// Each style is a complete look. The anchor attribute is on <html>, so the
+// tooltip (body-appended, outside the chart) still follows the base rules above.
+
+// Hairline Axes — both gridlines, the base frame stated explicitly.
+html[data-bnd-chart-grid="axes"] .chart-container {
+  // The base mapping is exactly this look; nothing more to say. Present so the
+  // option is real and the picker is honest.
+}
+
+// Ruled Baseline — horizontal gridlines only. The vertical gridlines go; the
+// x-axis labels are separate text and stay.
+html[data-bnd-chart-grid="ruled"] .chart-container {
+  .line-vertical {
+    stroke: transparent;
+  }
+}
+
+// Dashed Guides — gridlines become guides; the solid axis line stands down.
+html[data-bnd-chart-grid="dashed"] .chart-container {
+  .line-horizontal,
+  .line-vertical {
+    stroke-dasharray: 4 3;
+  }
+}
+
+// Bold Data — the chrome drops to a wash and the data takes the weight: a thicker
+// stroke and a larger haloed point. The gridline colour is mixed further toward
+// the surface so it recedes behind the line.
+html[data-bnd-chart-grid="bold"] .chart-container {
+  --charts-stroke-width: 3px;
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 55%, var(--bnd-surface));
+  --charts-dataset-circle-stroke-width: 3px;
+}
+
+// Filled Area (DEFAULT) — the area under a line carries the chart. The gradient
+// fill (generated by frappe-charts from our series colour) is revealed; the
+// gridlines recede to a wash so the fill reads.
+html[data-bnd-chart-grid="filled"] .chart-container {
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 60%, var(--bnd-surface));
+
+  .region-fill {
+    opacity: 1; // the gradient fades to transparent on its own
+  }
+}

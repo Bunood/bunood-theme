@@ -904,6 +904,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
 		bnd_render_form_picker(frm);
+		bnd_render_chart_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -922,6 +923,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
 			bnd_form_preview(frm);
+			bnd_chart_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -1105,6 +1107,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
 			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
 			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
+			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 		],
 	},
 	{
@@ -1208,6 +1211,7 @@ const BND_SHELL_OWNS = {
 	crumbs: { prefixes: ["crumb_"] },
 	list: { prefixes: ["list_"] },
 	form: { prefixes: ["form_"] },
+	chart: { prefixes: ["chart_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -3772,6 +3776,107 @@ function bnd_form_set(frm, fieldname, value) {
 	bnd_render_form_picker(frm);
 }
 
+// ── Chart picker (item 25) — one card axis, no Original ──────────────────────
+/** Client mirror of presets.CHART_FIELDS — keep in sync. Export AND import list it. */
+const BND_CHART_FIELDS = ["chart_grid"];
+
+/** Client mirror of presets.CHART_DEFAULTS — keep in sync. */
+const BND_CHART_DEFAULTS = { chart_grid: "Filled Area" };
+
+/** The chart_grid catalogue. Thumbnails are a small chart showing the frame the
+ * style produces: gridlines, an axis, a data line, and — for Filled Area — the
+ * area beneath it. No "Original": the base chart theming is always on. */
+const BND_CHART_STYLES = [
+	{
+		value: "Hairline Axes",
+		blurb: () => __("Both gridlines, a quiet hairline in each direction."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<g stroke="currentColor" opacity=".18"><line x1="20" y1="14" x2="110" y2="14"/><line x1="20" y1="26" x2="110" y2="26"/><line x1="20" y1="38" x2="110" y2="38"/>' +
+			'<line x1="42" y1="10" x2="42" y2="44"/><line x1="66" y1="10" x2="66" y2="44"/><line x1="90" y1="10" x2="90" y2="44"/></g>' +
+			'<line x1="20" y1="44" x2="110" y2="44" stroke="currentColor" opacity=".4"/>' +
+			'<polyline points="20,38 42,26 66,30 90,16 110,22" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+	},
+	{
+		value: "Ruled Baseline",
+		blurb: () => __("Horizontal rules only — the value scale, and nothing competing with it."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<g stroke="currentColor" opacity=".18"><line x1="20" y1="14" x2="110" y2="14"/><line x1="20" y1="26" x2="110" y2="26"/><line x1="20" y1="38" x2="110" y2="38"/></g>' +
+			'<line x1="20" y1="44" x2="110" y2="44" stroke="currentColor" opacity=".4"/>' +
+			'<polyline points="20,38 42,26 66,30 90,16 110,22" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+	},
+	{
+		value: "Dashed Guides",
+		blurb: () => __("Gridlines become dashed guides; the solid axis stands down."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<g stroke="currentColor" opacity=".2" stroke-dasharray="3 2"><line x1="20" y1="14" x2="110" y2="14"/><line x1="20" y1="26" x2="110" y2="26"/><line x1="20" y1="38" x2="110" y2="38"/></g>' +
+			'<polyline points="20,38 42,26 66,30 90,16 110,22" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+	},
+	{
+		value: "Bold Data",
+		blurb: () => __("The frame drops to a wash; the line thickens and its points grow."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<g stroke="currentColor" opacity=".1"><line x1="20" y1="20" x2="110" y2="20"/><line x1="20" y1="32" x2="110" y2="32"/></g>' +
+			'<polyline points="20,38 42,26 66,30 90,16 110,22" fill="none" stroke="currentColor" stroke-width="2.6"/>' +
+			'<circle cx="66" cy="30" r="2.6" fill="currentColor"/><circle cx="90" cy="16" r="2.6" fill="currentColor"/></svg>',
+	},
+	{
+		value: "Filled Area",
+		blurb: () => __("The area under the line carries the chart — the modern analytics look."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<g stroke="currentColor" opacity=".1"><line x1="20" y1="20" x2="110" y2="20"/><line x1="20" y1="32" x2="110" y2="32"/></g>' +
+			'<path d="M20,38 42,26 66,30 90,16 110,22 110,44 20,44 Z" fill="currentColor" opacity=".18"/>' +
+			'<polyline points="20,38 42,26 66,30 90,16 110,22" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+	},
+];
+
+/** Render the chart picker. */
+function bnd_render_chart_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "chart_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.chart_grid || BND_CHART_DEFAULTS.chart_grid;
+	const cards = P.cards(
+		BND_CHART_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
+		{ selected: current, cls: "bnd-cbp-style bnd-chp-style" }
+	);
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-chp">' +
+				bnd_bands([{ zone: "style", html: cards + P.note(__("Applies as you click. Series colours are set automatically for legibility.")) }]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-chp-style").on("click", function () {
+		bnd_chart_set(frm, "chart_grid", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		bnd_chart_set(frm, "chart_grid", BND_CHART_DEFAULTS.chart_grid);
+	});
+}
+
+/** Hand the chart values to the desk engine — live preview. */
+function bnd_chart_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.chart_apply) return;
+	const values = {};
+	for (const f of BND_CHART_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.chart_apply(values);
+}
+
+/** Set the chart option, preview, re-render. */
+function bnd_chart_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_chart_preview(frm);
+	bnd_render_chart_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -4593,7 +4698,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -4622,7 +4727,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -4636,6 +4741,8 @@ function bnd_sb_import(frm) {
 			bnd_palette_preview(frm);
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
+			bnd_form_preview(frm);
+			bnd_chart_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -4644,6 +4751,8 @@ function bnd_sb_import(frm) {
 			bnd_render_search_picker(frm);
 			bnd_render_status_picker(frm);
 			bnd_render_list_picker(frm);
+			bnd_render_form_picker(frm);
+			bnd_render_chart_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

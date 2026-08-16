@@ -129,6 +129,9 @@
   "form_tabs",
   "form_sidebar",
   "form_grid_checkbox_reveal",
+  "section_chart",
+  "chart_picker",
+  "chart_grid",
   "section_generated",
   "brand_css_url"
  ],
@@ -942,6 +945,25 @@
    "label": "Reveal Grid Checkboxes on Hover"
   },
   {
+   "fieldname": "section_chart",
+   "fieldtype": "Section Break",
+   "label": "Charts"
+  },
+  {
+   "fieldname": "chart_picker",
+   "fieldtype": "HTML",
+   "label": "Chart Picker"
+  },
+  {
+   "default": "Filled Area",
+   "description": "Set by the picker above. Where a chart carries its visual weight.",
+   "fieldname": "chart_grid",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Chart Grid",
+   "options": "Hairline Axes\nRuled Baseline\nDashed Guides\nBold Data\nFilled Area"
+  },
+  {
    "fieldname": "section_user",
    "fieldtype": "Section Break",
    "label": "User Menu"
@@ -978,7 +1000,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-10 12:00:00.000000",
+ "modified": "2026-08-16 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

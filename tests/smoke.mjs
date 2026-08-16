@@ -663,6 +663,8 @@ const MUTABLE_FIELDS = [
 	"desk_layout", "desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
+	// Chart surface (item 25).
+	"chart_grid",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -3657,6 +3659,9 @@ async function main() {
 				// toggle. list_picker is a known omission from item 16 — noted
 				// in HANDOVER, back-filled separately, not smuggled in here.
 				form_picker: { cards: 5, toggles: 1, opts: 6 },
+				// Chart surface (item 25): 5 style cards, no Original (the base
+				// theming is always on) and no composing groups or toggles — one axis.
+				chart_picker: { cards: 5, toggles: 0, opts: 0 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3668,7 +3673,7 @@ async function main() {
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
-					form_picker: 1, icons_picker: 1,
+					form_picker: 1, chart_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -6384,6 +6389,50 @@ async function main() {
 			expectEq(r.containers, 1, "the chart repainted in place — one chart in the container, not destroyed or duplicated");
 			for (const f of r.afterFills) expect(r.darkRamp.includes(f), `after flip, mark ${f} is a dark-ramp token`);
 			expect(r.beforeFills.join() !== r.afterFills.join(), "the flip actually changed the marks");
+		});
+
+		await test("chart: the chrome is themed, and chart_grid flips live", async () => {
+			setSettings({ chart_grid: "Filled Area" });
+			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			const r = await page.evaluate(async () => {
+				const host = document.createElement("div"); host.style.width = "440px"; document.body.appendChild(host);
+				new frappe.Chart(host, { type: "line", height: 220, colors: [],
+					data: { labels: ["a", "b", "c", "d"], datasets: [{ values: [3, 5, 2, 8] }] } });
+				await new Promise((res) => setTimeout(res, 700));
+				const c = host.querySelector(".chart-container");
+				const html = getComputedStyle(document.documentElement);
+				const read = () => {
+					const region = c.querySelector(".region-fill");
+					const vgrid = c.querySelector(".line-vertical line, line.line-vertical, .x.axis line");
+					const label = c.querySelector(".chart-label, .axis text, text");
+					return {
+						attr: document.documentElement.getAttribute("data-bnd-chart-grid"),
+						regionOpacity: region ? getComputedStyle(region).opacity : "none",
+						vgridStroke: vgrid ? getComputedStyle(vgrid).stroke : "none",
+						labelFill: label ? getComputedStyle(label).fill : "none",
+					};
+				};
+				const filled = read();
+				// Live-preview the axis: Ruled Baseline via the mandatory hook.
+				window.bunood_theme.chart_apply({ chart_grid: "Ruled Baseline" });
+				await new Promise((res) => setTimeout(res, 200));
+				const ruled = read();
+				const out = { filled, ruled,
+					bndInkMuted: html.getPropertyValue("--bnd-ink-muted").trim(),
+					vendorLabel: "rgb(49, 59, 68)" };
+				host.remove();
+				return out;
+			});
+			// The base chrome is themed: axis labels take our muted ink, not the vendor #313b44.
+			expect(r.filled.labelFill !== r.vendorLabel, `axis labels are themed, not the vendor grey (${r.filled.labelFill})`);
+			// Filled Area shows the area fill; Ruled hides it.
+			expectEq(r.filled.attr, "filled", "default chart_grid is Filled Area");
+			expect(r.filled.regionOpacity !== "0" && r.filled.regionOpacity !== "none",
+				`the area fill is visible under Filled Area (${r.filled.regionOpacity})`);
+			// The live hook flipped the attribute and the CSS responded.
+			expectEq(r.ruled.attr, "ruled", "chart_apply flipped the attribute to ruled");
+			expectEq(r.ruled.regionOpacity, "0", "Ruled Baseline hides the area fill");
+			expectEq(r.ruled.vgridStroke, "rgba(0, 0, 0, 0)", "Ruled Baseline drops the vertical gridlines");
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

@@ -30,6 +30,7 @@ from bunood_theme.printing.install import sync_print_theme
 from bunood_theme.registry import default_desk_order
 from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
+    CHART_DEFAULTS,
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
     FORM_DEFAULTS,
@@ -60,6 +61,7 @@ from bunood_theme.presets import (
 CHECK_DEFAULTS = {
     field: value
     for defaults in (
+        CHART_DEFAULTS,
         CRUMB_DEFAULTS,
         FORM_DEFAULTS,
         ICON_DEFAULTS,
@@ -118,6 +120,7 @@ DEFAULTS = {
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.
     **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in CHART_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in FORM_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LIST_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},

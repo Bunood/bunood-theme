@@ -325,6 +325,18 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_form = {f: form_(f) for f in FORM_DEFAULTS}
 
+        # ── Chart surface (item 25) ─────────────────────────────────────
+        # One Select (chart_grid). No-flash: charts are constructed by JS well
+        # after boot (frappe-charts on data load), so an attribute set from this
+        # payload is on <html> before any chart exists.
+        from bunood_theme.presets import CHART_DEFAULTS
+
+        def chart_(field):
+            value = settings.get(field)
+            return CHART_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_chart = {f: chart_(f) for f in CHART_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

@@ -3517,3 +3517,80 @@ msgstr "إظهار قائمة ملفك الشخصي في الشريط السفل
 #. src: item24
 msgid "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
 msgstr "إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين."
+
+# ── Chart surface (item 25) ──────────────────────────────────────────────
+
+#. src: item25
+#, fuzzy
+msgid "Charts"
+msgstr "الرسوم البيانية"
+
+#. src: item25
+#, fuzzy
+msgid "Chart Picker"
+msgstr "منتقي الرسم البياني"
+
+#. src: item25
+#, fuzzy
+msgid "Chart Grid"
+msgstr "شبكة الرسم البياني"
+
+#. src: item25
+#, fuzzy
+msgid "Set by the picker above. Where a chart carries its visual weight."
+msgstr "يُضبط بواسطة المنتقي أعلاه. أين يحمل الرسم البياني ثقله البصري."
+
+#. src: item25
+#, fuzzy
+msgid "Hairline Axes"
+msgstr "محاور رفيعة"
+
+#. src: item25
+#, fuzzy
+msgid "Ruled Baseline"
+msgstr "خطوط أفقية"
+
+#. src: item25
+#, fuzzy
+msgid "Dashed Guides"
+msgstr "أدلة متقطعة"
+
+#. src: item25
+#, fuzzy
+msgid "Bold Data"
+msgstr "بيانات بارزة"
+
+#. src: item25
+#, fuzzy
+msgid "Filled Area"
+msgstr "مساحة مملوءة"
+
+#. src: item25
+#, fuzzy
+msgid "Both gridlines, a quiet hairline in each direction."
+msgstr "خطا الشبكة معًا، خط رفيع هادئ في كل اتجاه."
+
+#. src: item25
+#, fuzzy
+msgid "Horizontal rules only — the value scale, and nothing competing with it."
+msgstr "خطوط أفقية فقط — مقياس القيمة، دون أي شيء ينافسه."
+
+#. src: item25
+#, fuzzy
+msgid "Gridlines become dashed guides; the solid axis stands down."
+msgstr "تتحول خطوط الشبكة إلى أدلة متقطعة؛ ويتنحى المحور المصمت."
+
+#. src: item25
+#, fuzzy
+msgid "The frame drops to a wash; the line thickens and its points grow."
+msgstr "يتلاشى الإطار إلى ظل باهت؛ ويثخن الخط وتكبر نقاطه."
+
+#. src: item25
+#, fuzzy
+msgid "The area under the line carries the chart — the modern analytics look."
+msgstr "المساحة تحت الخط تحمل الرسم البياني — مظهر التحليلات الحديث."
+
+#. src: item25
+#, fuzzy
+msgid "Applies as you click. Series colours are set automatically for legibility."
+msgstr "يُطبَّق عند النقر. تُضبط ألوان السلاسل تلقائيًا لضمان الوضوح."
