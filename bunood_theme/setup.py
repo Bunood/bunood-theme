@@ -36,6 +36,7 @@ from bunood_theme.presets import (
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
+    WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
     INBOX_DEFAULTS,
@@ -66,6 +67,7 @@ CHECK_DEFAULTS = {
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
+        WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
         INBOX_DEFAULTS,
         STATUS_DEFAULTS,
@@ -121,6 +123,7 @@ DEFAULTS = {
     # protects an admin's explicit 0.
     **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in CHART_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in WORKSPACE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in FORM_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LIST_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},

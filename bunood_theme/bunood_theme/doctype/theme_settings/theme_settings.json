@@ -129,6 +129,11 @@
   "form_tabs",
   "form_sidebar",
   "form_grid_checkbox_reveal",
+  "section_workspace",
+  "workspace_picker",
+  "workspace_style",
+  "workspace_rows",
+  "workspace_menu_reveal",
   "section_chart",
   "chart_picker",
   "chart_grid",
@@ -943,6 +948,42 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Reveal Grid Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_workspace",
+   "fieldtype": "Section Break",
+   "label": "Workspace"
+  },
+  {
+   "fieldname": "workspace_picker",
+   "fieldtype": "HTML",
+   "label": "Workspace Picker"
+  },
+  {
+   "default": "Hairline Grid",
+   "description": "Set by the picker above. How the tiles on a workspace sit together.",
+   "fieldname": "workspace_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Workspace Style",
+   "options": "Original\nOpen Board\nHairline Grid\nSoft Tiles\nHeaded Panel\nFloating Cards\nMixed Weights"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How the links inside a card behave on hover.",
+   "fieldname": "workspace_rows",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Workspace Rows",
+   "options": "Plain\nDivided\nEdge Rail"
+  },
+  {
+   "default": "1",
+   "description": "A card's menu rests hidden and appears on hover or keyboard focus. Always visible on touch screens.",
+   "fieldname": "workspace_menu_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Card Menus on Hover"
   },
   {
    "fieldname": "section_chart",

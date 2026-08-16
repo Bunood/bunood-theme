@@ -325,6 +325,19 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_form = {f: form_(f) for f in FORM_DEFAULTS}
 
+        # ── Workspace tile surface (item 25) ────────────────────────────
+        # No-flash: editor.js paints the widgets after boot, so an attribute
+        # set from this payload is on <html> before the first tile exists.
+        from bunood_theme.presets import WORKSPACE_DEFAULTS
+
+        def ws_(field):
+            value = settings.get(field)
+            if isinstance(WORKSPACE_DEFAULTS[field], int):
+                return WORKSPACE_DEFAULTS[field] if value is None else value
+            return WORKSPACE_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_workspace = {f: ws_(f) for f in WORKSPACE_DEFAULTS}
+
         # ── Chart surface (item 25) ─────────────────────────────────────
         # One Select (chart_grid). No-flash: charts are constructed by JS well
         # after boot (frappe-charts on data load), so an attribute set from this

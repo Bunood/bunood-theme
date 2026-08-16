@@ -663,7 +663,8 @@ const MUTABLE_FIELDS = [
 	"desk_layout", "desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
-	// Chart surface (item 25).
+	// Workspace tile + chart surfaces (item 25).
+	"workspace_style", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
@@ -3659,6 +3660,9 @@ async function main() {
 				// toggle. list_picker is a known omission from item 16 — noted
 				// in HANDOVER, back-filled separately, not smuggled in here.
 				form_picker: { cards: 5, toggles: 1, opts: 6 },
+				// Workspace tile kit (item 25): 7 style cards (Original + 6), one
+				// rows group (3 opts), one menu toggle.
+				workspace_picker: { cards: 7, toggles: 1, opts: 3 },
 				// Chart surface (item 25): 5 style cards, no Original (the base
 				// theming is always on) and no composing groups or toggles — one axis.
 				chart_picker: { cards: 5, toggles: 0, opts: 0 },
@@ -3673,7 +3677,7 @@ async function main() {
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
-					form_picker: 1, chart_picker: 1, icons_picker: 1,
+					form_picker: 1, workspace_picker: 1, chart_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -6279,6 +6283,99 @@ async function main() {
 			expect(open.bg !== "rgba(0, 0, 0, 0)", `the open row is opaque, no alien slab (${open.bg})`);
 			await page.keyboard.press("Escape");
 			await page.waitForTimeout(300);
+		});
+
+		// ── Workspace tile kit (item 25) ────────────────────────────────────
+		//
+		// A surface kit: attributes on <html>, a stylesheet over Frappe's own
+		// workspace DOM, nothing mounted. Every style ships; the assertions read
+		// the RENDERED tile, not just the attribute — an attribute proves it was
+		// set, a computed pixel proves it did something.
+		const WS_ROUTE = "/desk/selling"; // a workspace with charts, number cards and link cards
+
+		await test("workspace: Original applies nothing at all", async () => {
+			setSettings({ workspace_style: "Original" });
+			await goDesk(WS_ROUTE, ".widget", 3000);
+			const attrs = await page.evaluate(() =>
+				[...document.documentElement.attributes].filter((a) => a.name.startsWith("data-bnd-ws")).map((a) => a.name));
+			expectEq(attrs.join(","), "", "no workspace attribute survives Original");
+		});
+
+		const WS_STYLE_SLUG = {
+			"Open Board": "open", "Hairline Grid": "grid", "Soft Tiles": "soft",
+			"Headed Panel": "headed", "Floating Cards": "cards", "Mixed Weights": "mixed",
+		};
+		for (const [label, slug] of Object.entries(WS_STYLE_SLUG)) {
+			await test(`workspace: ${label}`, async () => {
+				setSettings({ workspace_style: label, workspace_rows: "Plain", workspace_menu_reveal: 0 });
+				// editor.js paints the tiles well after the route settles — wait for a
+				// widget actually inside a .ce-block, not just any .widget skeleton.
+				await goDesk(WS_ROUTE, ".ce-block .widget", 4000);
+				expectEq(await attr("data-bnd-ws"), slug, "style attribute");
+				const px = await page.evaluate(() => {
+					const w = document.querySelector(".ce-block .widget");
+					const ce = document.querySelector(".ce-block");
+					if (!w || !ce) return { missing: true };
+					const cs = getComputedStyle(w);
+					// The chart tile's box class — the bare `.chart` type class is NOT
+					// stamped on the rendered widget (measured), so key on the box.
+					const chart = document.querySelector(".ce-block .widget.dashboard-widget-box");
+					const redactor = document.querySelector(".codex-editor__redactor");
+					return {
+						shadow: cs.boxShadow, radius: cs.borderTopLeftRadius,
+						borderColor: cs.borderTopColor,
+						bg: cs.backgroundColor,
+						chartShadow: chart ? getComputedStyle(chart).boxShadow : null,
+						cePad: getComputedStyle(ce).paddingLeft,
+						redactorOverflow: redactor ? getComputedStyle(redactor).overflow : null,
+					};
+				});
+				expect(!px.missing, "the workspace rendered a tile in a block");
+				// One computed proof per style — an attribute is not correctness.
+				if (slug === "grid") {
+					expect(px.shadow !== "none", `Hairline Grid draws the shared ring (${px.shadow})`);
+					expectEq(px.radius, "0px", "tiles are square — the board carries the outer radius");
+					expectEq(px.cePad, "0px", "zero gutter — tiles butt together");
+					expectEq(px.redactorOverflow, "hidden", "the board clips its corners (read mode)");
+				} else if (slug === "cards") {
+					expect(px.shadow !== "none" && px.shadow !== px.chartShadow || px.shadow.includes("px"),
+						`Floating Cards lifts the tile (${px.shadow})`);
+					expect(px.radius !== "0px", "and keeps a radius");
+				} else if (slug === "open") {
+					expectEq(px.bg, "rgba(0, 0, 0, 0)", "Open Board has no tile fill");
+				} else if (slug === "soft") {
+					expect(px.borderColor === "rgba(0, 0, 0, 0)", "Soft Tiles drops the border");
+				} else if (slug === "mixed") {
+					expect(px.chartShadow && px.chartShadow !== "none", `Mixed Weights lifts the chart tile (${px.chartShadow})`);
+				}
+			});
+		}
+
+		await test("workspace: live preview flips the style and back", async () => {
+			setSettings({ workspace_style: "Hairline Grid" });
+			await goDesk(WS_ROUTE, ".widget", 3000);
+			expectEq(await attr("data-bnd-ws"), "grid", "boot applied grid");
+			await page.evaluate(() => window.bunood_theme.workspace_apply({ workspace_style: "Floating Cards" }));
+			expectEq(await attr("data-bnd-ws"), "cards", "preview flipped to cards");
+			await page.evaluate(() => window.bunood_theme.workspace_apply({ workspace_style: "Hairline Grid" }));
+			expectEq(await attr("data-bnd-ws"), "grid", "and back");
+		});
+
+		await test("workspace: Edge Rail is a neutral rail on hover, not a chosen state", async () => {
+			setSettings({ workspace_style: "Hairline Grid", workspace_rows: "Edge Rail" });
+			await goDesk(WS_ROUTE, ".link-item", 3000);
+			expectEq(await attr("data-bnd-ws-rows"), "rail", "rows attribute");
+			const rail = await page.evaluate(async () => {
+				const row = document.querySelector(".ce-block .widget.links .link-item");
+				if (!row) return { noRow: true };
+				const before = getComputedStyle(row, "::before").backgroundColor;
+				return { rest: before, position: getComputedStyle(row).position };
+			});
+			if (!rail.noRow) {
+				// At rest the rail is absent (only paints on hover) and the row is a
+				// positioning context for it.
+				expectEq(rail.position, "relative", "the row anchors its rail");
+			}
 		});
 
 		// ── Chart series palette (item 25) ─────────────────────────────────

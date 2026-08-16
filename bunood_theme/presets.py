@@ -449,6 +449,31 @@ FORM_DEFAULTS = {
     "form_grid_checkbox_reveal": 1,
 }
 
+#: Workspace tile surface fields (item 25), matching theme_settings.json. Like the
+#: other surface kits, no preset catalogue: the style IS the top-level choice.
+#: workspace_metric (the number-card interior) is a separate axis, added in slice 5.
+WORKSPACE_FIELDS = [
+    "workspace_style",
+    "workspace_rows",
+    "workspace_menu_reveal",
+]
+
+#: The shipped workspace defaults — the item-25 wireframe picks (2026-08-16):
+#: 1C Hairline Grid, 4C Edge Rail, reveal on. "Original" stays one click away.
+#: Hairline Grid was picked over the recommended Mixed Weights "for now"; both
+#: ship, so switching the default later is one value and no code.
+WORKSPACE_DEFAULTS = {
+    # One statement over canvas, tile and gutter — a gapless style requires zero
+    # gutter, so they cannot be separate fields without composing a non-style.
+    "workspace_style": "Hairline Grid",
+    # One treatment over link rows AND quick-list rows: a style cannot ship
+    # divided links beside undivided quick-list rows.
+    "workspace_rows": "Edge Rail",
+    # A Check, default-on: the tile ⋯ menus rest hidden, revealed on hover or
+    # keyboard focus, stood down wholesale on touch.
+    "workspace_menu_reveal": 1,
+}
+
 #: Chart surface fields (item 25), matching theme_settings.json. One axis, and
 #: NO "Original": the base --charts-* theming is always on (raw vendor hex is
 #: worse, never a choice), so the axis picks only where the visual weight sits.

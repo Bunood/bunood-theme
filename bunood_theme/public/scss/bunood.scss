@@ -72,7 +72,7 @@
 @use "chrome/settings";
 
 // ── Surfaces: the content ───────────────────────────────────────────────────
-// @use "surfaces/workspace";
+@use "surfaces/workspace";
 @use "surfaces/list";
 // @use "surfaces/report";
 @use "surfaces/form";

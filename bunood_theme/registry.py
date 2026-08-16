@@ -549,6 +549,20 @@ SURFACES = [
         "critical": False,
     },
     {
+        "key": "workspace",
+        "part": "workspace",
+        "label": "Workspace",
+        "type": SURFACE,
+        # Item 25. The tile grid on a workspace and the Dashboard route — the
+        # canvas, the tile frame, the gutter, the rows and the tile menus, all
+        # scoped under html[data-bnd-ws]; "Original" clears it.
+        "selector": 'html[data-bnd-ws]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
         "key": "chart",
         "part": "chart",
         "label": "Charts",

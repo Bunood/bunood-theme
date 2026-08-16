@@ -1,0 +1,248 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Workspace — the tile surface (item 25)
+//
+// WHAT
+//   A workspace (and the Dashboard route) is a grid of widgets — link cards,
+//   shortcuts, number cards, charts — all sharing one skeleton, `.widget`. This
+//   kit styles that tile: the canvas it sits on, its frame, the gutter between
+//   tiles, the rows inside a links/quick-list tile, and whether the tile's ⋯ menu
+//   rests hidden. Number-card INTERIORS are a separate axis (workspace_metric),
+//   in slice 5 — this file is the frame, not the figure.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-ws        the tile style, ANCHOR of this file:
+//     ""       Original      — the kit stands down (no attribute)
+//     "open"   Open Board    — no tile at all; whitespace carries the structure
+//     "grid"   Hairline Grid — gapless contact sheet, tiles share one hairline (DEFAULT)
+//     "soft"   Soft Tiles    — white canvas, quiet raised fill, no border
+//     "headed" Headed Panel  — a tinted title band with a rule, body below
+//     "cards"  Floating Cards— tinted canvas, lifted surface tiles, wide gutter
+//     "mixed"  Mixed Weights — treatment by what the block IS: data up, nav down
+//   data-bnd-ws-rows   rows inside a links / quick-list tile:
+//     "plain" wash hover · "divided" hairline between · "rail" wash + edge rail
+//   data-bnd-ws-menu   presence: the tile ⋯ menus rest hidden, reveal on hover/focus
+//
+// THE FACTS THIS FILE IS BUILT ON (measured live, 2026-08-16, Frappe 16.27)
+//   * The tile is `.widget` inside `.ce-block__content > div` (workspace) or a
+//     `.widget-group-body` (dashboard). A form page has ZERO `.widget`, so the
+//     kit is scoped to those two grid containers and never reaches a form.
+//   * `_bridge.scss` already paints `.widget` white on the tinted `--bnd-page`
+//     canvas with our hairline and a 12px radius — so a card-on-a-tint look is the
+//     BASELINE, and the distinct styles are the ones that leave it.
+//   * The widget does not fill its `.ce-block` (313px block, 299px widget): the
+//     intermediate wrappers carry no height. Fixed here for every style.
+//   * EDIT MODE clips a gapless board. editor.js puts `.new-block-button` at
+//     `left: -5px` and the settings sidebar at `right: 100%` — in the gutter a
+//     zero gutter + `overflow: hidden` would clip (probed). So the clip STANDS
+//     DOWN inside `.layout-main-section.edit-mode`, written into the option.
+//
+// DESIGN RECORD (item 25 wireframe round, 2026-08-16; artifact in the plan).
+// Axis 1 picked: Hairline Grid (Directus v-workspace-tile's shadow-ring, Discourse
+// dashboard rows). Axis 4: Edge Rail (the item-15 pick, restated). Axis 5: reveal
+// on. All seven styles + three row treatments ship; these are the defaults.
+//
+// Scoped html[data-bnd-ws] throughout; fails open (no attribute → stock). Logical
+// properties only. No !important.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The widget and row SCOPES — no html anchor, so the anchor can be prepended per
+// rule without ever nesting one html inside another. Two grid containers, one
+// kit; `:is()` keeps the pair in one selector at one class of specificity, so a
+// tile rule lands at (0,3,1) — above Frappe's `[data-page-route] .widget` (0,2,1).
+$ws: ":is(.ce-block, .widget-group-body) .widget";
+$row: ":is(.link-item, .quick-list-item)";
+
+// ── Correctness, every active style: the widget fills its block ──────────────
+html[data-bnd-ws] {
+  .ce-block__content,
+  .ce-block__content > div {
+    block-size: 100%;
+  }
+}
+
+// ── The gutter (workspace route) ─────────────────────────────────────────────
+// editor.js stamps `margin: 0 -4px` on the redactor and zeroes `.ce-block`
+// padding — an UNBALANCED negative margin that bleeds 4px each side today. We
+// restate BOTH halves from one token so the board's edge stays aligned. The
+// dashboard route's `gap` is tokenised in slice 6.
+html[data-bnd-ws] .codex-editor__redactor {
+  margin-inline: calc(var(--ws-gutter, 8px) / -2);
+}
+html[data-bnd-ws] .ce-block {
+  padding-inline: calc(var(--ws-gutter, 8px) / 2);
+  padding-block-end: var(--ws-gutter, 8px);
+}
+
+// ── The tile — consumes the working set ──────────────────────────────────────
+html[data-bnd-ws] #{$ws} {
+  background: var(--ws-tile-bg, var(--bnd-surface));
+  border: var(--bnd-line) solid var(--ws-tile-border, var(--bnd-border));
+  border-radius: var(--ws-tile-radius, var(--bnd-radius-lg));
+  box-shadow: var(--ws-tile-shadow, none);
+  transition: box-shadow var(--bnd-dur-fast) var(--bnd-ease),
+    border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+// ── The working sets ─────────────────────────────────────────────────────────
+
+// Open Board — no tile; titles and whitespace carry the structure. Wider gutter.
+html[data-bnd-ws="open"] {
+  --ws-gutter: var(--bnd-sp-5);
+  --ws-tile-bg: transparent;
+  --ws-tile-border: transparent;
+  --ws-tile-radius: 0;
+  --ws-tile-shadow: none;
+}
+
+// Hairline Grid (DEFAULT) — gapless contact sheet. A shadow RING, not a border,
+// so adjacent edges land on one pixel with no layout shift; the board carries the
+// outer radius.
+html[data-bnd-ws="grid"] {
+  --ws-gutter: 0;
+  --ws-tile-bg: var(--bnd-surface);
+  --ws-tile-border: transparent;
+  --ws-tile-radius: 0;
+  --ws-tile-shadow: 0 0 0 var(--bnd-line) var(--bnd-border);
+}
+// The outer radius, and the clip that rounds the shared corners. The clip STANDS
+// DOWN in edit mode, where it would eat editor.js's gutter controls.
+html[data-bnd-ws="grid"] .codex-editor__redactor,
+html[data-bnd-ws="grid"] .widget-group-body {
+  border-radius: var(--bnd-radius-lg);
+}
+html[data-bnd-ws="grid"] .layout-main-section:not(.edit-mode) .codex-editor__redactor {
+  overflow: hidden;
+}
+
+// Soft Tiles — invert: the canvas turns white, tiles are a quiet raised fill.
+html[data-bnd-ws="soft"] {
+  --ws-tile-bg: var(--bnd-raised);
+  --ws-tile-border: transparent;
+  --ws-tile-radius: var(--bnd-radius-lg);
+  --ws-tile-shadow: none;
+}
+html[data-bnd-ws="soft"] .layout-main-section {
+  background: var(--bnd-surface);
+}
+
+// Headed Panel — the only style that uses the head/body split every widget has.
+html[data-bnd-ws="headed"] {
+  --ws-tile-bg: var(--bnd-surface);
+  --ws-tile-border: var(--bnd-border);
+  --ws-tile-radius: var(--bnd-radius-lg);
+}
+html[data-bnd-ws="headed"] #{$ws} > .widget-head {
+  background: var(--bnd-raised);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  border-start-start-radius: var(--bnd-radius-lg);
+  border-start-end-radius: var(--bnd-radius-lg);
+  margin: calc(var(--bnd-line) * -1); // meet the tile border
+  margin-block-end: 0;
+  padding-inline: var(--bnd-sp-3);
+  padding-block: var(--bnd-sp-2);
+}
+
+// Floating Cards — tinted canvas, lifted surface tiles, wider gutter and a real
+// shadow so the cards read as lifted OFF the board, not inset into it. Drawn at
+// full strength: at item-15 weights it is the shipped baseline.
+html[data-bnd-ws="cards"] {
+  --ws-gutter: var(--bnd-sp-5);
+  --ws-tile-bg: var(--bnd-surface);
+  --ws-tile-border: var(--bnd-border);
+  --ws-tile-radius: var(--bnd-radius-xl);
+  --ws-tile-shadow: var(--bnd-shadow-md);
+}
+html[data-bnd-ws="cards"] #{$ws}:hover {
+  box-shadow: var(--bnd-shadow-lg);
+}
+
+// Mixed Weights — treatment by what the block IS: the data rises, the navigation
+// recedes. Keys on the widget's BOX class — the bare type class (`.widget.chart`)
+// the block toolbox implies is NOT stamped on the rendered widget (measured
+// 2026-08-16: only `.widget` + the `*-widget-box` class survive). One authored
+// decision, not a composition the user can get wrong.
+html[data-bnd-ws="mixed"] {
+  --ws-tile-bg: var(--bnd-surface);
+  --ws-tile-border: transparent;
+  --ws-tile-radius: var(--bnd-radius-lg);
+  --ws-tile-shadow: none;
+}
+html[data-bnd-ws="mixed"] #{$ws}.dashboard-widget-box {
+  box-shadow: var(--bnd-shadow-md);
+}
+html[data-bnd-ws="mixed"] #{$ws}.number-widget-box {
+  border-color: var(--bnd-border);
+}
+html[data-bnd-ws="mixed"] #{$ws}.links-widget-box,
+html[data-bnd-ws="mixed"] #{$ws}.shortcut-widget-box {
+  background: transparent;
+}
+
+// ── Rows inside a links / quick-list tile (workspace_rows) ───────────────────
+// One statement over BOTH the link rows and the quick-list rows — a style cannot
+// ship divided links beside undivided quick-list rows. The shortcut tile is a
+// whole link (role="link"); its hover belongs to the tile, not here.
+
+// Plain — a soft wash on hover, bleeding to the tile's padding edge.
+html[data-bnd-ws-rows="plain"] #{$row} {
+  border-radius: var(--bnd-radius-sm);
+}
+html[data-bnd-ws-rows="plain"] #{$row}:hover {
+  background: var(--bnd-hover);
+}
+
+// Divided — a hairline between rows, none after the last.
+html[data-bnd-ws-rows="divided"] #{$row}:not(:last-child) {
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+// Edge Rail — a wash AND a 3px inline-start rail on hover. NEUTRAL ink, not brand:
+// hover is "you are here", and a row has no chosen state to confuse it with. The
+// item-15 pick, restated over link rows.
+html[data-bnd-ws-rows="rail"] #{$row} {
+  position: relative;
+  border-radius: var(--bnd-radius-sm);
+}
+html[data-bnd-ws-rows="rail"] #{$row}:hover {
+  background: var(--bnd-hover);
+}
+html[data-bnd-ws-rows="rail"] #{$row}:hover::before {
+  content: "";
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-start: 0;
+  inline-size: 3px;
+  border-radius: var(--bnd-radius-pill);
+  background: color-mix(in srgb, var(--bnd-ink) 25%, transparent);
+}
+
+// ── The tile ⋯ menus rest hidden (workspace_menu_reveal) ─────────────────────
+// The third repetition of the reveal contract: opacity, never display:none, so
+// the trigger stays in the tab order; revealed on tile hover and :focus-within;
+// stood down wholesale on a coarse pointer. A chart's FILTER (.filter-chart) is
+// deliberately not hidden — that is data selection, not chrome.
+html[data-bnd-ws-menu] #{$ws} {
+  .widget-control,
+  .chart-actions,
+  .card-actions {
+    opacity: 0;
+    transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+  }
+  &:hover .widget-control,
+  &:hover .chart-actions,
+  &:hover .card-actions,
+  &:focus-within .widget-control,
+  &:focus-within .chart-actions,
+  &:focus-within .card-actions {
+    opacity: 1;
+  }
+}
+@media (hover: none) {
+  html[data-bnd-ws-menu] #{$ws} {
+    .widget-control,
+    .chart-actions,
+    .card-actions {
+      opacity: 1;
+    }
+  }
+}

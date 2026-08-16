@@ -1206,6 +1206,54 @@
 		apply_form_attrs({ ...(form_state || {}), ...values });
 	};
 
+	// ── Workspace tile kit (item 25) ────────────────────────────────────────
+	const WORKSPACE_SLUGS = {
+		style: {
+			"Original": "", "Open Board": "open", "Hairline Grid": "grid",
+			"Soft Tiles": "soft", "Headed Panel": "headed", "Floating Cards": "cards",
+			"Mixed Weights": "mixed",
+		},
+		rows: { "Plain": "plain", "Divided": "divided", "Edge Rail": "rail" },
+	};
+
+	let workspace_state = (window.frappe && frappe.boot && frappe.boot.bnd_workspace) || null;
+
+	/**
+	 * Reflect the workspace options onto <html>, clearing whatever came before.
+	 * A falsy style slug (Original / unknown / no boot) clears everything —
+	 * including the row and menu attributes, so Original is a full stand-down.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_workspace_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-ws" || a.name.startsWith("data-bnd-ws-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		workspace_state = v;
+		const style = WORKSPACE_SLUGS.style[v.workspace_style];
+		if (!style) return; // "" (Original) => pure clearing
+		html.setAttribute("data-bnd-ws", style);
+		const rows = WORKSPACE_SLUGS.rows[v.workspace_rows];
+		if (rows) html.setAttribute("data-bnd-ws-rows", rows);
+		// Presence-only, stood down under (hover: none) in the stylesheet.
+		if (parseInt(v.workspace_menu_reveal, 10)) html.setAttribute("data-bnd-ws-menu", "");
+	}
+
+	// Before editor.js paints the first tile — the kit's timing rule.
+	apply_workspace_attrs(workspace_state);
+
+	/**
+	 * LIVE PREVIEW for the workspace kit. Mandatory from day one.
+	 * @param {Object} values
+	 */
+	bunood.workspace_apply = function (values) {
+		if (!values) return;
+		apply_workspace_attrs({ ...(workspace_state || {}), ...values });
+	};
+
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },

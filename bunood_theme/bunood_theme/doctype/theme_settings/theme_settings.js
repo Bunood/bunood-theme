@@ -904,6 +904,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
 		bnd_render_form_picker(frm);
+		bnd_render_workspace_picker(frm);
 		bnd_render_chart_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
@@ -923,6 +924,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
 			bnd_form_preview(frm);
+			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
@@ -1107,6 +1109,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
 			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
 			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
+			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
 			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 		],
 	},
@@ -1211,6 +1214,7 @@ const BND_SHELL_OWNS = {
 	crumbs: { prefixes: ["crumb_"] },
 	list: { prefixes: ["list_"] },
 	form: { prefixes: ["form_"] },
+	workspace: { prefixes: ["workspace_"] },
 	chart: { prefixes: ["chart_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
@@ -3776,6 +3780,200 @@ function bnd_form_set(frm, fieldname, value) {
 	bnd_render_form_picker(frm);
 }
 
+// ── Workspace picker (item 25) — 7 tile styles, a rows group, a menu toggle ──
+/** Client mirror of presets.WORKSPACE_FIELDS — keep in sync. Export AND import list it. */
+const BND_WORKSPACE_FIELDS = ["workspace_style", "workspace_rows", "workspace_menu_reveal"];
+
+/** Client mirror of presets.WORKSPACE_DEFAULTS — keep in sync. */
+const BND_WORKSPACE_DEFAULTS = {
+	workspace_style: "Hairline Grid",
+	workspace_rows: "Edge Rail",
+	workspace_menu_reveal: 1,
+};
+
+/** The tile-style catalogue. Thumbnails are a mini workspace: a title, a row of
+ * small tiles, and a wide tile beneath — the shape of a real board. */
+const BND_WORKSPACE_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock workspace, untouched. The whole kit stands down."),
+		svg: bnd_ws_thumb({ tileFill: "none", tileStroke: ".28", gap: 5, radius: 3 }),
+	},
+	{
+		value: "Open Board",
+		blurb: () => __("No tile at all — whitespace and titles carry the structure."),
+		svg: bnd_ws_thumb({ tileFill: "none", tileStroke: "0", gap: 8, radius: 0 }),
+	},
+	{
+		value: "Hairline Grid",
+		blurb: () => __("A gapless contact sheet — tiles butt together, sharing one hairline."),
+		svg: bnd_ws_thumb({ tileFill: ".02", tileStroke: ".3", gap: 0, radius: 0, outer: true }),
+	},
+	{
+		value: "Soft Tiles",
+		blurb: () => __("White canvas, quiet filled tiles, no border."),
+		svg: bnd_ws_thumb({ tileFill: ".09", tileStroke: "0", gap: 5, radius: 4, canvas: "0" }),
+	},
+	{
+		value: "Headed Panel",
+		blurb: () => __("Each tile gets a tinted title band with a rule beneath."),
+		svg: bnd_ws_thumb({ tileFill: "none", tileStroke: ".28", gap: 5, radius: 3, headed: true }),
+	},
+	{
+		value: "Floating Cards",
+		blurb: () => __("Lifted cards on a tinted canvas — the current look, turned up."),
+		svg: bnd_ws_thumb({ tileFill: ".08", tileStroke: ".22", gap: 7, radius: 4, shadow: true }),
+	},
+	{
+		value: "Mixed Weights",
+		blurb: () => __("Treatment by what the block is: charts lift, links recede."),
+		svg: bnd_ws_thumb({ mixed: true, gap: 5, radius: 3 }),
+	},
+];
+
+/** One workspace thumbnail. Kept as a builder so seven near-identical diagrams
+ * are one description, not seven copies that drift. */
+function bnd_ws_thumb(o) {
+	const g = o.gap, r = o.radius;
+	const cv = o.canvas !== undefined
+		? `<rect x="1" y="1" width="118" height="52" rx="4" fill="currentColor" opacity="${o.canvas}"/>`
+		: "";
+	const frame = '<rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>';
+	const title = '<rect x="8" y="6" width="26" height="3" rx="1.5" fill="currentColor" opacity=".4"/>';
+	const tile = (x, y, w, h, opts) => {
+		const fill = opts.fill === "none" ? "" : ` fill="currentColor" fill-opacity="${opts.fill}"`;
+		const stroke = opts.stroke === "0" ? "" : ` stroke="currentColor" stroke-opacity="${opts.stroke}"`;
+		const sh = opts.shadow ? ' filter="url(#wsh)"' : "";
+		let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${opts.radius}"${fill}${stroke}${sh}/>`;
+		if (opts.headed) {
+			s += `<rect x="${x}" y="${y}" width="${w}" height="5" rx="${opts.radius}" fill="currentColor" opacity=".1"/>`;
+			s += `<line x1="${x}" y1="${y + 5}" x2="${x + w}" y2="${y + 5}" stroke="currentColor" opacity=".25"/>`;
+		}
+		return s;
+	};
+	const defs = o.shadow
+		? '<defs><filter id="wsh" x="-40%" y="-40%" width="180%" height="200%"><feDropShadow dx="0" dy="1.4" stdDeviation="1.4" flood-color="#0b2b1e" flood-opacity=".22"/></filter></defs>'
+		: "";
+	let body = "";
+	if (o.mixed) {
+		// three small tiles: a lifted chart-ish tile, two flat link lists
+		body =
+			'<rect x="8" y="14" width="32" height="16" rx="3" fill="currentColor" fill-opacity=".08" filter="url(#wsh)"/>' +
+			'<polyline points="12,26 20,20 28,24 36,17" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/>' +
+			'<rect x="46" y="15" width="26" height="3" rx="1.5" fill="currentColor" opacity=".3"/>' +
+			'<rect x="46" y="21" width="22" height="2.4" rx="1.2" fill="currentColor" opacity=".18"/>' +
+			'<rect x="46" y="26" width="24" height="2.4" rx="1.2" fill="currentColor" opacity=".18"/>' +
+			'<rect x="80" y="15" width="26" height="3" rx="1.5" fill="currentColor" opacity=".3"/>' +
+			'<rect x="80" y="21" width="20" height="2.4" rx="1.2" fill="currentColor" opacity=".18"/>' +
+			'<rect x="80" y="26" width="24" height="2.4" rx="1.2" fill="currentColor" opacity=".18"/>' +
+			tile(8, 36, 98, 12, { fill: ".08", stroke: "0", radius: 3, shadow: true });
+	} else {
+		const opts = { fill: o.tileFill, stroke: o.tileStroke, radius: r, headed: o.headed, shadow: o.shadow };
+		const x0 = 8 - (o.outer ? 0 : 0);
+		const w = (98 - 2 * g) / 3;
+		body =
+			tile(8, 14, w, 16, opts) +
+			tile(8 + w + g, 14, w, 16, opts) +
+			tile(8 + 2 * (w + g), 14, w, 16, opts) +
+			tile(8, 34 + (g ? 0 : 0), 98, 14, opts);
+		if (o.outer) body = `<g>${body}</g>`;
+	}
+	return `<svg viewBox="0 0 120 54">${defs}${frame}${cv}${title}${body}</svg>`;
+}
+
+/** The one composing option group — rows inside a card. */
+const BND_WORKSPACE_GROUPS = [
+	{
+		field: "workspace_rows",
+		title: () => __("Card rows"),
+		desc: () => __("How the links inside a card behave on hover."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Divided", name: () => __("Divided") },
+			{ value: "Edge Rail", name: () => __("Edge Rail") },
+		],
+	},
+];
+
+const BND_WORKSPACE_TOGGLES = [
+	{
+		field: "workspace_menu_reveal",
+		name: () => __("Reveal card menus on hover"),
+		desc: () => __("A card's ⋯ menu rests hidden and appears on hover or keyboard focus. Always visible on touch."),
+	},
+];
+
+/** Render the workspace picker. */
+function bnd_render_workspace_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "workspace_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.workspace_style || BND_WORKSPACE_DEFAULTS.workspace_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "workspace_style");
+	const cards = P.cards(
+		BND_WORKSPACE_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-wsp-style" }
+	);
+
+	const reason = off ? __("Original leaves the stock workspace untouched — nothing below applies.") : "";
+	const groups = BND_WORKSPACE_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_WORKSPACE_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	const toggles = BND_WORKSPACE_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field, on: !!parseInt(frm.doc[t.field], 10), name: t.name(), desc: t.desc(), reason,
+			cls: "bnd-wsp-toggle",
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-wsp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups + '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-wsp-style").on("click", function () {
+		bnd_workspace_set(frm, "workspace_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt, .bnd-wsp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_workspace_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_workspace_set(frm, f, BND_WORKSPACE_DEFAULTS[f]);
+	});
+}
+
+/** Hand the workspace values to the desk engine — live preview. */
+function bnd_workspace_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.workspace_apply) return;
+	const values = {};
+	for (const f of BND_WORKSPACE_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.workspace_apply(values);
+}
+
+/** Set one workspace option, preview, re-render. */
+function bnd_workspace_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_workspace_preview(frm);
+	bnd_render_workspace_picker(frm);
+}
+
 // ── Chart picker (item 25) — one card axis, no Original ──────────────────────
 /** Client mirror of presets.CHART_FIELDS — keep in sync. Export AND import list it. */
 const BND_CHART_FIELDS = ["chart_grid"];
@@ -4698,7 +4896,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -4727,7 +4925,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -4742,6 +4940,7 @@ function bnd_sb_import(frm) {
 			bnd_inbox_preview(frm);
 			bnd_list_preview(frm);
 			bnd_form_preview(frm);
+			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
@@ -4752,6 +4951,7 @@ function bnd_sb_import(frm) {
 			bnd_render_status_picker(frm);
 			bnd_render_list_picker(frm);
 			bnd_render_form_picker(frm);
+			bnd_render_workspace_picker(frm);
 			bnd_render_chart_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
