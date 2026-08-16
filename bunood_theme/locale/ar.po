@@ -3536,9 +3536,8 @@ msgid "Chart Grid"
 msgstr "شبكة الرسم البياني"
 
 #. src: item25
-#, fuzzy
 msgid "Set by the picker above. Where a chart carries its visual weight."
-msgstr "يُضبط بواسطة المنتقي أعلاه. أين يحمل الرسم البياني ثقله البصري."
+msgstr "يضبطه المنتقي أعلاه. حيث يحمل الرسم البياني ثقله البصري."
 
 #. src: item25
 #, fuzzy
@@ -3658,9 +3657,8 @@ msgid "Open Board"
 msgstr "لوح مفتوح"
 
 #. src: item25
-#, fuzzy
 msgid "Original leaves the stock workspace untouched — nothing below applies."
-msgstr "يترك «الأصلي» مساحة العمل الأصلية دون تغيير — لا شيء أدناه ينطبق."
+msgstr "«الأصلي» يترك مساحة العمل الأصلية كما هي — لا شيء أدناه يسري."
 
 #. src: item25
 #, fuzzy
@@ -3673,14 +3671,12 @@ msgid "Reveal card menus on hover"
 msgstr "إظهار قوائم البطاقات عند التحويم"
 
 #. src: item25
-#, fuzzy
 msgid "Set by the picker above. How the links inside a card behave on hover."
-msgstr "يُضبط بواسطة المنتقي أعلاه. كيف تتصرف الروابط داخل البطاقة عند التحويم."
+msgstr "يضبطه المنتقي أعلاه. كيف تتصرف الروابط داخل البطاقة عند التحويم."
 
 #. src: item25
-#, fuzzy
 msgid "Set by the picker above. How the tiles on a workspace sit together."
-msgstr "يُضبط بواسطة المنتقي أعلاه. كيف تتراصّ بطاقات مساحة العمل معًا."
+msgstr "يضبطه المنتقي أعلاه. كيف تتراصّ بطاقات مساحة العمل معًا."
 
 #. src: item25
 #, fuzzy
@@ -3688,9 +3684,8 @@ msgid "Soft Tiles"
 msgstr "بطاقات ناعمة"
 
 #. src: item25
-#, fuzzy
 msgid "The stock workspace, untouched. The whole kit stands down."
-msgstr "مساحة العمل الأصلية دون تغيير. تتنحّى المجموعة بأكملها."
+msgstr "مساحة العمل الأصلية، من غير مساس. العدة كلها تتنحى."
 
 #. src: item25
 #, fuzzy
@@ -3760,6 +3755,5 @@ msgid "Number cards"
 msgstr "بطاقات الأرقام"
 
 #. src: item25
-#, fuzzy
 msgid "Set by the picker above. How a number card presents its figure."
-msgstr "يُضبط بواسطة المنتقي أعلاه. كيف تعرض بطاقة الأرقام قيمتها."
+msgstr "يضبطه المنتقي أعلاه. كيف تعرض بطاقة الأرقام قيمتها."
