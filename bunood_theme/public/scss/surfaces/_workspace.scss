@@ -45,6 +45,8 @@
 // properties only. No !important.
 // ─────────────────────────────────────────────────────────────────────────────
 
+@use "../breakpoints" as *;
+
 // The widget and row SCOPES — no html anchor, so the anchor can be prepended per
 // rule without ever nesting one html inside another. Two grid containers, one
 // kit; `:is()` keeps the pair in one selector at one class of specificity, so a
@@ -245,4 +247,134 @@ html[data-bnd-ws-menu] #{$ws} {
       opacity: 1;
     }
   }
+}
+
+// ── The number card's interior (workspace_metric, item 25 axis 2) ────────────
+// The FIGURE inside the tile, as opposed to the frame above. The number card is
+// `.number-widget-box`: `.widget-head > .widget-label > .widget-title` (label,
+// with the ⋯ control beside it) and `.widget-body > .widget-content > .number`
+// (value); a delta lives in `.card-stats` when the card shows one.
+// The number-card SCOPES — no html anchor, so they prefix with either
+// data-bnd-ws (base) or data-bnd-ws-metric (a style) without nesting one html in
+// another. Both attributes sit on <html>, so the metric prefix alone implies the
+// kit is active. $num and $title carry the FULL Frappe path because Frappe's own
+// `.number` selector is `.widget.number-widget-box .widget-body .widget-content
+// .number` (0,5,0) and its title is (0,4,0) — a shorter selector silently loses,
+// the item-16 cascade lesson. With the html + attribute prefix these clear it.
+$card: ".number-widget-box";
+$num: ".number-widget-box .widget-body .widget-content .number";
+$title: ".number-widget-box .widget-head .widget-title";
+
+// Tabular numerals on every number the kit sizes — measured, the value is
+// `font-variant-numeric: normal` at rest, so it jitters sideways on Frappe's live
+// refresh. Applied whenever the kit is active, under any metric style. Does NOT
+// set colour, so it composes with an admin's inline `.number` colour untouched.
+html[data-bnd-ws] {
+  .number,
+  .percentage-stat-area,
+  .report-summary {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// The delta re-tokenised to the theme's own good/critical, off Frappe's greens
+// and reds. GUARDED against an admin-coloured card (D7): a card the admin gave a
+// `background_color` keeps Frappe's own delta inks, so our tokens never land on a
+// surface we did not choose. `:not([style*="background"])` reads the user's
+// signal directly — the inline style is the gesture, not a node's mere presence.
+html[data-bnd-ws] #{$card}:not([style*="background"]) {
+  .green-stat {
+    color: var(--bnd-good);
+  }
+  .red-stat {
+    color: var(--bnd-critical);
+  }
+}
+
+// Quiet — a restrained 22px value; the label stays as Frappe draws it.
+html[data-bnd-ws-metric="quiet"] #{$num} {
+  font-size: var(--bnd-text-xl);
+  font-weight: 600;
+}
+
+// Display (DEFAULT) — the label shrinks to an eyebrow, the value fills the card
+// and STEPS UP with the card's own width (a container query, not the window's).
+// A col-4 card and a col-12 card are different boxes at the same viewport — the
+// distinction `$bnd-cq` exists to protect.
+html[data-bnd-ws-metric="display"] #{$card} {
+  container: bndcard / inline-size;
+}
+// An eyebrow from size + case only: letter-spacing would sever Arabic joins (the
+// cursive guard, and Arabic labels render on any desk).
+html[data-bnd-ws-metric="display"] #{$title} {
+  font-size: var(--bnd-text-xs);
+  text-transform: uppercase;
+}
+html[data-bnd-ws-metric="display"] #{$num} {
+  font-size: var(--bnd-text-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+}
+// Narrow cards step the value back down (base is the wide state; only a `-until`
+// mixin exists).
+@include bnd-container-until(bndcard, card) {
+  html[data-bnd-ws-metric="display"] #{$num} {
+    font-size: var(--bnd-text-xl);
+  }
+}
+
+// Headline — the value comes first, the label beneath it. Safe: measured, the
+// number card's `.widget-body` holds no focusable, so reordering it above the
+// head does not interleave the tab order.
+html[data-bnd-ws-metric="headline"] #{$card} .widget-body {
+  order: -1;
+}
+html[data-bnd-ws-metric="headline"] #{$num} {
+  font-size: var(--bnd-text-2xl);
+  font-weight: 600;
+}
+html[data-bnd-ws-metric="headline"] #{$title} {
+  font-size: var(--bnd-text-sm);
+}
+
+// The muted label under Display and Headline — GUARDED (D7): a card the admin
+// gave a background_color keeps its own label ink, so our muted grey never lands
+// on a surface we did not choose.
+html[data-bnd-ws-metric="display"] #{$card}:not([style*="background"]) .widget-head .widget-title,
+html[data-bnd-ws-metric="headline"] #{$card}:not([style*="background"]) .widget-head .widget-title {
+  color: var(--bnd-ink-muted);
+}
+
+// Centred — the scoreboard: value centred and sized to the card, label beneath.
+html[data-bnd-ws-metric="centred"] #{$card} {
+  .widget-head,
+  .widget-content,
+  .card-stats {
+    text-align: center;
+  }
+}
+html[data-bnd-ws-metric="centred"] #{$num} {
+  font-size: clamp(var(--bnd-text-xl), 15cqi, var(--bnd-text-2xl));
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+// Inline — label and value on one line, value pushed to the end. The widget turns
+// row: the head (label + control) takes the space, the body (value) sits at the
+// inline end. A small ledger rather than three posters.
+html[data-bnd-ws-metric="inline"] #{$card} {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  .widget-head {
+    flex: 1 1 auto;
+  }
+  .widget-body {
+    flex: 0 0 auto;
+    text-align: end;
+  }
+}
+html[data-bnd-ws-metric="inline"] #{$num} {
+  font-size: var(--bnd-text-xl);
+  font-weight: 600;
 }

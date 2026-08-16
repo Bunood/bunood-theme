@@ -3881,8 +3881,20 @@ function bnd_ws_thumb(o) {
 	return `<svg viewBox="0 0 120 54">${defs}${frame}${cv}${title}${body}</svg>`;
 }
 
-/** The one composing option group — rows inside a card. */
+/** The composing option groups — the number card's figure, and card rows. */
 const BND_WORKSPACE_GROUPS = [
+	{
+		field: "workspace_metric",
+		title: () => __("Number cards"),
+		desc: () => __("How a number card presents its figure."),
+		options: [
+			{ value: "Quiet", name: () => __("Quiet") },
+			{ value: "Display", name: () => __("Display") },
+			{ value: "Headline", name: () => __("Headline") },
+			{ value: "Centred", name: () => __("Centred") },
+			{ value: "Inline", name: () => __("Inline") },
+		],
+	},
 	{
 		field: "workspace_rows",
 		title: () => __("Card rows"),

@@ -132,6 +132,7 @@
   "section_workspace",
   "workspace_picker",
   "workspace_style",
+  "workspace_metric",
   "workspace_rows",
   "workspace_menu_reveal",
   "section_chart",
@@ -967,6 +968,15 @@
    "hidden": 1,
    "label": "Workspace Style",
    "options": "Original\nOpen Board\nHairline Grid\nSoft Tiles\nHeaded Panel\nFloating Cards\nMixed Weights"
+  },
+  {
+   "default": "Display",
+   "description": "Set by the picker above. How a number card presents its figure.",
+   "fieldname": "workspace_metric",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Number Card Metric",
+   "options": "Quiet\nDisplay\nHeadline\nCentred\nInline"
   },
   {
    "default": "Edge Rail",

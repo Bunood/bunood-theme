@@ -3721,3 +3721,45 @@ msgstr "صفوف مساحة العمل"
 #, fuzzy
 msgid "Workspace Style"
 msgstr "نمط مساحة العمل"
+
+# ── Number card metric (item 25 axis 2) ──────────────────────────────────
+
+#. src: item25
+#, fuzzy
+msgid "Centred"
+msgstr "موسّط"
+
+#. src: item25
+#, fuzzy
+msgid "Display"
+msgstr "عرض بارز"
+
+#. src: item25
+#, fuzzy
+msgid "Headline"
+msgstr "عنوان رئيسي"
+
+#. src: item25
+#, fuzzy
+msgid "Inline"
+msgstr "في السطر"
+
+#. src: item25
+#, fuzzy
+msgid "How a number card presents its figure."
+msgstr "كيف تعرض بطاقة الأرقام قيمتها."
+
+#. src: item25
+#, fuzzy
+msgid "Number Card Metric"
+msgstr "مقياس بطاقة الأرقام"
+
+#. src: item25
+#, fuzzy
+msgid "Number cards"
+msgstr "بطاقات الأرقام"
+
+#. src: item25
+#, fuzzy
+msgid "Set by the picker above. How a number card presents its figure."
+msgstr "يُضبط بواسطة المنتقي أعلاه. كيف تعرض بطاقة الأرقام قيمتها."

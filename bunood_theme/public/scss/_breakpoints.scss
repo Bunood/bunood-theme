@@ -60,6 +60,7 @@ $bnd-cq: (
 	bar-3: 460px, // ...rank 4 (errors)
 	shell: 620px, // settings master/detail shell -> one column
 	board: 544px, // placement board -> stacked (was an unnamed 34rem)
+	card: 250px,  // number card (Display metric) -> the value steps up a size
 );
 
 @function bnd-bp($name) {

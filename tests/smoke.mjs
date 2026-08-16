@@ -664,7 +664,7 @@ const MUTABLE_FIELDS = [
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// Workspace tile + chart surfaces (item 25).
-	"workspace_style", "workspace_rows", "workspace_menu_reveal",
+	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
@@ -3660,9 +3660,9 @@ async function main() {
 				// toggle. list_picker is a known omission from item 16 — noted
 				// in HANDOVER, back-filled separately, not smuggled in here.
 				form_picker: { cards: 5, toggles: 1, opts: 6 },
-				// Workspace tile kit (item 25): 7 style cards (Original + 6), one
-				// rows group (3 opts), one menu toggle.
-				workspace_picker: { cards: 7, toggles: 1, opts: 3 },
+				// Workspace tile kit (item 25): 7 style cards (Original + 6), two
+				// option groups (5 metric + 3 rows = 8 opts), one menu toggle.
+				workspace_picker: { cards: 7, toggles: 1, opts: 8 },
 				// Chart surface (item 25): 5 style cards, no Original (the base
 				// theming is always on) and no composing groups or toggles — one axis.
 				chart_picker: { cards: 5, toggles: 0, opts: 0 },
@@ -6376,6 +6376,39 @@ async function main() {
 				// positioning context for it.
 				expectEq(rail.position, "relative", "the row anchors its rail");
 			}
+		});
+
+		await test("workspace: the number card metric restyles the figure, and numbers are tabular", async () => {
+			setSettings({ workspace_style: "Hairline Grid", workspace_metric: "Display" });
+			await goDesk(WS_ROUTE, ".number-widget-box .number", 4000);
+			expectEq(await attr("data-bnd-ws-metric"), "display", "metric attribute");
+			const disp = await page.evaluate(() => {
+				const nc = document.querySelector(".ce-block .widget.number-widget-box");
+				if (!nc) return { missing: true };
+				const num = nc.querySelector(".number");
+				const title = nc.querySelector(".widget-title");
+				return {
+					numFvn: getComputedStyle(num).fontVariantNumeric,
+					numSize: parseFloat(getComputedStyle(num).fontSize),
+					titleTransform: getComputedStyle(title).textTransform,
+					containerType: getComputedStyle(nc).containerType,
+				};
+			});
+			expect(!disp.missing, "a number card rendered");
+			// Tabular numerals: the value no longer jitters on refresh.
+			expect(/tabular-nums/.test(disp.numFvn), `the value is tabular (${disp.numFvn})`);
+			// Display: an eyebrow label and a value larger than the stock 20px.
+			expectEq(disp.titleTransform, "uppercase", "the label is an eyebrow");
+			expect(disp.numSize > 20, `the value steps up (${disp.numSize}px)`);
+			expect(disp.containerType !== "normal", "the card is a query container (value sizes to it)");
+			// Live-preview to Headline: the value comes first.
+			await page.evaluate(() => window.bunood_theme.workspace_apply({ workspace_metric: "Headline" }));
+			await page.waitForTimeout(200);
+			const headOrder = await page.evaluate(() => {
+				const b = document.querySelector(".ce-block .widget.number-widget-box .widget-body");
+				return b ? getComputedStyle(b).order : "none";
+			});
+			expectEq(headOrder, "-1", "Headline puts the value first");
 		});
 
 		// ── Chart series palette (item 25) ─────────────────────────────────

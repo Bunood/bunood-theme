@@ -1213,6 +1213,10 @@
 			"Soft Tiles": "soft", "Headed Panel": "headed", "Floating Cards": "cards",
 			"Mixed Weights": "mixed",
 		},
+		metric: {
+			"Quiet": "quiet", "Display": "display", "Headline": "headline",
+			"Centred": "centred", "Inline": "inline",
+		},
 		rows: { "Plain": "plain", "Divided": "divided", "Edge Rail": "rail" },
 	};
 
@@ -1236,6 +1240,8 @@
 		const style = WORKSPACE_SLUGS.style[v.workspace_style];
 		if (!style) return; // "" (Original) => pure clearing
 		html.setAttribute("data-bnd-ws", style);
+		const metric = WORKSPACE_SLUGS.metric[v.workspace_metric];
+		if (metric) html.setAttribute("data-bnd-ws-metric", metric);
 		const rows = WORKSPACE_SLUGS.rows[v.workspace_rows];
 		if (rows) html.setAttribute("data-bnd-ws-rows", rows);
 		// Presence-only, stood down under (hover: none) in the stylesheet.

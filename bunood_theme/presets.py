@@ -454,6 +454,7 @@ FORM_DEFAULTS = {
 #: workspace_metric (the number-card interior) is a separate axis, added in slice 5.
 WORKSPACE_FIELDS = [
     "workspace_style",
+    "workspace_metric",
     "workspace_rows",
     "workspace_menu_reveal",
 ]
@@ -466,6 +467,9 @@ WORKSPACE_DEFAULTS = {
     # One statement over canvas, tile and gutter — a gapless style requires zero
     # gutter, so they cannot be separate fields without composing a non-style.
     "workspace_style": "Hairline Grid",
+    # The number card's interior (axis 2). Display: an eyebrow label over a value
+    # that steps up with the card's own width.
+    "workspace_metric": "Display",
     # One treatment over link rows AND quick-list rows: a style cannot ship
     # divided links beside undivided quick-list rows.
     "workspace_rows": "Edge Rail",

@@ -3696,6 +3696,92 @@ html[data-bnd-ws-menu] :is(.ce-block, .widget-group-body) .widget:hover .widget-
     opacity: 1;
   }
 }
+html[data-bnd-ws] .number,
+html[data-bnd-ws] .percentage-stat-area,
+html[data-bnd-ws] .report-summary {
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-bnd-ws] .number-widget-box:not([style*=background]) .green-stat {
+  color: var(--bnd-good);
+}
+html[data-bnd-ws] .number-widget-box:not([style*=background]) .red-stat {
+  color: var(--bnd-critical);
+}
+
+html[data-bnd-ws-metric=quiet] .number-widget-box .widget-body .widget-content .number {
+  font-size: var(--bnd-text-xl);
+  font-weight: 600;
+}
+
+html[data-bnd-ws-metric=display] .number-widget-box {
+  container: bndcard/inline-size;
+}
+
+html[data-bnd-ws-metric=display] .number-widget-box .widget-head .widget-title {
+  font-size: var(--bnd-text-xs);
+  text-transform: uppercase;
+}
+
+html[data-bnd-ws-metric=display] .number-widget-box .widget-body .widget-content .number {
+  font-size: var(--bnd-text-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+@container bndcard (width < 250px) {
+  html[data-bnd-ws-metric=display] .number-widget-box .widget-body .widget-content .number {
+    font-size: var(--bnd-text-xl);
+  }
+}
+html[data-bnd-ws-metric=headline] .number-widget-box .widget-body {
+  order: -1;
+}
+
+html[data-bnd-ws-metric=headline] .number-widget-box .widget-body .widget-content .number {
+  font-size: var(--bnd-text-2xl);
+  font-weight: 600;
+}
+
+html[data-bnd-ws-metric=headline] .number-widget-box .widget-head .widget-title {
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-bnd-ws-metric=display] .number-widget-box:not([style*=background]) .widget-head .widget-title,
+html[data-bnd-ws-metric=headline] .number-widget-box:not([style*=background]) .widget-head .widget-title {
+  color: var(--bnd-ink-muted);
+}
+
+html[data-bnd-ws-metric=centred] .number-widget-box .widget-head,
+html[data-bnd-ws-metric=centred] .number-widget-box .widget-content,
+html[data-bnd-ws-metric=centred] .number-widget-box .card-stats {
+  text-align: center;
+}
+
+html[data-bnd-ws-metric=centred] .number-widget-box .widget-body .widget-content .number {
+  font-size: clamp(var(--bnd-text-xl), 15cqi, var(--bnd-text-2xl));
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+html[data-bnd-ws-metric=inline] .number-widget-box {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+html[data-bnd-ws-metric=inline] .number-widget-box .widget-head {
+  flex: 1 1 auto;
+}
+html[data-bnd-ws-metric=inline] .number-widget-box .widget-body {
+  flex: 0 0 auto;
+  text-align: end;
+}
+
+html[data-bnd-ws-metric=inline] .number-widget-box .widget-body .widget-content .number {
+  font-size: var(--bnd-text-xl);
+  font-weight: 600;
+}
+
 html[data-theme] .list-row {
   min-height: var(--bnd-row-h);
 }
