@@ -309,6 +309,10 @@
 	// `is_narrow()` is false and every answer comes from the desktop path.
 	const narrow_chrome = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_chrome) || null;
 	const narrow_placement = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_placement) || null;
+	// The user's phone-bar toggles (item 24 C2): which tenants join search below
+	// 768. Search itself has no toggle — it is the only search on a phone. A live
+	// preference, not a rebuild: active_placement turns a 0 into "Off" while narrow.
+	const mobile_state = (window.frappe && frappe.boot && frappe.boot.bnd_mobile) || null;
 	const MOBILE_MQ = typeof window.matchMedia === "function" ? window.matchMedia("(width < 768px)") : null;
 
 	/** Below Frappe's 768 mobile boundary, with a narrow preset to apply. */
@@ -632,6 +636,23 @@
 	 * closes is that nothing re-ran the container ladder when the width crossed
 	 * 768, so a desk loaded narrow and widened kept a phone's chrome until reload.
 	 */
+	/**
+	 * Apply a phone-bar toggle change (item 24 C2). Updates the live state and
+	 * remounts. At the desktop width the settings form is viewed at, is_narrow()
+	 * is false so the desk does not visibly change — the toggle governs the phone
+	 * bar, which is not on screen — but the state is current the moment the window
+	 * crosses 768. The kit's mandatory re-apply-on-click hook, same as the others.
+	 */
+	bunood.mobile_apply = function (values) {
+		if (!values || !mobile_state) return;
+		const FIELD_TO_KEY = { mobile_inbox: "inbox", mobile_user: "user", mobile_apps: "apps" };
+		for (const [name, value] of Object.entries(values)) {
+			const key = FIELD_TO_KEY[name];
+			if (key && key in mobile_state) mobile_state[key] = parseInt(value, 10) ? 1 : 0;
+		}
+		remount_chrome();
+	};
+
 	function on_breakpoint_change() {
 		apply_viewport_mode();
 		remount_chrome();
@@ -1722,6 +1743,10 @@
 	 */
 	function active_placement(tenant) {
 		if (is_narrow() && narrow_placement && narrow_placement[tenant]) {
+			// Gated by the user's phone-bar toggle: a tenant switched off stands
+			// down. Search is never in mobile_state, so it is never gated here —
+			// it is the only search on a phone and always present.
+			if (mobile_state && tenant in mobile_state && !mobile_state[tenant]) return "Off";
 			return narrow_placement[tenant];
 		}
 		return (placement_state && placement_state[tenant]) || "";

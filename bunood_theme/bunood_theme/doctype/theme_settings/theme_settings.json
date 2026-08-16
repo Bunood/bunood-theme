@@ -111,6 +111,10 @@
   "status_segments_density",
   "status_freshness",
   "status_escalate",
+  "section_mobile",
+  "mobile_inbox",
+  "mobile_user",
+  "mobile_apps",
   "section_density",
   "default_density",
   "section_list",
@@ -815,6 +819,32 @@
    "fieldname": "search_picker",
    "fieldtype": "HTML",
    "label": "Search Picker"
+  },
+  {
+   "fieldname": "section_mobile",
+   "fieldtype": "Section Break",
+   "label": "Mobile Bar"
+  },
+  {
+   "fieldname": "mobile_inbox",
+   "fieldtype": "Check",
+   "label": "Alerts on the phone bar",
+   "default": "1",
+   "description": "Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load."
+  },
+  {
+   "fieldname": "mobile_user",
+   "fieldtype": "Check",
+   "label": "You on the phone bar",
+   "default": "1",
+   "description": "Show your profile menu in the bottom bar below 768px."
+  },
+  {
+   "fieldname": "mobile_apps",
+   "fieldtype": "Check",
+   "label": "Apps on the phone bar",
+   "default": "1",
+   "description": "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
   },
   {
    "fieldname": "section_density",

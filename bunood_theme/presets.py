@@ -475,6 +475,17 @@ CHROME_DEFAULTS = {
     if c["key"] in SHIPPED_CONTAINERS
 }
 
+#: Mobile bar contents (item 24). Which tenants join search in the phone bottom
+#: bar below 768px. Search has no toggle — it is the only search on a phone
+#: (Frappe drops its own and Ctrl+K is unreachable on touch), so it is always
+#: there; these three choose what joins it. All on by default: the shipped bar
+#: is search / apps / alerts / you.
+MOBILE_DEFAULTS = {
+    "mobile_inbox": 1,
+    "mobile_user": 1,
+    "mobile_apps": 1,
+}
+
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our
 #: panel over Frappe's own Notification Log (filter tabs, rollup by
 #: document, reason chips, a REAL unread badge — Frappe's own badge code is

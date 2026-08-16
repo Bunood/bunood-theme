@@ -183,6 +183,22 @@ def extend_bootinfo(bootinfo):
         bootinfo.bnd_narrow_chrome = dict(NARROW_CHROME)
         bootinfo.bnd_narrow_placement = dict(NARROW_PLACEMENT)
 
+        # Which tenants the user keeps in the phone bar (item 24 C2). Search has
+        # no toggle — it is the only search on a phone, always present; these
+        # three gate what joins it. The client turns a 0 into "Off" for that
+        # tenant while narrow, so the toggle is a live preference, not a rebuild.
+        from bunood_theme.presets import MOBILE_DEFAULTS
+
+        def mobile(field):
+            value = settings.get(field)
+            return int(MOBILE_DEFAULTS[field] if value in (None, "") else value)
+
+        bootinfo.bnd_mobile = {
+            "inbox": mobile("mobile_inbox"),
+            "user": mobile("mobile_user"),
+            "apps": mobile("mobile_apps"),
+        }
+
         # Sidebar style kit (item 10). One compact dict; every empty field
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the

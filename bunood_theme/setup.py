@@ -38,6 +38,7 @@ from bunood_theme.presets import (
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
     INBOX_DEFAULTS,
+    MOBILE_DEFAULTS,
     PALETTE_DEFAULTS,
     SIDEBAR_PRESETS,
     LINKS_DEFAULTS,
@@ -69,6 +70,7 @@ CHECK_DEFAULTS = {
         USER_DEFAULTS,
         LINKS_DEFAULTS,
         CHROME_DEFAULTS,
+        MOBILE_DEFAULTS,
     )
     for field, value in defaults.items()
     if isinstance(value, int)

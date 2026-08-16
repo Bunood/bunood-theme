@@ -3485,3 +3485,35 @@ msgstr "صفوف الجدول تستقر نظيفة؛ يظهر مربع الاخ
 #, fuzzy
 msgid "Original leaves the stock form untouched — nothing below applies."
 msgstr "«الأصلي» يترك النموذج الأصلي كما هو — لا شيء أدناه يسري."
+
+#. src: item24
+msgid "Mobile Bar"
+msgstr "شريط الجوّال"
+
+#. src: item24
+msgid "Mobile bar"
+msgstr "شريط الجوّال"
+
+#. src: item24
+msgid "Alerts on the phone bar"
+msgstr "التنبيهات على شريط الهاتف"
+
+#. src: item24
+msgid "You on the phone bar"
+msgstr "حسابك على شريط الهاتف"
+
+#. src: item24
+msgid "Apps on the phone bar"
+msgstr "التطبيقات على شريط الهاتف"
+
+#. src: item24
+msgid "Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load."
+msgstr "إظهار الإشعارات في الشريط السفلي عند العرض دون 768 بكسل. البحث موجود دائمًا (فهو البحث الوحيد على الهاتف)؛ يختار هذا الخيار والخياران التاليان ما ينضمّ إليه. يسري عند تحميل الصفحة التالي."
+
+#. src: item24
+msgid "Show your profile menu in the bottom bar below 768px."
+msgstr "إظهار قائمة ملفك الشخصي في الشريط السفلي عند العرض دون 768 بكسل."
+
+#. src: item24
+msgid "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
+msgstr "إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين."

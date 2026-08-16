@@ -450,7 +450,7 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 
 /** Every settings shell pane, in the order BND_SHELL_GROUPS declares them. */
 const SETTINGS_PANE_KEYS = [
-	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search",
+	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search", "mobile",
 	"placement", "inbox", "user", "links", "palette", "crumbs", "list", "form",
 	"layout", "branding", "colors", "icons", "density", "translations",
 ];
@@ -698,6 +698,8 @@ const MUTABLE_FIELDS = [
 	// deciding. One field per container, added as its slice lands.
 	"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled",
 	"bottombar_enabled",
+	// Mobile bar contents (item 24 C2): which tenants join search on a phone.
+	"mobile_inbox", "mobile_user", "mobile_apps",
 ];
 
 /**
@@ -6451,6 +6453,34 @@ async function main() {
 				expect(wide1.topbar && !wide1.narrow, `wide: top bar up, not narrow (${JSON.stringify(wide1)})`);
 				expect(narrow.narrow && !narrow.topbar && narrow.bar, `narrow: top bar down, mobile bar up (${JSON.stringify(narrow)})`);
 				expect(wide2.topbar && !wide2.narrow, `widened back: the top bar returns (${JSON.stringify(wide2)})`);
+			});
+
+			await test("responsive: the phone-bar toggles gate their tenants (C2)", async () => {
+				// mobile_apps off removes the All Apps button from the narrow bar;
+				// on brings it back. Search has no toggle — it is the only search on
+				// a phone — so it stays either way.
+				const appsVis = () =>
+					page.evaluate(() => {
+						const n = document.querySelector('.bnd-statusbar [data-bnd-part="apps"]');
+						return !!(n && n.getBoundingClientRect().width > 0);
+					});
+				const searchVis = () =>
+					page.evaluate(() => {
+						const n = document.querySelector(".bnd-statusbar .bnd-search-field, .bnd-statusbar .bnd-search-icon");
+						return !!(n && n.getBoundingClientRect().width > 0);
+					});
+				setSettings({ ...topBar(), mobile_apps: 0 });
+				await page.setViewportSize(NARROW);
+				await goDesk("/desk/item", ".page-head", 3500);
+				const offApps = await appsVis();
+				const offSearch = await searchVis();
+				setSettings({ mobile_apps: 1 });
+				await goDesk("/desk/item", ".page-head", 3500);
+				const onApps = await appsVis();
+				await wideAgain();
+				expect(!offApps, "apps leaves the mobile bar when mobile_apps is off");
+				expect(offSearch, "search stays in the mobile bar regardless of the toggles");
+				expect(onApps, "apps returns when mobile_apps is on");
 			});
 		}
 

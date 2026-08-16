@@ -79,6 +79,9 @@
   "bottombar_enabled": 1,
   "sidebar_enabled": 1,
   "dock_enabled": 0,
+  "mobile_inbox": 1,
+  "mobile_user": 1,
+  "mobile_apps": 1,
   "enable_command_palette": 1
  },
  "pickers": {
