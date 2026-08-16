@@ -46,6 +46,15 @@
 			"note": "css +1601b, js +1321b gzip vs v0.13.0"
 		},
 		{
+			"version": "v0.15.0",
+			"date": "2026-08-14",
+			"css_raw": 108178,
+			"css_gzip": 14961,
+			"js_raw": 265060,
+			"js_gzip": 81965,
+			"note": "backfilled 2026-08-16: the release chain skipped this row at tag time; measured from the v0.15.0 tag's committed dist. css +750b, js +3926b gzip vs v0.14.0"
+		},
+		{
 			"version": "v0.16.0",
 			"date": "2026-08-16",
 			"css_raw": 109325,
