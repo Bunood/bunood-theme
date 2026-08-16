@@ -12,6 +12,60 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Item 24 — Responsive, and a mobile navigation mode
+
+The desk works on a phone now. Below Frappe's own mobile boundary — 768px, where
+`frappe.is_mobile()` flips — the desktop chrome collapses to a single full-width bottom
+bar carrying the controls Frappe otherwise buries, and the content fills the screen
+instead of the 150px strip it used to.
+
+**The known defect was not what the roadmap said.** The top bar was recorded as vanishing
+"below ~480px because Frappe renders no `.main-section > header`". Measured against v16.27,
+both halves are wrong: Frappe renders the empty `<header>` at every width, then
+`toolbar.js` REPLACES it — below 768, or on read_only / impersonation / an announcement
+widget, three of which fire on a full-size desk. So `mount_topbar`'s query misses because
+the element was swapped, and the boundary is 768, not 480. Corrected in the three places
+that carried the phantom.
+
+**One breakpoint vocabulary, guarded.** Nine literals in two ad-hoc schemes became
+`_breakpoints.scss` — a viewport scale that IS Frappe's `$grid-breakpoints` (a value of
+ours that disagreed would carve a band where the desk contradicts itself) and a separate
+named container scale. `assertBreakpointVocabulary` fails the build on any
+`@media`/`@container` width outside them, the two checked separately, the sets parsed from
+the SCSS so guard and vocabulary cannot drift.
+
+**The mobile nav is derived, not a new layout — applied, never persisted.**
+`registry.NARROW_CHROME` / `NARROW_PLACEMENT` are the catalogue of what every layout
+collapses to below 768; `container_on` / `active_placement` return those values while
+narrow, the stored fields untouched (a resize is not a gesture, so a phone visit never
+rewrites a monitor-configured desk). `matchMedia` remounts on the threshold — the other
+half of the defect, since nothing re-evaluated on resize. The bar carries search (an icon
+that opens the palette), alerts, you and All Apps; workspaces stay on Frappe's own
+top-left menu, not duplicated. Three toggles (Alerts / You / Apps) choose the contents;
+search has no toggle, being the only search on a phone.
+
+**The side pane collapses to Frappe's drawer.** Our kit had pinned the container to an
+inline width that beat every stylesheet rule, squeezing the desk into a strip; it drops
+that width when narrow and the resting container leaves the flow, so the content fills and
+the drawer still overlays on demand.
+
+**Pinch-zoom restored.** Frappe's viewport meta locks zoom (`user-scalable=no`);
+`repair_viewport_meta` unlocks it — the one sanctioned touch of Frappe's DOM, since a
+`<head>` meta is neither layout nor styling and there is no hook to reach it. The axe
+baseline's `meta-viewport` violation drops to zero on every Desk route.
+
+**Touch targets** clear WCAG 2.5.8's 24px on a coarse pointer (`data-bnd-touch`, a
+separate axis from width), and the mobile nav's own controls are 44px. The suite gained a
+`responsive:` family (the 768 boundary, tenant reachability, the both-ways remount, the
+drawer collapse, the toggles) and a scoped axe scan of the mobile nav at 390.
+
+Payload: the CSS gzip ceiling moved 14700 → 15400 for the mobile styles.
+
+Two decisions recorded rather than built: `100vh` kept over `dvh` (Frappe's own page math
+is `calc(100vh - …)` and the bottom reserve is already measured from the dynamic viewport,
+so the dvh gain is unverifiable headless), and `bnd_region_blocker`'s below-768 case left
+moot (the settings form is a desktop tool, and placements fall into the mobile bar anyway).
+
 ## [0.15.0] — 2026-08-14 — Icon system and accessibility, with RTL and translation fixes (items 22, 23)
 
 ### Item 23 — the icon system, reframed around what the desk actually needed

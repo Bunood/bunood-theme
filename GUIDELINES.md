@@ -81,6 +81,10 @@ that cannot change the verdict.
 - **Never touch Frappe-generated DOM.** Desk is coloured through tokens only. Our own
   components (`.bnd`/`.bnd-ck`, the palette, inbox, breadcrumbs, cluster) are the only
   markup we own — which is also the only place accessibility is fully ours. See 1.5.
+  The ONE sanctioned exception is `repair_viewport_meta` (item 24): it rewrites the
+  `<head>` viewport `<meta>` to unlock pinch-zoom. A meta tag is neither layout nor
+  styling — this rule is about not fighting Frappe's *layout* through its class names —
+  there is no hook to set it, and forking `desk.html` is retired (ARCHITECTURE §4).
 
 ### 1.3 Writing it
 

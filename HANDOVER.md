@@ -10,6 +10,28 @@
 
 ## 1. Where the work stands
 
+**ITEM 24 (responsive) — DONE, LOCAL-ONLY (2026-08-16).** Seven gated commits on `main`
+(`ea5f928` A · `c88d078` B · `752834b` C1 · `831550b` C2 · `367ca3f` D1 · `854b436` D2 ·
+`adfb19f` D3), all suite-green, none pushed. The mobile desk works: below 768 it collapses
+to a full-width bottom bar (search-as-palette-icon, alerts, you, All Apps), workspaces on
+Frappe's own drawer, three toggles for the contents, the side pane out of flow, pinch-zoom
+restored, touch targets ≥24px. The last full run was **213/213**. Facts worth keeping:
+- **The header defect's real cause** (the roadmap's "~480px, no `<header>`" was wrong on
+  both counts): Frappe renders the empty `<header>` at every width; `toolbar.js` REPLACES
+  it below 768 (`frappe.is_mobile()`) OR on read_only / impersonation / an announcement
+  widget — so `mount_topbar`'s `.main-section > header` query misses, and the boundary is
+  768, not 480. Three of the four triggers fire on a full-size desk.
+- **The sidebar's phantom column** was an INLINE `width: var(--bnd-sb-w)` set by
+  `sb_apply_width` (an inline style beats every stylesheet rule). The narrow fix had to
+  clear it in JS AND take the container out of flow in CSS; a Frappe `user-onboarding`
+  widget rides inside the container and floors its width, hence `overflow:hidden`.
+- **Mobile mode is applied, never persisted** — a runtime override
+  (`is_narrow()` → `NARROW_CHROME`/`NARROW_PLACEMENT`), `matchMedia` on the threshold, the
+  stored fields untouched. A resize is not a gesture.
+- **The breakpoint guard parses `_breakpoints.scss`** for its allowlist (one source of
+  truth); `@media` uses the viewport scale, `@container` the container scale, checked
+  separately.
+
 **ITEM 23 (icons) — largely shipped, LOCAL-ONLY (2026-08-13).** Twelve commits on
 `main` past the item-22 work, none pushed. The item was reframed: the desk already
 loads five sprites (2,085 symbols, no collisions), so the "ship a sprite for coverage"
@@ -528,6 +550,24 @@ pays for them a third time.
   which is *not* what the backend unpacks. Feed only the backend and assets 404
   on the frontend. `npm run deploy` handles both.
 - **`sites/assets` is a per-container symlink** into `apps/<app>/<app>/public`.
+- **A plain `docker restart bunood-backend-1` 502s the site until the FRONTEND is also
+  restarted.** The backend's IP changes on restart and the frontend's nginx caches the
+  upstream, so `localhost:8080` returns 502 while `backend:8000` (internal) answers 404
+  (gunicorn up, just no site Host). `docker restart bunood-frontend-1` re-resolves it.
+  `npm run deploy` avoids this (it restarts in a way the frontend follows); a hand restart
+  does not. Cost a confused "backend is down" chase 2026-08-16.
+- **Under memory pressure gunicorn workers get OOM-killed and the master does not always
+  respawn them cleanly** — the site 502s with the container still "healthy". Recovery is a
+  restart (then a frontend restart, above). The backend runs `GUNICORN_WORKERS=5`, each
+  loading all ten apps (~1 GiB total) — the single biggest memory user; stopping the
+  `queue-long`/`queue-short`/`scheduler` worker containers frees ~200 MB for a browser
+  suite run and is safe (they are background job processors, not needed for HTTP/browser
+  tests; RQ counts still come from Redis).
+- **Docker Desktop itself can go fully down** (engine gone, both WSL distros stopped) under
+  memory pressure — worse than §5's WSL-only case. Recovery: launch `Docker Desktop.exe`,
+  wait for the engine, then the empty-mount race still bites (`apps/bunood_theme` mounts
+  empty → ModuleNotFoundError) — fix with `docker restart` of the app containers once
+  Ubuntu is confirmed up with mirror content. Hit 2026-08-16.
 - **Frappe's primary-action label comes from a permission, not from
   `is_submittable`.** `model/perm.js` `_get_perm()` gives Administrator every
   right including `submit`; `form/toolbar.js` `can_submit()` reads it and never

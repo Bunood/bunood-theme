@@ -488,19 +488,31 @@ entry.
     finally lands. That is the slice that closes this item. The stale `theme_settings.js`
     "second real caller" comment was retired when `sprite_icon` was reworked.
 
-- `[~]` **24 · Responsive** *(was 35)* — including a mobile navigation mode. *Known
-  defect, re-diagnosed 2026-08-14 against Frappe v16.27 (the old text said "~480px …
-  Frappe renders no `.main-section > header`" — both halves were wrong):* Frappe renders
-  the empty `<header>` at every width (`desk.html:38`), then `toolbar.js:9-21` REPLACES
-  it whenever `frappe.is_mobile()` (`innerWidth < 768`) — or read_only, or impersonation,
-  or an announcement widget, three triggers that fire on a full-size desk too. So
-  `mount_topbar`'s `.main-section > header` query misses, the top-bar cluster does not
-  mount, and below **768px** (not 480) the bell and avatar are unreachable — present only
-  as Frappe's native affordances, zero-boxed inside the collapsed (`width:0`) sidebar.
-  Measured on workspace/list/form/settings: search survives (its fallback chain), bell
-  and user do not. It is a boot-time decision — nothing re-evaluates on resize. Being
-  worked in four gated slices (A measure+record · B breakpoint vocabulary+guard ·
-  C mobile nav, derived from `NARROW_CHROME` · D surfaces+settings+zoom lock)
+- `[x]` **24 · Responsive** *(was 35, done 2026-08-16)* — a mobile navigation mode, and
+  the known defect fixed at its real cause. *The defect was re-diagnosed against Frappe
+  v16.27 (the old text said "~480px … Frappe renders no `.main-section > header`" — both
+  halves were wrong):* Frappe renders the empty `<header>` at every width (`desk.html:38`),
+  then `toolbar.js:9-21` REPLACES it whenever `frappe.is_mobile()` (`innerWidth < 768`) —
+  or read_only, impersonation, or an announcement widget, three that fire on a full-size
+  desk too. So the boundary is **768px, not 480**, and below it the bell and avatar were
+  unreachable (zero-boxed in Frappe's collapsed sidebar). Delivered in seven gated slices:
+  - **A** — corrected the phantom in the three places that carried it; the `responsive:`
+    suite family pins the real 768 boundary.
+  - **B** — one breakpoint vocabulary (`_breakpoints.scss`, viewport = Frappe's own
+    `$grid-breakpoints`, a separate named container scale) behind a build guard
+    (`assertBreakpointVocabulary`, parsed from the SCSS so it cannot drift).
+  - **C1/C2** — the mobile nav, DERIVED from `registry.NARROW_CHROME`/`NARROW_PLACEMENT`
+    and APPLIED-NEVER-PERSISTED (a resize is not a gesture); `matchMedia` remounts on the
+    threshold. Below 768 the desk collapses to a full-width bottom bar carrying search (an
+    icon that opens the palette), alerts, you and All Apps — the tenants Frappe buries;
+    workspaces stay on Frappe's own menu. Three toggles choose the contents; search has no
+    toggle, being the only search on a phone.
+  - **D** — the side pane collapses to Frappe's drawer (our kit had pinned an inline width
+    that squeezed the desk to a strip); pinch-zoom restored (`repair_viewport_meta`, the
+    one sanctioned touch of Frappe DOM); touch targets clear 24px on a coarse pointer;
+    the translations table stacks on a phone; a scoped axe scan gates the mobile nav at
+    390. `100vh` kept over `dvh` and the `bnd_region_blocker` below-768 case left as moot,
+    both documented decisions.
 
 - `[ ]` **25 · Workspace/dashboard landing with charts and number cards** *(was 15 + 20,
   already numbered together — the two were "deliberately together" from the start: a
