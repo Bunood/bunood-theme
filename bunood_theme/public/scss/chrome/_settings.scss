@@ -1204,6 +1204,17 @@ html[data-theme] {
 	font-size: var(--bnd-text-sm);
 }
 
+// Narrow: five columns (source, translation, three action controls) cannot fit
+// a phone-width shell pane, and there is no horizontal scroll wrapper — so the
+// row stacks, each cell taking the full width (item 24). Same container and
+// threshold as the shell's own collapse; the row was the last settings surface
+// with a fixed multi-column grid and no narrow fallback.
+@include bnd-container-until(bndshell, shell) {
+	.bnd-tc-prow {
+		grid-template-columns: 1fr;
+	}
+}
+
 .bnd-tc-psrc {
 	color: var(--bnd-ink-muted);
 	overflow-wrap: anywhere;

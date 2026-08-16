@@ -141,6 +141,16 @@ html[data-bnd-chrome-off~="sidepane"] {
 // Scoped to html[data-bnd-layout] so a failed boot leaves .main-section
 // exactly as Frappe sized it. A layout with no bottom chrome measures 0 and
 // resolves to calc(100vh - 0px) — stock geometry, no dead band.
+//
+// 100vh, NOT 100dvh — a deliberate item-24 decision, not an oversight. Three
+// reasons: Frappe's OWN page-internal arithmetic is calc(100vh - …)
+// (report.scss, form_sidebar.scss, kanban.scss), so a unilateral dvh here would
+// make .main-section shorter than the panes inside it expect; the bottom
+// reserve is MEASURED from window.innerHeight (observe_bottom_reserve), i.e. the
+// dynamic viewport, so it already tracks the mobile URL bar without dvh; and the
+// dvh gain is unverifiable in a headless (chrome-less) browser, so switching on
+// an assumption would break the "measure, don't assume" rule. Revisit only with
+// a real-device measurement showing content lost under the mobile URL bar.
 html[data-bnd-layout] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px));
 }

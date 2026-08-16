@@ -668,6 +668,11 @@ html[data-bnd-narrow] .bnd-statusbar .bnd-search-field {
   padding-inline: 0;
 }
 
+html[data-bnd-touch] .bnd-statusbar a.bnd-status-item,
+html[data-bnd-touch] .bnd-statusbar button.bnd-status-item {
+  min-block-size: 24px;
+}
+
 html[data-theme] .bnd-dock {
   position: fixed;
   inset-block-end: var(--bnd-sp-3);
@@ -3493,6 +3498,11 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   font-size: var(--bnd-text-sm);
 }
 
+@container bndshell (width < 620px) {
+  .bnd-tc-prow {
+    grid-template-columns: 1fr;
+  }
+}
 .bnd-tc-psrc {
   color: var(--bnd-ink-muted);
   overflow-wrap: anywhere;

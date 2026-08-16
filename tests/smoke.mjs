@@ -6511,6 +6511,29 @@ async function main() {
 				expect(offSearch, "search stays in the mobile bar regardless of the toggles");
 				expect(onApps, "apps returns when mobile_apps is on");
 			});
+
+			await test("responsive: axe finds nothing in the mobile nav (390)", async () => {
+				// The mobile bottom bar is OUR chrome and renders only below 768, so
+				// the 1920 OURS gate never sees it (at 1920 the bar shows the desktop
+				// status content, not the phone nav). This gates its a11y at its
+				// native width — the contract's gate at the second viewport, done as
+				// one scoped scan rather than doubling every Desk axe scan on a host
+				// that is already tight on memory.
+				setSettings(topBar());
+				await page.setViewportSize(NARROW);
+				await goDesk("/desk/item", ".page-head", 3500);
+				const res = await new AxeBuilder({ page })
+					.include(".bnd-statusbar")
+					.withTags(["wcag2a", "wcag2aa"])
+					// Page-level rules have no meaning in a scoped include.
+					.disableRules(["region", "page-has-heading-one", "landmark-one-main", "bypass"])
+					.analyze();
+				await wideAgain();
+				const bad = res.violations.map(
+					(v) => `${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`
+				);
+				expect(bad.length === 0, `mobile nav axe-clean at 390 (${bad.join("; ")})`);
+			});
 		}
 
 		await test("payload: the bundle is within its budget", async () => {
