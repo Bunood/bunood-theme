@@ -55,10 +55,11 @@ from bunood_theme.contrast import (  # noqa: E402
 #: which cover ~99.99% of people including the two common dichromacies. Tritan is
 #: held to a lower ADVISORY floor: tritanopia is ~0.01% of the population and its
 #: simulation is the least validated, so penalising an otherwise-excellent palette
-#: on it would be false precision. Calibrated against published palettes under this
+#: on it would be false precision — the advisory WARNS, it does not fail the build
+#: (only the common floor does). Calibrated against published palettes under this
 #: exact model (Machado-linear + CIEDE2000): Okabe-Ito 11.6 and IBM 9.4 (both
-#: designed CVD-safe) clear it; frappe-charts' own default 4.1 and Tableau-10 0.7
-#: do not — a clean gap the floor sits inside.
+#: designed CVD-safe) clear it; frappe-charts' own DEFAULT_COLORS 0.95 and
+#: Tableau-10 0.7 do not — a clean gap the floor sits inside.
 SERIES_FLOOR_COMMON = 6.0
 SERIES_FLOOR_TRITAN = 4.5
 
@@ -559,8 +560,8 @@ _SHARMA_2005 = [
     ((50, -0.9009, -85.5211), (50, 0, -82.7485), 1.0000),
     ((50, 0, 0), (50, -1, 2), 2.3669),
     ((50, -1, 2), (50, 0, 0), 2.3669),
-    # Pairs 9 and 10 differ only in b2's sign-crossing (0.0009 vs 0.0011) and
-    # give DIFFERENT dE00 by design — Sharma's test that the hue quadrant flips.
+    # Canonical pairs 9 and 11 differ only in b2's sign-crossing (0.0009 vs 0.0011)
+    # and give DIFFERENT dE00 by design — Sharma's test that the hue quadrant flips.
     ((50, 2.49, -0.001), (50, -2.49, 0.0009), 7.1792),
     ((50, 2.49, -0.001), (50, -2.49, 0.0011), 7.2195),
     ((50, 2.5, 0), (50, 0, -2.5), 4.3065),  # opposite-hue: 4.3065, not 4.8045
@@ -602,7 +603,7 @@ def check_deltae_reference() -> list[str]:
     return problems
 
 
-def check_series_separation(light: dict, dark: dict) -> list[str]:
+def check_series_separation(light: dict, dark: dict) -> tuple[list[str], list[str]]:
     """The chart series marks must be tellable apart from EACH OTHER, including
     under colour-vision deficiency — a floor the pair table cannot express.
 
@@ -614,8 +615,14 @@ def check_series_separation(light: dict, dark: dict) -> list[str]:
     Reads the seven series hexes straight from each mode's parsed block, so it
     gates exactly what ships. The "other" overflow slot is excluded on purpose: it
     is the un-highlighted remainder, not a category that has to stand apart.
+
+    Returns ``(problems, advisories)``. Only ``problems`` (the COMMON floor)
+    fails the build; ``advisories`` (the tritan floor) are printed as warnings —
+    otherwise "advisory" would be a lie, hard-failing CI on a palette that is
+    excellent for the ~8% common CVDs but trades tritan margin (~0.01%), which the
+    tritan floor exists NOT to punish.
     """
-    problems = []
+    problems, advisories = [], []
     for mode, block in (("light", light), ("dark", dark)):
         try:
             hues = [block[f"--bnd-series-{n}"] for n in range(1, 8)]
@@ -630,11 +637,11 @@ def check_series_separation(light: dict, dark: dict) -> list[str]:
                 f"(normal+protan+deutan) — two marks confuse for a common CVD viewer"
             )
         if allk < SERIES_FLOOR_TRITAN:
-            problems.append(
+            advisories.append(
                 f"{mode}: series separation {allk:.2f} < {SERIES_FLOOR_TRITAN} "
-                f"(incl. tritan, advisory)"
+                f"(incl. tritan, advisory only — not a build failure)"
             )
-    return problems
+    return problems, advisories
 
 
 def check_computed() -> int:
@@ -824,10 +831,15 @@ def main() -> int:
             print(f"   {r}")
         print()
 
-    sep = check_series_separation(light, dark)
+    sep, sep_advisories = check_series_separation(light, dark)
     if sep:
         print("chart series separation is below the floor:")
         for s in sep:
+            print(f"   {s}")
+        print()
+    if sep_advisories:
+        print("chart series separation advisories (not build failures):")
+        for s in sep_advisories:
             print(f"   {s}")
         print()
 

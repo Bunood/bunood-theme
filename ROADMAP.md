@@ -514,13 +514,35 @@ entry.
     390. `100vh` kept over `dvh` and the `bnd_region_blocker` below-768 case left as moot,
     both documented decisions.
 
-- `[ ]` **25 · Workspace/dashboard landing with charts and number cards** *(was 15 + 20,
-  already numbered together — the two were "deliberately together" from the start: a
-  dashboard without its cards is half a feature, and doing them apart means designing
-  the same grid twice)* — Charts need a validated categorical palette and recessive
-  gridlines. Note for whoever designs the palette: item 22 established that a
-  categorical hue should keep one role (text/marks), never a fill under a label — the
-  same rule likely applies to chart series labels vs. chart fills.
+- `[x]` **25 · Workspace/dashboard landing with charts and number cards** *(was 15 + 20,
+  done 2026-08-16)* — Five gated slices: the chart series palette, its runtime, the
+  chart frame, the workspace tile kit, and the number card. Wireframed and picked
+  first (artifact recorded in the plan): **1C Hairline Grid · 2B Display Metric · 3E
+  Filled Area · 4C Edge Rail · reveal on**; all options ship, these are the defaults.
+  - **The series palette is DERIVED, not eyeballed.** `palette.series_ramp` (Paul
+    Tol's muted scheme, lightness-fitted per mode, brand-independent) lands in
+    `derive()` beside every other token; `--bnd-series-*`, a family separate from
+    `--bnd-cat-*` because a series index is the very index-cycle the categorical hues
+    forbid. `contrast.py` gained CIELAB, CIEDE2000 (pinned to Sharma-Wu-Dalal) and a
+    Machado-2009 colour-vision sim; the gate enforces marks at 1.4.11's 3:1 across 11
+    seeds and `check_series_separation` holds the worst pair ≥ 6.0 over the common
+    CVDs (measured light 9.16 / dark 6.90; frappe's own default 4.1 is rejected).
+    The answer to item 22's note: a chart series colour is a MARK, never a fill under
+    a label, so it keeps the one role — verified against `_reference/`, no vendored
+    product labels a category-coloured fill.
+  - **Charts are themed through one `frappe.Chart` wrap** (all seven v16 call sites);
+    the frame through frappe-charts' own `--charts-*` variables (recessive gridlines,
+    themed tooltip, the 2px/5px discontinuity removed), with `chart_grid` choosing
+    the weight (Filled Area default). Admin per-chart colours kept; a theme flip
+    repaints in place via a MutationObserver.
+  - **The workspace tile kit** (`workspace_style`) styles both the workspace and
+    Dashboard routes — Hairline Grid's gapless board is a shadow ring, stood down in
+    `.edit-mode` so it never clips editor.js's gutter controls. `workspace_rows` and
+    `workspace_menu_reveal` complete the frame; `workspace_metric` the number card's
+    figure, with tabular numerals and the delta re-tokenised, guarded against an
+    admin-coloured card (`:not([style*="background"])`). Phase-3 evidence: charts are
+    the token pipeline's newest consumer, and the `(hover: none)` reveal stand-down
+    repeats item 24's narrow-input statement a fourth time.
 
 - `[ ]` **26 · Report view / datatable** *(was 17)* — sticky headers, tabular numerals,
   grouping

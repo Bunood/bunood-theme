@@ -3782,11 +3782,12 @@ function bnd_form_set(frm, fieldname, value) {
 
 // ── Workspace picker (item 25) — 7 tile styles, a rows group, a menu toggle ──
 /** Client mirror of presets.WORKSPACE_FIELDS — keep in sync. Export AND import list it. */
-const BND_WORKSPACE_FIELDS = ["workspace_style", "workspace_rows", "workspace_menu_reveal"];
+const BND_WORKSPACE_FIELDS = ["workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal"];
 
 /** Client mirror of presets.WORKSPACE_DEFAULTS — keep in sync. */
 const BND_WORKSPACE_DEFAULTS = {
 	workspace_style: "Hairline Grid",
+	workspace_metric: "Display",
 	workspace_rows: "Edge Rail",
 	workspace_menu_reveal: 1,
 };

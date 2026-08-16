@@ -19,5 +19,19 @@
 	"/desk/theme-settings?shell=1": {
 		"button-name": 1,
 		"link-name": 1
+	},
+	"/desk/selling": {
+		"aria-allowed-attr": 3,
+		"button-name": 8,
+		"color-contrast": 2,
+		"image-alt": 1,
+		"link-name": 1
+	},
+	"/desk/dashboard-view/Selling": {
+		"aria-allowed-attr": 4,
+		"button-name": 10,
+		"color-contrast": 3,
+		"image-alt": 1,
+		"link-name": 1
 	}
 }

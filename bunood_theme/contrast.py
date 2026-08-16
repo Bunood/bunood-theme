@@ -251,7 +251,7 @@ def ratio(a, b) -> float:
 # WHY THESE MODELS
 #     CIELAB + CIEDE2000 (CIE 142-2001 / ISO/CIE 11664-6) is the standard
 #     perceptual difference metric — not a draft, which is the same bar the module
-#     docstring holds APCA to. This CIEDE2000 is verified against all 34
+#     docstring holds APCA to. This CIEDE2000 is verified against 29 of the
 #     Sharma-Wu-Dalal (2005) reference pairs in the suite. The CVD simulation is
 #     Machado, Oliveira & Fernandes (2009) at severity 1.0 — the full dichromat,
 #     the conservative worst case for "can these be told apart" — applied in
@@ -289,8 +289,9 @@ def to_lab(color):
 def delta_e(lab1, lab2) -> float:
     """CIEDE2000 colour difference between two CIELAB triples (kL=kC=kH=1).
 
-    Faithful to the Sharma-Wu-Dalal (2005) reference formulation; the suite pins
-    it to all 34 of their published test pairs.
+    Faithful to the Sharma-Wu-Dalal (2005) reference formulation; the gate pins it
+    to 29 of their 34 published test pairs (the five omitted are correct-but-
+    untested; the arctan-quadrant and achromatic edge cases are all present).
     """
     import math
 

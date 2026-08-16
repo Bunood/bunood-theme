@@ -5808,6 +5808,9 @@ async function main() {
 				["/desk/item", ".page-head"],
 				["/desk/item/BND-TEST-001", ".form-tabs-list"],
 				["/desk/theme-settings?shell=1", ".bnd-shell"],
+				// Item 25: the workspace and dashboard routes the kits land on.
+				["/desk/selling", ".ce-block .widget"],
+				["/desk/dashboard-view/Selling", ".widget-group-body"],
 			]) {
 				await goDesk(route, waitFor, 4000);
 				const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

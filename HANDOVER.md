@@ -10,6 +10,89 @@
 
 ## 1. Where the work stands
 
+**ITEM 25 (workspace/dashboard, charts, number cards) — DONE, LOCAL-ONLY, ON A BRANCH
+(2026-08-16).** Six commits on branch **`item-25-workspace-charts`** (not `main`):
+`2fd5c0e` 3a · `5f41ba6` 3b · `8b01ecb` 2 · `eb6af43` 4 · `712c620` 5, plus `823f0ce`
+(an unrelated v0.15.0 payload-history backfill, its own commit). None pushed; the branch
+is not merged to `main`. Each slice verified its own suite family + the colour/build
+gates; the FULL suite is the outstanding release gate (running or to run on a quiet
+machine). Facts worth keeping:
+
+- **The chart colour split is FORCED, not chosen, and it is clean.** frappe-charts'
+  CHROME (axis, gridlines, tooltip, labels) is CSS-reachable through its own bare-`:root`
+  `--charts-*` variables; its SERIES colours are NOT — they arrive as a JS array written
+  as inline SVG `style` (measured `stroke: rgb(246,131,174)` = the vendor `pink`), which
+  beats every stylesheet rule. So chrome is themed via `surfaces/_charts.scss` mapping
+  `--charts-*` → `--bnd-*` (one block under `html[data-theme] .chart-container`, wins
+  Frappe's own dark override by equal specificity + later source order), and series are
+  fed from JS.
+- **The series ramp is DERIVED and BRAND-INDEPENDENT.** `palette.series_ramp(mode)` fits
+  Paul Tol's muted scheme per mode and lands in `derive()`; it ignores the seed on
+  purpose (series 1 is the same colour on every site), so ONE static block in
+  `_tokens.scss` satisfies `check_defaults_agree` for all 11 gate seeds. Its binding
+  background is computed from the surface FORMULAS at the extreme seed (`#f5f5f5` = a
+  black seed's `--bnd-page`; `#32353b` = a white seed's `--bnd-raised`), NOT from
+  `derive()` — that would recurse. New maths in `contrast.py` (`to_lab`, `delta_e`
+  CIEDE2000, `simulate_cvd` Machado-2009-linear, `separation`); the model was chosen
+  EMPIRICALLY — it ranks designed-safe palettes (Okabe-Ito 11.6, IBM 9.4) above unsafe
+  (frappe 4.1, Tableau 0.7) with a clean gap, and the floor (6.0 common / 4.5 tritan
+  advisory) sits inside it. `check_deltae_reference` pins CIEDE2000 to Sharma-Wu-Dalal
+  every `npm run contrast`.
+- **frappe-charts tokens authored as literal 6-digit hex ONLY.** `getComputedStyle`
+  returns a token's computed value; a `color-mix()` or `var()`-chain token resolves to
+  that unresolved string, which frappe-charts rejects, and its `getColor` drops an
+  unpadded `rgb()` channel (`rgb(0,131,0)` → `#0830`). The JS hard-validates
+  `/^#[0-9a-f]{6}$/i` and drops the whole array on any failure (coherent vendor default
+  beats a half-ours mixture).
+- **`frappe.Chart` is wrapped, not the widget method.** `new frappe.Chart(...)` is the
+  ONE funnel all seven v16 call sites use; a plain-function wrap (NOT `class extends` —
+  the constructor returns a different object, so a subclass prototype never joins the
+  chain). It also sets `lineOptions.regionFill:1` on every line chart so the Filled Area
+  style has a `.region-fill` to reveal via CSS opacity — keeping `chart_grid` a pure-CSS
+  live preview. Theme flip repaints via ONE `MutationObserver` on `data-theme` (set_theme
+  emits no event), `draw(false,false)` in place, hovered/focused charts deferred.
+- **THE CASCADE, TWICE (item-16 lesson, again).** (a) Mixed Weights first keyed on
+  `.widget.chart` — the bare type class the block toolbox *implies* but the rendered
+  widget does NOT carry; it is `.widget` + the `*-widget-box` class only. (b) The number
+  value lost to Frappe's `.widget.number-widget-box .widget-body .widget-content .number`
+  (0,5,0); the metric rules now carry the full path in `$num`/`$title` so `html` + the
+  attribute clear it. Both caught by their own suite assertions returning null/stock.
+- **The `$scope`-variable double-`html` trap bit twice more.** A `$tile`/`$card` SCSS
+  string that embeds `html[data-bnd-ws]` and is then given an `html[data-bnd-ws-metric]`
+  prefix compiles to invalid nested `html html`. The rule: scope variables hold NO html
+  anchor; prepend it per rule.
+- **Hairline Grid's `overflow:hidden` stands down in `.edit-mode`.** Probed: editor.js
+  puts `.new-block-button` at `left:-5px` and the settings sidebar at `right:100%` — in
+  the gutter a gapless board + clip would eat them. Scoped
+  `.layout-main-section:not(.edit-mode)`.
+- **A form page has ZERO `.widget`.** So the kit's `:is(.ce-block, .widget-group-body)
+  .widget` scope reaches the workspace and Dashboard grids and never a form's connections
+  dashboard. The axe honesty check passed IDENTICAL kit-on vs Original on both routes.
+- **Ceilings raised deliberately:** `css_gzip` 15400→17000, `js_gzip` 88000→92000, each
+  in the slice that grew it. **48 `ar.po` rows are `#, fuzzy`** and await the user's
+  review (item-7 handoff).
+- **A 4-dimension adversarial release review ran before the close** (a Workflow: CSS
+  cascade / colour science / runtime JS / anatomy completeness → verify) and found SEVEN
+  real defects the per-slice suites missed, all fixed in the slice-6 commit. The one that
+  mattered: `BND_WORKSPACE_FIELDS`/`_DEFAULTS` (the JS mirror of `presets.WORKSPACE_FIELDS`)
+  omitted `workspace_metric` — so the metric never LIVE-PREVIEWED and was silently dropped
+  from theme export/import. The item-18 "escapee" class, AGAIN, and green because the metric
+  suite test drove `workspace_apply` directly, bypassing the `BND_WORKSPACE_FIELDS`-driven
+  preview/export path. The others: a dashboard-route `border-radius` inert without an
+  `overflow` clip; a raw-`8px` gutter fallback that also differed from the dashboard's
+  token; `isValidColor` discarding admin-set NAMED colours frappe-charts honours; the
+  tritan floor hard-failing despite being labelled "advisory"; and two wrong calibration
+  figures. Two findings were correctly REFUTED (an `options.colors` in-place mutation whose
+  reconstruct-precondition frappe never creates; a `chart_apply`-absent path that self-
+  defeats).
+- **FOLLOW-UP worth doing: a `build.mjs` guard that keeps the `BND_<X>_FIELDS` JS mirrors
+  in sync with `presets.<X>_FIELDS`.** The escapee has now bitten twice. The guard is
+  `BND_<X>_FIELDS` must contain every `<X>_FIELDS` entry EXCEPT `PLACEMENT_FIELDS`
+  (`inbox_placement`/`user_placement` are legitimately export-separate via the placement
+  board — verified, so a naive set-equality FALSE-positives on INBOX). Prototyped in the
+  scratchpad (`mirror-check.mjs`), passes clean on all nine surfaces once placement is
+  subtracted; left out of the item-25 close as out-of-plan scope.
+
 **ITEM 24 (responsive) — DONE, LOCAL-ONLY (2026-08-16).** Seven gated commits on `main`
 (`ea5f928` A · `c88d078` B · `752834b` C1 · `831550b` C2 · `367ca3f` D1 · `854b436` D2 ·
 `adfb19f` D3), all suite-green, none pushed. The mobile desk works: below 768 it collapses

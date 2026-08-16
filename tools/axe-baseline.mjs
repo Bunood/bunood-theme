@@ -38,6 +38,9 @@ const ROUTES = [
 	["/desk/item", ".page-head"],
 	["/desk/item/BND-TEST-001", ".form-tabs-list"],
 	["/desk/theme-settings?shell=1", ".bnd-shell"],
+	// Item 25: the two surfaces the workspace + chart kits land on.
+	["/desk/selling", ".ce-block .widget"],
+	["/desk/dashboard-view/Selling", ".widget-group-body"],
 ];
 
 const py = (c) =>

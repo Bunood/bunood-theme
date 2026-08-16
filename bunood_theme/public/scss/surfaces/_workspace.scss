@@ -62,17 +62,29 @@ html[data-bnd-ws] {
   }
 }
 
-// ── The gutter (workspace route) ─────────────────────────────────────────────
-// editor.js stamps `margin: 0 -4px` on the redactor and zeroes `.ce-block`
-// padding — an UNBALANCED negative margin that bleeds 4px each side today. We
-// restate BOTH halves from one token so the board's edge stays aligned. The
-// dashboard route's `gap` is tokenised in slice 6.
+// ── The gutter ───────────────────────────────────────────────────────────────
+// WORKSPACE ROUTE: editor.js stamps `margin: 0 -4px` on the redactor and zeroes
+// `.ce-block` padding — an UNBALANCED negative margin that bleeds 4px each side
+// today. We restate BOTH halves from one token so the board's edge stays aligned.
+// The default gutter, for styles that do not set --ws-gutter themselves (Soft
+// Tiles, Headed Panel, Mixed Weights). ONE token, so a style renders the SAME
+// gutter on both routes — and a token, not a raw px (the release review caught the
+// old 8px literal, which also differed from the dashboard's fallback).
+html[data-bnd-ws] {
+  --ws-gutter-default: var(--bnd-sp-3);
+}
 html[data-bnd-ws] .codex-editor__redactor {
-  margin-inline: calc(var(--ws-gutter, 8px) / -2);
+  margin-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / -2);
 }
 html[data-bnd-ws] .ce-block {
-  padding-inline: calc(var(--ws-gutter, 8px) / 2);
-  padding-block-end: var(--ws-gutter, 8px);
+  padding-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
+  padding-block-end: var(--ws-gutter, var(--ws-gutter-default));
+}
+// DASHBOARD ROUTE: the grid is a real CSS grid (`.widget-group-body`, gap 15px by
+// default). The SAME token — so a gapless style is gapless on both routes, and
+// only `grid-col-*`'s own column config (the Dashboard doc's choice) is left alone.
+html[data-bnd-ws] .widget-group-body {
+  gap: var(--ws-gutter, var(--ws-gutter-default));
 }
 
 // ── The tile — consumes the working set ──────────────────────────────────────
@@ -106,10 +118,14 @@ html[data-bnd-ws="grid"] {
   --ws-tile-radius: 0;
   --ws-tile-shadow: 0 0 0 var(--bnd-line) var(--bnd-border);
 }
-// The outer radius, and the clip that rounds the shared corners. The clip STANDS
-// DOWN in edit mode, where it would eat editor.js's gutter controls.
-html[data-bnd-ws="grid"] .codex-editor__redactor,
-html[data-bnd-ws="grid"] .widget-group-body {
+// The outer radius, and the clip that rounds the shared corners — WORKSPACE route
+// only. The clip STANDS DOWN in edit mode, where it would eat editor.js's gutter
+// controls. The dashboard grid (`.widget-group-body`) gets NO radius: it is an
+// auto-fill grid that does not fill a rounded rectangle, and clipping it would eat
+// the number cards' own dropdown menus — so a radius there would be inert anyway
+// (border-radius does not clip children without overflow), which is the bug the
+// release review caught. A square dashboard board is the honest result.
+html[data-bnd-ws="grid"] .codex-editor__redactor {
   border-radius: var(--bnd-radius-lg);
 }
 html[data-bnd-ws="grid"] .layout-main-section:not(.edit-mode) .codex-editor__redactor {

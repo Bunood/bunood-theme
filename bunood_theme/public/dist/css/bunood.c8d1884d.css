@@ -3546,13 +3546,21 @@ html[data-bnd-ws] .ce-block__content > div {
   block-size: 100%;
 }
 
+html[data-bnd-ws] {
+  --ws-gutter-default: var(--bnd-sp-3);
+}
+
 html[data-bnd-ws] .codex-editor__redactor {
-  margin-inline: calc(var(--ws-gutter, 8px) / -2);
+  margin-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / -2);
 }
 
 html[data-bnd-ws] .ce-block {
-  padding-inline: calc(var(--ws-gutter, 8px) / 2);
-  padding-block-end: var(--ws-gutter, 8px);
+  padding-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
+  padding-block-end: var(--ws-gutter, var(--ws-gutter-default));
+}
+
+html[data-bnd-ws] .widget-group-body {
+  gap: var(--ws-gutter, var(--ws-gutter-default));
 }
 
 html[data-bnd-ws] :is(.ce-block, .widget-group-body) .widget {
@@ -3579,8 +3587,7 @@ html[data-bnd-ws=grid] {
   --ws-tile-shadow: 0 0 0 var(--bnd-line) var(--bnd-border);
 }
 
-html[data-bnd-ws=grid] .codex-editor__redactor,
-html[data-bnd-ws=grid] .widget-group-body {
+html[data-bnd-ws=grid] .codex-editor__redactor {
   border-radius: var(--bnd-radius-lg);
 }
 

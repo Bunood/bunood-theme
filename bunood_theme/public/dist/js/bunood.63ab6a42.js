@@ -220,9 +220,14 @@
 	(function patch_chart_colors() {
 		if (!window.frappe || typeof frappe.Chart !== "function") return;
 
-		const isValidColor = (c) =>
-			typeof c === "string" &&
-			/^(#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\(|hsla?\()/i.test(c.trim());
+		// Whether a slot carries an admin colour worth KEEPING — deliberately
+		// permissive: any non-empty string. frappe-charts accepts more than #hex /
+		// rgb() / hsl() (its own PRESET_COLOR_MAP honours "teal", "blue", … via
+		// custom_options), and it validates each entry itself, so a stricter test
+		// here would DISCARD a valid admin colour and overwrite it with the ramp —
+		// the opposite of the intent. A `[]` (the vendor's `[[]]` degenerate for an
+		// uncoloured chart), `""`, undefined or a non-string is an empty slot.
+		const admin_set = (c) => typeof c === "string" && c.trim().length > 0;
 
 		// The resolved ramp, cached per theme generation. getComputedStyle returns
 		// the token's computed value; our tokens are authored as plain 6-digit hex
@@ -260,7 +265,7 @@
 			const out = [];
 			for (let i = 0; i < n; i++) {
 				const a = given[i];
-				out[i] = isValidColor(a) ? a : ramp[i % ramp.length];
+				out[i] = admin_set(a) ? a : ramp[i % ramp.length];
 			}
 			return out;
 		}

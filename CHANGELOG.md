@@ -12,6 +12,64 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Item 25 — the workspace and dashboard landing: tiles, number cards, and charts
+
+The last of the big content surfaces, and the first to reach for JavaScript and
+colour science rather than a stylesheet alone. It ships as five gated slices: the
+chart series palette, the runtime that feeds it, the chart frame, the workspace
+tile kit, and the number card.
+
+**Charts stopped painting the vendor's own colours.** frappe-charts takes series
+colours as a JS array it writes as inline SVG styles — unreachable from CSS — and a
+chart that supplies none falls back to the library's palette, whose first colour
+measures **2.4:1** on a white card. The theme supplies them instead: a
+contrast-validated, colour-vision-safe ramp derived in `palette.series_ramp` (Paul
+Tol's "muted" scheme, lightness-fitted per mode) and shipped as `--bnd-series-*`.
+The ramp is **brand-independent** — series 1 is the same colour on every site — and
+a separate token family from `--bnd-cat-*`, because a chart series index is exactly
+the assign-once-never-cycle rule the categorical hues forbid.
+
+**The palette is derived and gated, not eyeballed.** `contrast.py` gained CIELAB,
+CIEDE2000 (pinned to the Sharma-Wu-Dalal reference pairs every run) and a Machado
+2009 colour-vision simulation; the gate enforces each mark at **3:1** (WCAG 1.4.11)
+against the two surfaces a chart lands on, across 11 seeds, and a new
+`check_series_separation` holds the worst pair **≥ 6.0** under normal, protan and
+deutan vision (tritan advisory). Measured separation: **light 9.16, dark 6.90** —
+where frappe-charts' own default scores 4.1 and is rejected. 2,160 gated pairs now,
+up from 1,656.
+
+**Every chart is themed through one constructor wrap.** `frappe.Chart` is wrapped
+once (the single funnel all seven v16 call sites go through); an admin's per-chart
+colour is kept, a hole takes the ramp, heatmaps are left alone. A `MutationObserver`
+repaints live charts in place on a theme flip. And the chart frame is themed through
+frappe-charts' own `--charts-*` variables — recessive gridlines, a themed tooltip,
+and the 5px-in-dark / 2px-in-light stroke discontinuity removed — with one axis,
+`chart_grid`, choosing where the weight sits (**Filled Area** default).
+
+**The workspace is a surface now.** `workspace_style` styles the tile grid on both
+the workspace and Dashboard routes — **Hairline Grid** default (a gapless contact
+sheet built from a shadow ring, not a border, so adjacent edges land on one pixel),
+over Open Board, Soft Tiles, Headed Panel, Floating Cards and Mixed Weights (which
+treats a tile by what the block IS: charts lift, links recede). The gapless board's
+`overflow: hidden` stands down inside `.edit-mode`, where a probe showed it would
+clip editor.js's own gutter controls. Rows inside a card get `workspace_rows`
+(**Edge Rail** default), and the tile ⋯ menus rest hidden (`workspace_menu_reveal`).
+
+**Number cards got their figure back.** `workspace_metric` (**Display** default)
+gives the number card an eyebrow label over a value that steps up with the card's
+OWN width via a container query, and every number the kit sizes turns tabular — the
+value was `font-variant-numeric: normal`, so it jittered sideways on Frappe's live
+refresh. The delta is re-tokenised to the theme's own good/critical inks, and a
+card an admin gave a `background_color` keeps its own ink: `:not([style*="background"])`
+means our tokens never land on a surface we did not choose.
+
+Two cascade defects surfaced and were caught by their own tests — the item-16
+lesson twice: Mixed Weights first keyed on `.widget.chart`, the bare type class the
+block toolbox implies but the rendered widget does not carry (it is
+`.dashboard-widget-box`); and the number value first lost to Frappe's own
+`.widget.number-widget-box .widget-body .widget-content .number` (0,5,0). Both are
+now measured against the real DOM.
+
 ## [0.16.0] — 2026-08-16 — Responsive, and a mobile navigation mode (item 24)
 
 ### Item 24 — Responsive, and a mobile navigation mode
