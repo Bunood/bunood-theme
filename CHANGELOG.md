@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-08-16 — Responsive, and a mobile navigation mode (item 24)
+
 ### Item 24 — Responsive, and a mobile navigation mode
 
 The desk works on a phone now. Below Frappe's own mobile boundary — 768px, where
