@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-08-17 — The report view / datatable (item 26)
+
 ### Item 26 — the report view / datatable kit
 
 The fourth surface kit, over `frappe-datatable`, in six gated slices. Measuring the

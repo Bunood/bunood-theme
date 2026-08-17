@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "sales@bunood.com"  # TODO: confirm the real address before release
 app_license = "MIT"
-app_version = "0.17.0"
+app_version = "0.18.0"
 
 required_apps = []
 
