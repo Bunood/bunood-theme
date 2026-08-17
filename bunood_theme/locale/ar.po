@@ -3832,3 +3832,63 @@ msgstr "إظهار مربّعات اختيار الصفوف عند التحوي�
 #, fuzzy
 msgid "A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch screens, and never hidden in a selection dialog."
 msgstr "يظل مربّع اختيار الصف مخفيًا ويظهر عند التحويم أو التركيز بلوحة المفاتيح. يبقى ظاهرًا دائمًا على الشاشات اللمسية، ولا يُخفى أبدًا في نافذة التحديد."
+
+#. src: item26
+#, fuzzy
+msgid "The stock table, untouched. The whole kit stands down."
+msgstr "الجدول الأصلي، دون تغيير. تتنحّى المجموعة بالكامل."
+
+#. src: item26
+#, fuzzy
+msgid "A full spreadsheet grid — every cell bordered."
+msgstr "شبكة جداول كاملة — لكل خلية حدّها."
+
+#. src: item26
+#, fuzzy
+msgid "Horizontal rules only — the accounting ledger, header on the canvas."
+msgstr "خطوط أفقية فقط — دفتر الأستاذ المحاسبي، برأس بلا تعبئة."
+
+#. src: item26
+#, fuzzy
+msgid "Whitespace carries it — one rule under the header, no grid."
+msgstr "المساحة البيضاء تحمله — خطّ واحد تحت الرأس، بلا شبكة."
+
+#. src: item26
+#, fuzzy
+msgid "A filled, lifted header slab over clean rows — the default."
+msgstr "لوح رأس معبّأ ومرفوع فوق صفوف نظيفة — الافتراضي."
+
+#. src: item26
+#, fuzzy
+msgid "Table grain"
+msgstr "نسيج الجدول"
+
+#. src: item26
+#, fuzzy
+msgid "The table's background grain."
+msgstr "نسيج خلفية الجدول."
+
+#. src: item26
+#, fuzzy
+msgid "Row feedback"
+msgstr "استجابة الصف"
+
+#. src: item26
+#, fuzzy
+msgid "How a row responds to hover and selection."
+msgstr "كيف يستجيب الصف للتحويم والتحديد."
+
+#. src: item26
+#, fuzzy
+msgid "Reveal row checkboxes on hover"
+msgstr "إظهار مربّعات اختيار الصفوف عند التحويم"
+
+#. src: item26
+#, fuzzy
+msgid "A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch, and never hidden in a selection dialog."
+msgstr "يظل مربّع اختيار الصف مخفيًا ويظهر عند التحويم أو التركيز بلوحة المفاتيح. يبقى ظاهرًا دائمًا على اللمس، ولا يُخفى أبدًا في نافذة التحديد."
+
+#. src: item26
+#, fuzzy
+msgid "Original leaves every data table stock — nothing below applies."
+msgstr "يُبقي «الأصلي» كل جداول البيانات كما هي — لا شيء أدناه ينطبق."

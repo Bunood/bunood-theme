@@ -138,6 +138,8 @@
   "section_chart",
   "chart_picker",
   "chart_grid",
+  "section_report",
+  "report_picker",
   "report_style",
   "report_grain",
   "report_rows",
@@ -1017,6 +1019,16 @@
    "hidden": 1,
    "label": "Chart Grid",
    "options": "Hairline Axes\nRuled Baseline\nDashed Guides\nBold Data\nFilled Area"
+  },
+  {
+   "fieldname": "section_report",
+   "fieldtype": "Section Break",
+   "label": "Data tables"
+  },
+  {
+   "fieldname": "report_picker",
+   "fieldtype": "HTML",
+   "label": "Report Picker"
   },
   {
    "default": "Pinned Slab",

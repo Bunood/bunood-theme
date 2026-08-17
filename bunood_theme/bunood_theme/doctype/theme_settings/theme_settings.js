@@ -906,6 +906,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_form_picker(frm);
 		bnd_render_workspace_picker(frm);
 		bnd_render_chart_picker(frm);
+		bnd_render_report_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -1111,6 +1112,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
 			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
 			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
+			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
 		],
 	},
 	{
@@ -1216,6 +1218,7 @@ const BND_SHELL_OWNS = {
 	form: { prefixes: ["form_"] },
 	workspace: { prefixes: ["workspace_"] },
 	chart: { prefixes: ["chart_"] },
+	report: { prefixes: ["report_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4088,6 +4091,177 @@ function bnd_chart_set(frm, fieldname, value) {
 	bnd_render_chart_picker(frm);
 }
 
+// ── Report / datatable picker (item 26) — five styles, two chip rows, a toggle ─
+/** Client mirror of presets.REPORT_FIELDS. Keep in sync. Export AND import list it. */
+const BND_REPORT_FIELDS = ["report_style", "report_grain", "report_rows", "report_checkbox_reveal"];
+
+/** Client mirror of presets.REPORT_DEFAULTS — keep in sync. */
+const BND_REPORT_DEFAULTS = {
+	report_style: "Pinned Slab",
+	report_grain: "Row Stripes",
+	report_rows: "Edge Rail",
+	report_checkbox_reveal: 1,
+};
+
+/** The table-style catalogue. Each thumbnail is a mini datatable — a header band
+ * over three rows — drawn to that style's fill, boundary and grid. */
+const BND_REPORT_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock table, untouched. The whole kit stands down."),
+		svg: bnd_rpt_thumb({ headFill: 0, gridX: 0, gridY: 0.14, headSep: 0 }),
+	},
+	{
+		value: "Ruled Grid",
+		blurb: () => __("A full spreadsheet grid — every cell bordered."),
+		svg: bnd_rpt_thumb({ headFill: 0.06, gridX: 0.2, gridY: 0.2, headSep: 0.32 }),
+	},
+	{
+		value: "Ledger Rows",
+		blurb: () => __("Horizontal rules only — the accounting ledger, header on the canvas."),
+		svg: bnd_rpt_thumb({ headFill: 0, gridX: 0, gridY: 0.2, headSep: 0.32 }),
+	},
+	{
+		value: "Open Sheet",
+		blurb: () => __("Whitespace carries it — one rule under the header, no grid."),
+		svg: bnd_rpt_thumb({ headFill: 0, gridX: 0, gridY: 0, headSep: 0.14 }),
+	},
+	{
+		value: "Pinned Slab",
+		blurb: () => __("A filled, lifted header slab over clean rows — the default."),
+		svg: bnd_rpt_thumb({ headFill: 0.09, gridX: 0, gridY: 0.12, headSep: 0.32, shadow: true }),
+	},
+];
+
+/** One datatable thumbnail — a header band over three rows. A builder so five
+ * near-identical diagrams are one description, not five copies that drift. */
+function bnd_rpt_thumb(o) {
+	const frame = '<rect x="1" y="1" width="118" height="52" rx="3" fill="none" stroke="currentColor" opacity=".2"/>';
+	const headFill = o.headFill
+		? `<rect x="1.5" y="1.5" width="117" height="12.5" rx="2" fill="currentColor" fill-opacity="${o.headFill}"/>`
+		: "";
+	const shadow = o.shadow ? '<rect x="1.5" y="14" width="117" height="2" fill="currentColor" opacity=".07"/>' : "";
+	const headLabels = [10, 48, 86]
+		.map((x) => `<rect x="${x}" y="6" width="22" height="2.6" rx="1.3" fill="currentColor" opacity=".5"/>`)
+		.join("");
+	const headSep = o.headSep
+		? `<line x1="1.5" y1="14" x2="118.5" y2="14" stroke="currentColor" stroke-width="1" opacity="${o.headSep}"/>`
+		: "";
+	let rows = "";
+	for (const y of [17, 29, 41]) {
+		rows += [12, 50, 88]
+			.map((x, ci) => `<rect x="${x}" y="${y + 3}" width="${ci === 0 ? 26 : 20}" height="2.4" rx="1.2" fill="currentColor" opacity=".26"/>`)
+			.join("");
+		if (o.gridY) rows += `<line x1="1.5" y1="${y + 12}" x2="118.5" y2="${y + 12}" stroke="currentColor" opacity="${o.gridY}"/>`;
+	}
+	const vlines = o.gridX
+		? [42, 82].map((x) => `<line x1="${x}" y1="15" x2="${x}" y2="53" stroke="currentColor" opacity="${o.gridX}"/>`).join("")
+		: "";
+	return `<svg viewBox="0 0 120 54">${frame}${headFill}${shadow}${headLabels}${headSep}${rows}${vlines}</svg>`;
+}
+
+/** The composing chip rows — the table grain and the row feedback. */
+const BND_REPORT_GROUPS = [
+	{
+		field: "report_grain",
+		title: () => __("Table grain"),
+		desc: () => __("The table's background grain."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Row Stripes", name: () => __("Row Stripes") },
+		],
+	},
+	{
+		field: "report_rows",
+		title: () => __("Row feedback"),
+		desc: () => __("How a row responds to hover and selection."),
+		options: [
+			{ value: "Soft Wash", name: () => __("Soft Wash") },
+			{ value: "Edge Rail", name: () => __("Edge Rail") },
+			{ value: "Bold Bar", name: () => __("Bold Bar") },
+		],
+	},
+];
+
+const BND_REPORT_TOGGLES = [
+	{
+		field: "report_checkbox_reveal",
+		name: () => __("Reveal row checkboxes on hover"),
+		desc: () => __("A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch, and never hidden in a selection dialog."),
+	},
+];
+
+/** Render the report / datatable picker. */
+function bnd_render_report_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "report_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.report_style || BND_REPORT_DEFAULTS.report_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "report_style");
+	const cards = P.cards(
+		BND_REPORT_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-rvp-style" }
+	);
+
+	const reason = off ? __("Original leaves every data table stock — nothing below applies.") : "";
+	const groups = BND_REPORT_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_REPORT_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	const toggles = BND_REPORT_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field, on: !!parseInt(frm.doc[t.field], 10), name: t.name(), desc: t.desc(), reason,
+			cls: "bnd-rvp-toggle",
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-rvp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups + '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-rvp-style").on("click", function () {
+		bnd_report_set(frm, "report_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt, .bnd-rvp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_report_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_report_set(frm, f, BND_REPORT_DEFAULTS[f]);
+	});
+}
+
+/** Hand the report values to the desk engine — live preview. */
+function bnd_report_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.report_apply) return;
+	const values = {};
+	for (const f of BND_REPORT_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.report_apply(values);
+}
+
+/** Set one report option, preview, re-render. */
+function bnd_report_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_report_preview(frm);
+	bnd_render_report_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -4909,7 +5083,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -4938,7 +5112,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -4966,6 +5140,7 @@ function bnd_sb_import(frm) {
 			bnd_render_form_picker(frm);
 			bnd_render_workspace_picker(frm);
 			bnd_render_chart_picker(frm);
+			bnd_render_report_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
