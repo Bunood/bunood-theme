@@ -3954,6 +3954,106 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
     opacity: 1;
   }
 }
+html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
+  border-color: var(--bnd-accent);
+}
+
+html[data-bnd-report=ruled] {
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-page);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: var(--bnd-border);
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+
+html[data-bnd-report=ledger] {
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: 0px;
+}
+
+html[data-bnd-report=open] {
+  --bnd-rep-cell-bg: transparent;
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink-subtle);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: transparent;
+  --bnd-rep-head-sep: var(--bnd-border);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: var(--bnd-radius-md);
+}
+
+html[data-bnd-report=slab] {
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-raised);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: var(--bnd-shadow-sm);
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+
+html[data-bnd-report] .datatable {
+  --dt-cell-bg: var(--bnd-rep-cell-bg);
+  --dt-header-cell-bg: var(--bnd-rep-head-bg);
+  --dt-border-color: var(--bnd-rep-frame);
+  --dt-border-radius: var(--bnd-rep-radius);
+}
+
+html[data-bnd-report] .datatable .dt-scrollable .dt-cell {
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-grid-y);
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+
+html[data-bnd-report] .datatable .dt-header .dt-cell--header {
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+
+html[data-bnd-report] .datatable {
+  border-radius: var(--bnd-rep-radius);
+}
+
+html[data-bnd-report] .datatable .dt-header {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-end: var(--bnd-line) solid var(--bnd-rep-head-sep);
+  box-shadow: var(--bnd-rep-head-shadow);
+}
+
+html[data-bnd-report] .datatable .dt-header .dt-row-header {
+  background-color: var(--bnd-rep-head-bg);
+}
+
+html[data-bnd-report] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  background-color: var(--bnd-rep-head-bg);
+  color: var(--bnd-rep-head-ink);
+}
+
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-head-sep);
+}
+
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell__content {
+  color: var(--bnd-rep-head-ink);
+}
+
+html[data-bnd-report] .datatable .dt-cell__content {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
 html[data-theme] .frappe-control input.form-control:not([type=checkbox]),
 html[data-theme] .frappe-control select.form-control {
   block-size: var(--bnd-control-h);

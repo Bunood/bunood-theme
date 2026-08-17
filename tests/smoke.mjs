@@ -666,6 +666,8 @@ const MUTABLE_FIELDS = [
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
+	// Report / datatable surface (item 26).
+	"report_style", "report_grain", "report_rows", "report_checkbox_reveal",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -6633,6 +6635,151 @@ async function main() {
 			expectEq(r.ruled.attr, "ruled", "chart_apply flipped the attribute to ruled");
 			expectEq(r.ruled.regionOpacity, "0", "Ruled Baseline hides the area fill");
 			expectEq(r.ruled.vgridStroke, "rgba(0, 0, 0, 0)", "Ruled Baseline drops the vertical gridlines");
+		});
+
+		// ── Report / datatable kit (item 26) ────────────────────────────────
+		//
+		// A surface kit: attributes on <html>, a stylesheet over frappe-datatable,
+		// nothing mounted. Every style ships; assertions read the RENDERED cell,
+		// not just the attribute. Account is the fixture — 98 rows, a tree doctype,
+		// on the list-route report view; navigation waits for a datatable row, NOT
+		// .list-row-container, which this route never emits (report_view.js:14).
+		const RPT_ROUTE = "/app/account/view/report";
+
+		await test("report: Original applies nothing at all", async () => {
+			setSettings({ report_style: "Original" });
+			await goDesk(RPT_ROUTE, ".dt-row-header", 5000);
+			const state = await page.evaluate(() => {
+				const attrs = [...document.documentElement.attributes]
+					.filter((a) => a.name.startsWith("data-bnd-report")).map((a) => a.name);
+				const hc = document.querySelector(".dt-header .dt-cell--header .dt-cell__content");
+				return { attrs, numerals: hc ? getComputedStyle(hc).fontVariantNumeric : null };
+			});
+			expectEq(state.attrs.join(","), "", "no report attribute survives Original");
+			// The stand-down is TOTAL: the numerals fix goes too, back to stock's
+			// legacy font-feature-settings form, which reads as "normal" here.
+			expectEq(state.numerals, "normal", "numerals revert to stock under Original");
+		});
+
+		const RPT_STYLE_SLUG = {
+			"Ruled Grid": "ruled", "Ledger Rows": "ledger", "Open Sheet": "open", "Pinned Slab": "slab",
+		};
+		for (const [label, slug] of Object.entries(RPT_STYLE_SLUG)) {
+			await test(`report: ${label}`, async () => {
+				setSettings({ report_style: label, report_grain: "Plain", report_rows: "Soft Wash", report_checkbox_reveal: 0 });
+				await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+				expectEq(await attr("data-bnd-report"), slug, "style attribute");
+				const px = await page.evaluate(() => {
+					const q = (s) => document.querySelector(s);
+					const bodyCell = q(".dt-scrollable .dt-cell");
+					const headerBox = q(".dt-header");
+					const headerContent = q(".dt-header .dt-cell--header .dt-cell__content");
+					if (!bodyCell || !headerBox || !headerContent) return { missing: true };
+					const bc = getComputedStyle(bodyCell);
+					const hb = getComputedStyle(headerBox);
+					return {
+						cellBorderInline: bc.borderInlineStartWidth + " " + bc.borderInlineStartColor,
+						cellBorderBlock: bc.borderBlockStartWidth + " " + bc.borderBlockStartColor,
+						headerBg: getComputedStyle(headerContent).backgroundColor,
+						headerSep: hb.borderBlockEndWidth,
+						headerShadow: hb.boxShadow,
+					};
+				});
+				expect(!px.missing, "the datatable rendered a header and a body cell");
+				// One computed proof per style — an attribute is not correctness.
+				const transparent = (s) => /rgba\(0, 0, 0, 0\)/.test(s);
+				if (slug === "ruled") {
+					expect(!transparent(px.cellBorderInline),
+						`Ruled Grid draws vertical column lines (${px.cellBorderInline})`);
+				} else if (slug === "ledger") {
+					expect(transparent(px.cellBorderInline),
+						`Ledger Rows drops the vertical lines (${px.cellBorderInline})`);
+					expect(!transparent(px.cellBorderBlock),
+						`Ledger Rows keeps the horizontal rules (${px.cellBorderBlock})`);
+				} else if (slug === "open") {
+					expectEq(px.headerBg, "rgba(0, 0, 0, 0)", "Open Sheet gives the header no fill");
+				} else if (slug === "slab") {
+					// The slab floats: a boundary AND an elevation, not fill alone.
+					expect(px.headerSep !== "0px", `Pinned Slab draws the header boundary (${px.headerSep})`);
+					expect(px.headerShadow !== "none", `Pinned Slab lifts the header (${px.headerShadow})`);
+				}
+			});
+		}
+
+		await test("report: numerals cover the whole table — header, filter, body", async () => {
+			// Frappe's tnum is body-only AND in the legacy font-feature-settings
+			// form that getComputedStyle reads as "normal" (smoke would miss it).
+			// The kit sets font-variant-numeric on every .dt-cell__content, so all
+			// three rows read tabular — both stock defects fixed in one rule.
+			setSettings({ report_style: "Pinned Slab" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			const n = await page.evaluate(() => {
+				const fvn = (s) => { const e = document.querySelector(s); return e ? getComputedStyle(e).fontVariantNumeric : "absent"; };
+				return {
+					header: fvn(".dt-header .dt-cell--header .dt-cell__content"),
+					filter: fvn(".dt-row-filter .dt-cell__content"),
+					body: fvn(".dt-scrollable .dt-cell .dt-cell__content"),
+				};
+			});
+			expect(/tabular-nums/.test(n.header), `header cells are tabular (${n.header})`);
+			expect(/tabular-nums/.test(n.filter), `filter cells are tabular (${n.filter})`);
+			expect(/tabular-nums/.test(n.body), `body cells are tabular (${n.body})`);
+		});
+
+		await test("report: the header band has a boundary", async () => {
+			// Stock measures 0px border / none shadow / ~1.5% fill delta — the band
+			// is invisible AS a header. Pinned Slab makes it a boundary + elevation
+			// statement (a border OR a shadow OR a >=3% fill delta each satisfy the
+			// resting-identity rule; the slab carries the first two).
+			setSettings({ report_style: "Pinned Slab" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			const b = await page.evaluate(() => {
+				const cs = getComputedStyle(document.querySelector(".dt-header"));
+				return { sep: cs.borderBlockEndWidth, shadow: cs.boxShadow };
+			});
+			expect(b.sep !== "0px" || b.shadow !== "none",
+				`the header band is bounded (border ${b.sep}, shadow ${b.shadow})`);
+		});
+
+		await test("report: the focus ring is the accent, and survives Original", async () => {
+			// The ring is a CONTRACT, lifted OUT of the anchor (html[data-theme])
+			// like _list.scss's density block — so it holds even under Original,
+			// where every STYLE rule is gone. frappe-datatable marks the clicked
+			// cell .dt-cell--focus and colours its content-box border; we re-colour
+			// it --bnd-accent, the theme's one gated focus colour.
+			setSettings({ report_style: "Original" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			const box = await page.evaluate(() => {
+				const c = document.querySelectorAll(".dt-scrollable .dt-cell")[8];
+				if (!c) return null;
+				const r = c.getBoundingClientRect();
+				return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+			});
+			expect(box, "a data cell rendered to click");
+			await page.mouse.click(box.x, box.y); // a real mouse event — the datatable's own focus path
+			await page.waitForTimeout(300);
+			const ring = await page.evaluate(() => {
+				const f = document.querySelector(".dt-cell--focus .dt-cell__content");
+				// Resolve --bnd-accent to rgb the same way the border is computed.
+				const probe = document.createElement("span");
+				probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
+				document.body.appendChild(probe);
+				const accentRgb = getComputedStyle(probe).color;
+				probe.remove();
+				return { found: !!f, ringColor: f ? getComputedStyle(f).borderTopColor : null, accentRgb };
+			});
+			expect(ring.found, "clicking a cell focuses it (.dt-cell--focus)");
+			expectEq(ring.ringColor, ring.accentRgb, "the focus ring is --bnd-accent even under Original");
+		});
+
+		await test("report: live preview flips the style and back", async () => {
+			setSettings({ report_style: "Pinned Slab" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			expectEq(await attr("data-bnd-report"), "slab", "boot applied slab");
+			await page.evaluate(() => window.bunood_theme.report_apply({ report_style: "Ruled Grid" }));
+			expectEq(await attr("data-bnd-report"), "ruled", "preview flipped to ruled");
+			await page.evaluate(() => window.bunood_theme.report_apply({ report_style: "Pinned Slab" }));
+			expectEq(await attr("data-bnd-report"), "slab", "and back");
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

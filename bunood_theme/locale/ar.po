@@ -3757,3 +3757,78 @@ msgstr "بطاقات الأرقام"
 #. src: item25
 msgid "Set by the picker above. How a number card presents its figure."
 msgstr "يضبطه المنتقي أعلاه. كيف تعرض بطاقة الأرقام قيمتها."
+
+#. src: item26
+#, fuzzy
+msgid "Data tables"
+msgstr "جداول البيانات"
+
+#. src: item26
+#, fuzzy
+msgid "Report Picker"
+msgstr "منتقي التقرير"
+
+#. src: item26
+#, fuzzy
+msgid "Table Style"
+msgstr "نمط الجدول"
+
+#. src: item26
+#, fuzzy
+msgid "Set by the picker above. How a table's rows and header sit together. Reaches every data table on the desk."
+msgstr "يضبطه المنتقي أعلاه. كيف تتراصّ صفوف الجدول ورأسه معًا. يطال كل جداول البيانات في سطح المكتب."
+
+#. src: item26
+#, fuzzy
+msgid "Ruled Grid"
+msgstr "شبكة مُسطَّرة"
+
+#. src: item26
+#, fuzzy
+msgid "Ledger Rows"
+msgstr "صفوف دفترية"
+
+#. src: item26
+#, fuzzy
+msgid "Open Sheet"
+msgstr "ورقة مفتوحة"
+
+#. src: item26
+#, fuzzy
+msgid "Pinned Slab"
+msgstr "لوح مثبّت"
+
+#. src: item26
+#, fuzzy
+msgid "Table Grain"
+msgstr "نسيج الجدول"
+
+#. src: item26
+#, fuzzy
+msgid "Set by the picker above. The table's background grain."
+msgstr "يضبطه المنتقي أعلاه. نسيج خلفية الجدول."
+
+#. src: item26
+#, fuzzy
+msgid "Row Stripes"
+msgstr "صفوف مُخطَّطة"
+
+#. src: item26
+#, fuzzy
+msgid "Row Feedback"
+msgstr "استجابة الصف"
+
+#. src: item26
+#, fuzzy
+msgid "Set by the picker above. How a row responds to hover and selection."
+msgstr "يضبطه المنتقي أعلاه. كيف يستجيب الصف للتحويم والتحديد."
+
+#. src: item26
+#, fuzzy
+msgid "Reveal Row Checkboxes on Hover"
+msgstr "إظهار مربّعات اختيار الصفوف عند التحويم"
+
+#. src: item26
+#, fuzzy
+msgid "A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch screens, and never hidden in a selection dialog."
+msgstr "يظل مربّع اختيار الصف مخفيًا ويظهر عند التحويم أو التركيز بلوحة المفاتيح. يبقى ظاهرًا دائمًا على الشاشات اللمسية، ولا يُخفى أبدًا في نافذة التحديد."

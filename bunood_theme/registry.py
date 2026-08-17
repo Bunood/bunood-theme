@@ -578,6 +578,24 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "report",
+        # Labelled "Data tables", not "Report view": the kit reaches EVERY
+        # .datatable on the desk — report view, query report, web forms, the
+        # multi-select dialog, the data-import preview — so the picker would lie
+        # if it named one. The fieldnames stay report_* (the build guard's rule,
+        # and labels are independent of them). Item 26.
+        "part": "report",
+        "label": "Data tables",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-report]; "Original" clears it.
+        # The grain and row-feedback axes hang off data-bnd-report-* siblings.
+        "selector": 'html[data-bnd-report]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

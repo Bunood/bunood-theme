@@ -350,6 +350,22 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_chart = {f: chart_(f) for f in CHART_DEFAULTS}
 
+        # ── Report / datatable surface (item 26) ────────────────────────
+        # Fieldname keys, the list shape. Selects fall back to the shipped
+        # default when empty; the Check falls back only when never set. No-flash:
+        # frappe-datatable builds the .dt-cell nodes well after boot (on data
+        # load), so an attribute set from this payload is on <html> before any
+        # cell exists — nothing stale to repaint. Same exemption as every kit.
+        from bunood_theme.presets import REPORT_DEFAULTS
+
+        def report_(field):
+            value = settings.get(field)
+            if isinstance(REPORT_DEFAULTS[field], int):
+                return REPORT_DEFAULTS[field] if value is None else value
+            return REPORT_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_report = {f: report_(f) for f in REPORT_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

@@ -138,6 +138,10 @@
   "section_chart",
   "chart_picker",
   "chart_grid",
+  "report_style",
+  "report_grain",
+  "report_rows",
+  "report_checkbox_reveal",
   "section_generated",
   "brand_css_url"
  ],
@@ -1013,6 +1017,41 @@
    "hidden": 1,
    "label": "Chart Grid",
    "options": "Hairline Axes\nRuled Baseline\nDashed Guides\nBold Data\nFilled Area"
+  },
+  {
+   "default": "Pinned Slab",
+   "description": "Set by the picker above. How a table's rows and header sit together. Reaches every data table on the desk.",
+   "fieldname": "report_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Table Style",
+   "options": "Original\nRuled Grid\nLedger Rows\nOpen Sheet\nPinned Slab"
+  },
+  {
+   "default": "Row Stripes",
+   "description": "Set by the picker above. The table's background grain.",
+   "fieldname": "report_grain",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Table Grain",
+   "options": "Plain\nRow Stripes"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How a row responds to hover and selection.",
+   "fieldname": "report_rows",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Row Feedback",
+   "options": "Soft Wash\nEdge Rail\nBold Bar"
+  },
+  {
+   "default": "1",
+   "description": "A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch screens, and never hidden in a selection dialog.",
+   "fieldname": "report_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Row Checkboxes on Hover"
   },
   {
    "fieldname": "section_user",

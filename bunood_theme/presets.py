@@ -492,6 +492,41 @@ CHART_DEFAULTS = {
     "chart_grid": "Filled Area",
 }
 
+#: Report / datatable surface fields (item 26), matching theme_settings.json.
+#: The family shape the other kits established: one anchor whose first option is
+#: "Original", two composing treatment axes, one presence-only Check. The
+#: fieldnames stay report_* though the picker is labelled "Data tables" — the
+#: build guard requires the prefix, and the label is independent of it.
+REPORT_FIELDS = [
+    "report_style",
+    "report_grain",
+    "report_rows",
+    "report_checkbox_reveal",
+]
+
+#: The shipped report defaults — the item-26 wireframe picks (2026-08-17):
+#: Pinned Slab · Row Stripes · Edge Rail · reveal on. "Original" stays one click
+#: away and is a total stand-down. Edge Rail (not Bold Bar) is the row default
+#: on purpose: it keeps a 30-column report legible during a large multi-select
+#: AND adds no new contrast pair to the gate.
+REPORT_DEFAULTS = {
+    # The anchor: one statement over cell canvas, grid lines, and the header
+    # band — a header slab cannot ship beside a naked total row (they are the
+    # same structural object), so they compose, not split.
+    "report_style": "Pinned Slab",
+    # The table's background grain — Row Stripes reads the eye down a 500-row
+    # report the way grouping would. Plain is the neutral.
+    "report_grain": "Row Stripes",
+    # One treatment over hover AND selection: both write background on the same
+    # opaque .dt-cell, so two fields would let a hover read louder than a select.
+    "report_rows": "Edge Rail",
+    # A Check, default-on: a row's checkbox rests hidden, revealed on hover or
+    # keyboard focus, stood down wholesale on touch. Route-gated to the two
+    # report routes (hiding it in a MultiSelectDialog removes that surface's
+    # whole point) — the guard lives in the stylesheet's scope, item 26 slice 3.
+    "report_checkbox_reveal": 1,
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

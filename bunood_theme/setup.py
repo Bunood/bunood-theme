@@ -36,6 +36,7 @@ from bunood_theme.presets import (
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
+    REPORT_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
@@ -67,6 +68,7 @@ CHECK_DEFAULTS = {
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
+        REPORT_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
         INBOX_DEFAULTS,
@@ -126,6 +128,10 @@ DEFAULTS = {
     **{f: v for f, v in WORKSPACE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in FORM_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LIST_DEFAULTS.items() if not isinstance(v, int)},
+    # Report / datatable surface (item 26): the three Select axes — style,
+    # grain and row feedback. The Check (report_checkbox_reveal) is seeded via
+    # CHECK_DEFAULTS above, None-aware so an admin's explicit 0 survives.
+    **{f: v for f, v in REPORT_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

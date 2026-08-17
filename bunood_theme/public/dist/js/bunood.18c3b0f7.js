@@ -1265,6 +1265,61 @@
 		apply_workspace_attrs({ ...(workspace_state || {}), ...values });
 	};
 
+	// ── Report / datatable surface (item 26) ────────────────────────────────
+	const REPORT_SLUGS = {
+		style: { "Original": "", "Ruled Grid": "ruled", "Ledger Rows": "ledger", "Open Sheet": "open", "Pinned Slab": "slab" },
+		grain: { "Plain": "", "Row Stripes": "stripes" },
+		rows: { "Soft Wash": "wash", "Edge Rail": "rail", "Bold Bar": "bold" },
+	};
+
+	let report_state = (window.frappe && frappe.boot && frappe.boot.bnd_report) || null;
+
+	/**
+	 * Reflect the report options onto <html>, clearing whatever came before.
+	 * A falsy style slug (Original / unknown / no boot) clears everything —
+	 * including grain, rows and the reveal — so Original is a full stand-down.
+	 * Payload keys are FIELDNAMES: no mirror map to fall out of step with
+	 * presets.REPORT_FIELDS.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_report_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-report" || a.name.startsWith("data-bnd-report-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		report_state = v;
+		const style = REPORT_SLUGS.style[v.report_style];
+		if (!style) return; // "" (Original) => pure clearing
+		html.setAttribute("data-bnd-report", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-report-" + name, value);
+		set("grain", REPORT_SLUGS.grain[v.report_grain]);
+		set("rows", REPORT_SLUGS.rows[v.report_rows]);
+		// Presence-only: checkbox reveal, stood down under (hover: none) and
+		// route-gated to the report surfaces in the stylesheet.
+		if (parseInt(v.report_checkbox_reveal, 10)) html.setAttribute("data-bnd-report-ckreveal", "");
+	}
+
+	// Before frappe-datatable builds the first cell — the kit's timing rule.
+	apply_report_attrs(report_state);
+
+	/** True when the report kit is active (the style attribute is the anchor). */
+	function report_active() {
+		return document.documentElement.hasAttribute("data-bnd-report");
+	}
+
+	/**
+	 * LIVE PREVIEW for the report kit. Fieldname shape (also the boot shape).
+	 * Mandatory from day one — the status kit's missing-hook failure class.
+	 * @param {Object} values
+	 */
+	bunood.report_apply = function (values) {
+		if (!values) return;
+		apply_report_attrs({ ...(report_state || {}), ...values });
+	};
+
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },

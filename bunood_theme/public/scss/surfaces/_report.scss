@@ -1,0 +1,209 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// REPORT VIEW / DATATABLE — checklist item 26. The fourth SURFACE partial.
+//
+// WHAT
+//   Cell canvas, grid lines, the header band and the total band for Frappe's
+//   frappe-datatable, as a CSS matrix keyed on attributes bunood.js derives
+//   from Theme Settings (boot -> data-bnd-report*). A surface kit colours
+//   Frappe's own DOM and mounts nothing — absent attributes ARE the stand-down,
+//   so "Original" is a pure clearing and stock tables render untouched.
+//
+//   The kit reaches EVERY .datatable on the desk — report view, query report,
+//   web forms, the multi-select dialog, the data-import preview — because
+//   nothing else in the roadmap claims those tables. (Grain and row feedback
+//   are item 26 slice 3; this slice is the anchor + the two correctness fixes.)
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-report          ruled | ledger | open | slab   (the style; the
+//                            ANCHOR — absent = every rule here inert)
+//   data-bnd-report-grain    stripes                (slice 3)
+//   data-bnd-report-rows     wash | rail | bold     (slice 3)
+//   data-bnd-report-ckreveal (presence)             (slice 3)
+//
+// THE FACTS THIS FILE IS BUILT ON (all measured, 2026-08-17 — probe A/borders)
+//   * The header fill is painted THREE ways, at THREE specificities: the vendor
+//     paints .dt-cell--header from --dt-header-cell-bg (report.bundle, 0,1,0);
+//     frappe_datatable.scss then hardcodes --subtle-fg onto .dt-row-header
+//     (0,3,0) AND .dt-cell--header .dt-cell__content (0,4,0). To repaint the
+//     band as ONE tone we re-point the var (which .dt-dropdown__toggle also
+//     reads) AND beat both hardcoded rules — the content-box selector must
+//     carry .dt-cell__content and reach (0,4,1). A bare .dt-cell--header loses.
+//   * The grid is cell borders: .dt-cell has border-top/left/right 1px in
+//     --dt-border-color (#ededed), NO bottom — so top makes the horizontal
+//     rule, left+right the verticals. We drive them by logical longhand so a
+//     style can have horizontals without verticals (Ledger) or neither (Open).
+//   * Cell INK is `.dt-cell { color: var(--text-color) !important }` — legally
+//     unbeatable. It is reachable only through --text-color (already --bnd-ink)
+//     or by styling .dt-cell__content, whose color is a DIRECT declaration that
+//     beats the parent's inherited !important. The header ink rides there.
+//   * The header carries no paint of its own (.dt-header is transparent,
+//     position:static); its horizontal scroll writes a transform that becomes
+//     an identity matrix and STAYS a containing block after the first scroll.
+//     So a box-shadow on .dt-header re-anchors nothing (.dt-dropdown__list is
+//     position:fixed inside it), but a second transform/filter would — banned.
+//   * There is no boundary at all in stock: header border-block-end 0, the
+//     scrollable's border-top nulled with !important, fills ~1.5% apart. The
+//     "sticky header" goal is a BOUNDARY + FILL job, not a positioning one.
+//
+// DESIGN RECORD (item-26 wireframe round, 2026-08-17): defaults are the user's
+// picks Pinned Slab · Row Stripes · Edge Rail · reveal on. References:
+// Directus v-table/layouts/tabular (opaque header vs transparent body — the
+// sticky contract), shadcn ui/table (opaque bg-muted header), Discourse
+// admin_report_table (caret parked in the padding gutter).
+//
+// Scoped html[data-bnd-report] throughout; fails open to stock on absent
+// attributes, unknown slugs, or upstream class renames. Logical properties
+// only. No !important. The focus ring is the ONE thing lifted OUT of the
+// anchor — it is a contract, not a style, so it survives Original.
+// ============================================================================
+
+// ── The focus ring: a contract, lifted out of the anchor ────────────────────
+// html[data-theme]-scoped, NOT the kit anchor — the _list.scss:66 density
+// pattern's second case: a CONTRACT survives Original, a STYLE does not. The
+// datatable marks the keyboard-focused cell with .dt-cell--focus (a JS class)
+// and gives .dt-cell__content a 2px border it colours --gray-200; we re-colour
+// it to --bnd-accent, the theme's one gated focus colour (every ring uses it).
+html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
+  border-color: var(--bnd-accent);
+}
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style; every component rule
+// below consumes ONLY these. Adding a style is one block (the _sidebar.scss /
+// _list.scss pattern). "Original" needs no block — the absent anchor clears
+// every rule, which is a total stand-down.
+//
+// Each style is a contrast PAIRING (fill + boundary + ink), never split, so the
+// picker cannot offer "no fill delta + no boundary" — the defect the axis fixes.
+html[data-bnd-report="ruled"] {
+  // Classic spreadsheet: a full grid, a recessed header.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-page);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: var(--bnd-border);
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+html[data-bnd-report="ledger"] {
+  // The accounting ledger: horizontal rules only, header rides the canvas.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: 0px;
+}
+html[data-bnd-report="open"] {
+  // Whitespace does the work: no fills, no grid — one hairline under the header
+  // is the only line. Every variable is the quiet value on purpose.
+  --bnd-rep-cell-bg: transparent;
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink-subtle);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: transparent;
+  --bnd-rep-head-sep: var(--bnd-border);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: var(--bnd-radius-md);
+}
+html[data-bnd-report="slab"] {
+  // The default. The header is a raised, filled SLAB with a boundary and a soft
+  // elevation — the missing statement that the band is a header (§the item's
+  // whole first goal). Rows are clean: faint horizontal separators, no columns.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-raised);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: var(--bnd-shadow-sm);
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+
+// ── Re-point the live vendor variables ──────────────────────────────────────
+// Six of the datatable's nineteen --dt-* vars are dead ends in this sheet;
+// these are the ones that actually paint what we style. Re-pointing the header
+// var also covers .dt-dropdown__toggle (which reads it) for free; re-pointing
+// the border var covers the .dt-scrollable__no-data frame and the filter-input
+// borders, so Open Sheet does not draw a stray hairline on an empty report.
+html[data-bnd-report] .datatable {
+  --dt-cell-bg: var(--bnd-rep-cell-bg);
+  --dt-header-cell-bg: var(--bnd-rep-head-bg);
+  --dt-border-color: var(--bnd-rep-frame);
+  --dt-border-radius: var(--bnd-rep-radius);
+}
+
+// ── The grid lines ──────────────────────────────────────────────────────────
+// Logical longhand so x and y are independent. The vendor draws border-top +
+// border-inline in --dt-border-color; we replace those three sides (never the
+// bottom, which the vendor leaves at 0 — abutting tops make the horizontals).
+// Body cells carry both axes; header cells carry only the verticals, because
+// the header's own boundary (below) is its horizontal, not a grid line.
+html[data-bnd-report] .datatable .dt-scrollable .dt-cell {
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-grid-y);
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+html[data-bnd-report] .datatable .dt-header .dt-cell--header {
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+
+// ── The cell canvas ─────────────────────────────────────────────────────────
+// The vendor paints .dt-cell from --dt-cell-bg (re-pointed above); nothing more
+// is needed for the body fill. Corner radius rides the datatable box.
+html[data-bnd-report] .datatable {
+  border-radius: var(--bnd-rep-radius);
+}
+
+// ── The header band ─────────────────────────────────────────────────────────
+// One tone across the whole 70px band (header row + filter row): the box gets
+// the fill so the transparent filter-row cells show it, and the two hardcoded
+// --subtle-fg rules (probe A) are beaten on their own specificity. The boundary
+// and elevation are the STATEMENT — box-shadow only (constraint: no transform).
+html[data-bnd-report] .datatable .dt-header {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-end: var(--bnd-line) solid var(--bnd-rep-head-sep);
+  box-shadow: var(--bnd-rep-head-shadow);
+}
+html[data-bnd-report] .datatable .dt-header .dt-row-header {
+  background-color: var(--bnd-rep-head-bg);
+}
+html[data-bnd-report] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  background-color: var(--bnd-rep-head-bg);
+  color: var(--bnd-rep-head-ink);
+}
+
+// ── The total band ──────────────────────────────────────────────────────────
+// The header and the total row are the same structural object (§fusion): a
+// lifted slab header over a total row carrying nothing but bold would read as a
+// bug. Query-report only — the report route appends totals as an ordinary last
+// data row that no selector can tell from data (blocker 2), so drawing an arm
+// there would hang a stray band under every report. Gated on :has(.dt-row) so
+// an empty footer draws nothing.
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-head-sep);
+}
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell__content {
+  color: var(--bnd-rep-head-ink);
+}
+
+// ── Tabular numerals — the correctness fix, under the anchor ─────────────────
+// Frappe sets font-feature-settings:"tnum" on .dt-scrollable .dt-cell__content
+// ONLY (frappe_datatable.scss:149) — the header and total rows, where money
+// lands, are excluded, and the legacy property reads as "normal" in
+// getComputedStyle().fontVariantNumeric, the property this repo's tests assert
+// on. One rule on every .dt-cell__content fixes both defects (coverage AND
+// property) at once. UNDER the anchor by decision: tabular figures visibly
+// change how a column of money reads, so lifting them would mean Original no
+// longer renders as stock.
+html[data-bnd-report] .datatable .dt-cell__content {
+  font-variant-numeric: var(--bnd-numeric);
+}

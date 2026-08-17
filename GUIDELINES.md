@@ -95,6 +95,12 @@ that cannot change the verdict.
   "light leaks into dark" bug that made the previous theme work only partially.
 - **`!important` only in the two sanctioned places** (the `font-family` block and
   `@media print`). Everything else escalates through the `.bunood` class on `<html>`.
+- **A *contract* survives `Original`; a *style* does not.** A surface kit's `Original`
+  is a total stand-down — the absent anchor clears every style rule. But an accessibility
+  contract that happens to live in the same kit is scoped `html[data-theme]`, NOT the kit
+  anchor, so it keeps working when the styling is off. Two cases: `_list.scss`'s density
+  block and `_report.scss`'s datatable focus ring. Ask of each rule "is this how it *looks*
+  or whether it *works*?" — the second belongs outside the anchor.
 - **Comment the why, not the what.** This repo already does this better than most —
   `_tokens.scss` explaining why 0.5px hairlines round the way we want, dark mode
   explaining why values are *selected* rather than lightness-flipped. Keep it. A
