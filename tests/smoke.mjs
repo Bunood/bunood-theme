@@ -5811,6 +5811,9 @@ async function main() {
 				// Item 25: the workspace and dashboard routes the kits land on.
 				["/desk/selling", ".ce-block .widget"],
 				["/desk/dashboard-view/Selling", ".widget-group-body"],
+				// Item 26: the report view's datatable (captured kit-absent in
+				// slice 0). The /app/ form matches the baseline tool's key.
+				["/app/account/view/report", ".dt-scrollable .dt-row"],
 			]) {
 				await goDesk(route, waitFor, 4000);
 				const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

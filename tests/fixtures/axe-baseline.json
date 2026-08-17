@@ -33,5 +33,13 @@
 		"color-contrast": 3,
 		"image-alt": 1,
 		"link-name": 1
+	},
+	"/app/account/view/report": {
+		"button-name": 8,
+		"color-contrast": 7,
+		"image-alt": 1,
+		"label": 43,
+		"link-name": 1,
+		"select-name": 3
 	}
 }

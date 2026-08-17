@@ -41,6 +41,13 @@ const ROUTES = [
 	// Item 25: the two surfaces the workspace + chart kits land on.
 	["/desk/selling", ".ce-block .widget"],
 	["/desk/dashboard-view/Selling", ".widget-group-body"],
+	// Item 26: the report view's datatable. The /app/ form on purpose — it is
+	// verified to render and the tool's /desk/->/app/ rewrite is a no-op on it.
+	// The query-report route renders the SAME .datatable DOM, so this covers the
+	// datatable's axe profile; its unique chrome (.report-summary) is filter- and
+	// date-dependent — unsafe for a node-count gate — and gets explicit contrast
+	// pairs in item 26's close instead.
+	["/app/account/view/report", ".dt-scrollable .dt-row"],
 ];
 
 const py = (c) =>
