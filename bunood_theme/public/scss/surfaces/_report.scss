@@ -207,3 +207,151 @@ html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell__content {
 html[data-bnd-report] .datatable .dt-cell__content {
   font-variant-numeric: var(--bnd-numeric);
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// SLICE 3 — table grain and row feedback.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── report_rows working set — hover AND selection, ONE axis ─────────────────
+// Fused, unlike the list kit: hover and selection both write background on the
+// same opaque .dt-cell, so two fields would let a hover read louder than a
+// select. Every option keeps hover < selection. The wash is a brand TINT into
+// the surface; rail/bold use --bnd-brand-solid with --bnd-on-brand ink — the
+// raw seed appears nowhere (the three-token brand law), and each pair is gated.
+html[data-bnd-report-rows="wash"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-rep-sel-rail: transparent;
+  --bnd-rep-sel-ink: var(--bnd-ink);
+}
+html[data-bnd-report-rows="rail"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-rep-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-rep-sel-ink: var(--bnd-ink);
+}
+html[data-bnd-report-rows="bold"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-rep-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-rep-sel-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+}
+
+// ── report_grain working set ────────────────────────────────────────────────
+// 3% ink blended into whatever the style's canvas is — perceptible on every
+// seed in both modes, and quieter than any hover or selection by construction.
+html[data-bnd-report-grain="stripes"] {
+  --bnd-rep-stripe: color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-rep-cell-bg, transparent));
+}
+
+// ── The row background, resolved at the ROW so cells never fight ─────────────
+// grain -> hover -> selection, each SETTING --bnd-rep-row-bg on the row; the
+// cell just reads it. All the row-level rules are (0,2,0)+scope, so SOURCE ORDER
+// is the cascade: selection last (it beats a hovered odd row), hover before it
+// (it beats grain). This is the list kit's row-bg resolution, transposed onto
+// the datatable — and it sidesteps the specificity fight that painting the cell
+// directly would create (grain's [style*=] and hover's :hover both out-weigh a
+// bare .dt-row--highlight).
+html[data-bnd-report] .dt-scrollable .dt-cell {
+  background-color: var(--bnd-rep-row-bg, var(--bnd-rep-cell-bg));
+}
+html[data-bnd-report] .dt-scrollable .dt-row {
+  --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+// Grain: odd VISUAL rows. HyperList writes `top: index * cellHeight` inline, and
+// cellHeight is 35 — ODD — so an odd row's top always ends in an odd digit. The
+// full 1/3/5/7/9 set is robust to any EVEN scroll-padding (probe B, validated at
+// page length 100 through a 1400px scroll: 59 of 98 rows windowed, parity held).
+// THE COUPLING, written where it is depended on: this holds ONLY while cellHeight
+// is odd and .dt-scrollable's padding-block-start is even-or-zero. An even pitch
+// makes every top even, nothing matches, and grain falls back to Plain — safe,
+// not garbage. Nothing in this kit may set padding-block-start on .dt-scrollable.
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="1px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="3px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="5px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="7px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="9px"] {
+  --bnd-rep-row-bg: var(--bnd-rep-stripe);
+}
+// Hover — after grain, before selection.
+html[data-bnd-report] .dt-scrollable .dt-row:hover {
+  --bnd-rep-row-bg: var(--bnd-rep-hover-bg, var(--bnd-hover));
+}
+// Selection — the checkbox-highlighted row (probed: .dt-row--highlight).
+// `.dt-row.dt-row--highlight`, not a bare `.dt-row--highlight`, ON PURPOSE:
+// grain's `.dt-row[style*="5px"]` is (0,4,1), so a single-class selection at
+// (0,3,1) LOSES to the stripe on an odd selected row (measured — the selected
+// row showed the stripe). The doubled class ties grain at (0,4,1) and source
+// order (selection is authored last) settles it — hover the same way.
+html[data-bnd-report] .dt-scrollable .dt-row.dt-row--highlight {
+  --bnd-rep-row-bg: var(--bnd-rep-sel-bg);
+}
+// Select-all paints every row EXCEPT one de-selected mid-select-all: the third
+// state, .dt-row--unhighlight, which must read as NOT selected (blocker). The
+// vendor's own --highlight-all rule paints .dt-cell__content indiscriminately;
+// resolving at the row lets us carve the exception cleanly.
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight) {
+  --bnd-rep-row-bg: var(--bnd-rep-sel-bg);
+}
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row--unhighlight {
+  --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+
+// Selection ink (Bold Bar's on-brand label) rides the content box — the cell's
+// own color is !important and unbeatable, but .dt-cell__content's is a direct
+// declaration that beats the inherited value (§1.3d).
+html[data-bnd-report] .dt-scrollable .dt-row--highlight .dt-cell__content,
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight) .dt-cell__content {
+  color: var(--bnd-rep-sel-ink);
+}
+
+// The selection rail (Edge Rail / Bold Bar): a 3px inline-start bar. A ::before,
+// absolutely placed inside the (position:absolute) row; inset-inline-start
+// mirrors in RTL for free. Wash sets the rail transparent, so this is inert for it.
+html[data-bnd-report] .dt-scrollable .dt-row--highlight::before,
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight)::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0;
+  inline-size: 3px;
+  background: var(--bnd-rep-sel-rail, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+// Cell-range selection (.dt-cell--highlight — a rectangle of cells staged for
+// the clipboard) is a DIFFERENT selection and must survive our hover/grain fill.
+// Re-assert the vendor's highlight at our scope so it always wins on its cells.
+html[data-bnd-report] .dt-scrollable .dt-cell--highlight {
+  background-color: var(--dt-selection-highlight-color);
+}
+
+// ── Checkbox reveal — route-gated (decision 1) ──────────────────────────────
+// The body-row checkbox rests hidden, revealed on row hover, :focus-within, or
+// while ANY row is checked; stood down wholesale on touch. opacity, never
+// display:none — the box stays in the tab order (cells carry tabindex).
+//
+// ROUTE-GATED to the two report routes ONLY (.report-view / #page-query-report):
+// hiding the checkbox inside a MultiSelectDialog or a web form removes the very
+// affordance that surface exists for — the guard_critical_reach rule for tenants,
+// applied to a surface. [id=] not #id, to keep the selector at attribute weight.
+// The header select-all is untouched (.dt-scrollable excludes .dt-header), the
+// discoverable entry to selection — the list kit's 3B judgement transposed.
+$rpt-routes: ":is(.report-view, [id='page-query-report'])";
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-cell--col-0 input[type="checkbox"] {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-row:hover .dt-cell--col-0 input[type="checkbox"],
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-row:focus-within .dt-cell--col-0 input[type="checkbox"],
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable:has(.dt-cell--col-0 input:checked) .dt-cell--col-0 input[type="checkbox"] {
+  opacity: 1;
+}
+// Touch has no hover: the option stands down wholesale and checkboxes stay
+// visible — part of the option's definition, not an afterthought.
+@media (hover: none) {
+  html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-cell--col-0 input[type="checkbox"] {
+    opacity: 1;
+  }
+}

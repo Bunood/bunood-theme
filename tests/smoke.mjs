@@ -6782,6 +6782,120 @@ async function main() {
 			expectEq(await attr("data-bnd-report"), "slab", "and back");
 		});
 
+		// ── Slice 3: grain and row feedback ──────────────────────────────────
+		// Read the rendered fill of rows BY VISUAL INDEX (data-row-index), never
+		// :nth-child — the rows are virtualised, so window position is not data
+		// position. `.dt-cell:nth-child(3)` is a data column (past the checkbox
+		// and serial gutters); its background is what the row-bg resolves to.
+		const rowBgsByIndex = (idxs) =>
+			page.evaluate((indices) => {
+				const bg = (idx) => {
+					const r = document.querySelector(`.dt-scrollable .dt-row[data-row-index='${idx}']`);
+					if (!r) return null;
+					const c = r.querySelector(".dt-cell:nth-child(3)") || r.querySelector(".dt-cell");
+					return getComputedStyle(c).backgroundColor;
+				};
+				return Object.fromEntries(indices.map((i) => [i, bg(i)]));
+			}, idxs);
+		const clickCenter = async (sel) => {
+			const b = await page.evaluate((s) => {
+				const el = document.querySelector(s);
+				if (!el) return null;
+				const r = el.getBoundingClientRect();
+				return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+			}, sel);
+			expect(b, `clickable: ${sel}`);
+			await page.mouse.click(b.x, b.y);
+			await page.waitForTimeout(300);
+		};
+
+		await test("report: grain alternates at page length 100 (real virtualisation)", async () => {
+			// The whole point of the grain probe: at the default page length of 20
+			// nothing is windowed and :nth-child would LOOK correct; at 100 HyperList
+			// virtualises and only data-row-index parity is real. Measure the RENDERED
+			// fill of visually-adjacent rows — never a rule's presence.
+			setSettings({ report_style: "Pinned Slab", report_grain: "Row Stripes", report_rows: "Soft Wash" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			await page.evaluate(() => {
+				const b = [...document.querySelectorAll(".list-paging-area .btn-paging")].find((x) => x.textContent.trim() === "100");
+				if (b) b.click();
+			});
+			await page.waitForTimeout(3500);
+			await page.mouse.move(700, 60); // hover must not taint the read
+			await page.waitForTimeout(300);
+			const g = await rowBgsByIndex([2, 3, 4, 5]);
+			expect(g[2] && g[3], "rows rendered at page length 100");
+			// Even-top rows match; odd-top rows match; the two differ — the
+			// alternation :nth-child would break once rows are windowed.
+			expectEq(g[2], g[4], "even rows share the base fill");
+			expectEq(g[3], g[5], "odd rows share the stripe fill");
+			expect(g[2] !== g[3], `the stripe alternates by visual index (${g[2]} vs ${g[3]})`);
+		});
+
+		await test("report: selection beats the stripe on an odd row", async () => {
+			// The specificity trap: grain's .dt-row[style*=] is (0,4,1); a bare
+			// .dt-row--highlight is (0,3,1) and LOSES, so a selected odd row would
+			// show the stripe (measured — it did, before the doubled class).
+			setSettings({ report_style: "Pinned Slab", report_grain: "Row Stripes", report_rows: "Edge Rail" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			await clickCenter(".dt-scrollable .dt-row[data-row-index='3'] .dt-cell--col-0 input[type=checkbox]");
+			await page.mouse.move(700, 60);
+			await page.waitForTimeout(200);
+			const g = await rowBgsByIndex([5]); // an odd, unselected stripe row
+			const sel = await page.evaluate(() => {
+				const row = document.querySelector(".dt-scrollable .dt-row--highlight");
+				if (!row) return null;
+				const c = row.querySelector(".dt-cell:nth-child(3)") || row.querySelector(".dt-cell");
+				return { selBg: getComputedStyle(c).backgroundColor, rail: getComputedStyle(row, "::before").width };
+			});
+			expect(sel, "a highlighted row rendered");
+			expect(sel.selBg !== g[5], `the selected odd row is the selection fill, not the stripe (${sel.selBg} vs ${g[5]})`);
+			expectEq(sel.rail, "3px", "Edge Rail draws its rail on the selection");
+		});
+
+		await test("report: select-all, then uncheck one — the odd one out is not selected", async () => {
+			// .dt-row--unhighlight is the third select-all state: highlight-all is on,
+			// this row opted out. It must read as NOT selected (blocker 2). The
+			// vendor's --highlight-all paints every cell; the kit carves the exception.
+			setSettings({ report_style: "Pinned Slab", report_grain: "Plain", report_rows: "Edge Rail" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			await clickCenter(".dt-header input[type=checkbox]"); // select all
+			await clickCenter(".dt-scrollable .dt-row[data-row-index='2'] .dt-cell--col-0 input[type=checkbox]"); // uncheck one
+			await page.mouse.move(700, 60);
+			await page.waitForTimeout(200);
+			const g = await rowBgsByIndex([2, 3]);
+			expect(g[2] && g[3], "the de-selected row and a selected neighbour both rendered");
+			expect(g[2] !== g[3], `the de-selected row differs from its selected neighbour (${g[2]} vs ${g[3]})`);
+		});
+
+		await test("report: the checkbox reveal rests hidden and opens on hover", async () => {
+			// Route-gated to the report view (decision 1): the reveal must never
+			// hide a checkbox in a MultiSelectDialog. opacity, not display — the box
+			// stays in the tab order. (Door 2 :focus-within shares the selector;
+			// the (hover:none) stand-down is covered by the emulated-touch axe run.)
+			setSettings({ report_style: "Pinned Slab", report_checkbox_reveal: 1 });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			await page.mouse.move(700, 60); // away from every row
+			await page.waitForTimeout(250);
+			const rest = await page.evaluate(() => {
+				const cb = document.querySelector(".dt-scrollable .dt-cell--col-0 input[type=checkbox]");
+				return cb ? getComputedStyle(cb).opacity : "none";
+			});
+			expectEq(rest, "0", "the checkbox rests hidden");
+			const rowBox = await page.evaluate(() => {
+				const r = document.querySelector(".dt-scrollable .dt-row[data-row-index='3']");
+				const b = r.getBoundingClientRect();
+				return { x: Math.round(b.left + 200), y: Math.round(b.top + b.height / 2) };
+			});
+			await page.mouse.move(rowBox.x, rowBox.y);
+			await page.waitForTimeout(250);
+			const hover = await page.evaluate(() => {
+				const cb = document.querySelector(".dt-scrollable .dt-row[data-row-index='3'] .dt-cell--col-0 input[type=checkbox]");
+				return cb ? getComputedStyle(cb).opacity : "none";
+			});
+			expectEq(hover, "1", "row hover reveals the checkbox");
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
