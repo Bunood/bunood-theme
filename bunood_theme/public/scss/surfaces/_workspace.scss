@@ -288,7 +288,14 @@ $title: ".number-widget-box .widget-head .widget-title";
 html[data-bnd-ws] {
   .number,
   .percentage-stat-area,
-  .report-summary {
+  // `.widget .report-summary` ONLY — a report summary embedded in a dashboard
+  // widget. The STANDALONE query-report summary (#page-query-report, no .widget)
+  // was reached here by the global data-bnd-ws with no route gate, so
+  // workspace_style:Original stripped its numerals — a summary the workspace kit
+  // never should have owned (verified: no .report-summary on the dashboard route,
+  // the query-report one sits under #page-query-report). Item 26 took it: see
+  // surfaces/_report.scss. The two scopes are disjoint.
+  .widget .report-summary {
     font-variant-numeric: tabular-nums;
   }
 }

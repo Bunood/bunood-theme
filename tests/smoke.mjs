@@ -6896,6 +6896,23 @@ async function main() {
 			expectEq(hover, "1", "row hover reveals the checkbox");
 		});
 
+		await test("report: the query-report summary follows the report kit, not the workspace kit", async () => {
+			// The summary strip (#page-query-report .report-summary) was owned by
+			// data-bnd-ws with no route gate, so workspace_style:Original stripped its
+			// numerals — a row that belongs to the report surface. Item 26 split it by
+			// ancestor (disjoint: the dashboard has no .report-summary; the query one
+			// is under #page-query-report, not .widget). With the WORKSPACE kit off,
+			// the report kit still carries the summary's tabular numerals.
+			setSettings({ workspace_style: "Original", report_style: "Pinned Slab" });
+			await goDesk("/app/query-report/Balance Sheet", ".report-summary", 6000);
+			const s = await page.evaluate(() => {
+				const v = document.querySelector(".report-summary .summary-value");
+				return { ws: document.documentElement.hasAttribute("data-bnd-ws"), fvn: v ? getComputedStyle(v).fontVariantNumeric : "none" };
+			});
+			expectEq(s.ws, false, "the workspace kit is off");
+			expect(/tabular-nums/.test(s.fvn), `the summary is tabular under the report kit alone (${s.fvn})`);
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly

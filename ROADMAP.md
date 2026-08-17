@@ -544,8 +544,32 @@ entry.
     the token pipeline's newest consumer, and the `(hover: none)` reveal stand-down
     repeats item 24's narrow-input statement a fourth time.
 
-- `[ ]` **26 · Report view / datatable** *(was 17)* — sticky headers, tabular numerals,
-  grouping
+- `[x]` **26 · Report view / datatable** *(was 17, done 2026-08-17)* — the fourth
+  SURFACE kit, over frappe-datatable. Six gated slices. What the surface taught, which
+  reshaped the roadmap's three named goals:
+  - **"Sticky headers" was already solved; the boundary was not.** `.dt-header` is a
+    sibling of the scroll box (never scrolls away), but stock draws NO boundary and the
+    fills are ~1.5% apart — invisible AS a header. So the anchor `report_style` ships five
+    styles (Original · Ruled Grid · Ledger Rows · Open Sheet · **Pinned Slab**, the default:
+    a filled, elevated header slab with a border). The header fill is painted three ways
+    (vendor var + `.dt-row-header` (0,3,0) + `.dt-cell--header .dt-cell__content` (0,4,0)),
+    so the kit re-points the var AND beats both — the content box reached at (0,4,1).
+  - **"Tabular numerals" was a defect fix, not an axis.** Frappe sets `tnum` on body cells
+    only, in the `font-feature-settings` form `getComputedStyle` can't see — the header and
+    total rows (where money lands) were excluded. One `font-variant-numeric` rule on every
+    `.dt-cell__content` fixes both; it rides the anchor (Original stays stock).
+  - **"Grouping" had nothing to bind to** (Frappe's group-by is a query control, no DOM
+    key). Deferred (band → item 27, control → item 31); what ships is `report_grain` (Row
+    Stripes), which does for the eye what grouping would. Its coupling — odd row pitch,
+    even scroll-padding — is validated at page length 100 against real HyperList
+    virtualisation, not the default 20 where `:nth-child` would lie.
+  - Also: `report_rows` (hover+selection fused); a route-gated checkbox reveal; the focus
+    ring lifted OUT of the anchor as a contract (`GUIDELINES.md`); the live `100vh` reserve
+    collision fixed (slice 1, correcting `ARCHITECTURE.md`); the query-report `.report-summary`
+    taken from the workspace kit by ancestor. No payload ceiling raise (the picker is doctype
+    JS, not the bundle). `docs/upstream/frappe-datatable-rtl.md` drafted (physical positioning,
+    no app-level fix). References: Directus `v-table`, shadcn `ui/table`, Discourse
+    `admin_report_table`.
 - `[ ]` **27 · Alternate views** *(was 19)* — kanban, calendar, gantt, gallery
 - `[ ]` **28 · Overlays** *(was 21)* — modals, dropdowns, toasts
 - `[ ]` **29 · Empty states** *(was 22)* — an action, not a zero

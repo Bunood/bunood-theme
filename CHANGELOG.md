@@ -12,6 +12,51 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Item 26 — the report view / datatable kit
+
+The fourth surface kit, over `frappe-datatable`, in six gated slices. Measuring the
+surface changed what its three named goals meant.
+
+**"Sticky headers" was already solved; the boundary was not.** `.dt-header` is a
+sibling of the scroll box, so it never scrolls away — but stock draws no boundary of
+any kind (the scrollable's top border is nulled with `!important`) and the header fill
+sits ~1.5% off the body: the pinned header is invisible *as* a header. So the work was
+a boundary + fill statement, not a positioning one. `report_style` ships five styles —
+Original, Ruled Grid, Ledger Rows, Open Sheet, and the default **Pinned Slab** (a
+filled, softly elevated header slab with a real border). The header fill turned out to
+be painted three ways at three specificities (the vendor's `--dt-header-cell-bg`, plus
+`.dt-row-header` and `.dt-cell--header .dt-cell__content` hardcoded to `--subtle-fg` at
+(0,3,0) and (0,4,0)); the kit re-points the variable and beats both hardcoded rules,
+the content-box selector reaching (0,4,1) — measure the selector you override.
+
+**Tabular numerals were a defect fix, not a choice.** Frappe enables `tnum` on body
+cells only, and in the legacy `font-feature-settings` form that `getComputedStyle`
+reports as `"normal"` — so the header and total rows, exactly where money lands, were
+excluded, and any test would have missed it. One `font-variant-numeric` rule on every
+`.dt-cell__content` fixes coverage and property together. It rides the style anchor, so
+`Original` still renders as stock; the focus ring, by contrast, is lifted *out* of the
+anchor as an accessibility contract that survives `Original` (a new rule in
+`GUIDELINES.md`: a contract survives Original, a style does not).
+
+**Grouping had nothing to bind to** — Frappe's group-by is a query control that renders
+a different flat set, with no group key in the DOM — so the band is deferred (to the
+alternate-views and filters items) and what ships instead is `report_grain` (Row
+Stripes), which does for the eye what grouping would. Because the rows are virtualised
+(HyperList), `:nth-child` zebra would look correct at the default page length of 20 and
+silently break at 100; the grain keys on the parity of each row's inline `top` instead,
+and is tested at page length 100 against real virtualisation.
+
+Also: `report_rows` fuses hover and selection into one axis (both paint the same opaque
+cell, so splitting them would let a hover read louder than a select); a checkbox reveal
+route-gated to the report surfaces (never a selection dialog); a live `100vh` reserve
+collision fixed where the report's own panes, sized from the raw viewport, put the
+paging row under the bottom bar (slice 1, correcting a stale `ARCHITECTURE.md` claim);
+and the query-report summary strip taken from the workspace kit, which had owned it
+through an un-route-gated global attribute. No payload ceiling was raised — the CSS
+partial fit, and the picker is a doctype client script, outside the bundle.
+`docs/upstream/frappe-datatable-rtl.md` drafts the datatable's physical-positioning RTL
+bugs, which no app-level CSS can reach.
+
 ## [0.17.0] — 2026-08-16 — The workspace and dashboard landing: tiles, number cards, and charts (item 25)
 
 ### Item 25 — the workspace and dashboard landing: tiles, number cards, and charts

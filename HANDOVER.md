@@ -10,13 +10,31 @@
 
 ## 1. Where the work stands
 
-**ITEM 25 (workspace/dashboard, charts, number cards) — DONE, LOCAL-ONLY, ON A BRANCH
-(2026-08-16).** Six commits on branch **`item-25-workspace-charts`** (not `main`):
-`2fd5c0e` 3a · `5f41ba6` 3b · `8b01ecb` 2 · `eb6af43` 4 · `712c620` 5, plus `823f0ce`
-(an unrelated v0.15.0 payload-history backfill, its own commit). None pushed; the branch
-is not merged to `main`. Each slice verified its own suite family + the colour/build
-gates; the FULL suite is the outstanding release gate (running or to run on a quiet
-machine). Facts worth keeping:
+**ITEM 26 (report view / datatable) — DONE, LOCAL-ONLY, ON A BRANCH (2026-08-17).**
+Six commits on branch **`item-26-report`** (not `main`): `4cf5ec3` 0 · `2c2b587` 1 ·
+`13924ef` 2 · `f0f96d2` 3 · `d1f38db` 4 · then slice 5 (the close). The full suite gated
+each shipping slice (last green **242/242**); contrast 2160 pairs. **Not pushed, not
+merged, not tagged** — the release is the user's call. When they say so, the standing
+chain runs: it is a MINOR (v0.18.0), so bump `app_version`, move the CHANGELOG
+`[Unreleased]` block under a `[0.18.0]` heading, tag, push main + tag, bump the bunood
+repo's `apps.json` pin. Facts worth keeping:
+- **The header work is a BOUNDARY problem, not a positioning one** — `.dt-header` is a
+  sibling of the scroll box and never scrolls away; stock just draws no boundary. And its
+  fill is painted THREE ways (vendor var + `.dt-row-header` (0,3,0) + `.dt-cell--header
+  .dt-cell__content` (0,4,0)), so the kit re-points the var AND beats both, the content
+  box at (0,4,1). Measure the selector you override.
+- **The grain rides HyperList's inline `top` parity**, validated at page length 100 — the
+  default 20 doesn't virtualise, so `:nth-child` would look right and break at 100.
+- **The picker is a DOCTYPE client script (`theme_settings.js`), not the bundle**, so it
+  never counts toward payload — item 26 needed NO ceiling raise. It does need
+  `BND_FORCE_RESTART=1` to serve (the bundle hash doesn't move).
+- **48+ `ar.po` rows are `#, fuzzy`** and await the user's review (item-7 handoff); item 26
+  added 27 (15 doctype + 12 picker).
+
+**ITEM 25 (workspace/dashboard, charts, number cards) — DONE, MERGED, RELEASED as
+`v0.17.0` (2026-08-16).** On `main` (`7f2ec64`), tag `v0.17.0` made and pushed; `main`
+level with `origin/main`. (This entry read "LOCAL-ONLY, ON A BRANCH" through the item-25
+work; the release chain closed it and item 26 corrected the record.) Facts worth keeping:
 
 - **The chart colour split is FORCED, not chosen, and it is clean.** frappe-charts'
   CHROME (axis, gridlines, tooltip, labels) is CSS-reachable through its own bare-`:root`

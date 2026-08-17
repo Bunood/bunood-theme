@@ -208,6 +208,18 @@ html[data-bnd-report] .datatable .dt-cell__content {
   font-variant-numeric: var(--bnd-numeric);
 }
 
+// The query-report SUMMARY strip is outside the datatable, so the rule above
+// misses it. Frappe gives .summary-value the legacy font-feature-settings:"tnum"
+// (report.scss) — invisible to getComputedStyle. Until item 26 this row was
+// owned by the WORKSPACE kit (data-bnd-ws, no route gate), so workspace_style:
+// Original stripped it — a summary that belongs to the report surface. Taken
+// here, under this kit's anchor. [id=] not #id to keep it at attribute weight;
+// scoped to #page-query-report so it can never touch the workspace kit's own
+// `.widget .report-summary` (verified disjoint — the split de-fusion).
+html[data-bnd-report] [id="page-query-report"] .report-summary {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SLICE 3 — table grain and row feedback.
 // ════════════════════════════════════════════════════════════════════════════

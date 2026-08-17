@@ -3721,7 +3721,7 @@ html[data-bnd-ws-menu] :is(.ce-block, .widget-group-body) .widget:hover .widget-
 }
 html[data-bnd-ws] .number,
 html[data-bnd-ws] .percentage-stat-area,
-html[data-bnd-ws] .report-summary {
+html[data-bnd-ws] .widget .report-summary {
   font-variant-numeric: tabular-nums;
 }
 
@@ -4051,6 +4051,10 @@ html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell__content {
 }
 
 html[data-bnd-report] .datatable .dt-cell__content {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-bnd-report] [id=page-query-report] .report-summary {
   font-variant-numeric: var(--bnd-numeric);
 }
 
