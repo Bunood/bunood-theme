@@ -315,9 +315,19 @@ It is sized to the viewport, so it needs the reserve subtracted explicitly
 (`chrome/_layouts.scss`) — tags, share and assignments live at its foot.
 Measured on `/desk/item/BND-TEST-001`: 41px unreachable without that rule.
 
-The report view's pane (`report.scss:100`) uses the same `calc(100vh - …)` but
-is **static**, so it just scrolls and needs nothing. Verified, not assumed — the
-rule of thumb is *sticky needs the reserve, static does not*.
+The report view's pane (`report.scss:100`) uses the same `calc(100vh - …)` and
+is **static** — and item 26 (slice 1) found it needs the reserve anyway, which
+sharpened this rule of thumb. Two reasons the old *"static just scrolls"* was
+wrong here: `.report-view .layout-main-section` is `overflow: hidden`, so content
+past its foot is CLIPPED rather than scrolled; and our top bar is sticky IN
+`.main-section` flow (Frappe's own navbar is `position: fixed` and overlays), so
+it offsets the pane down by `--bnd-topbar-h` that `100vh - page-head` never
+counted. Measured 71px unreachable at the shipped topbar+status defaults before
+the fix. So the real rule is: *a box sized from raw `100vh` needs the reserve
+whenever it cannot scroll its own overflow away — sticky OR `overflow: hidden`;
+only a genuinely scrolling box (`overflow: auto`) inside a reserve-aware parent
+needs nothing*. Fixed in `chrome/_layouts.scss`; the query-report route, whose
+`.layout-main-section` is `overflow: visible`, does scroll and was left alone.
 
 ### The reserve is measured, not declared
 

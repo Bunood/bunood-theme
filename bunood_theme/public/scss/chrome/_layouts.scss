@@ -191,6 +191,52 @@ html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
+// ── The report view's own 100vh arithmetic needs the reserve too ────────────
+// report.scss sizes `.report-view .layout-main-section` and frappe_datatable
+// sizes `.dt-scrollable` from RAW 100vh — the whole viewport — not from
+// .main-section. So the "shrink the box and every page follows" mechanism above
+// never reaches them, and the report's foot lands under the bottom chrome.
+// Measured on /app/account/view/report at the shipped topbar+status defaults:
+// paging-row bottom 945 against a bar at 874 — 71px of it unreachable, because
+// .layout-main-section is over-tall and our pinned .main-section clips its foot.
+//
+// This corrects ARCHITECTURE.md's "the report pane is static, so it needs
+// nothing": true of the datatable's own SCROLL, false of the paging row the
+// over-tall container carries below it.
+//
+// Two things push the report below where Frappe's `100vh - page-head` assumes
+// it begins, so two subtractions:
+//   - the bottom reserve, as everywhere else on this file; and
+//   - our top bar. Frappe's navbar is position:fixed and overlays the page, so
+//     its formula never had to count it — ours is sticky IN .main-section flow
+//     (the block below), so it offsets the report down by exactly --bnd-topbar-h.
+//     Gated on data-bnd-topbar, the OUTCOME: a desk with no bar subtracts
+//     nothing, and below 768 (bar gone, attribute unset) there is no phantom
+//     band. The topbar rule wins on SPECIFICITY (the doubled attribute), not on
+//     source order — the item-16 lesson that html[data-bnd-*] is one attribute
+//     of weight and no more.
+//
+// >= sm only: report.scss:140 pins `.dt-scrollable` with `!important` below sm
+// (< 576px, inside item 24's mobile-nav regime), which we do not fight
+// (!important is sanctioned in two places, neither here). The container
+// (.layout-main-section) is not !important, so the paging row still clears
+// there — only the scroll box's own height stays un-reserve-aware below sm. A
+// known, narrow limitation, recorded in the commit, NOT recorded as closed.
+html[data-bnd-layout] .report-view .layout-main-section {
+  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px));
+}
+html[data-bnd-layout] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px));
+}
+html[data-bnd-topbar][data-bnd-layout] .report-view .layout-main-section {
+  block-size: calc(
+    100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h)
+  );
+}
+html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
+}
+
 // ── Top bar: the native <header> becomes the bar's home ─────────────────────
 // v16 renders an EMPTY <header> as .main-section's first child — a native
 // mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section

@@ -328,6 +328,22 @@ html[data-bnd-layout] body[data-route^=Form] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
 }
 
+html[data-bnd-layout] .report-view .layout-main-section {
+  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px));
+}
+
+html[data-bnd-layout] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px));
+}
+
+html[data-bnd-topbar][data-bnd-layout] .report-view .layout-main-section {
+  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
+}
+
+html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
+}
+
 html[data-bnd-topbar] .main-section > header {
   position: sticky;
   inset-block-start: 0;

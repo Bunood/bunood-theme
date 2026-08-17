@@ -1976,6 +1976,70 @@ async function main() {
 			});
 		});
 
+		// ── The report view honours the reserve too (item 26 slice 1) ──────
+		// report.scss and frappe_datatable size the report's inner panes from
+		// RAW 100vh, which the item-24 `.main-section` shrink never reaches — so
+		// before the fix the paging row and the last rows sat under the bottom
+		// chrome. Measured against stock on /app/account/view/report at the Top
+		// Bar + status defaults: paging bottom 945, dt-scrollable bottom 925,
+		// bar top 874 — 71px / 51px unreachable. chrome/_layouts.scss now
+		// subtracts the reserve AND, under a sticky in-flow top bar,
+		// `--bnd-topbar-h` (Frappe's navbar is fixed and overlays, so its
+		// `100vh - page-head` formula never had to count a bar that pushes the
+		// page down).
+		//
+		// Two layouts, because the fix has a topbar-conditional term: Top Bar
+		// exercises it, Classic (top bar off, status bar on) the reserve-only
+		// branch. The paging row's BOTTOM grazes the bar by ~1px — Frappe's
+		// `--page-head-height` (48) trails the rendered `.page-head` (49, its 1px
+		// separator border) — so the foot must LAND on the bar within 2px, and
+		// the datatable's own scroll box (the rows) must clear it outright.
+		const reportFootGeometry = () =>
+			page.evaluate(() => {
+				const bars = [...document.querySelectorAll(".bnd-statusbar, .bnd-dock")]
+					.filter((el) => getComputedStyle(el).display !== "none")
+					.map((el) => el.getBoundingClientRect())
+					.filter((r) => r.height > 0)
+					.map((r) => r.top);
+				const rect = (sel) => {
+					const el = document.querySelector(sel);
+					return el ? el.getBoundingClientRect() : null;
+				};
+				const paging = rect(".list-paging-area");
+				const dts = rect(".dt-scrollable");
+				return {
+					barTop: bars.length ? Math.round(Math.min(...bars)) : null,
+					pagingBottom: paging ? Math.round(paging.bottom) : null,
+					dtsBottom: dts ? Math.round(dts.bottom) : null,
+					topbar: document.documentElement.hasAttribute("data-bnd-topbar"),
+					reserve: getComputedStyle(document.documentElement)
+						.getPropertyValue("--bnd-bottom-reserve").trim(),
+				};
+			});
+
+		for (const [layout, wantTopbar] of [["Top Bar", true], ["Classic", false]]) {
+			await test(`reserve: the report view's foot clears the bottom chrome (${layout})`, async () => {
+				setSettings({ desk_layout: layout, status_style: "Quiet" });
+				await goDesk("/app/account/view/report", ".dt-scrollable .dt-row", 5000);
+				const g = await reportFootGeometry();
+				expect(g.barTop !== null, `a status bar is mounted (reserve ${g.reserve})`);
+				expect(g.pagingBottom !== null, "the report rendered its paging row");
+				expectEq(g.topbar, wantTopbar, `top bar ${wantTopbar ? "present" : "absent"} on ${layout}`);
+				// The foot LANDS on the bar (within the 1px page-head-border
+				// graze): not 71px under it (stock), not short of it (over-reserved).
+				expect(
+					Math.abs(g.pagingBottom - g.barTop) <= 2,
+					`paging row lands on the bar — bottom ${g.pagingBottom} vs bar top ${g.barTop} ` +
+						`(delta ${g.pagingBottom - g.barTop}px, reserve ${g.reserve})`
+				);
+				// The rows clear the bar outright.
+				expect(
+					g.dtsBottom <= g.barTop,
+					`datatable rows clear the bar — dt-scrollable bottom ${g.dtsBottom} vs bar top ${g.barTop}`
+				);
+			});
+		}
+
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
