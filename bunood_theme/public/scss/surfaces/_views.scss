@@ -1,0 +1,291 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// ALTERNATE VIEWS — checklist item 27. The fifth SURFACE partial.
+//
+// WHAT
+//   ONE kit dresses the four desk views a doctype can switch into — kanban,
+//   calendar, gantt and gallery — as attributes bunood.js derives from Theme
+//   Settings (boot -> data-bnd-views*). A surface kit colours Frappe's own DOM
+//   and mounts nothing — absent attributes ARE the stand-down, so "Original" is
+//   a pure clearing and stock views render untouched.
+//
+//   ONE anchor, four views, on purpose: a kanban card, a gallery tile and a
+//   calendar event are the same OBJECT drawn three ways (fill + boundary +
+//   elevation), so one style keeps them one hand. Splitting would let a user
+//   ship a floating kanban card beside a flat gallery tile. The gantt is the
+//   odd one out — a data mark on a timeline, not a card — so it takes the
+//   repair below and no style of its own. (The band, mark, media and reveal
+//   axes are item 27 slice 3; this slice is the anchor + the four repairs.)
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-views        hairline | tiles | cards | panels  (the style; the
+//                         ANCHOR — absent = every rule here inert)
+//   data-bnd-views-band   tinted | headed    (kanban column, slice 3)
+//   data-bnd-views-mark   dot | chip | outlined  (calendar event, slice 3)
+//   data-bnd-views-media  contain            (gallery image fit, slice 3)
+//   data-bnd-views-reveal (presence)         (slice 3)
+//
+// THE FOUR VENDORS, FOUR THEMABILITY STORIES (all measured 2026-08-17, live)
+//   * Kanban is Frappe's own DOM: `.kanban-card` reads --kanban-card-bg, the
+//     column an INLINE `background-color: var(--bg-{indicator})` — so the band
+//     (slice 3) re-points --bg-* on the column and the inline VALUE follows.
+//   * Calendar is FullCalendar 6: its 30 --fc-* vars sit in a <style> injected
+//     at the TOP of <head> (the weakest sheet), all still at factory defaults,
+//     so we re-point them on .fc. Frappe's own calendar.scss leans on
+//     `!important` reading --gray-300 / --text-light — an !important declaration
+//     is beaten only by another, so we do NOT out-specify it; we re-point the
+//     VARIABLE it reads, scoped to .fc, and it resolves to ours (probe A).
+//   * Gantt is frappe-gantt 0.6: pure SVG, every colour a hardcoded hex, its
+//     stylesheet `frappe.require`d AFTER ours. So our rules win on SPECIFICITY,
+//     never order — html[data-bnd-views] .gantt-modern .gantt .bar is (0,4,0),
+//     over the vendor's (0,3,0)/(0,2,0). Measured stock in dark mode: bar,
+//     grid and header all #ffffff on a #141a1b page — a repair, not a style.
+//   * Gallery is a `.frappe-list` variant under `.image-view`; the tile carries
+//     no fill or border of its own, and its stock hover is `filter:opacity(30%)`
+//     on the image — the biggest visual liability of the four.
+//
+// AN ADMIN'S DATA IS NEVER OVERWRITTEN. gantt_view.js injects a <style> giving
+// a task with a `color` field its own `.bar-wrapper.color-XXXXXX .bar` fill
+// (0,3,0); our bar rule needs (0,4,0) to beat the vendor default, which would
+// also beat that — so it carves the admin case out with :not([class*="color-"]).
+// Same law item 25 kept for admin chart colours.
+//
+// DESIGN RECORD (item-27 wireframe round, 2026-08-17): defaults are the user's
+// picks Floating Cards · Tinted · Chip · Cover · reveal on. References:
+// Directus layouts/kanban (the column is the tinted surface, the card the
+// plain one — inverted from a list), Directus styles/lib/_fullcalendar.scss
+// (the --fc-* re-point, scoped to .fc — this file's exact model), Directus
+// layouts/cards (auto-fit minmax(var(--size)) tiles, a ::after focus ring on a
+// clipped tile), frappe-ui ListGroupHeader (the grouping precedent item 26
+// banked here). Gantt has no vendored precedent — which is part of why it is a
+// repair, not a styled object.
+//
+// Scoped html[data-bnd-views] throughout; fails open to stock on absent
+// attributes, unknown slugs, or upstream class renames. Logical properties
+// only. No !important. "Original" is a total stand-down across all four views,
+// including stock's own dark-mode gantt bug — Original renders as stock, warts
+// and all, and the default (Floating Cards) is what repairs it. The focus ring
+// is the ONE thing lifted OUT of the anchor — a contract, not a style, so it
+// survives Original.
+// ============================================================================
+
+// ── The focus ring: a contract, lifted out of the anchor ────────────────────
+// html[data-theme]-scoped, NOT the kit anchor — the _list.scss density / _report
+// focus-ring pattern's next case: a CONTRACT survives Original, a STYLE does
+// not. Each view object is a real link/button, so keyboard focus must show. Two
+// tones, as the report kit: --bnd-accent carries on a light object, --bnd-on-brand
+// on a brand-filled one; one always clears 3:1 on every seed and mode.
+html[data-theme] .kanban-card-wrapper a:focus-visible,
+html[data-theme] .image-view-item a:focus-visible,
+html[data-theme] .fc .fc-daygrid-event:focus-visible,
+html[data-theme] .fc .fc-event:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+  border-radius: var(--bnd-radius-sm);
+}
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style; every OBJECT rule below
+// consumes ONLY these. Adding a style is one block (the _sidebar / _list / _report
+// pattern). "Original" needs no block — the absent anchor clears every rule.
+//
+// Each style is a contrast PAIRING (fill + boundary + elevation), never split,
+// so the picker cannot offer "no fill delta + no boundary" — the defect the
+// axis fixes.
+html[data-bnd-views="hairline"] {
+  // Boundary only, no fill: the densest object, the theme receding.
+  --bnd-view-fill: transparent;
+  --bnd-view-border: var(--bnd-border-strong);
+  --bnd-view-radius: var(--bnd-radius-sm);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+html[data-bnd-views="tiles"] {
+  // Filled, no boundary: a soft contact sheet.
+  --bnd-view-fill: var(--bnd-surface);
+  --bnd-view-border: transparent;
+  --bnd-view-radius: var(--bnd-radius-md);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+html[data-bnd-views="cards"] {
+  // The default. Fill + boundary + a soft lift — the object reads as a card.
+  --bnd-view-fill: var(--bnd-surface);
+  --bnd-view-border: var(--bnd-border);
+  --bnd-view-radius: var(--bnd-radius-md);
+  --bnd-view-shadow: var(--bnd-shadow-sm);
+  --bnd-view-ink: var(--bnd-ink);
+}
+html[data-bnd-views="panels"] {
+  // Strong fill + strong edge, flat: crisp on a dense board where shadows would
+  // pile up.
+  --bnd-view-fill: var(--bnd-raised);
+  --bnd-view-border: var(--bnd-border-strong);
+  --bnd-view-radius: var(--bnd-radius-sm);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+
+// ── The object: kanban card ─────────────────────────────────────────────────
+// The visible card is `.kanban-card` inside the drag-handle `.kanban-card-wrapper`.
+// Frappe paints the FILL on a short `.kanban-card` (0,1,0) but the RADIUS and
+// `box-shadow: none` on the full descendant chain
+// `.kanban .kanban-column .kanban-cards .kanban-card-wrapper .kanban-card`
+// (0,5,0) — measured. So the fill alone yields to a shorter rule, but the
+// radius and lift need the same depth: this selector is (0,5,1) and wins them
+// all. The `.kanban-card-wrapper` ancestor also excludes the column's own
+// `.add-card` and `.kanban-card.new-card-area`, which live OUTSIDE any wrapper —
+// so no :not() is needed. The item-16 "measure the selector you override" lesson.
+html[data-bnd-views] .kanban-column .kanban-cards .kanban-card-wrapper .kanban-card {
+  background-color: var(--bnd-view-fill);
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+  color: var(--bnd-view-ink);
+}
+
+// ── The object: gallery tile ────────────────────────────────────────────────
+// `.image-view-item` under the `.image-view` ancestor (a class on
+// .layout-main-section-wrapper, not the grid — measured). The tile carries no
+// fill/border stock; we give it the object treatment. The image sits in
+// `.image-view-body`; media fit (Cover/Contain) is slice 3.
+html[data-bnd-views] .image-view-container .image-view-item {
+  background-color: var(--bnd-view-fill);
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+  color: var(--bnd-view-ink);
+}
+// The stock hover replaces the box-shadow AND drops the image to 30% opacity —
+// an aggressive, unthemed reveal (image_view.scss). Under our anchor the object
+// keeps its identity on hover: the boundary firms and the lift grows by one
+// step; the image is left alone.
+html[data-bnd-views] .image-view-container .image-view-item:hover {
+  border-color: var(--bnd-border-strong);
+  box-shadow: var(--bnd-shadow-md);
+}
+html[data-bnd-views] .image-view-container .image-view-item:hover img {
+  filter: none;
+}
+
+// ── The object: calendar event ──────────────────────────────────────────────
+// FullCalendar events are `.fc-event` (block) / `.fc-daygrid-event`. The FILL
+// is an inline colour FullCalendar computes in JS (prepare_colors) — beaten
+// only by the item-25-style wrap that feeds it a theme colour, which is slice
+// 3. So this slice gives the event its SHAPE — the boundary, radius and lift of
+// the chosen object — over whatever fill it currently carries, and leaves the
+// fill to slice 3. The mark axis (dot / chip / outlined) is slice 3 too.
+html[data-bnd-views] .fc .fc-daygrid-block-event,
+html[data-bnd-views] .fc .fc-h-event,
+html[data-bnd-views] .fc .fc-v-event {
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE FOUR REPAIRS — under the anchor, unconditionally (Original = stock).
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Repair 1: the gantt, legible in both modes ──────────────────────────────
+// Every colour in frappe-gantt.css is a hardcoded hex, and frappe_gantt.scss's
+// dark override is only partial — bars stay literal `white`, grid rows/header
+// stay #ffffff, today stays #fcf8e3 (measured on a #141a1b page). We re-token
+// the whole SVG to theme-aware --bnd-* values, so it flips with the mode for
+// free (no separate dark block: the tokens already are dark-aware). All at
+// (0,4,0)+, over the vendor sheet loaded after ours.
+//
+// The BAR keeps the admin's per-task colour: :not([class*="color-"]) carves out
+// the tasks gantt_view.js gave a `color-XXXXXX` class, so our default fill only
+// paints the bars that have none.
+html[data-bnd-views] .gantt-modern .gantt {
+  .grid-background {
+    fill: var(--bnd-page);
+  }
+  .grid-row {
+    fill: var(--bnd-surface);
+  }
+  .grid-row:nth-child(even) {
+    fill: var(--bnd-raised);
+  }
+  .grid-header {
+    fill: var(--bnd-raised);
+    stroke: var(--bnd-border);
+  }
+  .row-line {
+    stroke: var(--bnd-border);
+  }
+  .tick {
+    stroke: var(--bnd-border);
+  }
+  .tick.thick {
+    stroke: var(--bnd-border-strong);
+  }
+  .today-highlight {
+    fill: var(--bnd-brand);
+    opacity: 0.08;
+  }
+  .arrow {
+    stroke: var(--bnd-ink-subtle);
+  }
+  .upper-text,
+  .lower-text {
+    fill: var(--bnd-ink-muted);
+  }
+  .bar-label {
+    fill: var(--bnd-on-brand);
+  }
+  .bar-wrapper:not([class*="color-"]) {
+    .bar {
+      fill: var(--bnd-brand-solid);
+      stroke: var(--bnd-brand-solid);
+    }
+    .bar-progress {
+      fill: var(--bnd-brand-ink);
+    }
+  }
+}
+// The popup keeps its dark scrim but takes our radius and a themed subtitle.
+html[data-bnd-views] .gantt-container .popup-wrapper {
+  border-radius: var(--bnd-radius-md);
+  .subtitle {
+    color: var(--bnd-ink-subtle);
+  }
+}
+
+// ── Repair 2: the calendar chrome, themed ───────────────────────────────────
+// Re-point FullCalendar's own vars (the whole set we touch) AND the two vars
+// Frappe's !important rules read (--gray-300 borders, --text-light ink), all
+// scoped to .fc so they inherit to every descendant and reach NOTHING outside
+// the calendar (probe A confirmed the !important rules resolve to these). The
+// today-cell reads --fg-color, which the bridge already owns — left to it.
+html[data-bnd-views] .fc {
+  --fc-border-color: var(--bnd-border);
+  --fc-page-bg-color: var(--bnd-surface);
+  --fc-neutral-bg-color: var(--bnd-raised);
+  --fc-neutral-text-color: var(--bnd-ink-muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--bnd-brand) 8%, transparent);
+  --fc-now-indicator-color: var(--bnd-brand-solid);
+  --fc-highlight-color: var(--bnd-hover);
+  // The two Frappe reads on its own !important rules (border + muted ink).
+  --gray-300: var(--bnd-border);
+  --text-light: var(--bnd-ink-muted);
+}
+
+// ── Repair 3: the gallery image hover (handled with the tile object, above) ──
+// image_view.scss's `filter: opacity(30%)` is neutralised in the tile:hover
+// rule above (img { filter: none }). No separate block — the object owns it.
+
+// ── Repair 4: the kanban drag states ────────────────────────────────────────
+// Sortable adds `.sortable-chosen` to the grabbed card and `.sortable-drag` to
+// the clone; frappe styles only `.sortable-ghost` (the gap left behind). Give
+// the moving card our lift so a drag reads as picked-up. Sortable owns the
+// clone's z-index (probe C), so no rung is needed here.
+// The .kanban-cards ancestor is carried so this clears Frappe's (0,5,0)
+// `box-shadow: none` on the card (same contest as the object rule above).
+html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-chosen .kanban-card,
+html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-card {
+  box-shadow: var(--bnd-shadow-lg);
+  border-color: var(--bnd-brand-solid);
+}

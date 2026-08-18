@@ -527,6 +527,50 @@ REPORT_DEFAULTS = {
     "report_checkbox_reveal": 1,
 }
 
+#: Alternate-views surface fields (item 27), matching theme_settings.json. ONE
+#: kit over four views — kanban, calendar, gantt, gallery — so the anchor
+#: (views_style) dresses all four and each treatment axis reaches only the views
+#: that can honestly take it: the band is the kanban column, the mark is the
+#: calendar event, the media fit is the gallery tile. Gantt takes the anchor and
+#: the dark-mode repairs and no axis of its own. The family shape the other four
+#: kits established: one anchor whose first option is "Original", composing
+#: treatment axes, one presence-only Check.
+VIEWS_FIELDS = [
+    "views_style",
+    "views_band",
+    "views_mark",
+    "views_media",
+    "views_reveal",
+]
+
+#: The shipped alternate-views defaults — the item-27 wireframe picks
+#: (2026-08-17): Floating Cards · Tinted · Chip · Cover · reveal on. "Original"
+#: stays one click away and is a total stand-down across all four views.
+VIEWS_DEFAULTS = {
+    # The anchor: how a record becomes an OBJECT — a kanban card, a gallery
+    # tile, a calendar chip, a gantt bar — as one statement of fill, boundary
+    # and elevation. Floating Cards is the bolder option, consistent with every
+    # prior round. Split from the axes below so a style cannot ship a floating
+    # card beside a naked flat tile.
+    "views_style": "Floating Cards",
+    # The kanban column band (the grouping band item 26 deferred here). Tinted
+    # washes the whole column in its status hue with legible ink over it — never
+    # a solid fill under a label, the WCAG failure item 22 closed on the pill.
+    "views_band": "Tinted",
+    # The calendar EVENT mark — its shape, not its colour (colour is inline and
+    # JS-fed, themed separately by the prepare_colors wrap). Chip is the filled
+    # block; Dot and Outlined are the quieter reads. Calendar only: a gantt bar
+    # cannot be a dot, so offering it there would be a picker that lies.
+    "views_mark": "Chip",
+    # The gallery tile's image fit. Cover fills the frame (Frappe's own default,
+    # object-fit: cover at image_view.scss:148); Contain shows the whole image.
+    "views_media": "Cover",
+    # A Check, default-on: a gallery tile's zoom/checkbox and a kanban card's
+    # menu rest hidden, revealed on hover or keyboard focus, stood down wholesale
+    # under (hover: none) so touch always shows them.
+    "views_reveal": 1,
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

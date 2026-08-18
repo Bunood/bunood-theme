@@ -3892,3 +3892,88 @@ msgstr "يظل مربّع اختيار الصف مخفيًا ويظهر عند �
 #, fuzzy
 msgid "Original leaves every data table stock — nothing below applies."
 msgstr "يُبقي «الأصلي» كل جداول البيانات كما هي — لا شيء أدناه ينطبق."
+
+#. src: item27
+#, fuzzy
+msgid "View Style"
+msgstr "نمط العرض"
+
+#. src: item27
+#, fuzzy
+msgid "Set by the picker above. How a record is drawn across the alternate views — a kanban card, a gallery tile, a calendar chip, a gantt bar."
+msgstr "يضبطه المنتقي أعلاه. كيف يُرسَم السجل عبر العروض البديلة — بطاقة كانبان، أو مربّع معرض، أو شريحة تقويم، أو شريط جانت."
+
+#. src: item27
+#, fuzzy
+msgid "Solid Panels"
+msgstr "ألواح صلبة"
+
+#. src: item27
+#, fuzzy
+msgid "Kanban Column"
+msgstr "عمود كانبان"
+
+#. src: item27
+#, fuzzy
+msgid "Set by the picker above. How a kanban column carries its status colour."
+msgstr "يضبطه المنتقي أعلاه. كيف يحمل عمود كانبان لون حالته."
+
+#. src: item27
+#, fuzzy
+msgid "Tinted"
+msgstr "مُلوَّن"
+
+#. src: item27
+#, fuzzy
+msgid "Headed"
+msgstr "بترويسة"
+
+#. src: item27
+#, fuzzy
+msgid "Calendar Event"
+msgstr "حدث التقويم"
+
+#. src: item27
+#, fuzzy
+msgid "Set by the picker above. The shape of a calendar event."
+msgstr "يضبطه المنتقي أعلاه. شكل حدث التقويم."
+
+#. src: item27
+#, fuzzy
+msgid "Chip"
+msgstr "شريحة"
+
+#. src: item27
+#, fuzzy
+msgid "Outlined"
+msgstr "مُفرَّغ"
+
+#. src: item27
+#, fuzzy
+msgid "Image Fit"
+msgstr "ملاءمة الصورة"
+
+#. src: item27
+#, fuzzy
+msgid "Set by the picker above. How a gallery image fills its tile."
+msgstr "يضبطه المنتقي أعلاه. كيف تملأ صورة المعرض مربّعها."
+
+#. src: item27
+#, fuzzy
+msgid "Cover"
+msgstr "تغطية"
+
+#. src: item27
+#, fuzzy
+msgid "Contain"
+msgstr "احتواء"
+
+#. src: item27
+#, fuzzy
+msgid "Reveal Controls on Hover"
+msgstr "إظهار عناصر التحكم عند التمرير"
+
+#. src: item27
+#, fuzzy
+msgid "A gallery tile's controls and a kanban card's menu rest hidden and appear on hover or keyboard focus. Always visible on touch screens."
+msgstr "تبقى عناصر تحكم مربّع المعرض وقائمة بطاقة كانبان مخفيّة وتظهر عند التمرير أو عند تركيز لوحة المفاتيح. وتظهر دائمًا على الشاشات اللمسية."

@@ -37,6 +37,7 @@ from bunood_theme.presets import (
     ICON_DEFAULTS,
     LIST_DEFAULTS,
     REPORT_DEFAULTS,
+    VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
     DEFAULT_SIDEBAR_PRESET,
@@ -69,6 +70,7 @@ CHECK_DEFAULTS = {
         ICON_DEFAULTS,
         LIST_DEFAULTS,
         REPORT_DEFAULTS,
+        VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
         INBOX_DEFAULTS,
@@ -132,6 +134,10 @@ DEFAULTS = {
     # grain and row feedback. The Check (report_checkbox_reveal) is seeded via
     # CHECK_DEFAULTS above, None-aware so an admin's explicit 0 survives.
     **{f: v for f, v in REPORT_DEFAULTS.items() if not isinstance(v, int)},
+    # Alternate views surface (item 27): the four Select axes — style, band,
+    # mark and media fit. The Check (views_reveal) is seeded via CHECK_DEFAULTS
+    # above, None-aware so an admin's explicit 0 survives.
+    **{f: v for f, v in VIEWS_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

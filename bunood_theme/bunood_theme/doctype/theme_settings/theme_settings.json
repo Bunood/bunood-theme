@@ -144,6 +144,11 @@
   "report_grain",
   "report_rows",
   "report_checkbox_reveal",
+  "views_style",
+  "views_band",
+  "views_mark",
+  "views_media",
+  "views_reveal",
   "section_generated",
   "brand_css_url"
  ],
@@ -1064,6 +1069,50 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Reveal Row Checkboxes on Hover"
+  },
+  {
+   "default": "Floating Cards",
+   "description": "Set by the picker above. How a record is drawn across the alternate views — a kanban card, a gallery tile, a calendar chip, a gantt bar.",
+   "fieldname": "views_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "View Style",
+   "options": "Original\nHairline\nSoft Tiles\nFloating Cards\nSolid Panels"
+  },
+  {
+   "default": "Tinted",
+   "description": "Set by the picker above. How a kanban column carries its status colour.",
+   "fieldname": "views_band",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Kanban Column",
+   "options": "Plain\nTinted\nHeaded"
+  },
+  {
+   "default": "Chip",
+   "description": "Set by the picker above. The shape of a calendar event.",
+   "fieldname": "views_mark",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Calendar Event",
+   "options": "Dot\nChip\nOutlined"
+  },
+  {
+   "default": "Cover",
+   "description": "Set by the picker above. How a gallery image fills its tile.",
+   "fieldname": "views_media",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Image Fit",
+   "options": "Cover\nContain"
+  },
+  {
+   "default": "1",
+   "description": "A gallery tile's controls and a kanban card's menu rest hidden and appear on hover or keyboard focus. Always visible on touch screens.",
+   "fieldname": "views_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Controls on Hover"
   },
   {
    "fieldname": "section_user",

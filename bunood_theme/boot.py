@@ -366,6 +366,23 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_report = {f: report_(f) for f in REPORT_DEFAULTS}
 
+        # ── Alternate views surface (item 27) ───────────────────────────
+        # Fieldname keys, the list shape. Selects fall back to the shipped
+        # default when empty; the Check (views_reveal) falls back only when
+        # never set. No-flash: kanban/calendar/gantt/gallery are all built by JS
+        # on route entry (their view classes render into .result well after
+        # boot), so an attribute set from this payload is on <html> before any
+        # card, chip, bar or tile exists — nothing stale to repaint.
+        from bunood_theme.presets import VIEWS_DEFAULTS
+
+        def views_(field):
+            value = settings.get(field)
+            if isinstance(VIEWS_DEFAULTS[field], int):
+                return VIEWS_DEFAULTS[field] if value is None else value
+            return VIEWS_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_views = {f: views_(f) for f in VIEWS_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

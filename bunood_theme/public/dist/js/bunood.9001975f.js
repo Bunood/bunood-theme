@@ -1320,6 +1320,71 @@
 		apply_report_attrs({ ...(report_state || {}), ...values });
 	};
 
+	// ── Alternate views surface (item 27) ───────────────────────────────────
+	// ONE anchor (data-bnd-views) dresses the kanban card, the gallery tile, the
+	// calendar chip and the gantt bar; the treatment axes hang off siblings and
+	// each reaches only the views that can honestly take it. Cover and Plain map
+	// to "" — they are the stock fit / no column wash, so the attribute is simply
+	// absent, never a slug that means "do the default".
+	const VIEWS_SLUGS = {
+		style: { "Original": "", "Hairline": "hairline", "Soft Tiles": "tiles", "Floating Cards": "cards", "Solid Panels": "panels" },
+		band: { "Plain": "", "Tinted": "tinted", "Headed": "headed" },
+		mark: { "Dot": "dot", "Chip": "chip", "Outlined": "outlined" },
+		media: { "Cover": "", "Contain": "contain" },
+	};
+
+	let views_state = (window.frappe && frappe.boot && frappe.boot.bnd_views) || null;
+
+	/**
+	 * Reflect the alternate-views options onto <html>, clearing whatever came
+	 * before. A falsy style slug (Original / unknown / no boot) clears
+	 * everything — band, mark, media and the reveal — so Original is a full
+	 * stand-down across all four views. Payload keys are FIELDNAMES: no mirror
+	 * map to fall out of step with presets.VIEWS_FIELDS.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_views_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-views" || a.name.startsWith("data-bnd-views-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		views_state = v;
+		const style = VIEWS_SLUGS.style[v.views_style];
+		if (!style) return; // "" (Original) => pure clearing
+		html.setAttribute("data-bnd-views", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-views-" + name, value);
+		set("band", VIEWS_SLUGS.band[v.views_band]);
+		set("mark", VIEWS_SLUGS.mark[v.views_mark]);
+		set("media", VIEWS_SLUGS.media[v.views_media]);
+		// Presence-only: reveal the gallery tile's controls and the kanban card's
+		// menu on hover, stood down under (hover: none) in the stylesheet.
+		if (parseInt(v.views_reveal, 10)) html.setAttribute("data-bnd-views-reveal", "");
+	}
+
+	// Before the view classes build the first card/chip/bar/tile — the timing
+	// rule every surface kit keeps: the anchor is on <html> before the DOM it
+	// styles exists, so nothing stale ever paints.
+	apply_views_attrs(views_state);
+
+	/** True when the alternate-views kit is active (the anchor is present). */
+	function views_active() {
+		return document.documentElement.hasAttribute("data-bnd-views");
+	}
+
+	/**
+	 * LIVE PREVIEW for the alternate-views kit. Fieldname shape (also the boot
+	 * shape). Mandatory from day one — the status kit's missing-hook failure
+	 * class, and the item-25/26 "escapee" that must never recur.
+	 * @param {Object} values
+	 */
+	bunood.views_apply = function (values) {
+		if (!values) return;
+		apply_views_attrs({ ...(views_state || {}), ...values });
+	};
+
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },

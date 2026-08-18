@@ -4418,6 +4418,150 @@ html[data-bnd-chart-grid=filled] .chart-container .region-fill {
   opacity: 1;
 }
 
+html[data-theme] .kanban-card-wrapper a:focus-visible,
+html[data-theme] .image-view-item a:focus-visible,
+html[data-theme] .fc .fc-daygrid-event:focus-visible,
+html[data-theme] .fc .fc-event:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+  border-radius: var(--bnd-radius-sm);
+}
+
+html[data-bnd-views=hairline] {
+  --bnd-view-fill: transparent;
+  --bnd-view-border: var(--bnd-border-strong);
+  --bnd-view-radius: var(--bnd-radius-sm);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+
+html[data-bnd-views=tiles] {
+  --bnd-view-fill: var(--bnd-surface);
+  --bnd-view-border: transparent;
+  --bnd-view-radius: var(--bnd-radius-md);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+
+html[data-bnd-views=cards] {
+  --bnd-view-fill: var(--bnd-surface);
+  --bnd-view-border: var(--bnd-border);
+  --bnd-view-radius: var(--bnd-radius-md);
+  --bnd-view-shadow: var(--bnd-shadow-sm);
+  --bnd-view-ink: var(--bnd-ink);
+}
+
+html[data-bnd-views=panels] {
+  --bnd-view-fill: var(--bnd-raised);
+  --bnd-view-border: var(--bnd-border-strong);
+  --bnd-view-radius: var(--bnd-radius-sm);
+  --bnd-view-shadow: none;
+  --bnd-view-ink: var(--bnd-ink);
+}
+
+html[data-bnd-views] .kanban-column .kanban-cards .kanban-card-wrapper .kanban-card {
+  background-color: var(--bnd-view-fill);
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+  color: var(--bnd-view-ink);
+}
+
+html[data-bnd-views] .image-view-container .image-view-item {
+  background-color: var(--bnd-view-fill);
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+  color: var(--bnd-view-ink);
+}
+
+html[data-bnd-views] .image-view-container .image-view-item:hover {
+  border-color: var(--bnd-border-strong);
+  box-shadow: var(--bnd-shadow-md);
+}
+
+html[data-bnd-views] .image-view-container .image-view-item:hover img {
+  filter: none;
+}
+
+html[data-bnd-views] .fc .fc-daygrid-block-event,
+html[data-bnd-views] .fc .fc-h-event,
+html[data-bnd-views] .fc .fc-v-event {
+  border: var(--bnd-line) solid var(--bnd-view-border);
+  border-radius: var(--bnd-view-radius);
+  box-shadow: var(--bnd-view-shadow);
+}
+
+html[data-bnd-views] .gantt-modern .gantt .grid-background {
+  fill: var(--bnd-page);
+}
+html[data-bnd-views] .gantt-modern .gantt .grid-row {
+  fill: var(--bnd-surface);
+}
+html[data-bnd-views] .gantt-modern .gantt .grid-row:nth-child(even) {
+  fill: var(--bnd-raised);
+}
+html[data-bnd-views] .gantt-modern .gantt .grid-header {
+  fill: var(--bnd-raised);
+  stroke: var(--bnd-border);
+}
+html[data-bnd-views] .gantt-modern .gantt .row-line {
+  stroke: var(--bnd-border);
+}
+html[data-bnd-views] .gantt-modern .gantt .tick {
+  stroke: var(--bnd-border);
+}
+html[data-bnd-views] .gantt-modern .gantt .tick.thick {
+  stroke: var(--bnd-border-strong);
+}
+html[data-bnd-views] .gantt-modern .gantt .today-highlight {
+  fill: var(--bnd-brand);
+  opacity: 0.08;
+}
+html[data-bnd-views] .gantt-modern .gantt .arrow {
+  stroke: var(--bnd-ink-subtle);
+}
+html[data-bnd-views] .gantt-modern .gantt .upper-text,
+html[data-bnd-views] .gantt-modern .gantt .lower-text {
+  fill: var(--bnd-ink-muted);
+}
+html[data-bnd-views] .gantt-modern .gantt .bar-label {
+  fill: var(--bnd-on-brand);
+}
+html[data-bnd-views] .gantt-modern .gantt .bar-wrapper:not([class*=color-]) .bar {
+  fill: var(--bnd-brand-solid);
+  stroke: var(--bnd-brand-solid);
+}
+html[data-bnd-views] .gantt-modern .gantt .bar-wrapper:not([class*=color-]) .bar-progress {
+  fill: var(--bnd-brand-ink);
+}
+
+html[data-bnd-views] .gantt-container .popup-wrapper {
+  border-radius: var(--bnd-radius-md);
+}
+html[data-bnd-views] .gantt-container .popup-wrapper .subtitle {
+  color: var(--bnd-ink-subtle);
+}
+
+html[data-bnd-views] .fc {
+  --fc-border-color: var(--bnd-border);
+  --fc-page-bg-color: var(--bnd-surface);
+  --fc-neutral-bg-color: var(--bnd-raised);
+  --fc-neutral-text-color: var(--bnd-ink-muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--bnd-brand) 8%, transparent);
+  --fc-now-indicator-color: var(--bnd-brand-solid);
+  --fc-highlight-color: var(--bnd-hover);
+  --gray-300: var(--bnd-border);
+  --text-light: var(--bnd-ink-muted);
+}
+
+html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-chosen .kanban-card,
+html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-card {
+  box-shadow: var(--bnd-shadow-lg);
+  border-color: var(--bnd-brand-solid);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

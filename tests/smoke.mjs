@@ -668,6 +668,8 @@ const MUTABLE_FIELDS = [
 	"chart_grid",
 	// Report / datatable surface (item 26).
 	"report_style", "report_grain", "report_rows", "report_checkbox_reveal",
+	// Alternate views surface (item 27).
+	"views_style", "views_band", "views_mark", "views_media", "views_reveal",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -7037,6 +7039,159 @@ async function main() {
 			const best = Math.max(ring.borderContrast || 0, ring.shadowContrast || 0);
 			expect(best >= 3, `the focus ring clears 3:1 on the Bold Bar fill (best ${best.toFixed(2)}:1; accent ${(ring.borderContrast || 0).toFixed(2)}, companion ${(ring.shadowContrast || 0).toFixed(2)}, fill ${ring.fill})`);
 		});
+
+		// ── Alternate views kit (item 27) ──────────────────────────────────
+		//
+		// ONE surface kit over four vendors — kanban (Frappe DOM), calendar
+		// (FullCalendar 6), gantt (frappe-gantt SVG), gallery (a .frappe-list
+		// variant). Attributes on <html>, a stylesheet over each vendor's DOM,
+		// nothing mounted. Every route needs the seeded fixtures
+		// (tools/fixtures-views.mjs) — the pinned board is "Bunood Memos".
+		// Assertions read the RENDERED node, not just the attribute. This slice
+		// is the anchor + the four repairs; the band/mark/media/reveal axes and
+		// the calendar colour wrap are slice 3.
+		const VIEWS_KANBAN = "/app/todo/view/kanban/Bunood%20Memos";
+
+		await test("views: Original applies nothing at all", async () => {
+			// The stand-down must be total: no attribute survives AND the kanban
+			// card returns to Frappe's own 10px radius (--border-radius-md).
+			setSettings({ views_style: "Original" });
+			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
+			const g = await page.evaluate(() => {
+				const html = document.documentElement;
+				const attrs = [...html.attributes].map((a) => a.name).filter((n) => n.startsWith("data-bnd-views"));
+				const card = document.querySelector(".kanban-card.content");
+				return { attrs, radius: card ? getComputedStyle(card).borderTopLeftRadius : null };
+			});
+			expectEq(g.attrs.join(","), "", "no data-bnd-views* attribute survives Original");
+			expectEq(g.radius, "10px", "the kanban card is back to Frappe's own radius");
+		});
+
+		await test("views: the anchor dresses the kanban card", async () => {
+			// Floating Cards default: the card takes our radius (6px, not stock
+			// 10px) AND a real box-shadow (stock is none on the (0,5,0) rule).
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
+			const g = await page.evaluate(() => {
+				const card = document.querySelector(".kanban-card.content");
+				const cs = getComputedStyle(card);
+				return { anchor: document.documentElement.getAttribute("data-bnd-views"), radius: cs.borderTopLeftRadius, shadow: cs.boxShadow };
+			});
+			expectEq(g.anchor, "cards", "the anchor slug is 'cards'");
+			expect(g.radius !== "10px" && g.radius !== "0px", `the card takes our radius (got ${g.radius})`);
+			expect(g.shadow !== "none", "the card takes a real box-shadow, beating Frappe's (0,5,0) none");
+		});
+
+		await test("views: the gantt is legible in dark mode", async () => {
+			// The repair. Stock paints .bar, .grid-row and .grid-header literal
+			// white — invisible on a dark page. Under the anchor they take our
+			// theme-aware tokens, which flip dark. Fails against stock: all white.
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk("/app/todo/view/gantt", ".gantt .bar", 6000);
+			const g = await page.evaluate(() => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				return new Promise((res) =>
+					setTimeout(() => {
+						const fill = (s) => { const e = document.querySelector(s); return e ? getComputedStyle(e).fill : null; };
+						const plain = [...document.querySelectorAll(".gantt .bar-wrapper")].find((w) => ![...w.classList].some((c) => c.startsWith("color-")));
+						res({
+							gridRow: fill(".gantt .grid-row"),
+							gridHeader: fill(".gantt .grid-header"),
+							bar: plain ? getComputedStyle(plain.querySelector(".bar")).fill : null,
+							page: getComputedStyle(document.body).backgroundColor,
+						});
+					}, 500)
+				);
+			});
+			await page.evaluate(() => document.documentElement.removeAttribute("data-theme"));
+			const white = "rgb(255, 255, 255)";
+			expect(g.gridRow !== white, `the gantt grid row is not stock white in dark mode (got ${g.gridRow})`);
+			expect(g.gridHeader !== white, `the gantt header is not stock white (got ${g.gridHeader})`);
+			expect(g.bar && g.bar !== white, `a plain gantt bar is not stock white (got ${g.bar})`);
+		});
+
+		await test("views: an admin's task colour survives the kit", async () => {
+			// gantt_view.js injects a <style> giving a task with a `color` field
+			// its own .bar-wrapper.color-XXXXXX .bar fill (0,3,0). Our default bar
+			// rule needs (0,4,0), which would also beat that — so it carves the
+			// admin case out with :not([class*="color-"]). The fixture seeds
+			// coloured ToDos so this path is exercised. Fails without the carve-out:
+			// the coloured bar would take our brand fill like every other.
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk("/app/todo/view/gantt", ".gantt .bar", 6000);
+			const g = await page.evaluate(() => {
+				const admin = [...document.querySelectorAll(".gantt .bar-wrapper")].find((w) => [...w.classList].some((c) => c.startsWith("color-")));
+				const plain = [...document.querySelectorAll(".gantt .bar-wrapper")].find((w) => ![...w.classList].some((c) => c.startsWith("color-")));
+				return {
+					adminClass: admin ? [...admin.classList].find((c) => c.startsWith("color-")) : null,
+					adminFill: admin ? getComputedStyle(admin.querySelector(".bar")).fill : null,
+					plainFill: plain ? getComputedStyle(plain.querySelector(".bar")).fill : null,
+				};
+			});
+			expect(g.adminClass, "the fixture seeded a colour-classed gantt bar");
+			// The admin bar keeps ITS colour, distinct from the bar we paint.
+			expect(g.adminFill !== g.plainFill, `the admin bar keeps its own fill (${g.adminFill}), not ours (${g.plainFill})`);
+		});
+
+		await test("views: the calendar chrome follows the theme", async () => {
+			// FullCalendar's 30 --fc-* vars are re-pointed on .fc, AND Frappe's
+			// own calendar.scss !important border rule (reading --gray-300) is
+			// beaten by re-pointing THAT var, scoped to .fc (probe A). Fails
+			// against stock: --fc-border-color is #ddd and the td keeps it.
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk("/app/todo/view/calendar", ".fc", 6000);
+			const g = await page.evaluate(() => {
+				const fc = document.querySelector(".fc");
+				const td = document.querySelector(".fc-theme-standard td");
+				const our = getComputedStyle(document.documentElement).getPropertyValue("--bnd-border").trim();
+				return {
+					fcBorder: getComputedStyle(fc).getPropertyValue("--fc-border-color").trim().toLowerCase(),
+					tdBorder: td ? getComputedStyle(td).borderTopColor : null,
+					ourBorder: our.toLowerCase(),
+				};
+			});
+			expect(g.fcBorder !== "#ddd", `--fc-border-color is re-pointed, not stock #ddd (got ${g.fcBorder})`);
+			// The !important td border resolves to our value, not stock's grey.
+			expect(g.tdBorder && g.tdBorder !== "rgb(221, 221, 221)", `the !important td border took our token (got ${g.tdBorder})`);
+		});
+
+		await test("views: the gallery tile has a boundary or a fill", async () => {
+			// The tile is stock transparent with a 0px border (measured). Under
+			// the anchor it takes the object fill and boundary — fails against
+			// stock, which has neither.
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk("/app/item/view/image", ".image-view-container", 6000);
+			const g = await page.evaluate(() => {
+				const tile = document.querySelector(".image-view-item");
+				const cs = getComputedStyle(tile);
+				return { bg: cs.backgroundColor, borderW: cs.borderTopWidth, borderC: cs.borderTopColor };
+			});
+			const transparent = g.bg === "rgba(0, 0, 0, 0)" || g.bg === "transparent";
+			const noBorder = g.borderW === "0px" || g.borderC === "rgba(0, 0, 0, 0)";
+			expect(!transparent || !noBorder, `the tile has a fill or a boundary (bg ${g.bg}, border ${g.borderW} ${g.borderC})`);
+		});
+
+		await test("views: live preview flips the style and back", async () => {
+			// The mandatory hook (bunood.views_apply), the item-25/26 "escapee"
+			// that must never recur. Yields after each mutation — a same-tick
+			// getComputedStyle is stale in this headless browser (probe B).
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
+			const flip = await page.evaluate(async () => {
+				const anchor = () => document.documentElement.getAttribute("data-bnd-views");
+				window.bunood_theme.views_apply({ views_style: "Hairline" });
+				await new Promise((r) => setTimeout(r, 350));
+				const mid = anchor();
+				window.bunood_theme.views_apply({ views_style: "Floating Cards" });
+				await new Promise((r) => setTimeout(r, 350));
+				return { mid, back: anchor() };
+			});
+			expectEq(flip.mid, "hairline", "live preview flips the anchor to hairline");
+			expectEq(flip.back, "cards", "and back to cards");
+		});
+		// The discard-revert escapee test (previewed-then-discarded must revert)
+		// lands in slice 4 with the picker: it depends on theme_settings.js's
+		// refresh batch calling bnd_views_preview, which is that slice's wiring.
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//

@@ -596,6 +596,27 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "views",
+        # Labelled "Alternate views", not any one view: ONE anchor dresses the
+        # kanban card, the calendar chip, the gantt bar and the gallery tile as
+        # the same object drawn four ways — the report kit's "reaches every
+        # datatable" reasoning, transposed to the four view routes. Splitting
+        # would let a user ship floating kanban cards beside flat gallery tiles.
+        # Item 27.
+        "part": "views",
+        "label": "Alternate views",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-views]; "Original" clears it.
+        # The band (kanban), event mark (calendar), image fit (gallery) and the
+        # reveal hang off data-bnd-views-* siblings. Gantt takes the anchor
+        # plus the dark-mode repairs and no axis of its own.
+        "selector": 'html[data-bnd-views]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's
