@@ -12,6 +12,29 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.18.1] — 2026-08-17 — Report kit review fixes (item 26)
+
+Three defects the multi-agent adversarial release review found in v0.18.0, all
+confirmed and each now pinned by a test that catches it. All three were missed by
+the green suite because they live where the default state never goes.
+
+- **Select-all masked the datatable's own selection fill.** During a select-all,
+  frappe-datatable paints the opaque `.dt-cell__content`, but the kit had resolved
+  the row fill on the `.dt-cell` beneath it — so a Bold Bar selection showed the
+  light vendor wash (with the kit's on-brand ink on it at ~1.06:1), and a row
+  de-selected mid-select-all still read as selected. The kit now clears the content
+  box during select-all so its own per-row fill shows; the test was reading the
+  wrong layer and now reads the effective one.
+- **The report live-preview was missing from the discard-revert and import paths.**
+  Every other surface kit re-applies its saved values when the settings form is
+  discarded or a theme is imported; report was silently absent, so a discard left a
+  stale preview and an import never took effect on the desk.
+- **The keyboard focus ring was invisible on a Bold Bar selection.** `--bnd-accent`
+  on the brand-solid selection fill measures ~1.07:1 (a WCAG 2.2 Focus-Appearance
+  failure, worse than stock's grey). The ring is now two-tone — the accent plus an
+  on-brand companion, gated to clear AA against the brand fill — so it stays legible
+  on any row background.
+
 ## [0.18.0] — 2026-08-17 — The report view / datatable (item 26)
 
 ### Item 26 — the report view / datatable kit
