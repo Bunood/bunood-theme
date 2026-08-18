@@ -237,6 +237,49 @@ html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
 }
 
+// ── The kanban board's column height, against our sticky top bar ────────────
+// Item 27. kanban.scss:36 sizes every `.kanban-column` from RAW 100vh:
+//   min-height: calc(100vh - var(--navbar-height) - var(--page-head-height)
+//                    - var(--margin-sm) * 2)
+// so a short column still fills the viewport and stays a full-height drop
+// target. But `--navbar-height` (measured 48) is Frappe's OLD fixed navbar —
+// the one our top bar REPLACED with a sticky bar of its own height
+// (--bnd-topbar-h, 44), living IN .main-section flow. So when our top bar is
+// on, the column is sized against a navbar that is not there, over-fills
+// .main-section (itself already 100vh - reserve) and pushes its foot 13px past
+// the scroll box — a spurious 13px page scroll on the whole board (measured
+// 1440x900 and 1024x620, shipped topbar+status defaults: column foot 887 /
+// 607 against a .main-section that ends at 874 / 594).
+//
+// UNLIKE the report view, NO CONTENT is hidden: `.kanban-cards` (kanban.scss:
+// 141, max-height: calc(100vh - 250px)) scrolls INTERNALLY, so every card is
+// reachable — the overflow is the column's own bottom padding, and the only
+// symptom is the stray scrollbar. This corrects the plan's assumption that all
+// three view panes shared the report's hidden-content defect; measurement says
+// only this one, and only under the top bar.
+//
+// The fix mirrors the report block: swap the phantom --navbar-height for the
+// real --bnd-topbar-h and take off the bottom reserve, so the column fills
+// exactly the space .main-section gives it (measured foot 865 vs 874 — 9px
+// clear, no clip, no stray scroll). Gated on data-bnd-topbar, the OUTCOME:
+// a top-bar-less desk keeps Frappe's own calc, which already fits (its column
+// top sits 44px higher, so 100vh over-counts by only the reserve, and Frappe's
+// own chrome over-subtraction absorbs that). Every term is a chrome token; no
+// magic numbers.
+//
+// The gantt (frappe_gantt.scss:85, height: calc(100vh - 240px)) and the cards
+// box are LEFT deliberately: both are shorter than the space available, scroll
+// internally, and never reach the bottom chrome in any layout (measured) — so
+// subtracting the reserve from them would only widen their dead band, the
+// opposite of a fix. Their fixed 240/250 offsets are Frappe's, not ours to
+// re-guess.
+html[data-bnd-topbar][data-bnd-layout] .kanban-column {
+  min-block-size: calc(
+    100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 -
+      var(--bnd-bottom-reserve, 0px)
+  );
+}
+
 // ── Top bar: the native <header> becomes the bar's home ─────────────────────
 // v16 renders an EMPTY <header> as .main-section's first child — a native
 // mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section

@@ -344,6 +344,10 @@ html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
 }
 
+html[data-bnd-topbar][data-bnd-layout] .kanban-column {
+  min-block-size: calc(100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 - var(--bnd-bottom-reserve, 0px));
+}
+
 html[data-bnd-topbar] .main-section > header {
   position: sticky;
   inset-block-start: 0;

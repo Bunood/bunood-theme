@@ -2042,6 +2042,51 @@ async function main() {
 			});
 		}
 
+		// ── The kanban board's column honours the reserve too (item 27) ────
+		// kanban.scss:36 sizes every column from RAW 100vh minus Frappe's OLD
+		// fixed --navbar-height — the navbar our sticky top bar replaced. So
+		// under the top bar the column over-fills the reserve-shrunk
+		// .main-section and its foot spills ~13px past the scroll box: a stray
+		// page scroll on the whole board (measured 1440x900 shipped defaults:
+		// column foot 887 vs .main-section 874). chrome/_layouts.scss now swaps
+		// the phantom navbar for the real --bnd-topbar-h and takes off the
+		// reserve, gated on data-bnd-topbar. UNLIKE the report view no content
+		// hides — .kanban-cards scrolls internally — so this asserts the column
+		// fits its scroll box (no stray scroll), and that the cards still
+		// scroll (the reason nothing was ever hidden). The board is the pinned
+		// fixture from tools/fixtures-views.mjs.
+		await test("reserve: the kanban column fits the scroll box under the top bar", async () => {
+			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+			await goDesk("/app/todo/view/kanban/Bunood%20Memos", ".kanban-column", 5000);
+			const g = await page.evaluate(() => {
+				const ms = document.querySelector(".main-section");
+				const col = document.querySelector(".kanban-column:not(.add-new-column)");
+				const cards = document.querySelector(".kanban-cards");
+				const bottom = (el) => (el ? Math.round(el.getBoundingClientRect().bottom) : null);
+				return {
+					topbar: document.documentElement.hasAttribute("data-bnd-topbar"),
+					colBottom: bottom(col),
+					mainBottom: bottom(ms),
+					strayScroll: ms ? ms.scrollHeight - ms.clientHeight : null,
+					cardsScroll: cards ? cards.scrollHeight > cards.clientHeight : null,
+				};
+			});
+			expect(g.colBottom !== null, "the kanban board rendered a column (fixture present?)");
+			expectEq(g.topbar, true, "the top bar is on — the branch the fix guards");
+			// The column foot lands on or above the scroll box: no 13px spill,
+			// so no stray page scroll. (<=2 absorbs the 1px sub-pixel graze the
+			// report test documents.)
+			expect(
+				g.colBottom - g.mainBottom <= 2,
+				`column fits — foot ${g.colBottom} vs .main-section ${g.mainBottom} ` +
+					`(delta ${g.colBottom - g.mainBottom}px, stray scroll ${g.strayScroll}px)`
+			);
+			// The seeded Open column holds 14 memos, so its cards box scrolls —
+			// which is why the column overflow never hid a card in the first
+			// place. Pins the "no content hidden" premise the fix rests on.
+			expect(g.cardsScroll === true, "the cards box scrolls internally, so every card stays reachable");
+		});
+
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
