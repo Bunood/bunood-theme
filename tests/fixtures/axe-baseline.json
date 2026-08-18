@@ -3,7 +3,7 @@
 		"button-name": 9,
 		"color-contrast": 3,
 		"image-alt": 1,
-		"label": 2,
+		"label": 14,
 		"link-name": 1
 	},
 	"/desk/item/BND-TEST-001": {
@@ -41,5 +41,30 @@
 		"label": 43,
 		"link-name": 1,
 		"select-name": 3
+	},
+	"/app/todo/view/kanban/Bunood%20Memos": {
+		"aria-allowed-attr": 3,
+		"button-name": 3,
+		"link-name": 1
+	},
+	"/app/todo/view/calendar": {
+		"button-name": 3,
+		"color-contrast": 3,
+		"link-name": 1,
+		"role-img-alt": 2
+	},
+	"/app/todo/view/gantt": {
+		"button-name": 5,
+		"color-contrast": 2,
+		"link-name": 1,
+		"scrollable-region-focusable": 2,
+		"select-name": 2
+	},
+	"/app/item/view/image": {
+		"button-name": 9,
+		"color-contrast": 18,
+		"image-alt": 1,
+		"label": 14,
+		"link-name": 1
 	}
 }

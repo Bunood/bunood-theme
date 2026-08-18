@@ -48,6 +48,15 @@ const ROUTES = [
 	// date-dependent — unsafe for a node-count gate — and gets explicit contrast
 	// pairs in item 26's close instead.
 	["/app/account/view/report", ".dt-scrollable .dt-row"],
+	// Item 27: the four alternate views. Each needs seeded data to render at all
+	// (tools/fixtures-views.mjs) — the demo site ships with zero Kanban Boards,
+	// Tasks or Events, and a baseline over empty chrome banks no honest count.
+	// The board name in the kanban route is the pinned fixture name; a generated
+	// name would break this baseline on the next reseed.
+	["/app/todo/view/kanban/Bunood%20Memos", ".kanban-column"],
+	["/app/todo/view/calendar", ".fc"],
+	["/app/todo/view/gantt", ".gantt .bar"],
+	["/app/item/view/image", ".image-view-container"],
 ];
 
 const py = (c) =>
