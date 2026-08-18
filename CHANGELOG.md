@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-08-18 — Alternate views (item 27)
+
 ### Four views, one hand (item 27 — alternate views)
 
 The desk's four alternate views — kanban, calendar, gantt and gallery — are dressed
