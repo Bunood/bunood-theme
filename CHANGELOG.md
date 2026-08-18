@@ -12,6 +12,39 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Four views, one hand (item 27 — alternate views)
+
+The desk's four alternate views — kanban, calendar, gantt and gallery — are dressed
+by the same tailor now, the fifth surface kit and the first to reach across four
+separate vendors at once. One style setting decides how a record becomes an object:
+a kanban card, a gallery tile and a calendar event are the same shape drawn three
+ways, from a hairline boundary through soft tiles to floating cards (the default) and
+solid panels. Splitting them was never on the table — that is how you end up with
+rounded floating cards beside flat square tiles.
+
+Each view hides its colour somewhere different, and two of them hide it where no
+stylesheet can reach. A kanban column's status tint and a calendar event's colour are
+both written inline, in the page or in JavaScript, so the theme meets each on its own
+terms: it re-points the variables the column reads (so "Plain" columns lose their
+tint), it re-points FullCalendar's own thirty variables for the calendar's grid and
+buttons, and — the same move the charts needed — it wraps the one function every
+calendar event passes through, so a plain event takes the brand accent while a colour
+an admin set is left exactly as they set it. A calendar event can be a filled chip, a
+coloured dot, or an outline; flip to dark mode and every event re-colours itself,
+which stock Frappe does not do.
+
+**The gantt was broken, and now it is not.** In dark mode stock Frappe drew white
+bars and white grid lines on a near-black page — invisible. Every colour is themed
+now, in both modes, and a task an admin gave its own colour keeps it.
+
+Smaller things that ride along: a gallery can crop its images or fit them whole, and
+its tile controls rest quiet until you hover or tab to them. The kanban board stopped
+leaving a stray scrollbar under the top bar. And behind the scenes, a new build check
+makes the "silently dropped field" bug that bit the last two kits impossible to ship
+again. Everything is a setting; the shipped values are Floating Cards, a tinted kanban
+column, chip calendar events, cropped gallery images, and controls that reveal on
+hover. "Original" turns the whole kit off, every view back to stock.
+
 ## [0.18.1] — 2026-08-17 — Report kit review fixes (item 26)
 
 Three defects the multi-agent adversarial release review found in v0.18.0, all

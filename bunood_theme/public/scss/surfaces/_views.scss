@@ -233,8 +233,19 @@ html[data-bnd-views] .gantt-modern .gantt {
   .lower-text {
     fill: var(--bnd-ink-muted);
   }
-  .bar-label {
+  // The label DRAWN INSIDE the bar takes on-brand ink (fitted to the brand-solid
+  // fill). But frappe-gantt pushes the label OUTSIDE, over the grid, as
+  // `.bar-label.big` whenever the text is wider than the bar — and every ToDo bar
+  // is one day wide, so nearly all of them overflow. An out-of-bar label sits on
+  // --bnd-surface/--bnd-page, where on-brand (white in light, near-black in dark)
+  // is invisible. So on-brand is scoped to the inside label, and the outside one
+  // takes on-page muted ink — legible on the grid in both modes. (Adversarial
+  // release review: the un-split rule made the labels LESS legible than stock.)
+  .bar-label:not(.big) {
     fill: var(--bnd-on-brand);
+  }
+  .bar-label.big {
+    fill: var(--bnd-ink-muted);
   }
   .bar-wrapper:not([class*="color-"]) {
     .bar {
@@ -360,6 +371,14 @@ html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within 
 // over the object shape the anchor already gave the event.
 html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event {
   box-shadow: none;
+}
+// The event's textColor carries the hue so the dot below is the hue; but the
+// TITLE text must clear 4.5:1, and --bnd-accent is a 3:1 focus token — so the
+// title (and time) are re-inked to --bnd-ink, leaving only the non-text dot on
+// the accent. (Adversarial release review: the raw-accent title failed AA.)
+html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event .fc-event-title,
+html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event .fc-event-time {
+  color: var(--bnd-ink);
 }
 html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event .fc-event-main::before {
   content: "";

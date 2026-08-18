@@ -1427,7 +1427,13 @@
 		const Native = Cal.prototype.prepare_colors;
 		Cal.prototype.prepare_colors = function (d) {
 			const r = Native.call(this, d);
-			live.add(this); // opportunistic registration for the theme-flip repaint
+			live.add(this); // register first, so a later switch-off-Original can repaint
+			// TOTAL STAND-DOWN: under views_style Original the anchor is cleared, so
+			// the kit must touch NOTHING — the SCSS stands down on the absent
+			// attribute, and this JS must too, or the calendar keeps our colours
+			// while every other view reverts (adversarial release review finding).
+			// views_active() is the anchor check the SCSS keys on.
+			if (!views_active()) return r;
 			const accent = token("--bnd-accent");
 			if (!accent) return r; // fall open
 			// Keep a category colour (get_css_class) or an admin's hex; re-hue only
@@ -1439,13 +1445,19 @@
 			const ink = token("--bnd-ink") || r.textColor;
 			const mark = mark_slug();
 			if (mark === "outlined") {
+				// Transparent event, the hue as a BORDER (3:1 is enough for a
+				// boundary), and INK text — not the hue: --bnd-accent is a 3:1
+				// focus token, and a small event title needs 4.5:1 (review finding).
 				r.backgroundColor = "transparent";
 				r.borderColor = hue;
-				r.textColor = hue;
+				r.textColor = ink;
 			} else if (mark === "dot") {
+				// Transparent event; textColor carries the hue so the CSS ::before
+				// dot (currentColor) is the hue. The TITLE is re-inked to --bnd-ink
+				// in the stylesheet, so only the non-text dot rides the 3:1 accent.
 				r.backgroundColor = "transparent";
 				r.borderColor = "transparent";
-				r.textColor = hue; // the CSS dot is currentColor
+				r.textColor = hue;
 			} else {
 				// Chip: a wash of the hue (8-digit #RRGGBBAA when hue is hex), a
 				// full-strength border, ink text.
@@ -1480,7 +1492,10 @@
 		if (typeof MutationObserver === "function" && document.documentElement) {
 			let queued = false;
 			new MutationObserver(function () {
-				if (queued) return;
+				// Under Original the kit stands down — no recompute, no refetch, or
+				// the calendar would differ from stock on a theme flip (not a total
+				// stand-down). prepare_colors is gated the same way as a backstop.
+				if (queued || !views_active()) return;
 				queued = true;
 				requestAnimationFrame(function () {
 					queued = false;

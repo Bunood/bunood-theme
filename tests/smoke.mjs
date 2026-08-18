@@ -5937,6 +5937,14 @@ async function main() {
 				// Item 26: the report view's datatable (captured kit-absent in
 				// slice 0). The /app/ form matches the baseline tool's key.
 				["/app/account/view/report", ".dt-scrollable .dt-row"],
+				// Item 27: the four alternate views, kit ON at SHIPPED here vs the
+				// kit-absent baseline (slice 0) — so a NEW violation means the
+				// views kit made the page worse (a contrast fail on an event chip,
+				// a card, a bar). The pinned fixtures render them.
+				["/app/todo/view/kanban/Bunood%20Memos", ".kanban-column"],
+				["/app/todo/view/calendar", ".fc"],
+				["/app/todo/view/gantt", ".gantt .bar"],
+				["/app/item/view/image", ".image-view-container"],
 			]) {
 				await goDesk(route, waitFor, 4000);
 				const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
@@ -7075,6 +7083,20 @@ async function main() {
 			});
 			expectEq(g.attrs.join(","), "", "no data-bnd-views* attribute survives Original");
 			expectEq(g.radius, "10px", "the kanban card is back to Frappe's own radius");
+			// The calendar's colour wrap is JS, not CSS — it must ALSO stand down
+			// under Original, or events keep our accent while the SCSS reverts (an
+			// adversarial-review finding: the wrap was ungated). Events must carry
+			// NO accent-derived fill.
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			const cal = await page.evaluate(() => {
+				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
+				const h = accent.replace("#", "");
+				const rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(", ");
+				const bgs = [...document.querySelectorAll(".fc-daygrid-block-event")].map((e) => getComputedStyle(e).backgroundColor);
+				return { rgb, anyAccent: bgs.some((b) => b.includes(rgb)), count: bgs.length };
+			});
+			expect(cal.count > 0, "the calendar rendered events under Original");
+			expect(!cal.anyAccent, `no calendar event carries our accent under Original (stock stands) — accent ${cal.rgb}`);
 		});
 
 		await test("views: the anchor dresses the kanban card", async () => {

@@ -4526,8 +4526,11 @@ html[data-bnd-views] .gantt-modern .gantt .upper-text,
 html[data-bnd-views] .gantt-modern .gantt .lower-text {
   fill: var(--bnd-ink-muted);
 }
-html[data-bnd-views] .gantt-modern .gantt .bar-label {
+html[data-bnd-views] .gantt-modern .gantt .bar-label:not(.big) {
   fill: var(--bnd-on-brand);
+}
+html[data-bnd-views] .gantt-modern .gantt .bar-label.big {
+  fill: var(--bnd-ink-muted);
 }
 html[data-bnd-views] .gantt-modern .gantt .bar-wrapper:not([class*=color-]) .bar {
   fill: var(--bnd-brand-solid);
@@ -4602,6 +4605,11 @@ html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within 
 }
 html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event {
   box-shadow: none;
+}
+
+html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event .fc-event-title,
+html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event .fc-event-time {
+  color: var(--bnd-ink);
 }
 
 html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event .fc-event-main::before {

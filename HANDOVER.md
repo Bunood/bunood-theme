@@ -10,14 +10,53 @@
 
 ## 1. Where the work stands
 
-**ITEM 26 (report view / datatable) — DONE, LOCAL-ONLY, ON A BRANCH (2026-08-17).**
-Six commits on branch **`item-26-report`** (not `main`): `4cf5ec3` 0 · `2c2b587` 1 ·
-`13924ef` 2 · `f0f96d2` 3 · `d1f38db` 4 · then slice 5 (the close). The full suite gated
-each shipping slice (last green **242/242**); contrast 2160 pairs. **Not pushed, not
-merged, not tagged** — the release is the user's call. When they say so, the standing
-chain runs: it is a MINOR (v0.18.0), so bump `app_version`, move the CHANGELOG
-`[Unreleased]` block under a `[0.18.0]` heading, tag, push main + tag, bump the bunood
-repo's `apps.json` pin. Facts worth keeping:
+**ITEM 27 (alternate views — kanban · calendar · gantt · gallery) — DONE, LOCAL-ONLY, ON A
+BRANCH (2026-08-18).** Five commits on branch **`item-27-views`** (not `main`): `9ddc5fe` 0 ·
+`7b317f3` 1 · `9843dbc` 2 · `0281746` 3 · `17b35f1` 4 · then slice 5 (the close). The full suite
+gated each shipping slice (last green **260/260**). **Not pushed, not merged, not tagged** — the
+release is the user's call. When they say so it is a MINOR (**v0.19.0**): bump `app_version`, move
+the CHANGELOG `[Unreleased]` block under a `[0.19.0]` heading, tag, push main + tag, bump the bunood
+repo's `apps.json` pin. Plan + wireframes: `~/.claude/plans/we-are-working-on-mighty-willow.md` and
+<https://claude.ai/code/artifact/0cb0d913-b974-4a14-a2df-55178117c96c>. Facts worth keeping:
+- **Four vendors, four themability stories — and TWO hide colour inline** (the item that made this
+  the hardest surface kit). Kanban column tint = inline `var(--bg-{indicator})` (re-point the var,
+  the ONLY way to beat an inline colour without `!important` — which is why "Headed" was impossible
+  and dropped). Calendar = FullCalendar 6, 30 `--fc-*` chrome vars, and its own `!important`
+  border/ink rules beaten by re-pointing the `--gray-300`/`--text-light` they READ, scoped to
+  `.fc`. Gantt = frappe-gantt SVG, its sheet loaded AFTER ours, so won on specificity `(0,4,0)+`.
+  Gallery = a `.frappe-list` variant, but it inherits NOTHING from the list kit (no `.list-row-head`
+  on that route — measured).
+- **The kanban card taught "measure the selector" AGAIN.** Frappe paints the card FILL on a short
+  `.kanban-card` (0,1,0) but the RADIUS + `box-shadow:none` on a full descendant chain (0,5,0), so
+  the object rule needs the same depth (`.kanban-column .kanban-cards .kanban-card-wrapper
+  .kanban-card`, 0,5,1). The gallery tile's rule is shallow and worked first try — the contrast is
+  the lesson.
+- **Calendar event colour is inline JS (`prepare_colors`) — item 25's chart problem exactly.** The
+  wrap re-hues a DEFAULT event to `--bnd-accent`, keeps category (get_css_class) / admin (d.color
+  hex). `frappe.ui.color_map` is snapshotted once at bundle parse, so a `data-theme` observer
+  recomputes it + `refetchEvents()` — the flip re-colours events. `views_apply` calls the same
+  repaint for a live mark change. Plain prototype wrap, NOT `class extends` (item 25's trap).
+- **`window.Gantt` is undefined at boot** (lazily required), so unlike `frappe.Chart` there is no
+  funnel to wrap for bar geometry — the gantt keeps its 35px bar in every density. Three such
+  unreachable gaps are drafted in `docs/upstream/frappe-gantt-geometry.md` (bar geometry, Sortable's
+  `animation:150` deaf to reduced-motion, gantt SVG physical RTL).
+- **The picker is DOCTYPE JS (`theme_settings.js`), not the bundle**, so ZERO payload — item 27's
+  only ceiling raise was the CSS (17000→18000, slice 2). Doctype-JS change needs `BND_FORCE_RESTART=1`.
+- **`assertFieldMirrors` (build.mjs) landed** — the escapee guard HANDOVER §4.8 wanted. It fired on
+  the exact predicted case (BND_INBOX_FIELDS omits inbox_placement, legit via the board) and was
+  fixed by subtracting PLACEMENT_FIELDS everywhere (superset check). The escapee can't ship again.
+- **Fixtures are CODE now** (`tools/fixtures-views.mjs`, idempotent) — the demo site shipped with 0
+  boards/tasks/events, and the four views are gated. A pinned board "Bunood Memos" on ToDo, 24
+  memos, 8 events, 12 imaged Items. The 12 Items raise `/desk/item`'s axe `label` baseline 2→14
+  (documented, a ceiling, deterministic).
+- **`ar.po` fuzzy rows await review**: item 27 added **29** `#. src: item27` rows (doctype labels,
+  descriptions, Select options, picker blurbs/titles/descs/toggle). All `#, fuzzy`, part of the
+  item-7 handoff.
+
+**ITEM 26 (report view / datatable) — DONE, MERGED, RELEASED as `v0.18.0` / `v0.18.1`
+(2026-08-17).** *(This entry read "LOCAL-ONLY, ON A BRANCH" through the item-26 work; the release
+chain closed it and item 27 corrected the record — the six slice commits + two release commits are
+on `main`, and `git tag` shows `v0.18.0`/`v0.18.1`.)* Facts worth keeping:
 - **The header work is a BOUNDARY problem, not a positioning one** — `.dt-header` is a
   sibling of the scroll box and never scrolls away; stock just draws no boundary. And its
   fill is painted THREE ways (vendor var + `.dt-row-header` (0,3,0) + `.dt-cell--header

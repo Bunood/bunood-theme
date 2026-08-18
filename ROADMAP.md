@@ -570,7 +570,36 @@ entry.
     JS, not the bundle). `docs/upstream/frappe-datatable-rtl.md` drafted (physical positioning,
     no app-level fix). References: Directus `v-table`, shadcn `ui/table`, Discourse
     `admin_report_table`.
-- `[ ]` **27 · Alternate views** *(was 19)* — kanban, calendar, gantt, gallery
+- `[x]` **27 · Alternate views** *(was 19, done 2026-08-18)* — kanban, calendar, gantt and
+  gallery, the fifth SURFACE kit and the first over FOUR vendors at once. ONE anchor
+  (`views_style`, Floating Cards default) dresses the kanban card, gallery tile and calendar chip
+  as the same object drawn three ways; the gantt is a data mark, not a card, so it takes the repair
+  and no style of its own. Five gated slices. What the four vendors taught:
+  - **Each view has a different themability story, and two hide their colour inline.** Kanban is
+    Frappe's own DOM (the column tint is an inline `var(--bg-{indicator})`, re-pointed for `Plain`);
+    calendar is **FullCalendar 6** (30 `--fc-*` chrome vars re-pointed on `.fc`, and its own
+    `!important` border/ink rules beaten by re-pointing the `--gray-300`/`--text-light` they READ,
+    scoped to `.fc` — not by out-specifying); gantt is **frappe-gantt** pure SVG (won on
+    specificity over a sheet loaded after ours); gallery is a `.frappe-list` variant.
+  - **The gantt was a repair before a style** — stock paints `.bar`/`.grid-row`/`.grid-header`
+    literal white, invisible on a dark page. Re-tokenised on the SVG, with an admin per-task colour
+    carved out (`:not([class*="color-"])`), the item-25 law for admin data.
+  - **The calendar's event colour is inline JS (`prepare_colors`) — item 25's chart-series problem
+    exactly**, so the same answer: wrap the one funnel. A default event is re-hued to `--bnd-accent`,
+    a category/admin colour kept; the `views_mark` axis (Dot · Chip · Outlined) reshapes the same
+    hue. `frappe.ui.color_map` is snapshotted once, so a `data-theme` observer recomputes it and
+    `refetchEvents()` — the flip re-colours events.
+  - **Two axes forced from three to two by measurement, not preference.** `views_band` dropped
+    "Headed" (an inline column colour can be nulled OR moved to a header, never both, from one var);
+    the report_grain 4→2 precedent. Phase-3 evidence: the calendar wrap is the token pipeline's
+    newest consumer, the `(hover: none)` reveal repeats item 24's narrow-input statement a fifth
+    time, and the focus ring lifts out of the anchor as a contract. Also landed:
+    `assertFieldMirrors` (the build guard HANDOVER wanted since the escapee bit items 25 and 26),
+    the fixtures tool (`tools/fixtures-views.mjs`), and two free fixes (the full-complement test's
+    missing `list_picker`/`report_picker`, `fingerprint.mjs`'s hardcoded path). References:
+    Directus `layouts/kanban` + `styles/lib/_fullcalendar.scss` + `layouts/cards`, frappe-ui
+    `Calendar` and `ListGroupHeader` (item 26's banked grouping precedent). Upstream:
+    `docs/upstream/frappe-gantt-geometry.md` (bar geometry, Sortable animation, gantt RTL).
 - `[ ]` **28 · Overlays** *(was 21)* — modals, dropdowns, toasts
 - `[ ]` **29 · Empty states** *(was 22)* — an action, not a zero
 - `[ ]` **30 · Skeletons** *(was 23)* — loading that does not reflow
