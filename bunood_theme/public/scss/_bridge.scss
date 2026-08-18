@@ -49,6 +49,18 @@
   --modal-bg: var(--bnd-surface);
   --popover-bg: var(--bnd-surface);
   --toast-bg: var(--bnd-surface);
+  // Item 28. `--surface-modal` is a THIRD modal-surface name Frappe carries,
+  // declared in espresso/_colors.scss and left unmapped until now — measured
+  // #232323 in dark against our #16241F, a 1.02:1 delta. It has exactly two
+  // readers on the whole desk (desk/menu.scss:13, the body-appended context
+  // menu `frappe.ui.create_menu` builds on four surfaces we already own; and
+  // desk/sidebar_card.scss:31), and both want a raised surface — so this is a
+  // mapping, not a scoped override.
+  --surface-modal: var(--bnd-surface);
+  // Item 28. The awesomplete list's SELECTED row. Also unbridged: #fbfdfc in
+  // light (which coincides with our --control-bg, so light looked fine by
+  // accident) but #232323 in dark, a 1.12:1 delta against the list beneath it.
+  --awesomplete-hover-bg: var(--bnd-hover);
 
   // ── Ink ───────────────────────────────────────────────────────────────────
   --text-color: var(--bnd-ink);

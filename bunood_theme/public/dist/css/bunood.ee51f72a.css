@@ -65,6 +65,8 @@
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
   --bnd-bottom-reserve: 0px;
+  --bnd-toast-inset: 20px;
+  --bnd-toast-gap: 8px;
   --bnd-tap: 44px;
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
@@ -206,6 +208,8 @@ html:not([data-theme]) {
   --modal-bg: var(--bnd-surface);
   --popover-bg: var(--bnd-surface);
   --toast-bg: var(--bnd-surface);
+  --surface-modal: var(--bnd-surface);
+  --awesomplete-hover-bg: var(--bnd-hover);
   --text-color: var(--bnd-ink);
   --heading-color: var(--bnd-ink);
   --text-muted: var(--bnd-ink-muted);
@@ -233,6 +237,8 @@ html[data-theme=dark] {
   --modal-bg: var(--bnd-surface);
   --popover-bg: var(--bnd-surface);
   --toast-bg: var(--bnd-surface);
+  --surface-modal: var(--bnd-surface);
+  --awesomplete-hover-bg: var(--bnd-hover);
   --text-color: var(--bnd-ink);
   --heading-color: var(--bnd-ink);
   --text-muted: var(--bnd-ink-muted);
@@ -261,6 +267,8 @@ html[data-theme=dark] {
     --modal-bg: var(--bnd-surface);
     --popover-bg: var(--bnd-surface);
     --toast-bg: var(--bnd-surface);
+    --surface-modal: var(--bnd-surface);
+    --awesomplete-hover-bg: var(--bnd-hover);
     --text-color: var(--bnd-ink);
     --heading-color: var(--bnd-ink);
     --text-muted: var(--bnd-ink-muted);
@@ -4622,6 +4630,73 @@ html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event .fc-event-main::before
   margin-inline-end: 0.35em;
   vertical-align: middle;
   flex: none;
+}
+
+html[data-theme] :is(.modal, .form-in-grid) {
+  --border-color: var(--bnd-border);
+  --control-bg: var(--bnd-raised);
+}
+
+html[data-theme] #alert-container {
+  inset-inline-end: var(--bnd-toast-inset);
+  inset-inline-start: auto;
+  inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-inset));
+}
+
+@media (width < 768px) {
+  html[data-theme] #alert-container {
+    inset-inline: 0;
+    inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-gap));
+  }
+}
+html[data-theme] .desk-alert .alert-subtitle {
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] .tooltip-inner {
+  background-color: var(--bnd-ink);
+  color: var(--bnd-surface);
+}
+
+html[data-theme] .bs-tooltip-top .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^=top] .arrow::before {
+  border-top-color: var(--bnd-ink);
+}
+
+html[data-theme] .bs-tooltip-bottom .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^=bottom] .arrow::before {
+  border-bottom-color: var(--bnd-ink);
+}
+
+html[data-theme] .bs-tooltip-right .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^=right] .arrow::before {
+  border-inline-end-color: var(--bnd-ink);
+}
+
+html[data-theme] .bs-tooltip-left .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^=left] .arrow::before {
+  border-inline-start-color: var(--bnd-ink);
+}
+
+html[data-theme] .menu-item-shortcut {
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] .datepicker--cell-day.-other-month-,
+html[data-theme] .datepicker--cell-year.-other-decade- {
+  color: var(--bnd-ink-subtle);
+}
+
+html[data-theme] .datepicker--nav-action path {
+  stroke: var(--bnd-ink-muted);
+}
+
+html[data-theme] .fc-popover {
+  --fc-page-bg-color: var(--bnd-surface);
+  --fc-border-color: var(--bnd-border);
+  --fc-neutral-bg-color: var(--bnd-raised);
+  --fc-neutral-text-color: var(--bnd-ink-muted);
+  --gray-300: var(--bnd-border);
 }
 
 html[data-bnd-icon-weight="1.25"] {

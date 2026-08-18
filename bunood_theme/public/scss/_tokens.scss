@@ -196,6 +196,15 @@
   --bnd-dock-h: 56px;
   --bnd-sidebar-live-w: 220px;
   --bnd-bottom-reserve: 0px;
+  // Toast geometry (item 28). Frappe pins #alert-container at a physical
+  // `right: 20px; bottom: 0` on <body>, OUTSIDE the box --bnd-bottom-reserve
+  // shrinks — measured overlapping our status bar by 11px at 1440x900 and 36px
+  // full-bleed at 375x812. `_overlays.scss` re-writes that inset logically and
+  // adds the reserve; these are the two distances it uses. The inset keeps
+  // Frappe's own 20px feel on desktop; the gap is the smaller clearance the
+  // full-bleed mobile strip needs above the bar.
+  --bnd-toast-inset: 20px;
+  --bnd-toast-gap: 8px;
   // Touch target floor (item 24). WCAG 2.2 AA 2.5.8 requires 24x24; this is the
   // "design to 44" decision — every control the mobile nav builds is at least
   // this, comfortably clear of the 24 the a11y gate enforces.

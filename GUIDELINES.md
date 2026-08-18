@@ -90,6 +90,16 @@ that cannot change the verdict.
 
 - **No raw `#hex` or `px` inside a rule.** Every colour, space, radius, shadow and
   duration comes from a token. A new token is defined in `_tokens.scss` and documented.
+- **When you position a vendor's element on the inline axis, set BOTH logical sides.**
+  Frappe is RTL-correct by a **build-time rtlcss pass** over its own bundle
+  (`sites/assets/frappe/dist/css-rtl/`); we are RTL-correct by **logical properties**.
+  The two do not compose. A rule setting only `inset-inline-end` lands on the *same*
+  physical side as the vendor's flipped rule in one direction and the *opposite* side in
+  the other — and physical and logical declarations are different declarations that do
+  not overwrite each other, so the element ends up pinned on both sides and stretches.
+  Set one side to a value and the other to `auto` (item 28, `_overlays.scss`, on
+  Frappe's `#alert-container`). Directus paid for getting this half-right with eight
+  hand-written `html[dir='rtl']` blocks for a single menu arrow.
 - **Override a Frappe variable only inside the `[data-theme]` blocks.** A neutral
   placed in bare `:root` becomes the base that dark mode inherits — that is the
   "light leaks into dark" bug that made the previous theme work only partially.

@@ -1,0 +1,228 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// OVERLAYS — checklist item 28. The sixth SURFACE partial.
+//
+// WHAT (this slice)
+//   SLICE 1 IS THE CONTRACT SET ONLY. Every rule below is scoped
+//   `html[data-theme]` and lives OUTSIDE the kit anchor, because a CONTRACT
+//   survives "Original" and a STYLE does not (GUIDELINES 1.3). The anchor
+//   (`data-bnd-overlay`), its working set and the composing axes are slice 2+;
+//   nothing here reads a `data-bnd-overlay` attribute.
+//
+// WHY THAT SPLIT, AND WHY IT DIFFERS FROM ITEM 27
+//   `_views.scss:66` records the opposite call for the views kit — "Original
+//   renders as stock, warts and all, including stock's own dark-mode gantt
+//   bug". That was right there: a white gantt bar lives on ONE route a user
+//   opts into. Overlays are on EVERY page, in every app, including the Theme
+//   Settings page where the choice is made — and three of the repairs below
+//   are measured WCAG AA failures, on a surface item 22 closed with a hard
+//   gate. Shipping a setting that switches AA failures back on is a different
+//   thing from shipping a white bar. Decided with the user, 2026-08-18.
+//   Precedent for lifting a repair out of an anchor: `_list.scss`'s density
+//   block, `_report.scss`'s datatable focus ring, `_views.scss`'s focus ring.
+//
+// THE CASCADE — WE ARE 4th OF 12, NEVER LAST
+//   Measured live: desk.bundle · report.bundle · erpnext.bundle · OURS ·
+//   hrms.bundle · two token sheets · four inline <style>; and on the gallery
+//   route PhotoSwipe and Frappe's onboarding <style> land AFTER us as well.
+//   So EVERY rule here wins on SPECIFICITY, never on source order — the
+//   frappe-gantt lesson from item 27, restated for a second vendor.
+//
+// RTL — NEW DOCTRINE, AND IT IS THE TRAP OF THIS ITEM
+//   Frappe is RTL-correct by a BUILD-TIME rtlcss pass over its own bundle
+//   (sites/assets/frappe/dist/css-rtl/); we are RTL-correct by LOGICAL
+//   PROPERTIES. The two do not compose. A rule that sets only
+//   `inset-inline-end` lands on the SAME physical side as the vendor's flipped
+//   rule in one direction and the OPPOSITE side in the other — and physical and
+//   logical declarations are different declarations that do not overwrite each
+//   other, so the element ends up pinned on both sides and stretches.
+//   THE RULE: any declaration here touching an inline-axis position sets BOTH
+//   logical sides, one to a value and one to `auto`. Directus paid for getting
+//   this half-right with eight hand-written `html[dir='rtl']` blocks for a
+//   single menu arrow (v-menu.vue:93-133).
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-18, frappe 16.27.0.
+// ============================================================================
+
+@use "../breakpoints" as *;
+
+// ── Repair 1+2: the dialog and the grid-row editor, in dark ─────────────────
+// `desk/dark.scss:189` emits, at (0,2,0):
+//     [data-theme="dark"] .modal, [data-theme="dark"] .form-in-grid
+//       { --control-bg: var(--gray-800); --border-color: var(--gray-800) }
+// which BEATS our bridge's `html[data-theme="dark"]` at (0,1,1). Measured
+// inside an open dialog in dark: --border-color #232323 where <html> reads
+// #2A3B35, and --control-bg #232323 where <html> reads #20292a. Downstream, the
+// header rule draws a 1.02:1 line (i.e. none) and every control loses its fill
+// delta — item 22's "identifiable at rest" contract failing in every dialog on
+// the desk.
+//
+// `:is()` takes the specificity of its most specific argument, so this is
+// (0,2,1) and clears the vendor by one type selector. No `!important`; proven
+// live as the FIRST <style> in <head>, the worst possible source order.
+//
+// `.form-in-grid` IS THE OTHER HALF and is easy to miss — it is a dialog in all
+// but name (common/grid.scss:533: position:fixed, z 1021, 80% wide, its own
+// #freeze.grid-form backdrop at 1020). Fixing only `.modal` ships a
+// dialog-shaped surface that is still Frappe grey. NOTE for anyone probing it:
+// there is one `.form-in-grid` PER GRID ROW — scope to `.grid-row-open`, or you
+// measure a closed one (this cost a probe round).
+//
+// Scoped to every mode rather than dark alone: in light the vendor writes no
+// such override, so this re-asserts the bridge value and costs nothing, and it
+// holds if upstream ever adds a light twin.
+html[data-theme] :is(.modal, .form-in-grid) {
+  --border-color: var(--bnd-border);
+  --control-bg: var(--bnd-raised);
+}
+
+// ── Repair 3: the toast clears OUR bottom chrome, and mirrors ───────────────
+// `desk/toast.scss:1` is `#alert-container { position: fixed; bottom: 0;
+// right: 20px; z-index: 2000 }` on <body> — OUTSIDE `.main-section`, which is
+// the only box `--bnd-bottom-reserve` shrinks (_layouts.scss:155…279). Measured
+// in stock: 11px of overlap with `.bnd-statusbar` at 1440x900 and 36px
+// full-bleed at 375x812, painting OVER our bar because 2000 > 990.
+//
+// THE RESERVE IS NOT BROKEN — it measured 26px and 52px correctly at those two
+// sizes. The toast simply never consults it. And this is OUR defect in the
+// sense that matters: stock Frappe has no bottom bar, so nothing overlapped
+// until we mounted one, which we have been doing since 0.5.0.
+//
+// `#alert-container` is (1,0,0); ours is (1,0,1). BOTH logical sides are set
+// (see the RTL note in the header) — `inset-inline-start: auto` is what
+// neutralises the vendor's physical `right: 20px` once RTL maps our end to the
+// left, and without it the container is pinned on both sides and stretches.
+html[data-theme] #alert-container {
+  inset-inline-end: var(--bnd-toast-inset);
+  inset-inline-start: auto;
+  inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-inset));
+}
+
+// Below Frappe's own mobile boundary the vendor goes `right: 0` and the toast
+// goes `width: 100vw` (toast.scss:7,115) — a full-bleed strip. Keep that shape,
+// but lift it off the bar: the mobile overlap measured 36px of a 52px bar,
+// covering its inline-end control.
+@include bnd-until(md) {
+  html[data-theme] #alert-container {
+    inset-inline: 0;
+    inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-gap));
+  }
+}
+
+// The subtitle takes `--text-light` (toast.scss:68). Measured in stock dark:
+// 4.26:1 on the green wash and 3.23:1 on the blue — both under AA. These are
+// Frappe-token-on-Frappe-wash pairs and sit OUTSIDE `npm run contrast`, whose
+// 1,656 pairs cover `--bnd-*` only, so nothing else here would ever catch them.
+// `--bnd-ink-muted` rather than `--bnd-ink`: the subtitle must stay QUIETER
+// than the message line above it (which takes `--text-color`), so lifting it
+// all the way to full ink would clear AA by flattening the hierarchy the
+// subtitle exists for.
+html[data-theme] .desk-alert .alert-subtitle {
+  color: var(--bnd-ink-muted);
+}
+
+// ── Repair 4: the context menu's surface ────────────────────────────────────
+// `.frappe-menu` reads `--surface-modal` (desk/menu.scss:13), which the bridge
+// did not map — measured #232323 in dark against our #16241F surface, a 1.02:1
+// delta: a neutral-grey card floating on a green-tinted desk, on the four
+// surfaces `frappe.ui.create_menu` serves that we already own (sidebar_header,
+// sidebar_item, breadcrumbs, workspace). The token has exactly TWO readers in
+// the whole desk and both want a raised surface, so the fix is a BRIDGE
+// mapping (`_bridge.scss`), not a rule here. This comment is the pointer.
+
+// ── Repair 5: the tooltip ───────────────────────────────────────────────────
+// Frappe overrides every `$popover-*` SCSS variable and NO `$tooltip-*` one, so
+// `.tooltip-inner` compiles to literal `color:#fff; background-color:#000` —
+// there is NO vendor variable to re-point, the only lever is specificity, and
+// it is byte-identical in light and dark (measured). The decided treatment is
+// Contrast, an inverted chip: a transient tip has to read instantly over a
+// form, a chart or a dark lightbox, and a surface-coloured tip disappears
+// against the panels it most often sits on. Stock's instinct was right; only
+// its hardcoding was wrong.
+html[data-theme] .tooltip-inner {
+  background-color: var(--bnd-ink);
+  color: var(--bnd-surface);
+}
+
+// The arrow is four physical border sides, and Frappe ships a MIRRORED bundle
+// where `.bs-tooltip-right` paints `border-left-color`. Writing the inline axis
+// logically maps correctly onto BOTH bundles: `border-inline-end-color` is
+// `border-right-color` in LTR and `border-left-color` in RTL, which is exactly
+// what each bundle asks for. The block axis has no such problem.
+// Vendor is (0,2,1); these are (0,3,2).
+html[data-theme] .bs-tooltip-top .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^="top"] .arrow::before {
+  border-top-color: var(--bnd-ink);
+}
+html[data-theme] .bs-tooltip-bottom .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^="bottom"] .arrow::before {
+  border-bottom-color: var(--bnd-ink);
+}
+html[data-theme] .bs-tooltip-right .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^="right"] .arrow::before {
+  border-inline-end-color: var(--bnd-ink);
+}
+html[data-theme] .bs-tooltip-left .arrow::before,
+html[data-theme] .bs-tooltip-auto[x-placement^="left"] .arrow::before {
+  border-inline-start-color: var(--bnd-ink);
+}
+
+// ── Repair 6: menu shortcut text ────────────────────────────────────────────
+// `.menu-item-shortcut` takes `var(--ink-gray-4, #999999)` from TWO menu
+// families with one rule shape — `.menu-btn-group .menu-item-shortcut` and its
+// three siblings (desk/page.scss:187), and `.dropdown-menu-item
+// .menu-item-shortcut` (desk/menu.scss:54), both (0,2,0). Measured 2.85:1 on
+// the light dropdown and 3.29:1 on the dark one: an AA failure in BOTH modes,
+// and unbridged, so also outside the contrast gate.
+//
+// The colour is set here rather than by re-pointing `--ink-gray-4`, which has
+// readers well beyond menus — "a colour token has one role", and this is the
+// role we measured.
+html[data-theme] .menu-item-shortcut {
+  color: var(--bnd-ink-muted);
+}
+
+// ── Repair 7: the datepicker's month boundary ───────────────────────────────
+// air-datepicker paints `.datepicker--cell-day.-other-month-{color:#dedede}`
+// and `.datepicker--nav-action path{stroke:#9c9c9c}` as literals that never
+// flip. Measured in stock dark: out-of-month days read 11.95:1 against the
+// panel while in-month days read 13.73:1 — a separation of 1.15x, so the month
+// boundary the greying exists to draw simply disappears. The panel shell itself
+// is fine; it already follows the bridge.
+// Vendor (0,2,0) and (0,1,1); ours (0,2,1) and (0,1,2).
+html[data-theme] .datepicker--cell-day.-other-month-,
+html[data-theme] .datepicker--cell-year.-other-decade- {
+  color: var(--bnd-ink-subtle);
+}
+
+html[data-theme] .datepicker--nav-action path {
+  stroke: var(--bnd-ink-muted);
+}
+
+// ── Repair 8: FullCalendar's "+N more" popover ──────────────────────────────
+// The popover reads `--fc-page-bg-color` / `--fc-border-color`, which item 27
+// re-points only inside `html[data-bnd-views] .fc`. Measured BOTH ways: with
+// the anchor present it inherits #16241F / #2A3B35; with it removed they revert
+// to #fff / #ddd, so under `views_style = Original` the popover renders a WHITE
+// card with a #ddd border at z-index 9999 on a dark desk. A popover nobody can
+// read is whether it WORKS, so the repair is a contract.
+//
+// OWNERSHIP: the variables are set ON THE POPOVER, never on `.fc`. Item 27 owns
+// the calendar grid and varies those same variables by style; a blanket
+// `html[data-theme] .fc` here would tie at (0,2,1) and win on source order —
+// `_overlays` is @use'd after `_views` — silently overriding another kit's
+// axis. Setting them on the popover reaches the vendor rule that reads them and
+// touches nothing else.
+//
+// `--gray-300` is included because `desk/calendar.scss:38` carries
+// `.fc-theme-standard .fc-popover{border-color:var(--gray-300)!important}` — an
+// `!important` is beaten only by another, so we re-point the VARIABLE it reads
+// rather than out-specifying it. Item 27 established this move for the same
+// vendor.
+html[data-theme] .fc-popover {
+  --fc-page-bg-color: var(--bnd-surface);
+  --fc-border-color: var(--bnd-border);
+  --fc-neutral-bg-color: var(--bnd-raised);
+  --fc-neutral-text-color: var(--bnd-ink-muted);
+  --gray-300: var(--bnd-border);
+}

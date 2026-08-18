@@ -7385,6 +7385,389 @@ async function main() {
 			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-views")), "cards", "the refresh/discard revert restored the saved Floating Cards");
 		});
 
+		// ── Overlays (item 28), slice 1: the CONTRACT set ──────────────────
+		//
+		// These are REPAIRS, not styles, so every rule they check is scoped
+		// html[data-theme] and lives OUTSIDE the kit anchor — a contract
+		// survives Original, a style does not (GUIDELINES 1.3; the _list
+		// density / _report focus-ring / _views focus-ring precedents).
+		// Nothing here reads a data-bnd-overlay attribute, on purpose.
+		//
+		// An overlay has NO ROUTE — it exists only after a gesture. So every
+		// check below DRIVES the overlay and reads a computed value off the
+		// rendered node. A test that asserted a rule had compiled would pass
+		// while every dialog on the desk stayed broken.
+		const ovLum = (rgb) => {
+			const p = (rgb.match(/[\d.]+/g) || []).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+			return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+		};
+		const ovRatio = (a, b) => { const x = ovLum(a), y = ovLum(b); const [h, l] = x > y ? [x, y] : [y, x]; return (h + 0.05) / (l + 0.05); };
+
+		await test("overlay: a dark dialog takes the theme's border and control tokens", async () => {
+			// THE CENTRAL REPAIR. desk/dark.scss:189 emits
+			//   [data-theme="dark"] .modal, [data-theme="dark"] .form-in-grid
+			//     { --control-bg: var(--gray-800); --border-color: var(--gray-800) }
+			// at (0,2,0), which BEATS our bridge's html[data-theme="dark"] (0,1,1).
+			// Measured in stock: the header rule resolves #232323 on a #16241F
+			// surface = 1.02:1 — no visible line — and every control inside the
+			// dialog loses its fill delta. That is item 22's "identifiable at rest"
+			// contract failing inside every dialog on the desk, in dark, today.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const d = new frappe.ui.Dialog({ title: "Contract probe", fields: [{ fieldtype: "Data", label: "A" }] });
+				d.show();
+				await new Promise((r) => setTimeout(r, 700));
+				const modal = document.querySelector(".modal.show");
+				const head = modal && modal.querySelector(".modal-header");
+				const input = modal && modal.querySelector("input.form-control");
+				const content = modal && modal.querySelector(".modal-content");
+				const html = getComputedStyle(document.documentElement);
+				const out = {
+					borderOnModal: modal ? getComputedStyle(modal).getPropertyValue("--border-color").trim() : null,
+					controlOnModal: modal ? getComputedStyle(modal).getPropertyValue("--control-bg").trim() : null,
+					borderOnHtml: html.getPropertyValue("--border-color").trim(),
+					controlOnHtml: html.getPropertyValue("--control-bg").trim(),
+					headLine: head ? getComputedStyle(head).borderBottomColor : null,
+					inputBg: input ? getComputedStyle(input).backgroundColor : null,
+					surface: content ? getComputedStyle(content).backgroundColor : null,
+				};
+				try { window.jQuery(modal).modal("hide"); } catch (e) { /* the probe must not die on teardown */ }
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expectEq(g.borderOnModal, g.borderOnHtml, "the dialog's --border-color equals the theme's, not Frappe's grey");
+			expectEq(g.controlOnModal, g.controlOnHtml, "the dialog's --control-bg equals the theme's, not Frappe's grey");
+			const line = ovRatio(g.headLine, g.surface);
+			expect(line > 1.15, `the dialog header draws a VISIBLE line in dark (${line.toFixed(2)}:1, stock is 1.02; line ${g.headLine} on ${g.surface})`);
+			expect(g.inputBg !== g.headLine, `the control fill is not the same Frappe grey as the line (${g.inputBg})`);
+		});
+
+		await test("overlay: the grid-row editor takes them too", async () => {
+			// THE OTHER HALF of dark.scss:189. `.form-in-grid` is a dialog in all
+			// but name — common/grid.scss:533 makes it position:fixed, z-index 1021,
+			// 80% wide, with its own #freeze.grid-form backdrop at 1020. Fixing only
+			// `.modal` ships a dialog-shaped surface that is still Frappe grey.
+			//
+			// SCOPED TO `.grid-row-open` DELIBERATELY: there is one .form-in-grid
+			// PER GRID ROW and a bare querySelector returns a CLOSED one. That trap
+			// fired during the slice-0 probe and produced an inconsistent reading —
+			// "selecting by class measures the wrong element", live, on the very
+			// rule this kit exists to fix.
+			await goDesk("/app/contact/new", ".form-layout", 6000);
+			const g = await page.evaluate(async () => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const add = [...document.querySelectorAll(".grid-add-row")].find((b) => b.offsetParent !== null);
+				if (!add) return { error: "no visible .grid-add-row" };
+				add.click();
+				await new Promise((r) => setTimeout(r, 800));
+				const open = [...document.querySelectorAll(".grid-body .grid-row .btn-open-row")].find((b) => b.offsetParent !== null);
+				if (!open) return { error: "no visible .btn-open-row" };
+				open.click();
+				await new Promise((r) => setTimeout(r, 900));
+				const el = document.querySelector(".grid-row-open .form-in-grid");
+				if (!el) return { error: "no OPEN .form-in-grid" };
+				const html = getComputedStyle(document.documentElement);
+				const out = {
+					border: getComputedStyle(el).getPropertyValue("--border-color").trim(),
+					control: getComputedStyle(el).getPropertyValue("--control-bg").trim(),
+					borderOnHtml: html.getPropertyValue("--border-color").trim(),
+					controlOnHtml: html.getPropertyValue("--control-bg").trim(),
+				};
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expect(!g.error, `the grid editor opened (${g.error || ""})`);
+			expectEq(g.border, g.borderOnHtml, "the grid editor's --border-color equals the theme's");
+			expectEq(g.control, g.controlOnHtml, "the grid editor's --control-bg equals the theme's");
+		});
+
+		await test("overlay: the toast clears our own bottom chrome", async () => {
+			// Frappe's #alert-container is `position: fixed; bottom: 0; right: 20px;
+			// z-index: 2000` on <body> — OUTSIDE .main-section, the only box
+			// --bnd-bottom-reserve shrinks. Measured in stock: an 11px overlap of
+			// .bnd-statusbar at 1440x900 and 36px full-bleed at 375x812, painting
+			// OVER our bar because 2000 > 990. The reserve itself is correct; the
+			// toast simply never consults it, so the fix makes it read the reserve.
+			//
+			// Asserts the overlap is GONE, never its magnitude — two independent
+			// probe runs disagreed on the toast's bottom edge by 1px.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				// Clear the container and take the NEWEST toast. These checks fire
+				// alerts with a long timeout so they stay up long enough to measure,
+				// which means they ACCUMULATE — and a bare querySelector returns the
+				// FIRST, i.e. a stale one from an earlier check. Same family as the
+				// `.form-in-grid`-per-row trap; it has now bitten twice in this kit.
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				frappe.show_alert({ message: "contract probe", indicator: "green" }, 30);
+				await new Promise((r) => setTimeout(r, 900));
+				const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+				const bar = document.querySelector('[data-bnd-part="bottombar"]');
+				if (!t || !bar) return { error: `toast ${!!t}, bottom bar ${!!bar}` };
+				const tr = t.getBoundingClientRect(), br = bar.getBoundingClientRect();
+				return {
+					toastBottom: Math.round(tr.bottom), barTop: Math.round(br.top),
+					reserve: getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve").trim(),
+				};
+			});
+			expect(!g.error, `a toast and our bottom bar both rendered (${g.error || ""})`);
+			expect(g.toastBottom <= g.barTop + 1, `the toast clears the status bar (toast bottom ${g.toastBottom}, bar top ${g.barTop}, reserve ${g.reserve}; stock overlaps by ~11px)`);
+		});
+
+		await test("overlay: the toast's inset is logical, so it mirrors", async () => {
+			// Frappe is RTL-correct by a BUILD-TIME rtlcss pass over its own bundle
+			// (sites/assets/frappe/dist/css-rtl/); we are RTL-correct by logical
+			// properties. THE TWO DO NOT COMPOSE: a rule setting only
+			// inset-inline-end lands on the same physical side as the vendor's
+			// flipped rule in one direction and the opposite side in the other, and
+			// physical and logical declarations do not overwrite each other — so the
+			// element ends up pinned on BOTH sides and stretches. The rule therefore
+			// sets BOTH logical sides, one to a value and one to `auto`.
+			// Measured in stock: #alert-container did not move under dir=rtl at all.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				// SET THE DIRECTION, NEVER ASSUME IT. A first version read whatever
+				// the desk happened to be in and asserted "LTR: left > vw/2"; in the
+				// full suite it measured left=20 of 1920 and failed, because an
+				// earlier check had left the desk in RTL. A test that depends on
+				// ambient state it does not control fails for a reason that has
+				// nothing to do with what it is checking.
+				const hadHtml = document.documentElement.getAttribute("dir");
+				const hadBody = document.body.getAttribute("dir");
+				const setDir = (v) => {
+					document.documentElement.setAttribute("dir", v);
+					document.body.setAttribute("dir", v);
+				};
+				const restore = (el, had) => (had === null ? el.removeAttribute("dir") : el.setAttribute("dir", had));
+				const read = async () => {
+					// Clear first and take the NEWEST — these alerts have a long
+					// timeout so they accumulate, and querySelector returns the first.
+					document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+					frappe.show_alert({ message: "rtl probe", indicator: "blue" }, 30);
+					await new Promise((r) => setTimeout(r, 800));
+					const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+					if (!t) return null;
+					const r = t.getBoundingClientRect();
+					return { left: Math.round(r.left), width: Math.round(r.width) };
+				};
+				setDir("ltr");
+				await new Promise((r) => setTimeout(r, 200));
+				const ltr = await read();
+				setDir("rtl");
+				await new Promise((r) => setTimeout(r, 400));
+				const rtl = await read();
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				restore(document.documentElement, hadHtml);
+				restore(document.body, hadBody);
+				return { ltr, rtl, vw: window.innerWidth };
+			});
+			expect(g.ltr && g.rtl, "a toast rendered in both directions");
+			expect(g.ltr.left > g.vw / 2, `LTR: the toast sits at the inline end (left ${g.ltr.left} of ${g.vw})`);
+			expect(g.rtl.left < g.vw / 2, `RTL: the toast MIRRORS to the other side (left ${g.rtl.left} of ${g.vw}; stock does not move at all)`);
+			expect(Math.abs(g.rtl.width - g.ltr.width) <= 2, `RTL: it is not pinned on both sides and stretched (width ${g.ltr.width} -> ${g.rtl.width})`);
+		});
+
+		await test("overlay: the context menu takes the theme's surface in dark", async () => {
+			// `.frappe-menu` (frappe/ui/menu.js, body-appended) paints
+			// `background: var(--surface-modal)` — a token our bridge did not map,
+			// so it stayed #232323 in dark against our #16241F surface: a 1.02:1
+			// delta, a neutral-grey card floating on a green-tinted desk. The token
+			// has exactly TWO readers in the whole desk (desk/menu.scss:13 and
+			// desk/sidebar_card.scss:31) and both want a raised surface, so the fix
+			// is a bridge mapping rather than a scoped override.
+			//
+			// The menu is built by JS on four surfaces we already own. What decides
+			// its paint is the vendor rule on a node carrying the vendor class, and
+			// that is what this measures.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(() => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const el = document.createElement("div");
+				el.className = "frappe-menu";
+				el.style.cssText = "position:fixed;left:-9999px;top:0";
+				document.body.appendChild(el);
+				const surf = document.createElement("div");
+				surf.style.cssText = "position:fixed;left:-9999px;top:0;background:var(--bnd-surface)";
+				document.body.appendChild(surf);
+				const out = { menu: getComputedStyle(el).backgroundColor, surface: getComputedStyle(surf).backgroundColor };
+				el.remove(); surf.remove();
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expectEq(g.menu, g.surface, "the context menu paints the theme's surface, not Frappe's #232323");
+		});
+
+		await test("overlay: the tooltip follows the theme in both modes", async () => {
+			// Frappe overrides every $popover-* SCSS variable and NO $tooltip-* one,
+			// so .tooltip-inner compiles to literal `color:#fff; background:#000` —
+			// there is no vendor variable to re-point, and a higher-specificity rule
+			// is the only lever. Measured in stock: byte-identical in light and dark.
+			// The decided treatment is Contrast (an inverted chip) because a
+			// transient tip must read instantly over a form, a chart or a dark
+			// lightbox — so this asserts it TRACKS THE MODE and clears AA, not that
+			// it is any particular colour.
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const g = await page.evaluate(async () => {
+				// The host must be VISIBLE — Bootstrap 4 throws "Please use show on
+				// visible elements", which is how the first version of this check
+				// died rather than measuring anything.
+				const visible = (el) => el && el.offsetParent !== null;
+				const read = async (mode) => {
+					document.documentElement.setAttribute("data-theme", mode);
+					const host = [...document.querySelectorAll("[data-toggle='tooltip']")].find(visible)
+						|| [...document.querySelectorAll(".page-head, .list-row, .page-title")].find(visible);
+					if (!host) return null;
+					window.jQuery(host).tooltip({ title: "probe", trigger: "manual" }).tooltip("show");
+					await new Promise((r) => setTimeout(r, 400));
+					const tip = document.querySelector(".tooltip-inner");
+					const out = tip ? { bg: getComputedStyle(tip).backgroundColor, fg: getComputedStyle(tip).color } : null;
+					try { window.jQuery(host).tooltip("hide").tooltip("dispose"); } catch (e) { /* teardown must not fail the probe */ }
+					await new Promise((r) => setTimeout(r, 200));
+					return out;
+				};
+				const light = await read("light");
+				const dark = await read("dark");
+				document.documentElement.removeAttribute("data-theme");
+				return { light, dark };
+			});
+			expect(g.light && g.dark, "a tooltip rendered in both modes");
+			expect(g.light.bg !== g.dark.bg, `the tooltip TRACKS the mode (light ${g.light.bg}, dark ${g.dark.bg}; stock is rgb(0, 0, 0) in both)`);
+			for (const m of ["light", "dark"]) {
+				const r = ovRatio(g[m].fg, g[m].bg);
+				expect(r >= 4.5, `the tooltip's own text clears AA in ${m} (${r.toFixed(2)}:1)`);
+			}
+		});
+
+		await test("overlay: the toast subtitle clears AA on every wash", async () => {
+			// .desk-alert .alert-subtitle takes --text-light (desk/toast.scss:68).
+			// Measured in stock dark: 4.26:1 on the green wash and 3.23:1 on the
+			// blue — both under 4.5. These are Frappe-token-on-Frappe-wash pairs and
+			// sit OUTSIDE `npm run contrast`, whose 1,656 pairs cover --bnd-* only,
+			// so nothing else in this repo would ever catch them.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const out = [];
+				for (const ind of ["green", "blue", "red", "orange"]) {
+					frappe.show_alert({ message: "probe", subtitle: "a subtitle line", indicator: ind }, 30);
+					await new Promise((r) => setTimeout(r, 550));
+					const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+					const sub = t && t.querySelector(".alert-subtitle");
+					if (sub) out.push({ ind, fg: getComputedStyle(sub).color, bg: getComputedStyle(t).backgroundColor });
+				}
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expect(g.length >= 2, `subtitles rendered on at least two washes (got ${g.length})`);
+			for (const row of g) {
+				const r = ovRatio(row.fg, row.bg);
+				expect(r >= 4.5, `the toast subtitle clears AA on the ${row.ind} wash in dark (${r.toFixed(2)}:1; stock blue is 3.23)`);
+			}
+		});
+
+		await test("overlay: menu shortcut text clears AA in both modes", async () => {
+			// `.menu-item-shortcut` takes --ink-gray-4 with a literal #999999
+			// fallback, from TWO menu families with one rule shape (desk/menu.scss:54
+			// and desk/page.scss:187). Measured in stock: 2.85:1 on the light
+			// dropdown and 3.29:1 on the dark one. Also unbridged, so also outside
+			// the contrast gate.
+			// DRIVES THE REAL MENU. A first version of this check built a bare
+			// `.dropdown-menu > .menu-item-shortcut` and PASSED BEFORE THE FIX —
+			// the vendor rule needs a `.menu-btn-group` (or `.dropdown-menu-item`)
+			// ANCESTOR, so the synthetic node never inherited --ink-gray-4 at all.
+			// Green, and measuring nothing. Open the page's own Menu instead.
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const g = await page.evaluate(async () => {
+				const btn = document.querySelector(".page-actions .menu-btn-group .btn, .menu-btn-group [data-toggle='dropdown']");
+				if (!btn) return { error: "no page Menu button on this route" };
+				btn.click();
+				await new Promise((r) => setTimeout(r, 500));
+				const menu = document.querySelector(".menu-btn-group .dropdown-menu");
+				const sc = menu && menu.querySelector(".menu-item-shortcut");
+				if (!sc) return { error: "the Menu opened with no shortcut row" };
+				const out = {};
+				for (const mode of ["light", "dark"]) {
+					document.documentElement.setAttribute("data-theme", mode);
+					out[mode] = { fg: getComputedStyle(sc).color, bg: getComputedStyle(menu).backgroundColor };
+				}
+				btn.click();
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expect(!g.error, `the page Menu opened with a shortcut row (${g.error || ""})`);
+			for (const m of ["light", "dark"]) {
+				const r = ovRatio(g[m].fg, g[m].bg);
+				expect(r >= 4.5, `the menu shortcut clears AA in ${m} (${r.toFixed(2)}:1; stock is 2.85 light / 3.29 dark)`);
+			}
+		});
+
+		await test("overlay: the datepicker's out-of-month days stay distinguishable in dark", async () => {
+			// air-datepicker paints `.datepicker--cell-day.-other-month-{color:#dedede}`
+			// and `.datepicker--nav-action path{stroke:#9c9c9c}` as literals that
+			// never flip. Measured in stock dark: out-of-month days read 11.95:1
+			// against the panel while in-month days read 13.73:1 — a separation of
+			// 1.15x, so the month boundary the greying exists to draw disappears.
+			await goDesk("/app/todo/new", ".form-layout", 5000);
+			const g = await page.evaluate(async () => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const f = document.querySelector('.frappe-control[data-fieldtype="Date"] input, input[data-fieldtype="Date"]');
+				if (!f) return { error: "no Date field on this form" };
+				f.focus(); f.click();
+				await new Promise((r) => setTimeout(r, 1000));
+				const dp = document.querySelector(".datepicker.active") || document.querySelector(".datepicker");
+				const other = dp && dp.querySelector(".datepicker--cell-day.-other-month-");
+				const inm = dp && [...dp.querySelectorAll(".datepicker--cell-day")].find((c) => !c.classList.contains("-other-month-"));
+				const out = other && inm
+					? { other: getComputedStyle(other).color, inMonth: getComputedStyle(inm).color, panel: getComputedStyle(dp).backgroundColor }
+					: { error: "the datepicker rendered no out-of-month cell" };
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expect(!g.error, `the datepicker opened with cells (${g.error || ""})`);
+			const ro = ovRatio(g.other, g.panel), ri = ovRatio(g.inMonth, g.panel);
+			const sep = ri > ro ? ri / ro : ro / ri;
+			expect(sep >= 1.6, `out-of-month days read clearly quieter than in-month ones in dark (separation ${sep.toFixed(2)}x; stock is 1.15x — other ${g.other}, in-month ${g.inMonth})`);
+			expect(ro >= 1.8, `out-of-month days are still readable, not erased (${ro.toFixed(2)}:1)`);
+		});
+
+		await test("overlay: the calendar popover is legible with the views kit OFF", async () => {
+			// FullCalendar's "+N more" popover reads --fc-page-bg-color and
+			// --fc-border-color, which item 27 re-points ONLY inside
+			// html[data-bnd-views]. Measured both ways: with the anchor present it
+			// inherits #16241F / #2A3B35; with it removed they revert to #fff and
+			// #ddd, so the popover renders a WHITE card with a #ddd border at
+			// z-index 9999 on a dark desk whenever a user picks Original.
+			// A popover nobody can read is whether it WORKS, not how it looks, so
+			// the repair is a contract at html[data-theme] .fc and survives the
+			// stand-down. Item 27 keeps the calendar grid; item 28 owns the popover.
+			setSettings({ views_style: "Original" });
+			await goDesk("/app/todo/view/calendar", ".fc", 6000);
+			const g = await page.evaluate(() => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const fc = document.querySelector(".fc");
+				const pop = document.createElement("div");
+				pop.className = "fc-popover fc-theme-standard";
+				pop.innerHTML = '<div class="fc-popover-header">h</div><div class="fc-popover-body">b</div>';
+				fc.appendChild(pop);
+				const surf = document.createElement("div");
+				surf.style.cssText = "position:fixed;left:-9999px;top:0;background:var(--bnd-surface)";
+				document.body.appendChild(surf);
+				const out = {
+					anchor: document.documentElement.getAttribute("data-bnd-views"),
+					bg: getComputedStyle(pop).backgroundColor,
+					border: getComputedStyle(pop).borderTopColor,
+					surface: getComputedStyle(surf).backgroundColor,
+				};
+				pop.remove(); surf.remove();
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expectEq(g.anchor, null, "the views anchor really is absent (Original)");
+			expectEq(g.bg, g.surface, "the calendar popover takes the theme's surface even under Original");
+			expect(g.border !== "rgb(221, 221, 221)", `its border is not FullCalendar's #ddd (${g.border})`);
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
