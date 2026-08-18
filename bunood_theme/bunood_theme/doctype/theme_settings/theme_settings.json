@@ -1081,12 +1081,12 @@
   },
   {
    "default": "Tinted",
-   "description": "Set by the picker above. How a kanban column carries its status colour.",
+   "description": "Set by the picker above. Whether a kanban column carries its status colour.",
    "fieldname": "views_band",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Kanban Column",
-   "options": "Plain\nTinted\nHeaded"
+   "options": "Plain\nTinted"
   },
   {
    "default": "Chip",
@@ -1108,7 +1108,7 @@
   },
   {
    "default": "1",
-   "description": "A gallery tile's controls and a kanban card's menu rest hidden and appear on hover or keyboard focus. Always visible on touch screens.",
+   "description": "A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch screens.",
    "fieldname": "views_reveal",
    "fieldtype": "Check",
    "hidden": 1,

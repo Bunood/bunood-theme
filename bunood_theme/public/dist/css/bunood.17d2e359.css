@@ -4562,6 +4562,60 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
   border-color: var(--bnd-brand-solid);
 }
 
+html[data-bnd-views-band=plain] .kanban-column:not(.add-new-column) {
+  --bg-blue: transparent;
+  --bg-cyan: transparent;
+  --bg-gray: transparent;
+  --bg-grey: transparent;
+  --bg-green: transparent;
+  --bg-light-blue: transparent;
+  --bg-orange: transparent;
+  --bg-pink: transparent;
+  --bg-purple: transparent;
+  --bg-red: transparent;
+  --bg-yellow: transparent;
+  --bg-darkgrey: transparent;
+}
+
+html[data-bnd-views-media=contain] .image-view-container .image-view-item .image-view-body img {
+  object-fit: contain;
+}
+
+html[data-bnd-views-reveal] .image-view-container .image-view-item .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item .image-view-header {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-bnd-views-reveal] .image-view-container .image-view-item:hover .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:hover .image-view-header,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within .image-view-header {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  html[data-bnd-views-reveal] .image-view-container .image-view-item .zoom-view,
+  html[data-bnd-views-reveal] .image-view-container .image-view-item .image-view-header {
+    opacity: 1;
+  }
+}
+html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event {
+  box-shadow: none;
+}
+
+html[data-bnd-views-mark=dot] .fc .fc-daygrid-block-event .fc-event-main::before {
+  content: "";
+  display: inline-block;
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  margin-inline-end: 0.35em;
+  vertical-align: middle;
+  flex: none;
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

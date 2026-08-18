@@ -1328,8 +1328,15 @@
 	// absent, never a slug that means "do the default".
 	const VIEWS_SLUGS = {
 		style: { "Original": "", "Hairline": "hairline", "Soft Tiles": "tiles", "Floating Cards": "cards", "Solid Panels": "panels" },
-		band: { "Plain": "", "Tinted": "tinted", "Headed": "headed" },
-		mark: { "Dot": "dot", "Chip": "chip", "Outlined": "outlined" },
+		// Tinted is the neutral: Frappe already tints the column with an
+		// inline background-color: var(--bg-{indicator}), and re-themes those
+		// vars for dark mode — so "keep the stock tint" needs no attribute.
+		// Plain is the active override that nulls it (the column's inline colour
+		// can only be neutralised by re-pointing its var — the same constraint
+		// that made "Headed" impossible and dropped it). Chip is the neutral
+		// event shape (the anchor's default); Cover the neutral image fit.
+		band: { "Plain": "plain", "Tinted": "" },
+		mark: { "Dot": "dot", "Chip": "", "Outlined": "outlined" },
 		media: { "Cover": "", "Contain": "contain" },
 	};
 
@@ -1380,10 +1387,115 @@
 	 * class, and the item-25/26 "escapee" that must never recur.
 	 * @param {Object} values
 	 */
+	// Assigned by patch_calendar_colors below; a no-op until then so a boot with
+	// no Calendar class (or a headless build) never throws. views_apply calls it
+	// so a live mark/style change re-renders the calendar with fresh colours —
+	// the attribute flip alone cannot recolour an inline-styled event.
+	let bnd_repaint_calendars = function () {};
+
 	bunood.views_apply = function (values) {
 		if (!values) return;
 		apply_views_attrs({ ...(views_state || {}), ...values });
+		bnd_repaint_calendars();
 	};
+
+	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
+	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
+	// (prepare_colors) — unreachable from CSS, exactly the frappe-charts problem
+	// item 25 solved by wrapping the one funnel. We do the same: a DEFAULT event
+	// (no category via get_css_class, no admin d.color — stock paints it "blue")
+	// is re-hued to our --bnd-accent; a category or admin colour is KEPT (their
+	// data). The mark axis reshapes the SAME hue — Chip fills it, Outlined draws
+	// it as a border, Dot as a dot (the dot itself is CSS, in currentColor).
+	// FALLS OPEN: no Calendar class, or a --bnd-accent that is not clean hex, and
+	// we change nothing and the event renders exactly as stock.
+	(function patch_calendar_colors() {
+		const Cal = window.frappe && frappe.views && frappe.views.Calendar;
+		if (!Cal || typeof Cal.prototype.prepare_colors !== "function") return;
+
+		const live = new Set();
+		const HEX6 = /^#[0-9a-f]{6}$/i;
+		const token = (name) => {
+			const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+			return HEX6.test(v) ? v : null;
+		};
+		const mark_slug = () => {
+			const v = views_state || (window.frappe && frappe.boot && frappe.boot.bnd_views) || {};
+			return VIEWS_SLUGS.mark[v.views_mark] || "";
+		};
+
+		const Native = Cal.prototype.prepare_colors;
+		Cal.prototype.prepare_colors = function (d) {
+			const r = Native.call(this, d);
+			live.add(this); // opportunistic registration for the theme-flip repaint
+			const accent = token("--bnd-accent");
+			if (!accent) return r; // fall open
+			// Keep a category colour (get_css_class) or an admin's hex; re-hue only
+			// the stock default. r.backgroundColor is the native hue either way.
+			const kept =
+				typeof this.get_css_class === "function" ||
+				(d.color && frappe.ui.color && frappe.ui.color.validate_hex(d.color));
+			const hue = kept ? r.backgroundColor : accent;
+			const ink = token("--bnd-ink") || r.textColor;
+			const mark = mark_slug();
+			if (mark === "outlined") {
+				r.backgroundColor = "transparent";
+				r.borderColor = hue;
+				r.textColor = hue;
+			} else if (mark === "dot") {
+				r.backgroundColor = "transparent";
+				r.borderColor = "transparent";
+				r.textColor = hue; // the CSS dot is currentColor
+			} else {
+				// Chip: a wash of the hue (8-digit #RRGGBBAA when hue is hex), a
+				// full-strength border, ink text.
+				r.backgroundColor = HEX6.test(hue) ? hue + "26" : hue;
+				r.borderColor = hue;
+				r.textColor = ink;
+			}
+			return r;
+		};
+
+		bnd_repaint_calendars = function () {
+			for (const cal of Array.from(live)) {
+				const el = cal.$wrapper && cal.$wrapper.get(0);
+				if (!cal.fullCalendar || !el || !el.isConnected) {
+					live.delete(cal);
+					continue;
+				}
+				// refetchEvents re-runs the event pipeline (and prepare_colors) and
+				// re-renders in place — the calendar analogue of the chart draw().
+				try {
+					cal.fullCalendar.refetchEvents();
+				} catch (e) {
+					/* a vendor refetch throwing must not take the desk down */
+				}
+			}
+		};
+
+		// The ONE honest theme-flip signal (set_theme writes data-theme, no event),
+		// coalesced per frame. frappe.ui.color_map is snapshotted once at bundle
+		// parse, so a category/admin ramp lookup would stay light after a flip —
+		// recompute it, then refetch so every event re-colours.
+		if (typeof MutationObserver === "function" && document.documentElement) {
+			let queued = false;
+			new MutationObserver(function () {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(function () {
+					queued = false;
+					try {
+						if (frappe.ui.color && frappe.ui.color.get_color_map) {
+							frappe.ui.color_map = frappe.ui.color.get_color_map();
+						}
+					} catch (e) {
+						/* keep the stale map rather than throw */
+					}
+					bnd_repaint_calendars();
+				});
+			}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+		}
+	})();
 
 	const CRUMB_SLUGS = {
 

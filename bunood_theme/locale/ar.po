@@ -3915,18 +3915,14 @@ msgstr "عمود كانبان"
 
 #. src: item27
 #, fuzzy
-msgid "Set by the picker above. How a kanban column carries its status colour."
-msgstr "يضبطه المنتقي أعلاه. كيف يحمل عمود كانبان لون حالته."
+msgid "Set by the picker above. Whether a kanban column carries its status colour."
+msgstr "يضبطه المنتقي أعلاه. ما إذا كان عمود كانبان يحمل لون حالته."
 
 #. src: item27
 #, fuzzy
 msgid "Tinted"
 msgstr "مُلوَّن"
 
-#. src: item27
-#, fuzzy
-msgid "Headed"
-msgstr "بترويسة"
 
 #. src: item27
 #, fuzzy
@@ -3975,5 +3971,5 @@ msgstr "إظهار عناصر التحكم عند التمرير"
 
 #. src: item27
 #, fuzzy
-msgid "A gallery tile's controls and a kanban card's menu rest hidden and appear on hover or keyboard focus. Always visible on touch screens."
-msgstr "تبقى عناصر تحكم مربّع المعرض وقائمة بطاقة كانبان مخفيّة وتظهر عند التمرير أو عند تركيز لوحة المفاتيح. وتظهر دائمًا على الشاشات اللمسية."
+msgid "A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch screens."
+msgstr "تبقى عناصر تحكم مربّع المعرض مخفيّة وتظهر عند التمرير أو عند تركيز لوحة المفاتيح. وتظهر دائمًا على الشاشات اللمسية."

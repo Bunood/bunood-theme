@@ -7189,6 +7189,152 @@ async function main() {
 			expectEq(flip.mid, "hairline", "live preview flips the anchor to hairline");
 			expectEq(flip.back, "cards", "and back to cards");
 		});
+
+		// ── The composing axes (slice 3a) ──────────────────────────────────
+		await test("views: Plain nulls the kanban column tint, Tinted keeps it", async () => {
+			// Frappe tints the column with an inline background-color:
+			// var(--bg-{indicator}); Tinted (default) keeps it, Plain nulls it by
+			// re-pointing the var (the only way to beat an inline colour without
+			// !important). Fails against stock: the column is always tinted.
+			setSettings({ views_style: "Floating Cards", views_band: "Plain" });
+			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
+			const plain = await page.evaluate(() => {
+				const col = document.querySelector(".kanban-column:not(.add-new-column)");
+				return { band: document.documentElement.getAttribute("data-bnd-views-band"), bg: getComputedStyle(col).backgroundColor };
+			});
+			expectEq(plain.band, "plain", "Plain sets the band attribute");
+			expect(plain.bg === "rgba(0, 0, 0, 0)" || plain.bg === "transparent", `Plain nulls the column tint (got ${plain.bg})`);
+			setSettings({ views_band: "Tinted" });
+			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
+			const tinted = await page.evaluate(() => {
+				const col = document.querySelector(".kanban-column:not(.add-new-column)");
+				return { band: document.documentElement.getAttribute("data-bnd-views-band"), bg: getComputedStyle(col).backgroundColor };
+			});
+			expectEq(tinted.band, null, "Tinted is the neutral — no attribute, the stock tint stays");
+			expect(tinted.bg !== "rgba(0, 0, 0, 0)", `Tinted keeps a real column fill (got ${tinted.bg})`);
+		});
+
+		await test("views: Contain changes the gallery image fit", async () => {
+			// Frappe sets object-fit: cover (image_view.scss:148); Contain shows
+			// the whole image. Fails against stock, which is always cover.
+			setSettings({ views_style: "Floating Cards", views_media: "Contain" });
+			await goDesk("/app/item/view/image", ".image-view-container", 6000);
+			const fit = await page.evaluate(() => {
+				const img = document.querySelector(".image-view-item .image-view-body img");
+				return img ? getComputedStyle(img).objectFit : "no-img";
+			});
+			expectEq(fit, "contain", "Contain sets object-fit: contain on the tile image");
+		});
+
+		await test("views: the gallery controls reveal on hover", async () => {
+			// reveal on: the tile header (checkbox + like) rests hidden and
+			// appears on hover / :focus-within, stood down on touch. opacity,
+			// never display, so it keeps its tab-order place. Fails against stock:
+			// the header is always opacity 1.
+			setSettings({ views_style: "Floating Cards", views_reveal: 1 });
+			await goDesk("/app/item/view/image", ".image-view-container", 6000);
+			const atRest = await page.evaluate(() => {
+				const h = document.querySelector(".image-view-item .image-view-header");
+				return h ? getComputedStyle(h).opacity : null;
+			});
+			expectEq(atRest, "0", "the tile controls rest hidden with reveal on");
+			// Hover the second tile (imaged) and confirm the header comes forward.
+			const pt = await page.evaluate(() => {
+				const it = [...document.querySelectorAll(".image-view-item")][1];
+				it.setAttribute("data-probe", "1");
+				const r = it.getBoundingClientRect();
+				return { x: r.x + r.width / 2, y: r.y + 24 };
+			});
+			await page.mouse.move(pt.x, pt.y);
+			await page.waitForTimeout(400);
+			const onHover = await page.evaluate(() => {
+				const h = document.querySelector("[data-probe] .image-view-header");
+				return h ? getComputedStyle(h).opacity : null;
+			});
+			expectEq(onHover, "1", "hover reveals the tile controls");
+		});
+
+		// ── The calendar colour wrap and the mark axis (slice 3b) ──────────
+		await test("views: calendar events take theme colours, admin colours survive", async () => {
+			// A FullCalendar event's fill is inline JS colour (prepare_colors) —
+			// item 25's chart problem. The wrap re-hues a DEFAULT event (stock
+			// "blue") to our --bnd-accent and KEEPS a category or admin colour.
+			// Fails against stock: every default event is #edf6fd-ish blue.
+			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			const g = await page.evaluate(() => {
+				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
+				// accent hex -> "r, g, b"
+				const h = accent.replace("#", "");
+				const rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(", ");
+				const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
+				const bgs = evs.map((e) => getComputedStyle(e).backgroundColor);
+				return {
+					rgb,
+					anyAccent: bgs.some((b) => b.includes(rgb)),
+					anyOther: bgs.some((b) => b !== "rgba(0, 0, 0, 0)" && !b.includes(rgb)),
+					count: evs.length,
+				};
+			});
+			expect(g.count > 0, "the calendar rendered events");
+			expect(g.anyAccent, `a default event took the accent wash (${g.rgb})`);
+			expect(g.anyOther, "an admin-coloured event kept its own colour (not re-hued to accent)");
+		});
+
+		await test("views: the mark reshapes the calendar event", async () => {
+			// Dot: the wrap makes the event transparent and CSS adds a dot in the
+			// hue; Outlined: transparent with a coloured border. Both fail against
+			// stock, whose events are always filled blocks.
+			setSettings({ views_style: "Floating Cards", views_mark: "Dot" });
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			const dot = await page.evaluate(() => {
+				const ev = document.querySelector(".fc-daygrid-block-event");
+				const main = ev.querySelector(".fc-event-main");
+				return {
+					attr: document.documentElement.getAttribute("data-bnd-views-mark"),
+					bg: getComputedStyle(ev).backgroundColor,
+					dot: main ? getComputedStyle(main, "::before").width : null,
+				};
+			});
+			expectEq(dot.attr, "dot", "Dot sets the mark attribute");
+			expectEq(dot.bg, "rgba(0, 0, 0, 0)", "a Dot event is transparent");
+			expect(dot.dot && dot.dot !== "auto" && dot.dot !== "0px", `the dot ::before is rendered (width ${dot.dot})`);
+
+			setSettings({ views_mark: "Outlined" });
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			const outlined = await page.evaluate(() => {
+				const ev = document.querySelector(".fc-daygrid-block-event");
+				return { bg: getComputedStyle(ev).backgroundColor, border: getComputedStyle(ev).borderInlineStartColor };
+			});
+			expectEq(outlined.bg, "rgba(0, 0, 0, 0)", "an Outlined event is transparent");
+			expect(outlined.border !== "rgba(0, 0, 0, 0)", `an Outlined event has a coloured border (${outlined.border})`);
+		});
+
+		await test("views: a theme flip repaints the calendar events", async () => {
+			// frappe.ui.color_map is snapshotted once at bundle parse, so without
+			// the observer a flip would leave events on light-mode hexes. The wrap's
+			// MutationObserver recomputes and refetches. Read a default event's fill
+			// before and after a data-theme flip; it must change (accent moves
+			// #4463f0 -> #516ef1 in dark).
+			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			const flip = await page.evaluate(async () => {
+				const bg = () => {
+					const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
+					// pick a default (accent) event: the most common bg
+					const counts = {};
+					for (const e of evs) { const b = getComputedStyle(e).backgroundColor; counts[b] = (counts[b] || 0) + 1; }
+					return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+				};
+				const before = bg();
+				document.documentElement.setAttribute("data-theme", "dark");
+				await new Promise((r) => setTimeout(r, 1200)); // rAF + refetchEvents
+				const after = bg();
+				document.documentElement.removeAttribute("data-theme");
+				return { before, after };
+			});
+			expect(flip.before !== flip.after, `the events re-coloured on the flip (${flip.before} -> ${flip.after})`);
+		});
 		// The discard-revert escapee test (previewed-then-discarded must revert)
 		// lands in slice 4 with the picker: it depends on theme_settings.js's
 		// refresh batch calling bnd_views_preview, which is that slice's wiring.

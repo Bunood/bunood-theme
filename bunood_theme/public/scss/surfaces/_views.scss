@@ -289,3 +289,86 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
   box-shadow: var(--bnd-shadow-lg);
   border-color: var(--bnd-brand-solid);
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// SLICE 3a — the composing axes: band (kanban), media (gallery), reveal.
+// The mark axis (calendar event shape) and the colour wrap it needs are 3b.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── views_band: the kanban column's status colour ───────────────────────────
+// Frappe writes the column an INLINE `background-color: var(--bg-{indicator})`
+// and re-themes those vars for dark mode (dark.scss) — so "Tinted", the
+// default, keeps the stock wash and needs NO attribute. "Plain" is the only
+// active value, and it can ONLY null the column by re-pointing every --bg-*
+// the column might carry to transparent: an inline background-color is beaten
+// by nothing but !important or a change to the var it reads. (This same
+// constraint is why "Headed" — a coloured header over a plain body — has no
+// honest mechanism: the one var cannot be both transparent on the body and the
+// hue in the header. Dropped, the report_grain 4->2 precedent.) The indicator
+// list is Kanban Board Column's own Select options, scrubbed.
+html[data-bnd-views-band="plain"] .kanban-column:not(.add-new-column) {
+  // Quoted: unquoted `cyan`/`gray` are Sass COLOUR values, and interpolating
+  // one can rename the var (cyan -> aqua), which would never match Frappe's
+  // --bg-cyan. Strings keep the name exact.
+  @each $c in "blue", "cyan", "gray", "grey", "green", "light-blue", "orange", "pink", "purple", "red", "yellow", "darkgrey" {
+    --bg-#{$c}: transparent;
+  }
+}
+
+// ── views_media: how a gallery image fills its tile ─────────────────────────
+// Frappe sets object-fit: cover on the tile image (image_view.scss:148), so
+// "Cover" is the neutral (no attribute). "Contain" shows the whole image,
+// letterboxed — the one genuinely styling-shaped choice a gallery has
+// (Directus layouts/cards options.vue's crop-vs-contain). Reaches the img at
+// (0,4,2), over Frappe's (0,4,1).
+html[data-bnd-views-media="contain"] .image-view-container .image-view-item .image-view-body img {
+  object-fit: contain;
+}
+
+// ── views_reveal: the gallery tile's controls rest quiet ────────────────────
+// The tile's zoom button and its header (checkbox + like) rest hidden and
+// appear on hover or keyboard focus — a browse view that stays calm until you
+// reach for it (Directus, Google Photos). Presence-gated: absent, the controls
+// stay on. opacity, never display:none, so the checkbox keeps its place in the
+// tab order; :focus-within is the keyboard door. Stood down wholesale on touch,
+// where there is no hover — part of the option, not an afterthought.
+html[data-bnd-views-reveal] .image-view-container .image-view-item .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item .image-view-header {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-views-reveal] .image-view-container .image-view-item:hover .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within .zoom-view,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:hover .image-view-header,
+html[data-bnd-views-reveal] .image-view-container .image-view-item:focus-within .image-view-header {
+  opacity: 1;
+}
+@media (hover: none) {
+  html[data-bnd-views-reveal] .image-view-container .image-view-item .zoom-view,
+  html[data-bnd-views-reveal] .image-view-container .image-view-item .image-view-header {
+    opacity: 1;
+  }
+}
+
+// ── views_mark: the calendar event's shape (slice 3b) ───────────────────────
+// The wrap in bunood.js (patch_calendar_colors) feeds the COLOUR per mark: Chip
+// fills the hue, Outlined draws it as a border over a transparent event, Dot
+// goes transparent with the hue as the text colour. Only Dot needs CSS — a dot
+// in the event's own hue (currentColor, which the wrap set to the hue) before
+// the title, and the object shadow stood down (a lift under a transparent event
+// reads as a bug). Chip and Outlined are entirely the wrap's inline colours
+// over the object shape the anchor already gave the event.
+html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event {
+  box-shadow: none;
+}
+html[data-bnd-views-mark="dot"] .fc .fc-daygrid-block-event .fc-event-main::before {
+  content: "";
+  display: inline-block;
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  margin-inline-end: 0.35em;
+  vertical-align: middle;
+  flex: none;
+}
