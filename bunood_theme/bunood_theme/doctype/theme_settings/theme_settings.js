@@ -927,6 +927,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_form_preview(frm);
 			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
+			bnd_report_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -5129,6 +5130,7 @@ function bnd_sb_import(frm) {
 			bnd_form_preview(frm);
 			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
+			bnd_report_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);

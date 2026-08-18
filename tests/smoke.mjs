@@ -6855,17 +6855,40 @@ async function main() {
 
 		await test("report: select-all, then uncheck one — the odd one out is not selected", async () => {
 			// .dt-row--unhighlight is the third select-all state: highlight-all is on,
-			// this row opted out. It must read as NOT selected (blocker 2). The
-			// vendor's --highlight-all paints every cell; the kit carves the exception.
-			setSettings({ report_style: "Pinned Slab", report_grain: "Plain", report_rows: "Edge Rail" });
+			// this row opted out. It must read as NOT selected (blocker 2).
+			//
+			// BOLD BAR, and the EFFECTIVE visible layer — the adversarial review's
+			// case. During select-all the vendor paints the OPAQUE .dt-cell__content
+			// (`.dt-scrollable--highlight-all .dt-cell__content { background: … }`)
+			// over the kit's per-row .dt-cell fill. The first cut of this test read
+			// .dt-cell and passed green while the visible content box was the vendor
+			// wash (masking Bold Bar's brand fill, and the unhighlight carve-out).
+			// Read the content box if opaque, else the cell; and pin that the kit
+			// CLEARS the content box so its own fill shows through.
+			setSettings({ report_style: "Pinned Slab", report_grain: "Plain", report_rows: "Bold Bar" });
 			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
 			await clickCenter(".dt-header input[type=checkbox]"); // select all
 			await clickCenter(".dt-scrollable .dt-row[data-row-index='2'] .dt-cell--col-0 input[type=checkbox]"); // uncheck one
 			await page.mouse.move(700, 60);
 			await page.waitForTimeout(200);
-			const g = await rowBgsByIndex([2, 3]);
-			expect(g[2] && g[3], "the de-selected row and a selected neighbour both rendered");
-			expect(g[2] !== g[3], `the de-selected row differs from its selected neighbour (${g[2]} vs ${g[3]})`);
+			const s = await page.evaluate(() => {
+				const eff = (idx) => {
+					const row = document.querySelector(`.dt-scrollable .dt-row[data-row-index='${idx}']`);
+					if (!row) return null;
+					const cell = row.querySelector(".dt-cell:nth-child(3)") || row.querySelector(".dt-cell");
+					const content = cell.querySelector(".dt-cell__content");
+					const cbg = content ? getComputedStyle(content).backgroundColor : "rgba(0, 0, 0, 0)";
+					const opaque = !/,\s*0\)$/.test(cbg); // rgba(...,0) == transparent
+					return { effective: opaque ? cbg : getComputedStyle(cell).backgroundColor, contentBg: cbg };
+				};
+				return { sel: eff(3), unhl: eff(2) };
+			});
+			expect(s.sel && s.unhl, "the de-selected row and a selected neighbour both rendered");
+			// The fix: the kit clears the vendor's opaque content-box highlight, so
+			// the selected row's own brand fill (not the light vendor wash) shows.
+			expect(/,\s*0\)$/.test(s.sel.contentBg), `the selected content box is cleared, not the vendor mask (${s.sel.contentBg})`);
+			// And the de-selected row is visibly distinct from its selected neighbour.
+			expect(s.sel.effective !== s.unhl.effective, `the de-selected row differs from its selected neighbour (${s.unhl.effective} vs ${s.sel.effective})`);
 		});
 
 		await test("report: the checkbox reveal rests hidden and opens on hover", async () => {
@@ -6911,6 +6934,63 @@ async function main() {
 			});
 			expectEq(s.ws, false, "the workspace kit is off");
 			expect(/tabular-nums/.test(s.fvn), `the summary is tabular under the report kit alone (${s.fvn})`);
+		});
+
+		// ── The three adversarial-review findings (fixed pre-release) ────────
+		await test("report: a discarded live preview reverts to the saved state", async () => {
+			// bnd_report_preview was missing from the refresh/discard-revert batch
+			// (and the import batch) — the escapee class: a call present for every
+			// sibling kit, silently absent for report, no error, not default-state.
+			// Preview Original (clears the anchor), then trigger the revert
+			// (cur_frm.refresh re-applies every kit's SAVED values); report must be
+			// restored to the saved Pinned Slab, not left at the unsaved preview.
+			setSettings({ report_style: "Pinned Slab" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await page.evaluate(() => window.bunood_theme.report_apply({ report_style: "Original" }));
+			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-report")), null, "the preview cleared the report anchor");
+			await page.evaluate(() => cur_frm.refresh());
+			await page.waitForTimeout(700);
+			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-report")), "slab", "the refresh/discard revert restored the saved Pinned Slab");
+		});
+
+		await test("report: the focus ring stays visible on a Bold Bar selection", async () => {
+			// A Bold Bar selected row fills its cells --bnd-brand-solid; --bnd-accent
+			// alone on that measures ~1.07:1 (SC 2.4.11 fail — the review finding,
+			// worse than stock's grey). The two-tone ring adds an --bnd-on-brand
+			// companion (gated AA vs brand-solid), so at least one tone clears 3:1 on
+			// any fill. Measure the real contrast against the fill.
+			setSettings({ report_style: "Pinned Slab", report_rows: "Bold Bar" });
+			await goDesk(RPT_ROUTE, ".dt-scrollable .dt-row", 5000);
+			await clickCenter(".dt-scrollable .dt-row[data-row-index='3'] .dt-cell--col-0 input[type=checkbox]"); // select the row
+			const box = await page.evaluate(() => {
+				const c = document.querySelector(".dt-scrollable .dt-row[data-row-index='3'] .dt-cell:nth-child(4)");
+				if (!c) return null;
+				const r = c.getBoundingClientRect();
+				return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+			});
+			expect(box, "a cell in the selected row rendered");
+			await page.mouse.click(box.x, box.y); // focus a cell INSIDE the selected row
+			await page.waitForTimeout(300);
+			const ring = await page.evaluate(() => {
+				const lum = (rgb) => {
+					const p = (rgb.match(/[\d.]+/g) || []).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+					return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+				};
+				const contrast = (a, b) => { const x = lum(a), y = lum(b); const [hi, lo] = x > y ? [x, y] : [y, x]; return (hi + 0.05) / (lo + 0.05); };
+				const cell = document.querySelector(".dt-cell--focus");
+				if (!cell) return { noFocus: true };
+				const content = cell.querySelector(".dt-cell__content");
+				return {
+					rowSelected: !!cell.closest(".dt-row--highlight"),
+					fill: getComputedStyle(cell).backgroundColor,
+					borderContrast: contrast(getComputedStyle(content).borderTopColor, getComputedStyle(cell).backgroundColor),
+					shadowContrast: (() => { const sc = (getComputedStyle(content).boxShadow.match(/rgba?\([^)]+\)/) || [])[0]; return sc ? contrast(sc, getComputedStyle(cell).backgroundColor) : 0; })(),
+				};
+			});
+			expect(!ring.noFocus, "clicking a cell in the selected row focuses it");
+			expect(ring.rowSelected, "the focused cell's row is still selected (brand-solid fill)");
+			const best = Math.max(ring.borderContrast || 0, ring.shadowContrast || 0);
+			expect(best >= 3, `the focus ring clears 3:1 on the Bold Bar fill (best ${best.toFixed(2)}:1; accent ${(ring.borderContrast || 0).toFixed(2)}, companion ${(ring.shadowContrast || 0).toFixed(2)}, fill ${ring.fill})`);
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

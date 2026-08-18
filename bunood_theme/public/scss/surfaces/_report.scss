@@ -63,9 +63,18 @@
 // pattern's second case: a CONTRACT survives Original, a STYLE does not. The
 // datatable marks the keyboard-focused cell with .dt-cell--focus (a JS class)
 // and gives .dt-cell__content a 2px border it colours --gray-200; we re-colour
-// it to --bnd-accent, the theme's one gated focus colour (every ring uses it).
+// it to --bnd-accent, the theme's one gated focus colour.
+//
+// TWO TONES, because a datatable cell's fill VARIES — and --bnd-accent alone
+// measures ~1.07:1 on a Bold Bar selection's --bnd-brand-solid fill (SC 2.4.11
+// fail, WORSE than stock's grey; a keyboard user cannot see focus on a selected
+// row). The companion ring is --bnd-on-brand, which is GATED to clear AA against
+// --bnd-brand-solid, so it carries exactly where the accent cannot; on a light
+// cell the accent border carries and the companion is invisible. One tone always
+// clears 3:1, on every seed and mode. (Adversarial review finding.)
 html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
   border-color: var(--bnd-accent);
+  box-shadow: inset 0 0 0 2px var(--bnd-on-brand);
 }
 
 // ── The working set ─────────────────────────────────────────────────────────
@@ -307,6 +316,17 @@ html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighl
 }
 html[data-bnd-report] .dt-scrollable--highlight-all .dt-row--unhighlight {
   --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+// ...but the row-bg above paints the CELL, and during select-all the vendor
+// paints the opaque .dt-cell__content ON TOP of it (frappe_datatable.scss:
+// `.dt-scrollable--highlight-all .dt-cell__content { background: var(--dt-
+// selection-highlight-color) }`, (0,3,0)) — masking BOTH our sel-bg (Bold Bar's
+// brand-solid became the light vendor wash, and the on-brand ink then sat on it
+// at ~1.06:1) AND the .dt-row--unhighlight carve-out above (a de-selected row
+// still read as selected). Clear the content box so the cell layer we resolved
+// per-row shows through; (0,3,1) beats the vendor. (Adversarial review finding.)
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-cell__content {
+  background-color: transparent;
 }
 
 // Selection ink (Bold Bar's on-brand label) rides the content box — the cell's

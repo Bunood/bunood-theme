@@ -3956,6 +3956,7 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
 }
 html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
   border-color: var(--bnd-accent);
+  box-shadow: inset 0 0 0 2px var(--bnd-on-brand);
 }
 
 html[data-bnd-report=ruled] {
@@ -4113,6 +4114,10 @@ html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighl
 
 html[data-bnd-report] .dt-scrollable--highlight-all .dt-row--unhighlight {
   --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-cell__content {
+  background-color: transparent;
 }
 
 html[data-bnd-report] .dt-scrollable .dt-row--highlight .dt-cell__content,
