@@ -144,6 +144,8 @@
   "report_grain",
   "report_rows",
   "report_checkbox_reveal",
+  "section_views",
+  "views_picker",
   "views_style",
   "views_band",
   "views_mark",
@@ -1069,6 +1071,16 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Reveal Row Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_views",
+   "fieldtype": "Section Break",
+   "label": "Alternate views"
+  },
+  {
+   "fieldname": "views_picker",
+   "fieldtype": "HTML",
+   "label": "Views Picker"
   },
   {
    "default": "Floating Cards",

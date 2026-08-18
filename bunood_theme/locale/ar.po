@@ -3973,3 +3973,68 @@ msgstr "إظهار عناصر التحكم عند التمرير"
 #, fuzzy
 msgid "A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch screens."
 msgstr "تبقى عناصر تحكم مربّع المعرض مخفيّة وتظهر عند التمرير أو عند تركيز لوحة المفاتيح. وتظهر دائمًا على الشاشات اللمسية."
+
+#. src: item27
+#, fuzzy
+msgid "Alternate views"
+msgstr "العروض البديلة"
+
+#. src: item27
+#, fuzzy
+msgid "Views Picker"
+msgstr "منتقي العروض"
+
+#. src: item27
+#, fuzzy
+msgid "The stock views, untouched. The whole kit stands down."
+msgstr "العروض الأصلية، دون تغيير. تتنحّى المجموعة بالكامل."
+
+#. src: item27
+#, fuzzy
+msgid "A boundary only, no fill — the densest object, the theme receding."
+msgstr "حدٌّ فقط، دون تعبئة — أكثر العناصر كثافةً، والسمة تتوارى."
+
+#. src: item27
+#, fuzzy
+msgid "A soft filled tile, no border — a quiet contact sheet."
+msgstr "مربّع ممتلئ ناعم، دون حدود — ورقة تواصل هادئة."
+
+#. src: item27
+#, fuzzy
+msgid "Fill, boundary and a soft lift — the object reads as a card. The default."
+msgstr "تعبئة وحدٌّ ورفعٌ ناعم — يُقرأ العنصر كبطاقة. الافتراضي."
+
+#. src: item27
+#, fuzzy
+msgid "A strong fill and a strong edge, flat — crisp on a dense board."
+msgstr "تعبئة قوية وحافة قوية، مسطّحة — واضحة على لوحة مزدحمة."
+
+#. src: item27
+#, fuzzy
+msgid "Whether a kanban column carries its status colour."
+msgstr "ما إذا كان عمود كانبان يحمل لون حالته."
+
+#. src: item27
+#, fuzzy
+msgid "The shape of a calendar event."
+msgstr "شكل حدث التقويم."
+
+#. src: item27
+#, fuzzy
+msgid "How a gallery image fills its tile."
+msgstr "كيف تملأ صورة المعرض مربّعها."
+
+#. src: item27
+#, fuzzy
+msgid "Reveal controls on hover"
+msgstr "إظهار عناصر التحكم عند التمرير"
+
+#. src: item27
+#, fuzzy
+msgid "A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch."
+msgstr "تبقى عناصر تحكم مربّع المعرض مخفيّة وتظهر عند التمرير أو عند تركيز لوحة المفاتيح. وتظهر دائمًا عند اللمس."
+
+#. src: item27
+#, fuzzy
+msgid "Original leaves every alternate view stock — nothing below applies."
+msgstr "يُبقي «الأصلي» كل عرض بديل كما هو — لا شيء أدناه ينطبق."

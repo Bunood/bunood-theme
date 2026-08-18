@@ -3768,10 +3768,12 @@ async function main() {
 				// FIELD on 2026-08-06 and the surviving card wrote a value the
 				// Select refused, wedging every later save of the Single.
 				status_picker: { cards: 3, toggles: 7, opts: 7 },
+				// List view kit (item 16): 5 style cards (Original + 4), two option
+				// groups (2 hover + 3 selection = 5 opts), one reveal toggle.
+				// Back-filled here with item 27 — the HANDOVER omission, closed.
+				list_picker: { cards: 5, toggles: 1, opts: 5 },
 				// Form view kit (item 18): 5 style cards (Original + 4), the two
-				// option groups (3 tab markers + 3 sidebar treatments), one
-				// toggle. list_picker is a known omission from item 16 — noted
-				// in HANDOVER, back-filled separately, not smuggled in here.
+				// option groups (3 tab markers + 3 sidebar treatments), one toggle.
 				form_picker: { cards: 5, toggles: 1, opts: 6 },
 				// Workspace tile kit (item 25): 7 style cards (Original + 6), two
 				// option groups (5 metric + 3 rows = 8 opts), one menu toggle.
@@ -3779,6 +3781,13 @@ async function main() {
 				// Chart surface (item 25): 5 style cards, no Original (the base
 				// theming is always on) and no composing groups or toggles — one axis.
 				chart_picker: { cards: 5, toggles: 0, opts: 0 },
+				// Report / datatable kit (item 26): 5 style cards (Original + 4), two
+				// option groups (2 grain + 3 rows = 5 opts), one reveal toggle.
+				// Back-filled here with item 27 — never added when the kit shipped.
+				report_picker: { cards: 5, toggles: 1, opts: 5 },
+				// Alternate views kit (item 27): 5 style cards (Original + 4), three
+				// option groups (2 band + 3 mark + 2 media = 7 opts), one reveal toggle.
+				views_picker: { cards: 5, toggles: 1, opts: 7 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3790,7 +3799,8 @@ async function main() {
 				for (const f of Object.keys({
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
-					form_picker: 1, workspace_picker: 1, chart_picker: 1, icons_picker: 1,
+					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
+					report_picker: 1, views_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -7335,9 +7345,23 @@ async function main() {
 			});
 			expect(flip.before !== flip.after, `the events re-coloured on the flip (${flip.before} -> ${flip.after})`);
 		});
-		// The discard-revert escapee test (previewed-then-discarded must revert)
-		// lands in slice 4 with the picker: it depends on theme_settings.js's
-		// refresh batch calling bnd_views_preview, which is that slice's wiring.
+
+		await test("views: a discarded live preview reverts to the saved state", async () => {
+			// The escapee test (slice 4, now that theme_settings.js's refresh batch
+			// calls bnd_views_preview): a previewed-then-discarded change must
+			// revert, not stick. bnd_views_preview was wired into the render AND
+			// the discard/import batches — the item-25/26 escapee that must never
+			// recur. Preview Original on the settings page, then cur_frm.refresh
+			// re-applies every kit's SAVED values.
+			setSettings({ views_style: "Floating Cards" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await page.evaluate(() => window.bunood_theme.views_apply({ views_style: "Original" }));
+			await page.waitForTimeout(300);
+			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-views")), null, "the preview cleared the views anchor");
+			await page.evaluate(() => cur_frm.refresh());
+			await page.waitForTimeout(700);
+			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-views")), "cards", "the refresh/discard revert restored the saved Floating Cards");
+		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//

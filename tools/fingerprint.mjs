@@ -7,7 +7,11 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-const require = createRequire("C:/Users/saltedfish/Desktop/bunood-theme/package.json");
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+// Derived from this file's own location, not a hardcoded machine path, so the
+// documented regeneration command runs anywhere (item 27, §4.9).
+const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
 const { chromium } = require("playwright");
 const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE="http://localhost:8080";
 const py=(c)=>execFileSync("docker",["exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
@@ -76,7 +80,7 @@ await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
   for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker",
-	"list_picker","form_picker","workspace_picker","chart_picker","report_picker","icons_picker","placement_board"]) {
+	"list_picker","form_picker","workspace_picker","chart_picker","report_picker","views_picker","icons_picker","placement_board"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}
     const nodes=[];

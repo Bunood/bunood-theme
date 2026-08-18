@@ -907,6 +907,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_workspace_picker(frm);
 		bnd_render_chart_picker(frm);
 		bnd_render_report_picker(frm);
+		bnd_render_views_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -928,6 +929,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
 			bnd_report_preview(frm);
+			bnd_views_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -1114,6 +1116,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
 			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
+			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
 		],
 	},
 	{
@@ -1220,6 +1223,7 @@ const BND_SHELL_OWNS = {
 	workspace: { prefixes: ["workspace_"] },
 	chart: { prefixes: ["chart_"] },
 	report: { prefixes: ["report_"] },
+	views: { prefixes: ["views_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4263,6 +4267,177 @@ function bnd_report_set(frm, fieldname, value) {
 	bnd_render_report_picker(frm);
 }
 
+// ── Alternate-views picker (item 27) — five styles, three chip rows, a toggle ─
+/** Client mirror of presets.VIEWS_FIELDS. Keep in sync. Export AND import list it. */
+const BND_VIEWS_FIELDS = ["views_style", "views_band", "views_mark", "views_media", "views_reveal"];
+
+/** Client mirror of presets.VIEWS_DEFAULTS — keep in sync. */
+const BND_VIEWS_DEFAULTS = {
+	views_style: "Floating Cards",
+	views_band: "Tinted",
+	views_mark: "Chip",
+	views_media: "Cover",
+	views_reveal: 1,
+};
+
+/** The view-style catalogue. Each thumbnail is a mini object — a card — drawn to
+ * that style's fill, boundary, radius and lift. ONE anchor dresses the kanban
+ * card, gallery tile and calendar chip the same way, so one card stands for all. */
+const BND_VIEWS_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock views, untouched. The whole kit stands down."),
+		svg: bnd_view_thumb({ border: 0.16 }),
+	},
+	{
+		value: "Hairline",
+		blurb: () => __("A boundary only, no fill — the densest object, the theme receding."),
+		svg: bnd_view_thumb({ border: 0.42, radius: 3 }),
+	},
+	{
+		value: "Soft Tiles",
+		blurb: () => __("A soft filled tile, no border — a quiet contact sheet."),
+		svg: bnd_view_thumb({ fill: 0.06, radius: 6 }),
+	},
+	{
+		value: "Floating Cards",
+		blurb: () => __("Fill, boundary and a soft lift — the object reads as a card. The default."),
+		svg: bnd_view_thumb({ fill: 0.05, border: 0.16, radius: 6, shadow: true }),
+	},
+	{
+		value: "Solid Panels",
+		blurb: () => __("A strong fill and a strong edge, flat — crisp on a dense board."),
+		svg: bnd_view_thumb({ fill: 0.12, border: 0.36, radius: 2 }),
+	},
+];
+
+/** One object thumbnail — a card with two content lines. A builder so five
+ * near-identical diagrams are one description, not five copies that drift. */
+function bnd_view_thumb(o) {
+	const rx = o.radius || 0;
+	const shadow = o.shadow
+		? `<rect x="19" y="15" width="82" height="26" rx="${rx}" fill="currentColor" opacity=".09"/>`
+		: "";
+	const fill = o.fill ? `fill="currentColor" fill-opacity="${o.fill}"` : 'fill="none"';
+	const stroke = o.border ? `stroke="currentColor" stroke-opacity="${o.border}" stroke-width="1"` : "";
+	const card = `<rect x="18" y="12" width="82" height="26" rx="${rx}" ${fill} ${stroke}/>`;
+	const lines =
+		'<rect x="24" y="18" width="38" height="3" rx="1.5" fill="currentColor" opacity=".55"/>' +
+		'<rect x="24" y="26" width="58" height="2.6" rx="1.3" fill="currentColor" opacity=".28"/>';
+	return `<svg viewBox="0 0 120 54">${shadow}${card}${lines}</svg>`;
+}
+
+/** The composing chip rows — the kanban band, the calendar mark, the image fit. */
+const BND_VIEWS_GROUPS = [
+	{
+		field: "views_band",
+		title: () => __("Kanban Column"),
+		desc: () => __("Whether a kanban column carries its status colour."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Tinted", name: () => __("Tinted") },
+		],
+	},
+	{
+		field: "views_mark",
+		title: () => __("Calendar Event"),
+		desc: () => __("The shape of a calendar event."),
+		options: [
+			{ value: "Dot", name: () => __("Dot") },
+			{ value: "Chip", name: () => __("Chip") },
+			{ value: "Outlined", name: () => __("Outlined") },
+		],
+	},
+	{
+		field: "views_media",
+		title: () => __("Image Fit"),
+		desc: () => __("How a gallery image fills its tile."),
+		options: [
+			{ value: "Cover", name: () => __("Cover") },
+			{ value: "Contain", name: () => __("Contain") },
+		],
+	},
+];
+
+const BND_VIEWS_TOGGLES = [
+	{
+		field: "views_reveal",
+		name: () => __("Reveal controls on hover"),
+		desc: () => __("A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch."),
+	},
+];
+
+/** Render the alternate-views picker. */
+function bnd_render_views_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "views_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.views_style || BND_VIEWS_DEFAULTS.views_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "views_style");
+	const cards = P.cards(
+		BND_VIEWS_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-avp-style" }
+	);
+
+	const reason = off ? __("Original leaves every alternate view stock — nothing below applies.") : "";
+	const groups = BND_VIEWS_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_VIEWS_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	const toggles = BND_VIEWS_TOGGLES.map((t) =>
+		P.toggle({
+			field: t.field, on: !!parseInt(frm.doc[t.field], 10), name: t.name(), desc: t.desc(), reason,
+			cls: "bnd-avp-toggle",
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-avp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups + '<div class="bnd-cbp-switches">' + toggles + "</div>" },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-avp-style").on("click", function () {
+		bnd_views_set(frm, "views_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt, .bnd-avp-toggle").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_views_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_views_set(frm, f, BND_VIEWS_DEFAULTS[f]);
+	});
+}
+
+/** Hand the view values to the desk engine — live preview. */
+function bnd_views_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.views_apply) return;
+	const values = {};
+	for (const f of BND_VIEWS_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.views_apply(values);
+}
+
+/** Set one view option, preview, re-render. */
+function bnd_views_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_views_preview(frm);
+	bnd_render_views_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -5084,7 +5259,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -5113,7 +5288,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -5131,6 +5306,7 @@ function bnd_sb_import(frm) {
 			bnd_workspace_preview(frm);
 			bnd_chart_preview(frm);
 			bnd_report_preview(frm);
+			bnd_views_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -5143,6 +5319,7 @@ function bnd_sb_import(frm) {
 			bnd_render_workspace_picker(frm);
 			bnd_render_chart_picker(frm);
 			bnd_render_report_picker(frm);
+			bnd_render_views_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

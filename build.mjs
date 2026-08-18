@@ -462,6 +462,60 @@ function assertRegistryIdentity(registrySrc, deskJs) {
 }
 
 /**
+ * Field-mirror guard — a `BND_<X>_FIELDS` JS mirror in theme_settings.js must
+ * carry every field its `presets.<X>_FIELDS` source lists.
+ *
+ * THE ESCAPEE CLASS this closes (item 25's workspace_metric, item 26's report
+ * preview, HANDOVER §1): a mirror that silently OMITS a field — the field then
+ * never live-previews and is dropped from theme export/import, and the suite
+ * stays green because its tests drive the apply path directly, past the mirror.
+ * It has bitten twice; item 27 adds a sixth mirror, so the guard lands here.
+ *
+ * A SUPERSET check (mirror ⊇ source), not equality: a mirror may legitimately
+ * carry MORE than its own family (BND_STATUS_FIELDS also lists search_placement),
+ * but it must never carry LESS. PLACEMENT_FIELDS is exempt — inbox_placement /
+ * user_placement are export-separate via the placement board, with no mirror by
+ * design.
+ *
+ * @param {string} presetsSrc - presets.py text
+ * @param {string} jsSrc - theme_settings.js text
+ */
+function assertFieldMirrors(presetsSrc, jsSrc) {
+	const families = (src, re) => {
+		const out = {};
+		for (const m of src.matchAll(re)) {
+			out[m[1]] = [...m[2].matchAll(/["']([a-z][a-z0-9_]*)["']/g)].map((x) => x[1]);
+		}
+		return out;
+	};
+	// `[^\]]` matches newlines, so a multi-line list body is captured whole.
+	const py = families(presetsSrc, /\b([A-Z][A-Z0-9_]*)_FIELDS\s*=\s*\[([^\]]*)\]/g);
+	const js = families(jsSrc, /\bBND_([A-Z][A-Z0-9_]*)_FIELDS\s*=\s*\[([^\]]*)\]/g);
+	// The placement fields (inbox_placement / user_placement) ride the placement
+	// BOARD's own export, not any component picker's mirror — so a family that
+	// lists one (INBOX_FIELDS does) legitimately omits it from its BND mirror.
+	// Subtract them everywhere, exactly the case HANDOVER §4.8 verified.
+	const placement = new Set(py.PLACEMENT || []);
+	const problems = [];
+	for (const [name, fields] of Object.entries(py)) {
+		if (name === "PLACEMENT" || !(name in js)) continue;
+		const mirror = new Set(js[name]);
+		const missing = fields.filter((f) => !mirror.has(f) && !placement.has(f));
+		if (missing.length) {
+			problems.push(`BND_${name}_FIELDS omits ${missing.join(", ")} (present in presets.${name}_FIELDS)`);
+		}
+	}
+	if (problems.length) {
+		throw new Error(
+			"Field-mirror guard: a JS BND_<X>_FIELDS is out of sync with its presets source:\n  " +
+				problems.join("\n  ") +
+				"\nA mirror that drops a field silently breaks live preview and theme export/import " +
+				"(the item 25/26 escapee)."
+		);
+	}
+}
+
+/**
  * Typography guard — the face table, the picker and the shipped files agree.
  *
  * `typography.py` is the ONE table (key → family, files, fallbacks, leading);
@@ -699,6 +753,13 @@ async function main() {
 	assertRegistryIdentity(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+	);
+	assertFieldMirrors(
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		)
 	);
 	assertTypographySync(
 		await readFile(new URL("./bunood_theme/typography.py", import.meta.url), "utf8").catch(() => ""),
