@@ -10,11 +10,23 @@
 
 ## 1. Where the work stands
 
-**ITEM 28 (overlays — dialogs, dropdowns, toasts) — DONE, LOCAL-ONLY (2026-08-19).** Five
-commits on `main`: `afbf970` 1 · `6d7746b` 2 · `b14f0b3` 3 · `544c0ea` 4 · then slice 5 (the
-close). **Not pushed, not tagged** — the release is the user's call. When they say so it is a
-MINOR (**v0.20.0**): bump `app_version`, move the CHANGELOG `[Unreleased]` block under a
-`[0.20.0]` heading, tag, push main + tag, bump the bunood repo's `apps.json` pin. Plan +
+**ITEM 28 (overlays — dialogs, dropdowns, toasts) — DONE, RELEASED as `v0.20.0`, PUSHED
+(2026-08-19).** Slices `afbf970` 1 · `6d7746b` 2 · `b14f0b3` 3 · `544c0ea` 4 · `0b84b32` 5,
+then `d5d5a8c` (i18n sign-off), `c7baf78` (release-review fixes) and `31bf8f3` (the release).
+`origin/main` is level at `31bf8f3` and the `v0.20.0` tag is pushed. Final suite **285/285**,
+contrast **3,984 pairs**, sweep CLEAN.
+
+**THE RELEASE CHAIN HAS A HOLE — FIX ITS WORDING BEFORE THE NEXT ONE.** This chain has always
+said "bump `app_version`", and `bunood_theme/__init__.py`'s `__version__` was therefore never
+bumped: it read `0.15.0` through v0.16.0, v0.17.0, v0.18.0 and v0.19.0, five releases stale,
+while `pyproject.toml` names that file the SINGLE SOURCE OF TRUTH (flit reads it) and says
+app_version must match. Corrected to 0.20.0 in `31bf8f3`. **The chain is: bump `__version__` in
+`bunood_theme/__init__.py` AND `app_version` in `hooks.py` (they must agree), move the CHANGELOG
+`[Unreleased]` block under the new heading, `node tools/payload.mjs --record vX.Y.Z`, tag, push
+main + tag.** There is no `bunood_theme` entry in the bunood repo's `apps.json` (checked
+2026-08-19 — it lists erpnext, payments, whitelabel and frappe-theme only); locally the app is
+bind-mounted from the WSL mirror via `compose.local.yaml`, so there is no pin to bump. If a
+deployment elsewhere pins it, that pin is not in this tree. Plan +
 wireframes: `~/.claude/plans/item-28-overlays.md` and
 <https://claude.ai/code/artifact/c8d9d7ca-375f-4e7f-9373-139e89d99a9b>. Facts worth keeping:
 - **The desk has ~23 floating objects and they are ONE family — now written down** (ROADMAP's
