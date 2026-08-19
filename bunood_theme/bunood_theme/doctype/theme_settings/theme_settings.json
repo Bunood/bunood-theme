@@ -151,6 +151,11 @@
   "views_mark",
   "views_media",
   "views_reveal",
+  "section_overlay",
+  "overlay_picker",
+  "overlay_style",
+  "overlay_scrim",
+  "overlay_menu",
   "section_generated",
   "brand_css_url"
  ],
@@ -492,6 +497,43 @@
    "default": "1",
    "hidden": 1,
    "description": "Master gate for the palette kit: unchecked forces the stock Ctrl+K modal (Original) whatever the picker says."
+  },
+  {
+   "fieldname": "section_overlay",
+   "fieldtype": "Section Break",
+   "label": "Overlays"
+  },
+  {
+   "fieldname": "overlay_picker",
+   "fieldtype": "HTML",
+   "label": "Overlay Picker"
+  },
+  {
+   "default": "Floating",
+   "description": "Set by the picker above. How a floating thing separates itself from the page beneath — a dialog, a menu, a toast, a popover.",
+   "fieldname": "overlay_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Overlay Style",
+   "options": "Original\nHairline\nSoft\nFloating\nSolid"
+  },
+  {
+   "default": "Tinted",
+   "description": "Set by the picker above. What the page behind a dialog looks like.",
+   "fieldname": "overlay_scrim",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Dialog Scrim",
+   "options": "Dim\nTinted\nBlurred"
+  },
+  {
+   "default": "Inset",
+   "description": "Set by the picker above. How a menu row shows it is under the pointer.",
+   "fieldname": "overlay_menu",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Menu Row",
+   "options": "Plain\nInset"
   },
   {
    "fieldname": "section_generated",

@@ -617,6 +617,30 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "overlay",
+        # Labelled "Overlays", not any one of them: ONE anchor dresses the
+        # dialog, the dropdown, the context menu, the toast, the popover, the
+        # datepicker and the lightbox as the same floating object drawn several
+        # ways — the report kit's "reaches every datatable" reasoning again.
+        # Splitting would permit a floating dialog beside a square menu.
+        # Item 28.
+        "part": "overlay",
+        "label": "Overlays",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-overlay]; "Original" clears it.
+        # The scrim and menu-row axes hang off data-bnd-overlay-* siblings.
+        #
+        # NOTE: the kit's REPAIRS are deliberately NOT under this anchor. They
+        # are scoped html[data-theme] in surfaces/_overlays.scss, because a
+        # contract survives Original and a style does not — overlays sit on
+        # every page, and three of the repairs are measured WCAG AA failures.
+        "selector": 'html[data-bnd-overlay]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

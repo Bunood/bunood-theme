@@ -670,6 +670,9 @@ const MUTABLE_FIELDS = [
 	"report_style", "report_grain", "report_rows", "report_checkbox_reveal",
 	// Alternate views surface (item 27).
 	"views_style", "views_band", "views_mark", "views_media", "views_reveal",
+	// Overlays surface (item 28). No Check: this kit's repairs are contracts,
+	// not options, so there is nothing to toggle.
+	"overlay_style", "overlay_scrim", "overlay_menu",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -7766,6 +7769,201 @@ async function main() {
 			expectEq(g.anchor, null, "the views anchor really is absent (Original)");
 			expectEq(g.bg, g.surface, "the calendar popover takes the theme's surface even under Original");
 			expect(g.border !== "rgb(221, 221, 221)", `its border is not FullCalendar's #ddd (${g.border})`);
+		});
+
+		// ── Overlays (item 28), slice 2: the ANCHOR ────────────────────────
+		//
+		// One statement of fill + boundary + radius + elevation, reaching every
+		// floating thing on the desk. Split into separate fields the picker
+		// would permit "no boundary and no shadow" — a panel you cannot find.
+		// Picks: Floating (item-28 wireframe round, 2026-08-18).
+		//
+		// Each check OPENS the overlay. The repairs (slice 1) are contracts and
+		// are deliberately NOT asserted here — they must survive Original, and
+		// the first check below proves the stand-down does not take them away.
+
+		/** Open a dialog, read its panel, close it. */
+		const ovDialog = async () =>
+			page.evaluate(async () => {
+				const d = new frappe.ui.Dialog({ title: "Anchor probe", fields: [{ fieldtype: "Data", label: "A" }] });
+				d.show();
+				await new Promise((r) => setTimeout(r, 700));
+				const c = document.querySelector(".modal.show .modal-content");
+				const cs = c && getComputedStyle(c);
+				const out = cs
+					? { radius: cs.borderTopLeftRadius, shadow: cs.boxShadow, bg: cs.backgroundColor, borderColor: cs.borderTopColor, borderWidth: cs.borderTopWidth }
+					: null;
+				try { window.jQuery(document.querySelector(".modal.show")).modal("hide"); } catch (e) { /* teardown */ }
+				await new Promise((r) => setTimeout(r, 250));
+				return out;
+			});
+
+		await test("overlay: Original stands the STYLE down and leaves the repairs", async () => {
+			// The stand-down must be total for the style — no attribute survives,
+			// and the dialog is back to Frappe's own radius and Bootstrap's
+			// literal shadow. But Original must NOT take the slice-1 repairs
+			// away: those are scoped html[data-theme], outside this anchor,
+			// because overlays are on every page and three of them are measured
+			// WCAG AA failures. Both halves are asserted together, because it is
+			// the pairing that is the decision.
+			setSettings({ overlay_style: "Original" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				const attrs = [...document.documentElement.attributes].map((a) => a.name).filter((n) => n.startsWith("data-bnd-overlay"));
+				const d = new frappe.ui.Dialog({ title: "Original probe", fields: [{ fieldtype: "Data", label: "A" }] });
+				d.show();
+				await new Promise((r) => setTimeout(r, 700));
+				const modal = document.querySelector(".modal.show");
+				const c = modal.querySelector(".modal-content");
+				const out = {
+					attrs,
+					radius: getComputedStyle(c).borderTopLeftRadius,
+					shadow: getComputedStyle(c).boxShadow,
+					// the slice-1 contract, which must still hold under Original
+					borderVar: getComputedStyle(modal).getPropertyValue("--border-color").trim(),
+					htmlBorderVar: getComputedStyle(document.documentElement).getPropertyValue("--border-color").trim(),
+				};
+				try { window.jQuery(modal).modal("hide"); } catch (e) { /* teardown */ }
+				document.documentElement.removeAttribute("data-theme");
+				return out;
+			});
+			expectEq(g.attrs.join(","), "", "no data-bnd-overlay* attribute survives Original");
+			expectEq(g.shadow, "rgba(0, 0, 0, 0.1) 0px 5px 10px 0px", "the dialog is back to Bootstrap's own literal shadow");
+			expectEq(g.borderVar, g.htmlBorderVar, "the dark-dialog REPAIR survives Original (it is a contract, not a style)");
+		});
+
+		await test("overlay: the anchor dresses dialog, menu and toast as one object", async () => {
+			// ONE anchor, several vendors: a dialog panel (Bootstrap), a page
+			// menu (Bootstrap + Popper) and a toast (Frappe) are the same
+			// floating object drawn three ways, so they must agree on radius.
+			// Splitting the field would permit a floating dialog beside a square
+			// menu — item 16's "floating section beside a naked grid".
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const g = await page.evaluate(async () => {
+				const out = {};
+				const d = new frappe.ui.Dialog({ title: "One hand", fields: [{ fieldtype: "Data", label: "A" }] });
+				d.show();
+				await new Promise((r) => setTimeout(r, 700));
+				const c = document.querySelector(".modal.show .modal-content");
+				out.dialog = { radius: getComputedStyle(c).borderTopLeftRadius, shadow: getComputedStyle(c).boxShadow };
+				try { window.jQuery(document.querySelector(".modal.show")).modal("hide"); } catch (e) { /* teardown */ }
+				await new Promise((r) => setTimeout(r, 350));
+
+				const btn = document.querySelector(".page-actions .menu-btn-group .btn, .menu-btn-group [data-toggle='dropdown']");
+				if (btn) {
+					btn.click();
+					await new Promise((r) => setTimeout(r, 450));
+					const m = document.querySelector(".menu-btn-group .dropdown-menu");
+					if (m) out.menu = { radius: getComputedStyle(m).borderTopLeftRadius, shadow: getComputedStyle(m).boxShadow };
+					btn.click();
+				}
+
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				frappe.show_alert({ message: "one hand", indicator: "green" }, 30);
+				await new Promise((r) => setTimeout(r, 800));
+				const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+				if (t) out.toast = { radius: getComputedStyle(t).borderTopLeftRadius, bg: getComputedStyle(t).backgroundColor };
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				return out;
+			});
+			expect(g.menu, "the page Menu opened");
+			expect(g.toast, "a toast rendered");
+			expectEq(g.dialog.radius, g.menu.radius, "the dialog and the menu carry the same corner");
+			expectEq(g.dialog.radius, g.toast.radius, "the toast carries it too — one object, three vendors");
+			expect(g.dialog.shadow !== "none", `the panel is elevated under Floating (${g.dialog.shadow})`);
+		});
+
+		await test("overlay: the dialog's shadow beats Bootstrap's literal at every width", async () => {
+			// Repair 9, which moved here from the contract set because a shadow is
+			// how it LOOKS, not whether it WORKS. `.modal-content` carries the
+			// literal twice — a base rule AND one inside @media (min-width: 576px)
+			// — reading no variable, while --modal-shadow exists and is read only
+			// by the toast. A rule at equal specificity outside the media query
+			// would be beaten at desktop widths and win at mobile, producing a
+			// shadow that changes at 576px. Ours is (0,3,1), so it wins in both
+			// contexts; this measures both sides of that boundary.
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const STOCK = "rgba(0, 0, 0, 0.1) 0px 5px 10px 0px";
+			await page.setViewportSize({ width: 1440, height: 900 });
+			await page.waitForTimeout(300);
+			const wide = await ovDialog();
+			await page.setViewportSize({ width: 520, height: 800 });
+			await page.waitForTimeout(400);
+			const narrow = await ovDialog();
+			await page.setViewportSize({ width: 1920, height: 1080 });
+			await page.waitForTimeout(300);
+			expect(wide && narrow, "a dialog rendered at both widths");
+			expect(wide.shadow !== STOCK, `above 576 the shadow is ours, not Bootstrap's literal (${wide.shadow})`);
+			expect(narrow.shadow !== "none", `below 576 the shadow is still ours (${narrow.shadow})`);
+			expectEq(wide.shadow, narrow.shadow, "and it does not change across the 576px boundary");
+		});
+
+		await test("overlay: the styles are honestly different from each other", async () => {
+			// The "two options, one pixel" guard. Hairline is boundary-only with no
+			// elevation; Floating is lifted clear. If a user cannot tell them apart
+			// on the same dialog, the axis should not have both.
+			setSettings({ overlay_style: "Hairline" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const hairline = await ovDialog();
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const floating = await ovDialog();
+			expect(hairline && floating, "a dialog rendered under both styles");
+			expect(hairline.radius !== floating.radius, `the corner differs (${hairline.radius} vs ${floating.radius})`);
+			expect(hairline.shadow !== floating.shadow, `the elevation differs (${hairline.shadow} vs ${floating.shadow})`);
+		});
+
+		await test("overlay: the anchor never repaints a toast's semantic colour", async () => {
+			// A toast's fill is its STATUS — .desk-alert.green re-points --toast-bg
+			// to --alert-bg-success. The anchor owns shape and elevation, never
+			// that hue: painting every toast the panel surface would delete the
+			// one thing the colour is for. Item 25's law for admin/semantic data,
+			// transposed. Measured against a neutral panel of the same style.
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				const out = {};
+				const surf = document.createElement("div");
+				surf.style.cssText = "position:fixed;left:-9999px;top:0;background:var(--bnd-surface)";
+				document.body.appendChild(surf);
+				out.surface = getComputedStyle(surf).backgroundColor;
+				surf.remove();
+				for (const ind of ["green", "red"]) {
+					document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+					frappe.show_alert({ message: "hue", indicator: ind }, 30);
+					await new Promise((r) => setTimeout(r, 700));
+					const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+					if (t) out[ind] = getComputedStyle(t).backgroundColor;
+				}
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				return out;
+			});
+			expect(g.green && g.red, "both toasts rendered");
+			expect(g.green !== g.surface, `the success toast keeps its own wash, not the panel surface (${g.green})`);
+			expect(g.green !== g.red, `and the two statuses are still distinguishable (${g.green} vs ${g.red})`);
+		});
+
+		await test("overlay: the kit live-previews without a reload", async () => {
+			// The mandatory apply hook. Every container and kit must re-apply on
+			// click — the status kit's missing-hook failure, and the item-25/26
+			// "escapee" where a field was dropped from live preview and export
+			// while every test stayed green by driving the apply function
+			// directly. This drives the HOOK, the way the settings form does.
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const before = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-overlay"));
+			await page.evaluate(() => window.bunood_theme.overlay_apply({ overlay_style: "Hairline" }));
+			await page.waitForTimeout(250);
+			const after = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-overlay"));
+			await page.evaluate(() => window.bunood_theme.overlay_apply({ overlay_style: "Original" }));
+			await page.waitForTimeout(250);
+			const cleared = await page.evaluate(() => [...document.documentElement.attributes].map((a) => a.name).filter((n) => n.startsWith("data-bnd-overlay")));
+			expectEq(before, "floating", "the saved Floating is on <html> at boot");
+			expectEq(after, "hairline", "the hook applied Hairline live");
+			expectEq(cleared.join(","), "", "and Original clears the anchor and every sibling");
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

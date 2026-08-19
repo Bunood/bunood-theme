@@ -4699,6 +4699,76 @@ html[data-theme] .fc-popover {
   --gray-300: var(--bnd-border);
 }
 
+html[data-bnd-overlay=hairline] {
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border-strong);
+  --bnd-ov-radius: var(--bnd-radius-sm);
+  --bnd-ov-shadow: none;
+}
+
+html[data-bnd-overlay=soft] {
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border);
+  --bnd-ov-radius: var(--bnd-radius-lg);
+  --bnd-ov-shadow: var(--bnd-shadow-sm);
+}
+
+html[data-bnd-overlay=floating] {
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border);
+  --bnd-ov-radius: var(--bnd-radius-xl);
+  --bnd-ov-shadow: var(--bnd-shadow-lg);
+}
+
+html[data-bnd-overlay=solid] {
+  --bnd-ov-fill: var(--bnd-raised);
+  --bnd-ov-border: transparent;
+  --bnd-ov-radius: var(--bnd-radius-lg);
+  --bnd-ov-shadow: var(--bnd-shadow-lg);
+}
+
+html[data-bnd-overlay] .modal .modal-content {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .form-in-grid {
+  background-color: var(--bnd-ov-fill);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .dropdown-menu,
+html[data-bnd-overlay] .frappe-menu,
+html[data-bnd-overlay] .popover,
+html[data-bnd-overlay] .datepicker,
+html[data-bnd-overlay] .dt-dropdown__list,
+html[data-bnd-overlay] .duration-picker {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .awesomplete > [role=listbox] {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .fc-popover {
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .desk-alert {
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

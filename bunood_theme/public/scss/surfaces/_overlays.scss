@@ -226,3 +226,137 @@ html[data-theme] .fc-popover {
   --fc-neutral-text-color: var(--bnd-ink-muted);
   --gray-300: var(--bnd-border);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — item 28 slice 2. Everything below is scoped
+// html[data-bnd-overlay] and is a STYLE: absent attribute = stock, and the
+// contracts above keep working regardless.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style; every OBJECT rule below
+// consumes ONLY these (the _sidebar / _list / _report / _views pattern), so
+// adding a style is one block and no object rule has to learn about it.
+//
+// Each style is a PAIRING of fill, boundary, radius and elevation, never split
+// into separate fields — split, the picker would permit "no boundary and no
+// shadow", which is a panel you cannot find. The four are the four strategies
+// the market actually ships: separate by LINE (Discourse pairs a hairline with
+// a shadow), by DEPTH (shadcn's luma), by NEITHER, relying on radius (Directus
+// sets border:none), or by TONE.
+//
+// "Original" needs no block — the absent anchor clears every rule here.
+html[data-bnd-overlay="hairline"] {
+  // Boundary only, no elevation: the densest panel, the theme receding.
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border-strong);
+  --bnd-ov-radius: var(--bnd-radius-sm);
+  --bnd-ov-shadow: none;
+}
+
+html[data-bnd-overlay="soft"] {
+  // Boundary plus a close shadow — the quieter middle.
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border);
+  --bnd-ov-radius: var(--bnd-radius-lg);
+  --bnd-ov-shadow: var(--bnd-shadow-sm);
+}
+
+html[data-bnd-overlay="floating"] {
+  // THE DEFAULT, and it is frappe-ui's own dialog recipe: a hairline ring plus
+  // a deep shadow, no heavy border (Menu/utils.ts:19, Dialog.vue:20). Adopting
+  // it makes this desk agree with the house idiom of Frappe's own design
+  // system. --bnd-shadow-lg already carries a 1px light ring in dark mode,
+  // which is what keeps a lifted panel readable against a dark page.
+  --bnd-ov-fill: var(--bnd-surface);
+  --bnd-ov-border: var(--bnd-border);
+  --bnd-ov-radius: var(--bnd-radius-xl);
+  --bnd-ov-shadow: var(--bnd-shadow-lg);
+}
+
+html[data-bnd-overlay="solid"] {
+  // A raised fill with no boundary — the panel separates by TONE. The fill is
+  // --bnd-raised, a gated surface token, so ink on it is still covered by the
+  // contrast gate.
+  --bnd-ov-fill: var(--bnd-raised);
+  --bnd-ov-border: transparent;
+  --bnd-ov-radius: var(--bnd-radius-lg);
+  --bnd-ov-shadow: var(--bnd-shadow-lg);
+}
+
+// ── The dialog ──────────────────────────────────────────────────────────────
+// (0,3,1). It has to clear THREE vendor rules: `.modal-content` (0,1,0) for the
+// border and the base shadow, `.modal .modal-content` (0,2,0) for the border
+// colour, and a SECOND shadow inside `@media (min-width: 576px)`.
+//
+// THE MEDIA QUERY IS THE TRAP. A rule at equal specificity written outside that
+// query is beaten at desktop widths and wins at mobile — a shadow that changes
+// at 576px. Specificity does not care which at-rule a declaration sits in, so
+// clearing (0,1,0) once wins in both contexts; there is no need for a second
+// block, and writing one would be the thing that eventually drifts.
+//
+// The header and footer need no rule at all: both carry `background: inherit`
+// (common/modal.scss:41,94), so they follow the panel's fill for free. Their
+// border colour is the slice-1 contract, and stays a contract.
+html[data-bnd-overlay] .modal .modal-content {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+// The grid-row editor is a dialog in all but name (grid.scss:533 — fixed, 80%
+// wide, its own backdrop), so it takes the same object treatment. (0,2,1).
+html[data-bnd-overlay] .form-in-grid {
+  background-color: var(--bnd-ov-fill);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+// ── The popups ──────────────────────────────────────────────────────────────
+// Four dropdown vocabularies plus the popover, the datepicker, the report
+// column list and the duration picker — every one a floating panel, so every
+// one takes the same object. Specificities: the awesomplete list is (0,2,0) at
+// source so it needs the child combinator form to reach (0,3,1); the rest are
+// (0,1,0) and (0,2,1) clears them.
+//
+// GEOMETRY IS NOT OURS. Popper writes position/transform/top/left inline on the
+// dropdown and the popover, and air-datepicker writes left/top; those are
+// defeated inline and must not be fought. Paint only.
+html[data-bnd-overlay] .dropdown-menu,
+html[data-bnd-overlay] .frappe-menu,
+html[data-bnd-overlay] .popover,
+html[data-bnd-overlay] .datepicker,
+html[data-bnd-overlay] .dt-dropdown__list,
+html[data-bnd-overlay] .duration-picker {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .awesomplete > [role="listbox"] {
+  background-color: var(--bnd-ov-fill);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+// FullCalendar's "+N more" popover takes the SHAPE here; its fill and boundary
+// come from the slice-1 contract, which sets the --fc-* variables on this same
+// element so the vendor's own rule resolves to our surface even under Original.
+// Shape is a style, colour is a contract — the split this whole kit is built on.
+html[data-bnd-overlay] .fc-popover {
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+// ── The toast ───────────────────────────────────────────────────────────────
+// SHAPE AND ELEVATION ONLY — never the fill. `.desk-alert.green` re-points
+// --toast-bg to --alert-bg-success (toast.scss:12-31): the background IS the
+// status. Painting every toast the panel surface would delete the one thing the
+// colour is there to say. Item 25's law for admin/semantic data, transposed.
+html[data-bnd-overlay] .desk-alert {
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}

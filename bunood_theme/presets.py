@@ -571,6 +571,34 @@ VIEWS_DEFAULTS = {
     "views_reveal": 1,
 }
 
+OVERLAY_FIELDS = [
+    "overlay_style",
+    "overlay_scrim",
+    "overlay_menu",
+]
+
+#: The shipped overlay defaults — the item-28 wireframe picks (2026-08-18):
+#: Floating · Tinted · Inset. "Original" stays one click away and is a total
+#: stand-down of the STYLE; the kit's repairs are contracts and survive it.
+OVERLAY_DEFAULTS = {
+    # The anchor: how a floating thing separates itself from the page beneath,
+    # as ONE statement of fill, boundary, radius and elevation. Split, the
+    # picker would permit "no boundary and no shadow" — a panel you cannot
+    # find. Floating is frappe-ui's own dialog recipe (ring + deep shadow, no
+    # border), so the desk agrees with Frappe's own design system.
+    "overlay_style": "Floating",
+    # The scrim behind a dialog, reaching the modal backdrop, #freeze and the
+    # grid-row editor's backdrop together. Tinted is the theme's own ink,
+    # mode-aware from one token; Dim is Frappe's unmapped --gray-800 wash.
+    # MEASURED CONSTRAINT: two stacked dialogs paint TWO backdrops, both at
+    # z 1040, so scrims COMPOUND — the value is tuned for the stacked case.
+    "overlay_scrim": "Tinted",
+    # The menu row's hover shape, over four dropdown vocabularies at once.
+    # Inset is the majority idiom (frappe-ui, Discourse, shadcn, Directus) and
+    # the only one that stays correct as the anchor's radius grows.
+    "overlay_menu": "Inset",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

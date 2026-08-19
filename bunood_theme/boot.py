@@ -383,6 +383,20 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_views = {f: views_(f) for f in VIEWS_DEFAULTS}
 
+        # ── Overlays surface (item 28) ──────────────────────────────────
+        # Fieldname keys, the list shape. No Check in this kit, so every field
+        # is a Select and falls back to the shipped default when empty.
+        # No-flash: every overlay is built by JS on a gesture (a dialog, a
+        # menu, a toast), all long after boot, so an attribute set from this
+        # payload is on <html> before any of them exists.
+        from bunood_theme.presets import OVERLAY_DEFAULTS
+
+        def overlay_(field):
+            value = settings.get(field)
+            return OVERLAY_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_overlay = {f: overlay_(f) for f in OVERLAY_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

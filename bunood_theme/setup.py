@@ -36,6 +36,7 @@ from bunood_theme.presets import (
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
+    OVERLAY_DEFAULTS,
     REPORT_DEFAULTS,
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
@@ -69,6 +70,7 @@ CHECK_DEFAULTS = {
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
+        OVERLAY_DEFAULTS,
         REPORT_DEFAULTS,
         VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
@@ -138,6 +140,9 @@ DEFAULTS = {
     # mark and media fit. The Check (views_reveal) is seeded via CHECK_DEFAULTS
     # above, None-aware so an admin's explicit 0 survives.
     **{f: v for f, v in VIEWS_DEFAULTS.items() if not isinstance(v, int)},
+    # Overlays surface (item 28): the three Select axes — style, scrim and menu
+    # row. No Check in this kit; its repairs are contracts, not options.
+    **{f: v for f, v in OVERLAY_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

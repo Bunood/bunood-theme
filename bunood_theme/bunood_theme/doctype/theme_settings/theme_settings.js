@@ -1117,6 +1117,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
 			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
+			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
 		],
 	},
 	{
@@ -1224,6 +1225,7 @@ const BND_SHELL_OWNS = {
 	chart: { prefixes: ["chart_"] },
 	report: { prefixes: ["report_"] },
 	views: { prefixes: ["views_"] },
+	overlay: { prefixes: ["overlay_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },

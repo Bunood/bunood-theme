@@ -3900,3 +3900,58 @@ msgstr "تبقى عناصر تحكم مربّع المعرض مخفيّة وتظ
 #. src: item27
 msgid "Original leaves every alternate view stock — nothing below applies."
 msgstr "يُبقي «الأصلي» كل عرض بديل كما هو — لا شيء أدناه ينطبق."
+
+#. src: item28
+#, fuzzy
+msgid "Overlays"
+msgstr "العناصر العائمة"
+
+#. src: item28
+#, fuzzy
+msgid "Overlay Picker"
+msgstr "منتقي العناصر العائمة"
+
+#. src: item28
+#, fuzzy
+msgid "Overlay Style"
+msgstr "نمط العناصر العائمة"
+
+#. src: item28
+#, fuzzy
+msgid "Set by the picker above. How a floating thing separates itself from the page beneath — a dialog, a menu, a toast, a popover."
+msgstr "يُحدَّد بالمنتقي أعلاه. كيف ينفصل العنصر العائم عن الصفحة تحته — نافذة حوار أو قائمة أو تنبيه أو بطاقة منبثقة."
+
+#. src: item28
+#, fuzzy
+msgid "Dialog Scrim"
+msgstr "حجاب نافذة الحوار"
+
+#. src: item28
+#, fuzzy
+msgid "Set by the picker above. What the page behind a dialog looks like."
+msgstr "يُحدَّد بالمنتقي أعلاه. شكل الصفحة خلف نافذة الحوار."
+
+#. src: item28
+#, fuzzy
+msgid "Dim"
+msgstr "تعتيم"
+
+#. src: item28
+#, fuzzy
+msgid "Blurred"
+msgstr "ضبابي"
+
+#. src: item28
+#, fuzzy
+msgid "Menu Row"
+msgstr "صف القائمة"
+
+#. src: item28
+#, fuzzy
+msgid "Set by the picker above. How a menu row shows it is under the pointer."
+msgstr "يُحدَّد بالمنتقي أعلاه. كيف يُظهر صف القائمة أنه تحت المؤشر."
+
+#. src: item28
+#, fuzzy
+msgid "Inset"
+msgstr "داخلي"

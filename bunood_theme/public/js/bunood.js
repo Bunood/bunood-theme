@@ -1399,6 +1399,75 @@
 		bnd_repaint_calendars();
 	};
 
+	// ── Overlays surface (item 28) ──────────────────────────────────────────
+	// ONE anchor (data-bnd-overlay) dresses every floating thing on the desk as
+	// the same object: the dialog panel, the dropdown, the context menu, the
+	// toast, the popover, the datepicker, the report column list and the
+	// duration picker. The treatment axes hang off siblings.
+	//
+	// THE REPAIRS ARE NOT HERE AND MUST NOT BE. surfaces/_overlays.scss scopes
+	// them html[data-theme], outside this anchor, because a contract survives
+	// Original and a style does not — overlays are on every page and three of
+	// the repairs are measured WCAG AA failures. So Original is a total
+	// stand-down of the STYLE only, and clearing this attribute never makes a
+	// dialog illegible.
+	//
+	// Dim and Plain map to "" — they are stock (Frappe's own --gray-800 scrim,
+	// and the vendor's full-bleed hover row), so the attribute is simply absent
+	// rather than a slug meaning "do the default".
+	const OVERLAY_SLUGS = {
+		style: { "Original": "", "Hairline": "hairline", "Soft": "soft", "Floating": "floating", "Solid": "solid" },
+		scrim: { "Dim": "", "Tinted": "tinted", "Blurred": "blurred" },
+		menu: { "Plain": "", "Inset": "inset" },
+	};
+
+	let overlay_state = (window.frappe && frappe.boot && frappe.boot.bnd_overlay) || null;
+
+	/**
+	 * Reflect the overlay options onto <html>, clearing whatever came before.
+	 * A falsy style slug (Original / unknown / no boot) clears everything, so
+	 * Original is a full stand-down across every overlay. Payload keys are
+	 * FIELDNAMES: no mirror map to fall out of step with presets.OVERLAY_FIELDS.
+	 * @param {Object|null} v - the boot-shaped values object.
+	 */
+	function apply_overlay_attrs(v) {
+		const html = document.documentElement;
+		for (const a of [...html.attributes]) {
+			if (a.name === "data-bnd-overlay" || a.name.startsWith("data-bnd-overlay-")) {
+				html.removeAttribute(a.name);
+			}
+		}
+		if (!v) return;
+		overlay_state = v;
+		const style = OVERLAY_SLUGS.style[v.overlay_style];
+		if (!style) return; // "" (Original) => pure clearing
+		html.setAttribute("data-bnd-overlay", style);
+		const set = (name, value) => value && html.setAttribute("data-bnd-overlay-" + name, value);
+		set("scrim", OVERLAY_SLUGS.scrim[v.overlay_scrim]);
+		set("menu", OVERLAY_SLUGS.menu[v.overlay_menu]);
+	}
+
+	// Before any overlay exists — every one of them is built on a gesture, long
+	// after boot, so the anchor is on <html> before the first dialog, menu or
+	// toast is constructed and nothing stale ever paints.
+	apply_overlay_attrs(overlay_state);
+
+	/** True when the overlay style kit is active (the anchor is present). */
+	function overlay_active() {
+		return document.documentElement.hasAttribute("data-bnd-overlay");
+	}
+
+	/**
+	 * LIVE PREVIEW for the overlays kit. Fieldname shape (also the boot shape).
+	 * Mandatory from day one — the status kit's missing-hook failure class, and
+	 * the item-25/26 "escapee" that must never recur.
+	 * @param {Object} values
+	 */
+	bunood.overlay_apply = function (values) {
+		if (!values) return;
+		apply_overlay_attrs({ ...(overlay_state || {}), ...values });
+	};
+
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
 	// (prepare_colors) — unreachable from CSS, exactly the frappe-charts problem
