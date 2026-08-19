@@ -113,42 +113,45 @@ html[data-theme] #alert-container {
 // 4.26:1 on the green wash and 3.23:1 on the blue — both under AA. These are
 // Frappe-token-on-Frappe-wash pairs and sit OUTSIDE `npm run contrast`, whose
 // 1,656 pairs cover `--bnd-*` only, so nothing else here would ever catch them.
-// `--bnd-ink-muted` rather than `--bnd-ink`: the subtitle must stay QUIETER
-// than the message line above it (which takes `--text-color`), so lifting it
-// all the way to full ink would clear AA by flattening the hierarchy the
-// subtitle exists for.
+// `--bnd-ink`, NOT `--bnd-ink-muted`, and the release review is why. Muted
+// preserved the hierarchy the subtitle wants, but it is SEED-DERIVED while the
+// four alert washes are Frappe constants — swept over the eleven gate seeds it
+// measures 3.67 on the warning wash in dark at seed #000000, i.e. it swapped a
+// measured AA failure for a quieter one. `--bnd-ink` is static and clears every
+// wash in both modes with margin (worst 7.11). The subtitle keeps its size
+// difference; the colour step is what AA costs here, and AA wins.
+// Both directions are now pinned in contrast_gate.pairs(), so this cannot
+// silently regress the way the first version did.
 html[data-theme] .desk-alert .alert-subtitle {
-  color: var(--bnd-ink-muted);
+  color: var(--bnd-ink);
 }
 
-// ── Repair 2: the status dot, legible in dark ───────────────────────────────
+// ── Repair 2: the status dot, legible AND identifiable ─────────────────────
 // `desk/dark.scss:264-270` re-points every `--indicator-dot-*` to the matching
-// `--bg-*` — the DARK WASH a pill is filled with, not an ink. Measured on a real
-// msgprint in dark: the red dot goes from rgb(181,42,42) at 6.31:1 in light to
-// rgb(54,21,21) at 1.02:1. TEN of the twelve hues fail the 3:1 non-text floor,
-// and the eight that flip are simply gone. (`.indicator-pill` flips correctly —
-// only the bare ::before dot is broken.)
+// `--bg-*` — the dark wash a PILL is filled with, not an ink. Measured on a real
+// msgprint: the red dot goes from rgb(181,42,42) at 6.31:1 in light to
+// rgb(54,21,21) at 1.02:1. TEN of the twelve hues fail the 3:1 non-text floor
+// and eight are simply gone. (`.indicator-pill` flips correctly — only the bare
+// ::before dot is broken.)
 //
-// THE FIX IS TO UNDO THE REMAP, not to invent a colour: point the dot back at
-// the very var the light-mode base rule uses (`common/indicator.scss`:
-// `.indicator { --indicator-dot-green: var(--text-on-green) }`). In dark that
-// resolves to Frappe's own light tints, which are designed to be READ. Measured
-// across all twelve against --bnd-surface / --bnd-raised / --bnd-page: every one
-// clears 3:1, worst 5.59. Vendor is (0,2,0); this is (0,2,1).
+// TWO THINGS HAD TO BE TRUE, and the first fix only got one of them. Pointing
+// the dot back at `--text-on-*` cleared the floor everywhere (worst 5.59) but
+// resolved four hues to near-whites: worst pairwise CIEDE2000 across the set was
+// **0.83**, below the ~2.3 just-noticeable difference. A status mark that is
+// visible but unidentifiable has lost the thing it exists for. So the hue is
+// FITTED rather than borrowed — `palette.status_ramp()`, brand-independent,
+// gated by `npm run contrast` for both 3:1 on every ground and a 3.0 separation
+// floor. Measured: separation 3.58 in dark, and cyan stays cyan.
 //
-// KNOWN RESIDUAL, recorded rather than hidden: four of the twelve (cyan, yellow,
-// pink, purple) resolve to near-whites in dark, so they are legible but hard to
-// tell APART. That is Frappe's palette, not this rule — stock dark is strictly
-// worse, since those four are invisible. Making twelve status hues mutually
-// distinct in dark is a palette project with its own contrast obligation
-// (item 25's series-ramp shape), and it is filed, not silently absorbed.
-html[data-theme="dark"] .indicator {
+// Applied in BOTH modes even though only dark is broken: in light the fitted
+// values are Frappe's own hues unchanged, so this is a no-op there and the dot
+// always comes from one place. Vendor is (0,2,0); this is (0,2,1).
+html[data-theme] .indicator {
   @each $c in green, cyan, blue, orange, yellow, gray, grey, red, pink, darkgrey, purple, light-blue {
-    // `"" + $c` because gray / red / purple / pink / orange are real Sass
-    // COLOR values, and interpolating a colour into an identifier is
-    // deprecated. Frappe's own dark.scss uses the same idiom for the same
-    // twelve names.
-    --indicator-dot-#{"" + $c}: var(--text-on-#{"" + $c});
+    // `"" + $c` because gray / red / purple / pink / orange are real Sass COLOR
+    // values, and interpolating a colour into an identifier is deprecated.
+    // Frappe's own dark.scss uses the same idiom for the same twelve names.
+    --indicator-dot-#{"" + $c}: var(--bnd-status-#{"" + $c});
   }
 }
 
@@ -283,6 +286,7 @@ html[data-bnd-overlay="hairline"] {
   --bnd-ov-border: var(--bnd-border-strong);
   --bnd-ov-radius: var(--bnd-radius-sm);
   --bnd-ov-shadow: none;
+  --bnd-ov-border-w: var(--bnd-line);
 }
 
 html[data-bnd-overlay="soft"] {
@@ -291,6 +295,7 @@ html[data-bnd-overlay="soft"] {
   --bnd-ov-border: var(--bnd-border);
   --bnd-ov-radius: var(--bnd-radius-lg);
   --bnd-ov-shadow: var(--bnd-shadow-sm);
+  --bnd-ov-border-w: var(--bnd-line);
 }
 
 html[data-bnd-overlay="floating"] {
@@ -303,6 +308,7 @@ html[data-bnd-overlay="floating"] {
   --bnd-ov-border: var(--bnd-border);
   --bnd-ov-radius: var(--bnd-radius-xl);
   --bnd-ov-shadow: var(--bnd-shadow-lg);
+  --bnd-ov-border-w: var(--bnd-line);
 }
 
 html[data-bnd-overlay="solid"] {
@@ -313,6 +319,7 @@ html[data-bnd-overlay="solid"] {
   --bnd-ov-border: transparent;
   --bnd-ov-radius: var(--bnd-radius-lg);
   --bnd-ov-shadow: var(--bnd-shadow-lg);
+  --bnd-ov-border-w: 0;
 }
 
 // ── The dialog ──────────────────────────────────────────────────────────────
@@ -361,6 +368,16 @@ html[data-bnd-overlay] .datepicker,
 html[data-bnd-overlay] .dt-dropdown__list,
 html[data-bnd-overlay] .duration-picker {
   background-color: var(--bnd-ov-fill);
+  // BORDER-STYLE AND WIDTH, NOT JUST COLOUR. Four of these seven ship with NO
+  // border box at all — `.frappe-menu` (desk/menu.scss:6), `.popover` (frappe
+  // zeroes bootstrap's with `border:0`), `.duration-picker` and
+  // `.dt-dropdown__list` — so a bare `border-color` painted nothing on them and
+  // Hairline handed back a panel with no boundary AND no shadow, which is
+  // strictly worse than stock (those four separate by shadow alone). Measured
+  // on a real .frappe-menu in dark: 1.07:1 fill against the ground behind it.
+  // The release review caught it; the fix is to declare the box.
+  border-style: solid;
+  border-width: var(--bnd-ov-border-w);
   border-color: var(--bnd-ov-border);
   border-radius: var(--bnd-ov-radius);
   box-shadow: var(--bnd-ov-shadow);
@@ -368,6 +385,8 @@ html[data-bnd-overlay] .duration-picker {
 
 html[data-bnd-overlay] .awesomplete > [role="listbox"] {
   background-color: var(--bnd-ov-fill);
+  border-style: solid;
+  border-width: var(--bnd-ov-border-w);
   border-color: var(--bnd-ov-border);
   border-radius: var(--bnd-ov-radius);
   box-shadow: var(--bnd-ov-shadow);
@@ -460,7 +479,12 @@ html[data-bnd-overlay] .awesomplete > [role="listbox"] > li {
 // the sanctioned lever is re-pointing that variable, never fighting the
 // declaration. Plain uses it to take the row's own inset out.
 html[data-bnd-overlay-menu="plain"] {
-  --dropdown-padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  // Frappe ships `--dropdown-padding: 4px 8px` (espresso/_spacing.scss:4), and
+  // the first version of this re-point resolved to exactly that — measured
+  // identical under both axis positions, i.e. a declaration that changed
+  // nothing. Plain squares the row off, so it takes the horizontal inset out
+  // rather than restating it.
+  --dropdown-padding: var(--bnd-sp-1) var(--bnd-sp-1);
 }
 
 html[data-bnd-overlay-menu="plain"] .dropdown-menu,

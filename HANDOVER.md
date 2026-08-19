@@ -42,10 +42,11 @@ wireframes: `~/.claude/plans/item-28-overlays.md` and
   polarity — anchor unifies, `Inset` neutral, `Plain` the active override.
 - **This kit's verification has no route.** An overlay exists only after a gesture; every check
   drives it. That discipline caught THREE defective checks, one of which passed before its fix.
-- **Payload:** `css_gzip` raised 18000 → 18400 (slice 1) → 18700 (slice 3). The picker is
-  doctype JS, so slice 4 moved neither bundle hash. Needs `BND_FORCE_RESTART=1` to serve.
-- **19 `ar.po` rows are `#, fuzzy`** (11 doctype + 8 picker, `#. src: item28`) and await the
-  user's review — the standing item-7 handoff.
+- **Payload:** `css_gzip` raised 18000 → 18400 (slice 1) → 18700 (slice 3) → **19100** (the
+  status-ramp token block, slice 5). The picker is doctype JS, so slice 4 moved neither bundle
+  hash. Any doctype-JS change needs `BND_FORCE_RESTART=1` to serve.
+- **The 19 `ar.po` rows are SIGNED OFF** (11 doctype + 8 picker, `#. src: item28`), commit
+  `d5d5a8c`, 2026-08-19. `ar.po` carries zero fuzzy markers. Nothing awaits review here.
 - **A LOCAL-ENVIRONMENT INCIDENT worth not repeating.** Git Bash MSYS path conversion silently
   rewrites POSIX arguments to `wsl.exe`/`docker exec` (`/usr/bin/rm` became
   `C:/Program Files/Git/usr/bin/rm`), and it emptied a `sed` in a hand-rolled rsync so the

@@ -58,16 +58,17 @@ which those dialogs already inherit correctly.
 ## 3. The toast is physically positioned and does not mirror
 
 `frappe/public/scss/desk/toast.scss` positions and decorates the alert entirely
-with physical properties, and frappe ships a **build-time rtlcss pass** rather
+with PHYSICAL PROPERTIES — the side is hardcoded even where the distance is a
+variable, which is the part that matters — and frappe ships a **build-time rtlcss pass** rather
 than logical properties, so the mirrored bundle only flips what rtlcss can see:
 
 | rule | line | measured under `dir=rtl` |
 |---|---|---|
 | `#alert-container { right: 20px }` | 1-9 | **did not move** |
-| `.desk-alert .close { right: 15px }` | 73-76 | did not move |
-| `.alert-message-container { padding-right: 40px }` | 49-50 | did not move |
+| `.desk-alert .close { right: var(--padding-md) }` | 73-76 | did not move |
+| `.alert-message-container { padding-right: var(--padding-2xl) }` | 49-50 | did not move |
 | `.alert-subtitle { padding-left: 34px }` | 68 | indent ends up on the wrong side |
-| `.icon { margin-right: 10px }` | 53 | did not move |
+| `.icon { margin-right: var(--margin-sm) }` | 53 | did not move |
 | `@keyframes backInRight` / `backOutRight` | 120-150 | **animation-name unchanged in RTL**; translates +2000px on X, so the toast flies in from and out to the physical right in both directions |
 
 The theme repairs the *container's* inset (item 28, `_overlays.scss`) by setting
@@ -117,20 +118,34 @@ msgprint, **ten of the twelve hues fail the 3:1 non-text floor** and eight are
 effectively invisible (red 6.31:1 in light → **1.02:1** in dark). The
 `.indicator-pill` variant flips correctly; only the bare `::before` dot is wrong.
 
-Item 28 repairs this by pointing the dot back at `--text-on-*`, the same var the
-light-mode base rule uses (`common/indicator.scss`), which in dark resolves to
-frappe's own light tints — measured, all twelve then clear 3:1, worst 5.59.
+Item 28 repairs this **by fitting the hues rather than borrowing them**, and the
+two-step is worth recording because the first step looked finished and was not.
 
-**A residual this repair does not solve, recorded honestly:** four of the twelve
-(`cyan`, `yellow`, `pink`, `purple`) resolve to near-whites in dark
-(`#e0f8ff`, `#fffcef`, `#feeef8`, `#f9f0ff`), so they are legible but hard to
-tell **apart** as status marks. Making twelve status hues mutually distinct on a
-dark ground is a palette exercise with its own contrast obligation, not an
-override. Stock is strictly worse — there they are invisible — so this is a
-narrowing of the defect, not a fix of it.
+*First attempt:* point the dot back at `--text-on-*`, the var the light-mode base
+rule already uses. That cleared the floor everywhere — all twelve ≥ 3:1, worst
+5.59. But four hues (`cyan`, `yellow`, `pink`, `purple`) resolve in dark to
+near-whites (`#e0f8ff`, `#fffcef`, `#feeef8`, `#f9f0ff`), and the worst pairwise
+CIEDE2000 across the whole set measured **0.83** — below the ~2.3
+just-noticeable difference. Twelve dots that are all visible and several
+indistinguishable is not a status palette.
 
-**The upstream fix:** a dark-mode status ramp fitted for both legibility and
-mutual separation, the way a categorical palette is fitted.
+*Shipped:* `palette.status_ramp()` re-tones each of Frappe's own twelve hues for
+the dark ground, fitted to 3:1 against the worst surface a dot lands on, with the
+two "lighter sibling" names (`darkgrey`, `light-blue`) lifted to a second stop so
+they stay tellable from `gray` and `blue`. Worst pairwise separation **3.58** in
+dark, **4.28** in light, gated by `npm run contrast` — which now measures the
+dots' contrast on three grounds *and* their mutual separation against a floor of
+3.0. That floor was set from the two measurements, not from taste: it fails the
+borrowed set at 0.83 and passes the fitted one, and the guard was negative-tested
+against both.
+
+**What is still upstream's to fix:** none of this should be an app's job. Frappe
+ships twelve status names with fixed meanings and a dark mode that re-points them
+to fills; the app can only re-tone what it is given.
+
+**The upstream fix:** a dark-mode status ramp fitted for legibility *and* mutual
+separation, the way a categorical palette is fitted — which is what
+`palette.status_ramp()` does, and could be lifted almost verbatim.
 
 ---
 

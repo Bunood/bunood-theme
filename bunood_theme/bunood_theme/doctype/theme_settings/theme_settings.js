@@ -4585,7 +4585,11 @@ function bnd_render_overlay_picker(frm, host) {
 function bnd_overlay_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.overlay_apply) return;
 	const values = {};
-	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f];
+	// `|| DEFAULT` matters: on a site where a field was never written,
+	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
+	// had just set — opening the settings form would strip the style. The two
+	// call sites in the renderer above already fall back; this one did not.
+	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || BND_OVERLAY_DEFAULTS[f];
 	window.bunood_theme.overlay_apply(values);
 }
 

@@ -200,6 +200,101 @@ def series_ramp(mode: str) -> dict[str, str]:
     return out
 
 
+#: Frappe's twelve indicator names, and the hue each one MEANS.
+#:
+#: The values are Frappe's own light-mode dot colours, read off a rendered
+#: `.indicator` (`common/indicator.scss` resolves `--indicator-dot-<c>` to
+#: `--text-on-<c>`). They are the designed hues; this table does not invent a
+#: palette, it re-tones the existing one for a dark ground.
+#:
+#: WHY A RAMP AT ALL. `desk/dark.scss:264` re-points every dot to the matching
+#: `--bg-*` — the dark wash a PILL is filled with, not an ink — and ten of the
+#: twelve then fail the 3:1 non-text floor, eight of them invisibly. Item 28
+#: first repaired that by pointing the dot back at `--text-on-*`, which cleared
+#: the floor everywhere (worst 5.59) but left four hues resolving to
+#: near-whites: legible, and no longer telling the reader WHICH status it is.
+#: A status mark that cannot be identified has lost the thing it exists for, so
+#: the hue is fitted instead of borrowed.
+#:
+#: BRAND-INDEPENDENT, exactly like SERIES_HUES: a red dot is the same red on
+#: every site. That is what lets one static block in `_tokens.scss` satisfy
+#: `check_defaults_agree` for all eleven gate seeds.
+STATUS_HUES = {
+    "green": "#16794c",
+    "cyan": "#267a94",
+    "blue": "#0070cc",
+    "orange": "#bd3e0c",
+    "yellow": "#ab6e05",
+    "gray": "#525252",
+    "grey": "#525252",
+    "red": "#b52a2a",
+    "pink": "#9c2671",
+    "darkgrey": "#383838",
+    "purple": "#6e399d",
+    "light-blue": "#007be0",
+}
+
+#: The names that are deliberately a LIGHTER sibling of another name rather than
+#: a hue of their own, and the floor that separates them.
+#:
+#: `gray`/`grey` are the same colour under two spellings and must stay identical.
+#: `darkgrey` and `light-blue` are different: Frappe offers them ALONGSIDE
+#: `gray` and `blue`, so they have to be tellable apart — but on a dark ground a
+#: "darkgrey" dot cannot be darker, it has to be lighter to be seen at all. So
+#: the sibling is fitted to a higher target, which separates it in the only
+#: direction available. 7:1 is the AAA text ratio, used here purely as a
+#: convenient second stop well clear of 3:1.
+STATUS_SIBLING_TARGET = 7.0
+STATUS_SIBLINGS = ("darkgrey", "light-blue")
+
+
+def _status_binding_bg(mode: str) -> str:
+    """The single hardest surface an indicator dot sits on, across every seed.
+
+    NOT ``_chart_binding_bg``. That one deliberately covers three surfaces and
+    says so — "never the hover/active states" — because a chart mark lives on a
+    tile. A status dot does not: it sits in a LIST ROW, which hovers; in a
+    sidebar card on ``--bnd-pane``; and in a selected row on ``--bnd-active``.
+    The item-28 release review measured ten of the twelve dots below 3:1 on
+    those three grounds in dark while the gate reported green, because the ramp
+    had borrowed the chart's narrower set. So this walks all six.
+
+    Same extreme-seed reasoning as the chart version: a dark mark is
+    light-on-dark, so the binding surface is the LIGHTEST it ever lands on,
+    which occurs at the brightest seed. Computed from the surface formulas
+    directly, because :func:`status_ramp` is called from :func:`derive` and must
+    not recurse into it.
+    """
+    ramp = SURFACES_LIGHT if mode == "light" else SURFACES_DARK
+    extreme = "#000000" if mode == "light" else "#ffffff"
+    cands = [mix(extreme, pct, base) for _tok, pct, base in ramp]
+    key = lambda hx: luminance(parse_color(hx))
+    return min(cands, key=key) if mode == "light" else max(cands, key=key)
+
+
+def status_ramp(mode: str) -> dict[str, str]:
+    """The indicator-dot palette for one mode: ``--bnd-status-<name>`` x 12.
+
+    Each hue is fitted for 3:1 (SC 1.4.11) against the worst surface a dot sits
+    on, keeping its identity — a fitted red is still red, where a borrowed
+    near-white is not. Brand-independent; see :data:`STATUS_HUES`.
+    """
+    bg = _status_binding_bg(mode)
+    out: dict[str, str] = {}
+    for name, hue in STATUS_HUES.items():
+        # THE SIBLING LIFT IS DARK-ONLY, and that is not a shortcut. In light the
+        # fit moves a colour DARKER, which is the direction the sibling names
+        # already point (`darkgrey` #383838 is darker than `gray` #525252), so
+        # they separate on their own and every one of the twelve already clears
+        # the floor unchanged. Applying it in light instead did the opposite of
+        # what the name says — it fitted `light-blue` to #00549a, DARKER than
+        # `blue`. A rule that inverts a colour's own name is worse than no rule.
+        sibling = mode == "dark" and name in STATUS_SIBLINGS
+        target = STATUS_SIBLING_TARGET if sibling else AA_NON_TEXT
+        out[f"--bnd-status-{name}"], _ = fit_ink(hue, [bg], target=target)
+    return out
+
+
 def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     """Every seed-dependent token for one mode.
 
@@ -271,6 +366,10 @@ def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     # every seed — which is exactly why one static block in `_tokens.scss` can
     # satisfy `check_defaults_agree` for all of them.
     out.update(series_ramp(mode))
+    # The indicator-dot ramp (item 28). Emitted from derive() for the same reason
+    # the series ramp is: that is what makes `check_defaults_agree` gate it, so
+    # the static block in _tokens.scss and this function can never drift apart.
+    out.update(status_ramp(mode))
     return out
 
 

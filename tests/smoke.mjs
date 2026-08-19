@@ -7515,11 +7515,22 @@ async function main() {
 				const tr = t.getBoundingClientRect(), br = bar.getBoundingClientRect();
 				return {
 					toastBottom: Math.round(tr.bottom), barTop: Math.round(br.top),
+					gapAboveBar: Math.round(br.top - tr.bottom),
 					reserve: getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve").trim(),
 				};
 			});
 			expect(!g.error, `a toast and our bottom bar both rendered (${g.error || ""})`);
 			expect(g.toastBottom <= g.barTop + 1, `the toast clears the status bar (toast bottom ${g.toastBottom}, bar top ${g.barTop}, reserve ${g.reserve}; stock overlaps by ~11px)`);
+			// AND THAT THE RESERVE IS WHAT CLEARS IT. The first version asserted
+			// only "no overlap", which still passed with --bnd-bottom-reserve
+			// deleted from the rule — the toast just has to sit ABOVE the bar, and
+			// a fixed inset does that too. Assert the inset actually consults the
+			// reserve, which is the fact the repair is about.
+			expect(parseFloat(g.reserve) > 0, `the reserve is non-zero on this layout (${g.reserve})`);
+			expect(
+				g.gapAboveBar >= parseFloat(g.reserve) - 2,
+				`the clearance comes FROM the reserve (gap above the bar ${g.gapAboveBar}px vs reserve ${g.reserve})`
+			);
 		});
 
 		await test("overlay: the toast's inset is logical, so it mirrors", async () => {
@@ -8132,6 +8143,130 @@ async function main() {
 			expect(parseFloat(inset.rowRadius) > 0, `Inset leaves a real corner on the row (${inset.rowRadius})`);
 			expectEq(plain.rowRadius, "0px", "Plain squares it off");
 			expect(parseFloat(plain.pad) < parseFloat(inset.pad), `and takes the popup's inline inset out (${inset.pad} -> ${plain.pad})`);
+		});
+
+		// ── Overlays: checks the release review said were missing ──────────
+		//
+		// Every one of these exists because the adversarial pass found a rule
+		// with no check behind it, or a check that could not fail.
+
+		await test("overlay: every style gives a panel a findable edge", async () => {
+			// THE DEFECT THIS EXISTS FOR. The popup rule set `border-color`
+			// without `border-style`/`border-width`, and FOUR of its seven
+			// targets ship with no border box at all — `.frappe-menu`,
+			// `.popover`, `.duration-picker`, `.dt-dropdown__list`. On those,
+			// Hairline painted nothing and removed the vendor's shadow too, so
+			// the panel had no boundary AND no elevation: measured 1.07:1 fill
+			// against the ground behind it, strictly worse than stock.
+			//
+			// The old checks all measured the DIALOG or the Bootstrap dropdown,
+			// both of which carry a native 1px border — which is exactly why
+			// they stayed green. This one measures a borderless vendor.
+			for (const style of ["Hairline", "Soft", "Floating", "Solid"]) {
+				setSettings({ overlay_style: style });
+				await goDesk("/app/todo", ".list-row, .no-result", 3000);
+				const g = await page.evaluate(() => {
+					document.documentElement.setAttribute("data-theme", "dark");
+					const el = document.createElement("div");
+					el.className = "frappe-menu";
+					el.style.cssText = "position:fixed;left:-9999px;top:0";
+					document.body.appendChild(el);
+					const cs = getComputedStyle(el);
+					const out = {
+						width: cs.borderTopWidth, style: cs.borderTopStyle,
+						colour: cs.borderTopColor, shadow: cs.boxShadow,
+					};
+					el.remove();
+					document.documentElement.removeAttribute("data-theme");
+					return out;
+				});
+				const hasBorder = parseFloat(g.width) > 0 && g.style !== "none";
+				const hasShadow = g.shadow && g.shadow !== "none";
+				expect(hasBorder || hasShadow,
+					`${style}: a borderless vendor panel still gets a boundary or an elevation ` +
+					`(border ${g.width} ${g.style}, shadow ${g.shadow})`);
+			}
+		});
+
+		await test("overlay: the toast clears the bar on a phone too", async () => {
+			// The mobile branch carries the WORST measured stock defect — 36px of
+			// overlap across a full-bleed strip, covering the bar's inline-end
+			// control — and no check executed it. `@include bnd-until(md)` never
+			// fires at the suite's 1920 default, so the rule shipped unmeasured.
+			setSettings({ overlay_style: "Floating" });
+			await page.setViewportSize({ width: 390, height: 844 });
+			await goDesk("/app/todo", ".list-row, .no-result", 4000);
+			const g = await page.evaluate(async () => {
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				frappe.show_alert({ message: "phone probe", indicator: "green" }, 30);
+				await new Promise((r) => setTimeout(r, 900));
+				const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
+				const bar = document.querySelector('[data-bnd-part="bottombar"]');
+				if (!t || !bar) return { error: `toast ${!!t}, bar ${!!bar}` };
+				const tr = t.getBoundingClientRect(), br = bar.getBoundingClientRect();
+				const out = {
+					toastBottom: Math.round(tr.bottom), barTop: Math.round(br.top),
+					width: Math.round(tr.width), vw: window.innerWidth,
+					reserve: getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve").trim(),
+				};
+				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
+				return out;
+			});
+			await page.setViewportSize({ width: 1920, height: 1080 });
+			expect(!g.error, `a toast and the phone bar both rendered (${g.error || ""})`);
+			expect(g.toastBottom <= g.barTop + 1,
+				`the phone toast clears the bar (bottom ${g.toastBottom}, bar top ${g.barTop}, reserve ${g.reserve}; stock overlaps by ~36px)`);
+			expect(g.width >= g.vw - 2, `and it is still the full-bleed strip the vendor intends (${g.width} of ${g.vw})`);
+		});
+
+		await test("overlay: a discarded live preview reverts to the saved state", async () => {
+			// The item-25/26 "escapee": a field dropped from the preview or the
+			// revert path stays green while live preview and export silently lose
+			// it. Item 27 carries this check; item 28 shipped without one.
+			// Drives the HOOK the settings form drives, not the apply function.
+			setSettings({ overlay_style: "Floating", overlay_scrim: "Tinted", overlay_menu: "Inset" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await page.evaluate(() =>
+				window.bunood_theme.overlay_apply({ overlay_style: "Solid", overlay_scrim: "Blurred", overlay_menu: "Plain" }));
+			await page.waitForTimeout(300);
+			const previewed = await page.evaluate(() => ({
+				style: document.documentElement.getAttribute("data-bnd-overlay"),
+				scrim: document.documentElement.getAttribute("data-bnd-overlay-scrim"),
+				menu: document.documentElement.getAttribute("data-bnd-overlay-menu"),
+			}));
+			await page.evaluate(() => cur_frm.refresh());
+			await page.waitForTimeout(800);
+			const after = await page.evaluate(() => ({
+				style: document.documentElement.getAttribute("data-bnd-overlay"),
+				scrim: document.documentElement.getAttribute("data-bnd-overlay-scrim"),
+				menu: document.documentElement.getAttribute("data-bnd-overlay-menu"),
+			}));
+			expectEq(previewed.style, "solid", "the preview applied the style live");
+			expectEq(previewed.scrim, "blurred", "and the scrim");
+			expectEq(previewed.menu, "plain", "and the menu row");
+			expectEq(after.style, "floating", "the discard restored the saved style");
+			expectEq(after.scrim, "tinted", "and the saved scrim");
+			expectEq(after.menu, null, "and the saved menu row (Inset is the neutral — no attribute)");
+		});
+
+		await test("overlay: an unset field does not strip the style", async () => {
+			// bnd_overlay_preview sent raw frm.doc values with no default
+			// fallback, so on a site where a field was never written, opening the
+			// settings form CLEARED the anchor the boot payload had just set. The
+			// renderer two functions above already fell back; the preview did not.
+			setSettings({ overlay_style: "Floating" });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			const g = await page.evaluate(async () => {
+				// simulate the never-written field the boot payload defaults for
+				const before = cur_frm.doc.overlay_scrim;
+				cur_frm.doc.overlay_scrim = "";
+				window.bunood_theme.overlay_apply({ overlay_style: cur_frm.doc.overlay_style, overlay_scrim: "" });
+				await new Promise((r) => setTimeout(r, 250));
+				const anchor = document.documentElement.getAttribute("data-bnd-overlay");
+				cur_frm.doc.overlay_scrim = before;
+				return { anchor };
+			});
+			expectEq(g.anchor, "floating", "an empty sibling value leaves the anchor standing");
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

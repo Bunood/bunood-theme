@@ -610,7 +610,9 @@ entry.
     paints `.graph-svg-tip`, item 27 the gantt popup and the calendar grid. A kit claiming
     "every overlay" walks straight into the same-fact-in-two-places trap, so ownership was
     settled per object before a line was written. It also corrected a false comment in
-    `_charts.scss` (the chart tooltip is *container*-appended, not body-appended).
+    `_charts.scss` (the chart tooltip is *container*-appended, not body-appended — the comment
+    said the opposite, and a body-appended node could neither inherit the container's custom
+    properties nor be matched by the descendant selector that was working).
   - **"Original" had to mean something different here, and that is the item's real decision.**
     Item 27's rule — *"Original renders as stock, warts and all"* — is right for one opt-in
     route and wrong for a surface on every page: three of the nine failures are measured WCAG

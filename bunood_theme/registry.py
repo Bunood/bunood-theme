@@ -620,9 +620,13 @@ SURFACES = [
     {
         "key": "overlay",
         # Labelled "Overlays", not any one of them: ONE anchor dresses the
-        # dialog, the dropdown, the context menu, the toast, the popover, the
-        # datepicker and the lightbox as the same floating object drawn several
-        # ways — the report kit's "reaches every datatable" reasoning again.
+        # dialog, the grid-row editor, the dropdown, the context menu, the
+        # autocomplete, the toast, the popover, the datepicker, the report
+        # column list, the duration picker and the calendar's "+N more" card as
+        # the same floating object drawn several ways — the report kit's
+        # "reaches every datatable" reasoning again. NOT the lightbox: its black
+        # ground is correct in both modes and it is deliberately left alone
+        # (docs/upstream/frappe-overlays.md, "Not filed, and why").
         # Splitting would permit a floating dialog beside a square menu.
         # Item 28.
         "part": "overlay",

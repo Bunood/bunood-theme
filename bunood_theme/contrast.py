@@ -402,6 +402,13 @@ def separation(colors, kinds=CVD_COMMON) -> float:
         k: [to_lab(simulate_cvd(parse_color(c) if isinstance(c, str) else c, k)) for c in colors]
         for k in kinds
     }
+    # A set with fewer than two members has no pairwise distance. Returning inf
+    # (the old identity for the min-loop) made "everything collapsed to one
+    # colour" score BETTER than any real palette and sail through a floor —
+    # exactly the blindness the item-28 release review found in the status gate.
+    # 0.0 is the honest answer: nothing here is distinguishable from anything.
+    if len(colors) < 2:
+        return 0.0
     worst = float("inf")
     for i in range(len(colors)):
         for j in range(i + 1, len(colors)):

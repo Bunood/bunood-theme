@@ -63,6 +63,28 @@ from bunood_theme.contrast import (  # noqa: E402
 SERIES_FLOOR_COMMON = 6.0
 SERIES_FLOOR_TRITAN = 4.5
 
+#: Indicator status-dot separation floor (item 28). LOWER THAN THE SERIES FLOOR,
+#: and deliberately so — the two sets are not the same kind of palette.
+#:
+#: The series ramp is SEVEN slots we chose freely, so it can be a designed
+#: CVD-safe scheme. The status ramp is TWELVE names Frappe already ships with
+#: fixed meanings (red is danger, green is success): the hues are given, and all
+#: that is fitted is their tone for a dark ground. Twelve constrained hues cannot
+#: reach the separation seven free ones can, and forcing them there would mean
+#: changing what a colour MEANS.
+#:
+#: The floor is set from measurement, not taste. Borrowing Frappe's own
+#: --text-on-* values — the first repair item 28 shipped — scores 0.83, which is
+#: BELOW the ~2.3 just-noticeable difference: legible dots that cannot be told
+#: apart. The fitted ramp scores 3.58 in dark and 4.28 in light. 3.0 sits above
+#: the JND and below what is achievable, so it fails the borrowed set and passes
+#: the fitted one.
+STATUS_FLOOR_COMMON = 3.0
+
+#: The twelve names, in Frappe's own order. Imported rather than restated so the
+#: gate and palette.STATUS_HUES cannot list different sets.
+STATUS_NAMES = tuple(palette.STATUS_HUES)
+
 #: The shipped accent. Held constant while the brand seed varies: the two are
 #: independent settings, and varying both would multiply the matrix without
 #: testing anything the brand axis does not already cover.
@@ -340,6 +362,41 @@ def pairs():
         for bg in ("var(--bnd-surface)", "var(--bnd-page)"):
             out.append(Pair(f"var(--bnd-series-{n})", bg, AA_NON_TEXT,
                             f"chart series {n} mark"))
+
+    # ── Toast subtitle on Frappe's four alert washes (item 28) ───────────────
+    # The washes are Frappe CONSTANTS (desk/dark.scss:89-92 and its light twin),
+    # so five literal rows cover all eleven seeds at once. They are pinned here
+    # because the first version of this repair used a SEED-DERIVED ink and
+    # measured 3.67 on the warning wash in dark at seed #000000 — a quieter AA
+    # failure swapped in for the loud one, and nothing in the tree would have
+    # caught it. TEXT, not graphic: this is a sentence.
+    # Mode-SCOPED, using Pair's own `mode` field: the wash is a different literal
+    # in each theme, so a dark wash must not be evaluated against light tokens.
+    _ALERT_WASHES = {
+        "light": {"danger": "#fff7f7", "warning": "#fffcef", "info": "#f7fbfd", "success": "#e4f5e9"},
+        "dark": {"danger": "#6b1515", "warning": "#733f12", "info": "#004880", "success": "#173b2c"},
+    }
+    for _mode, washes in _ALERT_WASHES.items():
+        for name, bg in washes.items():
+            out.append(Pair("var(--bnd-ink)", bg, AA_TEXT,
+                            f"toast subtitle on the {name} wash", _mode))
+
+    # ── Indicator status dots (item 28) ───────────────────────────────────────
+    # A status dot is a meaningful graphic, so 1.4.11's 3:1. The three surfaces
+    # are every ground a dot lands on: a dialog header and a list row
+    # (--bnd-surface), a raised panel (--bnd-raised) and the canvas (--bnd-page).
+    # Brand-independent like the series ramp, so these hold for every seed at
+    # once. Mutual separation is check_status_separation's job, not a ratio's.
+    # ALL SIX SURFACES, not the chart's three. A dot sits in a list row (which
+    # HOVERS), in a sidebar card (--bnd-pane) and in a selected row
+    # (--bnd-active) — the release review measured ten of the twelve below 3:1
+    # on exactly those three while this table reported green, because it had
+    # borrowed the chart ramp's narrower set along with its binding function.
+    for name in STATUS_NAMES:
+        for bg in ("var(--bnd-page)", "var(--bnd-surface)", "var(--bnd-raised)",
+                   "var(--bnd-pane)", "var(--bnd-hover)", "var(--bnd-active)"):
+            out.append(Pair(f"var(--bnd-status-{name})", bg, AA_NON_TEXT,
+                            f"status dot {name}"))
 
     # ── Measured, deliberately not enforced: the vendor's overflow slice ──────
     # frappe-charts hard-writes colors[maxSlices-1] = 'grey' (#A6B1B9) for the
@@ -644,6 +701,66 @@ def check_series_separation(light: dict, dark: dict) -> tuple[list[str], list[st
     return problems, advisories
 
 
+def check_status_separation(light: dict, dark: dict) -> list[str]:
+    """The twelve status dots must be tellable apart from EACH OTHER.
+
+    The same measure as :func:`check_series_separation` against a different
+    floor and a different set, and separate for the same reason: a worst-pairwise
+    DIFFERENCE across a set is not an ink-on-background ratio.
+
+    `gray` and `grey` are one colour under two spellings and are de-duplicated
+    before measuring — a palette is not less distinguishable because a name has
+    two English spellings. Only the COMMON vision models are enforced; the twelve
+    hues are Frappe's, and holding a fixed vocabulary to a tritan floor would be
+    reporting a defect nobody here can fix.
+    """
+    problems = []
+    for mode, block in (("light", light), ("dark", dark)):
+        try:
+            hues = [block[f"--bnd-status-{n}"] for n in STATUS_NAMES]
+        except KeyError as exc:
+            problems.append(f"{mode}: _tokens.scss is missing status token {exc}")
+            continue
+        # MEASURE OVER NAMES, NOT VALUES. Deduplicating by hex was the whole
+        # defect: two DIFFERENT status names resolving to the SAME colour
+        # collapsed to one entry and scored inf, so the gate reported green on
+        # the worst possible outcome. Only `gray`/`grey` may share a value —
+        # they are one colour under two spellings in palette.STATUS_HUES — and
+        # that is asserted from the source table rather than assumed.
+        aliases = {}
+        for name, hue in palette.STATUS_HUES.items():
+            aliases.setdefault(hue, []).append(name)
+        allowed = {tuple(sorted(g)) for g in aliases.values() if len(g) > 1}
+
+        by_value = {}
+        for name in STATUS_NAMES:
+            by_value.setdefault(block[f"--bnd-status-{name}"], []).append(name)
+        for value, names in by_value.items():
+            if len(names) > 1 and tuple(sorted(names)) not in allowed:
+                problems.append(
+                    f"{mode}: status dots {', '.join(sorted(names))} are all {value} — "
+                    f"distinct status names must not share a colour"
+                )
+
+        # One representative per DECLARED alias group, so `grey` does not count
+        # as a collision with `gray`, and everything else stands on its own.
+        seen_alias, hues = set(), []
+        for name in STATUS_NAMES:
+            group = next((g for g in allowed if name in g), (name,))
+            if group in seen_alias:
+                continue
+            seen_alias.add(group)
+            hues.append(block[f"--bnd-status-{name}"])
+
+        common = separation(hues, CVD_COMMON)
+        if common < STATUS_FLOOR_COMMON:
+            problems.append(
+                f"{mode}: status-dot separation {common:.2f} < {STATUS_FLOOR_COMMON} "
+                f"(normal+protan+deutan) — two status marks confuse for a common CVD viewer"
+            )
+    return problems
+
+
 def check_computed() -> int:
     """Measure the pair table against token values READ OUT OF A BROWSER.
 
@@ -832,6 +949,7 @@ def main() -> int:
         print()
 
     sep, sep_advisories = check_series_separation(light, dark)
+    sep += check_status_separation(light, dark)
     if sep:
         print("chart series separation is below the floor:")
         for s in sep:

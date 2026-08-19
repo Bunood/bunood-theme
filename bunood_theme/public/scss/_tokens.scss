@@ -270,6 +270,37 @@
   --bnd-cat-6: #008300;
   --bnd-cat-7: #4a3aa7;
   --bnd-cat-0: var(--bnd-ink-subtle); // the "other" bucket
+
+  // ── Indicator status dots (item 28) ───────────────────────────────────────
+  // Frappe's twelve indicator names, re-toned so a status MARK stays
+  // identifiable. `desk/dark.scss:264` points every --indicator-dot-* at the
+  // matching --bg-* — the dark wash a PILL is filled with, not an ink — and ten
+  // of the twelve then fail the 3:1 non-text floor, eight invisibly.
+  //
+  // FITTED, NOT BORROWED. Item 28 first repaired this by pointing the dot back
+  // at --text-on-*, which cleared the floor everywhere (worst 5.59) but left
+  // four hues as near-whites: worst pairwise CIEDE2000 across the set was 0.83,
+  // i.e. BELOW the just-noticeable difference — legible, and no longer telling
+  // the reader which status it is. Fitting each hue for 3:1 instead takes that
+  // to 3.58 while keeping cyan cyan and purple purple.
+  //
+  // Brand-independent, exactly like the chart series ramp, which is what lets
+  // one static block satisfy check_defaults_agree for all eleven gate seeds.
+  // Derived by palette.status_ramp(); regenerate with
+  // `python tools/contrast_gate.py --emit-defaults`.
+  --bnd-status-green: #16794c;
+  --bnd-status-cyan: #267a94;
+  --bnd-status-blue: #0070cc;
+  --bnd-status-orange: #bd3e0c;
+  --bnd-status-yellow: #ab6e05;
+  --bnd-status-gray: #525252;
+  --bnd-status-grey: #525252;
+  --bnd-status-red: #b52a2a;
+  --bnd-status-pink: #9c2671;
+  --bnd-status-darkgrey: #383838;
+  --bnd-status-purple: #6e399d;
+  --bnd-status-light-blue: #007be0;
+
   --bnd-cat-tint: 14%;
   --bnd-cat-wash: 7%;
 
@@ -348,6 +379,20 @@ html[data-theme="dark"] {
   // Still tuned for the stacked case: 0.72 twice reads as 0.92.
   --bnd-scrim: rgba(4, 8, 7, 0.72);
   --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+
+  // The status ramp, re-fitted for the dark ground (item 28). See :root.
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
 
   // Re-stepped for the dark surface, not lightened from the light values.
   --bnd-cat-1: #3987e5;

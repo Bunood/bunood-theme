@@ -65,9 +65,14 @@ html[data-theme] .chart-container {
   --charts-legend-label: var(--bnd-ink-muted);
   --charts-legend-value: var(--bnd-ink);
 
-  // The tooltip is body-appended and themed through the vars above, but its own
-  // box wants the theme's surface, radius and shadow rather than the vendor's
-  // hard black. `.graph-svg-tip` is the vendor's class.
+  // The tooltip is built INSIDE the chart container — frappe-charts constructs
+  // it `new SvgTip({parent: this.container})` — which is what lets this rule
+  // reach it as a descendant at all. (It said "body-appended" until item 28's
+  // release review: a body-appended node could neither inherit the custom
+  // properties set on .chart-container nor be matched by a descendant selector,
+  // so the comment and the rule could not both be true. The rule was right.)
+  // Its own box wants the theme's surface, radius and shadow rather than the
+  // vendor's hard black. `.graph-svg-tip` is the vendor's class.
   .graph-svg-tip {
     border-radius: var(--bnd-radius-sm);
     box-shadow: var(--bnd-shadow-md);
