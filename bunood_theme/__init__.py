@@ -1,4 +1,4 @@
-__version__ = "0.15.0"
+__version__ = "0.20.0"
 
 # Runs once, at app load — the earliest point that can beat any request's
 # lazy import of frappe/www/desk.py. See bunood_theme/i18n/rtl_patch.py for

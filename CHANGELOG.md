@@ -12,6 +12,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-08-19 — Overlays (item 28)
+
 ### Overlays get a hand (item 28 — dialogs, dropdowns, toasts)
 
 Everything that floats above the desk is dressed by the same tailor now — the
