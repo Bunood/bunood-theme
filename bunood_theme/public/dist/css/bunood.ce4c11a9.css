@@ -4657,6 +4657,21 @@ html[data-theme] .desk-alert .alert-subtitle {
   color: var(--bnd-ink-muted);
 }
 
+html[data-theme=dark] .indicator {
+  --indicator-dot-green: var(--text-on-green);
+  --indicator-dot-cyan: var(--text-on-cyan);
+  --indicator-dot-blue: var(--text-on-blue);
+  --indicator-dot-orange: var(--text-on-orange);
+  --indicator-dot-yellow: var(--text-on-yellow);
+  --indicator-dot-gray: var(--text-on-gray);
+  --indicator-dot-grey: var(--text-on-grey);
+  --indicator-dot-red: var(--text-on-red);
+  --indicator-dot-pink: var(--text-on-pink);
+  --indicator-dot-darkgrey: var(--text-on-darkgrey);
+  --indicator-dot-purple: var(--text-on-purple);
+  --indicator-dot-light-blue: var(--text-on-light-blue);
+}
+
 html[data-theme] .tooltip-inner {
   background-color: var(--bnd-ink);
   color: var(--bnd-surface);

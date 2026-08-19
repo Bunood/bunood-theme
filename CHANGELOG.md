@@ -12,6 +12,39 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Overlays get a hand (item 28 — dialogs, dropdowns, toasts)
+
+Everything that floats above the desk is dressed by the same tailor now — the
+dialog, the menu, the autocomplete, the toast, the popover, the datepicker, the
+report column list and the calendar's "+N more" card. One style setting decides
+how a floating thing separates itself from the page beneath: a hairline, a soft
+shadow, a lifted card (the default) or a raised panel that separates by tone.
+The scrim behind a dialog becomes the theme's own tint rather than a flat grey,
+optionally frosted, and menu rows agree with each other for the first time.
+
+The sixth surface kit, and the first that is on every page rather than on one
+route — which is why it began as a repair. Nine things were measurably wrong in
+stock, in the dark theme, before any of it was styled:
+
+- Inside every dialog and every grid-row editor, borders and control fills fell
+  back to a grey the theme had already replaced, so a control had no visible
+  edge and no visible fill — the two things that make it findable at rest.
+- Ten of the twelve status dots failed the contrast floor in dark, and eight of
+  them were simply invisible.
+- Toasts painted over this theme's own status bar, and never moved when the desk
+  was in Arabic.
+- Tooltips were a hardcoded black chip that ignored the theme in both modes.
+- The toast's second line and every menu's keyboard shortcut failed AA.
+- The datepicker's out-of-month days were indistinguishable from in-month ones.
+- The calendar's popover rendered a white card on a dark desk whenever the
+  alternate-views styling was turned off.
+
+**Those repairs are not part of the style.** Choosing "Original" stands the
+styling down and keeps every one of them, because they are about whether the
+desk works, not how it looks — and unlike a single view, a dialog is on the page
+where that choice is made.
+
+
 ## [0.19.0] — 2026-08-18 — Alternate views (item 27)
 
 ### Four views, one hand (item 27 — alternate views)

@@ -7575,6 +7575,53 @@ async function main() {
 			expect(Math.abs(g.rtl.width - g.ltr.width) <= 2, `RTL: it is not pinned on both sides and stretched (width ${g.ltr.width} -> ${g.rtl.width})`);
 		});
 
+		await test("overlay: every status dot clears 3:1 in dark", async () => {
+			// desk/dark.scss:264-270 re-points every --indicator-dot-* to the
+			// matching --bg-*: the dark WASH a pill is filled with, not an ink.
+			// Measured in stock, TEN of the twelve hues fail the 3:1 non-text
+			// floor and eight are simply invisible (red 6.31:1 in light becomes
+			// 1.02:1 in dark). The repair points the dot back at the same var the
+			// light-mode base rule uses, so it resolves to Frappe's own light
+			// tints — designed to be read.
+			//
+			// ALL TWELVE are measured, against all three surfaces a dot can sit
+			// on. A check that sampled one colour would have passed in stock:
+			// yellow and darkgrey already clear the floor.
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(() => {
+				const C = ["green", "cyan", "blue", "orange", "yellow", "gray", "grey", "red", "pink", "darkgrey", "purple", "light-blue"];
+				const host = document.createElement("div");
+				host.style.cssText = "position:fixed;left:-9999px;top:0";
+				host.innerHTML = C.map((c) => `<span class="indicator ${c}" data-c="${c}">x</span>`).join("");
+				document.body.appendChild(host);
+				const swatch = (v) => {
+					const d = document.createElement("div");
+					d.style.cssText = "position:fixed;left:-9999px;top:0;background:" + v;
+					document.body.appendChild(d);
+					const x = getComputedStyle(d).backgroundColor;
+					d.remove();
+					return x;
+				};
+				document.documentElement.setAttribute("data-theme", "dark");
+				const grounds = [swatch("var(--bnd-surface)"), swatch("var(--bnd-raised)"), swatch("var(--bnd-page)")];
+				const rows = C.map((c) => ({
+					c,
+					dot: getComputedStyle(host.querySelector(`[data-c="${c}"]`), "::before").backgroundColor,
+					grounds,
+				}));
+				host.remove();
+				document.documentElement.removeAttribute("data-theme");
+				return rows;
+			});
+			expectEq(g.length, 12, "all twelve indicator colours were measured");
+			const bad = [];
+			for (const row of g) {
+				const worst = Math.min(...row.grounds.map((b) => ovRatio(row.dot, b)));
+				if (worst < 3) bad.push(`${row.c} ${worst.toFixed(2)}:1 (${row.dot})`);
+			}
+			expectEq(bad.join(" · "), "", "every status dot clears the 3:1 non-text floor in dark");
+		});
+
 		await test("overlay: the context menu takes the theme's surface in dark", async () => {
 			// `.frappe-menu` (frappe/ui/menu.js, body-appended) paints
 			// `background: var(--surface-modal)` — a token our bridge did not map,

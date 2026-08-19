@@ -121,6 +121,37 @@ html[data-theme] .desk-alert .alert-subtitle {
   color: var(--bnd-ink-muted);
 }
 
+// ── Repair 2: the status dot, legible in dark ───────────────────────────────
+// `desk/dark.scss:264-270` re-points every `--indicator-dot-*` to the matching
+// `--bg-*` — the DARK WASH a pill is filled with, not an ink. Measured on a real
+// msgprint in dark: the red dot goes from rgb(181,42,42) at 6.31:1 in light to
+// rgb(54,21,21) at 1.02:1. TEN of the twelve hues fail the 3:1 non-text floor,
+// and the eight that flip are simply gone. (`.indicator-pill` flips correctly —
+// only the bare ::before dot is broken.)
+//
+// THE FIX IS TO UNDO THE REMAP, not to invent a colour: point the dot back at
+// the very var the light-mode base rule uses (`common/indicator.scss`:
+// `.indicator { --indicator-dot-green: var(--text-on-green) }`). In dark that
+// resolves to Frappe's own light tints, which are designed to be READ. Measured
+// across all twelve against --bnd-surface / --bnd-raised / --bnd-page: every one
+// clears 3:1, worst 5.59. Vendor is (0,2,0); this is (0,2,1).
+//
+// KNOWN RESIDUAL, recorded rather than hidden: four of the twelve (cyan, yellow,
+// pink, purple) resolve to near-whites in dark, so they are legible but hard to
+// tell APART. That is Frappe's palette, not this rule — stock dark is strictly
+// worse, since those four are invisible. Making twelve status hues mutually
+// distinct in dark is a palette project with its own contrast obligation
+// (item 25's series-ramp shape), and it is filed, not silently absorbed.
+html[data-theme="dark"] .indicator {
+  @each $c in green, cyan, blue, orange, yellow, gray, grey, red, pink, darkgrey, purple, light-blue {
+    // `"" + $c` because gray / red / purple / pink / orange are real Sass
+    // COLOR values, and interpolating a colour into an identifier is
+    // deprecated. Frappe's own dark.scss uses the same idiom for the same
+    // twelve names.
+    --indicator-dot-#{"" + $c}: var(--text-on-#{"" + $c});
+  }
+}
+
 // ── Repair 4: the context menu's surface ────────────────────────────────────
 // `.frappe-menu` reads `--surface-modal` (desk/menu.scss:13), which the bridge
 // did not map — measured #232323 in dark against our #16241F surface, a 1.02:1

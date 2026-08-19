@@ -600,7 +600,47 @@ entry.
     Directus `layouts/kanban` + `styles/lib/_fullcalendar.scss` + `layouts/cards`, frappe-ui
     `Calendar` and `ListGroupHeader` (item 26's banked grouping precedent). Upstream:
     `docs/upstream/frappe-gantt-geometry.md` (bar geometry, Sortable animation, gantt RTL).
-- `[ ]` **28 · Overlays** *(was 21)* — modals, dropdowns, toasts
+- `[x]` **28 · Overlays** *(was 21, done 2026-08-19)* — dialogs, dropdowns and toasts, the
+  SIXTH surface kit and the first that is on EVERY page rather than on one route. Five gated
+  slices. Three fields (`overlay_style` anchor · `overlay_scrim` · `overlay_menu`) — the
+  smallest set any surface kit has shipped, because this kit's weight is in nine measured
+  repairs, not in its choices. What the surface taught:
+  - **The desk's floating objects are ONE family, and nobody had written that down.** The
+    census found 23 of them and, more importantly, that **three were already owned** — item 25
+    paints `.graph-svg-tip`, item 27 the gantt popup and the calendar grid. A kit claiming
+    "every overlay" walks straight into the same-fact-in-two-places trap, so ownership was
+    settled per object before a line was written. It also corrected a false comment in
+    `_charts.scss` (the chart tooltip is *container*-appended, not body-appended).
+  - **"Original" had to mean something different here, and that is the item's real decision.**
+    Item 27's rule — *"Original renders as stock, warts and all"* — is right for one opt-in
+    route and wrong for a surface on every page: three of the nine failures are measured WCAG
+    AA failures, on the page where the setting is chosen. So the repairs are CONTRACTS scoped
+    `html[data-theme]` and survive the stand-down; only the style is anchored. Precedent
+    existed three times over (`_list` density, `_report` focus ring, `_views` focus ring).
+  - **Frappe is RTL-correct by a build-time rtlcss pass; we are by logical properties; the two
+    DO NOT COMPOSE.** A rule setting only `inset-inline-end` lands on the same physical side as
+    the vendor's flipped rule in one direction and the opposite in the other, and physical and
+    logical declarations do not overwrite each other — so the element ends up pinned on both
+    sides. New doctrine in `GUIDELINES.md` §1.3: set BOTH logical sides, one to a value and one
+    to `auto`.
+  - **The central obstacle was a theming hook overridden above the hook.**
+    `desk/dark.scss:189` sets `--border-color`/`--control-bg` at (0,2,0) on `.modal` AND
+    `.form-in-grid`, beating any app's `html[data-theme="dark"]` bridge at (0,1,1). Measured
+    1.02:1 — no visible line, no fill delta — i.e. item 22's "identifiable at rest" contract
+    failing inside every dialog on the desk. Beaten at (0,2,1), no `!important`.
+  - **Two axes were reshaped by measurement, not preference.** `overlay_menu` was built on the
+    premise that stock rows are full-bleed; stock turned out to be INCONSISTENT (Bootstrap row
+    already an 8px pill, `.frappe-menu` row square at 0px), so "round the row" was a no-op on
+    one vocabulary. Flipped to item 27's `views_band` polarity: the anchor unifies, `Inset` is
+    the neutral, `Plain` is the active override. And the scrim's alpha is tuned for the STACKED
+    case — two dialogs paint two backdrops at the same z-index, so scrims compound.
+  - **Verification had no route to visit.** An overlay exists only after a gesture, so every
+    check drives the overlay and reads a computed value. The discipline caught three DEFECTIVE
+    checks, one of which PASSED before its fix (a synthetic node missing the ancestor the vendor
+    rule needs, measuring nothing). References: shadcn `dialog`/`dropdown-menu`/`sonner` and its
+    eight named styles, Directus `v-dialog`/`v-menu`/`v-overlay`, Discourse `d-modal`/`d-menu`/
+    `d-toasts`, frappe-ui `Dialog`/`Menu`/`Toast` — the anchor's default is frappe-ui's own
+    dialog recipe. Upstream: `docs/upstream/frappe-overlays.md` (six filings).
 - `[ ]` **29 · Empty states** *(was 22)* — an action, not a zero
 - `[ ]` **30 · Skeletons** *(was 23)* — loading that does not reflow
 - `[ ]` **31 · Filters + saved views** *(was 24)*

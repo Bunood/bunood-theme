@@ -10,13 +10,60 @@
 
 ## 1. Where the work stands
 
-**ITEM 27 (alternate views — kanban · calendar · gantt · gallery) — DONE, LOCAL-ONLY, ON A
-BRANCH (2026-08-18).** Five commits on branch **`item-27-views`** (not `main`): `9ddc5fe` 0 ·
-`7b317f3` 1 · `9843dbc` 2 · `0281746` 3 · `17b35f1` 4 · then slice 5 (the close). The full suite
-gated each shipping slice (last green **260/260**). **Not pushed, not merged, not tagged** — the
-release is the user's call. When they say so it is a MINOR (**v0.19.0**): bump `app_version`, move
-the CHANGELOG `[Unreleased]` block under a `[0.19.0]` heading, tag, push main + tag, bump the bunood
-repo's `apps.json` pin. Plan + wireframes: `~/.claude/plans/we-are-working-on-mighty-willow.md` and
+**ITEM 28 (overlays — dialogs, dropdowns, toasts) — DONE, LOCAL-ONLY (2026-08-19).** Five
+commits on `main`: `afbf970` 1 · `6d7746b` 2 · `b14f0b3` 3 · `544c0ea` 4 · then slice 5 (the
+close). **Not pushed, not tagged** — the release is the user's call. When they say so it is a
+MINOR (**v0.20.0**): bump `app_version`, move the CHANGELOG `[Unreleased]` block under a
+`[0.20.0]` heading, tag, push main + tag, bump the bunood repo's `apps.json` pin. Plan +
+wireframes: `~/.claude/plans/item-28-overlays.md` and
+<https://claude.ai/code/artifact/c8d9d7ca-375f-4e7f-9373-139e89d99a9b>. Facts worth keeping:
+- **The desk has ~23 floating objects and they are ONE family — now written down** (ROADMAP's
+  item-28 block, and `_overlays.scss`'s header). THREE were already owned when this started:
+  `.graph-svg-tip` (item 25), the gantt popup and calendar grid (item 27). Settle ownership per
+  object before touching an overlay.
+- **`desk/dark.scss:189` is the trap of this surface.** `[data-theme="dark"] .modal,
+  .form-in-grid` sets `--control-bg`/`--border-color` at (0,2,0), beating our bridge's (0,1,1),
+  so dark dialogs took Frappe's `#232323` — measured 1.02:1, no visible line, no fill delta.
+  Beaten at (0,2,1) with `:is()`. **`.form-in-grid` is the half that is easy to miss** — a
+  dialog in all but name — and note there is one `.form-in-grid` PER GRID ROW, so scope any
+  probe to `.grid-row-open` or you measure a closed one.
+- **RTL DOCTRINE, new and now in GUIDELINES §1.3.** Frappe is RTL-correct by a build-time
+  rtlcss pass (`sites/assets/frappe/dist/css-rtl/`); we are by logical properties; they do not
+  compose. Any rule touching an overlay's inline-axis position must set BOTH logical sides, one
+  to a value and one to `auto`.
+- **Scrims COMPOUND.** Two open dialogs paint two `.modal-backdrop` nodes, both at z 1040
+  (Bootstrap 4.6.2 does no z-bumping), so a 0.62 tint reads 0.86 stacked. The token is tuned for
+  the stacked case; dark goes deeper (0.72), not lighter. Also: the vendor keeps the alpha in
+  `opacity` while our token keeps it in the colour, and left alone the two MULTIPLY — hence
+  `opacity: 1`.
+- **Check the stock value before designing an axis around changing it.** `overlay_menu` was
+  built on "stock rows are full-bleed"; stock is INCONSISTENT (Bootstrap row already an 8px pill
+  in a 4px-padded popup, `.frappe-menu` row square at 0px). Flipped to item 27's `views_band`
+  polarity — anchor unifies, `Inset` neutral, `Plain` the active override.
+- **This kit's verification has no route.** An overlay exists only after a gesture; every check
+  drives it. That discipline caught THREE defective checks, one of which passed before its fix.
+- **Payload:** `css_gzip` raised 18000 → 18400 (slice 1) → 18700 (slice 3). The picker is
+  doctype JS, so slice 4 moved neither bundle hash. Needs `BND_FORCE_RESTART=1` to serve.
+- **19 `ar.po` rows are `#, fuzzy`** (11 doctype + 8 picker, `#. src: item28`) and await the
+  user's review — the standing item-7 handoff.
+- **A LOCAL-ENVIRONMENT INCIDENT worth not repeating.** Git Bash MSYS path conversion silently
+  rewrites POSIX arguments to `wsl.exe`/`docker exec` (`/usr/bin/rm` became
+  `C:/Program Files/Git/usr/bin/rm`), and it emptied a `sed` in a hand-rolled rsync so the
+  source became `/` — which, with `--delete`, destroyed the WSL mirror the app is bind-mounted
+  from and took the stack down. **Export `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` before any
+  such call, pass multi-line scripts as a FILE (quoting is eaten too), and never hand-roll what
+  `tools/deploy.sh` already does.** Two recovery facts: Docker Desktop pins a WSL bind to a
+  handle made at container-CREATE time, so recreating a mounted directory means the container
+  must be RECREATED, not restarted; and recreating the frontend drops the per-app
+  `sites/assets/<app>` symlinks, which must be re-made to match the backend. ~12 GB is parked at
+  `~/bnd-mirror-junk` in WSL awaiting a privileged `rm`.
+
+**ITEM 27 (alternate views — kanban · calendar · gantt · gallery) — DONE, MERGED, RELEASED as
+`v0.19.0` (2026-08-18).** *(This entry read "LOCAL-ONLY, ON A BRANCH `item-27-views`" through the
+item-27 work; the release chain closed it and item 28 corrected the record — the six slice commits
+`9ddc5fe`→`5782d51` are on `main`, followed by the i18n sign-off `21aff3f` and the release commit
+`f5eee78`, and `app_version` reads `0.19.0`.)* The full suite gated each shipping slice (last green
+**260/260**). Plan + wireframes: `~/.claude/plans/we-are-working-on-mighty-willow.md` and
 <https://claude.ai/code/artifact/0cb0d913-b974-4a14-a2df-55178117c96c>. Facts worth keeping:
 - **Four vendors, four themability stories — and TWO hide colour inline** (the item that made this
   the hardest surface kit). Kanban column tint = inline `var(--bg-{indicator})` (re-point the var,
