@@ -205,6 +205,23 @@
   // full-bleed mobile strip needs above the bar.
   --bnd-toast-inset: 20px;
   --bnd-toast-gap: 8px;
+  // The dialog scrim (item 28). A LITERAL rgba rather than a derived mix, for
+  // the same reason --bnd-shadow-* is: it is a wash over unknown content, not a
+  // surface anything is read on, so no contrast pair constrains it and deriving
+  // it from the seed would make one tenant's dialogs dimmer than another's.
+  // Tinted toward the page's own near-black rather than pure black — Directus's
+  // choice (rgb(38 50 56 / .8)) and the one that stops the scrim greying the
+  // brand out of the page.
+  //
+  // THE ALPHA IS TUNED FOR THE STACKED CASE, NOT THE SINGLE ONE. Measured: two
+  // open dialogs paint TWO .modal-backdrop nodes, both at z 1040 (Bootstrap
+  // 4.6.2 does no z-bumping), so scrims COMPOUND — 0.62 twice reads as 0.86,
+  // which is the value that actually has to work. Stock's 0.8 would compound to
+  // 0.96, i.e. nearly opaque.
+  --bnd-scrim: rgba(16, 26, 22, 0.62);
+  // Blurred trades opacity for the blur, so it carries less alpha; the blur
+  // itself is applied only inside an @supports guard (see _overlays.scss).
+  --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
   // Touch target floor (item 24). WCAG 2.2 AA 2.5.8 requires 24x24; this is the
   // "design to 44" decision — every control the mobile nav builds is at least
   // this, comfortably clear of the 24 the a11y gate enforces.
@@ -323,6 +340,14 @@ html[data-theme="dark"] {
   --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
   --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+
+  // The scrim goes DEEPER in dark, not lighter (item 28). The page beneath is
+  // already near-black, so the same alpha that reads as "the page is behind
+  // glass" on white reads as "nothing happened" here — which is why Directus
+  // climbs 0.8 -> 0.9 and frappe-ui 0.271 -> 0.722 across the same boundary.
+  // Still tuned for the stacked case: 0.72 twice reads as 0.92.
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
 
   // Re-stepped for the dark surface, not lightened from the light values.
   --bnd-cat-1: #3987e5;

@@ -360,3 +360,86 @@ html[data-bnd-overlay] .desk-alert {
   border-radius: var(--bnd-ov-radius);
   box-shadow: var(--bnd-ov-shadow);
 }
+
+// ── Axis: the scrim (item 28 slice 3) ───────────────────────────────────────
+// Reaches all THREE scrims together — the modal backdrop, the blocking #freeze
+// overlay, and the grid-row editor's own backdrop — because three scrims free
+// to disagree is three chances to disagree.
+//
+// Stock is `.modal-backdrop{background-color:var(--gray-800)}` at opacity .8:
+// a Frappe ramp step the bridge does not map, so it is #383838/#232323
+// regardless of palette. "Dim" keeps exactly that and writes no attribute.
+//
+// WHY opacity IS SET TO 1. The vendor carries the alpha in `opacity` on
+// `.show`/`.in` while our token carries it in the colour. Left alone the two
+// MULTIPLY (0.62 x 0.8 = 0.50) and the scrim comes out weaker than either
+// value says. Setting opacity to 1 keeps the fade transition (0 -> 1) and puts
+// the alpha in exactly one place.
+html[data-bnd-overlay-scrim="tinted"] .modal-backdrop.show,
+html[data-bnd-overlay-scrim="tinted"] #freeze.in {
+  background-color: var(--bnd-scrim);
+  opacity: 1;
+}
+
+html[data-bnd-overlay-scrim="blurred"] .modal-backdrop.show,
+html[data-bnd-overlay-scrim="blurred"] #freeze.in {
+  background-color: var(--bnd-scrim-blur);
+  opacity: 1;
+}
+
+// The blur is progressive enhancement and is GUARDED, the way shadcn guards
+// every one of its own (supports-backdrop-filter:, style-nova.css:25). Without
+// support the rule above has already landed, so Blurred degrades to Tinted's
+// weaker wash rather than to nothing — a transparent scrim is not a style, it
+// is a bug report about the click-outside target.
+@supports (backdrop-filter: blur(1px)) {
+  html[data-bnd-overlay-scrim="blurred"] .modal-backdrop.show,
+  html[data-bnd-overlay-scrim="blurred"] #freeze.in {
+    backdrop-filter: blur(6px) saturate(0.9);
+  }
+}
+
+// ── The menu row, unified by the anchor (item 28 slice 3) ──────────────────
+// MEASURED, AND IT REVERSED THE DESIGN. Stock is INCONSISTENT across the
+// vocabularies: Frappe's Bootstrap dropdown row already carries an 8px radius
+// inside a 4px-padded popup, while its own `.frappe-menu` row is square at 0px
+// in a 6px-padded one. So "round the row into a pill" was a no-op on the first
+// and a real change on the second — an axis whose two options differ on some
+// menus and not others, which is a picker that half-lies.
+//
+// The anchor therefore does what the anchor is for: makes them agree. Every
+// menu row takes one corner, one step below the panel's, so a pill inset in a
+// panel echoes it rather than competing with it.
+html[data-bnd-overlay] .dropdown-item,
+html[data-bnd-overlay] .dropdown-menu-item a,
+html[data-bnd-overlay] .awesomplete > [role="listbox"] > li {
+  border-radius: var(--bnd-radius-md);
+}
+
+// ── Axis: the menu row (item 28 slice 3) ────────────────────────────────────
+// "Inset" is the NEUTRAL — the rounded, padded row the anchor above produces —
+// and writes no attribute. "Plain" is the ACTIVE override: square rows running
+// edge to edge, the denser read. That polarity is item 27's `views_band`
+// exactly (Tinted neutral, Plain the override that nulls it), and measurement
+// forced it here for the same reason: the stock-shaped option is the one that
+// needs no rule.
+//
+// PADDING ON `.dropdown-item` IS AN `!important` WALL (global.scss:344,
+// `padding: var(--dropdown-padding)!important`) — but it READS A VARIABLE, so
+// the sanctioned lever is re-pointing that variable, never fighting the
+// declaration. Plain uses it to take the row's own inset out.
+html[data-bnd-overlay-menu="plain"] {
+  --dropdown-padding: var(--bnd-sp-1) var(--bnd-sp-2);
+}
+
+html[data-bnd-overlay-menu="plain"] .dropdown-menu,
+html[data-bnd-overlay-menu="plain"] .frappe-menu,
+html[data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] {
+  padding-inline: 0;
+}
+
+html[data-bnd-overlay-menu="plain"] .dropdown-item,
+html[data-bnd-overlay-menu="plain"] .dropdown-menu-item a,
+html[data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] > li {
+  border-radius: 0;
+}

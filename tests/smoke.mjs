@@ -7966,6 +7966,123 @@ async function main() {
 			expectEq(cleared.join(","), "", "and Original clears the anchor and every sibling");
 		});
 
+		// ── Overlays (item 28), slice 3: the composing axes ────────────────
+		//
+		// Two axes over the anchor: the dialog scrim and the menu row. Both are
+		// STYLES — they only exist while the anchor does, and Original clears
+		// them along with it (asserted by the live-preview check above).
+
+		/** Open a dialog and read its backdrop, then close. */
+		const ovBackdrop = async () =>
+			page.evaluate(async () => {
+				const d = new frappe.ui.Dialog({ title: "Scrim probe", fields: [{ fieldtype: "Data", label: "A" }] });
+				d.show();
+				await new Promise((r) => setTimeout(r, 750));
+				const b = document.querySelector(".modal-backdrop.show");
+				const cs = b && getComputedStyle(b);
+				const out = cs ? { bg: cs.backgroundColor, opacity: cs.opacity, filter: cs.backdropFilter || cs.webkitBackdropFilter || "none" } : null;
+				try { window.jQuery(document.querySelector(".modal.show")).modal("hide"); } catch (e) { /* teardown */ }
+				await new Promise((r) => setTimeout(r, 300));
+				return out;
+			});
+
+		await test("overlay: the scrim is ours, and its alpha lives in ONE place", async () => {
+			// Stock is `.modal-backdrop{background-color:var(--gray-800)}` at
+			// opacity .8 — a Frappe ramp step the bridge does not map, so it is
+			// #383838 / #232323 whatever the palette. Tinted replaces it.
+			//
+			// THE MULTIPLY TRAP is the real assertion. The vendor carries the
+			// alpha in `opacity` while our token carries it in the colour; left
+			// alone the two multiply (0.62 x 0.8 = 0.50) and the scrim comes out
+			// weaker than either value claims. So opacity must read exactly 1 and
+			// the colour must carry the alpha.
+			setSettings({ overlay_style: "Floating", overlay_scrim: "Dim" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const dim = await ovBackdrop();
+			setSettings({ overlay_scrim: "Tinted" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const tinted = await ovBackdrop();
+			expect(dim && tinted, "a backdrop rendered under both settings");
+			expect(dim.bg !== tinted.bg, `Tinted is not stock's grey wash (${dim.bg} -> ${tinted.bg})`);
+			expectEq(tinted.opacity, "1", "the alpha is in the colour, not multiplied by opacity");
+			const alpha = Number((tinted.bg.match(/[\d.]+\s*\)$/) || ["1)"])[0].replace(")", ""));
+			expect(alpha > 0.4 && alpha < 0.85, `and the colour carries a real scrim alpha (${alpha})`);
+		});
+
+		await test("overlay: the scrim reaches the blocking overlay too", async () => {
+			// Three scrims exist on the desk — the modal backdrop, #freeze (the
+			// blocking overlay, .main-section > #body) and the grid editor's
+			// #freeze.grid-form. One axis governs all three, because three scrims
+			// free to disagree is three chances to disagree.
+			setSettings({ overlay_style: "Floating", overlay_scrim: "Tinted" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(async () => {
+				frappe.dom.freeze("probe");
+				await new Promise((r) => setTimeout(r, 600));
+				const f = document.querySelector("#freeze");
+				const out = f ? { bg: getComputedStyle(f).backgroundColor, opacity: getComputedStyle(f).opacity, cls: f.className } : null;
+				frappe.dom.unfreeze();
+				return out;
+			});
+			expect(g, "the freeze overlay rendered");
+			expectEq(g.opacity, "1", "the freeze scrim's alpha is in its colour too");
+			expect(!/^rgb\(/.test(g.bg), `and it is a translucent wash, not an opaque fill (${g.bg})`);
+		});
+
+		await test("overlay: Blurred blurs, and is guarded", async () => {
+			// The blur is progressive enhancement — shadcn guards every one of its
+			// own with supports-backdrop-filter:, and a full-viewport
+			// backdrop-filter over the desk's DOM is the most expensive rule this
+			// kit could ship. Without support the tint has already landed, so
+			// Blurred degrades to a wash rather than to nothing.
+			setSettings({ overlay_style: "Floating", overlay_scrim: "Blurred" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const b = await ovBackdrop();
+			expect(b, "a backdrop rendered");
+			expect(/blur/.test(b.filter), `the scrim blurs where supported (${b.filter})`);
+			expect(!/^rgba\(0, 0, 0, 0\)/.test(b.bg), `and still carries a tint underneath it (${b.bg})`);
+		});
+
+		await test("overlay: the menu rows agree, and Plain squares them", async () => {
+			// Stock's hover fill runs edge to edge and squares off against a
+			// rounded popup — worst exactly where the anchor's radius is largest.
+			// Inset pads the popup and rounds the row inside it. Measured on the
+			// page's own Menu, not a synthetic node: the vendor rule needs a
+			// .menu-btn-group ancestor, which is how the slice-1 shortcut check
+			// managed to pass while measuring nothing.
+			const readMenu = async () =>
+				page.evaluate(async () => {
+					const btn = document.querySelector(".page-actions .menu-btn-group .btn, .menu-btn-group [data-toggle='dropdown']");
+					if (!btn) return { error: "no page Menu button" };
+					btn.click();
+					await new Promise((r) => setTimeout(r, 450));
+					const m = document.querySelector(".menu-btn-group .dropdown-menu");
+					const row = m && m.querySelector(".dropdown-item");
+					const out = m && row
+						? { pad: getComputedStyle(m).paddingInlineStart, rowRadius: getComputedStyle(row).borderTopLeftRadius }
+						: { error: "menu opened with no row" };
+					btn.click();
+					await new Promise((r) => setTimeout(r, 200));
+					return out;
+				});
+			setSettings({ overlay_style: "Floating", overlay_menu: "Plain" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const plain = await readMenu();
+			setSettings({ overlay_menu: "Inset" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const inset = await readMenu();
+			expect(!plain.error && !inset.error, `the Menu opened under both settings (${plain.error || inset.error || ""})`);
+			// MEASUREMENT REVERSED THIS CHECK'S POLARITY. Stock already rounds the
+			// Bootstrap row (8px) inside a 4px-padded popup while leaving its own
+			// .frappe-menu row square — so "Inset rounds the row" was a no-op here
+			// and a real change there, an axis that differs on some menus and not
+			// others. The anchor now unifies every row's corner, and this axis
+			// offers the honest alternative: Plain SQUARES them, edge to edge.
+			expect(parseFloat(inset.rowRadius) > 0, `Inset leaves a real corner on the row (${inset.rowRadius})`);
+			expectEq(plain.rowRadius, "0px", "Plain squares it off");
+			expect(parseFloat(plain.pad) < parseFloat(inset.pad), `and takes the popup's inline inset out (${inset.pad} -> ${plain.pad})`);
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly

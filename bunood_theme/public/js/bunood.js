@@ -1418,7 +1418,15 @@
 	const OVERLAY_SLUGS = {
 		style: { "Original": "", "Hairline": "hairline", "Soft": "soft", "Floating": "floating", "Solid": "solid" },
 		scrim: { "Dim": "", "Tinted": "tinted", "Blurred": "blurred" },
-		menu: { "Plain": "", "Inset": "inset" },
+		// Inset is the NEUTRAL and Plain the active override — the polarity
+		// item 27's views_band established, and measurement forced it here too:
+		// Frappe's Bootstrap dropdown row ALREADY carries an 8px radius inside
+		// a
+		// 4px-padded popup, while its own .frappe-menu row is square at 0px. So
+		// "make it a pill" is not a change on one vocabulary and is on another —
+		// the anchor unifies them instead, and this axis offers the real
+		// alternative: square rows, edge to edge.
+		menu: { "Plain": "plain", "Inset": "" },
 	};
 
 	let overlay_state = (window.frappe && frappe.boot && frappe.boot.bnd_overlay) || null;
