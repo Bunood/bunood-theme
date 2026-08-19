@@ -3791,6 +3791,10 @@ async function main() {
 				// Alternate views kit (item 27): 5 style cards (Original + 4), three
 				// option groups (2 band + 3 mark + 2 media = 7 opts), one reveal toggle.
 				views_picker: { cards: 5, toggles: 1, opts: 7 },
+				// Overlays kit (item 28): 5 style cards (Original + 4), two option
+				// groups (3 scrim + 2 menu = 5 opts), NO toggle — this kit's repairs
+				// are contracts, not options, so there is nothing to switch off.
+				overlay_picker: { cards: 5, toggles: 0, opts: 5 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3803,7 +3807,7 @@ async function main() {
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, icons_picker: 1,
+					report_picker: 1, views_picker: 1, overlay_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el

@@ -908,6 +908,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_chart_picker(frm);
 		bnd_render_report_picker(frm);
 		bnd_render_views_picker(frm);
+		bnd_render_overlay_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -930,6 +931,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_chart_preview(frm);
 			bnd_report_preview(frm);
 			bnd_views_preview(frm);
+			bnd_overlay_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -4440,6 +4442,160 @@ function bnd_views_set(frm, fieldname, value) {
 	bnd_render_views_picker(frm);
 }
 
+// ── Overlays picker (item 28) — five styles, two chip rows, no toggle ────────
+/** Client mirror of presets.OVERLAY_FIELDS. Keep in sync. Export AND import list it. */
+const BND_OVERLAY_FIELDS = ["overlay_style", "overlay_scrim", "overlay_menu"];
+
+/** Client mirror of presets.OVERLAY_DEFAULTS — keep in sync. */
+const BND_OVERLAY_DEFAULTS = {
+	overlay_style: "Floating",
+	overlay_scrim: "Tinted",
+	overlay_menu: "Inset",
+};
+
+/** The overlay-style catalogue. Each thumbnail is one floating panel drawn to
+ * that style's fill, boundary, radius and lift. ONE anchor dresses the dialog,
+ * the menu, the toast and the popover the same way, so one panel stands for all
+ * of them — the same reasoning the views picker's single card stands on. */
+const BND_OVERLAY_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock overlays, untouched. The style stands down — the legibility repairs stay."),
+		svg: bnd_overlay_thumb({ border: 0.16, radius: 2 }),
+	},
+	{
+		value: "Hairline",
+		blurb: () => __("A boundary only, no lift — the densest panel, the theme receding."),
+		svg: bnd_overlay_thumb({ border: 0.42, radius: 2 }),
+	},
+	{
+		value: "Soft",
+		blurb: () => __("A boundary and a close shadow — the quieter middle."),
+		svg: bnd_overlay_thumb({ fill: 0.05, border: 0.16, radius: 5, shadow: 0.1 }),
+	},
+	{
+		value: "Floating",
+		blurb: () => __("A hairline ring and a deep shadow — the panel lifts clear of the page. The default."),
+		svg: bnd_overlay_thumb({ fill: 0.05, border: 0.14, radius: 7, shadow: 0.18 }),
+	},
+	{
+		value: "Solid",
+		blurb: () => __("A raised fill and no boundary — the panel separates by tone."),
+		svg: bnd_overlay_thumb({ fill: 0.14, radius: 5, shadow: 0.16 }),
+	},
+];
+
+/** One panel thumbnail, floating over a hint of the page beneath. A builder so
+ * five near-identical diagrams are one description, not five copies that drift. */
+function bnd_overlay_thumb(o) {
+	const rx = o.radius || 0;
+	// the page underneath, so "floating" reads as floating
+	const page =
+		'<rect x="6" y="8" width="46" height="3" rx="1.5" fill="currentColor" opacity=".16"/>' +
+		'<rect x="6" y="15" width="72" height="3" rx="1.5" fill="currentColor" opacity=".12"/>' +
+		'<rect x="6" y="44" width="60" height="3" rx="1.5" fill="currentColor" opacity=".12"/>';
+	const shadow = o.shadow
+		? `<rect x="26" y="17" width="76" height="30" rx="${rx}" fill="currentColor" opacity="${o.shadow}"/>`
+		: "";
+	const fill = o.fill ? `fill="currentColor" fill-opacity="${o.fill}"` : 'fill="none"';
+	const stroke = o.border ? `stroke="currentColor" stroke-opacity="${o.border}" stroke-width="1"` : "";
+	const panel = `<rect x="26" y="14" width="76" height="30" rx="${rx}" ${fill} ${stroke}/>`;
+	// a title rule and one row, so the panel reads as a dialog rather than a box
+	const inner =
+		'<rect x="32" y="20" width="30" height="3" rx="1.5" fill="currentColor" opacity=".5"/>' +
+		`<rect x="26" y="27" width="76" height="1" fill="currentColor" opacity="${o.border || 0.14}"/>` +
+		'<rect x="32" y="33" width="50" height="3" rx="1.5" fill="currentColor" opacity=".26"/>';
+	return `<svg viewBox="0 0 120 54">${page}${shadow}${panel}${inner}</svg>`;
+}
+
+/** The composing chip rows — the dialog scrim and the menu row. */
+const BND_OVERLAY_GROUPS = [
+	{
+		field: "overlay_scrim",
+		title: () => __("Dialog Scrim"),
+		desc: () => __("What the page behind a dialog looks like."),
+		options: [
+			{ value: "Dim", name: () => __("Dim") },
+			{ value: "Tinted", name: () => __("Tinted") },
+			{ value: "Blurred", name: () => __("Blurred") },
+		],
+	},
+	{
+		field: "overlay_menu",
+		title: () => __("Menu Row"),
+		desc: () => __("How a menu row shows it is under the pointer."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Inset", name: () => __("Inset") },
+		],
+	},
+];
+
+/** Render the overlays picker. No toggle row: this kit's repairs are contracts,
+ * not options, so there is nothing to switch off. */
+function bnd_render_overlay_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "overlay_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.overlay_style || BND_OVERLAY_DEFAULTS.overlay_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "overlay_style");
+	const cards = P.cards(
+		BND_OVERLAY_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-ovp-style" }
+	);
+
+	const reason = off ? __("Original leaves every overlay stock — nothing below applies.") : "";
+	const groups = BND_OVERLAY_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_OVERLAY_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-ovp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-ovp-style").on("click", function () {
+		bnd_overlay_set(frm, "overlay_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_overlay_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_overlay_set(frm, f, BND_OVERLAY_DEFAULTS[f]);
+	});
+}
+
+/** Hand the overlay values to the desk engine — live preview. */
+function bnd_overlay_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.overlay_apply) return;
+	const values = {};
+	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.overlay_apply(values);
+}
+
+/** Set one overlay option, preview, re-render. */
+function bnd_overlay_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_overlay_preview(frm);
+	bnd_render_overlay_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -5261,7 +5417,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -5290,7 +5446,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -5309,6 +5465,7 @@ function bnd_sb_import(frm) {
 			bnd_chart_preview(frm);
 			bnd_report_preview(frm);
 			bnd_views_preview(frm);
+			bnd_overlay_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -5322,6 +5479,7 @@ function bnd_sb_import(frm) {
 			bnd_render_chart_picker(frm);
 			bnd_render_report_picker(frm);
 			bnd_render_views_picker(frm);
+			bnd_render_overlay_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

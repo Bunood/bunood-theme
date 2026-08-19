@@ -3955,3 +3955,43 @@ msgstr "يُحدَّد بالمنتقي أعلاه. كيف يُظهر صف ال�
 #, fuzzy
 msgid "Inset"
 msgstr "داخلي"
+
+#. src: item28
+#, fuzzy
+msgid "The stock overlays, untouched. The style stands down — the legibility repairs stay."
+msgstr "العناصر العائمة كما هي، دون تغيير. يتوقّف النمط — وتبقى إصلاحات الوضوح."
+
+#. src: item28
+#, fuzzy
+msgid "A boundary only, no lift — the densest panel, the theme receding."
+msgstr "حدّ فقط، دون ارتفاع — أكثر اللوحات كثافة، والسمة تنسحب."
+
+#. src: item28
+#, fuzzy
+msgid "A boundary and a close shadow — the quieter middle."
+msgstr "حدّ وظلّ قريب — الخيار الأهدأ بينهما."
+
+#. src: item28
+#, fuzzy
+msgid "A hairline ring and a deep shadow — the panel lifts clear of the page. The default."
+msgstr "طوق رفيع وظلّ عميق — ترتفع اللوحة عن الصفحة. الخيار الافتراضي."
+
+#. src: item28
+#, fuzzy
+msgid "A raised fill and no boundary — the panel separates by tone."
+msgstr "تعبئة مرتفعة دون حدّ — تنفصل اللوحة بالدرجة اللونية."
+
+#. src: item28
+#, fuzzy
+msgid "What the page behind a dialog looks like."
+msgstr "شكل الصفحة خلف نافذة الحوار."
+
+#. src: item28
+#, fuzzy
+msgid "How a menu row shows it is under the pointer."
+msgstr "كيف يُظهر صف القائمة أنه تحت المؤشر."
+
+#. src: item28
+#, fuzzy
+msgid "Original leaves every overlay stock — nothing below applies."
+msgstr "يُبقي «الأصلي» كل عنصر عائم كما هو — لا شيء أدناه ينطبق."
