@@ -5002,6 +5002,64 @@ html[data-theme] .report-wrapper {
   overflow-anchor: none;
 }
 
+html[data-bnd-skeleton] {
+  --bnd-sk-radius: var(--bnd-radius-sm);
+}
+
+html[data-bnd-skeleton] .workspace-skeleton .skeleton-card,
+html[data-bnd-skeleton] .list-skeleton .list-skeleton-box {
+  border-radius: var(--bnd-sk-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-bnd-skeleton=pulse] .workspace-skeleton .skeleton-card,
+  html[data-bnd-skeleton=pulse] .list-skeleton .list-skeleton-box {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
+
+html[data-bnd-skeleton=sweep] .workspace-skeleton .skeleton-card::after,
+html[data-bnd-skeleton=sweep] .list-skeleton .list-skeleton-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bnd-ink) 8%, transparent) 50%, transparent);
+  transform: translateX(-100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-bnd-skeleton=sweep] .workspace-skeleton .skeleton-card::after,
+  html[data-bnd-skeleton=sweep] .list-skeleton .list-skeleton-box::after {
+    animation: bnd-skeleton-sweep var(--bnd-dur-loop) linear infinite;
+  }
+}
+
+html[dir=rtl][data-bnd-skeleton=sweep] .workspace-skeleton .skeleton-card::after,
+html[dir=rtl][data-bnd-skeleton=sweep] .list-skeleton .list-skeleton-box::after {
+  animation-direction: reverse;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-bnd-skeleton=pulse] .kanban-empty-state,
+  html[data-bnd-skeleton=sweep] .kanban-empty-state,
+  html[data-bnd-skeleton=pulse] .list-loading-state,
+  html[data-bnd-skeleton=sweep] .list-loading-state,
+  html[data-bnd-skeleton=pulse] .number-card-loading,
+  html[data-bnd-skeleton=sweep] .number-card-loading,
+  html[data-bnd-skeleton=pulse] .bnd-inbox-empty[data-bnd-loading],
+  html[data-bnd-skeleton=sweep] .bnd-inbox-empty[data-bnd-loading] {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-bnd-skeleton=pulse] .layout-main-section div:has(+ .report-wrapper) .msg-box,
+  html[data-bnd-skeleton=sweep] .layout-main-section div:has(+ .report-wrapper) .msg-box {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

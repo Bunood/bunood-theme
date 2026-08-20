@@ -411,6 +411,19 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_empty = {f: empty_(f) for f in EMPTY_DEFAULTS}
 
+        # ── Loading states surface (item 30) ────────────────────────────
+        # Fieldname keys, the list shape. No Check in this kit.
+        # No-flash matters MORE here than for any other kit: a skeleton is the
+        # first thing a route paints, so the attribute must be on <html> before
+        # the view classes build anything. This payload is read at parse time.
+        from bunood_theme.presets import SKELETON_DEFAULTS
+
+        def skeleton_(field):
+            value = settings.get(field)
+            return SKELETON_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_skeleton = {f: skeleton_(f) for f in SKELETON_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

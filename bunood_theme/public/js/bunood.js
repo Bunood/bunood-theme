@@ -1214,6 +1214,15 @@
 			],
 			check: null,
 		},
+		skeleton: {
+			attr: "skeleton", boot: "bnd_skeleton",
+			// Still is the full bone treatment with NO motion — and it is exactly
+			// what Pulse and Sweep render under prefers-reduced-motion, so the
+			// option previews that state instead of hiding it.
+			anchor: ["skeleton_style", { "Original": "", "Still": "still", "Pulse": "pulse", "Sweep": "sweep" }],
+			axes: [],
+			check: null,
+		},
 	};
 
 	for (const [kit, def] of Object.entries(BND_SURFACE_KITS)) {
@@ -3925,7 +3934,7 @@ function sb_zone_anchor(pane, zone, node) {
 				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
 			}
 			list.innerHTML = "";
-			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
+			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
 			loading.textContent = __("Loading...");
 			list.appendChild(loading);
 			inbox_fetch(inbox_tab, 0).then((res) => {
@@ -5351,7 +5360,7 @@ function sb_zone_anchor(pane, zone, node) {
 			btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
 		}
 		inbox_nodes.list.innerHTML = "";
-		const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
+		const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
 		loading.textContent = __("Loading...");
 		inbox_nodes.list.appendChild(loading);
 		inbox_fetch(inbox_tab, 0).then((res) => {

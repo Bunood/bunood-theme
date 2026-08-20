@@ -676,6 +676,33 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "skeleton",
+        # Labelled "Loading", not "Skeletons": the setting governs every
+        # loading state the desk draws, and only two of them are literally
+        # skeletons. Item 30.
+        #
+        # THE 29/30 BOUNDARY IS WHY THIS IS A SEPARATE KIT rather than an axis
+        # of item 29. Empty and loading share DOM on several nodes, and the
+        # asymmetry decides ownership: a skeleton on an empty node is a promise
+        # that never resolves, while a quiet box on a loading node is merely
+        # early. So item 29 owns the BOX everywhere, and this owns MOTION and
+        # RESERVED GEOMETRY only where the class can mean nothing but loading.
+        "part": "skeleton",
+        "label": "Loading",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-skeleton]; "Original" clears
+        # it. As for overlays and empty states, the REPAIRS are not under this
+        # anchor — surfaces/_skeleton.scss scopes them html[data-theme],
+        # because a bone that is invisible AS a bone (stock's dark
+        # --skeleton-bg collides with --control-bg and --subtle-accent) is a
+        # legibility failure, not a style choice.
+        "selector": 'html[data-bnd-skeleton]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

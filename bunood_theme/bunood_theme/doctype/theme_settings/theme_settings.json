@@ -161,6 +161,9 @@
   "empty_style",
   "empty_media",
   "empty_action",
+  "section_skeleton",
+  "skeleton_picker",
+  "skeleton_style",
   "section_generated",
   "brand_css_url"
  ],
@@ -576,6 +579,25 @@
    "hidden": 1,
    "label": "Empty Action",
    "options": "Plain\nPrimary"
+  },
+  {
+   "fieldname": "section_skeleton",
+   "fieldtype": "Section Break",
+   "label": "Loading"
+  },
+  {
+   "fieldname": "skeleton_picker",
+   "fieldtype": "HTML",
+   "label": "Loading Picker"
+  },
+  {
+   "default": "Sweep",
+   "description": "Set by the picker above. How a loading state moves while it waits.",
+   "fieldname": "skeleton_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Loading Style",
+   "options": "Original\nStill\nPulse\nSweep"
   },
   {
    "fieldname": "section_generated",

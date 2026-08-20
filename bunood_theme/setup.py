@@ -39,6 +39,7 @@ from bunood_theme.presets import (
     LIST_DEFAULTS,
     OVERLAY_DEFAULTS,
     REPORT_DEFAULTS,
+    SKELETON_DEFAULTS,
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
@@ -74,6 +75,7 @@ CHECK_DEFAULTS = {
         LIST_DEFAULTS,
         OVERLAY_DEFAULTS,
         REPORT_DEFAULTS,
+        SKELETON_DEFAULTS,
         VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
@@ -149,6 +151,9 @@ DEFAULTS = {
     # its repairs are contracts, not options, and the media/action axes are
     # their own slice.
     **{f: v for f, v in EMPTY_DEFAULTS.items() if not isinstance(v, int)},
+    # Loading states (item 30): one Select, the anchor. No Check — the bone
+    # repair and the geometry floors are contracts, not options.
+    **{f: v for f, v in SKELETON_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

@@ -910,6 +910,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_views_picker(frm);
 		bnd_render_overlay_picker(frm);
 		bnd_render_empty_picker(frm);
+		bnd_render_skeleton_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -934,6 +935,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_views_preview(frm);
 			bnd_overlay_preview(frm);
 			bnd_empty_preview(frm);
+			bnd_skeleton_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -1123,6 +1125,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
 			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
 			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
+			{ key: "skeleton", label: () => __("Loading"), anchors: ["skeleton_style"] },
 		],
 	},
 	{
@@ -1232,6 +1235,7 @@ const BND_SHELL_OWNS = {
 	views: { prefixes: ["views_"] },
 	overlay: { prefixes: ["overlay_"] },
 	empty: { prefixes: ["empty_"] },
+	skeleton: { prefixes: ["skeleton_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4453,6 +4457,14 @@ const BND_OVERLAY_FIELDS = ["overlay_style", "overlay_scrim", "overlay_menu"];
 /** Client mirror of presets.EMPTY_FIELDS — kept a superset by assertFieldMirrors. */
 const BND_EMPTY_FIELDS = ["empty_style", "empty_media", "empty_action"];
 
+/** Client mirror of presets.SKELETON_FIELDS — kept a superset by assertFieldMirrors. */
+const BND_SKELETON_FIELDS = ["skeleton_style"];
+
+/** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
+const BND_SKELETON_DEFAULTS = {
+	skeleton_style: "Sweep",
+};
+
 /** Client mirror of presets.EMPTY_DEFAULTS — keep in sync. */
 const BND_EMPTY_DEFAULTS = {
 	empty_style: "Open",
@@ -4760,6 +4772,91 @@ function bnd_empty_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_empty_preview(frm);
 	bnd_render_empty_picker(frm);
+}
+
+/** The loading-style catalogue. Each thumbnail is the same skeleton block —
+ * a mark and three bones — drawn to that style's motion, because ONE anchor
+ * governs the workspace skeleton, the list skeleton and every text loading
+ * node the desk draws. */
+const BND_SKELETON_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock loading states, untouched. The style stands down — the legibility repairs stay."),
+		svg: bnd_skeleton_thumb({}),
+	},
+	{
+		value: "Still",
+		blurb: () => __("Bones, no motion — and exactly what the two below render for anyone who asks for reduced motion."),
+		svg: bnd_skeleton_thumb({ bone: 0.3 }),
+	},
+	{
+		value: "Pulse",
+		blurb: () => __("The whole block breathes — one mechanism for bones and text alike, and the calmer of the two."),
+		svg: bnd_skeleton_thumb({ bone: 0.3, pulse: true }),
+	},
+	{
+		value: "Sweep",
+		blurb: () => __("A band travels the bones; text still pulses, because a gradient across a sentence is noise. The default."),
+		svg: bnd_skeleton_thumb({ bone: 0.3, sweep: true }),
+	},
+];
+
+/** One loading thumbnail. A builder so four near-identical diagrams are one
+ * description, not four copies that drift. */
+function bnd_skeleton_thumb(o) {
+	const b = o.bone === undefined ? 0.16 : o.bone;
+	const bone = (x, y, w) =>
+		`<rect x="${x}" y="${y}" width="${w}" height="6" rx="3" fill="currentColor" opacity="${o.pulse ? b * 0.75 : b}"/>`;
+	// the mark, then three lines of "content" that has not arrived
+	const mark = `<circle cx="26" cy="18" r="8" fill="currentColor" opacity="${o.pulse ? b * 0.75 : b}"/>`;
+	// Sweep draws the band ON one bone, so the difference from Pulse is visible
+	// in a still picture rather than only in motion.
+	const band = o.sweep
+		? '<rect x="52" y="12" width="18" height="6" rx="3" fill="currentColor" opacity=".34"/>'
+		: "";
+	return `<svg viewBox="0 0 120 54">${mark}${bone(42, 12, 62)}${band}${bone(42, 24, 48)}${bone(14, 38, 90)}</svg>`;
+}
+
+/** Render the loading picker. No chip rows: this kit is one anchor — its
+ * repairs are contracts and its geometry floors are not choices. */
+function bnd_render_skeleton_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "skeleton_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.skeleton_style || BND_SKELETON_DEFAULTS.skeleton_style;
+	const offered = bnd_field_slots(frm, "skeleton_style");
+	const cards = P.cards(
+		BND_SKELETON_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-skp-style" }
+	);
+
+	$host.html(
+		P.wrap('<div class="bnd-cbp bnd-skp">' + bnd_bands([{ zone: "style", html: cards + P.note(__("Applies as you click.")) }]) + "</div>")
+	);
+
+	$host.find(".bnd-skp-style").on("click", function () {
+		bnd_skeleton_set(frm, "skeleton_style", this.getAttribute("data-value"));
+	});
+}
+
+/** Hand the loading values to the desk engine — live preview. */
+function bnd_skeleton_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.skeleton_apply) return;
+	const values = {};
+	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
+	// the field was never written, frm.doc[f] is empty and sending it raw would
+	// CLEAR the anchor boot had just set.
+	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || BND_SKELETON_DEFAULTS[f];
+	window.bunood_theme.skeleton_apply(values);
+}
+
+/** Set the loading style, preview, re-render. */
+function bnd_skeleton_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_skeleton_preview(frm);
+	bnd_render_skeleton_picker(frm);
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
@@ -5583,7 +5680,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -5612,7 +5709,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -5633,6 +5730,7 @@ function bnd_sb_import(frm) {
 			bnd_views_preview(frm);
 			bnd_overlay_preview(frm);
 			bnd_empty_preview(frm);
+			bnd_skeleton_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -5648,6 +5746,7 @@ function bnd_sb_import(frm) {
 			bnd_render_views_picker(frm);
 			bnd_render_overlay_picker(frm);
 			bnd_render_empty_picker(frm);
+			bnd_render_skeleton_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

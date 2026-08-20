@@ -646,6 +646,25 @@ EMPTY_DEFAULTS = {
     "empty_action": "Primary",
 }
 
+SKELETON_FIELDS = [
+    "skeleton_style",
+]
+
+#: The shipped loading defaults — the item-30 wireframe picks (2026-08-19).
+SKELETON_DEFAULTS = {
+    # The anchor: how a loading state moves, if at all.
+    #
+    # SWEEP, the bolder pick and the market-dominant idiom (Discourse's chat and
+    # dashboard skeletons, Directus's v-skeleton-loader). A band travels the
+    # bone; prose pulses instead, because a travelling gradient across a
+    # sentence is noise rather than information.
+    #
+    # "Still" is not "off" — it is the full bone treatment with no motion, and
+    # it is EXACTLY what Pulse and Sweep render under prefers-reduced-motion.
+    # Shipping it as an option makes that state previewable instead of hidden.
+    "skeleton_style": "Sweep",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

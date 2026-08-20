@@ -675,6 +675,8 @@ const MUTABLE_FIELDS = [
 	"overlay_style", "overlay_scrim", "overlay_menu",
 	// Empty states surface (item 29). Same shape: contracts, not toggles.
 	"empty_style", "empty_media", "empty_action",
+	// Loading states surface (item 30).
+	"skeleton_style",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -3799,6 +3801,8 @@ async function main() {
 				overlay_picker: { cards: 5, toggles: 0, opts: 5 },
 				// Item 29: five styles, and five option chips (3 mark + 2 action).
 				empty_picker: { cards: 5, toggles: 0, opts: 5 },
+				// Item 30: four styles, no chip rows — this kit is one anchor.
+				skeleton_picker: { cards: 4, toggles: 0, opts: 0 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3811,7 +3815,7 @@ async function main() {
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, icons_picker: 1,
+					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -8771,6 +8775,165 @@ async function main() {
 			expect(g, "the workspace editor rendered");
 			expect(parseFloat(g.editor) > 0, `the editor carries a floor to match (${g.editor})`);
 			expectEq(g.skeleton, g.editor, "the skeleton reserves exactly what the editor occupies");
+		});
+
+		// Driving a skeleton: every one of them is inserted synchronously and torn
+		// down on the response, so HOLDING the response holds the skeleton. That
+		// makes these checks timing-free rather than a race against a ~0-frame
+		// state — the item-29 lesson about measuring a transient, applied.
+		const withHeldWorkspace = async (fn) => {
+			await page.route("**/api/method/frappe.desk.desktop.get_desktop_page*", async (route) => {
+				await new Promise((r) => setTimeout(r, 2500));
+				await route.continue();
+			});
+			try {
+				const nav = goDesk("/desk/home", ".workspace-skeleton, .codex-editor", 0).catch(() => {});
+				await page.waitForTimeout(1200);
+				return await fn();
+			} finally {
+				await page.unroute("**/api/method/frappe.desk.desktop.get_desktop_page*");
+				await page.waitForTimeout(1500);
+			}
+		};
+
+		await test("skeleton: the anchor animates a bone, and Original clears it", async () => {
+			// The bone is one of only TWO nodes that take the sweep — the rest of what
+			// frappe calls a loading state is TEXT, and a travelling gradient across a
+			// sentence is noise rather than information. So this asserts the bone
+			// register specifically.
+			//
+			// Measured on a PROBE carrying the vendor's classes, not on a caught
+			// transient: the rules are static styles, so a stand-in answers the same
+			// question without racing the swap.
+			const read = async (style) => {
+				setSettings({ skeleton_style: style });
+				// EMULATED EXPLICITLY, never ambient: this suite environment reports
+				// prefers-reduced-motion: reduce as its DEFAULT (measured — the first run
+				// of this check read 0s for every duration). A motion assertion that
+				// trusts the ambient default is testing the host, not the stylesheet.
+				await page.emulateMedia({ reducedMotion: "no-preference" });
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				return page.evaluate(() => {
+					const host = document.createElement("div");
+					host.className = "workspace-skeleton";
+					host.style.cssText = "position:fixed;left:-9999px;top:0;width:200px";
+					const card = document.createElement("div");
+					card.className = "skeleton-card";
+					host.appendChild(card);
+					document.body.appendChild(host);
+					const cs = getComputedStyle(card);
+					const after = getComputedStyle(card, "::after");
+					const out = {
+						anchor: document.documentElement.getAttribute("data-bnd-skeleton"),
+						boneAnim: cs.animationName,
+						boneDur: cs.animationDuration,
+						sweepAnim: after.animationName,
+						sweepDur: after.animationDuration,
+						radius: cs.borderStartStartRadius,
+						// the bridge's repair must hold under every style, Original included
+						bg: cs.backgroundColor,
+					};
+					host.remove();
+					return out;
+				});
+			};
+
+			const sweep = await read("Sweep");
+			expectEq(sweep.anchor, "sweep", "the anchor is on <html>");
+			expectEq(sweep.sweepAnim, "bnd-skeleton-sweep", "Sweep travels a band across the bone");
+			// The DURATION is read off the ::after, because under Sweep the card
+			// itself is not animated — the band is. Reading the card here returned 0s
+			// and looked like a broken token; it was a broken assertion.
+			expectEq(sweep.sweepDur, "1.6s", "and it runs on the loop token, not a literal");
+			expectEq(sweep.boneAnim, "none", "the bone itself does not also animate under Sweep");
+
+			const pulse = await read("Pulse");
+			expectEq(pulse.boneAnim, "bnd-skeleton-pulse", "Pulse breathes the bone itself");
+			expectEq(pulse.sweepAnim, "none", "and draws no band");
+
+			const still = await read("Still");
+			expectEq(still.boneAnim, "none", "Still is bones with no motion");
+			expectEq(still.sweepAnim, "none", "and no band");
+			expect(parseFloat(still.radius) > 0, `but it IS the bone treatment (radius ${still.radius})`);
+
+			const original = await read("Original");
+			expectEq(original.anchor, null, "Original clears the anchor");
+			expectEq(original.boneAnim, "none", "and every animation with it");
+			// The CONTRACT survives it — this is the kit's split, asserted from both
+			// sides: stock's own skeleton is still painted with our bone, which is what
+			// stops it colliding with --control-bg in dark.
+			expect(original.bg !== "rgba(0, 0, 0, 0)", `the bridged bone survives Original (${original.bg})`);
+			await page.emulateMedia({ reducedMotion: null });
+		});
+
+		await test("skeleton: reduced motion stills every bone, and the paint stays", async () => {
+			// THE SUITE'S FIRST MEDIA EMULATION. Two hazards, both handled:
+			//
+			// 1. The suite shares ONE page for the whole run, and emulateMedia PERSISTS
+			//    until reset — a leak would silently put every later test in a
+			//    reduced-motion world, where nothing else currently asserts motion, so
+			//    it would go unnoticed. Reset happens in `finally`.
+			// 2. Asserting only the reduced half is doubly vacuous: it passes if the
+			//    gate works, if the token was zeroed with the gate broken, AND if the
+			//    animation never existed. So the un-emulated half above proves the
+			//    treatment EXISTS, and this proves the gate removes it.
+			//
+			// And the paint must SURVIVE: Discourse put a bone's background inside its
+			// own no-preference query and reduce-motion users get an INVISIBLE
+			// skeleton. That is the failure this clause exists to prevent.
+			setSettings({ skeleton_style: "Sweep" });
+			const ambient = await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+			try {
+				await page.emulateMedia({ reducedMotion: "reduce" });
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const g = await page.evaluate(() => {
+					const host = document.createElement("div");
+					host.className = "workspace-skeleton";
+					host.style.cssText = "position:fixed;left:-9999px;top:0;width:200px";
+					const card = document.createElement("div");
+					card.className = "skeleton-card";
+					host.appendChild(card);
+					document.body.appendChild(host);
+					const cs = getComputedStyle(card);
+					const out = {
+						matches: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+						boneAnim: cs.animationName,
+						sweepAnim: getComputedStyle(card, "::after").animationName,
+						bg: cs.backgroundColor,
+						anchor: document.documentElement.getAttribute("data-bnd-skeleton"),
+					};
+					host.remove();
+					return out;
+				});
+				expect(g.matches, "the emulation took effect");
+				expectEq(g.anchor, "sweep", "the kit is still ON — this is a motion question, not a stand-down");
+				expectEq(g.boneAnim, "none", "no animation on the bone");
+				expectEq(g.sweepAnim, "none", "and none on the band");
+				expect(g.bg !== "rgba(0, 0, 0, 0)", `and the bone is STILL PAINTED (${g.bg})`);
+			} finally {
+				// Never leave the shared page in a reduced-motion world.
+				await page.emulateMedia({ reducedMotion: null });
+			}
+			const restored = await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+			// Compared against the AMBIENT default, whatever it is — this environment's
+			// happens to be `reduce`, so asserting `false` would assert a property of
+			// the host rather than of the teardown.
+			expectEq(restored, ambient, "and the emulation is torn down for every later test");
+		});
+
+		await test("skeleton: the kit live-previews without a reload", async () => {
+			setSettings({ skeleton_style: "Sweep" });
+			await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+			const flipped = await page.evaluate(() => {
+				window.bunood_theme.skeleton_apply({ skeleton_style: "Pulse" });
+				return document.documentElement.getAttribute("data-bnd-skeleton");
+			});
+			expectEq(flipped, "pulse", "the hook flips the anchor with no navigation");
+			const cleared = await page.evaluate(() => {
+				window.bunood_theme.skeleton_apply({ skeleton_style: "Original" });
+				return document.documentElement.getAttribute("data-bnd-skeleton");
+			});
+			expectEq(cleared, null, "and Original clears it, live");
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

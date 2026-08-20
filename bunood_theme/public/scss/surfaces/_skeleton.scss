@@ -178,3 +178,132 @@ html[data-theme] .result-container,
 html[data-theme] .report-wrapper {
   overflow-anchor: none;
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — html[data-bnd-skeleton]. Everything below is a STYLE:
+// "Original" clears the attribute and every rule here goes with it.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// TWO REGISTERS, AND THE SPLIT IS NOT COSMETIC
+//   The census's biggest correction: most of what frappe calls a loading state
+//   is TEXT, not a grey box. Only two owned nodes are solid bones the eye reads
+//   as geometry — the workspace skeleton's cards and the list skeleton's boxes.
+//   The rest (`.kanban-empty-state`, the quick-list's `.list-loading-state`,
+//   `.number-card-loading`, the query report's loading `.msg-box` and our own
+//   inbox node) render the word "Loading…".
+//
+//   A travelling gradient across a sentence is noise, not information — and it
+//   is also the shadcn `.shimmer` text-clip technique, a different mechanism
+//   entirely. So BONES sweep and PROSE pulses, under every style. That is why
+//   "Sweep" does not mean "sweep everything".
+//
+// WHY THE VENDOR'S "Loading…" TEXT IS NEVER HIDDEN
+//   It is the only signal these nodes give an assistive technology: frappe sets
+//   `aria-busy` nowhere, ships no live region on any loading state, and neither
+//   Discourse nor Directus pairs a skeleton with one either. Removing the string
+//   to draw a prettier bar would trade the only accessible signal for a visual
+//   one. Pulse leaves it in the tree and legible.
+//
+// WHAT IS DELIBERATELY NOT DRESSED
+//   `.chart-loading-state` — its loading and empty boxes are separated by child
+//   order alone, which is fail-UNSAFE (see the header). `.freeze-message` — item
+//   28's scrim axis owns `#freeze`, and its message box was repaired there; a
+//   second kit reaching into the same overlay is how the compounding-alpha bug
+//   came back last time.
+
+// The three styles. Still is not "off": it is the full bone treatment with no
+// motion, and it is EXACTLY what Pulse and Sweep render under
+// prefers-reduced-motion — so the option is an honest preview of that state
+// rather than a fourth thing.
+html[data-bnd-skeleton] {
+  --bnd-sk-radius: var(--bnd-radius-sm);
+}
+
+// ── Bones: the two solid, geometry-shaped nodes ─────────────────────────────
+// Both already carry the vendor's --skeleton-bg, which the bridge answers, so
+// the paint is a contract and NOT repeated here. These rules add shape and
+// motion only.
+html[data-bnd-skeleton] .workspace-skeleton .skeleton-card,
+html[data-bnd-skeleton] .list-skeleton .list-skeleton-box {
+  border-radius: var(--bnd-sk-radius);
+  position: relative;
+  // Clips the sweep. Also stops a bone's corners bleeding under the ::after.
+  overflow: hidden;
+}
+
+html[data-bnd-skeleton="pulse"] .workspace-skeleton .skeleton-card,
+html[data-bnd-skeleton="pulse"] .list-skeleton .list-skeleton-box {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
+
+// The sweep is a band travelling across the bone. The BASE declaration parks it
+// off-canvas, so the resting state — which is what a 0ms duration renders — is
+// invisible by construction rather than by a second rule.
+html[data-bnd-skeleton="sweep"] .workspace-skeleton .skeleton-card::after,
+html[data-bnd-skeleton="sweep"] .list-skeleton .list-skeleton-box::after {
+  content: "";
+  position: absolute;
+  // Logical: the guard bans inset-left/right, not inset.
+  inset: 0;
+  // An ALPHA of the ink, not a second colour. Discourse's site-skeleton reaches
+  // for the same trick and for the same reason: a sweep built from a background
+  // token inverts polarity between modes (Directus's does — highlight in light,
+  // shadow in dark, silently), while an alpha reads correctly on any ground.
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--bnd-ink) 8%, transparent) 50%,
+    transparent
+  );
+  transform: translateX(-100%);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: bnd-skeleton-sweep var(--bnd-dur-loop) linear infinite;
+  }
+}
+
+// assertLogicalOnly cannot see a sweep's DIRECTION — a translateX in a keyframe
+// is not a physical property — so the mirror is explicit. shadcn's own answer
+// for its own shimmer (tailwind.css:583-585).
+html[dir="rtl"][data-bnd-skeleton="sweep"] .workspace-skeleton .skeleton-card::after,
+html[dir="rtl"][data-bnd-skeleton="sweep"] .list-skeleton .list-skeleton-box::after {
+  animation-direction: reverse;
+}
+
+// ── Prose: the text-bearing loading nodes ───────────────────────────────────
+// Pulse under BOTH animated styles, per the two-register rule above.
+html[data-bnd-skeleton="pulse"] .kanban-empty-state,
+html[data-bnd-skeleton="sweep"] .kanban-empty-state,
+html[data-bnd-skeleton="pulse"] .list-loading-state,
+html[data-bnd-skeleton="sweep"] .list-loading-state,
+html[data-bnd-skeleton="pulse"] .number-card-loading,
+html[data-bnd-skeleton="sweep"] .number-card-loading,
+html[data-bnd-skeleton="pulse"] .bnd-inbox-empty[data-bnd-loading],
+html[data-bnd-skeleton="sweep"] .bnd-inbox-empty[data-bnd-loading] {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
+
+// The query report's LOADING box, and only it. `$loading` is created
+// immediately before `.report-wrapper` and `$message` immediately after
+// (query_report.js:2264-2266), so this positional selector reaches exactly one
+// of two byte-identical boxes — verified live on two different reports, one
+// match each time.
+//
+// SOFT FAILURE, STATED: on a browser without `:has()` the rule never matches
+// and the box renders stock. That is the correct direction to fail — a quiet
+// early box, never motion on an empty state. `:has()` is already this theme's
+// declared floor (_breakpoints.scss:38) with a dozen shipped uses.
+//
+// It styles the HIDDEN NODE ITSELF, which is what keeps it out of the item-16
+// `.checkbox-actions` trap: nothing else is gated on its presence, and it is
+// inert until frappe shows it.
+html[data-bnd-skeleton="pulse"] .layout-main-section div:has(+ .report-wrapper) .msg-box,
+html[data-bnd-skeleton="sweep"] .layout-main-section div:has(+ .report-wrapper) .msg-box {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: bnd-skeleton-pulse var(--bnd-dur-loop) ease-in-out infinite;
+  }
+}
