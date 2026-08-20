@@ -1058,418 +1058,178 @@
 	 * picker offers with "Classic". Unknown labels behave identically.
 	 */
 	// ════════════════════════════════════════════════════════════════════════
-	// List view kit (item 16) — the first SURFACE kit
+	// The SURFACE kits — list (16) · form (18) · workspace (25) · report (26)
+	// · views (27) · overlays (28) — one construction, six rows of a table.
 	// ════════════════════════════════════════════════════════════════════════
 	//
-	// Unlike every chrome kit above and below, this one mounts NOTHING and
-	// injects nothing: it is attributes on <html> and a stylesheet over
-	// Frappe's own .list-row* DOM (surfaces/_list.scss). No node to build, no
-	// native to release, no ownership stamp — absent attributes ARE the
-	// stand-down, which is what lets "Original" be a pure clearing.
-
-	/**
-	 * Theme Settings label -> slug, per option. Each option fails open
-	 * INDEPENDENTLY: an unknown label sets no attribute for that option and
-	 * the others still apply. "Original" maps the anchor to "" — the whole
-	 * kit stands down and stock rows render.
-	 */
-	const LIST_SLUGS = {
-		style: { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards" },
-		hover: { "Soft Wash": "wash", "Edge Rail": "rail" },
-		selection: { "Soft Tint": "soft", "Accent Rail": "rail", "Bold Bar": "bold" },
-	};
-
-	/**
-	 * The list options currently IN EFFECT — boot's at load, possibly
-	 * replaced by a live preview (bunood.list_apply). Mounts read THIS,
-	 * never frappe.boot, so preview is a re-application, not a mode.
-	 */
-	let list_state = (window.frappe && frappe.boot && frappe.boot.bnd_list) || null;
-
-	/**
-	 * Reflect the list options onto <html>, clearing whatever set came
-	 * before — attributes are wholly derived state. A falsy style slug
-	 * (Original / unknown / no boot) clears everything and sets nothing.
-	 * Payload keys are FIELDNAMES (the status shape): no mirror map exists
-	 * to fall out of step with presets.LIST_FIELDS.
-	 * @param {Object|null} v - the boot-shaped values object.
-	 */
-	function apply_list_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-list" || a.name.startsWith("data-bnd-list-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		list_state = v;
-		const style = LIST_SLUGS.style[v.list_style];
-		if (!style) return;
-		html.setAttribute("data-bnd-list", style);
-		const set = (name, value) => value && html.setAttribute("data-bnd-list-" + name, value);
-		set("hover", LIST_SLUGS.hover[v.list_hover]);
-		set("select", LIST_SLUGS.selection[v.list_selection]);
-		// Presence-only: checkbox reveal, matched as [data-bnd-list-ckreveal]
-		// and stood down wholesale under (hover: none) in the stylesheet.
-		if (parseInt(v.list_checkbox_reveal, 10)) html.setAttribute("data-bnd-list-ckreveal", "");
-	}
-
-	// Before Frappe renders the first row — same timing rule as every kit.
-	apply_list_attrs(list_state);
-
-	/** True when the list kit is active (the style attribute is the anchor). */
-	function list_active() {
-		return document.documentElement.hasAttribute("data-bnd-list");
-	}
-
-	/**
-	 * LIVE PREVIEW for the list kit. Accepts the fieldname shape (which is
-	 * also the boot shape — one shape, no resolver ladder). Mandatory from
-	 * day one: the status kit shipped without its apply hook and that is the
-	 * recorded failure class — settings that save but visibly do nothing.
-	 * @param {Object} values
-	 */
-	bunood.list_apply = function (values) {
-		if (!values) return;
-		apply_list_attrs({ ...(list_state || {}), ...values });
-	};
-
-	// ════════════════════════════════════════════════════════════════════════
-	// Form view kit (item 18) — the second SURFACE kit
-	// ════════════════════════════════════════════════════════════════════════
+	// Unlike every chrome kit above, a surface kit mounts NOTHING and injects
+	// nothing: it is attributes on <html> and a stylesheet over Frappe's own
+	// DOM. No node to build, no native to release, no ownership stamp —
+	// absent attributes ARE the stand-down, which is what lets "Original" be
+	// a pure clearing.
 	//
-	// Same construction as the list kit above: attributes on <html> and a
-	// stylesheet over Frappe's own form DOM (surfaces/_form.scss). Nothing
-	// mounted, nothing hidden — absent attributes ARE the stand-down, which
-	// is what lets "Original" be a pure clearing.
+	// WHY A TABLE, AND WHY NOW (item 29 slice 2a). Six kits shipped as six
+	// hand-copied blocks whose ONLY differences were data: the attribute
+	// stem, the boot key, the slug maps, and one post-hook. That shape has
+	// bitten twice — the item-18 "escapee" class is precisely a hand-copied
+	// list drifting from its source of truth — and the seventh copy would
+	// not fit the payload ceiling. The behaviour below is the six originals'
+	// to the letter; the gate for this refactor was byte-identical
+	// data-bnd-* attributes and a full green suite, never trust.
+	//
+	// THE SHARED SHAPE, once, instead of six times:
+	// - Label -> slug maps: each option fails open INDEPENDENTLY — an
+	//   unknown label sets no attribute for that option and the others
+	//   still apply. "Original" maps the anchor to "" — the whole kit
+	//   stands down and stock renders.
+	// - State: the options currently IN EFFECT — boot's at load, possibly
+	//   replaced by a live preview. Mounts read THIS, never frappe.boot, so
+	//   preview is a re-application, not a mode.
+	// - apply(): reflects options onto <html>, clearing whatever set came
+	//   before — attributes are wholly derived state. A falsy anchor slug
+	//   (Original / unknown / no boot) clears everything and sets nothing.
+	//   Payload keys are FIELDNAMES (the status shape): no mirror map
+	//   exists to fall out of step with presets.<KIT>_FIELDS.
+	// - The boot call runs at parse time, before Frappe renders the first
+	//   row/section/tile/cell/card/toast — the timing rule every kit keeps:
+	//   the anchor is on <html> before the DOM it styles exists, so nothing
+	//   stale ever paints.
+	// - bunood.<kit>_apply: the LIVE PREVIEW hook, mandatory from day one —
+	//   the status kit shipped without its hook and that is the recorded
+	//   failure class: settings that save but visibly do nothing.
+	//
+	// Per-row notes that used to be block doctrine:
+	// - workspace's attribute stem is "ws", not "workspace" — _workspace.scss
+	//   has keyed on data-bnd-ws since item 25.
+	// - views: Tinted/Chip/Cover are the NEUTRALS and map to "" (Frappe
+	//   already tints the kanban column inline and re-themes it for dark;
+	//   "keep stock" needs no attribute). Its live preview must also repaint
+	//   the calendars — an attribute flip alone cannot recolour an
+	//   inline-styled event.
+	// - overlay: the REPAIRS are not here and must not be —
+	//   surfaces/_overlays.scss scopes them html[data-theme], outside the
+	//   anchor, so clearing it never makes a dialog illegible. Dim and Inset
+	//   map to "" (stock scrim, stock row).
 
-	/**
-	 * Theme Settings label -> slug, per option. Each option fails open
-	 * INDEPENDENTLY: an unknown label sets no attribute for that option and
-	 * the others still apply. "Original" maps the anchor to "" — the whole
-	 * kit stands down and the stock form renders.
-	 */
-	const FORM_SLUGS = {
-		style: { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet" },
-		tabs: { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" },
-		sidebar: { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" },
-	};
-
-	/**
-	 * The form options currently IN EFFECT — boot's at load, possibly
-	 * replaced by a live preview (bunood.form_apply). Mounts read THIS,
-	 * never frappe.boot, so preview is a re-application, not a mode.
-	 */
-	let form_state = (window.frappe && frappe.boot && frappe.boot.bnd_form) || null;
-
-	/**
-	 * Reflect the form options onto <html>, clearing whatever set came
-	 * before — attributes are wholly derived state. A falsy style slug
-	 * (Original / unknown / no boot) clears everything and sets nothing.
-	 * Payload keys are FIELDNAMES (the list shape): no mirror map exists
-	 * to fall out of step with presets.FORM_FIELDS.
-	 * @param {Object|null} v - the boot-shaped values object.
-	 */
-	function apply_form_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-form" || a.name.startsWith("data-bnd-form-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		form_state = v;
-		const style = FORM_SLUGS.style[v.form_style];
-		if (!style) return;
-		html.setAttribute("data-bnd-form", style);
-		const set = (name, value) => value && html.setAttribute("data-bnd-form-" + name, value);
-		set("tabs", FORM_SLUGS.tabs[v.form_tabs]);
-		set("side", FORM_SLUGS.sidebar[v.form_sidebar]);
-		// Presence-only: grid checkbox reveal, matched as
-		// [data-bnd-form-ckreveal] and stood down wholesale under
-		// (hover: none) in the stylesheet.
-		if (parseInt(v.form_grid_checkbox_reveal, 10)) html.setAttribute("data-bnd-form-ckreveal", "");
-	}
-
-	// Before Frappe renders the first section — same timing rule as every kit.
-	apply_form_attrs(form_state);
-
-	/** True when the form kit is active (the style attribute is the anchor). */
-	function form_active() {
-		return document.documentElement.hasAttribute("data-bnd-form");
-	}
-
-	/**
-	 * LIVE PREVIEW for the form kit. Accepts the fieldname shape (which is
-	 * also the boot shape — one shape, no resolver ladder). Mandatory from
-	 * day one: the status kit shipped without its apply hook and that is the
-	 * recorded failure class — settings that save but visibly do nothing.
-	 * @param {Object} values
-	 */
-	bunood.form_apply = function (values) {
-		if (!values) return;
-		apply_form_attrs({ ...(form_state || {}), ...values });
-	};
-
-	// ── Workspace tile kit (item 25) ────────────────────────────────────────
-	const WORKSPACE_SLUGS = {
-		style: {
-			"Original": "", "Open Board": "open", "Hairline Grid": "grid",
-			"Soft Tiles": "soft", "Headed Panel": "headed", "Floating Cards": "cards",
-			"Mixed Weights": "mixed",
-		},
-		metric: {
-			"Quiet": "quiet", "Display": "display", "Headline": "headline",
-			"Centred": "centred", "Inline": "inline",
-		},
-		rows: { "Plain": "plain", "Divided": "divided", "Edge Rail": "rail" },
-	};
-
-	let workspace_state = (window.frappe && frappe.boot && frappe.boot.bnd_workspace) || null;
-
-	/**
-	 * Reflect the workspace options onto <html>, clearing whatever came before.
-	 * A falsy style slug (Original / unknown / no boot) clears everything —
-	 * including the row and menu attributes, so Original is a full stand-down.
-	 * @param {Object|null} v - the boot-shaped values object.
-	 */
-	function apply_workspace_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-ws" || a.name.startsWith("data-bnd-ws-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		workspace_state = v;
-		const style = WORKSPACE_SLUGS.style[v.workspace_style];
-		if (!style) return; // "" (Original) => pure clearing
-		html.setAttribute("data-bnd-ws", style);
-		const metric = WORKSPACE_SLUGS.metric[v.workspace_metric];
-		if (metric) html.setAttribute("data-bnd-ws-metric", metric);
-		const rows = WORKSPACE_SLUGS.rows[v.workspace_rows];
-		if (rows) html.setAttribute("data-bnd-ws-rows", rows);
-		// Presence-only, stood down under (hover: none) in the stylesheet.
-		if (parseInt(v.workspace_menu_reveal, 10)) html.setAttribute("data-bnd-ws-menu", "");
-	}
-
-	// Before editor.js paints the first tile — the kit's timing rule.
-	apply_workspace_attrs(workspace_state);
-
-	/**
-	 * LIVE PREVIEW for the workspace kit. Mandatory from day one.
-	 * @param {Object} values
-	 */
-	bunood.workspace_apply = function (values) {
-		if (!values) return;
-		apply_workspace_attrs({ ...(workspace_state || {}), ...values });
-	};
-
-	// ── Report / datatable surface (item 26) ────────────────────────────────
-	const REPORT_SLUGS = {
-		style: { "Original": "", "Ruled Grid": "ruled", "Ledger Rows": "ledger", "Open Sheet": "open", "Pinned Slab": "slab" },
-		grain: { "Plain": "", "Row Stripes": "stripes" },
-		rows: { "Soft Wash": "wash", "Edge Rail": "rail", "Bold Bar": "bold" },
-	};
-
-	let report_state = (window.frappe && frappe.boot && frappe.boot.bnd_report) || null;
-
-	/**
-	 * Reflect the report options onto <html>, clearing whatever came before.
-	 * A falsy style slug (Original / unknown / no boot) clears everything —
-	 * including grain, rows and the reveal — so Original is a full stand-down.
-	 * Payload keys are FIELDNAMES: no mirror map to fall out of step with
-	 * presets.REPORT_FIELDS.
-	 * @param {Object|null} v - the boot-shaped values object.
-	 */
-	function apply_report_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-report" || a.name.startsWith("data-bnd-report-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		report_state = v;
-		const style = REPORT_SLUGS.style[v.report_style];
-		if (!style) return; // "" (Original) => pure clearing
-		html.setAttribute("data-bnd-report", style);
-		const set = (name, value) => value && html.setAttribute("data-bnd-report-" + name, value);
-		set("grain", REPORT_SLUGS.grain[v.report_grain]);
-		set("rows", REPORT_SLUGS.rows[v.report_rows]);
-		// Presence-only: checkbox reveal, stood down under (hover: none) and
-		// route-gated to the report surfaces in the stylesheet.
-		if (parseInt(v.report_checkbox_reveal, 10)) html.setAttribute("data-bnd-report-ckreveal", "");
-	}
-
-	// Before frappe-datatable builds the first cell — the kit's timing rule.
-	apply_report_attrs(report_state);
-
-	/** True when the report kit is active (the style attribute is the anchor). */
-	function report_active() {
-		return document.documentElement.hasAttribute("data-bnd-report");
-	}
-
-	/**
-	 * LIVE PREVIEW for the report kit. Fieldname shape (also the boot shape).
-	 * Mandatory from day one — the status kit's missing-hook failure class.
-	 * @param {Object} values
-	 */
-	bunood.report_apply = function (values) {
-		if (!values) return;
-		apply_report_attrs({ ...(report_state || {}), ...values });
-	};
-
-	// ── Alternate views surface (item 27) ───────────────────────────────────
-	// ONE anchor (data-bnd-views) dresses the kanban card, the gallery tile, the
-	// calendar chip and the gantt bar; the treatment axes hang off siblings and
-	// each reaches only the views that can honestly take it. Cover and Plain map
-	// to "" — they are the stock fit / no column wash, so the attribute is simply
-	// absent, never a slug that means "do the default".
-	const VIEWS_SLUGS = {
-		style: { "Original": "", "Hairline": "hairline", "Soft Tiles": "tiles", "Floating Cards": "cards", "Solid Panels": "panels" },
-		// Tinted is the neutral: Frappe already tints the column with an
-		// inline background-color: var(--bg-{indicator}), and re-themes those
-		// vars for dark mode — so "keep the stock tint" needs no attribute.
-		// Plain is the active override that nulls it (the column's inline colour
-		// can only be neutralised by re-pointing its var — the same constraint
-		// that made "Headed" impossible and dropped it). Chip is the neutral
-		// event shape (the anchor's default); Cover the neutral image fit.
-		band: { "Plain": "plain", "Tinted": "" },
-		mark: { "Dot": "dot", "Chip": "", "Outlined": "outlined" },
-		media: { "Cover": "", "Contain": "contain" },
-	};
-
-	let views_state = (window.frappe && frappe.boot && frappe.boot.bnd_views) || null;
-
-	/**
-	 * Reflect the alternate-views options onto <html>, clearing whatever came
-	 * before. A falsy style slug (Original / unknown / no boot) clears
-	 * everything — band, mark, media and the reveal — so Original is a full
-	 * stand-down across all four views. Payload keys are FIELDNAMES: no mirror
-	 * map to fall out of step with presets.VIEWS_FIELDS.
-	 * @param {Object|null} v - the boot-shaped values object.
-	 */
-	function apply_views_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-views" || a.name.startsWith("data-bnd-views-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		views_state = v;
-		const style = VIEWS_SLUGS.style[v.views_style];
-		if (!style) return; // "" (Original) => pure clearing
-		html.setAttribute("data-bnd-views", style);
-		const set = (name, value) => value && html.setAttribute("data-bnd-views-" + name, value);
-		set("band", VIEWS_SLUGS.band[v.views_band]);
-		set("mark", VIEWS_SLUGS.mark[v.views_mark]);
-		set("media", VIEWS_SLUGS.media[v.views_media]);
-		// Presence-only: reveal the gallery tile's controls and the kanban card's
-		// menu on hover, stood down under (hover: none) in the stylesheet.
-		if (parseInt(v.views_reveal, 10)) html.setAttribute("data-bnd-views-reveal", "");
-	}
-
-	// Before the view classes build the first card/chip/bar/tile — the timing
-	// rule every surface kit keeps: the anchor is on <html> before the DOM it
-	// styles exists, so nothing stale ever paints.
-	apply_views_attrs(views_state);
-
-	/** True when the alternate-views kit is active (the anchor is present). */
-	function views_active() {
-		return document.documentElement.hasAttribute("data-bnd-views");
-	}
-
-	/**
-	 * LIVE PREVIEW for the alternate-views kit. Fieldname shape (also the boot
-	 * shape). Mandatory from day one — the status kit's missing-hook failure
-	 * class, and the item-25/26 "escapee" that must never recur.
-	 * @param {Object} values
-	 */
-	// Assigned by patch_calendar_colors below; a no-op until then so a boot with
-	// no Calendar class (or a headless build) never throws. views_apply calls it
-	// so a live mark/style change re-renders the calendar with fresh colours —
-	// the attribute flip alone cannot recolour an inline-styled event.
+	// Assigned by patch_calendar_colors below; a no-op until then so a boot
+	// with no Calendar class (or a headless build) never throws.
 	let bnd_repaint_calendars = function () {};
 
-	bunood.views_apply = function (values) {
-		if (!values) return;
-		apply_views_attrs({ ...(views_state || {}), ...values });
-		bnd_repaint_calendars();
-	};
-
-	// ── Overlays surface (item 28) ──────────────────────────────────────────
-	// ONE anchor (data-bnd-overlay) dresses every floating thing on the desk as
-	// the same object: the dialog panel, the dropdown, the context menu, the
-	// toast, the popover, the datepicker, the report column list and the
-	// duration picker. The treatment axes hang off siblings.
-	//
-	// THE REPAIRS ARE NOT HERE AND MUST NOT BE. surfaces/_overlays.scss scopes
-	// them html[data-theme], outside this anchor, because a contract survives
-	// Original and a style does not — overlays are on every page and three of
-	// the repairs are measured WCAG AA failures. So Original is a total
-	// stand-down of the STYLE only, and clearing this attribute never makes a
-	// dialog illegible.
-	//
-	// Dim and Plain map to "" — they are stock (Frappe's own --gray-800 scrim,
-	// and the vendor's full-bleed hover row), so the attribute is simply absent
-	// rather than a slug meaning "do the default".
-	const OVERLAY_SLUGS = {
-		style: { "Original": "", "Hairline": "hairline", "Soft": "soft", "Floating": "floating", "Solid": "solid" },
-		scrim: { "Dim": "", "Tinted": "tinted", "Blurred": "blurred" },
-		// Inset is the NEUTRAL and Plain the active override — the polarity
-		// item 27's views_band established, and measurement forced it here too:
-		// Frappe's Bootstrap dropdown row ALREADY carries an 8px radius inside
-		// a
-		// 4px-padded popup, while its own .frappe-menu row is square at 0px. So
-		// "make it a pill" is not a change on one vocabulary and is on another —
-		// the anchor unifies them instead, and this axis offers the real
-		// alternative: square rows, edge to edge.
-		menu: { "Plain": "plain", "Inset": "" },
-	};
-
-	let overlay_state = (window.frappe && frappe.boot && frappe.boot.bnd_overlay) || null;
-
 	/**
-	 * Reflect the overlay options onto <html>, clearing whatever came before.
-	 * A falsy style slug (Original / unknown / no boot) clears everything, so
-	 * Original is a full stand-down across every overlay. Payload keys are
-	 * FIELDNAMES: no mirror map to fall out of step with presets.OVERLAY_FIELDS.
-	 * @param {Object|null} v - the boot-shaped values object.
+	 * The options currently IN EFFECT per kit, keyed by kit name — written by
+	 * every apply(), read by the one consumer outside the loop (the calendar
+	 * wrap needs views' current mark). Never read frappe.boot directly for a
+	 * kit's current state; boot is only the seed.
 	 */
-	function apply_overlay_attrs(v) {
-		const html = document.documentElement;
-		for (const a of [...html.attributes]) {
-			if (a.name === "data-bnd-overlay" || a.name.startsWith("data-bnd-overlay-")) {
-				html.removeAttribute(a.name);
-			}
-		}
-		if (!v) return;
-		overlay_state = v;
-		const style = OVERLAY_SLUGS.style[v.overlay_style];
-		if (!style) return; // "" (Original) => pure clearing
-		html.setAttribute("data-bnd-overlay", style);
-		const set = (name, value) => value && html.setAttribute("data-bnd-overlay-" + name, value);
-		set("scrim", OVERLAY_SLUGS.scrim[v.overlay_scrim]);
-		set("menu", OVERLAY_SLUGS.menu[v.overlay_menu]);
+	const bnd_kit_state = {};
+
+	/** The label->slug map for one axis of one kit — the single copy. */
+	function bnd_axis_slugs(kit, suffix) {
+		const row = BND_SURFACE_KITS[kit].axes.find((a) => a[0] === suffix);
+		return row ? row[2] : {};
 	}
 
-	// Before any overlay exists — every one of them is built on a gesture, long
-	// after boot, so the anchor is on <html> before the first dialog, menu or
-	// toast is constructed and nothing stale ever paints.
-	apply_overlay_attrs(overlay_state);
-
 	/**
-	 * LIVE PREVIEW for the overlays kit. Fieldname shape (also the boot shape).
-	 * Mandatory from day one — the status kit's missing-hook failure class, and
-	 * the item-25/26 "escapee" that must never recur.
-	 * @param {Object} values
+	 * One row per surface kit. attr = the data-bnd-<attr> stem; anchor =
+	 * [fieldname, label->slug]; axes = [suffix, fieldname, label->slug] each;
+	 * check = [suffix, fieldname] set presence-only ("" value) when truthy,
+	 * stood down under (hover: none) in the stylesheet where it reveals.
 	 */
-	bunood.overlay_apply = function (values) {
-		if (!values) return;
-		apply_overlay_attrs({ ...(overlay_state || {}), ...values });
+	const BND_SURFACE_KITS = {
+		list: {
+			attr: "list", boot: "bnd_list",
+			anchor: ["list_style", { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards" }],
+			axes: [
+				["hover", "list_hover", { "Soft Wash": "wash", "Edge Rail": "rail" }],
+				["select", "list_selection", { "Soft Tint": "soft", "Accent Rail": "rail", "Bold Bar": "bold" }],
+			],
+			check: ["ckreveal", "list_checkbox_reveal"],
+		},
+		form: {
+			attr: "form", boot: "bnd_form",
+			anchor: ["form_style", { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet" }],
+			axes: [
+				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
+				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" }],
+			],
+			check: ["ckreveal", "form_grid_checkbox_reveal"],
+		},
+		workspace: {
+			attr: "ws", boot: "bnd_workspace",
+			anchor: ["workspace_style", { "Original": "", "Open Board": "open", "Hairline Grid": "grid", "Soft Tiles": "soft", "Headed Panel": "headed", "Floating Cards": "cards", "Mixed Weights": "mixed" }],
+			axes: [
+				["metric", "workspace_metric", { "Quiet": "quiet", "Display": "display", "Headline": "headline", "Centred": "centred", "Inline": "inline" }],
+				["rows", "workspace_rows", { "Plain": "plain", "Divided": "divided", "Edge Rail": "rail" }],
+			],
+			check: ["menu", "workspace_menu_reveal"],
+		},
+		report: {
+			attr: "report", boot: "bnd_report",
+			anchor: ["report_style", { "Original": "", "Ruled Grid": "ruled", "Ledger Rows": "ledger", "Open Sheet": "open", "Pinned Slab": "slab" }],
+			axes: [
+				["grain", "report_grain", { "Plain": "", "Row Stripes": "stripes" }],
+				["rows", "report_rows", { "Soft Wash": "wash", "Edge Rail": "rail", "Bold Bar": "bold" }],
+			],
+			check: ["ckreveal", "report_checkbox_reveal"],
+		},
+		views: {
+			attr: "views", boot: "bnd_views",
+			anchor: ["views_style", { "Original": "", "Hairline": "hairline", "Soft Tiles": "tiles", "Floating Cards": "cards", "Solid Panels": "panels" }],
+			axes: [
+				["band", "views_band", { "Plain": "plain", "Tinted": "" }],
+				["mark", "views_mark", { "Dot": "dot", "Chip": "", "Outlined": "outlined" }],
+				["media", "views_media", { "Cover": "", "Contain": "contain" }],
+			],
+			check: ["reveal", "views_reveal"],
+			after: () => bnd_repaint_calendars(),
+		},
+		overlay: {
+			attr: "overlay", boot: "bnd_overlay",
+			anchor: ["overlay_style", { "Original": "", "Hairline": "hairline", "Soft": "soft", "Floating": "floating", "Solid": "solid" }],
+			axes: [
+				["scrim", "overlay_scrim", { "Dim": "", "Tinted": "tinted", "Blurred": "blurred" }],
+				// Inset is the NEUTRAL and Plain the active override — item 27's
+				// views_band polarity, forced here too by measurement: Bootstrap's
+				// dropdown row already carries an 8px radius while .frappe-menu's is
+				// square, so "make it a pill" changes one vocabulary and not the
+				// other. The anchor unifies; this axis offers square, edge to edge.
+				["menu", "overlay_menu", { "Plain": "plain", "Inset": "" }],
+			],
+			check: null,
+		},
 	};
+
+	for (const [kit, def] of Object.entries(BND_SURFACE_KITS)) {
+		let state = (window.frappe && frappe.boot && frappe.boot[def.boot]) || null;
+		bnd_kit_state[kit] = state;
+
+		const apply = (v) => {
+			const html = document.documentElement;
+			const stem = "data-bnd-" + def.attr;
+			for (const a of [...html.attributes]) {
+				if (a.name === stem || a.name.startsWith(stem + "-")) html.removeAttribute(a.name);
+			}
+			if (!v) return;
+			state = v;
+			bnd_kit_state[kit] = v;
+			const style = def.anchor[1][v[def.anchor[0]]];
+			if (!style) return; // "" (Original) => pure clearing
+			html.setAttribute(stem, style);
+			for (const [suffix, field, slugs] of def.axes) {
+				const slug = slugs[v[field]];
+				if (slug) html.setAttribute(stem + "-" + suffix, slug);
+			}
+			if (def.check && parseInt(v[def.check[1]], 10)) html.setAttribute(stem + "-" + def.check[0], "");
+		};
+
+		apply(state);
+
+		bunood[kit + "_apply"] = function (values) {
+			if (!values) return;
+			apply({ ...(state || {}), ...values });
+			if (def.after) def.after();
+		};
+	}
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
@@ -1492,8 +1252,8 @@
 			return HEX6.test(v) ? v : null;
 		};
 		const mark_slug = () => {
-			const v = views_state || (window.frappe && frappe.boot && frappe.boot.bnd_views) || {};
-			return VIEWS_SLUGS.mark[v.views_mark] || "";
+			const v = bnd_kit_state.views || (window.frappe && frappe.boot && frappe.boot.bnd_views) || {};
+			return bnd_axis_slugs("views", "mark")[v.views_mark] || "";
 		};
 
 		const Native = Cal.prototype.prepare_colors;
@@ -1504,8 +1264,8 @@
 			// the kit must touch NOTHING — the SCSS stands down on the absent
 			// attribute, and this JS must too, or the calendar keeps our colours
 			// while every other view reverts (adversarial release review finding).
-			// views_active() is the anchor check the SCSS keys on.
-			if (!views_active()) return r;
+			// The anchor attribute is the active check the SCSS keys on.
+			if (!document.documentElement.hasAttribute("data-bnd-views")) return r;
 			const accent = token("--bnd-accent");
 			if (!accent) return r; // fall open
 			// Keep a category colour (get_css_class) or an admin's hex; re-hue only
@@ -1567,7 +1327,7 @@
 				// Under Original the kit stands down — no recompute, no refetch, or
 				// the calendar would differ from stock on a theme flip (not a total
 				// stand-down). prepare_colors is gated the same way as a backstop.
-				if (queued || !views_active()) return;
+				if (queued || !document.documentElement.hasAttribute("data-bnd-views")) return;
 				queued = true;
 				requestAnimationFrame(function () {
 					queued = false;
