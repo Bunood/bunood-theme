@@ -673,7 +673,35 @@ entry.
     replacing them waits for a route that shows them. Upstream:
     `docs/upstream/frappe-empty-states.md` (twelve filings, including `form/save.js:91`
     commenting out its own freeze message, so every save shows a blank overlay).
-- `[ ]` **30 · Skeletons** *(was 23)* — loading that does not reflow
+- `[x]` **30 · Skeletons** *(was 23, done 2026-08-20)* — loading that does not reflow. The
+  EIGHTH surface kit, in two slices plus a close. One field (`skeleton_style`), the theme's
+  FIRST `@keyframes`, and `_skeleton.scss`. What the surface taught:
+  - **The bone was a COLLISION, not a bad colour.** Stock's `--skeleton-bg`, `--control-bg`
+    and `--subtle-accent` all resolve to `#232323` in dark, so a skeleton was
+    indistinguishable from a card. `--bnd-bone` is fitted against the measured family, and
+    is LIGHTER than `--bnd-hover` in dark because a bone reads by lifting off the surface
+    there — `--bnd-active`, the obvious pick, lands within `4 units of hover and would have
+    re-created the collapse in our own vocabulary. Declared in THREE token blocks: the
+    `automatic` subset enforces no membership, and a skeleton paints before a theme resolves.
+  - **Most "loading states" are TEXT.** Only two owned nodes are solid bones; the rest render
+    the word "Loading…". So bones sweep and prose pulses, and the vendor's string is never
+    hidden — it is the only signal these nodes give an assistive technology, since frappe
+    sets `aria-busy` nowhere and ships no live region on any loading state.
+  - **THE SUITE ENVIRONMENT REPORTS `prefers-reduced-motion: reduce`.** Found the hard way —
+    the first motion check read `0s` for every duration and looked like a broken token. Every
+    motion assertion now emulates explicitly, in both directions; one that trusts the ambient
+    default is testing the host. The suite's first media emulation, so the hazards (reset in
+    `finally`, compare teardown against ambient) are recorded where the next one will find
+    them.
+  - **Two barred nodes became one.** `.kanban-empty-state` is a pure LOADING node wearing an
+    empty-state name (verified live: hidden on a 28-card board), and the query report's
+    loading and empty boxes are DIFFERENT SIBLINGS reachable by position. But
+    `.chart-loading-state` stays barred: its two boxes differ only by child order, which is
+    fail-UNSAFE — an upstream reorder would shimmer an empty chart. Filed upstream instead.
+  - **G1 was planned and cut, in the file.** The list's `.result` already carries stock's
+    200px floor and a density-aware restatement lands at or below it. The 1-row-to-N jump
+    stays as stock has it rather than being claimed as fixed. Upstream:
+    `docs/upstream/frappe-empty-states.md` covers both items (twelve filings).
 - `[ ]` **31 · Filters + saved views** *(was 24)*
 
 - `[ ]` **32 · Login / signup / forgot** *(was 25)* — separate sheet; Frappe's login

@@ -10,6 +10,34 @@
 
 ## 1. Where the work stands
 
+**ITEM 30 (skeletons) — DONE, LOCAL-ONLY, UNRELEASED (2026-08-20).** Two slices plus a close
+on `main`: `783520e` 1 (contracts) · `00a61da` 2 (anchor + picker). Suite **298/298**. One
+field (`skeleton_style`: Original · Still · Pulse · **Sweep**), `surfaces/_skeleton.scss`,
+and the theme's FIRST `@keyframes`. Facts worth keeping:
+- **THE SUITE ENVIRONMENT REPORTS `prefers-reduced-motion: reduce`.** Any motion assertion
+  MUST emulate explicitly — `no-preference` to prove a treatment exists, `reduce` to prove
+  the gate removes it. The first run of the motion check read `0s` for every duration and
+  looked like a broken token. Reset in `finally`, and compare the teardown against the
+  AMBIENT default, never `false` — the suite shares one page for the whole run.
+- **A 0ms infinite animation renders the element's BASE declaration, not a held keyframe**
+  (measured). So the token zero alone stills the bone correctly and the `no-preference` gate
+  is genuinely belt-and-braces. Paint NEVER goes inside the gate — Discourse put a bone's
+  background inside its own and reduce-motion users get an invisible skeleton.
+- **Under Sweep the CARD is not animated — its `::after` is.** Reading the card's
+  `animationDuration` returns `0s` and looks like a broken token when it is a broken
+  assertion. Cost one debug cycle.
+- **`--bnd-bone` is LIGHTER than `--bnd-hover` in dark** and darker in light: a bone reads
+  by lifting off the surface in dark. `--bnd-active` was the obvious pick and lands within
+  ~4 units of hover — the stock collapse re-created in our own vocabulary.
+- **`.chart-loading-state` STAYS BARRED** — its loading and empty boxes differ only by child
+  order, which is fail-unsafe. Kanban and the query report were taken; the chart was not.
+- **The import-path preview call site was missed on the first pass AGAIN** (as in item 29):
+  `String.replace` patches only the first match. Diff the new kit's call sites one-to-one
+  against the previous kit's — that is what caught it both times.
+- **`ar.po` now carries 34 `#, fuzzy` rows** across items 29 and 30, awaiting the user's
+  bulk sign-off before any release.
+- **Payload: `css_gzip` 19600 to 20200** (slice 2 crossed by 247 bytes).
+
 **ITEM 29 (empty states) — DONE, LOCAL-ONLY, UNRELEASED (2026-08-20).** Four gated slices on
 `main`: `47d40d9` 1 (contracts) · `9e0009b` 2a (the kit refactor) · `ff84beb` 2 (anchor +
 spine) · `f66572d` 3 (axes + picker). Suite **293/293** at the close. Plan +

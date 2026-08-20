@@ -12,6 +12,33 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Loading states stop guessing (item 30)
+
+A loading screen now looks like one. Stock's own skeletons were painted a grey
+that resolves to exactly the same colour as a card and a subtle panel in dark
+mode — three names, one value — so a loading bar was indistinguishable from
+content that had already arrived. The theme gives them a bone colour fitted
+against everything they sit on, and that repair holds even under "Original",
+because it is about whether a loading state is legible rather than how it looks.
+
+One setting decides how it moves: not at all, a pulse, or a band travelling
+across the bones (the default). "Still" is not "off" — it is the full bone
+treatment without motion, which is exactly what the other two render for anyone
+who has asked their system for reduced motion. Shipping it as a choice makes
+that state something you can look at instead of something you have to trust.
+
+**Bones sweep; text pulses.** Most of what the desk calls a loading state is the
+word "Loading…", not a grey box, and a gradient travelling across a sentence is
+noise rather than information. That split is why the setting is one choice and
+not three — and the vendor's "Loading…" text is never hidden to make room for a
+prettier bar, because it is the only thing a screen reader has to go on.
+
+Two things the desk had never done: **the reduced-motion setting is now
+honoured** — `prefers-reduced-motion` appears nowhere in Frappe's own
+stylesheets, and the one animation it does run (the print preview's) ignored it
+until now — and **a workspace no longer jumps** when its skeleton is replaced,
+because the placeholder reserves exactly what the editor will occupy.
+
 ### Empty states get a hand (item 29)
 
 Every "there is nothing here yet" screen on the desk is now drawn by the same
