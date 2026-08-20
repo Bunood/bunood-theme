@@ -4030,3 +4030,88 @@ msgstr "مؤطَّر"
 #, fuzzy
 msgid "Filled"
 msgstr "مملوء"
+
+#. src: item29
+#, fuzzy
+msgid "Empty Media"
+msgstr "وسائط الحالة الفارغة"
+
+#. src: item29
+#, fuzzy
+msgid "Set by the picker above. The mark above the message."
+msgstr "يُضبط من المنتقي أعلاه. العلامة فوق الرسالة."
+
+#. src: item29
+#, fuzzy
+msgid "Glyph"
+msgstr "رمز"
+
+#. src: item29
+#, fuzzy
+msgid "Marked"
+msgstr "بعلامة"
+
+#. src: item29
+#, fuzzy
+msgid "Empty Action"
+msgstr "إجراء الحالة الفارغة"
+
+#. src: item29
+#, fuzzy
+msgid "Set by the picker above. How much the button on an empty screen asks to be pressed."
+msgstr "يُضبط من المنتقي أعلاه. مدى إلحاح الزر في الشاشة الفارغة على الضغط عليه."
+
+#. src: item29
+#, fuzzy
+msgid "Primary"
+msgstr "أساسي"
+
+#. src: item29
+#, fuzzy
+msgid "The stock empty states, untouched. The style stands down — the legibility repairs stay."
+msgstr "الحالات الفارغة الأصلية دون تغيير. يتنحّى النمط — وتبقى إصلاحات الوضوح."
+
+#. src: item29
+#, fuzzy
+msgid "Separated by nothing — ink and a little air, for a desk that wants its empty screens to recede."
+msgstr "بلا فاصل — حبر ومساحة قليلة، لمكتب يريد لشاشاته الفارغة أن تتوارى."
+
+#. src: item29
+#, fuzzy
+msgid "Separated by AIR — generous space and no frame. The default, because this block sits inside containers that already frame it."
+msgstr "يفصلها الفراغ — مساحة سخية بلا إطار. الافتراضي، لأن هذه الكتلة تقع داخل حاويات تؤطّرها أصلاً."
+
+#. src: item29
+#, fuzzy
+msgid "Separated by a hairline — the block becomes a card with a boundary and no fill."
+msgstr "يفصلها خط رفيع — تصبح الكتلة بطاقة بحدّ دون تعبئة."
+
+#. src: item29
+#, fuzzy
+msgid "Separated by TONE — a filled card with no boundary."
+msgstr "تفصلها الدرجة اللونية — بطاقة معبّأة بلا حدّ."
+
+#. src: item29
+#, fuzzy
+msgid "Mark"
+msgstr "العلامة"
+
+#. src: item29
+#, fuzzy
+msgid "The mark above the message."
+msgstr "العلامة فوق الرسالة."
+
+#. src: item29
+#, fuzzy
+msgid "Call to Action"
+msgstr "دعوة إلى الإجراء"
+
+#. src: item29
+#, fuzzy
+msgid "How much the button on an empty screen asks to be pressed."
+msgstr "مدى إلحاح الزر في الشاشة الفارغة على الضغط عليه."
+
+#. src: item29
+#, fuzzy
+msgid "Original leaves every empty state stock — nothing below applies."
+msgstr "يُبقي «الأصلي» كل حالة فارغة كما هي — لا شيء أدناه ينطبق."

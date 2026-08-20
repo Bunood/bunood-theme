@@ -601,6 +601,8 @@ OVERLAY_DEFAULTS = {
 
 EMPTY_FIELDS = [
     "empty_style",
+    "empty_media",
+    "empty_action",
 ]
 
 #: The shipped empty-state defaults — the item-29 wireframe picks (2026-08-19),
@@ -622,6 +624,26 @@ EMPTY_DEFAULTS = {
     # choices; they never combine, because a box that separates by boundary AND
     # by tone is neither.
     "empty_style": "Open",
+    # The mark above the message. Frappe draws a 40px stroked glyph
+    # (`.icon-xl`) and colours it with an INLINE `stroke: var(--text-light)`,
+    # which no rule can beat — but it READS a variable, so a scoped re-point
+    # wins with no !important. Proven live before this axis was written.
+    #
+    # Glyph is the NEUTRAL and maps to "": the stock mark, already correct
+    # because --text-light is bridged. Marked seats it on a tinted disc (the
+    # shadcn/Directus badge idiom). None removes it, for a desk that wants its
+    # empty states to be text alone — which is frappe-ui's own choice.
+    "empty_media": "Marked",
+    # The call to action. MEASURED, and it is this item's thesis: stock renders
+    # the create button as `btn btn-default btn-sm` — background
+    # rgb(251,253,252) with a 0px border, on a page ground of rgb(248,250,248).
+    # A three-unit delta and no boundary, which makes the primary action of an
+    # otherwise empty screen the least visible thing on it. Frappe's own
+    # "primary" is no help: _bridge.scss:86 leaves --btn-primary unmapped.
+    #
+    # Plain is the NEUTRAL and maps to "" — stock, warts and all. Primary is
+    # the real alternative.
+    "empty_action": "Primary",
 }
 
 #: The desk layout a fresh install gets. Named once, because it seeds

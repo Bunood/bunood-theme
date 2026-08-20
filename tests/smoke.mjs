@@ -674,7 +674,7 @@ const MUTABLE_FIELDS = [
 	// not options, so there is nothing to toggle.
 	"overlay_style", "overlay_scrim", "overlay_menu",
 	// Empty states surface (item 29). Same shape: contracts, not toggles.
-	"empty_style",
+	"empty_style", "empty_media", "empty_action",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -3797,6 +3797,8 @@ async function main() {
 				// groups (3 scrim + 2 menu = 5 opts), NO toggle — this kit's repairs
 				// are contracts, not options, so there is nothing to switch off.
 				overlay_picker: { cards: 5, toggles: 0, opts: 5 },
+				// Item 29: five styles, and five option chips (3 mark + 2 action).
+				empty_picker: { cards: 5, toggles: 0, opts: 5 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3809,7 +3811,7 @@ async function main() {
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, overlay_picker: 1, icons_picker: 1,
+					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -8583,6 +8585,104 @@ async function main() {
 				return document.documentElement.getAttribute("data-bnd-empty");
 			});
 			expectEq(back, null, "and Original clears it, live");
+		});
+		await test("empty: the glyph takes the theme's ink, and Marked gives it a disc", async () => {
+			// THE WHOLE MEDIA PLAN RESTS ON ONE MECHANISM, so this asserts the
+			// mechanism and not a value. Frappe writes the glyph's colour INLINE
+			// (`style="stroke: var(--text-light)"`, list_view.js:562) and no rule of
+			// ours can beat an inline declaration — but it reads a VARIABLE, and a
+			// scoped re-point of that variable wins with no !important. Proven live
+			// before a rule depended on it (slice-0 probe 3); pinned here.
+			//
+			// A value assertion would rot on the next brand change, so the check is a
+			// DELTA: the stroke must equal whatever --bnd-ink-subtle resolves to.
+			const media = async (option) => {
+				setSettings({ empty_style: "Open", empty_media: option });
+				await goDesk("/desk/note", ".no-result", 3000);
+				return page.evaluate(() => {
+					const g = document.querySelector(".no-result .msg-box svg.icon");
+					if (!g) return { present: false };
+					const cs = getComputedStyle(g);
+					const probe = document.createElement("div");
+					probe.style.color = "var(--bnd-ink-subtle)";
+					document.body.appendChild(probe);
+					const want = getComputedStyle(probe).color;
+					probe.remove();
+					return {
+						present: true,
+						visible: g.getBoundingClientRect().height > 1,
+						stroke: cs.stroke,
+						wantInk: want,
+						bg: cs.backgroundColor,
+						radius: cs.borderStartStartRadius,
+						display: cs.display,
+					};
+				});
+			};
+
+			const glyph = await media("Glyph");
+			expect(glyph.present && glyph.visible, "Glyph: the mark renders");
+			expectEq(glyph.stroke, glyph.wantInk, "Glyph: the inline stroke follows our scoped ink");
+			expectEq(glyph.bg, "rgba(0, 0, 0, 0)", "Glyph: and carries no disc");
+
+			const marked = await media("Marked");
+			expect(marked.present && marked.visible, "Marked: the mark renders");
+			expect(marked.bg !== "rgba(0, 0, 0, 0)", `Marked: the glyph sits on a disc (${marked.bg})`);
+			expect(parseFloat(marked.radius) > 0, `Marked: and the disc is round (${marked.radius})`);
+			expectEq(marked.stroke, marked.wantInk, "Marked: the ink contract still holds");
+
+			const none = await media("None");
+			// "None" must actually remove it — asserting display alone would pass on a
+			// node that was never there, so the earlier options proving it RENDERS is
+			// what makes this clause mean something.
+			expect(!none.present || none.display === "none" || !none.visible, "None: no mark is drawn");
+		});
+
+		await test("empty: Primary makes the create button the primary action", async () => {
+			// THE ITEM'S THESIS, MEASURED. Stock's CTA on an empty list is
+			// `btn btn-default btn-sm`: background rgb(251,253,252) with a 0px border,
+			// on a page ground of rgb(248,250,248) — a THREE-unit delta and no
+			// boundary, i.e. the primary action of an otherwise empty screen is the
+			// least visible thing on it. --btn-primary is deliberately unbridged
+			// (_bridge.scss:86), so Frappe's own "primary" is no help either.
+			//
+			// Scoped to `.no-result .msg-box` and never `.btn-new-doc` alone: the
+			// class appears in the page head too, and the box renders TWO of them
+			// (a desktop one and a `.visible-xs` mobile one).
+			const cta = async (option) => {
+				setSettings({ empty_style: "Open", empty_action: option });
+				await goDesk("/desk/note", ".no-result", 3000);
+				return page.evaluate(() => {
+					const b = document.querySelector(".no-result .msg-box .btn-new-doc:not(.visible-xs)");
+					if (!b || b.getBoundingClientRect().height < 1) return null;
+					const cs = getComputedStyle(b);
+					const probe = document.createElement("div");
+					document.body.appendChild(probe);
+					probe.style.backgroundColor = "var(--bnd-brand-solid)";
+					const brand = getComputedStyle(probe).backgroundColor;
+					probe.remove();
+					// the ground the button actually sits on
+					let n = b.parentElement, ground = "rgba(0, 0, 0, 0)";
+					while (n && ground === "rgba(0, 0, 0, 0)") { ground = getComputedStyle(n).backgroundColor; n = n.parentElement; }
+					const num = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+					const [bb, gg] = [num(cs.backgroundColor), num(ground)];
+					return {
+						bg: cs.backgroundColor, color: cs.color, brand,
+						delta: bb.length === 3 && gg.length === 3 ? Math.max(...bb.map((v, i) => Math.abs(v - gg[i]))) : -1,
+					};
+				});
+			};
+
+			const plain = await cta("Plain");
+			expect(plain, "Plain: the create button renders");
+			// Plain is the NEUTRAL and writes no attribute — stock, warts and all.
+			expect(plain.bg !== plain.brand, `Plain leaves the stock button alone (${plain.bg})`);
+
+			const primary = await cta("Primary");
+			expect(primary, "Primary: the create button renders");
+			expectEq(primary.bg, primary.brand, "Primary paints it with the brand fill");
+			// Visible against its own ground, not merely different from stock.
+			expect(primary.delta >= 20, `Primary is unmistakable against its ground (delta ${primary.delta})`);
 		});
 
 

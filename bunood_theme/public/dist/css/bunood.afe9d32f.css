@@ -4939,6 +4939,23 @@ html[data-bnd-empty] .message-page-content {
   margin-inline: auto;
 }
 
+html[data-bnd-empty-media=marked] .msg-box svg.icon {
+  box-sizing: content-box;
+  padding: var(--bnd-sp-3);
+  background-color: var(--bnd-hover);
+  border-radius: var(--bnd-radius-pill);
+}
+
+html[data-bnd-empty-media=none] .msg-box svg.icon {
+  display: none;
+}
+
+html[data-bnd-empty-action=primary] .msg-box.no-border .btn-new-doc {
+  background-color: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

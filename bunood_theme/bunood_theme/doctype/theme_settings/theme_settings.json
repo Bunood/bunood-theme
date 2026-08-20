@@ -159,6 +159,8 @@
   "section_empty",
   "empty_picker",
   "empty_style",
+  "empty_media",
+  "empty_action",
   "section_generated",
   "brand_css_url"
  ],
@@ -556,6 +558,24 @@
    "hidden": 1,
    "label": "Empty Style",
    "options": "Original\nQuiet\nOpen\nFramed\nFilled"
+  },
+  {
+   "default": "Marked",
+   "description": "Set by the picker above. The mark above the message.",
+   "fieldname": "empty_media",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Media",
+   "options": "Glyph\nMarked\nNone"
+  },
+  {
+   "default": "Primary",
+   "description": "Set by the picker above. How much the button on an empty screen asks to be pressed.",
+   "fieldname": "empty_action",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Action",
+   "options": "Plain\nPrimary"
   },
   {
    "fieldname": "section_generated",

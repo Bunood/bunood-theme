@@ -909,6 +909,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_report_picker(frm);
 		bnd_render_views_picker(frm);
 		bnd_render_overlay_picker(frm);
+		bnd_render_empty_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -932,6 +933,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_report_preview(frm);
 			bnd_views_preview(frm);
 			bnd_overlay_preview(frm);
+			bnd_empty_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -4449,11 +4451,13 @@ function bnd_views_set(frm, fieldname, value) {
 const BND_OVERLAY_FIELDS = ["overlay_style", "overlay_scrim", "overlay_menu"];
 
 /** Client mirror of presets.EMPTY_FIELDS — kept a superset by assertFieldMirrors. */
-const BND_EMPTY_FIELDS = ["empty_style"];
+const BND_EMPTY_FIELDS = ["empty_style", "empty_media", "empty_action"];
 
 /** Client mirror of presets.EMPTY_DEFAULTS — keep in sync. */
 const BND_EMPTY_DEFAULTS = {
 	empty_style: "Open",
+	empty_media: "Marked",
+	empty_action: "Primary",
 };
 
 /** Client mirror of presets.OVERLAY_DEFAULTS — keep in sync. */
@@ -4608,6 +4612,154 @@ function bnd_overlay_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_overlay_preview(frm);
 	bnd_render_overlay_picker(frm);
+}
+
+/** The empty-state catalogue. Each thumbnail is the same block — a mark, a
+ * line of message, a button — drawn to that style's air, boundary and tone,
+ * because ONE anchor dresses the list's no-result, the report's box, the
+ * dashboard's, the inbox view's and the 404 alike. */
+const BND_EMPTY_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock empty states, untouched. The style stands down — the legibility repairs stay."),
+		svg: bnd_empty_thumb({}),
+	},
+	{
+		value: "Quiet",
+		blurb: () => __("Separated by nothing — ink and a little air, for a desk that wants its empty screens to recede."),
+		svg: bnd_empty_thumb({ pad: 3 }),
+	},
+	{
+		value: "Open",
+		blurb: () => __("Separated by AIR — generous space and no frame. The default, because this block sits inside containers that already frame it."),
+		svg: bnd_empty_thumb({ pad: 9 }),
+	},
+	{
+		value: "Framed",
+		blurb: () => __("Separated by a hairline — the block becomes a card with a boundary and no fill."),
+		svg: bnd_empty_thumb({ pad: 6, border: 0.34, radius: 5 }),
+	},
+	{
+		value: "Filled",
+		blurb: () => __("Separated by TONE — a filled card with no boundary."),
+		svg: bnd_empty_thumb({ pad: 6, fill: 0.1, radius: 5 }),
+	},
+];
+
+/** One empty-state thumbnail: mark, message, button, inside the block. A
+ * builder so five near-identical diagrams are one description, not five
+ * copies that drift. */
+function bnd_empty_thumb(o) {
+	const rx = o.radius || 0;
+	// the surface the block sits in, so "framed" and "filled" read as against
+	// something rather than floating in nothing
+	const surface = '<rect x="2" y="2" width="116" height="50" rx="2" fill="currentColor" opacity=".05"/>';
+	const pad = o.pad === undefined ? 6 : o.pad;
+	const y = 27 - pad;
+	const h = Math.max(14, pad * 2 + 14);
+	const fill = o.fill ? `fill="currentColor" fill-opacity="${o.fill}"` : 'fill="none"';
+	const stroke = o.border ? `stroke="currentColor" stroke-opacity="${o.border}" stroke-width="1"` : "";
+	const box = `<rect x="26" y="${y}" width="68" height="${h}" rx="${rx}" ${fill} ${stroke}/>`;
+	// the mark, the message and the button — the anatomy every reference
+	// product ships, drawn small
+	const mid = 27 + 7 - pad + pad;
+	const inner =
+		`<circle cx="60" cy="${y + h / 2 - 7}" r="4" fill="currentColor" opacity=".28"/>` +
+		`<rect x="44" y="${y + h / 2 - 1}" width="32" height="3" rx="1.5" fill="currentColor" opacity=".22"/>` +
+		`<rect x="52" y="${y + h / 2 + 5}" width="16" height="5" rx="2.5" fill="currentColor" opacity=".4"/>`;
+	return `<svg viewBox="0 0 120 54">${surface}${box}${inner}</svg>`;
+}
+
+/** The composing chip rows — the mark and the call to action. */
+const BND_EMPTY_GROUPS = [
+	{
+		field: "empty_media",
+		title: () => __("Mark"),
+		desc: () => __("The mark above the message."),
+		options: [
+			{ value: "Glyph", name: () => __("Glyph") },
+			{ value: "Marked", name: () => __("Marked") },
+			{ value: "None", name: () => __("None") },
+		],
+	},
+	{
+		field: "empty_action",
+		title: () => __("Call to Action"),
+		desc: () => __("How much the button on an empty screen asks to be pressed."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Primary", name: () => __("Primary") },
+		],
+	},
+];
+
+/** Render the empty-states picker. No toggle row: this kit's repairs are
+ * contracts, not options, so there is nothing to switch off. */
+function bnd_render_empty_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "empty_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.empty_style || BND_EMPTY_DEFAULTS.empty_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "empty_style");
+	const cards = P.cards(
+		BND_EMPTY_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-esp-style" }
+	);
+
+	const reason = off ? __("Original leaves every empty state stock — nothing below applies.") : "";
+	const groups = BND_EMPTY_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_EMPTY_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-esp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-esp-style").on("click", function () {
+		bnd_empty_set(frm, "empty_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_empty_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_empty_set(frm, f, BND_EMPTY_DEFAULTS[f]);
+	});
+}
+
+/** Hand the empty-state values to the desk engine — live preview. */
+function bnd_empty_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.empty_apply) return;
+	const values = {};
+	// `|| DEFAULT` matters, and the overlays picker records why: on a site where
+	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
+	// the anchor the boot payload had just set — opening the settings form would
+	// strip the style.
+	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || BND_EMPTY_DEFAULTS[f];
+	window.bunood_theme.empty_apply(values);
+}
+
+/** Set one empty-state option, preview, re-render. */
+function bnd_empty_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_empty_preview(frm);
+	bnd_render_empty_picker(frm);
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
@@ -5480,6 +5632,7 @@ function bnd_sb_import(frm) {
 			bnd_report_preview(frm);
 			bnd_views_preview(frm);
 			bnd_overlay_preview(frm);
+			bnd_empty_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -5494,6 +5647,7 @@ function bnd_sb_import(frm) {
 			bnd_render_report_picker(frm);
 			bnd_render_views_picker(frm);
 			bnd_render_overlay_picker(frm);
+			bnd_render_empty_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

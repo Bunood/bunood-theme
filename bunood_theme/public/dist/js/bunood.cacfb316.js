@@ -1204,7 +1204,14 @@
 			// inside containers other kits already frame), Framed by a solid
 			// hairline, Filled by tone. Framed and Filled never combine.
 			anchor: ["empty_style", { "Original": "", "Quiet": "quiet", "Open": "open", "Framed": "framed", "Filled": "filled" }],
-			axes: [],
+			// Glyph and Plain are the NEUTRALS and map to "" — the stock mark is
+			// already correct (--text-light is bridged) and the stock button is what
+			// "leave it alone" means. The axes offer the real alternatives, which is
+			// item 27's views_band polarity, kept.
+			axes: [
+				["media", "empty_media", { "Glyph": "", "Marked": "marked", "None": "none" }],
+				["action", "empty_action", { "Plain": "", "Primary": "primary" }],
+			],
 			check: null,
 		},
 	};

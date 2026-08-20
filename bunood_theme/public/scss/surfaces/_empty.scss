@@ -190,3 +190,63 @@ html[data-bnd-empty] .message-page-content {
   max-inline-size: var(--bnd-em-max);
   margin-inline: auto;
 }
+
+// ── Axis: the mark (item 29 slice 3) ───────────────────────────────────────
+// Frappe draws a 40px stroked glyph above the message and colours it INLINE
+// (`style="stroke: var(--text-light)"`, list_view.js:562). No rule of ours can
+// beat an inline declaration — but it READS A VARIABLE, and re-pointing that
+// variable in scope wins with no !important. That is the whole media plan, and
+// it was proven on the live node before this axis was written (slice-0 probe 3:
+// a scoped --text-light re-point moved the computed stroke exactly).
+//
+// GLYPH IS THE NEUTRAL and writes no attribute: --text-light is already bridged
+// to --bnd-ink-subtle, so the stock mark is already ours. The axis exists for
+// the two real alternatives.
+//
+// NOT DONE HERE, AND WHY: Frappe also ships six `<img class="null-state">`
+// illustrations with hardcoded hex (#171717 on our dark surface computes 1.11:1)
+// which CSS cannot recolour — only hide or filter. They are UNREACHABLE in every
+// state this stack can drive: probed 2026-08-20, the notification panel's two
+// are in the DOM at 0x0 and offsetParent null. Styling what cannot be measured
+// is how a rule ships broken, so replacing them waits for a route that shows
+// them (and for the mask-over-data-URI mark the survey costed at ~250-290 B).
+
+// Marked — the glyph seated on a tinted disc. shadcn's `icon` media variant and
+// Directus's circular badge, both of which put the mark on a ground rather than
+// floating it. The disc is --bnd-hover on the box's own ground and the ink stays
+// --bnd-ink-subtle: a pairing the contrast gate already covers, so no new rows.
+html[data-bnd-empty-media="marked"] .msg-box svg.icon {
+  // content-box keeps the vendor's 40px glyph at 40px and grows the disc around
+  // it, instead of shrinking the drawing inside a fixed square.
+  box-sizing: content-box;
+  padding: var(--bnd-sp-3);
+  background-color: var(--bnd-hover);
+  border-radius: var(--bnd-radius-pill);
+}
+
+// None — no mark at all. frappe-ui's own ListEmptyState ships title, description
+// and button and NO media, so this is the house idiom, not an absence.
+html[data-bnd-empty-media="none"] .msg-box svg.icon {
+  display: none;
+}
+
+// ── Axis: the call to action (item 29 slice 3) ─────────────────────────────
+// THE ITEM'S THESIS. Stock renders the create button as `btn btn-default btn-sm`
+// — measured rgb(251,253,252) with a 0px border, on a page ground of
+// rgb(248,250,248). A three-unit delta and no boundary: the primary action of an
+// otherwise empty screen is the least visible thing on it, and item 22's
+// "identifiable at rest" contract fails on the one control the screen exists to
+// offer. Frappe's own "primary" is no help — _bridge.scss:86 leaves
+// --btn-primary unmapped on purpose ("a branding gap, not a contrast one").
+//
+// PLAIN IS THE NEUTRAL and writes no attribute: stock, warts and all, for anyone
+// who wants the desk left alone.
+//
+// Scoped to the box, never to `.btn-new-doc` alone — the class appears in the
+// page head too, and the empty box itself renders TWO (a desktop button and a
+// `.visible-xs` mobile one, which Frappe already paints primary).
+html[data-bnd-empty-action="primary"] .msg-box.no-border .btn-new-doc {
+  background-color: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
