@@ -50,6 +50,12 @@ const REJECT = new Map([
 	["Center", "upstream مركز is a hub (cost centre), not centre alignment"],
 	["Mention", "upstream أشير is a verb; ours is a noun — but it is Frappe's own notification type, so we ship no row either"],
 	["Mentions", "upstream يذكر is a verb; ours is a noun"],
+	["Action", "helpdesk حدث is an EVENT/occurrence; ours is a thing the user does — إجراء"],
+	["Apply", "crm تقديم is submitting an application; ours applies a setting — تطبيق"],
+	["Filter", "frappe منقي is a purifier; a filter control is تصفية"],
+	["Display", "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it"],
+	["Translations", "frappe ترجمة is singular; our nav section is plural — الترجمات"],
+	["Queued", "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار"],
 ]);
 
 /**
@@ -102,21 +108,34 @@ function poFromContainer(app) {
 	}
 }
 
-/** msgid -> msgstr, skipping obsolete (#~) entries and empty translations. */
+/**
+ * msgid -> msgstr, skipping obsolete (#~) entries and empty translations.
+ *
+ * ENTRIES WITH A msgctxt ARE SKIPPED, and that is not a detail. Frappe keys a
+ * contextual translation as `context:msgid`, so it can never answer a bare
+ * `__("You")` — but this parser used to record one as if it were plain, and
+ * the ledger then claimed an inheritance that could not work. Measured
+ * 2026-08-19: frappe's only "You" is msgctxt-qualified ("Name of the current
+ * user…", user.js:33), so "You" sat in inherited.ar.txt while the desk rendered
+ * it in English, and the suite's merged-dict check was the only thing that
+ * noticed. An inheritance we cannot actually receive is worse than none: it
+ * suppresses our own row.
+ */
 function parsePo(text) {
 	const out = new Map();
-	let id = null, str = null, field = null;
+	let id = null, str = null, field = null, ctx = false;
 	const unq = (s) => {
 		const m = s.match(/"([\s\S]*)"\s*$/);
 		return m ? m[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\") : "";
 	};
-	const flush = () => { if (id && str) out.set(id, str); id = null; str = null; field = null; };
+	const flush = () => { if (id && str && !ctx) out.set(id, str); id = null; str = null; field = null; ctx = false; };
 	for (const raw of text.split(/\r?\n/)) {
 		const line = raw.trim();
 		if (line.startsWith("#~") || line === "") { flush(); continue; }
 		if (line.startsWith("#")) continue;
+		if (line.startsWith("msgctxt")) { flush(); ctx = true; field = "ctx"; continue; }
 		if (line.startsWith("msgid_plural")) { field = "plural"; continue; }
-		if (line.startsWith("msgid")) { flush(); id = unq(line.slice(5)); str = ""; field = "id"; continue; }
+		if (line.startsWith("msgid")) { if (field !== "ctx") flush(); id = unq(line.slice(5)); str = ""; field = "id"; continue; }
 		if (line.startsWith("msgstr")) { str = unq(line.replace(/^msgstr(\[\d\])?/, "")); field = "str"; continue; }
 		if (line.startsWith('"')) {
 			if (field === "id") id += unq(line);

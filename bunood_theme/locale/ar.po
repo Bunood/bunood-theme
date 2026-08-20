@@ -28,11 +28,6 @@ msgstr "الخط العربي"
 msgid "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
 msgstr "مستضاف ذاتيًا، خط واحد لكل موقع، يُجلب مرة واحدة ويُخزن مؤقتًا للأبد. «النظام» يستخدم ما يشحنه الجهاز، وهو يختلف من منصة إلى أخرى."
 
-#. Option for 'Arabic Font' in DocType 'Theme Settings'
-#. src: ai
-msgid "System"
-msgstr "النظام"
-
 #. In theme_settings.js
 #. src: ai
 msgid "1 minute"
@@ -2833,11 +2828,6 @@ msgstr "↑↓ تنقّل · ↵ فتح · e مقروء"
 msgid "Bunood Translation Proposal"
 msgstr "مقترح ترجمة بنود"
 
-#. Label of a Data field in DocType 'Bunood Translation Proposal'
-#. src: ai
-msgid "Language"
-msgstr "اللغة"
-
 #. Label of a Select field in DocType 'Bunood Translation Proposal'
 #. src: ai
 msgid "Status"
@@ -2850,23 +2840,8 @@ msgstr "قيد الانتظار"
 
 #. Option for 'Status' in DocType 'Bunood Translation Proposal'
 #. src: ai
-msgid "Accepted"
-msgstr "مقبول"
-
-#. Option for 'Status' in DocType 'Bunood Translation Proposal'
-#. src: ai
 msgid "Rejected"
 msgstr "مرفوض"
-
-#. Label of a Data field in DocType 'Bunood Translation Proposal'
-#. src: ai
-msgid "Provider"
-msgstr "المزوِّد"
-
-#. Label of a Data field in DocType 'Bunood Translation Proposal'
-#. src: ai
-msgid "App"
-msgstr "التطبيق"
 
 #. Description of a Data field in DocType 'Bunood Translation Proposal'
 #. src: ai
@@ -2877,11 +2852,6 @@ msgstr "من كتالوج أي تطبيق جاء النص المصدر — سي�
 #. src: ai
 msgid "Scan"
 msgstr "الفحص"
-
-#. Label of a Code field in DocType 'Bunood Translation Proposal'
-#. src: ai
-msgid "Source Text"
-msgstr "النص المصدر"
 
 #. Label of a Code field in DocType 'Bunood Translation Proposal'
 #. src: ai
@@ -2998,11 +2968,6 @@ msgstr "من يملأ الفجوات عندما تشغّل مزوّدًا. كل 
 msgid "Claude Model"
 msgstr "نموذج Claude"
 
-#. Label of an Int field in DocType 'Bunood Translation Settings'
-#. src: ai
-msgid "Batch Size"
-msgstr "حجم الدفعة"
-
 #. Description of an Int field in DocType 'Bunood Translation Settings'
 #. src: ai
 msgid "Strings per request. Smaller batches survive flaky networks; larger ones are cheaper per call."
@@ -3087,11 +3052,6 @@ msgstr "الفحص جارٍ…"
 #. src: ai
 msgid "Strings"
 msgstr "النصوص"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Missing"
-msgstr "الناقص"
 
 #. In theme_settings.js
 #. src: ai
@@ -3427,10 +3387,6 @@ msgid "How the active tab announces itself."
 msgstr "كيف يعلن التبويب النشط عن نفسه."
 
 #. src: ai
-msgid "Sidebar"
-msgstr "الشريط الجانبي"
-
-#. src: ai
 msgid "How the record's sidebar separates from the document."
 msgstr "كيف ينفصل الشريط الجانبي للسجل عن المستند."
 
@@ -3479,10 +3435,6 @@ msgid "Show the All Apps button in the bottom bar below 768px. Workspaces stay o
 msgstr "إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين."
 
 # ── Chart surface (item 25) ──────────────────────────────────────────────
-
-#. src: item25
-msgid "Charts"
-msgstr "الرسوم البيانية"
 
 #. src: item25
 msgid "Chart Picker"
@@ -3810,10 +3762,6 @@ msgstr "مُلوَّن"
 
 
 #. src: item27
-msgid "Calendar Event"
-msgstr "حدث التقويم"
-
-#. src: item27
 msgid "Set by the picker above. The shape of a calendar event."
 msgstr "يضبطه المنتقي أعلاه. شكل حدث التقويم."
 
@@ -3976,3 +3924,79 @@ msgstr "كيف يُظهر صف القائمة أنه تحت المؤشر."
 #. src: item28
 msgid "Original leaves every overlay stock — nothing below applies."
 msgstr "يُبقي «الأصلي» كل عنصر عائم كما هو — لا شيء أدناه ينطبق."
+
+#. src: apps-trim
+msgid "Action"
+msgstr "إجراء"
+
+#. src: apps-trim
+msgid "Actions"
+msgstr "الإجراءات"
+
+#. src: apps-trim
+msgid "All"
+msgstr "الكل"
+
+#. src: apps-trim
+msgid "Apply"
+msgstr "تطبيق"
+
+#. src: apps-trim
+msgid "Apps"
+msgstr "التطبيقات"
+
+#. src: apps-trim
+msgid "Brand"
+msgstr "العلامة التجارية"
+
+#. src: apps-trim
+msgid "Company Name"
+msgstr "اسم الشركة"
+
+#. src: apps-trim
+msgid "Default"
+msgstr "الافتراضي"
+
+#. src: apps-trim
+msgid "Desk"
+msgstr "مكتب"
+
+#. src: apps-trim
+msgid "Done"
+msgstr "تم"
+
+#. src: apps-trim
+msgid "Home"
+msgstr "الصفحة الرئيسية"
+
+#. src: apps-trim
+msgid "Import"
+msgstr "استيراد"
+
+#. src: apps-trim
+msgid "Notification"
+msgstr "إعلام"
+
+#. src: apps-trim
+msgid "Open"
+msgstr "فتح"
+
+#. src: apps-trim
+msgid "Refresh"
+msgstr "تحديث"
+
+#. src: apps-trim
+msgid "Search"
+msgstr "البحث"
+
+#. src: apps-trim
+msgid "System Manager"
+msgstr "مدير النظام"
+
+#. src: apps-trim
+msgid "Website"
+msgstr "الموقع"
+
+#. src: apps-trim
+msgid "You"
+msgstr "أنت"

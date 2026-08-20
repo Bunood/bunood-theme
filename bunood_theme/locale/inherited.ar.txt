@@ -8,53 +8,45 @@
 # Regenerate with: npm run i18n:inherited      (read from bunood-backend-1, lang=ar)
 # False friends are rejected in the script's REJECT map, with a reason each.
 #
-# 48 inherited, from frappe + erpnext + payments + hrms + ksa_compliance + bunood_realestate + crm + telephony + helpdesk.
+# 40 inherited, from frappe + erpnext + telephony.
 
-Action	helpdesk: حدث
-Actions	crm: الإجراءات
+Accepted	frappe: مقبول
 Alert	frappe: إنذار
-All	crm: الكل
-Apply	crm: تقديم
-Apps	crm: التطبيقات
+App	frappe: تطبيق
 Auto	frappe: تلقائى
+Batch Size	erpnext: حجم الدفعة
 Bottom	frappe: الأسفل
-Brand	crm: العلامة التجارية
 Breadcrumbs	frappe: مسار التصفح
-Company Name	crm: اسم الشركة
+Calendar Event	erpnext: حدث التقويم
+Charts	frappe: الرسوم البيانية
 Custom	frappe: مخصص
-Default	crm: الافتراضي
-Desk	crm: مكتب
 Document	frappe: وثيقة
-Done	crm: تم
 Export	frappe: تصدير
 Generated	erpnext: تم إنشاؤه
-Home	helpdesk: الصفحة الرئيسية
-Import	crm: استيراد
 Inbox	frappe: صندوق الوارد
 Keyboard Shortcuts	frappe: اختصارات لوحة المفاتيح
+Language	frappe: اللغة
 List	frappe: قائمة
 Loading...	frappe: تحميل ...
 Logo	erpnext: شعار
 Manual	erpnext: يدوي
 Menu	frappe: الخيارات
+Missing	erpnext: مفتقد
 None	frappe: لا شيء
-Notification	crm: إعلام
 Notifications	frappe: إخطارات
 Off	frappe: إيقاف
-Open	crm: فتح
 Page	frappe: الصفحة
-Refresh	crm: تحديث
+Provider	frappe: المزود
 Reload	frappe: تحديث
 Reset to defaults	frappe: إعادة تعيين إلى الإعدادات الافتراضية
-Search	crm: البحث
 Separator	frappe: فاصل
 Session Defaults	frappe: الجلسة الافتراضية
 Share	frappe: مشاركة
 Shared	frappe: مشتركة
+Sidebar	frappe: الشريط الجانبي
+Source Text	frappe: النص المصدر
 Style	frappe: النمط
-System Manager	crm: مدير النظام
+System	frappe: نظام
 Top	frappe: أعلى
 Tree	frappe: شجرة
 Unread	frappe: غير مقروء
-Website	crm: الموقع
-You	frappe: أنت
