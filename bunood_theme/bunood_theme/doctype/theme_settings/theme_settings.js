@@ -1120,6 +1120,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
 			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
 			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
+			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
 		],
 	},
 	{
@@ -1228,6 +1229,7 @@ const BND_SHELL_OWNS = {
 	report: { prefixes: ["report_"] },
 	views: { prefixes: ["views_"] },
 	overlay: { prefixes: ["overlay_"] },
+	empty: { prefixes: ["empty_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4446,6 +4448,14 @@ function bnd_views_set(frm, fieldname, value) {
 /** Client mirror of presets.OVERLAY_FIELDS. Keep in sync. Export AND import list it. */
 const BND_OVERLAY_FIELDS = ["overlay_style", "overlay_scrim", "overlay_menu"];
 
+/** Client mirror of presets.EMPTY_FIELDS — kept a superset by assertFieldMirrors. */
+const BND_EMPTY_FIELDS = ["empty_style"];
+
+/** Client mirror of presets.EMPTY_DEFAULTS — keep in sync. */
+const BND_EMPTY_DEFAULTS = {
+	empty_style: "Open",
+};
+
 /** Client mirror of presets.OVERLAY_DEFAULTS — keep in sync. */
 const BND_OVERLAY_DEFAULTS = {
 	overlay_style: "Floating",
@@ -5421,7 +5431,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -5450,7 +5460,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {

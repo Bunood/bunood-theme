@@ -4000,3 +4000,33 @@ msgstr "الموقع"
 #. src: apps-trim
 msgid "You"
 msgstr "أنت"
+
+#. src: item29
+#, fuzzy
+msgid "Empty states"
+msgstr "الحالات الفارغة"
+
+#. src: item29
+#, fuzzy
+msgid "Empty Picker"
+msgstr "منتقي الحالات الفارغة"
+
+#. src: item29
+#, fuzzy
+msgid "Empty Style"
+msgstr "نمط الحالة الفارغة"
+
+#. src: item29
+#, fuzzy
+msgid "Set by the picker above. How a \"nothing here yet\" block separates itself from the surface around it."
+msgstr "يُضبط من المنتقي أعلاه. كيف تفصل كتلة «لا يوجد شيء هنا بعد» نفسها عن السطح المحيط بها."
+
+#. src: item29
+#, fuzzy
+msgid "Framed"
+msgstr "مؤطَّر"
+
+#. src: item29
+#, fuzzy
+msgid "Filled"
+msgstr "مملوء"

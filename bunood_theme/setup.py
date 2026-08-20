@@ -33,6 +33,7 @@ from bunood_theme.presets import (
     CHART_DEFAULTS,
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
+    EMPTY_DEFAULTS,
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
@@ -67,6 +68,7 @@ CHECK_DEFAULTS = {
     for defaults in (
         CHART_DEFAULTS,
         CRUMB_DEFAULTS,
+        EMPTY_DEFAULTS,
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
@@ -143,6 +145,10 @@ DEFAULTS = {
     # Overlays surface (item 28): the three Select axes — style, scrim and menu
     # row. No Check in this kit; its repairs are contracts, not options.
     **{f: v for f, v in OVERLAY_DEFAULTS.items() if not isinstance(v, int)},
+    # Empty states (item 29): one Select, the anchor. No Check in this kit —
+    # its repairs are contracts, not options, and the media/action axes are
+    # their own slice.
+    **{f: v for f, v in EMPTY_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

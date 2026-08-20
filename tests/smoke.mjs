@@ -673,6 +673,8 @@ const MUTABLE_FIELDS = [
 	// Overlays surface (item 28). No Check: this kit's repairs are contracts,
 	// not options, so there is nothing to toggle.
 	"overlay_style", "overlay_scrim", "overlay_menu",
+	// Empty states surface (item 29). Same shape: contracts, not toggles.
+	"empty_style",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -8463,6 +8465,124 @@ async function main() {
 			// seed, so a hex here would rot on the next brand change.
 			expectEq(g.light.ink, g.light.want, "light: the ink is --bnd-ink-muted (7:1), not #999999");
 			expectEq(g.dark.ink, g.dark.want, "dark: the same contract holds");
+		});
+		// Reading the box: it must be VISIBLE before any computed value is
+		// trusted. .msg-box renders inside .no-result only on a route with zero
+		// records (Note has none — checked, no fixture needed), and measuring a
+		// hidden node is the item-16 .checkbox-actions trap.
+		const emptyBox = () =>
+			page.evaluate(() => {
+				const b = document.querySelector(".no-result .msg-box");
+				if (!b || b.getBoundingClientRect().height < 1) return null;
+				const cs = getComputedStyle(b);
+				return {
+					anchor: document.documentElement.getAttribute("data-bnd-empty"),
+					pad: cs.paddingBlockStart,
+					bg: cs.backgroundColor,
+					ring: cs.boxShadow,
+					radius: cs.borderStartStartRadius,
+					maxInline: cs.maxInlineSize,
+				};
+			});
+
+		await test("empty: the anchor dresses the box, and the styles are honestly different", async () => {
+			// The four strategies must be four, not one repeated: Quiet separates by
+			// nothing, Open by AIR, Framed by a solid hairline, Filled by TONE. An
+			// axis whose options render alike is a picker that lies, so this asserts
+			// the signatures are pairwise DISTINCT rather than merely present.
+			//
+			// It also pins the rule the survey settled: Framed and Filled never
+			// combine — one separates by boundary, the other by tone, and a box
+			// carrying both is neither.
+			const seen = {};
+			for (const style of ["Quiet", "Open", "Framed", "Filled"]) {
+				setSettings({ empty_style: style });
+				await goDesk("/desk/note", ".no-result", 3000);
+				const g = await emptyBox();
+				expect(g, style + ": the empty box rendered and is visible");
+				expectEq(g.anchor, style.toLowerCase(), style + ": the anchor is on <html>");
+				seen[style] = g;
+			}
+			// Framed draws a boundary and no fill; Filled fills and draws none.
+			expect(seen.Framed.ring !== "none", `Framed draws a boundary (${seen.Framed.ring})`);
+			expectEq(seen.Framed.bg, "rgba(0, 0, 0, 0)", "and Framed adds no fill");
+			expect(seen.Filled.bg !== "rgba(0, 0, 0, 0)", `Filled fills (${seen.Filled.bg})`);
+			expectEq(seen.Filled.ring, "none", "and Filled draws no boundary");
+			// Filled must be VISIBLE against the ground it sits on — --bnd-raised was
+			// rejected for exactly this reason (a 3-unit delta on --bnd-page in light,
+			// i.e. a style that renders as nothing). Measured against the real ground.
+			const delta = await page.evaluate(() => {
+				const b = document.querySelector(".no-result .msg-box");
+				let n = b.parentElement, ground = "rgba(0, 0, 0, 0)";
+				while (n && ground === "rgba(0, 0, 0, 0)") { ground = getComputedStyle(n).backgroundColor; n = n.parentElement; }
+				const num = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				const [a, g] = [num(getComputedStyle(b).backgroundColor), num(ground)];
+				return a.length === 3 && g.length === 3 ? Math.max(...a.map((v, i) => Math.abs(v - g[i]))) : -1;
+			});
+			expect(delta >= 5, `Filled is visible against its ground (max channel delta ${delta})`);
+			// Four options, four different boxes.
+			const sigs = Object.entries(seen).map(([k, v]) => [k, `${v.pad}|${v.bg}|${v.ring}|${v.radius}`]);
+			const dupes = sigs.filter(([, s], i) => sigs.findIndex(([, t]) => t === s) !== i);
+			expectEq(dupes.length, 0, `styles that render identically: ${JSON.stringify(dupes)}`);
+		});
+
+		await test("empty: Original stands the style down and leaves the repair", async () => {
+			// The kit's split, asserted from both sides in one check: clearing the
+			// anchor must remove every STYLE rule, and must NOT remove the contract —
+			// the grid's "No rows" ink is a measured 2.85:1 AA failure and cannot be
+			// allowed to depend on a taste setting.
+			setSettings({ empty_style: "Original" });
+			await goDesk("/desk/note", ".no-result", 3000);
+			const g = await emptyBox();
+			expect(g, "the empty box still renders under Original");
+			expectEq(g.anchor, null, "no anchor attribute survives Original");
+			expectEq(g.bg, "rgba(0, 0, 0, 0)", "and no fill");
+			expectEq(g.ring, "none", "and no boundary");
+			expectEq(g.maxInline, "none", "and stock's own width is back");
+			// The contract, on the same setting.
+			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			const ink = await page.evaluate(async () => {
+				const find = () =>
+					[...document.querySelectorAll(".grid-empty")].find(
+						(e) => e.offsetParent !== null && !e.classList.contains("hidden")
+					);
+				let el = find();
+				if (!el) {
+					for (const link of document.querySelectorAll(".form-tabs .nav-link:not(.active)")) {
+						link.click();
+						await new Promise((r) => setTimeout(r, 500));
+						el = find();
+						if (el) break;
+					}
+				}
+				if (!el) return null;
+				const probe = document.createElement("div");
+				probe.style.color = "var(--bnd-ink-muted)";
+				document.body.appendChild(probe);
+				const out = { ink: getComputedStyle(el).color, want: getComputedStyle(probe).color };
+				probe.remove();
+				return out;
+			});
+			expect(ink, "a visible grid-empty was reached under Original too");
+			expectEq(ink.ink, ink.want, "the AA repair survives Original — it is a contract, not a style");
+		});
+
+		await test("empty: the kit live-previews without a reload", async () => {
+			// The status kit's missing-hook failure class: settings that save but
+			// visibly do nothing. Drives the HOOK, never apply_*_attrs directly —
+			// calling the internal would pass while the hook was broken.
+			setSettings({ empty_style: "Open" });
+			await goDesk("/desk/note", ".no-result", 3000);
+			const flipped = await page.evaluate(() => {
+				window.bunood_theme.empty_apply({ empty_style: "Filled" });
+				return document.documentElement.getAttribute("data-bnd-empty");
+			});
+			expectEq(flipped, "filled", "the hook flips the anchor with no navigation");
+			const back = await page.evaluate(() => {
+				window.bunood_theme.empty_apply({ empty_style: "Original" });
+				return document.documentElement.getAttribute("data-bnd-empty");
+			});
+			expectEq(back, null, "and Original clears it, live");
 		});
 
 

@@ -76,3 +76,117 @@ html[data-theme] .grid-empty {
   --gray-500: var(--bnd-ink-muted);
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — html[data-bnd-empty]. Everything below is a STYLE: "Original"
+// clears the attribute and every rule here goes with it.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// WHAT IT DRESSES, AND WHY THAT SELECTOR
+//   `.msg-box.no-border` is Frappe's own discriminator, not ours: FIVE of the
+//   six places that construct a .msg-box carry it — the list empty state
+//   (list_view.js:562), the query report's empty AND loading boxes
+//   (query_report.js:106, :1161), the dashboard (dashboard_view.js:201) and
+//   the inbox view (inbox_view.js:199). The sixth, messages.js:14's legacy
+//   waiting helper, does NOT, and it ships an inline `width: 63%` we would
+//   only be fighting. So the class we did not invent draws exactly the line
+//   we wanted. Plus `.message-page-content`, the 404 (shape d).
+//
+// THE 29/30 RULE THIS OBEYS
+//   query_report's loading box is BYTE-IDENTICAL to its empty one, so every
+//   rule below has to be true of both readings. Box, tone and air are; motion,
+//   action promotion and authored copy are not, and none appears here. Item 30
+//   adds motion on top, from a partial imported after this one.
+//
+// GEOMETRY, MEASURED 2026-08-19 — the two objects are NOT laid out alike:
+//   .msg-box sits in `.no-result.flex.justify-center` and is already centred
+//   and shrink-wrapped (228x191 in a 1160 parent). `.message-page-content` is
+//   a plain block that fills its page (1190 wide). Treating them as one object
+//   therefore needs the max-inline-size + auto margins below; without them
+//   Framed would draw a hairline around the whole 404 viewport.
+//
+// WHY Filled IS --bnd-surface AND NOT --bnd-raised
+//   Both objects sit on --bnd-page (measured, both modes). In light that is
+//   rgb(248,250,248) and --bnd-raised is rgb(251,253,252) — a THREE-unit delta,
+//   i.e. a "Filled" style that renders as nothing. --bnd-surface is the card
+//   token and reads on the page ground in both modes (light +7, dark +2/+10/+4),
+//   and it is one of the grounds --bnd-ink-muted is already fitted against, so
+//   the copy inside stays AA without a new pair.
+//
+// Framed's hairline is --bnd-border, the same 0.5px the rest of the theme
+// separates with. Framed and Filled never combine: one separates by boundary,
+// the other by tone, and a box with both is neither.
+
+html[data-bnd-empty] {
+  // Not an axis — one constant, kept out of the rule. Caps the 404's
+  // full-bleed content into a card and stops long copy running the width of a
+  // wide desk.
+  --bnd-em-max: 34rem;
+}
+
+// Quiet — separates by nothing. Directus's centred info block: ink and air
+// only, for a desk that wants its empty states to recede.
+html[data-bnd-empty="quiet"] {
+  --bnd-em-pad-block: var(--bnd-sp-5);
+  --bnd-em-pad-inline: var(--bnd-sp-5);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+// Open — separates by AIR. The shipped default, and the first default in this
+// project that is not the boldest option: this block sits INSIDE containers
+// other kits already frame, so boldness here compounds instead of standing
+// alone. Discourse's --with-image and shadcn's shipped Empty are both unframed.
+html[data-bnd-empty="open"] {
+  --bnd-em-pad-block: var(--bnd-sp-7);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+// Framed — separates by a SOLID hairline. Dashed was deleted by the survey:
+// all three reference products reserve dashed for "put something here"
+// (dropzones, add-tiles), and shadcn's eight styles declare a dashed edge with
+// no width, so it renders at zero in every one of them.
+html[data-bnd-empty="framed"] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+// Filled — separates by TONE, no boundary. Discourse's whole-body idiom.
+html[data-bnd-empty="filled"] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: var(--bnd-surface);
+  --bnd-em-ring: none;
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+// The object. (0,3,1) over stock's `.msg-box` (0,1,0) and `.page-body .msg-box`
+// (0,2,0) — measured, not assumed. Logical throughout: the inline axis is
+// padding-inline / margin-inline / max-inline-size, so it mirrors for free.
+html[data-bnd-empty] .msg-box.no-border,
+html[data-bnd-empty] .message-page-content {
+  padding-block: var(--bnd-em-pad-block);
+  padding-inline: var(--bnd-em-pad-inline);
+  background-color: var(--bnd-em-bg);
+  // A RING, NOT A BORDER, and the class this rule keys on is exactly why:
+  // Frappe ships `.no-border { border: none !important }` as a global utility
+  // (read out of the compiled bundle), and every .msg-box we dress carries
+  // .no-border. A border here loses to that !important and computes to 0 — a
+  // "Framed" style with no frame. The check caught it before it shipped, which
+  // is the whole argument for writing the check first.
+  //
+  // A box-shadow ring competes with nothing, follows border-radius, and costs
+  // no layout, so switching styles never reflows the box. Item 25's Hairline
+  // Grid reached for the same technique for the same reason.
+  box-shadow: var(--bnd-em-ring);
+  border-radius: var(--bnd-em-radius);
+  max-inline-size: var(--bnd-em-max);
+  margin-inline: auto;
+}

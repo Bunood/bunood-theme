@@ -1197,6 +1197,16 @@
 			],
 			check: null,
 		},
+		empty: {
+			attr: "empty", boot: "bnd_empty",
+			// Quiet separates by nothing, Open by AIR (the default — the first in
+			// this project that is not the boldest option, because this block sits
+			// inside containers other kits already frame), Framed by a solid
+			// hairline, Filled by tone. Framed and Filled never combine.
+			anchor: ["empty_style", { "Original": "", "Quiet": "quiet", "Open": "open", "Framed": "framed", "Filled": "filled" }],
+			axes: [],
+			check: null,
+		},
 	};
 
 	for (const [kit, def] of Object.entries(BND_SURFACE_KITS)) {

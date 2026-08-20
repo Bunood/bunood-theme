@@ -645,6 +645,37 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "empty",
+        # Labelled "Empty states", plural, because ONE anchor dresses every
+        # "there is nothing here" block the desk draws: the list's no-result,
+        # the query report's box, the dashboard's, the inbox view's and the
+        # 404 page — the same object drawn five places. Item 29.
+        #
+        # The kit is a SURFACE by the definition above: it mounts nothing and
+        # injects nothing. That is worth stating, because the roadmap's brief
+        # for this item is "an action, not a zero", and an action a stylesheet
+        # cannot add would have made it something else. It does not have to:
+        # Frappe ALREADY renders the create button (list_view.js:562) and
+        # already distinguishes first-run from filtered-to-zero in both copy
+        # and label. The kit promotes what exists; what it cannot do — add the
+        # "Clear filters" control that copy promises — goes upstream.
+        "part": "empty",
+        "label": "Empty states",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-empty]; "Original" clears it.
+        #
+        # NOTE, exactly as for overlays: the kit's REPAIRS are deliberately NOT
+        # under this anchor. surfaces/_empty.scss scopes them html[data-theme],
+        # because a contract survives Original and a style does not — the child
+        # grid's "No rows" is a measured 2.85:1 AA failure and must not depend
+        # on a style choice.
+        "selector": 'html[data-bnd-empty]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

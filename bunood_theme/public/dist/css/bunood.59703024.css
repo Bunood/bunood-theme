@@ -4892,6 +4892,53 @@ html[data-theme] .grid-empty {
   --gray-500: var(--bnd-ink-muted);
 }
 
+html[data-bnd-empty] {
+  --bnd-em-max: 34rem;
+}
+
+html[data-bnd-empty=quiet] {
+  --bnd-em-pad-block: var(--bnd-sp-5);
+  --bnd-em-pad-inline: var(--bnd-sp-5);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+html[data-bnd-empty=open] {
+  --bnd-em-pad-block: var(--bnd-sp-7);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+html[data-bnd-empty=framed] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+html[data-bnd-empty=filled] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: var(--bnd-surface);
+  --bnd-em-ring: none;
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+html[data-bnd-empty] .msg-box.no-border,
+html[data-bnd-empty] .message-page-content {
+  padding-block: var(--bnd-em-pad-block);
+  padding-inline: var(--bnd-em-pad-inline);
+  background-color: var(--bnd-em-bg);
+  box-shadow: var(--bnd-em-ring);
+  border-radius: var(--bnd-em-radius);
+  max-inline-size: var(--bnd-em-max);
+  margin-inline: auto;
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

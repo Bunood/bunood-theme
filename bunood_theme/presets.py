@@ -599,6 +599,31 @@ OVERLAY_DEFAULTS = {
     "overlay_menu": "Inset",
 }
 
+EMPTY_FIELDS = [
+    "empty_style",
+]
+
+#: The shipped empty-state defaults — the item-29 wireframe picks (2026-08-19),
+#: as amended by the deep survey the same day.
+EMPTY_DEFAULTS = {
+    # The anchor: how a "nothing here" block separates itself from the surface
+    # it sits in, as ONE statement of air, boundary and tone.
+    #
+    # OPEN, AND IT IS THE FIRST DEFAULT IN THIS PROJECT THAT IS NOT THE BOLDEST
+    # OPTION. Every reference product's primary empty component is unframed —
+    # the container's own frame does the framing — and this block sits INSIDE
+    # containers other kits already frame, so boldness compounds instead of
+    # standing alone. The original pick was Framed, on the reading that shadcn
+    # frames its Empty in all eight styles; the deep survey overturned it
+    # (the dashed edge is declared with no width, so it renders at zero in
+    # every one), and Framed lost the evidence it was chosen on.
+    #
+    # Framed (a solid hairline) and Filled (a wash) remain the explicit bolder
+    # choices; they never combine, because a box that separates by boundary AND
+    # by tone is neither.
+    "empty_style": "Open",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

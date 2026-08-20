@@ -156,6 +156,9 @@
   "overlay_style",
   "overlay_scrim",
   "overlay_menu",
+  "section_empty",
+  "empty_picker",
+  "empty_style",
   "section_generated",
   "brand_css_url"
  ],
@@ -534,6 +537,25 @@
    "hidden": 1,
    "label": "Menu Row",
    "options": "Plain\nInset"
+  },
+  {
+   "fieldname": "section_empty",
+   "fieldtype": "Section Break",
+   "label": "Empty states"
+  },
+  {
+   "fieldname": "empty_picker",
+   "fieldtype": "HTML",
+   "label": "Empty Picker"
+  },
+  {
+   "default": "Open",
+   "description": "Set by the picker above. How a \"nothing here yet\" block separates itself from the surface around it.",
+   "fieldname": "empty_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Style",
+   "options": "Original\nQuiet\nOpen\nFramed\nFilled"
   },
   {
    "fieldname": "section_generated",
