@@ -83,6 +83,11 @@
 // the calendar popover's variables are set on the popover so the two kits
 // cannot tie, and this ordering is what makes that separation load-bearing.
 @use "surfaces/overlays";
+// Item 29: empty states. Slice 1 is the CONTRACT set only — repairs scoped
+// html[data-theme], outside any anchor. AFTER overlays so that when item 30
+// (_skeleton) follows it here, later-import-wins is the 29/30 tie-break on
+// the nodes both kits touch (29 owns the box, 30 the motion).
+@use "surfaces/empty";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

@@ -8405,6 +8405,67 @@ async function main() {
 			}
 		});
 
+		// ── Empty states (item 29) ─────────────────────────────────────────────
+		//
+		// SLICE 1 — the contract set. A contract is scoped html[data-theme] and
+		// survives "Original" (GUIDELINES 1.3): it is about whether the desk WORKS,
+		// not how it looks. The census's ledger planned three contracts here; the
+		// COMPILED bundle killed two before a line was written — the datatable's
+		// 90px no-data pin is already max-content upstream, and the sidebar's
+		// empty-state Sass \$text-muted compiles to var(--text-muted), i.e. it
+		// already follows the theme through the bridge. One live defect remained.
+
+		await test('empty: the grid "No rows" ink is legible in both modes', async () => {
+			// Stock paints it `.text-extra-muted { color: var(--gray-500) !important }`
+			// = #999999 — 2.85:1 on a white surface, and --gray-500 is unbridged
+			// (bridging it globally would repaint every stock consumer desk-wide, so
+			// the fix is a SCOPED re-point on .grid-empty: the !important declaration
+			// reads a variable, and a custom property has no specificity contest —
+			// the item-28 Quill lever, third outing).
+			//
+			// The node is .hidden whenever the grid has rows AND lives on an inactive
+			// form tab (offsetParent null — measured, EV00008), so the check walks the
+			// tabs until a .grid-empty is genuinely visible rather than pinning a
+			// fieldname that an Item layout reshuffle would silently orphan. Measuring
+			// a hidden node is the item-16 .checkbox-actions trap; visibility is
+			// asserted before any colour is trusted.
+			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			const g = await page.evaluate(async () => {
+				const find = () =>
+					[...document.querySelectorAll(".grid-empty")].find(
+						(e) => e.offsetParent !== null && !e.classList.contains("hidden")
+					);
+				let el = find();
+				if (!el) {
+					for (const link of document.querySelectorAll(".form-tabs .nav-link:not(.active)")) {
+						link.click();
+						await new Promise((r) => setTimeout(r, 500));
+						el = find();
+						if (el) break;
+					}
+				}
+				if (!el) return null;
+				const probe = document.createElement("div");
+				probe.style.color = "var(--bnd-ink-muted)";
+				document.body.appendChild(probe);
+				const read = (mode) => {
+					document.documentElement.setAttribute("data-theme", mode);
+					return { ink: getComputedStyle(el).color, want: getComputedStyle(probe).color };
+				};
+				const light = read("light");
+				const dark = read("dark");
+				document.documentElement.setAttribute("data-theme", "light");
+				probe.remove();
+				return { visible: true, light, dark };
+			});
+			expect(g && g.visible, "a visible grid-empty was reached (tabs walked)");
+			// Assert the DELTA to the token, not a literal — the token is fitted per
+			// seed, so a hex here would rot on the next brand change.
+			expectEq(g.light.ink, g.light.want, "light: the ink is --bnd-ink-muted (7:1), not #999999");
+			expectEq(g.dark.ink, g.dark.want, "dark: the same contract holds");
+		});
+
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly

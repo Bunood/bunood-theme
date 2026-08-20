@@ -4888,6 +4888,10 @@ html[data-bnd-overlay-menu=plain] .awesomplete > [role=listbox] > li {
   border-radius: 0;
 }
 
+html[data-theme] .grid-empty {
+  --gray-500: var(--bnd-ink-muted);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

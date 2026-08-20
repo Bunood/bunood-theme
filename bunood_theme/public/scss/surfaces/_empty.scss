@@ -1,0 +1,78 @@
+// ============================================================================
+// EMPTY STATES — checklist item 29. The seventh SURFACE partial.
+//
+// WHAT (this slice)
+//   SLICE 1 IS THE CONTRACT SET ONLY. Everything below is scoped
+//   `html[data-theme]` and lives OUTSIDE the kit anchor, because a CONTRACT
+//   survives "Original" and a STYLE does not (GUIDELINES 1.3, the item-28
+//   rule the wireframe round re-affirmed for this kit: empty states are on
+//   every list, report, panel and 404 — including the settings page itself).
+//   The anchor (`data-bnd-empty`), its working set and the composing axes
+//   (`empty_media`, `empty_action`) are slice 2+; nothing here reads a
+//   `data-bnd-empty` attribute.
+//
+// WHY ONE RULE, WHEN THE CENSUS LEDGER NAMED THREE CONTRACTS
+//   The other two died against the COMPILED bundle before a line was written
+//   (measured 2026-08-19, desk.bundle.WYAUFYAC.css):
+//   - The datatable's no-data 90px pin is dead upstream: frappe's own
+//     `.datatable` block re-points `--dt-no-data-message-width: max-content`
+//     and centres with `left: 50%; translateX(-50%)` — symmetric, so it also
+//     mirrors. There is nothing left to repair.
+//   - The list sidebar's `.empty-state` "Sass literal" compiles to
+//     `color: var(--text-muted)` — `$text-muted` aliases the CSS variable, so
+//     it already follows the theme through the bridge. The census read the
+//     source and not the output; the output is what cascades.
+//   Write contracts against what the bundle SERVES, not what the .scss says.
+//
+// THE ONE LIVE DEFECT, AND ITS LEVER
+//   The child grid's "No rows" is `.grid-empty.text-extra-muted`, and
+//   `.text-extra-muted { color: var(--gray-500) !important }`
+//   (desk/global.scss:608) pins it to #999999 — 2.85:1 on a white surface,
+//   under the 4.5:1 floor, in the one empty state that sits inside a form the
+//   user is actively editing. `--gray-500` is UNBRIDGED, deliberately:
+//   bridging it in `_bridge.scss` would repaint every stock consumer of the
+//   grey ramp desk-wide, which is not this kit's call to make. So the fix is
+//   a SCOPED re-point: the !important declaration READS a variable, and a
+//   custom property assignment has no specificity contest with the colour
+//   rule — the vendor's own rule does the painting, with our value. The
+//   item-28 Quill lever, third outing. Proven live before this rule was
+//   written: 153,153,153 -> exactly --bnd-ink-muted, both modes (EV00008).
+//
+// THE 29/30 BOUNDARY (Decision D, and the census that moved it)
+//   Item 29 owns the BOX — tone, air, frame — on every empty-meaning node,
+//   including nodes that are one selector for empty AND loading, where every
+//   rule must be true of both readings: no motion, no action promotion, no
+//   authored copy. Item 30 owns MOTION + RESERVED GEOMETRY on nodes whose
+//   class can mean nothing but loading. `.grid-empty` here is cleanly ours —
+//   its `.list-loading` co-tenant in the vendor's grouped rule shares CSS,
+//   not DOM (different files, different ancestors; the grouping is cosmetic).
+//
+// A STYLESHEET MUST NOT AUTHOR COPY
+//   `content:` with prose bypasses assertTranslationCoverage entirely and
+//   ships English into an Arabic desk. `assertNoAuthoredCopy` (build.mjs)
+//   enforces it over this and every partial from the commit that creates
+//   this file — negative-tested by inserting copy and watching the build
+//   refuse it.
+//
+// CASCADE
+//   Our sheet is 4th of 12 stock, measured 3rd of 10 on the empty-list, query
+//   report and 404 routes (slice-0 probe P9, 2026-08-19) with two inline
+//   sheets after it. Every rule below wins on SPECIFICITY, never on source
+//   order.
+//
+// RTL
+//   Nothing below touches the inline axis. When later slices do, both logical
+//   sides get set, one to a value and one to auto (GUIDELINES 1.3).
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-19, frappe 16.27.0.
+// ============================================================================
+
+// ── Contract: the child grid's "No rows" ink ────────────────────────────────
+// (0,2,1). The vendor's `.text-extra-muted` colour rule keeps winning — it is
+// !important and that is fine, because it reads the variable this re-point
+// scopes. --bnd-ink-muted is fitted per seed to 7:1 (palette.py), so the gate
+// already owns this pair; no new contrast rows.
+html[data-theme] .grid-empty {
+  --gray-500: var(--bnd-ink-muted);
+}
+

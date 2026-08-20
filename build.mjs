@@ -283,6 +283,45 @@ function assertBreakpointVocabulary(css, name) {
 }
 
 /**
+ * No authored copy in compiled CSS (item 29).
+ *
+ * `content:` with prose is an i18n hole no other gate covers:
+ * assertTranslationCoverage can only see `__()` call sites, so a stylesheet
+ * that writes words paints ENGLISH into an Arabic desk with every guard
+ * green. The empty-states kit is the surface most tempted to do it — the
+ * vendor renders one <p> and the only CSS route to a second line is
+ * `content:` — which is exactly why the kit's plan bans copy and this guard
+ * enforces the ban (item 29, check 5).
+ *
+ * Scoped to QUOTED string values inside `content:` declarations, because the
+ * keyword values (none, normal, open-quote…) and functions (attr, counter,
+ * var) are all letters and all legitimate. Inside a quoted string, escape
+ * sequences are stripped first — the breadcrumb separators ship "\203A" and
+ * friends, glyphs, not words — and whatever remains fails on two consecutive
+ * letters. A single letter stays legal (a glyph like "x" is a mark, not
+ * copy). Checked on COMPILED css, like every other guard here, so nothing
+ * slips through a mixin.
+ */
+function assertNoAuthoredCopy(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [];
+	for (const decl of stripped.matchAll(/\bcontent\s*:\s*([^;}]+)/g)) {
+		for (const q of decl[1].matchAll(/"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g)) {
+			const text = (q[1] ?? q[2] ?? "").replace(/\\[0-9a-fA-F]{1,6}\s?/g, "").replace(/\\./g, "");
+			if (/[A-Za-z]{2,}/.test(text)) offenders.push(`content: ${decl[1].trim()}`);
+		}
+	}
+	if (offenders.length) {
+		throw new Error(
+			`Authored-copy guard: ${name} writes prose from a stylesheet:\n  ` +
+				[...new Set(offenders)].join("\n  ") +
+				"\nCSS content: bypasses assertTranslationCoverage — the string would render " +
+				"in English on every locale. Put copy in markup behind __(), never in a rule."
+		);
+	}
+}
+
+/**
  * Automatic-theme parity for the chart series (item 25).
  *
  * WHY ONLY THE SERIES FAMILY, AND WHY IT MATTERS
@@ -657,6 +696,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertCursiveSafe(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
+	assertNoAuthoredCopy(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;
