@@ -474,6 +474,46 @@ html[data-bnd-overlay-scrim="blurred"] #freeze.in {
   }
 }
 
+// ── The scrim's other half: the ground it was hidden behind ────────────────
+// MEASURED 2026-08-19, and it makes the claim at the top of this block true.
+// The rules above paint #freeze correctly and were then COVERED by stock's own
+// child: `#freeze .freeze-message-container` is inset:0 with an opaque
+// --bg-light-gray ground (desk/global.scss:517-527). So the tint landed, the
+// sheet hid it, and Dim / Tinted / Blurred rendered IDENTICALLY on every
+// document save — the axis was inert on the one overlay this block calls "the
+// blocking one" (light: rgba(16,26,22,.62) under rgb(243,243,243) at 1440x900).
+//
+// Releasing the GROUND, never the box: the container is still inset:0 because
+// it is the click target and the centring grid. Only its paint stands down.
+html[data-bnd-overlay-scrim] #freeze .freeze-message-container {
+  background-color: transparent;
+  color: var(--bnd-ink);
+}
+
+// The message keeps its own legibility instead of borrowing a full-viewport
+// sheet for it — a finite card on the scrim, in the anchor's own shape.
+html[data-bnd-overlay-scrim] #freeze .freeze-message .lead {
+  margin: 0;
+  padding: var(--bnd-sp-4) var(--bnd-sp-6);
+  background-color: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+// AND THE BLANK CASE IS THE COMMON ONE. frappe's form/save.js builds a
+// working_label ("Saving", "Submitting", …) and then passes NO freeze_message —
+// the line is commented out at save.js:91 — so the most-seen loading state on
+// the desk carries an empty <p class="lead">. An empty card is worse than no
+// card. `:empty` is exact here: dom.js:156 interpolates with no surrounding
+// whitespace, so an absent message leaves a genuinely empty node. This hides;
+// it never fills — a stylesheet must not author copy (it would bypass
+// assertTranslationCoverage and ship English into an Arabic desk).
+html[data-bnd-overlay-scrim] #freeze .freeze-message .lead:empty {
+  display: none;
+}
+
+
 // ── The menu row, unified by the anchor (item 28 slice 3) ──────────────────
 // MEASURED, AND IT REVERSED THE DESIGN. Stock is INCONSISTENT across the
 // vocabularies: Frappe's Bootstrap dropdown row already carries an 8px radius

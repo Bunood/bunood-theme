@@ -12,6 +12,34 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The dialog scrim was invisible on every document save.** `overlay_scrim`
+  was built to govern all three of the desk's scrims at once, and on the third —
+  `#freeze`, the blocking overlay behind every save — it painted correctly and
+  was then covered by stock's own child: `.freeze-message-container` is
+  `inset: 0` with an opaque ground. Dim, Tinted and Blurred therefore rendered
+  identically there, which is to say the setting did nothing on the loading
+  state users see most. The container's *paint* now stands down while its box
+  stays (it is the click target and the centring grid), and the message becomes
+  a finite card in the anchor's own shape. Frappe passes no message on save
+  (`form/save.js:91` comments out its own `freeze_message`), so the blank case
+  draws nothing rather than an empty card. `Original` leaves stock alone.
+- **Arabic stopped depending on apps we do not ship.** Eighteen strings —
+  Actions, All, Search, Home, Refresh and the rest — were inherited from other
+  installed apps rather than translated here, so trimming a site to ERPNext core
+  rendered them in English. They are ours now, with two corrected on the way in:
+  "Action" was inheriting حدث (an *event*) and "Apply" تقديم (*submitting an
+  application*). Four more are kept deliberately over upstream's, including
+  "Filter", whose upstream Arabic منقي means *purifier*.
+- **An inheritance we could never receive.** Frappe's only "You" is
+  `msgctxt`-qualified, and a contextual translation is keyed `context:msgid` —
+  it cannot answer a bare `__("You")`. The detector ignored `msgctxt`, so the
+  ledger claimed the inheritance, and because it claimed it we shipped no row of
+  our own: the desk rendered "You" in English. The parser skips contextual
+  entries now.
+
+
 ## [0.20.0] — 2026-08-19 — Overlays (item 28)
 
 ### Overlays get a hand (item 28 — dialogs, dropdowns, toasts)

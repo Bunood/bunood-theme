@@ -4848,6 +4848,24 @@ html[data-bnd-overlay-scrim=blurred] #freeze.in {
     backdrop-filter: blur(6px) saturate(0.9);
   }
 }
+html[data-bnd-overlay-scrim] #freeze .freeze-message-container {
+  background-color: transparent;
+  color: var(--bnd-ink);
+}
+
+html[data-bnd-overlay-scrim] #freeze .freeze-message .lead {
+  margin: 0;
+  padding: var(--bnd-sp-4) var(--bnd-sp-6);
+  background-color: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay-scrim] #freeze .freeze-message .lead:empty {
+  display: none;
+}
+
 html[data-bnd-overlay] .dropdown-item,
 html[data-bnd-overlay] .dropdown-menu-item a,
 html[data-bnd-overlay] .awesomplete > [role=listbox] > li {

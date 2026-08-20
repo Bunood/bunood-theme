@@ -8106,6 +8106,67 @@ async function main() {
 			expect(!/^rgb\(/.test(g.bg), `and it is a translucent wash, not an opaque fill (${g.bg})`);
 		});
 
+		await test("overlay: the freeze scrim is not covered by its own message sheet", async () => {
+			// THE CHECK ABOVE PASSES WHILE THE SCRIM IS INVISIBLE, and that is the
+			// defect. Stock nests a full-bleed OPAQUE sheet inside the backdrop —
+			// `#freeze .freeze-message-container{inset:0;background:var(--bg-light-gray)}`
+			// (desk/global.scss:517-527) — so the tint paints correctly and is then
+			// covered by its own child. Measured 2026-08-19: scrim rgba(16,26,22,.62)
+			// under an opaque rgb(243,243,243) at 1440x900, which means Dim, Tinted and
+			// Blurred rendered IDENTICALLY on every document save. The axis was inert on
+			// the one overlay this block singles out as "the blocking one".
+			//
+			// The freeze is HELD across the read: it is refcounted and removes itself at
+			// zero, so a probe that unfreezes first measures nothing and null-passes.
+			setSettings({ overlay_style: "Floating", overlay_scrim: "Tinted" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const read = () =>
+				page.evaluate(async () => {
+					frappe.dom.freeze("probe message");
+					await new Promise((r) => setTimeout(r, 600));
+					const f = document.querySelector("#freeze");
+					const box = f && f.querySelector(".freeze-message-container");
+					const lead = f && f.querySelector("p.lead");
+					const out =
+						f && box
+							? {
+									scrimBg: getComputedStyle(f).backgroundColor,
+									boxBg: getComputedStyle(box).backgroundColor,
+									boxW: Math.round(box.getBoundingClientRect().width),
+									boxH: Math.round(box.getBoundingClientRect().height),
+									vpW: window.innerWidth,
+									vpH: window.innerHeight,
+									leadBg: lead ? getComputedStyle(lead).backgroundColor : null,
+									leadText: lead ? lead.textContent.trim() : null,
+							  }
+							: null;
+					frappe.dom.unfreeze();
+					return out;
+				});
+
+			const g = await read();
+			expect(g, "the freeze overlay and its message container rendered");
+			// The box must STILL fill the viewport — it is the click target and the
+			// centring grid. The repair releases its PAINT, never its geometry.
+			expect(g.boxW >= g.vpW - 2 && g.boxH >= g.vpH - 2,
+				`the message container still covers the viewport (${g.boxW}x${g.boxH} of ${g.vpW}x${g.vpH})`);
+			expect(/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(g.boxBg),
+				`and it no longer paints over the scrim (${g.boxBg})`);
+			// "Transparent" must not be reachable by hiding everything: the message
+			// keeps its text and gains its own ground, so it is legible ON the scrim.
+			expect(g.leadText && g.leadText.length > 0, `the message still renders (${JSON.stringify(g.leadText)})`);
+			expect(!/^rgba\(0, 0, 0, 0\)$/.test(g.leadBg), `and carries its own ground (${g.leadBg})`);
+
+			// Scoped to the axis, not a global restyle of stock: with the kit off the
+			// vendor's own sheet comes back untouched.
+			setSettings({ overlay_style: "Original", overlay_scrim: "Tinted" });
+			await goDesk("/app/todo", ".list-row, .no-result", 3000);
+			const o = await read();
+			expect(o, "the freeze overlay rendered under Original too");
+			expect(/^rgb\(/.test(o.boxBg), `Original leaves stock's opaque sheet alone (${o.boxBg})`);
+		});
+
+
 		await test("overlay: Blurred blurs, and is guarded", async () => {
 			// The blur is progressive enhancement — shadcn guards every one of its
 			// own with supports-backdrop-filter:, and a full-viewport
