@@ -1,9 +1,21 @@
 # Changelog
 
-Versioning policy: SemVer, pre-1.0. MINOR = a coverage-checklist item (or a
-feature set) ships; PATCH = fixes and refinements. **v1.0.0 is reserved for
-the completion of all 38 coverage items.** Every release is an annotated git
-tag, and `app_version` in hooks.py always matches the latest tag.
+Versioning policy: SemVer, pre-1.0. **MINOR = the ROADMAP item number that
+ships** — item 29 is 0.29.0, item 30 is 0.30.0. PATCH = fixes and refinements
+on top of one. Adopted 2026-08-20; before that MINOR simply incremented, which
+had drifted EIGHT behind the roadmap (0.20.0 was item 28) so that a version
+number told you nothing about what was in it. Releases before 0.29.0 keep the
+numbers they shipped under and are never renumbered: the jump from 0.20.0 to
+0.29.0 is this adoption, not eight lost releases. **v1.0.0 is reserved for the
+completion of all 38 coverage items.**
+
+Every release is an annotated git tag, and `app_version` in hooks.py matches
+the latest tag — with ONE recorded exception. `v0.29.0` is tagged at item 29's
+own close commit, because item 30 was already committed when the numbering
+decision was made and a tag cut at HEAD would have carried item 30's source
+inside a release named for item 29. That commit predates the decision, so its
+version files still read 0.20.0. The invariant resumes at v0.30.0. This is
+written down rather than left to be rediscovered as a bug.
 
 **Item numbers below are as of the release date.** `ROADMAP.md` items were renumbered
 to work order on 2026-08-13; entries here keep the numbers that were current when they
@@ -11,6 +23,8 @@ shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to
 an "item N" cited below against today's numbering.
 
 ## [Unreleased]
+
+## [0.30.0] — 2026-08-20 — Skeletons (item 30)
 
 ### Loading states stop guessing (item 30)
 
@@ -38,6 +52,14 @@ honoured** — `prefers-reduced-motion` appears nowhere in Frappe's own
 stylesheets, and the one animation it does run (the print preview's) ignored it
 until now — and **a workspace no longer jumps** when its skeleton is replaced,
 because the placeholder reserves exactly what the editor will occupy.
+
+Both releases' Arabic is reviewed rather than proposed. The 34 rows written for
+items 29 and 30 carried `#, fuzzy` markers until a human read them, and those
+markers are now cleared. Nothing about the running desk changes — the emitter
+never filtered on the flag, so these strings were already being served — but an
+unread translation is not a translation, and the marker was what said so.
+
+## [0.29.0] — 2026-08-20 — Empty states (item 29)
 
 ### Empty states get a hand (item 29)
 

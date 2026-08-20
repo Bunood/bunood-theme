@@ -107,6 +107,24 @@
 			"js_raw": 302357,
 			"js_gzip": 92921,
 			"note": "css +1141b, js +862b gzip vs v0.19.0"
+		},
+		{
+			"version": "v0.29.0",
+			"date": "2026-08-20",
+			"css_raw": 143361,
+			"css_gzip": 19273,
+			"js_raw": 292659,
+			"js_gzip": 92071,
+			"note": "css +383b, js -850b gzip vs v0.20.0 — the JS SHRANK: collapsing six surface-kit blocks into one table freed more than the seventh kit cost. Measured from the v0.29.0 tree (tagged at item 29's close, which predates the release), not from a live --record."
+		},
+		{
+			"version": "v0.30.0",
+			"date": "2026-08-20",
+			"css_raw": 146868,
+			"css_gzip": 19847,
+			"js_raw": 293105,
+			"js_gzip": 92225,
+			"note": "css +574b, js +154b gzip vs v0.29.0"
 		}
 	]
 }
