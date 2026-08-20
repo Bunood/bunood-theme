@@ -10,7 +10,23 @@
 
 ## 1. Where the work stands
 
-**ITEM 30 (skeletons) — DONE, LOCAL-ONLY, UNRELEASED (2026-08-20).** Two slices plus a close
+**VERSION NUMBERING CHANGED 2026-08-20, AND IT IS A STANDING RULE: MINOR IS THE ROADMAP
+ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
+fixes-on-top. The old increment-by-one scheme had drifted EIGHT behind the roadmap (0.20.0
+was item 28), so a version number carried no information about its contents. **The next
+item, 31, releases as `v0.31.0` — do NOT compute it from the previous tag.** Releases
+before 0.29.0 keep their numbers; the 0.20.0 to 0.29.0 jump is the adoption, not lost
+releases. CHANGELOG's policy paragraph is the authority.
+
+**BOTH TAGS ARE LOCAL AND UNPUSHED.** `origin/main` is still at item 28's `31bf8f3`.
+
+**`v0.29.0` IS TAGGED AT `e89cd45`, NOT AT THE RELEASE COMMIT** — item 30 was already
+committed when the numbering was decided, and a v0.29.0 cut at HEAD would have carried item
+30's whole source inside a release named for item 29. The cost, recorded in CHANGELOG so it
+is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
+"`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
+
+**ITEM 30 (skeletons) — DONE, RELEASED as `v0.30.0` (2026-08-20, local tag).** Two slices plus a close
 on `main`: `783520e` 1 (contracts) · `00a61da` 2 (anchor + picker). Suite **298/298**. One
 field (`skeleton_style`: Original · Still · Pulse · **Sweep**), `surfaces/_skeleton.scss`,
 and the theme's FIRST `@keyframes`. Facts worth keeping:
@@ -34,11 +50,13 @@ and the theme's FIRST `@keyframes`. Facts worth keeping:
 - **The import-path preview call site was missed on the first pass AGAIN** (as in item 29):
   `String.replace` patches only the first match. Diff the new kit's call sites one-to-one
   against the previous kit's — that is what caught it both times.
-- **`ar.po` now carries 34 `#, fuzzy` rows** across items 29 and 30, awaiting the user's
-  bulk sign-off before any release.
+- **`ar.po` carries ZERO fuzzy rows.** The 34 across items 29 and 30 were approved by the
+  user 2026-08-20 and cleared in `cf1dc9b` — its own commit, as items 27 and 28 did. The
+  `#. src: itemNN` provenance comments were KEPT; only the flag went. No runtime change: the
+  emitter never filtered on the flag, so `translations/ar.csv` is byte-identical across it.
 - **Payload: `css_gzip` 19600 to 20200** (slice 2 crossed by 247 bytes).
 
-**ITEM 29 (empty states) — DONE, LOCAL-ONLY, UNRELEASED (2026-08-20).** Four gated slices on
+**ITEM 29 (empty states) — DONE, RELEASED as `v0.29.0` (2026-08-20, local tag).** Four gated slices on
 `main`: `47d40d9` 1 (contracts) · `9e0009b` 2a (the kit refactor) · `ff84beb` 2 (anchor +
 spine) · `f66572d` 3 (axes + picker). Suite **293/293** at the close. Plan +
 slice-by-slice record: `~/.claude/plans/we-are-working-on-compiled-star.md`. Three fields
@@ -75,8 +93,8 @@ Facts worth keeping:
   **unreachable in every drivable state** — probed 2026-08-20, the notification panel's two
   are in the DOM at 0×0 with `offsetParent` null. Waits for a route that shows them and for
   the mask-over-data-URI mark the survey costed at 250-290 B.
-- **`ar.po` carries 23 `#, fuzzy` rows** (`#. src: item29`) awaiting the user's bulk
-  sign-off — the item-7 handoff, exactly as items 27 and 28 did before their releases.
+- **`ar.po` fuzzy rows: APPROVED** 2026-08-20 in `cf1dc9b` — 23 from this item, 34 counting
+  item 30's, cleared in one commit exactly as items 27 and 28 did before their releases.
 - **Payload: `css_gzip` 19100 → 19600**, raised in slice 2 (the commit that crossed).
   Slice 2a FREED ~1.1 KB of js by collapsing six hand-copied surface-kit blocks into one
   table (413 → 173 lines), which is what pays for the seventh kit (eight lines) and item
@@ -86,7 +104,7 @@ Facts worth keeping:
   `assertTranslationCoverage` entirely and would ship English into an Arabic desk. Escapes
   are stripped first, so the breadcrumb separators stay legal. Negative-tested.
 
-**A v0.20.1-CLASS FIX SHIPPED SEPARATELY AND IS IN `[Unreleased]` (`07395ab`).** `overlay_scrim`
+**A SCRIM FIX SHIPPED SEPARATELY, AND WENT OUT IN `v0.29.0` (`07395ab`).** `overlay_scrim`
 was INERT on `#freeze`: the tint painted correctly and was then covered by stock's own child
 (`.freeze-message-container` is `inset: 0` with an opaque `--bg-light-gray`), so Dim, Tinted
 and Blurred rendered identically on every document save — measured `rgba(16,26,22,.62)` under
@@ -117,7 +135,12 @@ while `pyproject.toml` names that file the SINGLE SOURCE OF TRUTH (flit reads it
 app_version must match. Corrected to 0.20.0 in `31bf8f3`. **The chain is: bump `__version__` in
 `bunood_theme/__init__.py` AND `app_version` in `hooks.py` (they must agree), move the CHANGELOG
 `[Unreleased]` block under the new heading, `node tools/payload.mjs --record vX.Y.Z`, tag, push
-main + tag.** There is no `bunood_theme` entry in the bunood repo's `apps.json` (checked
+main + tag.** TWO ADDITIONS from the 29/30 double release: the version is the
+ITEM NUMBER (above), and a tag placed RETROACTIVELY at an older commit needs its payload row
+MEASURED FROM THAT TREE (`git cat-file blob` + gzip level 9), never taken from `--record` —
+which measures the dist as built NOW and would charge a later item's growth to the earlier
+one. Validate that route by measuring HEAD both ways and requiring the two to agree first, or
+the number is an EOL artifact rather than payload. There is no `bunood_theme` entry in the bunood repo's `apps.json` (checked
 2026-08-19 — it lists erpnext, payments, whitelabel and frappe-theme only); locally the app is
 bind-mounted from the WSL mirror via `compose.local.yaml`, so there is no pin to bump. If a
 deployment elsewhere pins it, that pin is not in this tree. Plan +
