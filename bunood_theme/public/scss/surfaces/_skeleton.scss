@@ -1,0 +1,180 @@
+// ============================================================================
+// SKELETONS — checklist item 30. The eighth SURFACE partial.
+//
+// WHAT
+//   TWO HALVES, and the split is the same one item 29 draws. Everything under
+//   `html[data-theme]` is a CONTRACT — a measured repair that survives
+//   "Original" — and everything under `html[data-bnd-skeleton]` is a STYLE that
+//   "Original" clears completely. (Written that way from the start: both
+//   `_overlays.scss` and `_empty.scss` had to be corrected at their closes for
+//   headers that described one slice and then outlived it.)
+//
+// THE 29/30 BOUNDARY, AS ITEM 29 SHIPPED IT
+//   Item 29 owns the BOX — tone, air, frame — on every empty-meaning node,
+//   including the nodes that are one selector for empty AND loading. This item
+//   owns MOTION and RESERVED GEOMETRY, and only where the class can mean
+//   nothing but loading. The asymmetry is why: a skeleton on an empty node is a
+//   promise that never resolves, while a quiet box on a loading node is merely
+//   early. `_skeleton.scss` is imported AFTER `_empty.scss`, so where both
+//   touch one node the later import wins ties by design — 29 paints the box,
+//   30 adds the motion.
+//
+// WHAT THE CENSUS FOUND, AND WHY TWO BARRED NODES BECAME ONE
+//   Item 29 barred this item from three shared nodes "unless a genuine
+//   discriminator is found". Measured on the live desk, two of the three were
+//   misfiled and one was not:
+//   - `.kanban-empty-state` is a PURE LOADING NODE wearing an empty-state name.
+//     Its only text is `__("Loading...")`, and `empty_state` is set false when
+//     data lands REGARDLESS of card count (kanban_board.bundle.js:21,31,48 are
+//     the only three assignments). A zero-card board never shows it — verified
+//     live on a 3-column, 28-card board: present, inline `display: none`.
+//   - The query report's loading box and its empty box are DIFFERENT SIBLINGS,
+//     not one node: `$loading` is created immediately before `.report-wrapper`
+//     and `$message` immediately after (query_report.js:2264-2266). Verified
+//     live on two different reports: `div:has(+ .report-wrapper)` matches
+//     exactly ONE node and it is the loading one.
+//   - `.chart-loading-state` STAYS BARRED. Its loading and empty boxes carry
+//     identical class lists and identical inline heights; only child order
+//     separates them (chart_widget.js:49-69). Order among identical nodes is a
+//     fail-UNSAFE discriminator — an upstream reorder would put a shimmer on an
+//     empty chart, silently. Filed upstream instead.
+//
+// REDUCED MOTION, AND WHAT 0ms ACTUALLY DOES
+//   Both mechanisms ship. `--bnd-dur-loop` zeroes with every other duration
+//   token, AND the animation itself is wrapped in
+//   `(prefers-reduced-motion: no-preference)`.
+//
+//   MEASURED, because the belt-and-braces reasoning is usually wrong in one
+//   direction or the other: an infinite animation at `0ms` renders the
+//   element's BASE declaration — not a held keyframe (probed 2026-08-19:
+//   duration `0s`, computed transform `none`, against a live element's
+//   `translateX(-100%)`). So the token zero alone already yields the correct
+//   still state, and the gate is genuinely belt-and-braces rather than the
+//   mechanism. It stays because it states the intent without leaning on
+//   zero-duration semantics holding across browsers.
+//
+//   The gate wraps ONLY the animation. Paint never goes inside it: Discourse
+//   put a bone's `background` inside its own no-preference query
+//   (discourse.scss:207) and reduce-motion users get an INVISIBLE skeleton.
+//   Their chat-skeleton (:133) gates the animation alone, and that is the form
+//   copied here.
+//
+// RTL
+//   `assertLogicalOnly` cannot see a sweep's direction — it matches physical
+//   properties, and a `translateX` in a keyframe is neither. So the primitive
+//   mirrors itself explicitly under `html[dir="rtl"]`, which is shadcn's own
+//   answer for the same problem (tailwind.css:583-585). Everything else here is
+//   logical.
+//
+// NAMING
+//   Every keyframe and class below is `bnd-*`. Frappe already ships
+//   `@keyframes loading` (print preview), `@keyframes breathe` TWICE (desk/list
+//   and desk/frappe_datatable, the later a no-op that shadows the former), and
+//   `.skeleton-card` in three unrelated systems. A bare name here would collide.
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-19/20, frappe 16.27.0.
+// ============================================================================
+
+// ── The primitive — the theme's first @keyframes ────────────────────────────
+// The BASE declarations carry the entire resting appearance; the keyframes add
+// motion and nothing else. That ordering is what makes the reduced-motion state
+// correct by construction rather than by a second rule.
+
+@keyframes bnd-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes bnd-skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+// ── Contract: the vendor's own skeletons become legible ─────────────────────
+// `--skeleton-bg` is bridged in `_bridge.scss`, which repairs frappe's list and
+// workspace skeletons everywhere — including under "Original" — because the
+// collapse it fixes (stock dark paints --skeleton-bg, --control-bg and
+// --subtle-accent the same #232323) is a legibility failure, not a style.
+//
+// The print preview is the one stock skeleton the bridge cannot reach: it paints
+// bare hex (#c8cfd5 / #e2e6e9, print_preview.scss:114-141) through `.dark` and
+// `.light` CLASSES that are author-applied, not theme state — so in a dark desk
+// it renders light-grey-on-dark with no override anywhere. (0,4,0) beats the
+// vendor's (0,3,0).
+html[data-theme] .print-format-skeleton .skeleton-card,
+html[data-theme] .print-format-skeleton .skeleton-card.dark,
+html[data-theme] .print-format-skeleton .skeleton-card.light {
+  background-image: none;
+  background-color: var(--bnd-bone);
+}
+
+// And its animation is the ONLY one that runs in stock frappe — `prefers-
+// reduced-motion` appears zero times in all of frappe's SCSS, so this is the
+// one place the vendor animates against a user's stated preference. Stopping it
+// is a contract: it is about whether the desk respects the setting, not how it
+// looks.
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] .print-format-skeleton .skeleton-card {
+    animation: none;
+  }
+}
+
+// ── Contract: the loading text the theme never reached ──────────────────────
+// The list sidebar's group-by dropdown shows `.empty-state.group-by-loading`
+// while it fetches. Its ink comes from the same Sass alias as its `.group-by-
+// empty` twin and is already themed — but the LOADING one is ours by the
+// boundary above, so it is named here to record that it was checked and needs
+// nothing, rather than left ambiguous for the next reader.
+
+// ── Contract: reserved geometry ─────────────────────────────────────────────
+// Floors, not heights: `min-block-size` clamps only when the content is
+// shorter, so it never fights the inline heights Frappe writes after render.
+//
+// G1 (the list's `.result`) WAS PLANNED AND IS CUT. Measured settled: `.result`
+// is content-driven (1142px for 21 rows) and ALREADY carries stock's
+// `min-height: 200px`; the viewport-pinned box is `.result-container`, which a
+// floor must not touch (its pin is an unconditional `css({height})` and a taller
+// floor would push `.list-paging-area` below the fold). A density-aware
+// restatement lands at 192-256px — at or below the floor already there. It
+// bought nothing, so it is not here, and the list's 1-row-to-N jump stays as
+// stock has it rather than being claimed as fixed.
+
+// The workspace skeleton has NO min-height of its own (measured), while the
+// editor it is replaced by carries `min-height: calc(100vh - 165px)` —
+// verified to the pixel: 735px at a 900px viewport. So the swap drops roughly
+// 600px to full height on every workspace load.
+//
+// The expression is the VENDOR'S, verbatim, including the raw 100vh and the
+// literal 165: this floor's whole job is to equal the settled box, and
+// subtracting `--bnd-bottom-reserve` the way `_layouts.scss` does elsewhere
+// would make it SHORTER than the editor and turn one jump into two. A stated
+// exception to the reserve doctrine, not an oversight — and the suite asserts
+// the two floors are equal, so a vendor renumber fails loudly.
+html[data-theme] .workspace-skeleton {
+  min-block-size: calc(100vh - 165px);
+}
+
+// The query report's loading box carries an inline `height: calc(100vh - 280px)`
+// (query_report.js:2358, measured 620px at 900) while the settled `.dt-scrollable`
+// is `calc(100vh - 240px)` — ours, reserve-corrected in `_layouts.scss`. A
+// stylesheet `min-block-size` beats a larger inline `height` by sizing rules, no
+// !important needed.
+//
+// The originally-planned 260-based value was a NO-OP: it computes 614px against
+// a node that already has 620. It has to mirror the SETTLED expression to move
+// anything at all.
+html[data-theme] .layout-main-section div:has(+ .report-wrapper) {
+  min-block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px));
+}
+
+// Loader-to-content swaps must not be chosen as the browser's scroll anchor —
+// Discourse's clearest anti-reflow line (topic-post.scss:2302), and free.
+html[data-theme] .result-container,
+html[data-theme] .report-wrapper {
+  overflow-anchor: none;
+}

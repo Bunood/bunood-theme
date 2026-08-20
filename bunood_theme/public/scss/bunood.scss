@@ -88,6 +88,10 @@
 // (_skeleton) follows it here, later-import-wins is the 29/30 tie-break on
 // the nodes both kits touch (29 owns the box, 30 the motion).
 @use "surfaces/empty";
+// Item 30: skeletons. AFTER empty, and that order is the 29/30 boundary made
+// load-bearing — where both kits touch one node, 29 paints the box and 30 adds
+// the motion, so the later import must be this one.
+@use "surfaces/skeleton";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

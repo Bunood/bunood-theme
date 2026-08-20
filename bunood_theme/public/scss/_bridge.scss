@@ -71,6 +71,12 @@
 
   // ── Lines ─────────────────────────────────────────────────────────────────
   --border-color: var(--bnd-border);
+  // Item 30. Stock's own skeleton fill, and the one Frappe variable whose dark
+  // value collides with two others (--control-bg and --subtle-accent all
+  // resolve to #232323), which is why a stock skeleton is invisible AS a
+  // skeleton in dark. Bridging it repairs the vendor's own list and workspace
+  // skeletons even under "Original" — a contract, not a style.
+  --skeleton-bg: var(--bnd-bone);
   --dark-border-color: var(--bnd-border-strong);
 
   // ── Brand ─────────────────────────────────────────────────────────────────

@@ -8686,6 +8686,93 @@ async function main() {
 		});
 
 
+		// ── Skeletons (item 30) ────────────────────────────────────────────────
+		//
+		// SLICE 1 — the contract set. Scoped html[data-theme], outside the anchor,
+		// because these are about whether a loading state WORKS: stock's bone is
+		// invisible AS a bone in dark, and its one running animation ignores
+		// prefers-reduced-motion entirely.
+
+		await test("skeleton: the bone is legible as not-content, in both modes", async () => {
+			// STOCK'S FAILURE IS A COLLISION, not a bad value: frappe's --skeleton-bg,
+			// --control-bg and --subtle-accent ALL resolve to #232323 in dark, so a
+			// loading bar is indistinguishable from a card or a subtle panel. The
+			// bridge re-points --skeleton-bg to --bnd-bone; this asserts the bone is
+			// far enough from the surfaces it sits on to read as a bone.
+			//
+			// Deltas, never literals — the bone is a color-mix over the brand seed, so
+			// a hex here would rot the first time anyone changes their brand.
+			await goDesk("/desk/todo", ".list-row, .no-result", 3000);
+			const g = await page.evaluate(() => {
+				const probe = document.createElement("div");
+				probe.style.cssText = "position:fixed;left:-9999px;top:0";
+				document.body.appendChild(probe);
+				const read = (expr) => { probe.style.backgroundColor = ""; probe.style.backgroundColor = expr; return getComputedStyle(probe).backgroundColor; };
+				const num = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				const out = {};
+				for (const mode of ["light", "dark"]) {
+					document.documentElement.setAttribute("data-theme", mode);
+					const bone = read("var(--bnd-bone)");
+					// the VENDOR's variable, which the bridge must now answer
+					const vendor = read("var(--skeleton-bg)");
+					const near = { surface: read("var(--bnd-surface)"), raised: read("var(--bnd-raised)"), hover: read("var(--bnd-hover)") };
+					const b = num(bone);
+					out[mode] = {
+						bone, vendor,
+						deltas: Object.fromEntries(Object.entries(near).map(([k, v]) =>
+							[k, Math.max(...num(v).map((n, i) => Math.abs(n - b[i])))])),
+					};
+				}
+				document.documentElement.setAttribute("data-theme", "light");
+				probe.remove();
+				return out;
+			});
+			for (const mode of ["light", "dark"]) {
+				const m = g[mode];
+				// The bridge answers the vendor's own name — this is what repairs
+				// frappe's list and workspace skeletons under "Original" too.
+				expectEq(m.vendor, m.bone, `${mode}: --skeleton-bg is bridged to the bone`);
+				for (const [against, d] of Object.entries(m.deltas)) {
+					expect(d >= 8, `${mode}: the bone is distinguishable from --bnd-${against} (delta ${d})`);
+				}
+			}
+		});
+
+		await test("skeleton: the workspace floor equals the editor it replaces", async () => {
+			// The swap this reserves against: the skeleton has NO min-height of its
+			// own and the editor that replaces it carries calc(100vh - 165px), so a
+			// workspace load drops ~600px to full height. The floor is the vendor's
+			// expression VERBATIM — raw 100vh, literal 165 — because its job is to
+			// EQUAL the settled box; subtracting --bnd-bottom-reserve the way
+			// _layouts.scss does elsewhere would make it shorter and turn one jump
+			// into two.
+			//
+			// EQUALITY, not "greater than zero": a duplicated vendor constant with no
+			// shared token is exactly what rots silently (Directus ships a skeleton
+			// sized off --input-height-default, a variable defined nowhere in their
+			// repo). If frappe renumbers 165, this fails loudly instead.
+			//
+			// Timing-free: both are static computed styles, so nothing races the
+			// skeleton's ~0-frame lifetime.
+			await goDesk("/desk/home", ".layout-main-section", 4000);
+			const g = await page.evaluate(() => {
+				const ed = document.querySelector(".codex-editor");
+				if (!ed) return null;
+				// The skeleton is gone by now, so measure the RULE on a stand-in that
+				// carries the same class — the floor is a static style, not a state.
+				const probe = document.createElement("div");
+				probe.className = "workspace-skeleton";
+				probe.style.cssText = "position:fixed;left:-9999px;top:0";
+				document.body.appendChild(probe);
+				const out = { skeleton: getComputedStyle(probe).minHeight, editor: getComputedStyle(ed).minHeight };
+				probe.remove();
+				return out;
+			});
+			expect(g, "the workspace editor rendered");
+			expect(parseFloat(g.editor) > 0, `the editor carries a floor to match (${g.editor})`);
+			expectEq(g.skeleton, g.editor, "the skeleton reserves exactly what the editor occupies");
+		});
+
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly

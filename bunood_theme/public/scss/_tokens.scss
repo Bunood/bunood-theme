@@ -68,6 +68,15 @@
   --bnd-pane: color-mix(in srgb, var(--bnd-brand) 8%, #ffffff);
   --bnd-hover: color-mix(in srgb, var(--bnd-brand) 7%, #ffffff);
   --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
+  // The skeleton bone (item 30). FITTED AGAINST THE FAMILY, not picked: a
+  // skeleton's whole job is to be legible as NOT-content, and stock fails
+  // exactly there — frappe's --skeleton-bg resolves to the same #232323 as its
+  // --control-bg and --subtle-accent in dark, so a loading bar is indis-
+  // tinguishable from a card. Measured here: this sits ~25 units off --bnd-hover
+  // and ~37 off --bnd-surface in light, which reads as a bar rather than a
+  // wash. Decorative by construction — no text, no state — so the contrast gate
+  // measures it and enforces nothing (tools/contrast_gate.py's exempt shape).
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 12%, #eef1ee);
 
   // ── Ink ───────────────────────────────────────────────────────────────────
   // Three levels, all three LEGIBLE. `--bnd-ink-subtle` used to be #9aa1ab and
@@ -158,6 +167,11 @@
   --bnd-dur-fast: 120ms;
   --bnd-dur-base: 180ms;
   --bnd-dur-slow: 280ms;
+  // A LOOP, not a transition (item 30). The three above are one-shot response
+  // times and the longest is 280ms — far too fast to read as a shimmer, which
+  // every reference product runs between 1.25s and 2s. Zeroed below like the
+  // rest, so the sentence there stays literally true.
+  --bnd-dur-loop: 1600ms;
 
   // ── Density ───────────────────────────────────────────────────────────────
   // Authored as VALUES, not as `[data-density="compact"] .foo {}` selector
@@ -348,6 +362,10 @@ html[data-theme="dark"] {
   --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
   --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
   --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  // LIGHTER than --bnd-hover here, not darker: in dark a bone reads by lifting
+  // off the surface, and --bnd-active (22%, #181c21) would land within ~4 units
+  // of --bnd-hover — the stock collapse, re-created in our own vocabulary.
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
 
   --bnd-ink: #e8eaec;
   --bnd-ink-muted: #b9bec5;
@@ -440,6 +458,11 @@ html[data-theme="dark"] {
     --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
     --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
     --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    // Item 30: the automatic block is a curated subset and nothing enforces
+    // membership — a token in :root + dark but NOT here resolves LIGHT on
+    // automatic + OS-dark. A skeleton paints before the theme resolves, which
+    // is exactly when that would show.
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
     --bnd-ink: #e8eaec;
     --bnd-ink-muted: #b9bec5;
     --bnd-ink-subtle: #9298a2;
@@ -503,5 +526,6 @@ html[data-bnd-density="compact"] {
     --bnd-dur-fast: 0ms;
     --bnd-dur-base: 0ms;
     --bnd-dur-slow: 0ms;
+    --bnd-dur-loop: 0ms;
   }
 }
