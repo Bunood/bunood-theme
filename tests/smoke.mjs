@@ -7998,12 +7998,27 @@ async function main() {
 					frappe.show_alert({ message: "hue", indicator: ind }, 30);
 					await new Promise((r) => setTimeout(r, 700));
 					const t = [...document.querySelectorAll("#alert-container .desk-alert")].pop();
-					if (t) out[ind] = getComputedStyle(t).backgroundColor;
+					if (t) {
+						out[ind] = getComputedStyle(t).backgroundColor;
+						out.radius = getComputedStyle(t).borderTopLeftRadius;
+					}
 				}
+				const probe = document.createElement("div");
+				probe.style.cssText = "position:fixed;left:-9999px;top:0;border-radius:var(--bnd-ov-radius)";
+				document.body.appendChild(probe);
+				out.panelRadius = getComputedStyle(probe).borderTopLeftRadius;
+				probe.remove();
 				document.querySelectorAll("#alert-container .desk-alert").forEach((n) => n.remove());
 				return out;
 			});
 			expect(g.green && g.red, "both toasts rendered");
+			// ANCHORED TO THE KIT. The three hue assertions below all hold on STOCK
+			// — measured with the whole bunood sheet disabled — so on their own this
+			// check could never fail. Asserting the toast also carries the anchor's
+			// corner ties it to something only the kit produces, which makes the
+			// hue clauses a real guard rather than a description of Frappe.
+			expect(parseFloat(g.radius) > 0 && g.radius === g.panelRadius,
+				`the toast carries the anchor's corner (${g.radius} vs panel ${g.panelRadius})`);
 			expect(g.green !== g.surface, `the success toast keeps its own wash, not the panel surface (${g.green})`);
 			expect(g.green !== g.red, `and the two statuses are still distinguishable (${g.green} vs ${g.red})`);
 		});
@@ -8267,6 +8282,66 @@ async function main() {
 				return { anchor };
 			});
 			expectEq(g.anchor, "floating", "an empty sibling value leaves the anchor standing");
+		});
+
+		await test("overlay: the tooltip arrow follows the chip, in both directions", async () => {
+			// THE FILE'S OWN "trap of this item" HAD NO CHECK. The arrow is four
+			// physical border sides, and Frappe ships a MIRRORED bundle where
+			// `.bs-tooltip-right` paints `border-left-color`. The rules write the
+			// inline axis logically (`border-inline-end-color`) precisely so they
+			// land correctly on BOTH bundles — and nothing measured that, in
+			// either direction, until the release review pointed it out.
+			//
+			// Placement is forced rather than left to Popper: `auto` would pick
+			// whatever fits, and a check that measures a different side each run
+			// is not a check.
+			await goDesk("/app/todo", ".list-row, .no-result", 3500);
+			const g = await page.evaluate(async () => {
+				const visible = (el) => el && el.offsetParent !== null;
+				const read = async (dir, placement) => {
+					document.documentElement.setAttribute("dir", dir);
+					document.body.setAttribute("dir", dir);
+					document.documentElement.setAttribute("data-theme", "dark");
+					const host = [...document.querySelectorAll(".page-head, .list-row, .page-title")].find(visible);
+					if (!host) return null;
+					window.jQuery(host).tooltip({ title: "arrow probe", trigger: "manual", placement }).tooltip("show");
+					await new Promise((r) => setTimeout(r, 400));
+					const tip = document.querySelector(".tooltip");
+					const inner = tip && tip.querySelector(".tooltip-inner");
+					const arrow = tip && tip.querySelector(".arrow");
+					const out = inner && arrow
+						? {
+								chip: getComputedStyle(inner).backgroundColor,
+								// the placement class Bootstrap actually applied
+								cls: [...tip.classList].find((c) => c.startsWith("bs-tooltip-")) || "",
+								// every side, so the assertion does not assume which one paints
+								sides: ["borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor"]
+									.map((k) => getComputedStyle(arrow, "::before")[k]),
+						  }
+						: null;
+					try { window.jQuery(host).tooltip("hide").tooltip("dispose"); } catch (e) { /* teardown */ }
+					await new Promise((r) => setTimeout(r, 150));
+					return out;
+				};
+				const hadHtml = document.documentElement.getAttribute("dir");
+				const hadBody = document.body.getAttribute("dir");
+				const ltr = await read("ltr", "right");
+				const rtl = await read("rtl", "right");
+				const restore = (el, had) => (had === null ? el.removeAttribute("dir") : el.setAttribute("dir", had));
+				restore(document.documentElement, hadHtml);
+				restore(document.body, hadBody);
+				document.documentElement.removeAttribute("data-theme");
+				return { ltr, rtl };
+			});
+			expect(g.ltr && g.rtl, "a tooltip with an arrow rendered in both directions");
+			for (const [dir, m] of [["LTR", g.ltr], ["RTL", g.rtl]]) {
+				// Stock paints the arrow #000 while the chip follows the theme, so
+				// "some side equals the chip" is exactly what the repair produces
+				// and stock does not.
+				const painted = m.sides.filter((c) => c === m.chip);
+				expect(painted.length >= 1,
+					`${dir}: the arrow takes the chip's colour (${m.cls}; chip ${m.chip}, sides ${m.sides.join(" / ")})`);
+			}
 		});
 
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──

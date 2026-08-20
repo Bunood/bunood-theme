@@ -4748,6 +4748,7 @@ html[data-bnd-overlay=hairline] {
   --bnd-ov-radius: var(--bnd-radius-sm);
   --bnd-ov-shadow: none;
   --bnd-ov-border-w: var(--bnd-line);
+  --bnd-ov-radius-row: 0;
 }
 
 html[data-bnd-overlay=soft] {
@@ -4756,6 +4757,7 @@ html[data-bnd-overlay=soft] {
   --bnd-ov-radius: var(--bnd-radius-lg);
   --bnd-ov-shadow: var(--bnd-shadow-sm);
   --bnd-ov-border-w: var(--bnd-line);
+  --bnd-ov-radius-row: var(--bnd-radius-sm);
 }
 
 html[data-bnd-overlay=floating] {
@@ -4764,6 +4766,7 @@ html[data-bnd-overlay=floating] {
   --bnd-ov-radius: var(--bnd-radius-xl);
   --bnd-ov-shadow: var(--bnd-shadow-lg);
   --bnd-ov-border-w: var(--bnd-line);
+  --bnd-ov-radius-row: var(--bnd-radius-md);
 }
 
 html[data-bnd-overlay=solid] {
@@ -4772,6 +4775,7 @@ html[data-bnd-overlay=solid] {
   --bnd-ov-radius: var(--bnd-radius-lg);
   --bnd-ov-shadow: var(--bnd-shadow-lg);
   --bnd-ov-border-w: 0;
+  --bnd-ov-radius-row: var(--bnd-radius-sm);
 }
 
 html[data-bnd-overlay] .modal .modal-content {
@@ -4779,6 +4783,11 @@ html[data-bnd-overlay] .modal .modal-content {
   border-color: var(--bnd-ov-border);
   border-radius: var(--bnd-ov-radius);
   box-shadow: var(--bnd-ov-shadow);
+}
+
+html[data-bnd-overlay] .modal-minimize .modal-dialog .modal-content {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
 }
 
 html[data-bnd-overlay] .form-in-grid {
@@ -4828,20 +4837,21 @@ html[data-bnd-overlay-scrim=tinted] #freeze.in {
 
 html[data-bnd-overlay-scrim=blurred] .modal-backdrop.show,
 html[data-bnd-overlay-scrim=blurred] #freeze.in {
-  background-color: var(--bnd-scrim-blur);
+  background-color: var(--bnd-scrim);
   opacity: 1;
 }
 
 @supports (backdrop-filter: blur(1px)) {
   html[data-bnd-overlay-scrim=blurred] .modal-backdrop.show,
   html[data-bnd-overlay-scrim=blurred] #freeze.in {
+    background-color: var(--bnd-scrim-blur);
     backdrop-filter: blur(6px) saturate(0.9);
   }
 }
 html[data-bnd-overlay] .dropdown-item,
 html[data-bnd-overlay] .dropdown-menu-item a,
 html[data-bnd-overlay] .awesomplete > [role=listbox] > li {
-  border-radius: var(--bnd-radius-md);
+  border-radius: var(--bnd-ov-radius-row);
 }
 
 html[data-bnd-overlay-menu=plain] {

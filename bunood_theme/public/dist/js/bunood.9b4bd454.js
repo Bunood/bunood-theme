@@ -1460,11 +1460,6 @@
 	// toast is constructed and nothing stale ever paints.
 	apply_overlay_attrs(overlay_state);
 
-	/** True when the overlay style kit is active (the anchor is present). */
-	function overlay_active() {
-		return document.documentElement.hasAttribute("data-bnd-overlay");
-	}
-
 	/**
 	 * LIVE PREVIEW for the overlays kit. Fieldname shape (also the boot shape).
 	 * Mandatory from day one — the status kit's missing-hook failure class, and
