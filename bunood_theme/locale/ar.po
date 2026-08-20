@@ -4002,171 +4002,137 @@ msgid "You"
 msgstr "أنت"
 
 #. src: item29
-#, fuzzy
 msgid "Empty states"
 msgstr "الحالات الفارغة"
 
 #. src: item29
-#, fuzzy
 msgid "Empty Picker"
 msgstr "منتقي الحالات الفارغة"
 
 #. src: item29
-#, fuzzy
 msgid "Empty Style"
 msgstr "نمط الحالة الفارغة"
 
 #. src: item29
-#, fuzzy
 msgid "Set by the picker above. How a \"nothing here yet\" block separates itself from the surface around it."
 msgstr "يُضبط من المنتقي أعلاه. كيف تفصل كتلة «لا يوجد شيء هنا بعد» نفسها عن السطح المحيط بها."
 
 #. src: item29
-#, fuzzy
 msgid "Framed"
 msgstr "مؤطَّر"
 
 #. src: item29
-#, fuzzy
 msgid "Filled"
 msgstr "مملوء"
 
 #. src: item29
-#, fuzzy
 msgid "Empty Media"
 msgstr "وسائط الحالة الفارغة"
 
 #. src: item29
-#, fuzzy
 msgid "Set by the picker above. The mark above the message."
 msgstr "يُضبط من المنتقي أعلاه. العلامة فوق الرسالة."
 
 #. src: item29
-#, fuzzy
 msgid "Glyph"
 msgstr "رمز"
 
 #. src: item29
-#, fuzzy
 msgid "Marked"
 msgstr "بعلامة"
 
 #. src: item29
-#, fuzzy
 msgid "Empty Action"
 msgstr "إجراء الحالة الفارغة"
 
 #. src: item29
-#, fuzzy
 msgid "Set by the picker above. How much the button on an empty screen asks to be pressed."
 msgstr "يُضبط من المنتقي أعلاه. مدى إلحاح الزر في الشاشة الفارغة على الضغط عليه."
 
 #. src: item29
-#, fuzzy
 msgid "Primary"
 msgstr "أساسي"
 
 #. src: item29
-#, fuzzy
 msgid "The stock empty states, untouched. The style stands down — the legibility repairs stay."
 msgstr "الحالات الفارغة الأصلية دون تغيير. يتنحّى النمط — وتبقى إصلاحات الوضوح."
 
 #. src: item29
-#, fuzzy
 msgid "Separated by nothing — ink and a little air, for a desk that wants its empty screens to recede."
 msgstr "بلا فاصل — حبر ومساحة قليلة، لمكتب يريد لشاشاته الفارغة أن تتوارى."
 
 #. src: item29
-#, fuzzy
 msgid "Separated by AIR — generous space and no frame. The default, because this block sits inside containers that already frame it."
 msgstr "يفصلها الفراغ — مساحة سخية بلا إطار. الافتراضي، لأن هذه الكتلة تقع داخل حاويات تؤطّرها أصلاً."
 
 #. src: item29
-#, fuzzy
 msgid "Separated by a hairline — the block becomes a card with a boundary and no fill."
 msgstr "يفصلها خط رفيع — تصبح الكتلة بطاقة بحدّ دون تعبئة."
 
 #. src: item29
-#, fuzzy
 msgid "Separated by TONE — a filled card with no boundary."
 msgstr "تفصلها الدرجة اللونية — بطاقة معبّأة بلا حدّ."
 
 #. src: item29
-#, fuzzy
 msgid "Mark"
 msgstr "العلامة"
 
 #. src: item29
-#, fuzzy
 msgid "The mark above the message."
 msgstr "العلامة فوق الرسالة."
 
 #. src: item29
-#, fuzzy
 msgid "Call to Action"
 msgstr "دعوة إلى الإجراء"
 
 #. src: item29
-#, fuzzy
 msgid "How much the button on an empty screen asks to be pressed."
 msgstr "مدى إلحاح الزر في الشاشة الفارغة على الضغط عليه."
 
 #. src: item29
-#, fuzzy
 msgid "Original leaves every empty state stock — nothing below applies."
 msgstr "يُبقي «الأصلي» كل حالة فارغة كما هي — لا شيء أدناه ينطبق."
 
 #. src: item30
-#, fuzzy
 msgid "Loading"
 msgstr "التحميل"
 
 #. src: item30
-#, fuzzy
 msgid "Loading Picker"
 msgstr "منتقي التحميل"
 
 #. src: item30
-#, fuzzy
 msgid "Loading Style"
 msgstr "نمط التحميل"
 
 #. src: item30
-#, fuzzy
 msgid "Set by the picker above. How a loading state moves while it waits."
 msgstr "يُضبط من المنتقي أعلاه. كيف تتحرك حالة التحميل أثناء الانتظار."
 
 #. src: item30
-#, fuzzy
 msgid "Still"
 msgstr "ساكن"
 
 #. src: item30
-#, fuzzy
 msgid "Pulse"
 msgstr "نبض"
 
 #. src: item30
-#, fuzzy
 msgid "Sweep"
 msgstr "مسح"
 
 #. src: item30
-#, fuzzy
 msgid "The stock loading states, untouched. The style stands down — the legibility repairs stay."
 msgstr "حالات التحميل الأصلية دون تغيير. يتنحّى النمط — وتبقى إصلاحات الوضوح."
 
 #. src: item30
-#, fuzzy
 msgid "Bones, no motion — and exactly what the two below render for anyone who asks for reduced motion."
 msgstr "هياكل بلا حركة — وهو تمامًا ما يعرضه الخياران أدناه لمن يطلب تقليل الحركة."
 
 #. src: item30
-#, fuzzy
 msgid "The whole block breathes — one mechanism for bones and text alike, and the calmer of the two."
 msgstr "تتنفّس الكتلة كاملة — آلية واحدة للهياكل والنص معًا، وهي الأهدأ بينهما."
 
 #. src: item30
-#, fuzzy
 msgid "A band travels the bones; text still pulses, because a gradient across a sentence is noise. The default."
 msgstr "يمرّ شريط على الهياكل، بينما يظل النص ينبض، لأن التدرّج عبر جملة تشويش. الافتراضي."
