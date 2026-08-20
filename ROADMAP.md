@@ -643,7 +643,36 @@ entry.
     eight named styles, Directus `v-dialog`/`v-menu`/`v-overlay`, Discourse `d-modal`/`d-menu`/
     `d-toasts`, frappe-ui `Dialog`/`Menu`/`Toast` — the anchor's default is frappe-ui's own
     dialog recipe. Upstream: `docs/upstream/frappe-overlays.md` (six filings).
-- `[ ]` **29 · Empty states** *(was 22)* — an action, not a zero
+- `[x]` **29 · Empty states** *(was 22, done 2026-08-20)* — an action, not a zero, and the
+  action turned out to already exist. The SEVENTH surface kit, in four gated slices. Three
+  fields (`empty_style` anchor · `empty_media` · `empty_action`), `_empty.scss`, and the
+  four DOM shapes drawn as one object. What the surface taught:
+  - **The roadmap's brief and `registry.py`'s definition of a surface were in direct
+    tension** — "an action, not a zero" asks for a control, and a surface mounts nothing.
+    It resolved because Frappe ALREADY renders the create button and already distinguishes
+    first-run from filtered-to-zero in both copy and label. The kit promotes what exists.
+    Measured, stock's CTA is `rgb(251,253,252)` with a **0px border** on a
+    `rgb(248,250,248)` ground — a three-unit delta, so item 22's "identifiable at rest"
+    contract fails on the one control an empty screen exists to offer.
+  - **Read the COMPILED bundle, not the .scss.** Two of three planned contracts died there:
+    the datatable's 90px no-data pin is already `max-content` upstream, and the sidebar's
+    "Sass literal" compiles to `var(--text-muted)`, i.e. already bridged. One real defect
+    remained (the child grid's `#999999`, 2.85:1) and it is fixed by a scoped re-point,
+    the item-28 Quill lever's third outing.
+  - **Two style options would have rendered as nothing, and measurement caught both.**
+    `Filled` on `--bnd-raised` is a 3-unit delta against `--bnd-page` in light (now
+    `--bnd-surface`); `Framed` as a border computed to 0 because the kit's own
+    discriminator, Frappe's `.no-border`, is also `border: none !important` (now a
+    box-shadow ring, item 25's technique).
+  - **A refactor paid for the kit**: six hand-copied surface-kit blocks became one table
+    (413 → 173 lines, ~1.1 KB js freed), so the seventh kit is eight lines and item 30's
+    eighth fits behind it. And `assertNoAuthoredCopy` joined `build.mjs` — `content:`
+    with prose bypasses `assertTranslationCoverage` entirely.
+  - **Deliberately not done:** the six `null-state` illustrations (hardcoded hex, 1.11:1
+    in dark) are unreachable in every drivable state — measured 0×0, no offset parent — so
+    replacing them waits for a route that shows them. Upstream:
+    `docs/upstream/frappe-empty-states.md` (twelve filings, including `form/save.js:91`
+    commenting out its own freeze message, so every save shows a blank overlay).
 - `[ ]` **30 · Skeletons** *(was 23)* — loading that does not reflow
 - `[ ]` **31 · Filters + saved views** *(was 24)*
 

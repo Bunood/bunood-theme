@@ -1,15 +1,20 @@
 // ============================================================================
 // EMPTY STATES — checklist item 29. The seventh SURFACE partial.
 //
-// WHAT (this slice)
-//   SLICE 1 IS THE CONTRACT SET ONLY. Everything below is scoped
-//   `html[data-theme]` and lives OUTSIDE the kit anchor, because a CONTRACT
-//   survives "Original" and a STYLE does not (GUIDELINES 1.3, the item-28
-//   rule the wireframe round re-affirmed for this kit: empty states are on
-//   every list, report, panel and 404 — including the settings page itself).
-//   The anchor (`data-bnd-empty`), its working set and the composing axes
-//   (`empty_media`, `empty_action`) are slice 2+; nothing here reads a
-//   `data-bnd-empty` attribute.
+// WHAT
+//   TWO HALVES, AND THE SPLIT IS THE ITEM. Everything under `html[data-theme]`
+//   is a CONTRACT — a measured repair that survives "Original", because a
+//   contract is about whether the desk WORKS. Everything under
+//   `html[data-bnd-empty]` (and its `-media` / `-action` siblings) is a STYLE,
+//   and "Original" clears it completely. GUIDELINES 1.3, and the item-28 rule
+//   the wireframe round re-affirmed for this kit: empty states are on every
+//   list, report, panel and 404 — including the settings page itself, so a
+//   legibility fix cannot be allowed to depend on a taste setting.
+//
+//   (This header read "slice 1 is the contract set only" while the anchor and
+//   both axes were already below it — corrected at the close. `_overlays.scss`
+//   carries the same correction for the same reason: a header that describes
+//   one slice becomes a lie the moment the next one lands.)
 //
 // WHY ONE RULE, WHEN THE CENSUS LEDGER NAMED THREE CONTRACTS
 //   The other two died against the COMPILED bundle before a line was written

@@ -12,6 +12,60 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Empty states get a hand (item 29)
+
+Every "there is nothing here yet" screen on the desk is now drawn by the same
+hand — the list's no-result, the report's box, the dashboard's, the inbox
+view's and the 404 page. One setting decides how that block separates itself
+from the surface around it: by nothing, by air (the default), by a hairline, or
+by tone. Two more decide the mark above the message and how much the button
+below it asks to be pressed.
+
+The seventh surface kit, and like the sixth it began as a repair. The child
+table's "No rows" was pinned to #999999 by a global `!important` — 2.85:1 on a
+white surface, in the one empty state that sits inside a form you are actively
+editing. That is fixed for everyone, including under "Original", because it is
+a contract rather than a style.
+
+**The call to action is the item's whole argument, and it was measured.** Stock
+renders the create button on an empty list as a small grey `btn-default`:
+background `rgb(251,253,252)` with no border, on a page ground of
+`rgb(248,250,248)`. A three-unit difference and no boundary — the primary
+action of an otherwise empty screen was the least visible thing on it.
+"Primary" gives it the brand.
+
+Two decisions were reversed by measurement rather than taste, and both would
+have shipped as nothing:
+
+- **"Filled" paints `--bnd-surface`, not `--bnd-raised`.** The block sits on
+  `--bnd-page`, and in light mode `--bnd-raised` is three units away from it —
+  a fill nobody could see.
+- **"Framed" draws a ring, not a border.** The class the kit keys on is
+  Frappe's own `.no-border`, and the desk also ships
+  `.no-border { border: none !important }` as a global utility, so a border
+  computed to zero. A box-shadow ring competes with nothing and costs no
+  layout.
+
+Two of the census's three planned repairs turned out not to exist once the
+**compiled** bundle was read instead of the source: the datatable's no-data
+message is already `max-content` upstream, and the list sidebar's empty state
+already follows the theme (its Sass variable aliases the CSS one). Write
+contracts against what the bundle serves.
+
+**Not done, and stated rather than quietly dropped:** Frappe's six
+`null-state` illustrations carry hardcoded hex — `#171717` computes 1.11:1 on
+a dark surface — and CSS cannot recolour an `<img>`. They are unreachable in
+every state this stack can drive (measured at 0×0 with no offset parent), and
+styling what cannot be measured is how a rule ships broken. Filed upstream with
+eleven other findings, including that `form/save.js` comments out its own
+"Saving" message, so every document save shows a blank blocking overlay.
+
+Also in this release: six near-identical surface-kit blocks in `bunood.js`
+became one table (~1.1 KB of JavaScript freed, and the seventh kit cost eight
+lines), and a new build guard refuses any stylesheet that writes prose with
+`content:` — CSS-authored copy bypasses translation coverage entirely and would
+ship English into an Arabic desk.
+
 ### Fixed
 
 - **The dialog scrim was invisible on every document save.** `overlay_scrim`

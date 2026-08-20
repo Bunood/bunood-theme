@@ -10,6 +10,72 @@
 
 ## 1. Where the work stands
 
+**ITEM 29 (empty states) — DONE, LOCAL-ONLY, UNRELEASED (2026-08-20).** Four gated slices on
+`main`: `47d40d9` 1 (contracts) · `9e0009b` 2a (the kit refactor) · `ff84beb` 2 (anchor +
+spine) · `f66572d` 3 (axes + picker). Suite **293/293** at the close. Plan +
+slice-by-slice record: `~/.claude/plans/we-are-working-on-compiled-star.md`. Three fields
+(`empty_style` · `empty_media` · `empty_action`), `surfaces/_empty.scss`, picker trio.
+Facts worth keeping:
+- **READ THE COMPILED BUNDLE, NOT THE .scss.** Two of the census's three planned contracts
+  did not exist: the datatable's 90px no-data pin is already `max-content` upstream, and
+  the list sidebar's "Sass literal $text-muted" compiles to `var(--text-muted)` — bridged
+  all along. The census read source; the bundle is what cascades. One real defect remained
+  (the child grid's `#999999`, 2.85:1, fixed by a scoped `--gray-500` re-point).
+- **TWO STYLE OPTIONS WOULD HAVE RENDERED AS NOTHING.** `Filled` on `--bnd-raised` is a
+  THREE-unit delta against `--bnd-page` in light (the boxes sit on page, measured both
+  modes) — now `--bnd-surface`. `Framed` as a `border` computed to **0**, because the
+  discriminator the kit keys on is Frappe's own `.no-border` and the desk ships
+  `.no-border { border: none !important }` as a global utility — now a box-shadow ring
+  (item 25's Hairline Grid technique). **Both were caught by checks written BEFORE the
+  rules**, which is the whole argument for that order.
+- **`.msg-box.no-border` is Frappe's own discriminator and it is the right one.** Five of
+  the six places that construct a `.msg-box` carry `.no-border`; the sixth
+  (`messages.js:14`, the legacy waiting helper) does not and ships an inline `width: 63%`
+  we would only be fighting.
+- **The 404 is smaller than the plan assumed.** Our sheet DOES load there (52 `data-bnd-*`
+  attributes on `/app/note/BND-NO-SUCH-DOC` — note it is a missing DOCUMENT, not a bogus
+  route, that renders `.message-page`), and the cartoon is already 100×100 with the Home
+  button inside the fold at 375×812. The planned `svh` cap fixed a problem that does not
+  occur. `.message-page-content` IS full-bleed (1190px) where `.msg-box` is shrink-wrapped,
+  so treating them as one object needs the `max-inline-size` + auto inline margins.
+- **The media plan's whole mechanism is a variable re-point, and it is proven.** The glyph's
+  colour is an INLINE `stroke: var(--text-light)`; no rule beats an inline declaration, but
+  it READS a variable, so a scoped re-point wins. Measured live before any rule depended
+  on it.
+- **DEFERRED, and stated rather than dropped:** the six `<img class="null-state">`
+  illustrations (hardcoded hex, `#171717` = 1.11:1 on our dark surface). They are
+  **unreachable in every drivable state** — probed 2026-08-20, the notification panel's two
+  are in the DOM at 0×0 with `offsetParent` null. Waits for a route that shows them and for
+  the mask-over-data-URI mark the survey costed at 250-290 B.
+- **`ar.po` carries 23 `#, fuzzy` rows** (`#. src: item29`) awaiting the user's bulk
+  sign-off — the item-7 handoff, exactly as items 27 and 28 did before their releases.
+- **Payload: `css_gzip` 19100 → 19600**, raised in slice 2 (the commit that crossed).
+  Slice 2a FREED ~1.1 KB of js by collapsing six hand-copied surface-kit blocks into one
+  table (413 → 173 lines), which is what pays for the seventh kit (eight lines) and item
+  30's eighth.
+- **New build guard: `assertNoAuthoredCopy`.** A compiled `content:` whose quoted string
+  carries two consecutive letters fails the build — CSS-authored prose bypasses
+  `assertTranslationCoverage` entirely and would ship English into an Arabic desk. Escapes
+  are stripped first, so the breadcrumb separators stay legal. Negative-tested.
+
+**A v0.20.1-CLASS FIX SHIPPED SEPARATELY AND IS IN `[Unreleased]` (`07395ab`).** `overlay_scrim`
+was INERT on `#freeze`: the tint painted correctly and was then covered by stock's own child
+(`.freeze-message-container` is `inset: 0` with an opaque `--bg-light-gray`), so Dim, Tinted
+and Blurred rendered identically on every document save — measured `rgba(16,26,22,.62)` under
+an opaque `rgb(243,243,243)`. The check that covered this area passed throughout, because it
+read `#freeze` itself and never what covered it. Also in `[Unreleased]`: the i18n commit
+(`6502c1a`) that stopped the theme's Arabic depending on apps it does not ship, and fixed a
+REAL BUG in `tools/i18n_inherited.mjs` — its PO parser ignored `msgctxt`, so a
+context-qualified upstream entry was recorded as a plain inheritance the runtime could never
+serve, and because the ledger claimed it we shipped no row of our own.
+
+**THE SITE IS NOW ERPNEXT-CORE ONLY (2026-08-20, at the user's direction).** `crm`,
+`helpdesk`, `hrms`, `payments`, `ksa_compliance` and `bunood_realestate` were uninstalled;
+`frappe`, `erpnext`, `bunood_theme` and `telephony` remain. Consequences that cost time:
+**18 Arabic strings were inherited from crm/helpdesk** and went English the moment those
+apps left (now owned outright, see `6502c1a`); ERPNext's Payment Request gateway path
+imports `payments` lazily and now fails on that path only; and `bench --site … backup`
+at `20260820_021210` predates the removal if any of it must come back.
 **ITEM 28 (overlays — dialogs, dropdowns, toasts) — DONE, RELEASED as `v0.20.0`, PUSHED
 (2026-08-19).** Slices `afbf970` 1 · `6d7746b` 2 · `b14f0b3` 3 · `544c0ea` 4 · `0b84b32` 5,
 then `d5d5a8c` (i18n sign-off), `c7baf78` (release-review fixes) and `31bf8f3` (the release).
