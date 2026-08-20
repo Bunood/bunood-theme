@@ -18,7 +18,10 @@ item, 31, releases as `v0.31.0` — do NOT compute it from the previous tag.** R
 before 0.29.0 keep their numbers; the 0.20.0 to 0.29.0 jump is the adoption, not lost
 releases. CHANGELOG's policy paragraph is the authority.
 
-**BOTH TAGS ARE LOCAL AND UNPUSHED.** `origin/main` is still at item 28's `31bf8f3`.
+**`main` AND BOTH TAGS ARE PUSHED** (2026-08-20, at the user's request). Before this push
+`origin/main` sat at `d6c7d5f` — NOT the `31bf8f3` an earlier revision of this file claimed;
+`31bf8f3` is v0.20.0's release commit and `d6c7d5f` is the doc commit pushed on top of it.
+Resolve the remote tip with `git rev-parse origin/main` rather than from this file.
 
 **`v0.29.0` IS TAGGED AT `e89cd45`, NOT AT THE RELEASE COMMIT** — item 30 was already
 committed when the numbering was decided, and a v0.29.0 cut at HEAD would have carried item
@@ -125,7 +128,7 @@ at `20260820_021210` predates the removal if any of it must come back.
 **ITEM 28 (overlays — dialogs, dropdowns, toasts) — DONE, RELEASED as `v0.20.0`, PUSHED
 (2026-08-19).** Slices `afbf970` 1 · `6d7746b` 2 · `b14f0b3` 3 · `544c0ea` 4 · `0b84b32` 5,
 then `d5d5a8c` (i18n sign-off), `c7baf78` (release-review fixes) and `31bf8f3` (the release).
-`origin/main` is level at `31bf8f3` and the `v0.20.0` tag is pushed. Final suite **285/285**,
+`origin/main` reached `31bf8f3` here and the `v0.20.0` tag was pushed. Final suite **285/285**,
 contrast **3,984 pairs**, sweep CLEAN.
 
 **THE RELEASE CHAIN HAS A HOLE — FIX ITS WORDING BEFORE THE NEXT ONE.** This chain has always
