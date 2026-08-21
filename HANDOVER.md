@@ -29,13 +29,27 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 31 (filters + saved filters) — DONE, LOCAL-ONLY, NOT YET RELEASED (2026-08-21).**
-Three commits on `main`: `1a7e9e4` (slices 1+2, contracts + anchor) · `26107c4` (slice 3, the two
-axes + the picker) · the close. Suite **306/306** at the slice-2 gate; the slice-3 gate is recorded
-in the close commit. Three fields (`filters_style` · `filters_applied` · `filters_saved`),
+**ITEM 31 (filters + saved filters) — DONE, RELEASED as `v0.31.0` (2026-08-21, local tag, NOT PUSHED).** Six commits on `main`: `1a7e9e4` (slices 1+2, contracts + anchor) · `26107c4` (slice 3, the two axes + the picker) · `78dc13e` (the close, plus an eighth contract its own axe scan found) · `67aaa1c` (the Arabic sign-off, its own commit) · `deb48c7` (the five defects the adversarial release review confirmed) · `5fbf7e0` (the release). Final suite **310/310**, contrast **4,008 pairs**, sweep CLEAN, release review run and clean after fixes. Three fields (`filters_style` · `filters_applied` · `filters_saved`),
 `surfaces/_filters.scss`, `docs/upstream/frappe-filters.md`. **Releases as `v0.31.0`** — MINOR is
 the ROADMAP item number; do NOT compute it from the previous tag. Facts worth keeping:
 
+- **THE ADVERSARIAL RELEASE REVIEW FOUND FIVE DEFECTS AND ONE WAS CRITICAL — read this before
+  trusting a green suite.** The anchor set `box-shadow` on the strip's controls UNCONDITIONALLY, at
+  (0,4,2) against Bootstrap's `.form-control:focus` (0,2,0) — so it won the FOCUS state too. That
+  vendor rule also sets `outline: 0` and these controls compute `border: 0px none`, which makes the
+  box-shadow the SOLE focus carrier: under `Ruled` focus went `none` → `none`, and under
+  `Outlined`, the SHIPPED DEFAULT, focus was identical to rest. **Nothing could have caught it:**
+  `assertRingCoverage` and `a11y: focus draws a ring on every control that takes it` BOTH key on
+  `bnd-` classes, and these are Frappe's controls; the kit's own checks read them at rest and on
+  `:hover`. The hole was in the gates. Closed with a `:not(:focus)` guard AND contract R9 (our own
+  accent ring, lifted out of the anchor as items 26 and 27 both did), plus a check that drives focus
+  with a real Tab — `.focus()` does not match `:focus-visible` — and that was WATCHED TO FAIL with
+  the defect reinstated. The other four: no `(hover: none)` stand-down on the saved-filter reveal
+  (item 24's statement, which every other reveal in the project already makes); `.filter-area`'s
+  repaint two-toning the popover under `overlay_style: "Solid"`, because `.popover-body` wraps it in
+  15px of the panel's own colour; the Filters pane missing from `SETTINGS_PANE_KEYS`, so it escaped
+  the axe hard gate AND the accessible-name walk; and a literal `─` escape left by a scripted
+  edit. **None of the five would have been caught by CI, the suite or the sweep.**
 - **THE LIST-VIEW SIDEBAR DOES NOT EXIST IN v16, and ~20 rules point at it.** `list_factory.js:30`
   hardcodes `const hide_sidebar = true`; `base_list.js:279-281` sets `no-list-sidebar`
   unconditionally; `list_view.js` contains the string "sidebar" ZERO times. The group-by /
