@@ -911,6 +911,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_overlay_picker(frm);
 		bnd_render_empty_picker(frm);
 		bnd_render_skeleton_picker(frm);
+		bnd_render_filters_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -936,6 +937,7 @@ frappe.ui.form.on("Theme Settings", {
 			bnd_overlay_preview(frm);
 			bnd_empty_preview(frm);
 			bnd_skeleton_preview(frm);
+			bnd_filters_preview(frm);
 			bnd_icon_preview(frm);
 		}, 300);
 	},
@@ -4870,6 +4872,148 @@ function bnd_skeleton_set(frm, fieldname, value) {
 	bnd_render_skeleton_picker(frm);
 }
 
+/** The filter-strip specimen: a band with three slots, drawn at the pole's own
+ * boundary treatment. A still picture has to separate five poles, so each one
+ * changes something STRUCTURAL rather than only a colour — otherwise the cards
+ * are five pictures of the same thing, which is the two-options-one-pixel
+ * defect wearing a thumbnail. */
+function bnd_filters_thumb(o) {
+	const r = o.radius === undefined ? 4 : o.radius;
+	const slot = (x, w) =>
+		`<rect x="${x}" y="16" width="${w}" height="15" rx="${r}"` +
+		(o.slotFill
+			? ` fill="${o.slotFill}"`
+			: ` fill="currentColor" fill-opacity="${o.slot === undefined ? 0.1 : o.slot}"`) +
+		(o.ring ? ` stroke="currentColor" stroke-opacity="${o.ring}" stroke-width="1"` : "") +
+		"/>";
+	const well = o.well
+		? `<rect x="0" y="9" width="120" height="29" fill="currentColor" fill-opacity="${o.well}"/>`
+		: "";
+	const edge = o.edge
+		? `<rect x="0" y="37" width="120" height="1.6" fill="currentColor" fill-opacity="${o.edge}"/>`
+		: "";
+	return `<svg viewBox="0 0 120 54">${well}${slot(9, 33)}${slot(48, 25)}${slot(79, 32)}${edge}</svg>`;
+}
+
+const BND_FILTERS_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("The stock filter bar, untouched. The style stands down — the legibility repairs stay."),
+		svg: bnd_filters_thumb({}),
+	},
+	{
+		value: "Outlined",
+		blurb: () => __("Every filter control takes a hairline at rest. The default — and the only resting treatment any reference product gives a filter control."),
+		svg: bnd_filters_thumb({ ring: 0.34 }),
+	},
+	{
+		value: "Trough",
+		blurb: () => __("The bar is recessed and the controls sit up out of it."),
+		svg: bnd_filters_thumb({ well: 0.1, slotFill: "var(--bnd-surface)" }),
+	},
+	{
+		value: "Pill",
+		blurb: () => __("Fully rounded controls, so the bar reads as a strip of tokens."),
+		svg: bnd_filters_thumb({ ring: 0.3, radius: 8 }),
+	},
+	{
+		value: "Ruled",
+		blurb: () => __("No boundary on any control — the bar separates itself with a rule instead."),
+		svg: bnd_filters_thumb({ edge: 0.4 }),
+	},
+];
+
+const BND_FILTERS_GROUPS = [
+	{
+		field: "filters_applied",
+		title: () => __("Applied Filters"),
+		desc: () => __("How loudly a filtered list says so."),
+		options: [
+			{ value: "Quiet", name: () => __("Quiet") },
+			{ value: "Counted", name: () => __("Counted") },
+			{ value: "Accented", name: () => __("Accented") },
+		],
+	},
+	{
+		field: "filters_saved",
+		title: () => __("Saved Filters"),
+		desc: () => __("Row spacing and a separated Save row in the saved-filter menu."),
+		options: [
+			{ value: "Plain", name: () => __("Plain") },
+			{ value: "Listed", name: () => __("Listed") },
+		],
+	},
+];
+
+/** Render the filters picker. The same two-band shape as the empty-states
+ * picker: the anchor as cards, the two composing axes as chip rows that grey
+ * out when the anchor stands down. */
+function bnd_render_filters_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "filters_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.filters_style || BND_FILTERS_DEFAULTS.filters_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "filters_style");
+	const cards = P.cards(
+		BND_FILTERS_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-flp-style" }
+	);
+
+	const reason = off ? __("Original leaves the filter bar stock — nothing below applies.") : "";
+	const groups = BND_FILTERS_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(), desc: grp.desc(), field: grp.field,
+			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_FILTERS_DEFAULTS[grp.field] }),
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-flp">' +
+				bnd_bands([
+					{ zone: "style", html: cards + P.note(__("Applies as you click.")) },
+					{ zone: "extras", html: groups },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-flp-style").on("click", function () {
+		bnd_filters_set(frm, "filters_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_filters_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_filters_set(frm, f, BND_FILTERS_DEFAULTS[f]);
+	});
+}
+
+/** Hand the filter values to the desk engine — live preview. */
+function bnd_filters_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.filters_apply) return;
+	const values = {};
+	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
+	// the field was never written, frm.doc[f] is empty and sending it raw would
+	// CLEAR the anchor boot had just set.
+	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || BND_FILTERS_DEFAULTS[f];
+	window.bunood_theme.filters_apply(values);
+}
+
+/** Set a filter field, preview, re-render. */
+function bnd_filters_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_filters_preview(frm);
+	bnd_render_filters_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -5742,6 +5886,7 @@ function bnd_sb_import(frm) {
 			bnd_overlay_preview(frm);
 			bnd_empty_preview(frm);
 			bnd_skeleton_preview(frm);
+			bnd_filters_preview(frm);
 			bnd_icon_preview(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
@@ -5758,6 +5903,7 @@ function bnd_sb_import(frm) {
 			bnd_render_overlay_picker(frm);
 			bnd_render_empty_picker(frm);
 			bnd_render_skeleton_picker(frm);
+			bnd_render_filters_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

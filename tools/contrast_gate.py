@@ -338,6 +338,23 @@ def pairs():
         Pair("var(--bnd-brand-solid, var(--bnd-brand))", SEL_BG, AA_NON_TEXT,
              "list selection rail against the selected wash"),
     ]
+    # ── Filters kit (item 31) ────────────────────────────────────────────────
+    # `filters_applied: Accented` washes the applied filter control with the
+    # SAME expression, character-identical, so the string is reused rather than
+    # restated — and its label is the fitted brand ink rather than a body ink,
+    # which the rows above do not cover. Worst measured 4.54:1 across the eleven
+    # seeds x two modes, so it passes; an unenforced pair nobody can see is
+    # indistinguishable from an oversight, which is why it is here at all.
+    #
+    # The pole's identifiability does NOT rest on this wash. At a pale seed the
+    # wash converges on the surface (measured: 2 channels at near-white, 0 at
+    # pure white), so the RING carries the state — and the ring is
+    # --bnd-brand-solid, already held at 3:1 by "brand fill against the chrome"
+    # above.
+    out.append(
+        Pair("var(--bnd-brand-ink, var(--bnd-brand))", SEL_BG, AA_TEXT,
+             "the applied filter control's label on its brand wash")
+    )
     # ── Form view kit (item 16, was 18) ───────────────────────────────────────
     # The Segment Pills track is the kit's only NEW colour relationship —
     # everything else is built from already-gated cross-products (surfaces ×

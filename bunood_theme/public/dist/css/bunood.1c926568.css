@@ -5228,6 +5228,79 @@ html[data-bnd-filters] .filter-area .clear-filters {
   border-radius: var(--bnd-flt-radius);
 }
 
+html[data-bnd-filters] {
+  --bnd-flt-on-fill: var(--bnd-hover);
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: none;
+  --bnd-flt-chip-bg: var(--bnd-surface);
+  --bnd-flt-chip-ink: var(--bnd-ink);
+}
+
+html[data-bnd-filters-applied=counted] {
+  --bnd-flt-on-fill: var(--bnd-hover);
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: none;
+  --bnd-flt-chip-bg: var(--bnd-brand-solid);
+  --bnd-flt-chip-ink: var(--bnd-on-brand);
+}
+
+html[data-bnd-filters-applied=accented] {
+  --bnd-flt-on-fill: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: inset 0 0 0 var(--bnd-line) var(--bnd-brand-solid);
+  --bnd-flt-chip-bg: var(--bnd-brand-solid);
+  --bnd-flt-chip-ink: var(--bnd-on-brand);
+}
+
+html[data-bnd-filters] .btn-primary-light {
+  background-color: var(--bnd-flt-on-fill);
+  color: var(--bnd-flt-on-ink);
+  box-shadow: var(--bnd-flt-on-ring);
+}
+
+html[data-bnd-filters] .btn-primary-light .filter-icon.active,
+html[data-bnd-filters] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-flt-on-ink);
+}
+
+html[data-bnd-filters] .page-form .filter-selector .btn-group .filter-label {
+  background-color: var(--bnd-flt-chip-bg);
+  color: var(--bnd-flt-chip-ink);
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item .dropdown-item {
+  min-block-size: var(--bnd-sp-6);
+  padding-inline: var(--bnd-sp-2);
+  gap: var(--bnd-sp-2);
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item .filter-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item .dropdown-item:hover {
+  background-color: var(--bnd-hover);
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item .remove-filter {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item:hover .remove-filter,
+html[data-bnd-filters-saved=listed] .saved-filter-item:focus-within .remove-filter {
+  opacity: 1;
+}
+
+html[data-bnd-filters-saved=listed] .saved-filter-item[data-name=create_new] .dropdown-item {
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+  margin-block-start: var(--bnd-sp-1);
+  padding-block-start: var(--bnd-sp-2);
+  color: var(--bnd-ink-muted);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

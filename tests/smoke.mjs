@@ -3806,6 +3806,8 @@ async function main() {
 				empty_picker: { cards: 5, toggles: 0, opts: 5 },
 				// Item 30: four styles, no chip rows — this kit is one anchor.
 				skeleton_picker: { cards: 4, toggles: 0, opts: 0 },
+				// Item 31: five styles, two chip rows (3 + 2), no toggles.
+				filters_picker: { cards: 5, toggles: 0, opts: 5 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3818,7 +3820,7 @@ async function main() {
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, icons_picker: 1,
+					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -8987,16 +8989,40 @@ async function main() {
 		//     0-255 silently mis-reads the first form; the probe that found this
 		//     reported a "254-channel delta". `chDelta` normalises both.
 		{
-			// Channel delta between two computed colours, either serialisation.
+			// ONE normaliser, and every colour reading in this family goes through
+			// it. `color-mix()` computes to `color(srgb r g b)` on a 0-1 scale, NOT
+			// to `rgb()` — and inconsistently, since --bnd-hover (also a color-mix)
+			// serialises as `rgb()`. Anything that parses digits and assumes 0-255
+			// silently mis-reads the first form.
+			//
+			// THIS BIT TWICE. The first time it reported a "254-channel delta" and
+			// was fixed here; the second time the fix was NOT carried into a
+			// luminance helper that ran inside page.evaluate, and an Accented
+			// control that measures 4.74:1 was reported as 3.92:1 — a real rule
+			// failing a wrong check. The lesson is the structural one: the page
+			// returns STRINGS and every number is computed on this side, so there
+			// is exactly one place that knows how a colour serialises.
+			const triple = (v) => {
+				const m = String(v).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+				if (m) return [1, 2, 3].map((i) => parseFloat(m[i]) * 255);
+				return (String(v).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+			};
 			const chDelta = (a, b) => {
-				const nums = (s) => {
-					const m = String(s).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
-					if (m) return [1, 2, 3].map((i) => Math.round(parseFloat(m[i]) * 255));
-					return (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
-				};
-				const A = nums(a);
-				const B = nums(b);
+				const A = triple(a);
+				const B = triple(b);
 				return Math.max(...A.map((v, i) => Math.abs(v - B[i])));
+			};
+			const ratio = (fg, bg) => {
+				const lum = (v) => {
+					const [r, g, b] = triple(v);
+					const f = (c) => {
+						c /= 255;
+						return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+					};
+					return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+				};
+				const pair = [lum(fg), lum(bg)].sort((x, y) => y - x);
+				return Math.round(((pair[0] + 0.05) / (pair[1] + 0.05)) * 100) / 100;
 			};
 
 			// Drive a REAL filter through the user's own path, read, and restore.
@@ -9052,22 +9078,15 @@ async function main() {
 						await page.evaluate((m) => frappe.ui.set_theme(m), mode);
 						await page.waitForTimeout(700);
 						out[mode] = await page.evaluate(() => {
-							const lum = (s) => {
-								const [r, g, b] = (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
-								const f = (c) => {
-									c /= 255;
-									return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-								};
-								return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-							};
 							const btn = document.querySelector(".page-form .filter-selector .filter-button");
 							if (!btn) return null;
 							const c = getComputedStyle(btn);
-							const pair = [lum(c.color), lum(c.backgroundColor)].sort((a, b) => b - a);
 							const icon = btn.querySelector(".filter-icon.active");
+							// Strings only — see `triple` above for why no number is
+							// computed on this side of the boundary.
 							return {
 								applied: btn.classList.contains("btn-primary-light"),
-								ratio: Math.round(((pair[0] + 0.05) / (pair[1] + 0.05)) * 100) / 100,
+								ink: c.color,
 								fill: c.backgroundColor,
 								stroke: icon ? getComputedStyle(icon).getPropertyValue("--icon-stroke").trim() : null,
 							};
@@ -9083,9 +9102,10 @@ async function main() {
 					expect(m, `${mode}: the filter button renders`);
 					expect(m.applied, `${mode}: the button really is in its applied state`);
 					// AA for normal text. Was 4.12 / 1.02.
+					const r = ratio(m.ink, m.fill);
 					expect(
-						m.ratio >= 4.5,
-						`${mode}: the applied label clears AA on its own fill (${m.ratio}:1, fill ${m.fill})`
+						r >= 4.5,
+						`${mode}: the applied label clears AA on its own fill (${r}:1, fill ${m.fill})`
 					);
 					// The MARK fails with the label and is repaired with it —
 					// filters.scss:1-3 puts --icon-stroke on the same failing ground.
@@ -9440,6 +9460,171 @@ async function main() {
 				});
 				expectEq(cleared.anchor, null, "and Original clears it, live");
 				expectEq(cleared.applied, null, "taking the axes with it");
+			});
+
+			// ── SLICE 3 — the two composing axes ────────────────────────────
+
+			await test("filters: the applied signal escalates, and every step stays legible", async () => {
+				// The contract guarantees LEGIBILITY at every seed; the axis chooses
+				// CHARACTER. The escalation is monotonic — Quiet puts the brand only
+				// in the ink, Counted moves it onto the chip, Accented onto the
+				// control as well — so each pole must differ from the one below it
+				// somewhere measurable, and all three must still clear AA.
+				//
+				// TRAP: comparing a pole against a LITERAL rots at the first seed
+				// change. Each pole is compared against the pole below it, read in
+				// the same run.
+				const readPole = async (pole) => {
+					setSettings({ filters_style: "Outlined", filters_applied: pole });
+					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					return withFilter(async () =>
+						page.evaluate(() => {
+							const btn = document.querySelector(".page-form .filter-selector .filter-button");
+							const pill = document.querySelector(
+								".page-form .filter-selector .btn-group .filter-label"
+							);
+							if (!btn || !pill) return null;
+							const b = getComputedStyle(btn);
+							return {
+								fill: b.backgroundColor,
+								ink: b.color,
+								ring: b.boxShadow,
+								chip: getComputedStyle(pill).backgroundColor,
+							};
+						})
+					);
+				};
+
+				const quiet = await readPole("Quiet");
+				const counted = await readPole("Counted");
+				const accented = await readPole("Accented");
+				for (const [name, m] of [["Quiet", quiet], ["Counted", counted], ["Accented", accented]]) {
+					expect(m, `${name}: the applied button renders`);
+					const r = ratio(m.ink, m.fill);
+					expect(r >= 4.5, `${name}: the label still clears AA (${r}:1 on ${m.fill})`);
+				}
+				// Counted differs from Quiet on the CHIP and nowhere else.
+				expect(
+					chDelta(counted.chip, quiet.chip) >= 5,
+					`Counted moves the brand onto the chip (${quiet.chip} -> ${counted.chip})`
+				);
+				expectEq(counted.fill, quiet.fill, "and leaves the control where Quiet had it");
+				// Accented differs from Counted on the CONTROL.
+				expect(
+					chDelta(accented.fill, counted.fill) >= 5,
+					`Accented moves it onto the control too (${counted.fill} -> ${accented.fill})`
+				);
+				// THE POLE'S IDENTIFIABILITY MUST NOT REST ON THE WASH. The wash is
+				// color-mix(--bnd-brand 10%, surface) and converges on the surface at a
+				// pale seed — measured 2 channels at near-white, 0 at pure white — so
+				// the ring is what carries it. That is why this arm exists.
+				expect(
+					accented.ring !== "none" && accented.ring !== counted.ring,
+					`and adds a ring the wash cannot be relied on to replace (${accented.ring})`
+				);
+				setSettings({ filters_applied: "Accented" });
+			});
+
+			await test("filters: the saved menu gets row grammar, and Save is separated", async () => {
+				// `.saved-filter-item` has ZERO CSS in the whole Frappe bundle, so the
+				// baseline here is literally nothing.
+				//
+				// TRAP 1: at rest the menu holds ONE row — the synthetic
+				// `data-name="create_new"` one — and its `.remove-filter` carries
+				// `d-none`. A reveal test against that row measures a node the vendor
+				// already hid, which is item 28's synthetic-node failure. So a real
+				// List Filter is created for the run and deleted in a `finally`.
+				// TRAP 2: `.custom-actions` is `hidden-xs hidden-md`; the group must be
+				// measured non-zero first or every arm silently reads 0.
+				const NAME = "bnd-suite-saved-filter";
+				try {
+					benchPy(
+						'if not frappe.db.exists("List Filter", {"filter_name": "' + NAME + '"}):\n' +
+							'    frappe.get_doc({"doctype": "List Filter", "reference_doctype": "ToDo",\n' +
+							'        "filter_name": "' + NAME + '", "for_user": frappe.session.user,\n' +
+							'        "filters": "[]"}).insert(ignore_permissions=True)\n' +
+							"frappe.db.commit()\nprint('ok')\n"
+					);
+
+					const readMenu = async (pole) => {
+						setSettings({ filters_style: "Outlined", filters_saved: pole });
+						await goDesk("/desk/todo", ".list-row, .no-result", 3000);
+						return page.evaluate((name) => {
+							const g = document.querySelector(
+								'.inner-group-button[data-label="' + encodeURIComponent("Saved Filters") + '"]'
+							);
+							if (!g) return { present: false };
+							const btn = g.querySelector("button");
+							const box = g.getBoundingClientRect();
+              if (btn) btn.click();
+							const rows = [...document.querySelectorAll(".saved-filter-item")];
+							const mine = rows.find((r) => (r.textContent || "").includes(name));
+							const create = rows.find((r) => r.dataset.name === "create_new");
+							const px = (el) => {
+								if (!el) return null;
+								const c = getComputedStyle(el);
+								return {
+									minH: c.minBlockSize,
+									pad: c.paddingInlineStart,
+									ink: c.color,
+									rule: c.borderBlockStartWidth,
+								};
+							};
+							const rm = mine && mine.querySelector(".remove-filter");
+							return {
+								present: true,
+								groupBox: [Math.round(box.width), Math.round(box.height)],
+								rows: rows.length,
+								mine: px(mine && mine.querySelector(".dropdown-item")),
+								create: px(create && create.querySelector(".dropdown-item")),
+								rmOpacity: rm ? getComputedStyle(rm).opacity : null,
+								labelOverflow: mine
+									? getComputedStyle(mine.querySelector(".filter-label")).textOverflow
+									: null,
+							};
+						}, NAME);
+					};
+
+					const listed = await readMenu("Listed");
+					expect(listed.present, "the Saved Filters group renders");
+					expect(
+						listed.groupBox[0] > 0 && listed.groupBox[1] > 0,
+						`and is measurable at this width (${listed.groupBox})`
+					);
+					expect(listed.rows >= 2, `the created filter is in the menu (${listed.rows} rows)`);
+					expect(listed.mine, "a saved row renders");
+					expect(
+						parseFloat(listed.mine.minH) > 0,
+						`Listed gives a saved row a real height (${listed.mine.minH})`
+					);
+					expectEq(listed.labelOverflow, "ellipsis", "and truncates a long name");
+					expect(
+						parseFloat(listed.create.rule) > 0,
+						`the Save row is separated by a rule (${listed.create.rule})`
+					);
+					expect(
+						listed.create.ink !== listed.mine.ink,
+						`and reads quieter than a saved one (${listed.mine.ink} vs ${listed.create.ink})`
+					);
+					expectEq(listed.rmOpacity, "0", "the remove control is revealed, not shouted");
+
+					const plain = await readMenu("Plain");
+					expect(
+						parseFloat(plain.create.rule) === 0 || !plain.create.rule,
+						`Plain leaves the vendor's own menu alone (${plain.create.rule})`
+					);
+					expect(
+						plain.rmOpacity === "1",
+						`and does not hide the remove control (${plain.rmOpacity})`
+					);
+				} finally {
+					benchPy(
+						'for n in frappe.get_all("List Filter", filters={"filter_name": "' + NAME + '"}, pluck="name"):\n' +
+							"    frappe.delete_doc('List Filter', n, force=True, ignore_permissions=True)\n" +
+							"frappe.db.commit()\nprint('ok')\n"
+					);
+					setSettings({ filters_saved: "Listed" });
+				}
 			});
 		}
 

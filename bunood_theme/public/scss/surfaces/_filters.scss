@@ -443,3 +443,152 @@ html[data-bnd-filters] .filter-area .clear-filters {
   box-shadow: var(--bnd-flt-ring);
   border-radius: var(--bnd-flt-radius);
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS 1 — filters_applied. How loudly a filtered list says so.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// The CONTRACT (R1/R3 above) already guarantees the applied state is LEGIBLE
+// at every gate seed, because --bnd-brand-ink is fitted against every member of
+// contrast_gate.SURFACES and --bnd-hover is one of them. This axis chooses the
+// state's CHARACTER, and the escalation is monotonic: Quiet puts the brand
+// nowhere but the ink, Counted puts it on the chip, Accented puts it on the
+// control as well.
+//
+// WHY THE LOUD POLES ARE NOT DECORATION, and it is a seed argument rather than
+// a taste one. R1's fill is `--bnd-hover`, i.e. color-mix(--bnd-brand 7%,
+// surface) — so at a PALE seed it converges on the band and the applied state
+// stops being DISTINCT even though it stays LEGIBLE (measured across the eleven
+// gate seeds; at a pure-white seed the delta is zero). Accented is the pole that
+// does not depend on the seed's distance from the surface: its ring is
+// `--bnd-brand-solid`, which the gate holds at 3:1 against the chrome by
+// construction, and its ink is the fitted `--bnd-brand-ink`.
+//
+// This is item 22's never-colour-alone rule doing real work: the wash is
+// decoration, and the RING and the INK carry the state.
+
+html[data-bnd-filters] {
+  --bnd-flt-on-fill: var(--bnd-hover);
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: none;
+  --bnd-flt-chip-bg: var(--bnd-surface);
+  --bnd-flt-chip-ink: var(--bnd-ink);
+}
+
+// COUNTED — the brand moves to the chip, the control stays neutral. Directus's
+// answer: a `--theme--primary` count badge on the funnel, positioned with
+// inset-inline-* so it is RTL-correct by construction. The pair is
+// --bnd-brand-solid / --bnd-on-brand, which `palette.derive` fits together and
+// the gate holds at AA — so unlike a wash it cannot collapse at any seed.
+html[data-bnd-filters-applied="counted"] {
+  --bnd-flt-on-fill: var(--bnd-hover);
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: none;
+  --bnd-flt-chip-bg: var(--bnd-brand-solid);
+  --bnd-flt-chip-ink: var(--bnd-on-brand);
+}
+
+// ACCENTED — the default. The whole control recolours and the chip comes with
+// it. Discourse's answer, and the reason it is the default here is the phone:
+// the count lives inside `.button-label.hidden-xs`, so below 768 a chip-only
+// signal renders nothing at all and the fill is the only thing left.
+//
+// The wash is the list kit's SEL_BG expression, character-identical, so the one
+// new contrast pair this item adds sits beside that kit's own rows rather than
+// restating the string.
+html[data-bnd-filters-applied="accented"] {
+  --bnd-flt-on-fill: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-flt-on-ink: var(--bnd-brand-ink);
+  --bnd-flt-on-ring: inset 0 0 0 var(--bnd-line) var(--bnd-brand-solid);
+  --bnd-flt-chip-bg: var(--bnd-brand-solid);
+  --bnd-flt-chip-ink: var(--bnd-on-brand);
+}
+
+// The object rules. These beat the CONTRACT's own R1/R3 by source order alone —
+// same specificity, later in the file — which is deliberate: the contract is
+// the floor and the axis is allowed to raise it, but never to remove it. Every
+// pole above still resolves to a fitted ink on a gated ground.
+html[data-bnd-filters] .btn-primary-light {
+  background-color: var(--bnd-flt-on-fill);
+  color: var(--bnd-flt-on-ink);
+  box-shadow: var(--bnd-flt-on-ring);
+}
+
+html[data-bnd-filters] .btn-primary-light .filter-icon.active,
+html[data-bnd-filters] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-flt-on-ink);
+}
+
+html[data-bnd-filters] .page-form .filter-selector .btn-group .filter-label {
+  background-color: var(--bnd-flt-chip-bg);
+  color: var(--bnd-flt-chip-ink);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS 2 — filters_saved. The saved-filter menu's rows.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// `.saved-filter-item` has ZERO CSS in the entire Frappe bundle — one
+// occurrence, at list_filter.js:159 — so any treatment is a guaranteed-visible
+// delta from literally nothing. Three of four surveyed products ship no
+// saved-view UI at all, which is why a small amount of care here is worth more
+// than anywhere else in this item.
+//
+// WHAT THIS AXIS DELIBERATELY DOES NOT DO, and it is the item's honest ceiling:
+// it does not mark the ACTIVE saved filter. Four of four products mark a
+// selected row by its GROUND, and Frappe's own newer apps use a check glyph
+// (crm ViewBreadcrumbs.vue, helpdesk's independent twin) — but the desk's DOM
+// carries no bit saying which row is active. No class, no attribute, no
+// aria-current; only the trigger button's text node, mutated in place and lost
+// on reload. A surface mounts nothing, so that half is an upstream filing.
+//
+// SHAPE IS NOT SET HERE EITHER. Item 28 already owns `--bnd-ov-radius-row` on
+// every `.dropdown-item` on the desk; a second radius statement would be the
+// same fact in two places. This axis changes RHYTHM — height, inset, the hover
+// ground, the create-row separation — and leaves shape alone.
+
+html[data-bnd-filters-saved="listed"] .saved-filter-item .dropdown-item {
+  min-block-size: var(--bnd-sp-6);
+  padding-inline: var(--bnd-sp-2);
+  gap: var(--bnd-sp-2);
+}
+
+// A saved filter is user-named, so the name is arbitrary-length and arbitrary-
+// script. Truncation keeps the remove control reachable; R4 above isolates the
+// name's direction so it cannot reorder the row around it.
+html[data-bnd-filters-saved="listed"] .saved-filter-item .filter-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-bnd-filters-saved="listed"] .saved-filter-item .dropdown-item:hover {
+  background-color: var(--bnd-hover);
+}
+
+// Reveal by OPACITY, never display — frappe-ui states the reason in a source
+// comment on ListHeaderCellSort: revealing must not shift the label beside it.
+// And the reveal keys on the ROW, not on the control, or the control could
+// never be pointed at; `:focus-within` is the keyboard half, which C9 found all
+// four products get right and which `assertRingCoverage` cannot cover here
+// because these are Frappe's buttons rather than ours.
+html[data-bnd-filters-saved="listed"] .saved-filter-item .remove-filter {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-bnd-filters-saved="listed"] .saved-filter-item:hover .remove-filter,
+html[data-bnd-filters-saved="listed"] .saved-filter-item:focus-within .remove-filter {
+  opacity: 1;
+}
+
+// The create affordance, separated from the saved ones. `data-name="create_new"`
+// is the ONE CSS-reachable discriminator in this whole family — Frappe writes it
+// on the synthetic last row (list_filter.js:85-96) — and promoting what already
+// exists is the item-29 move.
+html[data-bnd-filters-saved="listed"] .saved-filter-item[data-name="create_new"] .dropdown-item {
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+  margin-block-start: var(--bnd-sp-1);
+  padding-block-start: var(--bnd-sp-2);
+  color: var(--bnd-ink-muted);
+}

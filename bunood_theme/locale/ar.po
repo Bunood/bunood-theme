@@ -4206,3 +4206,43 @@ msgstr "يُضبط من المُنتقي أعلاه. ما إذا كانت عوا
 #, fuzzy
 msgid "Listed"
 msgstr "مُدرَج"
+
+#. src: item31
+#, fuzzy
+msgid "The stock filter bar, untouched. The style stands down — the legibility repairs stay."
+msgstr "شريط التصفية الأصلي دون تغيير. يتنحّى النمط — وتبقى إصلاحات الوضوح."
+
+#. src: item31
+#, fuzzy
+msgid "Every filter control takes a hairline at rest. The default — and the only resting treatment any reference product gives a filter control."
+msgstr "يأخذ كلّ عنصر تصفية خطًّا شعريًّا في حالة السكون. الافتراضي — وهو المعالجة الوحيدة التي يمنحها أيّ منتج مرجعي لعنصر تصفية ساكن."
+
+#. src: item31
+#, fuzzy
+msgid "The bar is recessed and the controls sit up out of it."
+msgstr "يغور الشريط وترتفع العناصر فوقه."
+
+#. src: item31
+#, fuzzy
+msgid "Fully rounded controls, so the bar reads as a strip of tokens."
+msgstr "عناصر مُدوّرة بالكامل، فيُقرأ الشريط كشريط من الرموز."
+
+#. src: item31
+#, fuzzy
+msgid "No boundary on any control — the bar separates itself with a rule instead."
+msgstr "لا حدّ حول أيّ عنصر — بل يفصل الشريط نفسه بخطّ."
+
+#. src: item31
+#, fuzzy
+msgid "How loudly a filtered list says so."
+msgstr "مدى وضوح إعلان القائمة أنّها مُصفّاة."
+
+#. src: item31
+#, fuzzy
+msgid "Row spacing and a separated Save row in the saved-filter menu."
+msgstr "تباعد الصفوف وصفّ حفظ منفصل في قائمة عوامل التصفية المحفوظة."
+
+#. src: item31
+#, fuzzy
+msgid "Original leaves the filter bar stock — nothing below applies."
+msgstr "يترك «الأصلي» شريط التصفية كما هو — ولا يُطبّق شيء ممّا أدناه."
