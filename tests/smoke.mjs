@@ -90,6 +90,7 @@ const CONSOLE_ALLOWLIST = [
 
 const results = [];
 let page; // assigned in main()
+let browser; // assigned in main(); `withGuest` opens sibling contexts off it
 
 /**
  * Run one named check, unless a filter excludes it.
@@ -446,6 +447,76 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 	}
 	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
 	await page.waitForTimeout(settle);
+}
+
+/**
+ * Run `fn(guestPage, guestErrors)` against a LOGGED-OUT route in its own browser
+ * context, and close that context however it ends. Item 32.
+ *
+ * WHY THIS EXISTS AT ALL
+ *   Every other check in this file runs as Administrator: `main()` mints a sid
+ *   server-side and injects it as a cookie into the ONE context the whole suite
+ *   shares. `/login` is unreachable that way — `www/login.py:38-46` redirects any
+ *   authenticated session to /desk — so a login check driven through `page` would
+ *   silently be testing the redirect. Guest-ness here is the ABSENCE of the
+ *   cookie, which is why this takes a fresh context rather than clearing one.
+ *
+ * WHY NOT LOG IN OVER HTTP
+ *   A real sign-in mints a `tabSessions` row per run, and stale sessions are a
+ *   measured destabiliser of this suite: 382 rows took a run from 125 to 114 of
+ *   137 on 2026-08-08, and `main()` now reaps them for that reason. A guest page
+ *   needs no session at all, so nothing here writes one.
+ *
+ * THREE RULES, each with a failure behind it
+ *   1. It must NEVER reassign the module-level `page`. Every one of the other
+ *      250-odd checks closes over it.
+ *   2. Console errors are collected PER CALL and handed to `fn`, because the
+ *      end-of-run `consoleErrors` budget is wired to the desk page's listeners
+ *      only — a guest page's errors would otherwise be invisible to it, and
+ *      widening the shared allowlist to accommodate a different asset set would
+ *      weaken the desk's budget.
+ *   3. `colorScheme` is emulated per CONTEXT, not on the shared page. Item 30
+ *      had to reset `emulateMedia` in a `finally` because the shared page leaks
+ *      it into every later test; a context that is closed cannot leak.
+ *
+ * `goDesk` is unusable here: its default readiness selector is
+ * `.body-sidebar-container`, which no website page has.
+ */
+async function withGuest(route, waitSel, fn, opts = {}) {
+	const { width = 1440, height = 900, lang = null, colorScheme = null } = opts;
+	const ctx = await browser.newContext({
+		viewport: { width, height },
+		...(colorScheme ? { colorScheme } : {}),
+	});
+	if (lang) {
+		await ctx.addCookies([
+			{ name: "preferred_language", value: lang, domain: new URL(URL_BASE).hostname, path: "/" },
+		]);
+	}
+	const gp = await ctx.newPage();
+	const errs = [];
+	gp.on("console", (m) => {
+		if (m.type() === "error") {
+			const loc = m.location();
+			errs.push(`${m.text()} [${loc && loc.url ? loc.url : "?"}]`);
+		}
+	});
+	gp.on("pageerror", (e) => errs.push("pageerror: " + e.message));
+	try {
+		// The same single retry goDesk carries, for the same reason: Docker
+		// Desktop's host-port proxy drops occasionally and one blip must not
+		// fail the matrix.
+		try {
+			await gp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+		} catch (first) {
+			await gp.waitForTimeout(4000);
+			await gp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+		}
+		if (waitSel) await gp.waitForSelector(waitSel, { timeout: 30000 });
+		return await fn(gp, errs);
+	} finally {
+		await ctx.close();
+	}
 }
 
 /** Every settings shell pane, in the order BND_SHELL_GROUPS declares them. */
@@ -819,7 +890,7 @@ async function main() {
 		benchPy(`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	const browser = await chromium.launch();
+	browser = await chromium.launch();
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);
@@ -9988,6 +10059,98 @@ async function main() {
 				expect(bad.length === 0, `mobile nav axe-clean at 390 (${bad.join("; ")})`);
 			});
 		}
+
+		// ── Login / signup / forgot (item 32) ──────────────────────────────
+		//
+		// The first family in this file that runs LOGGED OUT. Everything here
+		// goes through `withGuest`; see its docblock for why a fresh context is
+		// the only way to see this page at all.
+
+		await test("login: the guest harness reaches a logged-out page", async () => {
+			// This check exists to prove the HARNESS, not the theme. Without it a
+			// later login failure is ambiguous between "the rule lost" and "we
+			// were looking at the /desk redirect the whole time" — which is the
+			// exact shape of the item-28 defective check that PASSED while
+			// measuring a node the vendor rule never reached.
+			const seen = await withGuest("/login", ".for-login .page-card", async (gp) =>
+				gp.evaluate(() => ({
+					url: location.pathname,
+					session: document.body.getAttribute("frappe-session-status"),
+					dataPath: document.body.getAttribute("data-path"),
+					sections: [...document.querySelectorAll("section")].map((s) => ({
+						cls: s.className.trim(),
+						shown: getComputedStyle(s).display !== "none",
+					})),
+					// THE TRAP, pinned: `.page-card` is FOUR nodes here, one per
+					// section, three of them display:none. A bare querySelector
+					// happens to return the login one only because `.for-login` is
+					// written first. Item 31's `.filter-label` lesson, restated.
+					cards: document.querySelectorAll(".page-card").length,
+				}))
+			);
+			expectEq(seen.url, "/login", "a cookie-less context stays on /login (an authenticated one redirects to /desk)");
+			expectEq(seen.session, "logged-out", "and Frappe agrees it is a guest");
+			expectEq(seen.dataPath, "login", "body carries the route, which is what our scope will key on");
+			const shown = seen.sections.filter((s) => s.shown);
+			expectEq(shown.length, 1, `exactly one section is visible (${shown.map((s) => s.cls).join(", ")})`);
+			expect(shown[0].cls.startsWith("for-login"), `and it is the sign-in one (${shown[0].cls})`);
+			expectEq(seen.cards, 4, "and .page-card matches four nodes — scope every later query to its section");
+		});
+
+		await test("login: /update-password is the same object on its own route", async () => {
+			const seen = await withGuest("/update-password", ".page-card", async (gp) =>
+				gp.evaluate(() => ({
+					dataPath: document.body.getAttribute("data-path"),
+					cards: document.querySelectorAll(".page-card").length,
+					sections: [...document.querySelectorAll("section")].map((s) => s.className.trim()),
+					sheet: [...document.styleSheets].some((s) => (s.href || "").includes("login.bundle")),
+				}))
+			);
+			expectEq(seen.dataPath, "update-password", "a second route, and the tail of the forgot-password flow");
+			expectEq(seen.cards, 1, "one card here, not four");
+			expectEq(seen.sections.join(","), "for-reset-password", "and one section, which /login does not carry");
+			expect(seen.sheet, "it is dressed by the SAME login.bundle.css, so the two routes are one surface");
+		});
+
+		await test("login: Frappe flips this page itself, so our rules must not", async () => {
+			// GUIDELINES §1.3, pinned where the next person will trip over it.
+			// Frappe is RTL-correct here by a BUILD-TIME rtlcss pass, we are by
+			// logical properties, and the two DO NOT COMPOSE: a logical rule of
+			// ours over one of their flipped physical rules pins the element on
+			// both sides. This test is the standing evidence that the pass is
+			// live on this route — if it ever stops being true, the constraint
+			// on `web/login.scss` changes and this fails first.
+			const read = (lang) =>
+				withGuest("/login", ".for-login .page-card", async (gp) =>
+					gp.evaluate(() => {
+						const g = (sel, k) => {
+							const e = document.querySelector(sel);
+							return e ? getComputedStyle(e)[k] : null;
+						};
+						return {
+							dir: document.documentElement.dir,
+							rtlSheets: [...document.styleSheets].filter((s) => (s.href || "").includes("/css-rtl/")).length,
+							iconStart: g(".for-login .email-field .field-icon", "left"),
+							padStart: g("#login_email", "paddingLeft"),
+							headAlign: g(".for-login .page-card-head", "textAlign"),
+						};
+					}),
+					{ lang }
+				);
+			const ltr = await read(null);
+			const rtl = await read("ar");
+			expectEq(ltr.dir, "ltr", "the default direction");
+			expectEq(rtl.dir, "rtl", "and Arabic flips the document");
+			expectEq(ltr.rtlSheets, 0, "LTR serves dist/css");
+			expect(rtl.rtlSheets >= 1, `Arabic serves dist/css-rtl (${rtl.rtlSheets} sheets)`);
+			// The three that matter, each measured on both sides.
+			expectEq(ltr.iconStart, "8px", "the field icon is pinned physically at the start in LTR");
+			expect(rtl.iconStart !== "8px", `and rtlcss moved it in RTL (${rtl.iconStart})`);
+			expectEq(ltr.padStart, "38px", "the input reserves the icon's width physically in LTR");
+			expectEq(rtl.padStart, "8px", "and rtlcss moved that too");
+			expectEq(ltr.headAlign, "left", "the card head is physically aligned in LTR");
+			expectEq(rtl.headAlign, "right", "and flipped in RTL");
+		});
 
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
