@@ -47,11 +47,23 @@ if [[ "${1:-}" != "--no-build" ]]; then
 	npm run build >/dev/null
 fi
 
-CSS_PATH="$(ls bunood_theme/public/dist/css/*.css | head -1)"
-JS_PATH="$(ls bunood_theme/public/dist/js/*.js | head -1)"
-CSS_NAME="$(basename "$CSS_PATH")"
-JS_NAME="$(basename "$JS_PATH")"
-say "assets: $CSS_NAME  $JS_NAME"
+# EVERY built file, not the first one. This was `ls ... | head -1` until item
+# 32, which is a bug that had simply not fired yet: the moment a second
+# stylesheet existed, ASCII ordering decided which one the deploy noticed —
+# `-` (0x2D) sorts BEFORE `.` (0x2E), so `bunood-web.<hash>.css` would have
+# sorted first and the deploy would have copied it to the frontend, checked ITS
+# hash for the restart decision, and curl-verified ITS name, while the desk
+# bundle silently 404'd. Arrays, and every loop below walks all of them.
+ASSETS=()
+for f in bunood_theme/public/dist/css/*.css bunood_theme/public/dist/js/*.js; do
+	[[ -e "$f" ]] || continue
+	ASSETS+=("$f")
+done
+if [[ ${#ASSETS[@]} -eq 0 ]]; then
+	say "no built assets — run npm run build"
+	exit 1
+fi
+say "assets: $(for f in "${ASSETS[@]}"; do printf '%s ' "$(basename "$f")"; done)"
 
 # The hash IS the change signal. A restart costs ~15s plus a cold boot, so it is
 # only paid when the compiled output actually moved; a Python-only edit still
@@ -61,8 +73,9 @@ say "assets: $CSS_NAME  $JS_NAME"
 # assets.py now points at - the stack then served a filename the backend had not
 # been restarted to reference. Measured on the slice-2 build.
 NEED_RESTART=0
-for pair in "css/$CSS_NAME" "js/$JS_NAME"; do
-	if ! docker exec "$FRONTEND" sh -lc "test -f $FRONTEND_ASSETS/$pair" 2>/dev/null; then
+for f in "${ASSETS[@]}"; do
+	sub="$(basename "$(dirname "$f")")"   # css | js
+	if ! docker exec "$FRONTEND" sh -lc "test -f $FRONTEND_ASSETS/$sub/$(basename "$f")" 2>/dev/null; then
 		NEED_RESTART=1
 	fi
 done
@@ -97,9 +110,11 @@ fi
 if [[ "$MOUNTED" == "1" ]]; then
 	say "frontend assets are mounted too — nothing to copy"
 else
-	docker cp "$CSS_PATH" "$FRONTEND:$FRONTEND_ASSETS/css/" >/dev/null
-	docker cp "$JS_PATH" "$FRONTEND:$FRONTEND_ASSETS/js/" >/dev/null
-	say "shipped -> $FRONTEND (dist)"
+	for f in "${ASSETS[@]}"; do
+		sub="$(basename "$(dirname "$f")")"
+		docker cp "$f" "$FRONTEND:$FRONTEND_ASSETS/$sub/" >/dev/null
+	done
+	say "shipped -> $FRONTEND (dist, ${#ASSETS[@]} files)"
 fi
 
 # ── Mirror into WSL ─────────────────────────────────────────────────────────
@@ -142,10 +157,33 @@ fi
 docker exec "$BACKEND" bash -lc "cd /home/frappe/frappe-bench && bench --site $SITE clear-cache" >/dev/null
 say "cache cleared"
 
-CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080/assets/bunood_theme/dist/css/$CSS_NAME")"
-if [[ "$CODE" == "200" ]]; then
-	say "serving $CSS_NAME (200) — http://localhost:8080/desk/theme-settings?shell=1"
-else
-	say "WARNING: $CSS_NAME returns $CODE — the stack is NOT serving this build"
+# Verify EVERY asset, not just the CSS. The point of this step is "the stack is
+# serving the build we just made", and one file out of three answering 200 does
+# not say that.
+# The body goes to a REAL temp file, not /dev/null. `MSYS_NO_PATHCONV=1` is
+# required for the docker/wsl calls above (HANDOVER 1: MSYS silently rewrites
+# POSIX arguments, and once emptied a sed in a hand-rolled rsync), but it also
+# stops Git Bash translating /dev/null to NUL — so `curl -o /dev/null` fails
+# with exit 23 "Failed writing body", `set -e` kills the script mid-verify, and
+# the deploy reports success by saying nothing at all. Measured while adding
+# this loop.
+CURL_SINK="$(mktemp -t bnd-curl-XXXXXX)"
+trap 'rm -f "$CURL_SINK"' EXIT
+BAD=0
+for f in "${ASSETS[@]}"; do
+	sub="$(basename "$(dirname "$f")")"
+	name="$(basename "$f")"
+	# `|| true`: a curl failure must reach the WARNING branch below, not exit
+	# the script through `set -e` with nothing printed.
+	CODE="$(curl -s -o "$CURL_SINK" -w '%{http_code}' "http://localhost:8080/assets/bunood_theme/dist/$sub/$name" || true)"
+	if [[ "$CODE" == "200" ]]; then
+		say "serving $name (200)"
+	else
+		say "WARNING: $name returns $CODE — the stack is NOT serving this build"
+		BAD=1
+	fi
+done
+if [[ "$BAD" == "1" ]]; then
 	exit 1
 fi
+say "http://localhost:8080/desk/theme-settings?shell=1  ·  http://localhost:8080/login"

@@ -368,6 +368,35 @@ def pairs():
              "form tab, inactive label on the segment track"),
     ]
 
+    # ── Login / signup / forgot (item 32) ─────────────────────────────────────
+    # The SAME 4%-ink lever, over `--bnd-page` instead of `--bnd-surface`. That
+    # one substitution is the whole reason these rows exist rather than reusing
+    # TRACK_BG above: the login card is `--bnd-page` under `Original`, and a
+    # fill delta is a delta against its HOST. Measured live before this was
+    # noticed — mixing against `--bnd-surface` on a `--bnd-page` card gave FOUR
+    # channels, inside the range item 29 twice rejected as "renders as nothing".
+    # Against the host it is nine, in both modes, at every seed.
+    #
+    # Three inks, because the field carries three roles and they are NOT
+    # interchangeable — which this gate proved rather than assumed. The first cut
+    # put the placeholder on `--bnd-ink-subtle` and these rows failed at three
+    # pale seeds (4.38 bright yellow, 4.24 near-white, 4.16 pure white): a fill
+    # darkened by an ink wash costs contrast, and the weakest ink is fitted
+    # against the RAW surface. The placeholder moved to `--bnd-ink-muted`.
+    #
+    # The third row is EXEMPT and measured rather than enforced: the disabled
+    # submit's label is on a control that is `disabled`, which WCAG 1.4.3 does
+    # not cover. It is printed anyway because an exemption nobody can see the
+    # number for is indistinguishable from an oversight — this file's own rule.
+    FIELD_BG = "color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-page))"
+    out += [
+        Pair("var(--bnd-ink)", FIELD_BG, AA_TEXT, "login field value on its resting fill"),
+        Pair("var(--bnd-ink-muted)", FIELD_BG, AA_TEXT,
+             "login field placeholder and label on that fill"),
+        Pair("var(--bnd-ink-subtle)", FIELD_BG, None,
+             "login disabled submit label; 1.4.3 exempts a disabled control"),
+    ]
+
     # ── Chart series marks (item 25) ──────────────────────────────────────────
     # A series mark is a graphic that carries meaning — 1.4.11's 3:1, NOT 4.5:1
     # text. The two backgrounds are the only surfaces a chart lands on: the tile
@@ -472,15 +501,45 @@ def read_blocks(path: str) -> tuple[dict, dict]:
     src = open(path, encoding="utf-8").read()
     src = re.sub(r"//[^\n]*", "", src)
 
-    def block(selector: str) -> dict:
-        m = re.search(r"^" + re.escape(selector) + r"\s*\{", src, re.M)
+    def body_of(pattern: str, what: str) -> str:
+        """The brace-matched body of the first construct matching ``pattern``."""
+        m = re.search(pattern, src, re.M)
         if not m:
-            raise SystemExit(f"contrast gate: no top-level `{selector}` block in {path}")
+            raise SystemExit(f"contrast gate: no {what} in {path}")
         depth, i = 1, m.end()
         while depth and i < len(src):
             depth += {"{": 1, "}": -1}.get(src[i], 0)
             i += 1
-        body = src[m.end() : i - 1]
+        return src[m.end() : i - 1]
+
+    def expand_includes(body: str, depth: int = 0) -> str:
+        """Substitute ``@include <name>;`` with the body of ``@mixin <name>``.
+
+        WHY THIS EXISTS (item 32). The dark token set became a ``@mixin`` so it
+        could be emitted under a third selector — a website page carries no
+        ``data-theme``, so the login sheet reaches dark through
+        ``prefers-color-scheme`` — and this parser reads the SOURCE, not the
+        compiled CSS. Without expansion, ``html[data-theme="dark"] { @include
+        dark; }`` parses as an EMPTY block, ``dark`` collapses onto ``light``,
+        and the gate reports 150 failures in dark for every seed while the
+        stylesheet is perfectly correct.
+
+        Recorded because of how it was found: the mixin commit proved itself
+        inert with a BYTE-IDENTICAL rebuild, which is real evidence about the
+        compiled sheet and no evidence at all about a tool that parses the
+        source. Two things read ``_tokens.scss`` and only one of them is Sass.
+        """
+        if depth > 4:
+            raise SystemExit("contrast gate: @include nesting too deep in " + path)
+        def sub(m):
+            name = m.group(1)
+            return expand_includes(body_of(r"@mixin\s+" + re.escape(name) + r"\s*\{", f"@mixin {name}"), depth + 1)
+        return re.sub(r"@include\s+([\w-]+)\s*;", sub, body)
+
+    def block(selector: str) -> dict:
+        body = expand_includes(
+            body_of(r"^" + re.escape(selector) + r"\s*\{", f"top-level `{selector}` block")
+        )
         out = {}
         for decl in _split_decls(body):
             if ":" not in decl:

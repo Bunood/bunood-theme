@@ -11,11 +11,21 @@
 		"is what a first paint waits on.",
 		"Ceilings start at ~15% over the v0.12.0 measurement — headroom for a",
 		"normal slice, tight enough that a dependency or a generated blob",
-		"cannot slip in unnoticed."
+		"cannot slip in unnoticed.",
+		"THREE CEILINGS, NOT A SUM (item 32). `css_gzip` is the desk bundle, which",
+		"only an authenticated desk fetches; `web_css_gzip` is the login sheet",
+		"(bunood-web.<hash>.css), which only a logged-out visitor fetches. They are",
+		"never both on one page, so summing them would bound a number nobody pays —",
+		"and would break every history row's comparability at the release that",
+		"introduced the second sheet. Rows before v0.32.0 carry no web_css_* keys",
+		"because the file did not exist; that is the honest shape, not a gap.",
+		"tools/payload.mjs THROWS on any dist file that matches no bucket, so a",
+		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
 	],
 	"ceiling": {
 		"css_gzip": 21000,
-		"js_gzip": 93000
+		"js_gzip": 93000,
+		"web_css_gzip": 4000
 	},
 	"history": [
 		{

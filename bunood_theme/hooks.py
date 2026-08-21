@@ -23,7 +23,7 @@ READ THIS BEFORE EDITING ASSET PATHS
 See ARCHITECTURE.md sections 5, 6 and 7.
 """
 
-from bunood_theme.assets import THEME_CSS, THEME_JS
+from bunood_theme.assets import THEME_CSS, THEME_JS, WEB_CSS
 
 # ── Identity ────────────────────────────────────────────────────────────────────
 app_name = "bunood_theme"
@@ -57,7 +57,23 @@ app_include_js = [THEME_JS]
 # The login page is a WEBSITE page, not a desk page: it does not get app_include_css,
 # and Frappe's own login bundle loads AFTER ours there. Anything in this sheet that
 # must beat Frappe needs specificity, not source order.
-# web_include_css = ["/assets/bunood_theme/dist/css/bunood-web.css"]  # when web/login.scss ships
+#
+# ENABLED BY ITEM 32, and note where in <head> this lands.
+# ``templates/includes/head.html`` emits ``web_include_css`` inside ``{% block head %}``;
+# ``www/login.html`` then OVERRIDES ``{% block head_include %}`` with
+# ``include_style('login.bundle.css')``. So the order is website.bundle, any app's
+# web_include_css (ours), then Frappe's login bundle — ours is NOT last, which is why
+# ``web/login.scss`` sizes every selector against a measured competitor.
+#
+# The path is the hashed one from assets.py, never a logical bundle name: it starts
+# with ``/assets``, so ``bundled_asset()`` skips the ``rtl_`` swap entirely and ONE
+# logical-property sheet serves both directions. (Frappe's own login bundle does get
+# swapped — an ``ar`` page serves ``dist/css-rtl/login.bundle...css`` — which is the
+# constraint GUIDELINES 1.3 puts on us, not a reason to ship a second file.)
+web_include_css = [WEB_CSS]
+
+# Still not shipping: there is no web JS and no sprite. RULE, restated because this
+# is where it was broken before: never declare an asset that does not exist yet.
 # web_include_js = ["/assets/bunood_theme/dist/js/bunood-web.js"]      # when web JS ships
 # web_include_icons = ["/assets/bunood_theme/icons/bunood.svg"]        # when the sprite ships
 

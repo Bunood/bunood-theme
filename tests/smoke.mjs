@@ -10152,6 +10152,293 @@ async function main() {
 			expectEq(rtl.headAlign, "right", "and flipped in RTL");
 		});
 
+		{
+			// Scoped helpers, the item-31 shape. THE COLOUR ARITHMETIC HAPPENS
+			// HERE, ON THE NODE SIDE, and the page returns strings — item 31 paid
+			// for the other order twice. `color-mix()` computes to
+			// `color(srgb r g b)` on a 0-1 scale, NOT `rgb()`, and inconsistently:
+			// some of this kit's mixes serialise one way and the tokens they mix
+			// serialise the other. A helper that parses digits and assumes 0-255
+			// mis-reads the first form, and the second time that happened it
+			// reported a passing 4.74:1 rule as 3.92:1 and the CSS was chased
+			// first. One place knows how a colour serialises.
+			const triple = (v) => {
+				const m = String(v).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+				if (m) return [1, 2, 3].map((i) => parseFloat(m[i]) * 255);
+				return (String(v).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+			};
+			const chDelta = (a, b) => {
+				const [x, y] = [triple(a), triple(b)];
+				return Math.max(...[0, 1, 2].map((i) => Math.abs(x[i] - y[i])));
+			};
+			const ratio = (fg, bg) => {
+				const lum = (c) => {
+					const [r, g, b] = triple(c).map((n) => {
+						const s = n / 255;
+						return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+					});
+					return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+				};
+				const [a, b2] = [lum(fg), lum(bg)];
+				return (Math.max(a, b2) + 0.05) / (Math.min(a, b2) + 0.05);
+			};
+
+			/** Read the login card's colours in one mode. Reveals the two states
+			 *  that ship `display:none` — a hidden node measures nothing, which is
+			 *  the item-28 failure class where a check PASSED against a node the
+			 *  vendor rule never reached. */
+			const readCard = (colorScheme) =>
+				withGuest(
+					"/login",
+					".for-login .page-card",
+					async (gp) =>
+						gp.evaluate(() => {
+							const g = (sel, key) => {
+								const e = document.querySelector(sel);
+								return e ? getComputedStyle(e)[key] : null;
+							};
+							const fs = document.querySelector(".for-forgot");
+							fs.style.display = "block";
+							fs.querySelector(".form-forgot").classList.remove("hide");
+							const banner = document.querySelector(".for-login .login-error-banner");
+							banner.style.display = "flex";
+							return {
+								page: getComputedStyle(document.body).backgroundColor,
+								card: g(".for-login .page-card", "backgroundColor"),
+								cardInk: g(".for-login .page-card", "color"),
+								field: g("#login_email", "backgroundColor"),
+								fieldInk: g("#login_email", "color"),
+								fieldBidi: g("#login_email", "unicodeBidi"),
+								label: g(".for-login .form-label", "color"),
+								forgotLink: g(".for-login .forgot-password-message a", "color"),
+								cta: g(".for-login .btn-login", "backgroundColor"),
+								ctaInk: g(".for-login .btn-login", "color"),
+								bannerBg: g(".for-login .login-error-banner", "backgroundColor"),
+								bannerInk: g(".for-login .login-error-banner", "color"),
+								submitOff: g(".btn-forgot", "backgroundColor"),
+							};
+						}),
+					{ colorScheme }
+				);
+
+			await test("login: every control shows a focus ring under a real Tab", async () => {
+				// THE HEADLINE CONTRACT. Before this kit, tabbing the sign-in form
+				// gave `outline: none 0px` and `box-shadow: none` on every input and
+				// every button, with the border unchanged — WCAG 2.4.7 AA failing
+				// outright, from two independent directions:
+				//   `.btn:focus { outline: 0 }`                    (0,2,0)
+				//   `.form-control:focus { outline: 0; box-shadow: none }`  (0,2,0)
+				// plus `.for-login … .btn-login { box-shadow: none }` (0,4,0),
+				// which also suppresses Bootstrap's own focus glow.
+				//
+				// DRIVEN WITH A REAL Tab, NOT `.focus()`. `.focus()` does not match
+				// `:focus-visible`, so a check built on it asserts nothing about the
+				// state a keyboard user is actually in. Item 31 learned that on the
+				// defect its release review called critical.
+				const stops = await withGuest("/login", ".for-login .page-card", async (gp) => {
+					const seen = [];
+					for (let i = 0; i < 4; i++) {
+						await gp.keyboard.press("Tab");
+						seen.push(
+							await gp.evaluate(() => {
+								const a = document.activeElement;
+								if (!a || a === document.body) return null;
+								const c = getComputedStyle(a);
+								return {
+									what: a.id || (a.className || "").toString().slice(0, 40) || a.tagName,
+									fv: a.matches(":focus-visible"),
+									style: c.outlineStyle,
+									width: parseFloat(c.outlineWidth) || 0,
+									colour: c.outlineColor,
+								};
+							})
+						);
+					}
+					return seen.filter(Boolean);
+				});
+				expect(stops.length >= 3, `the form has tab stops to check (${stops.length})`);
+				for (const s of stops) {
+					expect(s.fv, `${s.what} matches :focus-visible under a real Tab`);
+					expect(
+						s.style !== "none" && s.width >= 2,
+						`${s.what} draws a ring (${s.style} ${s.width}px)`
+					);
+				}
+			});
+
+			await test("login: the card's text clears AA in both modes", async () => {
+				// R2 — `--ink-gray-5` (#7c7c7c) was the field LABEL and the "Forgot
+				// password?" LINK and /update-password's hint: 4.17:1 in light.
+				// R10 — `.page-card`'s inherited ink was a literal #525252 in BOTH
+				// modes, 2.25:1 on a dark card, waiting for anything without its own
+				// colour to land in it.
+				for (const mode of ["light", "dark"]) {
+					const c = await readCard(mode);
+					for (const [what, ink] of [
+						["field label", c.label],
+						["the forgot-password link", c.forgotLink],
+						["the card's inherited ink", c.cardInk],
+					]) {
+						const r = ratio(ink, c.card);
+						expect(r >= 4.5, `${mode}: ${what} clears AA on the card (${r.toFixed(2)}:1)`);
+					}
+					const value = ratio(c.fieldInk, c.field);
+					expect(value >= 4.5, `${mode}: the typed value clears AA on its field (${value.toFixed(2)}:1)`);
+				}
+			});
+
+			await test("login: a text field is identifiable at rest", async () => {
+				// R4. Stock cleared NEITHER arm of item 22's rule: border 1.30:1 in
+				// light and 1.54:1 in dark, fill delta 1.00:1 and 1.07:1, on a page
+				// whose entire content is two text fields.
+				//
+				// THE TRAP THIS CHECK EXISTS FOR, and it caught a real one: the fill
+				// is `color-mix(--bnd-ink 4%, <the card>)`, and the first cut mixed
+				// against `--bnd-surface` because that string is character-identical
+				// to an already-gated expression in `_filters.scss`. It is — but
+				// there the HOST is `--bnd-surface` too, and here the card is
+				// `--bnd-page`. Measured 4 channels instead of 9. Magnitudes only:
+				// the delta INVERTS between modes (the field is darker than the card
+				// in light and lighter in dark), so any signed assertion passes in
+				// one mode and fails in the other.
+				for (const mode of ["light", "dark"]) {
+					const c = await readCard(mode);
+					const d = chDelta(c.field, c.card);
+					expect(d >= 5, `${mode}: the field lifts off the card (${d.toFixed(0)} channels)`);
+				}
+			});
+
+			await test("login: the primary action has edges in both modes", async () => {
+				// R7. `background: var(--gray-900)` is #171717, `--gray-900` is not
+				// redefined in dark, and dark's `--bg-color` resolves to it — so the
+				// button's fill WAS the page's fill, 1.00:1. Only a white label
+				// survived. WCAG 1.4.11 for a component's boundary.
+				//
+				// WATCHED TO FAIL, AND HOW MATTERS. Removing the kit does NOT turn
+				// this red — measured. The defect is dark-only, and without our
+				// sheet there IS no dark on this page: base.html writes no
+				// `data-theme`, so Frappe's dark branch never runs and the light
+				// page passes at 17.93:1. Pulling the kit therefore makes this
+				// check vacuous rather than failing, which is the exact shape of
+				// green-that-asserts-nothing this repo hunts.
+				// It was watched to fail the honest way instead: the R7 repair was
+				// reverted with the KIT STILL ON, and it reported 1.02:1 in dark.
+				// That is what this check actually guards — not a live defect our
+				// users hit today, but one our own dark mode would INHERIT the
+				// moment it drifts back toward Frappe's literals.
+				for (const mode of ["light", "dark"]) {
+					const c = await readCard(mode);
+					const edge = ratio(c.cta, c.page);
+					expect(edge >= 3, `${mode}: the CTA's fill clears 3:1 against the page (${edge.toFixed(2)}:1)`);
+					const label = ratio(c.ctaInk, c.cta);
+					expect(label >= 4.5, `${mode}: and its label clears AA on it (${label.toFixed(2)}:1)`);
+				}
+			});
+
+			await test("login: the error banner is legible where it was invisible", async () => {
+				// R6. `background-color: var(--red-50)` is a literal with no dark
+				// value, under an ink that flips: 2.52:1 in dark, and the banner read
+				// as a WHITE BOX at 16.99:1 against the card — the loudest object on
+				// the screen was the error surface's background.
+				//
+				// Same caveat as the CTA check above, and for the same reason: the
+				// defect is dark-only and only our own sheet creates dark here, so
+				// this cannot be watched to fail by removing the kit. Reverting the
+				// R6 re-points with the kit on reported 2.52:1, the census number.
+				for (const mode of ["light", "dark"]) {
+					const c = await readCard(mode);
+					const ink = ratio(c.bannerInk, c.bannerBg);
+					expect(ink >= 4.5, `${mode}: the banner's message clears AA (${ink.toFixed(2)}:1)`);
+					const shout = ratio(c.bannerBg, c.card);
+					expect(shout <= 4, `${mode}: and the banner does not out-shout the card (${shout.toFixed(2)}:1)`);
+				}
+			});
+
+			await test("login: the email field is bidi-isolated", async () => {
+				// R8, the standing item-7 gap. An email address inside an Arabic form
+				// is the textbook case: without isolation the neutral run at the end
+				// of a Latin address reorders against the paragraph direction.
+				const c = await readCard("light");
+				expectEq(c.fieldBidi, "isolate", "the email field isolates its own direction");
+			});
+
+			await test("login: our sheet loads before Frappe's, and stays one file in Arabic", async () => {
+				// THE DELIVERY CONTRACT, and both halves have bitten this repo before.
+				//
+				// ORDER: head.html emits web_include_css inside {% block head %};
+				// login.html OVERRIDES {% block head_include %} with the login
+				// bundle, which therefore comes AFTER ours. Nothing here can be won
+				// on source order, so if this ever flips, every specificity argument
+				// in web/login.scss's header is void and should be re-read, not
+				// silently relied on.
+				//
+				// ONE FILE: our path starts with /assets, so `bundled_asset()` skips
+				// the rtl_ swap. Frappe's own bundles DO swap. If ours ever gains a
+				// css-rtl twin, ARCHITECTURE §6's trap is live again.
+				const look = (lang) =>
+					withGuest(
+						"/login",
+						".for-login .page-card",
+						async (gp) =>
+							gp.evaluate(() => {
+								const hrefs = [...document.styleSheets].map((s) => s.href || "").filter(Boolean);
+								return {
+									hrefs,
+									ours: hrefs.findIndex((h) => h.includes("/bunood_theme/dist/css/bunood-web.")),
+									brand: hrefs.findIndex((h) => h.includes("/files/bunood/brand_")),
+									frappe: hrefs.findIndex((h) => h.includes("login.bundle")),
+									bodyClass: document.body.className,
+								};
+							}),
+						{ lang }
+					);
+				const ltr = await look(null);
+				expect(ltr.ours >= 0, `our web sheet is linked (${ltr.hrefs.join(" ")})`);
+				expect(ltr.brand >= 0, "and so is the per-site brand sheet, which never reached /login before");
+				expect(ltr.frappe > ltr.ours, "Frappe's login bundle loads AFTER ours — specificity, never order");
+				expectEq(ltr.bodyClass.trim(), "bnd-auth", "the server-rendered scope is on <body>");
+
+				const rtl = await look("ar");
+				expect(rtl.ours >= 0, "our sheet is linked on an Arabic page too");
+				expect(
+					!rtl.hrefs.some((h) => h.includes("bunood") && h.includes("/css-rtl/")),
+					"and it is the SAME file — one logical-property sheet serves both directions"
+				);
+				expect(
+					rtl.hrefs.some((h) => h.includes("login.bundle") && h.includes("/css-rtl/")),
+					"while Frappe's own is swapped, which is the constraint GUIDELINES 1.3 puts on us"
+				);
+			});
+
+			await test("login: /update-password gets the same repairs", async () => {
+				// One surface, two routes — so the contracts have to reach both. This
+				// is the check that would catch a scope keyed on `data-path="login"`
+				// or on the `.for-login` section, either of which looks right on the
+				// route it was written against.
+				const c = await withGuest("/update-password", ".page-card", async (gp) =>
+					gp.evaluate(() => {
+						const g = (sel, key) => {
+							const e = document.querySelector(sel);
+							return e ? getComputedStyle(e)[key] : null;
+						};
+						return {
+							bodyClass: document.body.className,
+							card: g(".for-reset-password .page-card", "backgroundColor"),
+							cardInk: g(".for-reset-password .page-card", "color"),
+							hint: g(".password-hint", "color"),
+							track: g(".password-strength-bar-track", "backgroundColor"),
+						};
+					})
+				);
+				expectEq(c.bodyClass.trim(), "bnd-auth", "the scope reaches the second route");
+				const inherited = ratio(c.cardInk, c.card);
+				expect(inherited >= 4.5, `its card ink clears AA too (${inherited.toFixed(2)}:1)`);
+				const hint = ratio(c.hint, c.card);
+				expect(hint >= 4.5, `and the password hint, which was 4.17:1 (${hint.toFixed(2)}:1)`);
+				expect(chDelta(c.track, c.card) >= 5, "the strength meter's track reads as a track");
+			});
+		}
+
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
 			// raw to 92/247 across five releases with nobody deciding it,

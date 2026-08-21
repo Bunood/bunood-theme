@@ -1,11 +1,21 @@
 # Copyright (c) 2026, Bunood and contributors
 # For license information, please see license.txt
-"""Desk context augmentation — this file is why the theme has no ``www/`` directory.
+"""Render-context augmentation — this file is why the theme has no ``www/`` directory.
 
 WHAT
-    A single ``update_website_context`` hook handler that mutates the already-built
-    desk render context: it appends the per-site brand stylesheet and resolves
-    Frappe's ``"Automatic"`` theme value into a concrete one.
+    A single ``update_website_context`` hook handler that mutates already-built render
+    contexts. It answers for TWO surfaces and returns for everything else:
+
+    * **the desk** (``www/desk.html``) — appends the per-site brand stylesheet and
+      corrects ``layout_direction`` for the RTL languages Frappe's ``is_rtl()`` misses.
+    * **the auth routes** (``/login``, ``/update-password``) — item 32. Sets the
+      ``body_class`` that ``web/login.scss`` scopes to, puts the brand sheet on
+      ``web_include_css``, and replaces Frappe's app logo with Theme Settings'.
+
+    The second one is the whole delivery mechanism for a surface kit that is not on
+    the desk: there is no ``frappe.boot`` on a website page and no ``bunood.js``, so a
+    server-rendered class on ``<body>`` is the only anchor that is correct at first
+    paint. See ``public/scss/web/login.scss``'s header.
 
 WHY THIS EXISTS
     To put a stylesheet into the desk ``<head>`` before first paint, the previous
@@ -48,6 +58,23 @@ import frappe
 #: reliable discriminator.
 DESK_TEMPLATE = "www/desk.html"
 
+#: The two logged-out routes item 32 dresses. ``/login`` holds four ``<section>``s behind
+#: hash routes (``#login``, ``#signup``, ``#forgot``, ``#login-with-email-link``) and
+#: ``/update-password`` is a fifth on the same ``login.bundle.css`` — one surface, two
+#: routes.
+#:
+#: MATCHED ON THE REQUEST PATH, NOT ``context.path``, and that is not a style choice:
+#: ``BaseTemplatePage.set_missing_values()`` assigns ``context.path`` AFTER
+#: ``update_website_context()`` runs (``base_template_page.py:37`` vs ``:32``), so the key
+#: is empty at the only moment we can read it. Checked in the source rather than assumed,
+#: because the rendered page DOES carry ``data-path="login"`` and reading that back would
+#: have looked like confirmation.
+AUTH_ROUTES = ("login", "update-password")
+
+#: The scope every rule in ``web/login.scss`` hangs off. Contracts key on this class
+#: alone; the anchor adds ``bnd-auth-<style>`` beside it.
+AUTH_BODY_CLASS = "bnd-auth"
+
 #: ``User.desk_theme`` is a Literal["Light", "Dark", "Automatic"]. Frappe renders it
 #: verbatim into ``data-theme``, and ships no ``prefers-color-scheme`` rules, so
 #: ``"automatic"`` matches neither its light nor its dark block. We keep the value (the
@@ -70,18 +97,34 @@ def desk_context(context):
         context: the live render context for this request. Mutated in place.
     """
     try:
-        # Guard first and cheaply: this hook is called for every portal page and
-        # /login too, and none of them should pay for the lookup below.
-        if context.get("template") != DESK_TEMPLATE:
+        # Guard first and cheaply: this hook is called for EVERY website request —
+        # every portal page, every error page — and none of them should pay for a
+        # lookup. Two surfaces answer here now, and everything else still returns.
+        if context.get("template") == DESK_TEMPLATE:
+            _append_brand_css(context)
+            _correct_layout_direction(context)
             return
 
-        _append_brand_css(context)
-        _correct_layout_direction(context)
+        if _auth_route():
+            _auth_context(context)
 
     except Exception:
         # Never break the website router. A missing brand sheet degrades to the
         # compiled bundle's built-in defaults, which are complete by design.
         frappe.log_error("bunood_theme.context.desk_context failed")
+
+
+def _auth_route():
+    """The auth route being rendered, or ``None``.
+
+    Reads ``frappe.local.request.path`` because ``context.path`` is not populated
+    yet — see :data:`AUTH_ROUTES`. Defensive about ``frappe.local.request``
+    existing at all: this hook also runs under ``frappe.respond_as_web_page`` and
+    in tests, where there may be no request object.
+    """
+    request = getattr(frappe.local, "request", None)
+    path = (getattr(request, "path", "") or "").strip("/")
+    return path if path in AUTH_ROUTES else None
 
 
 def _append_brand_css(context):
@@ -97,6 +140,64 @@ def _append_brand_css(context):
     the brand sheet only ever sets ``--bnd-*`` tokens, never Frappe's own variable
     names — see ARCHITECTURE.md section 1 for why writing Frappe's names at ``:root``
     would silently break dark mode.
+    """
+    url = _brand_css_url()
+    if not url:
+        return
+
+    # context.app_include_css is a list built by frappe/www/desk.py from the hooks of
+    # every installed app. Copy rather than mutate: the same list object can be reused
+    # across requests in some Frappe versions, and appending in place would grow it
+    # unboundedly.
+    context.app_include_css = [*(context.get("app_include_css") or []), url]
+
+
+def _auth_context(context):
+    """Dress ``/login`` and ``/update-password`` — item 32.
+
+    Three things, none of which needs a template fork or a byte of JS:
+
+    1. **The scope.** ``templates/base.html:57`` renders
+       ``class="{{ body_class or '' }}"``, and ``body_class`` is an ordinary
+       context key. Setting it here is what gives ``web/login.scss`` something to
+       hang off, server-rendered and therefore correct at first paint. APPENDED,
+       never assigned: another app or a Website Settings value may already have
+       put a class there, and clobbering it would be a silent regression on a
+       site we cannot see.
+    2. **The brand sheet.** ``web_include_css`` is populated from hooks by
+       ``website_settings.py:232`` before ``post_process_context`` runs, so it
+       exists and can be appended to. Appended LAST so it wins ties against our
+       compiled sheet, exactly as the desk does it — safe for the same reason:
+       the brand sheet only ever declares ``--bnd-*``.
+    3. **The logo.** ``www/login.py:53`` and ``www/update_password.py:12`` both
+       set ``context.logo = get_app_logo()``, which reads Website Settings, then
+       Navbar Settings, then the ``app_logo_url`` hook — and therefore never sees
+       Theme Settings. Because this hook runs AFTER ``get_context``
+       (``base_template_page.py:32``), one assignment puts the customer's mark on
+       the first screen they see, on both routes, with no hook and no fork. It is
+       the only seam ``www/login.html`` leaves open: its title and subtitle are
+       literals in the template, which is filed upstream.
+    """
+    classes = (context.get("body_class") or "").split()
+    if AUTH_BODY_CLASS not in classes:
+        classes.append(AUTH_BODY_CLASS)
+    context.body_class = " ".join(classes)
+
+    url = _brand_css_url()
+    if url:
+        context.web_include_css = [*(context.get("web_include_css") or []), url]
+
+    logo = frappe.get_cached_value("Theme Settings", "Theme Settings", "logo")
+    if logo:
+        context.logo = logo
+
+
+def _brand_css_url():
+    """The per-site brand stylesheet URL, regenerated if its file has gone.
+
+    Split out of :func:`_append_brand_css` by item 32 so the desk and the auth
+    routes share one implementation — including the self-heal below, which is the
+    part that would have been quietly forgotten in a second copy.
     """
     url = frappe.get_cached_value("Theme Settings", "Theme Settings", "brand_css_url")
 
@@ -117,14 +218,8 @@ def _append_brand_css(context):
         on_disk = os.path.join(frappe.get_site_path("public"), *url.lstrip("/").split("/"))
         if not os.path.exists(on_disk):
             url = write_brand_css()
-    if not url:
-        return
 
-    # context.app_include_css is a list built by frappe/www/desk.py from the hooks of
-    # every installed app. Copy rather than mutate: the same list object can be reused
-    # across requests in some Frappe versions, and appending in place would grow it
-    # unboundedly.
-    context.app_include_css = [*(context.get("app_include_css") or []), url]
+    return url or None
 
 
 def _correct_layout_direction(context):

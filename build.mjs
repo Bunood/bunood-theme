@@ -69,7 +69,7 @@ const ENTRIES = [
 	// The web/login sheet is deliberately separate: the login page is a WEBSITE
 	// page, gets `web_include_css` rather than `app_include_css`, and Frappe's own
 	// login bundle loads AFTER ours there — so it needs its own, smaller sheet.
-	// { key: "bunood-web", src: "web/login.scss", pyid: "WEB_CSS" },
+	{ key: "bunood-web", src: "web/login.scss", pyid: "WEB_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */

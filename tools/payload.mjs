@@ -40,20 +40,72 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LEDGER = join(ROOT, "payload-budget.json");
 
+/**
+ * Which built file feeds which ledger key. Prefix-matched against the dist
+ * directories, longest prefix first so `bunood-web.` is claimed before the
+ * shorter `bunood.` can swallow it.
+ *
+ * WHY THIS IS A TABLE AND NOT A `find()` (item 32). It used to be
+ * `readdirSync(dir).find(f => f.startsWith("bunood."))` — one file per
+ * directory, whichever came back first. The moment item 32 shipped a SECOND
+ * stylesheet (`bunood-web.<hash>.css`, the login sheet) that predicate stopped
+ * matching it, so the new file would have been measured by nothing at all: not
+ * the ceiling, not `--check` in the build, not a release's history row. A
+ * budget that silently ignores a file is worse than no budget, because it reads
+ * as coverage.
+ *
+ * The `unclaimed` throw below is the part that matters: a third entry cannot
+ * repeat this. Add the file to a bucket, or the build fails and says so.
+ */
+const BUCKETS = [
+	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
+	{ dir: ["css"], prefix: "bunood.", key: "css" },
+	{ dir: ["js"], prefix: "bunood.", key: "js" },
+];
+
 export function measure() {
 	const out = {};
-	for (const [dir, kind] of [
-		[join(ROOT, "bunood_theme", "public", "dist", "css"), "css"],
-		[join(ROOT, "bunood_theme", "public", "dist", "js"), "js"],
-	]) {
-		const file = readdirSync(dir).find((f) => f.startsWith("bunood."));
-		if (!file) throw new Error(`no built bundle in ${dir} — run the build first`);
-		const buf = readFileSync(join(dir, file));
-		out[`${kind}_raw`] = buf.length;
-		out[`${kind}_gzip`] = gzipSync(buf, { level: 9 }).length;
+	const seen = new Set();
+	for (const kind of ["css", "js"]) {
+		const dir = join(ROOT, "bunood_theme", "public", "dist", kind);
+		const files = readdirSync(dir).filter((f) => f.endsWith("." + kind));
+		if (!files.length) throw new Error(`no built bundle in ${dir} — run the build first`);
+		for (const bucket of BUCKETS) {
+			if (!bucket.dir.includes(kind)) continue;
+			const file = files.find((f) => f.startsWith(bucket.prefix) && !seen.has(f));
+			if (!file) continue;
+			seen.add(file);
+			const buf = readFileSync(join(dir, file));
+			out[`${bucket.key}_raw`] = buf.length;
+			out[`${bucket.key}_gzip`] = gzipSync(buf, { level: 9 }).length;
+		}
+		const unclaimed = files.filter((f) => !seen.has(f));
+		if (unclaimed.length) {
+			throw new Error(
+				`payload: ${unclaimed.join(", ")} in dist/${kind} matches no ledger bucket, so nothing would ` +
+					`measure it. Add a bucket in tools/payload.mjs and a ceiling in payload-budget.json.`
+			);
+		}
+	}
+	for (const bucket of BUCKETS) {
+		if (!(`${bucket.key}_raw` in out)) {
+			throw new Error(`payload: no file matched ${bucket.prefix}* — run the build first`);
+		}
 	}
 	return out;
 }
+
+/**
+ * The keys a ceiling is enforced on. Kept beside the buckets so the two cannot
+ * drift: every bucket gets a ceiling, and `checkPayload` reads them from here.
+ *
+ * The three are SEPARATE rather than summed on purpose. A desk user fetches
+ * `bunood.css` and never the login sheet; a logged-out visitor fetches the
+ * login sheet and never the desk bundle. Summing them would bound a number no
+ * single page ever pays, and — worse — would break every history row's
+ * comparability at the release that introduced the second sheet.
+ */
+export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip"];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no
@@ -67,7 +119,7 @@ export function checkPayload() {
 	const ledger = JSON.parse(readFileSync(LEDGER, "utf8"));
 	const now = measure();
 	const over = [];
-	for (const key of ["css_gzip", "js_gzip"]) {
+	for (const key of CEILING_KEYS) {
 		if (now[key] > ledger.ceiling[key]) {
 			over.push(`${key}: ${now[key]} > ceiling ${ledger.ceiling[key]} (+${now[key] - ledger.ceiling[key]} bytes)`);
 		}
@@ -96,7 +148,11 @@ const isMain = process.argv[1] && realpathSync(process.argv[1]) === realpathSync
 if (isMain) {
 	const now = measure();
 	const kb = (n) => (n / 1024).toFixed(1) + " KB";
-	console.log(`css ${kb(now.css_raw)} raw / ${kb(now.css_gzip)} gzip · js ${kb(now.js_raw)} raw / ${kb(now.js_gzip)} gzip`);
+	console.log(
+		`css ${kb(now.css_raw)} raw / ${kb(now.css_gzip)} gzip · ` +
+			`web ${kb(now.web_css_raw)} raw / ${kb(now.web_css_gzip)} gzip · ` +
+			`js ${kb(now.js_raw)} raw / ${kb(now.js_gzip)} gzip`
+	);
 
 	const mode = process.argv[2] || "";
 
@@ -106,8 +162,8 @@ if (isMain) {
 			console.error(budgetExceededMessage(over));
 			process.exit(1);
 		}
-		const headroom = ["css_gzip", "js_gzip"]
-			.map((k) => `${k.split("_")[0]} ${ledger.ceiling[k] - now[k]}b free`)
+		const headroom = CEILING_KEYS
+			.map((k) => `${k.replace("_gzip", "")} ${ledger.ceiling[k] - now[k]}b free`)
 			.join(", ");
 		console.log(`within budget (${headroom})`);
 		process.exit(0);
@@ -127,7 +183,12 @@ if (isMain) {
 		const prev = ledger.history[ledger.history.length - 1];
 		const row = { version, date: new Date().toISOString().slice(0, 10), ...now };
 		if (prev) {
-			row.note = `css ${now.css_gzip - prev.css_gzip >= 0 ? "+" : ""}${now.css_gzip - prev.css_gzip}b, js ${now.js_gzip - prev.js_gzip >= 0 ? "+" : ""}${now.js_gzip - prev.js_gzip}b gzip vs ${prev.version}`;
+			const delta = (k) => {
+				if (!(k in prev)) return `${k.replace("_gzip", "")} ${now[k]}b gzip (new)`;
+				const d = now[k] - prev[k];
+				return `${k.replace("_gzip", "")} ${d >= 0 ? "+" : ""}${d}b`;
+			};
+			row.note = `${CEILING_KEYS.map(delta).join(", ")} gzip vs ${prev.version}`;
 		}
 		ledger.history.push(row);
 		writeFileSync(LEDGER, JSON.stringify(ledger, null, "\t") + "\n");

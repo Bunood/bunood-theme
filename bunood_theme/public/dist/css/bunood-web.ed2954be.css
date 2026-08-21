@@ -1,0 +1,378 @@
+:root {
+  --bnd-brand: #4d8756;
+  --bnd-accent: #4463f0;
+  --bnd-brand-solid: #4a8253;
+  --bnd-on-brand: #ffffff;
+  --bnd-brand-ink: #44764b;
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
+  --bnd-surface: #ffffff;
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 8%, #ffffff);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 7%, #ffffff);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 12%, #eef1ee);
+  --bnd-ink: #16181d;
+  --bnd-ink-muted: #4a4e58;
+  --bnd-ink-subtle: #676b72;
+  --bnd-ink-inverse: #ffffff;
+  --bnd-line: 0.5px;
+  --bnd-border: rgba(0, 0, 0, 0.09);
+  --bnd-border-strong: rgba(0, 0, 0, 0.16);
+  --bnd-icon-w-hairline: 1.25px;
+  --bnd-icon-w-regular: 1.5px;
+  --bnd-icon-w-medium: 1.75px;
+  --bnd-icon-w-bold: 2px;
+  --bnd-sp-1: 0.25rem;
+  --bnd-sp-2: 0.5rem;
+  --bnd-sp-3: 0.75rem;
+  --bnd-sp-4: 1rem;
+  --bnd-sp-5: 1.5rem;
+  --bnd-sp-6: 2rem;
+  --bnd-sp-7: 3rem;
+  --bnd-text-xs: 0.6875rem;
+  --bnd-text-sm: 0.8125rem;
+  --bnd-text-base: 0.875rem;
+  --bnd-text-md: 1rem;
+  --bnd-text-lg: 1.125rem;
+  --bnd-text-xl: 1.375rem;
+  --bnd-text-2xl: 1.75rem;
+  --bnd-weight-normal: 400;
+  --bnd-weight-medium: 500;
+  --bnd-leading-tight: 1.25;
+  --bnd-leading-base: 1.5;
+  --bnd-numeric: tabular-nums;
+  --bnd-radius-sm: 4px;
+  --bnd-radius-md: 6px;
+  --bnd-radius-lg: 10px;
+  --bnd-radius-xl: 14px;
+  --bnd-radius-pill: 999px;
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --bnd-shadow-md: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 8px -2px rgba(0, 0, 0, 0.06),
+    0 12px 24px -6px rgba(0, 0, 0, 0.06);
+  --bnd-shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px -6px rgba(0, 0, 0, 0.1),
+    0 32px 64px -12px rgba(0, 0, 0, 0.14);
+  --bnd-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bnd-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bnd-dur-fast: 120ms;
+  --bnd-dur-base: 180ms;
+  --bnd-dur-slow: 280ms;
+  --bnd-dur-loop: 1600ms;
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+  --bnd-topbar-h: 44px;
+  --bnd-statusbar-h: 26px;
+  --bnd-bottombar-h: 40px;
+  --bnd-dock-h: 56px;
+  --bnd-sidebar-live-w: 220px;
+  --bnd-bottom-reserve: 0px;
+  --bnd-toast-inset: 20px;
+  --bnd-toast-gap: 8px;
+  --bnd-scrim: rgba(16, 26, 22, 0.62);
+  --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
+  --bnd-tap: 44px;
+  --bnd-sb-w: 220px;
+  --bnd-sb-rail-w: 52px;
+  --bnd-apps-rail-w: 46px;
+  --bnd-sb-radius: 14px;
+  --bnd-sb-glass-1: 55%;
+  --bnd-sb-glass-2: 65%;
+  --bnd-sb-glass-3: 75%;
+  --bnd-sb-glass-4: 85%;
+  --bnd-sb-glass-5: 93%;
+  --bnd-z-bar: 990;
+  --bnd-z-flyout: 1030;
+  --bnd-z-panel: 1040;
+  --bnd-z-palette: 1045;
+  --bnd-cat-1: #2a78d6;
+  --bnd-cat-2: #eb6834;
+  --bnd-cat-3: #1baf7a;
+  --bnd-cat-4: #eda100;
+  --bnd-cat-5: #e87ba4;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #4a3aa7;
+  --bnd-cat-0: var(--bnd-ink-subtle);
+  --bnd-status-green: #16794c;
+  --bnd-status-cyan: #267a94;
+  --bnd-status-blue: #0070cc;
+  --bnd-status-orange: #bd3e0c;
+  --bnd-status-yellow: #ab6e05;
+  --bnd-status-gray: #525252;
+  --bnd-status-grey: #525252;
+  --bnd-status-red: #b52a2a;
+  --bnd-status-pink: #9c2671;
+  --bnd-status-darkgrey: #383838;
+  --bnd-status-purple: #6e399d;
+  --bnd-status-light-blue: #007be0;
+  --bnd-cat-tint: 14%;
+  --bnd-cat-wash: 7%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #332288;
+  --bnd-series-3: #9a8e53;
+  --bnd-series-4: #117733;
+  --bnd-series-5: #6394ad;
+  --bnd-series-6: #882255;
+  --bnd-series-7: #3f9d8d;
+  --bnd-series-other: #808080;
+  --bnd-good: #1a7f45;
+  --bnd-warn: #965f00;
+  --bnd-serious: #c2410c;
+  --bnd-critical: #b42318;
+  --bnd-on-critical: #ffffff;
+}
+
+html[data-theme=dark] {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #b9bec5;
+  --bnd-ink-subtle: #9298a2;
+  --bnd-brand-solid: #558d5e;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #76a27c;
+  --bnd-accent: #516ef1;
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+  --bnd-on-critical: #16181d;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme=automatic] {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #b9bec5;
+    --bnd-ink-subtle: #9298a2;
+    --bnd-brand-solid: #558d5e;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #76a27c;
+    --bnd-accent: #516ef1;
+    --bnd-on-critical: #16181d;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
+  }
+}
+html[data-bnd-density=comfortable] {
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+}
+
+html[data-bnd-density=compact] {
+  --bnd-row-h: 24px;
+  --bnd-control-h: 26px;
+  --bnd-pad-y: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bnd-dur-fast: 0ms;
+    --bnd-dur-base: 0ms;
+    --bnd-dur-slow: 0ms;
+    --bnd-dur-loop: 0ms;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  body.bnd-auth {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #b9bec5;
+    --bnd-ink-subtle: #9298a2;
+    --bnd-brand-solid: #558d5e;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #76a27c;
+    --bnd-accent: #516ef1;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+    --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+    --bnd-scrim: rgba(4, 8, 7, 0.72);
+    --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+    --bnd-status-green: #67a88a;
+    --bnd-status-cyan: #6aa4b5;
+    --bnd-status-blue: #56a1dd;
+    --bnd-status-orange: #d68869;
+    --bnd-status-yellow: #c19446;
+    --bnd-status-gray: #9b9b9b;
+    --bnd-status-grey: #9b9b9b;
+    --bnd-status-red: #d58686;
+    --bnd-status-pink: #c887b0;
+    --bnd-status-darkgrey: #ebebeb;
+    --bnd-status-purple: #ad8fc8;
+    --bnd-status-light-blue: #ddedfb;
+    --bnd-cat-1: #3987e5;
+    --bnd-cat-2: #d95926;
+    --bnd-cat-3: #199e70;
+    --bnd-cat-4: #c98500;
+    --bnd-cat-5: #d55181;
+    --bnd-cat-6: #008300;
+    --bnd-cat-7: #9085e9;
+    --bnd-cat-tint: 20%;
+    --bnd-cat-wash: 11%;
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
+    --bnd-good: #4ac07d;
+    --bnd-warn: #e0a33a;
+    --bnd-serious: #f08a5d;
+    --bnd-critical: #f2736a;
+    --bnd-on-critical: #16181d;
+  }
+}
+body.bnd-auth {
+  --bnd-auth-card: var(--bnd-page);
+  --bnd-auth-field: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-auth-card));
+  --bnd-auth-alarm: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface));
+  --bg-color: var(--bnd-page);
+  --fg-color: var(--bnd-surface);
+  --text-color: var(--bnd-ink);
+  --heading-color: var(--bnd-ink);
+  --ink-gray-5: var(--bnd-ink-muted);
+  --ink-gray-6: var(--bnd-ink-muted);
+  --ink-gray-4: var(--bnd-ink-subtle);
+  --red-50: var(--bnd-auth-alarm);
+  --ink-red-4: var(--bnd-critical);
+  --outline-red-2: var(--bnd-critical);
+  --surface-white: var(--bnd-auth-field);
+  --outline-gray-2: var(--bnd-border-strong);
+}
+
+body.bnd-auth .page-card {
+  color: var(--bnd-ink-muted);
+}
+
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
+  outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+body.bnd-auth .page-card .page-card-body :is(input[type=text], input[type=email], input[type=password]) {
+  color: var(--bnd-ink);
+  unicode-bidi: isolate;
+}
+
+body.bnd-auth .page-card .page-card-body ::placeholder {
+  color: var(--bnd-ink-muted);
+  opacity: 1;
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-login-option {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-login-option:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-body .login-success-banner {
+  background-color: color-mix(in srgb, var(--bnd-good) 12%, var(--bnd-surface));
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-body .login-success-banner svg {
+  fill: var(--bnd-good);
+}
+
+body.bnd-auth .page-card .page-card-body .login-error-banner svg {
+  fill: var(--bnd-critical);
+}
+
+body.bnd-auth .password-strength-bar-track {
+  background: var(--bnd-auth-field);
+}
