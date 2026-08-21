@@ -355,7 +355,23 @@
 // SELECTED, not flipped. Each value is chosen for a dark surface rather than
 // derived by lightening its light counterpart — inverted lightness produces
 // muddy mid-tones and inverts the perceived elevation order.
-html[data-theme="dark"] {
+//
+// WHY THIS IS A MIXIN (item 32). The dark set has to be EMITTED under more
+// than one selector, and every extra emission point is another copy of the
+// same fact — the defect class this repo names first. It already had two:
+// `html[data-theme="dark"]` and the `automatic` block below, whose own comment
+// records that nothing enforces membership between them. Item 32 needs a
+// THIRD, because a website page carries no `data-theme` at all and the login
+// sheet has to reach dark through `prefers-color-scheme` (see
+// `web/login.scss`). Three hand-kept copies is not a thing to ship, so the
+// values live here once and the selectors include them.
+//
+// NOT YET INCLUDED BY THE `automatic` BLOCK BELOW, deliberately: that block is
+// a 25-of-55 SUBSET and completing it is a real (good) behaviour change to the
+// desk, which is item 30’s open hole and not item 32’s to spend. Doing it is
+// now one line — `@include dark;` — and the 30 missing tokens are listed in
+// HANDOVER. This commit is provably inert: the compiled sheet is byte-identical.
+@mixin dark {
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
   --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
   --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
@@ -442,6 +458,10 @@ html[data-theme="dark"] {
   // but it was the one ink chosen by hand rather than derived, and keeping a
   // special case alive costs more than the half-shade it bought.
   --bnd-on-critical: #16181d;
+}
+
+html[data-theme="dark"] {
+  @include dark;
 }
 
 // ── "Automatic" — compensating for a Frappe bug ─────────────────────────────
