@@ -34,6 +34,7 @@ from bunood_theme.presets import (
     CHROME_DEFAULTS,
     CRUMB_DEFAULTS,
     EMPTY_DEFAULTS,
+    FILTERS_DEFAULTS,
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
@@ -70,6 +71,7 @@ CHECK_DEFAULTS = {
         CHART_DEFAULTS,
         CRUMB_DEFAULTS,
         EMPTY_DEFAULTS,
+        FILTERS_DEFAULTS,
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
@@ -154,6 +156,9 @@ DEFAULTS = {
     # Loading states (item 30): one Select, the anchor. No Check — the bone
     # repair and the geometry floors are contracts, not options.
     **{f: v for f, v in SKELETON_DEFAULTS.items() if not isinstance(v, int)},
+    # Filters (item 31): three Selects — the anchor, the applied signal and the
+    # saved-filter rows. No Check; the six repairs are contracts, not options.
+    **{f: v for f, v in FILTERS_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

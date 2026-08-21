@@ -677,6 +677,9 @@ const MUTABLE_FIELDS = [
 	"empty_style", "empty_media", "empty_action",
 	// Loading states surface (item 30).
 	"skeleton_style",
+	// Filters surface (item 31). Contracts, not toggles — the six repairs
+	// survive "Original" and none of them is a field.
+	"filters_style", "filters_applied", "filters_saved",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -8936,7 +8939,511 @@ async function main() {
 			expectEq(cleared, null, "and Original clears it, live");
 		});
 
-		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
+
+		// SLICE-1 NOTE, kept where the next reader will find it: these five checks
+		// were NOT watched to fail as red tests, because the defect they pin was
+		// measured on the live stock desk before a line of CSS existed — 4.12:1
+		// light and 1.02:1 dark on a real driven filter, 4/2/3 channels with a
+		// `0px none` border on twelve controls, recorded in the plan's slice-0
+		// section with the exact values. A measurement of the actual defect is a
+		// stronger precondition than a red assertion, and saying so is better than
+		// claiming an order that was not followed.
+
+		// ── Filters & saved filters (item 31) ──────────────────────────────────
+		//
+		// SLICE 1 — the contract set. Scoped html[data-theme], outside the anchor,
+		// because these are about whether the filter strip WORKS. Item 27's rule
+		// ("Original renders as stock, warts and all") is right for one opt-in
+		// route and wrong for a surface that renders above every list, report,
+		// gallery and query-report route — and whose headline failure is a
+		// measured 1.02:1 on the SHIPPED default, on a button variant it shares
+		// with the skip link.
+		//
+		// THREE TRAPS THIS FAMILY IS BUILT AROUND, each found the hard way in
+		// slice 0 / slice 1 (2026-08-21):
+		//
+		//  1. A filter driven onto a STANDARD field never reaches the count.
+		//     `filter_area.add` routes a standard field to the page-form select,
+		//     not to `filter_list`, so `update_filter_button()` never runs and the
+		//     button stays "0 Filter Applied". Two probes read a "no applied
+		//     state" that was really "no filter". `withFilter` below picks a
+		//     NON-standard field at runtime by diffing the doctype meta against
+		//     the rendered `.standard-filter-section [data-fieldname]` list.
+		//
+		//  2. `filter_area.clear()` DOES NOT RESTORE. It empties the live list —
+		//     and `filter_area.get().length` duly reports 0, so a teardown that
+		//     checks its own work passes — but `update_user_settings` has already
+		//     written the filter into the REDIS `_user_settings` hash, and the
+		//     next navigation reads it straight back. Measured: a `.filter-button`
+		//     still carrying `.btn-primary-light` two probes later, with the
+		//     `__UserSettings` table row clean the whole time. The teardown is
+		//     server-side, in a `finally`, and it is not optional: a filter left
+		//     on ToDo changes what every later list test sees, and the failure
+		//     would not name filters.
+		//
+		//  3. `color-mix()` computes to `color(srgb r g b)` on a 0-1 scale, NOT to
+		//     `rgb()` — and inconsistently, since --bnd-hover (also a color-mix)
+		//     serialises as `rgb()`. A delta helper that parses digits and assumes
+		//     0-255 silently mis-reads the first form; the probe that found this
+		//     reported a "254-channel delta". `chDelta` normalises both.
+		{
+			// Channel delta between two computed colours, either serialisation.
+			const chDelta = (a, b) => {
+				const nums = (s) => {
+					const m = String(s).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+					if (m) return [1, 2, 3].map((i) => Math.round(parseFloat(m[i]) * 255));
+					return (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				};
+				const A = nums(a);
+				const B = nums(b);
+				return Math.max(...A.map((v, i) => Math.abs(v - B[i])));
+			};
+
+			// Drive a REAL filter through the user's own path, read, and restore.
+			// The teardown clears the redis entry, not the live list — see trap 2.
+			const withFilter = async (fn) => {
+				try {
+					const setup = await page.evaluate(async () => {
+						if (!window.cur_list) return { ok: false, why: "no cur_list" };
+						const std = [...document.querySelectorAll(".standard-filter-section [data-fieldname]")]
+							.map((e) => e.getAttribute("data-fieldname"));
+						const f = frappe.get_meta("ToDo").fields.find(
+							(x) =>
+								["Data", "Select", "Link"].includes(x.fieldtype) &&
+								!std.includes(x.fieldname) &&
+								!x.hidden
+						);
+						if (!f) return { ok: false, why: "every candidate field is a standard filter" };
+						await cur_list.filter_area.add([["ToDo", f.fieldname, "like", "%a%"]]);
+						return { ok: true, field: f.fieldname };
+					});
+					expect(setup.ok, `a non-standard filter could be driven (${setup.why || setup.field})`);
+					await page.waitForTimeout(1800);
+					return await fn();
+				} finally {
+					benchPy(
+						'frappe.cache.hdel("_user_settings", "ToDo::" + frappe.session.user)\nprint("ok")\n'
+					);
+				}
+			};
+
+			await test("filters: the applied control clears AA in both modes", async () => {
+				// THE ITEM'S HEADLINE DEFECT, and it is not this kit's alone:
+				// `.btn-primary-light` is the desk's only "this control is active"
+				// variant and has exactly three call sites — the filter button
+				// (filter_list.js:138), the report view's Add Group button
+				// (group_by.js:436), and THE SKIP LINK (page.js:191).
+				//
+				// Its two halves disagree about whether they follow the theme: the
+				// ink is `var(--primary)` (bridged to --bnd-brand-ink) while the
+				// fill is a SASS LITERAL $gray-300 in light and --bg-dark-gray ->
+				// #999999 in dark. Measured in place before the repair: 4.12:1
+				// light, 1.02:1 dark. The vendor's own comment reads
+				// "// not happy with this".
+				//
+				// TRAP: reading a SYNTHETIC button misses Bootstrap's eight-rule
+				// state set and the [data-theme="dark"] override entirely — item
+				// 28's synthetic-node check PASSED before its fix for exactly this
+				// reason. This drives the real button on a real list.
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const seen = await withFilter(async () => {
+					const out = {};
+					for (const mode of ["light", "dark"]) {
+						await page.evaluate((m) => frappe.ui.set_theme(m), mode);
+						await page.waitForTimeout(700);
+						out[mode] = await page.evaluate(() => {
+							const lum = (s) => {
+								const [r, g, b] = (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+								const f = (c) => {
+									c /= 255;
+									return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+								};
+								return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+							};
+							const btn = document.querySelector(".page-form .filter-selector .filter-button");
+							if (!btn) return null;
+							const c = getComputedStyle(btn);
+							const pair = [lum(c.color), lum(c.backgroundColor)].sort((a, b) => b - a);
+							const icon = btn.querySelector(".filter-icon.active");
+							return {
+								applied: btn.classList.contains("btn-primary-light"),
+								ratio: Math.round(((pair[0] + 0.05) / (pair[1] + 0.05)) * 100) / 100,
+								fill: c.backgroundColor,
+								stroke: icon ? getComputedStyle(icon).getPropertyValue("--icon-stroke").trim() : null,
+							};
+						});
+					}
+					await page.evaluate(() => frappe.ui.set_theme("light"));
+					await page.waitForTimeout(400);
+					return out;
+				});
+
+				for (const mode of ["light", "dark"]) {
+					const m = seen[mode];
+					expect(m, `${mode}: the filter button renders`);
+					expect(m.applied, `${mode}: the button really is in its applied state`);
+					// AA for normal text. Was 4.12 / 1.02.
+					expect(
+						m.ratio >= 4.5,
+						`${mode}: the applied label clears AA on its own fill (${m.ratio}:1, fill ${m.fill})`
+					);
+					// The MARK fails with the label and is repaired with it —
+					// filters.scss:1-3 puts --icon-stroke on the same failing ground.
+					expect(
+						m.stroke && m.stroke !== "",
+						`${mode}: the active funnel takes a repaired stroke (${m.stroke})`
+					);
+				}
+			});
+
+			await test("filters: every control in the strip is identifiable at rest", async () => {
+				// Item 22's rule: a control identifies itself at rest by a border
+				// clearing 3:1 OR a visible fill delta against its host, and the
+				// suite's operational threshold for the second arm is 5 channels
+				// (see "a11y: resting controls are identifiable").
+				//
+				// The strip failed BOTH arms at once, and structurally rather than
+				// by accident: --control-bg bridges to --bnd-raised, which is
+				// color-mix(--bnd-brand 2%, #ffffff) and therefore can never be
+				// five channels from --bnd-surface in light at ANY seed; and
+				// neither line token clears 3:1 (contrast_gate.py:208-227 says so
+				// and exempts both). Measured before the repair: 4/2/3 channels
+				// light, 5/6/6 dark, with a `0px none` border.
+				//
+				// TRAP: `.btn-paging` looks like it belongs here and does not —
+				// `.list-paging-area .btn-group` already carries a full 1px box, and
+				// it lives outside `.page-form`. It is asserted UNTOUCHED so that a
+				// future widening of the selector is caught here rather than in a
+				// screenshot.
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				for (const mode of ["light", "dark"]) {
+					await page.evaluate((m) => frappe.ui.set_theme(m), mode);
+					await page.waitForTimeout(700);
+					const read = await page.evaluate(() => {
+						const g = (s) => {
+							const e = document.querySelector(s);
+							return e ? getComputedStyle(e).backgroundColor : null;
+						};
+						return {
+							host: g(".page-form"),
+							filterButton: g(".page-form .filter-selector .filter-button"),
+							xButton: g(".page-form .filter-selector .filter-x-button"),
+							sortButton: g(".page-form .sort-selector .btn-default"),
+							stdInput: g(".page-form .standard-filter-section .frappe-control input"),
+							stdSelect: g(".page-form .standard-filter-section .frappe-control select"),
+							paging: g(".list-paging-area .btn-paging"),
+						};
+					});
+					for (const key of ["filterButton", "xButton", "sortButton", "stdInput", "stdSelect"]) {
+						expect(read[key], `${mode}: ${key} renders`);
+						const d = chDelta(read[key], read.host);
+						expect(
+							d >= 5,
+							`${mode}: ${key} is identifiable against the band (delta ${d}, ${read[key]})`
+						);
+					}
+					// The paging strip carries its own border and is out of scope.
+					// This arm exists so a widened selector is caught here.
+					expect(
+						read.paging && !String(read.paging).includes("srgb"),
+						`${mode}: the paging strip keeps its stock fill (${read.paging})`
+					);
+				}
+				await page.evaluate(() => frappe.ui.set_theme("light"));
+				await page.waitForTimeout(400);
+			});
+
+			await test("filters: the count chip differs from the control it sits inside", async () => {
+				// Four of four surveyed products give the applied count a fill that
+				// separates it from its host, and Frappe's OWN newer apps write it
+				// as a raised LIGHTER chip (`bg-surface-base` + `shadow-sm`, three
+				// sites across crm/helpdesk). Stock's desk declares
+				// `background-color: var(--control-bg)` on it — the same token as
+				// the `.btn-default` it normally sits in.
+				//
+				// TRAP 1: assert a DELTA, never a value. A hex rots the first time
+				// anyone changes their brand seed.
+				// TRAP 2: `.filter-label` NAMES TWO OBJECTS — this count pill and a
+				// saved filter's name — and with a filter applied BOTH are in the
+				// document (asserted below, because it is the reason every rule in
+				// this kit is ancestor-scoped).
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const seen = await withFilter(async () =>
+					page.evaluate(() => {
+						const pill = document.querySelector(
+							".page-form .filter-selector .btn-group .filter-label"
+						);
+						const btn = document.querySelector(".page-form .filter-selector .filter-button");
+						if (!pill || !btn) return null;
+						return {
+							pill: getComputedStyle(pill).backgroundColor,
+							host: getComputedStyle(btn).backgroundColor,
+							labels: document.querySelectorAll(".filter-label").length,
+						};
+					})
+				);
+				expect(seen, "the count pill renders once a filter is applied");
+				const d = chDelta(seen.pill, seen.host);
+				expect(d >= 5, `the count chip reads against its button (delta ${d}, ${seen.pill})`);
+				expect(
+					seen.labels >= 2,
+					`.filter-label really does name two objects at once (${seen.labels}) — ` +
+						`if this ever reads 1, the ancestor scoping in _filters.scss can be revisited`
+				);
+			});
+
+			await test("filters: a filter control answers the pointer", async () => {
+				// The strip ships NO hover state on any filter control. This is the
+				// frappe-ui recipe transposed: TextInput `subtle` carries an edge the
+				// same colour as its fill plus `hover:border-outline-elevation-2`,
+				// consumed by crm, helpdesk and insights alike.
+				//
+				// TRAP 1: a hover check that only reads the fill passes on a rule that
+				// changed nothing visible. The fill delta is asserted under EVERY pole,
+				// and the resting state is read first so the comparison is against this
+				// run's own baseline rather than a literal.
+				//
+				// TRAP 2, and it failed on its first run against slice 2: the ring
+				// half is only true where the ANCHOR leaves the ring channel free.
+				// R7 is a contract and `Outlined` is a style, and both write
+				// box-shadow — so under Outlined (the shipped default) the edge is
+				// already there at rest and hover cannot "reveal" it. Asserting a
+				// revelation unconditionally tests the anchor, not the contract. The
+				// revelation arm therefore runs under `Original`, where R7 is the only
+				// ring on the node; the fill arm runs under both.
+				const sel = ".page-form .filter-selector .filter-button";
+				const probe = async () => {
+					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					const rest = await page.evaluate((q) => {
+						const c = getComputedStyle(document.querySelector(q));
+						return { bg: c.backgroundColor, shadow: c.boxShadow };
+					}, sel);
+					await page.hover(sel);
+					await page.waitForTimeout(350);
+					const hot = await page.evaluate((q) => {
+						const c = getComputedStyle(document.querySelector(q));
+						return { bg: c.backgroundColor, shadow: c.boxShadow };
+					}, sel);
+					await page.mouse.move(5, 5);
+					return { rest, hot };
+				};
+
+				// The contract alone — no anchor, so R7 owns the ring channel.
+				setSettings({ filters_style: "Original" });
+				const bare = await probe();
+				const bareDelta = chDelta(bare.hot.bg, bare.rest.bg);
+				expect(
+					bareDelta >= 5,
+					`Original: hovering moves the fill (delta ${bareDelta}: ${bare.rest.bg} -> ${bare.hot.bg})`
+				);
+				expect(
+					bare.rest.shadow === "none" && bare.hot.shadow !== "none",
+					`Original: and resolves an edge that was not there at rest ` +
+						`(${bare.rest.shadow} -> ${bare.hot.shadow})`
+				);
+
+				// The shipped default, where the anchor already owns the edge. The
+				// fill must still carry the state on its own.
+				setSettings({ filters_style: "Outlined" });
+				const dressed = await probe();
+				const dressedDelta = chDelta(dressed.hot.bg, dressed.rest.bg);
+				expect(
+					dressedDelta >= 5,
+					`Outlined: the fill still carries hover unaided (delta ${dressedDelta}: ` +
+						`${dressed.rest.bg} -> ${dressed.hot.bg})`
+				);
+				expect(
+					dressed.rest.shadow !== "none",
+					`Outlined: and the edge it owns is present at rest (${dressed.rest.shadow})`
+				);
+			});
+
+			await test("filters: filter values and saved-view names are bidi-isolated", async () => {
+				// Item 7 is REOPENED on bidi isolation, and this surface is where it
+				// bites hardest: a filter VALUE beside an operator, and a user-named
+				// saved filter, are the two highest-density mixed-direction strings
+				// on the desk. Both RTL-shipping reference products left it unsolved
+				// here — Directus has zero hits for unicode-bidi, <bdi> or dir="auto"
+				// app-wide, Discourse one, behind a site setting.
+				//
+				// TRAP, and it fired during development: `unicode-bidi` is NOT
+				// inherited, but `.page-form` computes `isolate` ON ITS OWN, from the
+				// engine rather than from any stylesheet — a rule scan for the
+				// property across every sheet returns exactly one rule, ours, and
+				// `.page-form` is not in it. So asserting "the input is isolate"
+				// against an ANCESTOR proves nothing. The comparison is against a
+				// NON-TARGETED SIBLING in the same container.
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const seen = await page.evaluate(() => {
+					const u = (s) => {
+						const e = document.querySelector(s);
+						return e ? getComputedStyle(e).unicodeBidi : null;
+					};
+					return {
+						targeted: u(".page-form .standard-filter-section .frappe-control input"),
+						sibling: u(".page-form .standard-filter-section .frappe-control select"),
+						button: u(".page-form .filter-selector .filter-button"),
+					};
+				});
+				expect(seen.targeted, "a standard-filter input renders");
+				expectEq(seen.targeted, "isolate", "the filter value is isolated from its neighbours");
+				expectEq(
+					seen.sibling,
+					"normal",
+					"and the assertion discriminates — an untargeted sibling is untouched"
+				);
+				expectEq(seen.button, "normal", "as is the trigger beside it");
+			});
+
+			// ── SLICE 2 — the anchor ────────────────────────────────────────
+			//
+			// The anchor dresses TWO of the object's three places: the strip's
+			// slots and the popover's condition row. It deliberately does not set
+			// a radius on `.saved-filter-item` — item 28 already owns
+			// `--bnd-ov-radius-row` on every `.dropdown-item`, and a second radius
+			// statement would be the same fact in two places. The saved menu is
+			// `filters_saved`'s, in slice 3.
+
+			await test("filters: the anchor dresses the strip, and Original clears it", async () => {
+				// TRAP: a stand-down test that only reads the attribute proves
+				// nothing about decision D. This reads the attribute AND re-checks
+				// that both contracts still hold with the anchor gone — which is
+				// the entire argument for "repairs are contracts".
+				const read = async (style) => {
+					setSettings({ filters_style: style });
+					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					return page.evaluate(() => {
+						const btn = document.querySelector(".page-form .filter-selector .filter-button");
+						const form = document.querySelector(".page-form");
+						const c = btn && getComputedStyle(btn);
+						return {
+							anchor: document.documentElement.getAttribute("data-bnd-filters"),
+							ring: c ? c.boxShadow : null,
+							radius: c ? c.borderRadius : null,
+							slot: c ? c.backgroundColor : null,
+							band: form ? getComputedStyle(form).backgroundColor : null,
+							edge: form ? getComputedStyle(form).borderBlockEndWidth : null,
+						};
+					});
+				};
+
+				const outlined = await read("Outlined");
+				expectEq(outlined.anchor, "outlined", "the anchor is on <html>");
+				expect(outlined.ring !== "none", `Outlined draws an edge at rest (${outlined.ring})`);
+
+				const ruled = await read("Ruled");
+				expectEq(ruled.anchor, "ruled", "Ruled sets its own slug");
+				expectEq(ruled.ring, "none", "Ruled draws no slot boundary");
+				expect(
+					parseFloat(ruled.edge) > 0,
+					`and puts the separation on the band instead (${ruled.edge})`
+				);
+
+				const pill = await read("Pill");
+				expect(
+					parseFloat(pill.radius) > parseFloat(outlined.radius),
+					`Pill is rounder than Outlined (${pill.radius} vs ${outlined.radius})`
+				);
+
+				const trough = await read("Trough");
+				// The ONE pole that moves the band, and the direction is the point.
+				expect(
+					trough.band !== outlined.band,
+					`Trough recesses the band (${outlined.band} -> ${trough.band})`
+				);
+				expect(
+					trough.slot !== outlined.slot,
+					`and lifts the slot off it (${outlined.slot} -> ${trough.slot})`
+				);
+
+				const original = await read("Original");
+				expectEq(original.anchor, null, "Original clears the anchor");
+				expectEq(original.ring, "none", "and every style rule with it");
+				// The contracts survive — decision D, asserted rather than assumed.
+				expect(
+					original.slot !== original.band,
+					`the resting fill survives Original (slot ${original.slot}, band ${original.band})`
+				);
+				setSettings({ filters_style: "Outlined" });
+			});
+
+			await test("filters: no anchor pole takes the resting fill away", async () => {
+				// THE DEFEAT-DEVICE CHECK, and it is the reason the poles are shaped
+				// the way they are. `--bnd-flt-rest` is what discharges item 22's
+				// resting-identification contract, and the border arm is unreachable
+				// with this theme's line tokens — so a pole that swapped the fill for
+				// a ring alone would re-open the repaired defect while looking like a
+				// style choice.
+				//
+				// TRAP: `Trough` INVERTS the delta rather than preserving its
+				// direction — the slot becomes lighter than a band that has moved
+				// down. An assertion of the form "the slot is darker than the band"
+				// passes in light and fails in dark. Magnitudes only.
+				for (const style of ["Original", "Outlined", "Trough", "Pill", "Ruled"]) {
+					setSettings({ filters_style: style });
+					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					for (const mode of ["light", "dark"]) {
+						await page.evaluate((m) => frappe.ui.set_theme(m), mode);
+						await page.waitForTimeout(600);
+						const read = await page.evaluate(() => {
+							const g = (sel) => {
+								const e = document.querySelector(sel);
+								return e ? getComputedStyle(e).backgroundColor : null;
+							};
+							return {
+								band: g(".page-form"),
+								filterButton: g(".page-form .filter-selector .filter-button"),
+								stdInput: g(".page-form .standard-filter-section .frappe-control input"),
+							};
+						});
+						for (const key of ["filterButton", "stdInput"]) {
+							const d = chDelta(read[key], read.band);
+							expect(
+								d >= 5,
+								`${style}/${mode}: ${key} still clears the resting rule (delta ${d})`
+							);
+						}
+					}
+					await page.evaluate(() => frappe.ui.set_theme("light"));
+					await page.waitForTimeout(300);
+				}
+				setSettings({ filters_style: "Outlined" });
+			});
+
+			await test("filters: the kit live-previews without a reload", async () => {
+				// Every kit ships this one. It is the check that would have caught
+				// the status kit's missing `cls:` hook, where the knob rendered
+				// correctly and the click did nothing.
+				setSettings({ filters_style: "Outlined" });
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const flipped = await page.evaluate(() => {
+					window.bunood_theme.filters_apply({
+						filters_style: "Trough",
+						filters_applied: "Accented",
+						filters_saved: "Listed",
+					});
+					return {
+						anchor: document.documentElement.getAttribute("data-bnd-filters"),
+						applied: document.documentElement.getAttribute("data-bnd-filters-applied"),
+						saved: document.documentElement.getAttribute("data-bnd-filters-saved"),
+					};
+				});
+				expectEq(flipped.anchor, "trough", "the hook flips the anchor with no navigation");
+				expectEq(flipped.applied, "accented", "and carries the composing axes with it");
+				expectEq(flipped.saved, "listed", "both of them");
+				const cleared = await page.evaluate(() => {
+					window.bunood_theme.filters_apply({ filters_style: "Original" });
+					return {
+						anchor: document.documentElement.getAttribute("data-bnd-filters"),
+						applied: document.documentElement.getAttribute("data-bnd-filters-applied"),
+					};
+				});
+				expectEq(cleared.anchor, null, "and Original clears it, live");
+				expectEq(cleared.applied, null, "taking the axes with it");
+			});
+		}
+
+		// \u2500\u2500 Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
 		// `window.innerWidth < 768` (utils/common.js). At that width toolbar.js

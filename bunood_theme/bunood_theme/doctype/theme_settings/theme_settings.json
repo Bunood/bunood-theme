@@ -164,6 +164,11 @@
   "section_skeleton",
   "skeleton_picker",
   "skeleton_style",
+  "section_filters",
+  "filters_picker",
+  "filters_style",
+  "filters_applied",
+  "filters_saved",
   "section_generated",
   "brand_css_url"
  ],
@@ -598,6 +603,43 @@
    "hidden": 1,
    "label": "Loading Style",
    "options": "Original\nStill\nPulse\nSweep"
+  },
+  {
+   "fieldname": "section_filters",
+   "fieldtype": "Section Break",
+   "label": "Filters"
+  },
+  {
+   "fieldname": "filters_picker",
+   "fieldtype": "HTML",
+   "label": "Filters Picker"
+  },
+  {
+   "default": "Outlined",
+   "description": "Set by the picker above. How a filter control is bounded \u2014 in the bar, in the filter editor and in the saved-filter menu.",
+   "fieldname": "filters_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Filter Style",
+   "options": "Original\nOutlined\nTrough\nPill\nRuled"
+  },
+  {
+   "default": "Accented",
+   "description": "Set by the picker above. How loudly a filtered list says so.",
+   "fieldname": "filters_applied",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Applied Filters",
+   "options": "Quiet\nCounted\nAccented"
+  },
+  {
+   "default": "Listed",
+   "description": "Set by the picker above. Whether saved filters get row spacing, a hover state and a separated Save row.",
+   "fieldname": "filters_saved",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Saved Filters",
+   "options": "Plain\nListed"
   },
   {
    "fieldname": "section_generated",

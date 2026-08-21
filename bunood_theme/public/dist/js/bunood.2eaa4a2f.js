@@ -1058,8 +1058,12 @@
 	 * picker offers with "Classic". Unknown labels behave identically.
 	 */
 	// ════════════════════════════════════════════════════════════════════════
-	// The SURFACE kits — list (16) · form (18) · workspace (25) · report (26)
-	// · views (27) · overlays (28) — one construction, six rows of a table.
+	// The SURFACE kits — list (15) · form (16) · workspace (25) · report (26)
+	// · views (27) · overlays (28) · empty (29) · skeleton (30) · filters (31)
+	// — one construction, NINE rows of a table. (This said "six" from the
+	// refactor that created the table until item 31; items 29 and 30 each added
+	// a row without touching it, which is how a count in a comment drifts. It
+	// counts the rows BELOW — if you add one, change it.)
 	// ════════════════════════════════════════════════════════════════════════
 	//
 	// Unlike every chrome kit above, a surface kit mounts NOTHING and injects
@@ -1221,6 +1225,19 @@
 			// option previews that state instead of hiding it.
 			anchor: ["skeleton_style", { "Original": "", "Still": "still", "Pulse": "pulse", "Sweep": "sweep" }],
 			axes: [],
+			check: null,
+		},
+		// Item 31. Every pole and neutral is argued in presets.FILTERS_DEFAULTS,
+		// and the boundary with item 28 in _filters.scss's header — deliberately
+		// NOT restated here: this bundle ships to every desk load, and the same
+		// fact in three places is the trap this repo names first.
+		filters: {
+			attr: "filters", boot: "bnd_filters",
+			anchor: ["filters_style", { "Original": "", "Outlined": "outlined", "Trough": "trough", "Pill": "pill", "Ruled": "ruled" }],
+			axes: [
+				["applied", "filters_applied", { "Quiet": "", "Counted": "counted", "Accented": "accented" }],
+				["saved", "filters_saved", { "Plain": "", "Listed": "listed" }],
+			],
 			check: null,
 		},
 	};

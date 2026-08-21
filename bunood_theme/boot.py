@@ -424,6 +424,20 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_skeleton = {f: skeleton_(f) for f in SKELETON_DEFAULTS}
 
+        # ── Filters surface (item 31) ───────────────────────────────────
+        # Fieldname keys, the list shape. No Check in this kit.
+        # No-flash: the filter strip is built by base_list.js during
+        # setup_main_section(), i.e. on route entry, so the attribute must be
+        # on <html> before the first navigation paints or the strip flashes
+        # stock on every route change. This payload is read at parse time.
+        from bunood_theme.presets import FILTERS_DEFAULTS
+
+        def filters_(field):
+            value = settings.get(field)
+            return FILTERS_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_filters = {f: filters_(f) for f in FILTERS_DEFAULTS}
+
         bootinfo.bnd_status = {f: status(f) for f in STATUS_DEFAULTS}
         # Whether this user may see the System-Manager-only signals (job
         # counts, scheduler state). Decided SERVER-side: the client must

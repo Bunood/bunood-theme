@@ -703,6 +703,43 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "filters",
+        # Labelled "Filters", not "Filters & saved views": the roadmap's title
+        # promises a saved-VIEW system (name + filters + columns + sort, one
+        # switchable object) and Frappe has three disjoint fragments of that
+        # and no unified object — `List Filter` (named, has a menu),
+        # `List View Settings` (a dialog, per doctype not per user) and
+        # `__UserSettings` (invisible). Naming the section for what the setting
+        # actually governs beats naming it for what the roadmap hoped. Item 31.
+        #
+        # ONE anchor dresses three DOM shapes as one object — a row of slots on
+        # a ground: the page header's strip (`.page-form`), a condition row
+        # inside the filter popover (`.filter-box`), and a saved filter's row
+        # in its menu (`.saved-filter-item`). They are three scopes because
+        # they have three different ancestors, not because they are three
+        # things.
+        #
+        # THE BOUNDARY THAT MATTERS IS WITH ITEM 28, and it was settled before
+        # a line was written: the overlay kit already owns every PANEL in this
+        # family — the filter popover is a `.popover`, both menus are
+        # `.dropdown-menu`, the create dialog is a `.modal` — and already wins
+        # them on specificity. This kit owns the INSIDES and the TRIGGERS.
+        "part": "filters",
+        "label": "Filters",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-filters]; "Original" clears
+        # it. As for overlays, empty and skeleton, the REPAIRS are not under
+        # this anchor — surfaces/_filters.scss scopes them html[data-theme].
+        # Here that is not a stylistic preference: `.btn-primary-light`, the
+        # desk's only "this control is active" variant, measures 4.12:1 in
+        # light and 1.02:1 in dark, and it is shared with the SKIP LINK.
+        "selector": 'html[data-bnd-filters]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

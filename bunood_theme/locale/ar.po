@@ -4136,3 +4136,73 @@ msgstr "تتنفّس الكتلة كاملة — آلية واحدة للهيا�
 #. src: item30
 msgid "A band travels the bones; text still pulses, because a gradient across a sentence is noise. The default."
 msgstr "يمرّ شريط على الهياكل، بينما يظل النص ينبض، لأن التدرّج عبر جملة تشويش. الافتراضي."
+
+#. src: item31
+#, fuzzy
+msgid "Filters"
+msgstr "عوامل التصفية"
+
+#. src: item31
+#, fuzzy
+msgid "Filters Picker"
+msgstr "مُنتقي عوامل التصفية"
+
+#. src: item31
+#, fuzzy
+msgid "Filter Style"
+msgstr "نمط التصفية"
+
+#. src: item31
+#, fuzzy
+msgid "Set by the picker above. How a filter control is bounded — in the bar, in the filter editor and in the saved-filter menu."
+msgstr "يُضبط من المُنتقي أعلاه. كيف يُرسم حدّ عنصر التصفية — في الشريط، وفي محرّر التصفية، وفي قائمة عوامل التصفية المحفوظة."
+
+#. src: item31
+#, fuzzy
+msgid "Trough"
+msgstr "غائر"
+
+#. src: item31
+#, fuzzy
+msgid "Pill"
+msgstr "كبسولة"
+
+#. src: item31
+#, fuzzy
+msgid "Ruled"
+msgstr "مُسطّر"
+
+#. src: item31
+#, fuzzy
+msgid "Applied Filters"
+msgstr "عوامل التصفية المُطبّقة"
+
+#. src: item31
+#, fuzzy
+msgid "Set by the picker above. How loudly a filtered list says so."
+msgstr "يُضبط من المُنتقي أعلاه. مدى وضوح إعلان القائمة أنّها مُصفّاة."
+
+#. src: item31
+#, fuzzy
+msgid "Counted"
+msgstr "بعدّاد"
+
+#. src: item31
+#, fuzzy
+msgid "Accented"
+msgstr "مُبرَز"
+
+#. src: item31
+#, fuzzy
+msgid "Saved Filters"
+msgstr "عوامل التصفية المحفوظة"
+
+#. src: item31
+#, fuzzy
+msgid "Set by the picker above. Whether saved filters get row spacing, a hover state and a separated Save row."
+msgstr "يُضبط من المُنتقي أعلاه. ما إذا كانت عوامل التصفية المحفوظة تحصل على تباعد للصفوف وحالة تمرير وصفّ حفظ منفصل."
+
+#. src: item31
+#, fuzzy
+msgid "Listed"
+msgstr "مُدرَج"

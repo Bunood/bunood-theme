@@ -665,6 +665,65 @@ SKELETON_DEFAULTS = {
     "skeleton_style": "Sweep",
 }
 
+FILTERS_FIELDS = [
+    "filters_style",
+    "filters_applied",
+    "filters_saved",
+]
+
+#: The shipped filter defaults — the item-31 wireframe picks (2026-08-20), as
+#: amended 2026-08-21 by the gap round over Frappe's own newer apps.
+FILTERS_DEFAULTS = {
+    # The anchor: how a filter SLOT is bounded, answered in all three places at
+    # once — the strip's controls, a condition row in the popover, and a saved
+    # filter's row.
+    #
+    # OUTLINED, and it is a REDECISION. The wireframe round picked Trough (the
+    # band recessed, slots flush in it), on frappe-ui's `TabButtons` grammar.
+    # Reading Frappe's own current apps overturned that: `p-px` — the trough's
+    # signature — appears on ZERO filter or toolbar nodes across crm v1.79.0,
+    # helpdesk v1.27.0, insights, gameplan and drive, and crm uses `TabButtons`
+    # zero times. The trough is reserved there for mutually-exclusive segmented
+    # switchers. Outlined is the most directly cited pole instead: Discourse's
+    # select-kit header is literally a resting filter control carrying a
+    # full-strength named input border.
+    #
+    # It is also the pole furthest from Original in the one dimension the
+    # contracts do NOT occupy — a visible edge at rest — so the anchor earns
+    # its existence rather than shading a state R7 already owns. Trough, Pill
+    # and Ruled all ship.
+    "filters_style": "Outlined",
+    # How "this list is filtered" reads. The CONTRACT already guarantees it is
+    # legible (stock measures 1.02:1 in dark); this axis chooses its character.
+    #
+    # ACCENTED, and it KNOWINGLY diverges from Frappe's own language, which is
+    # a neutral raised chip plus a shape change and no colour at all — that is
+    # this kit's `Quiet` pole, and it ships. The reason for diverging is the
+    # phone: the count lives inside `.button-label.hidden-xs`, so below 768 a
+    # neutral chip signals nothing, and Accented is the only pole that still
+    # reads there. Discourse reaches the same answer independently, repainting
+    # the filter header to the same token as an active nav pill.
+    #
+    # Quiet is the NEUTRAL and maps to "".
+    "filters_applied": "Accented",
+    # The saved-filter menu's rows. `.saved-filter-item` has ZERO CSS in the
+    # entire Frappe bundle, so any treatment is a guaranteed-visible delta from
+    # nothing — and three of four reference products ship no saved-view UI at
+    # all, which is why a small amount of care here is worth more than
+    # anywhere else in the item.
+    #
+    # LISTED: row height, inline padding, truncation, a hover AND
+    # :focus-visible ground, and the create row separated from the saved ones —
+    # `data-name="create_new"` is the one CSS-reachable discriminator in the
+    # family. What it deliberately does NOT do is mark the ACTIVE saved filter:
+    # the DOM carries no bit saying which one it is (no class, no attribute, no
+    # aria-current — only a mutated text node, lost on reload), and a surface
+    # mounts nothing. That half is filed upstream.
+    #
+    # Plain is the NEUTRAL and maps to "".
+    "filters_saved": "Listed",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

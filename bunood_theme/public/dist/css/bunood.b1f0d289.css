@@ -5060,6 +5060,174 @@ html[dir=rtl][data-bnd-skeleton=sweep] .list-skeleton .list-skeleton-box::after 
   }
 }
 
+html[data-theme] {
+  --bnd-flt-rest: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface));
+}
+
+html[data-theme] .btn-primary-light,
+html[data-theme] .btn-primary-light:disabled,
+html[data-theme] .btn-primary-light.disabled {
+  background-color: var(--bnd-hover);
+  color: var(--bnd-brand-ink);
+}
+
+html[data-theme] .btn-primary-light:hover,
+html[data-theme] .btn-primary-light:focus,
+html[data-theme] .btn-primary-light.focus,
+html[data-theme] .btn-primary-light:not(:disabled):not(.disabled):active,
+html[data-theme] .btn-primary-light:not(:disabled):not(.disabled).active {
+  background-color: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+
+html[data-theme] .btn-primary-light .filter-icon.active,
+html[data-theme] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-brand-ink);
+}
+
+html[data-theme] .page-form .btn-default,
+html[data-theme] .page-form .frappe-control input:not([type=checkbox]),
+html[data-theme] .page-form .frappe-control select,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type=checkbox]),
+html[data-theme] .filter-area .filter-box select.condition,
+html[data-theme] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-rest);
+  transition: background-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-theme] .page-form .btn-default:hover,
+html[data-theme] .page-form .frappe-control input:not([type=checkbox]):hover,
+html[data-theme] .page-form .frappe-control select:hover,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type=checkbox]):hover,
+html[data-theme] .filter-area .filter-box select.condition:hover,
+html[data-theme] .filter-area .clear-filters:hover {
+  background-color: var(--bnd-active);
+  box-shadow: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+}
+
+html[data-theme] .page-form .filter-selector .btn-group .filter-label {
+  background-color: var(--bnd-surface);
+  color: var(--bnd-ink);
+}
+
+html[data-theme] .filter-area .filter-box .filter-field,
+html[data-theme] .filter-area .filter-box .fieldname-select-area,
+html[data-theme] .page-form .frappe-control input:not([type=checkbox]),
+html[data-theme] .saved-filter-item .filter-label {
+  unicode-bidi: isolate;
+}
+
+html[data-theme] .filter-area .filter-box {
+  padding-inline-start: 0;
+  padding-inline-end: var(--bnd-sp-3);
+}
+
+html[data-theme] .list-count {
+  margin-inline-start: 0;
+  margin-inline-end: var(--bnd-sp-2);
+}
+
+html[data-bnd-filters] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: none;
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+html[data-bnd-filters=outlined] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+html[data-bnd-filters=trough] {
+  --bnd-flt-well: var(--bnd-flt-rest);
+  --bnd-flt-slot: var(--bnd-surface);
+  --bnd-flt-ring: var(--bnd-shadow-sm);
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: var(--bnd-flt-rest);
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+html[data-bnd-filters=pill] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-radius: var(--bnd-radius-pill);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-row-radius: var(--bnd-radius-pill);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+html[data-bnd-filters=ruled] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: none;
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: 0;
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: var(--bnd-line) solid var(--bnd-border);
+  --bnd-flt-edge: var(--bnd-line) solid var(--bnd-border-strong);
+}
+
+html[data-bnd-filters] .page-form {
+  background-color: var(--bnd-flt-well);
+  border-block-end: var(--bnd-flt-edge);
+}
+
+html[data-bnd-filters] .page-form .btn-default,
+html[data-bnd-filters] .page-form .frappe-control input:not([type=checkbox]),
+html[data-bnd-filters] .page-form .frappe-control select {
+  background-color: var(--bnd-flt-slot);
+  box-shadow: var(--bnd-flt-ring);
+  border-radius: var(--bnd-flt-radius);
+}
+
+html[data-bnd-filters] .filter-area {
+  background-color: var(--bnd-flt-well);
+}
+
+html[data-bnd-filters] .filter-area .filter-box {
+  background-color: var(--bnd-flt-row-bg);
+  box-shadow: var(--bnd-flt-row-ring);
+  border-radius: var(--bnd-flt-row-radius);
+  padding-block: var(--bnd-flt-row-pad);
+}
+
+html[data-bnd-filters] .filter-area .filter-box + .filter-box {
+  border-block-start: var(--bnd-flt-row-sep);
+}
+
+html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type=checkbox]),
+html[data-bnd-filters] .filter-area .filter-box select.condition,
+html[data-bnd-filters] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-slot);
+  box-shadow: var(--bnd-flt-ring);
+  border-radius: var(--bnd-flt-radius);
+}
+
 html[data-bnd-icon-weight="1.25"] {
   --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
 }

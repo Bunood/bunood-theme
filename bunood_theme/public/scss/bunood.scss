@@ -92,6 +92,14 @@
 // load-bearing — where both kits touch one node, 29 paints the box and 30 adds
 // the motion, so the later import must be this one.
 @use "surfaces/skeleton";
+// Item 31: filters and saved filters. LAST of the surfaces, and the position is
+// free rather than argued: nothing else in the tree names `.page-form`,
+// `.filter-*` or `.saved-filter-item` for screen (the only other rule over this
+// vocabulary is `_print.scss`'s hide block), so there is no tie to break. It
+// goes after skeleton to keep the imports in registry order, and the header
+// records the ONE adjacency that does matter — item 28 owns every panel this
+// kit reaches into, and wins them on specificity already.
+@use "surfaces/filters";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

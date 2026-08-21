@@ -1,0 +1,445 @@
+// ============================================================================
+// FILTERS & SAVED FILTERS — checklist item 31. The ninth SURFACE partial.
+//
+// WHAT
+//   TWO HALVES, written that way from the start. Everything under
+//   `html[data-theme]` is a CONTRACT — a measured repair that survives
+//   "Original" — and everything under `html[data-bnd-filters]` is a STYLE that
+//   "Original" clears completely. Item 27's rule ("Original renders as stock,
+//   warts and all") is right for one opt-in route and wrong here: this surface
+//   is on every list, report, gallery and query-report route, and its headline
+//   failure is a measured 1.02:1. Item 28 set the precedent; items 15, 26 and
+//   27 each carry one contract outside their anchor for the same reason.
+//
+// THE OBJECT — three DOM shapes, one thing
+//   A row of slots on a ground. The page header's strip is slots on the page
+//   ground (`.page-form`); a filter row is slots on the popover ground
+//   (`.filter-box`); a saved filter is one slot on the menu ground
+//   (`.saved-filter-item`). Three scopes, and they are exact:
+//     - `.page-form` is `display:none` on form, settings and workspace routes
+//       and visible only where filters exist (measured on six routes), so it
+//       reaches the strip and nothing else.
+//     - `.filter-popover` is body-appended, so `.page-form` cannot reach it.
+//     - `.saved-filter-item` lives in `.custom-actions`, not the page form, and
+//       is unique in the whole bundle — see NAMING.
+//
+// WHAT THIS FILE MUST NOT TOUCH
+//   Item 28 owns every PANEL in this family, and already wins them: the filter
+//   editor is `<div class="filter-popover popover">`, the saved menu and the
+//   group-by menu are `.dropdown-menu`, the create dialog is `.modal`, and the
+//   awesomplete list inside a filter row is claimed at `_overlays.scss:376`.
+//   `html[data-bnd-overlay] .popover` is (0,2,1) against Frappe's (0,1,0) —
+//   measured live: the popover renders our fill, our 14px radius and our ring
+//   before this file exists. THIS KIT OWNS THE INSIDES AND THE TRIGGERS, NEVER
+//   THE CONTAINERS. Item 26 owns the datatable's inline filter row by var
+//   re-point; item 15 owns `.list-row-head`; item 25 explicitly declined
+//   `.filter-chart` ("that is data selection, not chrome"); item 8 owns all of
+//   it in `@media print`.
+//
+// WHAT THE CENSUS FOUND, AND WHAT IT DELETED
+//   The list-view sidebar — the filters/tags/group-by column this item's title
+//   implies — DOES NOT EXIST in v16. `list_factory.js:30` hardcodes
+//   `hide_sidebar = true`, `base_list.js:279` sets `no-list-sidebar`
+//   unconditionally, and `list_view.js` contains the string "sidebar" zero
+//   times. The ~20 rules in `list_sidebar.scss` are orphaned — and MEASURED
+//   HARMLESS: the group-by dropdown they no longer reach renders bounded and
+//   scrollable anyway, because the generic `.dropdown-menu` supplies
+//   max-height/overflow/min-width and item 28 supplies the paint. Dead code,
+//   filed upstream, NOT a repair. (Probed 2026-08-21 by making the control
+//   reachable and restoring the user setting.)
+//
+// RTL
+//   Two physical leftovers are restated logically below. A third is
+//   deliberately NOT touched: `.btn-group > .btn:not(:first-child)`'s
+//   `margin-left: -1px` seam is Bootstrap's own and IS flipped by Frappe's
+//   build-time rtlcss pass, so a logical rule here would COMPOUND with it —
+//   GUIDELINES 1.3's exact failure. A fourth cannot be reached at all:
+//   `base_list.js:675` sets `margin: 0 0 0 auto` INLINE on `.filter-selector`
+//   below 768, and an inline declaration needs `!important` to beat, which is
+//   barred. Filed upstream.
+//
+// NAMING
+//   `.filter-label` NAMES TWO DIFFERENT OBJECTS — the count pill inside
+//   `.filter-selector .btn-group` (list.scss:532) and a saved filter's name
+//   (list_filter.js:161). Measured live with a filter applied:
+//   `querySelectorAll(".filter-label").length === 2`. EVERY rule here is
+//   ancestor-scoped because of it. Likewise `.remove-filter` appears TWICE per
+//   filter row (edit_filter.html:3 `.visible-xs`, :20 `.hidden-xs`).
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-20/21, frappe
+// 16.28.0, seed #44764b. Ratios are `bunood_theme.contrast.ratio`.
+// ============================================================================
+
+html[data-theme] {
+  // The resting fill for a filter control. CHARACTER-IDENTICAL to
+  // `_form.scss`'s `--bnd-form-tab-track-bg` and to `contrast_gate.py`'s
+  // TRACK_BG, which is the whole point: `--bnd-ink` and `--bnd-ink-muted` on
+  // this ground are ALREADY gated, so this repair adds no contrast pair.
+  //
+  // WHY NOT `--control-bg`, WHICH IS WHAT STOCK USES. `--control-bg` bridges to
+  // `--bnd-raised`, and `--bnd-raised` is `color-mix(--bnd-brand 2%, #ffffff)`
+  // — it can NEVER be five channels from `--bnd-surface` in light, at any seed.
+  // Measured on the live strip: 4/2/3 channels with a `0px none` border, which
+  // fails BOTH arms of item 22's resting-identification rule at once.
+  //
+  // WHY NOT A BORDER, WHICH IS THE RULE'S OTHER ARM. Neither line token clears
+  // 3:1 — `--bnd-border` is rgba(0,0,0,.09) (~1.2:1) and `--bnd-border-strong`
+  // rgba(0,0,0,.16) (~1.4:1) — and `contrast_gate.py:208-227` says so and
+  // exempts both on evidence. Raising them would repaint every stock control on
+  // the desk, which item 22 refused for exactly this reason. So the delta arm
+  // it is, with `_navbar.scss:48-54`'s lever at `_form.scss`'s percentage.
+  //
+  // Measured against its host at ALL ELEVEN gate seeds: 9/9/9 channels in
+  // light, 8/8/8 in dark, invariant — because it mixes INK, not the seed.
+  --bnd-flt-rest: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface));
+}
+
+// ── Contract R1: the applied state stops being illegible ────────────────────
+// `.btn-primary-light` is the desk's ONLY "this control is active" variant and
+// it has exactly three call sites: the filter button (filter_list.js:138), the
+// report view's Add Group button (group_by.js:436) — which is item 26's
+// deferral, closed here for free — and THE SKIP LINK (page.js:191), a control
+// item 22 built its keyboard contract around.
+//
+// The defect is that its two halves disagree about whether they follow the
+// theme: the ink is `var(--primary)` (a CSS variable, bridged to
+// `--bnd-brand-ink`) while the fill is a SASS LITERAL `$gray-300` in light and
+// `var(--bg-dark-gray)` to `var(--gray-400)` to #999999 in dark. Measured in
+// place on a real driven filter: 4.12:1 light, 1.02:1 dark. The vendor's own
+// comment on the block reads `// not happy with this`.
+//
+// IT IS A STATE SET, NOT A DECLARATION. Bootstrap's `button-variant` mixin
+// generates eight rules — base, :hover, :focus, .focus, :disabled, .disabled,
+// :active, :active:focus — and every fill in them is a hardcoded literal
+// (#e2e2e2 base, #ededed hover). Re-pointing only the base rule reverts to
+// #ededed the moment the pointer lands. The deepest is
+// `:not(:disabled):not(.disabled):active` at (0,4,0); the dark override is
+// `[data-theme="dark"] .btn-primary-light` at (0,2,0). The selectors below
+// reach (0,5,1) and (0,2,1) respectively.
+//
+// The fill is `--bnd-hover`, and that is not a taste call: `--bnd-brand-ink` is
+// FITTED against every member of `contrast_gate.SURFACES` by `palette.derive`,
+// and `--bnd-hover` is one of them — so AA is guaranteed by an EXISTING gate
+// row at all 11 seeds x 2 modes rather than by luck. At the shipped seed it
+// measures 4.93:1 light and 4.51:1 dark. `--bnd-hover` also sits 8-9 channels
+// off `--bnd-raised`, so an applied control stays distinct from a resting one.
+// Only `background-color` and `color` are declared: `:focus`'s box-shadow is
+// item 22's focus ring and must survive untouched.
+html[data-theme] .btn-primary-light,
+html[data-theme] .btn-primary-light:disabled,
+html[data-theme] .btn-primary-light.disabled {
+  background-color: var(--bnd-hover);
+  color: var(--bnd-brand-ink);
+}
+
+html[data-theme] .btn-primary-light:hover,
+html[data-theme] .btn-primary-light:focus,
+html[data-theme] .btn-primary-light.focus,
+html[data-theme] .btn-primary-light:not(:disabled):not(.disabled):active,
+html[data-theme] .btn-primary-light:not(:disabled):not(.disabled).active {
+  background-color: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+
+// The mark fails with the label and is repaired with it: `filters.scss:1-3`
+// sets `--icon-stroke: var(--primary)` on `.filter-icon.active`, measured
+// #44764b / #76a27c on the same failing ground.
+html[data-theme] .btn-primary-light .filter-icon.active,
+html[data-theme] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-brand-ink);
+}
+
+// ── Contract R2: every control in the strip is identifiable at rest ─────────
+// Twelve controls measured `--control-bg` with a `0px none` border on their
+// host. `.btn-paging` is deliberately EXCLUDED: `.list-paging-area .btn-group`
+// already carries a full `1px solid var(--border-color)` box, so the paging
+// strip never had the defect (measured 2026-08-21) — and it lives outside
+// `.page-form` anyway.
+//
+// `.btn-primary-light` is not excluded by hand: `update_filter_button()`
+// TOGGLES `.btn-default` off when it toggles `.btn-primary-light` on, so the
+// two selectors never meet on one node.
+html[data-theme] .page-form .btn-default,
+html[data-theme] .page-form .frappe-control input:not([type="checkbox"]),
+html[data-theme] .page-form .frappe-control select,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]),
+html[data-theme] .filter-area .filter-box select.condition,
+html[data-theme] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-rest);
+  transition: background-color var(--bnd-dur-fast) var(--bnd-ease),
+    box-shadow var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+// ── Contract R7: a control says it is interactive before you click it ───────
+// The strip has NO hover state on any filter control today. This is the
+// frappe-ui recipe transposed — `TextInput` `subtle` resolves to
+// `border border-[--surface-gray-2] bg-surface-gray-2` (an edge the same colour
+// as the fill) plus `hover:border-outline-elevation-2`, consumed by CRM,
+// Helpdesk and Insights alike. Read out of the real v1.79.0 / v1.27.0
+// checkouts, 2026-08-21.
+//
+// SIMPLIFIED ON PURPOSE, and the simplification is the mechanism's fault, not
+// a shortcut: frappe-ui reserves the edge at rest so revealing it cannot
+// reflow, but a box-shadow ring never affects layout, so the reservation is
+// moot here. Rest carries no ring; hover resolves one. Focus is untouched —
+// item 22's ring already owns it, and a second focus treatment would be the
+// same fact in two places.
+//
+// A `box-shadow` ring, never a `border`: on a query report an unset required
+// filter carries a real `border: 1px solid` in its error colour (measured
+// 2026-08-21), and a shadow ring composes with that where a border would fight
+// it.
+html[data-theme] .page-form .btn-default:hover,
+html[data-theme] .page-form .frappe-control input:not([type="checkbox"]):hover,
+html[data-theme] .page-form .frappe-control select:hover,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):hover,
+html[data-theme] .filter-area .filter-box select.condition:hover,
+html[data-theme] .filter-area .clear-filters:hover {
+  // --bnd-ACTIVE, not --bnd-hover, and the check caught the difference. The
+  // resting fill above is an INK wash at 4%; --bnd-hover is a BRAND wash at 7%,
+  // and the two land at near-identical LUMINANCE in light — measured 3 channels
+  // apart (#f6f6f6 -> #f3f7f3), i.e. a hover state that renders as nothing. The
+  // two-options-one-pixel defect, inside a state rather than an axis. Dark
+  // passed at 8 channels, so only half the surface would have shown it.
+  //
+  // --bnd-active clears it in BOTH modes (16 channels light, 9 dark) and is a
+  // member of contrast_gate.SURFACES, so its inks are already gated. It reads
+  // strong for a hover only because this control does not start transparent —
+  // it starts already raised, so the step has to be longer.
+  //
+  // It does coincide with the APPLIED button hovered (R1 above), and that is
+  // acceptable rather than overlooked: the two are separated by their INK, not
+  // their fill — brand versus body — which is item 22's never-colour-alone rule
+  // working in our favour.
+  background-color: var(--bnd-active);
+  box-shadow: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+}
+
+// ── Contract R3: the count chip has a real delta against its host ───────────
+// Four of four surveyed products give the applied count a fill that separates
+// it from the control it sits inside, and Frappe's OWN newer apps write it as
+// `bg-surface-base` + `shadow-sm` — a raised, LIGHTER chip inside the button
+// (crm Filter.vue, helpdesk's twin, SortBy.vue: three sites, one string).
+// Stock's desk declares `background-color: var(--control-bg)` on it
+// (list.scss:532) — the same token as the `.btn-default` it normally sits in,
+// i.e. a zero-delta chip. It only ever renders inside an APPLIED button, so
+// after R1 its host is `--bnd-hover` and `--bnd-surface` reads against it at
+// 12/8/12 channels in light and 12/16/13 in dark. The vendor rule is (0,4,0);
+// this is (0,5,1).
+html[data-theme] .page-form .filter-selector .btn-group .filter-label {
+  background-color: var(--bnd-surface);
+  color: var(--bnd-ink);
+}
+
+// ── Contract R4: bidi isolation, item 7's reopened surface ──────────────────
+// A filter VALUE beside an operator, and a user-named SAVED FILTER, are the two
+// highest-density mixed-direction strings on the desk. Both RTL-shipping
+// reference products left this unsolved on exactly this surface: Directus has
+// zero hits for `unicode-bidi`, `<bdi>` or `dir="auto"` app-wide, and Discourse
+// has one, on a mention mixin, with `dir="auto"` behind a site setting. Unlike
+// the saved-view active mark, this one IS reachable from a stylesheet.
+//
+// `isolate`, not `plaintext`: the failure being fixed is a value REORDERING ITS
+// NEIGHBOURS (the operator, the remove control, the row's own order), which is
+// what isolation prevents. `plaintext` would additionally re-base the value's
+// own direction from its first strong character — a bigger change, and one
+// that should be argued for on its own evidence rather than smuggled in here.
+html[data-theme] .filter-area .filter-box .filter-field,
+html[data-theme] .filter-area .filter-box .fieldname-select-area,
+html[data-theme] .page-form .frappe-control input:not([type="checkbox"]),
+html[data-theme] .saved-filter-item .filter-label {
+  unicode-bidi: isolate;
+}
+
+// ── Contract R5: two physical leftovers, restated logically ────────────────
+// The vendor's `.filter-box` padding is `var(--padding-xs) var(--padding-md)
+// var(--padding-xs) 0` — the inline-end room exists for the remove control in
+// the last column, so it must FOLLOW the control across a direction flip. Both
+// inline sides are set, per GUIDELINES 1.3, so this cannot compound with the
+// rtlcss-flipped vendor rule.
+html[data-theme] .filter-area .filter-box {
+  padding-inline-start: 0;
+  padding-inline-end: var(--bnd-sp-3);
+}
+
+html[data-theme] .list-count {
+  margin-inline-start: 0;
+  margin-inline-end: var(--bnd-sp-2);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — html[data-bnd-filters]. Everything below is a STYLE: "Original"
+// clears the attribute and every rule here goes with it. The CONTRACTS above
+// survive that, which is the whole of decision D.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// THE WORKING SET, and it DECLARES EVERYTHING. Every style block below sets
+// every variable, even to `none` or `0` — `_form.scss:75` records why: a block
+// that omits one inherits the PREVIOUS pole's value, and the picker then shows
+// a style that only renders correctly if you happened to arrive from the right
+// neighbour.
+//
+// A NOTE ON WHAT THE ANCHOR DOES NOT REACH, because it is a boundary and not
+// an oversight. The anchor dresses TWO of the object's three places — the
+// strip's slots and the popover's condition row. It does NOT set a radius on
+// `.saved-filter-item`'s row: item 28 already sets `--bnd-ov-radius-row` on
+// every `.dropdown-item` on the desk, and a second radius statement here would
+// be the same fact in two places — this repo's most expensive trap. The saved
+// menu's own treatment is `filters_saved`, which changes row RHYTHM (height,
+// inset, hover ground, the create-row separation) and leaves shape to item 28.
+//
+// AND A CONSTRAINT THE POLES ARE BUILT AROUND: a pole may not take the slot's
+// FILL away. `--bnd-flt-rest` is what discharges item 22's resting-
+// identification contract, and the border arm is unreachable with this theme's
+// line tokens (see the contract block above), so a pole that replaced the fill
+// with a ring alone would re-open the repaired defect — an axis whose pole
+// recreates a repaired defect is a defeat device. `Outlined`, `Pill` and
+// `Ruled` therefore ADD to the contract fill; `Trough` INVERTS it, moving the
+// wash to the band so the slot can rise off it. Every pole is measured at >= 5
+// channels against its own host by the suite, under every style.
+
+html[data-bnd-filters] {
+  // The band's own ground. `--bnd-surface` is what `.page-form` already
+  // computes (Frappe paints it `var(--card-bg)`, which we bridge), so for three
+  // of the four poles this is a no-op by value rather than an omission.
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: none;
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+// OUTLINED — the default. Discourse's select-kit header is the survey's one
+// directly-cited RESTING filter control: `1px solid var(--input-border-color)`
+// on `--secondary`, 4px radius, with focus as an INSET outline so the box never
+// grows. The edge is the whole statement; the fill stays the contract's.
+html[data-bnd-filters="outlined"] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+// TROUGH — the band recedes and the slots rise off it. The ONLY pole that
+// moves the well, and the direction is the point: the contract raises the
+// control off the band by four percent ink, and this sinks the band under the
+// control by the same four percent. One expression, opposite direction.
+//
+// The well is the ink-mix and NOT `--bnd-page`, which was the obvious choice
+// and would have rendered as nothing: `--bnd-page` is
+// color-mix(--bnd-brand 4%, #ffffff), so at a pale seed it collapses — measured
+// across the eleven gate seeds, the page-well delta falls to 1 channel at
+// near-white and 0 at pure white, while the ink-mix holds 9 in light and 8 in
+// dark at EVERY seed. Item 29's "Filled would have rendered as nothing",
+// caught by arithmetic before the rule existed.
+html[data-bnd-filters="trough"] {
+  --bnd-flt-well: var(--bnd-flt-rest);
+  --bnd-flt-slot: var(--bnd-surface);
+  --bnd-flt-ring: var(--bnd-shadow-sm);
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: var(--bnd-flt-rest);
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: var(--bnd-radius-md);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+// PILL — Directus's condition row at `border-radius: 5.625rem`, which that
+// codebase deliberately keeps OUT of its own `--theme--border-radius` so the
+// chips stay pills across all four of its shipped themes. Here the radius token
+// carries it, because a raw length in a rule is build-refused.
+html[data-bnd-filters="pill"] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-radius: var(--bnd-radius-pill);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+  --bnd-flt-row-radius: var(--bnd-radius-pill);
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: none;
+  --bnd-flt-edge: none;
+}
+
+// RULED — no boundary on any slot; the band separates itself with a rule at its
+// block-end and the popover's rows separate from each other the same way.
+// Discourse's list-controls nav row is the precedent: no chrome of its own, the
+// separation delivered by a heavier rule between it and the list.
+html[data-bnd-filters="ruled"] {
+  --bnd-flt-well: var(--bnd-surface);
+  --bnd-flt-slot: var(--bnd-flt-rest);
+  --bnd-flt-ring: none;
+  --bnd-flt-radius: var(--bnd-radius-md);
+  --bnd-flt-row-bg: transparent;
+  --bnd-flt-row-ring: none;
+  --bnd-flt-row-radius: 0;
+  --bnd-flt-row-pad: var(--bnd-sp-2);
+  --bnd-flt-row-sep: var(--bnd-line) solid var(--bnd-border);
+  --bnd-flt-edge: var(--bnd-line) solid var(--bnd-border-strong);
+}
+
+// ── The object rules — the working set, consumed once each ─────────────────
+//
+// The strip's band. `border-block-end` rather than a shorthand, so `none` on
+// the other three poles costs one declaration instead of four.
+html[data-bnd-filters] .page-form {
+  background-color: var(--bnd-flt-well);
+  border-block-end: var(--bnd-flt-edge);
+}
+
+// The strip's slots. The selector list is the contract's, minus the two nodes
+// the contract deliberately excludes (`.btn-paging`, which has its own box and
+// lives outside `.page-form`; and `.btn-primary-light`, which the vendor
+// toggles `.btn-default` OFF for, so the two never meet).
+html[data-bnd-filters] .page-form .btn-default,
+html[data-bnd-filters] .page-form .frappe-control input:not([type="checkbox"]),
+html[data-bnd-filters] .page-form .frappe-control select {
+  background-color: var(--bnd-flt-slot);
+  box-shadow: var(--bnd-flt-ring);
+  border-radius: var(--bnd-flt-radius);
+}
+
+// The popover's well and its condition rows. `.filter-area` takes the well so
+// `Trough` inverts there too; the row takes the box.
+//
+// The row's INLINE padding is the contract's (R5 above, which restates the
+// vendor's physical value logically); this adds only the BLOCK padding, so the
+// two never fight over the same property.
+html[data-bnd-filters] .filter-area {
+  background-color: var(--bnd-flt-well);
+}
+
+html[data-bnd-filters] .filter-area .filter-box {
+  background-color: var(--bnd-flt-row-bg);
+  box-shadow: var(--bnd-flt-row-ring);
+  border-radius: var(--bnd-flt-row-radius);
+  padding-block: var(--bnd-flt-row-pad);
+}
+
+// Ruled's row separation. `+` rather than `:not(:last-child)` so the last row
+// never carries a rule against the divider that already follows it.
+html[data-bnd-filters] .filter-area .filter-box + .filter-box {
+  border-block-start: var(--bnd-flt-row-sep);
+}
+
+// The popover's own controls take the slot treatment, so a condition row reads
+// as the same object as the bar it was opened from.
+html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type="checkbox"]),
+html[data-bnd-filters] .filter-area .filter-box select.condition,
+html[data-bnd-filters] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-slot);
+  box-shadow: var(--bnd-flt-ring);
+  border-radius: var(--bnd-flt-radius);
+}
