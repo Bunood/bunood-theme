@@ -24,6 +24,8 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-08-21 — Filters (item 31)
+
 ### A filtered list says so (item 31)
 
 Every list, report, gallery and query-report screen has a strip of controls

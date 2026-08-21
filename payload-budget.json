@@ -125,6 +125,15 @@
 			"js_raw": 293105,
 			"js_gzip": 92225,
 			"note": "css +574b, js +154b gzip vs v0.29.0"
+		},
+		{
+			"version": "v0.31.0",
+			"date": "2026-08-21",
+			"css_raw": 156293,
+			"css_gzip": 20834,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "css +987b, js +355b gzip vs v0.30.0"
 		}
 	]
 }
