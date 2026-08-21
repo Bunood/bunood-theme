@@ -5127,6 +5127,10 @@ html[data-theme] .list-count {
   margin-inline-end: var(--bnd-sp-2);
 }
 
+html[data-theme] .page-form .text-extra-muted {
+  --gray-500: var(--bnd-ink-muted);
+}
+
 html[data-bnd-filters] {
   --bnd-flt-well: var(--bnd-surface);
   --bnd-flt-slot: var(--bnd-flt-rest);

@@ -9315,6 +9315,47 @@ async function main() {
 				expectEq(seen.button, "normal", "as is the trigger beside it");
 			});
 
+			await test("filters: an empty standard filter names itself legibly", async () => {
+				// FOUND BY THE AXE HONESTY SCAN rather than by the census, and that is
+				// the argument for running the scan: every empty standard filter shows
+				// its field name as `.placeholder.text-extra-muted`, which
+				// `global.scss:608` paints `var(--gray-500) !important` — a hardcoded
+				// #999999, measured at 2.63:1 in the strip.
+				//
+				// TRAP: the vendor rule is `!important` and cannot be out-specified —
+				// but it READS a variable, so the repair is a scoped re-point and the
+				// assertion must be on the COMPUTED colour, not on any rule of ours.
+				// A check that looked for our own declaration would pass while the
+				// text stayed grey.
+				await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+				const seen = await page.evaluate(() => {
+					const el = document.querySelector(".page-form .placeholder.text-extra-muted");
+					if (!el) return null;
+					// CLIMB to the first ancestor that actually PAINTS. `.frappe-control`
+					// is transparent, and reading it returns rgba(0,0,0,0) — against
+					// which every ratio is meaningless. This check failed exactly that
+					// way on its first run: the repair had landed and the assertion was
+					// measuring nothing. "Selecting by class measures the wrong element",
+					// which this repo has now paid for in three different places.
+					let host = el.parentElement;
+					const painted = (v) => v && v !== "transparent" && !/rgba\(0, 0, 0, 0\)/.test(v);
+					while (host && !painted(getComputedStyle(host).backgroundColor)) host = host.parentElement;
+					return {
+						ink: getComputedStyle(el).color,
+						ground: host ? getComputedStyle(host).backgroundColor : null,
+						groundEl: host ? host.className.toString().slice(0, 60) : null,
+					};
+				});
+				expect(seen, "an empty standard filter renders its placeholder");
+				expect(seen.ground, "and something behind it actually paints");
+				const r = ratio(seen.ink, seen.ground);
+				expect(
+					r >= 4.5,
+					`the placeholder clears AA on what is behind it (${r}:1, ${seen.ink} on ` +
+						`${seen.ground} from .${seen.groundEl})`
+				);
+			});
+
 			// ── SLICE 2 — the anchor ────────────────────────────────────────
 			//
 			// The anchor dresses TWO of the object's three places: the strip's

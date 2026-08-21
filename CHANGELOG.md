@@ -24,6 +24,75 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### A filtered list says so (item 31)
+
+Every list, report, gallery and query-report screen has a strip of controls
+across the top — the Filter button, the clear-all beside it, the standard
+filters, sort, group-by. Twelve controls, and not one of them was drawn as a
+control: each was painted four units away from the surface behind it with no
+border at all, which is the theme's own "you can tell this is a control" rule
+failing on the busiest row of the desk. They now sit on a fill that reads
+against the bar in both modes, and answer the pointer when you reach for them.
+
+**The setting that says "this list is filtered" was illegible in light and
+invisible in dark, and it was not only ours to fix.** Frappe has exactly one
+"this control is active" button style, and its two halves disagree about whether
+they follow the theme: the text colour is a variable that tracks the palette,
+the background is a fixed grey that does not. Measured on a real filtered list,
+the label came out at 4.12:1 in light — below the AA floor — and **1.02:1 in
+dark**, which is to say invisible. Its three users are the Filter button, the
+report view's Add Group button, and **the skip link** — the control a keyboard
+user hits first. All three are repaired, and the repair holds under "Original",
+because whether you can read a control is not a style choice. Frappe's own
+source carries the comment "not happy with this" above the rule.
+
+One setting decides how loudly a filtered list announces itself: quietly, with a
+count chip in the brand, or with the whole control recoloured (the default). The
+loud option is not decoration — on a phone Frappe hides the count entirely, so
+the control's own colour is the only signal left.
+
+A second decides how the filter editor and the saved-filter menu are drawn, as
+one object in three places: an outline on each control (the default), a recessed
+bar, fully rounded pills, or a single rule under the bar. And a third gives the
+saved-filter menu row spacing, truncation for long names, a hover state and a
+Save row separated from the saved ones — that menu had **no styling at all** in
+Frappe, not one rule.
+
+**Two choices would have rendered as nothing, and arithmetic caught both before
+they were written.** The recessed bar was going to use the page colour, which is
+mixed from your brand — so on a pale brand it collapses to a one-unit difference
+and on white to none at all. And the default outline style was going to drop the
+control's fill and rely on its border, which would have re-opened the very defect
+the repair exists to fix, while looking like a style choice. Both are now built
+on a value mixed from ink rather than brand, which holds identically at every
+one of the eleven brands the contrast gate tests.
+
+**The item is smaller than its name, and the census is why.** "Saved views" in
+the sense other products mean it — a named bundle of filters, columns and sort,
+switchable from a rail — does not exist in Frappe; there are three unrelated
+mechanisms and no single object. And the list-view sidebar that a "filters" item
+obviously targets **is dead in v16**: it is switched off unconditionally, and
+around twenty stylesheet rules point at a container that is never rendered. Those
+rules were measured before being blamed — they cause no visible defect, because
+other rules cover the same ground — so they are filed upstream as dead code
+rather than repaired here.
+
+**What this could not do, stated rather than skipped:** it does not mark which
+saved filter you are currently in. Every reference product marks the selected row
+somehow, and Frappe's own newer apps use a check mark — but the desk records the
+active filter only by rewriting a button's text, with nothing in the page a
+stylesheet can see, and it forgets on reload. Filed upstream with eleven other
+findings, including a filter button whose accessible name is hardcoded English
+with a hand-rolled plural, and a stylesheet line that has never applied because
+`-var(--x)` is not valid CSS.
+
+Also in this item: filter values and saved-view names are now isolated for
+mixed-direction text — the one thing both RTL-shipping reference products left
+unsolved on this exact surface — and the report view's Add Group control is
+dressed with the rest of the strip, which closes a piece of work deferred out of
+the report view.
+
+
 ## [0.30.0] — 2026-08-20 — Skeletons (item 30)
 
 ### Loading states stop guessing (item 30)

@@ -164,6 +164,18 @@ bundled Bootstrap.
   `var(--text-muted)`, and the compiled rule is `color: var(--text-muted)`. Filed
   because reading the source suggests otherwise, and this app's own census
   believed it until the bundle was checked.
+  **CORRECTED 2026-08-21, during item 31, and the correction is worth more than
+  the entry.** That rule cannot match ANYTHING: `.list-sidebar` is never rendered
+  in v16 (`list_factory.js:30` hardcodes `hide_sidebar = true`,
+  `base_list.js:279-281` sets `no-list-sidebar` unconditionally, and
+  `list_view.js` contains the string "sidebar" zero times). The live
+  `.empty-state.group-by-loading` and `.group-by-empty` render inside
+  `.standard-filter-section .group-by-dropdown` in the PAGE FORM
+  (`base_list.js:1085`, `:1097`), which `list_sidebar.scss` does not reach. The
+  conclusion still holds — measured live, the node is themed — but by a
+  different rule, so the reasoning above was right about the outcome and wrong
+  about the mechanism. The whole of `list_sidebar.scss` is orphaned; see
+  `frappe-filters.md` §6.
 - **The filtered-to-zero copy promises a control that does not exist.**
   `list_view.js:538` says "Clear filters to see all {0}" and no clear-filters
   button is rendered. Both Discourse and Directus converged independently on the

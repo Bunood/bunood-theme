@@ -267,6 +267,33 @@ html[data-theme] .list-count {
   margin-inline-end: var(--bnd-sp-2);
 }
 
+// ── Contract R8: the standard filters' placeholder ink ──────────────────────
+// FOUND BY THE AXE HONESTY SCAN, not by the census — which is the argument for
+// running that scan at all. Every empty standard filter renders its field name
+// as `.placeholder.text-extra-muted`, and `global.scss:608` paints that class
+// `color: var(--gray-500) !important` — a hardcoded #999999. Measured live in
+// the strip: **2.63:1**, on the row that tells you what each filter filters by.
+//
+// It is NOT a regression of this kit's, and the scan proves it: the count is
+// identical with the kit on and with `filters_style: Original` (2.63 against
+// our wash, 2.61 against stock's `--control-bg` — the same failure either way).
+// It is fixed here because it is inside this kit's scope and about whether a
+// control can be read.
+//
+// The lever is item 29's, third outing: the vendor's rule is `!important` and
+// that is FINE, because it reads a variable — so a scoped re-point wins with no
+// !important of our own. Scoped to `.page-form` rather than globally, because
+// `.text-extra-muted` is a desk-wide utility and item 22 refused exactly this
+// kind of global repaint for exactly this reason.
+//
+// No new contrast pair: `--bnd-ink-muted` on this ground is ALREADY gated —
+// the ground is character-identical to `_form.scss`'s tab track, and
+// `contrast_gate.py:350` carries `--bnd-ink-muted` on it. Measured 7.71:1
+// light, 7.73:1 dark.
+html[data-theme] .page-form .text-extra-muted {
+  --gray-500: var(--bnd-ink-muted);
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // THE ANCHOR — html[data-bnd-filters]. Everything below is a STYLE: "Original"
 // clears the attribute and every rule here goes with it. The CONTRACTS above

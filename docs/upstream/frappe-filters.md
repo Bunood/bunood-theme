@@ -304,6 +304,41 @@ own next-generation apps agree, and the desk does not.
 
 ---
 
+## 12. Three axe violations in the filter strip, two of which no theme can fix
+
+Scanned with `@axe-core/playwright`, `include('.page-form')`, on `/app/todo`,
+`/app/todo/view/report` and `/app/file/view/list`. Every count below is
+identical with this theme's filter kit on and with it stood down, so none of
+them is a theming artefact.
+
+**(a) `color-contrast`, 2 nodes per list/report route — FIXED HERE, and reported
+because the fix is a workaround.** Every empty standard filter renders its field
+name as `<span class="placeholder text-extra-muted xs">`, and `global.scss:608`
+paints that class `color: var(--gray-500) !important` — a hardcoded `#999999`.
+Measured **2.63:1** against the control it labels. A theme can only fix this by
+re-pointing `--gray-500` in a scoped block, because the rule is `!important`;
+that works, but it means every consumer has to discover the same workaround.
+**Fix:** `--text-extra-muted` should be a variable a theme can bridge, or the
+value should be fitted against `--control-bg` rather than fixed.
+
+**(b) `select-name`, 2 nodes — a theme cannot fix this at all.** The standard
+filter `<select>`s (`select[placeholder="Status"]`, `select[placeholder="Priority"]`)
+have no implicit label, no explicit label, no `aria-label` and no
+`aria-labelledby`. `placeholder` is not an accessible name on a `<select>` — it
+is not even a valid attribute there. A screen-reader user is offered two unnamed
+combo boxes on every list view that has Select filters.
+**Fix:** `aria-label` from the same string already used as the placeholder.
+
+**(c) `button-name`, 2–3 nodes — likewise.** `.match-type-dropdown-btn`
+(`filters.scss:115`) renders as an icon-only dropdown toggle with no text and no
+`aria-label`; the file-view route contributes a third such button.
+**Fix:** `aria-label` naming what the control switches (`"Match type"`).
+
+An accessible name cannot be added from a stylesheet, so (b) and (c) are
+recorded here and left standing rather than worked around.
+
+---
+
 ## Not filed, and why
 
 - **`.filter-popover`'s `min-width: 500px`** is a deliberate sizing choice, not a

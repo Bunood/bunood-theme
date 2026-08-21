@@ -702,7 +702,64 @@ entry.
     200px floor and a density-aware restatement lands at or below it. The 1-row-to-N jump
     stays as stock has it rather than being claimed as fixed. Upstream:
     `docs/upstream/frappe-empty-states.md` covers both items (twelve filings).
-- `[ ]` **31 · Filters + saved views** *(was 24)*
+- `[x]` **31 · Filters + saved views** *(was 24, done 2026-08-21)* — the filter strip, the
+  NINTH surface kit and the second (after item 28) that is on more than one route by
+  default. Three fields (`filters_style` anchor · `filters_applied` · `filters_saved`),
+  `_filters.scss`, and three DOM shapes dressed as one object. Wireframed and picked
+  2026-08-20, then AMENDED 2026-08-21 by a gap round: **Outlined · Accented · Listed ·
+  repairs are contracts**. What the surface taught:
+  - **The item is smaller than its name, and the census is what shrank it.** The list-view
+    sidebar — the filters/tags/group-by column the title implies — **does not exist in
+    v16**: `list_factory.js:30` hardcodes `hide_sidebar = true`, `base_list.js:279` sets
+    `no-list-sidebar` unconditionally, and `list_view.js` contains the string "sidebar"
+    zero times. ~20 rules in `list_sidebar.scss` are orphaned. They were MEASURED before
+    being blamed — the group-by dropdown they no longer reach renders bounded and
+    scrollable anyway, because the generic `.dropdown-menu` supplies max-height/overflow/
+    min-width and item 28 supplies the paint — so a planned repair was DROPPED and the
+    filing is dead-code rather than defect. Item 23's shape, twice over.
+  - **"Saved views" is not a thing Frappe has.** It has `List Filter` (named, has a menu),
+    `List View Settings` (a dialog, per doctype not per user) and `__UserSettings`
+    (invisible) — three disjoint mechanisms and no unified object. The kit dresses the one
+    that has a DOM surface and says so, rather than inventing a rail. Item 29's
+    "the kit promotes what exists".
+  - **The headline defect was not only this kit's.** `.btn-primary-light` — the desk's
+    ONLY "this control is active" variant — mixes a Sass-literal fill with a
+    CSS-variable ink, so the two halves disagree about whether they follow the theme:
+    **4.12:1 in light, 1.02:1 in dark**, measured in place. Its three call sites are the
+    Filter button, the report view's Add Group button (which closes item 26's deferral for
+    free) and **the skip link**, a control item 22 built its keyboard contract around. It
+    is a state SET, not a declaration — Bootstrap generates eight rules and every fill in
+    them is a literal — so a repair to the base rule alone reverts on hover.
+  - **`.page-form` is the most exact scope any surface kit here has had.** It is
+    `display:none` on form, settings and workspace routes and visible only where filters
+    exist, measured on six routes — so one selector reaches the strip and nothing else,
+    and the query-report route comes free.
+  - **Two poles would have rendered as nothing, and ARITHMETIC caught both before either
+    was written** — one stage earlier than item 29 caught its two. `Trough`'s well cannot
+    be `--bnd-page` (brand-mixed, so it collapses to 1 channel at a near-white seed and 0
+    at pure white); and the anchor as drafted set `Outlined`'s slot to `--bnd-surface`, a
+    ZERO delta against the band, which would have re-opened the repaired defect while
+    looking like a style choice. Both now ride an INK mix, invariant at all eleven gate
+    seeds. New rule in the file: **a pole may not take the slot's fill away.**
+  - **A contract and an anchor pole that write the same CSS property cannot both be
+    asserted absolutely.** R7's hover ring and `Outlined`'s resting ring share box-shadow,
+    so the "hover reveals an edge" arm is true only where the anchor leaves the channel
+    free. It now runs under `Original` — asserting it unconditionally was testing the
+    anchor and calling it the contract.
+  - **The colour-serialisation trap, twice, and the second time it shipped a wrong
+    verdict.** `color-mix()` computes to `color(srgb r g b)` on a 0-1 scale, not `rgb()`.
+    A normaliser written for the channel-delta helper was not carried into a luminance
+    helper inside `page.evaluate`, and an Accented control measuring 4.74:1 was reported
+    as 3.92:1 — a correct rule failed by a wrong check. Fixed structurally: the page
+    returns STRINGS and every number is computed on the Node side.
+  - Zero new colour tokens and ONE new contrast pair (4,008 total): R2's resting fill is
+    character-identical to `_form.scss`'s tab track, so the gate already covered its inks.
+    Payload `css_gzip` 20200 → 20600 → 21000; the picker is doctype JS, so slice 3 cost
+    **zero** bundle bytes. References: Discourse `select-kit`/`category-drop` (the anchor's
+    default and the applied signal), Directus `system-filter`/`Nodes.vue` (Pill), frappe-ui
+    `TabButtons`/`TextInput` (the hover recipe, and the refutation of Trough-as-default),
+    and Frappe's OWN crm v1.79.0 / helpdesk v1.27.0, read from checkouts on the bench.
+    Upstream: `docs/upstream/frappe-filters.md` (twelve filings).
 
 - `[ ]` **32 · Login / signup / forgot** *(was 25)* — separate sheet; Frappe's login
   bundle loads after ours

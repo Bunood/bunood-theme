@@ -29,6 +29,95 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 31 (filters + saved filters) — DONE, LOCAL-ONLY, NOT YET RELEASED (2026-08-21).**
+Three commits on `main`: `1a7e9e4` (slices 1+2, contracts + anchor) · `26107c4` (slice 3, the two
+axes + the picker) · the close. Suite **306/306** at the slice-2 gate; the slice-3 gate is recorded
+in the close commit. Three fields (`filters_style` · `filters_applied` · `filters_saved`),
+`surfaces/_filters.scss`, `docs/upstream/frappe-filters.md`. **Releases as `v0.31.0`** — MINOR is
+the ROADMAP item number; do NOT compute it from the previous tag. Facts worth keeping:
+
+- **THE LIST-VIEW SIDEBAR DOES NOT EXIST IN v16, and ~20 rules point at it.** `list_factory.js:30`
+  hardcodes `const hide_sidebar = true`; `base_list.js:279-281` sets `no-list-sidebar`
+  unconditionally; `list_view.js` contains the string "sidebar" ZERO times. The group-by /
+  assigned-to / tags controls moved into `.standard-filter-section` in the PAGE FORM
+  (`base_list.js:837-845`) while KEEPING their old `.list-sidebar-button` / `.list-link` class
+  names — which is why the orphaning is invisible from the source. **Measured before being
+  blamed:** the dropdown renders bounded and scrollable anyway (generic `.dropdown-menu` supplies
+  max-height/overflow/min-width, item 28 supplies the paint), so a planned repair was DROPPED.
+- **This corrected TWO documents that had inherited a wrong premise.**
+  `docs/upstream/frappe-empty-states.md`'s `.empty-state`-in-the-list-sidebar entry and
+  `_skeleton.scss`'s comment both reasoned from `list_sidebar.scss`, which cannot match anything.
+  Both conclusions were right and both reasons were wrong — three documents deep, from reading the
+  source instead of the bundle. The `_skeleton.scss` edit is comment-only and was proven inert by a
+  BYTE-IDENTICAL rebuild (same md5, same content hash), the item-16 `_density.scss` technique.
+- **`.btn-primary-light` IS THE DESK'S ONLY "ACTIVE CONTROL" VARIANT AND IT WAS 1.02:1 IN DARK.**
+  Sass-literal fill (`$gray-300` light, `--bg-dark-gray` → `#999999` dark) under a CSS-variable ink
+  (`var(--primary)` → `--bnd-brand-ink`) — the two halves disagree about whether they follow the
+  theme. 4.12:1 light. **Three call sites: the Filter button, the report view's Add Group button,
+  and THE SKIP LINK** (`page.js:191`), so the repair is wider than this kit. It is a STATE SET, not
+  a declaration: Bootstrap's `button-variant` generates eight rules and every fill in them is a
+  literal, so re-pointing the base rule alone reverts to `#ededed` on hover. Repaired to
+  `--bnd-hover`, a `contrast_gate.SURFACES` member, so AA is guaranteed by an EXISTING gate row at
+  all 11 seeds rather than by luck (4.93 / 4.51 measured).
+- **`.page-form` IS THE CLEANEST SCOPE ANY SURFACE KIT HAS HAD.** It is `display:none` on form,
+  settings and workspace routes and visible only where filters exist (measured on six routes), so
+  one selector reaches the strip and nothing else — and the query-report route comes free.
+- **`filter_area.clear()` DOES NOT RESTORE, AND IT LIES ABOUT IT.** It empties the live list and
+  `filter_area.get().length` duly reports 0 — but `update_user_settings` has already written the
+  filter into the **redis** `_user_settings` hash and the next navigation reads it straight back.
+  The `__UserSettings` TABLE ROW stays clean the whole time. **The teardown is server-side:**
+  `frappe.cache.hdel("_user_settings", f"{doctype}::{frappe.session.user}")`. A filter left on ToDo
+  changes what every later list test sees and the failure does not name filters. Cost one confused
+  probe cycle.
+- **A FILTER DRIVEN ONTO A STANDARD FIELD NEVER REACHES THE COUNT.** `filter_area.add` routes a
+  standard field to the page-form select rather than to `filter_list`, so `update_filter_button()`
+  never runs and the button stays "0 Filter Applied". Two probes read "no applied state" that was
+  really "no filter". Pick a NON-standard field at runtime by diffing the doctype meta against the
+  rendered `.standard-filter-section [data-fieldname]` list.
+- **`color-mix()` COMPUTES TO `color(srgb r g b)` ON A 0-1 SCALE, NOT `rgb()`** — and
+  inconsistently: `--bnd-hover` is also a color-mix and serialises as `rgb()`. Anything parsing
+  digits and assuming 0-255 mis-reads the first form. **It bit twice.** The second time a
+  normaliser existed but had not been carried into a luminance helper running inside
+  `page.evaluate`, and an Accented control measuring 4.74:1 was reported as **3.92:1** — a correct
+  rule failed by a wrong check, and the CSS was chased first. Fixed structurally: **the page
+  returns STRINGS and every number is computed on the Node side**, so one place knows how a colour
+  serialises.
+- **TWO POLES WOULD HAVE RENDERED AS NOTHING, caught by ARITHMETIC before either was written** —
+  one stage earlier than item 29 caught its two. `--bnd-page` as a recessed well collapses to 1
+  channel at a near-white seed and 0 at pure white (it is brand-mixed); and the anchor's default
+  pole as drafted set the slot to `--bnd-surface`, a ZERO delta against the band, which would have
+  re-opened the repaired defect while looking like a style choice. Both now ride an INK mix, which
+  measures 9 (light) / 8 (dark) at ALL ELEVEN gate seeds. New rule in the file: **a pole may not
+  take the slot's fill away.**
+- **A CONTRACT AND AN ANCHOR POLE THAT WRITE THE SAME CSS PROPERTY CANNOT BOTH BE ASSERTED
+  ABSOLUTELY.** R7's hover ring and `Outlined`'s resting ring share box-shadow, so "hover reveals an
+  edge" is true only where the anchor leaves the channel free. That arm runs under `Original`;
+  asserting it unconditionally was testing the anchor and calling it the contract.
+- **ZERO new colour tokens; ONE new contrast pair (3,984 → 4,008).** The resting fill is
+  character-identical to `_form.scss:147`'s tab track, so the gate already covered its inks. The
+  one pair is the applied label on its brand wash, placed BESIDE the list kit's `SEL_BG` rows so
+  the expression is reused rather than restated (worst 4.54:1 over 11 seeds × 2 modes).
+- **A PRE-EXISTING WEAKNESS THIS SURFACED, recorded not fixed:** the list kit's selected-row wash
+  is that same `SEL_BG`, so it too flattens at a pure-white seed — its inks stay gated, so rows
+  remain readable, but the SELECTION is invisible there. Shipped since item 15. Out of scope for
+  item 31.
+- **Payload: `css_gzip` 20200 → 20600 (slice 1, crossed by 8 bytes) → 21000 (slice 3).** The JS
+  estimate was WRONG in an instructive way: "one table row" first measured **+668 b** against a
+  predicted +60-120, because twenty lines of comment around nine lines of code are payload in a
+  bundle that is not minified. Trimmed to a pointer, recovering 313. **The picker is doctype JS, so
+  slice 3 cost ZERO bundle bytes** — and needs `BND_FORCE_RESTART=1` to serve.
+- **The 22 `ar.po` rows are `#, fuzzy` and AWAIT THE USER'S REVIEW** — the item-7 handoff. Clear
+  them in their own commit, as items 27, 28 and 29+30 all did.
+- Wireframes: <https://claude.ai/code/artifact/5e9a1264-9b54-4ac1-bd36-4deaa92ba821>. Plan:
+  `~/.claude/plans/working-on-bunood-theme-we-validated-mountain.md`. Picks **Outlined · Accented ·
+  Listed · repairs are contracts** — `Outlined` is a REDECISION: the round chose `Trough` on
+  frappe-ui's `TabButtons` grammar, and reading Frappe's OWN five current apps overturned it
+  (`p-px`, the trough's signature, appears on **zero** filter or toolbar nodes across crm v1.79.0,
+  helpdesk v1.27.0, insights, gameplan and drive; crm uses `TabButtons` zero times). **crm and
+  helpdesk are still on the bench at `/home/frappe/frappe-bench/apps` even though they were
+  uninstalled from the SITE** — that is how they were read, and it is worth knowing for any future
+  "what would Frappe do" question.
+
 **ITEM 30 (skeletons) — DONE, RELEASED as `v0.30.0` (2026-08-20, local tag).** Two slices plus a close
 on `main`: `783520e` 1 (contracts) · `00a61da` 2 (anchor + picker). Suite **298/298**. One
 field (`skeleton_style`: Original · Still · Pulse · **Sweep**), `surfaces/_skeleton.scss`,

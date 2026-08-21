@@ -125,11 +125,19 @@ html[data-theme] .print-format-skeleton .skeleton-card.light {
 }
 
 // ── Contract: the loading text the theme never reached ──────────────────────
-// The list sidebar's group-by dropdown shows `.empty-state.group-by-loading`
-// while it fetches. Its ink comes from the same Sass alias as its `.group-by-
-// empty` twin and is already themed — but the LOADING one is ours by the
-// boundary above, so it is named here to record that it was checked and needs
-// nothing, rather than left ambiguous for the next reader.
+// The group-by dropdown shows `.empty-state.group-by-loading` while it fetches.
+// It is already themed, so it is named here to record that it was checked and
+// needs nothing, rather than left ambiguous for the next reader.
+//
+// CORRECTED 2026-08-21 (item 31). This comment used to say "the LIST SIDEBAR's
+// group-by dropdown", and the ink was attributed to `list_sidebar.scss`'s Sass
+// alias. Both halves are wrong: `.list-sidebar` is NEVER RENDERED in v16
+// (`list_factory.js:30` hardcodes `hide_sidebar = true`), and the dropdown lives
+// in `.standard-filter-section` in the page form (`base_list.js:837-845`), which
+// that stylesheet cannot reach. The node is themed by a different rule. Item 30
+// inherited the premise from item 29's upstream filing, which inherited it from
+// reading the source instead of the bundle — the same mistake, three documents
+// deep, and none of them changed the outcome. Only the reason.
 
 // ── Contract: reserved geometry ─────────────────────────────────────────────
 // Floors, not heights: `min-block-size` clamps only when the content is
