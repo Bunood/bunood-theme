@@ -294,6 +294,29 @@ html[data-theme] .page-form .text-extra-muted {
   --gray-500: var(--bnd-ink-muted);
 }
 
+// ── Contract R9: the strip's controls draw OUR focus ring ─────────────────
+// The focus ring lifted OUT of the anchor as a contract — the pattern item 26
+// set (`_report.scss`) and item 27 repeated (`_views.scss`), and this kit is
+// its third case. A contract survives `Original`; a style does not, and whether
+// a keyboard user can see where they are is not a style.
+//
+// Stock's own ring here is `0 0 0 2px #7c7c7c40` — a 25%-alpha grey that does
+// not track the palette. Ours is the accent at the same TWO TONES the report and
+// views kits use: `--bnd-accent` carries on a light control and the
+// `--bnd-on-brand` companion carries where the accent cannot, so one of the two
+// always clears 3:1 on every seed and mode.
+html[data-theme] .page-form .btn-default:focus-visible,
+html[data-theme] .page-form .frappe-control input:not([type="checkbox"]):focus-visible,
+html[data-theme] .page-form .frappe-control select:focus-visible,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):focus-visible,
+html[data-theme] .filter-area .filter-box select.condition:focus-visible,
+html[data-theme] .filter-area .clear-filters:focus-visible,
+html[data-theme] .saved-filter-item .dropdown-item:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // THE ANCHOR — html[data-bnd-filters]. Everything below is a STYLE: "Original"
 // clears the attribute and every rule here goes with it. The CONTRACTS above
@@ -434,8 +457,25 @@ html[data-bnd-filters] .page-form .btn-default,
 html[data-bnd-filters] .page-form .frappe-control input:not([type="checkbox"]),
 html[data-bnd-filters] .page-form .frappe-control select {
   background-color: var(--bnd-flt-slot);
-  box-shadow: var(--bnd-flt-ring);
   border-radius: var(--bnd-flt-radius);
+}
+
+// THE RING IS SCOPED `:not(:focus)`, AND THAT IS NOT A STYLE CHOICE.
+// `box-shadow` is the ONLY thing carrying focus on these controls: Bootstrap's
+// `.form-control:focus` also sets `outline: 0`, and their computed border is
+// `0px none`. An unconditional `box-shadow` here is (0,4,2) against that rule's
+// (0,2,0), so it won the focus state too and the ring vanished — measured under
+// `Ruled` as rest `none` → focus `none`, and under `Outlined` (the SHIPPED
+// DEFAULT) as rest identical to focus, i.e. no visible focus change at all.
+//
+// Found by the adversarial release review, NOT by any gate, and the reason is
+// worth writing down: `assertRingCoverage` and the suite's focus-ring walk both
+// key on `bnd-` classes, and these are FRAPPE'S controls. Neither can see them.
+// The item's own checks read these nodes at rest and on `:hover` only.
+html[data-bnd-filters] .page-form .btn-default:not(:focus),
+html[data-bnd-filters] .page-form .frappe-control input:not([type="checkbox"]):not(:focus),
+html[data-bnd-filters] .page-form .frappe-control select:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
 }
 
 // The popover's well and its condition rows. `.filter-area` takes the well so
@@ -444,8 +484,17 @@ html[data-bnd-filters] .page-form .frappe-control select {
 // The row's INLINE padding is the contract's (R5 above, which restates the
 // vendor's physical value logically); this adds only the BLOCK padding, so the
 // two never fight over the same property.
-html[data-bnd-filters] .filter-area {
+// THE WELL IS PAINTED ONLY UNDER `Trough`, and the guard is the whole rule.
+// `.filter-area` is the popover's entire content, but `.popover-body` wraps it
+// in 15px of padding — so painting the area a colour the PANEL does not share
+// draws a rectangle inside a 15px frame of a different one. Four of the five
+// poles set the well to `--bnd-surface`, which is the panel's colour under most
+// overlay styles and NOT under `overlay_style: "Solid"` — a two-tone popover
+// for no gain. `Trough` is the one pole whose well is meant to differ.
+// (Adversarial release review finding.)
+html[data-bnd-filters="trough"] .filter-area {
   background-color: var(--bnd-flt-well);
+  border-radius: var(--bnd-flt-radius);
 }
 
 html[data-bnd-filters] .filter-area .filter-box {
@@ -467,8 +516,16 @@ html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type=
 html[data-bnd-filters] .filter-area .filter-box select.condition,
 html[data-bnd-filters] .filter-area .clear-filters {
   background-color: var(--bnd-flt-slot);
-  box-shadow: var(--bnd-flt-ring);
   border-radius: var(--bnd-flt-radius);
+}
+
+// Same `:not(:focus)` guard, same reason — and it matters more here, because a
+// condition row's value input is the primary KEYBOARD target of the whole
+// filter editor.
+html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):not(:focus),
+html[data-bnd-filters] .filter-area .filter-box select.condition:not(:focus),
+html[data-bnd-filters] .filter-area .clear-filters:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -607,6 +664,17 @@ html[data-bnd-filters-saved="listed"] .saved-filter-item .remove-filter {
 html[data-bnd-filters-saved="listed"] .saved-filter-item:hover .remove-filter,
 html[data-bnd-filters-saved="listed"] .saved-filter-item:focus-within .remove-filter {
   opacity: 1;
+}
+
+// Touch has no hover: the reveal stands down wholesale, or the ONLY way to
+// delete a saved filter is invisible on a phone. Item 24's narrow-input
+// statement, which every other reveal in this project already makes
+// (`_list.scss:252`, `_form.scss:309`, and the workspace and views kits). This
+// kit missed it; the adversarial release review caught it.
+@media (hover: none) {
+  html[data-bnd-filters-saved="listed"] .saved-filter-item .remove-filter {
+    opacity: 1;
+  }
 }
 
 // The create affordance, separated from the saved ones. `data-name="create_new"`

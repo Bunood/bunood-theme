@@ -5131,6 +5131,18 @@ html[data-theme] .page-form .text-extra-muted {
   --gray-500: var(--bnd-ink-muted);
 }
 
+html[data-theme] .page-form .btn-default:focus-visible,
+html[data-theme] .page-form .frappe-control input:not([type=checkbox]):focus-visible,
+html[data-theme] .page-form .frappe-control select:focus-visible,
+html[data-theme] .filter-area .filter-box .frappe-control input:not([type=checkbox]):focus-visible,
+html[data-theme] .filter-area .filter-box select.condition:focus-visible,
+html[data-theme] .filter-area .clear-filters:focus-visible,
+html[data-theme] .saved-filter-item .dropdown-item:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+}
+
 html[data-bnd-filters] {
   --bnd-flt-well: var(--bnd-surface);
   --bnd-flt-slot: var(--bnd-flt-rest);
@@ -5205,12 +5217,18 @@ html[data-bnd-filters] .page-form .btn-default,
 html[data-bnd-filters] .page-form .frappe-control input:not([type=checkbox]),
 html[data-bnd-filters] .page-form .frappe-control select {
   background-color: var(--bnd-flt-slot);
-  box-shadow: var(--bnd-flt-ring);
   border-radius: var(--bnd-flt-radius);
 }
 
-html[data-bnd-filters] .filter-area {
+html[data-bnd-filters] .page-form .btn-default:not(:focus),
+html[data-bnd-filters] .page-form .frappe-control input:not([type=checkbox]):not(:focus),
+html[data-bnd-filters] .page-form .frappe-control select:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
+}
+
+html[data-bnd-filters=trough] .filter-area {
   background-color: var(--bnd-flt-well);
+  border-radius: var(--bnd-flt-radius);
 }
 
 html[data-bnd-filters] .filter-area .filter-box {
@@ -5228,8 +5246,13 @@ html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type=
 html[data-bnd-filters] .filter-area .filter-box select.condition,
 html[data-bnd-filters] .filter-area .clear-filters {
   background-color: var(--bnd-flt-slot);
-  box-shadow: var(--bnd-flt-ring);
   border-radius: var(--bnd-flt-radius);
+}
+
+html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type=checkbox]):not(:focus),
+html[data-bnd-filters] .filter-area .filter-box select.condition:not(:focus),
+html[data-bnd-filters] .filter-area .clear-filters:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
 }
 
 html[data-bnd-filters] {
@@ -5298,6 +5321,11 @@ html[data-bnd-filters-saved=listed] .saved-filter-item:focus-within .remove-filt
   opacity: 1;
 }
 
+@media (hover: none) {
+  html[data-bnd-filters-saved=listed] .saved-filter-item .remove-filter {
+    opacity: 1;
+  }
+}
 html[data-bnd-filters-saved=listed] .saved-filter-item[data-name=create_new] .dropdown-item {
   border-block-start: var(--bnd-line) solid var(--bnd-border);
   margin-block-start: var(--bnd-sp-1);

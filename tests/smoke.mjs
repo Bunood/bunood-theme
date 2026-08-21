@@ -452,6 +452,12 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 const SETTINGS_PANE_KEYS = [
 	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search", "mobile",
 	"placement", "inbox", "user", "links", "palette", "crumbs", "list", "form",
+	// Item 31. A pane absent from this list escapes BOTH the axe hard gate and
+	// the accessible-name walk that run over `walkSettingsPanes` — the pane
+	// renders, the picker works, and neither check ever looks at it. Caught by
+	// the adversarial release review rather than by a gate, because the gate is
+	// the thing with the hole in it.
+	"filters",
 	"layout", "branding", "colors", "icons", "density", "translations",
 ];
 
@@ -9315,6 +9321,60 @@ async function main() {
 				expectEq(seen.button, "normal", "as is the trigger beside it");
 			});
 
+			await test("filters: focus survives every anchor pole", async () => {
+				// THE CRITICAL FINDING OF THIS ITEM'S RELEASE REVIEW, and it shipped
+				// past every existing gate. The anchor set `box-shadow` on these
+				// controls UNCONDITIONALLY at (0,4,2), beating Bootstrap's
+				// `.form-control:focus` (0,2,0) in the focus state too — and because
+				// that rule also sets `outline: 0` and the computed border is
+				// `0px none`, the box-shadow is the SOLE focus carrier. Measured
+				// before the fix: under `Ruled`, rest `none` -> focus `none`; under
+				// `Outlined`, the SHIPPED DEFAULT, focus identical to rest.
+				//
+				// WHY NOTHING CAUGHT IT: `assertRingCoverage` and
+				// `a11y: focus draws a ring on every control that takes it` both key
+				// on `bnd-` classes, and these are FRAPPE's controls. The item's own
+				// checks read them at rest and on `:hover`. The hole was in the gates.
+				//
+				// TRAP: `.focus()` does not match `:focus-visible`. Focus is driven
+				// with a real Tab press, and the resting state is read first so the
+				// comparison is against this run's own baseline.
+				for (const style of ["Original", "Outlined", "Trough", "Pill", "Ruled"]) {
+					setSettings({ filters_style: style });
+					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					const seen = await page.evaluate(() => {
+						const el = document.querySelector(
+							".page-form .standard-filter-section .frappe-control input"
+						);
+						if (!el) return null;
+						const rest = getComputedStyle(el);
+						return { rest: { shadow: rest.boxShadow, outline: rest.outlineWidth } };
+					});
+					expect(seen, `${style}: a standard filter input renders`);
+					await page.focus(".page-form .standard-filter-section .frappe-control input");
+					await page.keyboard.press("Shift+Tab");
+					await page.keyboard.press("Tab");
+					await page.waitForTimeout(250);
+					const hot = await page.evaluate(() => {
+						const el = document.querySelector(
+							".page-form .standard-filter-section .frappe-control input"
+						);
+						const c = getComputedStyle(el);
+						return { shadow: c.boxShadow, outline: c.outlineWidth, style: c.outlineStyle };
+					});
+					const moved =
+						hot.shadow !== seen.rest.shadow ||
+						(parseFloat(hot.outline) > 0 && hot.style !== "none");
+					expect(
+						moved,
+						`${style}: focus is visible — rest(shadow ${seen.rest.shadow}, outline ` +
+							`${seen.rest.outline}) -> focus(shadow ${hot.shadow}, outline ${hot.outline})`
+					);
+					await page.evaluate(() => document.activeElement && document.activeElement.blur());
+				}
+				setSettings({ filters_style: "Outlined" });
+			});
+
 			await test("filters: an empty standard filter names itself legibly", async () => {
 				// FOUND BY THE AXE HONESTY SCAN rather than by the census, and that is
 				// the argument for running the scan: every empty standard filter shows
@@ -9669,7 +9729,7 @@ async function main() {
 			});
 		}
 
-		// \u2500\u2500 Responsive (item 24): the mobile boundary, and what holds below it ──
+		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
 		// `window.innerWidth < 768` (utils/common.js). At that width toolbar.js
