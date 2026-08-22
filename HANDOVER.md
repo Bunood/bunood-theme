@@ -1118,9 +1118,30 @@ check that was verified by putting the defect back and watching it turn red.
   be caching and a moved URL could be randomness, but **returning to a previously seen
   URL** can only happen if the name is a function of the content. Watched to fail
   against the deployed old code before the fix went in.
-- Still open, reported not fixed: **`_brand_css_url`'s self-heal writes inside a GET**,
-  so `set_single_value` is rolled back and the heal re-runs on every request once
-  triggered. Only reachable after a DB-only restore, which is a dev path.
+- **AND THE SELF-HEAL WROTE INSIDE A GET** (fixed 2026-08-22, after the tag). It ran in
+  `update_website_context` while serving a read, and Frappe rolls back the transaction
+  on a non-writing request — so `set_single_value` was discarded EVERY time. The stored
+  URL stayed stale, the next request found the same missing file, and the heal ran
+  again: a full palette render, a sha256, a directory listing and a WRITE LOCK on
+  `tabSingles`, per request, forever, to record something immediately thrown away.
+  Concurrent desk loads serialised on that lock in a state whose whole point was to be
+  invisible.
+  **The two brand fixes compose, and this one was not cleanly available before the
+  other.** Once the filename is a digest of the content, the URL is a pure function of
+  the settings, so the read path never needed to REMEMBER anything to be correct — only
+  to avoid repeating the render. `write_brand_css` gained `persist`; the read path
+  passes `False` (the FILE write is not transactional, and it is what makes the page
+  work), and the remembering moved to `brand.HEAL_CACHE_KEY`, which survives a request.
+  Ordering is the safety argument: **the stored value wins whenever its file is on
+  disk**, the cache is consulted only after that and re-stat'ed, and a real save deletes
+  it — so a leftover key can neither mask a save nor outlive its own file. `_reap_old`
+  is gated on `persist` too: a read that reaps can 404 a sheet another live desk holds.
+  **The symptom is invisible in the environment that has it.** In a real GET the stray
+  write vanishes on rollback; in the bench console it sticks. That inversion is why it
+  survived, and why the check runs in the console — a probe against the deployed old
+  code returned `read_path_wrote: true`. The live proof is better still: with the DB
+  pointing at a missing file, the served page linked the CORRECT healed sheet (200,
+  5761 bytes) while the stored value stayed bogus.
 
 ### And three smaller things the review turned up
 

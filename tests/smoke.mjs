@@ -1047,6 +1047,69 @@ async function main() {
 			);
 		});
 
+		await test("brand: the self-heal repairs the file without writing to the database", async () => {
+			// `_brand_css_url` runs inside `update_website_context` — while SERVING a
+			// GET. Frappe rolls back the transaction at the end of a non-writing
+			// request, so the `set_single_value` the heal used to make was discarded
+			// every time: the stored URL stayed stale, the next request found the same
+			// missing file, and the heal ran again. A full palette render, a sha256, a
+			// directory listing and a WRITE LOCK on `tabSingles` — per request,
+			// forever, to record something immediately thrown away. Concurrent desk
+			// loads serialised on that lock in a state whose whole purpose was to be
+			// invisible.
+			//
+			// WHY THE FIX IS SMALL: the filename is a digest of the content, so the URL
+			// is a pure function of the settings. The read path never needed to
+			// remember anything to be CORRECT — only to avoid repeating the render,
+			// and that moved to a cache key, which is not transactional.
+			//
+			// THIS CHECK RUNS IN THE BENCH CONSOLE, WHERE NOTHING ROLLS BACK, and that
+			// is the point. A write from the read path STICKS here, so it is visible.
+			// In the real request it would vanish, which is exactly why the bug
+			// survived: the symptom is invisible in the environment that has it and
+			// only appears in one that does not.
+			const out = JSON.parse(
+				benchPy(
+					`from bunood_theme import context\n` +
+						`from bunood_theme.brand import HEAL_CACHE_KEY\n` +
+						`real = frappe.db.get_single_value("Theme Settings", "brand_css_url")\n` +
+						`bogus = "/files/bunood/brand_deadbeefcafe.css"\n` +
+						`frappe.db.set_single_value("Theme Settings", "brand_css_url", bogus, update_modified=False)\n` +
+						`frappe.clear_cache()\n` +
+						`frappe.cache().delete_value(HEAL_CACHE_KEY)\n` +
+						`healed = context._brand_css_url()\n` +
+						`after = frappe.db.get_single_value("Theme Settings", "brand_css_url")\n` +
+						`import os\n` +
+						`served = os.path.exists(os.path.join(frappe.get_site_path("public"), *(healed or "/x").lstrip("/").split("/")))\n` +
+						`cached = frappe.cache().get_value(HEAL_CACHE_KEY)\n` +
+						`cached = cached.decode() if isinstance(cached, bytes) else cached\n` +
+						`frappe.db.set_single_value("Theme Settings", "brand_css_url", real, update_modified=False)\n` +
+						`frappe.cache().delete_value(HEAL_CACHE_KEY)\n` +
+						`frappe.db.commit()\n` +
+						`frappe.clear_cache()\n` +
+						`print(json.dumps({"healed": healed, "after": after, "served": served,\n` +
+						`                  "cached": cached, "real": real, "bogus": bogus}))\n`
+				)
+					.trim()
+					.split("\n")
+					.pop()
+			);
+
+			expect(out.healed, `the heal produces a url (${JSON.stringify(out)})`);
+			expect(out.served, `and the file it names is actually on disk (${out.healed})`);
+			expectEq(out.healed, out.real, "and it is the same url a real save would produce — the name is a digest");
+			// THE ASSERTION THE FIX IS FOR.
+			expectEq(
+				out.after,
+				out.bogus,
+				"the read path left the stored value ALONE — no write, so nothing to roll back"
+			);
+			// And the repair records itself somewhere that survives the request, which
+			// is what turns "re-render on every request until someone saves" into
+			// "re-render once". The database cannot do this job here; the cache can.
+			expectEq(out.cached, out.healed, "the repair is remembered in the cache instead");
+		});
+
 		// ── Desk layouts ───────────────────────────────────────────────────
 		const LAYOUT_CHECKS = {
 			"Top Bar": async () => {

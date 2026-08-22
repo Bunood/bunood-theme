@@ -248,27 +248,59 @@ def _brand_css_url():
     routes share one implementation — including the self-heal below, which is the
     part that would have been quietly forgotten in a second copy.
     """
+    import os
+
+    from bunood_theme.brand import HEAL_CACHE_KEY, write_brand_css
+
+    def on_disk(u):
+        return os.path.exists(os.path.join(frappe.get_site_path("public"), *u.lstrip("/").split("/")))
+
     url = frappe.get_cached_value("Theme Settings", "Theme Settings", "brand_css_url")
 
-    # SELF-HEAL BEFORE SERVING. The URL is derived state, and derived state can
-    # be restored without the file it derives from: a database-only restore
-    # (the smoke suite and the settings sweep both write tabSingles back raw)
-    # leaves `brand_css_url` pointing at a hash whose file a later save had
-    # reaped. Serving that URL hands every desk a 404-as-HTML stylesheet and
-    # the brand colours are simply gone — measured 2026-08-08 as the stale
-    # brand CSS console error the suite had been allowlisting. One stat per
-    # desk render is the price of never doing that; on the happy path it is
-    # the only cost.
-    if url:
-        import os
+    # THE STORED VALUE WINS WHENEVER ITS FILE IS THERE, and this ordering is the
+    # whole safety argument for the cache below. One stat per desk render is the
+    # cost on the happy path, and it is the only cost.
+    if url and on_disk(url):
+        return url
 
-        from bunood_theme.brand import write_brand_css
+    # SELF-HEAL BEFORE SERVING. The URL is derived state, and derived state can be
+    # restored without the file it derives from: a database-only restore (the smoke
+    # suite and the settings sweep both write tabSingles back raw) leaves
+    # `brand_css_url` pointing at a hash whose file a later save had reaped. Serving
+    # that URL hands every desk a 404-as-HTML stylesheet and the brand colours are
+    # simply gone — measured 2026-08-08 as the stale brand CSS console error the
+    # suite had been allowlisting.
+    #
+    # THE REPAIR MAY NOT TOUCH THE DATABASE, AND THE FIRST VERSION DID. This runs in
+    # `update_website_context`, i.e. while serving a GET, and Frappe rolls back the
+    # transaction at the end of a non-writing request — so `write_brand_css`'s
+    # `set_single_value` was discarded every single time. The stored URL stayed
+    # stale, the next request found the same missing file, and the heal ran again:
+    # a full palette render, a hash, a directory listing and a WRITE LOCK on
+    # tabSingles, on every request, forever, to record something immediately thrown
+    # away. Concurrent desk loads serialised on that lock in a state whose entire
+    # purpose was to be invisible. Found in item 32's release review.
+    #
+    # `persist=False` writes the FILE — which is not transactional, so it survives
+    # the request and is what actually makes this page work — and returns the URL
+    # without recording anything.
+    if not url:
+        return None
 
-        on_disk = os.path.join(frappe.get_site_path("public"), *url.lstrip("/").split("/"))
-        if not os.path.exists(on_disk):
-            url = write_brand_css()
+    # A repair this process (or another) already made. Checked AFTER the stored
+    # value and re-stat'ed, so a key left behind by an earlier heal can neither
+    # mask a real save nor outlive its own file being reaped.
+    healed = frappe.cache().get_value(HEAL_CACHE_KEY)
+    if healed and on_disk(healed):
+        return healed
 
-    return url or None
+    fresh = write_brand_css(persist=False)
+    if fresh:
+        # Not the database: the cache is not transactional, so unlike the write
+        # this replaces, it is still there on the next request. That is what turns
+        # "re-render on every request until someone saves" into "re-render once".
+        frappe.cache().set_value(HEAL_CACHE_KEY, fresh)
+    return fresh or None
 
 
 def _correct_layout_direction(context):

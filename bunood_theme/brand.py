@@ -317,7 +317,18 @@ body {{
 """
 
 
-def write_brand_css(settings=None) -> str | None:
+#: Cache key holding a URL produced by a READ-PATH repair (``persist=False``).
+#:
+#: A repair made while serving a page cannot record itself in the database — see
+#: :func:`write_brand_css`'s ``persist`` argument — so it records itself here instead.
+#: The cache is not transactional, so it survives the request that wrote it, and it is
+#: site-namespaced by Frappe. :func:`bunood_theme.context._brand_css_url` treats it as
+#: strictly subordinate to the stored value: the database wins whenever ITS file is on
+#: disk, so a stale key can never mask a real save.
+HEAL_CACHE_KEY = "bunood_theme:healed_brand_css_url"
+
+
+def write_brand_css(settings=None, persist: bool = True) -> str | None:
     """Generate, write and register the brand stylesheet. Returns its URL or ``None``.
 
     Called from ``Theme Settings.on_update`` (so a save takes effect immediately) and
@@ -327,6 +338,31 @@ def write_brand_css(settings=None) -> str | None:
     The write is atomic — temp file plus :func:`os.replace` — because the file is being
     served by nginx while we rewrite it, and a partially written stylesheet would be
     handed to a live browser.
+
+    Args:
+        persist: whether this call may RECORD the result — write ``brand_css_url`` and
+            reap superseded files. ``False`` renders and writes the file and returns
+            its URL, touching neither the database nor its neighbours.
+
+    WHY ``persist`` EXISTS, AND WHY THE READ PATH MUST PASS ``False``. The self-heal in
+    :func:`bunood_theme.context._brand_css_url` runs inside ``update_website_context``,
+    i.e. while serving a GET. **Frappe rolls back the transaction at the end of a
+    non-writing request**, so the ``set_single_value`` below was discarded every time:
+    the stored URL stayed stale, the next request found the same missing file, and the
+    heal ran again — for every request, forever, until somebody saved Theme Settings.
+    Each of those took a write lock on ``tabSingles`` to record something that was then
+    thrown away, so concurrent desk loads serialised on a row lock in a state whose
+    whole point was that it should be invisible. Found in item 32's release review.
+
+    The repair is still correct without the write, and THAT is what makes this fix
+    small: the filename is a digest of the content (see below), so the URL is a pure
+    function of the settings. The read path does not need to remember anything to be
+    right — it only wanted to, to avoid repeating the render. That job moved to
+    :data:`HEAL_CACHE_KEY`, which is not transactional.
+
+    Reaping is gated on ``persist`` for the same reason and one of its own: deleting a
+    neighbour's file is not this request's business, and a read that reaps is a read
+    that can 404 a stylesheet another live desk is still holding.
 
     Returns:
         The public URL (``/files/bunood/brand_<hash>.css``), or ``None`` if generation
@@ -382,9 +418,14 @@ def write_brand_css(settings=None) -> str | None:
                 fh.write(css)
             os.replace(tmp, target)  # atomic on the same filesystem
 
-        _reap_old(folder, keep=filename)
-
         url = f"/files/{BRAND_DIR}/{filename}"
+
+        # A read-path repair stops here: the file now exists and the URL is correct,
+        # which is everything the request being served needs.
+        if not persist:
+            return url
+
+        _reap_old(folder, keep=filename)
         # set_value, not doc.save(): saving inside on_update would recurse, and this
         # field is derived state the user never edits.
         #
@@ -398,6 +439,9 @@ def write_brand_css(settings=None) -> str | None:
             frappe.db.set_single_value(
                 "Theme Settings", "brand_css_url", url, update_modified=False
             )
+        # The stored value is authoritative again, so any read-path repair is now
+        # noise. Dropping it here is what stops a heal from outliving a real save.
+        frappe.cache().delete_value(HEAL_CACHE_KEY)
         return url
 
     except Exception:
