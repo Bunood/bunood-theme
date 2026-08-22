@@ -147,24 +147,78 @@ def render_brand_css(settings=None) -> str:
     # rules at all; _tokens.scss supplies the fallback, but without this block a
     # tenant's own colours would stop at the mode boundary and an Automatic user
     # on a dark OS would see the SHIPPED green rather than theirs.
+    # ── The sign-in page's own dark scopes (item 32) ─────────────────────────
+    #
+    # A WEBSITE PAGE CARRIES NO `data-theme`, so neither dark selector above can
+    # match one — and the light selector's `html:not([data-theme])` arm can. That
+    # asymmetry is a real defect and it hides at the shipped seed: /login in dark
+    # fell back to `_tokens.scss`'s LITERAL dark values, which are fitted for the
+    # shipped green. A customer with a blue brand would have got a green art
+    # panel and a green primary button on their dark sign-in page, and every
+    # check would have passed, because this site's seed IS the shipped one.
+    # Found by reading the generated file rather than by a test.
+    #
+    # THE SELECTORS ARE DERIVED FROM `context.AUTH_CLASSES`, not restated. That
+    # map is the one place a login value becomes a class name; writing
+    # "bnd-auth-theme-dark" here as a string would be the second copy, and this
+    # repo's every critical defect traces to one.
+    from bunood_theme.context import AUTH_BODY_CLASS, AUTH_CLASSES
+
+    _modes = AUTH_CLASSES["login_theme"]
+    _dark_cls = f"body.{AUTH_BODY_CLASS}-{_modes['Always Dark']}"
+    _follow = (
+        f"body.{AUTH_BODY_CLASS}"
+        f":not(.{AUTH_BODY_CLASS}-{_modes['Always Light']})"
+        f":not(.{AUTH_BODY_CLASS}-{_modes['Always Dark']})"
+    )
+
+    # The tagline, which Theme Settings has promised on this page since day one
+    # and never delivered. Its slot is a LITERAL in Frappe's own template
+    # (`www/login.html:91-104`'s `logo_section` macro takes title and subtitle and
+    # every call site passes strings), and `www/login.py` publishes no context key
+    # for it — so there is no server-side seam and injecting a node would mean
+    # end-of-body JS, i.e. a flash. It travels as a custom property and
+    # `web/login.scss` renders it.
+    #
+    # `content: none` is the absent case, so an unset tagline generates NO
+    # pseudo-element rather than an empty box with margins.
+    tagline = _css_string(s.get("tagline"))
+    tagline_decl = f"\n  --bnd-login-tagline: {tagline};" if tagline else ""
+
     return f"""@media screen {{
 :root {{
   --bnd-brand:  {brand};
-  --bnd-accent: {accent};{density}
+  --bnd-accent: {accent};{density}{tagline_decl}
 }}
 html[data-theme="light"], html:not([data-theme]) {{
 {block(light)}
 }}
-html[data-theme="dark"] {{
+html[data-theme="dark"], {_dark_cls} {{
 {block(dark)}
 }}
 @media (prefers-color-scheme: dark) {{
-  html[data-theme="automatic"] {{
+  html[data-theme="automatic"], {_follow} {{
 {block(dark, "    ")}
   }}
 }}
 }}
 """
+
+
+def _css_string(value) -> str:
+    """Quote a customer-entered string for a CSS ``content:`` value, or return "".
+
+    ESCAPED, NOT TRUSTED. This lands in a stylesheet an admin can edit the input
+    for, so a stray quote or backslash would end the string early and everything
+    after it would parse as CSS. Backslash first (or it would re-escape the
+    escapes), then the quote, then the line terminators CSS strings may not
+    contain. Anything left is inert: a CSS string cannot open a rule.
+    """
+    if not value:
+        return ""
+    text = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    text = text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+    return f'"{text}"'
 
 
 def render_typography_css(settings) -> str:

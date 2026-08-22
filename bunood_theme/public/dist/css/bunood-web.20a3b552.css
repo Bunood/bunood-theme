@@ -367,6 +367,16 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+body.bnd-auth .page-card .page-card-head-text::after {
+  content: var(--bnd-login-tagline, none);
+  display: block;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
 body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
   outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent);
   outline-offset: 2px;

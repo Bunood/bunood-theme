@@ -210,6 +210,38 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+// ── Contract R11: the tagline stops being a promise ─────────────────────────
+// Theme Settings has shipped a `tagline` field whose description reads "Shown
+// on the login page." since day one, and nothing has ever read it. That is a
+// lie in the product, not a missing feature, which is why it lands with the
+// contracts rather than under a pole.
+//
+// IT RENDERS FROM A CUSTOM PROPERTY, and every other route was closed before
+// this one was chosen. Its slot is a LITERAL in Frappe's `logo_section` macro
+// (`www/login.html:91-104` takes title and subtitle; every call site passes
+// strings), `www/login.py` publishes no context key for it, and injecting a
+// node would mean end-of-body JS — a flash on the first screen a customer sees.
+// `brand.py` writes the string into the per-site sheet, escaped; this renders it.
+//
+// `content: none` IS THE ABSENT CASE, and that is the whole reason the fallback
+// is `none` rather than `""`. An empty string still generates a pseudo-element,
+// which would put the margin below every un-tagged site's subtitle.
+//
+// THE HONEST COST, recorded rather than glossed: generated content is not
+// selectable, and support for it in assistive technology is good but not
+// universal. The tagline is decorative — the page's actual instruction is the
+// subtitle above it — so this is the right side of that trade. The missing
+// context key is filed upstream.
+body.bnd-auth .page-card .page-card-head-text::after {
+  content: var(--bnd-login-tagline, none);
+  display: block;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
 // ── Contract R1: keyboard focus is visible again ────────────────────────────
 //
 // THE HEADLINE DEFECT, and the reason this kit's repairs are contracts.

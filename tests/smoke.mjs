@@ -10844,6 +10844,110 @@ async function main() {
 				setSettings({ login_theme: "Follow OS" });
 			});
 
+			await test("login: the customer's OWN dark palette reaches this page", async () => {
+				// A DEFECT FOUND BY READING THE GENERATED FILE, not by a test, and
+				// one that hides completely at the shipped seed.
+				//
+				// The per-site brand sheet emitted its dark values under
+				// `html[data-theme="dark"]` and `html[data-theme="automatic"]` — and
+				// a WEBSITE PAGE CARRIES NO `data-theme`, so neither could ever
+				// match one. Its LIGHT block could, via the `html:not([data-theme])`
+				// arm. So light got the customer's colours and dark fell back to
+				// `_tokens.scss`'s LITERALS, which are fitted for the shipped green:
+				// a customer with a blue brand would have had a green art panel and
+				// a green primary button on their dark sign-in page.
+				//
+				// THE SIGNAL IS SEED-INDEPENDENT, which is why this check works on a
+				// site whose seed IS the shipped one. The bundle declares the dark
+				// surfaces as LIVE `color-mix()` expressions; the brand sheet emits
+				// CONCRETE HEX (deliberately — brand.py's header says so, so that
+				// what CI measured and what the browser paints are one string). A
+				// custom property keeps its specified form, so "did the per-site
+				// sheet win here" is answerable by looking at the shape of the
+				// value, at any seed.
+				const want = JSON.parse(
+					benchPy(
+						"from bunood_theme import palette\n" +
+							"s = frappe.get_single('Theme Settings')\n" +
+							"brand = (s.brand_color_dark or s.brand_color or '#4d8756').strip()\n" +
+							"accent = (s.accent_color_dark or s.accent_color or '#4463f0').strip()\n" +
+							"d = palette.derive(brand, accent, 'dark')\n" +
+							"print(json.dumps({k: d[k] for k in ('--bnd-page', '--bnd-brand-solid')}))\n"
+					)
+						.trim()
+						.split("\n")
+						.pop()
+				);
+				const got = await withGuest(
+					"/login",
+					".for-login .page-card",
+					async (gp) =>
+						gp.evaluate(() => {
+							const s = getComputedStyle(document.body);
+							return {
+								page: s.getPropertyValue("--bnd-page").trim(),
+								brandSolid: s.getPropertyValue("--bnd-brand-solid").trim(),
+							};
+						}),
+					{ colorScheme: "dark" }
+				);
+				expect(
+					!got.page.includes("color-mix"),
+					`the per-site sheet reaches dark here, not the bundle's fallback mix (${got.page})`
+				);
+				expectEq(got.page, want["--bnd-page"], "and it is this site's own derived dark surface");
+				expectEq(
+					got.brandSolid,
+					want["--bnd-brand-solid"],
+					"including the brand fill Split's whole art panel is painted with"
+				);
+			});
+
+			await test("login: the tagline field stops being a promise", async () => {
+				// Theme Settings has shipped a `tagline` whose description reads
+				// "Shown on the login page." since day one, and nothing read it.
+				// Both halves are asserted, and the ABSENT one is the half that
+				// would rot silently: `content: none` must generate NO
+				// pseudo-element, or every site without a tagline gets an empty box
+				// and its margin under the subtitle.
+				const setTagline = (value) =>
+					benchPy(
+						`frappe.db.set_single_value('Theme Settings', 'tagline', ${JSON.stringify(value)})\n` +
+							"frappe.db.commit()\n" +
+							"from bunood_theme.brand import write_brand_css\n" +
+							"print(write_brand_css())\n" +
+							"frappe.db.commit()\n"
+					);
+				const read = () =>
+					withGuest("/login", ".for-login .page-card", async (gp) =>
+						gp.evaluate(() => {
+							const head = document.querySelector(".for-login .page-card-head-text");
+							const cs = getComputedStyle(head, "::after");
+							return { content: cs.content, colour: cs.color };
+						})
+					);
+				const before = benchPy(
+					"print(frappe.get_single('Theme Settings').tagline or '')\n"
+				).trim().split("\n").pop();
+				try {
+					setTagline("Bunood — property, managed properly.");
+					const shown = await read();
+					expect(
+						shown.content.includes("property, managed properly"),
+						`a set tagline renders (${shown.content})`
+					);
+					// An em dash survives the CSS string escaping unharmed, which is
+					// the case a naive quote-stripper would mangle.
+					expect(shown.content.includes("—"), "punctuation included");
+
+					setTagline("");
+					const hidden = await read();
+					expectEq(hidden.content, "none", "and an unset one generates no pseudo-element at all");
+				} finally {
+					setTagline(before);
+				}
+			});
+
 			await test("login: /update-password gets the same repairs", async () => {
 				// One surface, two routes — so the contracts have to reach both. This
 				// is the check that would catch a scope keyed on `data-path="login"`
