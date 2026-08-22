@@ -3335,9 +3335,9 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   grid-template-columns: minmax(9rem, 1fr) minmax(0, 3fr);
   gap: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid var(--bnd-hairline, var(--border-color));
+  border: 1px solid var(--border-color);
   border-radius: var(--bnd-radius-lg, 12px);
-  background: var(--bnd-surface-2, var(--fg-color));
+  background: var(--fg-color);
 }
 
 .bnd-bd-region[data-region=sidepane] {
@@ -3354,8 +3354,8 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   flex-direction: column;
   gap: 0.375rem;
   padding: 0.5rem;
-  border: 1px dashed var(--bnd-hairline, var(--border-color));
-  border-radius: var(--bnd-radius, 8px);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--bnd-radius-md);
   background: var(--bnd-surface, var(--card-bg));
   min-block-size: 4rem;
 }
@@ -3409,7 +3409,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   padding: 0.375rem;
   border: 1px solid transparent;
   border-radius: var(--bnd-radius-sm, 6px);
-  background: var(--bnd-surface-3, var(--control-bg));
+  background: var(--control-bg);
   cursor: pointer;
   transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
@@ -3437,7 +3437,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 
 .bnd-bd-zone.bnd-bd-ok {
   border-color: var(--bnd-accent, var(--primary));
-  background: var(--bnd-accent-wash, var(--control-bg));
+  background: var(--control-bg);
 }
 
 .bnd-bd-zone.bnd-bd-no {
@@ -3450,7 +3450,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   align-items: center;
   gap: 0.375rem;
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--bnd-hairline, var(--border-color));
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   background: var(--bnd-surface, var(--card-bg));
   color: var(--text-color);
@@ -3465,7 +3465,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 
 .bnd-bd-chip.bnd-bd-armed {
   border-color: var(--bnd-accent, var(--primary));
-  box-shadow: 0 0 0 2px var(--bnd-accent-wash, transparent);
+  box-shadow: 0 0 0 2px transparent;
 }
 
 .bnd-bd-chip.bnd-bd-dragging {
@@ -3485,7 +3485,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   inline-size: 1.5rem;
   block-size: 1.5rem;
   padding: 0;
-  border: 1px solid var(--bnd-hairline, var(--border-color));
+  border: 1px solid var(--border-color);
   border-radius: var(--bnd-radius-sm, 6px);
   background: var(--bnd-surface, var(--card-bg));
   color: var(--text-color);
@@ -3502,7 +3502,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 
 .bnd-bd-move-btn {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--bnd-hairline, var(--border-color));
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   background: var(--bnd-surface, var(--card-bg));
   color: var(--text-color);
@@ -3526,7 +3526,7 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
 }
 
 .bnd-bd-tray {
-  border: 1px dashed var(--bnd-hairline, var(--border-color));
+  border: 1px dashed var(--border-color);
   background: transparent;
 }
 

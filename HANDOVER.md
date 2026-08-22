@@ -1143,6 +1143,41 @@ check that was verified by putting the defect back and watching it turn red.
   pointing at a missing file, the served page linked the CORRECT healed sheet (200,
   5761 bytes) while the stored value stayed bogus.
 
+### The phantom-token guard, and the five more it found (2026-08-22, after the tag)
+
+- **`build.mjs` NOW REFUSES ANY `var(--bnd-*)` NAMING A PROPERTY NOTHING DECLARES.**
+  Item 32 shipped `outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent)` — a raw
+  2px wearing a token's name, declared nowhere. It passed every guard: the no-raw-px
+  rule cannot see a literal inside a `var()`, and an undeclared custom property is a
+  valid identifier, so nothing is malformed. **The first thing the new guard did was
+  find FIVE MORE** — `--bnd-accent-wash`, `--bnd-hairline`, `--bnd-radius`,
+  `--bnd-surface-2`, `--bnd-surface-3` — across ELEVEN rules of the layout builder in
+  `chrome/_settings.scss`, every one of them painted by a FRAPPE variable all along.
+- **The quiet failure mode is the one without a fallback.** A `var()` naming an
+  undeclared property is Invalid At Computed-Value Time, so the whole declaration
+  resolves to `unset` rather than erroring. A misspelt token does not break loudly; it
+  silently DELETES the property. That is how a focus ring or a background goes missing.
+- **It runs per COMPILED sheet, and that is deliberate.** The desk gets `bunood.css`,
+  the auth templates `bunood-web.css`, and they never load together — so "declared
+  somewhere in the repo" is the wrong test. Compiled, not authored, because `@use`,
+  mixins and nesting must resolve first; item 32's `@include dark` already proved that
+  reading the source instead of the output is how a whole block vanishes unnoticed.
+- **Its one exception is DERIVED, not listed.** `brand.py` declares tokens at runtime
+  that no compiled sheet can contain (the seed palette, the Arabic face, the login
+  tagline). `readRuntimeTokens` reads the names out of `brand.py`/`palette.py` and
+  throws if it extracts implausibly few — a hand-kept second copy is the
+  same-fact-in-two-places trap this repo keeps paying for.
+- **The eleven offenders were collapsed to what they already rendered, NOT re-pointed**
+  at real tokens. The compiled diff is exactly those eleven lines, which proves the
+  no-op. Making them use `--bnd-border`/`--bnd-surface`/`--bnd-brand` is a visible
+  change to the layout builder with contrast pairs to fit — a separate decision from
+  removing a lie, and recorded in the file as a deliberate deferral.
+- **One real change inside it:** `border-radius: var(--bnd-radius, 8px)` became
+  `var(--bnd-radius-md)`, so **8px to 6px** on the dashed region placeholder. Collapsing
+  it faithfully meant writing a raw `8px`, which breaks "tokens, never raw px" — a
+  violation created to remove one. 8px is not on the scale (4/6/10/14), and the element
+  nests inside `.bnd-bd-desk`, which already uses `--bnd-radius-lg`.
+
 ### And three smaller things the review turned up
 
 - **`submitOff` WAS COMPUTED AND NEVER ASSERTED**, off a bare `.btn-forgot`, in the

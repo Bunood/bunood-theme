@@ -909,6 +909,19 @@ html[data-theme] {
 	gap: 0.75rem;
 }
 
+// PHANTOM TOKENS LIVED IN THIS BLOCK AND `assertTokensDeclared` NOW FORBIDS THEM.
+// `--bnd-hairline`, `--bnd-surface-2`, `--bnd-surface-3`, `--bnd-accent-wash` and
+// `--bnd-radius` were never declared anywhere in this repo, so every one of them
+// always took its fallback: the rules below have been painted by FRAPPE's
+// variables all along while reading as though a theme token drove them. That is
+// the `--bnd-line-thick` shape item 32 found in `web/login.scss`, and it is
+// invisible to every other guard because it hides inside a `var()`.
+//
+// They are collapsed to what they actually rendered rather than re-pointed at
+// real tokens: making them use `--bnd-border` / `--bnd-surface` / `--bnd-brand`
+// would be a visible design change to the layout builder, with contrast pairs to
+// fit, and that is a separate decision from removing a lie. Recorded so it is a
+// deliberate deferral and not an oversight.
 // The desk: a side pane column beside a stack of bars, which is the shape of
 // the thing being configured. `grid` rather than absolute positioning so the
 // bars grow with their content instead of clipping it.
@@ -917,9 +930,9 @@ html[data-theme] {
 	grid-template-columns: minmax(9rem, 1fr) minmax(0, 3fr);
 	gap: 0.5rem;
 	padding: 0.75rem;
-	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border: 1px solid var(--border-color);
 	border-radius: var(--bnd-radius-lg, 12px);
-	background: var(--bnd-surface-2, var(--fg-color));
+	background: var(--fg-color);
 }
 
 // The side pane is a column and spans every bar row beside it, exactly as it
@@ -937,8 +950,8 @@ html[data-theme] {
 	flex-direction: column;
 	gap: 0.375rem;
 	padding: 0.5rem;
-	border: 1px dashed var(--bnd-hairline, var(--border-color));
-	border-radius: var(--bnd-radius, 8px);
+	border: 1px dashed var(--border-color);
+	border-radius: var(--bnd-radius-md);
 	background: var(--bnd-surface, var(--card-bg));
 	min-block-size: 4rem;
 }
@@ -1008,7 +1021,7 @@ html[data-theme] {
 	padding: 0.375rem;
 	border: 1px solid transparent;
 	border-radius: var(--bnd-radius-sm, 6px);
-	background: var(--bnd-surface-3, var(--control-bg));
+	background: var(--control-bg);
 	cursor: pointer;
 	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
@@ -1040,7 +1053,7 @@ html[data-theme] {
 }
 .bnd-bd-zone.bnd-bd-ok {
 	border-color: var(--bnd-accent, var(--primary));
-	background: var(--bnd-accent-wash, var(--control-bg));
+	background: var(--control-bg);
 }
 .bnd-bd-zone.bnd-bd-no {
 	opacity: 0.4;
@@ -1054,7 +1067,7 @@ html[data-theme] {
 	align-items: center;
 	gap: 0.375rem;
 	padding: 0.25rem 0.5rem;
-	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border: 1px solid var(--border-color);
 	border-radius: 999px;
 	background: var(--bnd-surface, var(--card-bg));
 	color: var(--text-color);
@@ -1067,7 +1080,7 @@ html[data-theme] {
 }
 .bnd-bd-chip.bnd-bd-armed {
 	border-color: var(--bnd-accent, var(--primary));
-	box-shadow: 0 0 0 2px var(--bnd-accent-wash, transparent);
+	box-shadow: 0 0 0 2px transparent;
 }
 .bnd-bd-chip.bnd-bd-dragging {
 	opacity: 0.5;
@@ -1090,7 +1103,7 @@ html[data-theme] {
 	inline-size: 1.5rem;
 	block-size: 1.5rem;
 	padding: 0;
-	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border: 1px solid var(--border-color);
 	border-radius: var(--bnd-radius-sm, 6px);
 	background: var(--bnd-surface, var(--card-bg));
 	color: var(--text-color);
@@ -1105,7 +1118,7 @@ html[data-theme] {
 }
 .bnd-bd-move-btn {
 	padding: 0.25rem 0.5rem;
-	border: 1px solid var(--bnd-hairline, var(--border-color));
+	border: 1px solid var(--border-color);
 	border-radius: 999px;
 	background: var(--bnd-surface, var(--card-bg));
 	color: var(--text-color);
@@ -1130,7 +1143,7 @@ html[data-theme] {
 // The Off tray is a zone like any other, which is why "off" needs no special
 // handling in the drop path — it is a place a chip can be, not a mode.
 .bnd-bd-tray {
-	border: 1px dashed var(--bnd-hairline, var(--border-color));
+	border: 1px dashed var(--border-color);
 	background: transparent;
 }
 

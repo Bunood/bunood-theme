@@ -128,8 +128,10 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   mirror to WSL, restart only when hashes moved, and fail if the stack is not
   serving the build it just made.
 - `build.mjs` — RTL, ownership polarity, field naming, registry identity, typography
-  sync, i18n coverage, motion-primitive, breakpoint-vocabulary, focus-ring coverage and
-  payload-budget guards.
+  sync, i18n coverage, motion-primitive, breakpoint-vocabulary, focus-ring coverage,
+  phantom-token and payload-budget guards. The phantom-token one refuses any
+  `var(--bnd-*)` naming a property nothing declares — it found five in `_settings.scss`
+  the day it was written, and its exception set is READ from `brand.py`/`palette.py`.
 - `contrast.py` (colour maths) · `palette.py` (the seed-dependent token set) ·
   `tools/contrast_gate.py` (`npm run contrast`). One derivation, two consumers:
   `brand.py` formats it, the gate measures it. Never reimplement either in JS.

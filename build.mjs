@@ -58,6 +58,17 @@ const DIST_CSS = join(APP, "public", "dist", "css");
 const DIST_JS = join(APP, "public", "dist", "js");
 
 /**
+ * Custom properties `brand.py` declares at RUNTIME, in the per-site stylesheet.
+ * Read out of the Python rather than listed here — a hand-kept second copy of
+ * this set is the same-fact-in-two-places trap, and it would go stale the first
+ * time a token was renamed. See assertTokensDeclared.
+ */
+const RUNTIME_TOKENS = readRuntimeTokens(
+	readFileSync(join(APP, "brand.py"), "utf8"),
+	readFileSync(join(APP, "palette.py"), "utf8")
+);
+
+/**
  * Entry points to compile.
  *
  * `key`  — output basename and the constant name used in assets.py
@@ -95,6 +106,85 @@ function hash8(text) {
  * @param {string} css - compiled stylesheet text
  * @param {string} name - entry name, for the error message
  */
+/**
+ * Phantom-token guard — every `var(--bnd-*)` must name a property something
+ * actually declares.
+ *
+ * WHAT IT CATCHES, AND WHY NOTHING ELSE DOES
+ *   `outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent)` shipped in
+ *   `web/login.scss`. `--bnd-line-thick` is declared NOWHERE in this repo, so
+ *   the rule always took the fallback — a raw 2px wearing a token's name. It
+ *   passed every guard here: the no-raw-px rule cannot see a literal that sits
+ *   inside a `var()`, and the token itself is just an identifier, so nothing
+ *   was malformed. Found by hand during item 32's release review, and the
+ *   first thing this guard did when written was find FIVE MORE in
+ *   `chrome/_settings.scss` — `--bnd-hairline`, `--bnd-surface-2`,
+ *   `--bnd-surface-3`, `--bnd-accent-wash` and `--bnd-radius`, across eleven
+ *   rules of the layout builder, every one of them painted by a Frappe
+ *   variable while reading as though a theme token drove it.
+ *
+ *   The failure mode without a fallback is worse and quieter: a `var()` naming
+ *   an undeclared property is Invalid At Computed-Value Time, so the whole
+ *   declaration resolves to `unset` — inherited or initial — rather than
+ *   erroring. A misspelt token does not break loudly; it silently removes the
+ *   property, which is exactly how a missing focus ring or a lost background
+ *   reaches production.
+ *
+ * WHY IT RUNS PER COMPILED SHEET
+ *   The two sheets never load on the same page: the desk gets `bunood.css`,
+ *   the auth templates get `bunood-web.css`. So "declared somewhere in the
+ *   repo" is the wrong test — a token has to be declared in the sheet that
+ *   uses it, or the page using it has nothing. Compiled rather than authored
+ *   because `@use`, mixins and nesting all have to be resolved first: item
+ *   32's `@include dark` proved that reading the source instead of the output
+ *   is how a whole block goes missing unnoticed.
+ *
+ * THE ONE LEGITIMATE EXCEPTION, AND IT IS NOT A LIST OF NAMES
+ *   `brand.py` writes a per-site stylesheet that declares tokens the bundle
+ *   only consumes — the seed-derived palette, the Arabic face, and the login
+ *   tagline. Those are declared at RUNTIME and can never appear in a compiled
+ *   sheet. Rather than hand-keep a second copy of that list (the
+ *   same-fact-in-two-places trap this repo keeps paying for), the names are
+ *   READ OUT OF `brand.py` and `palette.py`. Delete a token there and the
+ *   guard starts failing on its consumers, which is the correct direction.
+ */
+function assertTokensDeclared(css, name, runtimeTokens) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const declared = new Set(
+		[...stripped.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)].map((m) => m[1])
+	);
+	const used = new Set([...stripped.matchAll(/var\(\s*(--bnd-[a-z0-9-]+)/g)].map((m) => m[1]));
+	const phantom = [...used].filter((t) => !declared.has(t) && !runtimeTokens.has(t)).sort();
+	if (phantom.length) {
+		throw new Error(
+			`Phantom-token guard: ${name} reads ${phantom.length} custom ` +
+				`propert${phantom.length === 1 ? "y" : "ies"} nothing declares: ${phantom.join(", ")}. ` +
+				"A var() naming an undeclared property silently takes its fallback, or resolves the whole " +
+				"declaration to unset when it has none. Declare it in _tokens.scss, or write the value it " +
+				"was already rendering."
+		);
+	}
+}
+
+/**
+ * Token names `brand.py` emits into the per-site stylesheet at runtime.
+ * Derived, never listed — see assertTokensDeclared's last paragraph.
+ */
+function readRuntimeTokens(brandSrc, paletteSrc) {
+	const names = new Set();
+	for (const src of [brandSrc, paletteSrc]) {
+		for (const m of src.matchAll(/["'](--bnd-[a-z0-9-]+)["']/g)) names.add(m[1]);
+		for (const m of src.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)) names.add(m[1]);
+	}
+	if (names.size < 10) {
+		throw new Error(
+			`Phantom-token guard: only ${names.size} runtime tokens found in brand.py/palette.py — ` +
+				"the extraction has broken, and an empty allowance would fail every consumer."
+		);
+	}
+	return names;
+}
+
 function assertLogicalOnly(css, name) {
 	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const offenders = [];
@@ -692,6 +782,7 @@ async function buildEntry({ key, src, pyid }) {
 	});
 
 	assertLogicalOnly(result.css, `${key}.css`);
+	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
