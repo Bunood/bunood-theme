@@ -6047,7 +6047,7 @@ async function main() {
 					Object.entries(shippedState).filter(([k]) => MUTABLE_FIELDS.includes(k))
 				)
 			);
-			for (const [route, waitFor] of [
+			for (const [route, waitFor, opts] of [
 				["/desk/item", ".page-head"],
 				["/desk/item/BND-TEST-001", ".form-tabs-list"],
 				["/desk/theme-settings?shell=1", ".bnd-shell"],
@@ -6065,9 +6065,25 @@ async function main() {
 				["/app/todo/view/calendar", ".fc"],
 				["/app/todo/view/gantt", ".gantt .bar"],
 				["/app/item/view/image", ".image-view-container"],
+				// Item 32: the two LOGGED-OUT routes. Everything above is a desk
+				// session; these two are the only entries that must NOT be, because
+				// www/login.py redirects an authenticated one to /desk and a scan
+				// run through that redirect would be measuring the desk while
+				// claiming to measure the login page. `guest: true` routes them
+				// through withGuest, matching how the baseline was captured.
+				["/login", ".for-login .page-card", { guest: true }],
+				["/update-password", ".for-reset-password .page-card", { guest: true }],
 			]) {
-				await goDesk(route, waitFor, 4000);
-				const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+				let res;
+				if (opts && opts.guest) {
+					res = await withGuest(route, waitFor, async (gp) => {
+						await gp.waitForTimeout(1500);
+						return new AxeBuilder({ page: gp }).withTags(["wcag2a", "wcag2aa"]).analyze();
+					});
+				} else {
+					await goDesk(route, waitFor, 4000);
+					res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+				}
 				const seen = {};
 				for (const v of res.violations) seen[v.id] = v.nodes.length;
 				const base = baseline[route] || {};

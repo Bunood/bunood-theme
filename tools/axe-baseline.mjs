@@ -57,6 +57,12 @@ const ROUTES = [
 	["/app/todo/view/calendar", ".fc"],
 	["/app/todo/view/gantt", ".gantt .bar"],
 	["/app/item/view/image", ".image-view-container"],
+	// Item 32: the two LOGGED-OUT routes. They are the only entries here that
+	// are not a desk session, so they are scanned in a cookie-less context —
+	// www/login.py redirects an authenticated session to /desk, and a baseline
+	// banked from that redirect would be the desk's, silently.
+	["/login", ".for-login .page-card", { guest: true }],
+	["/update-password", ".for-reset-password .page-card", { guest: true }],
 ];
 
 const py = (c) =>
@@ -95,18 +101,28 @@ await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" 
 const page = await ctx.newPage();
 
 const baseline = {};
-for (const [route, waitFor] of ROUTES) {
-	await page.goto(URL_BASE + route.replace("/desk/", "/app/").replace("/desk", "/app"), {
+for (const [route, waitFor, opts] of ROUTES) {
+	// A guest route gets its own context with NO sid cookie — guest-ness here is
+	// the ABSENCE of the cookie, so it cannot be had by clearing one on a page
+	// that has already redirected.
+	let target = page;
+	let guestCtx = null;
+	if (opts && opts.guest) {
+		guestCtx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
+		target = await guestCtx.newPage();
+	}
+	await target.goto(URL_BASE + route.replace("/desk/", "/app/").replace("/desk", "/app"), {
 		waitUntil: "domcontentloaded",
 		timeout: 60000,
 	});
-	await page.waitForSelector(waitFor, { timeout: 30000 });
-	await page.waitForTimeout(2500);
-	const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+	await target.waitForSelector(waitFor, { timeout: 30000 });
+	await target.waitForTimeout(2500);
+	const res = await new AxeBuilder({ page: target }).withTags(["wcag2a", "wcag2aa"]).analyze();
 	baseline[route] = {};
 	for (const v of res.violations) baseline[route][v.id] = v.nodes.length;
 	console.log(`${route}: ${res.violations.length} standing rules (${res.violations.reduce((a, v) => a + v.nodes.length, 0)} nodes)`);
 	for (const v of res.violations) console.log(`   ${v.id}: ${v.nodes.length}`);
+	if (guestCtx) await guestCtx.close();
 }
 
 writeFileSync(OUT, JSON.stringify(baseline, null, "\t") + "\n");

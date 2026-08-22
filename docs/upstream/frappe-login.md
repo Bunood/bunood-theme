@@ -204,14 +204,27 @@ not own.
 
 | what | measured | rule |
 |---|---|---|
+| **The app logo has no `alt`.** `www/login.html:93` is `<img class="app-logo" src="{{ logo }}">` — no `alt` attribute at all, so a screen reader announces the filename or nothing. It is the first element in the card. | axe `image-alt`, 1 node on `/login` and 1 on `/update-password` | **WCAG 1.1.1 Non-text Content, A** |
 | **No `<h1>`.** Four `<h4>` elements, one per section (`www/login.html:96, 98`), rendered by the `logo_section` macro. | `document.querySelectorAll("h1").length === 0` | heading structure; axe `page-has-heading-one` |
 | **No live region.** `.login-error-banner` (`www/login.html:10`) and every `.field-error` (`:28, :45, :179, :214`) are revealed by `login.js` toggling `display`. Nothing carries `role="alert"`, `aria-live` or `aria-describedby`. A failed sign-in is announced to nobody. | `[aria-live],[role=alert],[role=status]` → **0** on both routes | **WCAG 4.1.3 Status Messages, AA** |
 | **The password toggle is not a control.** `www/login.html:41` is a bare `<svg class="toggle-password">` with no `tabindex`, no `role`, no accessible name. It is reachable by mouse only. | — | **WCAG 2.1.1 Keyboard, A** |
 
-Suggested fixes, all one line each: `<h4>` → `<h1>` in `logo_section` (the macro
-already takes the title); `role="alert"` on the banner and `aria-live="polite"`
-on `.field-error`; `<button type="button" class="toggle-password"
-aria-label="{{ _('Show password') }}">` wrapping the svg.
+Suggested fixes, all one line each: `alt="{{ app_name }}"` on the logo (`app_name`
+is already in the context, set at `www/login.py:56`); `<h4>` → `<h1>` in
+`logo_section` (the macro already takes the title); `role="alert"` on the banner
+and `aria-live="polite"` on `.field-error`; `<button type="button"
+class="toggle-password" aria-label="{{ _('Show password') }}">` wrapping the svg.
+
+**These four are what a theme cannot reach, and the number says so.** Scanned in
+a guest context with `wcag2a` + `wcag2aa`, stock against this theme's kit:
+
+| route | stock | with the kit |
+|---|---|---|
+| `/login` | `color-contrast` 3, `image-alt` 1 | **`image-alt` 1** |
+| `/update-password` | `color-contrast` 4, `image-alt` 1 | **`image-alt` 1** |
+
+Every contrast violation is repairable from a stylesheet and is repaired. The one
+that survives is the one that needs an attribute in someone else's template.
 
 ---
 
