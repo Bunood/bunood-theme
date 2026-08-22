@@ -29,11 +29,14 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 32 (login / signup / forgot) — DONE (2026-08-21), releases as `v0.32.0`.** Six commits
-on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
+**ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` (2026-08-22, local tag at
+`eeec87a`, NOT PUSHED).** Gates: suite **332/332**, contrast **4,080 pairs**, sweep CLEAN.
+`main` is now TEN commits ahead of `origin/main` and carries two unpushed tags (`v0.31.0`
+and `v0.32.0`). Ten commits on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
 dark-token mixin) · `fadda9f` 1 (the sheet + eight contracts) · `6185309` 2 (the anchor) ·
 `1fda341` 3 (the axes + the picker) · `28a0faa` 4 (the axe gate) · `32f33c4` 4b (the tagline +
-the per-site dark scope). Three fields (`login_style` · `login_action` · `login_theme`),
+the per-site dark scope) · `b007d41` 4c (Split's `md` boundary, and the flex-direction defect
+that hid behind its fix) · `650c320` (the logo override, proved) · `eeec87a` (the release). Three fields (`login_style` · `login_action` · `login_theme`),
 `public/scss/web/login.scss`, `docs/upstream/frappe-login.md`. Wireframes:
 <https://claude.ai/code/artifact/46b356b4-b1e6-4f50-9285-62af96f98001>. Plan:
 `~/.claude/plans/lets-work-on-item-jazzy-creek.md`. Picks **Split · Branded · the theme axis
