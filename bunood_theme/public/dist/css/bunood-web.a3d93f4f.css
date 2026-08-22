@@ -476,22 +476,22 @@ body.bnd-auth-plate {
 body.bnd-auth-split {
   --bnd-auth-ground: var(--bnd-page);
   --bnd-auth-card: var(--bnd-surface);
-  --bnd-auth-ring: none;
-  --bnd-auth-shadow: none;
-  --bnd-auth-radius: 0;
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
 }
 
 body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
   background-color: var(--bnd-auth-ground);
 }
 
-body:is(.bnd-auth-panel, .bnd-auth-plate) :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
   background-color: var(--bnd-auth-card);
   box-shadow: var(--bnd-auth-ring), var(--bnd-auth-shadow);
   border-radius: var(--bnd-auth-radius);
 }
 
-body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -499,64 +499,53 @@ body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
   padding-block-start: 0;
 }
 
-body.bnd-auth-split .page-content-wrapper {
-  display: flex;
-  align-items: stretch;
-  min-block-size: 100vh;
-  padding-block-start: 0;
+@media (width >= 768px) {
+  body.bnd-auth-split .page-content-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-block-size: 100vh;
+    padding-block-start: 0;
+  }
+  body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
+    display: none;
+  }
+  body.bnd-auth-split .page-content-wrapper > main {
+    flex: none;
+    inline-size: min(480px, 52%);
+    max-inline-size: none;
+    margin-inline-start: 0;
+    margin-inline-end: auto;
+    padding-inline: var(--bnd-sp-6);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--bnd-auth-card);
+    box-shadow: var(--bnd-shadow-lg);
+    z-index: 1;
+  }
+  body.bnd-auth-split .page-content-wrapper::after {
+    content: "";
+    flex: 1;
+    background-color: var(--bnd-brand-solid);
+    background-image: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--bnd-on-brand) 14%, transparent), transparent 70%);
+  }
+  body.bnd-auth-split :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
+    background-color: transparent;
+    box-shadow: none;
+    max-inline-size: none;
+    inline-size: 100%;
+    padding-inline: 0;
+  }
 }
-
-body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
-  display: none;
-}
-
-body.bnd-auth-split .page-content-wrapper > main {
-  flex: none;
-  inline-size: min(480px, 46%);
-  max-inline-size: none;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
-  padding-inline: var(--bnd-sp-6);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background-color: var(--bnd-auth-card);
-  box-shadow: var(--bnd-shadow-lg);
-  z-index: 1;
-}
-
-body.bnd-auth-split .page-content-wrapper::after {
-  content: "";
-  flex: 1;
-  background-color: var(--bnd-brand-solid);
-  background-image: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--bnd-on-brand) 14%, transparent), transparent 70%);
-}
-
-body.bnd-auth-split :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
-  background-color: transparent;
-  box-shadow: none;
-  max-inline-size: none;
-  inline-size: 100%;
-  padding-inline: 0;
-}
-
 @media (width < 576px) {
   body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
     background-color: var(--bnd-auth-card);
     box-shadow: none;
     border-radius: 0;
   }
-  body.bnd-auth-split .page-content-wrapper {
-    display: block;
-  }
-  body.bnd-auth-split .page-content-wrapper > main {
-    inline-size: 100%;
-    box-shadow: none;
-  }
-  body.bnd-auth-split .page-content-wrapper::after {
-    content: none;
-  }
-  body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
     display: block;
     min-block-size: auto;
   }

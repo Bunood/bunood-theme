@@ -10666,7 +10666,14 @@ async function main() {
 							gp.evaluate(() => {
 								const m = document.querySelector(".page-content-wrapper > main");
 								const r = m.getBoundingClientRect();
-								return { x: Math.round(r.x), w: Math.round(r.width), vw: innerWidth, dir: document.documentElement.dir };
+								return {
+									x: Math.round(r.x),
+									w: Math.round(r.width),
+									h: Math.round(r.height),
+									vw: innerWidth,
+									vh: innerHeight,
+									dir: document.documentElement.dir,
+								};
 							}),
 						{ lang }
 					);
@@ -10680,6 +10687,61 @@ async function main() {
 					`RTL puts it at the other edge (x=${rtl.x}, expected ~${rtl.vw - rtl.w})`
 				);
 				expectEq(ltr.w, rtl.w, "and the column is the same width in both");
+
+				// THE CHECK THAT WOULD HAVE CAUGHT THE ONE THIS TEST MISSED. When
+				// Split started sharing the centring rule with Panel it inherited
+				// `flex-direction: column`, so the brand panel stacked BELOW the form
+				// column instead of beside it — and everything above still passed:
+				// `display` was still `flex`, and in a column container an
+				// explicitly-sized item still sits at the inline start in LTR and the
+				// inline end in RTL. Only the column's HEIGHT tells the two apart. It
+				// measured 423 against a 720 viewport, and the page looked plausible
+				// because the column's fill and the page ground are four channels
+				// apart in light.
+				for (const [name, box] of [["LTR", ltr], ["RTL", rtl]]) {
+					expect(
+						box.h >= box.vh - 2,
+						`${name}: the column runs the full height, i.e. the panel is BESIDE it and not below` +
+							` (${box.h} of ${box.vh})`
+					);
+					expect(box.w < box.vw - 100, `${name}: and the panel has real width (column ${box.w} of ${box.vw})`);
+				}
+			});
+
+			await test("login: Split never squeezes the form to fit its panel", async () => {
+				// A REAL DEFECT, CAUGHT BY MEASURING RATHER THAN BY LOOKING AT 1440.
+				// The column was `min(480px, 46%)`, which is fine on a desktop and
+				// collapses below it: the form measured 258px at 700 and **201px at
+				// 576**, against Frappe's own 371px card. An art panel is only worth
+				// having if it has width, and a column narrow enough to sit beside it
+				// is not a form.
+				//
+				// So the second column starts at `md` (768), not at Frappe's `sm`
+				// collapse, and between them Split takes Panel's composition. This
+				// walks the whole range because the failure lived BETWEEN the two
+				// widths anybody would have checked by eye.
+				setSettings({ login_style: "Split" });
+				const widths = [1440, 1044, 900, 800, 768, 700, 640, 576];
+				const seen = [];
+				await withGuest("/login", ".for-login .page-card", async (gp) => {
+					for (const w of widths) {
+						await gp.setViewportSize({ width: w, height: 812 });
+						await gp.waitForTimeout(120);
+						seen.push(
+							await gp.evaluate(() => {
+								const c = document.querySelector(".for-login .page-card");
+								const r = c.getBoundingClientRect();
+								return { vw: innerWidth, form: Math.round(r.width) };
+							})
+						);
+					}
+				});
+				for (const s of seen) {
+					expect(
+						s.form >= 320,
+						`at ${s.vw} the form is ${s.form}px — Frappe's own card is 371, and 320 is the floor`
+					);
+				}
 			});
 
 			await test("login: every pole converges below Frappe's own collapse", async () => {
@@ -10699,13 +10761,23 @@ async function main() {
 								const cs = getComputedStyle(card);
 								const main = document.querySelector(".page-content-wrapper > main");
 								const r = main.getBoundingClientRect();
+								// THE GUTTER IS MEASURED WHERE A USER SEES IT — the
+								// distance from the screen edge to the first field —
+								// not as a padding on one box. It was `main`'s
+								// padding-inline-start until Split's layout moved
+								// behind `md`, at which point that box stopped
+								// carrying the gutter and the check would have failed
+								// on a page that looked perfectly correct. Measure the
+								// thing, not one of the boxes that might supply it.
+								const input = document.querySelector("#login_email");
+								const ir = input.getBoundingClientRect();
 								return {
 									ring: cs.boxShadow,
 									radius: cs.borderRadius,
 									art: getComputedStyle(document.querySelector(".page-content-wrapper"), "::after").content,
 									mainW: Math.round(r.width),
 									vw: innerWidth,
-									padStart: getComputedStyle(main).paddingInlineStart,
+									gutter: Math.round(Math.min(ir.x, innerWidth - (ir.x + ir.width))),
 								};
 							}),
 						{ width: 390, height: 812 }
@@ -10715,9 +10787,10 @@ async function main() {
 					expectEq(narrow.art, "none", `${style}: no art panel at 390`);
 					expectEq(narrow.mainW, narrow.vw, `${style}: the column is the whole width`);
 					expect(
-						parseFloat(narrow.padStart) >= 16,
-						`${style}: and it keeps a gutter (${narrow.padStart}) — zeroing both the column's` +
-							" padding and the card's put the form flush against the screen edge"
+						narrow.gutter >= 16,
+						`${style}: and the field keeps a gutter from the screen edge (${narrow.gutter}px) —` +
+							" an earlier cut zeroed both the column's padding and the card's and put the" +
+							" form flush against both edges"
 					);
 				}
 				setSettings({ login_style: "Split" });

@@ -90,6 +90,7 @@
 // submit at 1.06:1, the error banner at 2.52:1, and a primary button whose fill
 // equals the page. Activating their branch would inherit all three. We paint
 // both modes ourselves instead.
+//
 // AXIS `login_theme` — Follow OS (default) · Always Light · Always Dark.
 //
 // The round put this axis back in scope on the strength of the drawings: Split
@@ -500,12 +501,19 @@ body.bnd-auth-plate {
 // rather than `transparent`, because the field fill is a delta computed against
 // it (contract R4) and handing that mix `transparent` would compute against
 // nothing.
+// BELOW `md`, SPLIT *IS* PANEL — and that is measurement, not taste. The art
+// panel is only worth having if it has width, and a column narrow enough to sit
+// beside it squeezes the form: with the first cut's `min(480px, 46%)` the form
+// measured 258px at 700 and **201px at 576**, against Frappe's own 371px card.
+// So the second column starts at `md` (768), not at Frappe's `sm` collapse, and
+// in the band between them this pole takes Panel's variables verbatim rather
+// than inventing a fourth composition for 192px of viewport.
 body.bnd-auth-split {
   --bnd-auth-ground: var(--bnd-page);
   --bnd-auth-card: var(--bnd-surface);
-  --bnd-auth-ring: none;
-  --bnd-auth-shadow: none;
-  --bnd-auth-radius: 0;
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
 }
 
 // ── The object rules — the working set, consumed once each ──────────────────
@@ -517,7 +525,7 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
   background-color: var(--bnd-auth-ground);
 }
 
-body:is(.bnd-auth-panel, .bnd-auth-plate)
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate)
   :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
   .page-card {
   background-color: var(--bnd-auth-card);
@@ -535,7 +543,7 @@ body:is(.bnd-auth-panel, .bnd-auth-plate)
 // RECORDED RATHER THAN ASSUMED: if upstream ever stops hiding `.web-footer`, a
 // full-viewport wrapper pushes it below the fold. A soft failure, and this note
 // is the reason it would be findable.
-body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -545,67 +553,93 @@ body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
 
 // ── Split's layout ──────────────────────────────────────────────────────────
 //
-// RTL BY FLEX ORDER, NEVER BY INSETS, and that is the whole reason this pole is
-// safe to ship. Frappe flips this page with a build-time rtlcss pass, so any
-// inset of ours would compound with a flipped copy (GUIDELINES 1.3). A flex row
-// follows the document's own `dir`: `main` is first in the DOM and the art
-// panel is a `::after`, so the column lands on the inline START side in both
-// directions with no direction-aware declaration anywhere in this block.
+// THE SECOND COLUMN STARTS AT `md` (768), NOT AT FRAPPE'S `sm` COLLAPSE, and
+// that boundary was measured rather than chosen. With the column at `46%` the
+// form came out 258px wide at 700 and **201px at 576** — against Frappe's own
+// 371px card. An art panel is only worth having if it has width, and a column
+// narrow enough to sit beside it is not a form. Between 576 and 768 this pole
+// therefore takes PANEL's variables verbatim (see its block above) rather than
+// inventing a fourth composition for 192px of viewport, and below 576 Frappe's
+// own full-bleed takes over as it does for every pole.
 //
-// THE ART PANEL IS A PSEUDO-ELEMENT because a surface kit cannot add DOM. It
-// carries a brand field and no text, which is not a compromise:
-// `--bnd-brand-solid` is fitted, and with nothing written on it there is no
-// pair to fail.
-body.bnd-auth-split .page-content-wrapper {
-  display: flex;
-  align-items: stretch;
-  min-block-size: 100vh;
-  padding-block-start: 0;
-}
+// `52%` rather than `46%` for the same reason: at 768 it gives the form 335px,
+// and it reaches the 480px cap at 923 rather than 1044.
+@include bnd-from(md) {
+  // RTL BY FLEX ORDER, NEVER BY INSETS, and that is the whole reason this pole is
+  // safe to ship. Frappe flips this page with a build-time rtlcss pass, so any
+  // inset of ours would compound with a flipped copy (GUIDELINES 1.3). A flex row
+  // follows the document's own `dir`: `main` is first in the DOM and the art
+  // panel is a `::after`, so the column lands on the inline START side in both
+  // directions with no direction-aware declaration anywhere in this block.
+  //
+  // THE ART PANEL IS A PSEUDO-ELEMENT because a surface kit cannot add DOM. It
+  // carries a brand field and no text, which is not a compromise:
+  // `--bnd-brand-solid` is fitted, and with nothing written on it there is no
+  // pair to fail.
+  body.bnd-auth-split .page-content-wrapper {
+    display: flex;
+    // BOTH OF THESE ARE OVERRIDES, NOT DEFAULTS, and leaving either out is a
+    // silent layout failure. Split shares the centring rule above with Panel and
+    // Plate — it has to, because below `md` it IS Panel — and that rule sets
+    // `flex-direction: column` and `justify-content: center`. Inheriting the
+    // column direction here stacked the brand panel BELOW the form column
+    // instead of beside it, and the page still looked plausible because the
+    // column's fill and the page ground are four channels apart in light.
+    // Both suite checks passed through it too: `display` was still `flex`, and
+    // in a column container an explicitly-sized item still sits at the inline
+    // start in LTR and the inline end in RTL. Hence the height assertion in
+    // "Split mirrors with no direction-aware rule".
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-block-size: 100vh;
+    padding-block-start: 0;
+  }
 
-body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
-  display: none;
-}
+  body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
+    display: none;
+  }
 
-// `.container`'s auto margins are physical AND SYMMETRIC (`margin-left: auto;
-// margin-right: auto`), so rtlcss flips them onto themselves and there is no
-// second declaration for ours to compound with. Ours is asymmetric, so it sets
-// BOTH logical sides — one to a value, one to auto — exactly as GUIDELINES 1.3
-// requires of anything that takes a side.
-body.bnd-auth-split .page-content-wrapper > main {
-  flex: none;
-  inline-size: min(480px, 46%);
-  max-inline-size: none;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
-  padding-inline: var(--bnd-sp-6);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background-color: var(--bnd-auth-card);
-  box-shadow: var(--bnd-shadow-lg);
-  z-index: 1;
-}
+  // `.container`'s auto margins are physical AND SYMMETRIC (`margin-left: auto;
+  // margin-right: auto`), so rtlcss flips them onto themselves and there is no
+  // second declaration for ours to compound with. Ours is asymmetric, so it sets
+  // BOTH logical sides — one to a value, one to auto — exactly as GUIDELINES 1.3
+  // requires of anything that takes a side.
+  body.bnd-auth-split .page-content-wrapper > main {
+    flex: none;
+    inline-size: min(480px, 52%);
+    max-inline-size: none;
+    margin-inline-start: 0;
+    margin-inline-end: auto;
+    padding-inline: var(--bnd-sp-6);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--bnd-auth-card);
+    box-shadow: var(--bnd-shadow-lg);
+    z-index: 1;
+  }
 
-body.bnd-auth-split .page-content-wrapper::after {
-  content: "";
-  flex: 1;
-  background-color: var(--bnd-brand-solid);
-  background-image: radial-gradient(
-    120% 90% at 50% 0%,
-    color-mix(in srgb, var(--bnd-on-brand) 14%, transparent),
-    transparent 70%
-  );
-}
+  body.bnd-auth-split .page-content-wrapper::after {
+    content: "";
+    flex: 1;
+    background-color: var(--bnd-brand-solid);
+    background-image: radial-gradient(
+      120% 90% at 50% 0%,
+      color-mix(in srgb, var(--bnd-on-brand) 14%, transparent),
+      transparent 70%
+    );
+  }
 
-body.bnd-auth-split
-  :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
-  .page-card {
-  background-color: transparent;
-  box-shadow: none;
-  max-inline-size: none;
-  inline-size: 100%;
-  padding-inline: 0;
+  body.bnd-auth-split
+    :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
+    .page-card {
+    background-color: transparent;
+    box-shadow: none;
+    max-inline-size: none;
+    inline-size: 100%;
+    padding-inline: 0;
+  }
 }
 
 // ── Below Frappe's own collapse, every pole converges ───────────────────────
@@ -635,29 +669,13 @@ body.bnd-auth-split
     border-radius: 0;
   }
 
-  body.bnd-auth-split .page-content-wrapper {
-    display: block;
-  }
-
-  // The column keeps its inline padding here and the CARD keeps none, which is
-  // the opposite of what the first cut did and the difference was visible
-  // immediately: zeroing both left the form flush against both screen edges.
-  // Split's desktop rule takes `padding-inline` off the card (the column
-  // supplies it), so the mobile override has to leave the column's alone.
-  // `--bnd-sp-6` is 2rem, which is Frappe's own 32px on this breakpoint — the
-  // same gutter, expressed in the theme's scale rather than restated.
-  body.bnd-auth-split .page-content-wrapper > main {
-    inline-size: 100%;
-    box-shadow: none;
-  }
-
-  // The art panel drops rather than squeezing. `content: none` removes the box
-  // entirely, so it cannot claim flex space on the way out.
-  body.bnd-auth-split .page-content-wrapper::after {
-    content: none;
-  }
-
-  body:is(.bnd-auth-panel, .bnd-auth-plate) .page-content-wrapper {
+  // NOTHING HERE UNWINDS SPLIT, and that is the point of moving its layout
+  // behind `md`: the second column, the art panel and the card's zeroed padding
+  // only ever exist at 768 and above, so there is nothing below 576 to undo. An
+  // earlier cut had four rules here doing exactly that, and one of them (zeroing
+  // the column's padding as well as the card's) put the form flush against both
+  // screen edges. A stand-down you do not have to write cannot be written wrong.
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
     display: block;
     min-block-size: auto;
   }
