@@ -328,6 +328,25 @@ function setSettings(values) {
 		`        frappe.db.set_single_value("Theme Settings", f, v)\n` +
 		`for f, v in vals.items():\n` +
 		`    frappe.db.set_single_value("Theme Settings", f, v)\n` +
+		// REGENERATE THE BRAND SHEET WHEN WE HAVE WRITTEN ONE OF ITS INPUTS.
+		//
+		// `set_single_value` does not fire `on_update`, so `write_brand_css` never
+		// runs — and the per-site stylesheet keeps whatever the last real SAVE put
+		// in it. That was harmless while the suite only wrote desk attributes the
+		// sheet never reads. Item 32 made `tagline` a sheet input, and `tagline` is
+		// this suite's save-round-trip scratch field, so a run finished with the DB
+		// restored and the SHEET still carrying `smoke-seed-<timestamp>` — which
+		// then rendered on the sign-in page, on the operator's own site,
+		// indefinitely. Found by an adversarial release review and confirmed in
+		// exactly that state.
+		//
+		// The field list comes from `brand.BRAND_INPUTS`, not from here: a copy in
+		// the test file is the same-fact-in-two-places trap, and this is already a
+		// bug that existed because two places disagreed about what regeneration
+		// means.
+		`from bunood_theme.brand import BRAND_INPUTS, write_brand_css\n` +
+		`if set(vals) & set(BRAND_INPUTS):\n` +
+		`    write_brand_css()\n` +
 		`frappe.clear_cache()\n` +
 		`frappe.db.commit()\n` +
 		`print("BND_UNRESTORABLE=" + json.dumps(unrestorable))\n`
@@ -963,6 +982,69 @@ async function main() {
 				return link ? (await fetch(link.href)).status : "missing";
 			});
 			expectEq(brand, 200, "brand stylesheet");
+		});
+
+		await test("brand: the stylesheet URL is a digest of its contents, not a random suffix", async () => {
+			// `brand.py`'s module docstring says "content-hashed filename" three times
+			// and builds its entire cache argument on it — nginx sets no
+			// `Cache-Control` on `/files`, so the URL has to be immutable per content
+			// — and the line itself is commented "Hash the CONTENT, so an unchanged
+			// save keeps the same URL and warm caches stay warm."
+			//
+			// IT DID NOT. `frappe.generate_hash(css, 8)` is `secrets.token_hex` — its
+			// own docstring is "Generates a random hash" — and the `txt` argument is
+			// IGNORED. So every save and every `after_migrate` minted a fresh name for
+			// byte-identical CSS: `if not os.path.exists(target)` could never
+			// short-circuit, `_reap_old` burned through its eight-file budget of
+			// still-referenced URLs for no reason, and every returning browser
+			// re-downloaded a stylesheet it already had.
+			//
+			// The cited precedent turned out to be the source of the mistake:
+			// `website_theme.py` does use 8 hex chars, but its own comment reads
+			// "# add a random suffix" and it DELETES the old files each time. The
+			// length was copied and the semantics were not.
+			//
+			// AND IT WAS A DEADLINE, NOT ONLY A WASTE. `txt` is deprecated, warns on
+			// every call, and is REMOVED IN FRAPPE v17 — where the TypeError would
+			// have been swallowed by `write_brand_css`'s own `except Exception`,
+			// `None` returned, and the brand stylesheet silently stopped being
+			// generated on every site.
+			//
+			// THE THIRD ASSERTION IS THE ONE THAT PINS IT. Same-URL-twice could be
+			// satisfied by caching; a changed input moving the URL could be satisfied
+			// by randomness. Only RETURNING to a previously seen URL proves the name
+			// is a function of the content — a random suffix can never do it.
+			//
+			// This mutates the doc IN MEMORY and passes it in, so no settings write
+			// happens and `MUTABLE_FIELDS` is not involved. `write_brand_css` does
+			// record `brand_css_url`, and because the last call restores the original
+			// content that field ends where it started.
+			const out = JSON.parse(
+				benchPy(
+					`from bunood_theme.brand import write_brand_css\n` +
+						`s = frappe.get_single("Theme Settings")\n` +
+						`orig = s.tagline\n` +
+						`a = write_brand_css(s)\n` +
+						`b = write_brand_css(s)\n` +
+						`s.tagline = "bnd-digest-probe"\n` +
+						`c = write_brand_css(s)\n` +
+						`s.tagline = orig\n` +
+						`d = write_brand_css(s)\n` +
+						`frappe.db.commit()\n` +
+						`print(json.dumps({"a": a, "b": b, "c": c, "d": d, "orig": orig}))\n`
+				)
+					.trim()
+					.split("\n")
+					.pop()
+			);
+			expect(out.a, `the sheet generates at all (${JSON.stringify(out)})`);
+			expectEq(out.b, out.a, "two runs over unchanged content return the SAME url");
+			expect(out.c !== out.a, `a changed input moves it (${out.c})`);
+			expectEq(out.d, out.a, "and changing it back returns the ORIGINAL url — which a random suffix cannot do");
+			expect(
+				/^\/files\/bunood\/brand_[0-9a-f]{8,}\.css$/.test(out.a),
+				`and the name is hex of at least 8 chars (${out.a})`
+			);
 		});
 
 		// ── Desk layouts ───────────────────────────────────────────────────
@@ -6071,6 +6153,25 @@ async function main() {
 				// run through that redirect would be measuring the desk while
 				// claiming to measure the login page. `guest: true` routes them
 				// through withGuest, matching how the baseline was captured.
+				//
+				// AND THESE TWO ARE BANKED KIT-ON, WHICH NO OTHER ENTRY IS. Every
+				// route above holds a KIT-ABSENT count, because a desk kit can be
+				// stood down to "Original" and the baseline has to describe the
+				// state a user could actually be in. **The auth contracts cannot be
+				// stood down** — they are contracts precisely because they survive
+				// "Original" — so a kit-absent number here describes a state that
+				// does not exist, and banking one leaves the gate three
+				// colour-contrast violations of slack on the one page a user cannot
+				// skip. It sat at `{color-contrast: 3}` and `{color-contrast: 4}`
+				// from slice 0's census while the kit delivered ZERO, so all three
+				// could have come back green. Measured kit-on: `{image-alt: 1}` on
+				// both, the single filed-upstream survivor (the logo <img> carries
+				// no alt and the template gives no seam for one).
+				//
+				// `tools/axe-baseline.mjs` regenerates every route from whatever is
+				// deployed, so re-running it wholesale would re-bank the desk routes
+				// at today's numbers and silently accept a regression there. Run it
+				// to READ the diff; edit these two by hand.
 				["/login", ".for-login .page-card", { guest: true }],
 				["/update-password", ".for-reset-password .page-card", { guest: true }],
 			]) {
@@ -9119,9 +9220,31 @@ async function main() {
 			// returns STRINGS and every number is computed on this side, so there
 			// is exactly one place that knows how a colour serialises.
 			const triple = (v) => {
-				const m = String(v).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+				// An already-resolved [r, g, b]. The state checks below paint the
+				// colour onto a 1x1 canvas in the page and return bytes, because that
+				// is the only way to resolve `oklab()` without reimplementing the
+				// conversion — so they arrive here as numbers, not as CSS.
+				if (Array.isArray(v)) return v.map(Number);
+				const t = String(v).trim();
+				const m = t.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
 				if (m) return [1, 2, 3].map((i) => parseFloat(m[i]) * 255);
-				return (String(v).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				// AND ANYTHING ELSE IS A LOUD FAILURE, not a silent black. The
+				// digit-scraping fallback below is correct for `rgb()`/`rgba()` and
+				// catastrophically wrong for everything else: Chrome also serialises
+				// a `color-mix()` as `oklab(0.554924 -0.0794364 0.0496738)`, and
+				// scraping that yields [0.55, -0.08, 0.05] read as 0-255 — a mid
+				// green measured as black, which turns a 4.56:1 pair into 1.07:1 or
+				// a 1.07:1 pair into 20:1 depending on which side it lands on. The
+				// helper's own docblock above says one place should know how a
+				// colour serialises; it knew two forms and assumed there were no
+				// others. Throwing means a new form arrives as a red suite naming
+				// the value, instead of as a number nobody questions.
+				if (!/^rgba?\(/.test(t))
+					throw new Error(
+						`unrecognised colour form ${JSON.stringify(t)} — triple() knows rgb(), rgba() and color(srgb …). ` +
+							`Add the conversion rather than letting it parse as black.`
+					);
+				return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
 			};
 			const chDelta = (a, b) => {
 				const A = triple(a);
@@ -10111,8 +10234,10 @@ async function main() {
 			// were looking at the /desk redirect the whole time" — which is the
 			// exact shape of the item-28 defective check that PASSED while
 			// measuring a node the vendor rule never reached.
-			const seen = await withGuest("/login", ".for-login .page-card", async (gp) =>
-				gp.evaluate(() => ({
+			let harnessErrs = [];
+			const seen = await withGuest("/login", ".for-login .page-card", async (gp, errs) => {
+				harnessErrs = errs;
+				return gp.evaluate(() => ({
 					url: location.pathname,
 					session: document.body.getAttribute("frappe-session-status"),
 					dataPath: document.body.getAttribute("data-path"),
@@ -10125,7 +10250,16 @@ async function main() {
 					// happens to return the login one only because `.for-login` is
 					// written first. Item 31's `.filter-label` lesson, restated.
 					cards: document.querySelectorAll(".page-card").length,
-				}))
+				}));
+			});
+			// `withGuest` has always collected console errors and every caller
+			// threw the channel away, so the guest page was the one surface in the
+			// suite whose JS could throw unobserved. The desk page's budget lives
+			// on a different context and never saw this one.
+			expectEq(
+				harnessErrs.filter((e) => !/socket\.io|favicon|Invalid origin/i.test(e)).join(" | "),
+				"",
+				"and the page loads with a clean console"
 			);
 			expectEq(seen.url, "/login", "a cookie-less context stays on /login (an authenticated one redirects to /desk)");
 			expectEq(seen.session, "logged-out", "and Frappe agrees it is a guest");
@@ -10134,6 +10268,46 @@ async function main() {
 			expectEq(shown.length, 1, `exactly one section is visible (${shown.map((s) => s.cls).join(", ")})`);
 			expect(shown[0].cls.startsWith("for-login"), `and it is the sign-in one (${shown[0].cls})`);
 			expectEq(seen.cards, 4, "and .page-card matches four nodes — scope every later query to its section");
+		});
+
+		await test("login: the kit follows the TEMPLATE, so the site root is dressed too", async () => {
+			// THE CRITICAL DEFECT OF THIS ITEM, and it shipped green.
+			//
+			// The first cut matched on the request path — `AUTH_ROUTES = ("/login",
+			// "/update-password")` against `context.path`. On a stock Frappe site a
+			// guest who types the bare domain is served the sign-in page, and the
+			// path there is the EMPTY STRING. So the single most likely way a
+			// customer reaches this page got `class=""`: no contracts, no anchor,
+			// no repairs, no logo — the plain Frappe login, on the one URL a
+			// customer is most likely to type. Every login check in this file
+			// passed, because every one of them asks for "/login" by name.
+			//
+			// The fix keys on `context.template` instead, which
+			// `TemplatePage.update_context` sets before our hook runs and which
+			// names the same file whatever route resolved to it. That also picks up
+			// the redirect target — a logged-out hit on `/app/...` lands on the
+			// login template with `?redirect-to=`, and the path guard missed that
+			// one too.
+			for (const route of ["/", "/login", "/app/theme-settings"]) {
+				const cls = await withGuest(route, ".for-login .page-card", async (gp) =>
+					gp.evaluate(() => ({
+						body: document.body.className,
+						path: document.body.getAttribute("data-path"),
+						sheet: [...document.styleSheets].some((x) => (x.href || "").includes("bunood-web")),
+					}))
+				);
+				expect(cls.body.includes("bnd-auth"), `${route} carries the contracts (class="${cls.body}")`);
+				expect(cls.body.includes("bnd-auth-split"), `${route} carries the anchor (class="${cls.body}")`);
+				expect(cls.sheet, `${route} links our web sheet`);
+			}
+			// And the other half of the guard: a website page that is NOT this
+			// template gets nothing. A body class that leaked onto every www page
+			// would re-point Frappe variables site-wide, which is the
+			// light-leaks-into-dark bug with a bigger blast radius.
+			const other = await withGuest("/404", "body", async (gp) =>
+				gp.evaluate(() => document.body.className)
+			);
+			expect(!other.includes("bnd-auth"), `a non-auth website page stays undressed (class="${other}")`);
 		});
 
 		await test("login: /update-password is the same object on its own route", async () => {
@@ -10202,9 +10376,31 @@ async function main() {
 			// reported a passing 4.74:1 rule as 3.92:1 and the CSS was chased
 			// first. One place knows how a colour serialises.
 			const triple = (v) => {
-				const m = String(v).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+				// An already-resolved [r, g, b]. The state checks below paint the
+				// colour onto a 1x1 canvas in the page and return bytes, because that
+				// is the only way to resolve `oklab()` without reimplementing the
+				// conversion — so they arrive here as numbers, not as CSS.
+				if (Array.isArray(v)) return v.map(Number);
+				const t = String(v).trim();
+				const m = t.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
 				if (m) return [1, 2, 3].map((i) => parseFloat(m[i]) * 255);
-				return (String(v).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+				// AND ANYTHING ELSE IS A LOUD FAILURE, not a silent black. The
+				// digit-scraping fallback below is correct for `rgb()`/`rgba()` and
+				// catastrophically wrong for everything else: Chrome also serialises
+				// a `color-mix()` as `oklab(0.554924 -0.0794364 0.0496738)`, and
+				// scraping that yields [0.55, -0.08, 0.05] read as 0-255 — a mid
+				// green measured as black, which turns a 4.56:1 pair into 1.07:1 or
+				// a 1.07:1 pair into 20:1 depending on which side it lands on. The
+				// helper's own docblock above says one place should know how a
+				// colour serialises; it knew two forms and assumed there were no
+				// others. Throwing means a new form arrives as a red suite naming
+				// the value, instead of as a number nobody questions.
+				if (!/^rgba?\(/.test(t))
+					throw new Error(
+						`unrecognised colour form ${JSON.stringify(t)} — triple() knows rgb(), rgba() and color(srgb …). ` +
+							`Add the conversion rather than letting it parse as black.`
+					);
+				return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
 			};
 			const chDelta = (a, b) => {
 				const [x, y] = [triple(a), triple(b)];
@@ -10270,9 +10466,17 @@ async function main() {
 								forgotLink: g(".for-login .forgot-password-message a", "color"),
 								cta: g(".for-login .btn-login", "backgroundColor"),
 								ctaInk: g(".for-login .btn-login", "color"),
+								// The button's HOST, not the page. Under Split the CTA
+								// sits inside the form column, which is painted
+								// `--bnd-surface` while `<body>` is `--bnd-page` — two
+								// different colours, and R7 is a claim about the fill
+								// the button is SEEN against. Measuring it against
+								// `<body>` was wrong under three of the four poles and
+								// happened to pass; `.page-card-actions` is transparent,
+								// so `bgOf` walks from it to whatever actually paints.
+								ctaHost: bgOf(".for-login .page-card-actions"),
 								bannerBg: bgOf(".for-login .login-error-banner"),
 								bannerInk: g(".for-login .login-error-banner", "color"),
-								submitOff: g(".btn-forgot", "backgroundColor"),
 							};
 						}),
 					{ colorScheme }
@@ -10383,13 +10587,442 @@ async function main() {
 				// That is what this check actually guards — not a live defect our
 				// users hit today, but one our own dark mode would INHERIT the
 				// moment it drifts back toward Frappe's literals.
+				//
+				// AND IT MEASURES THE HOST, NOT `<body>`. The first cut compared the
+				// CTA's fill to `page`. Under Split — the DEFAULT pole, so the one
+				// this check actually ran under — the button is inside the form
+				// column at `--bnd-surface` while `<body>` is `--bnd-page`. The two
+				// differ (measured 255,255,255 against 248,250,248 in light), so the
+				// number reported was against a surface the button is never seen on.
+				// It passed anyway, which is why it needed an adversarial read
+				// rather than a red suite to find.
 				for (const mode of ["light", "dark"]) {
 					const c = await readCard(mode);
-					const edge = ratio(c.cta, c.page);
-					expect(edge >= 3, `${mode}: the CTA's fill clears 3:1 against the page (${edge.toFixed(2)}:1)`);
+					const edge = ratio(c.cta, c.ctaHost);
+					expect(edge >= 3, `${mode}: the CTA's fill clears 3:1 against its own host (${edge.toFixed(2)}:1)`);
 					const label = ratio(c.ctaInk, c.cta);
 					expect(label >= 4.5, `${mode}: and its label clears AA on it (${label.toFixed(2)}:1)`);
 				}
+			});
+
+			await test("login: the primary action holds its ink in every state, on both axes", async () => {
+				// FOUR DEFECTS LIVED HERE AND EVERY EXISTING CHECK WAS GREEN, because
+				// every one of them measured the button AT REST. Frappe's login sheet
+				// groups `:hover, :focus, :active` into ONE selector list at (0,5,0)
+				// and ships a separate `:disabled` at (0,5,0); our base rule was
+				// (0,4,1), so it won at rest and lost the moment the control moved.
+				// Measured on the live page before the repair, Split+Branded:
+				//
+				//   :focus     #383838 fill, 1.36:1 against the column, and NO ring —
+				//              `:focus-visible` is false after a pointer click, so a
+				//              user who clicks Sign In saw the branded CTA turn grey
+				//              and stay grey with nothing marking it.
+				//   :disabled  #171717, 1.12:1 — R7's ORIGINAL defect, reproduced
+				//              inside the pole whose job is to repair it. One gesture
+				//              away: `login.js` disables the button on "Send login
+				//              link", and `.btn-forgot` ships disabled in the markup.
+				//   :active    1.09:1 in DARK, and this one was OURS.
+				//              `website.bundle.css` ships, unlayered and unscoped:
+				//                .btn:active { color: var(--text-color) !important;
+				//                              background-color: var(--control-bg)
+				//                              !important; ... }
+				//              We re-pointed `--text-color` and not `--control-bg`, so
+				//              a held button drew our flipping ink on Frappe's fixed
+				//              #f3f3f3. Stock was 10.57:1. A repair made it worse.
+				//              Re-pointing `--control-bg` too puts both halves in one
+				//              family: measured 16.43:1 light, 11.98:1 dark.
+				//
+				// WHY `:active` IS EXEMPT FROM THE EDGE ASSERTION AND NOTHING ELSE IS.
+				// That `!important` is unbeatable by specificity, so a held button
+				// takes `--control-bg` whatever we do — 1.08:1 against the card. The
+				// choice is which colour it flattens to, not whether it flattens. It
+				// is Frappe's pressed-state design, it is transient, and the pointer
+				// is on the control while it lasts. What we CAN own is the label, and
+				// that is what this asserts. Filed upstream; see
+				// docs/upstream/frappe-login.md.
+				//
+				// AND THE MEASUREMENT NEEDS FRAMES. `getComputedStyle` read straight
+				// after a class swap or a mouse press returns the PRE-CHANGE value,
+				// and mid-transition it returns an interpolated one — a first pass
+				// here read the branded fill 53,87,61 for a Neutral button whose
+				// settled value is 22,24,29, and read `:active` as still-green, which
+				// would have certified the exact regression above as fixed. Every
+				// read below waits two rAFs behind a settle, and the class swap waits
+				// out the transition.
+				const CTA = ".for-login .btn-login";
+				for (const mode of ["light", "dark"]) {
+					for (const axis of ["neutral", "branded"]) {
+						const got = await withGuest(
+							"/login",
+							".for-login .page-card",
+							async (gp) => {
+								// The poles are pure CSS on `<body>`, so this swaps the
+								// class rather than writing settings — the SERVER half
+								// is already pinned by "the anchor dresses the page"
+								// and "the brand takes the primary action". What was
+								// unproven without this is the CSS under each axis, and
+								// the Neutral arm had never been exercised at all:
+								// Branded is the default, so every other check in this
+								// family ran under one of the two.
+								await gp.evaluate((a) => {
+									document.body.className = `bnd-auth bnd-auth-split bnd-auth-action-${a}`;
+								}, axis);
+								await gp.waitForTimeout(600);
+
+								// READ ONLY WHEN THE PAINT HAS STOPPED MOVING. A fixed
+								// wait is not enough: these buttons carry a colour
+								// transition, and a 120ms-plus-two-frames read caught
+								// the ENABLED submit at 78,133,87 on its way to
+								// 74,130,83 and reported 4.22:1 for a pair that settles
+								// at 4.56:1 — a false AA failure that looks exactly like
+								// a real one. Poll until three consecutive frames agree,
+								// with a cap so a genuinely animating element fails loud
+								// instead of hanging the suite.
+								const read = async (sel) => {
+									await gp.evaluate(
+										(q) =>
+											new Promise((done) => {
+												let last = null;
+												let same = 0;
+												let frames = 0;
+												const tick = () => {
+													const e = document.querySelector(q);
+													const cs = getComputedStyle(e);
+													const now = `${cs.backgroundColor}|${cs.color}|${cs.outlineStyle}`;
+													if (now === last) same++;
+													else {
+														same = 0;
+														last = now;
+													}
+													if (same >= 3 || ++frames > 120) return done();
+													requestAnimationFrame(tick);
+												};
+												requestAnimationFrame(tick);
+											}),
+										sel
+									);
+									return gp.evaluate((q) => {
+										// Resolve through a canvas. `color-mix()`
+										// serializes as `oklab(...)` and a token can
+										// serialize as `color(srgb ...)`; scraping
+										// digits out of either reads a near-white fill
+										// as black.
+										const paint = (v) => {
+											const c = document.createElement("canvas");
+											c.width = c.height = 1;
+											const x = c.getContext("2d");
+											x.fillStyle = "#fff";
+											x.fillRect(0, 0, 1, 1);
+											x.fillStyle = v;
+											x.fillRect(0, 0, 1, 1);
+											const d = x.getImageData(0, 0, 1, 1).data;
+											return [d[0], d[1], d[2]];
+										};
+										const opaque = (c) => {
+											if (!c || c === "transparent") return false;
+											const parts = c.split(",");
+											return parts.length < 4 || parseFloat(parts[3]) !== 0;
+										};
+										const e = document.querySelector(q);
+										if (!e) return null;
+										const cs = getComputedStyle(e);
+										let n = e.parentElement;
+										let host = [255, 255, 255];
+										while (n) {
+											const c = getComputedStyle(n).backgroundColor;
+											if (opaque(c)) {
+												host = paint(c);
+												break;
+											}
+											n = n.parentElement;
+										}
+										return {
+											fg: paint(cs.color),
+											bg: paint(cs.backgroundColor),
+											host,
+											ring: `${cs.outlineWidth} ${cs.outlineStyle}`,
+										};
+									}, sel);
+								};
+
+								const out = { rest: await read(CTA) };
+								const box = await gp.locator(CTA).boundingBox();
+								await gp.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+								out.hover = await read(CTA);
+								await gp.mouse.down();
+								out.active = await read(CTA);
+								await gp.mouse.up();
+								await gp.mouse.move(5, 5);
+								await gp.evaluate(() => document.activeElement.blur());
+
+								await gp.fill(".for-login #login_email", "a@b.co");
+								await gp.fill(".for-login #login_password", "x");
+								// TWO tabs, not one. The first lands on "Forgot
+								// password?" — a check that pressed once measured an
+								// unfocused button and reported `:focus` as repaired
+								// while it was still broken.
+								await gp.keyboard.press("Tab");
+								await gp.keyboard.press("Tab");
+								out.focusOn = await gp.evaluate(() => document.activeElement.className || "");
+								out.focus = await read(CTA);
+
+								// The REAL disabled primary is the <button class="…
+								// btn-login btn-login-with-email-link"> in the hidden
+								// `.for-login-with-email-link` section. An <a> of the
+								// SAME name sits in `.for-login` and is a SECONDARY —
+								// `querySelector` returns that one, and measuring it
+								// proves nothing about the primary. Query by section.
+								await gp.evaluate(() => {
+									const sec = document.querySelector(".for-login-with-email-link");
+									sec.style.display = "block";
+									sec.querySelector("button.btn-login").disabled = true;
+									document.querySelector(".for-forgot").style.display = "block";
+								});
+								out.disabled = await read(".for-login-with-email-link button.btn-login");
+								// And the one that needs no synthesis at all:
+								// `.btn-forgot` carries `disabled` in the shipped
+								// markup, so a user reaches this in one click.
+								out.forgot = await read(".for-forgot .btn-forgot");
+								out.forgotOff = await gp.evaluate(
+									() => document.querySelector(".for-forgot .btn-forgot").disabled
+								);
+								return out;
+							},
+							{ colorScheme: mode }
+						);
+
+						const tag = `${mode}/${axis}`;
+						expect(
+							got.focusOn.includes("btn-login"),
+							`${tag}: two tabs land on the CTA, not the forgot link (landed on "${got.focusOn}")`
+						);
+						expect(got.forgotOff, `${tag}: .btn-forgot really does ship disabled`);
+
+						// Every state's label clears AA. This is the assertion the
+						// whole check exists for, and the one all four defects broke.
+						for (const st of ["rest", "hover", "active", "focus", "disabled", "forgot"]) {
+							const m = got[st];
+							const label = ratio(m.fg, m.bg);
+							expect(label >= 4.5, `${tag} ${st}: the label clears AA on the fill (${label.toFixed(2)}:1)`);
+						}
+						// The fill keeps its own edge everywhere the cascade lets us
+						// own it — which is everywhere but `:active` and the disabled
+						// pair, where a flattened fill IS the state's meaning.
+						for (const st of ["rest", "hover", "focus"]) {
+							const m = got[st];
+							const edge = ratio(m.bg, m.host);
+							expect(edge >= 3, `${tag} ${st}: the fill clears 3:1 against its host (${edge.toFixed(2)}:1)`);
+						}
+						for (const st of ["disabled", "forgot"]) {
+							const off = ratio(got[st].bg, got.rest.bg);
+							expect(
+								off >= 1.3,
+								`${tag} ${st}: reads as disabled — its fill differs from the enabled one (${off.toFixed(2)}:1)`
+							);
+						}
+						expect(
+							got.focus.ring.endsWith("solid"),
+							`${tag}: a keyboard-focused CTA carries a ring (${got.focus.ring})`
+						);
+						// THE ONE THAT PINS THE FIX ITSELF. `:focus` was missing from
+						// the selector list `:hover` was already in, so a focused
+						// button fell through to Frappe's #383838. Asserting "focus
+						// looks like hover" is the exact shape of that omission: drop
+						// `:focus` from the list again and these diverge, whatever
+						// values the tokens happen to hold. A tolerance rather than
+						// equality because a transition can still be a byte out.
+						const drift = ratio(got.focus.bg, got.hover.bg);
+						expect(
+							drift < 1.05,
+							`${tag}: :focus paints what :hover paints — both are in one selector list (${drift.toFixed(2)}:1 apart)`
+						);
+					}
+				}
+			});
+
+			await test("login: the second submit is legible when it is live, not only when it is dead", async () => {
+				// R5, AND ITS DEFECT WAS THE ENABLED STATE, WHICH NOTHING ASSERTED.
+				// `.btn-signup` pairs `background: var(--surface-gray-7)` with a
+				// LITERAL `color: white`. `--surface-gray-7` is #171717 in light and
+				// #f8f8f8 in dark, so the ENABLED button — Send Link on the forgot
+				// screen, and the signup submit — measured 1.06:1 in dark. White on
+				// near-white.
+				//
+				// `readCard` did read a `.btn-forgot` colour into a key called
+				// `submitOff` and NOTHING EVER ASSERTED IT. Worse, it read it through
+				// a bare `.btn-forgot`, and worse again it read the button in its
+				// SHIPPED state, which is `disabled` — so even had it been asserted it
+				// would have measured the one state R5 is not about. Three of this
+				// repo's recorded traps stacked in one dead line: a green test that
+				// asserts nothing, selecting by class instead of scoping to a root,
+				// and measuring the wrong state. It is deleted; this replaces it.
+				//
+				// `login.js` clears `disabled` once the email validates, so the
+				// enabled state is one keystroke away for every user who forgets a
+				// password. Dropping the attribute is what that code does.
+				for (const mode of ["light", "dark"]) {
+					for (const axis of ["neutral", "branded"]) {
+						const got = await withGuest(
+							"/login",
+							".for-login .page-card",
+							async (gp) => {
+								await gp.evaluate((a) => {
+									document.body.className = `bnd-auth bnd-auth-split bnd-auth-action-${a}`;
+								}, axis);
+								await gp.waitForTimeout(600);
+								await gp.evaluate(() => {
+									document.querySelector(".for-login").style.display = "none";
+									const f = document.querySelector(".for-forgot");
+									f.style.display = "block";
+									f.querySelector(".form-forgot")?.classList.remove("hide");
+								});
+								// Poll until the paint stops moving — see the note on
+								// the same helper in the state check above. This button
+								// transitions from its disabled fill to its enabled one
+								// the moment the attribute is cleared, and reading
+								// mid-transition reported 4.22:1 for a 4.56:1 pair.
+								const read = async () => {
+									await gp.evaluate(
+										() =>
+											new Promise((done) => {
+												let last = null;
+												let same = 0;
+												let frames = 0;
+												const tick = () => {
+													const cs = getComputedStyle(
+														document.querySelector(".for-forgot .btn-forgot")
+													);
+													const now = `${cs.backgroundColor}|${cs.color}`;
+													if (now === last) same++;
+													else {
+														same = 0;
+														last = now;
+													}
+													if (same >= 3 || ++frames > 120) return done();
+													requestAnimationFrame(tick);
+												};
+												requestAnimationFrame(tick);
+											})
+									);
+									return gp.evaluate(() => {
+										const paint = (v) => {
+											const c = document.createElement("canvas");
+											c.width = c.height = 1;
+											const x = c.getContext("2d");
+											x.fillStyle = "#fff";
+											x.fillRect(0, 0, 1, 1);
+											x.fillStyle = v;
+											x.fillRect(0, 0, 1, 1);
+											const d = x.getImageData(0, 0, 1, 1).data;
+											return [d[0], d[1], d[2]];
+										};
+										const opaque = (c) => {
+											if (!c || c === "transparent") return false;
+											const parts = c.split(",");
+											return parts.length < 4 || parseFloat(parts[3]) !== 0;
+										};
+										// SCOPED to `.for-forgot`. A bare `.btn-forgot`
+										// is the trap the deleted line fell into.
+										const e = document.querySelector(".for-forgot .btn-forgot");
+										const cs = getComputedStyle(e);
+										let n = e.parentElement;
+										let host = [255, 255, 255];
+										while (n) {
+											const c = getComputedStyle(n).backgroundColor;
+											if (opaque(c)) {
+												host = paint(c);
+												break;
+											}
+											n = n.parentElement;
+										}
+										return {
+											fg: paint(cs.color),
+											bg: paint(cs.backgroundColor),
+											host,
+											off: e.disabled === true,
+											signup: e.classList.contains("btn-signup"),
+										};
+									});
+								};
+								const out = { dead: await read() };
+								await gp.evaluate(() => {
+									document.querySelector(".for-forgot .btn-forgot").disabled = false;
+								});
+								out.live = await read();
+								return out;
+							},
+							{ colorScheme: mode }
+						);
+
+						const tag = `${mode}/${axis}`;
+						expect(got.dead.off, `${tag}: the forgot submit really does ship disabled`);
+						expect(got.dead.signup, `${tag}: and it carries .btn-signup, which is the rule under test`);
+						expect(!got.live.off, `${tag}: clearing the attribute enables it, as login.js does`);
+						const live = ratio(got.live.fg, got.live.bg);
+						expect(
+							live >= 4.5,
+							`${tag}: the ENABLED submit's label clears AA (${live.toFixed(2)}:1, ink ${got.live.fg} on ${got.live.bg})`
+						);
+						const edge = ratio(got.live.bg, got.live.host);
+						expect(edge >= 3, `${tag}: and its fill has an edge against the card (${edge.toFixed(2)}:1)`);
+						// The two states must not look alike, or "disabled" stops
+						// meaning anything.
+						const apart = ratio(got.live.bg, got.dead.bg);
+						expect(apart >= 1.3, `${tag}: live and dead are told apart by fill (${apart.toFixed(2)}:1)`);
+					}
+				}
+			});
+
+			await test("login: the class map and the field options are one fact", async () => {
+				// SAME-FACT-IN-TWO-PLACES, the defect class every critical bug in this
+				// repo traces to. `context.AUTH_CLASSES` maps each option NAME to a
+				// class slug, and the doctype's `options` string is the list of names
+				// a user can actually pick. There is no client-side apply on this
+				// surface — no boot payload, no `bunood.login_apply` — so AUTH_CLASSES
+				// is the ONLY translation from a stored value to a rendered class.
+				//
+				// Rename an option in the doctype and the map silently stops matching:
+				// `.get(value, "")` yields the empty slug, the anchor vanishes, and the
+				// page falls back to Original. No exception, no failing gate — the kit
+				// just quietly turns itself off for that setting. Nothing else in the
+				// suite compares the two, because every other kit's values are pinned
+				// through a preset the picker also reads.
+				//
+				// Read from the LIVE meta, not the JSON on disk: the doctype is
+				// migrated into the site, and a field edited but not migrated is its
+				// own failure mode.
+				const got = JSON.parse(
+					benchPy(
+						`from bunood_theme.context import AUTH_CLASSES\n` +
+							`meta = frappe.get_meta("Theme Settings")\n` +
+							`opts = {f: [o for o in (meta.get_field(f).options or "").split("\\n") if o]\n` +
+							`        for f in AUTH_CLASSES}\n` +
+							`defs = {f: meta.get_field(f).default for f in AUTH_CLASSES}\n` +
+							`print(json.dumps({"map": AUTH_CLASSES,\n` +
+							`                  "opts": {k: sorted(v) for k, v in opts.items()},\n` +
+							`                  "defs": defs}))\n`
+					)
+						.trim()
+						.split("\n")
+						.pop()
+				);
+				for (const field of Object.keys(got.opts)) {
+					expectEq(
+						Object.keys(got.map[field] || {}).sort().join(","),
+						got.opts[field].join(","),
+						`${field}: every option the picker offers has a class, and no class is orphaned`
+					);
+					expect(
+						got.defs[field] in (got.map[field] || {}),
+						`${field}: the doctype default "${got.defs[field]}" is one of the mapped values`
+					);
+				}
+				// And the neutral pole of each axis maps to NO class, which is what
+				// makes "Original" and "Follow OS" the absence of a rule rather than a
+				// rule that undoes one.
+				expectEq(got.map.login_style.Original, "", "Original is the absence of an anchor");
+				expectEq(got.map.login_action.Neutral, "", "Neutral is the absence of the brand axis");
+				expectEq(got.map.login_theme["Follow OS"], "", "Follow OS is the absence of a theme class");
 			});
 
 			await test("login: the error banner is legible where it was invisible", async () => {
@@ -10594,7 +11227,34 @@ async function main() {
 
 				const plate = await read("Plate");
 				expectEq(poleOf(plate.body), "bnd-auth-plate", "Plate sets its own slug");
-				expect(plate.page !== panel.page, `Plate moves the GROUND, which no other pole does (${plate.page})`);
+				// ARITHMETIC, NOT `!==`. This read `plate.page !== panel.page` and
+				// passed on any difference at all, including one nobody can see —
+				// which is precisely the failure mode the pole is at risk of. A
+				// brand-mixed ground collapses toward the surface at a pale seed:
+				// item 31 lost `Trough`'s well to exactly this and at pure white it
+				// went to zero channels. A string comparison cannot tell "the wash
+				// is there" from "the wash rounded to the page".
+				const wash = ratio(plate.page, original.page);
+				expect(
+					wash >= 1.15,
+					`Plate moves the GROUND, and by enough to see (${wash.toFixed(2)}:1 against Original's page, ${plate.page})`
+				);
+				// The card has to survive the move. Item 31's rule, written into
+				// `_filters.scss`: a pole may not take the card's fill away. Plate is
+				// the one pole that repaints the thing BEHIND the card, so it is the
+				// one that can erase it without touching it.
+				const onWash = ratio(plate.card, plate.page);
+				expect(
+					onWash >= 1.2,
+					`and the card stays an object on it (${onWash.toFixed(2)}:1, card ${plate.card} on ${plate.page})`
+				);
+				// WHY ONE SEED IS ENOUGH HERE, WHICH IT USUALLY IS NOT. The ground is
+				// `color-mix(brand 12%, color-mix(ink 7%, page))` — the INNER mix is
+				// ink into page, and neither depends on the brand seed, so the floor
+				// under both numbers above is seed-independent by construction. The
+				// 12% brand tint rides on top of a delta that is already there. A
+				// ground mixed straight from the seed would need all eleven, and
+				// would be the wrong design for the same reason.
 
 				const split = await read("Split");
 				expectEq(poleOf(split.body), "bnd-auth-split", "Split sets its own slug");
@@ -11027,6 +11687,45 @@ async function main() {
 				}
 			});
 
+			await test("login: the served tagline matches the stored one", async () => {
+				// THE BACKSTOP FOR A WHOLE CLASS, and it is here because the class
+				// shipped: after a suite run the DB held the operator's tagline while
+				// the generated stylesheet still carried `smoke-seed-<timestamp>`,
+				// and /login rendered the seed. Measured in that state.
+				//
+				// The cause is that `frappe.db.set_single_value` — how this suite
+				// writes settings — does not fire `on_update`, so `write_brand_css`
+				// never runs. `setSettings` now regenerates when it writes a
+				// `brand.BRAND_INPUTS` field. This asserts the OUTCOME rather than
+				// that mechanism, so it still fails if a future field is added to the
+				// sheet and forgotten in the list, or if a save path stops
+				// regenerating for some other reason.
+				//
+				// It compares the RENDERED value, not the file, because the file is
+				// one hop from what a visitor sees: a stale `brand_css_url` pointing
+				// at a reaped hash is a different failure with the same symptom.
+				const stored = benchPy(
+					"print(frappe.get_single('Theme Settings').tagline or '')\n"
+				).trim().split("\n").pop();
+				const rendered = await withGuest("/login", ".for-login .page-card", async (gp) =>
+					gp.evaluate(() =>
+						getComputedStyle(document.querySelector(".for-login .page-card-head-text"), "::after").content
+					)
+				);
+				if (!stored) {
+					expectEq(rendered, "none", "no tagline stored, so no pseudo-element is generated");
+					return;
+				}
+				// `content` comes back as a quoted CSS string; compare the payload.
+				const shown = rendered.replace(/^"|"$/g, "").replace(/\\(.)/g, "$1");
+				expectEq(
+					shown,
+					stored,
+					`the sign-in page shows what Theme Settings holds` +
+						` (stored ${JSON.stringify(stored)}, served ${rendered})`
+				);
+			});
+
 			await test("login: the tagline field stops being a promise", async () => {
 				// Theme Settings has shipped a `tagline` whose description reads
 				// "Shown on the login page." since day one, and nothing read it.
@@ -11069,6 +11768,68 @@ async function main() {
 					expectEq(hidden.content, "none", "and an unset one generates no pseudo-element at all");
 				} finally {
 					setTagline(before);
+				}
+			});
+
+			await test("login: the strength meter is a groove, not the loudest thing on the page", async () => {
+				// THE RULE HAD NEVER APPLIED, and the comment above it said it had.
+				// Ours was `body.bnd-auth .password-strength-bar-track` — (0,2,1).
+				// Frappe's is `.for-reset-password .password-strength-container
+				// .password-strength-bar-track` — (0,3,0). Three classes beat two
+				// classes plus an element, so the track kept `#f3f3f3` in BOTH modes:
+				// a near-white bar on a dark card, measured 14.42:1, which is R6's
+				// "the loudest object on the screen is chrome" defect standing intact
+				// inside the file that repairs it elsewhere.
+				//
+				// The counterpart to the state check above: that one found rules that
+				// lost on a pseudo-class, this one a rule that lost on a class count.
+				// Both are the same omission — sizing a selector against a guess.
+				for (const mode of ["light", "dark"]) {
+					const got = await withGuest(
+						"/update-password",
+						".for-reset-password .page-card",
+						async (gp) =>
+							gp.evaluate(() => {
+								const paint = (v) => {
+									const c = document.createElement("canvas");
+									c.width = c.height = 1;
+									const x = c.getContext("2d");
+									x.fillStyle = "#fff";
+									x.fillRect(0, 0, 1, 1);
+									x.fillStyle = v;
+									x.fillRect(0, 0, 1, 1);
+									const d = x.getImageData(0, 0, 1, 1).data;
+									return [d[0], d[1], d[2]];
+								};
+								const opaque = (c) => {
+									if (!c || c === "transparent") return false;
+									const parts = c.split(",");
+									return parts.length < 4 || parseFloat(parts[3]) !== 0;
+								};
+								const t = document.querySelector(
+									".for-reset-password .password-strength-container .password-strength-bar-track"
+								);
+								if (!t) return null;
+								let n = t.parentElement;
+								let host = [255, 255, 255];
+								while (n) {
+									const c = getComputedStyle(n).backgroundColor;
+									if (opaque(c)) {
+										host = paint(c);
+										break;
+									}
+									n = n.parentElement;
+								}
+								return { track: paint(getComputedStyle(t).backgroundColor), host };
+							}),
+						{ colorScheme: mode }
+					);
+					expect(got, `${mode}: the strength track exists on /update-password`);
+					const shout = ratio(got.track, got.host);
+					expect(
+						shout <= 2,
+						`${mode}: the empty track recedes into its card (${shout.toFixed(2)}:1) — it was 14.42:1 in dark`
+					);
 				}
 			});
 

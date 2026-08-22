@@ -353,6 +353,7 @@ body.bnd-auth {
   --fg-color: var(--bnd-surface);
   --text-color: var(--bnd-ink);
   --heading-color: var(--bnd-ink);
+  --control-bg: var(--bnd-auth-field);
   --ink-gray-5: var(--bnd-ink-muted);
   --ink-gray-6: var(--bnd-ink-muted);
   --ink-gray-4: var(--bnd-ink-subtle);
@@ -378,7 +379,7 @@ body.bnd-auth .page-card .page-card-head-text::after {
 }
 
 body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
-  outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent);
+  outline: 2px solid var(--bnd-accent, #4463f0);
   outline-offset: 2px;
   box-shadow: none;
 }
@@ -398,7 +399,12 @@ body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
   color: var(--bnd-page);
 }
 
-body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active) {
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active) {
   background: var(--bnd-ink-muted);
   color: var(--bnd-page);
 }
@@ -413,7 +419,7 @@ body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled) {
   color: var(--bnd-page);
 }
 
-body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :active) {
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
   background: var(--bnd-ink-muted);
   color: var(--bnd-page);
 }
@@ -441,7 +447,7 @@ body.bnd-auth .page-card .page-card-body .login-error-banner svg {
   fill: var(--bnd-critical);
 }
 
-body.bnd-auth .password-strength-bar-track {
+body.bnd-auth .page-card .password-strength-container .password-strength-bar-track {
   background: var(--bnd-auth-field);
 }
 
@@ -556,8 +562,13 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
   color: var(--bnd-on-brand);
 }
 
-body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active),
-body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :active) {
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active),
+body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
   background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
   color: var(--bnd-on-brand);
 }

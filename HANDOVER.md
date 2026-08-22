@@ -29,10 +29,14 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` (2026-08-22, local tag at
-`eeec87a`, NOT PUSHED).** Gates: suite **332/332**, contrast **4,080 pairs**, sweep CLEAN.
-`main` is now TEN commits ahead of `origin/main` and carries two unpushed tags (`v0.31.0`
-and `v0.32.0`). Ten commits on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
+**ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` (2026-08-22, local tag,
+NOT PUSHED). THE TAG WAS MOVED once, off `eeec87a`, after an adversarial release review
+found five live defects — see the block at the end of this section.** Gates at the moved
+tag: suite **339/339**, contrast **4,080 pairs**, sweep CLEAN.
+`v0.31.0` IS ON THE REMOTE — this file previously said it was not. Checked with
+`git ls-remote --tags origin`: the remote carries `v0.31.0` at `5fbf7e0`, which is
+exactly what the local tag points at. `v0.32.0` is the only unpushed tag. Resolve tag
+state with `git ls-remote`, never from this file. Ten commits on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
 dark-token mixin) · `fadda9f` 1 (the sheet + eight contracts) · `6185309` 2 (the anchor) ·
 `1fda341` 3 (the axes + the picker) · `28a0faa` 4 (the axe gate) · `32f33c4` 4b (the tagline +
 the per-site dark scope) · `b007d41` 4c (Split's `md` boundary, and the flex-direction defect
@@ -1010,6 +1014,113 @@ audit; and the deferred floating selection bar. A release is also owed, and now 
 larger one than usual — see the release-state bullet above.
 
 ---
+
+### The release review, and the five defects it found (2026-08-22)
+
+`v0.32.0` was tagged, gates green, and **not sound**. All five below were live on the
+tagged commit; none would have been caught by CI, the suite, the sweep or the contrast
+gate, because each sits in a place the checks did not look. Each is now covered by a
+check that was verified by putting the defect back and watching it turn red.
+
+- **THE SITE ROOT GOT NO KIT AT ALL, AND THIS IS THE ONE THAT MATTERED.** The branch
+  matched `frappe.local.request.path` against `("login", "update-password")`, on a claim
+  written into `context.py` that `context.path` is not assigned until after the hook
+  runs. **That claim is false** — `TemplatePage.get_html()` calls `update_context()`,
+  which sets `path`, `route` AND `template` in `set_page_properties()` before
+  `post_process_context()` reaches us, and the desk branch had keyed on
+  `context.template` since v2. On a stock site a guest hitting `/` is served the sign-in
+  page and `request.path` is `""`, so **the address a customer actually types** got
+  `class=""`: no scope, no anchor, no brand sheet, no logo, none of the eleven contracts
+  including the focus ring. So did the redirect target from any `/app/*` hit by a
+  signed-out user. All 22 login checks passed because **every one of them navigates to
+  the literal `/login`**. Guard on `AUTH_TEMPLATES`, never on a route.
+- **A RULE SCAN AT REST CANNOT SEE THE STATES, AND THAT COST THREE MORE.** Frappe groups
+  `:hover, :focus, :active` into ONE selector list at `(0,5,0)` and ships a separate
+  `:disabled` at `(0,5,0)`; our base rules were `(0,4,1)`. So `:focus` reverted the CTA
+  to `#383838` (1.36:1, no ring — `:focus-visible` is false after a pointer click) and
+  `:disabled` to `#171717` (1.12:1), which is one gesture away because `login.js`
+  disables the button and `.btn-forgot` ships `disabled` in the markup. The strength
+  meter is the same lesson through class-count rather than pseudo-class: ours was
+  `(0,2,1)` against Frappe's `(0,3,0)`, so **the rule had never applied at all** and the
+  track stayed `#f3f3f3` — 14.42:1 against a dark card. **Scan the states, not the
+  selector.**
+- **`.btn:active` IS `!important` AND ONLY HALF OF ITS PAIR FLIPS — WE MADE IT WORSE.**
+  `website.bundle` ships `.btn:active { color: var(--text-color) !important;
+  background-color: var(--control-bg) !important }`, unlayered. We re-pointed
+  `--text-color` and not `--control-bg`, so a held button drew our flipping ink on
+  Frappe's fixed `#f3f3f3`: **1.09:1 in dark, where stock managed 10.57:1.** A repair
+  that re-points ONE variable of an `!important` pair is a regression. Both halves now.
+  The 3:1 boundary is separately unwinnable there — `--control-bg` is the field fill, so
+  a pressed button flattens into the card whatever we point it at — so the check asserts
+  the LABEL and the exemption is argued in the file.
+
+### Three measurement traps, all of which produced a confident wrong answer
+
+- **`getComputedStyle` MID-TRANSITION IS THE STALE-VALUE TRAP'S SECOND FACE, AND IT
+  FAILS IN THE SAFE-LOOKING DIRECTION.** Separate evaluates and two `requestAnimationFrame`s
+  are NOT enough: these buttons carry a colour transition. A read 120ms after clearing
+  `disabled` caught the submit at `78,133,87` en route to `74,130,83` and reported
+  **4.22:1 for a pair that settles at 4.56:1** — a false AA failure. The same wait after
+  a body-class swap read `53,87,61` for a button whose settled fill is `22,24,29`, an
+  interpolation between two poles. One direction cries wolf; the other **certifies a
+  live defect as repaired**. Stop waiting a fixed time: poll until three consecutive
+  frames agree, with a frame cap. Both new state checks do.
+- **A RULE SCAN THAT RECURSES ON `r.cssRules` NOW EXAMINES NOTHING.** With CSS nesting,
+  `CSSStyleRule` implements `CSSGroupingRule`, so EVERY style rule carries an empty
+  `cssRules` list and `if (r.cssRules) { walk(...); continue; }` skips all 6,063 of them.
+  It reported zero `:active` rules, which reads as "the vendor has no such rule" rather
+  than as a broken tool — and nearly retired a real finding. Guard with `!r.selectorText`.
+- **`triple()` READ AN UNKNOWN COLOUR FORM AS BLACK, SILENTLY.** It knew `rgb()` and
+  `color(srgb ...)`; Chrome also serialises a `color-mix()` as
+  `oklab(0.554924 -0.0794364 0.0496738)`, which the digit-scraping fallback turns into a
+  near-black triple. Nothing in the suite hit it yet — that is luck, not design. It
+  THROWS on an unrecognised form now, and takes a resolved `[r,g,b]` array for the
+  checks that resolve colours by painting them on a 1x1 canvas in the page (the only way
+  to resolve `oklab()` without reimplementing the conversion).
+
+### The pre-existing bug the review turned up, now fixed
+
+- **`brand.py` DOCUMENTED A CONTENT HASH AND SHIPPED A RANDOM ONE, AND IT WAS A v17
+  DEADLINE.** The module docstring says "content-hashed filename" three times and rests
+  the whole cache argument on it — nginx sets no `Cache-Control` on `/files`, so the URL
+  must be immutable per content — and the line was commented "Hash the CONTENT, so an
+  unchanged save keeps the same URL". It called `frappe.generate_hash(css, 8)`, whose
+  own docstring is *"Generates a random hash"*, whose body is `secrets.token_hex`, and
+  **which discards `txt` entirely**. Consequences: `os.path.exists(target)` could never
+  short-circuit, `_reap_old` spent its eight-file budget of still-referenced URLs on
+  byte-identical rewrites, and every `after_migrate` re-issued the sheet. The cited
+  precedent is where it came from — `website_theme.py` does use 8 hex chars, but its
+  comment reads `# add a random suffix` and it DELETES old files each generate; the
+  length was copied and the semantics were not. **And `txt` is deprecated, warns on
+  every call, and is REMOVED in Frappe v17**, where the TypeError would have been eaten
+  by `write_brand_css`'s own `except Exception`, `None` returned, and the brand sheet
+  silently stopped generating on every site. Now `hashlib.sha256(css)[:12]` — TWELVE,
+  because content addressing adds a failure mode randomness did not have (on a collision
+  the existing file is served and the new content is never written, so a colour change
+  silently does not happen).
+- The check that pins it is the THIRD assertion, not the first two: same-URL-twice could
+  be caching and a moved URL could be randomness, but **returning to a previously seen
+  URL** can only happen if the name is a function of the content. Watched to fail
+  against the deployed old code before the fix went in.
+- Still open, reported not fixed: **`_brand_css_url`'s self-heal writes inside a GET**,
+  so `set_single_value` is rolled back and the heal re-runs on every request once
+  triggered. Only reachable after a DB-only restore, which is a dev path.
+
+### And three smaller things the review turned up
+
+- **`submitOff` WAS COMPUTED AND NEVER ASSERTED**, off a bare `.btn-forgot`, in the
+  button's SHIPPED state — which is `disabled`, i.e. the one state R5 is not about.
+  Three recorded traps stacked in one dead line. Deleted, and replaced by a check that
+  enables the button the way `login.js` does.
+- **`AUTH_CLASSES` AND THE DOCTYPE `options` WERE THE SAME FACT IN TWO PLACES** with
+  nothing comparing them. There is no client-side apply on this surface, so that map is
+  the ONLY translation from a stored value to a rendered class: rename an option and
+  `.get(value, "")` silently yields the empty slug and the kit turns itself off. Now
+  compared against the LIVE meta.
+- **`registry.py`'s `"Sign in"` IS CORRECT** — the review flagged it as inconsistent with
+  the doctype's `"Sign-In Style"`, but every registry label is sentence case ("User
+  profile", "Home link", "All apps link", "List view"). Left alone. Recorded so the next
+  reader does not re-raise it.
 
 ## 2. Waiting on the user
 

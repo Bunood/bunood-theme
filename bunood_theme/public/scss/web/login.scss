@@ -16,24 +16,47 @@
 //   `templates/includes/head.html` emits `web_include_css` inside
 //   `{% block head %}`; `www/login.html` OVERRIDES `{% block head_include %}`
 //   with `include_style('login.bundle.css')`, which therefore comes after.
-//   Verified in the rendered HTML. Frappe's deepest login selectors, measured
-//   with a rule scan rather than guessed:
+//   Verified in the rendered HTML. The competitors, from a rule scan over
+//   `document.styleSheets` rather than guessed:
+//     (0,4,1)  .for-login .page-card .page-card-body input[type="text"]
 //     (0,4,0)  .for-login .page-card .page-card-actions .btn-login
-//     (0,5,0)  .for-login .page-card .page-card-actions .btn-login:hover
-//     (0,4,0)  .for-login .page-card .page-card-body input[type="text"]
+//     (0,5,0)  ...btn-login:hover, :focus AND :active — ONE selector list
+//     (0,5,0)  ...btn-login:disabled
+//     (0,3,0)  .for-reset-password .password-strength-container
+//                .password-strength-bar-track
 //     (0,2,0)  .btn:focus            { outline: 0 }        <- website.bundle
 //     (0,2,0)  .form-control:focus   { outline: 0; box-shadow: none }
+//     (0,2,0)  .btn:active           { color/background !important }
 //   `body.bnd-auth` is worth (0,1,1) as a prefix, so a two-class rule of ours
 //   clears the focus killers and a four-class rule clears the login bundle.
-//   Every selector below is sized against a MEASURED competitor.
+//
+//   THIS LIST USED TO BE SHORTER, AND THE FOUR MISSING ENTRIES WERE FOUR
+//   DEFECTS. An adversarial release review found that the first scan had looked
+//   only at REST and HOVER: `:focus` and `:disabled` are separate rules at
+//   (0,5,0) that our (0,4,1) base lost to (the branded CTA reverted to grey the
+//   moment it was clicked, and to near-black when `login.js` disabled it); the
+//   strength-meter track is (0,3,0) against a rule of ours at (0,2,1), so it had
+//   NEVER applied; and `.btn:active` is `!important`, which no specificity can
+//   beat — pairing our flipping `--text-color` with Frappe's fixed
+//   `--control-bg` and making a held button 1.09:1 in dark, a regression this
+//   kit introduced.
+//
+//   The lesson, written where the next kit will read it: SCAN THE STATES, not
+//   the selector. A rule scan against an element at rest cannot see the rules
+//   that only exist for :hover, :focus, :active and :disabled, and a vendor that
+//   groups them into one selector list will out-specify a base rule sized
+//   against the base.
 //
 // THE SCOPE IS A BODY CLASS, SERVER-RENDERED
 //   `templates/base.html:57` renders `class="{{ body_class or '' }}"`, and
 //   `body_class` is an ordinary context key, so `update_website_context` sets
 //   it (see `context.py`). That gives this kit the same two halves every other
 //   kit has, with zero JS and no flash:
-//     `body.bnd-auth`         — CONTRACTS. Always present on these two routes.
-//     `body.bnd-auth-<style>` — the ANCHOR. Slice 2. "Original" omits it.
+//     `body.bnd-auth`         — CONTRACTS. Always present on these two TEMPLATES.
+//     `body.bnd-auth-<style>` — the ANCHOR. "Original" omits it.
+//   TEMPLATES, not routes, and that distinction cost the site root: on a stock
+//   site a guest hitting `/` is served the sign-in page, and `context.py` keyed
+//   on the request path, which is empty there. See `AUTH_TEMPLATES`.
 //   There is no `<html>` attribute to key on and no honest way to make one: the
 //   tag is hardcoded in Frappe's base template, and a JS stamp on a website
 //   page would either run in `head_html` (which is an admin's Website Settings
@@ -62,7 +85,7 @@
 //   page itself" is the standing evidence; if that ever fails, this paragraph
 //   is what changed.
 //
-// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-21, frappe
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-21/22, frappe
 // 16.27.0, seed #4d8756, in a GUEST browser context — `www/login.py:38-46`
 // redirects an authenticated session to /desk, so an admin cannot see this
 // page. Ratios are `bunood_theme.contrast.ratio`. The full census, including
@@ -173,6 +196,23 @@ body.bnd-auth {
   --text-color: var(--bnd-ink);
   --heading-color: var(--bnd-ink);
 
+  // `--control-bg` IS RE-POINTED BECAUSE `--text-color` IS, and leaving it out was
+  // a contrast REGRESSION THIS KIT INTRODUCED. `website.bundle.css` ships
+  //
+  //     .btn:active { color: var(--text-color) !important;
+  //                   background-color: var(--control-bg) !important; }
+  //
+  // with `!important`, so no specificity here can beat it, and the two halves are
+  // ours and Frappe's respectively. `--text-color` now flips with the mode;
+  // `--control-bg` is #f3f3f3 with its dark value behind `[data-theme="dark"]`,
+  // which a website page can never match. Measured while holding a button in dark:
+  // #e8eaec on #f3f3f3, 1.09:1, where stock was 10.57:1.
+  //
+  // That is the literal-paired-with-a-token shape this file's own census
+  // catalogued three times (R5, R6, R7), re-created by one of its repairs. The
+  // pair has to flip together or not at all.
+  --control-bg: var(--bnd-auth-field);
+
   // R2. `--ink-gray-5` is `#7c7c7c`, and Frappe uses it for the field LABEL and
   // for the "Forgot password?" LINK and for /update-password's password hint
   // and strength message: 4.17:1 on a white card, under 1.4.3's 4.5 floor. One
@@ -271,7 +311,16 @@ body.bnd-auth .page-card .page-card-head-text::after {
 // 1.4.11's 3:1 against every surface, as a cross product, because an outline's
 // neighbour is the CONTAINER's colour and not the control's. No new pair.
 body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
-  outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent);
+  // A 2px literal, not a token: this theme has no line-weight token, and the first
+  // cut wrote `var(--bnd-line-thick, 2px)` for a property defined NOWHERE in the
+  // repo — a fallback dressed as a token, and invisible to the no-raw-px guard
+  // because it sits inside a var().
+  //
+  // `--bnd-accent` gets a fallback because it is load-bearing: if it ever resolved
+  // to something unparseable the whole `outline` shorthand would be invalid at
+  // computed-value time, every longhand would go to `unset`, and the page would
+  // silently have NO focus indicator — the one thing this contract guarantees.
+  outline: 2px solid var(--bnd-accent, #4463f0);
   outline-offset: 2px;
   // Frappe's `.btn:focus` also paints a grey glow that now reads as noise
   // beside a real ring, and on `.btn-login` it is suppressed anyway.
@@ -327,12 +376,37 @@ body.bnd-auth .page-card .page-card-body ::placeholder {
 // (0,4,1) against their (0,4,0), and (0,5,1) against their (0,5,0) hover twin.
 // Under `login_action: Branded` (slice 3) the brand takes this over; the
 // contract is what holds when it does not.
+// EVERY STATE, NOT JUST REST, and the first cut covered only rest and
+// hover/active. Frappe groups `:hover`, `:focus` AND `:active` into ONE selector
+// list at (0,5,0), and ships a separate `:disabled` at (0,5,0):
+//
+//     .for-login .page-card .page-card-actions .btn-login:focus
+//        { background: var(--gray-800); color: #fff }
+//     .for-login .page-card .page-card-actions .btn-login:disabled
+//        { background: var(--gray-900); color: #fff; opacity: 1 }
+//
+// A base rule at (0,4,1) loses to both, and `:is(:hover, :active)` never matches a
+// bare `:focus`. Measured: click Sign In and move the pointer away and the branded
+// CTA turned #383838 and stayed there — 1.36:1 against the dark column, with no
+// ring, because `:focus-visible` is false after a pointer click. And `:disabled` is
+// reachable in one gesture: `login.js:89` disables `.btn-login-with-email-link`
+// (which carries `.btn-login`) after "Send login link", giving #171717 on the dark
+// column — 1.12:1, contract R7's ORIGINAL defect reproduced inside the pole that
+// repairs it.
+//
+// `:disabled` is listed FIRST so the interactive states below win for a control
+// that is somehow both; equal specificity, later wins.
 body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
   background: var(--bnd-ink);
   color: var(--bnd-page);
 }
 
-body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active) {
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active) {
   background: var(--bnd-ink-muted);
   color: var(--bnd-page);
 }
@@ -357,7 +431,7 @@ body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled) {
   color: var(--bnd-page);
 }
 
-body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :active) {
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
   background: var(--bnd-ink-muted);
   color: var(--bnd-page);
 }
@@ -401,7 +475,15 @@ body.bnd-auth .page-card .page-card-body .login-error-banner svg {
 // The four fill colours are `var(--dark-<hue>-500, …)` with literal fallbacks
 // and are left alone: they are a data ramp, not chrome, and item 25's law for
 // admin/data colour applies.
-body.bnd-auth .password-strength-bar-track {
+// (0,4,1). The first cut was `body.bnd-auth .password-strength-bar-track` — (0,2,1)
+// against Frappe's `.for-reset-password .password-strength-container
+// .password-strength-bar-track` at (0,3,0), so THREE CLASSES BEAT TWO CLASSES PLUS
+// AN ELEMENT and the rule never applied at all. Measured on the live route: the
+// track stayed #f3f3f3 in both modes, a near-white bar at 14.42:1 against a dark
+// card — the same "the loudest object on the screen is chrome" defect R6 repairs
+// for `.btn-login-option`, left standing while the comment above it claimed
+// otherwise.
+body.bnd-auth .page-card .password-strength-container .password-strength-bar-track {
   background: var(--bnd-auth-field);
 }
 
@@ -710,11 +792,19 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
   color: var(--bnd-on-brand);
 }
 
-body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active),
+// The disabled arm has to be here too. Frappe's `:disabled` rule is (0,5,0) and
+// the axis base is (0,4,1), so without this a Branded CTA reverts to #171717 the
+// moment `login.js` disables it — one click on the forgot screen.
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active),
 body.bnd-auth-action-branded
   .page-card
   .page-card-actions
-  .btn-signup:not(:disabled):is(:hover, :active) {
+  .btn-signup:not(:disabled):is(:hover, :focus, :active) {
   background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
   color: var(--bnd-on-brand);
 }

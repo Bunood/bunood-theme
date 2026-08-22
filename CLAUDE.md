@@ -83,6 +83,29 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   value when an attribute was mutated and re-read inside one `page.evaluate`; and a
   `transparent` parent parses as black, so a passing 7.94:1 read as 2.52:1. Mutate and
   read in different evaluates; resolve the effective background by walking ancestors.
+  **Separate evaluates are still not enough if the thing transitions** — a read 120ms
+  and two rAFs after clearing `disabled` caught a button mid-fade and reported 4.22:1
+  for a pair that settles at 4.56:1, and the same wait after a class swap read an
+  interpolation between two poles. One direction cries wolf; the other certifies a live
+  defect as repaired. Poll until three consecutive frames agree, with a frame cap.
+- **Matching a route when what is rendered is a template.** Item 32 keyed the auth kit
+  on `request.path` and the SITE ROOT got nothing — a guest at `/` is served the sign-in
+  page and the path is `""`. All 22 of its checks passed because all 22 asked for
+  `/login` by name. A route is one of many addresses that reach a template; guard on
+  `context.template`, and make one check use an address you did not write the rule for.
+- **Sizing a selector against the RESTING rule.** A vendor that groups `:hover`, `:focus`
+  and `:active` into one selector list out-specifies a base rule sized against the base.
+  Item 32 lost `:focus` (CTA reverted to grey on click, no ring), `:disabled` (1.12:1,
+  one gesture away) and a strength track that had NEVER applied — three classes beats
+  two classes plus an element. Scan the STATES. And where the competitor is
+  `!important`, re-point BOTH halves of its pair or none: changing `--text-color` and
+  not `--control-bg` put our flipping ink on Frappe's fixed grey at 1.09:1, where stock
+  managed 10.57:1. A repair that moves half a pair is a regression.
+- **A helper that guesses at an unrecognised input.** `triple()` knew `rgb()` and
+  `color(srgb …)` and read `oklab(…)` — which Chrome also emits for `color-mix()` — as
+  near-black, silently. A rule scan that recursed on `r.cssRules` examined NOTHING, because
+  CSS nesting gave every `CSSStyleRule` an empty `cssRules` list, and reported zero
+  matches as though the vendor had no such rule. Make the unknown case THROW.
 - **Sharing a layout rule between poles, then asserting the wrong property.** Item 32's
   `Split` inherited `flex-direction: column` from the rule it shares with `Panel`, so its
   brand panel stacked *below* the form instead of beside it — and both checks passed,

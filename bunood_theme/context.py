@@ -8,7 +8,9 @@ WHAT
 
     * **the desk** (``www/desk.html``) — appends the per-site brand stylesheet and
       corrects ``layout_direction`` for the RTL languages Frappe's ``is_rtl()`` misses.
-    * **the auth routes** (``/login``, ``/update-password``) — item 32. Sets the
+    * **the auth templates** (``www/login.html``, ``www/update-password.html``) —
+      item 32, and note it is the TEMPLATE and not the route: a guest hitting ``/`` on a
+      stock site is served the sign-in page. Sets the
       ``body_class`` that ``web/login.scss`` scopes to, puts the brand sheet on
       ``web_include_css``, and replaces Frappe's app logo with Theme Settings'.
 
@@ -40,9 +42,12 @@ WHY THIS EXISTS
     ``boot`` — and can change it before render, without owning the template.
 
 CONSTRAINTS THAT SHAPE THIS FILE
-    * The hook fires for EVERY website request: portal pages, ``/login``, error
-      pages. It must therefore guard on ``context.template`` and do nothing
-      otherwise.
+    * The hook fires for EVERY website request: portal pages, error pages, the site
+      root. It guards on ``context.template`` and does nothing for anything that is
+      not one of the three templates named above. (This used to read "``/login``"
+      among the things to do nothing for; item 32 made the auth templates a second
+      answered surface and this constraint was left contradicting the WHAT block
+      thirty lines above it. Corrected by an adversarial release review.)
     * It runs inside the website router. An uncaught exception here takes down every
       page on the site, not just the desk. Every branch is wrapped.
     * It runs on every desk request (``frappe/www/desk.py`` sets ``no_cache``, so
@@ -53,23 +58,37 @@ See ARCHITECTURE.md sections 4, 5 and 3.
 
 import frappe
 
-#: The only template we touch. Frappe's ``PathResolver`` hardcodes ``TemplatePage("desk")``
-#: for ``/desk`` and ``/app/*``, and the context carries the template path, so this is a
-#: reliable discriminator.
+#: The DESK template. Frappe's ``PathResolver`` hardcodes ``TemplatePage("desk")`` for
+#: ``/desk`` and ``/app/*``, and the context carries the template path, so this is a
+#: reliable discriminator. (It read "the only template we touch" until item 32 added
+#: :data:`AUTH_TEMPLATES`.)
 DESK_TEMPLATE = "www/desk.html"
 
-#: The two logged-out routes item 32 dresses. ``/login`` holds four ``<section>``s behind
-#: hash routes (``#login``, ``#signup``, ``#forgot``, ``#login-with-email-link``) and
-#: ``/update-password`` is a fifth on the same ``login.bundle.css`` — one surface, two
-#: routes.
+#: The two logged-out surfaces item 32 dresses, BY TEMPLATE. ``/login`` holds four
+#: ``<section>``s behind hash routes (``#login``, ``#signup``, ``#forgot``,
+#: ``#login-with-email-link``) and the reset screen is a fifth on the same
+#: ``login.bundle.css`` — one surface, two templates.
 #:
-#: MATCHED ON THE REQUEST PATH, NOT ``context.path``, and that is not a style choice:
-#: ``BaseTemplatePage.set_missing_values()`` assigns ``context.path`` AFTER
-#: ``update_website_context()`` runs (``base_template_page.py:37`` vs ``:32``), so the key
-#: is empty at the only moment we can read it. Checked in the source rather than assumed,
-#: because the rendered page DOES carry ``data-path="login"`` and reading that back would
-#: have looked like confirmation.
-AUTH_ROUTES = ("login", "update-password")
+#: MATCHED ON THE TEMPLATE, NOT ON THE REQUEST PATH, and the first cut got this wrong in
+#: a way that cost the whole item its most important page. It matched
+#: ``frappe.local.request.path`` on the strength of a claim — written into this file —
+#: that ``context.path`` is assigned after the hook runs. That is false:
+#: ``TemplatePage.get_html()`` calls ``update_context()`` (``template_page.py:95``), which
+#: calls ``set_page_properties()`` (``:178-185``) and sets ``path``, ``route`` AND
+#: ``template``, all before ``post_process_context()`` (``:99``) reaches us. The desk
+#: branch below has always keyed on ``context.template``, which was standing proof.
+#:
+#: WHAT THAT COST: on a stock site a guest hitting ``/`` is served the sign-in page —
+#: ``frappe.website.utils.get_home_page`` sends them to ``me``, whose permission check
+#: renders login — and ``request.path`` is then ``""`` while ``context.template`` is
+#: ``www/login.html``. So the site ROOT, the address a visitor actually types, got none
+#: of this kit: no scope, no anchor, no brand sheet, no logo, and none of the eleven
+#: contracts including the focus ring. Measured live, and every one of the 22 login
+#: checks missed it because they all navigate to the literal ``/login``.
+#:
+#: Note the reset template is ``update-password.html`` with a HYPHEN. Resolved through
+#: ``PathResolver`` rather than guessed from the route name.
+AUTH_TEMPLATES = ("www/login.html", "www/update-password.html")
 
 #: The scope every rule in ``web/login.scss`` hangs off. Contracts key on this class
 #: alone; the anchor and the two axes add ``bnd-auth-<slug>`` beside it.
@@ -126,26 +145,13 @@ def desk_context(context):
             _correct_layout_direction(context)
             return
 
-        if _auth_route():
+        if context.get("template") in AUTH_TEMPLATES:
             _auth_context(context)
 
     except Exception:
         # Never break the website router. A missing brand sheet degrades to the
         # compiled bundle's built-in defaults, which are complete by design.
         frappe.log_error("bunood_theme.context.desk_context failed")
-
-
-def _auth_route():
-    """The auth route being rendered, or ``None``.
-
-    Reads ``frappe.local.request.path`` because ``context.path`` is not populated
-    yet — see :data:`AUTH_ROUTES`. Defensive about ``frappe.local.request``
-    existing at all: this hook also runs under ``frappe.respond_as_web_page`` and
-    in tests, where there may be no request object.
-    """
-    request = getattr(frappe.local, "request", None)
-    path = (getattr(request, "path", "") or "").strip("/")
-    return path if path in AUTH_ROUTES else None
 
 
 def _append_brand_css(context):

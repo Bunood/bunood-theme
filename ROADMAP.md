@@ -843,7 +843,22 @@ entry.
     claims); `web_css_gzip` 3160 against a new 4000 ceiling. Contrast 4,008 → 4,080
     pairs. References: Directus `public-view.vue` (Split, already logical-property
     authored), Discourse `login-signup-page.scss` and shadcn `card` (Panel). Upstream:
-    `docs/upstream/frappe-login.md` (ten filings).
+    `docs/upstream/frappe-login.md` (twelve filings).
+  - **THE RELEASE REVIEW FOUND FIVE LIVE DEFECTS AND THE TAG WAS MOVED** *(2026-08-22)*.
+    All five sat where nothing looked. The worst: the kit matched the request PATH, so a
+    guest at `/` — the address a customer types, and where a stock site serves the
+    sign-in page — got no scope, no anchor, no brand sheet and no focus ring, while all
+    22 checks passed because all 22 asked for `/login` by name. **Guard on the template,
+    not the route.** Three more came from a rule scan that read the controls only AT
+    REST: Frappe groups `:hover, :focus, :active` in one selector list at (0,5,0) and
+    ships `:disabled` separately, so a base rule at (0,4,1) lost both — the branded CTA
+    reverted to grey on click (1.36:1, no ring) and to near-black when disabled (1.12:1)
+    — and the strength track's rule had never applied at all, three classes against two
+    classes plus an element (14.42:1). The fifth was ours: `.btn:active` forces
+    `--text-color` and `--control-bg` `!important`, we re-pointed only the first, and a
+    held button measured **1.09:1 in dark where stock managed 10.57:1**. Six new checks
+    cover the STATES; each was verified by restoring the defect and watching it go red.
+    Also fixed: `_css_string` missed U+000C, which CSS counts as a newline.
 - `[ ]` **33 · Website base + portal** *(was 26)*
 - `[ ]` **34 · Email templates** *(was 27)*
 - `[ ]` **35 · Print formats / PDF** *(was 28)*

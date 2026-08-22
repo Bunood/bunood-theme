@@ -88,6 +88,45 @@ match. So a signed-out visitor in dark mode saw the *shipped* green rather than
 your colour — on a sign-in page whose whole point is that it is yours. Fixed, and
 now checked in a way that works whatever colour you have chosen.
 
+**Five defects the pre-release review caught, and one of them would have been the
+worst bug in this release.** An adversarial review before the tag is a standing step
+here. This time it changed the release rather than confirming it.
+
+- **The front door got none of it.** The theming was attached by matching the address
+  `/login` — but on a stock site a visitor who types your bare domain is served the
+  sign-in page at `/`, and so is anyone signed out who follows a link into the app.
+  Both got plain Frappe: no brand, no dark mode, not even the focus ring. Every one of
+  the twenty-two checks written for this item passed, because every one of them asked
+  for `/login` by name. It now attaches to the *page being rendered* rather than to the
+  address that reached it.
+- **The Continue button turned grey the moment you clicked it** and stayed grey, with
+  no focus marker — 1.36:1 against the column. Clicking a button leaves it focused, and
+  the focused state had been missed.
+- **It turned near-black the moment it was disabled**, 1.12:1 — which is one gesture
+  away, because "Send login link" disables it and the forgot-password screen ships its
+  button disabled.
+- **Holding the primary button down made it vanish in dark mode**, 1.09:1 where stock
+  Frappe managed 10.57:1 — and that one was introduced by this release. Frappe forces
+  both the text and the fill of a pressed button, and only the text follows the theme;
+  changing one without the other was worse than changing neither.
+- **The password-strength meter's track stayed a near-white bar on a dark card**,
+  14.42:1 — the loudest thing on the reset screen. The rule meant to fix it had never
+  applied at all.
+
+Six new checks cover the states rather than the resting page, and each was verified by
+putting the defect back and watching the check turn red.
+
+**And one older bug the review turned up, which was quietly counting down.** Your brand
+colours are generated into a small stylesheet whose filename is supposed to be a
+fingerprint of its contents — that is what lets a browser cache it forever and still
+pick up a colour change immediately. The filename was actually **random**, so every save
+and every upgrade handed each returning visitor a new address for a file they already
+had. Worse, the framework call being used for it is deprecated and **disappears in the
+next major Frappe release**, where the failure would have been swallowed silently and
+sites would simply stop getting their brand stylesheet at all. It is a real content
+fingerprint now: save without changing anything and the address stays put, change a
+colour and it moves, change it back and it returns to exactly what it was.
+
 ## [0.31.0] — 2026-08-21 — Filters (item 31)
 
 ### A filtered list says so (item 31)

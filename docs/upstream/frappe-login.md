@@ -1,6 +1,8 @@
 # Upstream: the login page — what cannot be fixed from an app
 
-Written 2026-08-21, during item 32's census (slice 0). Platform measured:
+Written 2026-08-21 during item 32's census (slice 0); sections 11 and 12 added
+2026-08-22 from the adversarial release review, which found four defects that the
+census had walked past because it scanned the controls **at rest**. Platform measured:
 **frappe 16.27.0**, erpnext 16.28.0, site `demo.bunood.test`, seed `#4d8756`.
 
 > **A correction to this repo's other documents while we are here.** `ROADMAP.md`,
@@ -301,6 +303,70 @@ passes review in light.
 
 ---
 
+## 11. `.btn:active` forces two variables `!important`, and only one of them flips
+
+`website.bundle.css`, unlayered and unscoped, at (0,2,0):
+
+```css
+.btn:active {
+	color: var(--text-color) !important;
+	background-color: var(--control-bg) !important;
+	box-shadow: var(--focus-default) !important;
+}
+```
+
+`--text-color` is redefined in Frappe's `[data-theme="dark"]` block. `--control-bg`
+is **`#f3f3f3` in both**, its dark value living behind `[data-theme="dark"]`, which a
+website page can never match — the same literal-paired-with-a-flipping-token shape as
+§2a, §2b and §2c, but delivered through `!important` so no downstream rule can repair
+it by specificity. Held on a dark login page, the button drew `#e8eaec` on `#f3f3f3`:
+
+| | ratio |
+|---|---|
+| stock, light | 10.57:1 |
+| stock, dark | **1.09:1** |
+
+**Why this one is worth filing even though the app can work around it.** The workaround
+is to re-point `--control-bg` as well, which we do — but any app that re-points
+`--text-color` and *not* `--control-bg` silently creates this defect for itself, and
+the only symptom is a button that vanishes while it is being pressed. A `!important`
+pair whose halves live in different scopes is a trap laid for every consumer.
+
+The 3:1 boundary requirement is separately unsatisfiable here: `--control-bg` is the
+field fill, so a pressed primary button flattens into the card (1.08:1 light, 1.11:1
+dark) whatever colour it is pointed at. Transient and pointer-anchored, so we accept
+it and assert only the label — but it is Frappe's design decision, not an accident.
+
+## 12. `:hover`, `:focus` and `:active` are one selector list, `:disabled` is another
+
+Not a defect — a **specificity fact that a themer must know**, and the reason four
+repairs in this theme shipped broken. `login.bundle` writes:
+
+```
+(0,4,0)  .for-login .page-card .page-card-actions .btn-login
+(0,5,0)  ...btn-login:hover, ...btn-login:focus, ...btn-login:active
+(0,5,0)  ...btn-login:disabled
+(0,3,0)  .for-reset-password .password-strength-container .password-strength-bar-track
+```
+
+A base override sized against the base rule (0,4,1) wins at rest and loses the moment
+the control is touched. Measured, with our contracts in place but sized only against
+rest and hover:
+
+| state | measured | why it is reachable |
+|---|---|---|
+| `:focus` | `#383838`, 1.36:1, **no ring** | `:focus-visible` is false after a pointer click, so any user who clicks Sign In sees it |
+| `:disabled` | `#171717`, 1.12:1 | `login.js` disables the button on "Send login link"; `.btn-forgot` ships `disabled` in the markup |
+
+The strength-meter track is the same lesson through a different door: three classes
+beats two classes plus an element, so an override written as
+`body.x .password-strength-bar-track` never applies at all. It kept `#f3f3f3` in dark —
+a near-white bar at **14.42:1** against the card, the loudest object on the screen.
+
+Filed here rather than as a bug because the vendor rules are internally consistent; what
+is missing is any documentation that a themer must scan the **states**, not the
+selector.
+
 ## Not filed, and why
 
 - **The physical properties.** `.forgot-password-message { text-align: right }`,
@@ -352,3 +418,24 @@ Splitting the mutation and the read into **separate `page.evaluate` calls with a
 real frame between them** gave the true value — and the true value was the
 severe one (§2a, 1.06:1). Item 31's lesson in a new costume: a correct rule can
 be failed by a wrong check, and the check is what to distrust first.
+
+**A frame is not always enough, and the second face of this trap is worse**, because it
+fails in the safe-looking direction. These buttons carry a colour transition. A read
+taken 120ms and two `requestAnimationFrame`s after clearing `disabled` caught the
+enabled submit at `78,133,87` on its way to `74,130,83` and reported **4.22:1** for a
+pair that settles at **4.56:1** — a false AA failure. The same fixed wait after a
+body-class swap read `53,87,61` for a button whose settled fill is `22,24,29`, an
+interpolation between the old pole and the new. One of those directions cries wolf; the
+other certifies a live defect as repaired.
+
+The fix is to stop waiting a fixed time and start waiting for the paint to stop moving:
+poll `getComputedStyle` across frames until three consecutive reads agree, with a frame
+cap so a genuinely animating element fails loudly instead of hanging. `tests/smoke.mjs`
+carries it in the two `login:` state checks.
+
+**And a third, in the tooling rather than the page.** A rule scan over
+`document.styleSheets` that recurses with `if (r.cssRules) { walk(...); continue; }`
+now examines **nothing**: with CSS nesting, `CSSStyleRule` implements `CSSGroupingRule`
+and every style rule carries an empty `cssRules` list, so every rule is treated as a
+group and skipped. It reports zero matches, which reads as "the vendor has no such
+rule" rather than as a broken scan. Guard the recursion with `!r.selectorText`.

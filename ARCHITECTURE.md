@@ -124,8 +124,31 @@ during `post_process_context()` — i.e. **after** `www/desk.py::get_context` ha
 populated `app_include_css`, `desk_theme` and `boot`. A hook can therefore mutate the
 desk context per request without owning the template. See `context.py`.
 
-The handler must guard on `context.template` (it also fires for every portal page,
-`/login`, and error pages) and must never raise (it sits in the website router).
+The handler must guard on `context.template` (it also fires for every portal page and
+every error page) and must never raise (it sits in the website router).
+
+**Item 32 made this hook answer a second family of templates, and the guard is the
+whole story.** `www/login.html` and `www/update-password.html` now get a `body_class`,
+the per-site brand sheet on `web_include_css`, and a `context.logo` override — the only
+way to reach a *website* page, which has no `app_include_css`, no `frappe.boot`, no
+`bunood.js` and no `data-theme`. See §12.
+
+The sentence above used to read "it also fires for every portal page, `/login`, and
+error pages", listing `/login` among the things to do nothing for. That was true until
+item 32 and then contradicted the same file thirty lines later. Corrected in an
+adversarial release review — along with the defect it was covering for.
+
+**Guard on the TEMPLATE, never on the request path.** The first cut of item 32's branch
+matched `frappe.local.request.path` against `("login", "update-password")`, on the
+strength of a claim that `context.path` is not assigned until after the hook runs. That
+claim is false — `TemplatePage.get_html()` calls `update_context()`, which sets `path`,
+`route` **and** `template` in `set_page_properties()` before `post_process_context()`
+reaches us; the desk branch has keyed on `context.template` since v2 and was standing
+proof. What the path match cost: on a stock site a guest who types the bare domain is
+served the sign-in page, and `request.path` is `""` there. So the site **root** — the
+address a visitor actually types — received none of the kit. So did the redirect target
+from any `/app/*` hit by a logged-out user. A route is one of many addresses that can
+resolve to a template; the template is the thing being rendered.
 
 ---
 
@@ -348,6 +371,63 @@ to a strip of viewport nobody can use.
 
 ---
 
+## 12. The website surface: a second stylesheet, and none of the desk's mechanisms
+
+Item 32 is the first thing this theme paints that is **not on the desk**, and every
+mechanism the nine desk kits stand on is absent on a *website* page. Measured on the
+live stack before a line of `web/login.scss` existed: `/login` loaded `website.bundle`,
+`erpnext-web.bundle` and `login.bundle`, **not one byte of ours**, and every `--bnd-*`
+property read as the empty string.
+
+| desk | website |
+|---|---|
+| `app_include_css` | `web_include_css` |
+| `frappe.boot` carries the settings | no boot at all |
+| `bunood.js` stamps `data-bnd-*` on `<html>` at parse time | no script of ours runs |
+| `<html data-theme>` from `User.desk_theme` | `templates/base.html` renders `<html lang dir>` with **no `data-theme`** |
+| our bundle is late in `<head>` | ours is **early** — `login.html` overrides `{% block head_include %}`, so Frappe's sheet comes after |
+
+Four consequences, each load-bearing:
+
+1. **Everything wins on specificity, never on source order.** Every selector in
+   `web/login.scss` is sized against a competitor found by scanning
+   `document.styleSheets` — and the scan must cover `:hover`, `:focus`, `:active` and
+   `:disabled`, not just the resting rule. A vendor that groups its states into one
+   selector list out-specifies a base rule sized against the base. Four defects shipped
+   from a scan that looked only at rest and hover.
+2. **`!important` is a hard ceiling.** `website.bundle` ships
+   `.btn:active { color: var(--text-color) !important; background-color: var(--control-bg) !important }`.
+   No specificity beats it, so the only move is to make **both halves** of the pair
+   ours: re-pointing `--text-color` alone put our flipping ink on Frappe's fixed
+   `#f3f3f3` and measured 1.09:1 in dark, where stock was 10.57:1. A repair that
+   re-points one variable of a pair is a regression.
+3. **The anchor is a server-rendered `body_class`**, not an `<html>` attribute — there
+   is no boot to read and no script to stamp one, and a JS stamp would land after first
+   paint. `update_website_context` sets it, so it is correct at first paint by
+   construction and costs zero JS.
+4. **The mode is `prefers-color-scheme`, and we deliberately do not stamp
+   `data-theme`.** A guest has no `User.desk_theme` because there is no user. Frappe's
+   own `[data-theme="dark"]` login branch is unreachable here, which is the point: three
+   measured failures live inside it (an enabled submit at 1.06:1, an error banner at
+   2.52:1, and a primary button whose fill equals the page). Activating their branch
+   would inherit all three.
+
+**The one doctrine amendment.** CLAUDE.md's rule is *"Frappe variables only inside
+`[data-theme]`."* This sheet must re-point some of them (`--bg-color`, `--text-color`,
+`--control-bg`, `--outline-gray-2`) and has no `[data-theme]` to hang them on, so it
+scopes them to `body.bnd-auth`. That satisfies the rule's *reason* exactly — nothing
+lands in bare `:root`, and a scope that exists on two templates cannot leak into the
+desk. GUIDELINES §1.3 carries the argument.
+
+**RTL here is a prohibition, not a restatement.** Frappe flips this page itself with a
+build-time rtlcss pass — an `ar` page serves `dist/css-rtl/login.bundle…css`, and their
+physical rules and our logical ones do **not** compose. So this sheet restates none of
+them and uses logical properties only for what it introduces. Our own path starts with
+`/assets`, so `bundled_asset()` skips the `rtl_` swap and one file serves both
+directions.
+
+---
+
 ## Verification checklist after any Frappe upgrade
 
 1. `data-theme` still on `<html>` in `frappe/www/desk.html`.
@@ -360,7 +440,11 @@ to a strip of viewport nobody can use.
 7. `.main-section` is still `height: 100vh` and still the scroll container, and
    `base_list.js` still sizes the result area from its `getBoundingClientRect()`
    (§11). The `reserve:` checks in `tests/smoke.mjs` fail loudly if not.
-8. `bundled_asset()` still calls `is_rtl(rtl)` as a plain name resolved from its own
+8. `templates/base.html` still renders `class="{{ body_class or '' }}"` on `<body>`,
+   and `TemplatePage.update_context()` still sets `context.template` before
+   `post_process_context()` runs (§4, §12). Both are what the auth kit hangs on; the
+   `login:` family in `tests/smoke.mjs` fails loudly if either moves.
+9. `bundled_asset()` still calls `is_rtl(rtl)` as a plain name resolved from its own
    module's namespace on every call, not one bound at import time (§9) — that is the
    entire reason `rtl_patch.py`'s module-attribute reassignment is safe. If a Frappe
    refactor changes this, the patch stops reaching `bundled_asset()` silently:

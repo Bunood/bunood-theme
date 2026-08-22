@@ -66,11 +66,9 @@
 		"link-name": 1
 	},
 	"/login": {
-		"color-contrast": 3,
 		"image-alt": 1
 	},
 	"/update-password": {
-		"color-contrast": 4,
 		"image-alt": 1
 	}
 }
