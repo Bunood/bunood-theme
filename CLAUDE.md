@@ -37,7 +37,11 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   in `tools/contrast_gate.py` asserts `_tokens.scss` matches `palette.derive()` — CI-
   enforced via `npm run contrast`, not `build.mjs`, which carries no colour guard.
 - **Frappe variables only inside `[data-theme]`.** A neutral in bare `:root` is the
-  light-leaks-into-dark bug.
+  light-leaks-into-dark bug. **One amendment** (item 32): a *website* page has no
+  `data-theme` at all, so `web/login.scss` scopes its overrides to `body.bnd-auth` —
+  narrower than `[data-theme]`, not wider. GUIDELINES §1.3 carries the argument and
+  the second half nobody expects: `brand.py`'s dark blocks need that scope too, or a
+  customer's dark sign-in page silently paints the *shipped* seed.
 - **`!important`** only in the two sanctioned places.
 - **Never touch Frappe-generated DOM.** Colour it through tokens. The ONE sanctioned
   exception (item 24): `repair_viewport_meta` in `bunood.js` rewrites the `<head>` viewport
@@ -63,8 +67,28 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - **Green tests that assert existence, not correctness.** 75 tests were green while
   five real defects lived. Ask: reachable? in the right place? laid out right? not
   under something else?
+- **A branch whose guard is false on the dev site is UNTESTED, not working.** Item 32's
+  logo override shipped for three slices on the strength of "the `if logo:` guard
+  correctly skipped" — with `logo` empty here, that sentence is true and proves nothing.
+  Every branding field (`logo`, `favicon`, `company_name`, `tagline`) is in this
+  category, because they sit outside MUTABLE_FIELDS by design.
 - **Verifying against the wrong tree or stale assets.** Confirm the container is
   serving the hash you just built. GUIDELINES §2.0 is an audit of the wrong repo.
+- **Proving the output inert and calling the change inert.** A byte-identical rebuild
+  is real evidence about the *compiled sheet* and none at all about a tool that parses
+  the *source*. Item 32's `_tokens.scss` mixin was byte-identical and still collapsed
+  `contrast_gate.read_blocks`'s dark map onto light — 150 failures across every seed
+  from a perfect stylesheet. Ask who else reads the file.
+- **Measuring the wrong tick, or the wrong parent.** `getComputedStyle` served a stale
+  value when an attribute was mutated and re-read inside one `page.evaluate`; and a
+  `transparent` parent parses as black, so a passing 7.94:1 read as 2.52:1. Mutate and
+  read in different evaluates; resolve the effective background by walking ancestors.
+- **Sharing a layout rule between poles, then asserting the wrong property.** Item 32's
+  `Split` inherited `flex-direction: column` from the rule it shares with `Panel`, so its
+  brand panel stacked *below* the form instead of beside it — and both checks passed,
+  because `display` was still `flex` and a column container still puts a sized item at the
+  inline start in LTR and the inline end in RTL. Only the column's HEIGHT told them apart.
+  Assert the thing the sharing could break.
 - **Scripted multi-site edits.** End every one with a parse check (`node --check`,
   `ast.parse`). A heredoc with `\n` has mangled a file twice.
 

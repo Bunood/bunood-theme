@@ -29,6 +29,127 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 32 (login / signup / forgot) — DONE (2026-08-21), releases as `v0.32.0`.** Six commits
+on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
+dark-token mixin) · `fadda9f` 1 (the sheet + eight contracts) · `6185309` 2 (the anchor) ·
+`1fda341` 3 (the axes + the picker) · `28a0faa` 4 (the axe gate) · `32f33c4` 4b (the tagline +
+the per-site dark scope). Three fields (`login_style` · `login_action` · `login_theme`),
+`public/scss/web/login.scss`, `docs/upstream/frappe-login.md`. Wireframes:
+<https://claude.ai/code/artifact/46b356b4-b1e6-4f50-9285-62af96f98001>. Plan:
+`~/.claude/plans/lets-work-on-item-jazzy-creek.md`. Picks **Split · Branded · the theme axis
+IN · four poles** (`Bare` drawn and dropped in the round). Facts worth keeping:
+
+- **THIS IS THE FIRST KIT NOT ON THE DESK, AND EVERY MECHANISM THE OTHER NINE STAND ON IS
+  ABSENT.** `/login` is a WEBSITE page: no `app_include_css`, no `frappe.boot`, no
+  `bunood.js`, and `templates/base.html` renders `<html lang dir>` with **no `data-theme`**.
+  The anchor is therefore a SERVER-RENDERED `body_class` set from `update_website_context`
+  (`base.html:57` renders it; it is an ordinary context key), and dark is
+  `prefers-color-scheme`. **We deliberately never stamp `data-theme`** — Frappe's own dark
+  login branch contains three of the census's findings and activating it inherits all three.
+- **AN ADMIN CANNOT LOAD THE PAGE THIS KIT CONFIGURES.** `www/login.py:38-46` redirects any
+  authenticated session to `/desk`. Consequences everywhere: the suite needs a COOKIE-LESS
+  context (`withGuest`, and guest-ness is the ABSENCE of the sid cookie, so it cannot be had
+  by clearing one); the axe baseline needs the same; there is no live preview and no
+  `bunood.login_apply`, because a hook that cannot act is a lie in the shape of an API; and
+  an iframe preview is closed off for the same reason. **Do not try to add one.**
+- **NO CONTROL ON THAT PAGE SHOWED KEYBOARD FOCUS** — `outline: none 0px`, `box-shadow:
+  none`, border unchanged, at every stop, driven with a real Tab. Two independent killers
+  (`.btn:focus{outline:0}` and `.form-control:focus{outline:0;box-shadow:none}`, both
+  `(0,2,0)`) and no fallback carrier. The ring is an `outline`, NOT a box-shadow: that
+  channel is contested to `(0,5,0)` and item 31's critical defect was a box-shadow written
+  into a channel already carrying focus.
+- **SOURCE ORDER IS AGAINST US HERE.** `head.html` emits `web_include_css` inside
+  `{% block head %}`; `login.html` OVERRIDES `{% block head_include %}` with the login
+  bundle, which comes after. Every selector was sized against a competitor read out of
+  `document.styleSheets`, never guessed.
+- **BYTE-IDENTICAL OUTPUT IS NOT EVIDENCE ABOUT A TOOL THAT PARSES THE SOURCE.** Slice 1a
+  extracted the dark tokens into a `@mixin`, proved it inert with a byte-identical rebuild,
+  and said no suite run was needed. `contrast_gate.read_blocks` reads `_tokens.scss` as TEXT,
+  so `html[data-theme="dark"] { @include dark; }` parsed as an EMPTY block, dark collapsed
+  onto light, and the gate reported **150 failures across every seed** while the stylesheet
+  was perfect. `read_blocks` now expands `@include` from `@mixin`. Two things read that file
+  and only one of them is Sass.
+- **`getComputedStyle` SERVED A STALE VALUE** when an attribute was mutated and re-read
+  inside ONE `page.evaluate`, even with a forced layout between: removing `disabled` reported
+  the disabled colours while a rule scan in the same tick showed `:not(:disabled)` matching.
+  Split across separate evaluates with a real frame between, the true value appeared — and it
+  was the severe one (1.06:1). **Mutate and read in different evaluates.**
+- **A TRANSPARENT PARENT PARSES AS BLACK.** Under `Split` the card is transparent (the COLUMN
+  is the surface), so three checks measured contrast against `rgba(0,0,0,0)` and reported a
+  passing 7.94:1 as 2.52:1. They resolve the EFFECTIVE background by walking ancestors now,
+  which is the rule `contrast_gate --check-measured` already applies.
+- **COPYING AN EXPRESSION WITHOUT COPYING ITS HOST.** The field fill took
+  `_filters.scss`'s `--bnd-flt-rest` verbatim on the strength of being character-identical to
+  an already-gated string. It is — but there the HOST is `--bnd-surface` too, and here the
+  card is `--bnd-page`: **4 channels of delta, not 9**, inside the range item 29 twice
+  rejected as "renders as nothing". Mixed against the host, which cost two real gate rows.
+- **THE GATE THEN CAUGHT THE INK.** Those rows failed at three pale seeds (4.38 / 4.24 /
+  4.16): `--bnd-ink-subtle` is fitted against RAW surfaces and a fill darkened by an ink wash
+  costs contrast. The placeholder moved to `--bnd-ink-muted`; the disabled label keeps
+  ink-subtle and is exempt-and-measured.
+- **A PER-SITE DEFECT THAT COULD ONLY EVER SHOW ON A CUSTOMER'S SITE.** `brand.py` emitted
+  its dark values under `html[data-theme="dark"]` and `html[data-theme="automatic"]` — scopes
+  a website page can never match — while its LIGHT block's `html:not([data-theme])` arm
+  could. Dark therefore fell back to `_tokens.scss`'s literals, fitted for the SHIPPED seed:
+  a blue-branded customer would have had a green art panel on their dark sign-in page, with
+  every check green, because this site's seed IS the shipped one. **Found by reading the
+  generated file.** The guard is seed-independent: the bundle declares dark surfaces as live
+  `color-mix()`, the brand sheet emits concrete hex, and a custom property keeps its
+  specified form — so "did the per-site sheet win here" is answerable from the value's SHAPE.
+- **`SETTINGS_PANE_KEYS` IS DERIVED NOW.** Item 31 found the hole in an adversarial review,
+  back-filled its own key and left it open: measured here, the list still omitted
+  `workspace`, `chart`, `report`, `views`, `overlay`, `empty` and `skeleton` — seven kits
+  never walked by the axe gate OR the accessible-name walk. The suite reads
+  `.bnd-shell-item[data-key]` off the shell.
+- **THREE TOOLS WOULD HAVE MISHANDLED A SECOND CSS FILE, SILENTLY.** `payload.mjs` took
+  `find(f => f.startsWith("bunood."))` (one file per directory; `bunood-web.*` matched
+  nothing, so it would have been measured by nothing) — now a bucket table with per-key
+  ceilings and a THROW on any dist file no bucket claims. `deploy.sh` took `ls *.css | head -1`,
+  and ASCII `-` sorts before `.`, so `bunood-web` would have sorted FIRST and the desk bundle
+  would have 404'd. And the boot test read only `THEME_CSS`/`THEME_JS`.
+- **`curl -o /dev/null` FAILS WITH EXIT 23 UNDER `MSYS_NO_PATHCONV=1`** — which the
+  docker/wsl calls need — because Git Bash then stops translating `/dev/null` to `NUL`. With
+  `set -e` that killed `deploy.sh`'s verify step SILENTLY, mid-loop, reporting success by
+  saying nothing. It writes to a real temp file now.
+- **576, NOT ~450.** Frappe's own collapse is `media-breakpoint-down(xs)` = Bootstrap's
+  `max-width: 575.98px`. Bisected live; the planning document carried the wrong number.
+  576 is already `bnd-bp(sm)`.
+- **SPLIT'S SECOND COLUMN STARTS AT `md` (768), NOT AT FRAPPE'S `sm` COLLAPSE.** At
+  `min(480px, 46%)` the form measured 258px at 700 and **201px at 576**, against Frappe's
+  own 371px card. An art panel is only worth having if it has width. Between 576 and 768
+  Split takes PANEL's variables verbatim rather than inventing a fourth composition for
+  192px of viewport — which also DELETED four mobile stand-down rules, one of which had
+  already put the form flush against both screen edges once.
+- **AND THAT PUT SPLIT UNDER A `flex-direction: column` IT DID NOT WANT — TWICE-INVISIBLE.**
+  Sharing the centring rule with Panel is what makes the sub-`md` band free, but that rule
+  sets `flex-direction: column`, so at ≥768 the brand panel stacked BELOW the form column.
+  `main` measured 480×423 in a 720-tall wrapper. **It looked fine**: the column's fill and
+  the page ground are four channels apart in light, so the column ending short of the fold
+  was invisible, and only the SIGNUP state (a shorter card) showed it plainly. **And both
+  suite checks passed straight through it** — `display` was still `flex`, and in a column
+  container an explicitly-sized item still sits at the inline start in LTR and the inline
+  end in RTL, so the mirror check's x-position assertions held in both directions. Only the
+  column's HEIGHT tells the two layouts apart, and that is what the check measures now.
+  **If you share a layout rule between poles, assert the thing the sharing could break.**
+- **frappe is 16.27.0.** `ROADMAP`, `HANDOVER` and `_filters.scss` all record item 31's
+  platform as 16.28.0 — that is ERPNEXT's version, and it travelled into three documents.
+- **THE LOGO OVERRIDE SHIPPED UNEXERCISED FOR THREE SLICES.** `context.logo` is a real
+  key and one assignment fixes both routes — but `logo` is EMPTY on this site, so the
+  `if logo:` guard correctly did nothing, every screenshot showed ERPNext's default, and
+  "the guard skipped" stood in for evidence until the user asked. Measured properly it
+  works (unset -> erpnext-logo.svg, set -> Theme Settings' value, both routes) and it is
+  now watched-to-fail. **A branch whose guard is false on the dev site is an untested
+  branch, not a working one** — and `logo`, `favicon`, `company_name` and `tagline` are
+  all in that category, because branding fields are deliberately outside MUTABLE_FIELDS.
+- **The 24 `ar.po` rows are `#, fuzzy` and AWAIT THE USER'S REVIEW** — the item-7 handoff.
+  Clear them in their own commit, as items 27, 28, 29/30 and 31 all did.
+- **Payload: the desk bundle is UNTOUCHED** (`css_gzip` 20809, 166 b free) because the login
+  sheet is its own entry. New `web_css_gzip` ceiling 4000, currently 3160. Contrast 4,008 →
+  4,080 pairs.
+- **A NOTE ON SITE DATA:** `tagline` held `smoke-seed-1787182266604`, left by an earlier
+  suite run. Invisible before this item, and it would have rendered on the sign-in page
+  after it. Set to a plausible demo string.
+
 **ITEM 31 (filters + saved filters) — DONE, RELEASED as `v0.31.0` (2026-08-21, local tag, NOT PUSHED).** Six commits on `main`: `1a7e9e4` (slices 1+2, contracts + anchor) · `26107c4` (slice 3, the two axes + the picker) · `78dc13e` (the close, plus an eighth contract its own axe scan found) · `67aaa1c` (the Arabic sign-off, its own commit) · `deb48c7` (the five defects the adversarial release review confirmed) · `5fbf7e0` (the release). Final suite **310/310**, contrast **4,008 pairs**, sweep CLEAN, release review run and clean after fixes. Three fields (`filters_style` · `filters_applied` · `filters_saved`),
 `surfaces/_filters.scss`, `docs/upstream/frappe-filters.md`. **Releases as `v0.31.0`** — MINOR is
 the ROADMAP item number; do NOT compute it from the previous tag. Facts worth keeping:

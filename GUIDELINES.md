@@ -103,6 +103,24 @@ that cannot change the verdict.
 - **Override a Frappe variable only inside the `[data-theme]` blocks.** A neutral
   placed in bare `:root` becomes the base that dark mode inherits — that is the
   "light leaks into dark" bug that made the previous theme work only partially.
+  **The one amendment, and it is an amendment rather than an exception** (item 32):
+  a WEBSITE page has no `data-theme` to hang anything on — `templates/base.html`
+  renders `<html lang dir>` and nothing else — so `web/login.scss` scopes its
+  Frappe-variable overrides to `body.bnd-auth` instead. That satisfies the rule's
+  *reason* exactly: the constraint is that a neutral must never be declared where it
+  outlives its mode, and `body.bnd-auth` is **narrower** than `[data-theme]`, not
+  wider. It exists on two routes, both of which that sheet paints in both modes, and
+  nothing it declares can reach the desk. Written down so the next reader does not
+  take it for an oversight — and so that anyone extending the web sheet (item 33)
+  knows the scope is the thing carrying the guarantee.
+- **A website page's dark mode needs the per-site sheet to be told about it.**
+  `brand.py` emits the customer's derived values, and until item 32 its dark blocks
+  were scoped `html[data-theme="dark"]` and `html[data-theme="automatic"]` — which a
+  website page can never match, while its light block's `html:not([data-theme])` arm
+  can. The result was invisible on any site running the shipped seed and wrong on
+  every other: dark fell back to `_tokens.scss`'s literals. **Any new logged-out
+  surface must add its own dark scope to `brand.py`'s selector list**, derived from
+  `context.AUTH_CLASSES` rather than restated.
 - **`!important` only in the two sanctioned places** (the `font-family` block and
   `@media print`). Everything else escalates through the `.bunood` class on `<html>`.
 - **A *contract* survives `Original`; a *style* does not.** A surface kit's `Original`

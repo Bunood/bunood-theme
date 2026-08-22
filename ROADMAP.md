@@ -761,8 +761,89 @@ entry.
     and Frappe's OWN crm v1.79.0 / helpdesk v1.27.0, read from checkouts on the bench.
     Upstream: `docs/upstream/frappe-filters.md` (twelve filings).
 
-- `[ ]` **32 · Login / signup / forgot** *(was 25)* — separate sheet; Frappe's login
-  bundle loads after ours
+- `[x]` **32 · Login / signup / forgot** *(was 25, done 2026-08-21)* — the TENTH surface
+  kit and the **first that is not on the desk**. Four gated slices plus a close. Three
+  fields (`login_style` anchor · `login_action` · `login_theme`), `web/login.scss`, and
+  the theme's SECOND stylesheet. Wireframed and picked 2026-08-21: **Split · Branded ·
+  the theme axis in · four poles** — `Bare` was drawn and dropped in the round. What the
+  surface taught:
+  - **Every mechanism the nine desk kits stand on is absent, and the replacement is a
+    body class.** `/login` is a WEBSITE page: no `app_include_css`, no `frappe.boot`, no
+    `bunood.js`, and `templates/base.html` renders `<html lang dir>` with **no
+    `data-theme` at all**. So the anchor is `body_class`, set from
+    `update_website_context` — server-rendered, correct at first paint, zero JS — and
+    dark is `prefers-color-scheme`, because a guest has no `User.desk_theme`. We
+    deliberately never stamp `data-theme`: Frappe's own dark login branch contains three
+    of the census's findings and activating it would inherit all three.
+  - **Source order is against us, so every selector was sized against a measured
+    competitor.** `head.html` emits `web_include_css` inside `{% block head %}`;
+    `login.html` overrides `{% block head_include %}` with the login bundle, which
+    therefore comes after. A rule scan over `document.styleSheets` gave the numbers —
+    `(0,4,0)` for the card's fills, `(0,5,0)` for the button's hover, `(0,2,0)` for the
+    two rules that kill focus — and `body.bnd-auth` is worth `(0,1,1)` as a prefix.
+  - **NO CONTROL ON THE PAGE SHOWED KEYBOARD FOCUS.** Driven with a real Tab, every stop
+    matching `:focus-visible`: `outline: none 0px`, `box-shadow: none`, border unchanged.
+    Two independent killers, and no fallback carrier. WCAG 2.4.7 AA, on the form a
+    keyboard user crosses first. The ring is an `outline` and not a `box-shadow`
+    precisely because that channel is contested to `(0,5,0)` and item 31's critical
+    defect was a box-shadow written into a channel already carrying focus.
+  - **The literal-versus-token split, three more times.** `--surface-gray-7` flips and
+    the `color: white` beside it does not (the enabled Send Link, **1.06:1** in dark);
+    `--red-50` has no dark value under an ink that has one (the error banner, 2.52:1);
+    `--gray-900` is not redefined in dark while `--bg-color` resolves to it (the primary
+    button's fill IS the page, 1.00:1). Item 31 filed `.btn-primary-light` for the same
+    shape.
+  - **A pole would have rendered as nothing, and arithmetic caught it before it was
+    written** — the third item running to do so. `Plate`'s obvious wash,
+    `color-mix(--bnd-brand 14%, --bnd-page)`, measures **zero channels** against the card
+    at a pure-white seed: the seed and the brand-mixed page go white together. It rides
+    `--bnd-brand-solid` (fitted, so never near-white) over an ink floor instead —
+    30.5–53.5 channels in light, 17.9–28.0 in dark, across all eleven gate seeds.
+  - **Frappe flips this page itself, so our rules must not.** An `ar` page serves
+    `dist/css-rtl/login.bundle…css`, and the field icon, the input padding and the card
+    head all move. GUIDELINES §1.3 in full: the file restates none of them. `Split`'s
+    column rides **flex order** rather than insets, so `dir` does the work and the
+    stylesheet contains no direction-aware declaration at all.
+  - **A pole that shares a layout rule inherits what that rule decides, and the suite has
+    to assert the thing the sharing could break.** `Split`'s second column starts at `md`
+    rather than at Frappe's `sm` collapse (at `46%` the form measured **201px at 576**
+    against Frappe's own 371px card), and taking Panel's composition below it is what
+    deleted four mobile stand-down rules. But it also put Split under Panel's
+    `flex-direction: column`, which stacked the brand panel BELOW the form column — and
+    that was invisible twice over: the column's fill and the page ground are four channels
+    apart in light, and both existing checks passed, because `display` was still `flex`
+    and a column container still puts an explicitly-sized item at the inline start in LTR
+    and the inline end in RTL. Only the column's HEIGHT distinguishes them.
+  - **A per-site defect that could only ever have shown on a customer's site.**
+    `brand.py` emitted its dark values under `html[data-theme="dark"]` and
+    `html[data-theme="automatic"]` — scopes a website page can never match — while its
+    light block's `html:not([data-theme])` arm could. So dark fell back to
+    `_tokens.scss`'s literals, fitted for the SHIPPED seed. Found by reading the
+    generated file, not by a check; the check that now guards it is seed-independent,
+    keying on whether the value is a concrete hex (per-site) or a live `color-mix()`
+    (bundle fallback).
+  - **The kit ships no `*_apply` hook, and that is the honest choice.** Every other kit
+    live-previews on click; `www/login.py:38-46` redirects an authenticated session to
+    `/desk`, so the only person who can open this picker is the only one who cannot load
+    the page it configures — an iframe is closed off for the same reason. A hook that
+    cannot act is a lie in the shape of an API, so the mandatory-hook check is inverted:
+    assert its absence, and assert that the click lands in the field and the page renders
+    the class.
+  - **Two promises the settings page had already made are now kept**: the logo (one line,
+    because `update_website_context` runs after `get_context` and `context.logo` is a
+    real key) and the `tagline`, whose description has read "Shown on the login page"
+    since the beginning while nothing read it.
+  - **`SETTINGS_PANE_KEYS` is derived now, not listed.** Item 31 found the hole in an
+    adversarial review, back-filled its own key and left it: measured here, the list was
+    still missing seven kits, none of them ever walked by the axe gate or the
+    accessible-name walk. The suite reads the panes off the shell.
+  - Axe over both routes: **3 and 4 contrast violations to zero**; the survivor needs an
+    attribute in someone else's template. Payload: the desk bundle is UNTOUCHED (the
+    sheet is its own entry, and `payload.mjs` now throws on any dist file no bucket
+    claims); `web_css_gzip` 3160 against a new 4000 ceiling. Contrast 4,008 → 4,080
+    pairs. References: Directus `public-view.vue` (Split, already logical-property
+    authored), Discourse `login-signup-page.scss` and shadcn `card` (Panel). Upstream:
+    `docs/upstream/frappe-login.md` (ten filings).
 - `[ ]` **33 · Website base + portal** *(was 26)*
 - `[ ]` **34 · Email templates** *(was 27)*
 - `[ ]` **35 · Print formats / PDF** *(was 28)*

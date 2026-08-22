@@ -24,6 +24,70 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-08-22 — Sign-in (item 32)
+
+### The first screen now carries your brand (item 32)
+
+Nine surfaces have been themed and the sign-in page was not one of them.
+Measured before any of this was written, `/login` loaded three stylesheets and
+none of them was ours: no brand colour, no dark mode, no typography — the only
+screen in the product that looked like stock Frappe, and the first one anybody
+sees.
+
+It is a *website* page, which is why it had been skipped: none of the machinery
+the desk kits ride reaches it. There is no theme stylesheet, no settings payload
+and no script on a logged-out page, and the browser is never told which theme to
+paint. So this ships a second, much smaller stylesheet of its own, and the page
+is told what to be by the server, before anything is drawn.
+
+**Nobody could see where they were typing.** Tabbing through the sign-in form
+with a keyboard produced no visible marker on any field or button — the outline
+is switched off in two separate places upstream and nothing replaces it. That is
+a plain WCAG AA failure on the one page a person cannot skip, and it is fixed
+for every style, including "Original".
+
+Six more things the page got wrong, all measured on a running site:
+
+- The **label and the "Forgot password?" link** were 4.17:1 on white, under the
+  4.5 floor. So were the password hints on the reset screen.
+- The **card had no edges at all** — the same colour as the page, no border, no
+  shadow — and neither did the **text fields**, whose 1.30:1 hairline is not a
+  boundary anyone can see.
+- In dark mode the **"Send Link" button on the forgot-password screen was white
+  text on a near-white fill**, 1.06:1: the only action on that screen,
+  unreadable.
+- The **error banner** kept a light-mode background under dark-mode red — 2.52:1,
+  and it read as a white box shouting on a dark page.
+- The **primary button had the same fill as the page** in dark, so the control
+  had no shape; only its label survived.
+- An **email address inside an Arabic form** could reorder against the paragraph.
+
+Independently: axe over both routes went from 3 and 4 contrast violations to
+**zero**. The one finding left needs an attribute in Frappe's own template and
+is filed upstream with a one-line fix, along with the missing page heading, the
+absent live region on the error banner (a failed sign-in is announced to nobody)
+and a show-password control that cannot be reached by keyboard.
+
+**Four compositions, and the default gives your brand the room.** *Split* puts
+the form in a column beside a full-height brand panel; *Panel* draws the card as
+a real object and centres it; *Plate* washes the page in your brand with the card
+floating on it; *Original* keeps Frappe's layout and takes the repairs only. The
+primary button can carry your brand colour, and does by default. And because a
+signed-out visitor has no stored preference, the page follows their device by
+default — or you can pin it light or dark.
+
+Two promises the settings page had already made are finally kept: **your logo**
+now appears on the sign-in screen rather than the framework's, and the
+**tagline** field — whose description has read "Shown on the login page" since
+the beginning while nothing displayed it — is displayed.
+
+**A per-site defect this surfaced, which would only ever have shown on a
+customer's site.** Your brand colours are generated into a small stylesheet of
+their own, and its dark half was written for a scope a website page can never
+match. So a signed-out visitor in dark mode saw the *shipped* green rather than
+your colour — on a sign-in page whose whole point is that it is yours. Fixed, and
+now checked in a way that works whatever colour you have chosen.
+
 ## [0.31.0] — 2026-08-21 — Filters (item 31)
 
 ### A filtered list says so (item 31)
