@@ -170,7 +170,10 @@
   "filters_applied",
   "filters_saved",
   "section_login",
+  "login_picker",
   "login_style",
+  "login_action",
+  "login_theme",
   "section_generated",
   "brand_css_url"
  ],
@@ -649,12 +652,36 @@
    "label": "Sign In"
   },
   {
+   "fieldname": "login_picker",
+   "fieldtype": "HTML",
+   "label": "Sign In Picker"
+  },
+  {
    "default": "Split",
-   "description": "How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password.",
+   "description": "Set by the picker above. How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password.",
    "fieldname": "login_style",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Sign-In Style",
    "options": "Original\nPanel\nSplit\nPlate"
+  },
+  {
+   "default": "Branded",
+   "description": "Set by the picker above. Whether the primary button carries your brand colour.",
+   "fieldname": "login_action",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Primary Action",
+   "options": "Neutral\nBranded"
+  },
+  {
+   "default": "Follow OS",
+   "description": "Set by the picker above. A signed-out visitor has no stored preference, so the default follows their device.",
+   "fieldname": "login_theme",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Sign-In Theme",
+   "options": "Follow OS\nAlways Light\nAlways Dark"
   },
   {
    "fieldname": "section_generated",

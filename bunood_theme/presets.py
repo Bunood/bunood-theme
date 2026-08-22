@@ -727,6 +727,8 @@ FILTERS_DEFAULTS = {
 
 LOGIN_FIELDS = [
     "login_style",
+    "login_action",
+    "login_theme",
 ]
 
 #: The shipped sign-in defaults -- the item-32 wireframe round, closed
@@ -764,6 +766,32 @@ LOGIN_DEFAULTS = {
     # and below Frappe's own 576px collapse the art panel drops and every pole
     # converges, so it costs one media query rather than a second layout.
     "login_style": "Split",
+    # THE PRIMARY BUTTON. Stock paints it `var(--gray-900)` -- near-black, and
+    # also the page's own colour in dark, which is contract R7's defect. Neutral
+    # is that repair left alone; Branded is the customer's seed on the one
+    # control the page exists to offer.
+    #
+    # It costs NO contrast row, which is what made it an axis rather than an
+    # argument: `--bnd-on-brand` on `--bnd-brand-solid` is the gate's "label on
+    # a brand fill" (AA, eleven seeds, both modes) and the fill's edge against
+    # the page is its "brand fill against the chrome" (1.4.11's 3:1, a cross
+    # product over every surface). Both rows predate this item.
+    #
+    # Neutral is the NEUTRAL and maps to "".
+    "login_action": "Branded",
+    # WHO DECIDES LIGHT OR DARK. A guest has no `User.desk_theme` -- there is no
+    # user -- so `prefers-color-scheme` is the only signal a logged-out page has
+    # of its own, and it is the default.
+    #
+    # The axis exists because the DRAWINGS argued for it: Split and Plate carry
+    # a brand COMPOSITION, and under OS-follow alone which one a visitor sees is
+    # decided by their laptop rather than by the company. Every other visual
+    # decision in this theme is the admin's. It costs no new mechanism -- the
+    # mode is another body class, so `brand.py` never learns about it and the
+    # per-site sheet stays colours-and-fonts.
+    #
+    # Follow OS is the NEUTRAL and maps to "".
+    "login_theme": "Follow OS",
 }
 
 #: The desk layout a fresh install gets. Named once, because it seeds

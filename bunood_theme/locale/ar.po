@@ -4237,11 +4237,6 @@ msgstr "نمط تسجيل الدخول"
 
 #. src: item32
 #, fuzzy
-msgid "How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password."
-msgstr "كيفية تكوين شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور. يُطبَّق على ‎/login‎ و‎/update-password‎."
-
-#. src: item32
-#, fuzzy
 msgid "Panel"
 msgstr "لوحة"
 
@@ -4254,3 +4249,98 @@ msgstr "مُقسَّم"
 #, fuzzy
 msgid "Plate"
 msgstr "صفيحة"
+
+#. src: item32
+#, fuzzy
+msgid "Sign In Picker"
+msgstr "مُنتقي تسجيل الدخول"
+
+#. src: item32
+#, fuzzy
+msgid "Set by the picker above. How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password."
+msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور. يُطبَّق على ‎/login‎ و‎/update-password‎."
+
+#. src: item32
+#, fuzzy
+msgid "Primary Action"
+msgstr "الإجراء الأساسي"
+
+#. src: item32
+#, fuzzy
+msgid "Set by the picker above. Whether the primary button carries your brand colour."
+msgstr "يُضبط من المُنتقي أعلاه. هل يحمل الزرّ الأساسي لون علامتك التجارية."
+
+#. src: item32
+#, fuzzy
+msgid "Neutral"
+msgstr "محايد"
+
+#. src: item32
+#, fuzzy
+msgid "Branded"
+msgstr "بلون العلامة"
+
+#. src: item32
+#, fuzzy
+msgid "Sign-In Theme"
+msgstr "سمة تسجيل الدخول"
+
+#. src: item32
+#, fuzzy
+msgid "Set by the picker above. A signed-out visitor has no stored preference, so the default follows their device."
+msgstr "يُضبط من المُنتقي أعلاه. الزائر غير المُسجَّل ليس لديه تفضيل محفوظ، لذا يتبع الوضع الافتراضي جهازه."
+
+#. src: item32
+#, fuzzy
+msgid "Follow OS"
+msgstr "تبعًا للجهاز"
+
+#. src: item32
+#, fuzzy
+msgid "Always Light"
+msgstr "فاتح دائمًا"
+
+#. src: item32
+#, fuzzy
+msgid "Always Dark"
+msgstr "داكن دائمًا"
+
+#. src: item32
+#, fuzzy
+msgid "Stock: the card is the page's own colour, pinned near the top."
+msgstr "الأصلي: البطاقة بلون الصفحة نفسه، مثبّتة قرب الأعلى."
+
+#. src: item32
+#, fuzzy
+msgid "The card becomes an object — its own fill, a hairline edge, centred."
+msgstr "تصبح البطاقة عنصرًا قائمًا بذاته — بتعبئتها الخاصّة وحدّ رفيع، في المنتصف."
+
+#. src: item32
+#, fuzzy
+msgid "A form column beside a full-height brand panel."
+msgstr "عمود للنموذج بجوار لوحة علامة تجارية بكامل الارتفاع."
+
+#. src: item32
+#, fuzzy
+msgid "A brand wash across the page, with the card floating on it."
+msgstr "مسحة من لون العلامة عبر الصفحة، وتطفو البطاقة فوقها."
+
+#. src: item32
+#, fuzzy
+msgid "Whether the primary button carries your brand colour."
+msgstr "هل يحمل الزرّ الأساسي لون علامتك التجارية."
+
+#. src: item32
+#, fuzzy
+msgid "A signed-out visitor has no stored preference, so the default follows their device."
+msgstr "الزائر غير المُسجَّل ليس لديه تفضيل محفوظ، لذا يتبع الوضع الافتراضي جهازه."
+
+#. src: item32
+#, fuzzy
+msgid "Original leaves the sign-in page stock — this does not apply."
+msgstr "يترك «الأصلي» صفحة تسجيل الدخول كما هي — ولا يُطبّق هذا."
+
+#. src: item32
+#, fuzzy
+msgid "Applies to the sign-in, sign-up and forgot-password screens."
+msgstr "يُطبَّق على شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور."

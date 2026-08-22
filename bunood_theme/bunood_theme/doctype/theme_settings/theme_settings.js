@@ -912,6 +912,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_empty_picker(frm);
 		bnd_render_skeleton_picker(frm);
 		bnd_render_filters_picker(frm);
+		bnd_render_login_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -4487,9 +4488,11 @@ const BND_FILTERS_DEFAULTS = {
 // so a kit that ships its Python fields first and its mirror later is exempt
 // from the guard for exactly as long as it takes to forget. That is the item-25
 // / item-26 escapee's own hiding place. Two lines close it from day one.
-const BND_LOGIN_FIELDS = ["login_style"];
+const BND_LOGIN_FIELDS = ["login_style", "login_action", "login_theme"];
 const BND_LOGIN_DEFAULTS = {
 	login_style: "Split",
+	login_action: "Branded",
+	login_theme: "Follow OS",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
@@ -5031,6 +5034,173 @@ function bnd_filters_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_filters_preview(frm);
 	bnd_render_filters_picker(frm);
+}
+
+/** The sign-in specimen: a page with a card on it, drawn at the pole's own
+ * composition. Every pole changes something STRUCTURAL — where the card sits,
+ * what the ground is, whether there is a second column — rather than only a
+ * colour, because four pictures of the same thing is the two-options-one-pixel
+ * defect wearing a thumbnail. Item 31's filter-strip specimen, transposed. */
+function bnd_login_thumb(o) {
+	const ground = o.ground
+		? `<rect x="0" y="0" width="120" height="72" fill="currentColor" fill-opacity="${o.ground}"/>`
+		: "";
+	const column = o.column
+		? `<rect x="0" y="0" width="46" height="72" fill="currentColor" fill-opacity="0.04"/>` +
+		  `<rect x="46" y="0" width="74" height="72" fill="currentColor" fill-opacity="0.42"/>`
+		: "";
+	const cx = o.column ? 8 : 33;
+	const cw = o.column ? 30 : 54;
+	const cy = o.top ? 10 : 21;
+	const card =
+		`<rect x="${cx}" y="${cy}" width="${cw}" height="30" rx="${o.radius === undefined ? 3 : o.radius}"` +
+		(o.card === undefined ? ' fill="none"' : ` fill="currentColor" fill-opacity="${o.card}"`) +
+		(o.ring ? ` stroke="currentColor" stroke-opacity="${o.ring}" stroke-width="1"` : "") +
+		"/>";
+	// Three bars for the logo, the field and the action — enough to read as a
+	// form at 120px without pretending to be a screenshot.
+	const bar = (y, w, op) =>
+		`<rect x="${cx + 5}" y="${cy + y}" width="${w}" height="3" rx="1.5" fill="currentColor" fill-opacity="${op}"/>`;
+	const inner = bar(6, Math.round(cw * 0.34), 0.5) + bar(13, cw - 10, 0.16) + bar(21, cw - 10, 0.7);
+	return `<svg viewBox="0 0 120 72">${ground}${column}${card}${inner}</svg>`;
+}
+
+const BND_LOGIN_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("Stock: the card is the page's own colour, pinned near the top."),
+		svg: bnd_login_thumb({ top: true, radius: 3 }),
+	},
+	{
+		value: "Panel",
+		blurb: () => __("The card becomes an object — its own fill, a hairline edge, centred."),
+		svg: bnd_login_thumb({ card: 0.06, ring: 0.22, radius: 4 }),
+	},
+	{
+		value: "Split",
+		blurb: () => __("A form column beside a full-height brand panel."),
+		svg: bnd_login_thumb({ column: true, radius: 0 }),
+	},
+	{
+		value: "Plate",
+		blurb: () => __("A brand wash across the page, with the card floating on it."),
+		svg: bnd_login_thumb({ ground: 0.14, card: 0.02, ring: 0.18, radius: 4 }),
+	},
+];
+
+const BND_LOGIN_GROUPS = [
+	{
+		field: "login_action",
+		title: () => __("Primary Action"),
+		desc: () => __("Whether the primary button carries your brand colour."),
+		options: [
+			{ value: "Neutral", name: () => __("Neutral") },
+			{ value: "Branded", name: () => __("Branded") },
+		],
+	},
+	{
+		field: "login_theme",
+		title: () => __("Sign-In Theme"),
+		desc: () => __("A signed-out visitor has no stored preference, so the default follows their device."),
+		options: [
+			{ value: "Follow OS", name: () => __("Follow OS") },
+			{ value: "Always Light", name: () => __("Always Light") },
+			{ value: "Always Dark", name: () => __("Always Dark") },
+		],
+	},
+];
+
+/** Render the sign-in picker.
+ *
+ * THE ONE KIT WITH NO LIVE PREVIEW, and it is not an omission. Every other
+ * surface repaints on click through `bunood.<kit>_apply`, because the surface is
+ * on the desk the settings page lives in. This one dresses /login and
+ * /update-password — and `www/login.py:38-46` REDIRECTS any authenticated
+ * session to /desk, so the only person who can open this picker is the only
+ * person who cannot see the page it configures. An iframe cannot work either,
+ * for the same reason.
+ *
+ * So there is no `bunood.login_apply` and no `bnd_login_preview`: a hook that
+ * cannot act is a lie, and the mandatory-hook rule exists to catch a kit whose
+ * click does nothing, not to require a hook where nothing CAN happen. The
+ * specimen and the shell's change dot are the feedback, and the suite asserts
+ * the honest pair instead — the specimen tracks the field, and the rendered
+ * page carries the chosen class.
+ */
+function bnd_render_login_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "login_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.login_style || BND_LOGIN_DEFAULTS.login_style;
+	const off = current === "Original";
+	const offered = bnd_field_slots(frm, "login_style");
+	const cards = P.cards(
+		BND_LOGIN_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-lgp-style" }
+	);
+
+	// `login_theme` composes with Original — it decides which palette the page
+	// paints in, and the CONTRACTS paint in it whether or not a pole is chosen.
+	// Only `login_action` rides the anchor's stand-down.
+	const groups = BND_LOGIN_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(),
+			desc: grp.desc(),
+			field: grp.field,
+			body: P.options(
+				grp.options.map((o) => ({
+					value: o.value,
+					name: o.name(),
+					reason:
+						off && grp.field === "login_action"
+							? __("Original leaves the sign-in page stock — this does not apply.")
+							: "",
+				})),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_LOGIN_DEFAULTS[grp.field] }
+			),
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-lgp">' +
+				bnd_bands([
+					{
+						zone: "style",
+						html:
+							cards +
+							P.note(__("Applies to the sign-in, sign-up and forgot-password screens.")),
+					},
+					{ zone: "extras", html: groups },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-lgp-style").on("click", function () {
+		bnd_login_set(frm, "login_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_login_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_login_set(frm, f, BND_LOGIN_DEFAULTS[f]);
+	});
+}
+
+/** Set a sign-in field and re-render. No preview call — see the picker's
+ * docblock for why this kit has none. */
+function bnd_login_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_render_login_picker(frm);
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
@@ -5854,7 +6024,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -5883,7 +6053,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -5923,6 +6093,7 @@ function bnd_sb_import(frm) {
 			bnd_render_empty_picker(frm);
 			bnd_render_skeleton_picker(frm);
 			bnd_render_filters_picker(frm);
+			bnd_render_login_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

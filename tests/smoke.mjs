@@ -773,7 +773,7 @@ const MUTABLE_FIELDS = [
 	// the desk at all: it is read server-side and rendered into <body class>
 	// on /login and /update-password, so a check for it must drive a guest
 	// context (see withGuest).
-	"login_style",
+	"login_style", "login_action", "login_theme",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -3902,6 +3902,12 @@ async function main() {
 				skeleton_picker: { cards: 4, toggles: 0, opts: 0 },
 				// Item 31: five styles, two chip rows (3 + 2), no toggles.
 				filters_picker: { cards: 5, toggles: 0, opts: 5 },
+				// Item 32: four styles (Bare was drawn and dropped in the round), two
+				// chip rows (2 + 3), no toggles. THE ONLY PICKER WITH NO LIVE PREVIEW:
+				// its surface is /login, which www/login.py redirects an authenticated
+				// session away from — so the only person who can open this picker is
+				// the only one who cannot see the page it configures.
+				login_picker: { cards: 4, toggles: 0, opts: 5 },
 				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
@@ -3914,7 +3920,7 @@ async function main() {
 					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, icons_picker: 1,
+					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, login_picker: 1, icons_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -10397,6 +10403,73 @@ async function main() {
 				expectEq(c.fieldBidi, "isolate", "the email field isolates its own direction");
 			});
 
+			await test("login: the picker ships no hook it cannot honour", async () => {
+				// EVERY OTHER KIT SHIPS THIS TEST AS "the kit live-previews without a
+				// reload", and it is the check that would have caught the status
+				// kit's missing hook, where the knob rendered and the click did
+				// nothing. This kit inverts it, and the inversion is the point.
+				//
+				// The surface is /login, and `www/login.py:38-46` redirects any
+				// AUTHENTICATED session to /desk — so the only person who can open
+				// this picker is the only person who cannot load the page it
+				// configures. An iframe is closed off for the same reason. A
+				// `bunood.login_apply` would therefore be a hook that cannot act,
+				// which is a lie in the shape of an API, and the next reader would
+				// spend an afternoon working out why calling it changes nothing.
+				//
+				// So: assert its ABSENCE, and assert the two things that ARE true in
+				// its place — the click lands in the field, and the page renders it.
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 3000);
+				const noHook = await page.evaluate(
+					() => typeof (window.bunood_theme || {}).login_apply === "undefined"
+				);
+				expect(noHook, "there is no bunood.login_apply — the surface is not on this page");
+
+				await page.click('.bnd-shell-item[data-key="login"]');
+				await page.waitForSelector(".bnd-lgp-style", { timeout: 15000 });
+				const clicked = await page.evaluate(async () => {
+					const card = [...document.querySelectorAll(".bnd-lgp-style")].find(
+						(c) => c.getAttribute("data-value") === "Plate"
+					);
+					if (!card) return { ok: false, why: "no Plate card" };
+					card.click();
+					// WAIT FOR THE SAVE, not for a stopwatch. Theme Settings
+					// autosaves off `frm.dirty` and serialises on
+					// `frappe.ui.form.is_saving`, so a fixed sleep raced it and the
+					// guest page below read the PREVIOUS value — which looked
+					// exactly like the class never being emitted. The sweep's own
+					// `settled()` requires clean-twice for the same reason: dirty
+					// can flip true -> false -> true while a merge retries.
+					const settled = async () => {
+						for (let i = 0; i < 60; i++) {
+							await new Promise((r) => setTimeout(r, 250));
+							if (cur_frm.is_dirty() || frappe.ui.form.is_saving) continue;
+							await new Promise((r) => setTimeout(r, 250));
+							if (!cur_frm.is_dirty() && !frappe.ui.form.is_saving) return true;
+						}
+						return false;
+					};
+					const saved = await settled();
+					if (!saved) return { ok: false, why: "the click never saved" };
+					const sel = document.querySelector(".bnd-lgp-style[aria-pressed='true'], .bnd-lgp-style.selected");
+					return {
+						ok: true,
+						field: window.cur_frm && cur_frm.doc.login_style,
+						specimen: sel ? sel.getAttribute("data-value") : null,
+					};
+				});
+				expect(clicked.ok, `the picker offers its poles (${clicked.why || ""})`);
+				expectEq(clicked.field, "Plate", "a click lands in the field");
+				expectEq(clicked.specimen, "Plate", "and the specimen tracks it");
+
+				// The other half of the honest pair: the rendered page carries it.
+				const cls = await withGuest("/login", ".for-login .page-card", async (gp) =>
+					gp.evaluate(() => document.body.className)
+				);
+				expect(cls.includes("bnd-auth-plate"), `and the page renders it (${cls})`);
+				setSettings({ login_style: "Split" });
+			});
+
 			await test("login: our sheet loads before Frappe's, and stays one file in Arabic", async () => {
 				// THE DELIVERY CONTRACT, and both halves have bitten this repo before.
 				//
@@ -10485,12 +10558,17 @@ async function main() {
 					);
 
 				const original = await read("Original");
-				expectEq(original.body, "bnd-auth", "Original is the ABSENCE of the pole class");
+				const poleOf = (cls) =>
+					cls.split(" ").find((c) => ["bnd-auth-panel", "bnd-auth-split", "bnd-auth-plate"].includes(c)) || null;
+				// Original is the absence of a POLE class, not of every class —
+				// `login_action` and `login_theme` compose with it, which is what
+				// makes them axes rather than more poles.
+				expectEq(poleOf(original.body), null, "Original is the ABSENCE of the pole class");
 				expectEq(original.ring, "none", "and draws no ring on the card");
 				expect(original.card === original.page, "the card is stock's page colour under Original");
 
 				const panel = await read("Panel");
-				expectEq(panel.body, "bnd-auth bnd-auth-panel", "Panel sets its own slug");
+				expectEq(poleOf(panel.body), "bnd-auth-panel", "Panel sets its own slug");
 				expect(panel.ring !== "none", `Panel draws the card as an object (${panel.ring})`);
 				expect(panel.card !== panel.page, "on a fill that differs from the ground");
 				expect(
@@ -10499,11 +10577,11 @@ async function main() {
 				);
 
 				const plate = await read("Plate");
-				expectEq(plate.body, "bnd-auth bnd-auth-plate", "Plate sets its own slug");
+				expectEq(poleOf(plate.body), "bnd-auth-plate", "Plate sets its own slug");
 				expect(plate.page !== panel.page, `Plate moves the GROUND, which no other pole does (${plate.page})`);
 
 				const split = await read("Split");
-				expectEq(split.body, "bnd-auth bnd-auth-split", "Split sets its own slug");
+				expectEq(poleOf(split.body), "bnd-auth-split", "Split sets its own slug");
 				expectEq(split.wrapDisplay, "flex", "Split turns the wrapper into a row");
 				expect(split.art !== "none", `and creates its brand panel (content: ${split.art})`);
 				expect(split.mainW < 600, `the column is bounded (${split.mainW}px)`);
@@ -10512,7 +10590,7 @@ async function main() {
 				// Decision D, asserted rather than assumed: the contracts survive the
 				// stand-down. Item 31 asserts the same thing the same way.
 				const back = await read("Original");
-				expectEq(back.body, "bnd-auth", "and Original clears it all again");
+				expectEq(poleOf(back.body), null, "and Original clears it all again");
 				setSettings({ login_style: "Split" });
 			});
 
@@ -10627,6 +10705,127 @@ async function main() {
 					);
 				}
 				setSettings({ login_style: "Split" });
+			});
+
+			await test("login: the brand takes the primary action, or does not", async () => {
+				// AXIS `login_action`. Both poles have to satisfy contract R7 —
+				// the CTA has edges and a legible label — which is the whole reason
+				// a contract and an axis can share a property here. Item 31 wrote
+				// that rule down after asserting an anchor and calling it a
+				// contract; this asserts the CONTRACT under both poles and the
+				// DIFFERENCE between them separately.
+				const read = (action, colorScheme) => {
+					setSettings({ login_action: action });
+					return withGuest(
+						"/login",
+						".for-login .page-card",
+						async (gp) =>
+							gp.evaluate(() => {
+								const bgOf = (sel) => {
+									let n = document.querySelector(sel);
+									while (n && n !== document.documentElement) {
+										const c = getComputedStyle(n).backgroundColor;
+										if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") return c;
+										n = n.parentElement;
+									}
+									return getComputedStyle(document.body).backgroundColor;
+								};
+								const cta = document.querySelector(".for-login .btn-login");
+								return {
+									cls: document.body.className,
+									fill: getComputedStyle(cta).backgroundColor,
+									ink: getComputedStyle(cta).color,
+									host: bgOf(".for-login .page-card"),
+								};
+							}),
+						{ colorScheme }
+					);
+				};
+				for (const mode of ["light", "dark"]) {
+					const neutral = await read("Neutral", mode);
+					const branded = await read("Branded", mode);
+					expect(!neutral.cls.includes("action-"), "Neutral is the NEUTRAL and emits no class");
+					expect(branded.cls.includes("bnd-auth-action-branded"), "Branded sets its own slug");
+					expect(
+						neutral.fill !== branded.fill,
+						`${mode}: the two poles differ (${neutral.fill} vs ${branded.fill})`
+					);
+					for (const [name, c] of [["Neutral", neutral], ["Branded", branded]]) {
+						const edge = ratio(c.fill, c.host);
+						expect(edge >= 3, `${mode}/${name}: the CTA still has edges (${edge.toFixed(2)}:1)`);
+						const label = ratio(c.ink, c.fill);
+						expect(label >= 4.5, `${mode}/${name}: and a legible label (${label.toFixed(2)}:1)`);
+					}
+				}
+				setSettings({ login_action: "Branded" });
+			});
+
+			await test("login: the theme axis overrides the device, both ways", async () => {
+				// AXIS `login_theme`, and the check is a CROSS of the setting against
+				// the emulated OS — asserting only the matching pair would pass with
+				// the axis doing nothing at all.
+				//
+				// `Follow OS` is the absence of a class, so the media query has to
+				// exclude the two explicit ones. Get that wrong and Always Light
+				// still flips on a dark laptop, which is exactly the failure a
+				// same-mode-only check cannot see.
+				const page_ = (theme, colorScheme) => {
+					setSettings({ login_theme: theme });
+					return withGuest(
+						"/login",
+						".for-login .page-card",
+						async (gp) =>
+							gp.evaluate(() => ({
+								cls: document.body.className,
+								bg: getComputedStyle(document.body).backgroundColor,
+								ink: getComputedStyle(document.querySelector(".for-login .page-card")).color,
+							})),
+						{ colorScheme }
+					);
+				};
+				const lum = (c) => {
+					const t = triple(c).map((n) => {
+						const s = n / 255;
+						return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+					});
+					return 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2];
+				};
+
+				const followLight = await page_("Follow OS", "light");
+				const followDark = await page_("Follow OS", "dark");
+				expect(!followLight.cls.includes("theme-"), "Follow OS is the NEUTRAL and emits no class");
+				expect(
+					lum(followDark.bg) < lum(followLight.bg),
+					`Follow OS tracks the device (${followLight.bg} -> ${followDark.bg})`
+				);
+
+				// The two that matter: each setting must WIN against the opposite OS.
+				const alwaysLightOnDarkOS = await page_("Always Light", "dark");
+				expect(
+					alwaysLightOnDarkOS.cls.includes("bnd-auth-theme-light"),
+					"Always Light sets its own slug"
+				);
+				expect(
+					Math.abs(lum(alwaysLightOnDarkOS.bg) - lum(followLight.bg)) < 0.01,
+					`Always Light stays light on a dark device (${alwaysLightOnDarkOS.bg})`
+				);
+
+				const alwaysDarkOnLightOS = await page_("Always Dark", "light");
+				expect(
+					alwaysDarkOnLightOS.cls.includes("bnd-auth-theme-dark"),
+					"Always Dark sets its own slug"
+				);
+				expect(
+					Math.abs(lum(alwaysDarkOnLightOS.bg) - lum(followDark.bg)) < 0.01,
+					`Always Dark stays dark on a light device (${alwaysDarkOnLightOS.bg})`
+				);
+
+				// And the contracts hold in the forced mode, which is the reason the
+				// axis is safe: it selects a palette this sheet already paints, it
+				// does not activate Frappe's own dark branch.
+				const forced = ratio(alwaysDarkOnLightOS.ink, alwaysDarkOnLightOS.bg);
+				expect(forced >= 4.5, `and the ink follows it (${forced.toFixed(2)}:1)`);
+				setSettings({ login_theme: "Follow OS" });
 			});
 
 			await test("login: /update-password gets the same repairs", async () => {

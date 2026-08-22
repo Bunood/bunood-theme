@@ -72,8 +72,29 @@ DESK_TEMPLATE = "www/desk.html"
 AUTH_ROUTES = ("login", "update-password")
 
 #: The scope every rule in ``web/login.scss`` hangs off. Contracts key on this class
-#: alone; the anchor adds ``bnd-auth-<style>`` beside it.
+#: alone; the anchor and the two axes add ``bnd-auth-<slug>`` beside it.
 AUTH_BODY_CLASS = "bnd-auth"
+
+#: Field value → class slug, for the anchor and both axes. ``""`` is the NEUTRAL
+#: and emits no class at all, so a neutral costs no rule and cannot be
+#: half-applied — the same shape as every other kit's absent ``data-bnd-*``.
+#:
+#: THIS IS THE ONLY COPY, which is unusual for this codebase and worth saying.
+#: Every other kit carries its value→slug map in ``bunood.js`` because the desk
+#: applies it client-side on click; this surface is not on the page where it is
+#: chosen (an authenticated admin cannot even load ``/login`` — ``www/login.py``
+#: redirects them), so there is no client-side apply and therefore no second
+#: table to drift from this one.
+#:
+#: A MAP AND NOT A DERIVATION. ``login_style``'s values happen to lowercase into
+#: their slugs, and the first cut did exactly that — but ``login_theme``'s do
+#: not ("Always Dark" is not "always dark"), and one axis deriving while another
+#: maps is the kind of inconsistency that reads as a bug later. One table.
+AUTH_CLASSES = {
+    "login_style": {"Original": "", "Panel": "panel", "Split": "split", "Plate": "plate"},
+    "login_action": {"Neutral": "", "Branded": "action-branded"},
+    "login_theme": {"Follow OS": "", "Always Light": "theme-light", "Always Dark": "theme-dark"},
+}
 
 #: ``User.desk_theme`` is a Literal["Light", "Dark", "Automatic"]. Frappe renders it
 #: verbatim into ``data-theme``, and ships no ``prefers-color-scheme`` rules, so
@@ -182,24 +203,26 @@ def _auth_context(context):
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)
 
-    # THE ANCHOR. `Original` is the ABSENCE of the second class, exactly as every
-    # other kit's "Original" is the absence of its `data-bnd-*` attribute — so
-    # the stand-down needs no rule of its own and cannot be half-applied.
+    # THE ANCHOR AND THE TWO AXES. A neutral is the ABSENCE of its class,
+    # exactly as every other kit's "Original" is the absence of its `data-bnd-*`
+    # attribute — so a stand-down needs no rule of its own and cannot be
+    # half-applied.
     #
-    # The slug is the value lowercased. That is a derivation and not a table:
-    # a second map from "Split" to "split" is the same fact in two places, and
-    # this repo's every critical defect traces to one. The Select's options are
-    # single words for that reason; if a pole ever needs two, derive the slug
-    # here rather than writing the pair down.
-    style = frappe.get_cached_value("Theme Settings", "Theme Settings", "login_style")
-    if not style:
-        from bunood_theme.presets import LOGIN_DEFAULTS
+    # AN UNKNOWN VALUE FALLS BACK TO THE DEFAULT rather than emitting a slug
+    # nothing styles. A Single can hold a value its Select no longer offers —
+    # `heal_unknown_placements` exists because one such value silently failed
+    # every later save of the whole document (E1) — and here the failure would
+    # be quieter still: a class with no rules, i.e. a page that renders as
+    # Original while the settings form says otherwise.
+    from bunood_theme.presets import LOGIN_DEFAULTS
 
-        style = LOGIN_DEFAULTS["login_style"]
-    if style != "Original":
-        pole = f"{AUTH_BODY_CLASS}-{style.lower()}"
-        if pole not in classes:
-            classes.append(pole)
+    for field, slugs in AUTH_CLASSES.items():
+        value = frappe.get_cached_value("Theme Settings", "Theme Settings", field)
+        if value not in slugs:
+            value = LOGIN_DEFAULTS[field]
+        slug = slugs[value]
+        if slug and f"{AUTH_BODY_CLASS}-{slug}" not in classes:
+            classes.append(f"{AUTH_BODY_CLASS}-{slug}")
 
     context.body_class = " ".join(classes)
 

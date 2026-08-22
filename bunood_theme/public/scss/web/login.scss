@@ -90,10 +90,30 @@
 // submit at 1.06:1, the error banner at 2.52:1, and a primary button whose fill
 // equals the page. Activating their branch would inherit all three. We paint
 // both modes ourselves instead.
+// AXIS `login_theme` — Follow OS (default) · Always Light · Always Dark.
+//
+// The round put this axis back in scope on the strength of the drawings: Split
+// and Plate carry a brand COMPOSITION, and under OS-follow alone which one a
+// visitor sees would be decided by their laptop rather than by the company.
+// Every other visual decision in this theme is the admin's.
+//
+// It costs no new mechanism. The mode is another server-rendered body class, so
+// the three values are three scopes in this file and `brand.py` never learns
+// about it — the per-site sheet stays colours-and-fonts, which is what its own
+// header argues for.
+//
+// `Follow OS` is the ABSENCE of a theme class, so the media query has to exclude
+// the two explicit ones or an Always-Light site would still flip on a dark OS.
+// The `:not()` pair is (0,3,1) against the explicit block's (0,1,1) — they never
+// both match, so the difference is bookkeeping rather than a contest.
 @media (prefers-color-scheme: dark) {
-  body.bnd-auth {
+  body.bnd-auth:not(.bnd-auth-theme-light):not(.bnd-auth-theme-dark) {
     @include tokens.dark;
   }
+}
+
+body.bnd-auth-theme-dark {
+  @include tokens.dark;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -609,4 +629,42 @@ body.bnd-auth-split
     display: block;
     min-block-size: auto;
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `login_action` — Neutral · Branded. The primary button.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Stock paints it `var(--gray-900)`, near-black, which is also the page colour
+// in dark — contract R7 repairs that to an inverse pair, and `Neutral` is that
+// repair left alone. `Branded` is the single most visible "this is our product"
+// change available on the page, and it is the ONE control the page exists to
+// offer.
+//
+// IT COSTS NO CONTRAST ROW, which is why it could be an axis rather than a
+// debate. `--bnd-on-brand` on `--bnd-brand-solid` is "label on a brand fill",
+// enforced at AA across eleven seeds and two modes; the fill's own edge against
+// the page is "brand fill against the chrome", enforced at 1.4.11's 3:1 as a
+// cross product over every surface. Both rows already existed.
+//
+// `Neutral` is the NEUTRAL and maps to no class, so this axis has one block.
+// The selectors match contract R7's depth exactly — (0,4,1) and (0,5,1) — and
+// come later in the file, which is how a style overrides a contract that shares
+// its property. A contract and an axis writing the same property cannot both be
+// asserted absolutely; item 31 wrote that down for its hover ring, and the
+// suite check for R7 is why it stays honest here: it asserts the CTA has edges
+// and a legible label, which both poles satisfy.
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login),
+body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :active),
+body.bnd-auth-action-branded
+  .page-card
+  .page-card-actions
+  .btn-signup:not(:disabled):is(:hover, :active) {
+  background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
+  color: var(--bnd-on-brand);
 }
