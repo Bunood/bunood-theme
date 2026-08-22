@@ -29,14 +29,30 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` (2026-08-22, local tag,
-NOT PUSHED). THE TAG WAS MOVED once, off `eeec87a`, after an adversarial release review
-found five live defects — see the block at the end of this section.** Gates at the moved
-tag: suite **339/339**, contrast **4,080 pairs**, sweep CLEAN.
-`v0.31.0` IS ON THE REMOTE — this file previously said it was not. Checked with
-`git ls-remote --tags origin`: the remote carries `v0.31.0` at `5fbf7e0`, which is
-exactly what the local tag points at. `v0.32.0` is the only unpushed tag. Resolve tag
-state with `git ls-remote`, never from this file. Ten commits on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
+**ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` and PUSHED
+(2026-08-22, at the user's request). `main` and `v0.32.0` are both on `origin` at
+`e34a23d`; nothing is unpushed. THE TAG WAS MOVED once, off `eeec87a`, after an
+adversarial release review found five live defects — see the block at the end of this
+section. The move was safe because `v0.32.0` had never been pushed; check
+`git ls-remote --tags origin` before ever moving a tag again, because moving a published
+one rewrites a ref other people may hold.** Gates at the tagged commit: suite
+**339/339**, contrast **4,080 pairs**, sweep CLEAN.
+
+**AND THE FIRST FULL RUN OF THAT GATE WAS 337/339, BOTH FAILURES ENVIRONMENTAL.** Worth
+recording because the shape recurs: `console error budget` reported two
+`net::ERR_CONNECTION_RESET`s on `bunood_theme.api.get_status_signals` and
+`i18n.api.get_state`, and `a11y: axe over the settings pickers` timed out after 15s
+waiting for a pane to fill. One cause, not two — a reset connection means the pane's
+`xcall` never lands. Measured during the run: backend 74% CPU, both queue workers
+54-61%. Isolated per CLAUDE.md's rule rather than assumed: axe **3/3 green**, console
+budget **2/2 green** with no resets at all, then a full re-run on an idle machine
+(queues empty) came back **339/339**. A `waitForFunction` timeout in
+`walkSettingsPanes` does not name the pane it was waiting on — worth fixing if this
+recurs, because on an eighteen-pane walk it is a diagnostic dead end.
+`v0.31.0` WAS ALREADY ON THE REMOTE — this file said it was not, for two days.
+`git ls-remote --tags origin` showed it at `5fbf7e0`, exactly what the local tag pointed
+at. Resolve tag and branch state with `git ls-remote` and `git rev-parse origin/main`,
+never from this file: it has now been wrong about the remote twice. Ten commits on `main`: `11dbc41` slice 0 (the census + the first logged-out harness) · `a3fc2d7` 1a (the
 dark-token mixin) · `fadda9f` 1 (the sheet + eight contracts) · `6185309` 2 (the anchor) ·
 `1fda341` 3 (the axes + the picker) · `28a0faa` 4 (the axe gate) · `32f33c4` 4b (the tagline +
 the per-site dark scope) · `b007d41` 4c (Split's `md` boundary, and the flex-direction defect
