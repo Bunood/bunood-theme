@@ -4224,3 +4224,33 @@ msgstr "تباعد الصفوف وصفّ حفظ منفصل في قائمة عو�
 #. src: item31
 msgid "Original leaves the filter bar stock — nothing below applies."
 msgstr "يترك «الأصلي» شريط التصفية كما هو — ولا يُطبّق شيء ممّا أدناه."
+
+#. src: item32
+#, fuzzy
+msgid "Sign In"
+msgstr "تسجيل الدخول"
+
+#. src: item32
+#, fuzzy
+msgid "Sign-In Style"
+msgstr "نمط تسجيل الدخول"
+
+#. src: item32
+#, fuzzy
+msgid "How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password."
+msgstr "كيفية تكوين شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور. يُطبَّق على ‎/login‎ و‎/update-password‎."
+
+#. src: item32
+#, fuzzy
+msgid "Panel"
+msgstr "لوحة"
+
+#. src: item32
+#, fuzzy
+msgid "Split"
+msgstr "مُقسَّم"
+
+#. src: item32
+#, fuzzy
+msgid "Plate"
+msgstr "صفيحة"

@@ -740,6 +740,38 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "login",
+        # The TENTH surface kit, and the FIRST that is not on the desk. Item 32.
+        #
+        # Everything the other nine stand on is absent here. /login is a WEBSITE
+        # page: no app_include_css, no frappe.boot, no bunood.js, and
+        # templates/base.html renders <html lang dir> with NO data-theme at all.
+        # So this entry's "selector" is the one thing in this table that is not
+        # an <html> attribute -- the anchor is a SERVER-RENDERED body class, set
+        # by context._auth_context from update_website_context, which is the only
+        # mechanism that is correct at first paint without JS.
+        #
+        # ONE surface, TWO routes, FIVE states. /login holds four <section>s
+        # behind hash routes (#login, #signup, #forgot, #login-with-email-link)
+        # and /update-password is a fifth on the same login.bundle.css. They are
+        # one object because they are one stylesheet, not because they are one
+        # URL.
+        "part": "login",
+        "label": "Sign in",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `body.bnd-auth` alone stays, carrying the CONTRACTS --
+        # eight measured repairs including a page on which NO control showed
+        # keyboard focus at all (WCAG 2.4.7 AA). Item 28's rule, and this surface
+        # has the strongest case for it yet: a user who cannot use this page
+        # cannot reach any other.
+        "selector": "body.bnd-auth",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

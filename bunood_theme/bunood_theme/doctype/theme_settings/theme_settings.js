@@ -1129,6 +1129,12 @@ const BND_SHELL_GROUPS = [
 			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
 			{ key: "skeleton", label: () => __("Loading"), anchors: ["skeleton_style"] },
 			{ key: "filters", label: () => __("Filters"), anchors: ["filters_style"] },
+			// Item 32. The only entry here whose surface is NOT on the desk — it
+			// dresses /login and /update-password, which an authenticated admin
+			// cannot even load (www/login.py redirects any session to /desk). So
+			// this pane shows a specimen and never a live preview, and the shell's
+			// change dot is the only feedback a click gives.
+			{ key: "login", label: () => __("Sign In"), anchors: ["login_style"] },
 		],
 	},
 	{
@@ -1240,6 +1246,7 @@ const BND_SHELL_OWNS = {
 	empty: { prefixes: ["empty_"] },
 	skeleton: { prefixes: ["skeleton_"] },
 	filters: { prefixes: ["filters_"] },
+	login: { prefixes: ["login_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4471,6 +4478,18 @@ const BND_FILTERS_DEFAULTS = {
 	filters_style: "Outlined",
 	filters_applied: "Accented",
 	filters_saved: "Listed",
+};
+
+// The JS mirror of presets.LOGIN_FIELDS (item 32).
+//
+// DECLARED BEFORE THERE IS A PICKER TO USE IT, on purpose. `assertFieldMirrors`
+// skips any family with no `BND_<X>_FIELDS` at all — `!(name in js) continue` —
+// so a kit that ships its Python fields first and its mirror later is exempt
+// from the guard for exactly as long as it takes to forget. That is the item-25
+// / item-26 escapee's own hiding place. Two lines close it from day one.
+const BND_LOGIN_FIELDS = ["login_style"];
+const BND_LOGIN_DEFAULTS = {
+	login_style: "Split",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */

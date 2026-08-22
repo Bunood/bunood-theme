@@ -169,6 +169,8 @@
   "filters_style",
   "filters_applied",
   "filters_saved",
+  "section_login",
+  "login_style",
   "section_generated",
   "brand_css_url"
  ],
@@ -640,6 +642,19 @@
    "hidden": 1,
    "label": "Saved Filters",
    "options": "Plain\nListed"
+  },
+  {
+   "fieldname": "section_login",
+   "fieldtype": "Section Break",
+   "label": "Sign In"
+  },
+  {
+   "default": "Split",
+   "description": "How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password.",
+   "fieldname": "login_style",
+   "fieldtype": "Select",
+   "label": "Sign-In Style",
+   "options": "Original\nPanel\nSplit\nPlate"
   },
   {
    "fieldname": "section_generated",

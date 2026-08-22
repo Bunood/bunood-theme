@@ -519,18 +519,30 @@ async function withGuest(route, waitSel, fn, opts = {}) {
 	}
 }
 
-/** Every settings shell pane, in the order BND_SHELL_GROUPS declares them. */
-const SETTINGS_PANE_KEYS = [
-	"overview", "topbar", "pagehead", "sidepane", "dock", "status", "search", "mobile",
-	"placement", "inbox", "user", "links", "palette", "crumbs", "list", "form",
-	// Item 31. A pane absent from this list escapes BOTH the axe hard gate and
-	// the accessible-name walk that run over `walkSettingsPanes` — the pane
-	// renders, the picker works, and neither check ever looks at it. Caught by
-	// the adversarial release review rather than by a gate, because the gate is
-	// the thing with the hole in it.
-	"filters",
-	"layout", "branding", "colors", "icons", "density", "translations",
-];
+/**
+ * Every settings shell pane, READ FROM THE SHELL rather than listed here.
+ *
+ * WHY THIS STOPPED BEING A LITERAL (item 32). It was a hand-kept array, and a
+ * pane missing from it escapes BOTH the axe hard gate and the accessible-name
+ * walk — the pane renders, the picker works, and neither check ever looks at
+ * it. Item 31 found that the hard way, in an adversarial release review rather
+ * than from a gate, because the gate was the thing with the hole in it. It then
+ * back-filled its OWN key and left the hole open: measured while adding item
+ * 32's, the list was still missing `workspace`, `chart`, `report`, `views`,
+ * `overlay`, `empty` and `skeleton` — SEVEN kits, none of them ever walked.
+ *
+ * A list that has to be updated by hand every time a kit ships is the
+ * same-fact-in-two-places trap, and the fact already exists: BND_SHELL_GROUPS
+ * renders `.bnd-shell-item[data-key]` for every pane. So read it. The order is
+ * the shell's own, which is also what the old array claimed to be.
+ */
+async function settingsPaneKeys() {
+	const keys = await page.evaluate(() =>
+		[...document.querySelectorAll(".bnd-shell-item[data-key]")].map((e) => e.getAttribute("data-key"))
+	);
+	if (!keys.length) throw new Error("no settings panes found — is the shell rendered?");
+	return keys;
+}
 
 /**
  * Click every settings pane and run fn(key) against it once the pane has
@@ -540,7 +552,7 @@ const SETTINGS_PANE_KEYS = [
  * roughly one twentieth of the surface and calls that coverage.
  */
 async function walkSettingsPanes(fn) {
-	for (const key of SETTINGS_PANE_KEYS) {
+	for (const key of await settingsPaneKeys()) {
 		await page.click(`.bnd-shell-item[data-key="${key}"]`);
 		await page.waitForFunction(
 			(k) => {
@@ -757,6 +769,11 @@ const MUTABLE_FIELDS = [
 	// Filters surface (item 31). Contracts, not toggles — the six repairs
 	// survive "Original" and none of them is a field.
 	"filters_style", "filters_applied", "filters_saved",
+	// Sign-in surface (item 32). The FIRST field here whose effect is not on
+	// the desk at all: it is read server-side and rendered into <body class>
+	// on /login and /update-password, so a check for it must drive a guest
+	// context (see withGuest).
+	"login_style",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -10197,6 +10214,24 @@ async function main() {
 								const e = document.querySelector(sel);
 								return e ? getComputedStyle(e)[key] : null;
 							};
+							// THE EFFECTIVE background, walked up the tree. Reading
+							// `.page-card`'s own backgroundColor is wrong the moment a
+							// pole paints it transparent — Split does, because the
+							// COLUMN is the surface there — and a transparent value
+							// parses as black, so a passing 7.94:1 label reported
+							// 2.52:1 and looked like a CSS regression. `contrast_gate
+							// --check-measured` refuses translucent backgrounds for
+							// exactly this reason; this is the same rule, in the place
+							// that needs it.
+							const bgOf = (sel) => {
+								let n = document.querySelector(sel);
+								while (n && n !== document.documentElement) {
+									const c = getComputedStyle(n).backgroundColor;
+									if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") return c;
+									n = n.parentElement;
+								}
+								return getComputedStyle(document.body).backgroundColor;
+							};
 							const fs = document.querySelector(".for-forgot");
 							fs.style.display = "block";
 							fs.querySelector(".form-forgot").classList.remove("hide");
@@ -10204,16 +10239,16 @@ async function main() {
 							banner.style.display = "flex";
 							return {
 								page: getComputedStyle(document.body).backgroundColor,
-								card: g(".for-login .page-card", "backgroundColor"),
+								card: bgOf(".for-login .page-card"),
 								cardInk: g(".for-login .page-card", "color"),
-								field: g("#login_email", "backgroundColor"),
+								field: bgOf("#login_email"),
 								fieldInk: g("#login_email", "color"),
 								fieldBidi: g("#login_email", "unicodeBidi"),
 								label: g(".for-login .form-label", "color"),
 								forgotLink: g(".for-login .forgot-password-message a", "color"),
 								cta: g(".for-login .btn-login", "backgroundColor"),
 								ctaInk: g(".for-login .btn-login", "color"),
-								bannerBg: g(".for-login .login-error-banner", "backgroundColor"),
+								bannerBg: bgOf(".for-login .login-error-banner"),
 								bannerInk: g(".for-login .login-error-banner", "color"),
 								submitOff: g(".btn-forgot", "backgroundColor"),
 							};
@@ -10396,7 +10431,10 @@ async function main() {
 				expect(ltr.ours >= 0, `our web sheet is linked (${ltr.hrefs.join(" ")})`);
 				expect(ltr.brand >= 0, "and so is the per-site brand sheet, which never reached /login before");
 				expect(ltr.frappe > ltr.ours, "Frappe's login bundle loads AFTER ours — specificity, never order");
-				expectEq(ltr.bodyClass.trim(), "bnd-auth", "the server-rendered scope is on <body>");
+				expect(
+					ltr.bodyClass.split(" ").includes("bnd-auth"),
+					`the server-rendered scope is on <body> (${ltr.bodyClass})`
+				);
 
 				const rtl = await look("ar");
 				expect(rtl.ours >= 0, "our sheet is linked on an Arabic page too");
@@ -10410,6 +10448,187 @@ async function main() {
 				);
 			});
 
+			/** Set the anchor server-side, then read a FRESH guest page.
+			 *  The class is rendered by update_website_context, so there is no
+			 *  live-apply path to shortcut through — which is the honest shape for
+			 *  a surface that is not on the page where it is chosen. */
+			const withPole = async (style, colorScheme, fn) => {
+				setSettings({ login_style: style });
+				return withGuest("/login", ".for-login .page-card", fn, { colorScheme });
+			};
+
+			await test("login: the anchor dresses the page, and Original clears it", async () => {
+				const read = (style, colorScheme = "light") =>
+					withPole(style, colorScheme, async (gp) =>
+						gp.evaluate(() => {
+							const g = (sel, key) => {
+								const e = document.querySelector(sel);
+								return e ? getComputedStyle(e)[key] : null;
+							};
+							const main = document.querySelector(".page-content-wrapper > main");
+							const card = document.querySelector(".for-login .page-card");
+							return {
+								body: document.body.className.trim(),
+								page: getComputedStyle(document.body).backgroundColor,
+								card: g(".for-login .page-card", "backgroundColor"),
+								ring: g(".for-login .page-card", "boxShadow"),
+								radius: g(".for-login .page-card", "borderRadius"),
+								wrapDisplay: g(".page-content-wrapper", "display"),
+								mainX: main ? Math.round(main.getBoundingClientRect().x) : null,
+								mainW: main ? Math.round(main.getBoundingClientRect().width) : null,
+								cardTop: card ? Math.round(card.getBoundingClientRect().y) : null,
+								// The art panel is a pseudo-element, so it has no box to
+								// measure — read whether the rule that creates it applies.
+								art: getComputedStyle(document.querySelector(".page-content-wrapper"), "::after").content,
+							};
+						})
+					);
+
+				const original = await read("Original");
+				expectEq(original.body, "bnd-auth", "Original is the ABSENCE of the pole class");
+				expectEq(original.ring, "none", "and draws no ring on the card");
+				expect(original.card === original.page, "the card is stock's page colour under Original");
+
+				const panel = await read("Panel");
+				expectEq(panel.body, "bnd-auth bnd-auth-panel", "Panel sets its own slug");
+				expect(panel.ring !== "none", `Panel draws the card as an object (${panel.ring})`);
+				expect(panel.card !== panel.page, "on a fill that differs from the ground");
+				expect(
+					panel.cardTop > original.cardTop,
+					`and centres it rather than pinning it at 60px (${original.cardTop} -> ${panel.cardTop})`
+				);
+
+				const plate = await read("Plate");
+				expectEq(plate.body, "bnd-auth bnd-auth-plate", "Plate sets its own slug");
+				expect(plate.page !== panel.page, `Plate moves the GROUND, which no other pole does (${plate.page})`);
+
+				const split = await read("Split");
+				expectEq(split.body, "bnd-auth bnd-auth-split", "Split sets its own slug");
+				expectEq(split.wrapDisplay, "flex", "Split turns the wrapper into a row");
+				expect(split.art !== "none", `and creates its brand panel (content: ${split.art})`);
+				expect(split.mainW < 600, `the column is bounded (${split.mainW}px)`);
+				expectEq(split.ring, "none", "the card carries no ring of its own — the COLUMN is the surface");
+
+				// Decision D, asserted rather than assumed: the contracts survive the
+				// stand-down. Item 31 asserts the same thing the same way.
+				const back = await read("Original");
+				expectEq(back.body, "bnd-auth", "and Original clears it all again");
+				setSettings({ login_style: "Split" });
+			});
+
+			await test("login: no pole takes the field's fill away", async () => {
+				// THE DEFEAT-DEVICE CHECK, and the reason the working set carries
+				// `--bnd-auth-card` at all. Contract R4 is a DELTA, so a pole that
+				// moves the card without the field following would re-open a
+				// repaired defect while looking like a style choice — which is
+				// exactly what the first cut of this kit did by mixing against
+				// `--bnd-surface` on a `--bnd-page` card: 4 channels, not 9.
+				//
+				// TRAP: the delta INVERTS between modes — the field is darker than
+				// the card in light and lighter in dark. Magnitudes only.
+				for (const style of ["Original", "Panel", "Split", "Plate"]) {
+					for (const mode of ["light", "dark"]) {
+						const c = await withPole(style, mode, async (gp) =>
+							gp.evaluate(() => {
+								const g = (sel, key) => getComputedStyle(document.querySelector(sel))[key];
+								return {
+									card: g(".for-login .page-card", "backgroundColor"),
+									field: g("#login_email", "backgroundColor"),
+								};
+							})
+						);
+						// Split paints the card transparent (the column is the
+						// surface), so the delta is measured against what the field
+						// actually sits on, which is the column.
+						const host =
+							style === "Split"
+								? await withPole(style, mode, async (gp) =>
+										gp.evaluate(() => getComputedStyle(document.querySelector(".page-content-wrapper > main")).backgroundColor)
+								  )
+								: c.card;
+						const d = chDelta(c.field, host);
+						expect(d >= 5, `${style}/${mode}: the field still lifts off its host (${d.toFixed(0)} channels)`);
+					}
+				}
+				setSettings({ login_style: "Split" });
+			});
+
+			await test("login: Split mirrors with no direction-aware rule", async () => {
+				// The reason Split was affordable as a default. Frappe flips this
+				// page with a build-time rtlcss pass, so an inset of ours would
+				// COMPOUND with a flipped copy (GUIDELINES 1.3). The column instead
+				// rides FLEX ORDER — `main` first in the DOM, the art panel a
+				// `::after` — so `dir` does the work and this stylesheet contains no
+				// direction-aware declaration at all.
+				//
+				// This is the check that would catch someone "fixing" it with
+				// inset-inline-start, which looks correct in one direction.
+				setSettings({ login_style: "Split" });
+				const box = (lang) =>
+					withGuest(
+						"/login",
+						".for-login .page-card",
+						async (gp) =>
+							gp.evaluate(() => {
+								const m = document.querySelector(".page-content-wrapper > main");
+								const r = m.getBoundingClientRect();
+								return { x: Math.round(r.x), w: Math.round(r.width), vw: innerWidth, dir: document.documentElement.dir };
+							}),
+						{ lang }
+					);
+				const ltr = await box(null);
+				const rtl = await box("ar");
+				expectEq(ltr.dir, "ltr", "the default direction");
+				expectEq(rtl.dir, "rtl", "and Arabic flips it");
+				expect(ltr.x <= 2, `LTR puts the column at the inline start (x=${ltr.x})`);
+				expect(
+					rtl.x >= rtl.vw - rtl.w - 2,
+					`RTL puts it at the other edge (x=${rtl.x}, expected ~${rtl.vw - rtl.w})`
+				);
+				expectEq(ltr.w, rtl.w, "and the column is the same width in both");
+			});
+
+			await test("login: every pole converges below Frappe's own collapse", async () => {
+				// 576px, BISECTED not read: media-breakpoint-down(xs) is Bootstrap's
+				// max-width 575.98px, and the planning document carried "~450" until
+				// this was measured. Frappe already takes the card full-bleed there,
+				// so a ring, a radius or an art panel would draw an object that fills
+				// the screen. One composition on a phone.
+				for (const style of ["Panel", "Split", "Plate"]) {
+					setSettings({ login_style: style });
+					const narrow = await withGuest(
+						"/login",
+						".for-login .page-card",
+						async (gp) =>
+							gp.evaluate(() => {
+								const card = document.querySelector(".for-login .page-card");
+								const cs = getComputedStyle(card);
+								const main = document.querySelector(".page-content-wrapper > main");
+								const r = main.getBoundingClientRect();
+								return {
+									ring: cs.boxShadow,
+									radius: cs.borderRadius,
+									art: getComputedStyle(document.querySelector(".page-content-wrapper"), "::after").content,
+									mainW: Math.round(r.width),
+									vw: innerWidth,
+									padStart: getComputedStyle(main).paddingInlineStart,
+								};
+							}),
+						{ width: 390, height: 812 }
+					);
+					expectEq(narrow.ring, "none", `${style}: no ring on a full-bleed card`);
+					expectEq(narrow.radius, "0px", `${style}: and no radius`);
+					expectEq(narrow.art, "none", `${style}: no art panel at 390`);
+					expectEq(narrow.mainW, narrow.vw, `${style}: the column is the whole width`);
+					expect(
+						parseFloat(narrow.padStart) >= 16,
+						`${style}: and it keeps a gutter (${narrow.padStart}) — zeroing both the column's` +
+							" padding and the card's put the form flush against the screen edge"
+					);
+				}
+				setSettings({ login_style: "Split" });
+			});
+
 			await test("login: /update-password gets the same repairs", async () => {
 				// One surface, two routes — so the contracts have to reach both. This
 				// is the check that would catch a scope keyed on `data-path="login"`
@@ -10421,16 +10640,32 @@ async function main() {
 							const e = document.querySelector(sel);
 							return e ? getComputedStyle(e)[key] : null;
 						};
+						// The same effective-background walk the login checks use, and
+						// needed here for the same reason: under `Split` the card is
+						// transparent because the COLUMN is the surface, and a
+						// transparent value parses as black.
+						const bgOf = (sel) => {
+							let n = document.querySelector(sel);
+							while (n && n !== document.documentElement) {
+								const c = getComputedStyle(n).backgroundColor;
+								if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") return c;
+								n = n.parentElement;
+							}
+							return getComputedStyle(document.body).backgroundColor;
+						};
 						return {
 							bodyClass: document.body.className,
-							card: g(".for-reset-password .page-card", "backgroundColor"),
+							card: bgOf(".for-reset-password .page-card"),
 							cardInk: g(".for-reset-password .page-card", "color"),
 							hint: g(".password-hint", "color"),
-							track: g(".password-strength-bar-track", "backgroundColor"),
+							track: bgOf(".password-strength-bar-track"),
 						};
 					})
 				);
-				expectEq(c.bodyClass.trim(), "bnd-auth", "the scope reaches the second route");
+				expect(
+					c.bodyClass.split(" ").includes("bnd-auth"),
+					`the scope reaches the second route (${c.bodyClass})`
+				);
 				const inherited = ratio(c.cardInk, c.card);
 				expect(inherited >= 4.5, `its card ink clears AA too (${inherited.toFixed(2)}:1)`);
 				const hint = ratio(c.hint, c.card);

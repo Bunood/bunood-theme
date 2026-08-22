@@ -56,6 +56,7 @@
   "filters_style": "Outlined",
   "filters_applied": "Accented",
   "filters_saved": "Listed",
+  "login_style": "Split",
   "palette_style": "Bunood Palette",
   "inbox_style": "Inbox + Page",
   "inbox_placement": "Top Bar End",

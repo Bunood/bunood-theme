@@ -181,6 +181,26 @@ def _auth_context(context):
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)
+
+    # THE ANCHOR. `Original` is the ABSENCE of the second class, exactly as every
+    # other kit's "Original" is the absence of its `data-bnd-*` attribute — so
+    # the stand-down needs no rule of its own and cannot be half-applied.
+    #
+    # The slug is the value lowercased. That is a derivation and not a table:
+    # a second map from "Split" to "split" is the same fact in two places, and
+    # this repo's every critical defect traces to one. The Select's options are
+    # single words for that reason; if a pole ever needs two, derive the slug
+    # here rather than writing the pair down.
+    style = frappe.get_cached_value("Theme Settings", "Theme Settings", "login_style")
+    if not style:
+        from bunood_theme.presets import LOGIN_DEFAULTS
+
+        style = LOGIN_DEFAULTS["login_style"]
+    if style != "Original":
+        pole = f"{AUTH_BODY_CLASS}-{style.lower()}"
+        if pole not in classes:
+            classes.append(pole)
+
     context.body_class = " ".join(classes)
 
     url = _brand_css_url()

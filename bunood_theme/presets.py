@@ -724,6 +724,48 @@ FILTERS_DEFAULTS = {
     "filters_saved": "Listed",
 }
 
+
+LOGIN_FIELDS = [
+    "login_style",
+]
+
+#: The shipped sign-in defaults -- the item-32 wireframe round, closed
+#: 2026-08-21. Artifact:
+#: https://claude.ai/code/artifact/46b356b4-b1e6-4f50-9285-62af96f98001
+LOGIN_DEFAULTS = {
+    # THE ANCHOR. Four poles, and the round picked the boldest -- consistent
+    # with every previous round (Floating Cards, Bold Bar, Solid Pill, Floating
+    # Pane, Floating Panels).
+    #
+    #   Original  the stand-down. Stock geometry: the card is the same colour as
+    #             the page, 0px border, no shadow, pinned 60px from the top
+    #             inside a wrapper reserving 220px for a footer the same
+    #             stylesheet hides. The eight CONTRACTS still apply -- that is
+    #             the whole of the contract/style split.
+    #   Panel     the card becomes an object: our surface fill on the page
+    #             ground, a hairline ring, a soft lift, vertically centred.
+    #   Split     THE DEFAULT. A full-height form column beside a brand panel.
+    #             The only pole where the brand gets real estate rather than a
+    #             32px logo, and the only one whose composition a visitor reads
+    #             before they read any text.
+    #   Plate     a brand wash across the ground with the card floating on it.
+    #             Brand presence at a fraction of Split's cost.
+    #
+    # `Bare` was drawn and DROPPED in the round, before a line was written: with
+    # no card it discharges the card's identification with nothing, leaning
+    # entirely on the field boundaries, and once `Original` carries the contracts
+    # the two are visually close. Item 27 dropped `Headed` and item 31 dropped
+    # its group-by repair for the same reason.
+    #
+    # WHY SPLIT IS AFFORDABLE AS A DEFAULT, given it is the expensive pole:
+    # its column rides FLEX ORDER rather than insets, so it flips in Arabic with
+    # no direction-aware rule at all (Frappe flips this page with its own
+    # build-time rtlcss pass, and GUIDELINES 1.3 says ours must not compound);
+    # and below Frappe's own 576px collapse the art panel drops and every pole
+    # converges, so it costs one media query rather than a second layout.
+    "login_style": "Split",
+}
+
 #: The desk layout a fresh install gets. Named once, because it seeds
 #: ``desk_layout`` AND decides the container defaults below — two facts that
 #: would otherwise be free to disagree, which is how the shipped default and

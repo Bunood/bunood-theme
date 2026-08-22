@@ -38,6 +38,7 @@ from bunood_theme.presets import (
     FORM_DEFAULTS,
     ICON_DEFAULTS,
     LIST_DEFAULTS,
+    LOGIN_DEFAULTS,
     OVERLAY_DEFAULTS,
     REPORT_DEFAULTS,
     SKELETON_DEFAULTS,
@@ -75,6 +76,7 @@ CHECK_DEFAULTS = {
         FORM_DEFAULTS,
         ICON_DEFAULTS,
         LIST_DEFAULTS,
+        LOGIN_DEFAULTS,
         OVERLAY_DEFAULTS,
         REPORT_DEFAULTS,
         SKELETON_DEFAULTS,
@@ -159,6 +161,11 @@ DEFAULTS = {
     # Filters (item 31): three Selects — the anchor, the applied signal and the
     # saved-filter rows. No Check; the six repairs are contracts, not options.
     **{f: v for f, v in FILTERS_DEFAULTS.items() if not isinstance(v, int)},
+    # Sign-in (item 32): one Select, the anchor. No Check — the eight repairs
+    # are contracts, and this is the only kit whose anchor is a server-rendered
+    # body class rather than an <html> attribute, because /login is a website
+    # page with no boot payload and no JS.
+    **{f: v for f, v in LOGIN_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
