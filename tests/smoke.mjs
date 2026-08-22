@@ -10976,6 +10976,57 @@ async function main() {
 				);
 			});
 
+			await test("login: the customer's logo replaces the framework's", async () => {
+				// THE OTHER PROMISE THE SETTINGS PAGE HAD ALREADY MADE, and the one
+				// this item nearly shipped unverified. `www/login.py:53` and
+				// `www/update_password.py:12` both set `context.logo = get_app_logo()`,
+				// which reads Website Settings, then Navbar Settings, then the
+				// `app_logo_url` hook — and never Theme Settings. Our hook runs AFTER
+				// `get_context` (`base_template_page.py:32`), so one assignment fixes
+				// both routes.
+				//
+				// IT WAS WRITTEN, DEPLOYED AND SCREENSHOTTED WITHOUT EVER BEING
+				// EXERCISED, because `logo` is empty on this site and the guard
+				// (`if logo:`) correctly did nothing. "The guard skipped" is not
+				// evidence the branch works; only setting the field is.
+				//
+				// `logo` is deliberately NOT in MUTABLE_FIELDS — a failed restore of a
+				// branding field is permanent damage — so this writes it directly and
+				// restores in a `finally`, the way the tagline check does.
+				const LOGO = "/assets/frappe/images/frappe-favicon.svg";
+				const before = benchPy(
+					"import json\nprint(json.dumps(frappe.db.get_single_value('Theme Settings','logo')))\n"
+				).trim().split("\n").pop();
+				const setLogo = (v) =>
+					benchPy(
+						`frappe.db.set_single_value('Theme Settings','logo', ${v})\n` +
+							"frappe.db.commit()\nfrappe.clear_cache()\nprint('ok')\n"
+					);
+				// FOUR `img.app-logo` NODES, one per section — the same trap as
+				// `.page-card`. Scope to the visible one.
+				const shown = (route, sel) =>
+					withGuest(route, sel, async (gp) =>
+						gp.evaluate((s) => {
+							const el = document.querySelector(s + " img.app-logo");
+							return { src: el ? el.getAttribute("src") : null, total: document.querySelectorAll("img.app-logo").length };
+						}, sel)
+					);
+				try {
+					const stock = await shown("/login", ".for-login .page-card");
+					expect(
+						stock.src && !stock.src.includes("frappe-favicon"),
+						`unset, the framework's own logo renders (${stock.src})`
+					);
+					setLogo(JSON.stringify(LOGO));
+					const ours = await shown("/login", ".for-login .page-card");
+					expectEq(ours.src, LOGO, "set, Theme Settings wins — this is the whole override");
+					const reset = await shown("/update-password", ".for-reset-password .page-card");
+					expectEq(reset.src, LOGO, "and it reaches the second route, which sets its logo the same way");
+				} finally {
+					setLogo(before === "null" ? "None" : before);
+				}
+			});
+
 			await test("login: the tagline field stops being a promise", async () => {
 				// Theme Settings has shipped a `tagline` whose description reads
 				// "Shown on the login page." since day one, and nothing read it.
