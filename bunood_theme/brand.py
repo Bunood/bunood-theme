@@ -209,7 +209,7 @@ def render_brand_css(settings=None) -> str:
     # every call site passes strings), and `www/login.py` publishes no context key
     # for it — so there is no server-side seam and injecting a node would mean
     # end-of-body JS, i.e. a flash. It travels as a custom property and
-    # `web/login.scss` renders it.
+    # `web/_login.scss` renders it.
     #
     # `content: none` is the absent case, so an unset tagline generates NO
     # pseudo-element rather than an empty box with margins.

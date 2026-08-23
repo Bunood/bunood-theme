@@ -375,7 +375,7 @@ to a strip of viewport nobody can use.
 
 Item 32 is the first thing this theme paints that is **not on the desk**, and every
 mechanism the nine desk kits stand on is absent on a *website* page. Measured on the
-live stack before a line of `web/login.scss` existed: `/login` loaded `website.bundle`,
+live stack before a line of `web/_login.scss` existed: `/login` loaded `website.bundle`,
 `erpnext-web.bundle` and `login.bundle`, **not one byte of ours**, and every `--bnd-*`
 property read as the empty string.
 
@@ -390,7 +390,7 @@ property read as the empty string.
 Four consequences, each load-bearing:
 
 1. **Everything wins on specificity, never on source order.** Every selector in
-   `web/login.scss` is sized against a competitor found by scanning
+   `web/_login.scss` is sized against a competitor found by scanning
    `document.styleSheets` — and the scan must cover `:hover`, `:focus`, `:active` and
    `:disabled`, not just the resting rule. A vendor that groups its states into one
    selector list out-specifies a base rule sized against the base. Four defects shipped

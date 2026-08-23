@@ -71,7 +71,7 @@ dark-token mixin) · `fadda9f` 1 (the sheet + eight contracts) · `6185309` 2 (t
 `1fda341` 3 (the axes + the picker) · `28a0faa` 4 (the axe gate) · `32f33c4` 4b (the tagline +
 the per-site dark scope) · `b007d41` 4c (Split's `md` boundary, and the flex-direction defect
 that hid behind its fix) · `650c320` (the logo override, proved) · `eeec87a` (the release). Three fields (`login_style` · `login_action` · `login_theme`),
-`public/scss/web/login.scss`, `docs/upstream/frappe-login.md`. Wireframes:
+`public/scss/web/_login.scss`, `docs/upstream/frappe-login.md`. Wireframes:
 <https://claude.ai/code/artifact/46b356b4-b1e6-4f50-9285-62af96f98001>. Plan:
 `~/.claude/plans/lets-work-on-item-jazzy-creek.md`. Picks **Split · Branded · the theme axis
 IN · four poles** (`Bare` drawn and dropped in the round). Facts worth keeping:

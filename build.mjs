@@ -83,7 +83,7 @@ const ENTRIES = [
 	// The web/login sheet is deliberately separate: the login page is a WEBSITE
 	// page, gets `web_include_css` rather than `app_include_css`, and Frappe's own
 	// login bundle loads AFTER ours there — so it needs its own, smaller sheet.
-	{ key: "bunood-web", src: "web/login.scss", pyid: "WEB_CSS" },
+	{ key: "bunood-web", src: "web/web.scss", pyid: "WEB_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -148,7 +148,7 @@ function readBaseTokens(tokensSrc) {
  *
  * WHAT IT CATCHES, AND WHY NOTHING ELSE DOES
  *   `outline: var(--bnd-line-thick, 2px) solid var(--bnd-accent)` shipped in
- *   `web/login.scss`. `--bnd-line-thick` is declared NOWHERE in this repo, so
+ *   `web/_login.scss`. `--bnd-line-thick` is declared NOWHERE in this repo, so
  *   the rule always took the fallback — a raw 2px wearing a token's name. It
  *   passed every guard here: the no-raw-px rule cannot see a literal that sits
  *   inside a `var()`, and the token itself is just an identifier, so nothing

@@ -10661,7 +10661,7 @@ async function main() {
 			// ours over one of their flipped physical rules pins the element on
 			// both sides. This test is the standing evidence that the pass is
 			// live on this route — if it ever stops being true, the constraint
-			// on `web/login.scss` changes and this fails first.
+			// on `web/_login.scss` changes and this fails first.
 			const read = (lang) =>
 				withGuest("/login", ".for-login .page-card", async (gp) =>
 					gp.evaluate(() => {
@@ -11455,7 +11455,7 @@ async function main() {
 				// login.html OVERRIDES {% block head_include %} with the login
 				// bundle, which therefore comes AFTER ours. Nothing here can be won
 				// on source order, so if this ever flips, every specificity argument
-				// in web/login.scss's header is void and should be re-read, not
+				// in web/_login.scss's header is void and should be re-read, not
 				// silently relied on.
 				//
 				// ONE FILE: our path starts with /assets, so `bundled_asset()` skips

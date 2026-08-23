@@ -4,20 +4,24 @@
 
 WHAT
     A single ``update_website_context`` hook handler that mutates already-built render
-    contexts. It answers for TWO surfaces and returns for everything else:
+    contexts. It answers for THREE surfaces, and since item 33 the last of them is the
+    DEFAULT rather than a fourth early return:
 
     * **the desk** (``www/desk.html``) — appends the per-site brand stylesheet and
       corrects ``layout_direction`` for the RTL languages Frappe's ``is_rtl()`` misses.
     * **the auth templates** (``www/login.html``, ``www/update-password.html``) —
       item 32, and note it is the TEMPLATE and not the route: a guest hitting ``/`` on a
       stock site is served the sign-in page. Sets the
-      ``body_class`` that ``web/login.scss`` scopes to, puts the brand sheet on
+      ``body_class`` that ``web/_login.scss`` scopes to, puts the brand sheet on
       ``web_include_css``, and replaces Frappe's app logo with Theme Settings'.
+    * **every other website template** — item 33. Sets the ``body_class`` that the
+      website half of ``web/web.scss`` scopes to. See :func:`_is_web_template` for why
+      this is a denylist and why it keys on the template rather than the route.
 
-    The second one is the whole delivery mechanism for a surface kit that is not on
+    The last two are the whole delivery mechanism for surface kits that are not on
     the desk: there is no ``frappe.boot`` on a website page and no ``bunood.js``, so a
     server-rendered class on ``<body>`` is the only anchor that is correct at first
-    paint. See ``public/scss/web/login.scss``'s header.
+    paint. See ``public/scss/web/web.scss``'s header.
 
 WHY THIS EXISTS
     To put a stylesheet into the desk ``<head>`` before first paint, the previous
@@ -43,11 +47,19 @@ WHY THIS EXISTS
 
 CONSTRAINTS THAT SHAPE THIS FILE
     * The hook fires for EVERY website request: portal pages, error pages, the site
-      root. It guards on ``context.template`` and does nothing for anything that is
-      not one of the three templates named above. (This used to read "``/login``"
-      among the things to do nothing for; item 32 made the auth templates a second
-      answered surface and this constraint was left contradicting the WHAT block
-      thirty lines above it. Corrected by an adversarial release review.)
+      root. It guards on ``context.template`` — and since item 33 the guard's default
+      branch DRESSES rather than returns, so what needs naming is the set it declines:
+      the desk (handled first), the auth templates (handled second),
+      :data:`NON_WEB_TEMPLATES`, and anything whose template is not ``.html``.
+
+      (This paragraph has now been wrong twice, in opposite directions, and both times
+      it was the WHAT block thirty lines above that contradicted it. It read "does
+      nothing except for the desk" after item 32 gave it a second surface — corrected
+      by an adversarial release review — and "does nothing for anything that is not one
+      of the three templates named above" after item 33 slice 1 inverted the default,
+      which is the exact opposite of what the code then did. A constraints block that
+      describes control flow has to be edited by the commit that changes the control
+      flow; it is not commentary.)
     * It runs inside the website router. An uncaught exception here takes down every
       page on the site, not just the desk. Every branch is wrapped.
     * It runs on every desk request (``frappe/www/desk.py`` sets ``no_cache``, so
@@ -90,7 +102,7 @@ DESK_TEMPLATE = "www/desk.html"
 #: ``PathResolver`` rather than guessed from the route name.
 AUTH_TEMPLATES = ("www/login.html", "www/update-password.html")
 
-#: The scope every rule in ``web/login.scss`` hangs off. Contracts key on this class
+#: The scope every rule in ``web/_login.scss`` hangs off. Contracts key on this class
 #: alone; the anchor and the two axes add ``bnd-auth-<slug>`` beside it.
 AUTH_BODY_CLASS = "bnd-auth"
 
@@ -315,7 +327,7 @@ def _auth_context(context):
 
     1. **The scope.** ``templates/base.html:57`` renders
        ``class="{{ body_class or '' }}"``, and ``body_class`` is an ordinary
-       context key. Setting it here is what gives ``web/login.scss`` something to
+       context key. Setting it here is what gives ``web/_login.scss`` something to
        hang off, server-rendered and therefore correct at first paint. APPENDED,
        never assigned: another app or a Website Settings value may already have
        put a class there, and clobbering it would be a silent regression on a

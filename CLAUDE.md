@@ -38,7 +38,7 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   enforced via `npm run contrast`, not `build.mjs`, which carries no colour guard.
 - **Frappe variables only inside `[data-theme]`.** A neutral in bare `:root` is the
   light-leaks-into-dark bug. **One amendment** (item 32): a *website* page has no
-  `data-theme` at all, so `web/login.scss` scopes its overrides to `body.bnd-auth` —
+  `data-theme` at all, so `web/_login.scss` scopes its overrides to `body.bnd-auth` —
   narrower than `[data-theme]`, not wider. GUIDELINES §1.3 carries the argument and
   the second half nobody expects: `brand.py`'s dark blocks need that scope too, or a
   customer's dark sign-in page silently paints the *shipped* seed.

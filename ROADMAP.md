@@ -763,7 +763,7 @@ entry.
 
 - `[x]` **32 · Login / signup / forgot** *(was 25, done 2026-08-21)* — the TENTH surface
   kit and the **first that is not on the desk**. Four gated slices plus a close. Three
-  fields (`login_style` anchor · `login_action` · `login_theme`), `web/login.scss`, and
+  fields (`login_style` anchor · `login_action` · `login_theme`), `web/_login.scss`, and
   the theme's SECOND stylesheet. Wireframed and picked 2026-08-21: **Split · Branded ·
   the theme axis in · four poles** — `Bare` was drawn and dropped in the round. What the
   surface taught:

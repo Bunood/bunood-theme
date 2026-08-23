@@ -363,7 +363,7 @@
 // records that nothing enforces membership between them. Item 32 needs a
 // THIRD, because a website page carries no `data-theme` at all and the login
 // sheet has to reach dark through `prefers-color-scheme` (see
-// `web/login.scss`). Three hand-kept copies is not a thing to ship, so the
+// `web/_login.scss`). Three hand-kept copies is not a thing to ship, so the
 // values live here once and the selectors include them.
 //
 // NOT YET INCLUDED BY THE `automatic` BLOCK BELOW, deliberately: that block is
@@ -461,7 +461,7 @@
 }
 
 // ── The next four blocks are DEAD WEIGHT IN THE WEB SHEET, AND THEY STAY ────
-// `web/login.scss` does `@use "../tokens"` for the light `:root` set it genuinely
+// `web/_login.scss` does `@use "../tokens"` for the light `:root` set it genuinely
 // needs, and Sass emits every top-level rule in a used file — so this block, the
 // `automatic` media block below it, and the two density blocks all land in
 // `bunood-web.<hash>.css`, where NONE of them can ever match. A website page

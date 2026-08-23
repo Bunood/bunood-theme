@@ -1,0 +1,24 @@
+// ============================================================================
+// THE WEB SHEET — the index, and the only entry `build.mjs` compiles for
+// `web_include_css`.
+//
+// WHY AN INDEX RATHER THAN ONE FILE
+//   `hooks.py` ships ONE stylesheet to every website page on the site, and that
+//   was `web/login.scss` for as long as the sign-in page was the only logged-out
+//   surface the theme dressed. Item 33 dresses the rest of the website, so the
+//   file that every portal page downloads can no longer be named for one of them.
+//
+//   ONE SHEET, NOT TWO, and that is a decision rather than an accident. A second
+//   entry would mean a second `BUCKETS` row in `tools/payload.mjs`, a second
+//   ceiling in `payload-budget.json`, a second unconditional fetch on every page,
+//   and a `deploy.sh` glob that already sorted `bunood-web` ahead of the desk
+//   bundle once. The guarantee that keeps the two kits apart is the BODY SCOPE,
+//   not the file boundary: `_login.scss` is scoped `body.bnd-auth` throughout and
+//   `_site.scss` will be scoped `body.bnd-web`, and `context.py` returns after
+//   whichever branch matched, so no page can ever carry both.
+//
+// ORDER IS DELIBERATE. `_login.scss` first, because it is the sheet that already
+// exists and its compiled bytes are the reference this split was proved against.
+// ============================================================================
+
+@use "login";

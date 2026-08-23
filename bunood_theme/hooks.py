@@ -63,7 +63,7 @@ app_include_js = [THEME_JS]
 # ``www/login.html`` then OVERRIDES ``{% block head_include %}`` with
 # ``include_style('login.bundle.css')``. So the order is website.bundle, any app's
 # web_include_css (ours), then Frappe's login bundle — ours is NOT last, which is why
-# ``web/login.scss`` sizes every selector against a measured competitor.
+# ``web/_login.scss`` sizes every selector against a measured competitor.
 #
 # The path is the hashed one from assets.py, never a logical bundle name: it starts
 # with ``/assets``, so ``bundled_asset()`` skips the ``rtl_`` swap entirely and ONE

@@ -105,7 +105,7 @@ that cannot change the verdict.
   "light leaks into dark" bug that made the previous theme work only partially.
   **The one amendment, and it is an amendment rather than an exception** (item 32):
   a WEBSITE page has no `data-theme` to hang anything on — `templates/base.html`
-  renders `<html lang dir>` and nothing else — so `web/login.scss` scopes its
+  renders `<html lang dir>` and nothing else — so `web/_login.scss` scopes its
   Frappe-variable overrides to `body.bnd-auth` instead. That satisfies the rule's
   *reason* exactly: the constraint is that a neutral must never be declared where it
   outlives its mode, and `body.bnd-auth` is **narrower** than `[data-theme]`, not
