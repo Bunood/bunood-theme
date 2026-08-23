@@ -23,16 +23,22 @@
 @font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 
 /* Official Saudi Riyal sign, U+20C1 (Unicode 17.0), from SAMA's own published
-   outline. TTF is not a preference here, it is the requirement: wkhtmltopdf is
-   WebKit 534 and cannot read woff2 - the note at the top of this file already
-   says so. woff2 is listed first for the on-screen print preview, which is a
-   modern browser; the PDF engine ignores it and takes the TTF.
+   outline.
+
+   woff2 ONLY, and the reason is worth stating because this file's header
+   argues the opposite. The header says the engine is wkhtmltopdf (WebKit 534),
+   which cannot read woff2 - so this shipped a TrueType first. It is wrong about
+   this stack. `compose.yaml` sets `chromium_path /usr/bin/chromium-headless-shell`,
+   and bunood_real_estate's Single Source Register names "Print Format + Chrome
+   PDF generator" as the ONE way to make a PDF and lists wkhtmltopdf under
+   Never. A Chromium engine reads woff2, so the TTF was 1.4 KB solving a problem
+   this platform does not have.
 
    `unicode-range` is an optimisation, not the safety mechanism. The font
-   contains exactly ONE glyph, so even an engine that ignores unicode-range
-   falls through to Cairo/Amiri for every other character by ordinary
+   contains exactly ONE glyph, so even an engine that ignored unicode-range
+   would fall through to Cairo/Amiri for every other character by ordinary
    glyph-coverage fallback. That is why it is safe to list first. */
-@font-face { font-family: 'Bunood Riyal'; src: url('/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2') format('woff2'), url('/assets/bunood_theme/fonts/riyal/bunood-riyal.ttf') format('truetype'); font-weight: 400; font-display: swap; unicode-range: U+20C1; }
+@font-face { font-family: 'Bunood Riyal'; src: url('/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2') format('woff2'); font-weight: 400; font-display: swap; unicode-range: U+20C1; }
 
 .print-format {
   font-family: 'Bunood Riyal', 'Cairo', 'Amiri', 'Tajawal', 'Noto Naskh Arabic', 'Noto Sans Arabic', sans-serif;
