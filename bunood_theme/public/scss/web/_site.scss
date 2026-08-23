@@ -1,0 +1,63 @@
+// ============================================================================
+// THE WEBSITE AND PORTAL — checklist item 33. Every page rendered through
+// `templates/base.html` that is not the desk, not the auth templates and not
+// printview: the twelve erpnext portal lists, `/me`, `/404`, `/message`, the
+// error page, every Web Form, and every public page an installed app ships.
+//
+// THE SCOPE IS `body.bnd-web`, SERVER-RENDERED, and it is the whole delivery
+// mechanism — see `context.py::_is_web_template` for why the guard is a denylist
+// over `context.template` and why nothing here may key on the route. GUIDELINES
+// §1.3's amendment covers this file as much as `_login.scss`: a website page has
+// no `data-theme` to hang a mode on, so Frappe-variable overrides are scoped to a
+// body class instead, which is NARROWER than `[data-theme]` rather than wider.
+//
+// NOTHING HERE MAY CARRY USER STATE. Frappe caches website HTML under a key of
+// `(path, lang)` and nothing else — not the user, not their roles — so a class
+// this file styles is shared by every later visitor for the TTL. Measured
+// 2026-08-22: a guest received the Administrator's rendered `/attribution`, and
+// `/404` fetched with a valid session returned the logged-out render.
+// `docs/upstream/frappe-website.md` §2 carries the reproduction, and it is why
+// `body[frappe-session-status]` is refused as a discriminator despite being
+// rendered for free.
+//
+// SLICE 2b IS THE WHOLE OF THIS FILE SO FAR: the mode, and nothing else. The
+// contracts (focus, contrast, resting identification) and the anchor's three
+// poles are later slices, and each lands with its own measurements.
+// ============================================================================
+
+@use "../tokens";
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE MODE — the bundle's own dark route for this scope
+// ══════════════════════════════════════════════════════════════════════════
+//
+// WHY THIS BLOCK IS NOT REDUNDANT WITH `brand.py`. The per-site sheet now emits
+// the customer's dark values under `body.bnd-web` too (slice 2b extended its
+// selector list, derived from `WEB_BODY_CLASS` rather than restated). But the
+// per-site sheet is allowed not to exist: a fresh install has none until the
+// first save, `_brand_css_url()` returns None when its file has been reaped, and
+// `tools/contrast_gate.py` gates a "no-brand-sheet fallback" configuration
+// precisely because the compiled bundle has to render alone. This block is that
+// fallback for the website scope.
+//
+// MEASURED BEFORE IT EXISTED: `--bnd-page` on `/orders` under a dark OS resolved
+// to the LIGHT `color-mix()`. Not a wrong dark palette — no dark palette at all.
+// A rule scan over the whole page found exactly two `prefers-color-scheme` rules,
+// both ours, both dead there (`html[data-theme="automatic"]`, which a website
+// page can never match, and `body.bnd-auth`, which these pages do not carry), and
+// zero from `website.bundle` or `erpnext-web.bundle`. Frappe ships no dark mode
+// for its website at all.
+//
+// NO `:not()` PAIR HERE YET, AND THAT IS DELIBERATE. `_login.scss`'s twin excludes
+// `.bnd-auth-theme-light` and `.bnd-auth-theme-dark` because `login_theme` gives a
+// site an explicit override. `web_theme` is slice 6; its classes do not exist yet,
+// so writing the guards now would ship a selector nothing can satisfy and no check
+// can exercise — a branch whose guard is false on the dev site is UNTESTED, not
+// working, and volunteering one is worse than inheriting it. Slice 6 adds the
+// `:not()` pair and the explicit `body.bnd-web-theme-dark` block together with the
+// axis, in the commit where both can be measured.
+@media (prefers-color-scheme: dark) {
+  body.bnd-web {
+    @include tokens.dark;
+  }
+}

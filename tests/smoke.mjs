@@ -12388,24 +12388,20 @@ async function main() {
 			expect(!desk.split(/\s+/).includes(WEB), `the desk is untouched (${desk})`);
 		});
 
-		await test("web: our sheet arrives, the customer's palette does not — yet", async () => {
-			// SLICE 0 SHIPPED THIS AS "the whole surface is undressed today", and
-			// slice 1 turned it red exactly where its docblock said it would: the
-			// body now carries the scope. This is its positive twin. The two
-			// assertions that flipped have moved to `web: the scope reaches every
-			// website template`; the three that did NOT flip are the interesting
-			// ones, because they are the delivery gap slice 2b closes:
+		await test("web: both sheets arrive, and the customer's palette is what resolves", async () => {
+			// THE SAME CHECK ACROSS THREE SLICES, INVERTED TWICE AND NEVER
+			// DELETED, which is what makes the before and after comparable.
+			// Slice 0 shipped it as "the whole surface is undressed today"; slice 1
+			// turned it red exactly where its docblock said it would, and its two
+			// body-class assertions moved to `web: the scope reaches every website
+			// template`; slice 2b turned the remaining two red and this is their
+			// positive form. What it asserts now:
 			//
-			//   - our compiled sheet ALREADY loads here (hooks.py ships
-			//     web_include_css site-wide), so item 33 needed a rule, not an asset
-			//   - the per-site brand sheet does NOT reach a website page
-			//   - so --bnd-page still resolves to the BUNDLE's fallback
-			//
-			// SLICE 2b FLIPS THE LAST TWO, and when it does this check inverts
-			// again rather than being deleted — the assertion that our sheet
-			// arrives is permanent, and the other two become "and the customer's
-			// hex is what resolves". Keeping one check across the transition is
-			// what makes the before and after comparable.
+			//   - our compiled sheet loads here (it always did — hooks.py ships
+			//     web_include_css site-wide, so item 33 needed a rule, not an asset)
+			//   - the per-site brand sheet loads here too (slice 2b)
+			//   - so --bnd-page resolves to the customer's own hex rather than the
+			//     bundle's color-mix() fallback
 			const seen = await withPortalUser("/orders", ".website-list", async (pp) =>
 				pp.evaluate(() => {
 					const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
@@ -12426,11 +12422,120 @@ async function main() {
 				})
 			);
 			expect(seen.ourSheet, "our compiled web sheet loads on the portal — the gap was a rule, not an asset");
-			expect(!seen.brandSheet, "the per-site brand sheet does NOT — that is the delivery gap slice 2b closes");
+			expect(seen.brandSheet, "and so does the per-site brand sheet — slice 2b closed the delivery gap");
 			expect(
-				/color-mix\(/.test(seen.page),
-				`--bnd-page is still the bundle's fallback, not the customer's seed (${seen.page || "empty"})`
+				/^#[0-9a-f]{6}$/i.test(seen.page),
+				`--bnd-page resolves to the customer's own hex, not the bundle's color-mix() (${seen.page || "empty"})`
 			);
+		});
+
+		await test("web: the customer's OWN dark palette reaches the portal", async () => {
+			// THE DEFECT THIS MIRRORS SHIPPED ONCE ALREADY, one surface over, and
+			// it was invisible on this site by construction. `brand.py` emitted its
+			// dark values under `html[data-theme="dark"]` — a scope a WEBSITE page
+			// can never match, because `templates/base.html` renders `<html lang
+			// dir>` and nothing else — while its LIGHT block's
+			// `html:not([data-theme])` arm matched fine. So dark fell through to
+			// `_tokens.scss`'s literals, which are fitted for the SHIPPED seed. A
+			// blue-branded customer got a green dark sign-in page and every check
+			// passed, because this site's seed IS the shipped one.
+			//
+			// Which is why this asserts the value's SHAPE and never its value. The
+			// compiled bundle declares dark surfaces as a live `color-mix()`; the
+			// per-site sheet emits concrete hex; a custom property keeps its
+			// specified form. So "did the per-site sheet win in dark" is answerable
+			// at any seed — including this one, where no value comparison could
+			// tell the two apart at all.
+			//
+			// EMULATED PER CONTEXT, never on the shared page: `withPortalUser`
+			// takes `colorScheme` and closes the context afterwards, so it cannot
+			// leak into a later test the way item 30's `emulateMedia` did.
+			//
+			// READ FROM `document.body`, AND THE FIRST CUT READ `documentElement`.
+			// Custom properties inherit DOWNWARD, and every dark scope on a website
+			// page is a BODY class — `body.bnd-web` here, `body.bnd-auth…` on the
+			// sign-in page — while the brand sheet's LIGHT block is scoped
+			// `html:not([data-theme])`. So `<html>` resolves the light value in both
+			// modes, by construction, and a check reading it reports "dark equals
+			// light" against a perfectly correct stylesheet. It did: `#f8faf8` twice,
+			// after the generated file had already been read and confirmed to carry
+			// `body.bnd-web` inside its `prefers-color-scheme` block. Item 32's twin
+			// reads `document.body` for exactly this reason.
+			const dark = await withPortalUser(
+				"/orders",
+				".website-list",
+				async (pp) =>
+					pp.evaluate(() => {
+						const cs = getComputedStyle(document.body);
+						return {
+							page: cs.getPropertyValue("--bnd-page").trim(),
+							surface: cs.getPropertyValue("--bnd-surface").trim(),
+							ink: cs.getPropertyValue("--bnd-ink").trim(),
+						};
+					}),
+				{ colorScheme: "dark" }
+			);
+			for (const [name, v] of Object.entries(dark)) {
+				expect(
+					/^#[0-9a-f]{6}$/i.test(v),
+					`--bnd-${name} in dark is the customer's hex, not the bundle's fallback (${v || "empty"})`
+				);
+			}
+
+			// AND IT IS ACTUALLY DARK. The shape test above proves the per-site
+			// sheet won; it does NOT prove the dark half won rather than the light
+			// half — both emit hex. Item 32's `Split` shipped three slices on two
+			// checks that were both true of the broken state, so: compare the two
+			// modes and require the ground to have moved.
+			const light = await withPortalUser("/orders", ".website-list", async (pp) =>
+				pp.evaluate(() => getComputedStyle(document.body).getPropertyValue("--bnd-page").trim())
+			);
+			expect(
+				light && dark.page && light !== dark.page,
+				`the dark ground differs from the light one (light ${light}, dark ${dark.page})`
+			);
+
+			// AND THE BUNDLE'S OWN FALLBACK SHIPPED, which nothing above can prove.
+			// Everything measured so far came from the PER-SITE sheet, because it
+			// wins wherever it exists — so `web/_site.scss`'s dark route is, on this
+			// site, a branch whose guard is never false: it cannot be observed while
+			// a brand sheet is present, and a brand sheet is always present here.
+			// That is the untested-branch trap, and it matters because the fallback
+			// is exactly what a fresh install renders before its first save, what a
+			// reaped brand file falls back to, and what `contrast_gate` gates as its
+			// "no-brand-sheet" configuration.
+			//
+			// So this is an ARTIFACT assertion, deliberately weaker than the
+			// behavioural ones above and labelled as such: it reads the SERVED,
+			// BROWSER-PARSED stylesheet and requires the rule to exist. It proves
+			// the fallback shipped, not that it renders — the identical mechanism
+			// renders on the sign-in surface, which is where that half is proven.
+			const shipped = await withPortalUser("/orders", ".website-list", async (pp) =>
+				pp.evaluate(() => {
+					for (const sheet of Array.from(document.styleSheets)) {
+						if (!/bunood-web\./.test(sheet.href || "")) continue;
+						let rules;
+						try {
+							rules = Array.from(sheet.cssRules);
+						} catch {
+							return "unreadable";
+						}
+						// Top level only: our dark route is a media rule there. No
+						// recursion, so no need for the `!selectorText` guard that a
+						// deeper walk would require — CSS nesting leaves an empty
+						// cssRules on every style rule, which silently turns a naive
+						// recursive scan into a scan of nothing.
+						const hit = rules.find(
+							(r) =>
+								/prefers-color-scheme:\s*dark/.test(r.conditionText || "") &&
+								/body\.bnd-web\b/.test(r.cssText || "")
+						);
+						return hit ? "present" : "absent";
+					}
+					return "no-sheet";
+				})
+			);
+			expectEq(shipped, "present", "the compiled bundle carries its own body.bnd-web dark route");
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

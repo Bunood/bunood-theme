@@ -193,7 +193,7 @@ def render_brand_css(settings=None) -> str:
     # map is the one place a login value becomes a class name; writing
     # "bnd-auth-theme-dark" here as a string would be the second copy, and this
     # repo's every critical defect traces to one.
-    from bunood_theme.context import AUTH_BODY_CLASS, AUTH_CLASSES
+    from bunood_theme.context import AUTH_BODY_CLASS, AUTH_CLASSES, WEB_BODY_CLASS
 
     _modes = AUTH_CLASSES["login_theme"]
     _dark_cls = f"body.{AUTH_BODY_CLASS}-{_modes['Always Dark']}"
@@ -202,6 +202,25 @@ def render_brand_css(settings=None) -> str:
         f":not(.{AUTH_BODY_CLASS}-{_modes['Always Light']})"
         f":not(.{AUTH_BODY_CLASS}-{_modes['Always Dark']})"
     )
+
+    # ── The rest of the website's dark scope (item 33, slice 2b) ─────────────
+    #
+    # THE SAME DEFECT AS ABOVE, ONE SURFACE OVER, and it would have hidden in the
+    # same place. Every website page now carries `body.bnd-web`, and none of them
+    # carries `data-theme` — so without this the portal's dark mode falls through
+    # to `_tokens.scss`'s literal dark values, which are fitted for the SHIPPED
+    # seed. Measured before this line existed: `--bnd-page` on `/orders` under a
+    # dark OS resolved to the LIGHT `color-mix()`, i.e. dark was not applying at
+    # all, and no value comparison on this site could have told a wrong dark
+    # palette from a right one because our seed IS the shipped one.
+    #
+    # ONLY THE FOLLOW-OS ARM, and that is deliberate rather than an omission.
+    # `web_theme`'s Always Light / Always Dark poles are slice 6; their classes do
+    # not exist yet, so writing `:not(.bnd-web-theme-light)` here would ship a
+    # guard nothing can satisfy and no check can exercise — the untested-branch
+    # trap, volunteered. Slice 6 adds the `:not()` pair and the `_dark_cls` entry
+    # together with the axis, in the commit where they can be tested.
+    _follow += f", body.{WEB_BODY_CLASS}"
 
     # The tagline, which Theme Settings has promised on this page since day one
     # and never delivered. Its slot is a LITERAL in Frappe's own template

@@ -319,6 +319,35 @@ def _web_context(context):
         classes.append(WEB_BODY_CLASS)
     context.body_class = " ".join(classes)
 
+    _add_brand_sheet(context)
+
+
+def _add_brand_sheet(context):
+    """Append the per-site brand stylesheet to a WEBSITE page's ``web_include_css``.
+
+    Shared by the auth and website branches. Extracted rather than copied for the
+    reason item 33 slice 2b existed at all: the brand sheet reached ``/login`` and
+    stopped there, because the three lines that put it on ``web_include_css`` lived
+    inside ``_auth_context``. Two copies of a three-line append is how a surface
+    gets forgotten, and this is the surface that was.
+
+    APPENDED LAST so it wins ties against our compiled sheet — safe for the same
+    reason the desk's copy is safe: the brand sheet only ever declares ``--bnd-*``,
+    never one of Frappe's own variable names. See ARCHITECTURE.md section 1 for why
+    writing Frappe's names at ``:root`` would silently break dark mode.
+
+    A NEW LIST, NEVER AN IN-PLACE APPEND. ``website_settings.py:232`` assigns
+    ``context.web_include_css = hooks.web_include_css or []`` — and when the hook
+    list is non-empty, which it is (``hooks.py`` ships one entry), that is the HOOK
+    CACHE'S OWN LIST OBJECT. Mutating it would grow the cached value by one URL per
+    request. The auth branch has always spelled it this way; item 33 multiplies the
+    number of requests that reach this line from two routes to every website page,
+    which turns a latent bug into a certain one.
+    """
+    url = _brand_css_url()
+    if url:
+        context.web_include_css = [*(context.get("web_include_css") or []), url]
+
 
 def _auth_context(context):
     """Dress ``/login`` and ``/update-password`` — item 32.
@@ -373,9 +402,7 @@ def _auth_context(context):
 
     context.body_class = " ".join(classes)
 
-    url = _brand_css_url()
-    if url:
-        context.web_include_css = [*(context.get("web_include_css") or []), url]
+    _add_brand_sheet(context)
 
     logo = frappe.get_cached_value("Theme Settings", "Theme Settings", "logo")
     if logo:
