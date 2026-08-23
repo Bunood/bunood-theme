@@ -460,6 +460,31 @@
   --bnd-on-critical: #16181d;
 }
 
+// ── The next four blocks are DEAD WEIGHT IN THE WEB SHEET, AND THEY STAY ────
+// `web/login.scss` does `@use "../tokens"` for the light `:root` set it genuinely
+// needs, and Sass emits every top-level rule in a used file — so this block, the
+// `automatic` media block below it, and the two density blocks all land in
+// `bunood-web.<hash>.css`, where NONE of them can ever match. A website page
+// carries no `data-theme` (`templates/base.html` renders `<html lang dir>` and
+// nothing else) and `bunood.js` never runs there to stamp `data-bnd-density`.
+//
+// Item 33 planned a slice to split them out and MEASURED THE PAYOFF FIRST:
+// 3,335 raw bytes, and **59 gzip bytes** — 3,206 → 3,147 against a 4,000 ceiling,
+// so 794 bytes of headroom becomes 853. They compress to nearly nothing because
+// they are near-duplicates of the `body.bnd-auth` dark block that IS live there.
+//
+// The cost of collecting those 59 bytes is the reason they stay. Sass will not
+// let a used file withhold its top-level rules, so the only split that works
+// moves `:root` and/or this block into another file — and
+// `tools/contrast_gate.py::read_blocks` anchors on BOTH of them at column zero
+// *in this file*, `SystemExit`ing if either is missing. Repointing it means
+// editing the tool that produced 150 phantom failures across every seed the last
+// time it was touched, from a stylesheet that was perfectly correct, because it
+// parses this file as TEXT and only one of its two readers is Sass.
+//
+// 59 bytes is not that trade. Recorded here rather than in a commit nobody will
+// find, because the blocks look obviously removable and the next person to think
+// so should get the number instead of repeating the experiment.
 html[data-theme="dark"] {
   @include dark;
 }
