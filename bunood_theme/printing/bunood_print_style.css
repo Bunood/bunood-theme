@@ -22,8 +22,20 @@
 @font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 
+/* Official Saudi Riyal sign, U+20C1 (Unicode 17.0), from SAMA's own published
+   outline. TTF is not a preference here, it is the requirement: wkhtmltopdf is
+   WebKit 534 and cannot read woff2 - the note at the top of this file already
+   says so. woff2 is listed first for the on-screen print preview, which is a
+   modern browser; the PDF engine ignores it and takes the TTF.
+
+   `unicode-range` is an optimisation, not the safety mechanism. The font
+   contains exactly ONE glyph, so even an engine that ignores unicode-range
+   falls through to Cairo/Amiri for every other character by ordinary
+   glyph-coverage fallback. That is why it is safe to list first. */
+@font-face { font-family: 'Bunood Riyal'; src: url('/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2') format('woff2'), url('/assets/bunood_theme/fonts/riyal/bunood-riyal.ttf') format('truetype'); font-weight: 400; font-display: swap; unicode-range: U+20C1; }
+
 .print-format {
-  font-family: 'Cairo', 'Amiri', 'Tajawal', 'Noto Naskh Arabic', 'Noto Sans Arabic', sans-serif;
+  font-family: 'Bunood Riyal', 'Cairo', 'Amiri', 'Tajawal', 'Noto Naskh Arabic', 'Noto Sans Arabic', sans-serif;
   color: #12251F;
   font-size: 12px;
   line-height: 1.55;
@@ -115,7 +127,7 @@
 
 /* ===== dot-matrix base (pre-printed / continuous forms) — Courier has no
    Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced ===== */
-.bnd-p--matrix { font-family: 'Courier New', 'Cairo', 'Noto Naskh Arabic', monospace; font-size: 11px; color: #000; }
+.bnd-p--matrix { font-family: 'Bunood Riyal', 'Courier New', 'Cairo', 'Noto Naskh Arabic', monospace; font-size: 11px; color: #000; }
 .bnd-p--matrix table { border-collapse: collapse; width: 100%; }
 .bnd-p--matrix th, .bnd-p--matrix td { border: none; padding: 2px 6px; }
 .bnd-p--matrix th { border-bottom: 1px solid #000; text-align: right; }
