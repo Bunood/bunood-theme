@@ -35,6 +35,11 @@ import { AxeBuilder } from "@axe-core/playwright";
 // build's coverage gate uses — restating "which strings are ours" here would
 // be the second copy of the catalogue, and it is the catalogue that moves.
 import { extractCatalogue, readExempt, readInherited, readTranslations } from "../tools/i18n.mjs";
+// Item 33's portal checks need data that does not exist on a stock site. The
+// facts about WHICH data live with the tool that makes it, never restated here —
+// `fixturesReady` is the same predicate the tool's own exit code uses, so the
+// suite and the tool cannot disagree about what "ready" means.
+import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalFixtureStatus } from "../tools/portal-fixtures.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -218,9 +223,18 @@ function benchPy(code) {
 	}
 }
 
-/** Mint an Administrator sid — same mechanism as ops verification, never
- * `bench browse` (its xdg-open crashes gunicorn; see project memory). */
-function mintSid() {
+/** Mint a sid for `user` — same mechanism as ops verification, never
+ * `bench browse` (its xdg-open crashes gunicorn; see project memory).
+ *
+ * PARAMETERISED BY ITEM 33, and the default keeps every existing caller
+ * unchanged. The portal surface needs a session that is NOT Administrator:
+ * erpnext decides whose documents a portal list shows from the session user's
+ * roles and their `Portal User` rows, so an Administrator sees the permission
+ * branch (`website_list_for_contact.py:241-243`, every Customer) rather than
+ * the portal branch (`:238-240`, their own). A portal check driven as
+ * Administrator would render a populated list and prove nothing about the
+ * code path a customer actually takes. */
+function mintSid(user = "Administrator") {
 	const out = benchPy(
 		`from frappe.auth import CookieManager, LoginManager\n` +
 		`frappe.local.cookie_manager = CookieManager()\n` +
@@ -231,12 +245,12 @@ function mintSid() {
 		`cookies=frappe._dict(), headers=frappe._dict(), environ=frappe._dict())\n` +
 		`frappe.local.request_ip = "127.0.0.1"\n` +
 		`lm = LoginManager()\n` +
-		`lm.login_as("Administrator")\n` +
+		`lm.login_as(${JSON.stringify(user)})\n` +
 		`frappe.db.commit()\n` +
 		`print("SID=" + frappe.session.sid)\n`
 	);
 	const m = out.match(/SID=([a-f0-9]+)/);
-	if (!m) throw new Error("could not mint sid: " + out.slice(0, 300));
+	if (!m) throw new Error(`could not mint sid for ${user}: ` + out.slice(0, 300));
 	return m[1];
 }
 
@@ -533,6 +547,93 @@ async function withGuest(route, waitSel, fn, opts = {}) {
 		}
 		if (waitSel) await gp.waitForSelector(waitSel, { timeout: 30000 });
 		return await fn(gp, errs);
+	} finally {
+		await ctx.close();
+	}
+}
+
+/**
+ * The portal user's sid, minted once and reused for the whole run. Item 33.
+ *
+ * ONE SESSION, NOT ONE PER CALL. `main()` reaps `tabSessions` because 382 stale
+ * rows took a run from 125 to 114 of 137 on 2026-08-08; a fresh login per portal
+ * check would put that debris back a row at a time. The sid is minted lazily so a
+ * run that touches no portal check pays nothing.
+ */
+let _portalSid = null;
+
+/**
+ * Run `fn(portalPage, portalErrors)` against a route as the PORTAL FIXTURE USER,
+ * in its own browser context, and close that context however it ends. Item 33.
+ *
+ * WHY THIS EXISTS, GIVEN `withGuest` ALREADY DOES THE HARD PART
+ *   `withGuest` proved the shape: a sibling context, per-call console errors, and
+ *   `colorScheme` emulated per context rather than on the shared page. This is
+ *   that shape with a cookie, and the cookie is the entire point. Item 33's
+ *   surface splits three ways and only one third is reachable without a session:
+ *
+ *     guest          /, /404, /message, /support, a guest Web Form
+ *     portal user    /orders and eleven siblings, /me, a login_required Web Form
+ *     Administrator  all of the above, BY A DIFFERENT CODE PATH
+ *
+ *   That last line is the trap. An authenticated Administrator can load every
+ *   portal route, so a check driven through the suite's shared `page` would go
+ *   green — while measuring erpnext's permission branch instead of its portal
+ *   branch, against every Customer on the site rather than the session user's
+ *   own. The page would look right and the assertion would mean nothing. Hence a
+ *   Website User holding exactly the `Customer` role, and hence
+ *   `tools/portal-fixtures.mjs`.
+ *
+ * THE SAME THREE RULES `withGuest` CARRIES, for the same reasons
+ *   1. It must NEVER reassign the module-level `page`.
+ *   2. Console errors are collected PER CALL and handed to `fn`.
+ *   3. `colorScheme` is emulated per CONTEXT, so it cannot leak into a later test.
+ *
+ * AND ONE OF ITS OWN: THE CACHE-BUSTER.
+ *   Frappe's website HTML cache is keyed on `(path, lang)` and NOTHING ELSE —
+ *   not the user, not the role. Measured 2026-08-22: a guest received the
+ *   Administrator's rendered `/attribution`, and `/404` fetched with a valid sid
+ *   returned the logged-out render. `can_cache()` (`website/utils.py:49-58`)
+ *   returns False when the request carries a query string, so `bust: true`
+ *   appends one and takes the uncached path deliberately.
+ *
+ *   It is OFF by default, and that is the honest default: a real visitor gets the
+ *   cached render, so a check that always busts is measuring a branch production
+ *   never uses. Turn it on for the checks that follow a settings write, where the
+ *   cache would otherwise serve the value from before the write.
+ */
+async function withPortalUser(route, waitSel, fn, opts = {}) {
+	const { width = 1440, height = 900, lang = null, colorScheme = null, bust = false } = opts;
+	if (!_portalSid) _portalSid = mintSid(PORTAL_FIXTURE.user);
+	const ctx = await browser.newContext({
+		viewport: { width, height },
+		...(colorScheme ? { colorScheme } : {}),
+	});
+	const domain = new URL(URL_BASE).hostname;
+	await ctx.addCookies([
+		{ name: "sid", value: _portalSid, domain, path: "/" },
+		...(lang ? [{ name: "preferred_language", value: lang, domain, path: "/" }] : []),
+	]);
+	const pp = await ctx.newPage();
+	const errs = [];
+	pp.on("console", (m) => {
+		if (m.type() === "error") {
+			const loc = m.location();
+			errs.push(`${m.text()} [${loc && loc.url ? loc.url : "?"}]`);
+		}
+	});
+	pp.on("pageerror", (e) => errs.push("pageerror: " + e.message));
+	const url = `${URL_BASE}${route}${bust ? (route.includes("?") ? "&" : "?") + "bnd=" + Date.now() : ""}`;
+	try {
+		// The same single retry goDesk and withGuest carry, for the same reason.
+		try {
+			await pp.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+		} catch (first) {
+			await pp.waitForTimeout(4000);
+			await pp.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+		}
+		if (waitSel) await pp.waitForSelector(waitSel, { timeout: 30000 });
+		return await fn(pp, errs);
 	} finally {
 		await ctx.close();
 	}
@@ -12079,6 +12180,156 @@ async function main() {
 				expect(chDelta(c.track, c.card) >= 5, "the strength meter's track reads as a track");
 			});
 		}
+
+		// ── Website base + portal (item 33) ────────────────────────────────
+		//
+		// The SECOND family that leaves the desk, and the first that needs a
+		// session which is neither Administrator nor absent. Everything here goes
+		// through `withPortalUser`; see its docblock for why an Administrator
+		// driving these routes measures a different code path and proves nothing.
+		//
+		// Slice 0 ships no styling. These four checks exist to make the LATER
+		// ones trustworthy: they prove the data is real, the session is the right
+		// one, the discriminator is the one that survives every renderer, and the
+		// surface is undressed today so anything that appears later came from us.
+
+		await test("portal: the fixtures this surface needs exist", async () => {
+			// A LOUD FAILURE, NEVER A SKIP. Every portal list on a stock site
+			// renders "Nothing to show" — measured on this one before item 33
+			// began: 0 Customers, 0 Sales Orders, and the only `Has Role` row for
+			// `Customer` belonged to a report rather than a user. A portal suite
+			// that skipped when the data was missing would go green against
+			// exactly that emptiness, which is the "green tests that assert
+			// existence, not correctness" trap with the assertion removed
+			// entirely.
+			//
+			// The predicate is the tool's, not a copy: `fixturesReady` is what
+			// `node tools/portal-fixtures.mjs` exits on, so the suite and the tool
+			// cannot disagree about what "ready" means.
+			const state = portalFixtureStatus();
+			expect(
+				fixturesReady(state),
+				`portal fixtures missing — run \`node tools/portal-fixtures.mjs --create\`. ` +
+					`Got ${JSON.stringify(state)}`
+			);
+			// Named separately so a partial fixture says WHICH half is missing.
+			// erpnext needs both and they fail differently: without the role the
+			// user falls to the permission branch and sees EVERY customer (a
+			// populated list proving the wrong thing); without the Portal User row
+			// they see none.
+			expect(state.has_customer_role, "the fixture user holds the Customer role");
+			expect(state.portal_user_row, "and the Customer carries their Portal User row");
+			expect(state.orders_submitted >= 1, `and at least one order is SUBMITTED (${state.orders_submitted})`);
+		});
+
+		await test("portal: the harness is that user, not Administrator and not a guest", async () => {
+			// This check exists to prove the HARNESS, not the theme — the same
+			// job item 32's first login check does, and for the same reason: a
+			// later portal failure must not be ambiguous between "our rule lost"
+			// and "we were driving the admin the whole time".
+			//
+			// Three facts, and the third is the one that would otherwise rot
+			// silently. A populated list is NOT evidence of the portal branch:
+			// Administrator gets one too, from `website_list_for_contact.py`'s
+			// permission branch, over every Customer on the site. So assert the
+			// identity, not the rows.
+			let harnessErrs = [];
+			const seen = await withPortalUser("/orders", ".website-list", async (pp, errs) => {
+				harnessErrs = errs;
+				return pp.evaluate(() => ({
+					url: location.pathname,
+					session: document.body.getAttribute("frappe-session-status"),
+					dataPath: document.body.getAttribute("data-path"),
+					rows: document.querySelectorAll(".website-list .transaction-list-item").length,
+					anyOrder: /SAL-ORD-/.test(document.body.textContent || ""),
+					empty: /Nothing to show/i.test(document.body.textContent || ""),
+				}));
+			});
+			expectEq(
+				harnessErrs.filter((e) => !/socket\.io|favicon|Invalid origin/i.test(e)).join(" | "),
+				"",
+				"the portal page loads with a clean console"
+			);
+			expectEq(seen.session, "logged-in", "Frappe agrees this context has a session");
+			expectEq(seen.url, "/orders", "and it stayed on /orders (a guest is redirected to /login)");
+			expect(!seen.empty, "the list is not the empty state");
+			expect(seen.anyOrder, "and it renders real order names — the fixtures reach the page");
+
+			// THE IDENTITY, asserted server-side rather than read off the page.
+			// The rendered HTML carries no user name anywhere a guest could not
+			// also see, so reading the DOM cannot tell these two sessions apart.
+			//
+			// RAW SQL, and not by preference: `tabSessions` is a plain table, not
+			// a DocType, so `frappe.db.get_value("Sessions", ...)` raises inside
+			// `get_values` while it looks for a meta that does not exist. Written
+			// the obvious way first and watched it fail exactly there.
+			const who = benchPy(
+				`row = frappe.db.sql("select user from tabSessions where sid=%s", (${JSON.stringify(
+					_portalSid
+				)},))\n` + `print("WHO=" + json.dumps(row[0][0] if row else None))\n`
+			);
+			const m = who.match(/WHO=(".*?"|null)/);
+			expect(m, `could not resolve the session's user: ${who.slice(-200)}`);
+			expectEq(JSON.parse(m[1]), PORTAL_FIXTURE.user, "and the session belongs to the fixture user");
+		});
+
+		await test("portal: a guest cannot reach what the portal user can", async () => {
+			// The negative half, and it is what makes the positive mean anything.
+			// If /orders were readable without a session, the check above would
+			// pass with the cookie removed and the harness would be proving
+			// nothing about authentication at all.
+			const guestSaw = await withGuest("/orders", null, async (gp) =>
+				gp.evaluate(() => ({
+					session: document.body.getAttribute("frappe-session-status"),
+					path: location.pathname,
+					denied: /not permitted|log in|sign in/i.test(document.body.textContent || ""),
+					anyOrder: /SAL-ORD-/.test(document.body.textContent || ""),
+				}))
+			);
+			expectEq(guestSaw.session, "logged-out", "a cookie-less context is a guest here too");
+			expect(!guestSaw.anyOrder, "and it sees none of the fixture's orders");
+			expect(guestSaw.denied || guestSaw.path !== "/orders", `and it is turned away (${guestSaw.path})`);
+		});
+
+		await test("portal: the whole surface is undressed today", async () => {
+			// THE BASELINE ASSERTION, and it is written to FAIL the moment slice 1
+			// lands — deliberately. Item 33's first styling commit flips this from
+			// green to red, and the commit that flips it replaces it with its
+			// positive twin. Until then it is the standing proof that anything
+			// which appears on these pages came from us and not from somewhere
+			// else, which is the only way the before/after means anything.
+			//
+			// It also pins the two facts slice 1's guard depends on:
+			//   - our compiled sheet ALREADY loads here (hooks.py ships
+			//     web_include_css site-wide), so item 33 needs a rule, not an asset
+			//   - the per-site brand sheet does NOT, which is the delivery gap
+			const seen = await withPortalUser("/orders", ".website-list", async (pp) =>
+				pp.evaluate(() => {
+					const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
+					return {
+						bodyClass: document.body.className.trim(),
+						ourSheet: links.some((h) => /bunood-web\./.test(h)),
+						brandSheet: links.some((h) => /\/files\/bunood\/brand_/.test(h)),
+						bndNodes: document.querySelectorAll('[class*="bnd-"]').length,
+						// The shape signal item 32 established: the compiled bundle
+						// declares surfaces as a live color-mix(), the per-site brand
+						// sheet as concrete hex, and a custom property keeps its
+						// specified form — so "did the per-site sheet win here" is
+						// answerable from the VALUE'S SHAPE at any seed, without
+						// knowing what the seed is.
+						page: getComputedStyle(document.documentElement).getPropertyValue("--bnd-page").trim(),
+					};
+				})
+			);
+			expectEq(seen.bodyClass, "", "no body class on the portal yet — slice 1 is what puts one there");
+			expectEq(seen.bndNodes, 0, "and nothing on the page carries a bnd-* class");
+			expect(seen.ourSheet, "but our compiled web sheet ALREADY loads here — the gap is a rule, not an asset");
+			expect(!seen.brandSheet, "and the per-site brand sheet does NOT — that is the delivery gap slice 2b closes");
+			expect(
+				/color-mix\(/.test(seen.page),
+				`--bnd-page is still the bundle's fallback, not the customer's seed (${seen.page || "empty"})`
+			);
+		});
 
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
