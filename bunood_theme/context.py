@@ -94,6 +94,37 @@ AUTH_TEMPLATES = ("www/login.html", "www/update-password.html")
 #: alone; the anchor and the two axes add ``bnd-auth-<slug>`` beside it.
 AUTH_BODY_CLASS = "bnd-auth"
 
+#: The scope for item 33 — every website page that is NOT the desk, NOT the auth
+#: templates and NOT printview. Contracts key on this class alone; the anchor and the
+#: two axes will add ``bnd-web-<slug>`` beside it, exactly as the auth kit does.
+#:
+#: MUTUALLY EXCLUSIVE WITH :data:`AUTH_BODY_CLASS` BY CONSTRUCTION, not by convention.
+#: The auth branch returns before the web branch is reached, so no page can carry both
+#: — which matters more than it sounds, because the site ROOT is served the sign-in
+#: template on a stock site and would otherwise be claimed by two kits fighting over
+#: one ``<body>``.
+WEB_BODY_CLASS = "bnd-web"
+
+#: Templates that render through ``base.html`` but are NOT ours to dress.
+#:
+#: THIS IS A DENYLIST, AND THAT IS THE INVERSION THAT DEFINES ITEM 33. Item 32 named
+#: the two templates it wanted; there is no comparable list here, because the surface
+#: is "every website page" and enumerating it would be a second copy of Frappe's own
+#: route table — one that goes stale the first time an app ships a page. So the default
+#: branch DRESSES, and this names the exceptions.
+#:
+#: ``printview``/``printpreview`` are excluded BY NAME rather than left to chance: both
+#: are standalone ``<!DOCTYPE html>`` documents with their own ``<html>`` element, no
+#: ``web_include_css`` loop and no ``body_class``, so dressing them is inert — but they
+#: are item 35's ground, and a boundary that exists only in a planning document is not a
+#: boundary. Verified in the container, not assumed from the route name.
+#:
+#: ``robots.txt`` and ``sitemap.xml`` need no entry here: they are real ``TemplatePage``s
+#: with non-HTML base templates, and the ``.html`` test in :func:`_is_web_template`
+#: excludes them. Checked, because "it is probably not a template" is how the site root
+#: was lost once already.
+NON_WEB_TEMPLATES = ("www/printview.html", "www/printpreview.html")
+
 #: Field value → class slug, for the anchor and both axes. ``""`` is the NEUTRAL
 #: and emits no class at all, so a neutral costs no rule and cannot be
 #: half-applied — the same shape as every other kit's absent ``data-bnd-*``.
@@ -137,16 +168,26 @@ def desk_context(context):
         context: the live render context for this request. Mutated in place.
     """
     try:
-        # Guard first and cheaply: this hook is called for EVERY website request —
-        # every portal page, every error page — and none of them should pay for a
-        # lookup. Two surfaces answer here now, and everything else still returns.
-        if context.get("template") == DESK_TEMPLATE:
+        # Guard first and cheaply: this hook is called for EVERY website request.
+        # THREE surfaces answer here now, and the ORDER IS THE GUARANTEE — each
+        # branch returns, so no page can be claimed by two kits. That matters
+        # concretely rather than theoretically: on a stock site a guest at ``/`` is
+        # served the SIGN-IN template, so without the early return the site root
+        # would carry both ``bnd-auth`` and ``bnd-web`` and two stylesheets would
+        # fight over one ``<body>``.
+        template = context.get("template") or ""
+
+        if template == DESK_TEMPLATE:
             _append_brand_css(context)
             _correct_layout_direction(context)
             return
 
-        if context.get("template") in AUTH_TEMPLATES:
+        if template in AUTH_TEMPLATES:
             _auth_context(context)
+            return
+
+        if _is_web_template(template):
+            _web_context(context)
 
     except Exception:
         # Never break the website router. A missing brand sheet degrades to the
@@ -177,6 +218,94 @@ def _append_brand_css(context):
     # across requests in some Frappe versions, and appending in place would grow it
     # unboundedly.
     context.app_include_css = [*(context.get("app_include_css") or []), url]
+
+
+def _is_web_template(template):
+    """Is this a website page item 33 owns?
+
+    THE DEFAULT ANSWER IS YES, and that inversion is the whole design. Item 32
+    asked "is this one of my two templates?"; item 33 asks "is this anybody
+    else's?", because its surface is *every* website page and the alternative —
+    enumerating them — would be a second copy of Frappe's route table that goes
+    stale the first time an app ships a page. Measured on this site: twelve erpnext
+    portal routes collapse onto ONE template (``ListPage.render()`` calls
+    ``set_standard_path("portal")``), so a route list would also have been the
+    wrong shape as well as the wrong size.
+
+    KEYED ON THE TEMPLATE BECAUSE NOTHING ELSE SURVIVES EVERY RENDERER.
+    ``TemplatePage.update_context()`` sets ``path``, ``route`` and ``template``
+    before the hook runs — but ``DocumentPage.update_context()`` never calls
+    ``set_page_properties()`` at all, and ``WebFormPage`` inherits from it. So on
+    every Web Page, Help Article and Web Form, ``context.path`` and
+    ``context.route`` are EMPTY here while ``context.template`` is populated from
+    the document's own ``get_page_info()``. The rendered HTML still carries a
+    correct ``data-path`` on those pages, because ``set_missing_values()`` fills it
+    in afterwards — so reading the attribute back looks exactly like confirmation
+    and proves nothing. See ``docs/upstream/frappe-website.md`` §1.
+
+    The ``.html`` test is not decoration: ``www/robots.txt`` and ``www/sitemap.xml``
+    are real ``TemplatePage``s whose base templates are not HTML, and dressing them
+    would put a class into a plain-text response.
+
+    THE AUTH AND DESK EXCLUSIONS ARE DEFENDED TWICE, DELIBERATELY. :func:`desk_context`
+    already returns before reaching this predicate for both, so the two clauses below
+    are unreachable from that caller — and the standing negative check
+    (``web: and stops at the surfaces that are not ours``) could not be made to fail by
+    deleting the dispatcher's ``return`` alone. It took removing BOTH, and only then
+    did the site root come back
+    ``bnd-auth bnd-auth-split bnd-auth-action-branded bnd-web`` — two kits on one body.
+    Recorded because a reader who finds one of them redundant and removes it will not
+    see a test go red, and because the next person to sabotage this needs to know it
+    takes two edits.
+
+    The redundancy is not the same-fact-in-two-places trap: both places read the same
+    :data:`AUTH_TEMPLATES` and :data:`DESK_TEMPLATE`, so there is one copy of the fact
+    and two uses of it. What it buys is a predicate that is correct when called from
+    somewhere other than the dispatcher — which slice 2b will do, when ``brand.py``
+    needs to know which scopes to emit dark blocks for.
+
+    Args:
+        template: ``context.template``, already coerced to ``str``.
+
+    Returns:
+        bool: True when this page is item 33's to dress.
+    """
+    return (
+        template.endswith(".html")
+        and template != DESK_TEMPLATE
+        and template not in AUTH_TEMPLATES
+        and template not in NON_WEB_TEMPLATES
+    )
+
+
+def _web_context(context):
+    """Dress the website and portal — item 33, slice 1: the scope and nothing else.
+
+    ONE THING ONLY, deliberately. The brand stylesheet, the anchor, the two axes
+    and the branding seams all hang off this class, and every one of them is a
+    later slice. Landing the scope alone means the commit that adds the first rule
+    has a scope that is already proven on six templates through five renderers,
+    rather than proving both at once and being unable to say which half was wrong.
+
+    APPENDED, NEVER ASSIGNED, for the reason item 32 recorded: another app or a
+    Website Settings value may already have put a class on ``<body>``, and
+    clobbering it would be a silent regression on a site we cannot see.
+
+    NO USER STATE HERE, NOW OR EVER. Frappe caches website HTML under a key of
+    ``(path, lang)`` and nothing else — not the user, not their roles — so
+    anything encoded into ``body_class`` on a cacheable route is served to every
+    later visitor for the TTL. Measured: a guest received the Administrator's
+    rendered ``/attribution``, and ``/404`` fetched with a valid session returned
+    the logged-out render. That is why this class is the same for everyone, why
+    ``frappe-session-status`` is refused as a styling discriminator despite being
+    rendered for free at ``base.html:57``, and why ``login_theme``'s sibling here
+    will default to following the OS rather than to a stored value.
+    ``docs/upstream/frappe-website.md`` §2 carries the reproduction.
+    """
+    classes = (context.get("body_class") or "").split()
+    if WEB_BODY_CLASS not in classes:
+        classes.append(WEB_BODY_CLASS)
+    context.body_class = " ".join(classes)
 
 
 def _auth_context(context):

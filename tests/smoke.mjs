@@ -254,6 +254,32 @@ function mintSid(user = "Administrator") {
 	return m[1];
 }
 
+/**
+ * The two body-class scopes, READ FROM THE PYTHON THAT EMITS THEM. Item 33.
+ *
+ * Item 32's checks spell `"bnd-auth"` as a literal in a dozen places, which was
+ * survivable while one kit owned one scope. Item 33 adds a second scope whose
+ * whole job is to be mutually exclusive with the first, and a test that restates
+ * both strings cannot fail when the Python changes one of them — it just stops
+ * describing the product. So read them once, from the module that renders them.
+ *
+ * Cached because it is a container round-trip and nothing invalidates it inside
+ * a run.
+ */
+let _scopes = null;
+function scopes() {
+	if (!_scopes) {
+		const out = benchPy(
+			`from bunood_theme.context import AUTH_BODY_CLASS, WEB_BODY_CLASS\n` +
+			`print("SCOPES=" + json.dumps({"auth": AUTH_BODY_CLASS, "web": WEB_BODY_CLASS}))\n`
+		);
+		const m = out.match(/SCOPES=(\{.*\})/);
+		if (!m) throw new Error("could not read the body-class scopes: " + out.slice(-400));
+		_scopes = JSON.parse(m[1]);
+	}
+	return _scopes;
+}
+
 /** Read Theme Settings fields as a dict. */
 function getSettings(fields) {
 	const out = benchPy(
@@ -12291,40 +12317,116 @@ async function main() {
 			expect(guestSaw.denied || guestSaw.path !== "/orders", `and it is turned away (${guestSaw.path})`);
 		});
 
-		await test("portal: the whole surface is undressed today", async () => {
-			// THE BASELINE ASSERTION, and it is written to FAIL the moment slice 1
-			// lands — deliberately. Item 33's first styling commit flips this from
-			// green to red, and the commit that flips it replaces it with its
-			// positive twin. Until then it is the standing proof that anything
-			// which appears on these pages came from us and not from somewhere
-			// else, which is the only way the before/after means anything.
+		await test("web: the scope reaches every website template", async () => {
+			// SLICE 1's POSITIVE HALF. Six templates, reached through five different
+			// renderers, asserted through BOTH harnesses because half of them need a
+			// session and half must not have one.
 			//
-			// It also pins the two facts slice 1's guard depends on:
+			// ROUTES HERE, TEMPLATES IN THE GUARD, and that split is deliberate.
+			// `context.py` keys on `context.template` because that is the only
+			// discriminator that survives every renderer — `DocumentPage` and
+			// `WebFormPage` never call `set_page_properties()`, so `context.path`
+			// and `context.route` are EMPTY for Web Pages, Help Articles and Web
+			// Forms (see docs/upstream/frappe-website.md §1). But a test that
+			// restated the template list would be asserting the implementation
+			// against itself. So the test names ROUTES — the addresses a visitor
+			// actually types — and lets the mapping between them be the thing under
+			// test. `/request-data/new` is in the list precisely because it is a
+			// `WebFormPage`: it is the route that proves template-keying works
+			// where route-keying could not.
+			const GUEST_ROUTES = ["/404-bnd-does-not-exist", "/message", "/request-data/new", "/support"];
+			const PORTAL_ROUTES = ["/orders", "/me"];
+
+			const seen = {};
+			for (const r of GUEST_ROUTES) {
+				seen[r] = await withGuest(r, null, async (gp) =>
+					gp.evaluate(() => document.body.className.trim())
+				);
+			}
+			for (const r of PORTAL_ROUTES) {
+				seen[r] = await withPortalUser(r, null, async (pp) =>
+					pp.evaluate(() => document.body.className.trim())
+				);
+			}
+			const WEB = scopes().web;
+			const missing = Object.entries(seen)
+				.filter(([, cls]) => !cls.split(/\s+/).includes(WEB))
+				.map(([r, cls]) => `${r} → "${cls}"`);
+			expectEq(missing.join(" | "), "", `every website route carries ${WEB}`);
+		});
+
+		await test("web: and stops at the surfaces that are not ours", async () => {
+			// SLICE 1's NEGATIVE HALF, and it is the half that matters. A guard
+			// whose default branch DRESSES is the inversion of item 32's, and the
+			// failure mode inverts with it: item 32's risk was missing a page, this
+			// one's is claiming one.
+			//
+			// THE SITE ROOT IS THE POINTED CASE. On a stock site a guest at `/` is
+			// served the SIGN-IN page — `get_home_page()` sends them to `me`, whose
+			// permission check renders login — so `/` must come back `bnd-auth` and
+			// must NOT come back `bnd-web`. Item 32 lost exactly this page by
+			// keying on the request path; item 33 would lose it the other way, by
+			// dressing it twice with two kits fighting over the same body.
+			const { auth: AUTH, web: WEB } = scopes();
+			const root = await withGuest("/", null, async (gp) =>
+				gp.evaluate(() => document.body.className.trim())
+			);
+			const rootCls = root.split(/\s+/);
+			expect(rootCls.includes(AUTH), `the site root is still the sign-in kit's (${root})`);
+			expect(!rootCls.includes(WEB), `and not also ours (${root})`);
+
+			const login = await withGuest("/login", null, async (gp) =>
+				gp.evaluate(() => document.body.className.trim())
+			);
+			expect(!login.split(/\s+/).includes(WEB), `/login is not ours either (${login})`);
+
+			// THE DESK. Its branch returns before ours can run, and this is the
+			// check that would notice if the ordering ever changed — a web rule
+			// reaching the desk is the one leak that costs a whole product.
+			await goDesk("/desk/item", ".page-head", 1500);
+			const desk = await page.evaluate(() => document.body.className.trim());
+			expect(!desk.split(/\s+/).includes(WEB), `the desk is untouched (${desk})`);
+		});
+
+		await test("web: our sheet arrives, the customer's palette does not — yet", async () => {
+			// SLICE 0 SHIPPED THIS AS "the whole surface is undressed today", and
+			// slice 1 turned it red exactly where its docblock said it would: the
+			// body now carries the scope. This is its positive twin. The two
+			// assertions that flipped have moved to `web: the scope reaches every
+			// website template`; the three that did NOT flip are the interesting
+			// ones, because they are the delivery gap slice 2b closes:
+			//
 			//   - our compiled sheet ALREADY loads here (hooks.py ships
-			//     web_include_css site-wide), so item 33 needs a rule, not an asset
-			//   - the per-site brand sheet does NOT, which is the delivery gap
+			//     web_include_css site-wide), so item 33 needed a rule, not an asset
+			//   - the per-site brand sheet does NOT reach a website page
+			//   - so --bnd-page still resolves to the BUNDLE's fallback
+			//
+			// SLICE 2b FLIPS THE LAST TWO, and when it does this check inverts
+			// again rather than being deleted — the assertion that our sheet
+			// arrives is permanent, and the other two become "and the customer's
+			// hex is what resolves". Keeping one check across the transition is
+			// what makes the before and after comparable.
 			const seen = await withPortalUser("/orders", ".website-list", async (pp) =>
 				pp.evaluate(() => {
 					const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
 					return {
-						bodyClass: document.body.className.trim(),
 						ourSheet: links.some((h) => /bunood-web\./.test(h)),
 						brandSheet: links.some((h) => /\/files\/bunood\/brand_/.test(h)),
-						bndNodes: document.querySelectorAll('[class*="bnd-"]').length,
-						// The shape signal item 32 established: the compiled bundle
-						// declares surfaces as a live color-mix(), the per-site brand
-						// sheet as concrete hex, and a custom property keeps its
-						// specified form — so "did the per-site sheet win here" is
-						// answerable from the VALUE'S SHAPE at any seed, without
-						// knowing what the seed is.
+						// THE SHAPE SIGNAL, and it is seed-independent by design.
+						// The compiled bundle declares surfaces as a live
+						// `color-mix()`; the per-site brand sheet emits concrete hex;
+						// a custom property keeps its specified form. So "did the
+						// per-site sheet win here" is answerable from the VALUE'S
+						// SHAPE without knowing what the seed is — which is the only
+						// way this check survives a customer whose seed differs from
+						// ours, and on THIS site the two are identical so no value
+						// comparison could tell them apart at all.
 						page: getComputedStyle(document.documentElement).getPropertyValue("--bnd-page").trim(),
 					};
 				})
 			);
-			expectEq(seen.bodyClass, "", "no body class on the portal yet — slice 1 is what puts one there");
-			expectEq(seen.bndNodes, 0, "and nothing on the page carries a bnd-* class");
-			expect(seen.ourSheet, "but our compiled web sheet ALREADY loads here — the gap is a rule, not an asset");
-			expect(!seen.brandSheet, "and the per-site brand sheet does NOT — that is the delivery gap slice 2b closes");
+			expect(seen.ourSheet, "our compiled web sheet loads on the portal — the gap was a rule, not an asset");
+			expect(!seen.brandSheet, "the per-site brand sheet does NOT — that is the delivery gap slice 2b closes");
 			expect(
 				/color-mix\(/.test(seen.page),
 				`--bnd-page is still the bundle's fallback, not the customer's seed (${seen.page || "empty"})`
