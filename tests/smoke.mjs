@@ -573,18 +573,40 @@ async function settingsPaneKeys() {
 async function walkSettingsPanes(fn) {
 	for (const key of await settingsPaneKeys()) {
 		await page.click(`.bnd-shell-item[data-key="${key}"]`);
-		await page.waitForFunction(
-			(k) => {
-				const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
-				if (!pane || pane.hidden || pane.children.length === 0) return false;
-				// The Translations pane fills from an xcall and shows this
-				// note first — waiting past it is what makes the pane mean
-				// something rather than an empty div axe would call clean.
-				return pane.textContent.trim() !== "Loading…";
-			},
-			key,
-			{ timeout: 15000 }
-		);
+		try {
+			await page.waitForFunction(
+				(k) => {
+					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
+					if (!pane || pane.hidden || pane.children.length === 0) return false;
+					// The Translations pane fills from an xcall and shows this
+					// note first — waiting past it is what makes the pane mean
+					// something rather than an empty div axe would call clean.
+					return pane.textContent.trim() !== "Loading…";
+				},
+				key,
+				{ timeout: 15000 }
+			);
+		} catch (err) {
+			// SAY WHICH PANE, AND WHAT STATE IT WAS IN. A bare
+			// `waitForFunction: Timeout 15000ms exceeded` over an eighteen-pane
+			// walk is a diagnostic dead end: it cannot distinguish "the bench was
+			// too loaded for the xcall to land" from "this nav item has no pane at
+			// all", and those need opposite responses. It cost a release gate's
+			// worth of guessing on 2026-08-22 before three isolation runs settled
+			// it as contention. The three facts below separate the two cases
+			// immediately — a missing pane is a defect, a pane still reading
+			// "Loading…" is a slow backend.
+			const state = await page
+				.evaluate((k) => {
+					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
+					if (!pane) return "NO PANE ELEMENT — the nav item has no matching .bnd-shell-pane";
+					return `hidden=${pane.hidden} children=${pane.children.length} text=${JSON.stringify(
+						pane.textContent.trim().slice(0, 40)
+					)}`;
+				}, key)
+				.catch((e) => `could not read the pane: ${e.message}`);
+			throw new Error(`settings pane "${key}" never filled — ${state} (${err.message})`);
+		}
 		await fn(key);
 	}
 }

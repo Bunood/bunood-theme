@@ -177,7 +177,7 @@ html[data-theme] .workspace-skeleton {
 // a node that already has 620. It has to mirror the SETTLED expression to move
 // anything at all.
 html[data-theme] .layout-main-section div:has(+ .report-wrapper) {
-  min-block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px));
+  min-block-size: calc(100vh - 240px - var(--bnd-bottom-reserve));
 }
 
 // Loader-to-content swaps must not be chosen as the browser's scroll anchor —

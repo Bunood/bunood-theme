@@ -97,7 +97,7 @@ html[data-theme] :is(.modal, .form-in-grid) {
 html[data-theme] #alert-container {
   inset-inline-end: var(--bnd-toast-inset);
   inset-inline-start: auto;
-  inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-inset));
+  inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-toast-inset));
 }
 
 // Below Frappe's own mobile boundary the vendor goes `right: 0` and the toast
@@ -107,7 +107,7 @@ html[data-theme] #alert-container {
 @include bnd-until(md) {
   html[data-theme] #alert-container {
     inset-inline: 0;
-    inset-block-end: calc(var(--bnd-bottom-reserve, 0px) + var(--bnd-toast-gap));
+    inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-toast-gap));
   }
 }
 

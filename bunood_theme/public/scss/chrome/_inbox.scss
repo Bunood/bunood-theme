@@ -172,7 +172,7 @@ html[data-theme] .bnd-inbox-backdrop {
 // and a fixed anchor is the one geometry that is correct in all of them.
 html[data-theme] .bnd-inbox {
   position: absolute;
-  inset-block-start: calc(var(--bnd-topbar-h, 48px) + var(--bnd-sp-2));
+  inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
   inset-inline-end: var(--bnd-sp-4);
   inline-size: min(420px, calc(100vw - 24px));
   max-block-size: min(560px, 74vh);
@@ -189,7 +189,7 @@ html[data-theme] .bnd-inbox {
 html[data-bnd-layout="bottombar"] .bnd-inbox,
 html[data-bnd-dock] .bnd-inbox {
   inset-block-start: auto;
-  inset-block-end: calc(var(--bnd-bottombar-h, 44px) + var(--bnd-sp-2));
+  inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
 }
 
 html[data-theme] .bnd-inbox-head {

@@ -1178,6 +1178,44 @@ check that was verified by putting the defect back and watching it turn red.
   violation created to remove one. 8px is not on the scale (4/6/10/14), and the element
   nests inside `.bnd-bd-desk`, which already uses `--bnd-radius-lg`.
 
+### The fallback sweep, and the pane-timeout diagnostic (2026-08-22, after the tag)
+
+- **43 DEAD FALLBACKS REMOVED, SIX OF THEM LYING.** Once the phantom guard proves every
+  `--bnd-*` is declared, a fallback on a BASE token (one in `_tokens.scss`'s
+  unconditional `:root`) can never fire — it is dead code holding a SECOND COPY of the
+  token's value, and second copies drift. Six already had: `--bnd-topbar-h` said 48px
+  against a real **44px**, `--bnd-bottombar-h` 44px against **40px**, and three radius
+  sites said 6px against **4px**. None were rendering — the token always wins — but the
+  two heights are exactly CLAUDE.md's "declared reserve vs measured chrome" trap sitting
+  in a `var()` waiting for a rename to arm it.
+- **THE BOUNDARY IS THE PART THAT MATTERS, and it is not visible in the compiled sheet.**
+  A WORKING-SET variable (`--bnd-form-sec-bg`, `--bnd-sb-hue`, `--bnd-rep-row-bg`) is
+  also "declared in bunood.css" — but only under a POLE selector, so under `Original`
+  the property is genuinely absent and its fallback is what renders. Those ~60 are
+  load-bearing and `_form.scss` argues for them. So the new rule tests against
+  `_tokens.scss`'s base `:root` specifically, not against everything the sheet declares.
+  Verified both ways: reintroducing `var(--bnd-topbar-h, 48px)` fails the build, and the
+  working-set fallbacks still pass.
+- **Proven a no-op MECHANICALLY, not by eye.** All 42 changed compiled lines were
+  re-derived from their originals by the same balanced-paren strip and compared; zero
+  differed by anything but the removed fallback.
+- **`walkSettingsPanes` NOW NAMES THE PANE IT WAS WAITING ON.** A bare
+  `waitForFunction: Timeout 15000ms exceeded` across an eighteen-pane walk cannot tell
+  "the bench was too loaded for the xcall to land" from "this nav item has no pane at
+  all", and those need opposite responses — it cost a release gate's worth of guessing
+  on 2026-08-22. It now reports the key plus `hidden`, `children` and the leading text,
+  or `NO PANE ELEMENT` outright. Exercised by forcing the predicate to fail.
+- **A THIRD TRANSIENT ON THIS HOST, recorded so the pattern is legible.** A run reported
+  `pageerror: frappe.template.compile(...) is not a function` — new across five runs,
+  in Frappe's own templating, and unreachable from a CSS-only change. It could NOT be
+  isolated the way the other two were: the console budget reads a CUMULATIVE array from
+  the shared desk page, so re-running that test alone starts from empty and passes
+  vacuously — evidence-shaped and worth nothing. A full re-run returned **340/340** with
+  zero hits. Three distinct transients now (connection resets, a pane starved of its
+  xcall, this): on this host, read a lone failure in a full run as suspect and re-run
+  before believing it — but never by re-running the one test when its state is
+  cumulative.
+
 ### And three smaller things the review turned up
 
 - **`submitOff` WAS COMPUTED AND NEVER ASSERTED**, off a bare `.btn-forgot`, in the

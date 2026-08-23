@@ -248,14 +248,14 @@ html[data-bnd-report-rows="wash"] {
 html[data-bnd-report-rows="rail"] {
   --bnd-rep-hover-bg: var(--bnd-hover);
   --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
-  --bnd-rep-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-rep-sel-rail: var(--bnd-brand-solid);
   --bnd-rep-sel-ink: var(--bnd-ink);
 }
 html[data-bnd-report-rows="bold"] {
   --bnd-rep-hover-bg: var(--bnd-hover);
-  --bnd-rep-sel-bg: var(--bnd-brand-solid, var(--bnd-brand));
-  --bnd-rep-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
-  --bnd-rep-sel-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+  --bnd-rep-sel-bg: var(--bnd-brand-solid);
+  --bnd-rep-sel-rail: var(--bnd-brand-solid);
+  --bnd-rep-sel-ink: var(--bnd-on-brand);
 }
 
 // ── report_grain working set ────────────────────────────────────────────────

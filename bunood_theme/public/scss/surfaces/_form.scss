@@ -141,7 +141,7 @@ html[data-bnd-form="sheet"] {
 // hue law, restated for tabs).
 html[data-bnd-form][data-bnd-form-tabs="underline"] {
   --bnd-form-tab-marker-size: 2px;
-  --bnd-form-tab-marker-ink: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-form-tab-marker-ink: var(--bnd-brand-solid);
 }
 html[data-bnd-form][data-bnd-form-tabs="segment"] {
   --bnd-form-tab-track-bg: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-surface));
@@ -150,8 +150,8 @@ html[data-bnd-form][data-bnd-form-tabs="segment"] {
   --bnd-form-tab-active-shadow: var(--bnd-shadow-sm);
 }
 html[data-bnd-form][data-bnd-form-tabs="pill"] {
-  --bnd-form-tab-active-bg: var(--bnd-brand-solid, var(--bnd-brand));
-  --bnd-form-tab-active-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+  --bnd-form-tab-active-bg: var(--bnd-brand-solid);
+  --bnd-form-tab-active-ink: var(--bnd-on-brand);
   --bnd-form-tab-radius: var(--bnd-radius-pill);
 }
 

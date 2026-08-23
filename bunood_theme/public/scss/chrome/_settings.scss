@@ -931,7 +931,7 @@ html[data-theme] {
 	gap: 0.5rem;
 	padding: 0.75rem;
 	border: 1px solid var(--border-color);
-	border-radius: var(--bnd-radius-lg, 12px);
+	border-radius: var(--bnd-radius-lg);
 	background: var(--fg-color);
 }
 
@@ -952,7 +952,7 @@ html[data-theme] {
 	padding: 0.5rem;
 	border: 1px dashed var(--border-color);
 	border-radius: var(--bnd-radius-md);
-	background: var(--bnd-surface, var(--card-bg));
+	background: var(--bnd-surface);
 	min-block-size: 4rem;
 }
 
@@ -968,7 +968,7 @@ html[data-theme] {
 // Muted look, guaranteed legible: our own fitted ink on the region's own
 // unfaded surface, plus a quieter fill/border that needs no compositing.
 .bnd-bd-region.bnd-bd-unavailable {
-	background: var(--bnd-hover, var(--control-bg));
+	background: var(--bnd-hover);
 }
 
 .bnd-bd-region-name {
@@ -983,7 +983,7 @@ html[data-theme] {
 }
 
 .bnd-bd-region.bnd-bd-unavailable .bnd-bd-region-name {
-	color: var(--bnd-ink-subtle, var(--text-muted));
+	color: var(--bnd-ink-subtle);
 }
 
 .bnd-bd-warn {
@@ -994,7 +994,7 @@ html[data-theme] {
 }
 
 .bnd-bd-region.bnd-bd-unavailable .bnd-bd-warn {
-	color: var(--bnd-ink-subtle, var(--text-light));
+	color: var(--bnd-ink-subtle);
 }
 
 // Zones sit along the bar; in the side pane they stack down it. Same rule,
@@ -1020,7 +1020,7 @@ html[data-theme] {
 	min-block-size: 3.25rem;
 	padding: 0.375rem;
 	border: 1px solid transparent;
-	border-radius: var(--bnd-radius-sm, 6px);
+	border-radius: var(--bnd-radius-sm);
 	background: var(--control-bg);
 	cursor: pointer;
 	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
@@ -1035,7 +1035,7 @@ html[data-theme] {
 // unavailable region (Page Header, Dock zones when those containers are
 // off) — the same opacity-compositing failure axe caught there.
 .bnd-bd-region.bnd-bd-unavailable .bnd-bd-zone-name {
-	color: var(--bnd-ink-subtle, var(--text-light));
+	color: var(--bnd-ink-subtle);
 }
 
 .bnd-bd-slot-chips {
@@ -1052,7 +1052,7 @@ html[data-theme] {
 	border-color: transparent;
 }
 .bnd-bd-zone.bnd-bd-ok {
-	border-color: var(--bnd-accent, var(--primary));
+	border-color: var(--bnd-accent);
 	background: var(--control-bg);
 }
 .bnd-bd-zone.bnd-bd-no {
@@ -1069,7 +1069,7 @@ html[data-theme] {
 	padding: 0.25rem 0.5rem;
 	border: 1px solid var(--border-color);
 	border-radius: 999px;
-	background: var(--bnd-surface, var(--card-bg));
+	background: var(--bnd-surface);
 	color: var(--text-color);
 	font-size: var(--text-sm, 0.8125rem);
 	line-height: 1.4;
@@ -1079,7 +1079,7 @@ html[data-theme] {
 	cursor: grabbing;
 }
 .bnd-bd-chip.bnd-bd-armed {
-	border-color: var(--bnd-accent, var(--primary));
+	border-color: var(--bnd-accent);
 	box-shadow: 0 0 0 2px transparent;
 }
 .bnd-bd-chip.bnd-bd-dragging {
@@ -1104,8 +1104,8 @@ html[data-theme] {
 	block-size: 1.5rem;
 	padding: 0;
 	border: 1px solid var(--border-color);
-	border-radius: var(--bnd-radius-sm, 6px);
-	background: var(--bnd-surface, var(--card-bg));
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
 	color: var(--text-color);
 	font-size: 0.875rem;
 	line-height: 1;
@@ -1113,14 +1113,14 @@ html[data-theme] {
 	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
 .bnd-bd-nudge-btn:hover {
-	background: var(--bnd-hover, var(--control-bg));
-	border-color: var(--bnd-accent, var(--primary));
+	background: var(--bnd-hover);
+	border-color: var(--bnd-accent);
 }
 .bnd-bd-move-btn {
 	padding: 0.25rem 0.5rem;
 	border: 1px solid var(--border-color);
 	border-radius: 999px;
-	background: var(--bnd-surface, var(--card-bg));
+	background: var(--bnd-surface);
 	color: var(--text-color);
 	font-size: var(--text-sm, 0.8125rem);
 	line-height: 1.4;
@@ -1128,15 +1128,15 @@ html[data-theme] {
 	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
 .bnd-bd-move-btn:hover {
-	background: var(--bnd-hover, var(--control-bg));
-	border-color: var(--bnd-accent, var(--primary));
+	background: var(--bnd-hover);
+	border-color: var(--bnd-accent);
 }
 
 .bnd-bd-dot {
 	inline-size: 0.5rem;
 	block-size: 0.5rem;
 	border-radius: 50%;
-	background: var(--bnd-accent, var(--primary));
+	background: var(--bnd-accent);
 	flex: none;
 }
 

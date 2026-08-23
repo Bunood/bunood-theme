@@ -90,7 +90,7 @@ html[data-bnd-list="open"] {
   --bnd-list-row-bg: transparent;
   --bnd-list-alt-bg: transparent;
   --bnd-list-sep: transparent;
-  --bnd-list-radius: var(--bnd-radius-sm, 6px);
+  --bnd-list-radius: var(--bnd-radius-sm);
 }
 html[data-bnd-list="zebra"] {
   --bnd-list-row-bg: transparent;
@@ -132,15 +132,15 @@ html[data-bnd-list-select="soft"] {
 }
 html[data-bnd-list-select="rail"] {
   --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
-  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
+  --bnd-list-sel-rail: var(--bnd-brand-solid);
   --bnd-list-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
   --bnd-list-head-ink: var(--bnd-ink);
 }
 html[data-bnd-list-select="bold"] {
   --bnd-list-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
-  --bnd-list-sel-rail: var(--bnd-brand-solid, var(--bnd-brand));
-  --bnd-list-head-bg: var(--bnd-brand-solid, var(--bnd-brand));
-  --bnd-list-head-ink: var(--bnd-on-brand, var(--bnd-ink-inverse));
+  --bnd-list-sel-rail: var(--bnd-brand-solid);
+  --bnd-list-head-bg: var(--bnd-brand-solid);
+  --bnd-list-head-ink: var(--bnd-on-brand);
 }
 
 // ── Rows ────────────────────────────────────────────────────────────────────

@@ -68,6 +68,9 @@ const RUNTIME_TOKENS = readRuntimeTokens(
 	readFileSync(join(APP, "palette.py"), "utf8")
 );
 
+/** Tokens declared unconditionally in `_tokens.scss`'s base `:root`. */
+const BASE_TOKENS = readBaseTokens(readFileSync(join(SCSS, "_tokens.scss"), "utf8"));
+
 /**
  * Entry points to compile.
  *
@@ -106,6 +109,39 @@ function hash8(text) {
  * @param {string} css - compiled stylesheet text
  * @param {string} name - entry name, for the error message
  */
+/**
+ * The UNCONDITIONAL token set — the names `_tokens.scss` declares in its base
+ * `:root` block, which every page carries no matter which poles are active.
+ *
+ * The distinction this draws is the whole point of the fallback rule below, and
+ * it cannot be made from the compiled sheet: a WORKING-SET variable such as
+ * `--bnd-form-sec-bg` is also "declared in bunood.css", but only under a pole
+ * selector, so under `Original` it is genuinely absent and its fallback is what
+ * renders. Those fallbacks are load-bearing and `_form.scss` argues for them.
+ * A base token is never absent, so its fallback is dead.
+ */
+function readBaseTokens(tokensSrc) {
+	const at = tokensSrc.indexOf(":root");
+	if (at === -1) throw new Error("_tokens.scss: no :root block found");
+	const open = tokensSrc.indexOf("{", at);
+	let depth = 0;
+	let end = open;
+	for (; end < tokensSrc.length; end++) {
+		if (tokensSrc[end] === "{") depth++;
+		else if (tokensSrc[end] === "}" && --depth === 0) break;
+	}
+	const names = new Set(
+		[...tokensSrc.slice(open, end).matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)].map((m) => m[1])
+	);
+	if (names.size < 50) {
+		throw new Error(
+			`Phantom-token guard: only ${names.size} base tokens read from _tokens.scss's :root — ` +
+				"the extraction has broken, and an empty set would silently disable the fallback rule."
+		);
+	}
+	return names;
+}
+
 /**
  * Phantom-token guard — every `var(--bnd-*)` must name a property something
  * actually declares.
@@ -148,7 +184,7 @@ function hash8(text) {
  *   READ OUT OF `brand.py` and `palette.py`. Delete a token there and the
  *   guard starts failing on its consumers, which is the correct direction.
  */
-function assertTokensDeclared(css, name, runtimeTokens) {
+function assertTokensDeclared(css, name, runtimeTokens, baseTokens) {
 	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const declared = new Set(
 		[...stripped.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)].map((m) => m[1])
@@ -162,6 +198,38 @@ function assertTokensDeclared(css, name, runtimeTokens) {
 				"A var() naming an undeclared property silently takes its fallback, or resolves the whole " +
 				"declaration to unset when it has none. Declare it in _tokens.scss, or write the value it " +
 				"was already rendering."
+		);
+	}
+
+	// AND NO FALLBACK ON A TOKEN THAT IS ALWAYS THERE. A base token is declared
+	// unconditionally in `_tokens.scss`'s `:root`, so a `var(--bnd-x, 4px)` on one
+	// can never reach the `4px` — it is dead code holding a SECOND COPY of the
+	// token's value, and second copies drift. Measured when this rule was written:
+	// of 43 such fallbacks, SIX already disagreed with the token they shadowed —
+	// `--bnd-topbar-h` said 48px against a real 44px, `--bnd-bottombar-h` 44px
+	// against 40px, and three radius sites said 6px against 4px. None of them were
+	// rendering; all of them were documentation that was wrong.
+	//
+	// WORKING-SET VARIABLES ARE NOT BASE TOKENS AND KEEP THEIR FALLBACKS. A pole
+	// declares `--bnd-form-sec-bg` under its own selector, so under `Original` the
+	// property is genuinely absent and the fallback is what renders — the pattern
+	// `_form.scss` argues for. That is why this tests against `_tokens.scss`'s
+	// `:root` rather than against everything the compiled sheet declares.
+	const shadowed = [
+		...new Set(
+			[...stripped.matchAll(/var\(\s*(--bnd-[a-z0-9-]+)\s*,/g)]
+				.map((m) => m[1])
+				.filter((t) => baseTokens.has(t))
+		),
+	].sort();
+	if (shadowed.length) {
+		throw new Error(
+			`Phantom-token guard: ${name} gives a fallback to ${shadowed.length} token` +
+				`${shadowed.length === 1 ? "" : "s"} that is always declared: ${shadowed.join(", ")}. ` +
+				"A base token from _tokens.scss's :root can never be missing, so the fallback is dead code " +
+				"carrying a second copy of its value — six had already drifted when this rule was added. " +
+				"Drop the fallback. (A working-set variable declared under a pole is a different thing and " +
+				"keeps its fallback; this rule only covers the unconditional set.)"
 		);
 	}
 }
@@ -782,7 +850,7 @@ async function buildEntry({ key, src, pyid }) {
 	});
 
 	assertLogicalOnly(result.css, `${key}.css`);
-	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS);
+	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);

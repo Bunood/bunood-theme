@@ -152,7 +152,7 @@ html[data-bnd-chrome-off~="sidepane"] {
 // an assumption would break the "measure, don't assume" rule. Revisit only with
 // a real-device measurement showing content lost under the mobile URL bar.
 html[data-bnd-layout] .main-section {
-  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px));
+  block-size: calc(100vh - var(--bnd-bottom-reserve));
 }
 
 // The ONE box that shrinking the scroll container does not fix by itself.
@@ -188,7 +188,7 @@ html[data-bnd-layout] body[data-route^="Form/Theme Settings"] .layout-side-secti
 }
 
 html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
-  block-size: calc(100vh - var(--bnd-bottom-reserve, 0px) - var(--page-head-height));
+  block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
 // ── The report view's own 100vh arithmetic needs the reserve too ────────────
@@ -223,18 +223,18 @@ html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
 // there — only the scroll box's own height stays un-reserve-aware below sm. A
 // known, narrow limitation, recorded in the commit, NOT recorded as closed.
 html[data-bnd-layout] .report-view .layout-main-section {
-  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px));
+  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve));
 }
 html[data-bnd-layout] .report-view .dt-scrollable {
-  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px));
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve));
 }
 html[data-bnd-topbar][data-bnd-layout] .report-view .layout-main-section {
   block-size: calc(
-    100vh - var(--page-head-height) - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h)
+    100vh - var(--page-head-height) - var(--bnd-bottom-reserve) - var(--bnd-topbar-h)
   );
 }
 html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
-  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve, 0px) - var(--bnd-topbar-h));
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve) - var(--bnd-topbar-h));
 }
 
 // ── The kanban board's column height, against our sticky top bar ────────────
@@ -276,7 +276,7 @@ html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
 html[data-bnd-topbar][data-bnd-layout] .kanban-column {
   min-block-size: calc(
     100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 -
-      var(--bnd-bottom-reserve, 0px)
+      var(--bnd-bottom-reserve)
   );
 }
 
