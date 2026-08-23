@@ -24,6 +24,48 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.32.1] — 2026-08-22 — Sign-in fixes (item 32)
+
+A patch on top of 0.32.0, all of it found by reviewing that release rather
+than by anything failing. Nothing here changes what the sign-in page looks
+like; it changes what is true about it.
+
+**Five defects were live in 0.32.0 and the worst one hid behind its own tests.**
+The theming was attached by matching the address `/login` — but a visitor who
+types your bare domain is served the sign-in page at `/`, and so is anyone
+signed out who follows a link into the app. Both got plain Frappe: no brand,
+no dark mode, not even the focus ring. All twenty-two checks passed, because
+all twenty-two asked for `/login` by name. It now attaches to the page being
+rendered rather than to the address that reached it. The other four were
+states nobody had measured: the Continue button turned grey the moment you
+clicked it and stayed there with no focus marker; it turned near-black the
+moment it was disabled, which is one gesture away; holding it down made it
+vanish in dark mode; and the password-strength meter's track stayed a
+near-white bar on a dark card because the rule meant to fix it had never
+applied.
+
+**Your brand stylesheet gets a stable address.** Its filename is meant to be a
+fingerprint of its contents, so a browser can cache it forever and still pick
+up a colour change immediately. It was actually random, so every save and every
+upgrade handed returning visitors a new address for a file they already had —
+and the framework call behind it disappears in the next major Frappe release,
+where the failure would have been silent and sites would simply stop getting
+their brand stylesheet. It is a real fingerprint now.
+
+**And the repair that ran while serving a page no longer writes to the
+database.** When the brand stylesheet's file goes missing — which a
+database-only restore can cause — the theme regenerates it on the next page
+load. That repair was trying to record itself mid-request, where the write is
+always discarded, so it re-ran on every request afterwards and took a write
+lock each time to save something immediately thrown away.
+
+Under the hood: two new build guards that refuse a `var(--bnd-*)` naming a
+property nothing declares, and a fallback on a token that is always there.
+Between them they found six more places where the theme was quietly painted by
+Frappe's variables while the source read as though it were not — including the
+whole layout-builder preview in Theme Settings, which is now on the theme's own
+colours in both modes.
+
 ## [0.32.0] — 2026-08-22 — Sign-in (item 32)
 
 ### The first screen now carries your brand (item 32)

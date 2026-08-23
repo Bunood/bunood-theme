@@ -29,6 +29,20 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 32 SHIPPED TWICE: `v0.32.0` THEN `v0.32.1` (2026-08-22, both pushed).** `v0.32.1`
+carries everything found by reviewing 0.32.0 — the five live defects, the two brand bugs
+(`generate_hash` was random, not a content hash; the self-heal wrote from a GET), two new
+build guards, and the layout builder moved onto the theme's own tokens. Gates at
+`v0.32.1`: suite **341/341**, contrast **4,080 pairs**.
+
+**WHY A PATCH AND NOT A MOVED TAG, which is the reusable part.** `v0.32.0` had already
+been pushed. Moving a PUBLISHED tag rewrites a ref other people may hold, and git will
+not update an existing tag on fetch without `--force` — so the tag would mean two
+different commits depending on when you fetched. CHANGELOG's own policy already answers
+this: "PATCH = fixes and refinements on top of one". The earlier move of `v0.32.0` off
+`eeec87a` was fine precisely because it had NOT been pushed. **Check
+`git ls-remote --tags origin` before moving any tag.**
+
 **ITEM 32 (login / signup / forgot) — DONE, RELEASED as `v0.32.0` and PUSHED
 (2026-08-22, at the user's request). `main` and `v0.32.0` are both on `origin` at
 `e34a23d`; nothing is unpushed. THE TAG WAS MOVED once, off `eeec87a`, after an
