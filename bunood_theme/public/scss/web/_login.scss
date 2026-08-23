@@ -316,10 +316,16 @@ body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
   // repo — a fallback dressed as a token, and invisible to the no-raw-px guard
   // because it sits inside a var().
   //
-  // `--bnd-accent` gets a fallback because it is load-bearing: if it ever resolved
-  // to something unparseable the whole `outline` shorthand would be invalid at
-  // computed-value time, every longhand would go to `unset`, and the page would
-  // silently have NO focus indicator — the one thing this contract guarantees.
+  // AND NO FALLBACK ON `--bnd-accent`. This paragraph used to argue the opposite
+  // — that one was load-bearing, because an unparseable value would invalidate
+  // the whole shorthand at computed-value time and leave the page with no focus
+  // indicator at all. v0.32.1 removed the fallback and added
+  // `assertTokensDeclared` to forbid it: a base token from `_tokens.scss`'s
+  // `:root` can never be missing, so the fallback is dead code carrying a second
+  // copy of its value, and six had already drifted. The code changed and this
+  // comment did not, so it went on describing a fallback that was gone — and it
+  // is what put one back into `_site.scss`'s twin rule during item 33 slice 3a,
+  // where the guard caught it. Corrected there and here in the same commit.
   outline: 2px solid var(--bnd-accent);
   outline-offset: 2px;
   // Frappe's `.btn:focus` also paints a grey glow that now reads as noise

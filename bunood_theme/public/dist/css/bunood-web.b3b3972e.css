@@ -632,3 +632,8 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
     --bnd-on-critical: #16181d;
   }
 }
+body.bnd-web :is(.btn, .form-control, a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}

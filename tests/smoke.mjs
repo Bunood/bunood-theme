@@ -12538,6 +12538,95 @@ async function main() {
 			expectEq(shipped, "present", "the compiled bundle carries its own body.bnd-web dark route");
 		});
 
+		await test("web: every control shows a focus ring under a real Tab", async () => {
+			// THE HEADLINE CONTRACT of item 33, and it is the same finding item 32
+			// made one surface over — on more pages, and with a wrinkle that one
+			// did not have.
+			//
+			// MEASURED BEFORE THIS RULE EXISTED, by a state scan that tests each
+			// selector against the element in each state rather than at rest:
+			//
+			//   FIELDS get nothing at all
+			//     (0,2,0) .form-control:focus { outline-width: 0px; box-shadow: none }
+			//
+			//   BUTTONS get an indicator, and a PALER rule then overrides it at
+			//   equal specificity, later-wins:
+			//     (0,2,0) .btn:focus         { box-shadow: rgba(23,23,23,.25) 0 0 0 .2rem }
+			//     (0,2,0) .btn-default:focus { box-shadow: rgba(210,210,210,.5) 0 0 0 .2rem }
+			//
+			// That second half is why this check asserts an OUTLINE and never
+			// "box-shadow is none": the planning round said no control showed focus,
+			// and for buttons that was wrong — they show a 50%-alpha #d2d2d2 halo on
+			// white, which fails 1.4.11 rather than 2.4.7. A check written from the
+			// plan would have asserted the wrong property and passed on stock.
+			//
+			// THE RING IS AN `outline`, NOT A BOX-SHADOW. That channel is contested
+			// by three separate vendor rules here, and item 31's critical defect was
+			// a box-shadow written into a channel already carrying focus. `outline`
+			// is uncontested on this surface — the vendor only ever zeroes it.
+			//
+			// DRIVEN WITH A REAL Tab, NEVER `.focus()`. `.focus()` does not match
+			// `:focus-visible`, so a check built on it asserts nothing about the
+			// state a keyboard user is in.
+			//
+			// THREE ROUTES, THREE DIFFERENT CONTROL SETS, and that is the point:
+			// `/orders` is links only, the Web Form is where the inputs and buttons
+			// live, and `/support` is a public page with a search field. A ring
+			// proved on one of them is not proved on the others — the census found
+			// `.form-control` on the Web Form and NOT on `/update-profile/new`,
+			// which builds its fields client-side.
+			const ROUTES = [
+				{ route: "/orders", wait: ".website-list", how: withPortalUser },
+				{ route: "/request-data/new", wait: "input.form-control", how: withGuest },
+				{ route: "/support", wait: ".navbar", how: withGuest },
+			];
+			const bad = [];
+			let total = 0;
+			for (const r of ROUTES) {
+				const stops = await r.how(r.route, r.wait, async (p) => {
+					const seen = [];
+					for (let i = 0; i < 6; i++) {
+						await p.keyboard.press("Tab");
+						seen.push(
+							await p.evaluate(() => {
+								const a = document.activeElement;
+								if (!a || a === document.body) return null;
+								const c = getComputedStyle(a);
+								return {
+									what: (a.className || "").toString().trim().slice(0, 34) || a.tagName,
+									fv: a.matches(":focus-visible"),
+									style: c.outlineStyle,
+									width: parseFloat(c.outlineWidth) || 0,
+								};
+							})
+						);
+					}
+					return seen.filter(Boolean);
+				});
+				expect(stops.length >= 3, `${r.route} has tab stops to check (${stops.length})`);
+				for (const s of stops) {
+					total++;
+					// `solid`, NOT merely "not none", AND THE FIRST CUT GOT THIS
+					// WRONG IN A WAY THAT WENT GREEN. It asserted `style !== "none"
+					// && width >= 2`, which the UA's own ring satisfies on some
+					// elements and not others: measured, a bare `<a>` on /orders
+					// computes `outline: auto 3px rgb(56,56,56)` while `.navbar-brand`
+					// on the Web Form computes `auto 1px`. So /orders passed with
+					// NOTHING from this theme on the page, and the Web Form failed —
+					// the same absent rule reported two different ways, decided by
+					// Chrome rather than by us.
+					//
+					// The UA never emits `solid`. Our rule does, so requiring it is
+					// what makes this check about the theme instead of the browser.
+					if (!s.fv || s.style !== "solid" || s.width < 2) {
+						bad.push(`${r.route} ${s.what} (fv=${s.fv} ${s.style} ${s.width}px)`);
+					}
+				}
+			}
+			expect(total >= 9, `enough stops across the three routes (${total})`);
+			expectEq(bad.join(" | "), "", "every tab stop draws our ring");
+		});
+
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
 			// raw to 92/247 across five releases with nobody deciding it,

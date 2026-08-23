@@ -61,3 +61,78 @@
     @include tokens.dark;
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE CONTRACTS — scoped bare `body.bnd-web`, outside any anchor, so every one
+// of them survives "Original". Each is a MEASURED WCAG failure, which is the
+// bar item 28 set and item 32 held: a preference is not a contract, and the
+// split only means something if the set stays honest.
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── Contract W1: keyboard focus is visible ──────────────────────────────────
+//
+// THE HEADLINE DEFECT, and it is NOT quite the one the planning round wrote
+// down. A state scan — each selector tested against the element in each state,
+// because a scan at rest cannot see a grouped state selector — splits it in two:
+//
+//   FIELDS have no indicator at all.
+//     (0,2,0)  .form-control:focus { outline-width: 0px; box-shadow: none }
+//   BUTTONS have one, and a PALER rule overrides it at equal specificity:
+//     (0,2,0)  .btn:focus         { box-shadow: rgba(23,23,23,.25) 0 0 0 .2rem }
+//     (0,2,0)  .btn-default:focus { box-shadow: rgba(210,210,210,.5) 0 0 0 .2rem }
+//
+// So the failure is 2.4.7 on fields and 1.4.11 on buttons — a 50%-alpha #d2d2d2
+// halo on white is present and unreadable. The plan said "no control shows
+// focus"; half of that was wrong, and a repair written from it would have
+// asserted `box-shadow: none` and passed against stock.
+//
+// LINKS ARE IN THE SET FOR A REASON THAT ONLY MEASUREMENT GIVES. A bare `<a>`
+// keeps the UA ring — but Chrome computes it as `auto 3px` on `/orders` and
+// `auto 1px` on the Web Form's `.navbar-brand`, in the UA's own near-black, so
+// "the browser draws something" is neither consistent nor ours. Covering links
+// makes one ring across the surface; it is also what lets the check assert
+// `outline-style: solid`, which the UA never emits and our rule always does.
+//
+// AN `outline`, NEVER A BOX-SHADOW. That channel is contested by three separate
+// vendor rules here, and item 31's critical defect was a box-shadow written into
+// a channel already carrying focus. The vendor only ever ZEROES `outline`, so a
+// rule that out-specifies it owns the channel outright.
+//
+// SPECIFICITY: `body.bnd-web` is (0,1,1), `:is(.btn, …)` takes its heaviest arm
+// at (0,1,0) and `:focus-visible` adds (0,1,0) — (0,3,1) against the killers'
+// (0,2,0). Sized against the rules that exist in the STATE, not against the base.
+//
+// The colour is `--bnd-accent`, which `contrast_gate.py` already holds at
+// 1.4.11's 3:1 against every surface as a cross product — an outline's neighbour
+// is the CONTAINER's colour, not the control's. No new pair, same as item 32.
+// THE SET IS WIDER THAN `_login.scss`'s, AND MEASUREMENT IS WHY. That one covers
+// `:is(.btn, .form-control, a, [tabindex])`, which is complete on a page where
+// every button carries `.btn`. The website is not that page: `button.navbar-toggler`
+// — the control a phone user needs to reach the menu at all — carries none of those
+// four, and it was the single stop still failing after the rule first landed. So
+// the set is the NATIVE focusable elements plus the two class hooks, which is what
+// "every control" has to mean on a surface whose markup we do not own.
+//
+// It costs no specificity: `:is()` takes its heaviest arm, still `.btn` at (0,1,0),
+// so `button` and friends ride along at no charge.
+body.bnd-web
+  :is(.btn, .form-control, a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  // A 2px literal, not a token: this theme has no line-weight token, and item
+  // 32's first cut wrote `var(--bnd-line-thick, 2px)` — a fallback dressed as a
+  // token, for a property nothing declares, invisible to the no-raw-px guard
+  // because it sat inside a var(). `build.mjs` refuses that shape now.
+  //
+  // AND NO FALLBACK ON `--bnd-accent` EITHER, which is the opposite of what the
+  // twin rule in `_login.scss` still describes in prose. Its comment argues a
+  // fallback is load-bearing here; v0.32.1 removed it and added
+  // `assertTokensDeclared` to forbid it, on the grounds that a base token from
+  // `_tokens.scss`'s `:root` can never be missing, so the fallback is dead code
+  // carrying a second copy of its value — six had already drifted. The stale
+  // comment is what put a fallback back into this file, and the guard is what
+  // caught it; both are corrected in the same commit.
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  // Frappe's grey `.btn:focus` glow reads as noise beside a real ring, and on
+  // `.btn-default` it is the 1.4.11 failure above. Cleared rather than layered.
+  box-shadow: none;
+}
