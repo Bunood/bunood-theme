@@ -6065,6 +6065,123 @@ async function main() {
 			expectEq(missed.join(","), "", `every OURS selector matched in some state (missed: ${missed.join(", ")})`);
 		});
 
+		await test("settings: the layout builder's wells lift off the card in both modes", async () => {
+			// THE LAST PLACE IN THE THEME PAINTED BY SOMEONE ELSE'S VARIABLES. This
+			// block read `var(--bnd-hairline, var(--border-color))`,
+			// `var(--bnd-surface-2, var(--fg-color))` and `var(--bnd-surface-3,
+			// var(--control-bg))` — four token names declared NOWHERE, so every one
+			// took its fallback and Frappe painted the builder while the source read
+			// as though the theme did. The phantoms are gone and the fifteen sites are
+			// on our tokens; this is what stops them drifting back.
+			//
+			// IT MEASURES CHANNELS, NOT A RATIO. Item 22's resting-identification rule
+			// is a channel delta — these are surfaces against surfaces, and a contrast
+			// ratio between two near-neighbours is a number with no floor anyone can
+			// calibrate. `>= 5` is the same bar `login: a text field is identifiable
+			// at rest` holds the login field to.
+			//
+			// AND THE HOST IS THE POINT. The first pick was `--bnd-pane` — the token
+			// literally named for a pane, and the best of all in LIGHT at 14 channels.
+			// But it is fitted to sit against `--bnd-page`, and here it sits against
+			// `--bnd-surface`, where it collapses to SIX channels in dark against a
+			// floor of five. `--bnd-raised` would have been worse: FOUR in light, a
+			// real failure. `--bnd-page` measures 7 and 9. Item 32's "copying an
+			// expression without copying its host", caught by measuring instead of
+			// reasoning from the token's name.
+			for (const mode of ["light", "dark"]) {
+				await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 3000);
+				await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+				// THE BUILDER IS IN THE `placement` PANE, NOT `layout`. Guessing the
+				// key cost a run: `.bnd-bd-desk` exists in the DOM from first render
+				// but sits inside a `hidden` pane, so `waitForSelector` resolved it 33
+				// times as hidden and then timed out — the shell keeps every pane
+				// mounted and hides all but the current one. Query the pane the node
+				// is actually in rather than naming one.
+				await page.click('.bnd-shell-item[data-key="placement"]');
+				await page.waitForSelector(".bnd-bd-desk", { state: "visible", timeout: 15000 });
+				await page.waitForTimeout(700);
+
+				const m = await page.evaluate(() => {
+					const paint = (v) => {
+						const c = document.createElement("canvas");
+						c.width = c.height = 1;
+						const x = c.getContext("2d");
+						x.fillStyle = "#fff";
+						x.fillRect(0, 0, 1, 1);
+						x.fillStyle = v;
+						x.fillRect(0, 0, 1, 1);
+						const d = x.getImageData(0, 0, 1, 1).data;
+						return [d[0], d[1], d[2]];
+					};
+					const opaque = (c) => {
+						if (!c || c === "transparent") return false;
+						const p = c.split(",");
+						return p.length < 4 || parseFloat(p[3]) !== 0;
+					};
+					const hostOf = (el) => {
+						let n = el.parentElement;
+						while (n) {
+							const c = getComputedStyle(n).backgroundColor;
+							if (opaque(c)) return paint(c);
+							n = n.parentElement;
+						}
+						return [255, 255, 255];
+					};
+					const at = (sel) => {
+						const e = document.querySelector(sel);
+						if (!e) return null;
+						const cs = getComputedStyle(e);
+						return { fg: paint(cs.color), bg: paint(cs.backgroundColor), host: hostOf(e) };
+					};
+					return {
+						desk: at(".bnd-bd-desk"),
+						region: at(".bnd-bd-region"),
+						regionName: at(".bnd-bd-region-name"),
+						zone: at(".bnd-bd-zone"),
+						zoneName: at(".bnd-bd-zone-name"),
+						chip: at(".bnd-bd-chip"),
+					};
+				});
+
+				expect(m.desk && m.region && m.zone, `${mode}: the builder renders`);
+				const ch = (a, b) => Math.max(...[0, 1, 2].map((i) => Math.abs(a[i] - b[i])));
+				// Local, because the suite's `ratio` helpers live inside two other
+				// scoped blocks. Takes resolved [r,g,b] only — no colour parsing here,
+				// so there is no unknown-form hazard to guess at.
+				const rat = (fg, bg) => {
+					const L = (c) => {
+						const v = c.map((n) => n / 255).map((n) => (n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4));
+						return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+					};
+					const [hi, lo] = [L(fg), L(bg)].sort((a, b) => b - a);
+					return (hi + 0.05) / (lo + 0.05);
+				};
+
+				const deskLift = ch(m.desk.bg, m.desk.host);
+				expect(deskLift >= 5, `${mode}: the desk well lifts off its host (${deskLift} channels)`);
+				const regionLift = ch(m.region.bg, m.desk.bg);
+				expect(regionLift >= 5, `${mode}: a region lifts off the well (${regionLift} channels)`);
+				const zoneLift = ch(m.zone.bg, m.region.bg);
+				expect(zoneLift >= 5, `${mode}: a drop zone lifts off its region (${zoneLift} channels)`);
+
+				// Every ink here lands on `--bnd-surface` or `--bnd-page`, both of
+				// which `contrast_gate.pairs()` already crosses with TEXT_INKS — so
+				// these numbers are a LIVE confirmation of a relationship the gate
+				// enforces over eleven seeds, not a second, weaker copy of it.
+				for (const [what, o, bg] of [
+					["region name", m.regionName, m.region.bg],
+					["zone name", m.zoneName, m.zone.bg],
+					["chip label", m.chip, m.chip.bg],
+				]) {
+					if (!o) continue;
+					const r = rat(o.fg, bg);
+					expect(r >= 4.5, `${mode}: the ${what} clears AA on its own fill (${r.toFixed(2)}:1)`);
+				}
+			}
+			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+		});
+
 		await test("a11y: axe over the settings pickers, every pane", async () => {
 			// P.wrap gives every picker one root class, .bnd-cbp — except the
 			// sidebar picker's own .bnd-sbp — so the SURFACE is three

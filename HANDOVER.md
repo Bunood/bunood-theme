@@ -1216,6 +1216,40 @@ check that was verified by putting the defect back and watching it turn red.
   before believing it — but never by re-running the one test when its state is
   cumulative.
 
+### The layout builder is on the theme's own tokens now (2026-08-22, after the tag)
+
+- **IT WAS THE LAST BLOCK IN THE THEME PAINTED BY SOMEONE ELSE'S VARIABLES.** Fifteen
+  sites in `chrome/_settings.scss`'s `.bnd-bd-*` cluster moved to `--bnd-border`,
+  `--bnd-page`, `--bnd-ink`, `--bnd-ink-muted`, `--bnd-ink-subtle`. A dead
+  `box-shadow: 0 0 0 2px transparent` went too — it named the phantom accent-wash, so
+  it had never drawn anything.
+- **THE INKS MOVED WITH THE SURFACES, not after them.** Re-pointing a background to a
+  theme token while leaving Frappe's ink on it is the half-a-pair mistake that put our
+  flipping ink on Frappe's fixed grey at 1.09:1 in the release review. Both or neither.
+- **NO NEW CONTRAST ROWS, which is why it was cheap.** `contrast_gate.pairs()` already
+  crosses `TEXT_INKS` with `SURFACES`, and both `--bnd-surface` and `--bnd-page` are in
+  it — all six ink/surface pairs were being enforced at AA over eleven seeds before this
+  touched them. An accent WASH for the armed zone would have been a new token in
+  `palette.derive` and a real cost; the armed state stays on its accent border.
+- **THE OBVIOUS TOKEN WAS THE WRONG ONE, AND ONLY MEASURING CAUGHT IT.** First pick was
+  `--bnd-pane` — the token literally named for a pane, and best of all in LIGHT at 14
+  channels. But it is fitted to sit against `--bnd-page`, and here it sits against
+  `--bnd-surface`, where it collapses to SIX channels in dark against a floor of five.
+  Measured deltas against `--bnd-surface` (light / dark / worst): **page 7/9/7**
+  (chosen) · pane 14/6/6 · raised 4/6/4 (would FAIL light) · hover 12/16/12 and active
+  25/17/17 (both STATE tokens, not resting fills). Item 32's "copying an expression
+  without copying its host" in a new costume — the value was fine, the RELATIONSHIP was
+  borrowed wrongly.
+- **The bar is `chDelta >= 5`, a CHANNEL delta and never a ratio** — item 22's
+  resting-identification rule as the suite states it for the login field. These are
+  surfaces against surfaces; a contrast ratio between two near-neighbours has no floor
+  anyone can calibrate.
+- **THE BUILDER IS IN THE `placement` PANE, NOT `layout`.** Guessing cost a run: the
+  shell keeps EVERY pane mounted and hides all but the current one, so
+  `waitForSelector(".bnd-bd-desk")` resolved it 33 times as hidden and then timed out.
+  The check waits on `state: "visible"`. Watched to fail at exactly 4 channels with
+  `--bnd-raised`.
+
 ### And three smaller things the review turned up
 
 - **`submitOff` WAS COMPUTED AND NEVER ASSERTED**, off a bare `.btn-forgot`, in the
