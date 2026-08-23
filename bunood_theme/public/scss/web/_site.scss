@@ -69,6 +69,81 @@
 // split only means something if the set stays honest.
 // ══════════════════════════════════════════════════════════════════════════
 
+// ── Contract W2: muted text clears AA ───────────────────────────────────────
+//
+// An exhaustive walk of every text-bearing node across five routes — not a list
+// of selectors somebody thought to check — found NINETEEN nodes under AA, on
+// pages a customer's users land on: /404's ONLY link at 3.93:1, /me's three
+// primary actions at 3.76:1 and its avatar initial at 2.57:1, /support's hero
+// subtitle and every footer's "Powered by" at 4.17:1, and — once the fixtures
+// gave the portal data to render — every order row's date and item summary.
+//
+// FOUR CAUSES, AND ONLY ONE OF THEM NEEDS `!important`. The first cut re-pointed
+// `--text-muted` and changed NOTHING: measured, the variable resolved to our
+// value on `<body>` while every failing node still rendered #7c7c7c. A rule scan
+// that reports the winning declaration per element is what separated them:
+//
+//   var(--text-light)          .portal-section .item-link-text, .portal-footer a
+//   var(--avatar-frame-color)  .standard-image
+//   a plain literal            .hero-subtitle (a second rule overrides its own
+//                              var), .footer-col-right
+//   A LITERAL WITH !important  .text-muted { color: #7c7c7c !important }
+//
+// So two re-points and one ordinary rule carry eighteen of the nineteen, and the
+// `!important` below is the only one on this surface.
+//
+// WHY AN `!important` IS SANCTIONED HERE AT ALL. GUIDELINES §1.3 allows two
+// places and says everything else "escalates through the `.bunood` class on
+// `<html>`". THAT ESCAPE DOES NOT EXIST ON A WEBSITE PAGE: `<html>` is hardcoded
+// in `templates/base.html`, there is no hook to add a class to it, and a JS stamp
+// would land after first paint — `_login.scss`'s header records the same dead
+// end. Item 32 met `!important` twice and beat it both times by re-pointing the
+// VARIABLES those rules read; `.text-muted` reads a literal, so that door is
+// shut too. The amendment is recorded in GUIDELINES §1.3 and CLAUDE.md, and it is
+// deliberately the narrowest form: inside `body.bnd-web`, only to beat a vendor
+// `!important` LITERAL, only where a measured WCAG failure is the alternative.
+//
+// LIGHT ONLY, AND THAT IS MEASURED RATHER THAN LAZY. The ground on a website page
+// is still Frappe's `rgb(255,255,255)` in BOTH modes, because nothing here
+// re-points `--bg-color` yet — that is the anchor's job (slice 4), where it is a
+// visible design change and not a repair. Handing Frappe's ink variables our
+// MODE-FLIPPING tokens would put dark-mode ink on a white page. On white:
+//
+//     --bnd-ink-muted   light #4a4e58  8.33:1     dark #b9bec5  1.87:1
+//     --bnd-ink-subtle  light #676b72  5.35:1     dark #9298a2  2.90:1
+//
+// An unconditional re-point would repair 4.17:1 in light and replace it with
+// 1.87:1 in dark — a repair that moves half a pair, which is the shape of the
+// regression item 32 shipped by re-pointing `--text-color` and not `--control-bg`.
+// Dark keeps stock until slice 4 paints the ground, and the standing check
+// asserts light only rather than asserting a promise.
+//
+// `not all and (…dark)` rather than `(…light)`: the negated form also covers the
+// no-preference case, which is what a browser reports when the OS has no setting.
+//
+// NO NEW CONTRAST PAIR. In light `--bnd-surface` IS `#ffffff`, so "ink-muted on
+// surface" and "ink-subtle on surface" — already gated across 11 seeds and both
+// modes — are exactly the pairs these create.
+@media not all and (prefers-color-scheme: dark) {
+  body.bnd-web {
+    --text-light: var(--bnd-ink-subtle);
+    --avatar-frame-color: var(--bnd-ink-subtle);
+  }
+
+  // Vendor literals without `!important`: (0,2,1) beats their (0,1,0), and our
+  // sheet is source-last on every non-auth page, so no escalation is needed.
+  body.bnd-web :is(.hero-subtitle, .footer-col-right) {
+    color: var(--bnd-ink-muted);
+  }
+
+  // THE ONE `!important` ON THIS SURFACE. See the argument above before adding a
+  // second: the test is a vendor `!important` LITERAL plus a measured failure,
+  // not merely a rule that is inconvenient to beat.
+  body.bnd-web .text-muted {
+    color: var(--bnd-ink-muted) !important;
+  }
+}
+
 // ── Contract W1: keyboard focus is visible ──────────────────────────────────
 //
 // THE HEADLINE DEFECT, and it is NOT quite the one the planning round wrote

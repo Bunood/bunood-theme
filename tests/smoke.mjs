@@ -12538,6 +12538,114 @@ async function main() {
 			expectEq(shipped, "present", "the compiled bundle carries its own body.bnd-web dark route");
 		});
 
+		await test("web: no muted text on the website falls under AA", async () => {
+			// EXHAUSTIVE, NOT A SELECTOR LIST. The census named seven places
+			// `--text-muted` fails — /me's three actions, the footer's "Powered by"
+			// and its link, /support's hero subtitle, /404's only link, the Web
+			// Form's disabled values — but a list of selectors is a list of the
+			// places somebody thought to look. This walks every text-bearing node on
+			// each route and reports whatever is under 4.5:1, so a failure nobody
+			// predicted still fails.
+			//
+			// LIGHT ONLY, AND THAT IS A MEASURED DECISION RATHER THAN AN OMISSION.
+			// The ground on a website page is still Frappe's `rgb(255,255,255)` in
+			// BOTH modes — `body.bnd-web` re-points none of Frappe's own variables
+			// yet, so nothing paints with our tokens. Handing Frappe's ink variables
+			// our MODE-FLIPPING tokens would therefore put dark-mode ink on a white
+			// page: measured, `--bnd-ink-muted` is #4a4e58 (8.33:1 on white) in light
+			// and #b9bec5 (1.87:1) in dark, so an unconditional re-point would repair
+			// 4.17:1 in light and replace it with 1.87:1 in dark. The repair is
+			// scoped out of dark for that reason, and dark keeps stock's 4.17:1 until
+			// the anchor paints the ground. Slice 4 is what closes the dark half; a
+			// check that asserted both modes now would be asserting a promise.
+			//
+			// Backgrounds resolved by WALKING ANCESTORS. A transparent parent parses
+			// as black and reported a passing 7.94:1 as 2.52:1 for item 32.
+			const ROUTES = [
+				{ route: "/orders", wait: ".website-list", how: withPortalUser },
+				{ route: "/me", wait: "a", how: withPortalUser },
+				{ route: "/support", wait: ".navbar", how: withGuest },
+				{ route: "/404-bnd-does-not-exist", wait: "body", how: withGuest },
+				{ route: "/request-data/new", wait: "input.form-control", how: withGuest },
+			];
+			const bad = [];
+			let scanned = 0;
+			for (const r of ROUTES) {
+				const found = await r.how(r.route, r.wait, async (p) =>
+					p.evaluate(() => {
+						const clear = (bg) =>
+							!bg || bg === "transparent" || bg.replace(/\s/g, "") === "rgba(0,0,0,0)";
+						const eff = (el) => {
+							let n = el;
+							while (n) {
+								const bg = getComputedStyle(n).backgroundColor;
+								if (!clear(bg)) return bg;
+								n = n.parentElement;
+							}
+							return "rgb(255, 255, 255)";
+						};
+						// RATIO COMPUTED IN THE PAGE, not on the Node side, for two
+						// reasons. The suite's `ratio()` helpers are block-local and
+						// already duplicated twice; a third copy is the trap this repo
+						// names first. And the colours never have to cross the wire in
+						// a form something has to re-parse — `getComputedStyle` always
+						// serialises `color` and `background-color` as rgb()/rgba().
+						// Anything else THROWS rather than parsing as black, which is
+						// how `oklab()` once read as near-black for a whole check.
+						const triple = (t) => {
+							if (!/^rgba?\(/.test(t)) throw new Error("unrecognised colour form " + t);
+							return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+						};
+						const lum = (c) =>
+							triple(c)
+								.map((n) => {
+									const v = n / 255;
+									return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+								})
+								.reduce((a, v, i) => a + [0.2126, 0.7152, 0.0722][i] * v, 0);
+						const ratioOf = (fg, bg) => {
+							const [a, b] = [lum(fg), lum(bg)];
+							return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+						};
+						const out = [];
+						for (const el of document.querySelectorAll("body *")) {
+							// Own text only: an ancestor's colour is measured on the
+							// descendant that actually paints the glyphs.
+							const own = [...el.childNodes]
+								.filter((n) => n.nodeType === 3)
+								.map((n) => n.textContent.trim())
+								.join(" ")
+								.trim();
+							if (!own) continue;
+							const c = getComputedStyle(el);
+							if (c.visibility === "hidden" || c.display === "none") continue;
+							const box = el.getBoundingClientRect();
+							if (!box.width || !box.height) continue;
+							out.push({
+								what: (el.className || "").toString().trim().slice(0, 28) || el.tagName,
+								text: own.slice(0, 24),
+								got: ratioOf(c.color, eff(el)),
+								size: parseFloat(c.fontSize) || 0,
+								weight: c.fontWeight,
+							});
+						}
+						return out;
+					})
+				);
+				for (const n of found) {
+					scanned++;
+					// WCAG 1.4.3's large-text allowance: 18.66px bold or 24px.
+					const large = n.size >= 24 || (n.size >= 18.66 && Number(n.weight) >= 700);
+					const need = large ? 3 : 4.5;
+					if (n.got < need) {
+						bad.push(`${r.route} ${n.what} "${n.text}" ${n.got.toFixed(2)}:1 (needs ${need})`);
+					}
+				}
+			}
+			expect(scanned >= 40, `enough text nodes scanned (${scanned})`);
+			expectEq(bad.slice(0, 8).join(" | "), "", `${bad.length} text nodes under AA`);
+		});
+
 		await test("web: every control shows a focus ring under a real Tab", async () => {
 			// THE HEADLINE CONTRACT of item 33, and it is the same finding item 32
 			// made one surface over — on more pages, and with a wrinkle that one

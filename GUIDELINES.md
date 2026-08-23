@@ -121,8 +121,20 @@ that cannot change the verdict.
   every other: dark fell back to `_tokens.scss`'s literals. **Any new logged-out
   surface must add its own dark scope to `brand.py`'s selector list**, derived from
   `context.AUTH_CLASSES` rather than restated.
-- **`!important` only in the two sanctioned places** (the `font-family` block and
+- **`!important` only in the sanctioned places** (the `font-family` block and
   `@media print`). Everything else escalates through the `.bunood` class on `<html>`.
+  **A third place, added by item 33 and deliberately the narrowest form that works:**
+  inside `body.bnd-web`, *only* to beat a vendor `!important` **literal**, and *only*
+  where the alternative is a measured WCAG failure. The escalation this rule assumes
+  **does not exist on a website page** — `<html>` is hardcoded in `templates/base.html`,
+  there is no hook to add a class to it, and a JS stamp would land after first paint
+  (`web/_login.scss`'s header records the same dead end). Item 32 met `!important`
+  twice and beat it both times by re-pointing the variables those rules read; item 33
+  found `.text-muted { color: #7c7c7c !important }`, a literal, carrying 4.17:1 onto
+  `/404`'s only link and every portal row. **The test is the vendor's `!important`
+  plus a literal plus a measured failure, not merely a rule that is inconvenient to
+  beat** — eighteen of that census's nineteen failures were repaired by two variable
+  re-points and one ordinary (0,2,1) rule, and exactly one needed this.
 - **A *contract* survives `Original`; a *style* does not.** A surface kit's `Original`
   is a total stand-down — the absent anchor clears every style rule. But an accessibility
   contract that happens to live in the same kit is scoped `html[data-theme]`, NOT the kit

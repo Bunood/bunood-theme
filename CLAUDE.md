@@ -42,7 +42,11 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   narrower than `[data-theme]`, not wider. GUIDELINES §1.3 carries the argument and
   the second half nobody expects: `brand.py`'s dark blocks need that scope too, or a
   customer's dark sign-in page silently paints the *shipped* seed.
-- **`!important`** only in the two sanctioned places.
+- **`!important`** only in the sanctioned places — the `font-family` block, `@media
+  print`, and (item 33) inside `body.bnd-web` to beat a vendor `!important` **literal**
+  where the alternative is a measured WCAG failure. That third place exists because a
+  website page has no `.bunood` on `<html>` to escalate through. GUIDELINES §1.3 carries
+  the test; it is not a general licence.
 - **Never touch Frappe-generated DOM.** Colour it through tokens. The ONE sanctioned
   exception (item 24): `repair_viewport_meta` in `bunood.js` rewrites the `<head>` viewport
   `<meta>` to unlock pinch-zoom — a meta tag is neither layout nor styling, there is no
