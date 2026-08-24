@@ -4499,9 +4499,10 @@ const BND_LOGIN_FIELDS = ["login_style", "login_action", "login_theme"];
 /** Client mirror of presets.WEB_FIELDS. Keep in sync — `assertFieldMirrors`
  * SKIPS a family that has no mirror here, so an absent one is not a warning,
  * it is a hole. Item 32 closed that hole; do not reopen it. */
-const BND_WEB_FIELDS = ["web_style"];
+const BND_WEB_FIELDS = ["web_style", "web_header"];
 const BND_WEB_DEFAULTS = {
 	web_style: "Panel",
+	web_header: "Branded",
 };
 const BND_LOGIN_DEFAULTS = {
 	login_style: "Split",
@@ -5248,6 +5249,18 @@ function bnd_web_thumb(o) {
 	return `<svg viewBox="0 0 120 72">${ground}${bar}${rail}${card}${inner}</svg>`;
 }
 
+const BND_WEB_GROUPS = [
+	{
+		field: "web_header",
+		title: () => __("Header"),
+		desc: () => __("Whether the site header carries your brand colour."),
+		options: [
+			{ value: "Neutral", name: () => __("Neutral") },
+			{ value: "Branded", name: () => __("Branded") },
+		],
+	},
+];
+
 const BND_WEB_STYLES = [
 	{
 		value: "Original",
@@ -5303,6 +5316,21 @@ function bnd_render_web_picker(frm, host) {
 		{ selected: current, cls: "bnd-cbp-style bnd-wbp-style" }
 	);
 
+	// `web_header` COMPOSES with the anchor — the navbar is chrome present under
+	// every pole, so unlike the sign-in kit's branded CTA there is no
+	// "does not apply under Original" reason. One group, no stand-down.
+	const groups = BND_WEB_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(),
+			desc: grp.desc(),
+			field: grp.field,
+			body: P.options(
+				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_WEB_DEFAULTS[grp.field] }
+			),
+		})
+	).join("");
+
 	$host.html(
 		P.wrap(
 			'<div class="bnd-cbp bnd-wbp">' +
@@ -5317,6 +5345,7 @@ function bnd_render_web_picker(frm, host) {
 								)
 							),
 					},
+					{ zone: "extras", html: groups },
 				]) +
 				"</div>"
 		)
@@ -5324,6 +5353,10 @@ function bnd_render_web_picker(frm, host) {
 
 	$host.find(".bnd-wbp-style").on("click", function () {
 		bnd_web_set(frm, "web_style", this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_web_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
 }
 

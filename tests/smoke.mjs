@@ -942,7 +942,7 @@ const MUTABLE_FIELDS = [
 	// on /login and /update-password, so a check for it must drive a guest
 	// context (see withGuest).
 	"login_style", "login_action", "login_theme",
-	"web_style",
+	"web_style", "web_header",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -12561,8 +12561,14 @@ async function main() {
 				for (const [pole, cls] of Object.entries(seen)) {
 					expect(cls.includes(WEB), `${pole}: the contract scope survives (${cls.join(" ")})`);
 				}
-				const poles = (cls) => cls.filter((c) => c.startsWith(WEB + "-"));
-				expectEq(poles(seen.Original).join(" "), "", "Original emits no pole class at all");
+				// ONLY THE STYLE POLES, not every `bnd-web-*` — item 33 slice 5
+				// added `web_header`, an AXIS whose `bnd-web-header-branded` COMPOSES
+				// with Original (the navbar is chrome under every pole). Item 32's
+				// anchor check uses the same explicit allowlist for the same reason:
+				// Original is the absence of a POLE, not of every class.
+				const STYLE_POLES = [`${WEB}-panel`, `${WEB}-plate`];
+				const poles = (cls) => cls.filter((c) => STYLE_POLES.includes(c));
+				expectEq(poles(seen.Original).join(" "), "", "Original emits no style-pole class at all");
 				expectEq(poles(seen.Panel).join(" "), `${WEB}-panel`, "Panel emits exactly its own");
 				expectEq(poles(seen.Plate).join(" "), `${WEB}-plate`, "Plate emits exactly its own");
 			} finally {
@@ -12614,6 +12620,84 @@ async function main() {
 				}
 			} finally {
 				setSettings({ web_style: before.web_style });
+			}
+		});
+
+		await test("web: the header takes the brand, or does not", async () => {
+			// THE `web_header` AXIS — Neutral vs Branded — asserted as TWO
+			// independent facts, which is item 32's rule for an axis: the
+			// DIFFERENCE (the axis does something) and the CONTRACT (what it does
+			// is legible) must fail separately, so a fill change that breaks the
+			// ink pairing goes red on the contract while the difference stays
+			// green. One assertion covering both would hide exactly that.
+			//
+			// Measured on the navbar, which is the header. It exists on the portal,
+			// web forms and public pages but NOT on /me, /404 or /message — the
+			// same coverage story as every other rule on this surface, and the
+			// reason this reads /orders.
+			//
+			// COMPOSES WITH THE ANCHOR, so the difference is measured with the
+			// style held at Panel and again at Original: a branded navbar on a
+			// stock page is the whole point of the axis composing rather than
+			// riding the stand-down.
+			const before = getSettings(["web_style", "web_header"]);
+			try {
+				const nav = (style, header) => {
+					setSettings({ web_style: style, web_header: header });
+					return withPortalUser("/orders", ".navbar", async (pp) =>
+						pp.evaluate(() => {
+							const bar = document.querySelector(".navbar");
+							const link = document.querySelector(".navbar-brand, .navbar-nav .nav-link");
+							if (!bar || !link) return null;
+							const tri = (t) => (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+							const lum = (c) =>
+								tri(c)
+									.map((n) => {
+										const v = n / 255;
+										return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+									})
+									.reduce((a, v, i) => a + [0.2126, 0.7152, 0.0722][i] * v, 0);
+							const ratio = (x, y) => {
+								const [a, b] = [lum(x), lum(y)];
+								return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+							};
+							const bg = getComputedStyle(bar).backgroundColor;
+							const ink = getComputedStyle(link).color;
+							const page = getComputedStyle(document.body).backgroundColor;
+							return { bg, ink, inkOnBar: ratio(ink, bg), barOnPage: ratio(bg, page) };
+						})
+					);
+				};
+
+				for (const style of ["Panel", "Original"]) {
+					const neutral = await nav(style, "Neutral");
+					const branded = await nav(style, "Branded");
+					expect(neutral && branded, `${style}: the navbar is present to measure`);
+
+					// THE DIFFERENCE. Branded must not look like Neutral, or the axis
+					// is a no-op the picker lies about.
+					expect(
+						neutral.bg !== branded.bg,
+						`${style}: Branded fills the header differently from Neutral (both ${branded.bg})`
+					);
+
+					// THE CONTRACT, two rows, both on the BRANDED header because that
+					// is the one this axis introduces. 1.4.11 for the fill against
+					// its neighbour (the page), 1.4.3 for the ink on the fill. Both
+					// pre-gated pairs (`--bnd-brand-solid` clears 3:1 on every
+					// surface; `--bnd-on-brand` clears 4.5:1 on it), so this asserts
+					// the RULE wired them, not a new colour.
+					expect(
+						branded.barOnPage >= 3,
+						`${style}: the branded header reads against the page (${branded.barOnPage.toFixed(2)}:1)`
+					);
+					expect(
+						branded.inkOnBar >= 4.5,
+						`${style}: its ink clears AA on the fill (${branded.inkOnBar.toFixed(2)}:1)`
+					);
+				}
+			} finally {
+				setSettings(before);
 			}
 		});
 

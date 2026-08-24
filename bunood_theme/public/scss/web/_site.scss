@@ -205,6 +205,52 @@ body:is(.bnd-web-panel, .bnd-web-plate) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `web_header` — Neutral · Branded. The site header (the navbar).
+// ══════════════════════════════════════════════════════════════════════════
+//
+// COMPOSES WITH THE ANCHOR, not riding its stand-down. `body.bnd-web-header-branded`
+// carries no pole class in its selector, so it paints under Original as readily as
+// under a pole — a branded header on stock geometry, which is the Shopify/Stripe
+// minimal-portal look and the whole reason this is an axis and not a fourth pole.
+// It differs from `login_action` deliberately: the login CTA sits INSIDE the card
+// Original leaves stock, so branding it there is incoherent; the navbar is chrome
+// present identically under every pole.
+//
+// PLACED AFTER THE BRIDGE, and that placement is load-bearing. Under a pole the
+// bridge already paints `.navbar-light` at `--bnd-web-card` with specificity
+// (0,2,1); this rule is (0,2,1) too — `body`(el) + two classes — so it wins ONLY
+// because it comes later. Under Original there is no bridge and stock's
+// `.navbar-light` is (0,1,0), which this beats outright.
+//
+// NO NEW CONTRAST PAIR. `--bnd-brand-solid` is gated 3:1 against every surface
+// (1.4.11, the header against the page) and `--bnd-on-brand` is gated 4.5:1 on it
+// (1.4.3, the brand and links on the header) — the dock-chip pair, one surface over.
+// EVERYTHING NESTS UNDER `.navbar-light`, and that is the specificity fix rather
+// than tidiness. The first cut wrote the ink as
+// `body.bnd-web-header-branded :is(.navbar-brand, …)` at (0,3,1) — and the brand
+// mark stayed `--bnd-ink` at 3.90:1, because the BRIDGE's ink `:is()` groups
+// `.navbar-brand` with `.sidebar-item a.active`, and `:is()` takes its HEAVIEST
+// arm, inflating that whole group to (0,3,2). Measured, not guessed — the fourth
+// time this item that a rule lost to a `:is()` arm it did not appear to contain.
+// Nesting under `.navbar-light` puts the ink at (0,4,1), which clears it; the
+// fill at (0,2,1) ties the bridge's `.navbar-light` and wins on source order,
+// which is why this block sits AFTER the bridge.
+body.bnd-web-header-branded .navbar-light {
+  background-color: var(--bnd-brand-solid);
+  border-color: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
+
+  :is(.navbar-brand, .navbar-nav .nav-link, .navbar-toggler) {
+    color: var(--bnd-on-brand);
+  }
+
+  // The mobile toggler's border is a transparent literal in stock; give it the
+  // on-brand ink at low alpha so the hamburger reads on the fill.
+  .navbar-toggler {
+    border-color: color-mix(in srgb, var(--bnd-on-brand) 40%, transparent);
+  }
+}
+
 // ── The ground. UNIVERSAL, because `<body>` is the only element every template
 //    in this surface has. Measured: /support extends `templates/web.html` and
 //    then overrides `{% block content %}` outright, so it has neither

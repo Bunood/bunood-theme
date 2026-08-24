@@ -819,6 +819,7 @@ SHIPPED_CONTAINERS = ("topbar", "pagehead", "dock", "sidepane", "bottombar")
 
 WEB_FIELDS = [
     "web_style",
+    "web_header",
 ]
 
 #: The shipped website/portal defaults -- the item-33 wireframe round, closed
@@ -854,6 +855,16 @@ WEB_DEFAULTS = {
     # on a tinted ground while `/orders` is flat white, and Panel makes the
     # second look like the first rather than inventing a third language.
     "web_style": "Panel",
+    # THE HEADER AXIS. Neutral -- the header on the surface colour -- or Branded,
+    # the customer's brand fill. Default Branded because the product is
+    # white-labelling and a portal that shows the brand nowhere is the failure
+    # mode this item exists to fix; it costs no new contrast row (the
+    # on-brand/brand-solid pair and the fill-against-chrome 3:1 row both predate
+    # item 33). COMPOSES WITH `Original` unlike `login_action`'s stand-down: the
+    # navbar is chrome present identically across all three poles, so branding it
+    # is coherent under any geometry -- the Shopify/Stripe minimal-portal look --
+    # whereas login's branded CTA sits INSIDE the card that Original leaves stock.
+    "web_header": "Branded",
 }
 
 

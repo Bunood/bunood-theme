@@ -60,6 +60,7 @@
   "login_action": "Branded",
   "login_theme": "Follow OS",
   "web_style": "Panel",
+  "web_header": "Branded",
   "palette_style": "Bunood Palette",
   "inbox_style": "Inbox + Page",
   "inbox_placement": "Top Bar End",
@@ -2288,12 +2289,14 @@
    ]
   },
   "web_picker": {
-   "n": 48,
+   "n": 62,
    "svgs": 3,
-   "text": 351,
+   "text": 433,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-wbp",
+    "section.bnd-cbp-zone",
+    "h4.bnd-cbp-zone-title",
     "div.bnd-cbp-styles",
     "button.bnd-cbp-style.bnd-wbp-style",
     "span.bnd-cbp-thumb",
@@ -2339,7 +2342,19 @@
     "rect.",
     "span.bnd-cbp-name",
     "span.bnd-cbp-blurb",
-    "div.bnd-cbp-note"
+    "div.bnd-cbp-note",
+    "section.bnd-cbp-zone",
+    "h4.bnd-cbp-zone-title",
+    "div.bnd-cbp-group",
+    "div.bnd-cbp-title",
+    "button.bnd-cbp-reset",
+    "span.",
+    "div.bnd-cbp-desc",
+    "div.bnd-cbp-row",
+    "button.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname"
    ]
   },
   "icons_picker": {

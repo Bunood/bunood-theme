@@ -174,6 +174,11 @@ AUTH_CLASSES = {
 #: with two words that stops being true. One table, no special cases.
 WEB_CLASSES = {
     "web_style": {"Original": "", "Panel": "panel", "Plate": "plate"},
+    # The header axis, and it COMPOSES with the anchor rather than riding its
+    # stand-down: an `Original` page can still carry `bnd-web-header-branded`,
+    # because the navbar is chrome present under every pole. Neutral is the
+    # absence of the class, as every neutral in this repo is.
+    "web_header": {"Neutral": "", "Branded": "header-branded"},
 }
 
 #: ``User.desk_theme`` is a Literal["Light", "Dark", "Automatic"]. Frappe renders it

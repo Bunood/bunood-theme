@@ -177,6 +177,7 @@
   "section_web",
   "web_picker",
   "web_style",
+  "web_header",
   "section_generated",
   "brand_css_url"
  ],
@@ -704,6 +705,15 @@
    "hidden": 1,
    "label": "Website Style",
    "options": "Original\nPanel\nPlate"
+  },
+  {
+   "default": "Branded",
+   "description": "Set by the picker above. Whether the site header carries your brand colour. Composes with any style, including Original.",
+   "fieldname": "web_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Header",
+   "options": "Neutral\nBranded"
   },
   {
    "fieldname": "section_generated",
