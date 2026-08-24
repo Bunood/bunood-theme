@@ -12647,8 +12647,22 @@ async function main() {
 				{ route: "/404-bnd-does-not-exist", wait: "body", how: withGuest },
 				{ route: "/request-data/new", wait: "input.form-control", how: withGuest },
 			];
+			// TWO PASSES, MIRRORING THE MIXIN THAT REPAIRS THEM. The ink repair
+			// applies wherever the GROUND IS KNOWN: in light always, because
+			// Original's ground is Frappe's white; in dark only under a pole,
+			// because that is the only case where we painted the ground
+			// ourselves. The dark pass PINS `web_style` rather than trusting the
+			// shipped default to stay a pole.
+			const PASSES = [
+				{ label: "light", opts: {}, pole: null },
+				{ label: "dark under a pole", opts: { colorScheme: "dark" }, pole: "Panel" },
+			];
+			const before = getSettings(["web_style"]);
 			const bad = [];
 			let scanned = 0;
+			try {
+			for (const pass of PASSES) {
+			if (pass.pole) setSettings({ web_style: pass.pole });
 			for (const r of ROUTES) {
 				const found = await r.how(r.route, r.wait, async (p) =>
 					p.evaluate(() => {
@@ -12709,7 +12723,7 @@ async function main() {
 							});
 						}
 						return out;
-					})
+					}), pass.opts
 				);
 				for (const n of found) {
 					scanned++;
@@ -12717,11 +12731,15 @@ async function main() {
 					const large = n.size >= 24 || (n.size >= 18.66 && Number(n.weight) >= 700);
 					const need = large ? 3 : 4.5;
 					if (n.got < need) {
-						bad.push(`${r.route} ${n.what} "${n.text}" ${n.got.toFixed(2)}:1 (needs ${need})`);
+						bad.push(`[${pass.label}] ${r.route} ${n.what} "${n.text}" ${n.got.toFixed(2)}:1 (needs ${need})`);
 					}
 				}
 			}
-			expect(scanned >= 40, `enough text nodes scanned (${scanned})`);
+			}
+			} finally {
+				setSettings({ web_style: before.web_style });
+			}
+			expect(scanned >= 80, `enough text nodes scanned across both passes (${scanned})`);
 			expectEq(bad.slice(0, 8).join(" | "), "", `${bad.length} text nodes under AA`);
 		});
 
