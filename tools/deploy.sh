@@ -38,6 +38,14 @@ APP_CONTAINERS=(bunood-backend-1 bunood-queue-long-1 bunood-queue-short-1 bunood
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"
 WSL_MIRROR="${BND_WSL_MIRROR:-/home/saltedfish/bunood-theme}"
+# The same knob `tools/session.mjs` and `tests/smoke.mjs` read, spelled the same
+# way, so one export moves the whole toolchain. It exists because `localhost` is
+# not a synonym for `127.0.0.1` here: Windows resolves it to `::1` FIRST, and on
+# 2026-08-24 Docker's IPv6 publish stopped answering while the IPv4 one served
+# normally — so every verify curl returned 000 and the deploy reported a build
+# the stack was in fact serving as undelivered. `tools/fingerprint.mjs` still
+# hardcodes its own copy.
+URL_BASE="${BND_URL:-http://localhost:8080}"
 
 say() { printf '  %s\n' "$*"; }
 
@@ -135,6 +143,45 @@ fi
 # The durable copy. Runs even when nothing else changed, because being able to
 # follow the work is the point of it. Failure is reported, never fatal: a broken
 # mirror must not stop a deploy that otherwise succeeded.
+#
+# AND WHEN THE APP IS BIND-MOUNTED, "durable copy" UNDERSTATES IT: the mirror is
+# then the ONLY delivery path, which the `say` above already tells you. That is
+# why this block has a fallback at all. On 2026-08-24 `wsl.exe -- <command>` began
+# failing with `Wsl/Service/0x8007274c` on every distro including
+# `docker-desktop`, while the containers stayed up and served — so the rsync
+# silently stopped delivering and the deploy reported "the stack is NOT serving
+# this build" three lines later, which reads like an asset problem and is not one.
+#
+# THE `\\wsl$` SHARE SURVIVES WHAT `wsl.exe` EXEC DOES NOT. It is a different
+# channel — a 9p file server, not the console relay — and it was verified writable
+# through to the container in exactly the state that killed the rsync. So the
+# fallback is not a weaker copy of the same thing; it is the reason a wedged WSL
+# console no longer stops a deploy.
+#
+# `robocopy /MIR` matches `rsync -a --delete --delete-excluded`: `/XD` excludes
+# a directory from BOTH the copy and the purge, which is the `--delete-excluded`
+# half that took a 439MB mirror to learn. Its exit code is a BITMASK where 1
+# means "files were copied" — success — so anything under 8 is fine and the
+# usual `if cmd; then` would report every real deploy as a failure.
+#
+# THREE THINGS ABOUT CALLING IT FROM GIT BASH, each of which cost a run:
+#
+#   1. `MSYS_NO_PATHCONV=1` IS MANDATORY. Without it MSYS rewrites robocopy's
+#      own switches as paths — `/MIR` arrives as `M:/` — and the first attempt
+#      died on `Invalid Parameter #3 : "L:/"`. This is the same variable
+#      `CLAUDE.md` warns about for `curl -o /dev/null`; it is safe here because
+#      the only `/dev/null` on this line is a SHELL REDIRECT, which bash handles
+#      itself and never passes to the child as an argument.
+#   2. FORWARD SLASHES, and `//wsl.localhost/<distro>/...` rather than the
+#      `\\wsl$\` spelling. Windows accepts `/` as a separator in UNC paths, and
+#      the backslash form needs `\\\\wsl\$\\` inside double quotes — which was
+#      got wrong twice in a row here, once producing the literal directory
+#      `\wsl$${DISTRO}` in the repo root with an 11MB copy of the tree inside it
+#      that `git status` did not even report.
+#   3. THE DESTINATION IS CHECKED BEFORE `/MIR` RUNS, and that guard is the
+#      reason (2) was survivable rather than expensive. `/MIR` DELETES whatever
+#      it finds in the destination that is not in the source, so a mistyped
+#      share must fail closed, not create it and mirror into it.
 WIN_PATH="$(pwd -W 2>/dev/null || pwd)"
 WSL_SRC="$(printf '%s' "$WIN_PATH" | sed -E 's#^([A-Za-z]):#/mnt/\l\1#; s#\\#/#g')"
 if wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
@@ -142,7 +189,30 @@ if wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
 		'$WSL_SRC/' '$WSL_MIRROR/'" 2>/dev/null; then
 	say "mirrored -> WSL $WSL_MIRROR"
 else
-	say "WARNING: WSL mirror failed — the stack is updated, the WSL copy is stale"
+	# `wsl -l -q` is a different call than `wsl -- <command>` and kept working
+	# through the outage that motivated this; the first line is the default
+	# distro. Derived rather than hardcoded, and overridable, because the
+	# mirror path already is.
+	DISTRO="${BND_WSL_DISTRO:-$(wsl.exe -l -q 2>/dev/null | tr -d '\000\r' | head -1)}"
+	SHARE=""
+	[[ -n "$DISTRO" ]] && SHARE="//wsl.localhost/${DISTRO}${WSL_MIRROR}"
+	# RC starts at the "there was nothing to try" failure and is only lowered by
+	# an actual run. `|| RC=$?` leaves it at 0 when robocopy exits 0, so there is
+	# no sentinel to map back — an earlier draft used 8 as that sentinel and
+	# would have reported a genuine robocopy 8 (a real copy error) as success.
+	RC=8
+	if [[ -n "$SHARE" && -d "$SHARE" ]]; then
+		RC=0
+		MSYS_NO_PATHCONV=1 robocopy "$WIN_PATH" "$SHARE" \
+			/MIR /NFL /NDL /NJH /NJS /NP /R:1 /W:1 \
+			/XD .git node_modules _reference >/dev/null 2>&1 || RC=$?
+	fi
+	if (( RC < 8 )); then
+		say "mirrored -> $SHARE (wsl.exe exec is down; used the share)"
+	else
+		say "WARNING: WSL mirror failed — the stack is updated, the WSL copy is stale"
+		say "         and if the app is bind-mounted, THIS BUILD WAS NOT DELIVERED"
+	fi
 fi
 
 # ── Restart and clear cache ─────────────────────────────────────────────────
@@ -175,7 +245,7 @@ for f in "${ASSETS[@]}"; do
 	name="$(basename "$f")"
 	# `|| true`: a curl failure must reach the WARNING branch below, not exit
 	# the script through `set -e` with nothing printed.
-	CODE="$(curl -s -o "$CURL_SINK" -w '%{http_code}' "http://localhost:8080/assets/bunood_theme/dist/$sub/$name" || true)"
+	CODE="$(curl -s -o "$CURL_SINK" -w '%{http_code}' "$URL_BASE/assets/bunood_theme/dist/$sub/$name" || true)"
 	if [[ "$CODE" == "200" ]]; then
 		say "serving $name (200)"
 	else
@@ -186,4 +256,4 @@ done
 if [[ "$BAD" == "1" ]]; then
 	exit 1
 fi
-say "http://localhost:8080/desk/theme-settings?shell=1  ·  http://localhost:8080/login"
+say "$URL_BASE/desk/theme-settings?shell=1  ·  $URL_BASE/login"
