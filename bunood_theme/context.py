@@ -158,6 +158,24 @@ AUTH_CLASSES = {
     "login_theme": {"Follow OS": "", "Always Light": "theme-light", "Always Dark": "theme-dark"},
 }
 
+#: Field value → class slug for the website kit's anchor — item 33, and the same
+#: shape as :data:`AUTH_CLASSES` for the same reasons.
+#:
+#: ``""`` is the NEUTRAL and emits no class at all, so ``Original`` costs no rule and
+#: cannot be half-applied. THIS IS THE ONLY COPY: like the auth kit and unlike the
+#: nine desk kits, there is no ``bunood.js`` on a website page and therefore no
+#: client-side apply to drift from it. The reason differs from item 32's, though —
+#: an admin CAN load ``/me`` and ``/orders``, so the exemption is not "the hook could
+#: not act" but "the anchor is server-rendered into a DIFFERENT document, so any
+#: apply is a reload, and a reload preview is a link". See the picker's docblock.
+#:
+#: A MAP AND NOT A DERIVATION, for the same reason the auth one is: ``web_style``'s
+#: values happen to lowercase into their slugs today, and the moment a pole is named
+#: with two words that stops being true. One table, no special cases.
+WEB_CLASSES = {
+    "web_style": {"Original": "", "Panel": "panel", "Plate": "plate"},
+}
+
 #: ``User.desk_theme`` is a Literal["Light", "Dark", "Automatic"]. Frappe renders it
 #: verbatim into ``data-theme``, and ships no ``prefers-color-scheme`` rules, so
 #: ``"automatic"`` matches neither its light nor its dark block. We keep the value (the
@@ -317,6 +335,25 @@ def _web_context(context):
     classes = (context.get("body_class") or "").split()
     if WEB_BODY_CLASS not in classes:
         classes.append(WEB_BODY_CLASS)
+
+    # THE ANCHOR. A neutral is the ABSENCE of its class, exactly as every other kit's
+    # "Original" is the absence of its `data-bnd-*` attribute — so a stand-down needs
+    # no rule of its own and cannot be half-applied.
+    #
+    # AN UNKNOWN VALUE FALLS BACK TO THE DEFAULT rather than emitting a slug nothing
+    # styles. A Single can hold a value its Select no longer offers, and here the
+    # failure would be silent: a class with no rules renders as `Original` while the
+    # settings form says otherwise.
+    from bunood_theme.presets import WEB_DEFAULTS
+
+    for field, slugs in WEB_CLASSES.items():
+        value = frappe.get_cached_value("Theme Settings", "Theme Settings", field)
+        if value not in slugs:
+            value = WEB_DEFAULTS[field]
+        slug = slugs[value]
+        if slug and f"{WEB_BODY_CLASS}-{slug}" not in classes:
+            classes.append(f"{WEB_BODY_CLASS}-{slug}")
+
     context.body_class = " ".join(classes)
 
     _add_brand_sheet(context)

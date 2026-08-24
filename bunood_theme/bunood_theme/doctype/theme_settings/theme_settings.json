@@ -174,6 +174,9 @@
   "login_style",
   "login_action",
   "login_theme",
+  "section_web",
+  "web_picker",
+  "web_style",
   "section_generated",
   "brand_css_url"
  ],
@@ -621,7 +624,7 @@
   },
   {
    "default": "Outlined",
-   "description": "Set by the picker above. How a filter control is bounded \u2014 in the bar, in the filter editor and in the saved-filter menu.",
+   "description": "Set by the picker above. How a filter control is bounded — in the bar, in the filter editor and in the saved-filter menu.",
    "fieldname": "filters_style",
    "fieldtype": "Select",
    "hidden": 1,
@@ -682,6 +685,25 @@
    "hidden": 1,
    "label": "Sign-In Theme",
    "options": "Follow OS\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_web",
+   "fieldtype": "Section Break",
+   "label": "Website & Portal"
+  },
+  {
+   "fieldname": "web_picker",
+   "fieldtype": "HTML",
+   "label": "Website Picker"
+  },
+  {
+   "default": "Panel",
+   "description": "Set by the picker above. How every website and customer-portal page is composed. Applies to the portal, web forms, error pages and any public page — not to the desk or the sign-in screens.",
+   "fieldname": "web_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Website Style",
+   "options": "Original\nPanel\nPlate"
   },
   {
    "fieldname": "section_generated",

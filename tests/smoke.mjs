@@ -942,6 +942,7 @@ const MUTABLE_FIELDS = [
 	// on /login and /update-password, so a check for it must drive a guest
 	// context (see withGuest).
 	"login_style", "login_action", "login_theme",
+	"web_style",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -12536,6 +12537,84 @@ async function main() {
 				})
 			);
 			expectEq(shipped, "present", "the compiled bundle carries its own body.bnd-web dark route");
+		});
+
+		await test("web: the anchor dresses the page, and Original clears it", async () => {
+			// THE ANCHOR PAIR. `Original` is the absence of a POLE class, not the
+			// absence of every class — `bnd-web` stays, because it carries the
+			// contracts and those survive a total stand-down. Item 32's wording,
+			// kept because the distinction is what the contract/style split IS.
+			//
+			// Asserted through a GUEST page rather than the settings form: the
+			// class is server-rendered by `context._web_context`, so the only
+			// honest proof is a page fetched after the value changed.
+			const before = getSettings(["web_style"]);
+			try {
+				const seen = {};
+				for (const pole of ["Original", "Panel", "Plate"]) {
+					setSettings({ web_style: pole });
+					seen[pole] = await withGuest("/404-bnd-anchor-probe", null, async (gp) =>
+						gp.evaluate(() => document.body.className.trim().split(/\s+/))
+					);
+				}
+				const WEB = scopes().web;
+				for (const [pole, cls] of Object.entries(seen)) {
+					expect(cls.includes(WEB), `${pole}: the contract scope survives (${cls.join(" ")})`);
+				}
+				const poles = (cls) => cls.filter((c) => c.startsWith(WEB + "-"));
+				expectEq(poles(seen.Original).join(" "), "", "Original emits no pole class at all");
+				expectEq(poles(seen.Panel).join(" "), `${WEB}-panel`, "Panel emits exactly its own");
+				expectEq(poles(seen.Plate).join(" "), `${WEB}-plate`, "Plate emits exactly its own");
+			} finally {
+				setSettings({ web_style: before.web_style });
+			}
+		});
+
+		await test("web: no pole takes a contract away", async () => {
+			// THE DEFEAT-DEVICE CHECK, and it is the single most valuable one in
+			// this family. The contract/style split only means something if a pole
+			// cannot quietly re-open what a contract repaired — and the failure
+			// would be invisible, because the anchor check above stays green while
+			// a pole sets `outline: none` on the very control the ring covers.
+			//
+			// Run under EVERY pole including Original, on the two facts the
+			// contracts guarantee: the focus ring is ours, and muted text clears
+			// AA. Light only, for the reason contract W2 records.
+			const before = getSettings(["web_style"]);
+			try {
+				for (const pole of ["Original", "Panel", "Plate"]) {
+					setSettings({ web_style: pole });
+					const seen = await withGuest("/request-data/new", "input.form-control", async (gp) => {
+						await gp.keyboard.press("Tab");
+						await gp.keyboard.press("Tab");
+						await gp.keyboard.press("Tab");
+						await gp.keyboard.press("Tab");
+						return gp.evaluate(() => {
+							const a = document.activeElement;
+							const c = getComputedStyle(a);
+							const muted = document.querySelector(".text-muted");
+							return {
+								what: (a.className || "").toString().slice(0, 26) || a.tagName,
+								style: c.outlineStyle,
+								width: parseFloat(c.outlineWidth) || 0,
+								mutedColour: muted ? getComputedStyle(muted).color : null,
+							};
+						});
+					});
+					expect(
+						seen.style === "solid" && seen.width >= 2,
+						`${pole}: the focus ring survives on ${seen.what} (${seen.style} ${seen.width}px)`
+					);
+					// #7c7c7c is stock's failing value. Any pole that lets it back
+					// has re-opened contract W2, whatever else it painted.
+					expect(
+						seen.mutedColour !== "rgb(124, 124, 124)",
+						`${pole}: muted text is still repaired (${seen.mutedColour})`
+					);
+				}
+			} finally {
+				setSettings({ web_style: before.web_style });
+			}
 		});
 
 		await test("web: no muted text on the website falls under AA", async () => {

@@ -814,6 +814,49 @@ SHIPPED_CONTAINERS = ("topbar", "pagehead", "dock", "sidepane", "bottombar")
 
 #: What a fresh install writes for each container it ships, derived from the
 #: catalogue rather than restated beside it.
+
+
+
+WEB_FIELDS = [
+    "web_style",
+]
+
+#: The shipped website/portal defaults -- the item-33 wireframe round, closed
+#: 2026-08-23. Artifact:
+#: https://claude.ai/code/artifact/a6d5f3a1-148e-4b38-808c-cf3000d32e96
+WEB_DEFAULTS = {
+    # THE ANCHOR. THREE poles, not four, and the round did NOT pick the boldest —
+    # both of which break with every previous kit, so both are argued here rather
+    # than left to look like oversights.
+    #
+    #   Original  the stand-down. Stock geometry, Frappe's white ground. The
+    #             contracts still apply: the focus ring and the nineteen repaired
+    #             text nodes are scoped bare `body.bnd-web` and survive this.
+    #   Panel     THE DEFAULT. The page ground takes our tint and the content
+    #             region becomes an object on it.
+    #   Plate     a brand wash across the ground with the content plate floating
+    #             on it. Brand presence at no layout cost.
+    #
+    # `Rail` was drawn and DROPPED in the round, on evidence rather than taste.
+    # It gave the navigation rail a real surface — the loudest single defect in
+    # the census, a 182px region with no fill and no border — but the rail exists
+    # on twelve routes out of roughly twenty, and on `/me`, `/404`, `/message`
+    # and the error page there is no navbar or rail at all. To ship it would have
+    # had to carry Panel's card wherever its own subject was absent, and a shared
+    # layout rule between poles is exactly what stacked item 32's `Split` below
+    # its own form for three slices while both its checks stayed green. The rail
+    # is repaired under the contracts instead, once for every pole.
+    #
+    # WHY `Panel` AND NOT THE BOLD ONE. Every previous round picked the boldest
+    # pole. Here the argument is COVERAGE, measured: `Panel` and `Plate` both
+    # render on every route in scope, but `Panel` is also the pole that resolves
+    # the census's two-design-languages defect — `/me` is already a centred card
+    # on a tinted ground while `/orders` is flat white, and Panel makes the
+    # second look like the first rather than inventing a third language.
+    "web_style": "Panel",
+}
+
+
 CHROME_DEFAULTS = {
     c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
     for c in CONTAINERS

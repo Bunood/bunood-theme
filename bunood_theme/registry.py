@@ -772,6 +772,41 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "web",
+        # The ELEVENTH surface kit, and the second that is not on the desk.
+        # Item 33.
+        #
+        # ONE LOWERCASE WORD, AND THAT IS LOAD-BEARING RATHER THAN A STYLE
+        # CHOICE. `build.mjs`'s assertRegistryIdentity matches key and part with
+        # /^[a-z]+$/; a key containing an underscore or a digit matches NEITHER
+        # regex, keeps the two counts equal, and is therefore INVISIBLE to the
+        # guard that exists to catch exactly this row being wrong. "web" and not
+        # "portal" because the surface is not only the portal: /404, /message,
+        # every Web Form and every public page an installed app ships are in it,
+        # and "portal" under-describes half of them.
+        #
+        # THE WIDEST SURFACE IN THIS TABLE, and the only one defined by a
+        # DENYLIST. The other ten name what they dress; this one dresses every
+        # template rendered through templates/base.html except the desk, the two
+        # auth templates and printview. Enumerating the rest would be a second
+        # copy of Frappe's route table — measured, twelve erpnext portal routes
+        # collapse onto ONE template, so a route list would have been the wrong
+        # shape as well as the wrong size. See context._is_web_template.
+        "part": "web",
+        "label": "Website & portal",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `body.bnd-web` alone stays, carrying the CONTRACTS --
+        # the focus ring (no control on this surface drew one we recognised) and
+        # nineteen text nodes measured under AA, including /404's only link and
+        # /me's three primary actions.
+        "selector": "body.bnd-web",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

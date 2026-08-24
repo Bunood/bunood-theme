@@ -913,6 +913,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_skeleton_picker(frm);
 		bnd_render_filters_picker(frm);
 		bnd_render_login_picker(frm);
+		bnd_render_web_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -1136,6 +1137,10 @@ const BND_SHELL_GROUPS = [
 			// this pane shows a specimen and never a live preview, and the shell's
 			// change dot is the only feedback a click gives.
 			{ key: "login", label: () => __("Sign In"), anchors: ["login_style"] },
+			// Item 33, and the second entry here whose surface is not on the desk.
+			// Unlike Sign In an admin CAN load these pages, so the missing live
+			// preview needs a different argument — the picker's docblock makes it.
+			{ key: "web", label: () => __("Website & Portal"), anchors: ["web_style"] },
 		],
 	},
 	{
@@ -1248,6 +1253,7 @@ const BND_SHELL_OWNS = {
 	skeleton: { prefixes: ["skeleton_"] },
 	filters: { prefixes: ["filters_"] },
 	login: { prefixes: ["login_"] },
+	web: { prefixes: ["web_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4489,6 +4495,14 @@ const BND_FILTERS_DEFAULTS = {
 // from the guard for exactly as long as it takes to forget. That is the item-25
 // / item-26 escapee's own hiding place. Two lines close it from day one.
 const BND_LOGIN_FIELDS = ["login_style", "login_action", "login_theme"];
+
+/** Client mirror of presets.WEB_FIELDS. Keep in sync — `assertFieldMirrors`
+ * SKIPS a family that has no mirror here, so an absent one is not a warning,
+ * it is a hole. Item 32 closed that hole; do not reopen it. */
+const BND_WEB_FIELDS = ["web_style"];
+const BND_WEB_DEFAULTS = {
+	web_style: "Panel",
+};
 const BND_LOGIN_DEFAULTS = {
 	login_style: "Split",
 	login_action: "Branded",
@@ -5201,6 +5215,124 @@ function bnd_render_login_picker(frm, host) {
 function bnd_login_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_render_login_picker(frm);
+}
+
+/** A 120x72 specimen of one website pole, drawn from the same primitives the
+ * sign-in thumbs use. Every pole changes something STRUCTURAL — what the ground
+ * is, whether the content reads as an object on it — rather than only a colour,
+ * because three pictures of the same thing is the two-options-one-pixel defect
+ * wearing a thumbnail.
+ *
+ * The furniture is a navbar strip and a rail, because that is what the widest
+ * route in this surface actually has. It is a SPECIMEN, not a screenshot: five
+ * of the templates carry no navbar and no rail at all, which the blurbs say. */
+function bnd_web_thumb(o) {
+	const ground = o.ground
+		? `<rect x="0" y="0" width="120" height="72" fill="currentColor" fill-opacity="${o.ground}"/>`
+		: "";
+	const bar =
+		`<rect x="0" y="0" width="120" height="11" fill="currentColor" fill-opacity="${o.bar || 0.03}"/>` +
+		`<rect x="6" y="4" width="20" height="3" rx="1.5" fill="currentColor" fill-opacity="0.55"/>`;
+	const rail =
+		`<rect x="6" y="17" width="17" height="3" rx="1.5" fill="currentColor" fill-opacity="0.3"/>` +
+		`<rect x="6" y="24" width="13" height="3" rx="1.5" fill="currentColor" fill-opacity="0.18"/>`;
+	const card =
+		`<rect x="31" y="16" width="83" height="50" rx="${o.radius === undefined ? 0 : o.radius}"` +
+		(o.card === undefined ? ' fill="none"' : ` fill="currentColor" fill-opacity="${o.card}"`) +
+		(o.ring ? ` stroke="currentColor" stroke-opacity="${o.ring}" stroke-width="1"` : "") +
+		"/>";
+	// A heading and two rows — enough to read as a document at 120px.
+	const row = (y, w, op) =>
+		`<rect x="37" y="${y}" width="${w}" height="3" rx="1.5" fill="currentColor" fill-opacity="${op}"/>`;
+	const inner = row(23, 28, 0.6) + row(34, 71, 0.16) + row(43, 71, 0.16) + row(52, 52, 0.16);
+	return `<svg viewBox="0 0 120 72">${ground}${bar}${rail}${card}${inner}</svg>`;
+}
+
+const BND_WEB_STYLES = [
+	{
+		value: "Original",
+		blurb: () => __("Stock: Frappe's own white page, with the accessibility repairs still applied."),
+		svg: bnd_web_thumb({}),
+	},
+	{
+		value: "Panel",
+		blurb: () => __("The page takes your ground tint and the content becomes an object on it."),
+		svg: bnd_web_thumb({ ground: 0.05, card: 0.02, ring: 0.2, radius: 4 }),
+	},
+	{
+		value: "Plate",
+		blurb: () => __("A brand wash across the page, with the content plate floating on it."),
+		svg: bnd_web_thumb({ ground: 0.14, bar: 0.1, card: 0.02, ring: 0.18, radius: 4 }),
+	},
+];
+
+/** Render the website & portal picker.
+ *
+ * NO LIVE PREVIEW, AND THE ARGUMENT IS NOT THE SIGN-IN KIT'S. That one is
+ * exempt because `www/login.py` redirects an authenticated session to /desk, so
+ * the only person who can open its picker is the only one who cannot see the
+ * page — a hook that cannot act is a lie. THAT PREMISE DOES NOT HOLD HERE: an
+ * admin loads /me and /orders perfectly well. So the mandatory-hook rule applies
+ * again and has to be answered rather than inherited. Three reasons, and they
+ * are about cost and honesty rather than impossibility:
+ *
+ *   1. The anchor is server-rendered into a DIFFERENT document. Any "apply" is a
+ *      page load, and a preview that is a page load is a link.
+ *   2. An iframe would cost desk-side CSS and JS against a budget with 271 and
+ *      420 bytes of headroom.
+ *   3. An iframe of /orders renders the ADMIN'S OWN data, so the preview differs
+ *      per admin and shows a portal that is not the customer's.
+ *
+ * Because there is no client-side apply, `context.WEB_CLASSES` stays THE ONLY
+ * value→slug map — the same property the sign-in kit has, kept for a different
+ * reason. The suite asserts the honest pair instead: the click lands in the
+ * field, and a portal page loaded in a real session carries the chosen class. */
+function bnd_render_web_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "web_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.web_style || BND_WEB_DEFAULTS.web_style;
+	const offered = bnd_field_slots(frm, "web_style");
+	const cards = P.cards(
+		BND_WEB_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-wbp-style" }
+	);
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-wbp">' +
+				bnd_bands([
+					{
+						zone: "style",
+						html:
+							cards +
+							P.note(
+								__(
+									"Applies to the customer portal, web forms, error pages and any public page — not to the desk or the sign-in screens."
+								)
+							),
+					},
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-wbp-style").on("click", function () {
+		bnd_web_set(frm, "web_style", this.getAttribute("data-value"));
+	});
+}
+
+/** Set a website field and re-render. No preview call — see the picker's
+ * docblock for why this kit has none, and why its reason differs from the
+ * sign-in kit's. */
+function bnd_web_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_render_web_picker(frm);
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
@@ -6024,7 +6156,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -6053,7 +6185,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -6094,6 +6226,7 @@ function bnd_sb_import(frm) {
 			bnd_render_skeleton_picker(frm);
 			bnd_render_filters_picker(frm);
 			bnd_render_login_picker(frm);
+			bnd_render_web_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through

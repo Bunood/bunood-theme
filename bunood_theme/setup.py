@@ -42,6 +42,7 @@ from bunood_theme.presets import (
     OVERLAY_DEFAULTS,
     REPORT_DEFAULTS,
     SKELETON_DEFAULTS,
+    WEB_DEFAULTS,
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
@@ -80,6 +81,7 @@ CHECK_DEFAULTS = {
         OVERLAY_DEFAULTS,
         REPORT_DEFAULTS,
         SKELETON_DEFAULTS,
+        WEB_DEFAULTS,
         VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
@@ -166,6 +168,10 @@ DEFAULTS = {
     # body class rather than an <html> attribute, because /login is a website
     # page with no boot payload and no JS.
     **{f: v for f, v in LOGIN_DEFAULTS.items() if not isinstance(v, int)},
+    # Item 33. Same shape as the line above and for the same reason: the website
+    # kit is the SECOND whose anchor is a server-rendered body class rather than
+    # an <html> attribute, because a website page has no boot payload and no JS.
+    **{f: v for f, v in WEB_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
