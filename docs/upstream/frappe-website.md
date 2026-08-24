@@ -287,6 +287,60 @@ compared.
 
 ---
 
+## 10. The four branding seams, and the one that is not a fallback
+
+Not a defect list — a map of what a theme can change from `update_website_context`
+without forking a template. All four are ordinary context keys, all four were
+proved by writing Website Settings directly and watching the page change, and all
+four are resolved **before** our hook runs, which is what makes them assignable.
+
+| seam | rendered at | stock here | note |
+|---|---|---|---|
+| `favicon` | `base.html:16-22` | `erpnext-favicon.svg` | the only seam that is universal — `/404` and `/message` have no navbar and no footer |
+| `banner_image` | `navbar.html:8` | absent | Frappe's own seam for an **image** brand; renders `<img src>` |
+| `brand_html` | `navbar.html:5` | absent → `_("Home")` | a **Code** field, and it WINS over `banner_image` |
+| `footer_powered` | `footer_info.html` | erpnext's include | there is no way to render *nothing*: `""` is falsy and brings the include back |
+
+**The favicon is not a fallback chain you can read off the context.**
+`get_website_settings()` resolves it in three steps before we see it
+(`website_settings.py:251-255`): Frappe's default, then any app's
+`website_context` hook — erpnext ships one at `hooks.py:119` — then the Website
+Settings field. So `context.favicon` cannot distinguish "the administrator chose
+this" from "an app we happen to be installed beside chose this", and reading it
+back looks exactly like confirmation. The field has to be read **directly**. This
+is §1's `data-path` trap in a second place.
+
+**`brand_html` beating `banner_image` is a live hazard, not a curiosity.** A
+tenant who has ever typed into Website Settings' Brand HTML and later attaches a
+logo gets their old text rendered over the image, silently, because the template's
+`if` never reaches the `elif`. Anything setting `banner_image` must clear
+`brand_html` in the same breath.
+
+---
+
+## 11. Frappe's Jinja has no autoescaping, anywhere
+
+`_get_jenv()` builds `FrappeSandboxedEnvironment(loader=get_jloader(),
+undefined=DebugUndefined, cache_size=32)` (`frappe/utils/jinja.py`) — no
+`autoescape` argument, and the string does not appear anywhere in the framework.
+Jinja's default is `False`, so **every `{{ }}` in every website template renders
+raw HTML**.
+
+That is correct for the fields it was chosen for: `brand_html` is documented as
+the place to put an `<img />` tag, and `footer_powered` is a Small Text that
+customers put links in. It is why the framework's own templates escape by hand
+where it matters — `base.html` writes `{{ path | e }}`, `me.html` writes
+`{{ current_user.full_name | e }}`.
+
+Measured rather than inferred: setting `footer_powered` to `ACME <i>Ltd</i>`
+rendered an italic *Ltd* on `/support`. **Anything a theme derives from a Data
+field and pushes through one of these keys must be escaped on the way out** —
+`frappe.utils.escape_html`. Not filed: this is a deliberate design choice of the
+framework, and the burden is correctly on the caller. It is recorded because the
+burden is easy to miss when the seam looks like plain text.
+
+---
+
 ## Not filed, and why
 
 - **RTL geometry works.** `?_lang=ar` on `/orders` swaps to

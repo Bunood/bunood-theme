@@ -280,6 +280,63 @@ function scopes() {
 	return _scopes;
 }
 
+/**
+ * The vendor's own identity — the mark's URL and the name — READ FROM THE PYTHON.
+ * Item 33 slice 7, and the same argument as `scopes()` one function up.
+ *
+ * The NAME is the sharper case of the two. It is not a constant anywhere: it is
+ * `setup.DEFAULTS["company_name"]`, the value seeded into Theme Settings on install
+ * and on every migrate where the field is empty — so on this site, and on a fresh
+ * customer's, the rendered navbar and footer say it because the FIELD says it, not
+ * because any fallback fired. A test that spelled "Bunood" as a literal would pass
+ * identically whether the seams read the tenant's field or ignored it, which is the
+ * whole failure this slice is built to avoid.
+ */
+let _vendor = null;
+function vendor() {
+	if (!_vendor) {
+		const out = benchPy(
+			`from bunood_theme.context import VENDOR_MARK\n` +
+			`from bunood_theme.setup import DEFAULTS\n` +
+			`print("VENDOR=" + json.dumps({"mark": VENDOR_MARK, "name": DEFAULTS["company_name"]}))\n`
+		);
+		const m = out.match(/VENDOR=(\{.*\})/);
+		if (!m) throw new Error("could not read the vendor identity: " + out.slice(-400));
+		_vendor = JSON.parse(m[1]);
+	}
+	return _vendor;
+}
+
+/**
+ * Write a Single's fields directly, then clear cache — for the fields `setSettings`
+ * REFUSES because they are outside MUTABLE_FIELDS, and for Website Settings, which
+ * it does not cover at all.
+ *
+ * EVERY CALLER RESTORES IN A `finally`, and that is not optional here. A branding
+ * field is not a wrong-looking page if a restore is skipped; it is a site whose logo
+ * or company name is a test fixture until somebody notices. The login logo check
+ * established this shape and slice 7 has five more of them.
+ */
+function setSingle(doctype, values) {
+	const lines = Object.entries(values).map(
+		([f, v]) =>
+			`frappe.db.set_single_value(${JSON.stringify(doctype)}, ${JSON.stringify(f)}, ` +
+			`${v === null || v === undefined ? "None" : JSON.stringify(v)})`
+	);
+	benchPy(lines.join("\n") + "\nfrappe.db.commit()\nfrappe.clear_cache()\nprint('ok')\n");
+}
+
+/** Read a Single's fields as a dict — the counterpart of `setSingle`. */
+function getSingle(doctype, fields) {
+	const out = benchPy(
+		`print("SINGLE=" + json.dumps({f: frappe.db.get_single_value(${JSON.stringify(doctype)}, f) ` +
+		`for f in ${JSON.stringify(fields)}}))\n`
+	);
+	const m = out.match(/SINGLE=(\{.*\})/);
+	if (!m) throw new Error(`could not read ${doctype}: ` + out.slice(-400));
+	return JSON.parse(m[1]);
+}
+
 /** Read Theme Settings fields as a dict. */
 function getSettings(fields) {
 	const out = benchPy(
@@ -13000,6 +13057,215 @@ async function main() {
 			}
 			expect(total >= 9, `enough stops across the three routes (${total})`);
 			expectEq(bad.join(" | "), "", "every tab stop draws our ring");
+		});
+
+		// ── The branding seams (slice 7) ────────────────────────────────────
+		//
+		// THE WHOLE CLASS OF CHECK THIS SITE CANNOT DO BY ACCIDENT. `logo` and
+		// `favicon` are unset here and every Website Settings branding field is
+		// empty, so a check that merely loads a page cannot tell a working
+		// override from a guard that skipped. Item 32 shipped its logo override
+		// for three slices on exactly that confusion. Each check below therefore
+		// asserts the SHIPPED render first — naming the vendor string that must
+		// NOT be there — and only then writes a field.
+		//
+		// All three read the seam out of the DOM rather than out of the response
+		// body, because `abs_url` and the vendor templates both get to touch these
+		// values on the way out and the browser is the only reader that matters.
+		//
+		// `bust: true` on every fetch after a write. Frappe's website cache is
+		// keyed on `(path, lang)` and refuses any request carrying a query string,
+		// which is the cheapest defeat available — without it these read whatever
+		// the previous case rendered, silently. Slice 6 is why `withGuest` has it.
+		const seam = (route, waitSel = null) =>
+			withGuest(
+				route,
+				waitSel,
+				async (gp) =>
+					gp.evaluate(() => {
+						const icon = document.querySelector('link[rel="shortcut icon"]');
+						const brand = document.querySelector(".navbar-brand");
+						const powered = document.querySelector(".footer-powered");
+						return {
+							favicon: icon ? icon.getAttribute("href") : null,
+							brand: brand ? brand.innerHTML.replace(/\s+/g, " ").trim() : null,
+							brandText: brand ? (brand.textContent || "").trim() : null,
+							brandImg: brand ? !!brand.querySelector("img") : false,
+							powered: powered ? powered.innerHTML.replace(/\s+/g, " ").trim() : null,
+							poweredText: powered ? (powered.textContent || "").trim() : null,
+						};
+					}),
+				{ bust: true }
+			);
+
+		await test("web: the tab icon is ours, and the tenant's beats it", async () => {
+			// D7. The mark a stranger sees before the page paints, and the ONLY
+			// seam on this surface that is universal: `/404` and `/message` have no
+			// navbar and no footer, so on those routes it is the entire kit.
+			//
+			// THE PRECEDENCE IS THE ASSERTION, not the value. Three layers, and the
+			// middle one is why this is not a one-line override: Website Settings'
+			// own `favicon` is an explicit choice by the same administrator, so it
+			// must beat our default while still losing to Theme Settings, which is
+			// the surface this theme tells them to brand from.
+			//
+			// The context value CANNOT tell those apart on its own —
+			// `website_settings.py:251-255` resolves Frappe's default, then any
+			// `website_context` hook (erpnext ships one), then the field, all before
+			// our hook runs. So the field is read directly and the hook's value is
+			// simply not in the chain. That is exactly the shape of item 33's
+			// `data-path` trap: reading back what the platform already computed
+			// looks like confirmation and is not.
+			const V = vendor();
+			const OTHER = "/assets/frappe/images/frappe-favicon.svg";
+			const ERP = "/assets/erpnext/images/erpnext-favicon.svg";
+			const before = {
+				ts: getSingle("Theme Settings", ["favicon"]),
+				ws: getSingle("Website Settings", ["favicon"]),
+			};
+			try {
+				// A URL nothing serves is a broken tab icon, and it fails silently:
+				// the browser shows the default and no check that reads the href
+				// notices. Asserted before anything that depends on it.
+				const res = await fetch(`${URL_BASE}${V.mark}`);
+				expectEq(res.status, 200, `the vendor mark is actually served (${V.mark})`);
+				expect(
+					(res.headers.get("content-type") || "").includes("svg"),
+					`and as an image (${res.headers.get("content-type")})`
+				);
+
+				const shipped = await seam("/support");
+				expect(
+					shipped.favicon && shipped.favicon.includes(V.mark),
+					`unset, the tab icon is OURS, not the framework's (${shipped.favicon})`
+				);
+				expect(!(shipped.favicon || "").includes("erpnext"), "and erpnext's mark is gone");
+
+				// The route with no navbar and no footer. If the favicon were wired
+				// anywhere but the shared path, this is where it would be missing.
+				const bare = await seam("/404");
+				expect(
+					bare.favicon && bare.favicon.includes(V.mark),
+					`including on a page with no other chrome at all (${bare.favicon})`
+				);
+				expectEq(bare.brand, null, "which is a page with no navbar, as measured");
+
+				setSingle("Website Settings", { favicon: ERP });
+				const site = await seam("/support");
+				expect(
+					(site.favicon || "").includes("erpnext"),
+					`Website Settings' own value beats our default (${site.favicon})`
+				);
+
+				setSingle("Theme Settings", { favicon: OTHER });
+				const tenant = await seam("/support");
+				expect(
+					(tenant.favicon || "").includes("frappe-favicon"),
+					`and Theme Settings beats BOTH — same fact, more specific surface (${tenant.favicon})`
+				);
+			} finally {
+				setSingle("Theme Settings", before.ts);
+				setSingle("Website Settings", before.ws);
+			}
+		});
+
+		await test("web: the navbar brand is the tenant's, never the framework's", async () => {
+			// D5. `navbar.html:4-11` is an if/elif/else over `brand_html`,
+			// `banner_image` and — last — `frappe.get_hooks("brand_html") or
+			// _("Home")`. Stock, this site rendered the literal word "Home" on
+			// every route that has a navbar.
+			//
+			// THE MUTUAL EXCLUSION IS THE POINT. `brand_html` WINS over
+			// `banner_image` in the template, so a tenant who attaches a logo while
+			// a `brand_html` sits in Website Settings would see their old text
+			// covering our image. The code clears it; this is the case that would
+			// otherwise be discovered by a customer.
+			const V = vendor();
+			const LOGO = "/assets/frappe/images/frappe-favicon.svg";
+			const before = {
+				ts: getSingle("Theme Settings", ["company_name", "logo"]),
+				ws: getSingle("Website Settings", ["brand_html", "banner_image"]),
+			};
+			try {
+				const shipped = await seam("/support");
+				expectEq(shipped.brandText, V.name, "unset, the brand is the tenant's name");
+				expect(shipped.brand.includes("<span>"), `wrapped as the vendor's own arm wraps it (${shipped.brand})`);
+				expect(shipped.brandText !== "Home", "and Frappe's fallback literal is gone");
+
+				setSingle("Theme Settings", { company_name: "ACME Trading" });
+				expectEq((await seam("/support")).brandText, "ACME Trading", "set, it is what the field says");
+
+				// ESCAPING, and it is not decoration. Frappe builds its Jinja env
+				// with no `autoescape`, so `{{ brand_html }}` renders RAW — proved
+				// by setting the vendor's own field to `ACME <i>Ltd</i>` and getting
+				// an italic "Ltd". This is a Data field an administrator types into.
+				setSingle("Theme Settings", { company_name: 'ACME <b>bold</b> & "co"' });
+				const esc = await seam("/support");
+				expectEq(esc.brandText, 'ACME <b>bold</b> & "co"', "markup in the name renders as TEXT");
+				expect(!/<b>/i.test(esc.brand), `and never as markup (${esc.brand})`);
+
+				// CLEARED, not merely unset — the branch that must not restore a
+				// vendor's mark. Without the fallback this drops to `_("Home")`.
+				setSingle("Theme Settings", { company_name: "" });
+				expectEq((await seam("/support")).brandText, V.name, "cleared, it falls back to us and never to Home");
+				setSingle("Theme Settings", { company_name: before.ts.company_name });
+
+				setSingle("Website Settings", { brand_html: "<b>THEIR MARKUP</b>" });
+				const theirs = await seam("/support");
+				expect(theirs.brand.includes("THEIR MARKUP"), `an explicit Website Settings brand survives us (${theirs.brand})`);
+
+				// Same state plus a logo: the image must win AND the text must go.
+				setSingle("Theme Settings", { logo: LOGO });
+				const withLogo = await seam("/support");
+				expect(withLogo.brandImg, `a tenant logo renders as an image (${withLogo.brand})`);
+				expect(
+					!withLogo.brand.includes("THEIR MARKUP"),
+					`and clears the brand_html that would otherwise cover it (${withLogo.brand})`
+				);
+			} finally {
+				setSingle("Theme Settings", before.ts);
+				setSingle("Website Settings", before.ws);
+			}
+		});
+
+		await test("web: no footer on this site says Powered by ERPNext", async () => {
+			// D6. `footer_info.html` renders `footer_powered` when set and otherwise
+			// includes `footer_powered.html` — which erpnext SHADOWS with "Powered
+			// by {0}" pointing at frappe.io. Measured on four routes before this
+			// existed.
+			//
+			// THERE IS NO WAY TO RENDER NOTHING THROUGH THIS SEAM: an empty string
+			// is falsy and brings the vendor's include straight back. So the honest
+			// options are the tenant's name or the vendor's, and the assertion is
+			// that the link is gone rather than that the slot is.
+			const V = vendor();
+			const before = {
+				ts: getSingle("Theme Settings", ["company_name"]),
+				ws: getSingle("Website Settings", ["footer_powered"]),
+			};
+			try {
+				const shipped = await seam("/support");
+				expectEq(shipped.poweredText, V.name, "the footer names the tenant");
+				expect(!/erpnext/i.test(shipped.powered), `and erpnext is not in it (${shipped.powered})`);
+				expect(!/<a\b/i.test(shipped.powered), "nor the outbound link it carried");
+
+				setSingle("Theme Settings", { company_name: "ACME Trading" });
+				expectEq((await seam("/support")).poweredText, "ACME Trading", "set, it is what the field says");
+
+				setSingle("Theme Settings", { company_name: "" });
+				expectEq((await seam("/support")).poweredText, V.name, "cleared, it falls back to us and never to erpnext");
+				setSingle("Theme Settings", { company_name: before.ts.company_name });
+
+				setSingle("Website Settings", { footer_powered: "ACME Ltd, est. 1994" });
+				expectEq(
+					(await seam("/support")).poweredText,
+					"ACME Ltd, est. 1994",
+					"an explicit Website Settings value survives us"
+				);
+			} finally {
+				setSingle("Theme Settings", before.ts);
+				setSingle("Website Settings", before.ws);
+			}
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

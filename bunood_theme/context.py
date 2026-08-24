@@ -15,8 +15,11 @@ WHAT
       ``body_class`` that ``web/_login.scss`` scopes to, puts the brand sheet on
       ``web_include_css``, and replaces Frappe's app logo with Theme Settings'.
     * **every other website template** — item 33. Sets the ``body_class`` that the
-      website half of ``web/web.scss`` scopes to. See :func:`_is_web_template` for why
-      this is a denylist and why it keys on the template rather than the route.
+      website half of ``web/web.scss`` scopes to, and (slice 7) replaces the four
+      branding seams a stranger actually reads: the tab icon, the navbar brand and
+      the footer's "Powered by". See :func:`_is_web_template` for why this is a
+      denylist and why it keys on the template rather than the route, and
+      :func:`_vendor_marks` for the precedence those seams follow.
 
     The last two are the whole delivery mechanism for surface kits that are not on
     the desk: there is no ``frappe.boot`` on a website page and no ``bunood.js``, so a
@@ -191,6 +194,153 @@ WEB_CLASSES = {
 #: named here so the reason is discoverable.
 AUTOMATIC = "Automatic"
 
+#: THE VENDOR'S OWN MARK — item 33 slice 7. One file, two uses (the browser-tab
+#: favicon and, from slice 7b, the desk splash), because a mark that drifts between
+#: the tab and the splash is the same-fact-in-two-places trap with a picture on it.
+#:
+#: IT IS A REPLACEMENT, NOT A FALLBACK, and that distinction is the slice. Frappe
+#: ships ``frappe-favicon.svg`` and erpnext's ``website_context`` hook overrides it
+#: with ``erpnext-favicon.svg`` (``erpnext/hooks.py:119``), so a tenant who has
+#: configured nothing publishes a site whose tab icon advertises a product they did
+#: not buy. This theme is the white-label layer; the last resort is ours, never
+#: theirs. Anything the tenant sets still wins — see :func:`_vendor_marks`.
+VENDOR_MARK = "/assets/bunood_theme/images/bunood-mark.svg"
+
+
+def _vendor_name():
+    """The name shown when the tenant has not set one — read, never restated.
+
+    ``setup.py``'s ``DEFAULTS`` seeds ``company_name`` on install and on every
+    migrate where the field is empty, so on a fresh site the value IS this string
+    and the seams below need no fallback at all. The fallback exists for the site
+    that has deliberately CLEARED the field: without it a blank ``company_name``
+    would drop the navbar back to Frappe's ``_("Home")`` and the footer back to
+    erpnext's "Powered by" include, which is the one outcome this slice exists to
+    prevent — an empty tenant field must never restore a vendor's mark.
+
+    Derived from the seeder rather than spelled again here: two copies of a brand
+    name is the trap this repo names first, and the copy that goes stale is always
+    the one nobody is looking at.
+    """
+    from bunood_theme.setup import DEFAULTS
+
+    return DEFAULTS["company_name"]
+
+
+def _tenant_branding():
+    """The four Theme Settings fields a tenant brands with, read in one place.
+
+    ``company_name``/``logo``/``favicon``/``tagline`` are the Branding section of
+    Theme Settings — the surface a tenant is told to use. They are deliberately
+    OUTSIDE ``MUTABLE_FIELDS``, because a failed restore of a branding field is
+    permanent damage rather than a wrong-looking page, which is also why every
+    check that exercises one writes it directly and restores in a ``finally``.
+
+    ``tagline`` is not read here: it is baked into the brand stylesheet by
+    ``brand.py`` (it is in ``BRAND_INPUTS``), not injected through the render
+    context, and reading it in two places is how it would come to mean two things.
+    """
+    return {
+        field: frappe.get_cached_value("Theme Settings", "Theme Settings", field) or ""
+        for field in ("company_name", "logo", "favicon")
+    }
+
+
+def _vendor_marks(context):
+    """Replace the framework's identity with ours, wherever the tenant has none.
+
+    ITEM 33 SLICE 7, and the shape of the precedence is the whole design:
+
+        the tenant's Theme Settings value  >  their Website Settings value  >  ours
+
+    The first step is item 32's rule, unchanged: where Theme Settings holds THE SAME
+    FACT, it wins outright, because it is the surface this theme tells a tenant to
+    brand from and ``get_app_logo``/``get_website_settings`` never look at it. The
+    second step is why this is not simply an assignment: Website Settings' own
+    ``favicon`` is an explicit choice by the same person, and clobbering it with a
+    vendor default would be a regression dressed as a feature.
+
+    THE THIRD STEP IS THE ONE THAT NEEDED WRITING DOWN. By the time this hook runs,
+    ``context.favicon`` has already been resolved by ``get_website_settings``
+    (``website_settings.py:251-255``): Frappe's default, overridden by any
+    ``website_context`` hook — erpnext ships one — overridden by Website Settings'
+    field. So the context value cannot tell "the tenant chose this" from "an app we
+    happen to be installed beside chose this", and reading it back would look
+    exactly like confirmation. The Website Settings field is therefore read
+    DIRECTLY, and the vendor's hook value is simply not part of the chain.
+
+    Called from the website branch only in this slice. The desk and auth branches
+    render the same ``<head>`` and carry the same mark; wiring them is slice 7b,
+    left out here so the commit that adds three call sites is not also the commit
+    that decides what they call.
+    """
+    tenant = _tenant_branding()
+    site = frappe.get_cached_value("Website Settings", "Website Settings", "favicon") or ""
+    context.favicon = tenant["favicon"] or site or VENDOR_MARK
+
+
+def _web_chrome(context):
+    """The tenant's name and mark in the navbar and the footer — item 33 slice 7.
+
+    THREE SEAMS, ALL OF THEM PLAIN CONTEXT KEYS, all proven by writing Website
+    Settings directly and watching the page change before a line of this was
+    written:
+
+    * ``banner_image`` — ``navbar.html:8`` renders it as ``<img>``. This is
+      Frappe's own seam for an image brand, which is why the logo goes here rather
+      than into hand-built ``<img>`` markup in ``brand_html``.
+    * ``brand_html`` — ``navbar.html:5``, and it WINS over ``banner_image``, so the
+      two are mutually exclusive by construction here exactly as they are in the
+      template's own ``if``/``elif``. Set only when there is no logo to show.
+    * ``footer_powered`` — ``footer_info.html``. Unset, the template includes
+      ``footer_powered.html``, which erpnext shadows with "Powered by ERPNext".
+      There is no way to render NOTHING through this seam: an empty string is
+      falsy and brings the vendor's include straight back, so the honest options
+      are the tenant's name or the vendor's, and this theme picks the tenant's.
+
+    ESCAPING IS OURS, AND THAT IS NOT A STYLE PREFERENCE. Frappe builds its Jinja
+    environment as ``FrappeSandboxedEnvironment(loader=…, undefined=DebugUndefined,
+    cache_size=32)`` (``frappe/utils/jinja.py``) with no ``autoescape`` argument, so
+    autoescaping is OFF site-wide — which is correct for ``brand_html``, a Code
+    field whose documented purpose is to hold an ``<img>`` tag, and is why
+    ``base.html`` writes ``{{ path | e }}`` and ``me.html`` writes
+    ``{{ … full_name | e }}`` by hand. Measured, not inferred: ``footer_powered``
+    set to ``ACME <i>Ltd</i>`` rendered an italic "Ltd". ``company_name`` is a Data
+    field an administrator types into, so it goes through ``escape_html`` on the way
+    out. This is the sibling of ``brand._css_string``, one language over.
+
+    THE ``<span>`` IS DELIBERATE. ``navbar.html``'s own fallback arm wraps the name
+    in one, and slice 5's branded-header ink is sized against ``.navbar-brand``; a
+    seam that changes the DOM shape underneath a rule that was measured against the
+    old one is how a green check starts describing a page that no longer exists.
+
+    WEBSITE SETTINGS WINS OVER THE DERIVATION, unlike the favicon above, and the
+    asymmetry is the point rather than an oversight. ``favicon`` is the SAME FACT in
+    two places, so the more specific surface takes it. ``brand_html`` is not
+    ``company_name``: a tenant who wrote markup into that field expressed something
+    strictly more specific than "my company is called X", and overwriting it with a
+    name would discard a choice to apply a derivation. A logo, being the same fact
+    as the brand image, still wins outright — and then ``brand_html`` must be
+    CLEARED, or the template's ``if`` would render their old text over our image.
+    """
+    from frappe.utils import escape_html
+
+    tenant = _tenant_branding()
+    site = {
+        field: frappe.get_cached_value("Website Settings", "Website Settings", field) or ""
+        for field in ("brand_html", "banner_image", "footer_powered")
+    }
+    name = escape_html(tenant["company_name"] or _vendor_name())
+
+    if tenant["logo"]:
+        context.banner_image = tenant["logo"]
+        context.brand_html = ""
+    elif not (site["brand_html"] or site["banner_image"]):
+        context.brand_html = f"<span>{name}</span>"
+
+    if not site["footer_powered"]:
+        context.footer_powered = name
+
 
 def desk_context(context):
     """Append the per-site brand stylesheet to the desk's ``<head>``.
@@ -317,13 +467,14 @@ def _is_web_template(template):
 
 
 def _web_context(context):
-    """Dress the website and portal — item 33, slice 1: the scope and nothing else.
+    """Dress the website and portal — item 33: the scope, the anchor, the seams.
 
-    ONE THING ONLY, deliberately. The brand stylesheet, the anchor, the two axes
-    and the branding seams all hang off this class, and every one of them is a
-    later slice. Landing the scope alone means the commit that adds the first rule
-    has a scope that is already proven on six templates through five renderers,
-    rather than proving both at once and being unable to say which half was wrong.
+    IT LANDED AS THE SCOPE AND NOTHING ELSE (slice 1), deliberately, and everything
+    below it arrived one slice at a time: the brand stylesheet, the anchor and its
+    two axes, and now the branding seams. Landing the scope alone meant the commit
+    that added the first rule had a scope already proven on six templates through
+    five renderers, rather than proving both at once and being unable to say which
+    half was wrong.
 
     APPENDED, NEVER ASSIGNED, for the reason item 32 recorded: another app or a
     Website Settings value may already have put a class on ``<body>``, and
@@ -365,6 +516,15 @@ def _web_context(context):
     context.body_class = " ".join(classes)
 
     _add_brand_sheet(context)
+
+    # THE BRANDING SEAMS (slice 7). Four context keys, none of which this site
+    # could exercise without a deliberate write — `logo` and `favicon` are unset
+    # here and every Website Settings branding field is empty, so a check that
+    # merely loads a page is green whether these lines work or not. That is the
+    # trap item 32's logo override sat in for three slices, and every check for
+    # these asserts the stock render FIRST.
+    _vendor_marks(context)
+    _web_chrome(context)
 
 
 def _add_brand_sheet(context):

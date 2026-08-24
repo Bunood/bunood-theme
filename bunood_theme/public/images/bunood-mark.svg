@@ -1,0 +1,22 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bunood">
+	<!--
+		The vendor mark. ONE FILE, TWO USES: the browser-tab favicon on every page
+		and the desk splash image. Deliberately not two files — the same fact in two
+		places is the trap this repo names first, and a mark that drifts between the
+		tab and the splash is exactly that.
+
+		WHY A PATH AND NOT `<text>`: an SVG favicon is rasterised by the browser
+		with no guarantee about available fonts, and a splash renders before any
+		webfont has loaded. Frappe's and erpnext's own marks are paths for the same
+		reason; this one sits beside them in a tab strip.
+
+		THE FILL IS THE SHIPPED SEED (#4d8756) AS A LITERAL, and that is the one
+		place in this repo where a raw hex is correct: a vendor mark does not follow
+		a tenant's palette. A tenant who wants their own colours attaches their own
+		favicon and logo in Theme Settings -> Branding, which wins over this file.
+		The "tokens, never raw hex" rule governs RULES in a stylesheet; this is an
+		image asset, outside the palette derivation and outside the contrast gate.
+	-->
+	<rect width="100" height="100" rx="12" fill="#4d8756"/>
+	<path fill-rule="evenodd" clip-rule="evenodd" fill="#ffffff" d="M30 22H50A14 14 0 0 1 50 50H54A14 14 0 0 1 54 78H30ZM43 32H49A4 4 0 0 1 49 40H43ZM43 60H53A4 4 0 0 1 53 68H43Z"/>
+</svg>
