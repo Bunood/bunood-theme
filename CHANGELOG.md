@@ -12,6 +12,22 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+**The invoice QR now works under ZATCA Phase 1, not only Phase 2.**
+`bunood_zatca_qr_src` knew two sources — an image field on the invoice and
+ksa_compliance's "Sales Invoice Additional Fields" record — and both exist only
+once Phase 2 (integration) is live. A company on Phase 1 (generation), which is
+every company before its ZATCA wave, printed **no QR at all** from the themed
+formats, and the simplified format showed its "not valid as a simplified tax
+invoice" warning on perfectly valid invoices. The helper now falls back to
+ksa_compliance's own print-time Phase-1 generator
+(`get_zatca_phase_1_qr_for_invoice` — the TLV of seller, VAT number, timestamp,
+grand total and VAT), returned as a `data:` URI. Verified on the dev bench:
+fail-first baseline (no QR on three formats), then QR present on all three and
+the TLV decoded back to exactly tags 1–5 with the invoice's own values; a
+Disabled settings row returns the helper to inert, and a site without
+ksa_compliance never reaches the import. Phase 1 and Phase 2 cannot both be
+Active (their app validates that), so the source order cannot double-serve.
+
 ## [0.20.0] — 2026-08-19 — Overlays (item 28)
 
 ### Overlays get a hand (item 28 — dialogs, dropdowns, toasts)
