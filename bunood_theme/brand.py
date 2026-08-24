@@ -193,7 +193,7 @@ def render_brand_css(settings=None) -> str:
     # map is the one place a login value becomes a class name; writing
     # "bnd-auth-theme-dark" here as a string would be the second copy, and this
     # repo's every critical defect traces to one.
-    from bunood_theme.context import AUTH_BODY_CLASS, AUTH_CLASSES, WEB_BODY_CLASS
+    from bunood_theme.context import AUTH_BODY_CLASS, AUTH_CLASSES, WEB_BODY_CLASS, WEB_CLASSES
 
     _modes = AUTH_CLASSES["login_theme"]
     _dark_cls = f"body.{AUTH_BODY_CLASS}-{_modes['Always Dark']}"
@@ -214,13 +214,22 @@ def render_brand_css(settings=None) -> str:
     # all, and no value comparison on this site could have told a wrong dark
     # palette from a right one because our seed IS the shipped one.
     #
-    # ONLY THE FOLLOW-OS ARM, and that is deliberate rather than an omission.
-    # `web_theme`'s Always Light / Always Dark poles are slice 6; their classes do
-    # not exist yet, so writing `:not(.bnd-web-theme-light)` here would ship a
-    # guard nothing can satisfy and no check can exercise — the untested-branch
-    # trap, volunteered. Slice 6 adds the `:not()` pair and the `_dark_cls` entry
-    # together with the axis, in the commit where they can be tested.
-    _follow += f", body.{WEB_BODY_CLASS}"
+    # BOTH ARMS NOW (slice 6). Slice 2b shipped only the follow-OS one, because
+    # `web_theme`'s classes did not exist yet and a guard nothing can satisfy is
+    # the untested-branch trap volunteered rather than inherited. They arrive here
+    # with the axis, so both are exercised by the same commit.
+    #
+    # DERIVED FROM `WEB_CLASSES`, never restated — the same rule the auth arm
+    # above follows, and for the same reason: that map is the ONE place a value
+    # becomes a class name, and writing "bnd-web-theme-dark" here as a string
+    # would be the second copy this repo's every critical defect traces to.
+    _web_modes = WEB_CLASSES["web_theme"]
+    _dark_cls += f", body.{WEB_BODY_CLASS}-{_web_modes['Always Dark']}"
+    _follow += (
+        f", body.{WEB_BODY_CLASS}"
+        f":not(.{WEB_BODY_CLASS}-{_web_modes['Always Light']})"
+        f":not(.{WEB_BODY_CLASS}-{_web_modes['Always Dark']})"
+    )
 
     # The tagline, which Theme Settings has promised on this page since day one
     # and never delivered. Its slot is a LITERAL in Frappe's own template

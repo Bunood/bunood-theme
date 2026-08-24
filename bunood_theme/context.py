@@ -179,6 +179,9 @@ WEB_CLASSES = {
     # because the navbar is chrome present under every pole. Neutral is the
     # absence of the class, as every neutral in this repo is.
     "web_header": {"Neutral": "", "Branded": "header-branded"},
+    # The mode axis. Composes with everything: it decides which palette the page
+    # paints in, and both the contracts and the poles paint in whichever it picks.
+    "web_theme": {"Follow OS": "", "Always Light": "theme-light", "Always Dark": "theme-dark"},
 }
 
 #: ``User.desk_theme`` is a Literal["Light", "Dark", "Automatic"]. Frappe renders it

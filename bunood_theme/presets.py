@@ -820,6 +820,7 @@ SHIPPED_CONTAINERS = ("topbar", "pagehead", "dock", "sidepane", "bottombar")
 WEB_FIELDS = [
     "web_style",
     "web_header",
+    "web_theme",
 ]
 
 #: The shipped website/portal defaults -- the item-33 wireframe round, closed
@@ -865,6 +866,14 @@ WEB_DEFAULTS = {
     # is coherent under any geometry -- the Shopify/Stripe minimal-portal look --
     # whereas login's branded CTA sits INSIDE the card that Original leaves stock.
     "web_header": "Branded",
+    # THE MODE AXIS, an exact mirror of `login_theme` and for the same reasons.
+    # `Follow OS` is the NEUTRAL -- no class, no rule -- and it is the default
+    # because a website visitor is not a user: there is no stored preference to
+    # read, so their device is the only signal that exists. It is also the only
+    # pole that is CACHE-SAFE BY CONSTRUCTION: it resolves in a media query on
+    # the client, while the two `Always` poles are site state baked into HTML
+    # Frappe caches under a key of (path, lang) and nothing else.
+    "web_theme": "Follow OS",
 }
 
 

@@ -4499,10 +4499,11 @@ const BND_LOGIN_FIELDS = ["login_style", "login_action", "login_theme"];
 /** Client mirror of presets.WEB_FIELDS. Keep in sync — `assertFieldMirrors`
  * SKIPS a family that has no mirror here, so an absent one is not a warning,
  * it is a hole. Item 32 closed that hole; do not reopen it. */
-const BND_WEB_FIELDS = ["web_style", "web_header"];
+const BND_WEB_FIELDS = ["web_style", "web_header", "web_theme"];
 const BND_WEB_DEFAULTS = {
 	web_style: "Panel",
 	web_header: "Branded",
+	web_theme: "Follow OS",
 };
 const BND_LOGIN_DEFAULTS = {
 	login_style: "Split",
@@ -5257,6 +5258,16 @@ const BND_WEB_GROUPS = [
 		options: [
 			{ value: "Neutral", name: () => __("Neutral") },
 			{ value: "Branded", name: () => __("Branded") },
+		],
+	},
+	{
+		field: "web_theme",
+		title: () => __("Website Theme"),
+		desc: () => __("A website visitor has no stored preference, so the default follows their device."),
+		options: [
+			{ value: "Follow OS", name: () => __("Follow OS") },
+			{ value: "Always Light", name: () => __("Always Light") },
+			{ value: "Always Dark", name: () => __("Always Dark") },
 		],
 	},
 ];

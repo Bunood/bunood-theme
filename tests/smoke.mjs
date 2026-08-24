@@ -542,7 +542,16 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
  * `.body-sidebar-container`, which no website page has.
  */
 async function withGuest(route, waitSel, fn, opts = {}) {
-	const { width = 1440, height = 900, lang = null, colorScheme = null } = opts;
+	// `bust` MIRRORS `withPortalUser`'s, and item 33 slice 6 is why it is here
+	// too. Frappe's website HTML cache is keyed on `(path, lang)` and NOTHING
+	// else, so a guest page fetched right after a settings write can be served
+	// from before it — which reads exactly like the setting never applying.
+	// `can_cache()` (`website/utils.py:49-58`) returns False when the request
+	// carries a query string, so appending one takes the uncached path
+	// deliberately. OFF BY DEFAULT, and that is the honest default: a real
+	// visitor gets the cached render, so a check that always busts is measuring
+	// a branch production never uses.
+	const { width = 1440, height = 900, lang = null, colorScheme = null, bust = false } = opts;
 	const ctx = await browser.newContext({
 		viewport: { width, height },
 		...(colorScheme ? { colorScheme } : {}),
@@ -561,15 +570,16 @@ async function withGuest(route, waitSel, fn, opts = {}) {
 		}
 	});
 	gp.on("pageerror", (e) => errs.push("pageerror: " + e.message));
+	const url = `${URL_BASE}${route}${bust ? (route.includes("?") ? "&" : "?") + "bnd=" + Date.now() : ""}`;
 	try {
 		// The same single retry goDesk carries, for the same reason: Docker
 		// Desktop's host-port proxy drops occasionally and one blip must not
 		// fail the matrix.
 		try {
-			await gp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+			await gp.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
 		} catch (first) {
 			await gp.waitForTimeout(4000);
-			await gp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+			await gp.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
 		}
 		if (waitSel) await gp.waitForSelector(waitSel, { timeout: 30000 });
 		return await fn(gp, errs);
@@ -942,7 +952,7 @@ const MUTABLE_FIELDS = [
 	// on /login and /update-password, so a check for it must drive a guest
 	// context (see withGuest).
 	"login_style", "login_action", "login_theme",
-	"web_style", "web_header",
+	"web_style", "web_header", "web_theme",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -12698,6 +12708,82 @@ async function main() {
 				}
 			} finally {
 				setSettings(before);
+			}
+		});
+
+		await test("web: the theme axis overrides the device, both ways", async () => {
+			// THE CROSS PRODUCT, because either half alone proves nothing. A check
+			// that only set `Always Dark` on a dark device would pass against a kit
+			// that ignored the field entirely; one that only set `Always Light` on a
+			// light device would too. So: each of the three poles against BOTH
+			// emulated devices, and the assertion is about what the page resolved,
+			// not what was stored.
+			//
+			// EVERY FETCH BUSTS THE CACHE, and that is measured behaviour rather
+			// than superstition. Frappe's website HTML cache is keyed on
+			// `(path, lang)` and nothing else, so a page fetched right after a
+			// settings write can be served from before it — the value would look
+			// like it never applied. `can_cache()` returns False when the request
+			// carries a query string, which is exactly what `withGuest`/
+			// `withPortalUser`'s `bust` option appends. It is OFF by default there
+			// on purpose (a real visitor gets the cached render); this check is the
+			// case that needs it on.
+			//
+			// Read from `document.body`, never `documentElement`: every dark scope
+			// on a website page is a BODY class while the brand sheet's light block
+			// is `html:not([data-theme])`, so `<html>` resolves light in both modes
+			// by construction and a check reading it reports "dark equals light"
+			// against a perfectly correct stylesheet. Slice 2b paid for that one.
+			const before = getSettings(["web_theme"]);
+			try {
+				const read = (theme, device) => {
+					setSettings({ web_theme: theme });
+					return withGuest(
+						"/404-bnd-theme-probe",
+						null,
+						async (gp) =>
+							gp.evaluate(() => {
+								const cs = getComputedStyle(document.body);
+								return {
+									page: cs.getPropertyValue("--bnd-page").trim(),
+									cls: document.body.className.trim(),
+								};
+							}),
+						{ colorScheme: device, bust: true }
+					);
+				};
+
+				const followLight = await read("Follow OS", "light");
+				const followDark = await read("Follow OS", "dark");
+				expect(
+					followLight.page && followDark.page && followLight.page !== followDark.page,
+					`Follow OS tracks the device (light ${followLight.page}, dark ${followDark.page})`
+				);
+				// The neutral emits no class — a stand-down that costs no rule and
+				// cannot be half-applied, as every neutral in this repo is.
+				expect(
+					!/bnd-web-theme-/.test(followLight.cls),
+					`Follow OS is the ABSENCE of a theme class (${followLight.cls})`
+				);
+
+				// THE TWO OVERRIDES, each asserted against the device that would
+				// otherwise win. This is the pair that would go red if the `:not()`
+				// guards slice 2b deferred were missing: without them, an
+				// Always-Light site still flips on a dark OS.
+				const lightOnDark = await read("Always Light", "dark");
+				expectEq(
+					lightOnDark.page,
+					followLight.page,
+					"Always Light holds its palette on a dark device"
+				);
+				const darkOnLight = await read("Always Dark", "light");
+				expectEq(
+					darkOnLight.page,
+					followDark.page,
+					"Always Dark holds its palette on a light device"
+				);
+			} finally {
+				setSettings({ web_theme: before.web_theme });
 			}
 		});
 

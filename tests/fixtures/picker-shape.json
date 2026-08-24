@@ -61,6 +61,7 @@
   "login_theme": "Follow OS",
   "web_style": "Panel",
   "web_header": "Branded",
+  "web_theme": "Follow OS",
   "palette_style": "Bunood Palette",
   "inbox_style": "Inbox + Page",
   "inbox_placement": "Top Bar End",
@@ -2289,9 +2290,9 @@
    ]
   },
   "web_picker": {
-   "n": 62,
+   "n": 74,
    "svgs": 3,
-   "text": 433,
+   "text": 559,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-wbp",
@@ -2354,6 +2355,18 @@
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "div.bnd-cbp-group",
+    "div.bnd-cbp-title",
+    "button.bnd-cbp-reset",
+    "span.",
+    "div.bnd-cbp-desc",
+    "div.bnd-cbp-row",
+    "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
     "span.bnd-cbp-oname"
    ]
   },

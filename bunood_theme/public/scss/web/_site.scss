@@ -48,18 +48,28 @@
 // zero from `website.bundle` or `erpnext-web.bundle`. Frappe ships no dark mode
 // for its website at all.
 //
-// NO `:not()` PAIR HERE YET, AND THAT IS DELIBERATE. `_login.scss`'s twin excludes
-// `.bnd-auth-theme-light` and `.bnd-auth-theme-dark` because `login_theme` gives a
-// site an explicit override. `web_theme` is slice 6; its classes do not exist yet,
-// so writing the guards now would ship a selector nothing can satisfy and no check
-// can exercise — a branch whose guard is false on the dev site is UNTESTED, not
-// working, and volunteering one is worse than inheriting it. Slice 6 adds the
-// `:not()` pair and the explicit `body.bnd-web-theme-dark` block together with the
-// axis, in the commit where both can be measured.
+// THE `:not()` PAIR ARRIVED IN SLICE 6, WITH THE AXIS THAT MAKES IT MEAN
+// SOMETHING. Slice 2b deliberately shipped this block bare: `web_theme`'s classes
+// did not exist then, so writing the guards would have been a selector nothing
+// could satisfy and no check could exercise — volunteering the untested-branch
+// trap rather than inheriting it. They land here, in the commit where both halves
+// can be measured together.
+//
+// `Follow OS` is the ABSENCE of a theme class, so the media query has to EXCLUDE
+// the two explicit ones — otherwise an Always-Light site still flips on a dark OS,
+// which is the whole defect the axis exists to prevent. The `:not()` pair is
+// (0,3,1) against the explicit block's (0,1,1); they never both match, so the
+// difference is bookkeeping rather than a contest.
 @media (prefers-color-scheme: dark) {
-  body.bnd-web {
+  body.bnd-web:not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
     @include tokens.dark;
   }
+}
+
+// `Always Dark` — outside the media query, because the point of the pole is that
+// the device does not get a vote.
+body.bnd-web-theme-dark {
+  @include tokens.dark;
 }
 
 // ══════════════════════════════════════════════════════════════════════════

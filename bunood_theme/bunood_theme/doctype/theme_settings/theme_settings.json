@@ -178,6 +178,7 @@
   "web_picker",
   "web_style",
   "web_header",
+  "web_theme",
   "section_generated",
   "brand_css_url"
  ],
@@ -714,6 +715,15 @@
    "hidden": 1,
    "label": "Header",
    "options": "Neutral\nBranded"
+  },
+  {
+   "default": "Follow OS",
+   "description": "Set by the picker above. A website visitor has no stored preference, so the default follows their device.",
+   "fieldname": "web_theme",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Website Theme",
+   "options": "Follow OS\nAlways Light\nAlways Dark"
   },
   {
    "fieldname": "section_generated",
