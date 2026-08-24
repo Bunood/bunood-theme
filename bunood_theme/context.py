@@ -7,13 +7,17 @@ WHAT
     contexts. It answers for THREE surfaces, and since item 33 the last of them is the
     DEFAULT rather than a fourth early return:
 
-    * **the desk** (``www/desk.html``) — appends the per-site brand stylesheet and
-      corrects ``layout_direction`` for the RTL languages Frappe's ``is_rtl()`` misses.
+    * **the desk** (``www/desk.html``) — appends the per-site brand stylesheet,
+      corrects ``layout_direction`` for the RTL languages Frappe's ``is_rtl()``
+      misses, and (slice 7b) replaces the framework's tab icon, splash logo and
+      page title with the tenant's, or failing that with ours.
     * **the auth templates** (``www/login.html``, ``www/update-password.html``) —
       item 32, and note it is the TEMPLATE and not the route: a guest hitting ``/`` on a
       stock site is served the sign-in page. Sets the
       ``body_class`` that ``web/_login.scss`` scopes to, puts the brand sheet on
-      ``web_include_css``, and replaces Frappe's app logo with Theme Settings'.
+      ``web_include_css``, and replaces the app logo, tab icon, splash image and
+      ``app_name`` — none of which Frappe resolves from Theme Settings, and all of
+      which otherwise name whichever app happens to be installed beside us.
     * **every other website template** — item 33. Sets the ``body_class`` that the
       website half of ``web/web.scss`` scopes to, and (slice 7) replaces the four
       branding seams a stranger actually reads: the tab icon, the navbar brand and
@@ -269,14 +273,34 @@ def _vendor_marks(context):
     exactly like confirmation. The Website Settings field is therefore read
     DIRECTLY, and the vendor's hook value is simply not part of the chain.
 
-    Called from the website branch only in this slice. The desk and auth branches
-    render the same ``<head>`` and carry the same mark; wiring them is slice 7b,
-    left out here so the commit that adds three call sites is not also the commit
-    that decides what they call.
+    CALLED FROM ALL THREE BRANCHES since slice 7b. The desk, the auth templates and
+    the website render the same ``<head>``, and a tenant whose public site carried
+    their mark while their staff's desk carried erpnext's would be a stranger sight
+    than either alone. ``splash_image`` is read by ``www/desk.html:37`` and by
+    ``templates/includes/login/login.js:277``, so it is genuinely live on two of the
+    three; on the website branch it is inert and set anyway, because a branch that
+    assigns a different set of keys per surface is a branch that will be wrong about
+    one of them later.
+
+    ``app_name`` DOES NOT FOLLOW THE THREE-STEP RULE, and the exception is measured
+    rather than argued. ``"Frappe"`` is the shipped ``default`` of the field in BOTH
+    ``website_settings.json`` and ``system_settings.json`` — so a stored ``"Frappe"``
+    is indistinguishable from a deliberate choice, and honouring the middle step
+    would keep the vendor's name forever on every site that has never touched it,
+    which is every site. It therefore takes ``company_name`` outright, exactly as
+    ``favicon`` takes Theme Settings' own field. On a white-label deployment "the
+    name of this system" and "the tenant's company" are the same fact; that is what
+    white-labelling means. Renders at ``www/desk.py:60`` (the desk page title) and
+    ``www/login.py:52``.
     """
     tenant = _tenant_branding()
-    site = frappe.get_cached_value("Website Settings", "Website Settings", "favicon") or ""
-    context.favicon = tenant["favicon"] or site or VENDOR_MARK
+    site = {
+        field: frappe.get_cached_value("Website Settings", "Website Settings", field) or ""
+        for field in ("favicon", "splash_image")
+    }
+    context.favicon = tenant["favicon"] or site["favicon"] or VENDOR_MARK
+    context.splash_image = tenant["logo"] or site["splash_image"] or VENDOR_MARK
+    context.app_name = tenant["company_name"] or _vendor_name()
 
 
 def _web_chrome(context):
@@ -368,6 +392,11 @@ def desk_context(context):
         if template == DESK_TEMPLATE:
             _append_brand_css(context)
             _correct_layout_direction(context)
+            # Slice 7b. The desk is not a "surface kit" and has no census of its
+            # own, but it renders the same `<head>` as everything else and it was
+            # serving erpnext's favicon, erpnext's splash logo and the page title
+            # "Frappe" to a tenant's own staff. Same helper, same precedence.
+            _vendor_marks(context)
             return
 
         if template in AUTH_TEMPLATES:
@@ -576,9 +605,23 @@ def _auth_context(context):
        Navbar Settings, then the ``app_logo_url`` hook — and therefore never sees
        Theme Settings. Because this hook runs AFTER ``get_context``
        (``base_template_page.py:32``), one assignment puts the customer's mark on
-       the first screen they see, on both routes, with no hook and no fork. It is
-       the only seam ``www/login.html`` leaves open: its title and subtitle are
-       literals in the template, which is filed upstream.
+       the first screen they see, on both routes, with no hook and no fork.
+
+       SLICE 7b GAVE IT A THIRD ARM. Item 32's version replaced the logo when
+       Theme Settings held one and otherwise left it alone — which is correct for
+       a tenant who has branded, and leaves erpnext's logo on the sign-in page of
+       every tenant who has not, i.e. all of them on day one. See the code below
+       for why the fallthrough is DETECTED against the hook list rather than
+       re-derived by restating ``get_app_logo``'s settings reads.
+    4. **The rest of the framework's identity** (slice 7b): the tab icon, the
+       splash image ``login.js:277`` swaps in on submit, and ``app_name``, which
+       ``www/login.py:52`` resolves to the literal ``"Frappe"`` on any site that
+       has not overridden a field whose shipped default is that same string. All
+       three go through :func:`_vendor_marks`, shared with the desk and website
+       branches.
+
+    The page's title and subtitle remain literals in ``www/login.html`` with no
+    seam at all, which is filed upstream.
     """
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
@@ -609,9 +652,30 @@ def _auth_context(context):
 
     _add_brand_sheet(context)
 
-    logo = frappe.get_cached_value("Theme Settings", "Theme Settings", "logo")
-    if logo:
-        context.logo = logo
+    _vendor_marks(context)
+
+    # THE LOGO, and slice 7b turned item 32's one-way override into a chain.
+    #
+    # `www/login.py:51` sets `context.logo = get_app_logo()`, which reads Website
+    # Settings' `app_logo`, then Navbar Settings', and — when both are empty —
+    # falls through to the `app_logo_url` HOOK, i.e. to whichever app is installed
+    # beside us. Here that is erpnext, so an unbranded tenant's sign-in page
+    # advertised erpnext's logo. Item 32 replaced it when Theme Settings had one
+    # and otherwise left it alone, which is the half that shows on every site
+    # nobody has branded yet.
+    #
+    # THE FALLTHROUGH IS DETECTED RATHER THAN RE-DERIVED. Restating
+    # `get_app_logo`'s two settings reads here would be a second copy of the
+    # platform's own resolution order, and the copy that goes stale is the one
+    # nobody is looking at. Instead: if what it returned is one of the hook
+    # values, then both settings were empty and nothing was configured — so the
+    # last resort is ours to choose. If a tenant HAS set either field, the value
+    # will not be in that list and this leaves it entirely alone.
+    tenant = _tenant_branding()
+    if tenant["logo"]:
+        context.logo = tenant["logo"]
+    elif context.get("logo") in (frappe.get_hooks("app_logo_url") or []):
+        context.logo = VENDOR_MARK
 
 
 def _brand_css_url():

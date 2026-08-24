@@ -12069,10 +12069,19 @@ async function main() {
 						}, sel)
 					);
 				try {
+					// SLICE 7b CHANGED WHAT "UNSET" MEANS HERE, and this assertion had
+					// to be rewritten rather than left to pass by luck. It read "unset,
+					// the framework's own logo renders" and tested only that the src was
+					// not `frappe-favicon` — which the vendor mark also satisfies, so it
+					// would have stayed green while describing a page that no longer
+					// exists. Unset is now OUR mark, and the thing worth asserting is
+					// that the fallthrough to whichever app is installed beside us is
+					// closed: erpnext's logo was what rendered here before 7b.
 					const stock = await shown("/login", ".for-login .page-card");
+					expectEq(stock.src, vendor().mark, "unset, the sign-in page carries OUR mark");
 					expect(
-						stock.src && !stock.src.includes("frappe-favicon"),
-						`unset, the framework's own logo renders (${stock.src})`
+						!/\/assets\/(erpnext|frappe)\//.test(stock.src || ""),
+						`and never the framework's, which is what it was (${stock.src})`
 					);
 					setLogo(JSON.stringify(LOGO));
 					const ours = await shown("/login", ".for-login .page-card");
@@ -13265,6 +13274,91 @@ async function main() {
 			} finally {
 				setSingle("Theme Settings", before.ts);
 				setSingle("Website Settings", before.ws);
+			}
+		});
+
+		await test("desk: the framework's marks are ours, and the tenant's beat them", async () => {
+			// SLICE 7b. The desk is not a surface kit and has no census, but it
+			// renders the same `<head>` as everything else and it was serving a
+			// tenant's own staff three marks belonging to a product they did not
+			// buy: erpnext's favicon and splash logo (both from erpnext's
+			// `website_context` hook, `hooks.py:119`) and the page title "Frappe".
+			//
+			// `app_name` IS THE INTERESTING ONE. `www/desk.py:60` resolves Website
+			// Settings' `app_name`, then System Settings', then the literal
+			// "Frappe" — and "Frappe" is the shipped `default` of that field in BOTH
+			// doctypes. So a stored "Frappe" cannot be distinguished from a choice,
+			// which is exactly why this seam does NOT honour the Website Settings
+			// layer the favicon does: honouring it would keep the vendor's name on
+			// every site that has never touched the field, i.e. all of them.
+			// Measured in the doctype JSON, not assumed.
+			const V = vendor();
+			const before = getSingle("Theme Settings", ["company_name", "logo", "favicon"]);
+			const OTHER = "/assets/frappe/images/frappe-favicon.svg";
+			// READ THE SERVED HTML, NOT THE BOOTED DOM, and that is not a shortcut.
+			// All three of these are pre-boot artifacts: the splash exists only until
+			// Frappe's JS replaces the body, and `document.title` is rewritten per
+			// route once the desk router runs. Written the obvious way first — a
+			// `goDesk` plus `document.querySelector(".splash img")` — and it returned
+			// `null` for the splash on a page where the seam was demonstrably
+			// working, because by the time `.body-sidebar-container` exists the
+			// element is gone. What `update_website_context` produces is the
+			// document, so the document is what gets asserted.
+			//
+			// Fetched from INSIDE the authenticated page so it carries the session
+			// cookie without the suite having to mint a second one.
+			const seen = async () => {
+				await goDesk("/app/home");
+				return page.evaluate(async () => {
+					const html = await (await fetch("/app/home", { credentials: "same-origin" })).text();
+					const grab = (re) => (html.match(re) || [])[1] || null;
+					return {
+						favicon: grab(/rel="shortcut icon"\s*href="([^"]*)"/),
+						splash: grab(/class="centered splash">[\s\S]*?src="([^"]*)"/),
+						title: (grab(/<title>([\s\S]*?)<\/title>/) || "").trim(),
+					};
+				});
+			};
+			try {
+				const stock = await seen();
+				expect(
+					(stock.favicon || "").includes(V.mark),
+					`the desk tab icon is ours (${stock.favicon})`
+				);
+				expect(
+					(stock.splash || "").includes(V.mark),
+					`and so is the splash the desk paints while it boots (${stock.splash})`
+				);
+				expect(
+					!/\/assets\/erpnext\//.test(`${stock.favicon} ${stock.splash}`),
+					"and neither is erpnext's, which is what both were"
+				);
+				expectEq(stock.title, V.name, "and the page title is not the literal \"Frappe\"");
+
+				setSingle("Theme Settings", { favicon: OTHER, logo: OTHER, company_name: "ACME Trading" });
+				const tenant = await seen();
+				expectEq(tenant.favicon, OTHER, "a tenant favicon wins");
+				expectEq(tenant.splash, OTHER, "a tenant logo becomes the splash");
+				expectEq(tenant.title, "ACME Trading", "and their company name is the desk title");
+
+				// THE CLEARED CASE, AND IT IS THE ONLY ONE THAT DEFENDS THE `app_name`
+				// EXCEPTION. Added because a sabotage proved the check above did not:
+				// re-introducing the Website Settings layer
+				// (`company_name or website_settings.app_name or vendor`) left every
+				// assertion GREEN, since `company_name` is seeded on this site and the
+				// `or` short-circuits before the new term is ever reached. With the
+				// field cleared, the sabotaged version yields "Frappe" — the shipped
+				// DEFAULT of `app_name` in both website_settings.json and
+				// system_settings.json — and the correct one yields ours.
+				setSingle("Theme Settings", { company_name: "" });
+				const cleared = await seen();
+				expectEq(cleared.title, V.name, "cleared, the title is ours");
+				expect(
+					cleared.title !== "Frappe",
+					"and never the framework's, which is the stored DEFAULT of that field"
+				);
+			} finally {
+				setSingle("Theme Settings", before);
 			}
 		});
 
