@@ -6571,13 +6571,55 @@ async function main() {
 				// to READ the diff; edit these two by hand.
 				["/login", ".for-login .page-card", { guest: true }],
 				["/update-password", ".for-reset-password .page-card", { guest: true }],
+				// Item 33: five TEMPLATE SHAPES, not five addresses — twelve erpnext
+				// portal routes render one template, so more addresses would bank the
+				// same DOM and still miss the shapes that differ.
+				//
+				// BANKED KIT-ON, for item 32's reason exactly. `web_style` does have
+				// an `Original`, so a kit-absent count would describe a reachable
+				// state — but the CONTRACTS (the focus ring, the nineteen contrast
+				// repairs) survive `Original` by definition, so a kit-absent number
+				// would leave the gate slack equal to every violation this item was
+				// built to remove. The kit-OFF scan was taken as EVIDENCE of what the
+				// item fixed and recorded in ROADMAP; it is not what gates.
+				//
+				// The portal pair runs as the FIXTURE USER. An Administrator renders
+				// a populated list through a different branch of
+				// `website_list_for_contact.py`, so scanning as one banks a DOM that
+				// looks right and is not — proved by sabotage in slice 0.
+				// `bust` ON ALL FIVE. `/404` is the one route on this surface Frappe
+				// actually caches, and a cached render is keyed on `(path, lang)` and
+				// nothing else — so without a query string this can scan HTML banked
+				// before the settings write above, and score it as current. The
+				// baseline rows were captured with a buster for the same reason; a
+				// gate that measures a different page from the baseline is not a gate.
+				["/support", ".navbar", { guest: true, bust: true }],
+				["/request-data/new", ".navbar", { guest: true, bust: true }],
+				["/404", "body", { guest: true, bust: true }],
+				["/orders", ".website-list", { portal: true, bust: true }],
+				["/me", ".portal-container", { portal: true, bust: true }],
 			]) {
 				let res;
-				if (opts && opts.guest) {
-					res = await withGuest(route, waitFor, async (gp) => {
-						await gp.waitForTimeout(1500);
-						return new AxeBuilder({ page: gp }).withTags(["wcag2a", "wcag2aa"]).analyze();
-					});
+				if (opts && opts.portal) {
+					res = await withPortalUser(
+						route,
+						waitFor,
+						async (pp) => {
+							await pp.waitForTimeout(1500);
+							return new AxeBuilder({ page: pp }).withTags(["wcag2a", "wcag2aa"]).analyze();
+						},
+						{ bust: !!opts.bust }
+					);
+				} else if (opts && opts.guest) {
+					res = await withGuest(
+						route,
+						waitFor,
+						async (gp) => {
+							await gp.waitForTimeout(1500);
+							return new AxeBuilder({ page: gp }).withTags(["wcag2a", "wcag2aa"]).analyze();
+						},
+						{ bust: !!opts.bust }
+					);
 				} else {
 					await goDesk(route, waitFor, 4000);
 					res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

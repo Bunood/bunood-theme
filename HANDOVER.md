@@ -29,6 +29,57 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 33 (website + portal) — DONE, released as `v0.33.0`, LOCAL TAG, NOT PUSHED.**
+Thirteen commits. The eleventh surface kit and the first whose surface is a
+CLASSIFICATION rather than a list of routes. Three fields (`web_style` · `web_header` ·
+`web_theme`), `public/scss/web/_site.scss`, `docs/upstream/frappe-website.md`, and the
+theme's FIRST image asset (`public/images/bunood-mark.svg`). Picks: **Panel (default) ·
+Branded · Follow OS**; `Rail` drawn and dropped on the degradation row. Full detail lives
+in ROADMAP's item-33 entry and in the per-slice memory; what belongs HERE is the state of
+play and the things that will cost time again:
+
+- **The logo is PARKED, at the user's instruction (2026-08-24).** 171 marks were drawn
+  and none was chosen; the shipped `bunood-mark.svg` is a placeholder solid B on the seed
+  green. Do not restart that exploration unasked — it resumes after the remaining roadmap
+  items. The finalists and the geometry findings are in memory; the artwork is NOT in the
+  repo.
+- **A Python-only edit needs `BND_FORCE_RESTART=1`.** `npm run deploy` decides on asset
+  HASHES, so a `context.py` change ships to the container and stays inert. Slice 7's
+  seams were live in the mirror and dead in the process for a whole measurement round
+  because of this.
+- **`deploy.sh` grew a second delivery channel and the reason matters.** The app is
+  bind-mounted FROM the WSL mirror, so the rsync in that script is not a convenience copy
+  — it IS the deploy, and when `wsl.exe` exec wedged (`Wsl/Service/0x8007274c`, every
+  distro, containers still serving) two commits' worth of edits sat undelivered while
+  every check measured the old tree. It now falls back to the `\wsl$` 9p share via
+  robocopy, which needs `MSYS_NO_PATHCONV=1`, the `//wsl.localhost/<distro>/…` spelling,
+  and a `-d` guard because `/MIR` DELETES. Same day, `localhost` (→ `::1`) stopped
+  answering while `127.0.0.1` served; both self-healed within the hour. `BND_URL` now
+  moves the whole toolchain, and `tools/fingerprint.mjs` still hardcodes its own copy.
+- **NEVER pipe `npm run verify` through `tail`.** The pipeline's exit status is `tail`'s,
+  so a 4-failure run reported "exited with code 0". That is the exact class of defect
+  `tools/verify.mjs` was written to prevent, and it was reintroduced from outside.
+  Redirect to a file instead.
+- **The axe route list is duplicated** between `tools/axe-baseline.mjs` and the suite's
+  `axe over the Desk` check, and nothing enforces that they agree. Item 33 added five
+  routes to both by hand rather than refactor mid-release; a follow-up task is filed.
+- **Three session contexts now exist for scanning**: Administrator, cookie-less guest,
+  and the portal fixture user. The last is not optional — an Administrator renders a
+  populated portal list through a DIFFERENT branch of `website_list_for_contact.py`, so
+  scanning as one banks a DOM that looks correct and is not.
+- **The website axe rows are banked KIT-ON**, unlike every desk route. `web_style` does
+  have an `Original`, but the CONTRACTS survive it by definition, so a kit-absent number
+  would leave the gate slack equal to every violation the item removed. The kit-OFF scan
+  was taken as EVIDENCE and recorded, not as the gate. Same reasoning item 32 wrote down
+  for `/login`.
+- **Site data to leave alone:** `tagline` is `"One system for the whole business"` and
+  `company_name` is `"Bunood"`. A suite run that dies before its `finally` leaves
+  `tagline` as `smoke-<timestamp>`, which then renders on the public sign-in page. It has
+  happened twice. Fix it through a real `doc.save()`, not `set_single_value`, or the
+  brand stylesheet does not regenerate.
+- **Still owed:** the 24 `#, fuzzy` rows in `ar.po` await the user's review, as they have
+  since item 27 — their own commit, as every previous item did it.
+
 **ITEM 32 SHIPPED TWICE: `v0.32.0` THEN `v0.32.1` (2026-08-22, both pushed).** `v0.32.1`
 carries everything found by reviewing 0.32.0 — the five live defects, the two brand bugs
 (`generate_hash` was random, not a content hash; the self-heal wrote from a GET), two new

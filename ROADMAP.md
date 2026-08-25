@@ -859,7 +859,71 @@ entry.
     held button measured **1.09:1 in dark where stock managed 10.57:1**. Six new checks
     cover the STATES; each was verified by restoring the defect and watching it go red.
     Also fixed: `_css_string` missed U+000C, which CSS counts as a newline.
-- `[ ]` **33 · Website base + portal** *(was 26)*
+- `[x]` **33 · Website base + portal** *(was 26, done 2026-08-24)* — the ELEVENTH surface
+  kit, and the first whose surface is a CLASSIFICATION rather than a list. Eleven gated
+  slices plus a close. Three fields (`web_style` anchor · `web_header` · `web_theme`),
+  `web/_site.scss`, and the theme's first image asset. Wireframed and picked 2026-08-22:
+  **Panel (default) · Branded · Follow OS** — `Rail` was drawn and dropped in the round.
+  The first round in this repo NOT to default to the boldest pole: `Panel` won on
+  coverage, being the only one that renders on every route in scope. What the surface
+  taught:
+  - **The delivery mechanism already existed, which inverts item 32 exactly.** `hooks.py`
+    had shipped `web_include_css` since the login kit, so the compiled sheet was already
+    downloading on every website page and painting nothing, every rule of it scoped
+    `body.bnd-auth`. This item needed a RULE, not an asset.
+  - **`context.template` is the only discriminator that survives every renderer.**
+    `DocumentPage.update_context()` never calls `set_page_properties()` and
+    `WebFormPage` inherits that, so on every Web Page, Help Article and Web Form
+    `context.path` and `context.route` are EMPTY when the hook runs. The rendered HTML
+    still carries a correct `data-path`, filled afterwards — so reading it back looks
+    exactly like confirmation. The guard is a DENYLIST whose default branch dresses,
+    because enumerating the surface would be a second copy of Frappe's route table:
+    twelve erpnext portal routes collapse onto ONE template.
+  - **The page cache is keyed on `(path, lang)` and nothing else.** Measured: a guest
+    received the Administrator's rendered `/attribution`; `/404` fetched with a valid
+    session returned the guest render. So the body class may encode SITE state only —
+    never user, never role. That is why `frappe-session-status` is refused as a styling
+    discriminator despite being free at `base.html:57`, and why `Follow OS` is the theme
+    default: a client-side media query is the only cache-safe way to answer per-visitor.
+  - **The colour contracts depend on the anchor's ground, so the plan's slice order was
+    wrong.** Painting a mode-flipping fill before `body.bnd-web` re-points Frappe's own
+    variables gives a DARK control on a WHITE page — measured, in dark, with our tokens
+    flipping correctly and nothing reading them. The bridge (`--bg-color`, `--fg-color`,
+    `--text-color`, `--control-bg`, `--border-color`) belongs to the pole scope, not the
+    contracts, and it must re-point BOTH halves of a vendor `!important` pair or neither.
+  - **Specificity was got wrong four times in one item, always by inference.**
+    `body:is(…) a` is (0,1,2) and not (0,2,1) — `:is()` counts as ONE class;
+    `.navbar-light .navbar-brand` is (0,2,0); `body{color:…}` ships TWICE as a literal;
+    and a branded ink at (0,3,1) lost to a bridge rule whose `:is()` took its HEAVIEST
+    arm at (0,3,2). **Scan for the winning declaration; never infer from the rule beside
+    it.** The same scan is what kept the sanctioned `!important` down to ONE line:
+    re-pointing `--text-muted` changed nothing, and a per-element winner scan split the
+    nineteen failures four ways, only one of which needed the escalation.
+  - **A THIRD sanctioned `!important` now exists** (GUIDELINES §1.3), inside
+    `body.bnd-web`, only to beat a vendor `!important` LITERAL, only where the
+    alternative is a measured WCAG failure. It exists because the escalation the rule
+    assumes — `.bunood` on `<html>` — cannot happen on a website page: `<html>` is
+    hardcoded in `base.html`, there is no hook, and a JS stamp lands after first paint.
+  - **The framework's name was on the customer's site and on their staff's desk.** The
+    tab icon was erpnext's on every page including the desk, the navbar read the literal
+    `_("Home")`, every footer said "Powered by ERPNext", the desk splash was erpnext's
+    logo and the desk title was the literal `"Frappe"` — which is the shipped `default`
+    of `app_name` in BOTH `website_settings.json` and `system_settings.json`, so a stored
+    "Frappe" carries no information and a precedence rule that reads it is a no-op.
+  - **Frappe's Jinja has no autoescaping anywhere**, so anything a theme derives from a
+    Data field and pushes through a context key must be escaped by the caller. Measured,
+    not inferred: `footer_powered` set to `ACME <i>Ltd</i>` rendered an italic *Ltd*.
+  - **A branch whose guard is false on the dev site is UNTESTED, not working** — item 32
+    shipped its logo override for three slices on that confusion, and slice 7 is the
+    whole class. Every branding check asserts the STOCK render first, naming the vendor
+    string that must not be there. Nine sabotages across slices 7 and 7b, each red for
+    its own reason; one of them stayed GREEN and exposed a check that proved nothing,
+    because a seeded `company_name` short-circuits the `or` before the term under test.
+  - **RTL was a prohibition, not a task.** Frappe flips this surface itself with a
+    build-time rtlcss pass — an Arabic page serves `css-rtl/website.bundle.css` and the
+    rail moves from x=99 to x=1159 — so their flipped physical rules and our logical ones
+    do not compose. The item restates none of them; the standing check's job was to stay
+    green, and it did.
 - `[ ]` **34 · Email templates** *(was 27)*
 - `[ ]` **35 · Print formats / PDF** *(was 28)*
 - `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being

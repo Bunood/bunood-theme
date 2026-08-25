@@ -24,6 +24,54 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-08-24 — Website and portal (item 33)
+
+Everything a customer of yours sees without signing in — and everything your
+own staff see after they do — now belongs to the theme. Before this release the
+public pages, the customer portal, the order and invoice lists, the account
+page and the 404 were plain Frappe: a different design language from the desk,
+a different one again from the sign-in page, and three of them on the same
+site.
+
+**Your brand colours reach the portal.** They stopped at the sign-in page. On
+every portal and website page the theme fell back to the colours it ships with,
+so a customer with a blue brand had a green portal and nothing anywhere said
+so. It was invisible on our own site because our seed happens to be the shipped
+one, which is exactly why it survived this long.
+
+**Three new settings**, under Website. *Page style* — Original leaves the pages
+as Frappe draws them; **Panel** (the default) puts the content on a card over a
+tinted ground, which is the language your account page already used and now
+every route uses; Plate washes the ground in your brand colour. *Header* —
+Neutral, or **Branded**, which takes the navigation bar in your colour and
+composes with any page style. *Theme* — **Follow the visitor's device** by
+default, or force light or dark. Following the device is the default because
+these pages are cached and shared between visitors, so a stored per-visitor
+choice would leak from one to the next.
+
+**Nothing on these pages showed keyboard focus.** Not the search box, not the
+buttons, not the links — driven with a real Tab key, every stop was invisible.
+That is WCAG 2.4.7 and it applied to every public page on the site. Every
+control that takes focus now draws a visible ring.
+
+**Nineteen pieces of text were too faint to meet AA**, including seven of the
+nine text elements on the account page. All nineteen are repaired, and the
+repair is gated over eleven brand colours in both light and dark so it holds at
+your seed and not only at ours.
+
+**Your name instead of the framework's.** The browser tab showed ERPNext's
+icon, the navigation bar read the literal word "Home", and every footer said
+"Powered by ERPNext" — on your public site, to your customers. The tab icon,
+the navigation brand and the footer now carry your company name and logo from
+Theme Settings, and where you have not set one they carry ours, never the
+framework's. The same substitution reaches the desk your staff use, where the
+splash screen and the page title were also ERPNext's and "Frappe", and the
+sign-in page, where an unbranded site showed ERPNext's logo.
+
+Right-to-left needed no work here and deliberately got none: Frappe flips the
+website surface itself, and restating those rules in logical properties would
+have fought its own flipping.
+
 ## [0.32.1] — 2026-08-22 — Sign-in fixes (item 32)
 
 A patch on top of 0.32.0, all of it found by reviewing that release rather

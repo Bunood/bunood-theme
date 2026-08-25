@@ -70,5 +70,12 @@
 	},
 	"/update-password": {
 		"image-alt": 1
-	}
+	},
+	"/support": {},
+	"/request-data/new": {
+		"label": 1
+	},
+	"/404": {},
+	"/orders": {},
+	"/me": {}
 }
