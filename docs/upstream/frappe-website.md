@@ -341,6 +341,47 @@ burden is easy to miss when the seam looks like plain text.
 
 ---
 
+## 12. Two sanitiser holes a theme has to close itself
+
+Frappe sanitises Data fields on save, and that is *almost* enough to be
+dangerous — it invites the assumption that a settings value is safe to emit.
+Two gaps, both measured on 16.27.0, both closed in this theme by treating the
+value rather than trusting the field.
+
+**`nh3` keeps `<a title="…">`, and attributes never escape `<` or `>`.**
+`_sanitize_content` (`base_document.py:1307`) runs `nh3.clean` on any Data value
+containing `<`, which strips a bare `<script>`. But `<a>` and its `title`
+attribute survive, and HTML attribute serialisation escapes only `&` and `"` —
+never `<` or `>`. So `<a title="</script><script>…</script>">x</a>` is stored
+**verbatim** by the ordinary settings form. Anywhere that value later lands
+inside a `<script>` (Frappe serialises `frappe.boot` into one) or inside RCDATA
+(`<title>`), the `</script`/`</title>` inside the attribute ends the element and
+the remainder is parsed as HTML.
+
+**`Attach` and `Attach Image` are never sanitised at all.**
+`base_document.py:1334-1341` has an explicit `continue` for
+`("Attach", "Attach Image", "Barcode", "Code")`. A logo or favicon field
+therefore stores anything, including a bare `<script>`. These are also the
+fields stock Frappe sources from Website Settings — writable by **Website
+Manager** — so a theme that surfaces them on its own settings doctype may be
+handing a different role a sink the framework reserves.
+
+**And escaping is not the fix for a value someone else re-serialises.** With the
+favicon entity-escaped, the emitted `<link rel="shortcut icon" href="&lt;a
+title=…">` is correct and cannot break out — measured. But the browser DECODES
+entities when JavaScript reads an attribute back, and the desk re-inserts the
+favicon as an HTML string; the payload reassembles on the far side and runs.
+Values that will cross that boundary have to be safe as DATA: strip the markup,
+and for a URL drop `<`, `>`, `"` and `'` outright (RFC 3986 requires them
+percent-encoded, so nothing legitimate is lost).
+
+Not filed: the sanitiser's scope is a deliberate framework decision and the
+burden is correctly on the caller. Recorded because "it is a Data field, so it
+is sanitised" is the exact sentence that let three stored XSS through review by
+reading.
+
+---
+
 ## Not filed, and why
 
 - **RTL geometry works.** `?_lang=ar` on `/orders` swaps to

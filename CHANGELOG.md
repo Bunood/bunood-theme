@@ -24,7 +24,27 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-## [0.33.0] — 2026-08-24 — Website and portal (item 33)
+## [0.33.0] — 2026-08-25 — Website and portal (item 33)
+
+**Three security fixes are in this release, found by reviewing it rather than by
+anything failing.** Your company name, logo and favicon are fields you type
+into, and all three reached pages without being made safe first — so a name or
+a file path containing markup could put working script into your own staff's
+desk and onto your public site. One of them ran on every desk load. None of
+this was reachable by a customer or a portal user: it needed someone who can
+already edit Theme Settings, which on a Frappe site is a System Manager. But
+that is a lower bar than the framework sets for the same settings elsewhere,
+and it should never have been possible at all. All three are closed, and the
+theme now strips markup out of those values rather than trying to encode it —
+encoding turned out not to survive the round trip through the browser.
+
+Also fixed before release: the Website Theme setting could put unreadable text
+on your pages when "Always Dark" was chosen together with the "Original" page
+style, because that combination cannot actually produce a dark page; the
+picker now says so. Menus in the navigation bar were unreadable in dark mode.
+Pages written in Markdown were skipped by the whole kit, so they kept the
+framework's branding. And the "reset to default" buttons in the Website and
+Status settings did nothing when clicked.
 
 Everything a customer of yours sees without signing in — and everything your
 own staff see after they do — now belongs to the theme. Before this release the

@@ -30,7 +30,19 @@ is not rediscovered as a bug: the version files at that commit still read 0.20.0
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
 **ITEM 33 (website + portal) — DONE, released as `v0.33.0`, LOCAL TAG, NOT PUSHED.**
-Thirteen commits. The eleventh surface kit and the first whose surface is a
+Twenty-one commits.
+
+**THE RELEASE REVIEW RAN FOUR TIMES AND FOUND NINE CONFIRMED DEFECTS, THREE OF
+THEM STORED XSS.** None was visible to a suite of 360. Run it; it is not
+ceremony, and the contract ("empty confirmed list, or every finding fixed") is
+what caught them. The single most useful sentence to carry forward: **"it is a
+Data field, so it is sanitised" is the assumption that let all three XSS through
+review-by-reading.** `docs/upstream/frappe-website.md` §12 records both holes —
+`nh3` keeps `<a title="…">` and attributes never escape `<`/`>`; and `Attach`
+fields are skipped by the sanitiser ENTIRELY. And escaping is not the fix for a
+value another layer re-serialises: an entity-escaped favicon still executed,
+because the browser decodes attributes when JS reads them back. Strip, do not
+encode. The eleventh surface kit and the first whose surface is a
 CLASSIFICATION rather than a list of routes. Three fields (`web_style` · `web_header` ·
 `web_theme`), `public/scss/web/_site.scss`, `docs/upstream/frappe-website.md`, and the
 theme's FIRST image asset (`public/images/bunood-mark.svg`). Picks: **Panel (default) ·
