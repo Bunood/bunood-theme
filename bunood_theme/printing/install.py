@@ -11,6 +11,7 @@
 # (matching the non-blocking ops policy in bunood_erpnext).
 
 import os
+import subprocess
 
 import frappe
 
@@ -70,6 +71,7 @@ def sync_print_theme():
 
 
 def _sync_style():
+    _install_riyal_font()
     css = _read("bunood_print_style.css")
     if frappe.db.exists("Print Style", STYLE_NAME):
         style = frappe.get_doc("Print Style", STYLE_NAME)
@@ -100,6 +102,52 @@ def _sync_style():
         settings.print_style = STYLE_NAME
         settings.save(ignore_permissions=True)
 
+
+
+
+# fontconfig reads $XDG_DATA_HOME/fonts. compose points that at the shared sites
+# volume so every container that renders a PDF sees the same directory; see
+# bunood_erpnext/compose.yaml.
+FONT_SUBDIR = os.path.join(".local", "share", "fonts")
+RIYAL_OTF = os.path.join("public", "fonts", "riyal", "bunood-riyal.otf")
+
+
+def _install_riyal_font():
+    """Register the riyal face with fontconfig for the wkhtmltopdf path.
+
+    chrome takes the woff2 from the @font-face and needs none of this. Under
+    wkhtmltopdf no @font-face can work at all: frappe injects
+    --disable-local-file-access (FrappePDFKit), which makes wkhtmltopdf refuse
+    the inline data: URI, and it cannot parse woff2 either way. fontconfig is
+    the only channel left, and it is the same one the stylesheet already
+    prescribes for Cairo/Amiri.
+
+    Never fatal: a site that cannot write here still prints, it just prints the
+    riyal as a missing glyph under wkhtmltopdf -- exactly today's behaviour.
+    """
+    src = os.path.join(os.path.dirname(BASE), RIYAL_OTF)
+    if not os.path.exists(src):
+        return
+    dest_dir = os.path.join(frappe.utils.get_bench_path(), "sites", FONT_SUBDIR)
+    dest = os.path.join(dest_dir, os.path.basename(src))
+    try:
+        with open(src, "rb") as fh:
+            want = fh.read()
+        if os.path.exists(dest):
+            with open(dest, "rb") as fh:
+                if fh.read() == want:
+                    return  # already current; keep this a true no-op
+        os.makedirs(dest_dir, exist_ok=True)
+        with open(dest, "wb") as fh:
+            fh.write(want)
+        # Best effort: fontconfig rescans a stale directory on its own, so a
+        # missing fc-cache costs a little startup time, not correctness.
+        subprocess.run(["fc-cache", "-f", dest_dir], capture_output=True, timeout=60)
+    except Exception:
+        frappe.log_error(
+            title="bunood_theme: riyal font not registered with fontconfig",
+            message=frappe.get_traceback(),
+        )
 
 
 def _is_displaceable(current):
