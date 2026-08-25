@@ -160,6 +160,14 @@ def _sync_format(spec):
         "html": html,
         "disabled": 0,
         "default_print_language": "ar",
+        # Engine is resolved PER PRINT FORMAT by print_utils.get_print, never
+        # from Print Settings, and frappe ships a patch that stamps every format
+        # with "wkhtmltopdf" -- so this field is the only place the choice takes
+        # effect, and it is managed here so it self-heals on migrate like the
+        # rest of this dict. Safe on our image: frappe_docker installs
+        # chromium-headless-shell unless INSTALL_CHROMIUM=false (this stack does
+        # not set it), and compose.yaml points chromium_path at that binary.
+        "pdf_generator": "chrome",
     }
     if frappe.db.exists("Module Def", MODULE):
         values["module"] = MODULE
