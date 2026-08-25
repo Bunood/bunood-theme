@@ -4344,3 +4344,83 @@ msgstr "يترك «الأصلي» صفحة تسجيل الدخول كما هي �
 #, fuzzy
 msgid "Applies to the sign-in, sign-up and forgot-password screens."
 msgstr "يُطبَّق على شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور."
+
+#. src: item33
+#, fuzzy
+msgid "A brand wash across the page, with the content plate floating on it."
+msgstr "طبقة من لون علامتك التجارية تغطي الصفحة، ولوح المحتوى يطفو فوقها."
+
+#. src: item33
+#, fuzzy
+msgid "A website visitor has no stored preference, so the default follows their device."
+msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه."
+
+#. src: item33
+#, fuzzy
+msgid "A website visitor has no stored preference, so the default follows their device. Needs a page style other than Original — a dark page needs a ground the theme paints."
+msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه. يتطلب نمط صفحة غير «الأصلي» — فالصفحة الداكنة تحتاج أرضية يرسمها القالب."
+
+#. src: item33
+#, fuzzy
+msgid "Applies to the customer portal, web forms, error pages and any public page — not to the desk or the sign-in screens."
+msgstr "ينطبق على بوابة العملاء ونماذج الويب وصفحات الأخطاء وأي صفحة عامة — وليس على لوحة العمل أو شاشات تسجيل الدخول."
+
+#. src: item33
+#, fuzzy
+msgid "Header"
+msgstr "الترويسة"
+
+#. src: item33
+#, fuzzy
+msgid "Set by the picker above. A website visitor has no stored preference, so the default follows their device."
+msgstr "يُضبط من المُنتقي أعلاه. زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه."
+
+#. src: item33
+#, fuzzy
+msgid "Set by the picker above. How every website and customer-portal page is composed. Applies to the portal, web forms, error pages and any public page — not to the desk or the sign-in screens."
+msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل صفحة في الموقع وبوابة العملاء. ينطبق على البوابة ونماذج الويب وصفحات الأخطاء وأي صفحة عامة — وليس على لوحة العمل أو شاشات تسجيل الدخول."
+
+#. src: item33
+#, fuzzy
+msgid "Set by the picker above. Whether the site header carries your brand colour. Composes with any style, including Original."
+msgstr "يُضبط من المُنتقي أعلاه. ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية. يتوافق مع أي نمط، بما في ذلك الأصلي."
+
+#. src: item33
+#, fuzzy
+msgid "Stock: Frappe's own white page, with the accessibility repairs still applied."
+msgstr "الوضع الأصلي: صفحة فرابيه البيضاء نفسها، مع الإبقاء على إصلاحات إمكانية الوصول."
+
+#. src: item33
+#, fuzzy
+msgid "Stock: Frappe's own white page, with the accessibility repairs still applied. Always light."
+msgstr "الوضع الأصلي: صفحة فرابيه البيضاء نفسها، مع الإبقاء على إصلاحات إمكانية الوصول. فاتحة دائمًا."
+
+#. src: item33
+#, fuzzy
+msgid "The page takes your ground tint and the content becomes an object on it."
+msgstr "تأخذ الصفحة لون خلفيتك ويصبح المحتوى عنصرًا قائمًا فوقها."
+
+#. src: item33
+#, fuzzy
+msgid "Website & Portal"
+msgstr "الموقع والبوابة"
+
+#. src: item33
+#, fuzzy
+msgid "Website Picker"
+msgstr "مُنتقي الموقع"
+
+#. src: item33
+#, fuzzy
+msgid "Website Style"
+msgstr "نمط الموقع"
+
+#. src: item33
+#, fuzzy
+msgid "Website Theme"
+msgstr "سمة الموقع"
+
+#. src: item33
+#, fuzzy
+msgid "Whether the site header carries your brand colour."
+msgstr "ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية."
