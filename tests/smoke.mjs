@@ -13659,6 +13659,334 @@ async function main() {
 			}
 		});
 
+		// ══════════════════════════════════════════════════════════════════
+		// EMAIL (item 34) — the only surface in this project with no route.
+		//
+		// An email is rendered by `get_formatted_html` and read in an inbox, so
+		// nothing here can be driven by navigating to it. These checks render
+		// through the REAL funnel in the bench and assert on what comes out.
+		//
+		// SLICE 1 SHIPS THREE, and all three guard the FORK rather than any
+		// styling: this app shadows `templates/emails/{standard,email_header,
+		// email_footer}.html`, which is the one place it overrides Frappe's own
+		// markup. See standard.html's header for why that was the only delivery
+		// that works, and what it costs.
+		// ══════════════════════════════════════════════════════════════════
+
+		// One bench round-trip for the whole family; `test()` runs each
+		// assertion separately but they all read the same render. Memoised
+		// rather than hoisted so a --only run that matches none of them pays
+		// nothing.
+		let _emailProbe = null;
+		const emailProbe = () => {
+			if (_emailProbe) return _emailProbe;
+			const out = benchPy(
+				"import json, hashlib\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"res = {'resolved': {}, 'upstream': {}}\n" +
+					"for n in ('standard', 'email_header', 'email_footer'):\n" +
+					"    res['resolved'][n] = frappe.get_template('templates/emails/' + n + '.html').filename\n" +
+					"    p = frappe.get_app_path('frappe', 'templates', 'emails', n + '.html')\n" +
+					"    res['upstream'][n] = hashlib.sha256(open(p, 'rb').read()).hexdigest()\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"cases = {'plain': dict(with_container=False, header=None),\n" +
+					"         'container': dict(with_container=True, header=None),\n" +
+					"         'header': dict(with_container=True, header=['T', 'orange'])}\n" +
+					// THE FIXTURE IS PART OF THE GATE, AND THIS ONE WAS A DEFECT.
+					// It read `<p>body</p>`, so the AA check measured a paragraph and
+					// a footer and NOTHING ELSE — and passed with contract E3 deleted,
+					// because there was no link in the document to fail. That is the
+					// census's own blind spot (a sample with a `.btn` and no bare `<a>`
+					// hid a 3.15:1 failure) reproduced inside the gate written to catch
+					// it. Every element an email contract speaks about has to be in
+					// here, or the check is measuring its own fixture.
+					"BODY = ('<p>Your invoice is ready.</p>'\n" +
+					"        '<p>The total is <b>SAR 1,240.00</b>.</p>'\n" +
+					"        \"<a class='btn btn-primary' href='/app/x'>View invoice</a>\"\n" +
+					"        \"<p>Or see <a href='/app/sales-invoice'>all your invoices</a>.</p>\")\n" +
+					"res['render'] = {k: get_formatted_html('T', BODY, email_account=acct, **v)\n" +
+					"                 for k, v in cases.items()}\n" +
+					"print('BND_EMAIL' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_EMAIL"));
+			if (!line) throw new Error("email probe produced no JSON: " + String(out).slice(-300));
+			_emailProbe = JSON.parse(line.slice("BND_EMAIL".length));
+			return _emailProbe;
+		};
+
+		await test("email: our wrapper wins the template loader", async () => {
+			// `_get_jloader` builds a ChoiceLoader over reversed(installed_apps),
+			// so the LAST-installed app wins. Measured on this site the order is
+			// telephony, bunood_theme, erpnext, frappe — i.e. `telephony` sorts
+			// AHEAD of us and would beat these templates if it ever shipped one.
+			// Our win is real today and not guaranteed, so it is asserted rather
+			// than assumed. If this goes red, the whole kit is silently inert:
+			// every email would render Frappe's markup with none of our styling
+			// and no error anywhere.
+			const p = emailProbe();
+			for (const [name, file] of Object.entries(p.resolved)) {
+				expect(
+					file.includes("/bunood_theme/"),
+					`${name}.html resolves to ours, not ${file}`
+				);
+			}
+		});
+
+		await test("email: the upstream templates we forked have not moved", async () => {
+			// THE PIN. ARCHITECTURE §4 retired the www/desk.html fork partly
+			// because a fork freezes you at the version copied. That cost is real
+			// here and it is paid by this check rather than by a promise: if
+			// Frappe changes any of the three, this goes red and names the file,
+			// instead of the divergence living in an inbox indefinitely where
+			// nobody looks.
+			//
+			// A FAILURE HERE IS NOT A BUG TO SILENCE. Read Frappe's new version,
+			// port anything load-bearing (a new marker, a new context key), then
+			// update the hash in the same commit with the diff in its message.
+			const PINNED = {
+				standard: "ef600441177479bc327042bea532a10b52dc9e8415994d9a47a12458cce91457",
+				email_header: "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
+				email_footer: "3275615ecd933fb4936f44955046a19056ff05ed9a14ade8bc6df3419e961480",
+			};
+			const p = emailProbe();
+			for (const [name, want] of Object.entries(PINNED)) {
+				expectEq(
+					p.upstream[name],
+					want,
+					`frappe's templates/emails/${name}.html changed — re-read it, port what matters, then re-pin`
+				);
+			}
+		});
+
+		await test("email: the load-bearing markers survive our wrapper", async () => {
+			// NOT STYLING. Three comment markers in these templates are rewritten
+			// per recipient by code downstream of the render; losing one is a dead
+			// unsubscribe link or a dead open-tracking pixel, and the email still
+			// looks perfect. No visual check would ever catch it.
+			//
+			// THREE, NOT SIX, and that was measured rather than assumed. Frappe's
+			// `message_placeholder()` names six, but `unsubscribe_url`,
+			// `cc_message` and `recipient` are injected by CALLERS into the
+			// message body and appear in none of the four render shapes — so
+			// guarding all six would be asserting something this app does not
+			// control, which is the "green test that asserts existence, not
+			// correctness" trap in CLAUDE.md.
+			const MARKERS = [
+				"<!--unsubscribe link here-->",
+				"<!--email_open_check-->",
+				'data-email-footer="true"',
+			];
+			const p = emailProbe();
+			for (const [shape, html] of Object.entries(p.render)) {
+				for (const m of MARKERS) {
+					expect(html.includes(m), `${shape}: ${m} survives the wrapper`);
+				}
+			}
+		});
+
+
+		await test("email: every email has a floor of its own", async () => {
+			// CONTRACT E1, and the finding that reshaped this item. `standard.html`
+			// paints a ground only under `with_container`, and
+			// `Notification.send_an_email()` (notification.py:510) passes neither
+			// that nor a header — so in the shape a Frappe site sends MOST of, the
+			// census measured FIVE OF FIVE text elements with no opaque ancestor
+			// anywhere above them. The ink was `#171717` and the ground was whatever
+			// the mail client decided, which in a dark client is dark.
+			//
+			// The assertion is deliberately about the ANCESTOR CHAIN and not about a
+			// colour value: "there is an opaque background above this text" is the
+			// property that was missing, and a check pinning a hex would pass for a
+			// pole that changed it and fail for one that did not.
+			const p = emailProbe();
+			const ctx = await browser.newContext();
+			const ep = await ctx.newPage();
+			try {
+				for (const shape of ["plain", "container", "header"]) {
+					await ep.setContent(p.render[shape], { waitUntil: "load" });
+					const naked = await ep.evaluate(() => {
+						const opaque = (css) => {
+							const m = String(css).match(/^rgba?\(([^)]+)\)$/);
+							if (!m) return css !== "transparent";
+							const parts = m[1].split(",").map((x) => parseFloat(x));
+							return parts.length < 4 || parts[3] > 0;
+						};
+						const out = [];
+						for (const el of document.querySelectorAll("body *")) {
+							if (["style", "script"].includes(el.tagName.toLowerCase())) continue;
+							const owns = [...el.childNodes].some(
+								(n) => n.nodeType === 3 && n.textContent.trim().length > 1
+							);
+							if (!owns) continue;
+							let found = false;
+							for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+								if (opaque(getComputedStyle(n).backgroundColor)) {
+									found = true;
+									break;
+								}
+							}
+							if (!found) out.push(el.tagName.toLowerCase() + " " + el.textContent.trim().slice(0, 24));
+						}
+						return out;
+					});
+					expectEq(naked.length, 0, `${shape}: text with no ground above it — ${naked.join(" | ")}`);
+				}
+			} finally {
+				await ctx.close();
+			}
+		});
+
+		await test("email: no var() survives into a rendered email", async () => {
+			// Premailer does not resolve custom properties and Outlook's Word engine
+			// does not support them, so an unsubstituted `var()` does not fail — it
+			// makes the element lose its colour, in an inbox, with every other gate
+			// green. `email.py::substitute` throws on an unknown token and
+			// `email_css` stands the whole sheet down if it does; this is the
+			// end-to-end proof that neither happened.
+			const p = emailProbe();
+			for (const [shape, html] of Object.entries(p.render)) {
+				const left = html.match(/var\([^)]*\)/g) || [];
+				expectEq(left.length, 0, `${shape}: unsubstituted ${JSON.stringify(left.slice(0, 3))}`);
+			}
+		});
+
+		await test("email: the static token cache still matches _tokens.scss", async () => {
+			// `email.py::STATIC_TOKENS` carries the seed-INDEPENDENT values
+			// `palette.derive()` has no business fitting — `--bnd-ink` and the two
+			// borders. It is a CACHE and `_tokens.scss` is the source, so this is
+			// what stops it rotting. `contrast_gate.py`'s SB_FITS_* hand-copy
+			// fourteen hexes out of `_sidebar.scss` with no such check, and
+			// GUIDELINES 2.2 records that as real debt; this one cannot drift.
+			//
+			// Reads the DARK values out of the `@mixin` rather than a block, because
+			// item 32 moved them there and `contrast_gate.read_blocks` had to grow
+			// `@include` expansion for exactly that reason — a parser that assumes a
+			// plain block collapses dark onto light and reports 150 failures from a
+			// perfect stylesheet.
+			const src = readFileSync(new URL("../bunood_theme/public/scss/_tokens.scss", import.meta.url), "utf8");
+			const py = readFileSync(new URL("../bunood_theme/email.py", import.meta.url), "utf8");
+			const block = (re) => {
+				const at = src.search(re);
+				expect(at !== -1, `_tokens.scss: could not locate ${re}`);
+				const open = src.indexOf("{", at);
+				let depth = 0;
+				let end = open;
+				for (; end < src.length; end++) {
+					if (src[end] === "{") depth++;
+					else if (src[end] === "}" && --depth === 0) break;
+				}
+				return src.slice(open, end);
+			};
+			const values = (text) =>
+				Object.fromEntries(
+					[...text.matchAll(/(--bnd-[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()])
+				);
+			const scss = { light: values(block(/:root\s*\{/)), dark: values(block(/@mixin\s+dark\s*\{/)) };
+
+			// The Python side is PARSED rather than re-stated here: writing the three
+			// names into this file would be the very duplication the check exists to
+			// prevent.
+			const pyBlock = py.slice(py.indexOf("STATIC_TOKENS = {"), py.indexOf("FLATTEN_AGAINST"));
+			for (const mode of ["light", "dark"]) {
+				const from = pyBlock.indexOf(`"${mode}"`);
+				const seg = pyBlock.slice(from, pyBlock.indexOf("}", from));
+				const cached = Object.fromEntries(
+					[...seg.matchAll(/"(--bnd-[a-z0-9-]+)":\s*"([^"]+)"/g)].map((m) => [m[1], m[2]])
+				);
+				expect(Object.keys(cached).length >= 3, `email.py STATIC_TOKENS.${mode} parsed as empty`);
+				for (const [name, want] of Object.entries(cached)) {
+					expectEq(
+						(scss[mode][name] || "").replace(/\s+/g, " "),
+						want.replace(/\s+/g, " "),
+						`email.py STATIC_TOKENS.${mode}[${name}] has drifted from _tokens.scss`
+					);
+				}
+			}
+		});
+
+		await test("email: the repaired inks clear AA", async () => {
+			// CONTRACTS E2 and E3, measured rather than pinned to a hex. Stock fails
+			// both: the footer at 4.17:1 (`.text-muted`, the same `#7c7c7c` item 33
+			// repaired on /404 and every portal row) and EVERY LINK at 3.15:1 on
+			// white (`a { color: $blue-500 }`, email.bundle.scss:36).
+			//
+			// E3 WAS FOUND LATE AND THE REASON IS THE LESSON: the census fixture
+			// carried a `.btn-primary` and no bare `<a>`, so links measured nothing
+			// and read as clean. A census is only as wide as the body it renders.
+			//
+			// THE ONE KNOWN SURVIVOR IS NAMED, NOT TOLERATED SILENTLY: erpnext's
+			// `default_mail_footer` injects its own `<a class="text-muted">` as a
+			// STRING carrying `!important`, which no specificity beats. Slice 5
+			// removes that footer outright. Excluding it BY NAME is what stops a NEW
+			// failure hiding behind a known one.
+			const p = emailProbe();
+			const ctx = await browser.newContext();
+			const ep = await ctx.newPage();
+			try {
+				const rows = [];
+				for (const shape of ["plain", "container", "header"]) {
+					await ep.setContent(p.render[shape], { waitUntil: "load" });
+					const found = await ep.evaluate(() => {
+						const out = [];
+						for (const el of document.querySelectorAll(".bnd-e-foot a, .bnd-e-body a, .bnd-e-body p")) {
+							const cls = String(el.className || "");
+							if (cls.includes("text-muted")) continue; // erpnext's own footer, above
+							if (cls.includes("btn")) continue; // white on a dark fill, by design
+							const owns = [...el.childNodes].some(
+								(n) => n.nodeType === 3 && n.textContent.trim().length > 1
+							);
+							if (!owns) continue;
+							const chain = [];
+							for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+								chain.push(getComputedStyle(n).backgroundColor);
+							}
+							out.push({ what: el.tagName.toLowerCase(), color: getComputedStyle(el).color, chain });
+						}
+						return out;
+					});
+					rows.push(...found);
+				}
+				expect(rows.length > 0, "the email fixture rendered no links or prose to measure");
+				// EVERY NUMBER ON THE PYTHON SIDE. color-mix() serialises as
+				// `color(srgb ...)` on a 0-1 scale and a JS parser assuming 0-255 has
+				// shipped a wrong verdict in this repo twice.
+				const out = benchPy(
+					"import json\n" +
+						"from bunood_theme.contrast import parse_color, composite, ratio\n" +
+						"rows = " +
+						JSON.stringify(rows) +
+						"\n" +
+						"res = []\n" +
+						"for r in rows:\n" +
+						"    layers = []\n" +
+						"    for css in r['chain']:\n" +
+						"        c = parse_color(css)\n" +
+						"        a = c[3] if len(c) > 3 else 1.0\n" +
+						"        if a == 0: continue\n" +
+						"        layers.append(c)\n" +
+						"        if a >= 1.0: break\n" +
+						"    if not layers:\n" +
+						"        res.append(None)\n" +
+						"        continue\n" +
+						"    g = layers[-1]\n" +
+						"    for l in reversed(layers[:-1]): g = composite(l, g)\n" +
+						"    res.append(round(ratio(parse_color(r['color']), g), 2))\n" +
+						"print('BND_AA' + json.dumps(res))\n"
+				);
+				const line = String(out)
+					.split(/\r?\n/)
+					.find((l) => l.startsWith("BND_AA"));
+				if (!line) throw new Error("contrast probe produced no JSON: " + String(out).slice(-300));
+				const ratios = JSON.parse(line.slice("BND_AA".length));
+				const bad = rows
+					.map((r, i) => ({ ...r, r: ratios[i] }))
+					.filter((r) => r.r === null || r.r < 4.5);
+				expectEq(bad.length, 0, `below AA: ${bad.map((b) => `${b.what} ${b.color} = ${b.r}`).join(", ")}`);
+			} finally {
+				await ctx.close();
+			}
+		});
+
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
 			// raw to 92/247 across five releases with nobody deciding it,

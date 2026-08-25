@@ -1,0 +1,26 @@
+{#-
+  THE EMAIL HEADER — ours. Item 34. See standard.html's header for why this app
+  forks three of Frappe's email templates and what that costs.
+
+  Forked at frappe 16.27.0, sha256 530ee1d7e98977ed; pinned by tests/smoke.mjs.
+
+  ONE DEFECT LIVES HERE AND IT IS NOT OURS YET. `get_header()`
+  (email_body.py:672) falls back to `frappe.get_hooks("app_title")[-1]` — the LAST
+  INSTALLED APP — so `{{ header_title }}` renders "Telephony" on this site today,
+  and installing any app changes the branding of every such email. Repaired in
+  slice 5, filed upstream in docs/upstream/frappe-email.md.
+
+  Shipped inert in this slice: byte-identical to the vendor's.
+-#}
+<table class="email-header" border="0" cellpadding="0" cellspacing="0" width="100%">
+	<tr>
+		<td>
+			<h1 class="email-header-title">
+				{% if indicator %}
+				<span class="indicator indicator-{{indicator}}"></span>
+				{% endif %}
+				<span>{{ header_title }}</span>
+			</h1>
+		</td>
+	</tr>
+</table>

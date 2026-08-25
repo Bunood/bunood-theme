@@ -59,6 +59,7 @@ const LEDGER = join(ROOT, "payload-budget.json");
  */
 const BUCKETS = [
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
+	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
 	{ dir: ["css"], prefix: "bunood.", key: "css" },
 	{ dir: ["js"], prefix: "bunood.", key: "js" },
 ];
@@ -105,7 +106,7 @@ export function measure() {
  * single page ever pays, and — worse — would break every history row's
  * comparability at the release that introduced the second sheet.
  */
-export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip"];
+export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip", "email_css_gzip"];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no

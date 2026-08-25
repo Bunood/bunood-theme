@@ -65,7 +65,12 @@ const DIST_JS = join(APP, "public", "dist", "js");
  */
 const RUNTIME_TOKENS = readRuntimeTokens(
 	readFileSync(join(APP, "brand.py"), "utf8"),
-	readFileSync(join(APP, "palette.py"), "utf8")
+	readFileSync(join(APP, "palette.py"), "utf8"),
+	// email.py declares the seed-INDEPENDENT tokens palette.derive() has no
+	// business fitting (--bnd-ink, --bnd-border, --bnd-border-strong). They are
+	// real runtime values, so the email sheet may reference them; without this
+	// third source they read as phantoms and fail the build.
+	readFileSync(join(APP, "email.py"), "utf8")
 );
 
 /** Tokens declared unconditionally in `_tokens.scss`'s base `:root`. */
@@ -84,6 +89,15 @@ const ENTRIES = [
 	// page, gets `web_include_css` rather than `app_include_css`, and Frappe's own
 	// login bundle loads AFTER ours there — so it needs its own, smaller sheet.
 	{ key: "bunood-web", src: "web/web.scss", pyid: "WEB_CSS" },
+	// The email sheet is the third, and it is never fetched by a browser:
+	// `bunood_theme/email.py` reads this compiled file off the PACKAGE and renders
+	// it into a `<style>` block in our own `templates/emails/standard.html`, with
+	// every `var(--bnd-*)` substituted for a literal. It is compiled as an entry
+	// rather than authored as a string so that it inherits every guard the other
+	// two get — logical-only, cursive-safe, motion-primitive, no authored copy,
+	// no phantom tokens — plus the email-safe property allowlist, which only this
+	// entry has.
+	{ key: "bunood-email", src: "email/email.scss", pyid: "EMAIL_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -235,12 +249,18 @@ function assertTokensDeclared(css, name, runtimeTokens, baseTokens) {
 }
 
 /**
- * Token names `brand.py` emits into the per-site stylesheet at runtime.
+ * Token names this app declares at RUNTIME rather than in the compiled bundle.
+ *
+ * Three sources now: `brand.py` and `palette.py` emit the seed-derived set into
+ * the per-site stylesheet, and `email.py` declares the seed-INDEPENDENT ones the
+ * email sheet substitutes (`--bnd-ink` and the two borders — constant at every
+ * seed, which is exactly why `derive()` has no business fitting them).
+ *
  * Derived, never listed — see assertTokensDeclared's last paragraph.
  */
-function readRuntimeTokens(brandSrc, paletteSrc) {
+function readRuntimeTokens(...sources) {
 	const names = new Set();
-	for (const src of [brandSrc, paletteSrc]) {
+	for (const src of sources) {
 		for (const m of src.matchAll(/["'](--bnd-[a-z0-9-]+)["']/g)) names.add(m[1]);
 		for (const m of src.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)) names.add(m[1]);
 	}

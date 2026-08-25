@@ -1,0 +1,195 @@
+// ============================================================================
+// THE EMAIL SHEET — checklist item 34. The only stylesheet in this project that
+// is never fetched by a browser: it is rendered into a `<style>` block inside our
+// own `templates/emails/standard.html`, inlined onto the elements by Premailer,
+// and read in an inbox.
+//
+// WHY IT IS NOT DELIVERED BY `email_css`, WHICH IS THE OBVIOUS ROUTE
+//   Two disqualifiers, both measured. Frappe's hook is a STATIC file list, so it
+//   can never carry a customer's brand seed — which is why every ERPNext site on
+//   earth sends the same colours. And `inline_style_in_html`'s `os.path.exists`
+//   filter runs in whichever process sends, CWD-relative: the queue and scheduler
+//   containers have no `bunood_theme` under `sites/assets`, so a hooked sheet
+//   would style desk-triggered mail and be silently dropped for scheduler-
+//   triggered mail. ERPNext is living that failure right now — its own hook names
+//   a file that does not exist, so its email stylesheet has never applied
+//   anywhere. `bunood_theme/email.py` carries the full argument.
+//
+// COLOUR COMES FROM TOKENS. GEOMETRY IS LITERAL PX, AND THAT IS DELIBERATE.
+//   Everywhere else in this repo GUIDELINES §1.3 forbids a raw `px` in a rule.
+//   Here the reasoning that rule encodes points the other way:
+//     - `rem`/`em` are unreliable across mail clients, and Outlook's Word engine
+//       resolves neither against anything predictable;
+//     - custom properties do not survive to the client at all, so a spacing token
+//       would have to be substituted too — and `email.py::substitute` deliberately
+//       carries COLOUR only, so its contract stays "every value is a hex";
+//     - the density system has no meaning in an inbox. There is no user, no
+//       `data-bnd-density`, and nothing to respond to.
+//   So: every colour is `var(--bnd-*)` and is substituted for a literal at render
+//   time; every length is a plain px and stays one.
+//
+// NO SELECTOR MAY BE ROOTED AT `body`, AND THIS IS THE SUBTLE ONE.
+//   Rules Premailer INLINES may use any selector — it resolves them at render, so
+//   `body.x .y` would work. Rules Premailer CANNOT inline (media queries) are
+//   preserved into a `<style>` tag and resolved by the CLIENT, and Gmail strips
+//   `<html>` and `<body>` and re-wraps the content in its own container. A
+//   `body`-scoped dark-mode rule therefore inlines fine, survives into the
+//   `<style>`, and matches nothing where it matters. Every class here is on the
+//   element it styles.
+//
+// RTL IS A PROHIBITION, NOT A RESTATEMENT — and the mechanism differs from every
+//   other sheet in this repo. There is no rtlcss pass over an email and no
+//   logical-property support worth relying on, so direction is carried by the
+//   `dir` attribute our template sets and by SYMMETRY: no rule here has an
+//   asymmetric inline axis, so there is nothing for a direction to get wrong.
+//   That also satisfies `assertLogicalOnly` by construction rather than by
+//   exemption. Discourse arrived at the same place by hand (`styles.rb:259-260`
+//   sets `dir` and `text-align` on `<body>` and nothing else).
+//
+// SLICE 2 IS THE CONTRACTS AND NOTHING ELSE. The anchor's four poles
+//   (`email_style`) and the three axes are later slices, each landing with its own
+//   measurements. What is here survives `Original`, because both of these are
+//   about whether an email WORKS, not how it looks.
+//
+// Measured against frappe 16.27.0 on `demo.bunood.test`, seed #4d8756,
+// 2026-08-25. `docs/upstream/frappe-email.md` carries the filings.
+// ============================================================================
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONTRACT E1 — an email has a floor of its own.
+//
+// THE DEFECT. `standard.html` paints a ground only under `with_container`, and
+// `Notification.send_an_email()` (notification.py:510) passes neither that nor a
+// header. Measured in that shape: FIVE OF FIVE text elements have no opaque
+// ancestor anywhere above them. The ink is `#171717` and the ground is whatever
+// the mail client decides — which in a dark-mode client is dark, under near-black
+// text. It is not a stylesheet bug; there is simply no author-controlled ground.
+//
+// This is item 22's "identifiable at rest" contract failing in an inbox, on the
+// most common email shape a Frappe site sends. So the floor is a CONTRACT: it
+// applies under every pole including `Original`, because a shape with no ground
+// is not a style choice.
+//
+// The ground and the plate are separate elements so that a pole can later change
+// one without the other. Under `Original` they are the same colour and the plate
+// reads as nothing, which is correct — the contract owes a floor, not a card.
+// ══════════════════════════════════════════════════════════════════════════
+
+// EVERY SELECTOR HERE IS SIZED AGAINST A COMPETITOR THAT WAS READ, NOT GUESSED.
+// The first cut of this block was `.bnd-e` at (0,1,0). It won in the `plain`
+// shape and LOST in the other two, silently — measured `#f3f3f3` and `#171717`,
+// which are frappe's Sass literals, not ours. `email.bundle.scss:127` is
+// `.body-table.with-container` at (0,2,0) and its nested `.email-container` at
+// (0,3,0). A tie goes to us (the in-document sheet is applied after the hooked
+// one — proved by the `plain` shape winning at (0,1,0) against (0,1,0)), but
+// sizing a rule to TIE is sizing it to an implementation detail of Premailer's
+// ordering, so these exceed instead.
+table.bnd-e.body-table {
+	background-color: var(--bnd-page);
+	color: var(--bnd-ink);
+}
+
+// THE PLATE IS RE-POINTED ONLY WHERE FRAPPE ALREADY PAINTS ONE — that is the
+// whole reason for the `.with-container` in this selector, and it is not
+// decoration.
+//
+// Beyond the contract's remit would be INVENTING a card in the shape that has
+// none; that is `Card`'s job, and a contract that quietly ships a pole is not a
+// contract. But leaving frappe's literal `background-color: white` under our
+// derived ground would be worse than either: it is the "re-point one half of a
+// pair" regression item 32 measured at 1.09:1 and item 33 restated. At the
+// shipped seed the two happen to agree (`--bnd-surface` IS `#ffffff`); at a
+// tinted seed they would not, and nothing on this site would have shown it.
+table.bnd-e.body-table.with-container .bnd-e-plate {
+	background-color: var(--bnd-surface);
+}
+
+// THE BODY COPY, STATED CONCRETELY — and the first cut of this rule was
+// `.bnd-e-body { color: inherit }`, which was wrong twice over and is worth
+// recording rather than quietly replacing.
+//
+// The idea was that inheriting would make the prose follow whatever the plate
+// decides, so the two could never disagree. In an INLINING pipeline that reasoning
+// does not survive: Premailer resolves declarations onto elements, `inherit` is a
+// value like any other, and at (0,1,0) it tied with `email.bundle.scss:98`'s
+// `.email-body { color: $text-color }` and lost. Measured, not deduced — the
+// paragraph computed `rgb(23, 23, 23)` with an inline `color` of the same on our
+// OWN element, which is the tell: our selector matched and our value did not win.
+//
+// So: concrete value, and sized to beat (0,1,0) outright rather than to tie it.
+// Two ties in this file went opposite ways; a rule sized to tie is a rule whose
+// outcome depends on Premailer's ordering.
+table.bnd-e-body.email-body {
+	color: var(--bnd-ink);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONTRACT E2 — the footer clears AA.
+//
+// Stock renders `.email-footer-container.text-muted` as `#7c7c7c` on `#ffffff`:
+// measured 4.17:1 against 1.4.3 AA's 4.5. It fails.
+//
+// IT IS THE SAME LITERAL ON THE SAME CLASS ITEM 33 ALREADY REPAIRED TWICE — on
+// `/404`'s only link and on every portal row. Third surface, same value, and the
+// third time it is worth saying that `text-muted` is a vendor class carrying a
+// hardcoded hex rather than a variable, so there is nothing to re-point and the
+// repair has to out-specify it.
+//
+// `--bnd-ink-subtle` rather than `--bnd-ink-muted`: subtle is FITTED to 4.5:1
+// against every surface this theme produces (5.35:1 on `--bnd-surface` at the
+// shipped seed), so it clears AA at every seed while staying quiet. Muted is
+// fitted to 7:1 and would turn a footer into body copy.
+//
+// AND THE REPAIR IS NOT A CASCADE FIGHT, BECAUSE IT DOES NOT HAVE TO BE.
+// `email.bundle.scss:248` is `.text-muted { color: $text-muted !important }` — a
+// literal, with `!important`, which no specificity beats. Item 33 met that shape
+// on the website and had to add a third sanctioned `!important` to GUIDELINES
+// §1.3 for it. **That escalation is unnecessary here, and the reason is worth
+// keeping**: on the website the offending class was on Frappe-generated DOM we
+// may not touch. Here the element is in `email_footer.html`, which this app now
+// OWNS — so the class simply is not emitted. Nothing to out-specify, no fourth
+// sanctioned place, no `!important` in this sheet at all.
+//
+// Recorded, because it is the residue rather than an oversight: erpnext's
+// `default_mail_footer` injects its own `<a class="text-muted">` as a STRING, and
+// that one is still `#7c7c7c !important`. Slice 5 removes that footer outright
+// (System Settings' `disable_standard_email_footer`), which is the honest fix —
+// the framework's name does not belong on a customer's mail either way. If an
+// app is ever found injecting a `text-muted` footer that survives, THAT is when
+// the escalation gets argued, with a measurement attached.
+// ══════════════════════════════════════════════════════════════════════════
+
+.bnd-e .bnd-e-foot,
+.bnd-e .bnd-e-foot a {
+	color: var(--bnd-ink-subtle);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONTRACT E3 — a link in an email is legible.
+//
+// `email.bundle.scss:36` is `a { color: $blue-500 }`, i.e. `#2d95f0`, and it
+// measures **3.15:1 on white and 3.00:1 on our page ground** against 1.4.3 AA's
+// 4.5. Every link in every email every Frappe site has ever sent fails AA.
+//
+// FOUND LATE, AND THE REASON IS WORTH KEEPING. The census body carried a
+// `.btn-primary` and no bare `<a>`, so this measured nothing and read as clean —
+// the sample was the bug. It surfaced only when the body ink was traced through
+// its ancestor chain and `a { color: $blue-500 }` appeared two lines above the
+// `body` rule being read for something else. A census is only as wide as the
+// fixture it renders.
+//
+// `--bnd-brand-ink` is the repair rather than a darker blue: it is the token
+// FITTED to 4.5:1 as text against every surface this theme produces, at all
+// eleven gate seeds, so the guarantee comes from an existing gate row instead of
+// from one measurement at one seed. Measured here 5.33:1 on the plate and 5.08:1
+// on the ground. That it also puts the customer's colour on their links is a
+// consequence, not the argument — this is a contract and it survives `Original`.
+//
+// `:not(.btn)` because the CTA is an `<a>` too, and it is white-on-dark by
+// design; re-colouring it would be the "repair that moves half a pair" regression
+// item 32 measured at 1.09:1.
+// ══════════════════════════════════════════════════════════════════════════
+
+.bnd-e .bnd-e-body a:not(.btn) {
+	color: var(--bnd-brand-ink);
+}

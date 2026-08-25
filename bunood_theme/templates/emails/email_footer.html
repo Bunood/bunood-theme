@@ -1,0 +1,53 @@
+{#-
+  THE EMAIL FOOTER — ours. Item 34. See standard.html's header for why this app
+  forks three of Frappe's email templates and what that costs.
+
+  Forked at frappe 16.27.0, sha256 3275615ecd933fb4; pinned by tests/smoke.mjs.
+
+  TWO OF THE THREE LOAD-BEARING MARKERS ARE IN THIS FILE:
+      <!--unsubscribe link here-->   -> email_body.py:444 replaces it wholesale
+      <!--email_open_check-->        -> email_queue.py:358-384, per recipient
+  Neither is decoration. Deleting either is a functional regression that renders
+  perfectly.
+
+  AND THE ONE MEASURED WCAG FAILURE ON THIS SURFACE. `.email-footer-container`
+  carries `text-muted`, which resolves to #7c7c7c on #ffffff — 4.17:1 against
+  1.4.3 AA's 4.5. It is the SAME literal on the SAME class that item 33 repaired
+  on /404 and every portal row; this is its third surface. Repaired in slice 2 as
+  a CONTRACT, so it survives `Original`.
+
+  Shipped inert in this slice: byte-identical to the vendor's.
+-#}
+<div class="bnd-e-foot email-footer-container">
+	<!-- email_account_footer -->
+	{% if email_account_footer %}
+	<div class="email-account-footer">
+		{{ email_account_footer }}
+	</div>
+	{% endif %}
+
+	<!-- sender_address -->
+	{% if sender_address %}
+	<div class="sender-address">
+		{% for line in sender_address.splitlines(True) %}
+		<div>{{ line }}</div>
+		{% endfor %}
+	</div>
+	{% endif %}
+
+	<!--unsubscribe link here-->
+
+	<div class="email-pixel">
+		<!--email_open_check-->
+	</div>
+
+	<!-- default_mail_footer -->
+	{% if default_mail_footer %}
+	<div class="default-mail-footer">
+		{% for line in default_mail_footer %}
+		<div>{{ line }}</div>
+		{% endfor %}
+	</div>
+	{% endif %}
+
+</div>

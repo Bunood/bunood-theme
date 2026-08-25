@@ -31,7 +31,8 @@
 	"ceiling": {
 		"css_gzip": 21000,
 		"js_gzip": 93000,
-		"web_css_gzip": 4000
+		"web_css_gzip": 4000,
+		"email_css_gzip": 2000
 	},
 	"history": [
 		{

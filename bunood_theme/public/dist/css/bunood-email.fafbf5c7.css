@@ -1,0 +1,21 @@
+table.bnd-e.body-table {
+  background-color: var(--bnd-page);
+  color: var(--bnd-ink);
+}
+
+table.bnd-e.body-table.with-container .bnd-e-plate {
+  background-color: var(--bnd-surface);
+}
+
+table.bnd-e-body.email-body {
+  color: var(--bnd-ink);
+}
+
+.bnd-e .bnd-e-foot,
+.bnd-e .bnd-e-foot a {
+  color: var(--bnd-ink-subtle);
+}
+
+.bnd-e .bnd-e-body a:not(.btn) {
+  color: var(--bnd-brand-ink);
+}

@@ -129,6 +129,13 @@ jinja = {
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",
+        # Item 34: the email stylesheet, substituted per site. Registered here
+        # rather than delivered by Frappe's `email_css` hook because that hook is a
+        # STATIC file list (so it can never carry a customer's seed) and its
+        # `os.path.exists` filter runs CWD-relative in whichever process sends —
+        # which silently drops the sheet for scheduler-triggered mail. See
+        # `bunood_theme/email.py`.
+        "bunood_theme.email.bunood_email_css",
         "bunood_theme.i18n.rtl_patch.is_rtl",
     ]
 }

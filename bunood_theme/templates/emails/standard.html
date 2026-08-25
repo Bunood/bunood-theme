@@ -1,0 +1,119 @@
+{#-
+  THE EMAIL WRAPPER — ours, and the only template in this app that shadows one of
+  Frappe's. Item 34.
+
+  WHY A FORK AT ALL, when ARCHITECTURE §4 retired the www/desk.html one.
+    Frappe's `email_css` hook is the obvious route and it is disqualified twice
+    over, both measured. It is a STATIC file list, so it can never carry a
+    customer's brand seed — every ERPNext site on earth sends the same colours.
+    And `inline_style_in_html`'s `os.path.exists` filter runs in whichever process
+    sends: the queue-short, queue-long and scheduler containers have no
+    `bunood_theme` entry under `sites/assets`, so a hooked sheet applies to
+    desk-triggered mail and is SILENTLY DROPPED for scheduler-triggered mail. Same
+    site, same template, two different emails, no error in either. ERPNext has been
+    living that failure since forever — its own `email_css` names
+    `email_erpnext.bundle.css` while the built file is `erpnext_email.bundle.css`,
+    so its email stylesheet has never applied anywhere, silently.
+
+    A template travels with the app SOURCE, which is present wherever the app is
+    importable. That is the whole reason this file exists.
+
+  THE COST, AND HOW IT IS PAID. The desk.html fork had two costs; only one applies
+  here. There is no colocated `.py`, so `TemplatePage.set_pymodule()` has no
+  analogue and the cross-user `frappe.boot` hazard cannot recur. But a fork still
+  PINS us to the version copied, and a Frappe change here would be invisible — in
+  an inbox — indefinitely. So the fork is pinned rather than merely taken:
+  `tests/smoke.mjs` hashes Frappe's shipped copies and fails loudly when upstream
+  moves. Forked at frappe 16.27.0, sha256 ef600441177479bc.
+
+  WHAT MUST NOT BE LOST, and it is not styling. Three markers in these templates
+  are rewritten per recipient downstream; losing one is a dead unsubscribe link or
+  a dead open-tracking pixel, which no visual check would ever see:
+      <!--unsubscribe link here-->   email_footer.html   -> email_body.py:444
+      <!--email_open_check-->        email_footer.html   -> email_queue.py:358-384
+      data-email-footer="true"       this file           -> selector consumers
+  The other three markers Frappe rewrites (unsubscribe_url, cc_message, recipient)
+  are injected by CALLERS into the message body and never appear here — measured
+  across all four render shapes, so a check guarding all six would be asserting
+  something we do not control.
+
+  Plus the render contract: {{ content }}, {{ header }}, {{ footer }},
+  {{ brand_logo }}, {{ with_container }}, {{ print_html }}, {{ subject }},
+  {{ site_url }}. `get_formatted_html` supplies every one.
+
+  THIS SLICE SHIPS IT INERT. Byte-identical to the vendor's, so the render is
+  byte-identical too and the only thing under test is whether our copy WINS the
+  loader — `telephony` sorts ahead of `bunood_theme` in the ChoiceLoader and would
+  beat us if it ever shipped one of these.
+-#}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>{{ subject or "" }}</title>
+	{#- Item 34. Colour tokens substituted per site by bunood_theme/email.py;
+	     Premailer inlines what it can and preserves the rest. Empty string on any
+	     failure, which stands the whole sheet down rather than half-styling. -#}
+	<style type="text/css">{{ bunood_email_css() }}</style>
+</head>
+
+<body>
+	<table class="bnd-e body-table {% if header or with_container %} with-container {% endif %}" cellpadding="0" cellspacing="0">
+		<tr>
+			<td class="body-content" align="center" valign="top">
+				<table class="bnd-e-plate email-container" border="0" cellpadding="0" cellspacing="0"
+					width="{% if header %} 600 {% else %} 100% {% endif %}">
+					{% if brand_logo %}
+					<tr>
+						<td width="40" align="left" valign="middle">
+							<a href="{{ site_url or 'https://frappeframework.com' }}">
+								<img
+									src="{{ brand_logo or '/assets/frappe/images/frappe-framework-logo.svg' }}"
+									height="40"
+									class="brand-logo"
+								/>
+							</a>
+						</td>
+					</tr>
+					{% endif %}
+					<tr>
+						<td valign="top">
+							{{ header or "" }}
+						</td>
+					</tr>
+					<tr>
+						<td valign="top">
+							<table class="bnd-e-body email-body" border="0" cellpadding="0" cellspacing="0" width="100%">
+								<tr>
+									<td valign="top">
+										<p>{{ content }}</p>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					<tr>
+						<td valign="top">
+							<table class="bnd-e-foot email-footer" border="0" cellpadding="0" cellspacing="0" width="100%">
+								<tr>
+									<td valign="top" data-email-footer="true">
+										{{ footer }}
+									</td>
+								</tr>
+								<tr>
+									<td valign="top">
+										<div class="print-html">{{ print_html or "" }}</div>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>
