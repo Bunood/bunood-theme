@@ -186,6 +186,28 @@ body:is(.bnd-web-panel, .bnd-web-plate) {
     background-color: var(--bnd-web-card);
   }
 
+  // THE SAME TREATMENT FOR EVERY OTHER WHITE ISLAND, because the rule below
+  // re-inks text INSIDE them and an ink without its fill is a regression — the
+  // lesson slice 4a-ii already recorded once, arriving here in the one place no
+  // check could look.
+  //
+  // The avatar menu is the case the v0.33.0 release review measured: at the
+  // SHIPPED defaults on a dark OS, `.dropdown-item` took `--bnd-ink` (#e8eaec)
+  // while `.dropdown-menu` kept `background-color: #fff` — a LITERAL, so no
+  // re-point can reach it — and "My Account" / "Logout" rendered at 1.21:1 where
+  // stock manages 15.9:1. Nothing saw it because the menu is `display: none`
+  // until it is clicked, so both the axe scan and the text-node walk skip it.
+  //
+  // ENUMERATED FROM THE SERVED BUNDLE, not from memory: 23 rules in
+  // `website.bundle` carry a white background literal, and these are the ones
+  // that hold text this pole re-inks. `body:is(…) .x` is (0,2,1), which clears
+  // every one of them; `.page-item.disabled .page-link` at (0,3,0) is the single
+  // exception and is left alone deliberately — a disabled pagination link is
+  // stock-coloured on stock white, which is the honest stand-down.
+  :is(.dropdown-menu, .card, .list-group-item, .modal-content, .popover, .page-link, .table td, .table th) {
+    background-color: var(--bnd-web-card);
+  }
+
   // `a { color: rgb(23,23,23) }` and `h3 { color: rgb(23,23,23) }` — both bare
   // ELEMENT rules at (0,0,1), carrying 1.12:1 on our dark card. Frappe styles
   // links as body text rather than as links here; `--bnd-ink` keeps that

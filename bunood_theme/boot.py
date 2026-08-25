@@ -35,6 +35,36 @@ See ARCHITECTURE.md sections 3 and 8.
 import frappe
 
 
+def _boot_text(value) -> str:
+    """A tenant-controlled string, made safe to serialise into ``frappe.boot``.
+
+    WHY THIS EXISTS. ``frappe.boot`` is emitted inside a ``<script>`` element on
+    the desk page. The HTML tokeniser ends that element at the first ``</script``
+    followed by whitespace, ``/`` or ``>`` — *inside a JSON string or not*, because
+    the tokeniser never sees the JSON. Everything after it is then parsed as HTML,
+    so an injected ``<script>`` becomes a real one and executes. Frappe does not
+    escape the sequence when serialising boot, so any free-text value we add to
+    boot is ours to make safe.
+
+    TWO STEPS, AND THE SECOND IS NOT REDUNDANT. ``strip_html_tags`` removes
+    ``<…>`` pairs, which handles every payload seen in practice and leaves
+    ordinary names untouched — ``Smith & Co`` and ``شركة بنود`` both survive
+    unchanged, which ``escape_html`` would not: it would render as ``Smith &amp;
+    Co`` wherever ``bunood.js`` assigns this to ``textContent``. But a lone ``<``
+    with no closing ``>`` is not a pair, so ``a </script foo`` would pass straight
+    through — and that terminates a script element just as surely. Dropping any
+    surviving ``<`` makes the guarantee absolute rather than probable, and costs
+    nothing real: ``<`` has no place in a company name or a file path.
+
+    Returns "" for None/empty, so callers keep their ``or ""`` semantics.
+    """
+    from frappe.utils import strip_html_tags
+
+    if not value:
+        return ""
+    return strip_html_tags(str(value)).replace("<", "")
+
+
 def extend_bootinfo(bootinfo):
     """Add the theme's behaviour flags to ``frappe.boot``.
 
@@ -71,11 +101,32 @@ def extend_bootinfo(bootinfo):
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them
         # from JS is what caused v1's visible flash of the Frappe icon in the tab.
-        bootinfo.bnd_company = settings.get("company_name") or ""
+        # `_boot_text`, NOT THE RAW FIELD — this was a stored XSS until v0.33.0.
+        # `frappe.boot` is serialised into a `<script>` block in the desk page, and
+        # a `</script` sequence inside a JSON string TERMINATES that element: the
+        # remainder is then parsed as HTML, so an injected `<script>` becomes a
+        # real one and runs on every desk load.
+        #
+        # THE DOCTYPE'S SANITISER DOES NOT STOP IT, which is the part worth
+        # keeping. `_sanitize_content` runs `nh3.clean` on a Data field containing
+        # `<`, which strips a bare `<script>` — but nh3 KEEPS `<a>` and its `title`
+        # attribute, and attribute serialisation never escapes `<` or `>`. So
+        # `<a title="</script><script>…</script>">x</a>` is stored VERBATIM by the
+        # ordinary settings form, reaches this line intact, and executes. Measured
+        # end-to-end in a real browser during the v0.33.0 release review, through
+        # the normal `doc.save()` path and by a SYSTEM MANAGER, not only an
+        # administrator. It also broke the desk outright — `frappe.boot` never
+        # parsed, so nothing booted.
+        #
+        # Predates item 33: this is item 10's sidebar-brand value, and item 33's
+        # own `app_name` seam is the sibling defect that led here.
+        bootinfo.bnd_company = _boot_text(settings.get("company_name"))
         # Branding for the sidebar's brand block (item 10): logo file URL as
         # stored on Theme Settings. The favicon stays with Frappe's native
-        # Website Settings handling — see the header comment above.
-        bootinfo.bnd_logo = settings.get("logo") or ""
+        # Website Settings handling — see the header comment above. Same treatment:
+        # an Attach value is still a tenant-controlled string on its way into that
+        # same script block.
+        bootinfo.bnd_logo = _boot_text(settings.get("logo"))
 
         # Command palette kit (item 12). A user-invoked overlay is pure
         # "construction" under the flash rule — nothing paints until opened.

@@ -298,9 +298,31 @@ def _vendor_marks(context):
         field: frappe.get_cached_value("Website Settings", "Website Settings", field) or ""
         for field in ("favicon", "splash_image")
     }
+    from frappe.utils import escape_html
+
     context.favicon = tenant["favicon"] or site["favicon"] or VENDOR_MARK
     context.splash_image = tenant["logo"] or site["splash_image"] or VENDOR_MARK
-    context.app_name = tenant["company_name"] or _vendor_name()
+    # ESCAPED, and this line was a stored XSS for exactly as long as it was not.
+    # `app_name` renders at `www/desk.html:19` as `<title>{{ app_name }}</title>`,
+    # and `<title>` is RCDATA: a `</title>` inside the value ENDS the element and
+    # everything after it lands in `<head>`. Frappe's Jinja has no autoescaping
+    # (docs/upstream/frappe-website.md §11), so the only guard is the caller's,
+    # and `_web_chrome` fifty lines below already applied it to this very field
+    # while this line did not.
+    #
+    # THE DOCTYPE'S OWN SANITISER DOES NOT COVER IT, which is why "a Data field is
+    # safe" was the wrong instinct. `_sanitize_content` runs `nh3.clean` on any
+    # Data value containing `<` or `>`, so a bare `<script>` is stripped — but nh3
+    # KEEPS `<a>` and its `title` attribute, and HTML attribute serialisation
+    # escapes only `&` and `"`, never `<` or `>`. So
+    # `<a title="</title><script>…</script>">x</a>` survives sanitisation
+    # verbatim, and the `</title>` inside the attribute still terminates the
+    # element on the way out. Verified end-to-end in a real browser during the
+    # v0.33.0 release review: the script ran on every desk load.
+    #
+    # `company_name` is writable by SYSTEM MANAGER, not only Administrator, so
+    # that was a privilege boundary and not merely a broken page.
+    context.app_name = escape_html(tenant["company_name"] or _vendor_name())
 
 
 def _web_chrome(context):

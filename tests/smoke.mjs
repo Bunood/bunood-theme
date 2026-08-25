@@ -12911,6 +12911,141 @@ async function main() {
 			}
 		});
 
+		await test("web: a company name cannot inject markup into the desk title", async () => {
+			// A STORED XSS, LIVE UNTIL THE v0.33.0 RELEASE REVIEW FOUND IT. Slice 7b
+			// wrote `context.app_name = company_name` with no escaping, fifty lines
+			// above `_web_chrome`, which escapes the very same field. `app_name`
+			// renders at `www/desk.html:19` as `<title>{{ app_name }}</title>` and
+			// Frappe's Jinja has no autoescaping, so a `</title>` inside the value
+			// ENDS the element — RCDATA — and everything after it lands in `<head>`.
+			//
+			// "IT IS A DATA FIELD, SO IT IS SANITISED" WAS THE WRONG INSTINCT and is
+			// why this check writes the payload RAW. `_sanitize_content` runs
+			// `nh3.clean` on any Data value containing `<`, which strips a bare
+			// `<script>` — but nh3 KEEPS `<a>` and its `title` attribute, and HTML
+			// attribute serialisation escapes only `&` and `"`, never `<` or `>`, so
+			// `<a title="</title><script>…</script>">` survives it verbatim. Rather
+			// than depend on that specific hole staying that specific shape, this
+			// writes through `setSingle` — `frappe.db.set_single_value`, which
+			// bypasses sanitisation entirely — and asserts OUR escaping holds on its
+			// own. That is the stronger contract: it passes for any write path,
+			// including a fixture, a migration or an API call that never sees nh3.
+			//
+			// `company_name` is writable by System Manager, not only Administrator,
+			// so this was a privilege boundary rather than a broken page.
+			const RAW = '</title><script>window.__bndXss = 1;</script><b>x';
+			const before = getSingle("Theme Settings", ["company_name"]);
+			try {
+				setSingle("Theme Settings", { company_name: RAW });
+				await goDesk("/app/home");
+				const seen = await page.evaluate(() => ({
+					// EXECUTION IS THE PROPERTY, not the presence of the string. The
+					// first version counted script elements whose text contained the
+					// marker and demanded zero — which fails on a page that is
+					// perfectly safe, because the sanitised value survives as DATA
+					// inside the boot script's own JSON and matches the substring.
+					// A proxy that cannot tell data from code is not a security
+					// assertion; `window.__bndXss` being undefined is.
+					executed: typeof window.__bndXss !== "undefined",
+					title: document.title,
+					// TWO SEAMS, ONE PAYLOAD. The `<title>` is item 33's; `frappe.boot`
+					// is item 10's, and it is the one that actually executed. Boot is
+					// serialised INSIDE a `<script>` element, and `</script` ends that
+					// element wherever it appears — the tokeniser never sees the JSON —
+					// so a company name carrying one breaks out and the remainder is
+					// parsed as HTML. Asserting the desk still BOOTS is what catches
+					// it: the first version of this check only looked at the title and
+					// died on a `waitForSelector` timeout instead, which reads as an
+					// infrastructure flake and is in fact the defect.
+					bootOk: !!(window.frappe && frappe.boot && frappe.boot.bnd_company !== undefined),
+					deskBooted: !!document.querySelector(".body-sidebar-container"),
+				}));
+				expect(!seen.executed, "nothing from the company name executed");
+				expect(seen.bootOk, "frappe.boot still parsed — the value did not break out of the boot script");
+				expect(seen.deskBooted, "and the desk booted");
+				expect(
+					!/<script/i.test(seen.title) || seen.title.includes("</title>"),
+					`the value survives as inert text (${JSON.stringify(seen.title).slice(0, 80)})`
+				);
+			} finally {
+				setSingle("Theme Settings", before);
+			}
+		});
+
+		await test("web: the navbar menu is legible where the pole darkened the page", async () => {
+			// THE REGRESSION CHECK FOR A DEFECT NOTHING COULD SEE. The pole re-inks
+			// `:is(a, h1..h6)` at (0,1,2), which reaches INSIDE `.dropdown-menu` —
+			// whose background is a `#fff` LITERAL in `website.bundle`, so no
+			// re-point can move it. At the SHIPPED defaults on a dark device, "My
+			// Account" and "Logout" rendered at 1.21:1 where stock manages 15.9:1.
+			//
+			// Neither the axe scan nor the text-node walk could catch it, because the
+			// menu is `display: none` until it is clicked — so this check UN-HIDES it
+			// rather than clicking, which keeps it independent of Bootstrap's JS
+			// having initialised. Twenty-three rules in that bundle carry a white
+			// literal; the pole now paints the ones that hold text it re-inks, and
+			// this measures the one the review actually reproduced.
+			const before = getSettings(["web_style", "web_theme"]);
+			try {
+				setSettings({ web_style: "Panel", web_theme: "Follow OS" });
+				const seen = await withPortalUser(
+					"/orders",
+					".navbar",
+					async (pp) =>
+						pp.evaluate(() => {
+							const menu = document.querySelector(".dropdown-menu");
+							if (!menu) return { err: "no .dropdown-menu rendered" };
+							menu.style.display = "block";
+							const item = menu.querySelector("a, .dropdown-item");
+							if (!item) return { err: "the menu rendered with no items" };
+							const clear = (c) =>
+								!c || c === "transparent" || c.replace(/\s/g, "") === "rgba(0,0,0,0)";
+							const eff = (el) => {
+								let n = el;
+								while (n) {
+									const bg = getComputedStyle(n).backgroundColor;
+									if (!clear(bg)) return bg;
+									n = n.parentElement;
+								}
+								return "rgb(255, 255, 255)";
+							};
+							const tri = (t) => {
+								if (!/^rgba?\(/.test(t)) throw new Error("unrecognised colour form " + t);
+								return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+							};
+							const lum = (c) =>
+								tri(c)
+									.map((n) => {
+										const v = n / 255;
+										return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+									})
+									.reduce((a, v, i) => a + [0.2126, 0.7152, 0.0722][i] * v, 0);
+							const ratio = (x, y) => {
+								const [a, b] = [lum(x), lum(y)];
+								return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+							};
+							const ink = getComputedStyle(item).color;
+							const fill = eff(item);
+							return {
+								ink,
+								fill,
+								ratio: +ratio(ink, fill).toFixed(2),
+								text: (item.textContent || "").trim().slice(0, 24),
+							};
+						}),
+					{ colorScheme: "dark", bust: true }
+				);
+				expect(!seen.err, `the avatar menu is in the DOM (${seen.err || "ok"})`);
+				expect(
+					seen.ratio >= 4.5,
+					`menu ink clears AA on the menu's own fill — ${seen.ink} on ${seen.fill} = ${seen.ratio}:1 ` +
+						`("${seen.text}")`
+				);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("web: no muted text on the website falls under AA", async () => {
 			// EXHAUSTIVE, NOT A SELECTOR LIST. The census named seven places
 			// `--text-muted` fails — /me's three actions, the footer's "Powered by"

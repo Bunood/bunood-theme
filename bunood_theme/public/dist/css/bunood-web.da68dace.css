@@ -728,6 +728,9 @@ body:is(.bnd-web-panel, .bnd-web-plate) {
 body:is(.bnd-web-panel, .bnd-web-plate) .navbar-light {
   background-color: var(--bnd-web-card);
 }
+body:is(.bnd-web-panel, .bnd-web-plate) :is(.dropdown-menu, .card, .list-group-item, .modal-content, .popover, .page-link, .table td, .table th) {
+  background-color: var(--bnd-web-card);
+}
 body:is(.bnd-web-panel, .bnd-web-plate) :is(a, h1, h2, h3, h4, h5, h6) {
   color: var(--bnd-ink);
 }
