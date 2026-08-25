@@ -6526,6 +6526,18 @@ async function main() {
 					Object.entries(shippedState).filter(([k]) => MUTABLE_FIELDS.includes(k))
 				)
 			);
+			// AND THE LANGUAGE, for the same reason the settings above are pinned:
+			// left to inherit, this measures whatever the previous check left behind.
+			// `direction: the desk's dir, CSS bundle and JS agree…` switches the site
+			// to Arabic and restores it at the end — so when THAT check times out
+			// mid-way on a loaded machine, this one scans an Arabic `/login`, where
+			// Frappe serves `css-rtl/login.bundle.css` instead, against a baseline
+			// captured in English. Measured in the v0.33.0 release run: it reported
+			// `color-contrast (3 nodes)` NEW and `image-alt grew 1 -> 4`, both of
+			// which are real differences between two different stylesheets and
+			// neither of which is a regression. Pinning turns a cascade into a
+			// deterministic scan.
+			setLang("en");
 			for (const [route, waitFor, opts] of [
 				["/desk/item", ".page-head"],
 				["/desk/item/BND-TEST-001", ".form-tabs-list"],
