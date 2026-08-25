@@ -12521,7 +12521,22 @@ async function main() {
 			//   - the per-site brand sheet loads here too (slice 2b)
 			//   - so --bnd-page resolves to the customer's own hex rather than the
 			//     bundle's color-mix() fallback
-			const seen = await withPortalUser("/orders", ".website-list", async (pp) =>
+			// `bust` BECAUSE THIS CHECK READS A HASHED FILENAME OUT OF CACHED HTML,
+			// which is a combination that fails on a timer. Frappe caches the page
+			// on `(path, lang)`; the brand stylesheet's name is a digest of its
+			// contents and a save REAPS the previous file. `login: the served
+			// tagline matches the stored one` runs earlier in this suite and writes
+			// `tagline` — a `brand.BRAND_INPUTS` field — so the sheet is regenerated
+			// under a new hash mid-run. A cached `/orders` still pointing at the old
+			// name then 404s, and `--bnd-page` falls back to the bundle's
+			// `color-mix()`: exactly the failure this check reports, arriving as an
+			// intermittent that isolation could never reproduce. Measured in the
+			// v0.33.0 release run, where it failed in the full suite and passed
+			// alone.
+			const seen = await withPortalUser(
+				"/orders",
+				".website-list",
+				async (pp) =>
 				pp.evaluate(() => {
 					const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
 					return {
@@ -12538,7 +12553,8 @@ async function main() {
 						// comparison could tell them apart at all.
 						page: getComputedStyle(document.documentElement).getPropertyValue("--bnd-page").trim(),
 					};
-				})
+				}),
+				{ bust: true }
 			);
 			expect(seen.ourSheet, "our compiled web sheet loads on the portal — the gap was a rule, not an asset");
 			expect(seen.brandSheet, "and so does the per-site brand sheet — slice 2b closed the delivery gap");
@@ -12904,17 +12920,25 @@ async function main() {
 			// each route and reports whatever is under 4.5:1, so a failure nobody
 			// predicted still fails.
 			//
-			// LIGHT ONLY, AND THAT IS A MEASURED DECISION RATHER THAN AN OMISSION.
-			// The ground on a website page is still Frappe's `rgb(255,255,255)` in
-			// BOTH modes — `body.bnd-web` re-points none of Frappe's own variables
-			// yet, so nothing paints with our tokens. Handing Frappe's ink variables
-			// our MODE-FLIPPING tokens would therefore put dark-mode ink on a white
-			// page: measured, `--bnd-ink-muted` is #4a4e58 (8.33:1 on white) in light
-			// and #b9bec5 (1.87:1) in dark, so an unconditional re-point would repair
-			// 4.17:1 in light and replace it with 1.87:1 in dark. The repair is
-			// scoped out of dark for that reason, and dark keeps stock's 4.17:1 until
-			// the anchor paints the ground. Slice 4 is what closes the dark half; a
-			// check that asserted both modes now would be asserting a promise.
+			// FOUR PASSES, AND THE LAST TWO EXIST BECAUSE A RELEASE REVIEW FOUND
+			// WHAT THE FIRST TWO COULD NOT SEE. The repair is gated on the RESOLVED
+			// mode, which is the device AND `web_theme` together — but this check
+			// only ever varied the device and the pole, so it ran at whatever
+			// `web_theme` the DB held (`Follow OS`, the default), which is the one
+			// value where device and resolved mode agree by construction. Two
+			// reachable states were therefore invisible to it:
+			//
+			//   Original + Always Dark + LIGHT device → dark tokens on Frappe's
+			//     still-white ground (the ground paint is pole-scoped), pushed
+			//     through the sanctioned `!important`: 1.87:1, worse than the
+			//     4.17:1 it replaced.
+			//   Original + Always Light + DARK device → light tokens on a white
+			//     ground, which is exactly what the repair is for, and neither
+			//     media arm fired: all nineteen nodes back to stock's 4.17:1.
+			//
+			// Both are now passes. `web_theme` is PINNED on every pass rather than
+			// only the new ones — a pass that inherits the field is a pass whose
+			// meaning depends on what ran before it.
 			//
 			// Backgrounds resolved by WALKING ANCESTORS. A transparent parent parses
 			// as black and reported a passing 7.94:1 as 2.52:1 for item 32.
@@ -12932,15 +12956,38 @@ async function main() {
 			// ourselves. The dark pass PINS `web_style` rather than trusting the
 			// shipped default to stay a pole.
 			const PASSES = [
-				{ label: "light", opts: {}, pole: null },
-				{ label: "dark under a pole", opts: { colorScheme: "dark" }, pole: "Panel" },
+				{ label: "light device, Follow OS", opts: {}, pole: null, theme: "Follow OS" },
+				{
+					label: "dark device, Follow OS, under a pole",
+					opts: { colorScheme: "dark" },
+					pole: "Panel",
+					theme: "Follow OS",
+				},
+				// The two the review caught. Both pin `Original`, because the pole is
+				// what paints the ground and `Original` is the only state where the
+				// resolved mode can disagree with what is underneath the ink.
+				{
+					label: "light device, Always Dark, Original",
+					opts: { colorScheme: "light" },
+					pole: "Original",
+					theme: "Always Dark",
+				},
+				{
+					label: "dark device, Always Light, Original",
+					opts: { colorScheme: "dark" },
+					pole: "Original",
+					theme: "Always Light",
+				},
 			];
-			const before = getSettings(["web_style"]);
+			const before = getSettings(["web_style", "web_theme"]);
 			const bad = [];
 			let scanned = 0;
 			try {
 			for (const pass of PASSES) {
-			if (pass.pole) setSettings({ web_style: pass.pole });
+			setSettings({
+				...(pass.pole ? { web_style: pass.pole } : {}),
+				web_theme: pass.theme,
+			});
 			for (const r of ROUTES) {
 				const found = await r.how(r.route, r.wait, async (p) =>
 					p.evaluate(() => {

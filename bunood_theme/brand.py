@@ -223,10 +223,27 @@ def render_brand_css(settings=None) -> str:
     # above follows, and for the same reason: that map is the ONE place a value
     # becomes a class name, and writing "bnd-web-theme-dark" here as a string
     # would be the second copy this repo's every critical defect traces to.
+    # BOTH ARMS REQUIRE A POLE, matching `web/_site.scss` exactly — and this is the
+    # half of that fix that could only ever have broken on a CUSTOMER's site. The
+    # bundle's fallback and this generated sheet declare the same dark tokens for
+    # the same scopes; if only one of them learned that dark needs a ground, then
+    # our site (whose seed IS the shipped one, so the bundle's values are right)
+    # would look correct while a blue-branded tenant on `Original` + `Always Dark`
+    # got their own dark ink on Frappe's white page. The rule is one sentence and
+    # it has to hold in both places: our token mode follows our ground, and we
+    # only own a ground under a pole.
+    #
+    # The poles are DERIVED from `WEB_CLASSES["web_style"]` — every non-empty slug
+    # is a pole, and `Original`'s empty string is the stand-down — so adding a
+    # fourth pole later cannot leave this selector behind.
     _web_modes = WEB_CLASSES["web_theme"]
-    _dark_cls += f", body.{WEB_BODY_CLASS}-{_web_modes['Always Dark']}"
+    _web_poles = ", ".join(
+        f".{WEB_BODY_CLASS}-{slug}" for slug in WEB_CLASSES["web_style"].values() if slug
+    )
+    _dark_cls += f", body.{WEB_BODY_CLASS}-{_web_modes['Always Dark']}:is({_web_poles})"
     _follow += (
         f", body.{WEB_BODY_CLASS}"
+        f":is({_web_poles})"
         f":not(.{WEB_BODY_CLASS}-{_web_modes['Always Light']})"
         f":not(.{WEB_BODY_CLASS}-{_web_modes['Always Dark']})"
     )

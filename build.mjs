@@ -811,6 +811,76 @@ function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
 	}
 }
 
+/**
+ * Reset-chip guard — a picker that RENDERS a "reset to default" chip must BIND
+ * one.
+ *
+ * WHY THIS EXISTS. `P.group()` emits a `.bnd-cbp-reset` button for any group
+ * given a `field`, so the chip appears without the picker author doing anything.
+ * Binding it is a separate line, and `bnd_render_web_picker` — copied from
+ * `bnd_render_login_picker`, which has it — was written without one. Item 33
+ * therefore shipped two chips that were rendered, enabled, visible and inert:
+ * the fixture even banked the two nodes, which made the render look verified.
+ * Twelve other pickers carried the binding, so this was the one that got it
+ * wrong, which is precisely the shape a guard is for and a test is not.
+ *
+ * Nothing else could see it. There is no delegated handler — every picker binds
+ * inside its own host — and no test, no sweep step and no other guard mentioned
+ * `.bnd-cbp-reset` at all. Found by the v0.33.0 release review.
+ *
+ * MECHANICAL, AND DELIBERATELY CRUDE: split the file on picker function
+ * boundaries and require that any body which calls `P.group(` with a `field:`
+ * also binds `.bnd-cbp-reset`. It cannot prove the handler is CORRECT — the
+ * suite's own settings sweep is what exercises behaviour — only that one exists,
+ * which is the failure that actually happened.
+ *
+ * @param {string} jsSrc - theme_settings.js text
+ */
+function assertResetChipsBound(jsSrc) {
+	const problems = [];
+	// Slice on `function bnd_render_*_picker(`, keeping each body up to the next
+	// picker declaration. A picker's helpers live between its own boundaries, so
+	// a binding in a helper still counts — which is correct: what matters is that
+	// something in that picker's scope binds the chip.
+	const marks = [...jsSrc.matchAll(/function\s+(bnd_render_[a-z0-9_]*picker)\s*\(/g)];
+	for (let i = 0; i < marks.length; i++) {
+		const name = marks[i][1];
+		const body = jsSrc.slice(marks[i].index, i + 1 < marks.length ? marks[i + 1].index : jsSrc.length);
+		// A group with a `field` is what makes `P.group` emit the chip; a group
+		// without one (a pure display grouping) legitimately has none.
+		const rendersChip = /P\.group\(\s*\{[^}]*field\s*:/.test(body);
+		if (!rendersChip) continue;
+		// TWO LEGITIMATE WAYS TO BIND IT, and the first draft of this guard knew
+		// only one — which made it fire on `bnd_render_inbox_picker`, a picker
+		// whose chips have worked all along. `P.group` stamps every chip with the
+		// shared `bnd-cbp-reset` AND with an optional per-picker `resetCls`, which
+		// exists precisely so the notifications picker can tell its per-group chip
+		// apart from its reset-ALL chip. Binding either class is correct, so this
+		// accepts either: the shared one, or every `resetCls` the body declares.
+		const own = [...body.matchAll(/resetCls:\s*["']([a-z0-9-]+)["']/g)].map((m) => m[1]);
+		const bound =
+			body.includes('.bnd-cbp-reset")') || (own.length > 0 && own.every((c) => body.includes(`.${c}"`)));
+		if (!bound) {
+			problems.push(
+				`${name} renders a reset chip but binds neither .bnd-cbp-reset nor ` +
+					(own.length ? `its own ${own.map((c) => "." + c).join(" / ")}` : "a resetCls of its own")
+			);
+		}
+	}
+	if (problems.length) {
+		throw new Error(
+			[
+				"Reset chips rendered but not wired:",
+				...problems.map((p) => "  " + p),
+				"",
+				"P.group() emits the chip for any group with a `field`. Add",
+				'  $host.find(".bnd-cbp-reset").on("click", ...)',
+				"to that picker, the way the other pickers do.",
+			].join("\n")
+		);
+	}
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -955,6 +1025,12 @@ async function main() {
 	);
 	assertFieldMirrors(
 		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		)
+	);
+	assertResetChipsBound(
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"

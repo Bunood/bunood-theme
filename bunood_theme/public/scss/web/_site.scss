@@ -60,15 +60,30 @@
 // which is the whole defect the axis exists to prevent. The `:not()` pair is
 // (0,3,1) against the explicit block's (0,1,1); they never both match, so the
 // difference is bookkeeping rather than a contest.
+// AND BOTH ARMS REQUIRE A POLE, which is the correction the v0.33.0 release
+// review forced and the single rule the whole surface now rests on: OUR TOKEN
+// MODE FOLLOWS OUR GROUND, AND WE ONLY OWN A GROUND UNDER A POLE. `Original`
+// paints nothing — the ground fill and the Frappe-variable bridge are both
+// pole-scoped — so on `Original` the page is Frappe's white in every mode, and
+// Frappe ships no dark rules for the website at all (measured above: zero).
+// Flipping our tokens dark there could therefore never darken the page; it could
+// only put dark-mode ink on a white one, which is exactly what it did:
+// `Original` + `Always Dark` measured 1.87:1 through the sanctioned
+// `!important`, replacing stock's 4.17:1.
+//
+// The honest consequence, stated rather than hidden: `web_theme` has no visible
+// effect under `Original`. It cannot have one. A dark page needs a ground we
+// painted, and choosing `Original` is choosing not to have one — see the
+// picker's copy, which now says so.
 @media (prefers-color-scheme: dark) {
-  body.bnd-web:not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
+  body.bnd-web:is(.bnd-web-panel, .bnd-web-plate):not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
     @include tokens.dark;
   }
 }
 
-// `Always Dark` — outside the media query, because the point of the pole is that
-// the device does not get a vote.
-body.bnd-web-theme-dark {
+// `Always Dark` — outside the media query, because the point of the axis is that
+// the device does not get a vote. Still pole-gated, for the reason above.
+body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
   @include tokens.dark;
 }
 
@@ -405,22 +420,23 @@ body:is(.bnd-web-panel, .bnd-web-plate) .portal-container {
   }
 }
 
-@media not all and (prefers-color-scheme: dark) {
-  body.bnd-web {
-    @include muted-ink;
-  }
-}
-
-// DARK, BUT ONLY UNDER A POLE. Measured with this absent: twelve nodes at
-// 3.83:1 and 4.22:1 on our dark card, because W2 was scoped light-only back
-// when `Original`'s white ground was the only ground there was. Under a pole we
-// own the ground in both modes, so the ink follows it. `Original` in dark still
-// keeps stock, which is the honest stand-down — its ground is Frappe's and so
-// is its ink.
-@media (prefers-color-scheme: dark) {
-  body:is(.bnd-web-panel, .bnd-web-plate) {
-    @include muted-ink;
-  }
+// UNCONDITIONAL, AND THAT IS THE POINT. This contract used to carry two media
+// arms keyed on `prefers-color-scheme` while the tokens it paints with were
+// keyed on the resolved mode — one fact, two spellings, this repo's first-named
+// trap wearing a media query. It shipped a live 1.87:1.
+//
+// Both spellings are gone. Now that `tokens.dark` requires a pole, the token set
+// ALWAYS matches whatever is actually behind the ink: no pole means Frappe's
+// white ground and light tokens; a pole means our ground and our tokens, in
+// whichever mode resolved. So the repair needs no gate at all — every state it
+// can run in is a state where light ink sits on light ground or dark on dark.
+//
+// Measured across all six reachable combinations of pole x resolved mode, this
+// is the rule that makes `Original` honest: it was repaired in light and left at
+// stock's 4.17:1 in dark-resolved, on an identical white ground, which was
+// arbitrary. It is repaired in both now.
+body.bnd-web {
+  @include muted-ink;
 }
 
 // ── Contract W1: keyboard focus is visible ──────────────────────────────────

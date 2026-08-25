@@ -5263,7 +5263,17 @@ const BND_WEB_GROUPS = [
 	{
 		field: "web_theme",
 		title: () => __("Website Theme"),
-		desc: () => __("A website visitor has no stored preference, so the default follows their device."),
+		// SAYS WHAT IT CANNOT DO, because it cannot do it and a picker that implies
+		// otherwise is the setting lying to the person choosing it. Dark mode needs
+		// a ground we painted, and `Original` is the choice not to have one — Frappe
+		// ships no dark rules for its website at all, so on `Original` the page is
+		// white whatever this says. Added after a release review found the previous
+		// behaviour: it flipped our tokens dark anyway and put 1.87:1 ink on that
+		// white page.
+		desc: () =>
+			__(
+				"A website visitor has no stored preference, so the default follows their device. Needs a page style other than Original — a dark page needs a ground the theme paints."
+			),
 		options: [
 			{ value: "Follow OS", name: () => __("Follow OS") },
 			{ value: "Always Light", name: () => __("Always Light") },
@@ -5275,7 +5285,8 @@ const BND_WEB_GROUPS = [
 const BND_WEB_STYLES = [
 	{
 		value: "Original",
-		blurb: () => __("Stock: Frappe's own white page, with the accessibility repairs still applied."),
+		blurb: () =>
+			__("Stock: Frappe's own white page, with the accessibility repairs still applied. Always light."),
 		svg: bnd_web_thumb({}),
 	},
 	{
@@ -5368,6 +5379,18 @@ function bnd_render_web_picker(frm, host) {
 	$host.find(".bnd-cbp-opt").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_web_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	// THE RESET CHIPS, WHICH SHIPPED RENDERED AND DEAD. `P.group` emits a
+	// `.bnd-cbp-reset` for any group with a `field`, and both groups here have
+	// one — the fixture banks the two nodes — but this function was copied from
+	// `bnd_render_login_picker` without its binding, so the chips were visible,
+	// enabled and inert. Twelve other pickers carry this handler and there is no
+	// delegated fallback: every picker binds inside its own host, so no other
+	// kit's handler can reach these. Found by the v0.33.0 release review.
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_web_set(frm, f, BND_WEB_DEFAULTS[f]);
 	});
 }
 
@@ -6176,7 +6199,15 @@ function bnd_render_status_picker(frm, host) {
 		if (this.hasAttribute("disabled")) return;
 		bnd_status_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
-	$host.find(".bnd-stp-reset").on("click", function (e) {
+	// `.bnd-cbp-reset`, NOT `.bnd-stp-reset` — this bound a class that nothing
+	// has ever rendered, so the status picker's reset chips were dead in exactly
+	// the way item 33's were. `P.group` stamps every chip `bnd-cbp-reset` and adds
+	// a second class only when the caller passes `resetCls`; this picker never
+	// did, so the selector matched nothing. The sidebar picker emits both classes
+	// and the inbox picker passes `resetCls`, which is why only this one and the
+	// website picker were broken. Found by `assertResetChipsBound` in build.mjs,
+	// added during the v0.33.0 release review — this defect predates item 33.
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		bnd_status_set(frm, f, BND_STATUS_DEFAULTS[f]);

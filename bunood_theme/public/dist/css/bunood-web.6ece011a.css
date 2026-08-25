@@ -574,7 +574,7 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
 }
 
 @media (prefers-color-scheme: dark) {
-  body.bnd-web:not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
+  body.bnd-web:is(.bnd-web-panel, .bnd-web-plate):not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
     --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
     --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
     --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
@@ -632,7 +632,7 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
     --bnd-on-critical: #16181d;
   }
 }
-body.bnd-web-theme-dark {
+body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
   --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
   --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
@@ -775,30 +775,17 @@ body:is(.bnd-web-panel, .bnd-web-plate) .portal-container {
   border-radius: var(--bnd-web-radius);
 }
 
-@media not all and (prefers-color-scheme: dark) {
-  body.bnd-web {
-    --text-light: var(--bnd-ink-subtle);
-    --avatar-frame-color: var(--bnd-ink-subtle);
-  }
-  body.bnd-web :is(.hero-subtitle, .footer-col-right) {
-    color: var(--bnd-ink-muted);
-  }
-  body.bnd-web .text-muted {
-    color: var(--bnd-ink-muted) !important;
-  }
+body.bnd-web {
+  --text-light: var(--bnd-ink-subtle);
+  --avatar-frame-color: var(--bnd-ink-subtle);
 }
-@media (prefers-color-scheme: dark) {
-  body:is(.bnd-web-panel, .bnd-web-plate) {
-    --text-light: var(--bnd-ink-subtle);
-    --avatar-frame-color: var(--bnd-ink-subtle);
-  }
-  body:is(.bnd-web-panel, .bnd-web-plate) :is(.hero-subtitle, .footer-col-right) {
-    color: var(--bnd-ink-muted);
-  }
-  body:is(.bnd-web-panel, .bnd-web-plate) .text-muted {
-    color: var(--bnd-ink-muted) !important;
-  }
+body.bnd-web :is(.hero-subtitle, .footer-col-right) {
+  color: var(--bnd-ink-muted);
 }
+body.bnd-web .text-muted {
+  color: var(--bnd-ink-muted) !important;
+}
+
 body.bnd-web :is(.btn, .form-control, a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 2px;
