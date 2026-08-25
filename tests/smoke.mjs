@@ -12962,7 +12962,7 @@ async function main() {
 			}
 		});
 
-		await test("web: a company name cannot inject markup into the desk title", async () => {
+		await test("web: no branding field can inject markup into any surface", async () => {
 			// A STORED XSS, LIVE UNTIL THE v0.33.0 RELEASE REVIEW FOUND IT. Slice 7b
 			// wrote `context.app_name = company_name` with no escaping, fifty lines
 			// above `_web_chrome`, which escapes the very same field. `app_name`
@@ -12984,10 +12984,26 @@ async function main() {
 			//
 			// `company_name` is writable by System Manager, not only Administrator,
 			// so this was a privilege boundary rather than a broken page.
-			const RAW = '</title><script>window.__bndXss = 1;</script><b>x';
-			const before = getSingle("Theme Settings", ["company_name"]);
+			// THREE FIELDS, NOT ONE. The first version covered `company_name` only,
+			// and a later review pass found the same class live in `logo` and
+			// `favicon` — which are WORSE, because `_sanitize_content`
+			// (`base_document.py:1334-1341`) has an explicit `continue` for
+			// `Attach`/`Attach Image`, so those two are never passed to nh3 at all
+			// and store byte-for-byte whatever is written.
+			//
+			// THE PAYLOAD IS THE ATTRIBUTE ONE because it is the shape that beats
+			// every guard in turn: nh3 keeps `<a title="…">`, attribute
+			// serialisation never escapes `<`/`>`, and — the part that cost a round
+			// — entity-escaping is undone when JavaScript reads the value back out
+			// of the DOM, which is how an ESCAPED favicon still executed on the
+			// desk. Whichever field is under test, the assertion is the same:
+			// nothing ran.
+			const RAW = '<a title="</script><script>window.__bndXss = 1;</script>"></title><b>x';
+			const FIELDS = ["company_name", "logo", "favicon"];
+			const before = getSingle("Theme Settings", FIELDS);
 			try {
-				setSingle("Theme Settings", { company_name: RAW });
+				for (const field of FIELDS) {
+				setSingle("Theme Settings", { ...before, [field]: RAW });
 				await goDesk("/app/home");
 				const seen = await page.evaluate(() => ({
 					// EXECUTION IS THE PROPERTY, not the presence of the string. The
@@ -13011,13 +13027,10 @@ async function main() {
 					bootOk: !!(window.frappe && frappe.boot && frappe.boot.bnd_company !== undefined),
 					deskBooted: !!document.querySelector(".body-sidebar-container"),
 				}));
-				expect(!seen.executed, "nothing from the company name executed");
-				expect(seen.bootOk, "frappe.boot still parsed — the value did not break out of the boot script");
-				expect(seen.deskBooted, "and the desk booted");
-				expect(
-					!/<script/i.test(seen.title) || seen.title.includes("</title>"),
-					`the value survives as inert text (${JSON.stringify(seen.title).slice(0, 80)})`
-				);
+				expect(!seen.executed, `${field}: nothing from it executed`);
+				expect(seen.bootOk, `${field}: frappe.boot still parsed — it did not break out of the boot script`);
+				expect(seen.deskBooted, `${field}: and the desk booted`);
+				}
 			} finally {
 				setSingle("Theme Settings", before);
 			}

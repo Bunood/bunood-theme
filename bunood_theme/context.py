@@ -232,6 +232,63 @@ def _vendor_name():
     return DEFAULTS["company_name"]
 
 
+def _attr(value) -> str:
+    """A tenant-controlled string, made safe to sit inside an HTML attribute.
+
+    EVERY SEAM THIS FILE WRITES LANDS IN AN ATTRIBUTE OR AN ELEMENT, and Frappe's
+    Jinja has no autoescaping anywhere (``docs/upstream/frappe-website.md`` §11),
+    so escaping is the caller's job at every one of them. Item 33 learned that
+    twice: first for ``app_name`` and ``bnd_company``, and then — because that
+    fix reached only the two seams carrying a NAME — again for the four carrying
+    a URL, which is what this function exists for.
+
+    THE URL SEAMS ARE THE MORE EXPOSED HALF, not the lesser one, and the reason
+    is a single ``continue`` in Frappe. ``_sanitize_content``
+    (``base_document.py:1334-1341``) skips sanitisation entirely for
+    ``Attach``/``Attach Image`` fields — they are never passed to ``nh3`` at all —
+    and ``logo``/``favicon`` are both ``Attach Image``. So unlike ``company_name``,
+    which at least meets a sanitiser it can slip past, these store byte-for-byte
+    whatever is written. Verified live: a ``logo`` of ``x" onerror="…`` rendered
+    ``<img class="app-logo" src="x" onerror="…">`` on ``/login`` — to GUESTS —
+    and the same payload put arbitrary attributes on the ``<link rel="shortcut
+    icon">`` of every page on the site.
+
+    AND IT CROSSES A ROLE BOUNDARY. Stock Frappe feeds ``favicon``,
+    ``splash_image`` and ``banner_image`` from Website Settings, which only a
+    **Website Manager** may write; Theme Settings grants these to **System
+    Manager**. So leaving them raw does not merely reproduce an exposure the
+    framework already has — it hands a different role a sink the framework
+    reserves.
+
+    ESCAPING IS NOT ENOUGH HERE, AND THAT COST A ROUND TO LEARN. Entity-escaping
+    makes the value safe in the HTML *we* emit — verified, the served
+    ``<link rel="shortcut icon" href="&lt;a title=…">`` cannot break out. But the
+    browser DECODES entities when JavaScript reads the attribute back, and the
+    desk re-inserts the favicon as an HTML string; the payload reassembles itself
+    on the far side of that round trip and executed. Measured: with ``favicon``
+    escaped, ``/app/home`` still produced two injected ``<script>`` elements and
+    ran them.
+
+    So these values are STRIPPED, not encoded. A URL never legitimately contains
+    ``<``, ``>``, ``"`` or ``'`` — RFC 3986 requires them percent-encoded — so
+    removing them is lossless for every real path while leaving nothing to
+    reassemble, in our markup or anyone else's. ``&`` is kept: it is legal in a
+    query string and cannot open a tag or close an attribute on its own.
+
+    The same reasoning as :func:`bunood_theme.boot._boot_text`, one layer out.
+    Both exist because a value that will be re-serialised by someone else has to
+    be safe as DATA, not merely correctly encoded at one point of emission.
+    """
+    from frappe.utils import strip_html_tags
+
+    if not value:
+        return ""
+    out = strip_html_tags(str(value))
+    for ch in ('<', '>', '"', "'"):
+        out = out.replace(ch, "")
+    return out
+
+
 def _tenant_branding():
     """The four Theme Settings fields a tenant brands with, read in one place.
 
@@ -301,8 +358,8 @@ def _vendor_marks(context):
     }
     from frappe.utils import escape_html
 
-    context.favicon = tenant["favicon"] or site["favicon"] or VENDOR_MARK
-    context.splash_image = tenant["logo"] or site["splash_image"] or VENDOR_MARK
+    context.favicon = _attr(tenant["favicon"] or site["favicon"] or VENDOR_MARK)
+    context.splash_image = _attr(tenant["logo"] or site["splash_image"] or VENDOR_MARK)
     # ESCAPED, and this line was a stored XSS for exactly as long as it was not.
     # `app_name` renders at `www/desk.html:19` as `<title>{{ app_name }}</title>`,
     # and `<title>` is RCDATA: a `</title>` inside the value ENDS the element and
@@ -380,7 +437,7 @@ def _web_chrome(context):
     name = escape_html(tenant["company_name"] or _vendor_name())
 
     if tenant["logo"]:
-        context.banner_image = tenant["logo"]
+        context.banner_image = _attr(tenant["logo"])
         context.brand_html = ""
     elif not (site["brand_html"] or site["banner_image"]):
         context.brand_html = f"<span>{name}</span>"
@@ -724,9 +781,9 @@ def _auth_context(context):
     # will not be in that list and this leaves it entirely alone.
     tenant = _tenant_branding()
     if tenant["logo"]:
-        context.logo = tenant["logo"]
+        context.logo = _attr(tenant["logo"])
     elif context.get("logo") in (frappe.get_hooks("app_logo_url") or []):
-        context.logo = VENDOR_MARK
+        context.logo = _attr(VENDOR_MARK)
 
 
 def _brand_css_url():
