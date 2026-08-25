@@ -881,6 +881,97 @@ function assertResetChipsBound(jsSrc) {
 	}
 }
 
+/**
+ * Axe-route guard — the two copies of the route list must agree on ROUTE and on
+ * CONTEXT.
+ *
+ * WHY THERE ARE TWO COPIES AT ALL, since `CLAUDE.md` names "the same fact in two
+ * places" as this repo's first trap. `tools/axe-baseline.mjs` owns the list it
+ * CAPTURES with; the `a11y: axe over the Desk` check owns the list it ENFORCES
+ * with. Extraction into one module was the obvious fix and was rejected on
+ * reading, for two reasons that are visible in the files:
+ *
+ *   1. The commentary is load-bearing and DIFFERENT. The tool's explains what a
+ *      capture must not get wrong; the suite's explains why each route is banked
+ *      kit-on versus kit-absent, which is a gating decision the tool has no
+ *      opinion about. Merging them produces one comment addressed to nobody.
+ *   2. The metadata legitimately differs. The suite's item-33 entries carry
+ *      `bust: true` and the tool's do not, and that is CORRECT rather than
+ *      drift: the tool calls `frappe.clear_cache()` immediately before it scans
+ *      (`axe-baseline.mjs`), while the suite runs mid-suite where a neighbouring
+ *      check can have repopulated Frappe's `(path, lang)` page cache. A shared
+ *      array would need per-consumer overrides to express that, which is more
+ *      machinery than the duplication it removes.
+ *
+ * So the fact is allowed to live twice and this makes the copies unable to
+ * disagree about the part that can silently corrupt a baseline: WHICH ROUTE and
+ * IN WHICH SESSION. `guest` means a cookie-less context, `portal` means the
+ * portal fixture's own user, and neither means an Administrator — scan a route
+ * in the wrong one and you bank a DOM that looks entirely correct and is not.
+ * Slice 0 proved that by sabotage: minting an Administrator for `/orders` left
+ * every visible assertion passing because `website_list_for_contact.py` renders
+ * a populated list through a different branch.
+ *
+ * `bust` is deliberately NOT compared, for the reason in (2). Everything else
+ * about an entry is.
+ *
+ * @param {string} toolSrc - tools/axe-baseline.mjs text
+ * @param {string} suiteSrc - tests/smoke.mjs text
+ */
+function assertAxeRoutesAgree(toolSrc, suiteSrc) {
+	// Pull `["route", "selector", {opts}]` tuples out of one region of source.
+	// Crude on purpose: these are literal arrays, and a parser that understood
+	// more would also fail more quietly when the shape changes.
+	const parse = (src, startRe, label) => {
+		const start = src.search(startRe);
+		if (start === -1) throw new Error(`axe routes: could not find the ${label} route list`);
+		// Stop at the line that closes the array — `];` for the tool's const,
+		// `]) {` for the suite's inline `for (… of [ … ]) {`.
+		const rest = src.slice(start);
+		const end = rest.search(/\n\s*\]\)?[;\s]/);
+		const body = rest.slice(0, end === -1 ? rest.length : end);
+		const out = new Map();
+		for (const m of body.matchAll(/\[\s*"([^"]+)"\s*,\s*"([^"]*)"\s*(?:,\s*\{([^}]*)\})?\s*\]/g)) {
+			const opts = m[3] || "";
+			out.set(m[1], {
+				waitFor: m[2],
+				guest: /\bguest\s*:\s*true/.test(opts),
+				portal: /\bportal\s*:\s*true/.test(opts),
+			});
+		}
+		if (!out.size) throw new Error(`axe routes: parsed zero routes from the ${label} list`);
+		return out;
+	};
+
+	const tool = parse(toolSrc, /const ROUTES = \[/, "tools/axe-baseline.mjs");
+	const suite = parse(suiteSrc, /for \(const \[route, waitFor, opts\] of \[/, "tests/smoke.mjs");
+
+	const problems = [];
+	for (const route of tool.keys()) if (!suite.has(route)) problems.push(`${route}: captured by the tool, never gated by the suite`);
+	for (const route of suite.keys()) if (!tool.has(route)) problems.push(`${route}: gated by the suite, never captured by the tool`);
+	for (const [route, t] of tool) {
+		const s = suite.get(route);
+		if (!s) continue;
+		if (t.waitFor !== s.waitFor) problems.push(`${route}: waits for "${t.waitFor}" in the tool, "${s.waitFor}" in the suite`);
+		const ctx = (e) => (e.portal ? "portal user" : e.guest ? "guest" : "Administrator");
+		if (ctx(t) !== ctx(s)) problems.push(`${route}: scanned as ${ctx(t)} by the tool, ${ctx(s)} by the suite`);
+	}
+
+	if (problems.length) {
+		throw new Error(
+			[
+				"The axe route lists disagree:",
+				...problems.map((p) => "  " + p),
+				"",
+				"tools/axe-baseline.mjs CAPTURES tests/fixtures/axe-baseline.json;",
+				"the `a11y: axe over the Desk` check ENFORCES it. A route present in",
+				"one and not the other, or scanned in a different session, banks or",
+				"gates a DOM that looks correct and is not. Update both.",
+			].join("\n")
+		);
+	}
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -1035,6 +1126,10 @@ async function main() {
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
 		)
+	);
+	assertAxeRoutesAgree(
+		await readFile(new URL("./tools/axe-baseline.mjs", import.meta.url), "utf8"),
+		await readFile(new URL("./tests/smoke.mjs", import.meta.url), "utf8")
 	);
 	assertTypographySync(
 		await readFile(new URL("./bunood_theme/typography.py", import.meta.url), "utf8").catch(() => ""),

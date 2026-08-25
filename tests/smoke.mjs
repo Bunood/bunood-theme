@@ -6599,12 +6599,21 @@ async function main() {
 				// a populated list through a different branch of
 				// `website_list_for_contact.py`, so scanning as one banks a DOM that
 				// looks right and is not — proved by sabotage in slice 0.
-				// `bust` ON ALL FIVE. `/404` is the one route on this surface Frappe
-				// actually caches, and a cached render is keyed on `(path, lang)` and
-				// nothing else — so without a query string this can scan HTML banked
-				// before the settings write above, and score it as current. The
-				// baseline rows were captured with a buster for the same reason; a
-				// gate that measures a different page from the baseline is not a gate.
+				// `bust` ON ALL FIVE, AND ONLY HERE — `tools/axe-baseline.mjs` has no
+				// equivalent, which is correct rather than drift. `/404` is the one
+				// route on this surface Frappe actually caches, keyed on
+				// `(path, lang)` and nothing else. The TOOL calls
+				// `frappe.clear_cache()` immediately before it scans, so its pages
+				// are fresh by construction; the SUITE runs this check in the middle
+				// of hundreds of others, any of which can have repopulated that cache
+				// since, so it needs the query string instead. `build.mjs`'s
+				// `assertAxeRoutesAgree` compares route, selector and SESSION across
+				// the two lists and deliberately ignores `bust` for this reason.
+				//
+				// (This comment previously claimed the baseline rows "were captured
+				// with a buster". They were not — the tool clears the cache. The
+				// claim was wrong the day it was written and is corrected here rather
+				// than left as a plausible sentence somebody would trust.)
 				["/support", ".navbar", { guest: true, bust: true }],
 				["/request-data/new", ".navbar", { guest: true, bust: true }],
 				["/404", "body", { guest: true, bust: true }],

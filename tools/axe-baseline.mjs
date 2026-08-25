@@ -42,6 +42,16 @@ const URL_BASE = "http://localhost:8080";
 
 // The same routes the suite's baseline test walks — the three page shapes a
 // desk session lives in: a list view, a document form, and the settings form.
+//
+// KEPT IN STEP BY `assertAxeRoutesAgree` IN build.mjs, not by hand. This list
+// and the one inside `a11y: axe over the Desk` in tests/smoke.mjs are the same
+// fact twice — this one CAPTURES the baseline, that one ENFORCES it — and the
+// build fails when they disagree about a route, its selector, or the SESSION it
+// is scanned in. They are allowed to stay separate because their commentary
+// answers different questions and because the suite's entries legitimately
+// carry `bust: true` where these do not: the scan below runs straight after a
+// `frappe.clear_cache()`, so its pages are fresh by construction. Adding a route
+// here without adding it there is now a build error rather than a silent hole.
 const ROUTES = [
 	["/desk/item", ".page-head"],
 	["/desk/item/BND-TEST-001", ".form-tabs-list"],
