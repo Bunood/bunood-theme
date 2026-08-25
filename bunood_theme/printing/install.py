@@ -18,8 +18,14 @@ STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-# Frappe stock styles we are allowed to displace; anything else = admin choice.
-STOCK_STYLES = (None, "", "Modern", "Classic", "Standard")
+# Styles we are allowed to displace = the ones an app shipped; anything a
+# human built is a real choice and is never overridden. Detected by
+# `Print Style.standard`, NOT by name: the name list this replaces named
+# "Standard" (absent from this frappe) and missed BOTH "Monochrome" and
+# "Redesign" -- and Redesign is the DEFAULT of Print Settings.print_style on
+# v16, so the guard never fired on a fresh site and this app's entire print
+# theme silently never activated. A name list cannot help but rot; the flag
+# tracks whatever frappe ships next.
 
 FORMATS = [
     {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
@@ -85,9 +91,28 @@ def _sync_style():
     # Set as the system default ONLY when the site still uses a stock style —
     # a System Manager's deliberate choice of another style is never overridden.
     settings = frappe.get_single("Print Settings")
-    if settings.meta.has_field("print_style") and settings.get("print_style") in STOCK_STYLES:
+    current = settings.get("print_style")
+    if (
+        settings.meta.has_field("print_style")
+        and current != STYLE_NAME
+        and _is_displaceable(current)
+    ):
         settings.print_style = STYLE_NAME
         settings.save(ignore_permissions=True)
+
+
+
+def _is_displaceable(current):
+    """True when the site is still on whatever frappe shipped or defaulted to.
+
+    Unset, or a name that no longer resolves, counts as displaceable: there is
+    no admin intent to respect in either case.
+    """
+    if not current:
+        return True
+    if not frappe.db.exists("Print Style", current):
+        return True
+    return bool(frappe.db.get_value("Print Style", current, "standard"))
 
 
 def _sync_letterhead():
