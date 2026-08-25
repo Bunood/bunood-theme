@@ -12465,7 +12465,25 @@ async function main() {
 			// test. `/request-data/new` is in the list precisely because it is a
 			// `WebFormPage`: it is the route that proves template-keying works
 			// where route-keying could not.
-			const GUEST_ROUTES = ["/404-bnd-does-not-exist", "/message", "/request-data/new", "/support"];
+			//
+			// `/_test/_test_folder/index` IS A MARKDOWN PAGE, and it is here because
+			// the first cut of the guard could not see one. Frappe resolves a www
+			// route to `<path>.html` OR `<path>.md` (`template_page.py:77-80`), and a
+			// `.md` page's `context.template` ends `.md` while it still renders
+			// through `templates/base.html` — so a predicate testing
+			// `template.endswith(".html")` dropped every one of them: no scope, no
+			// brand sheet, no focus ring, no contrast repairs, and all three vendor
+			// marks left intact on a page a stranger can read. `www/*.md` is a
+			// documented Frappe pattern and this route ships in every install, so it
+			// costs nothing to hold the guard to it. Found by the v0.33.0 release
+			// review; the predicate keys on `base_template_path` now.
+			const GUEST_ROUTES = [
+				"/404-bnd-does-not-exist",
+				"/message",
+				"/request-data/new",
+				"/support",
+				"/_test/_test_folder/index",
+			];
 			const PORTAL_ROUTES = ["/orders", "/me"];
 
 			const seen = {};
@@ -12744,24 +12762,45 @@ async function main() {
 						return gp.evaluate(() => {
 							const a = document.activeElement;
 							const c = getComputedStyle(a);
-							const muted = document.querySelector(".text-muted");
 							return {
 								what: (a.className || "").toString().slice(0, 26) || a.tagName,
 								style: c.outlineStyle,
 								width: parseFloat(c.outlineWidth) || 0,
-								mutedColour: muted ? getComputedStyle(muted).color : null,
 							};
 						});
 					});
+					// W2 IS MEASURED ON A ROUTE THAT HAS THE ELEMENT, on its own load,
+					// because it was measured here for three poles while asserting
+					// NOTHING. `/request-data/new` carries zero `.text-muted` nodes —
+					// a Web Form builds its controls client-side and none of them uses
+					// the class — so `mutedColour` was `null` every time and
+					// `null !== "rgb(124, 124, 124)"` is unconditionally true. A pole
+					// could have set `.text-muted { color: #7c7c7c !important }`, the
+					// exact defeat device this check exists to catch, and it would
+					// still have reported "muted text is still repaired (null)".
+					//
+					// `/support` cannot be the replacement even though the census
+					// found the class there: slice 7 removed the "Powered by ERPNext"
+					// footer link that carried it, so that route is now zero too. The
+					// 404 is the one that still has it — and the FOUND assertion below
+					// is the part that matters, because it is what stops this from
+					// silently going vacuous again the next time a page changes.
+					const w2 = await withGuest("/404-bnd-does-not-exist", "body", async (gp) =>
+						gp.evaluate(() => {
+							const muted = document.querySelector(".text-muted");
+							return { found: !!muted, colour: muted ? getComputedStyle(muted).color : null };
+						})
+					);
 					expect(
 						seen.style === "solid" && seen.width >= 2,
 						`${pole}: the focus ring survives on ${seen.what} (${seen.style} ${seen.width}px)`
 					);
+					expect(w2.found, `${pole}: the 404 still carries a .text-muted to measure`);
 					// #7c7c7c is stock's failing value. Any pole that lets it back
 					// has re-opened contract W2, whatever else it painted.
 					expect(
-						seen.mutedColour !== "rgb(124, 124, 124)",
-						`${pole}: muted text is still repaired (${seen.mutedColour})`
+						w2.colour !== "rgb(124, 124, 124)",
+						`${pole}: muted text is still repaired (${w2.colour})`
 					);
 				}
 			} finally {

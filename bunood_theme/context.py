@@ -139,9 +139,10 @@ WEB_BODY_CLASS = "bnd-web"
 #: boundary. Verified in the container, not assumed from the route name.
 #:
 #: ``robots.txt`` and ``sitemap.xml`` need no entry here: they are real ``TemplatePage``s
-#: with non-HTML base templates, and the ``.html`` test in :func:`_is_web_template`
-#: excludes them. Checked, because "it is probably not a template" is how the site root
-#: was lost once already.
+#: that are their OWN base template — measured, both report
+#: ``base_template_path == "www/robots.txt"`` / ``"www/sitemap.xml"`` — so the
+#: base-template test in :func:`_is_web_template` excludes them. Checked, because
+#: "it is probably not a template" is how the site root was lost once already.
 NON_WEB_TEMPLATES = ("www/printview.html", "www/printpreview.html")
 
 #: Field value → class slug, for the anchor and both axes. ``""`` is the NEUTRAL
@@ -425,7 +426,7 @@ def desk_context(context):
             _auth_context(context)
             return
 
-        if _is_web_template(template):
+        if _is_web_template(template, str(context.get("base_template_path") or "")):
             _web_context(context)
 
     except Exception:
@@ -459,7 +460,7 @@ def _append_brand_css(context):
     context.app_include_css = [*(context.get("app_include_css") or []), url]
 
 
-def _is_web_template(template):
+def _is_web_template(template, base_template):
     """Is this a website page item 33 owns?
 
     THE DEFAULT ANSWER IS YES, and that inversion is the whole design. Item 32
@@ -503,14 +504,42 @@ def _is_web_template(template):
     somewhere other than the dispatcher — which slice 2b will do, when ``brand.py``
     needs to know which scopes to emit dark blocks for.
 
+    IT KEYS ON THE BASE TEMPLATE, NOT THE PAGE'S OWN EXTENSION, and the first cut
+    got that wrong in a way that cost the item a whole page FORM. It tested
+    ``template.endswith(".html")`` — but Frappe resolves a www route to
+    ``<path>``, ``<path>.html``, ``<path>.md``, ``<path>/index.html`` OR
+    ``<path>/index.md`` (``template_page.py:77-80``), and a Markdown page's
+    ``context.template`` therefore ends ``.md`` while it still renders through
+    ``templates/base.html`` — ``set_properties_from_source`` wraps the converted
+    HTML in ``{% extends base_template %}``, and ``base.html:57`` even branches on
+    ``template.endswith('.md')`` on the same ``<body>`` tag that emits our class.
+    So every ``www/*.md`` page — a documented Frappe pattern — got NOTHING: no
+    scope, no brand sheet, no focus ring, no contrast repairs, and all three
+    vendor marks intact, while still downloading the sheet whose every rule it
+    could not match. Measured on the stock ``/_test/_test_folder/index``:
+    ``class=""`` and erpnext's favicon, beside a ``/support`` carrying the full kit.
+
+    ``base_template_path`` is the honest discriminator because it IS the question
+    being asked — "does this render through an HTML base template" — and Frappe
+    assigns it in ``set_base_template_if_missing()``, which
+    ``post_process_context`` calls immediately BEFORE this hook
+    (``base_template_page.py:29-32``). Measured, rather than assumed: ``/support``
+    and ``/404`` and the ``.md`` page all report ``templates/base.html``, while
+    ``robots.txt`` and ``sitemap.xml`` report THEMSELVES — they are their own base
+    — so the same test that now admits Markdown still excludes them, which is the
+    entire job the ``.html`` test was doing. It also survives a document form
+    Frappe has not invented yet, where an extension allowlist would repeat this
+    exact defect.
+
     Args:
         template: ``context.template``, already coerced to ``str``.
+        base_template: ``context.base_template_path``, already coerced to ``str``.
 
     Returns:
         bool: True when this page is item 33's to dress.
     """
     return (
-        template.endswith(".html")
+        base_template.endswith(".html")
         and template != DESK_TEMPLATE
         and template not in AUTH_TEMPLATES
         and template not in NON_WEB_TEMPLATES
