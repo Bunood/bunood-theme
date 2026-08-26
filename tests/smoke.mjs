@@ -6421,6 +6421,22 @@ async function main() {
 			await walkSettingsPanes(async (key) => {
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS_SETTINGS) builder = builder.include(root);
+				// THE EMAIL PREVIEW IS EXCLUDED, and it is the sandbox that makes
+				// this necessary rather than a wish to look away. axe descends into
+				// every frame to analyse it; that frame carries `sandbox=""` because
+				// no script may run inside a rendered email, so the injection is
+				// refused and Chromium logs "Blocked script execution in
+				// 'about:srcdoc'". The console budget caught it — two messages in
+				// 374 checks — and it took the run-attribution added alongside this
+				// to say where they came from, after six failed reproductions by
+				// hand.
+				//
+				// Nothing is lost by excluding it. axe CANNOT see through the
+				// sandbox, so the alternative is not coverage, it is a warning per
+				// run. And the frame is not our UI: it is a rendered email, a
+				// separate document, whose own markup is checked where it is
+				// generated rather than through a browser chrome scan.
+				builder = builder.exclude(".bnd-emp-frame");
 				const res = await builder.analyze();
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
