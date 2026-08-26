@@ -4226,398 +4226,319 @@ msgid "Original leaves the filter bar stock — nothing below applies."
 msgstr "يترك «الأصلي» شريط التصفية كما هو — ولا يُطبّق شيء ممّا أدناه."
 
 #. src: item32
-#, fuzzy
 msgid "Sign In"
 msgstr "تسجيل الدخول"
 
 #. src: item32
-#, fuzzy
 msgid "Sign-In Style"
 msgstr "نمط تسجيل الدخول"
 
 #. src: item32
-#, fuzzy
 msgid "Panel"
 msgstr "لوحة"
 
 #. src: item32
-#, fuzzy
 msgid "Split"
 msgstr "مُقسَّم"
 
 #. src: item32
-#, fuzzy
 msgid "Plate"
 msgstr "صفيحة"
 
 #. src: item32
-#, fuzzy
 msgid "Sign In Picker"
 msgstr "مُنتقي تسجيل الدخول"
 
 #. src: item32
-#, fuzzy
 msgid "Set by the picker above. How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password."
 msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور. يُطبَّق على ‎/login‎ و‎/update-password‎."
 
 #. src: item32
-#, fuzzy
 msgid "Primary Action"
 msgstr "الإجراء الأساسي"
 
 #. src: item32
-#, fuzzy
 msgid "Set by the picker above. Whether the primary button carries your brand colour."
 msgstr "يُضبط من المُنتقي أعلاه. هل يحمل الزرّ الأساسي لون علامتك التجارية."
 
 #. src: item32
-#, fuzzy
 msgid "Neutral"
 msgstr "محايد"
 
 #. src: item32
-#, fuzzy
 msgid "Branded"
 msgstr "بلون العلامة"
 
 #. src: item32
-#, fuzzy
 msgid "Sign-In Theme"
 msgstr "سمة تسجيل الدخول"
 
 #. src: item32
-#, fuzzy
 msgid "Set by the picker above. A signed-out visitor has no stored preference, so the default follows their device."
 msgstr "يُضبط من المُنتقي أعلاه. الزائر غير المُسجَّل ليس لديه تفضيل محفوظ، لذا يتبع الوضع الافتراضي جهازه."
 
 #. src: item32
-#, fuzzy
 msgid "Follow OS"
 msgstr "تبعًا للجهاز"
 
 #. src: item32
-#, fuzzy
 msgid "Always Light"
 msgstr "فاتح دائمًا"
 
 #. src: item32
-#, fuzzy
 msgid "Always Dark"
 msgstr "داكن دائمًا"
 
 #. src: item32
-#, fuzzy
 msgid "Stock: the card is the page's own colour, pinned near the top."
 msgstr "الأصلي: البطاقة بلون الصفحة نفسه، مثبّتة قرب الأعلى."
 
 #. src: item32
-#, fuzzy
 msgid "The card becomes an object — its own fill, a hairline edge, centred."
 msgstr "تصبح البطاقة عنصرًا قائمًا بذاته — بتعبئتها الخاصّة وحدّ رفيع، في المنتصف."
 
 #. src: item32
-#, fuzzy
 msgid "A form column beside a full-height brand panel."
 msgstr "عمود للنموذج بجوار لوحة علامة تجارية بكامل الارتفاع."
 
 #. src: item32
-#, fuzzy
 msgid "A brand wash across the page, with the card floating on it."
 msgstr "مسحة من لون العلامة عبر الصفحة، وتطفو البطاقة فوقها."
 
 #. src: item32
-#, fuzzy
 msgid "Whether the primary button carries your brand colour."
 msgstr "هل يحمل الزرّ الأساسي لون علامتك التجارية."
 
 #. src: item32
-#, fuzzy
 msgid "A signed-out visitor has no stored preference, so the default follows their device."
 msgstr "الزائر غير المُسجَّل ليس لديه تفضيل محفوظ، لذا يتبع الوضع الافتراضي جهازه."
 
 #. src: item32
-#, fuzzy
 msgid "Original leaves the sign-in page stock — this does not apply."
 msgstr "يترك «الأصلي» صفحة تسجيل الدخول كما هي — ولا يُطبّق هذا."
 
 #. src: item32
-#, fuzzy
 msgid "Applies to the sign-in, sign-up and forgot-password screens."
 msgstr "يُطبَّق على شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور."
 
 #. src: item33
-#, fuzzy
 msgid "A brand wash across the page, with the content plate floating on it."
 msgstr "طبقة من لون علامتك التجارية تغطي الصفحة، ولوح المحتوى يطفو فوقها."
 
 #. src: item33
-#, fuzzy
 msgid "A website visitor has no stored preference, so the default follows their device."
 msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه."
 
 #. src: item33
-#, fuzzy
 msgid "A website visitor has no stored preference, so the default follows their device. Needs a page style other than Original — a dark page needs a ground the theme paints."
 msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه. يتطلب نمط صفحة غير «الأصلي» — فالصفحة الداكنة تحتاج أرضية يرسمها القالب."
 
 #. src: item33
-#, fuzzy
 msgid "Applies to the customer portal, web forms, error pages and any public page — not to the desk or the sign-in screens."
 msgstr "ينطبق على بوابة العملاء ونماذج الويب وصفحات الأخطاء وأي صفحة عامة — وليس على لوحة العمل أو شاشات تسجيل الدخول."
 
 #. src: item33
-#, fuzzy
 msgid "Header"
 msgstr "الترويسة"
 
 #. src: item33
-#, fuzzy
 msgid "Set by the picker above. A website visitor has no stored preference, so the default follows their device."
 msgstr "يُضبط من المُنتقي أعلاه. زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه."
 
 #. src: item33
-#, fuzzy
 msgid "Set by the picker above. How every website and customer-portal page is composed. Applies to the portal, web forms, error pages and any public page — not to the desk or the sign-in screens."
 msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل صفحة في الموقع وبوابة العملاء. ينطبق على البوابة ونماذج الويب وصفحات الأخطاء وأي صفحة عامة — وليس على لوحة العمل أو شاشات تسجيل الدخول."
 
 #. src: item33
-#, fuzzy
 msgid "Set by the picker above. Whether the site header carries your brand colour. Composes with any style, including Original."
 msgstr "يُضبط من المُنتقي أعلاه. ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية. يتوافق مع أي نمط، بما في ذلك الأصلي."
 
 #. src: item33
-#, fuzzy
 msgid "Stock: Frappe's own white page, with the accessibility repairs still applied."
 msgstr "الوضع الأصلي: صفحة فرابيه البيضاء نفسها، مع الإبقاء على إصلاحات إمكانية الوصول."
 
 #. src: item33
-#, fuzzy
 msgid "Stock: Frappe's own white page, with the accessibility repairs still applied. Always light."
 msgstr "الوضع الأصلي: صفحة فرابيه البيضاء نفسها، مع الإبقاء على إصلاحات إمكانية الوصول. فاتحة دائمًا."
 
 #. src: item33
-#, fuzzy
 msgid "The page takes your ground tint and the content becomes an object on it."
 msgstr "تأخذ الصفحة لون خلفيتك ويصبح المحتوى عنصرًا قائمًا فوقها."
 
 #. src: item33
-#, fuzzy
 msgid "Website & Portal"
 msgstr "الموقع والبوابة"
 
 #. src: item33
-#, fuzzy
 msgid "Website Picker"
 msgstr "مُنتقي الموقع"
 
 #. src: item33
-#, fuzzy
 msgid "Website Style"
 msgstr "نمط الموقع"
 
 #. src: item33
-#, fuzzy
 msgid "Website Theme"
 msgstr "سمة الموقع"
 
 #. src: item33
-#, fuzzy
 msgid "Whether the site header carries your brand colour."
 msgstr "ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية."
 
 #. src: item34
-#, fuzzy
 msgid "Email"
 msgstr "البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Email Picker"
 msgstr "مُنتقي البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Email Style"
 msgstr "نمط البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Set by the picker above. How every email your site sends is composed — notifications, invitations, password resets and anything an app mails out. Original leaves the message as Frappe draws it; the legibility repairs apply either way."
 msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور وأي شيء ترسله التطبيقات. يترك «الأصلي» الرسالة كما يرسمها فرابيه؛ وتُطبَّق إصلاحات الوضوح في الحالتين."
 
 #. src: item34
-#, fuzzy
 msgid "Card"
 msgstr "بطاقة"
 
 #. src: item34
-#, fuzzy
 msgid "Letter"
 msgstr "خطاب"
 
 #. src: item34
-#, fuzzy
 msgid "Masthead"
 msgstr "لافتة علوية"
 
 #. src: item34
-#, fuzzy
 msgid "Stock: the message as Frappe composes it. The legibility repairs still apply."
 msgstr "الوضع الأصلي: الرسالة كما يُنشئها فرابيه، مع الإبقاء على إصلاحات الوضوح."
 
 #. src: item34
-#, fuzzy
 msgid "The message sits on a framed card over a tinted ground."
 msgstr "تستقر الرسالة على بطاقة مُؤطَّرة فوق خلفية ملوَّنة."
 
 #. src: item34
-#, fuzzy
 msgid "No card — the message reads as a letter, with room around it."
 msgstr "بلا بطاقة — تُقرأ الرسالة كخطاب، مع مساحة حولها."
 
 #. src: item34
-#, fuzzy
 msgid "A card, with a band of your brand colour across the top."
 msgstr "بطاقة، يعلوها شريط بلون علامتك التجارية."
 
 #. src: item34
-#, fuzzy
 msgid "Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
 msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء. لا توجد معاينة هنا بعد: تُنشَأ الرسالة على الخادم وتُقرأ في تطبيق بريد، فما يعرضه المتصفّح ليس ما يعرضه صندوق الوارد."
 
 #. src: item34
-#, fuzzy
 msgid "Email Action"
 msgstr "زر البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Set by the picker above. How the button in an email reads. Stock is near-black and carries no brand at all."
 msgstr "يُضبط من المُنتقي أعلاه. كيف يظهر الزر في الرسالة. الوضع الأصلي قريب من الأسود ولا يحمل أي هوية بصرية."
 
 #. src: item34
-#, fuzzy
 msgid "Brand fill"
 msgstr "تعبئة بلون العلامة"
 
 #. src: item34
-#, fuzzy
 msgid "Link"
 msgstr "رابط"
 
 #. src: item34
-#, fuzzy
 msgid "Email Theme"
 msgstr "سمة البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Set by the picker above. One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client."
 msgstr "يُضبط من المُنتقي أعلاه. تُقرأ الرسالة الواحدة من أشخاص كثيرين على أجهزة مختلفة، لذا فإن اتّباع إعداد كل قارئ هو الشيء الوحيد القادر على الإجابة لكل قارئ على حدة. يختلف الدعم حسب تطبيق البريد."
 
 #. src: item34
-#, fuzzy
 msgid "Follow the client"
 msgstr "اتّباع تطبيق البريد"
 
 #. src: item34
-#, fuzzy
 msgid "The one control an email has. Stock is near-black and carries no brand at all."
 msgstr "عنصر التحكّم الوحيد في الرسالة. الوضع الأصلي قريب من الأسود ولا يحمل أي هوية بصرية."
 
 #. src: item34
-#, fuzzy
 msgid "One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client."
 msgstr "تُقرأ الرسالة الواحدة من أشخاص كثيرين على أجهزة مختلفة، لذا فإن اتّباع إعداد كل قارئ هو الشيء الوحيد القادر على الإجابة لكل قارئ على حدة. يختلف الدعم حسب تطبيق البريد."
 
 #. src: item34
-#, fuzzy
 msgid "Applies to every email your site sends — notifications, invitations and password resets alike."
 msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء."
 
 #. src: item34
-#, fuzzy
 msgid "Email preview"
 msgstr "معاينة البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Your invoice is ready."
 msgstr "فاتورتك جاهزة."
 
 #. src: item34
-#, fuzzy
 msgid "The total is {0}."
 msgstr "الإجمالي {0}."
 
 #. src: item34
-#, fuzzy
 msgid "View invoice"
 msgstr "عرض الفاتورة"
 
 #. src: item34
-#, fuzzy
 msgid "Or see {0}."
 msgstr "أو اطّلع على {0}."
 
 #. src: item34
-#, fuzzy
 msgid "all your invoices"
 msgstr "كل فواتيرك"
 
 #. src: item34
-#, fuzzy
 msgid "Invoice {0}"
 msgstr "فاتورة {0}"
 
 #. src: item34
-#, fuzzy
 msgid "Button"
 msgstr "الزر"
 
 #. src: item34
 #. NOT frappe's "موضوع", which is a topic or subject. A visual theme is "سمة",
 #. and `i18n:inherited` proposes the wrong one — see inherited.ar.txt.
-#, fuzzy
 msgid "Theme"
 msgstr "السمة"
 
 #. src: item34
-#, fuzzy
 msgid "Email Header"
 msgstr "ترويسة البريد الإلكتروني"
 
 #. src: item34
-#, fuzzy
 msgid "Set by the picker above. How your identity reads at the top of a message. Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set."
 msgstr "يُضبط من المُنتقي أعلاه. كيف تظهر هويتك في أعلى الرسالة. لا تعرض تطبيقات البريد شعارات SVG، لذا فإن أي صيغة تطلب شعارًا تعود إلى اسمك إذا لم يُضبط شعار نقطي."
 
 #. src: item34
-#, fuzzy
 msgid "Logo + wordmark"
 msgstr "الشعار مع الاسم"
 
 #. src: item34
-#, fuzzy
 msgid "Wordmark"
 msgstr "الاسم"
 
 #. src: item34
-#, fuzzy
 msgid "Identity"
 msgstr "الهوية"
 
 #. src: item34
-#, fuzzy
 msgid "Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set."
 msgstr "لا تعرض تطبيقات البريد شعارات SVG، لذا فإن أي صيغة تطلب شعارًا تعود إلى اسمك إذا لم يُضبط شعار نقطي."
 
 #. src: item34
-#, fuzzy
 msgid "Shown as every reader sees it."
 msgstr "معروضة كما يراها كل قارئ."
 
 #. src: item34
-#, fuzzy
 msgid "Shown as a reader whose device is set to light sees it. Readers on dark devices get the dark version."
 msgstr "معروضة كما يراها قارئ ضُبط جهازه على الوضع الفاتح. أما القُرّاء على الأجهزة الداكنة فيرون النسخة الداكنة."
