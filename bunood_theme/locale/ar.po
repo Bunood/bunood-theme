@@ -4540,591 +4540,473 @@ msgid "Shown as a reader whose device is set to light sees it. Readers on dark d
 msgstr "معروضة كما يراها قارئ ضُبط جهازه على الوضع الفاتح. أما القُرّاء على الأجهزة الداكنة فيرون النسخة الداكنة."
 
 #. src: item35
-#, fuzzy
 msgid "Print"
 msgstr "الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Print Picker"
 msgstr "مُنتقي الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Print Header Style"
 msgstr "نمط ترويسة الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The letterhead band's treatment on every printed document and PDF. Original keeps the stock header; the named styles above write this together with the other three sections."
 msgstr "يُضبط من المُنتقي أعلاه. معالجة شريط الترويسة في كل مستند مطبوع وملف PDF. «الأصلي» يُبقي الترويسة كما هي؛ الأنماط المُسمّاة أعلاه تكتب هذا الحقل مع الأقسام الثلاثة الأخرى."
 
 #. src: item35
-#, fuzzy
 msgid "Rule"
 msgstr "خط فاصل"
 
 #. src: item35
-#, fuzzy
 msgid "Band"
 msgstr "شريط"
 
 #. src: item35
-#, fuzzy
 msgid "Wash Card"
 msgstr "بطاقة مغسولة"
 
 #. src: item35
-#, fuzzy
 msgid "Frame"
 msgstr "إطار"
 
 #. src: item35
-#, fuzzy
 msgid "Print Table Style"
 msgstr "نمط جدول الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The item table's treatment - rules, boxes, zebra rows or washed panels - on every print format, including ERPNext's."
 msgstr "يُضبط من المُنتقي أعلاه. معالجة جدول البنود — خطوط أو مربّعات أو صفوف متناوبة أو ألواح مغسولة — في كل نموذج طباعة، بما فيها نماذج ERPNext."
 
 #. src: item35
-#, fuzzy
 msgid "Boxed"
 msgstr "مربَّعات"
 
 #. src: item35
-#, fuzzy
 msgid "Zebra"
 msgstr "تقليم متناوب"
 
 #. src: item35
-#, fuzzy
 msgid "Washed"
 msgstr "مغسول"
 
 #. src: item35
-#, fuzzy
 msgid "Print Totals Style"
 msgstr "نمط إجماليات الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The totals block's treatment - how the grand total is set off from the rows above it."
 msgstr "يُضبط من المُنتقي أعلاه. معالجة كتلة الإجماليات — كيف يتميَّز الإجمالي الكلي عن الصفوف التي فوقه."
 
 #. src: item35
-#, fuzzy
 msgid "Inverse"
 msgstr "معكوس"
 
 #. src: item35
-#, fuzzy
 msgid "Washed Panel"
 msgstr "لوح مغسول"
 
 #. src: item35
-#, fuzzy
 msgid "Print Heading Style"
 msgstr "نمط عناوين الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The document title and section headings - ink, small caps, serif or poster weight."
 msgstr "يُضبط من المُنتقي أعلاه. عنوان المستند وعناوين الأقسام — حبر أو أحرف كبيرة مُصغَّرة أو خط مُذيَّل أو وزن مُلصَق."
 
 #. src: item35
-#, fuzzy
 msgid "Brand Ink"
 msgstr "حبر العلامة"
 
 #. src: item35
-#, fuzzy
 msgid "Small Caps"
 msgstr "أحرف كبيرة مُصغَّرة"
 
 #. src: item35
-#, fuzzy
 msgid "Serif"
 msgstr "مُذيَّل"
 
 #. src: item35
-#, fuzzy
 msgid "Poster"
 msgstr "مُلصَق"
 
 #. src: item35
-#, fuzzy
 msgid "Print Accent"
 msgstr "لمسة الطباعة اللونية"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. How much of your brand colour reaches paper. Ink only saves toner; Brand panels fills the table heads. Thermal receipts always print pure black regardless."
 msgstr "يُضبط من المُنتقي أعلاه. مقدار ما يصل من لون علامتك إلى الورق. «حبر فقط» يوفِّر الحبر؛ «ألواح بلون العلامة» تملأ رؤوس الجداول. الإيصالات الحرارية تُطبع دائماً بأسود صافٍ مهما كان الاختيار."
 
 #. src: item35
-#, fuzzy
 msgid "Brand headings"
 msgstr "عناوين بلون العلامة"
 
 #. src: item35
-#, fuzzy
 msgid "Ink only"
 msgstr "حبر فقط"
 
 #. src: item35
-#, fuzzy
 msgid "Brand panels"
 msgstr "ألواح بلون العلامة"
 
 #. src: item35
-#, fuzzy
 msgid "Stock: every document as Frappe draws it. The legibility repairs still apply."
 msgstr "الأصل: كل مستند كما يرسمه فرابي. إصلاحات المقروئية تبقى سارية."
 
 #. src: item35
-#, fuzzy
 msgid "Soft Cards"
 msgstr "بطاقات ناعمة"
 
 #. src: item35
-#, fuzzy
 msgid "Every section a washed, rounded panel — friendly, and continuous with the desk."
 msgstr "كل قسم لوح مغسول مُدوَّر الحواف — ودود ومتَّصل بصرياً مع سطح المكتب."
 
 #. src: item35
-#, fuzzy
 msgid "Ruled Ledger"
 msgstr "دفتر مسطَّر"
 
 #. src: item35
-#, fuzzy
 msgid "Full-width rules and a boxed total — the classical accounting document."
 msgstr "خطوط بكامل العرض وإجمالي مؤطَّر — المستند المحاسبي الكلاسيكي."
 
 #. src: item35
-#, fuzzy
 msgid "Quiet Minimal"
 msgstr "هادئ مُقتضَب"
 
 #. src: item35
-#, fuzzy
 msgid "Hairlines only, the amount leading — ink spent nowhere it is not needed."
 msgstr "خطوط شعرية فقط والمبلغ في الصدارة — لا يُصرف الحبر إلا حيث يلزم."
 
 #. src: item35
-#, fuzzy
 msgid "Striped"
 msgstr "مُقلَّم"
 
 #. src: item35
-#, fuzzy
 msgid "A brand band and zebra rows — long invoices stay scannable."
 msgstr "شريط بلون العلامة وصفوف متناوبة — تبقى الفواتير الطويلة سهلة التصفُّح."
 
 #. src: item35
-#, fuzzy
 msgid "Brand Slab"
 msgstr "بلاطة العلامة"
 
 #. src: item35
-#, fuzzy
 msgid "A filled band and boxed, filled table heads — the boldest draw."
 msgstr "شريط ممتلئ ورؤوس جداول مؤطَّرة وممتلئة — الرسم الأجرأ."
 
 #. src: item35
-#, fuzzy
 msgid "Boxed Classic"
 msgstr "الكلاسيكي المؤطَّر"
 
 #. src: item35
-#, fuzzy
 msgid "The gridded meta-and-table composition the legacy formats drew, re-derived."
 msgstr "تكوين البيانات والجدول المُشبَّك الذي رسمته النماذج السابقة، مُعاد اشتقاقه."
 
 #. src: item35
-#, fuzzy
 msgid "A brand rail down the starting edge — the list view's signature, on paper."
 msgstr "سكة بلون العلامة على حافة البداية — توقيع عرض القوائم، على الورق."
 
 #. src: item35
-#, fuzzy
 msgid "Formal Serif"
 msgstr "مُذيَّل رسمي"
 
 #. src: item35
-#, fuzzy
 msgid "Serif headings and almost no chrome — the formal letter register."
 msgstr "عناوين بخط مُذيَّل وزخرفة تكاد تنعدم — سجلّ الرسائل الرسمية."
 
 #. src: item35
-#, fuzzy
 msgid "Poster Bold"
 msgstr "مُلصَق جريء"
 
 #. src: item35
-#, fuzzy
 msgid "A huge title and the total inverted — the strongest statement ink can make."
 msgstr "عنوان ضخم وإجمالي معكوس الألوان — أقوى ما يمكن أن يقوله الحبر."
 
 #. src: item35
-#, fuzzy
 msgid "Bookends"
 msgstr "دعامات طرفية"
 
 #. src: item35
-#, fuzzy
 msgid "A brand band up top, a clean ruled sheet below it."
 msgstr "شريط بلون العلامة في الأعلى وورقة مسطَّرة نظيفة تحته."
 
 #. src: item35
-#, fuzzy
 msgid "Blueprint"
 msgstr "مخطَّط هندسي"
 
 #. src: item35
-#, fuzzy
 msgid "A drawing frame and small-cap headings — made for a technical tenant."
 msgstr "إطار رسم هندسي وعناوين بأحرف كبيرة مُصغَّرة — صُنع لمستأجر تقني."
 
 #. src: item35
-#, fuzzy
 msgid "Letterhead band"
 msgstr "شريط الترويسة"
 
 #. src: item35
-#, fuzzy
 msgid "The identity strip at the top of every printed page."
 msgstr "شريط الهوية أعلى كل صفحة مطبوعة."
 
 #. src: item35
-#, fuzzy
 msgid "Item table"
 msgstr "جدول البنود"
 
 #. src: item35
-#, fuzzy
 msgid "Rules, boxes, zebra rows or washed panels — on every print format, including ERPNext's."
 msgstr "خطوط أو مربّعات أو صفوف متناوبة أو ألواح مغسولة — في كل نموذج طباعة، بما فيها نماذج ERPNext."
 
 #. src: item35
-#, fuzzy
 msgid "How the grand total is set off from the rows above it."
 msgstr "كيف يتميَّز الإجمالي الكلي عن الصفوف التي فوقه."
 
 #. src: item35
-#, fuzzy
 msgid "Headings"
 msgstr "العناوين"
 
 #. src: item35
-#, fuzzy
 msgid "The document title and section headings."
 msgstr "عنوان المستند وعناوين الأقسام."
 
 #. src: item35
-#, fuzzy
 msgid "Brand on paper"
 msgstr "العلامة على الورق"
 
 #. src: item35
-#, fuzzy
 msgid "How much of your colour reaches print. Ink only saves toner; thermal receipts always print pure black regardless."
 msgstr "مقدار ما يصل من لونك إلى الطباعة. «حبر فقط» يوفِّر الحبر؛ الإيصالات الحرارية تُطبع دائماً بأسود صافٍ."
 
 #. src: item35
-#, fuzzy
 msgid "Not in the shipped preset table — the card and the server disagree."
 msgstr "ليس في جدول الأنماط المُرسَل — البطاقة والخادم غير متفقين."
 
 #. src: item35
-#, fuzzy
 msgid "Open rows"
 msgstr "صفوف مفتوحة"
 
 #. src: item35
-#, fuzzy
 msgid "A style writes the four sections below and stops existing — change any of them and the label reads Custom."
 msgstr "النمط يكتب الأقسام الأربعة أدناه ثم يتوقف عن الوجود — غيِّر أياً منها وستقرأ التسمية «مخصَّص»."
 
 #. src: item35
-#, fuzzy
 msgid "The four sections below read as Custom — your own composition."
 msgstr "الأقسام الأربعة أدناه تُقرأ «مخصَّص» — تكوينك الخاص."
 
 #. src: item35
-#, fuzzy
 msgid "The four sections below currently read as {0}."
 msgstr "الأقسام الأربعة أدناه تُقرأ حالياً {0}."
 
 #. src: item35
-#, fuzzy
 msgid "Print Letterhead"
 msgstr "ترويسة الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. How the synced Letter Head is composed from your identity - logo, Arabic and English names. Frappe's own leaves whatever Letter Head the site already uses untouched."
 msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين الترويسة المُزامَنة من هويتك — الشعار والاسمان العربي والإنجليزي. «ترويسة فرابي» تُبقي أي ترويسة يستخدمها الموقع كما هي دون مساس."
 
 #. src: item35
-#, fuzzy
 msgid "Frappe's own"
 msgstr "ترويسة فرابي"
 
 #. src: item35
-#, fuzzy
 msgid "Bilingual Split"
 msgstr "ثنائية اللغة"
 
 #. src: item35
-#, fuzzy
 msgid "Centered Mark"
 msgstr "شعار في المنتصف"
 
 #. src: item35
-#, fuzzy
 msgid "Hairline Minimal"
 msgstr "سطر شعري مُقتضَب"
 
 #. src: item35
-#, fuzzy
 msgid "Letterhead"
 msgstr "الترويسة"
 
 #. src: item35
-#, fuzzy
 msgid "Composed from your logo and names and kept in sync with your colours. Frappe's own leaves whatever Letter Head the site already uses untouched."
 msgstr "تُكوَّن من شعارك واسمَيك وتبقى مُزامَنة مع ألوانك. «ترويسة فرابي» تُبقي أي ترويسة يستخدمها الموقع كما هي."
 
 #. src: item35
-#, fuzzy
 msgid "Print preview"
 msgstr "معاينة الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Invoice"
 msgstr "فاتورة"
 
 #. src: item35
-#, fuzzy
 msgid "English"
 msgstr "الإنجليزية"
 
 #. src: item35
-#, fuzzy
 msgid "Arabic"
 msgstr "العربية"
 
 #. src: item35
-#, fuzzy
 msgid "A specimen document through the real print pipeline — no record on this site is read. PDFs from wkhtmltopdf can differ in detail."
 msgstr "مستند نموذجي عبر مسار الطباعة الحقيقي — لا يُقرأ أي سجل من هذا الموقع. قد تختلف ملفات PDF الصادرة من wkhtmltopdf في التفاصيل."
 
 #. src: item35
-#, fuzzy
 msgid "Specimen Customer"
 msgstr "عميل نموذجي"
 
 #. src: item35
-#, fuzzy
 msgid "Site survey"
 msgstr "مسح الموقع"
 
 #. src: item35
-#, fuzzy
 msgid "Structural design"
 msgstr "التصميم الإنشائي"
 
 #. src: item35
-#, fuzzy
 msgid "A specimen task, rendered through the standard layout."
 msgstr "مهمة نموذجية، معروضة عبر التخطيط القياسي."
 
 #. src: item35
-#, fuzzy
 msgid "Print Title Language"
 msgstr "لغة عنوان الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats."
 msgstr "يُضبط من المُنتقي أعلاه. أي شطرَي عنوان المستند ثنائي اللغة يُعرضان في نماذج بنود."
 
 #. src: item35
-#, fuzzy
 msgid "Both"
 msgstr "كلاهما"
 
 #. src: item35
-#, fuzzy
 msgid "Arabic only"
 msgstr "العربية فقط"
 
 #. src: item35
-#, fuzzy
 msgid "English only"
 msgstr "الإنجليزية فقط"
 
 #. src: item35
-#, fuzzy
 msgid "Print QR"
 msgstr "رمز QR للطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect."
 msgstr "يُضبط من المُنتقي أعلاه. رمز ZATCA في نماذج بنود. «إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة الضريبية المبسطة تحتفظ برمزها وبتحذير غيابه مهما كان الاختيار، لأن إلزاماً قانونياً قابلاً للإطفاء عيبٌ لا إعداد."
 
 #. src: item35
-#, fuzzy
 msgid "Show"
 msgstr "إظهار"
 
 #. src: item35
-#, fuzzy
 msgid "Hide"
 msgstr "إخفاء"
 
 #. src: item35
-#, fuzzy
 msgid "Print QR Placement"
 msgstr "موضع رمز QR"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. Where the QR sits - beside the invoice meta at either end of the head row, or down beside the totals."
 msgstr "يُضبط من المُنتقي أعلاه. أين يجلس الرمز — بجوار بيانات الفاتورة في أي طرف من صف الرأس، أو أسفل بجوار الإجماليات."
 
 #. src: item35
-#, fuzzy
 msgid "Head end"
 msgstr "نهاية الرأس"
 
 #. src: item35
-#, fuzzy
 msgid "Head start"
 msgstr "بداية الرأس"
 
 #. src: item35
-#, fuzzy
 msgid "Beside totals"
 msgstr "بجوار الإجماليات"
 
 #. src: item35
-#, fuzzy
 msgid "Print QR Size"
 msgstr "حجم رمز QR"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The QR's printed size."
 msgstr "يُضبط من المُنتقي أعلاه. حجم الرمز المطبوع."
 
 #. src: item35
-#, fuzzy
 msgid "Medium"
 msgstr "متوسط"
 
 #. src: item35
-#, fuzzy
 msgid "Small"
 msgstr "صغير"
 
 #. src: item35
-#, fuzzy
 msgid "Large"
 msgstr "كبير"
 
 #. src: item35
-#, fuzzy
 msgid "Print Amount in Words"
 msgstr "المبلغ كتابةً في الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The amount-in-words strip under the totals."
 msgstr "يُضبط من المُنتقي أعلاه. شريط المبلغ كتابةً أسفل الإجماليات."
 
 #. src: item35
-#, fuzzy
 msgid "Print Signatures"
 msgstr "تواقيع الطباعة"
 
 #. src: item35
-#, fuzzy
 msgid "Set by the picker above. The signature row on vouchers and invoices. A format that passes its own labels keeps them."
 msgstr "يُضبط من المُنتقي أعلاه. صف التواقيع في السندات والفواتير. النموذج الذي يمرّر عناوينه الخاصة يحتفظ بها."
 
 #. src: item35
-#, fuzzy
 msgid "Two lines"
 msgstr "سطران"
 
 #. src: item35
-#, fuzzy
 msgid "Three lines"
 msgstr "ثلاثة أسطر"
 
 #. src: item35
-#, fuzzy
 msgid "Document title"
 msgstr "عنوان المستند"
 
 #. src: item35
-#, fuzzy
 msgid "Which halves of the bilingual title render on the Bunood formats."
 msgstr "أي شطرَي العنوان ثنائي اللغة يُعرضان في نماذج بنود."
 
 #. src: item35
-#, fuzzy
 msgid "ZATCA QR"
 msgstr "رمز ZATCA"
 
 #. src: item35
-#, fuzzy
 msgid "Hide applies only where the QR is optional — a simplified tax invoice keeps its QR and its warning regardless."
 msgstr "«إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة المبسطة تحتفظ برمزها وبتحذيرها مهما كان الاختيار."
 
 #. src: item35
-#, fuzzy
 msgid "QR placement"
 msgstr "موضع الرمز"
 
 #. src: item35
-#, fuzzy
 msgid "Beside the meta at either end of the head row, or down beside the totals."
 msgstr "بجوار البيانات في أي طرف من صف الرأس، أو أسفل بجوار الإجماليات."
 
 #. src: item35
-#, fuzzy
 msgid "QR size"
 msgstr "حجم الرمز"
 
 #. src: item35
-#, fuzzy
 msgid "The QR's printed size."
 msgstr "حجم الرمز المطبوع."
 
 #. src: item35
-#, fuzzy
 msgid "Amount in words"
 msgstr "المبلغ كتابةً"
 
 #. src: item35
-#, fuzzy
 msgid "The tafqit strip under the totals."
 msgstr "شريط التفقيط أسفل الإجماليات."
 
 #. src: item35
-#, fuzzy
 msgid "Signatures"
 msgstr "التواقيع"
 
 #. src: item35
-#, fuzzy
 msgid "On vouchers and invoices. A format that passes its own labels keeps them."
 msgstr "في السندات والفواتير. النموذج الذي يمرّر عناوينه الخاصة يحتفظ بها."
