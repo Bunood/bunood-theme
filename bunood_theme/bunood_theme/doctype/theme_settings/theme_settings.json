@@ -193,6 +193,12 @@
   "print_heading_style",
   "print_accent",
   "print_letterhead",
+  "print_title_lang",
+  "print_qr",
+  "print_qr_place",
+  "print_qr_size",
+  "print_words",
+  "print_signatures",
   "section_generated",
   "brand_css_url"
  ],
@@ -848,6 +854,60 @@
    "hidden": 1,
    "label": "Print Letterhead",
    "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
+  },
+  {
+   "default": "Both",
+   "description": "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats.",
+   "fieldname": "print_title_lang",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Title Language",
+   "options": "Both\nArabic only\nEnglish only"
+  },
+  {
+   "default": "Show",
+   "description": "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
+   "fieldname": "print_qr",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR",
+   "options": "Show\nHide"
+  },
+  {
+   "default": "Head end",
+   "description": "Set by the picker above. Where the QR sits - beside the invoice meta at either end of the head row, or down beside the totals.",
+   "fieldname": "print_qr_place",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR Placement",
+   "options": "Head end\nHead start\nBeside totals"
+  },
+  {
+   "default": "Medium",
+   "description": "Set by the picker above. The QR's printed size.",
+   "fieldname": "print_qr_size",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR Size",
+   "options": "Medium\nSmall\nLarge"
+  },
+  {
+   "default": "Show",
+   "description": "Set by the picker above. The amount-in-words strip under the totals.",
+   "fieldname": "print_words",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Amount in Words",
+   "options": "Show\nHide"
+  },
+  {
+   "default": "Two lines",
+   "description": "Set by the picker above. The signature row on vouchers and invoices. A format that passes its own labels keeps them.",
+   "fieldname": "print_signatures",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Signatures",
+   "options": "Two lines\nThree lines\nNone"
   },
   {
    "fieldname": "section_generated",

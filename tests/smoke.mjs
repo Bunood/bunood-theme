@@ -4325,9 +4325,10 @@ async function main() {
 				web_picker: { cards: 3, toggles: 0, opts: 5 },
 				email_picker: { cards: 4, toggles: 0, opts: 10 },
 				// 12 preset cards over four section axes (7+6+5+5 options), the
-				// accent's 3, the letterhead's 4 and the preview's 4 chips (which
-				// share the opt class) — the preset-over-axes anchor, item 35.
-				print_picker: { cards: 12, toggles: 0, opts: 34 },
+				// accent's 3, the letterhead's 4, the six per-section switches'
+				// 3+2+3+3+2+3 and the preview's 4 chips (which share the opt
+				// class) — the preset-over-axes anchor plus the switch catalogue.
+				print_picker: { cards: 12, toggles: 0, opts: 50 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
@@ -14934,6 +14935,72 @@ async function main() {
 				expect(r[pole], `${pole} did not recompose the Letter Head record (or left a var() in it)`);
 			}
 			expect(r.standdown, "Frappe's own OVERWROTE the record — the stand-down wrote where it promised not to");
+		});
+
+		await test("print: the per-section switches reach a rendered format, and the QR guard holds", async () => {
+			// The switches are read AT RENDER by the macros (no sync step — the
+			// field is the fact), so this drives the real Singles and renders
+			// macro fragments through the REAL print Jinja env, plus one whole
+			// format for the placement. THE GUARD IS THE HEADLINE: `print_qr:
+			// Hide` must be ignored where required=True — a simplified tax
+			// invoice keeps its QR warning, because a togglable legal mandate is
+			// a defect, not a setting.
+			const out = benchPy(
+				"import json\n" +
+					"FIELDS = ('print_title_lang', 'print_qr', 'print_qr_place', 'print_qr_size',\n" +
+					"          'print_words', 'print_signatures')\n" +
+					"keep = {f: frappe.db.get_single_value('Theme Settings', f) for f in FIELDS}\n" +
+					"IMP = \"{% from 'templates/bunood_print_macros.html' import doc_title, zatca_qr, sig_row, head_row %}\"\n" +
+					"def frag(tpl, ctx=None):\n" +
+					"    return frappe.render_template(IMP + tpl, ctx or {})\n" +
+					"def setv(f, v):\n" +
+					"    frappe.db.set_single_value('Theme Settings', f, v)\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"doc = frappe._dict(ksa_einv_qr='/files/spec-qr.png')\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    setv('print_title_lang', 'Arabic only')\n" +
+					"    t = frag(\"{{ doc_title('فاتورة', 'INVOICE') }}\")\n" +
+					"    res['title_ar_only'] = ('INVOICE' not in t) and ('فاتورة' in t)\n" +
+					"    setv('print_title_lang', 'Both')\n" +
+					"    setv('print_qr', 'Hide')\n" +
+					"    res['qr_hidden_optional'] = 'bnd-p-qr' not in frag(\"{{ zatca_qr(doc) }}\", {'doc': doc})\n" +
+					"    res['qr_guard_required'] = 'bnd-p-qr' in frag(\"{{ zatca_qr(doc, required=True) }}\", {'doc': doc})\n" +
+					"    res['qr_warning_required'] = 'bnd-p-qr-missing' in frag(\"{{ zatca_qr(doc2, required=True) }}\", {'doc2': frappe._dict()})\n" +
+					"    setv('print_qr', 'Show')\n" +
+					"    setv('print_qr_size', 'Large')\n" +
+					"    res['qr_large'] = 'width:130px' in frag(\"{{ zatca_qr(doc) }}\", {'doc': doc})\n" +
+					"    setv('print_qr_size', 'Medium')\n" +
+					"    setv('print_qr_place', 'Head start')\n" +
+					"    h = frag(\"{{ head_row(doc) }}\", {'doc': doc})\n" +
+					"    res['qr_start'] = h.find('bnd-p-qr') < h.find('bnd-p-meta')\n" +
+					"    setv('print_qr_place', 'Head end')\n" +
+					"    setv('print_signatures', 'None')\n" +
+					"    res['sigs_none'] = 'bnd-p-sigs' not in frag(\"{{ sig_row() }}\")\n" +
+					"    setv('print_signatures', 'Three lines')\n" +
+					"    res['sigs_three'] = frag(\"{{ sig_row() }}\").count('bnd-p-sigs__line') == 3\n" +
+					"    res['sigs_explicit'] = frag(\"{{ sig_row(labels=['X']) }}\").count('bnd-p-sigs__line') == 1\n" +
+					"finally:\n" +
+					"    for f, v in keep.items():\n" +
+					"        frappe.db.set_single_value('Theme Settings', f, v)\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_SW' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_SW"));
+			if (!line) throw new Error("switch probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_SW".length));
+			const wants = {
+				title_ar_only: "Arabic only still rendered the English half",
+				qr_hidden_optional: "Hide did not hide an optional QR",
+				qr_guard_required: "THE COMPLIANCE GUARD FAILED — Hide removed a REQUIRED QR",
+				qr_warning_required: "Hide silenced the missing-QR warning on a required format",
+				qr_large: "Large did not change the QR's printed size",
+				qr_start: "Head start did not move the QR before the meta",
+				sigs_none: "None still rendered a signature row",
+				sigs_three: "Three lines did not render three",
+				sigs_explicit: "an explicit labels argument no longer outranks the setting",
+			};
+			for (const [k, msg] of Object.entries(wants)) expect(r[k], msg);
 		});
 
 		await test("print: Ctrl+P leaves no interactive residue on paper", async () => {

@@ -1003,7 +1003,50 @@ entry.
     timeouts and a 502 the other times). Targeted families are green throughout — `email:`
     14/14 plus settings, shell, bands, brand, registry, honest and i18n. Also owed: the
     adversarial release review, the version bump, the payload record row and the tag.
-- `[ ]` **35 · Print formats / PDF** *(was 28)*
+- `[~]` **35 · Print formats / PDF** *(was 28, code complete 2026-08-26, NOT
+  RELEASED — the full suite has not run over items 34 or 35; the release gates
+  are owed together)* — the THIRTEENTH surface kit, and the first delivered as
+  a DATABASE RECORD: the compiled sheet is substituted per site from
+  `palette.derive()` (fourth consumer) and written into the Print Style
+  "Bunood", which frappe inlines into every print view and PDF. Five slices
+  (pipeline+contracts · RTL closure · preset-over-axes anchor · preview+
+  letterhead · Ctrl+P) plus the switch catalogue. Twelve fields; the anchor is
+  a PRESET over four section axes — the named styles write values and stop
+  existing, the label derives by comparison, and selection happens at
+  GENERATION via marker blocks the sheet assembler keeps or drops (unknown =
+  total stand-down). What the surface taught:
+  - **The delivery mechanism already existed and had never fired.** v16
+    defaults `print_style` to "Redesign", a name the installer's vacancy tuple
+    predated — the Bunood style was installed on every site and applied on
+    none, ERPNext's never-loading email CSS in a second costume. A one-time
+    patch claims it; the honest cost is in the patch.
+  - **The item-7 "accepted gap" was an import-order accident, not a wall.**
+    printview/pdf bind `is_rtl` at import time, but they import LAZILY — the
+    rtl_patch reached them whenever the apps loaded first, and any app-level
+    `import frappe.utils.pdf` silently un-fixed it. The suite now FORCES the
+    hostile order (`benchPyHostileImport`); the closure is structural
+    (context.py's printview branch + last-wins pdf header/footer hooks).
+  - **The census, not the plan, sized the slices**: `?doc=` renders specimens
+    through the real funnel (the preview's whole mechanism, upstream already);
+    `hook_func[-1]` means last-wins; stock Redesign PASSES AA on the standard
+    layout (so `Original` ships honestly) while ERPNext's nine inline-styled
+    formats fail at 4.17/3.93 (the #7c7c7c literal's FOURTH surface, repaired
+    by contract); and PDF download had never worked on this stack at all
+    (`get_url()` unresolvable in-container — an environment errand, filed).
+  - **A check that cannot fail was deleted, and that is the record**: the dark
+    print-skeleton repair the upstream filing promised was already paid by
+    item 30's bone token (measured live); the census's light reading was a
+    mid-load race. The filing stands for themeless sites.
+  - **The compliance guard is the switch catalogue's spine**: `print_qr: Hide`
+    is honoured only where the QR is optional — a format declaring
+    `required=True` keeps its QR and its warning, watched red under sabotage.
+  - Deferred, stated: watermark, logo fine-grain, meta/contact/density/receipt
+    axes, footer toggles, `arabic_font` wiring, the sample-PDF button (blocked
+    on the environment errand). `Side Column` drawn and killed by measurement
+    (grid on Qt-WebKit 534). References: Odoo's four-layout configurator
+    (source-confirmed two-colour model), Stripe's restraint, shadcn typeset's
+    `break-*` pairing; wireframes:
+    <https://claude.ai/code/artifact/9f3c2014-976c-4790-98bc-969c37f55f2f>.
 - `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being
   restructured by phase 0 and effectively completed by it
 - `[~]` **37 · Presets** *(was 30)* — sidebar preset system shipped in 0.5.0; remaining:

@@ -977,6 +977,12 @@ PRINT_FIELDS = [
     "print_heading_style",
     "print_accent",
     "print_letterhead",
+    "print_title_lang",
+    "print_qr",
+    "print_qr_place",
+    "print_qr_size",
+    "print_words",
+    "print_signatures",
 ]
 
 #: The four SECTION AXES the print anchor decomposed into — the item-35 round's
@@ -1028,6 +1034,19 @@ PRINT_DEFAULTS = {
     # record at all, so a tenant's hand-made letterhead survives every save
     # (proved by a sentinel in the suite).
     "print_letterhead": "Bilingual Split",
+    # THE PER-SECTION SWITCHES (the user's second-pass direction: every element
+    # its own control). Read AT RENDER by the macros — no sync step, no second
+    # copy — so the neutral defaults below are exactly today's behaviour, and
+    # a pre-migrate site (field unseeded) stays on them by the `or default` in
+    # `_pset`. The QR's Hide is compliance-guarded in the macro itself: a
+    # format that declares required=True keeps its QR regardless, because a
+    # togglable legal mandate is a defect, not a setting.
+    "print_title_lang": "Both",
+    "print_qr": "Show",
+    "print_qr_place": "Head end",
+    "print_qr_size": "Medium",
+    "print_words": "Show",
+    "print_signatures": "Two lines",
 }
 
 #: The thirteen named styles of the wireframe round, as compositions over

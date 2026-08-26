@@ -29,6 +29,39 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 35 (print / PDF) — CODE COMPLETE 2026-08-26, NOT RELEASED; the full suite is
+owed over items 34 AND 35 together.** Six commits: `d15330a` slice 1 (the substituted
+sheet + contracts + the never-applied default claimed) · `5725b3b` slice 2 (the RTL
+closure, structural) · `ad568e9` slice 3 (the preset-over-axes anchor + the Print pane) ·
+`4e01ac8` slice 4 (the third honest live preview + letterhead compositions) · `bcc7a44`
+slice 5 (Ctrl+P residue) · the close (switches + docs). The thirteenth surface kit, the
+first delivered as a DATABASE RECORD. Twelve fields; CHANGELOG's `[Unreleased]` block and
+ROADMAP's item-35 entry carry the full account. What will cost time again:
+
+- **THE FULL SUITE IS OWED, over both unreleased items, and the machine-limits doctrine
+  applies unchanged** (quiet machine, freshly restarted backend, never pipe verify).
+  Targeted families green throughout: `print:` 12, `direction:` 4, settings/shell/bands
+  21, list 10, the settings a11y walks.
+- **PDF DOWNLOAD OF A REAL DOCUMENT HAS NEVER WORKED ON THIS LOCAL STACK** — wkhtmltopdf
+  gets `HostNotFoundError` because `get_url()` = `http://demo.bunood.test` does not
+  resolve inside the backend container (bare-HTML `get_pdf` works, the engine is fine).
+  Compose-level `extra_hosts` errand; the suite's future PDF smoke depends on it, and the
+  pane's "Download sample PDF" button waits on it too.
+- **The Print Style record is REGENERATED on every Theme Settings save** — sheet
+  assembly (marker blocks per the four axes) + colour substitution both read the SAVED
+  doc. `Frappe's own` on `print_letterhead` means the Letter Head record is never
+  touched (sentinel-proved); every other pole recomposes it.
+- **The per-section switches are read AT RENDER by the macros** (`_pset` →
+  `frappe.db.get_single_value`), so there is no sync step to forget — but also nothing
+  to cache-bust EXCEPT `clear_cache(doctype='Theme Settings')`, which the suite's
+  drivers do after every `set_single_value`.
+- **`benchPy` grew a `preConnect` slot** (`benchPyHostileImport`) that imports
+  printview/pdf BEFORE the apps load — the direction checks REQUIRE the hostile order,
+  because the rtl_patch's reach was an import-order accident and a green that depends on
+  import order is not a closure.
+- **118 `ar.po` rows are `#, fuzzy` and await the user's review** (64+17+37), the item-7
+  handoff, their own commit as always.
+
 **ITEM 34 (email) — CODE COMPLETE 2026-08-26, NOT RELEASED, FULL SUITE NOT PASSED.**
 Five commits: `5c7aad8` slices 1+2 (the fork, the sheet, contracts E1–E3) · `d33b5af`
 (the `ar.po` repair, its own commit) · `bc699d8` slice 3 (the anchor, `assertEmailSafeCss`)

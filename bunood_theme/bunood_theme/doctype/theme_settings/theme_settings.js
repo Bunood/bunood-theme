@@ -4538,6 +4538,8 @@ const BND_EMAIL_DEFAULTS = {
 const BND_PRINT_FIELDS = [
 	"print_header_style", "print_table_style", "print_totals_style",
 	"print_heading_style", "print_accent", "print_letterhead",
+	"print_title_lang", "print_qr", "print_qr_place", "print_qr_size",
+	"print_words", "print_signatures",
 ];
 const BND_PRINT_DEFAULTS = {
 	print_header_style: "Wash Card",
@@ -4546,6 +4548,12 @@ const BND_PRINT_DEFAULTS = {
 	print_heading_style: "Original",
 	print_accent: "Brand panels",
 	print_letterhead: "Bilingual Split",
+	print_title_lang: "Both",
+	print_qr: "Show",
+	print_qr_place: "Head end",
+	print_qr_size: "Medium",
+	print_words: "Show",
+	print_signatures: "Two lines",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
@@ -5647,11 +5655,11 @@ function bnd_render_email_picker(frm, host) {
  * The sign-in kit has no preview because the only person who can open its picker
  * is the only one who cannot load the page (`www/login.py:38-46` redirects an
  * authenticated session away). The website kit has none because an "apply" there
- * is a page load in a different document. NEITHER argument holds here:
- * `frappe.email.email_body.get_email_html` is whitelisted, renders the real
- * thing through the real funnel, and contains no other user's data. A preview is
- * both possible and honest on this surface — it is simply not built yet, and
- * claiming otherwise in a comment would be the lie the rule is about.
+ * is a page load in a different document. Neither argument held here, and the
+ * preview WAS then built (`bnd_email_preview`, called from the render above) —
+ * this block once read "simply not built yet", which item 34's own later slice
+ * made stale the day it landed; item 35 retired the sentence. The print
+ * picker's preview carries the same mechanics one surface further.
  */
 function bnd_email_set(frm, field, value) {
 	frm.set_value(field, value);
@@ -5817,6 +5825,36 @@ const BND_PRINT_GROUPS = [
 		field: "print_letterhead",
 		title: () => __("Letterhead"),
 		desc: () => __("Composed from your logo and names and kept in sync with your colours. Frappe's own leaves whatever Letter Head the site already uses untouched."),
+	},
+	{
+		field: "print_title_lang",
+		title: () => __("Document title"),
+		desc: () => __("Which halves of the bilingual title render on the Bunood formats."),
+	},
+	{
+		field: "print_qr",
+		title: () => __("ZATCA QR"),
+		desc: () => __("Hide applies only where the QR is optional — a simplified tax invoice keeps its QR and its warning regardless."),
+	},
+	{
+		field: "print_qr_place",
+		title: () => __("QR placement"),
+		desc: () => __("Beside the meta at either end of the head row, or down beside the totals."),
+	},
+	{
+		field: "print_qr_size",
+		title: () => __("QR size"),
+		desc: () => __("The QR's printed size."),
+	},
+	{
+		field: "print_words",
+		title: () => __("Amount in words"),
+		desc: () => __("The tafqit strip under the totals."),
+	},
+	{
+		field: "print_signatures",
+		title: () => __("Signatures"),
+		desc: () => __("On vouchers and invoices. A format that passes its own labels keeps them."),
 	},
 ];
 

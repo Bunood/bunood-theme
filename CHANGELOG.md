@@ -24,6 +24,90 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Print formats / PDF (item 35) — code complete, NOT yet released
+
+**Under `[Unreleased]` for the same reason item 34 is** — the full browser suite
+has not run over either item on this memory-bound host; the heading, the bump
+and the tag arrive together with the gates. Targeted families are green
+throughout: `print:` 12, `direction:` 4 (two new), settings/shell/bands 21,
+list 10.
+
+**The thirteenth surface kit, and the first delivered as a DATABASE RECORD.**
+The compiled `scss/print/print.scss` is substituted per site from
+`palette.derive()` (`printing/sheet.py` — the item-34 mechanism's fourth
+consumer) and written into the Print Style "Bunood" at install, migrate and
+every Theme Settings save. Twelve fields in `presets.PRINT_FIELDS`; the anchor
+is a **preset over four section axes** (`print_header_style` / `_table_` /
+`_totals_` / `_heading_`): the twelve named styles in `presets.PRINT_PRESETS`
+write those values and stop existing, the picker's label derives by comparison
+("Custom" the moment an axis differs), and selection reaches the document at
+GENERATION via `/*BND axis=slug*/` marker blocks `sheet.py::_assemble` keeps or
+drops — an unknown value stands the whole sheet down. `Side Column` was drawn
+and died to measurement (grid on Qt-WebKit 534); recorded, not shipped.
+
+**Fixed — the style that never applied.** v16 defaults `print_style` to
+"Redesign", a name the installer's vacancy tuple never carried, so the Bunood
+Print Style had been installed everywhere and applied NOWHERE since 0.13.0 (the
+exact shape of ERPNext's never-loading email CSS). `STOCK_STYLES` is v16-aware
+and the one-time `v0_35_0.claim_print_style` patch claims existing sites; its
+honest cost (an admin who chose Redesign is indistinguishable from the default)
+is in its docstring.
+
+**Fixed — the hand-mirror.** `printing/bunood_print_style.css` and both
+letterhead files hardcoded five hexes of an ABANDONED palette against a
+`design-tokens.md` that never existed. Deleted/tokenised; the letterhead now
+also composes per `print_letterhead` (Bilingual Split default · Centered Mark ·
+Hairline Minimal · Frappe's own = a true stand-down proved by a sentinel) and
+takes the theme's raster logo over the Company's.
+
+**Fixed — AA on the most-printed documents.** ERPNext's nine transaction
+formats inline `.text-muted #7c7c7c` (4.17:1) and a `#7c7c7c`-on-`#f8f8f8`
+table head (3.93:1); contracts in the substituted sheet clear both at (0,2,0)+
+specificity, outside every pole including Original. Plus the keep-together
+contract Frappe never had (headings/rows/figures at page folds), every rule in
+BOTH break spellings — `assertPrintSafeCss` enforces the pairing mechanically.
+
+**Fixed — the RTL print gap, structurally.** The item-7 "accepted gap" was an
+import-order ACCIDENT (rtl_patch reached printview/pdf only when apps loaded
+first; any app-level `import frappe.utils.pdf` flips it — the suite now forces
+that hostile order via `benchPyHostileImport`). Closed by a printview branch in
+`context.py` (the PDF body inherits it through `get_print`) and last-wins
+`pdf_header_html`/`pdf_footer_html` hooks (`printing/pdf_direction.py`).
+Upstream-only remainder: WeasyPrint, and the four-code list itself.
+
+**Fixed — Ctrl+P residue.** Item 8's hide-list predated v16: `.page-form`
+filter ghosts, 21 selection checkboxes and 40 like/comment icons printed on
+every list (census-quantified). Hidden at the scope level — `.list-row-activity`
+as a cluster, because frappe stamps `d-flex !important` on `.comment-count` and
+the honest fix is the interactive parent, not escalation. First suite coverage
+the desk print sheet has ever had.
+
+**Added — the per-section switches**, read AT RENDER by the macros (no sync,
+no second copy): title language (Both/Arabic/English), QR show/place/size —
+with the COMPLIANCE GUARD: `Hide` is ignored where a format declares
+`required=True`, because a togglable legal mandate is a defect — amount-in-
+words, and signatures (an explicit labels argument outranks the setting).
+
+**Added — the third honest live preview.** `api.print_preview` renders a
+SPECIMEN (the `?doc=` inline-dict path; no tenant record is ever read) through
+the real funnel with the real record, into a sandboxed iframe with SHAPE chips
+(Invoice/Document) and LANGUAGE chips (the same specimen re-rendered in
+Arabic — the direction closure, live in the picker).
+
+**Environment fact, filed not fixed:** PDF download of a real document has
+NEVER worked on this local stack — `get_url()` = `http://demo.bunood.test`
+does not resolve inside the backend container (wkhtmltopdf `HostNotFoundError`;
+bare-HTML `get_pdf` works). Compose-level `extra_hosts` errand.
+
+**Deferred, stated:** the wireframe round's remaining candidates —
+`print_watermark`, logo place/size/name-language fine-grain (the letterhead
+COMPOSITIONS cover the coarse need), `print_meta`, `print_contact`,
+`print_density`, `print_receipt`, footer pages/privacy toggles — plus the
+`arabic_font`-follows-paper wiring and the pane's "Download sample PDF" button
+(blocked on the environment fact above). Payload: fifth bucket
+`print_css_gzip` (ceiling 4000, at 2305); desk css 20868/21000 after the
+preview chrome. 118 `ar.po` rows, all `#, fuzzy`, awaiting review.
+
 ### Email (item 34) — code complete, NOT yet released
 
 **Deliberately still under `[Unreleased]`.** The house pattern is to write the

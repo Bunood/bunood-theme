@@ -5,7 +5,7 @@
 
         {% from "templates/bunood_print_macros.html" import
            doc_title, invoice_meta, party_block, items_table, totals_block,
-           zatca_qr, thermal_head, thermal_items, thermal_totals, sig_row %}
+           zatca_qr, head_row, thermal_head, thermal_items, thermal_totals, sig_row %}
 
     Styling comes from the global Print Style "Bunood" (scss/print/print.scss,
     substituted per site by printing/sheet.py — item 35).
@@ -16,9 +16,16 @@
     freight), bunood_item_vat_map (per-line VAT rate/amount).
     ============================================================================ -#}
 
-{#- Bilingual document title -#}
+{#- The per-section switches (item 35) read Theme Settings AT RENDER — no
+    sync step, no second copy: the field is the fact. `or default` keeps a
+    pre-migrate site (field not yet seeded) on today's behaviour. -#}
+{% macro _pset(field, default) -%}{{ frappe.db.get_single_value("Theme Settings", field) or default }}{%- endmacro %}
+
+{#- Bilingual document title. `print_title_lang` picks which halves render —
+    Both / Arabic only / English only (item 35). -#}
 {% macro doc_title(ar, en) -%}
-<div class="bnd-p-title"><div class="bnd-p-title__ar">{{ ar | e }}</div><div class="bnd-p-title__en">{{ en | e }}</div></div>
+{%- set tl = _pset("print_title_lang", "Both") | trim -%}
+<div class="bnd-p-title">{% if tl != "English only" %}<div class="bnd-p-title__ar">{{ ar | e }}</div>{% endif %}{% if tl != "Arabic only" %}<div class="bnd-p-title__en">{{ en | e }}</div>{% endif %}</div>
 {%- endmacro %}
 
 {#- Invoice meta box: number / dates / credit-note reference / supply date -#}
@@ -36,9 +43,39 @@
 {#- ZATCA QR. required=True (simplified invoices) renders a visible warning
     instead of silence when the QR is missing — QR is mandatory there. -#}
 {% macro zatca_qr(doc, size=110, required=False) -%}
+{#- THE COMPLIANCE GUARD: `print_qr: Hide` is honoured only where the QR is
+    OPTIONAL. A format that declares required=True (the simplified tax
+    invoice) keeps its QR — and its missing-QR warning — regardless of the
+    setting, because a togglable legal mandate is not a setting, it is a
+    defect. `print_qr_size` maps to concrete pixels; an unknown value falls
+    back to the caller's size. -#}
+{%- set show = _pset("print_qr", "Show") | trim -%}
+{%- set sz = {"Small": 90, "Medium": 110, "Large": 130}.get(_pset("print_qr_size", "Medium") | trim, size) -%}
+{%- if show != "Hide" or required -%}
 {%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
-{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ size }}px;height:{{ size }}px">
+{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ sz }}px;height:{{ sz }}px">
 {% elif required %}<div class="bnd-p-qr-missing">رمز الاستجابة QR غير متوفر — لا تصلح فاتورة ضريبية مبسطة<br>QR missing — not valid as a simplified tax invoice</div>{% endif %}
+{%- endif -%}
+{%- endmacro %}
+
+{#- The invoice head row: meta beside the QR, in the ORDER `print_qr_place`
+    chooses — Head end (today's), Head start, or Beside totals (the head
+    carries meta alone and `totals_block` appends the QR). One macro so the
+    placement is one fact; the formats call this instead of hand-building
+    the two-cell table (item 35). -#}
+{% macro head_row(doc, required=False) -%}
+{%- set place = _pset("print_qr_place", "Head end") | trim -%}
+<table class="bnd-p-head"><tr>
+  {%- if place == "Head start" -%}
+  <td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=required) }}</td>
+  <td>{{ invoice_meta(doc) }}</td>
+  {%- elif place == "Beside totals" -%}
+  <td>{{ invoice_meta(doc) }}</td>
+  {%- else -%}
+  <td>{{ invoice_meta(doc) }}</td>
+  <td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=required) }}</td>
+  {%- endif -%}
+</tr></table>
 {%- endmacro %}
 
 {#- Seller/Buyer block. Seller VAT ALWAYS renders (placeholder when unset —
@@ -109,7 +146,10 @@
   <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
   {% endif %}
 </table>
-{% if doc.get("in_words") %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{%- if (_pset("print_qr_place", "Head end") | trim) == "Beside totals" -%}
+<table class="bnd-p-head"><tr><td></td><td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=kwargs.get("qr_required", False)) }}</td></tr></table>
+{%- endif -%}
 {%- endmacro %}
 
 {#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}
@@ -150,9 +190,22 @@
 </table>
 {%- endmacro %}
 
-{#- Signatures row (vouchers / A4) -#}
-{% macro sig_row(labels=["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"]) -%}
+{#- Signatures row (vouchers / A4). With no explicit labels the count follows
+    `print_signatures` (Two lines / Three lines / None); a format that passes
+    its own labels keeps them untouched — an explicit argument outranks a
+    site-wide default, always. -#}
+{% macro sig_row(labels=None) -%}
+{%- set default_labels = ["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"] -%}
+{%- if labels is none -%}
+  {%- set pref = _pset("print_signatures", "Two lines") | trim -%}
+  {%- if pref == "None" -%}{%- set labels = [] -%}
+  {%- elif pref == "Three lines" -%}{%- set labels = default_labels -%}
+  {%- else -%}{%- set labels = default_labels[:2] -%}
+  {%- endif -%}
+{%- endif -%}
+{%- if labels -%}
 <table class="bnd-p-sigs"><tr>
   {% for l in labels %}<td><div class="bnd-p-sigs__line"></div>{{ l | e }}</td>{% endfor %}
 </tr></table>
+{%- endif -%}
 {%- endmacro %}

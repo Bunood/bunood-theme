@@ -2,14 +2,11 @@
     Duplicate this Print Format in Desk to customize per client.
     بونود — فاتورة ضريبية مبسطة (A4). بيانات المشتري اختيارية (B2C)؛
     الـQR إلزامي — غيابه يطبع تحذيراً مرئياً بدل الصمت. -#}
-{% from "templates/bunood_print_macros.html" import doc_title, invoice_meta, party_block, items_table, totals_block, zatca_qr %}
+{% from "templates/bunood_print_macros.html" import doc_title, invoice_meta, party_block, items_table, totals_block, zatca_qr, head_row %}
 <div class="bnd-p bnd-p--a4">
   {% if doc.get("is_return") %}{{ doc_title("إشعار دائن مبسط", "SIMPLIFIED CREDIT NOTE") }}{% else %}{{ doc_title("فاتورة ضريبية مبسطة", "SIMPLIFIED TAX INVOICE") }}{% endif %}
-  <table class="bnd-p-head"><tr>
-    <td>{{ invoice_meta(doc) }}</td>
-    <td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=True) }}</td>
-  </tr></table>
+  {{ head_row(doc, required=True) }}
   {{ party_block(doc, simplified=True) }}
   {{ items_table(doc) }}
-  {{ totals_block(doc) }}
+  {{ totals_block(doc, qr_required=True) }}
 </div>

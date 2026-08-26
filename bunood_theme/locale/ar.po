@@ -4430,10 +4430,6 @@ msgid "A card, with a band of your brand colour across the top."
 msgstr "بطاقة، يعلوها شريط بلون علامتك التجارية."
 
 #. src: item34
-msgid "Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
-msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء. لا توجد معاينة هنا بعد: تُنشَأ الرسالة على الخادم وتُقرأ في تطبيق بريد، فما يعرضه المتصفّح ليس ما يعرضه صندوق الوارد."
-
-#. src: item34
 msgid "Email Action"
 msgstr "زر البريد الإلكتروني"
 
@@ -4947,3 +4943,188 @@ msgstr "التصميم الإنشائي"
 #, fuzzy
 msgid "A specimen task, rendered through the standard layout."
 msgstr "مهمة نموذجية، معروضة عبر التخطيط القياسي."
+
+#. src: item35
+#, fuzzy
+msgid "Print Title Language"
+msgstr "لغة عنوان الطباعة"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats."
+msgstr "يُضبط من المُنتقي أعلاه. أي شطرَي عنوان المستند ثنائي اللغة يُعرضان في نماذج بنود."
+
+#. src: item35
+#, fuzzy
+msgid "Both"
+msgstr "كلاهما"
+
+#. src: item35
+#, fuzzy
+msgid "Arabic only"
+msgstr "العربية فقط"
+
+#. src: item35
+#, fuzzy
+msgid "English only"
+msgstr "الإنجليزية فقط"
+
+#. src: item35
+#, fuzzy
+msgid "Print QR"
+msgstr "رمز QR للطباعة"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect."
+msgstr "يُضبط من المُنتقي أعلاه. رمز ZATCA في نماذج بنود. «إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة الضريبية المبسطة تحتفظ برمزها وبتحذير غيابه مهما كان الاختيار، لأن إلزاماً قانونياً قابلاً للإطفاء عيبٌ لا إعداد."
+
+#. src: item35
+#, fuzzy
+msgid "Show"
+msgstr "إظهار"
+
+#. src: item35
+#, fuzzy
+msgid "Hide"
+msgstr "إخفاء"
+
+#. src: item35
+#, fuzzy
+msgid "Print QR Placement"
+msgstr "موضع رمز QR"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. Where the QR sits - beside the invoice meta at either end of the head row, or down beside the totals."
+msgstr "يُضبط من المُنتقي أعلاه. أين يجلس الرمز — بجوار بيانات الفاتورة في أي طرف من صف الرأس، أو أسفل بجوار الإجماليات."
+
+#. src: item35
+#, fuzzy
+msgid "Head end"
+msgstr "نهاية الرأس"
+
+#. src: item35
+#, fuzzy
+msgid "Head start"
+msgstr "بداية الرأس"
+
+#. src: item35
+#, fuzzy
+msgid "Beside totals"
+msgstr "بجوار الإجماليات"
+
+#. src: item35
+#, fuzzy
+msgid "Print QR Size"
+msgstr "حجم رمز QR"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. The QR's printed size."
+msgstr "يُضبط من المُنتقي أعلاه. حجم الرمز المطبوع."
+
+#. src: item35
+#, fuzzy
+msgid "Medium"
+msgstr "متوسط"
+
+#. src: item35
+#, fuzzy
+msgid "Small"
+msgstr "صغير"
+
+#. src: item35
+#, fuzzy
+msgid "Large"
+msgstr "كبير"
+
+#. src: item35
+#, fuzzy
+msgid "Print Amount in Words"
+msgstr "المبلغ كتابةً في الطباعة"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. The amount-in-words strip under the totals."
+msgstr "يُضبط من المُنتقي أعلاه. شريط المبلغ كتابةً أسفل الإجماليات."
+
+#. src: item35
+#, fuzzy
+msgid "Print Signatures"
+msgstr "تواقيع الطباعة"
+
+#. src: item35
+#, fuzzy
+msgid "Set by the picker above. The signature row on vouchers and invoices. A format that passes its own labels keeps them."
+msgstr "يُضبط من المُنتقي أعلاه. صف التواقيع في السندات والفواتير. النموذج الذي يمرّر عناوينه الخاصة يحتفظ بها."
+
+#. src: item35
+#, fuzzy
+msgid "Two lines"
+msgstr "سطران"
+
+#. src: item35
+#, fuzzy
+msgid "Three lines"
+msgstr "ثلاثة أسطر"
+
+#. src: item35
+#, fuzzy
+msgid "Document title"
+msgstr "عنوان المستند"
+
+#. src: item35
+#, fuzzy
+msgid "Which halves of the bilingual title render on the Bunood formats."
+msgstr "أي شطرَي العنوان ثنائي اللغة يُعرضان في نماذج بنود."
+
+#. src: item35
+#, fuzzy
+msgid "ZATCA QR"
+msgstr "رمز ZATCA"
+
+#. src: item35
+#, fuzzy
+msgid "Hide applies only where the QR is optional — a simplified tax invoice keeps its QR and its warning regardless."
+msgstr "«إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة المبسطة تحتفظ برمزها وبتحذيرها مهما كان الاختيار."
+
+#. src: item35
+#, fuzzy
+msgid "QR placement"
+msgstr "موضع الرمز"
+
+#. src: item35
+#, fuzzy
+msgid "Beside the meta at either end of the head row, or down beside the totals."
+msgstr "بجوار البيانات في أي طرف من صف الرأس، أو أسفل بجوار الإجماليات."
+
+#. src: item35
+#, fuzzy
+msgid "QR size"
+msgstr "حجم الرمز"
+
+#. src: item35
+#, fuzzy
+msgid "The QR's printed size."
+msgstr "حجم الرمز المطبوع."
+
+#. src: item35
+#, fuzzy
+msgid "Amount in words"
+msgstr "المبلغ كتابةً"
+
+#. src: item35
+#, fuzzy
+msgid "The tafqit strip under the totals."
+msgstr "شريط التفقيط أسفل الإجماليات."
+
+#. src: item35
+#, fuzzy
+msgid "Signatures"
+msgstr "التواقيع"
+
+#. src: item35
+#, fuzzy
+msgid "On vouchers and invoices. A format that passes its own labels keeps them."
+msgstr "في السندات والفواتير. النموذج الذي يمرّر عناوينه الخاصة يحتفظ بها."
