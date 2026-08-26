@@ -5579,6 +5579,22 @@ function bnd_render_email_picker(frm, host) {
 					{ zone: "extras", html: groups },
 				]) +
 				'<div class="bnd-emp-preview" data-bnd-part="email-preview"></div>' +
+				// THE CAPTION EXISTS BECAUSE THE PREVIEW CANNOT SHOW BOTH MODES, and
+				// without it the frame quietly implies it does. The iframe is a
+				// separate document: its `prefers-color-scheme` comes from the
+				// READER'S OS, not from the desk's `data-theme`, so on a dark desk an
+				// admin sees a light email and has every reason to conclude that is
+				// all there is. Screenshotting the picker in both modes is what
+				// surfaced it — nine slices of measurement and nobody had looked.
+				P.note(
+					frm.doc.email_theme === "Always Dark"
+						? __("Shown as every reader sees it.")
+						: frm.doc.email_theme === "Always Light"
+							? __("Shown as every reader sees it.")
+							: __(
+									"Shown as a reader whose device is set to light sees it. Readers on dark devices get the dark version."
+								)
+				) +
 				"</div>"
 		)
 	);

@@ -24,6 +24,61 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+### Email (item 34) — code complete, NOT yet released
+
+**Deliberately still under `[Unreleased]`.** The house pattern is to write the
+`[X.Y.0]` heading with the item, and that pattern is exactly what produced the
+half-released 0.33.0 above: a heading, a version bump, and no tag, because the
+gates were never finished. This item's full browser suite has not passed — three
+attempts died with the backend OOM-killed on a 6 GB host — so the heading, the
+version bump, the payload record row and the tag all wait. Nothing here is a
+promise that it shipped.
+
+**Your brand reaches an inbox.** Every email your site sends — notifications,
+invitations, password resets, anything an app mails out — now carries your
+colours, your name and your logo. Before this, it could not: Frappe delivers
+email styling through a mechanism that cannot see a customer's settings at all,
+so every ERPNext site on earth sent the same grey email. (ERPNext's own attempt
+at styling its mail has never worked on any site, for a reason we found and have
+filed upstream.)
+
+**The framework's name is off your mail.** Three places carried it, all measured:
+the heading of system emails showed whichever app was installed last — on this
+site, the word "Telephony", and it would have changed again with the next
+install; every footer read "Sent via ERPNext"; and an unbranded logo linked to
+the framework's own marketing site. All three now carry your name, or nothing.
+A footer belonging to an app that has something useful to say is kept.
+
+**Notification emails had no background at all.** Not a wrong colour — none. The
+message sat on whatever the reader's mail app decided to put behind it, which in
+a dark-mode client meant near-black text on a dark ground. This is the commonest
+kind of email a site sends. Every email now has a floor of its own, under every
+style including Original, because that is a repair rather than a decoration.
+
+**Two pieces of text failed accessibility standards in every email ever sent.**
+The footer, and *every link*. Both are repaired, and the repair is checked
+against eleven brand colours in both light and dark so it holds at your seed and
+not only at ours.
+
+**Four new settings**, under Email. *Style* — Original leaves the message as
+Frappe composes it; **Card** (the default) puts it on a framed plate; Letter
+drops the plate for a typographic letter; Masthead adds a band of your brand
+colour. *Identity* — **logo and name together** by default, because that is the
+only form that still says who sent the message when a mail app blocks images,
+which most do by default. *Button* — **your brand colour** rather than the stock
+near-black. *Theme* — **follow each reader's device** by default; one message is
+read by many people on many devices, so nothing else can answer per reader.
+Mail-client support for dark mode is uneven, and the setting says so.
+
+**A live preview**, showing the real message rather than a drawing of one — the
+first in this product to do that. It renders exactly what would be sent.
+
+**One honest limit, stated rather than buried.** An email is checked here in a
+browser, and read in a mail client. That gap cannot be closed by testing, so it
+is closed by construction instead: the stylesheet may only use properties that
+either work across mail clients or degrade harmlessly when ignored, and the
+build refuses anything else.
+
 ## [0.33.0] — 2026-08-25 — Website and portal (item 33)
 
 **Three security fixes are in this release, found by reviewing it rather than by

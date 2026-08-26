@@ -2375,9 +2375,9 @@
    ]
   },
   "email_picker": {
-   "n": 93,
+   "n": 94,
    "svgs": 4,
-   "text": 860,
+   "text": 961,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-emp",
@@ -2471,7 +2471,8 @@
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "div.bnd-emp-preview",
-    "iframe.bnd-emp-frame"
+    "iframe.bnd-emp-frame",
+    "div.bnd-cbp-note"
    ]
   },
   "icons_picker": {

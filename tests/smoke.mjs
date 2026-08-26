@@ -14009,35 +14009,72 @@ async function main() {
 			// value, or a neutral that maps to something other than the ABSENCE of
 			// a class — which is what makes the stand-down structural rather than a
 			// rule that has to remember to do nothing.
+			// EVERY FIELD, NOT ONLY THE MAPPED ONES — and the first cut of this check
+			// covered half the kit. `EMAIL_CLASSES` holds `email_style` and
+			// `email_action`; `email_header` and `email_theme` keep their vocabularies
+			// in PLAIN TUPLES (`EMAIL_HEADER_FORMS`, `EMAIL_THEMES`) because neither
+			// resolves to a class, and nothing checked those against the doctype at
+			// all. Add a fifth option to either Select and the resolver would fall
+			// back to the default in silence — the same-fact-in-two-places trap, in
+			// the kit that spent a slice writing about it. Found by reading the
+			// vocabularies rather than by a failure.
 			const out = benchPy(
 				"import json\n" +
-					"from bunood_theme.email import EMAIL_CLASSES\n" +
-					"from bunood_theme.presets import EMAIL_DEFAULTS\n" +
+					"from bunood_theme.email import (EMAIL_CLASSES, EMAIL_HEADER_FORMS,\n" +
+					"                                EMAIL_THEMES, COLOR_SCHEME_META)\n" +
+					"from bunood_theme.presets import EMAIL_DEFAULTS, EMAIL_FIELDS\n" +
 					"meta = frappe.get_meta('Theme Settings')\n" +
-					"res = {}\n" +
-					"for field, slugs in EMAIL_CLASSES.items():\n" +
+					"vocab = dict(EMAIL_CLASSES)\n" +
+					"vocab['email_header'] = {v: None for v in EMAIL_HEADER_FORMS}\n" +
+					"vocab['email_theme'] = {v: None for v in EMAIL_THEMES}\n" +
+					"res = {'fields': EMAIL_FIELDS, 'meta_keys': sorted(COLOR_SCHEME_META), 'v': {}}\n" +
+					"for field, values in vocab.items():\n" +
 					"    df = meta.get_field(field)\n" +
-					"    res[field] = {'options': [o for o in (df.options or '').split(chr(10)) if o],\n" +
-					"                  'default': df.default, 'slugs': slugs,\n" +
-					"                  'shipped': EMAIL_DEFAULTS.get(field)}\n" +
+					"    res['v'][field] = {'options': [o for o in (df.options or '').split(chr(10)) if o],\n" +
+					"                       'default': df.default, 'slugs': values,\n" +
+					"                       'mapped': field in EMAIL_CLASSES,\n" +
+					"                       'shipped': EMAIL_DEFAULTS.get(field)}\n" +
 					"print('BND_MAP' + json.dumps(res))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_MAP"));
 			if (!line) throw new Error("class-map probe produced no JSON: " + String(out).slice(-300));
-			const data = JSON.parse(line.slice("BND_MAP".length));
-			expect(Object.keys(data).length > 0, "EMAIL_CLASSES is empty");
+			const res = JSON.parse(line.slice("BND_MAP".length));
+			const data = res.v;
+
+			// No field may be missing a vocabulary entirely — which is the hole this
+			// check just closed, so it is asserted rather than left to inspection.
+			for (const field of res.fields) {
+				expect(field in data, `${field} has no vocabulary anywhere — it cannot be validated`);
+			}
+
 			for (const [field, d] of Object.entries(data)) {
 				for (const opt of d.options) {
-					expect(opt in d.slugs, `${field}: option "${opt}" has no class`);
+					expect(opt in d.slugs, `${field}: option "${opt}" is not in the resolver's vocabulary`);
 				}
 				for (const value of Object.keys(d.slugs)) {
-					expect(d.options.includes(value), `${field}: class map has orphan "${value}"`);
+					expect(d.options.includes(value), `${field}: vocabulary has orphan "${value}"`);
 				}
 				expect(d.options.includes(d.default), `${field}: doctype default "${d.default}" is not an option`);
 				expectEq(d.default, d.shipped, `${field}: the doctype default and EMAIL_DEFAULTS disagree`);
-				// The neutral is always first, and always maps to no class at all.
-				expectEq(d.slugs[d.options[0]], "", `${field}: the first option must be the neutral`);
+				// The neutral is always first, and for a MAPPED field it always means
+				// the ABSENCE of a class — which is what makes the stand-down
+				// structural rather than a rule that has to remember to do nothing.
+				// The unmapped two have no class to be absent, so the rule does not
+				// apply to them and asserting it would be testing nothing.
+				if (d.mapped) {
+					expectEq(d.slugs[d.options[0]], "", `${field}: the first option must map to no class`);
+				}
 			}
+
+			// `COLOR_SCHEME_META` is a third copy of the theme vocabulary, and a
+			// missing key there does not fail loudly — `bunood_email_color_scheme`
+			// catches, logs, and returns "light dark", so `Always Light` would
+			// silently stop asking clients not to invert it.
+			expectEq(
+				res.meta_keys.join("|"),
+				[...data.email_theme.options].sort().join("|"),
+				"COLOR_SCHEME_META and the email_theme options have drifted apart"
+			);
 		});
 
 		await test("email: the four poles compose differently, and none removes the floor", async () => {

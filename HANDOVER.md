@@ -29,7 +29,63 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 34 (email) — CODE COMPLETE 2026-08-26, NOT RELEASED, FULL SUITE NOT PASSED.**
+Five commits: `5c7aad8` slices 1+2 (the fork, the sheet, contracts E1–E3) · `d33b5af`
+(the `ar.po` repair, its own commit) · `bc699d8` slice 3 (the anchor, `assertEmailSafeCss`)
+· `e36ee71` slice 4 (the two axes, the preview) · `19bc4b4` slice 5 (branding). The
+twelfth surface kit and the first not rendered by a browser. Four fields
+(`email_style` · `email_header` · `email_action` · `email_theme`), `scss/email/email.scss`,
+`bunood_theme/email.py`, and the theme's first fork of a Frappe template. Picks:
+**Card · Follow the client · Logo + wordmark · Brand fill**. ROADMAP's item-34 entry
+carries the full account; what belongs HERE is the state and the things that will cost
+time again:
+
+- **THE FULL SUITE HAS NOT PASSED OVER SLICES 3–6, AND THIS IS THE ONE THING BLOCKING A
+  TAG.** Three attempts (2026-08-25/26) at **481, 664 and 980 MB** host-free all died —
+  once as 168 identical `net::ERR_EMPTY_RESPONSE`, twice as `waitForSelector` timeouts
+  with the site answering 502. The third had a freshly restarted backend (125 MiB) and all
+  three worker containers stopped. **The constraint is the editor sessions, not the
+  stack**: three `claude` processes held ~774 MB and `vmmemWSL` ~1.1 GB. Targeted families
+  are green throughout (`email:` 14/14, plus settings, shell, bands, brand, registry,
+  honest, i18n — 45 in one run). Also owed: the adversarial release review, the version
+  bump, `payload.mjs --record`, and the tag.
+- **`v0.33.0` WAS NEVER TAGGED.** `git tag -l "v0.33*"` is empty, there is no v0.33.0
+  payload history row, and three item-33 fix commits sit on top of its release commit —
+  while `__init__.py` and `hooks.py` both read `0.33.0` and CHANGELOG carries a `[0.33.0]`
+  heading. The user's call (2026-08-25) was to leave it and start 34. **Item 34 therefore
+  writes its CHANGELOG under `[Unreleased]` and does NOT create a `[0.34.0]` heading** —
+  the heading-plus-bump-without-tag pattern is exactly what produced this.
+- **THE `email_css` HOOK IS A TRAP AND ERPNEXT IS IN IT.** Frappe's hook is a STATIC file
+  list (so it can never carry a seed) and its `os.path.exists` filter is CWD-relative in
+  whichever process sends — the queue and scheduler containers have no `bunood_theme`
+  under `sites/assets`, so a hooked sheet works from the desk and vanishes for scheduled
+  mail. ERPNext's own hook names a file that does not exist; **its email stylesheet has
+  never applied on any site**, silently. We fork three templates and carry the CSS inside
+  them instead.
+- **`ar.po` HAD STOPPED DESCRIBING THE CSV.** Item 33 wrote its sixteen strings straight
+  to `translations/ar.csv` and never to the PO, so the next `i18n_po.mjs emit` would have
+  **deleted item 33's Arabic** with every gate green. Repaired in `d33b5af`, proved inert
+  by `emit` reproducing the committed CSV byte-identically. **Edit the PO, then emit.**
+- **DO NOT REGENERATE `inherited.ar.txt` CASUALLY.** `npm run i18n:inherited`, run
+  speculatively, proposed `Split` → `انشق، مزق` ("torn, ripped") for a login LAYOUT POLE
+  and `Theme` → `موضوع` ("topic", not a visual theme). That ledger is curated against
+  false friends; regenerating it wholesale is not the no-op its name suggests.
+- **A `perl -0pi` WITH `\x{...}` RE-ENCODED A WHOLE FILE.** `theme_settings.js` came back
+  with 2,578 mojibake sequences — every em-dash and ellipsis — and **`node --check` passed
+  on it**, because it was still valid JavaScript. A parse check does not detect encoding
+  damage. Recovered with a latin1→utf8 round trip; use Node (or the editor) for any edit
+  touching non-ASCII, and grep for `â` afterwards.
+- **THE FRONTEND'S ASSET MOUNT CAN COME BACK EMPTY AFTER A RESTART.** `docker restart
+  bunood-frontend-1` (done here during memory recovery) left
+  `sites/assets/bunood_theme` as an empty root-owned directory instead of the mount, and
+  **all four assets 404'd** while the backend still had them. `npm run deploy`'s own
+  serving check caught it. Recovery is a plain restart, never a recreate — HANDOVER §5.
+- **The 25 `#, fuzzy` rows in `ar.po` await the user's review**, as every item's have
+  since 27. Clear them in their own commit.
+
 **ITEM 33 (website + portal) — DONE, released as `v0.33.0`, LOCAL TAG, NOT PUSHED.**
+*(CORRECTED 2026-08-25: there is no such tag — see item 34's entry above. The release
+chain stopped after the version bump.)*
 Twenty-one commits.
 
 **THE RELEASE REVIEW RAN FOUR TIMES AND FOUND NINE CONFIRMED DEFECTS, THREE OF

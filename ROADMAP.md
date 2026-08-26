@@ -924,7 +924,82 @@ entry.
     rail moves from x=99 to x=1159 — so their flipped physical rules and our logical ones
     do not compose. The item restates none of them; the standing check's job was to stay
     green, and it did.
-- `[ ]` **34 · Email templates** *(was 27)*
+- `[~]` **34 · Email templates** *(was 27, code complete 2026-08-26, NOT RELEASED —
+  the full suite has not passed over it; see the end of this entry)* — the TWELFTH
+  surface kit, and the first that is not rendered by a browser at all. Six slices. Four
+  fields (`email_style` anchor · `email_header` · `email_action` · `email_theme`),
+  `public/scss/email/email.scss`, `bunood_theme/email.py`, and the theme's first fork of
+  a Frappe template. Wireframed and picked 2026-08-25 **after the census rather than
+  before it**, which is why `Card` won: **Card · Follow the client · Logo + wordmark ·
+  Brand fill**. What the surface taught:
+  - **The delivery hook is a trap, and ERPNext has been in it for years.** Frappe themes
+    mail through `email_css`, and that hook is disqualified twice: it is a STATIC file
+    list, so it can never carry a customer's brand seed — which is why every ERPNext site
+    on earth sends identical colours — and `inline_style_in_html`'s `os.path.exists`
+    filter runs CWD-relative in whichever process sends, so a hooked sheet styles
+    desk-triggered mail and is silently dropped for scheduler-triggered mail. ERPNext's
+    own hook names `email_erpnext.bundle.css` while the built file is
+    `erpnext_email.bundle.css`: **its email stylesheet has never applied anywhere**, with
+    no log. So this item forks `templates/emails/{standard,email_header,email_footer}.html`
+    and carries the CSS inside them. ARCHITECTURE §4 retired the `desk.html` fork for two
+    reasons; only the version pin applies here, and it is PAID — the suite hashes Frappe's
+    shipped copies and fails when upstream moves.
+  - **The defect was an ABSENCE, not an ugliness, and that reshaped the kit.** A
+    Notification email — the commonest shape a site sends, because `notification.py:510`
+    passes neither `header` nor `with_container` — has no opaque ancestor above any of its
+    text: five of five elements, ink `#171717`, ground whatever the mail client decides.
+    So the floor is a CONTRACT outside the anchor and `Original` is narrower here than in
+    any previous kit: a pole may change what the floor looks like, never whether it
+    exists. Item 31's rule arriving by a different route.
+  - **Two more live AA failures, both stock.** The footer at 4.17:1 (`.text-muted`
+    `#7c7c7c` — the SAME literal item 33 repaired on `/404` and every portal row, third
+    surface) and **every link at 3.15:1** (`a { color: $blue-500 }`). The link one was
+    missed on the first census pass because the fixture carried a `.btn` and no bare `<a>`
+    — and then the same blind spot was reproduced INSIDE the regression test written to
+    catch it, which passed with the repair deleted. **A check is only as wide as its
+    fixture.**
+  - **No `var()` may reach an inbox**, because Premailer does not resolve custom
+    properties and Outlook does not support them — but hand-mirroring hexes is the defect
+    `printing/bunood_print_style.css` already carries. So the sheet is authored in ordinary
+    `var(--bnd-*)` and SUBSTITUTED at render from `palette.derive()`: one derivation, three
+    consumers. `substitute` throws on an unknown token and the whole sheet stands down, so
+    the degradation is total and visible. It fired for real when the anchor's first cut
+    used a custom-property working set — all four poles rendered as stock, in one render.
+    A Sass `@mixin` keeps the compose-once guarantee and compiles to what a client reads.
+  - **Dark in email was an open question and the census settled it.** A
+    `prefers-color-scheme` block survives Premailer into a preserved `<style>`, and
+    Premailer **adds `!important`** to everything it preserves — which is the only reason
+    the dark values beat the light ones already inlined. Frappe ships nothing here and
+    Directus commented its own dark block out. `email_theme` is therefore NOT a body class
+    like `login_theme`/`web_theme`: Gmail strips `<html>` and `<body>`, so the mode decides
+    which rules are EMITTED.
+  - **The framework's name was on the customer's mail, three ways.** The header title read
+    the LAST INSTALLED APP (`app_title[-1]` — "Telephony" here, and it changed with the
+    last `bench get-app`); the footer said "Sent via ERPNext"; and an unbranded mark linked
+    to `frappeframework.com`. The footer is FILTERED, not dropped — only lines that LINK to
+    a vendor host go, so a legitimate app keeps its own and the word "ERPNext" in a
+    tenant's text survives.
+  - **This kit has the first honest live preview in the project.** Items 32 and 33 each
+    refused one for a reason that fails here: an email is composed on the server and
+    carries no other user's data. It does not use frappe's whitelisted `get_email_html`,
+    which crashes on any site with no outgoing Email Account — and the suite reproduces
+    that crash so the filing cannot be closed as unreproducible.
+  - **A guard for the client we cannot test in.** `assertEmailSafeCss` is an allowlist over
+    the email entry only, because that sheet is verified in Chromium and read in Outlook.
+    It is a regression net, not a conformance claim — and it caught a gap in ITSELF
+    (`display: flex` passed its first version) before governing anything.
+  - Payload: a third bucket, ceiling 2000, currently ~550 B gzip; the desk and web bundles
+    are untouched. Contrast unchanged at 4,080 pairs — every value is an existing token.
+    Rendered email 6–11 KB against Gmail's ~102 KB clip. References:
+    `_reference/directus/api/src/services/mail/templates/base.liquid` and
+    `_reference/discourse/lib/email/styles.rb` (SVG stripping, `dir` handling). Upstream:
+    `docs/upstream/frappe-email.md` (seven filings).
+  - **WHAT IS OWED BEFORE THIS BECOMES `[x]`:** the full browser suite has not passed over
+    slices 3–6. Three attempts on 2026-08-25/26 at 481, 664 and 980 MB host-free all died
+    with the backend OOM-killed (168 identical `ERR_EMPTY_RESPONSE` once, `waitForSelector`
+    timeouts and a 502 the other times). Targeted families are green throughout — `email:`
+    14/14 plus settings, shell, bands, brand, registry, honest and i18n. Also owed: the
+    adversarial release review, the version bump, the payload record row and the tag.
 - `[ ]` **35 · Print formats / PDF** *(was 28)*
 - `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being
   restructured by phase 0 and effectively completed by it
