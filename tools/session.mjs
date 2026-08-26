@@ -30,6 +30,7 @@ import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(ROOT, "package.json"));
@@ -69,11 +70,11 @@ export function benchPy(code) {
 	for (let attempt = 1; ; attempt++) {
 		try {
 			return execFileSync(
-				"docker",
-				[
+				DOCKER_BIN,
+				dockerArgv(
 					"exec", "-i", BACKEND, "bash", "-lc",
 					"cd /home/frappe/frappe-bench/sites && ../env/bin/python -",
-				],
+				),
 				{
 					input:
 						"import frappe, json\n" +

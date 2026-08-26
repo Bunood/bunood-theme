@@ -39,6 +39,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
@@ -48,8 +49,8 @@ const URL_BASE = "http://localhost:8080";
 
 const py = (c) =>
 	execFileSync(
-		"docker",
-		["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+		DOCKER_BIN,
+		dockerArgv("exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
 		{
 			input:
 				`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n` + c,
