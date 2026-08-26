@@ -321,7 +321,10 @@ entry.
     equals its msgid across four surfaces. Direction was detect-and-refuse
     with a CLDR cross-check through 2026-08-09; **corrected locally 2026-08-13**
     (`bunood_theme/i18n/rtl_patch.py`) — see the HANDOVER entry for the full
-    mechanism and its one accepted gap (print/PDF). `ku` stays out of
+    mechanism; its one accepted gap (print/PDF) was CLOSED structurally by
+    item 35 (2026-08-26) — the printview context branch + the last-wins
+    `pdf_header_html`/`pdf_footer_html` hooks; WeasyPrint and the four-code
+    list itself remain upstream-only. `ku` stays out of
     `RTL_LANGS` (Latin-script per CLDR); the upstream `is_rtl` fix is drafted
     in `docs/upstream/frappe-is-rtl.md`, filing still waits on the user — the
     local fix removes the URGENCY, not the reason: upstream is the only route

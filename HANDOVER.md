@@ -1074,10 +1074,17 @@ closes both, without touching Frappe core:
     a NEW `bnd_rtl_langs` boot key (`RTL_LANGS`, threaded through rather
     than hand-copied — the boot doctrine's "keep this minimal" lost to "the
     same fact in two places" here, deliberately).
-  - **The desk shell is complete; print preview and PDF generation are a
-    known, accepted gap** — `printview.py`/`pdf.py` import-time-bind
-    `is_rtl` from code this app doesn't own, and Frappe documents no hook
-    into either. Not worse than before, just not improved.
+  - **The desk shell is complete; the print/PDF gap CLOSED in item 35
+    (2026-08-26), structurally** — `printview.py`/`pdf.py` import-time-bind
+    `is_rtl`, and the rtl_patch reached those bindings only by import-order
+    accident (apps load first in the common worker lifecycle; any app-level
+    `import frappe.utils.pdf` flips it). Now the document's direction is
+    overwritten in `context.py`'s printview branch (the PDF body inherits it
+    via `get_print`) and the header/footer sub-documents go through the
+    last-wins `pdf_header_html`/`pdf_footer_html` hooks
+    (`printing/pdf_direction.py`). The `direction:` checks force the hostile
+    import order on purpose (`benchPyHostileImport`). Upstream-only remainder:
+    WeasyPrint, and the four-code list itself — the filing stays worth making.
   - Proven, not asserted: the new suite test
     (`direction: the desk's dir, CSS bundle and JS agree...`) was run against
     the patch DISABLED first — `dir=rtl` but `coreBundleDirs` all `ltr`,

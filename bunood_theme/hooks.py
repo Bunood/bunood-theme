@@ -90,6 +90,20 @@ update_website_context = "bunood_theme.context.desk_context"
 # usable by JS, which runs after first paint.
 extend_bootinfo = "bunood_theme.boot.extend_bootinfo"
 
+# ── PDF header/footer direction (item 35, S4) ─────────────────────────────────
+# wkhtmltopdf and the chrome generator render a document's header and footer as
+# SEPARATE documents through these hooks, whose Frappe implementations compute
+# `layout_direction` from an `is_rtl` bound at import time — reachable by the
+# rtl_patch only when the apps happen to load first (an import-order accident
+# any app-level `import frappe.utils.pdf` flips). `prepare_header_footer` calls
+# `get_hooks(...)[-1]` — LAST WINS, measured — so these entries take the slot,
+# delegate to Frappe's own implementations, and correct only the emitted `dir`,
+# only in the one direction that can be wrong (our language set is a strict
+# superset of Frappe's four). The document body's direction is closed
+# separately, by `context.py`'s printview branch. See printing/pdf_direction.py.
+pdf_header_html = "bunood_theme.printing.pdf_direction.pdf_header_html"
+pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
+
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
 after_install = "bunood_theme.setup.after_install"
 after_migrate = "bunood_theme.setup.after_migrate"

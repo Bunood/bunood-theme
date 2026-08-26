@@ -190,9 +190,14 @@ function expectEq(actual, wanted, what) {
 // ── Server-side helpers (docker exec) ───────────────────────────────────────
 
 /** Run a python snippet inside the backend container against the site. */
-function benchPy(code) {
+function benchPy(code, preConnect = "") {
+	// `preConnect` runs AFTER `import frappe` and BEFORE the apps load at
+	// connect() — the only window where an import-order experiment (see
+	// benchPyHostileImport) can bind a name the app-load patch has not yet
+	// corrected. Empty for every ordinary caller.
 	const wrapped =
 		`import frappe, json\n` +
+		preConnect +
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
@@ -547,6 +552,20 @@ function setLang(lang) {
  * The restore is in a `finally` because the failure this exists to prevent is
  * exactly the one where an assertion throws — see `setLang`.
  */
+/**
+ * benchPy with a HOSTILE IMPORT ORDER: frappe.www.printview and
+ * frappe.utils.pdf are imported BEFORE frappe.connect() loads the apps, so
+ * their `from frappe.utils.jinja_globals import is_rtl` binds Frappe's broken
+ * four-code function — the order any app-level `import frappe.utils.pdf`
+ * produces in a real worker. A direction check that passes under THIS order is
+ * proving the structural closure (context hook + last-wins pdf hooks), not the
+ * import-order accident that made the first cut of these checks pass with no
+ * fix present at all.
+ */
+function benchPyHostileImport(code) {
+	return benchPy(code, "import frappe.www.printview\nimport frappe.utils.pdf\n");
+}
+
 async function withLang(code, fn) {
 	const before = getLang();
 	try {
@@ -5086,6 +5105,114 @@ async function main() {
 			for (const code of rtlLangs) {
 				expectEq(await derived(code), "rtl", `setup.RTL_LANGS lists ${code}, but CLDR says`);
 			}
+		});
+
+		await test("direction: /printview renders the corrected dir — the item-7 gap, closed for the document", async () => {
+			// THE GAP THIS CLOSES — and the ACCIDENT it replaces, found when the
+			// first cut of this check passed BEFORE the fix existed. rtl_patch.py
+			// reassigns frappe.utils.jinja_globals.is_rtl at app load, and in the
+			// common worker lifecycle printview.py imports LAZILY, after that —
+			// so its `from ... import is_rtl` binds the corrected function by
+			// IMPORT ORDER, not by design. Any app that imports frappe.www or
+			// frappe.utils.pdf at module level flips that order and silently
+			// re-opens the gap. So this check FORCES the hostile order first
+			// (importing printview before the apps load) and then requires the
+			// right answer anyway — which only the STRUCTURAL closure gives:
+			// `layout_direction` is an ordinary context key set in get_context(),
+			// update_website_context fires AFTER it, and context.py's printview
+			// branch overwrites it from setup.is_rtl. frappe.get_print() renders
+			// /printview internally, so the PDF BODY inherits the same fix.
+			//
+			// The expectation is DERIVED per the family's rule — CLDR via
+			// Intl.Locale, never a restated language list.
+			const derived = (lang) =>
+				page.evaluate((l) => {
+					const loc = new Intl.Locale(l);
+					return (loc.getTextInfo ? loc.getTextInfo() : loc.textInfo).direction;
+				}, lang);
+			const out = benchPyHostileImport(
+				"import json, re\n" +
+					"res = {}\n" +
+					"for lang in ('ur', 'ar', 'en'):\n" +
+					"    frappe.local.lang = lang\n" +
+					"    frappe.local.form_dict = frappe._dict()\n" +
+					"    html = frappe.get_print('User', 'Administrator')\n" +
+					"    m = re.search(r'<html[^>]*dir=\"(\\w+)\"', html)\n" +
+					"    res[lang] = m.group(1) if m else None\n" +
+					"print('BND_PVD' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PVD"));
+			if (!line) throw new Error("printview direction probe produced no JSON: " + String(out).slice(-300));
+			const got = JSON.parse(line.slice("BND_PVD".length));
+			for (const lang of ["ur", "ar", "en"]) {
+				expectEq(got[lang], await derived(lang), `/printview dir for lang=${lang}`);
+			}
+		});
+
+		await test("direction: the PDF header and footer documents follow the corrected direction", async () => {
+			// The other half of the closure: wkhtmltopdf (and the chrome path)
+			// render the header and footer as SEPARATE documents through the
+			// pdf_header_html / pdf_footer_html hooks, each computing its own
+			// layout_direction from the broken import-bound is_rtl. Frappe
+			// consumes `hook_func[-1]` — LAST WINS, measured in the census — so
+			// bunood_theme's registration (installed after frappe) takes the
+			// slot, delegates to frappe's own implementation, and corrects only
+			// the emitted dir attribute, only when frappe got it wrong.
+			//
+			// The hook OWNERSHIP is asserted too: a later app quietly taking the
+			// last slot would un-close the gap with every check below still
+			// green under ar/en — this line is what fails then.
+			const derived = (lang) =>
+				page.evaluate((l) => {
+					const loc = new Intl.Locale(l);
+					return (loc.getTextInfo ? loc.getTextInfo() : loc.textInfo).direction;
+				}, lang);
+			const out = benchPyHostileImport(
+				"import json, re\n" +
+					"from bs4 import BeautifulSoup\n" +
+					"hooks = {k: frappe.get_hooks(k)[-1] for k in ('pdf_header_html', 'pdf_footer_html')}\n" +
+					"res = {'owners': hooks}\n" +
+					"for lang in ('ur', 'ar', 'en'):\n" +
+					"    frappe.local.lang = lang\n" +
+					"    for k, fn in hooks.items():\n" +
+					"        html = frappe.call(fn, soup=BeautifulSoup('<div></div>', 'html.parser'),\n" +
+					"                           head='', content='<p>x</p>', styles=[],\n" +
+					"                           html_id=k.replace('pdf_', '').replace('_html', '-html'), css='')\n" +
+					"        m = re.search(r'<html[^>]*?dir=\"?(\\w+)', html)\n" +
+					"        res[lang + '|' + k] = m.group(1) if m else None\n" +
+					"print('BND_PDD' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PDD"));
+			if (!line) throw new Error("pdf direction probe produced no JSON: " + String(out).slice(-300));
+			const got = JSON.parse(line.slice("BND_PDD".length));
+			for (const k of ["pdf_header_html", "pdf_footer_html"]) {
+				expect(
+					String(got.owners[k]).startsWith("bunood_theme."),
+					`${k}'s last-wins slot belongs to ${got.owners[k]} — the direction closure is not in effect`
+				);
+				for (const lang of ["ur", "ar", "en"]) {
+					expectEq(got[`${lang}|${k}`], await derived(lang), `${k} dir for lang=${lang}`);
+				}
+			}
+		});
+
+		await test("direction: the client correction is live on the print page, where print.js reads it", async () => {
+			// print.js sets the preview iframe's dir from frappe.utils.is_rtl(
+			// this.lang_code) — the fourth, independent JS copy of the four-code
+			// defect, which bunood.js corrects from boot's bnd_rtl_langs. The
+			// census measured this already true; this check pins it ON THE PRINT
+			// PAGE, because that is the page whose iframe consumes the answer,
+			// and a regression in boot threading would otherwise show up only as
+			// a customer's ur preview quietly flipping LTR.
+			await goDesk("/desk/print/user/Administrator", ".print-preview-wrapper", 3000);
+			const got = await page.evaluate(() => ({
+				ur: frappe.utils.is_rtl("ur"),
+				ckb: frappe.utils.is_rtl("ckb"),
+				tr: frappe.utils.is_rtl("tr"),
+			}));
+			expectEq(got.ur, true, "frappe.utils.is_rtl('ur') on the print page");
+			expectEq(got.ckb, true, "frappe.utils.is_rtl('ckb') on the print page");
+			expectEq(got.tr, false, "frappe.utils.is_rtl('tr') on the print page — Latin-script, must stay LTR");
 		});
 
 		// ── Item 7(e): the runtime translation gates ───────────────────────

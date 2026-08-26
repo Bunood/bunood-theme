@@ -248,7 +248,10 @@ three ways: `bundled_asset()` picks it up because `rtl_patch.py` reassigns the m
 attribute `frappe.utils.jinja_globals.is_rtl` itself — safe specifically because
 `bundled_asset` calls it as a plain name resolved from *its own module's* namespace
 on every call, not one bound at import time (the reasoning, and why the same trick
-cannot reach `printview.py`/`pdf.py`, is in that file's own docstring); the desk's
+cannot reach `printview.py`/`pdf.py` STRUCTURALLY — item 35 closed both by other
+routes: `context.py`'s printview branch for the document, the last-wins
+`pdf_header_html`/`pdf_footer_html` hooks for the header/footer — see
+`rtl_patch.py`'s docstring); the desk's
 `dir` attribute is corrected separately, with no patching, via
 `context.py::_correct_layout_direction` hung off the existing
 `update_website_context` hook; and `templates/base.html`'s Jinja-level `{{ is_rtl() }}`

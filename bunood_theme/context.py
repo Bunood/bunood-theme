@@ -134,9 +134,11 @@ WEB_BODY_CLASS = "bnd-web"
 #:
 #: ``printview``/``printpreview`` are excluded BY NAME rather than left to chance: both
 #: are standalone ``<!DOCTYPE html>`` documents with their own ``<html>`` element, no
-#: ``web_include_css`` loop and no ``body_class``, so dressing them is inert — but they
-#: are item 35's ground, and a boundary that exists only in a planning document is not a
-#: boundary. Verified in the container, not assumed from the route name.
+#: ``web_include_css`` loop and no ``body_class``, so DRESSING them is inert — they are
+#: item 35's ground, and since that item they get their own branch in
+#: :func:`desk_context`, which corrects ``layout_direction`` and nothing else (their
+#: look is the Print Style record's job — see ``printing/sheet.py``). Verified in the
+#: container, not assumed from the route name.
 #:
 #: ``robots.txt`` and ``sitemap.xml`` need no entry here: they are real ``TemplatePage``s
 #: that are their OWN base template — measured, both report
@@ -481,6 +483,20 @@ def desk_context(context):
 
         if template in AUTH_TEMPLATES:
             _auth_context(context)
+            return
+
+        if template in NON_WEB_TEMPLATES:
+            # Item 35 (S4): the print templates get exactly ONE thing — the
+            # corrected document direction. ``printview.py`` computes
+            # ``layout_direction`` from an ``is_rtl`` bound at ITS import time,
+            # which the rtl_patch reaches only by import-order accident (any
+            # app importing frappe.www/frappe.utils.pdf first re-opens the
+            # gap); this overwrite is the structural closure, and because
+            # ``frappe.get_print()`` renders /printview internally, the PDF
+            # BODY inherits it too. No body class, no stylesheet, no branding:
+            # a print document's look is the Print Style record's job
+            # (printing/sheet.py), not this hook's.
+            _correct_layout_direction(context)
             return
 
         if _is_web_template(template, str(context.get("base_template_path") or "")):
@@ -858,8 +874,13 @@ def _correct_layout_direction(context):
     :func:`bunood_theme.setup.is_rtl`'s. Safe to do alone, unlike a naive
     "just flip dir": ``bunood_theme.i18n.rtl_patch`` closes the matching
     half — which CSS bundle ``bundled_asset()`` serves — at app load, so the
-    two never disagree. See that module for the full reasoning and its
-    documented gap (print preview, PDF generation).
+    two never disagree.
+
+    SINCE ITEM 35 THIS ALSO SERVES THE PRINT TEMPLATES (the ``www/printview``
+    branch above): ``printview.py`` computes the same key from the same broken
+    ``is_rtl``, and this overwrite closes what rtl_patch's docstring once
+    recorded as the accepted print/PDF gap — the document half of it; the PDF
+    header/footer half is ``printing/pdf_direction.py``.
     """
     from bunood_theme.setup import is_rtl
 

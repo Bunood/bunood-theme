@@ -30,16 +30,27 @@ WHY THIS ONE PATCH IS SAFE WHEN THE OBVIOUS ALTERNATIVES ARE NOT
     :func:`is_rtl` below, so there is exactly one corrected function, used
     three ways.
 
-WHAT THIS DELIBERATELY DOES NOT FIX
+WHAT THIS DOES NOT FIX — AND WHAT NOW FIXES IT (item 35, 2026-08-26)
     ``frappe/www/printview.py`` and ``frappe/utils/pdf.py`` both bind
-    ``is_rtl`` at import time, in a module this app doesn't own, and Frappe
-    offers no documented hook into either. Reaching them would mean
-    reassigning the name INSIDE those specific modules before they are
-    first imported in a given worker process — a real but undocumented,
-    worker-lifecycle-dependent trick this app has otherwise consistently
-    avoided. Print preview and PDF generation for the newly-reachable
-    languages therefore stay as they are today: not worse, just not
-    improved by this patch.
+    ``is_rtl`` at import time. This patch reaches those bindings only when
+    the apps load BEFORE those modules — true in the common worker
+    lifecycle (they import lazily, on first request), but an ACCIDENT of
+    import order: any app importing ``frappe.utils.pdf`` at module level
+    flips it and silently restores the broken four-code answer. Measured in
+    the item-35 census; the suite's ``benchPyHostileImport`` reproduces the
+    hostile order on purpose.
+
+    So item 35 closed both halves STRUCTURALLY, without touching either
+    binding: the document's ``layout_direction`` is overwritten in
+    ``context.py``'s printview branch (an ordinary context key, set after
+    ``get_context`` — and ``frappe.get_print`` renders /printview
+    internally, so the PDF body inherits it), and the PDF header/footer
+    sub-documents go through ``printing/pdf_direction.py``, which takes the
+    last-wins ``pdf_header_html``/``pdf_footer_html`` hook slot, delegates
+    to Frappe's implementations and corrects only the emitted ``dir``.
+    What remains upstream-only: WeasyPrint (its template hardcodes
+    ``lang="en"`` with no ``dir`` at all) and the four-code list itself —
+    ``docs/upstream/frappe-is-rtl.md`` is still worth filing.
 
 WHY IT LIVES IN AN __init__.py IMPORT, NOT A DECLARATIVE HOOK
     Frappe has no "run this once at app load" hook for replacing a module

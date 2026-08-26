@@ -94,3 +94,30 @@ so the two runtimes cannot drift apart the way they have.
 Reproduction: set `System Settings.language = "ur"` (or create any `ar-*`
 Language row), load `/app`, observe `<html dir="ltr">` with RTL translations
 applied.
+
+---
+
+## What bunood_theme now closes locally (item 35, 2026-08-26) — and why this filing still matters
+
+The theme's local mitigation grew from one patched module attribute to a
+structural closure of the print/PDF half: `/printview`'s `layout_direction` is
+overwritten in an `update_website_context` branch (an ordinary context key set
+in `get_context`, and `frappe.get_print` renders /printview internally, so PDF
+bodies inherit it), and the wkhtml/chrome header+footer sub-documents go
+through last-wins `pdf_header_html`/`pdf_footer_html` hook registrations that
+delegate to Frappe's implementations and correct the emitted `dir`.
+
+Two findings from that work belong in this filing:
+
+1. **The import-time binding is worse than "unreachable" — it is
+   order-dependent.** In the common worker lifecycle `printview.py`/`pdf.py`
+   import lazily, AFTER apps load, so a module-attribute patch of
+   `jinja_globals.is_rtl` happens to reach their `from … import` bindings; any
+   app that imports `frappe.utils.pdf` at module level flips the order and
+   silently restores the four-code answer. The same fix in THIS file has no
+   such failure mode — which is the argument for fixing it here.
+
+2. **WeasyPrint has no direction plumbing at all** —
+   `templates/print_format/print_format.html` hardcodes `<html lang="en">`
+   with no `dir` attribute, so builder-beta formats are LTR for every
+   language. No app-level hook reaches that render; only this repo can.
