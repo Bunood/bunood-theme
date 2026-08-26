@@ -2,6 +2,19 @@
     بونود — سند قيد (Journal Entry). جدول مدين/دائن + الإجماليات. -#}
 {% from "templates/bunood_print_macros.html" import doc_title, sig_row %}
 <div class="bnd-p bnd-p--a4">
+  {#- A custom print format IS the whole page (printview.py: custom_format ->
+      jinja from_string), so the letter head has to be emitted here: frappe
+      passes it in the args, but only standard.html prints it.
+
+      The id/class pair is standard.html's contract with utils/pdf.py, which
+      lifts #header-html and #footer-html out of the body and hands them to the
+      engine as the REPEATING page header/footer. Mirrored exactly rather than
+      invented, so these formats behave like every stock one. -#}
+  {% if not no_letterhead and letter_head %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}>
+    <div class="letter-head">{{ letter_head }}</div>
+  </div>
+  {% endif %}
   {{ doc_title("سند قيد", "JOURNAL VOUCHER") }}
   <table class="bnd-p-meta">
     <tr><td>رقم القيد / Entry No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
@@ -31,4 +44,10 @@
 
   {% if doc.get("user_remark") %}<div class="bnd-p-words">البيان: {{ doc.user_remark | e }}</div>{% endif %}
   {{ sig_row() }}
+  {#- Page footer: address/phone/email, same contract as the header above. -#}
+  {% if not no_letterhead and footer %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}>
+    <div class="letter-head-footer">{{ footer }}</div>
+  </div>
+  {% endif %}
 </div>

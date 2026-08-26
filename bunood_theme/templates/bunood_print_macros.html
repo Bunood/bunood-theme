@@ -112,16 +112,51 @@
 {%- endmacro %}
 
 {#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}
+{#- A MINIATURE of the letter head, not a copy of it: same fields, same source
+    (the Company document), sized for a 72mm strip. Reading the Company doc
+    rather than doc.company / doc.company_tax_id is what stops the receipt and
+    the A4 letter head drifting apart as fields are added. -#}
 {% macro thermal_head(doc, title_ar, title_en) -%}
-<div class="bnd-p-th-co">{{ doc.get("company") | e }}</div>
-<div class="bnd-p-th-sub">الرقم الضريبي: {% if doc.get("company_tax_id") %}<span dir="ltr">{{ doc.company_tax_id | e }}</span>{% else %}<b>غير مُعدّ</b>{% endif %}</div>
-{% if doc.get("company_address_display") %}<div class="bnd-p-th-sub">{{ doc.get("company_address_display") }}</div>{% endif %}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") else None -%}
+{%- set _logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+{%- set _vat = (_c.get("tax_id") if _c else "") or doc.get("company_tax_id") -%}
+{%- set _cr = (_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") -%}
+{% if _logo %}<div class="bnd-p-th-logo"><img src="{{ _logo | e }}" alt=""></div>{% endif %}
+<div class="bnd-p-th-co">{{ (_c.company_name if _c else doc.get("company")) | e }}</div>
+<div class="bnd-p-th-sub">الرقم الضريبي: {% if _vat %}<span dir="ltr">{{ _vat | e }}</span>{% else %}<b>غير مُعدّ</b>{% endif %}</div>
+{% if _cr %}<div class="bnd-p-th-sub">السجل التجاري: <span dir="ltr">{{ _cr | e }}</span></div>{% endif %}
 <div class="bnd-p-th-rule"></div>
 <div class="bnd-p-th-title">{{ title_ar | e }}<br><span>{{ title_en | e }}</span></div>
 <div class="bnd-p-th-sub" dir="ltr">{{ doc.name | e }}</div>
 {% if doc.get("posting_date") %}<div class="bnd-p-th-sub" dir="ltr">{{ doc.get_formatted("posting_date") }} {{ doc.get_formatted("posting_time") if doc.get("posting_time") else "" }}</div>{% endif %}
 <div class="bnd-p-th-rule"></div>
 {%- endmacro %}
+
+{#- Closing block for a thermal receipt: the letter head's footer fields, inline.
+    NOT a page footer — an 80x297mm page is cut after the content, so anything
+    anchored to the page bottom prints on paper that gets thrown away. -#}
+{% macro thermal_foot(doc) -%}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") else None -%}
+{%- set _phone = (_c.get("phone_no") if _c else "") -%}
+{%- set _email = (_c.get("email") if _c else "") -%}
+{%- set _an = (frappe.db.get_value("Dynamic Link",
+      {"link_doctype": "Company", "link_name": _c.name, "parenttype": "Address"},
+      "parent") if _c else None) -%}
+{%- set _a = frappe.get_doc("Address", _an) if _an else None -%}
+{%- set _parts = [] -%}
+{%- if _a -%}
+  {%- for f in ("address_line1", "city", "pincode") -%}
+    {%- if _a.get(f) -%}{%- set _ = _parts.append(_a.get(f)) -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{% if _parts or _phone or _email %}
+<div class="bnd-p-th-rule"></div>
+{% if _parts %}<div class="bnd-p-th-sub">{{ _parts | join("، ") | e }}</div>{% endif %}
+{% if _phone %}<div class="bnd-p-th-sub" dir="ltr">{{ _phone | e }}</div>{% endif %}
+{% if _email %}<div class="bnd-p-th-sub" dir="ltr">{{ _email | e }}</div>{% endif %}
+{% endif %}
+{%- endmacro %}
+
 
 {#- Thermal item lines — table-based (flex is dropped by wkhtmltopdf) -#}
 {% macro thermal_items(doc) -%}

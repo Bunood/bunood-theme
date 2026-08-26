@@ -4344,3 +4344,26 @@ msgstr "يترك «الأصلي» صفحة تسجيل الدخول كما هي �
 #, fuzzy
 msgid "Applies to the sign-in, sign-up and forgot-password screens."
 msgstr "يُطبَّق على شاشات تسجيل الدخول وإنشاء الحساب واستعادة كلمة المرور."
+
+#. src: upstream-gap
+#. Frappe ships this msgid with an EMPTY msgstr, so there is nothing to inherit
+#. and the desk sidebar renders it in English. Verified on a live v16 desk: with
+#. this row the label renders الأدوات. Drop this entry the moment upstream fills
+#. its own — a row we no longer need is a second vocabulary.
+#, fuzzy
+msgid "Tools"
+msgstr "الأدوات"
+
+#. src: upstream-gap
+#. Frappe ships this msgid with an EMPTY msgstr. Same reasoning as "Tools".
+#, fuzzy
+msgid "What's New"
+msgstr "ما الجديد"
+
+#. src: upstream-gap
+#. Absent from frappe's ar.po entirely, so there is nothing to inherit. Verified
+#. on a live v16 desk: with this row the list-view filter action renders
+#. حفظ التصفية الحالية. Drop it the moment upstream ships its own.
+#, fuzzy
+msgid "Save Current Filter"
+msgstr "حفظ التصفية الحالية"
