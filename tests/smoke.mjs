@@ -595,6 +595,25 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 		await page.waitForTimeout(4000);
 		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
 	}
+	// A navigation can also be DISCARDED rather than fail: v16's desk shell does
+	// its own boot routing, and a goto issued while that is in flight resolves
+	// happily with the browser left on /desk (or bounced to the setup wizard).
+	// Nothing throws. The selector then belongs to a page we never opened, so
+	// the wait below burns its full 30s and reports a missing element — which
+	// reads as a broken component and is nothing of the kind.
+	//
+	// Measured on this bench, fresh context per attempt: 1 of 3 first
+	// navigations after login landed on /desk instead of /desk/todo. It is the
+	// FIRST tests in a run that pay, which is how one bounce turned into a
+	// screenful of failures.
+	//
+	// startsWith, not equality: frappe appends its own segments (asking for
+	// /desk/todo/view/calendar lands on /desk/todo/view/calendar/default).
+	for (let attempt = 0; attempt < 3; attempt++) {
+		if (new URL(page.url()).pathname.startsWith(route)) break;
+		await page.waitForTimeout(1500);
+		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+	}
 	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
 	await page.waitForTimeout(settle);
 }
