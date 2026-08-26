@@ -185,6 +185,13 @@
   "email_header",
   "email_action",
   "email_theme",
+  "section_print",
+  "print_picker",
+  "print_header_style",
+  "print_table_style",
+  "print_totals_style",
+  "print_heading_style",
+  "print_accent",
   "section_generated",
   "brand_css_url"
  ],
@@ -776,6 +783,61 @@
    "hidden": 1,
    "label": "Email Theme",
    "options": "Follow the client\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_print",
+   "fieldtype": "Section Break",
+   "label": "Print"
+  },
+  {
+   "fieldname": "print_picker",
+   "fieldtype": "HTML",
+   "label": "Print Picker"
+  },
+  {
+   "default": "Wash Card",
+   "description": "Set by the picker above. The letterhead band's treatment on every printed document and PDF. Original keeps the stock header; the named styles above write this together with the other three sections.",
+   "fieldname": "print_header_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Header Style",
+   "options": "Original\nRule\nBand\nWash Card\nFrame\nHairline\nRail"
+  },
+  {
+   "default": "Washed",
+   "description": "Set by the picker above. The item table's treatment - rules, boxes, zebra rows or washed panels - on every print format, including ERPNext's.",
+   "fieldname": "print_table_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Table Style",
+   "options": "Original\nOpen\nRuled\nBoxed\nZebra\nWashed"
+  },
+  {
+   "default": "Washed Panel",
+   "description": "Set by the picker above. The totals block's treatment - how the grand total is set off from the rows above it.",
+   "fieldname": "print_totals_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Totals Style",
+   "options": "Original\nOpen\nBoxed\nInverse\nWashed Panel"
+  },
+  {
+   "default": "Original",
+   "description": "Set by the picker above. The document title and section headings - ink, small caps, serif or poster weight.",
+   "fieldname": "print_heading_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Heading Style",
+   "options": "Original\nBrand Ink\nSmall Caps\nSerif\nPoster"
+  },
+  {
+   "default": "Brand panels",
+   "description": "Set by the picker above. How much of your brand colour reaches paper. Ink only saves toner; Brand panels fills the table heads. Thermal receipts always print pure black regardless.",
+   "fieldname": "print_accent",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Accent",
+   "options": "Brand headings\nInk only\nBrand panels"
   },
   {
    "fieldname": "section_generated",

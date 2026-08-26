@@ -44,6 +44,7 @@ from bunood_theme.presets import (
     SKELETON_DEFAULTS,
     WEB_DEFAULTS,
     EMAIL_DEFAULTS,
+    PRINT_DEFAULTS,
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
@@ -84,6 +85,7 @@ CHECK_DEFAULTS = {
         SKELETON_DEFAULTS,
         WEB_DEFAULTS,
         EMAIL_DEFAULTS,
+        PRINT_DEFAULTS,
         VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
@@ -175,6 +177,7 @@ DEFAULTS = {
     # an <html> attribute, because a website page has no boot payload and no JS.
     **{f: v for f, v in WEB_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in EMAIL_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PRINT_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

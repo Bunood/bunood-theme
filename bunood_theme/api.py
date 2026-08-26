@@ -949,3 +949,21 @@ def email_preview() -> str:
     except Exception:
         frappe.log_error(title="bunood_theme: email preview stood down")
         return ""
+
+
+@frappe.whitelist()
+def print_presets() -> dict:
+    """The named print styles as compositions over the section axes — item 35.
+
+    THE ONE COPY RULE, SERVED. ``presets.PRINT_PRESETS`` is the only statement
+    of which axis values each named style writes; the picker fetches it here
+    rather than mirroring it in JS, because a second copy is exactly the drift
+    the derived label exists to surface ("Custom" the moment values differ —
+    the ``bnd_sb_match_preset``/``LAYOUT_CHROME`` pattern, on paper). The axes
+    ride along so the client derives the label from the same field list the
+    server composed the table over.
+    """
+    frappe.only_for("System Manager")
+    from bunood_theme.presets import PRINT_AXES, PRINT_PRESETS
+
+    return {"axes": PRINT_AXES, "presets": PRINT_PRESETS}

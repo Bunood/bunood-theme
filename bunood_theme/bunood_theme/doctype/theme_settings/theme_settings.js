@@ -915,6 +915,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_login_picker(frm);
 		bnd_render_web_picker(frm);
 		bnd_render_email_picker(frm);
+		bnd_render_print_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -1143,6 +1144,7 @@ const BND_SHELL_GROUPS = [
 			// preview needs a different argument — the picker's docblock makes it.
 			{ key: "web", label: () => __("Website & Portal"), anchors: ["web_style"] },
 			{ key: "email", label: () => __("Email"), anchors: ["email_style"] },
+			{ key: "print", label: () => __("Print"), anchors: ["print_header_style"] },
 		],
 	},
 	{
@@ -1257,6 +1259,7 @@ const BND_SHELL_OWNS = {
 	login: { prefixes: ["login_"] },
 	web: { prefixes: ["web_"] },
 	email: { prefixes: ["email_"] },
+	print: { prefixes: ["print_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4531,6 +4534,19 @@ const BND_EMAIL_DEFAULTS = {
 	email_theme: "Follow the client",
 };
 
+/** Client mirror of presets.PRINT_FIELDS. Keep in sync. */
+const BND_PRINT_FIELDS = [
+	"print_header_style", "print_table_style", "print_totals_style",
+	"print_heading_style", "print_accent",
+];
+const BND_PRINT_DEFAULTS = {
+	print_header_style: "Wash Card",
+	print_table_style: "Washed",
+	print_totals_style: "Washed Panel",
+	print_heading_style: "Original",
+	print_accent: "Brand panels",
+};
+
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
 const BND_SKELETON_DEFAULTS = {
 	skeleton_style: "Sweep",
@@ -5703,6 +5719,227 @@ function bnd_email_preview(frm, $host) {
 			// "" rather than raising for anything it can foresee; this covers the
 			// rest and leaves an empty frame rather than a half-drawn one.
 		});
+}
+
+/**
+ * The print thumbnail — a sheet of paper at 120x72, parameterised per preset.
+ *
+ * ONE GEOMETRY, THIRTEEN DRESSINGS — the desk-diagram lesson: the page, the
+ * letterhead band, three table rows and a totals mark are one drawing, and a
+ * preset contributes only flags. Thirty hand-drawn thumbnails that all have
+ * to stay truthful is the trap this avoids.
+ */
+function bnd_print_thumb(o) {
+	o = o || {};
+	const parts = ['<rect x="0" y="0" width="120" height="72" fill="currentColor" fill-opacity="0.05"/>'];
+	// The sheet.
+	parts.push('<rect x="28" y="4" width="64" height="64" rx="1.5" fill="currentColor" fill-opacity="0.02" stroke="currentColor" stroke-opacity="0.25" stroke-width="0.6"/>');
+	if (o.rail) parts.push('<rect x="28" y="4" width="2.5" height="64" fill="currentColor" fill-opacity="0.6"/>');
+	if (o.frame) parts.push('<rect x="31" y="7" width="58" height="58" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="0.7"/>');
+	// The letterhead band.
+	if (o.band === "fill") parts.push('<rect x="33" y="9" width="54" height="9" fill="currentColor" fill-opacity="0.55"/>');
+	else if (o.band === "wash") parts.push('<rect x="33" y="9" width="54" height="9" rx="2" fill="currentColor" fill-opacity="0.14"/>');
+	else if (o.band === "rule") parts.push('<rect x="33" y="16" width="54" height="1.6" fill="currentColor" fill-opacity="0.55"/>');
+	else if (o.band === "hair") parts.push('<rect x="33" y="16" width="54" height="0.8" fill="currentColor" fill-opacity="0.3"/>');
+	// The title.
+	parts.push(`<rect x="33" y="${o.band === "fill" || o.band === "wash" ? 22 : 21}" width="${o.poster ? 34 : 22}" height="${o.poster ? 5 : 3.4}" rx="1" fill="currentColor" fill-opacity="0.6"/>`);
+	// Three table rows.
+	const y0 = 32;
+	for (let i = 0; i < 3; i++) {
+		const y = y0 + i * 7;
+		if (o.rows === "zebra" && i % 2 === 0) parts.push(`<rect x="33" y="${y - 1.4}" width="54" height="5.6" fill="currentColor" fill-opacity="0.1"/>`);
+		if (o.rows === "washed") parts.push(`<rect x="33" y="${y - 1.4}" width="54" height="5.6" rx="1.5" fill="currentColor" fill-opacity="0.1"/>`);
+		parts.push(`<rect x="35" y="${y}" width="30" height="2.4" rx="1" fill="currentColor" fill-opacity="0.35"/>`);
+		parts.push(`<rect x="74" y="${y}" width="11" height="2.4" rx="1" fill="currentColor" fill-opacity="0.35"/>`);
+		if (o.rows === "ruled") parts.push(`<rect x="33" y="${y + 4}" width="54" height="0.7" fill="currentColor" fill-opacity="0.28"/>`);
+		if (o.rows === "boxed") parts.push(`<rect x="33" y="${y - 1.6}" width="54" height="6" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="0.5"/>`);
+	}
+	// The totals mark.
+	if (o.totals === "inverse") parts.push('<rect x="60" y="56" width="27" height="6" fill="currentColor" fill-opacity="0.75"/>');
+	else if (o.totals === "wash") parts.push('<rect x="60" y="56" width="27" height="6" rx="1.5" fill="currentColor" fill-opacity="0.16"/>');
+	else if (o.totals === "boxed") parts.push('<rect x="60" y="56" width="27" height="6" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="0.6"/>');
+	else parts.push('<rect x="60" y="61" width="27" height="1" fill="currentColor" fill-opacity="0.45"/>');
+	parts.push('<rect x="62" y="58" width="16" height="2.2" rx="1" fill="currentColor" fill-opacity="0.55"/>');
+	return `<svg viewBox="0 0 120 72">${parts.join("")}</svg>`;
+}
+
+/**
+ * Preset card ART and BLURBS only — the VALUES each preset writes live in
+ * `presets.PRINT_PRESETS` alone and are fetched over
+ * `bunood_theme.api.print_presets`, never mirrored here: a second copy of the
+ * compositions is exactly the drift the derived label exists to surface. A
+ * name listed here that the server does not know renders disabled with the
+ * reason, so the two lists cannot drift silently either.
+ */
+const BND_PRINT_STYLES = [
+	{ value: "Original", name: () => __("Original"), blurb: () => __("Stock: every document as Frappe draws it. The legibility repairs still apply."), art: {} },
+	{ value: "Soft Cards", name: () => __("Soft Cards"), blurb: () => __("Every section a washed, rounded panel — friendly, and continuous with the desk."), art: { band: "wash", rows: "washed", totals: "wash" } },
+	{ value: "Ruled Ledger", name: () => __("Ruled Ledger"), blurb: () => __("Full-width rules and a boxed total — the classical accounting document."), art: { band: "rule", rows: "ruled", totals: "boxed" } },
+	{ value: "Quiet Minimal", name: () => __("Quiet Minimal"), blurb: () => __("Hairlines only, the amount leading — ink spent nowhere it is not needed."), art: { band: "hair", rows: "open" } },
+	{ value: "Striped", name: () => __("Striped"), blurb: () => __("A brand band and zebra rows — long invoices stay scannable."), art: { band: "fill", rows: "zebra" } },
+	{ value: "Brand Slab", name: () => __("Brand Slab"), blurb: () => __("A filled band and boxed, filled table heads — the boldest draw."), art: { band: "fill", rows: "boxed", totals: "wash" } },
+	{ value: "Boxed Classic", name: () => __("Boxed Classic"), blurb: () => __("The gridded meta-and-table composition the legacy formats drew, re-derived."), art: { band: "rule", rows: "boxed", totals: "boxed" } },
+	{ value: "Edge Rail", name: () => __("Edge Rail"), blurb: () => __("A brand rail down the starting edge — the list view's signature, on paper."), art: { rail: true, band: "hair", rows: "ruled" } },
+	{ value: "Formal Serif", name: () => __("Formal Serif"), blurb: () => __("Serif headings and almost no chrome — the formal letter register."), art: { band: "hair", rows: "open" } },
+	{ value: "Poster Bold", name: () => __("Poster Bold"), blurb: () => __("A huge title and the total inverted — the strongest statement ink can make."), art: { band: "rule", rows: "ruled", totals: "inverse", poster: true } },
+	{ value: "Bookends", name: () => __("Bookends"), blurb: () => __("A brand band up top, a clean ruled sheet below it."), art: { band: "fill", rows: "ruled" } },
+	{ value: "Blueprint", name: () => __("Blueprint"), blurb: () => __("A drawing frame and small-cap headings — made for a technical tenant."), art: { frame: true, band: "hair", rows: "ruled", totals: "boxed" } },
+];
+
+const BND_PRINT_GROUPS = [
+	{
+		field: "print_header_style",
+		title: () => __("Letterhead band"),
+		desc: () => __("The identity strip at the top of every printed page."),
+	},
+	{
+		field: "print_table_style",
+		title: () => __("Item table"),
+		desc: () => __("Rules, boxes, zebra rows or washed panels — on every print format, including ERPNext's."),
+	},
+	{
+		field: "print_totals_style",
+		title: () => __("Totals"),
+		desc: () => __("How the grand total is set off from the rows above it."),
+	},
+	{
+		field: "print_heading_style",
+		title: () => __("Headings"),
+		desc: () => __("The document title and section headings."),
+	},
+	{
+		field: "print_accent",
+		title: () => __("Brand on paper"),
+		desc: () => __("How much of your colour reaches print. Ink only saves toner; thermal receipts always print pure black regardless."),
+	},
+];
+
+// The preset table, fetched ONCE per page and cached — the server is the one
+// copy (see BND_PRINT_STYLES). `null` until the first fetch lands; the picker
+// renders complete without it and once more when it arrives.
+let bnd_print_presets_cache = null;
+let bnd_print_presets_inflight = false;
+
+function bnd_print_match_preset(frm) {
+	if (!bnd_print_presets_cache) return null;
+	const { axes, presets } = bnd_print_presets_cache;
+	for (const [name, comp] of Object.entries(presets)) {
+		if (axes.every((f) => (frm.doc[f] || BND_PRINT_DEFAULTS[f]) === comp[f])) return name;
+	}
+	return "Custom";
+}
+
+/**
+ * The print picker — a PRESET ROW over four section axes plus the accent.
+ *
+ * THE PRESETS WRITE VALUES AND STOP EXISTING (the settings-architecture
+ * doctrine, on paper): clicking a card sets the four axis fields and nothing
+ * remembers the click — the highlighted card and the note underneath are
+ * DERIVED by comparing the live values against the server's table, so they
+ * read "Custom" the moment any axis differs. The side pane's picker has
+ * worked this way since item 10; paper joins it.
+ */
+function bnd_render_print_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "print_picker", host);
+	if (!$host) return;
+
+	if (!bnd_print_presets_cache && !bnd_print_presets_inflight) {
+		bnd_print_presets_inflight = true;
+		frappe.xcall("bunood_theme.api.print_presets").then((r) => {
+			bnd_print_presets_cache = r;
+			bnd_render_print_picker(frm);
+		}).catch(() => {
+			// The picker stays usable without the presets: the axis groups below
+			// are the real controls; the cards are a convenience over them.
+		});
+	}
+
+	const match = bnd_print_match_preset(frm);
+	const cards = P.cards(
+		BND_PRINT_STYLES.map((st) => ({
+			value: st.value,
+			// LITERAL name thunks, not __(st.value): the extractor reads literal
+			// __("...") calls only, and preset names have no doctype Select to
+			// cover them — a dynamic call here would ship them untranslated with
+			// the coverage gate green.
+			name: st.name(),
+			blurb: st.blurb(),
+			svg: bnd_print_thumb(st.art),
+			reason:
+				bnd_print_presets_cache && !bnd_print_presets_cache.presets[st.value]
+					? __("Not in the shipped preset table — the card and the server disagree.")
+					: "",
+		})),
+		{ selected: match || "", cls: "bnd-cbp-style bnd-prp-style" }
+	);
+
+	const groups = BND_PRINT_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(),
+			desc: grp.desc(),
+			field: grp.field,
+			body: P.options(
+				// "Open" the style shares a msgid with "Open" the verb, which Arabic
+				// translates as an imperative — so the STORED value stays "Open" and
+				// only its display goes through a distinct literal.
+				bnd_field_slots(frm, grp.field).map((v) => ({
+					value: v,
+					name: v === "Open" ? __("Open rows") : __(v),
+					reason: "",
+				})),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_PRINT_DEFAULTS[grp.field] }
+			),
+		})
+	).join("");
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-prp">' +
+				bnd_bands([
+					{
+						zone: "style",
+						html:
+							cards +
+							P.note(
+								match === null
+									? __("A style writes the four sections below and stops existing — change any of them and the label reads Custom.")
+									: match === "Custom"
+										? __("The four sections below read as Custom — your own composition.")
+										: __("The four sections below currently read as {0}.", [__(match)])
+							),
+					},
+					{ zone: "extras", html: groups },
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-prp-style").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		const name = this.getAttribute("data-value");
+		if (name === "Custom") return;
+		if (!bnd_print_presets_cache || !bnd_print_presets_cache.presets[name]) return;
+		const comp = bnd_print_presets_cache.presets[name];
+		for (const [f, v] of Object.entries(comp)) frm.set_value(f, v);
+		bnd_render_print_picker(frm);
+	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_print_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_print_set(frm, f, BND_PRINT_DEFAULTS[f]);
+	});
+}
+
+/** Set a print field and re-render. Server-rendered surface: the record is
+ * re-substituted by `on_theme_settings_update` when the autosave lands, so
+ * there is no client apply — the item-34 shape, minus even the class map. */
+function bnd_print_set(frm, field, value) {
+	frm.set_value(field, value);
+	bnd_render_print_picker(frm);
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */

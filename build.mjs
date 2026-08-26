@@ -667,6 +667,9 @@ const PRINT_SAFE_PROPS = new Set([
 	"border", "border-width", "border-style", "border-color",
 	"border-top", "border-bottom", "border-left", "border-right",
 	"border-bottom-width", "border-top-width",
+	// The accent override re-points a rule the section poles drew — a colour
+	// longhand every engine has had since CSS1, degrading to the pole's colour.
+	"border-top-color",
 	"border-radius", "border-collapse", "border-spacing",
 	"table-layout", "vertical-align", "display", "overflow", "box-sizing",
 	// Type.
@@ -825,7 +828,7 @@ function assertAutomaticParity() {
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "icon", "mobile"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them. Typography joined in

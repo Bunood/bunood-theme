@@ -454,3 +454,321 @@
 	border-bottom: 1px solid #000;
 	text-align: right;
 }
+
+// ==========================================================================
+// THE SECTION AXES -- item 35's anchor, decomposed (the round's final shape).
+//
+// Four Selects govern the letterhead band, the item table, the totals block
+// and the headings; the thirteen named styles are PRESETS in `presets.py`
+// that write these values and stop existing (the settings-architecture
+// doctrine -- the picker's label derives by comparison and reads "Custom"
+// the moment an axis differs). The document cannot carry a class for the
+// choice (printview renders no body_class), so selection happens at
+// GENERATION: every pole below sits in a `/*BND axis=slug*/ ... /*BND-END*/`
+// block and `printing/sheet.py` keeps exactly the active ones, replacing
+// each kept marker with a `/* bnd-<axis>-<slug> */` breadcrumb the suite
+// greps for. The NEUTRAL (`Original`) has no block: absence is the
+// stand-down, exactly as an absent data-bnd-* attribute is on the desk.
+//
+// COLOURS ARE FITTED TOKENS ONLY, so the poles cost ZERO new contrast rows:
+// brand-ink / on-brand / ink-muted ride gate rows fitted since item 17, and
+// every wash is a member of contrast_gate.SURFACES (pane/hover), so
+// ink-on-wash is already measured at all eleven seeds.
+//
+// THE ACCENT AXIS (`print_accent`) composes over these: `Brand headings` is
+// the neutral (the sheet as authored), `Ink only` appends an override block
+// pulling every brand-coloured element back to ink (toner-saving), and
+// `Brand panels` appends fills. Accent blocks are appended AFTER the section
+// poles, so source order wins the ties -- the cascade is the mechanism.
+// ==========================================================================
+
+/*BND hd=rule*/
+.print-format .letter-head {
+	border-bottom: 2px solid var(--bnd-brand-solid);
+	padding-bottom: 8px;
+}
+/*BND-END*/
+
+/*BND hd=band*/
+.print-format .letter-head {
+	background: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
+	padding: 10px 12px;
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/
+
+/*BND hd=wash-card*/
+.print-format .letter-head {
+	background: var(--bnd-pane);
+	border-radius: 6px;
+	padding: 10px 12px;
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/
+
+/*BND hd=frame*/
+.print-format .letter-head {
+	border: 1px solid var(--bnd-ink);
+	padding: 8px 12px;
+}
+/*BND-END*/
+
+/*BND hd=hairline*/
+.print-format .letter-head {
+	border-bottom: 1px solid var(--bnd-border);
+	padding-bottom: 6px;
+}
+/*BND-END*/
+
+/*BND hd=rail*/
+/* The theme's own Edge Rail signature (item 15) on paper: a brand rail down
+   the reading-start edge. Physical on purpose -- wkhtml has no logical
+   properties -- and PAIRED per direction, the guard-sanctioned pattern. */
+.print-format {
+	border-left: 3px solid var(--bnd-brand-solid);
+}
+[dir="rtl"] .print-format {
+	border-left: none;
+	border-right: 3px solid var(--bnd-brand-solid);
+}
+.print-format .letter-head {
+	border-bottom: 1px solid var(--bnd-border);
+	padding-bottom: 6px;
+}
+/*BND-END*/
+
+/*BND tb=open*/
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+	border: none;
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	background: none;
+	color: var(--bnd-ink-muted);
+	text-transform: uppercase;
+	font-size: 10px;
+	border-bottom: 1px solid var(--bnd-border);
+}
+/*BND-END*/
+
+/*BND tb=ruled*/
+.print-format table.table-bordered td,
+.print-format .items-table td,
+.print-format .bnd-p-items td {
+	border: none;
+	border-bottom: 1px solid var(--bnd-border);
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	border: none;
+	background: none;
+	border-bottom: 2px solid var(--bnd-brand-solid);
+	color: var(--bnd-brand-ink);
+}
+/*BND-END*/
+
+/*BND tb=boxed*/
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+	border: 1px solid var(--bnd-border);
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	background: var(--bnd-pane);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/
+
+/*BND tb=zebra*/
+.print-format table.table-bordered tbody tr:nth-child(odd) td,
+.print-format .items-table tbody tr:nth-child(odd) td,
+.print-format .bnd-p-items tbody tr:nth-child(odd) td {
+	background: var(--bnd-pane);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	border: none;
+	background: none;
+	border-bottom: 2px solid var(--bnd-brand-solid);
+	color: var(--bnd-brand-ink);
+}
+/*BND-END*/
+
+/*BND tb=washed*/
+.print-format table.table-bordered,
+.print-format .items-table,
+.print-format .bnd-p-items {
+	background: var(--bnd-pane);
+	border-radius: 6px;
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+	border: none;
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	background: var(--bnd-hover);
+	color: var(--bnd-brand-ink);
+}
+/*BND-END*/
+
+/*BND tt=open*/
+.print-format .bnd-p-totals td {
+	border: none;
+}
+.print-format .bnd-p-totals .g td {
+	border-top: 1px solid var(--bnd-border);
+}
+/*BND-END*/
+
+/*BND tt=boxed*/
+.print-format .bnd-p-totals td {
+	border: 1px solid var(--bnd-border);
+}
+.print-format .bnd-p-totals .g td {
+	border-top: 2px solid var(--bnd-brand-solid);
+}
+/*BND-END*/
+
+/*BND tt=inverse*/
+.print-format .bnd-p-totals .g td {
+	background: var(--bnd-ink);
+	color: var(--bnd-surface);
+	border-color: var(--bnd-ink);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/
+
+/*BND tt=washed-panel*/
+.print-format .bnd-p-totals .g td {
+	background: var(--bnd-pane);
+	color: var(--bnd-brand-ink);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/
+
+/*BND hg=brand-ink*/
+.print-format .print-heading h2,
+.print-format .print-heading {
+	color: var(--bnd-brand-ink);
+}
+/*BND-END*/
+
+/*BND hg=small-caps*/
+.print-format .print-heading h2 {
+	font-size: 15px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+.print-format .bnd-p-title__ar {
+	font-size: 15px;
+}
+/*BND-END*/
+
+/*BND hg=serif*/
+.print-format .print-heading h2,
+.print-format .bnd-p-title__ar,
+.print-format .bnd-p-title__en {
+	font-family: "Amiri", Georgia, serif;
+}
+/*BND-END*/
+
+/*BND hg=poster*/
+.print-format .print-heading h2 {
+	font-size: 30px;
+	font-weight: 800;
+}
+.print-format .bnd-p-title__ar {
+	font-size: 26px;
+}
+/*BND-END*/
+
+/*BND acc=ink-only*/
+/* Toner-saving: every brand-coloured element pulled back to ink. Appended
+   after the section poles so source order wins the ties it must. */
+.print-format .bnd-p-title__ar,
+.print-format .bnd-p-party__h,
+.print-format .bnd-p-totals .g td,
+.print-format .bnd-p-amountbox__v,
+.print-format .print-heading h2,
+.print-format .print-heading,
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	color: var(--bnd-ink);
+}
+.print-format .letter-head,
+.print-format .bnd-p-items th,
+.print-format table.table-bordered th,
+.print-format .items-table thead td {
+	background: none;
+}
+.print-format .letter-head {
+	color: var(--bnd-ink);
+	border-color: var(--bnd-ink);
+}
+.print-format .bnd-p-items th {
+	border-color: var(--bnd-ink);
+}
+.print-format .bnd-p-totals .g td {
+	border-top-color: var(--bnd-ink);
+}
+/*BND-END*/
+
+/*BND acc=brand-panels*/
+/* The strongest brand presence: filled table heads carrying the jointly
+   fitted pair (3:1 as a fill, 4.5:1 under its label -- one gate row since
+   item 17), and the amount box washed to match. */
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+	background: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
+	border-color: var(--bnd-brand-solid);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+.print-format .bnd-p-amountbox {
+	background: var(--bnd-pane);
+	border-color: var(--bnd-brand-solid);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+/*BND-END*/

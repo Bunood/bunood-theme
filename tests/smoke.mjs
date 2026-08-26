@@ -4318,6 +4318,15 @@ async function main() {
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
 				// specimen is aria-hidden decoration, not a control.
 				icons_picker: { cards: 6, toggles: 0, opts: 13 },
+				// The three below joined this map in item 35 — web and email had been
+				// MISSING since their items shipped (only the fingerprint fixture
+				// covered them; a picker that silently rendered nothing would have
+				// passed here). All counts MEASURED live, not derived.
+				web_picker: { cards: 3, toggles: 0, opts: 5 },
+				email_picker: { cards: 4, toggles: 0, opts: 10 },
+				// 12 preset cards over four section axes (7+6+5+5 options) plus the
+				// accent's 3 — the preset-over-axes anchor, item 35.
+				print_picker: { cards: 12, toggles: 0, opts: 26 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
@@ -4326,6 +4335,7 @@ async function main() {
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
 					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, login_picker: 1, icons_picker: 1,
+					web_picker: 1, email_picker: 1, print_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -14754,6 +14764,86 @@ async function main() {
 			expect(r.good > 1000, "print_css() returned nothing on the good path");
 			expectEq(r.good_var, false, "print_css() left a var() in the good sheet");
 			expectEq(r.bad, "", "a garbage seed produced a NON-EMPTY sheet — a half-substituted sheet shipped");
+		});
+
+		await test("print: the sheet assembles per axis — one pole in, its rivals out, the neutral silent", async () => {
+			// THE ANCHOR IS A PRESET OVER SECTION AXES (the round's final shape):
+			// four Selects govern the letterhead band, the item table, the totals
+			// and the headings, and the thirteen named styles are PRESETS that
+			// write those values and stop existing. The sheet cannot read a class
+			// off the document (printview renders no body_class), so selection
+			// happens at GENERATION: print.scss carries every pole in marked
+			// blocks and sheet.py keeps exactly the active ones. This check is the
+			// assembly's contract: the active pole's rules are present, a rival
+			// pole's are absent, the neutral emits nothing, and an unknown value
+			// stands the whole sheet down rather than guessing.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.printing.sheet import print_css\n" +
+					"from bunood_theme.presets import PRINT_DEFAULTS\n" +
+					"base = dict(PRINT_DEFAULTS)\n" +
+					"def css_for(**over):\n" +
+					"    d = dict(base); d.update(over)\n" +
+					"    return print_css(settings=frappe._dict(d))\n" +
+					"band = css_for(print_header_style='Band')\n" +
+					"neutral = css_for(print_header_style='Original', print_table_style='Original',\n" +
+					"                  print_totals_style='Original', print_heading_style='Original',\n" +
+					"                  print_accent='Brand headings')\n" +
+					"zebra = css_for(print_table_style='Zebra')\n" +
+					"bogus = css_for(print_header_style='No Such Pole')\n" +
+					"print('BND_ASM' + json.dumps({\n" +
+					"    'band_has': '.letter-head' in band and 'bnd-hd-band' in band,\n" +
+					"    'band_no_rival': 'bnd-hd-wash' not in band,\n" +
+					"    'neutral_silent': ('bnd-hd-' not in neutral) and ('bnd-tb-' not in neutral)\n" +
+					"        and ('bnd-tt-' not in neutral) and ('bnd-hg-' not in neutral),\n" +
+					"    'neutral_contracts': '.text-muted' in neutral,\n" +
+					"    'zebra_has': 'nth-child' in zebra,\n" +
+					"    'bogus': bogus}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_ASM"));
+			if (!line) throw new Error("assembly probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_ASM".length));
+			expect(r.band_has, "the active Band pole's rules are not in the assembled sheet");
+			expect(r.band_no_rival, "a rival header pole's rules leaked into the assembly");
+			expect(r.neutral_silent, "an all-Original composition still emitted pole rules — the stand-down is not a stand-down");
+			expect(r.neutral_contracts, "the all-Original composition lost the CONTRACTS — those survive every pole by rule");
+			expect(r.zebra_has, "the Zebra table pole's rules are not in the assembled sheet");
+			expectEq(r.bogus, "", "an unknown axis value produced a NON-EMPTY sheet — assembly guessed instead of standing down");
+		});
+
+		await test("print: the preset table is honest — offered values only, distinct compositions, Soft Cards is the default", async () => {
+			// The presets are the ONE server copy (the picker fetches them, never
+			// mirrors them), so this is where their honesty is enforced: every
+			// value a preset writes must be an option the doctype offers (an
+			// un-offered Select value on a Single silently breaks every later
+			// save — the E1 lesson), no two presets may write the same
+			// composition (the derived label could never tell them apart), and
+			// the shipped default composition must BE Soft Cards' — else the
+			// label lies on a fresh site.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.presets import PRINT_PRESETS, PRINT_DEFAULTS, PRINT_AXES\n" +
+					"meta = frappe.get_meta('Theme Settings')\n" +
+					"opts = {f: (meta.get_field(f).options or '').split('\\n') for f in PRINT_AXES}\n" +
+					"bad = [n + ':' + f + '=' + v for n, comp in PRINT_PRESETS.items()\n" +
+					"       for f, v in comp.items() if v not in opts.get(f, [])]\n" +
+					"sigs = {}\n" +
+					"dupes = []\n" +
+					"for n, comp in PRINT_PRESETS.items():\n" +
+					"    sig = tuple(comp[f] for f in PRINT_AXES)\n" +
+					"    if sig in sigs: dupes.append(n + ' == ' + sigs[sig])\n" +
+					"    sigs[sig] = n\n" +
+					"default_sig = tuple(PRINT_DEFAULTS[f] for f in PRINT_AXES)\n" +
+					"print('BND_PRE' + json.dumps({'n': len(PRINT_PRESETS), 'bad': bad, 'dupes': dupes,\n" +
+					"    'default_is': sigs.get(default_sig)}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PRE"));
+			if (!line) throw new Error("preset probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_PRE".length));
+			expect(r.n >= 12, `only ${r.n} presets — the round shipped thirteen minus the one measurement killed`);
+			expectEq(r.bad.length, 0, `presets write un-offered values: ${r.bad.join(", ")}`);
+			expectEq(r.dupes.length, 0, `presets share a composition — the derived label cannot tell them apart: ${r.dupes.join("; ")}`);
+			expectEq(r.default_is, "Soft Cards", "the shipped default composition is not Soft Cards'");
 		});
 
 		await test("print: the muted ink and table-head contracts clear AA on an ERPNext invoice", async () => {

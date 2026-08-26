@@ -850,6 +850,28 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "print",
+        # The THIRTEENTH surface kit, and the first delivered as a DATABASE
+        # RECORD: the compiled print sheet is substituted per site and written
+        # into the Print Style "Bunood" (printing/sheet.py), which frappe
+        # inlines into every print view and PDF. Item 35. The anchor is a
+        # PRESET over four section axes (presets.PRINT_PRESETS writes them and
+        # stops existing; the picker's label derives by comparison) — so there
+        # is no stored anchor field, and the fields this kit owns are the axes
+        # plus the accent.
+        "part": "print",
+        "label": "Print",
+        "type": SURFACE,
+        # The Bunood formats' own wrapper class — the sheet's structural
+        # vocabulary hangs off it; generic print anatomy (.print-format,
+        # .letter-head, .print-heading) is the vendor's.
+        "selector": ".bnd-p",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

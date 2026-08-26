@@ -970,6 +970,142 @@ EMAIL_DEFAULTS = {
 }
 
 
+PRINT_FIELDS = [
+    "print_header_style",
+    "print_table_style",
+    "print_totals_style",
+    "print_heading_style",
+    "print_accent",
+]
+
+#: The four SECTION AXES the print anchor decomposed into — the item-35 round's
+#: final shape, at the user's direction ("custom customization settings for
+#: different features ... to choose their own style with"). There is NO stored
+#: preset field: the named styles are :data:`PRINT_PRESETS`, which write these
+#: values and stop existing, and the picker's label DERIVES by comparison —
+#: "Custom" the moment an axis differs. The settings-architecture doctrine
+#: (presets write values, active label derived), applied to paper.
+PRINT_AXES = [
+    "print_header_style",
+    "print_table_style",
+    "print_totals_style",
+    "print_heading_style",
+]
+
+#: The shipped print defaults — the item-35 round, closed 2026-08-26.
+PRINT_DEFAULTS = {
+    # THE COMPOSITION IS SOFT CARDS' — the user's explicit pick, and the first
+    # default in this project chosen for FRIENDLINESS: every section a washed,
+    # rounded panel, visually continuous with the desk's Floating Cards. The
+    # washes are `--bnd-pane`/`--bnd-hover` — members of contrast_gate.SURFACES,
+    # so every ink they carry rides a gate row fitted since item 17 at all
+    # eleven seeds. Soft by construction, safe by the same construction.
+    #
+    # `Original` on every axis is the true stand-down — stock Redesign,
+    # untouched — and the census cleared it for AA honestly (labels 7.08:1,
+    # values 15.2:1), so offering it is not offering a defect.
+    "print_header_style": "Wash Card",
+    "print_table_style": "Washed",
+    "print_totals_style": "Washed Panel",
+    "print_heading_style": "Original",
+    # THE ACCENT AXIS — how much of the tenant's colour reaches paper, a real
+    # cost/identity trade the tenant owns. `Brand headings` is the NEUTRAL
+    # (the sheet as authored: headings and rules in brand ink, fills quiet);
+    # `Ink only` is the toner-saver; `Brand panels` — the user's pick for the
+    # default — fills the table heads with the jointly fitted
+    # brand-solid/on-brand pair, so the strongest presence still costs zero
+    # new contrast rows. Thermal never sees any of this: 203dpi heads have no
+    # grayscale, and the thermal blocks stay literal black by constraint.
+    "print_accent": "Brand panels",
+}
+
+#: The thirteen named styles of the wireframe round, as compositions over
+#: :data:`PRINT_AXES` — minus `Side Column`, which measurement killed: its
+#: layout needs CSS grid (or a DOM the formats do not have), and wkhtmltopdf
+#: is Qt-WebKit 534 — a pole that renders as stock on the DEFAULT engine is
+#: the renders-as-nothing class, recorded here rather than shipped.
+#:
+#: THE ONE COPY. The picker fetches this table over `bunood_theme.api`
+#: (`print_presets`) rather than mirroring it in JS — a second copy is the
+#: drift the derived label exists to prevent. The suite holds every row to
+#: the doctype's own options and to pairwise distinctness, because two
+#: presets with one composition would make the derived label ambiguous.
+PRINT_PRESETS = {
+    "Original": {
+        "print_header_style": "Original",
+        "print_table_style": "Original",
+        "print_totals_style": "Original",
+        "print_heading_style": "Original",
+    },
+    "Soft Cards": {
+        "print_header_style": "Wash Card",
+        "print_table_style": "Washed",
+        "print_totals_style": "Washed Panel",
+        "print_heading_style": "Original",
+    },
+    "Ruled Ledger": {
+        "print_header_style": "Rule",
+        "print_table_style": "Ruled",
+        "print_totals_style": "Boxed",
+        "print_heading_style": "Brand Ink",
+    },
+    "Quiet Minimal": {
+        "print_header_style": "Hairline",
+        "print_table_style": "Open",
+        "print_totals_style": "Open",
+        "print_heading_style": "Small Caps",
+    },
+    "Striped": {
+        "print_header_style": "Band",
+        "print_table_style": "Zebra",
+        "print_totals_style": "Open",
+        "print_heading_style": "Brand Ink",
+    },
+    "Brand Slab": {
+        "print_header_style": "Band",
+        "print_table_style": "Boxed",
+        "print_totals_style": "Washed Panel",
+        "print_heading_style": "Brand Ink",
+    },
+    "Boxed Classic": {
+        "print_header_style": "Rule",
+        "print_table_style": "Boxed",
+        "print_totals_style": "Boxed",
+        "print_heading_style": "Brand Ink",
+    },
+    "Edge Rail": {
+        "print_header_style": "Rail",
+        "print_table_style": "Ruled",
+        "print_totals_style": "Open",
+        "print_heading_style": "Brand Ink",
+    },
+    "Formal Serif": {
+        "print_header_style": "Hairline",
+        "print_table_style": "Open",
+        "print_totals_style": "Open",
+        "print_heading_style": "Serif",
+    },
+    "Poster Bold": {
+        "print_header_style": "Rule",
+        "print_table_style": "Ruled",
+        "print_totals_style": "Inverse",
+        "print_heading_style": "Poster",
+    },
+    "Bookends": {
+        "print_header_style": "Band",
+        "print_table_style": "Ruled",
+        "print_totals_style": "Open",
+        "print_heading_style": "Original",
+    },
+    "Blueprint": {
+        "print_header_style": "Frame",
+        "print_table_style": "Ruled",
+        "print_totals_style": "Boxed",
+        "print_heading_style": "Small Caps",
+    },
+}
+
+
 CHROME_DEFAULTS = {
     c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
     for c in CONTAINERS
