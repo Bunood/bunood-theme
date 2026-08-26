@@ -1296,7 +1296,7 @@ html[data-theme] {
 // prose and the CTA at the widths that matter, which is the whole thing a pole
 // changes.
 .bnd-emp-preview:not(:empty) {
-	margin-block-start: bnd-space(4);
+	margin-block-start: var(--bnd-sp-4);
 	border: 1px solid var(--bnd-border);
 	border-radius: var(--bnd-radius-md);
 	overflow: hidden;
@@ -1319,15 +1319,15 @@ html[data-theme] {
 .bnd-prp-chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: bnd-space(2);
-	margin-block-start: bnd-space(3);
+	gap: var(--bnd-sp-2);
+	margin-block-start: var(--bnd-sp-3);
 	align-items: center;
 }
 .bnd-prp-chipgap {
-	inline-size: bnd-space(3);
+	inline-size: var(--bnd-sp-3);
 }
 .bnd-prp-preview:not(:empty) {
-	margin-block-start: bnd-space(2);
+	margin-block-start: var(--bnd-sp-2);
 	border: 1px solid var(--bnd-border);
 	border-radius: var(--bnd-radius-md);
 	overflow: hidden;

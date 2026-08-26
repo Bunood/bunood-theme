@@ -29,8 +29,13 @@
     PDF server — see letterhead/README.md.
     ============================================================================ -#}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
-{%- set name_ar = (_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") -%}
-{%- set name_en = (_c.company_name if _c else "") -%}
+{#- The trailing `or ""` is load-bearing: on a Company without the KSA custom
+    fields, .get() returns None, `None or None` is None, and Jinja renders an
+    unguarded None as the literal text "None" — which the review caught
+    printing as the Arabic company name on every default-composition
+    letterhead. -#}
+{%- set name_ar = ((_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") or "") -%}
+{%- set name_en = ((_c.company_name if _c else "") or "") -%}
 {%- set theme_logo = "__BND_THEME_LOGO__" -%}
 {%- set logo = theme_logo or (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
 <!--BND lh=split-->

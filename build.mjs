@@ -590,6 +590,43 @@ const EMAIL_SAFE_DISPLAY = new Set([
 	"table", "table-cell", "table-row", "table-header-group",
 ]);
 
+/**
+ * Phantom Sass function guard — no `bnd-*(...)` call may reach compiled CSS.
+ *
+ * WHY THIS EXISTS. Sass does not error on an unknown function: anything it does
+ * not recognise is passed through as a plain CSS function call. So a typo, or a
+ * helper somebody assumed existed, compiles cleanly and ships an INVALID
+ * declaration that every browser silently drops.
+ *
+ * Item 34 shipped exactly that. `margin-block-start: bnd-space(4)` looked like
+ * the house idiom and is not one — the spacing scale is `var(--bnd-sp-N)`, and
+ * `bnd-space` is defined nowhere in the repo. It compiled, passed every guard,
+ * passed the suite, and the email preview simply had no top margin. Item 35 then
+ * COPIED the same call into the print preview, so one invented helper became five
+ * dead declarations across two kits before the release review found it.
+ *
+ * The namespace is what makes this checkable: `bnd-` is ours, so a `bnd-…(` in
+ * OUTPUT can only be a Sass function that did not resolve. Real CSS functions
+ * (`var`, `calc`, `color-mix`, `rgba`) are untouched.
+ *
+ * @param {string} css - compiled stylesheet text
+ * @param {string} name - entry name, for the error message
+ */
+function assertNoPhantomSassFn(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const offenders = [
+		...new Set([...stripped.matchAll(/\b(bnd-[a-z0-9-]+)\s*\(/g)].map((m) => m[1])),
+	];
+	if (offenders.length) {
+		throw new Error(
+			`Phantom Sass function: ${name} contains ${offenders.join(", ")}(...) in COMPILED output. ` +
+				"Sass passes an unknown function through as CSS rather than failing, so the declaration " +
+				"ships and every browser drops it. Use the token the repo actually has — spacing is " +
+				"var(--bnd-sp-N) — or define the function."
+		);
+	}
+}
+
 function assertEmailSafeCss(css, name) {
 	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const bad = new Set();
@@ -667,9 +704,9 @@ const PRINT_SAFE_PROPS = new Set([
 	"border", "border-width", "border-style", "border-color",
 	"border-top", "border-bottom", "border-left", "border-right",
 	"border-bottom-width", "border-top-width",
-	// The accent override re-points a rule the section poles drew — a colour
-	// longhand every engine has had since CSS1, degrading to the pole's colour.
-	"border-top-color",
+	// The accent override re-points rules the section poles drew — colour
+	// longhands every engine has had since CSS1, degrading to the pole's colour.
+	"border-top-color", "border-bottom-color", "border-left-color", "border-right-color",
 	"border-radius", "border-collapse", "border-spacing",
 	"table-layout", "vertical-align", "display", "overflow", "box-sizing",
 	// Type.
@@ -1287,6 +1324,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
 	assertNoAuthoredCopy(result.css, `${key}.css`);
+	assertNoPhantomSassFn(result.css, `${key}.css`);
 	if (key === "bunood-email") assertEmailSafeCss(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);

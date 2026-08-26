@@ -59,8 +59,9 @@ ROADMAP's item-35 entry carry the full account. What will cost time again:
   printview/pdf BEFORE the apps load — the direction checks REQUIRE the hostile order,
   because the rtl_patch's reach was an import-order accident and a green that depends on
   import order is not a closure.
-- **118 `ar.po` rows are `#, fuzzy` and await the user's review** (64+17+37), the item-7
-  handoff, their own commit as always.
+- **The item-35 Arabic is APPROVED** — the user approved the 118 drafts 2026-08-26 and
+  the flags were cleared in `23ab02f` (CSV byte-identical, md5-proved). `ar.po` carries
+  zero fuzzy rows.
 
 **ITEM 34 (email) — CODE COMPLETE 2026-08-26, NOT RELEASED, FULL SUITE NOT PASSED.**
 Five commits: `5c7aad8` slices 1+2 (the fork, the sheet, contracts E1–E3) · `d33b5af`
@@ -82,7 +83,10 @@ time again:
   are green throughout (`email:` 14/14, plus settings, shell, bands, brand, registry,
   honest, i18n — 45 in one run). Also owed: the adversarial release review, the version
   bump, `payload.mjs --record`, and the tag.
-- **`v0.33.0` WAS NEVER TAGGED.** `git tag -l "v0.33*"` is empty, there is no v0.33.0
+- **`v0.33.0` IS NOW TAGGED — at `0f231e3`, 2026-08-25, by the other session** *(this
+paragraph said "never tagged" until the item-35 release review re-checked; resolve tag
+state with `git tag`/`git ls-remote`, never from this file — its third such correction)*.
+There is STILL no v0.33.0
   payload history row, and three item-33 fix commits sit on top of its release commit —
   while `__init__.py` and `hooks.py` both read `0.33.0` and CHANGELOG carries a `[0.33.0]`
   heading. The user's call (2026-08-25) was to leave it and start 34. **Item 34 therefore

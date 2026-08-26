@@ -901,13 +901,13 @@
    "options": "Show\nHide"
   },
   {
-   "default": "Two lines",
+   "default": "Three lines",
    "description": "Set by the picker above. The signature row on vouchers and invoices. A format that passes its own labels keeps them.",
    "fieldname": "print_signatures",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Print Signatures",
-   "options": "Two lines\nThree lines\nNone"
+   "options": "Three lines\nTwo lines\nNone"
   },
   {
    "fieldname": "section_generated",

@@ -13870,7 +13870,10 @@ async function main() {
 					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
 					"cases = {'plain': dict(with_container=False, header=None),\n" +
 					"         'container': dict(with_container=True, header=None),\n" +
-					"         'header': dict(with_container=True, header=['T', 'orange'])}\n" +
+					"         'header': dict(with_container=True, header=['T', 'orange']),\n" +
+					"         'footed': dict(with_container=True, header=None,\n" +
+					"                        email_account=frappe._dict(brand_logo=None,\n" +
+					"                            footer=\"<div>Sender line for E2</div><a href='/app/x'>footer link</a>\"))}\n" +
 					// THE FIXTURE IS PART OF THE GATE, AND THIS ONE WAS A DEFECT.
 					// It read `<p>body</p>`, so the AA check measured a paragraph and
 					// a footer and NOTHING ELSE — and passed with contract E3 deleted,
@@ -13883,8 +13886,11 @@ async function main() {
 					"        '<p>The total is <b>SAR 1,240.00</b>.</p>'\n" +
 					"        \"<a class='btn btn-primary' href='/app/x'>View invoice</a>\"\n" +
 					"        \"<p>Or see <a href='/app/sales-invoice'>all your invoices</a>.</p>\")\n" +
-					"res['render'] = {k: get_formatted_html('T', BODY, email_account=acct, **v)\n" +
-					"                 for k, v in cases.items()}\n" +
+					"res['render'] = {}\n" +
+					"for k, v in cases.items():\n" +
+					"    kw = dict(v)\n" +
+					"    kw.setdefault('email_account', acct)\n" +
+					"    res['render'][k] = get_formatted_html('T', BODY, **kw)\n" +
 					"print('BND_EMAIL' + json.dumps(res))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_EMAIL"));
@@ -14103,11 +14109,16 @@ async function main() {
 			const ep = await ctx.newPage();
 			try {
 				const rows = [];
-				for (const shape of ["plain", "container", "header"]) {
+				// 'footed' joined in item 35's review: E2's rule covers the footer's
+				// CONTAINER text, which renders in <div>s the old selector could not
+				// see — and the old fixture's footer was EMPTY anyway, so contract E2
+				// was never measured by the test that claimed it. Fixture width, the
+				// same lesson a third time.
+				for (const shape of ["plain", "container", "header", "footed"]) {
 					await ep.setContent(p.render[shape], { waitUntil: "load" });
 					const found = await ep.evaluate(() => {
 						const out = [];
-						for (const el of document.querySelectorAll(".bnd-e-foot a, .bnd-e-body a, .bnd-e-body p")) {
+						for (const el of document.querySelectorAll(".bnd-e-foot a, .bnd-e-foot div, .bnd-e-body a, .bnd-e-body p")) {
 							const cls = String(el.className || "");
 							// THE EXCLUSION IS GONE, AND THAT IS SLICE 5 CLOSING ITSELF.
 							// This line used to skip `.text-muted` because erpnext's
@@ -14690,8 +14701,16 @@ async function main() {
 			const css = benchPy(
 				"print(frappe.db.get_value('Print Style', 'Bunood', 'css') or '')\n"
 			);
-			for (const needle of ["page-break-inside", "break-inside", "page-break-after", "break-after"]) {
-				expect(String(css).includes(needle), `the sheet is missing '${needle}' — one engine loses the keep-together contract`);
+			// The modern needles are SUBSTRINGS of the legacy ones, so a naive
+			// includes() can never notice the modern spelling missing — strip the
+			// legacy prefix first, then both families are independently required.
+			const text = String(css);
+			const modernOnly = text.split("page-break-").join("PGB-");
+			for (const legacy of ["page-break-inside", "page-break-after"]) {
+				expect(text.includes(legacy), `the sheet is missing '${legacy}' — wkhtmltopdf loses the keep-together contract`);
+			}
+			for (const modern of ["break-inside", "break-after"]) {
+				expect(modernOnly.includes(modern), `the sheet is missing the MODERN '${modern}' — chrome and the browser dialog lose the contract`);
 			}
 		});
 
@@ -14876,7 +14895,7 @@ async function main() {
 					"    'en_ltr': 'dir=\"ltr\"' in en, 'ar_rtl': 'dir=\"rtl\"' in ar,\n" +
 					"    'styled': 'bnd-hd-' in en or 'bnd-tb-' in en or '.text-muted' in en,\n" +
 					"    'no_var': 'var(--bnd' not in en,\n" +
-					"    'inv_table': 'items' in inv.lower() or 'table' in inv,\n" +
+					"    'inv_table': 'Site survey' in inv,\n" +
 					"    'guest': guest}))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PP"));
@@ -14887,7 +14906,7 @@ async function main() {
 			expect(r.ar_rtl, "the Arabic preview did not render dir=rtl — the direction closure is not reaching the preview");
 			expect(r.styled, "the preview carries none of the record's styling — it is not rendering through the real Print Style");
 			expect(r.no_var, "a var() reached the preview");
-			expect(r.inv_table, "the invoice shape rendered without its table");
+			expect(r.inv_table, "the invoice shape did not render its specimen rows — 'Site survey' is absent");
 			expectEq(r.guest, "refused", "a Guest was served the preview");
 		});
 
@@ -14920,6 +14939,21 @@ async function main() {
 					"    frappe.clear_cache(doctype='Theme Settings')\n" +
 					"    resync_print_brand()\n" +
 					"    res['standdown'] = frappe.db.get_value('Letter Head', 'Bunood', 'content') == 'BND-SENTINEL'\n" +
+					"    keep_logo = frappe.db.get_single_value('Theme Settings', 'logo')\n" +
+					"    try:\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', '/files/bnd&spec.png')\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', 'Bilingual Split')\n" +
+					"        frappe.clear_cache(doctype='Theme Settings')\n" +
+					"        resync_print_brand()\n" +
+					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        company = frappe.db.get_default('company') or frappe.db.get_value('Company', {}, 'name')\n" +
+					"        rendered = frappe.render_template(html, {'doc': frappe._dict(company=company)})\n" +
+					"        res['theme_logo_precedence'] = 'src=\"/files/bnd&amp;spec.png\"' in rendered\n" +
+					"        res['logo_single_escaped'] = '&amp;amp;' not in rendered\n" +
+					"        import re as _re\n" +
+					"        res['no_none_name'] = not _re.search(r'>\\s*None\\s*<', rendered)\n" +
+					"    finally:\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', keep_logo)\n" +
 					"finally:\n" +
 					"    frappe.db.set_single_value('Theme Settings', 'print_letterhead', keep['field'])\n" +
 					"    frappe.clear_cache(doctype='Theme Settings')\n" +
@@ -14935,6 +14969,54 @@ async function main() {
 				expect(r[pole], `${pole} did not recompose the Letter Head record (or left a var() in it)`);
 			}
 			expect(r.standdown, "Frappe's own OVERWROTE the record — the stand-down wrote where it promised not to");
+			expect(r.theme_logo_precedence, "the theme's own logo never reached the rendered letterhead (or arrived mangled)");
+			expect(r.logo_single_escaped, "the logo URL is DOUBLE-escaped — &amp;amp; reached the render, so any &-bearing path 404s");
+			expect(r.no_none_name, "the letterhead rendered the literal string 'None' where the Arabic company name goes");
+		});
+
+		await test("print: pole fills survive the print media — Bootstrap's white-cell reset does not win", async () => {
+			// THE DEFECT: frappe's print.bundle ships Bootstrap 3's
+			// `@media print { .table td, .table th { background-color: #fff !important } }`,
+			// and both PDF engines run print media — so the shipped default's
+			// Washed cell wash (and Boxed/Brand-panels head fills) rendered in the
+			// preview and VANISHED on paper. The repair is the sanctioned
+			// @media-print !important escalation inside the affected pole blocks;
+			// this measures the composed document under the print media itself.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.utils.jinja_globals import bundled_asset\n" +
+					"css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"print('BND_FILL' + json.dumps({'css': css, 'bundle': bundled_asset('print.bundle.css')}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_FILL"));
+			if (!line) throw new Error("fill probe produced no JSON: " + String(out).slice(-300));
+			const pack = JSON.parse(line.slice("BND_FILL".length));
+			await page.setContent(
+				`<html dir="ltr"><head><link rel="stylesheet" href="${URL_BASE}${pack.bundle}"><style>${pack.css}</style></head>` +
+					'<body><div class="print-format">' +
+					'<table class="table table-bordered"><thead class="table-header"><tr><td id="th1">H</td></tr></thead>' +
+					'<tbody><tr><td id="td1">x</td></tr></tbody></table>' +
+					"</div></body></html>",
+				{ waitUntil: "networkidle" }
+			);
+			try {
+				await page.emulateMedia({ media: "print" });
+				await page.waitForTimeout(200);
+				const got = await page.evaluate(() => ({
+					td: getComputedStyle(document.getElementById("td1")).backgroundColor,
+					th: getComputedStyle(document.getElementById("th1")).backgroundColor,
+				}));
+				// The shipped defaults are Washed cells + Brand-panels heads; under
+				// the print media NEITHER may compute to Bootstrap's white.
+				for (const [k, v] of Object.entries(got)) {
+					expect(
+						!/rgb\(255,\s*255,\s*255\)/.test(String(v)),
+						`${k} computes ${v} under print media — the pole fill died to Bootstrap's white-cell reset, exactly what ships to every PDF`
+					);
+				}
+			} finally {
+				await page.emulateMedia({ media: null });
+			}
 		});
 
 		await test("print: the per-section switches reach a rendered format, and the QR guard holds", async () => {
@@ -14973,13 +15055,32 @@ async function main() {
 					"    setv('print_qr_size', 'Medium')\n" +
 					"    setv('print_qr_place', 'Head start')\n" +
 					"    h = frag(\"{{ head_row(doc) }}\", {'doc': doc})\n" +
-					"    res['qr_start'] = h.find('bnd-p-qr') < h.find('bnd-p-meta')\n" +
+					"    _q, _m = h.find('bnd-p-qr'), h.find('bnd-p-meta')\n" +
+					"    res['qr_start'] = _q >= 0 and _m >= 0 and _q < _m\n" +
 					"    setv('print_qr_place', 'Head end')\n" +
 					"    setv('print_signatures', 'None')\n" +
 					"    res['sigs_none'] = 'bnd-p-sigs' not in frag(\"{{ sig_row() }}\")\n" +
 					"    setv('print_signatures', 'Three lines')\n" +
 					"    res['sigs_three'] = frag(\"{{ sig_row() }}\").count('bnd-p-sigs__line') == 3\n" +
 					"    res['sigs_explicit'] = frag(\"{{ sig_row(labels=['X']) }}\").count('bnd-p-sigs__line') == 1\n" +
+					"    setv('print_signatures', None)\n" +
+					"    res['sigs_default_three'] = frag(\"{{ sig_row() }}\").count('bnd-p-sigs__line') == 3\n" +
+					"    sinv = frappe.get_doc({'doctype': 'Sales Invoice', 'customer': 'S', 'company': frappe.db.get_default('company') or 'S',\n" +
+					"        'currency': 'SAR', 'net_total': 100.0, 'grand_total': 115.0, 'in_words': 'BND-WORDS-SENTINEL',\n" +
+					"        'total_taxes_and_charges': 15.0,\n" +
+					"        'items': [{'doctype': 'Sales Invoice Item', 'item_name': 'Rebar', 'qty': 1, 'rate': 100.0, 'amount': 100.0, 'idx': 1}],\n" +
+					"        'taxes': []})\n" +
+					"    fmt = frappe.db.get_value('Print Format', 'بونود - فاتورة ضريبية (A4)', 'html')\n" +
+					"    setv('print_words', 'Hide')\n" +
+					"    res['words_hide'] = 'bnd-p-words' not in frappe.render_template(fmt, {'doc': sinv})\n" +
+					"    setv('print_words', 'Show')\n" +
+					"    setv('print_qr_place', 'Beside totals')\n" +
+					"    sinv.ksa_einv_qr = '/files/spec-qr.png'\n" +
+					"    bt = frappe.render_template(fmt, {'doc': sinv})\n" +
+					"    _t, _q, _w = bt.find('bnd-p-totals'), bt.find('bnd-p-qr'), bt.find('bnd-p-words')\n" +
+					"    res['beside_renders_qr'] = _q >= 0\n" +
+					"    res['beside_after_totals_before_words'] = 0 <= _t < _q < _w\n" +
+					"    res['beside_head_qrless'] = bt.find('bnd-p-qr') > bt.find('bnd-p-meta')\n" +
 					"finally:\n" +
 					"    for f, v in keep.items():\n" +
 					"        frappe.db.set_single_value('Theme Settings', f, v)\n" +
@@ -14999,6 +15100,11 @@ async function main() {
 				sigs_none: "None still rendered a signature row",
 				sigs_three: "Three lines did not render three",
 				sigs_explicit: "an explicit labels argument no longer outranks the setting",
+				sigs_default_three: "an UNSEEDED site lost the third signature line — today's behaviour was not preserved",
+				words_hide: "print_words Hide left the amount-in-words strip in a rendered invoice",
+				beside_renders_qr: "Beside totals rendered no QR at all",
+				beside_after_totals_before_words: "Beside totals put the QR somewhere other than between the totals and the words strip",
+				beside_head_qrless: "Beside totals left a QR in the head row too",
 			};
 			for (const [k, msg] of Object.entries(wants)) expect(r[k], msg);
 		});
@@ -15057,6 +15163,7 @@ async function main() {
 					"       'customer_name': 'Specimen Customer', 'posting_date': '2026-08-26',\n" +
 					"       'due_date': '2026-09-25', 'currency': 'SAR', 'company': 'Bunood',\n" +
 					"       'total': 25760.0, 'grand_total': 29624.0,\n" +
+					"       'in_words': 'BND words', 'terms': 'BND terms text',\n" +
 					"       'items': [{'doctype': 'Sales Invoice Item', 'item_name': 'Rebar 16mm',\n" +
 					"                  'qty': 12, 'rate': 1500.0, 'amount': 18000.0, 'idx': 1}], 'taxes': []}\n" +
 					"r = get_html_and_style(doc=json.dumps(doc), print_format='Sales Invoice Standard', style='Bunood')\n" +
@@ -15087,7 +15194,15 @@ async function main() {
 					const el = document.querySelector(sel);
 					return el ? { fg: getComputedStyle(el).color, bg: eff(el) } : null;
 				};
-				return { muted: pick(".print-format .text-muted"), th: pick(".print-format thead.table-header td") };
+				return {
+					muted: pick(".print-format .text-muted"),
+					th: pick(".print-format thead.table-header td"),
+					// The review found the other two #7c7c7c surfaces the first cut of
+					// P1 missed: the 'Total in words' label (vendor !important) and the
+					// terms block. The fixture carries in_words+terms so both exist.
+					title: pick(".print-format .title"),
+					info: pick(".print-format .info-card"),
+				};
 			});
 			const chan = (c) => {
 				const m = String(c).match(/[\d.]+/g);

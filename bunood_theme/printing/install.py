@@ -30,7 +30,9 @@ STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-# Frappe stock styles we are allowed to displace; anything else = admin choice.
+# Frappe stock styles the ONE-TIME claim (after_install, and the v0_35_0
+# patch for existing sites) may displace; the ongoing sync claims only true
+# vacancy — see _sync_style.
 # "Redesign" and "Monochrome" joined in item 35: v16 ships both and DEFAULTS to
 # Redesign, so the vacancy check below had never fired on any v16 site — the
 # Bunood style was installed everywhere and applied nowhere (the exact shape of
@@ -92,9 +94,13 @@ def _sync_style(settings=None):
         return
     if frappe.db.exists("Print Style", STYLE_NAME):
         style = frappe.get_doc("Print Style", STYLE_NAME)
-        if style.css != css or style.get("disabled"):
+        if style.get("disabled"):
+            # An admin DISABLED our style. That is a choice, and the first cut
+            # force-re-enabled it on every migrate and every settings save —
+            # the review named it: a stock-style choice could never stick.
+            return
+        if style.css != css:
             style.css = css
-            style.disabled = 0
             style.save(ignore_permissions=True)
     else:
         frappe.get_doc(
@@ -107,12 +113,16 @@ def _sync_style(settings=None):
             }
         ).insert(ignore_permissions=True)
 
-    # Set as the system default ONLY when the site still uses a stock style —
-    # a System Manager's deliberate choice of another style is never overridden.
-    settings = frappe.get_single("Print Settings")
-    if settings.meta.has_field("print_style") and settings.get("print_style") in STOCK_STYLES:
-        settings.print_style = STYLE_NAME
-        settings.save(ignore_permissions=True)
+    # Claim the default ONLY from TRUE VACANCY (no style set at all). The
+    # one-time displacement of a STOCK style belongs to the v0_35_0 patch and
+    # to after_install on a fresh site — an ongoing in-STOCK_STYLES claim here
+    # would re-take an admin's deliberate later choice of Redesign/Classic on
+    # every migrate and every Theme Settings save, which the review walked and
+    # the patch's own "respected forever" promise forbids.
+    ps = frappe.get_single("Print Settings")
+    if ps.meta.has_field("print_style") and ps.get("print_style") in (None, ""):
+        ps.print_style = STYLE_NAME
+        ps.save(ignore_permissions=True)
 
 
 #: `print_letterhead` value -> the `<!--BND lh=slug-->` block that composes it.
@@ -166,7 +176,13 @@ def _sync_letterhead(settings=None):
     logo = (doc.get("logo") or "").strip()
     if not logo.lower().endswith(RASTER_SUFFIXES):
         logo = ""
-    header = header.replace("__BND_THEME_LOGO__", frappe.utils.escape_html(logo))
+    # ESCAPE FOR THE JINJA STRING LITERAL ONLY — backslash and double-quote,
+    # nothing else. The value flows to `{{ logo | e }}` at render, which owns
+    # the HTML escaping; the first cut used escape_html here TOO, and the
+    # review walked the double-escape end to end: a logo at /files/a&b.png
+    # rendered src="/files/a&amp;amp;b.png" and 404'd on every printout.
+    literal = logo.replace("\\", "\\\\").replace('"', '\\"')
+    header = header.replace("__BND_THEME_LOGO__", literal)
 
     tok = tokens("light")
     header = substitute(header, tok)

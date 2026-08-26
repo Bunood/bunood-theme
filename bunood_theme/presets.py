@@ -1046,7 +1046,11 @@ PRINT_DEFAULTS = {
     "print_qr_place": "Head end",
     "print_qr_size": "Medium",
     "print_words": "Show",
-    "print_signatures": "Two lines",
+    # "Three lines", because that is what every voucher printed before the
+    # axis existed — the review caught the first cut defaulting to two, which
+    # silently dropped the Finance Manager line while three documents claimed
+    # today's behaviour was preserved.
+    "print_signatures": "Three lines",
 }
 
 #: The thirteen named styles of the wireframe round, as compositions over

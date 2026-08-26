@@ -381,8 +381,20 @@ def brand(logo_from_account=None, settings=None) -> dict:
     tenant = _tenant_branding()
     name = tenant["company_name"] or _vendor_name()
 
-    candidate = (tenant["logo"] or logo_from_account or "").strip()
-    mark = candidate if candidate.lower().endswith(RASTER_SUFFIXES) else ""
+    # THE CHAIN FALLS THROUGH; IT DOES NOT STOP AT THE FIRST CANDIDATE. The first
+    # cut was `(tenant["logo"] or logo_from_account or "")` and then one raster
+    # test — which reads the same and is not: a tenant whose Theme Settings logo
+    # is an SVG selected that SVG, failed the test, and never reached the Email
+    # Account's `brand_logo` at all. A site with an unrenderable logo in one field
+    # and a perfectly good raster in the other therefore showed neither. Found by
+    # the item-34 release review; the docstring above already described a chain,
+    # so the code was the half that was wrong.
+    mark = ""
+    for candidate in (tenant["logo"], logo_from_account):
+        candidate = (candidate or "").strip()
+        if candidate.lower().endswith(RASTER_SUFFIXES):
+            mark = candidate
+            break
 
     return {
         "mark": mark,

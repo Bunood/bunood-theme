@@ -50,7 +50,10 @@
     defect. `print_qr_size` maps to concrete pixels; an unknown value falls
     back to the caller's size. -#}
 {%- set show = _pset("print_qr", "Show") | trim -%}
-{%- set sz = {"Small": 90, "Medium": 110, "Large": 130}.get(_pset("print_qr_size", "Medium") | trim, size) -%}
+{#- Medium is the NEUTRAL: it means "the caller's size", not a fixed 110 —
+    the thermal formats pass 120 and the review caught the first cut of this
+    map silently shrinking them. Only the non-neutral values override. -#}
+{%- set sz = {"Small": 90, "Large": 130}.get(_pset("print_qr_size", "Medium") | trim, size) -%}
 {%- if show != "Hide" or required -%}
 {%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
 {% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ sz }}px;height:{{ sz }}px">
@@ -132,6 +135,7 @@
 {% macro totals_block(doc) -%}
 {%- set vt = bunood_vat_totals(doc) if bunood_vat_totals is defined else None -%}
 {%- set use_rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") -%}
+{%- set totals_tbl -%}
 <table class="bnd-p-totals">
   <tr><td>الإجمالي قبل الضريبة / Subtotal</td><td class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
   {% if doc.get("discount_amount") %}<tr><td>الخصم / Discount</td><td class="num" dir="ltr">{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
@@ -146,10 +150,17 @@
   <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
   {% endif %}
 </table>
-{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{%- endset -%}
+{#- "Beside totals" means BESIDE: one row, the totals in their cell and the QR
+    in the 130px end cell — the first cut stacked the QR below the words strip,
+    which the review rightly called "below", not "beside". The words strip
+    stays full-width AFTER the pair. -#}
 {%- if (_pset("print_qr_place", "Head end") | trim) == "Beside totals" -%}
-<table class="bnd-p-head"><tr><td></td><td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=kwargs.get("qr_required", False)) }}</td></tr></table>
+<table class="bnd-p-head"><tr><td>{{ totals_tbl }}</td><td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=kwargs.get("qr_required", False)) }}</td></tr></table>
+{%- else -%}
+{{ totals_tbl }}
 {%- endif -%}
+{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
 {%- endmacro %}
 
 {#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}
@@ -197,10 +208,10 @@
 {% macro sig_row(labels=None) -%}
 {%- set default_labels = ["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"] -%}
 {%- if labels is none -%}
-  {%- set pref = _pset("print_signatures", "Two lines") | trim -%}
+  {%- set pref = _pset("print_signatures", "Three lines") | trim -%}
   {%- if pref == "None" -%}{%- set labels = [] -%}
-  {%- elif pref == "Three lines" -%}{%- set labels = default_labels -%}
-  {%- else -%}{%- set labels = default_labels[:2] -%}
+  {%- elif pref == "Two lines" -%}{%- set labels = default_labels[:2] -%}
+  {%- else -%}{%- set labels = default_labels -%}
   {%- endif -%}
 {%- endif -%}
 {%- if labels -%}

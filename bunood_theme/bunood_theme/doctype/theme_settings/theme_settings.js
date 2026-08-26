@@ -84,10 +84,17 @@ const P = {
 			'<div class="bnd-cbp-styles">' +
 			items
 				.map(
+					// `reason` disables the card with the reason as its tooltip —
+					// the same contract P.options has always had. Added in item 35's
+					// review: the print picker passed `reason` for a server-unknown
+					// preset and this function silently dropped the key, so the
+					// claimed drift guard did not exist.
 					(i) =>
 						'<button type="button" class="' + cls + (i.value === opts.selected ? " bnd-cbp-on" : "") +
+						(i.reason ? " bnd-cbp-dis" : "") +
 						'" aria-pressed="' + (i.value === opts.selected ? "true" : "false") +
-						'" data-value="' + bnd_esc(i.value) + '">' +
+						'" data-value="' + bnd_esc(i.value) +
+						(i.reason ? '" disabled title="' + bnd_esc(i.reason) : "") + '">' +
 						(i.svg ? '<span class="bnd-cbp-thumb">' + i.svg + "</span>" : "") +
 						'<span class="bnd-cbp-name">' + bnd_esc(i.name) + "</span>" +
 						(i.blurb ? '<span class="bnd-cbp-blurb">' + bnd_esc(i.blurb) + "</span>" : "") +
@@ -4553,7 +4560,7 @@ const BND_PRINT_DEFAULTS = {
 	print_qr_place: "Head end",
 	print_qr_size: "Medium",
 	print_words: "Show",
-	print_signatures: "Two lines",
+	print_signatures: "Three lines",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
@@ -5894,7 +5901,11 @@ function bnd_render_print_picker(frm, host) {
 			bnd_render_print_picker(frm);
 		}).catch(() => {
 			// The picker stays usable without the presets: the axis groups below
-			// are the real controls; the cards are a convenience over them.
+			// are the real controls; the cards are a convenience over them. The
+			// flag RESETS so the next render retries — the review caught the
+			// first cut latching one transient failure into a dead card row for
+			// the rest of the page's life.
+			bnd_print_presets_inflight = false;
 		});
 	}
 
@@ -5988,7 +5999,10 @@ function bnd_render_print_picker(frm, host) {
 		for (const [f, v] of Object.entries(comp)) frm.set_value(f, v);
 		bnd_render_print_picker(frm);
 	});
-	$host.find(".bnd-cbp-opt").on("click", function () {
+	// .not(): the preview chips SHARE the opt class for styling and the review
+	// walked the double-fire — the generic handler called set_value(null) and
+	// raced a second preview xcall per chip click.
+	$host.find(".bnd-cbp-opt").not(".bnd-prp-chip").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_print_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});
@@ -6884,7 +6898,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -6913,7 +6927,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -6955,6 +6969,7 @@ function bnd_sb_import(frm) {
 			bnd_render_filters_picker(frm);
 			bnd_render_login_picker(frm);
 			bnd_render_web_picker(frm);
+			bnd_render_print_picker(frm);
 			bnd_render_email_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A

@@ -7,6 +7,22 @@
   color: var(--bnd-ink-muted);
 }
 
+/* The release review found the OTHER two #7c7c7c surfaces the first cut
+   missed on the same vendor block: the terms block, beatable at (0,2,0)... */
+.print-format .info-card {
+  color: var(--bnd-ink-muted);
+}
+
+/* ...and the 'Total in words' label, which the vendor locks with a BODY
+   `!important` LITERAL no head rule can beat unescalated. This is the
+   sanctioned pattern's fourth site (GUIDELINES §1.3): a vendor `!important`
+   literal, a measured WCAG failure (4.17:1), and no escalation path — a
+   print document has no `.bunood` root to climb through. Specificity then
+   decides between the two importants: (0,2,0) beats (0,1,0). */
+.print-format .title {
+  color: var(--bnd-ink-muted) !important;
+}
+
 .print-format h1,
 .print-format h2,
 .print-format h3,
@@ -443,7 +459,12 @@
 /*BND hd=rail*/
 /* The theme's own Edge Rail signature (item 15) on paper: a brand rail down
    the reading-start edge. Physical on purpose -- wkhtml has no logical
-   properties -- and PAIRED per direction, the guard-sanctioned pattern. */
+   properties -- and PAIRED per direction, the guard-sanctioned pattern.
+   DECIDED, NOT OVERLOOKED (review finding): the rail keys on the DOCUMENT's
+   dir, while a .bnd-p format pins its own rtl — so an English-session print
+   of a Bunood invoice rails the left edge of a bilingual page. WebKit 534
+   has no :has() to let the page read its wrapper, and a second rail on the
+   wrapper would double up; the document edge wins, documented here. */
 .print-format {
   border-left: 3px solid var(--bnd-brand-solid);
 }
@@ -469,6 +490,21 @@
   border: none;
 }
 
+/* The vendor paints two things OUTSIDE the cells this pole clears — a
+   td:not(:first-of-type) left border at (0,2,2) that out-specifies the line
+   above, and the header fill on the thead ELEMENT itself. Both re-cleared
+   at matching-or-better specificity (review findings, walked live). */
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
 .print-format table.table-bordered th,
 .print-format .items-table thead td,
 .print-format .bnd-p-items th {
@@ -486,6 +522,17 @@
 .print-format .bnd-p-items td {
   border: none;
   border-bottom: 1px solid var(--bnd-border);
+}
+
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
 }
 
 .print-format table.table-bordered th,
@@ -517,6 +564,12 @@
   print-color-adjust: exact;
 }
 
+@media print {
+  .print-format table.table-bordered th,
+  .print-format .items-table thead td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
 /*BND-END*/
 /*BND tb=zebra*/
 .print-format table.table-bordered tbody tr:nth-child(odd) td,
@@ -528,6 +581,22 @@
   print-color-adjust: exact;
 }
 
+.print-format thead.table-header {
+  background: none;
+}
+
+/* Bootstrap 3 (inside frappe's print bundle) ships
+   `@media print { .table td { background-color: #fff !important } }`, and
+   both PDF engines run print media — without this escalation the zebra
+   VANISHES on paper while the preview shows it. `@media print` is a
+   sanctioned `!important` place (GUIDELINES §1.3), and this is exactly the
+   collision it exists for. */
+@media print {
+  .print-format table.table-bordered tbody tr:nth-child(odd) td,
+  .print-format .items-table tbody tr:nth-child(odd) td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
 .print-format table.table-bordered th,
 .print-format .items-table thead td,
 .print-format .bnd-p-items th {
@@ -543,12 +612,22 @@
 .print-format .items-table,
 .print-format .bnd-p-items {
   background: var(--bnd-pane);
+  /* border-radius is inert on a collapsed-border table — the review caught
+     the first cut relying on it anyway. Separate + zero spacing keeps the
+     collapsed look and lets the corners round. */
+  border-collapse: separate;
+  border-spacing: 0;
   border-radius: 6px;
   -webkit-print-color-adjust: exact;
   color-adjust: exact;
   print-color-adjust: exact;
 }
 
+/* The wash must live on the CELLS too: Bootstrap's print reset paints every
+   `.table td` opaque white with !important, which tiled over a table-level
+   wash and blanked the shipped default on paper (review, walked through
+   frappe's print bundle). Cells carry the wash, and the @media print block
+   below out-escalates the reset where it applies. */
 .print-format table.table-bordered th,
 .print-format table.table-bordered td,
 .print-format .items-table th,
@@ -556,8 +635,31 @@
 .print-format .bnd-p-items th,
 .print-format .bnd-p-items td {
   border: none;
+  background: var(--bnd-pane);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
 }
 
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+@media print {
+  .print-format table.table-bordered th,
+  .print-format table.table-bordered td,
+  .print-format .items-table th,
+  .print-format .items-table td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
 .print-format table.table-bordered th,
 .print-format .items-table thead td,
 .print-format .bnd-p-items th {
@@ -677,7 +779,25 @@
 }
 
 .print-format .bnd-p-totals .g td {
+  /* And no fill: composed over tt=Inverse the first cut left the ink
+     background under ink text — the review's ink-on-ink finding. */
+  background: none;
   border-top-color: var(--bnd-ink);
+}
+
+/* The brand marks the first cut missed (review): the Ruled/Zebra header
+   underline on the vendor tables, and the Rail pole's edge itself. */
+.print-format table.table-bordered th,
+.print-format .items-table thead td {
+  border-bottom-color: var(--bnd-ink);
+}
+
+.print-format {
+  border-left-color: var(--bnd-ink);
+}
+
+[dir=rtl] .print-format {
+  border-right-color: var(--bnd-ink);
 }
 
 /*BND-END*/
@@ -696,6 +816,18 @@
   print-color-adjust: exact;
 }
 
+.print-format thead.table-header {
+  background: none;
+}
+
+/* The fill must survive print media (Bootstrap's white-cell reset — see the
+   Washed pole's note; same sanction, same collision). */
+@media print {
+  .print-format table.table-bordered th,
+  .print-format .items-table thead td {
+    background-color: var(--bnd-brand-solid) !important;
+  }
+}
 .print-format .bnd-p-amountbox {
   background: var(--bnd-pane);
   border-color: var(--bnd-brand-solid);

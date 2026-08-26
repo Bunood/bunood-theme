@@ -106,7 +106,7 @@ COMPOSITIONS cover the coarse need), `print_meta`, `print_contact`,
 `arabic_font`-follows-paper wiring and the pane's "Download sample PDF" button
 (blocked on the environment fact above). Payload: fifth bucket
 `print_css_gzip` (ceiling 4000, at 2305); desk css 20868/21000 after the
-preview chrome. 118 `ar.po` rows, all `#, fuzzy`, awaiting review.
+preview chrome. The 118 `ar.po` rows were drafted `#, fuzzy` and APPROVED by the user 2026-08-26 (`23ab02f`).
 
 ### Email (item 34) — code complete, NOT yet released
 
