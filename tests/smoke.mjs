@@ -148,11 +148,25 @@ const ONLY = (() => {
 /** How many checks the filter skipped, so the tally can say so. */
 let skipped = 0;
 
+/**
+ * The check currently running, so a console error can say WHERE it came from.
+ *
+ * The budget collects across the whole run and prints at the end, which makes a
+ * stray message a diagnostic dead end. Item 34 spent six reproduction attempts on
+ * two sandboxed-iframe warnings that appeared once in 374 checks and could not be
+ * provoked by hand in any mode — desk, ?shell=0, with and without a logo, in a
+ * fresh context, as a guest. HANDOVER records the same complaint about a
+ * waitForFunction timeout that "does not name the pane it was waiting on". One
+ * variable closes both, and costs nothing when the budget is empty.
+ */
+let currentTest = "(before the first check)";
+
 async function test(name, fn) {
 	if (ONLY && !ONLY.test(name)) {
 		skipped++;
 		return;
 	}
+	currentTest = name;
 	try {
 		await fn();
 		results.push({ name, ok: true });
@@ -1159,10 +1173,14 @@ async function main() {
 		// is undiagnosable (learned on this suite's first green-ish run).
 		if (msg.type() === "error") {
 			const loc = msg.location();
-			consoleErrors.push(`${msg.text()} [${loc && loc.url ? loc.url : "?"}]`);
+			consoleErrors.push(
+				`${msg.text()} [${loc && loc.url ? loc.url : "?"}] (during: ${currentTest})`
+			);
 		}
 	});
-	page.on("pageerror", (err) => consoleErrors.push("pageerror: " + err.message));
+	page.on("pageerror", (err) =>
+		consoleErrors.push("pageerror: " + err.message + " (during: " + currentTest + ")")
+	);
 
 	// ── Warm the stack before anything is measured ─────────────────────────
 	//
