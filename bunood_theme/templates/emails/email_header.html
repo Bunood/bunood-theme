@@ -19,7 +19,16 @@
 				{% if indicator %}
 				<span class="indicator indicator-{{indicator}}"></span>
 				{% endif %}
-				<span>{{ header_title }}</span>
+				{#- ITEM 34. `get_header` falls back to `app_title[-1]` — the LAST
+				    INSTALLED APP — when a caller passes a header with no title of its
+				    own, so this rendered "Telephony" on this site and would change with
+				    the next `bench get-app`. `bunood_email_title` substitutes the tenant
+				    name for exactly that value and passes a real title through
+				    untouched. Filed upstream, `frappe-email.md` §6.
+
+				    `| e` because Frappe's Jinja has no autoescaping and the value can
+				    now come from `company_name`, which a System Manager writes. -#}
+				<span>{{ bunood_email_title(header_title) | e }}</span>
 			</h1>
 		</td>
 	</tr>

@@ -92,16 +92,31 @@
 					<tr>
 						<td class="bnd-e-pad" valign="top">
 							<table border="0" cellpadding="0" cellspacing="0" width="100%">
-					{% if brand_logo %}
+					{#- ITEM 34 — the identity row. Three departures from the vendor's,
+					    each deliberate:
+
+					    1. IT DOES NOT DEPEND ON `brand_logo`. Frappe fills that from
+					       Email Account and ONLY when the caller asked for a header or a
+					       container (email_body.py:433) — so stock shows no logo at all
+					       on a Notification email, the commonest kind a site sends. The
+					       source here is Theme Settings, which every branding surface in
+					       this app already reads; `brand_logo` is a fallback.
+					    2. THE VENDOR HREF IS GONE. Stock links the mark to
+					       `https://frappeframework.com` when a site has no URL of its
+					       own — the framework's marketing site, in a customer's mail to
+					       THEIR customers. No link is better than that one.
+					    3. EVERY VALUE CARRIES `| e`. Frappe's Jinja has no autoescaping
+					       anywhere, and `logo` is an `Attach Image`, which
+					       `_sanitize_content` skips outright — item 33 measured a stored
+					       XSS through exactly that field. -#}
+					{%- set bnd_brand = bunood_email_brand(brand_logo) -%}
+					{% if bnd_brand.show_mark or bnd_brand.show_name %}
 					<tr>
-						<td width="40" align="left" valign="middle">
-							<a href="{{ site_url or 'https://frappeframework.com' }}">
-								<img
-									src="{{ brand_logo or '/assets/frappe/images/frappe-framework-logo.svg' }}"
-									height="40"
-									class="brand-logo"
-								/>
-							</a>
+						<td class="bnd-e-brand" align="left" valign="middle">
+							{% if site_url %}<a class="bnd-e-brand-link" href="{{ site_url | e }}">{% endif %}
+							{%- if bnd_brand.show_mark %}<img class="bnd-e-mark" src="{{ bnd_brand.mark | e }}" alt="{{ bnd_brand.name | e }}" height="32" />{% endif -%}
+							{%- if bnd_brand.show_name %}<span class="bnd-e-wordmark">{{ bnd_brand.name | e }}</span>{% endif -%}
+							{% if site_url %}</a>{% endif %}
 						</td>
 					</tr>
 					{% endif %}

@@ -4523,9 +4523,10 @@ const BND_LOGIN_DEFAULTS = {
  * guard for exactly as long as it takes to forget. Item 32 closed that hole;
  * this is not the place to reopen it.
  */
-const BND_EMAIL_FIELDS = ["email_style", "email_action", "email_theme"];
+const BND_EMAIL_FIELDS = ["email_style", "email_header", "email_action", "email_theme"];
 const BND_EMAIL_DEFAULTS = {
 	email_style: "Card",
+	email_header: "Logo + wordmark",
 	email_action: "Brand fill",
 	email_theme: "Follow the client",
 };
@@ -5483,6 +5484,20 @@ const BND_EMAIL_STYLES = [
 ];
 
 const BND_EMAIL_GROUPS = [
+	{
+		field: "email_header",
+		title: () => __("Identity"),
+		desc: () =>
+			__(
+				"Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set."
+			),
+		options: [
+			{ value: "Logo + wordmark", name: () => __("Logo + wordmark") },
+			{ value: "Wordmark", name: () => __("Wordmark") },
+			{ value: "Logo", name: () => __("Logo") },
+			{ value: "None", name: () => __("None") },
+		],
+	},
 	{
 		field: "email_action",
 		title: () => __("Button"),

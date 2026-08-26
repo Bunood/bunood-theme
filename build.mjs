@@ -542,6 +542,12 @@ const EMAIL_SAFE_PROPS = new Set([
 	// Box, as a table-based layout uses it.
 	"width", "min-width", "max-width", "height", "min-height", "max-height",
 	"padding", "margin", "border", "border-width", "border-style", "border-color",
+	// THE BLOCK-AXIS LONGHANDS ONLY, and the omission of the inline ones is not an
+	// oversight to correct later: `assertLogicalOnly` already refuses
+	// `padding-left` and friends on every entry, so listing them here would put
+	// two guards in disagreement. Top and bottom have no direction to get wrong,
+	// which is why they are safe to name.
+	"padding-top", "padding-bottom", "margin-top", "margin-bottom",
 	"border-radius", "border-collapse", "border-spacing", "border-top", "border-bottom",
 	"vertical-align", "display", "overflow", "box-sizing",
 	// Type.

@@ -46,10 +46,12 @@
 //   exemption. Discourse arrived at the same place by hand (`styles.rb:259-260`
 //   sets `dir` and `text-align` on `<body>` and nothing else).
 //
-// SLICE 2 IS THE CONTRACTS AND NOTHING ELSE. The anchor's four poles
-//   (`email_style`) and the three axes are later slices, each landing with its own
-//   measurements. What is here survives `Original`, because both of these are
-//   about whether an email WORKS, not how it looks.
+// THE ORDER OF THIS FILE IS CONTRACTS, THEN ANCHOR, THEN AXES, and that is the
+//   reading order as well as the shipping order. The contracts came first because
+//   they survive `Original` — they are about whether an email WORKS, not how it
+//   looks — and `Original` here is narrower than in any other kit for a reason
+//   the census settled: a Notification email has no ground at all, and an absence
+//   is not a style choice a stand-down may restore.
 //
 // Measured against frappe 16.27.0 on `demo.bunood.test`, seed #4d8756,
 // 2026-08-25. `docs/upstream/frappe-email.md` carries the filings.
@@ -336,4 +338,40 @@ table.bnd-e.bnd-e--masthead.body-table {
 	border-radius: 0;
 	padding: 0;
 	text-decoration: underline;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `email_header` — the identity row. Wordmark · Logo · Logo + wordmark · None.
+//
+// WHICH FORM renders is decided in `email.py::brand()`, not here, and that split
+// is deliberate: the choice depends on whether a raster mark EXISTS, which CSS
+// cannot ask. A pole class that hid a mark the template had already emitted would
+// leave the alt text and the image request in the message either way.
+//
+// So this block styles what the template chose to render, and nothing more.
+// ══════════════════════════════════════════════════════════════════════════
+
+.bnd-e .bnd-e-brand {
+	padding-bottom: 20px;
+}
+
+.bnd-e .bnd-e-brand-link {
+	text-decoration: none;
+	color: var(--bnd-ink);
+}
+
+// `vertical-align: middle` and not a flex row — `assertEmailSafeCss` refuses
+// `display: flex` because a client that ignores it collapses the layout into
+// something nobody designed. Two inline elements on a shared baseline is the
+// oldest trick here and the one that works everywhere.
+.bnd-e .bnd-e-mark {
+	vertical-align: middle;
+	border: 0;
+}
+
+.bnd-e .bnd-e-wordmark {
+	vertical-align: middle;
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--bnd-ink);
 }

@@ -182,6 +182,7 @@
   "section_email",
   "email_picker",
   "email_style",
+  "email_header",
   "email_action",
   "email_theme",
   "section_generated",
@@ -748,6 +749,15 @@
    "hidden": 1,
    "label": "Email Style",
    "options": "Original\nCard\nLetter\nMasthead"
+  },
+  {
+   "default": "Logo + wordmark",
+   "description": "Set by the picker above. How your identity reads at the top of a message. Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set.",
+   "fieldname": "email_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Header",
+   "options": "Logo + wordmark\nWordmark\nLogo\nNone"
   },
   {
    "default": "Brand fill",

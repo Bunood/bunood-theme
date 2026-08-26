@@ -4581,3 +4581,33 @@ msgstr "الزر"
 #, fuzzy
 msgid "Theme"
 msgstr "السمة"
+
+#. src: item34
+#, fuzzy
+msgid "Email Header"
+msgstr "ترويسة البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Set by the picker above. How your identity reads at the top of a message. Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set."
+msgstr "يُضبط من المُنتقي أعلاه. كيف تظهر هويتك في أعلى الرسالة. لا تعرض تطبيقات البريد شعارات SVG، لذا فإن أي صيغة تطلب شعارًا تعود إلى اسمك إذا لم يُضبط شعار نقطي."
+
+#. src: item34
+#, fuzzy
+msgid "Logo + wordmark"
+msgstr "الشعار مع الاسم"
+
+#. src: item34
+#, fuzzy
+msgid "Wordmark"
+msgstr "الاسم"
+
+#. src: item34
+#, fuzzy
+msgid "Identity"
+msgstr "الهوية"
+
+#. src: item34
+#, fuzzy
+msgid "Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set."
+msgstr "لا تعرض تطبيقات البريد شعارات SVG، لذا فإن أي صيغة تطلب شعارًا تعود إلى اسمك إذا لم يُضبط شعار نقطي."

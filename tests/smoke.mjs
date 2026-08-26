@@ -1015,7 +1015,7 @@ const MUTABLE_FIELDS = [
 	// template's class attribute, so a check for it drives `get_formatted_html`
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
-	"email_style", "email_action", "email_theme",
+	"email_style", "email_header", "email_action", "email_theme",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -13936,7 +13936,14 @@ async function main() {
 						const out = [];
 						for (const el of document.querySelectorAll(".bnd-e-foot a, .bnd-e-body a, .bnd-e-body p")) {
 							const cls = String(el.className || "");
-							if (cls.includes("text-muted")) continue; // erpnext's own footer, above
+							// THE EXCLUSION IS GONE, AND THAT IS SLICE 5 CLOSING ITSELF.
+							// This line used to skip `.text-muted` because erpnext's
+							// `default_mail_footer` injected `<a class="text-muted">` as a
+							// STRING carrying `!important`, which no specificity beats — the
+							// one known survivor of contract E3, named rather than tolerated
+							// silently so a NEW failure could not hide behind it. Slice 5
+							// removed that footer, so there is nothing left to exclude and
+							// the check now covers every link in the message.
 							if (cls.includes("btn")) continue; // white on a dark fill, by design
 							const owns = [...el.childNodes].some(
 								(n) => n.nodeType === 3 && n.textContent.trim().length > 1
@@ -14290,6 +14297,139 @@ async function main() {
 				"frappe's own get_email_html path no longer crashes without an outgoing account — " +
 					"re-check docs/upstream/frappe-email.md §7 and simplify api.email_preview if it is fixed"
 			);
+		});
+
+
+		await test("email: the framework's name is nowhere in a message", async () => {
+			// EACH HALF ASSERTS THE STOCK VALUE FIRST, BY NAME. Item 33 ran nine
+			// sabotages on its branding slice and one stayed GREEN, because a seeded
+			// `company_name` short-circuited the `or` before the term under test —
+			// the check proved nothing and looked like it proved everything. The
+			// remedy is to make the vendor string an assertion in its own right: if
+			// frappe ever stops emitting it, this goes red and says so, rather than
+			// passing for a reason that has quietly changed.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"res = {\n" +
+					"  'app_titles': frappe.get_hooks('app_title'),\n" +
+					"  'footer_hook': [str(x) for x in (frappe.get_hooks('default_mail_footer') or [])],\n" +
+					"}\n" +
+					"res['html'] = get_formatted_html('T', '<p>body</p>', email_account=acct,\n" +
+					"                                 with_container=True, header=[None, 'blue'])\n" +
+					"print('BND_BR' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_BR"));
+			if (!line) throw new Error("branding probe produced no JSON: " + String(out).slice(-300));
+			const res = JSON.parse(line.slice("BND_BR".length));
+
+			// THE HEADER TITLE. Stock falls back to `app_title[-1]` — the last
+			// installed app — so the string it would show is knowable, and asserted.
+			const fallback = res.app_titles[res.app_titles.length - 1];
+			expect(
+				fallback && fallback !== "Bunood Theme",
+				`the app_title fallback is no longer another app's name (${fallback}) — ` +
+					"this check depended on it being one; re-read frappe-email.md §6"
+			);
+			// TOLERANT OF ATTRIBUTES, and the first cut was not: it matched
+			// `<h1 class="email-header-title">` literally, found nothing, and failed
+			// with "no header title rendered at all" — on a message that had one.
+			// Premailer rewrites every element it inlines onto, so a rendered email
+			// is always read AFTER that rewriting, never as the template wrote it.
+			const title = (res.html.match(
+				/<h1[^>]*class="[^"]*email-header-title[^"]*"[^>]*>[\s\S]*?<span>([^<]*)<\/span>\s*<\/h1>/
+			) || [])[1];
+			expect(title, "no header title rendered at all");
+			expectEq(
+				title.trim().includes(fallback),
+				false,
+				`the header title is still the last installed app's name (${title.trim()})`
+			);
+
+			// THE FOOTER. Same shape: prove the vendor line EXISTS in the hook, then
+			// prove it does not reach the message.
+			const vendorInHook = res.footer_hook.some((l) => /erpnext\.com|frappe\.io/.test(l));
+			expect(
+				vendorInHook,
+				"no vendor link in the default_mail_footer hook — this site no longer reproduces " +
+					"the condition the filter exists for, so the check below would pass vacuously"
+			);
+			expectEq(
+				/erpnext\.com|frappe\.io/.test(res.html),
+				false,
+				"a vendor link reached the rendered message"
+			);
+
+			// AND THE MARK'S LINK. Stock points an unbranded logo at
+			// `frappeframework.com` — the framework's marketing site, in mail a
+			// customer sends to their own customers.
+			expectEq(
+				/frappeframework\.com/.test(res.html),
+				false,
+				"the vendor's marketing URL reached the rendered message"
+			);
+		});
+
+		await test("email: the identity degrades to a name, never to a broken image", async () => {
+			// EVERY BRANCH HERE IS FALSE ON THIS SITE BY DEFAULT — `logo` is null —
+			// which is precisely the class item 33 named: a branch whose guard is
+			// false on the dev site is UNTESTED, not working. So this writes the
+			// field directly and restores in a `finally`, the same way item 33's
+			// branding checks do, because `logo` is deliberately outside
+			// MUTABLE_FIELDS and a failed restore there is real damage.
+			//
+			// THE SVG CASE IS THE POINT. This theme's own mark is an SVG and mail
+			// clients do not render SVG — Discourse strips it outright — so a form
+			// asking for a mark must fall through to the wordmark. Rendering the
+			// `<img>` anyway would put a broken-image icon where the brand should be.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"keep = {f: frappe.db.get_single_value('Theme Settings', f)\n" +
+					"        for f in ('logo', 'email_header')}\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for logo, tag in (('', 'none'), ('/files/x.png', 'raster'), ('/files/x.svg', 'svg')):\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', logo)\n" +
+					"        for form in ('Logo + wordmark', 'Wordmark', 'Logo', 'None'):\n" +
+					"            frappe.db.set_single_value('Theme Settings', 'email_header', form)\n" +
+					"            frappe.clear_cache(doctype='Theme Settings')\n" +
+					"            res[tag + '|' + form] = get_formatted_html(\n" +
+					"                'T', '<p>body</p>', email_account=acct, with_container=True)\n" +
+					"finally:\n" +
+					"    for f, v in keep.items():\n" +
+					"        frappe.db.set_single_value('Theme Settings', f, v)\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_ID' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_ID"));
+			if (!line) throw new Error("identity probe produced no JSON: " + String(out).slice(-300));
+			const render = JSON.parse(line.slice("BND_ID".length));
+
+			const mark = (h) => (h.match(/<img class="bnd-e-mark"[^>]*src="([^"]*)"/) || [])[1] || "";
+			const word = (h) => (h.match(/<span class="bnd-e-wordmark"[^>]*>([^<]*)<\/span>/) || [])[1] || "";
+
+			// A raster mark renders where a form asks for one.
+			expect(mark(render["raster|Logo"]).includes("x.png"), "a raster logo did not render under Logo");
+			expect(
+				mark(render["raster|Logo + wordmark"]) && word(render["raster|Logo + wordmark"]),
+				"Logo + wordmark dropped one of its two halves when both were available"
+			);
+			// And nowhere else.
+			expectEq(mark(render["raster|Wordmark"]), "", "Wordmark rendered a mark it was not asked for");
+			expectEq(mark(render["raster|None"]), "", "None rendered a mark");
+			expectEq(word(render["raster|None"]), "", "None rendered a wordmark");
+
+			// SVG and absent both fall through to the name rather than to an <img>.
+			for (const tag of ["svg", "none"]) {
+				expectEq(mark(render[tag + "|Logo"]), "", `${tag}: an unrenderable mark was emitted anyway`);
+				expect(
+					word(render[tag + "|Logo"]),
+					`${tag}: Logo fell back to nothing at all instead of the wordmark`
+				);
+			}
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

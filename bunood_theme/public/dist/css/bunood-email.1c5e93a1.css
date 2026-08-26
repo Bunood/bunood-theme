@@ -108,3 +108,24 @@ table.bnd-e.bnd-e--masthead.body-table .bnd-e-band {
   padding: 0;
   text-decoration: underline;
 }
+
+.bnd-e .bnd-e-brand {
+  padding-bottom: 20px;
+}
+
+.bnd-e .bnd-e-brand-link {
+  text-decoration: none;
+  color: var(--bnd-ink);
+}
+
+.bnd-e .bnd-e-mark {
+  vertical-align: middle;
+  border: 0;
+}
+
+.bnd-e .bnd-e-wordmark {
+  vertical-align: middle;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bnd-ink);
+}

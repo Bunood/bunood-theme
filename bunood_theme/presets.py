@@ -879,6 +879,7 @@ WEB_DEFAULTS = {
 
 EMAIL_FIELDS = [
     "email_style",
+    "email_header",
     "email_action",
     "email_theme",
 ]
@@ -927,6 +928,20 @@ EMAIL_DEFAULTS = {
     # jointly fitted (3:1 as a fill, 4.5:1 under their own label) at all eleven
     # gate seeds in both modes, so the guarantee comes from a row that has existed
     # since item 17 rather than from one measurement at one seed.
+    # THE IDENTITY AXIS. Wordmark -- Logo -- Logo + wordmark -- None.
+    #
+    # `Logo + wordmark` is the default because it is the only form that
+    # SURVIVES A BLOCKED IMAGE, and a blocked image is the normal case rather than
+    # the edge: most clients suppress remote images until a reader asks for them.
+    # With the name beside the mark the header still says who sent this; with the
+    # mark alone it says nothing at all.
+    #
+    # AND THE MARK IS OFTEN ABSENT EVEN WHEN SET. This theme ships an SVG, and mail
+    # clients do not render SVG -- Discourse strips it outright. So on a site that
+    # has not uploaded a raster logo, which is most of them, every form that asks
+    # for a mark falls through to the wordmark by construction. That is stated in
+    # `email.py::RASTER_SUFFIXES` rather than discovered.
+    "email_header": "Logo + wordmark",
     "email_action": "Brand fill",
     # THE MODE AXIS -- and the one pole in this kit whose FEASIBILITY had to be
     # established before it could be offered.

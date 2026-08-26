@@ -138,6 +138,9 @@ jinja = {
         "bunood_theme.email.bunood_email_css",
         "bunood_theme.email.bunood_email_class",
         "bunood_theme.email.bunood_email_color_scheme",
+        "bunood_theme.email.bunood_email_brand",
+        "bunood_theme.email.bunood_email_title",
+        "bunood_theme.email.bunood_email_footer",
         "bunood_theme.i18n.rtl_patch.is_rtl",
     ]
 }

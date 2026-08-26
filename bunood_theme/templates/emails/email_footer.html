@@ -44,7 +44,16 @@
 	<!-- default_mail_footer -->
 	{% if default_mail_footer %}
 	<div class="default-mail-footer">
-		{% for line in default_mail_footer %}
+		{#- ITEM 34. FILTERED, NOT DROPPED. `bunood_email_footer` removes only lines
+	    that LINK to a vendor host — erpnext.com, frappe.io — which is the framework
+	    advertising itself in mail a customer sends to their own customers. An app
+	    with something useful to say keeps its line, and the word "ERPNext" in a
+	    tenant's own footer text survives, because the tenant may well sell it.
+
+	    The alternative was ticking System Settings' `disable_standard_email_footer`,
+	    and it was refused twice over: it is site DATA this app has no business
+	    writing, and it is all-or-nothing — it would silence a legitimate app too. -#}
+	{% for line in bunood_email_footer(default_mail_footer) %}
 		<div>{{ line }}</div>
 		{% endfor %}
 	</div>

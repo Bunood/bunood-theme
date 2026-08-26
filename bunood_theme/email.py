@@ -326,6 +326,143 @@ def bunood_email_class(settings=None) -> str:
         return ""
 
 
+#: Hosts whose presence in a footer line means the FRAMEWORK is advertising
+#: itself on a customer's mail, rather than an app saying something useful.
+#:
+#: Deliberately a host list and not a word list. "ERPNext" can legitimately appear
+#: in a customer's own footer text; a link to erpnext.com in mail the customer
+#: sends to THEIR customers cannot. Item 33 made the same distinction on the
+#: website, where the seam was `footer_powered`.
+VENDOR_FOOTER_HOSTS = ("frappe.io", "frappeframework.com", "erpnext.com")
+
+#: File extensions a mail client will actually render.
+#:
+#: SVG IS THE ONE THAT MATTERS AND IT IS ABSENT. Discourse strips `svg` and
+#: `img[src$=".svg"]` from outgoing mail outright (`lib/email/styles.rb:70`)
+#: because clients do not render it, and this theme's own shipped mark is
+#: `bunood-mark.svg` — so the honest consequence is that OUR mark never appears in
+#: an email, and the chain falls through to the wordmark instead. Shipping a
+#: raster placeholder to fill the gap was considered and refused: the logo is
+#: PARKED (HANDOVER, 2026-08-24) and a placeholder that only exists in email would
+#: be a second mark to keep in step with the real one when it lands.
+RASTER_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+
+def brand(logo_from_account=None, settings=None) -> dict:
+    """What the email header should show, resolved once.
+
+    Args:
+        logo_from_account: the wrapper's ``brand_logo`` context key, which Frappe
+            fills from ``Email Account.brand_logo`` — and only when the caller
+            asked for a header or a container (``email_body.py:433``). It is a
+            FALLBACK here rather than the source, because relying on it would
+            reproduce the defect that gate creates: a Notification email passes
+            neither, so stock shows no logo on the commonest message a site sends.
+        settings: an already-loaded Theme Settings, when the caller has one.
+
+    Returns:
+        ``{"mark": url or "", "name": str, "show_mark": bool, "show_name": bool}``
+        — RAW, not escaped. The template escapes at the point of use with ``| e``,
+        which is the convention `letterhead/*.html` and `printing/formats/*.html`
+        already follow, and it is not optional: Frappe's Jinja has no autoescaping
+        anywhere, and ``logo`` is an ``Attach Image``, which
+        ``_sanitize_content`` skips entirely.
+    """
+    from bunood_theme.context import _tenant_branding, _vendor_name
+    from bunood_theme.presets import EMAIL_DEFAULTS
+
+    s = settings or frappe.get_cached_doc("Theme Settings")
+    form = getattr(s, "email_header", None)
+    if form not in EMAIL_HEADER_FORMS:
+        form = EMAIL_DEFAULTS["email_header"]
+
+    tenant = _tenant_branding()
+    name = tenant["company_name"] or _vendor_name()
+
+    candidate = (tenant["logo"] or logo_from_account or "").strip()
+    mark = candidate if candidate.lower().endswith(RASTER_SUFFIXES) else ""
+
+    return {
+        "mark": mark,
+        "name": name,
+        # A form that asks for a mark and has none falls back to the WORDMARK
+        # rather than rendering an empty row. "Degrade to something" is the rule
+        # GUIDELINES §Design states; an email whose header is a blank 32px band
+        # reads as a broken image, which is worse than a name.
+        "show_mark": bool(mark) and form in ("Logo", "Logo + wordmark"),
+        "show_name": form in ("Wordmark", "Logo + wordmark") or (form == "Logo" and not mark),
+    }
+
+
+#: The four identity forms. Kept beside `brand()` because it is the only consumer.
+EMAIL_HEADER_FORMS = ("Logo + wordmark", "Wordmark", "Logo", "None")
+
+
+def bunood_email_brand(logo_from_account=None, settings=None) -> dict:
+    """Jinja global. See :func:`brand`. Never raises."""
+    try:
+        return brand(logo_from_account, settings)
+    except Exception:
+        frappe.log_error(title="bunood_theme: email brand stood down")
+        return {"mark": "", "name": "", "show_mark": False, "show_name": False}
+
+
+def bunood_email_title(header_title=None, settings=None) -> str:
+    """Jinja global. The header title, with the framework's name substituted out.
+
+    ``get_header`` (``email_body.py:672``) falls back to
+    ``frappe.get_hooks("app_title")[-1]`` — the LAST INSTALLED APP — when a caller
+    passes a header with no title of its own. On this site that renders
+    **"Telephony"**, and installing any app changes the branding of every such
+    email. Filed upstream (``docs/upstream/frappe-email.md`` §6).
+
+    THE SUBSTITUTION IS KEYED ON THE FALLBACK VALUE, not on a guess about intent,
+    because that value is knowable: it is exactly ``app_title[-1]``. A title equal
+    to it did not come from a caller who meant it — no call site passes the name
+    of whichever app happens to sort last. A real title passes through untouched.
+    """
+    try:
+        titles = frappe.get_hooks("app_title") or []
+        fallback = titles[-1] if titles else None
+        if header_title and header_title != fallback:
+            return header_title
+
+        from bunood_theme.context import _tenant_branding, _vendor_name
+
+        return _tenant_branding()["company_name"] or _vendor_name()
+    except Exception:
+        frappe.log_error(title="bunood_theme: email title stood down")
+        return header_title or ""
+
+
+def bunood_email_footer(default_mail_footer=None) -> list:
+    """Jinja global. The footer lines, minus the framework advertising itself.
+
+    ``get_footer`` (``email_body.py:557-576``) appends every app's
+    ``default_mail_footer`` hook unless System Settings'
+    ``disable_standard_email_footer`` is set. On this site that resolves to
+    erpnext's *"Sent via ERPNext"* — the framework's name, in mail a customer
+    sends to THEIR customers.
+
+    WHY NOT JUST TICK THE SYSTEM SETTING, which is the obvious fix. Two reasons.
+    It is site DATA, and this theme changes a tenant's data only through
+    ``setup.py``'s seeder where the field is its own; reaching into System
+    Settings to switch off a framework feature is a bigger claim than a theme
+    should make silently. And it is all-or-nothing: it would also suppress a
+    legitimate app's footer, which is not what a white-label theme is for.
+
+    So the filter is narrow and stated: a line is dropped only when it LINKS to a
+    vendor host. "ERPNext" as a word in a customer's own footer text survives —
+    the customer may well sell it. Item 33 drew the same line on the website.
+    """
+    try:
+        lines = list(default_mail_footer or [])
+        return [ln for ln in lines if not any(h in str(ln) for h in VENDOR_FOOTER_HOSTS)]
+    except Exception:
+        frappe.log_error(title="bunood_theme: email footer filter stood down")
+        return list(default_mail_footer or [])
+
+
 def bunood_email_color_scheme(settings=None) -> str:
     """Jinja global. The ``color-scheme`` meta value for the stored theme."""
     try:
