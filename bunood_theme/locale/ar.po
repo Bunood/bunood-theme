@@ -4359,3 +4359,11 @@ msgstr "الأدوات"
 #, fuzzy
 msgid "What's New"
 msgstr "ما الجديد"
+
+#. src: upstream-gap
+#. Absent from frappe's ar.po entirely, so there is nothing to inherit. Verified
+#. on a live v16 desk: with this row the list-view filter action renders
+#. حفظ التصفية الحالية. Drop it the moment upstream ships its own.
+#, fuzzy
+msgid "Save Current Filter"
+msgstr "حفظ التصفية الحالية"
