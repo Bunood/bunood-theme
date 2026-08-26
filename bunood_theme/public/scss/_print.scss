@@ -71,6 +71,23 @@
   .bnd-dock,
   .bnd-apps-rail,
   .page-actions,
+  // Item 35's census re-measured this list against v16 and found the residue
+  // item 8 could not have seen: the filter controls moved into `.page-form`
+  // (item 31's census — the `.filter-section` lines below match nothing on a
+  // list view any more, kept for the routes that still render them), and
+  // nothing had ever measured the selection checkboxes or the like/comment
+  // affordances on paper — 2 ghost filter blocks, 21 checkboxes and 40
+  // interactive icons per printed list, quantified before this rule existed.
+  .page-form,
+  .list-row-checkbox,
+  .list-header-subject input[type="checkbox"],
+  .like-action,
+  // Not `.comment-count` itself: frappe puts Bootstrap's `d-flex` on that
+  // span, and `display: flex !important` beats any unescalated hide. Its
+  // whole `.list-row-activity` cluster is interactive chrome (comments,
+  // likes), so the SCOPE is the honest fix — hide the parent, fight nothing.
+  .list-row-activity,
+  .list-liked-by-me,
   .form-sidebar,
   .list-sidebar,
   .layout-side-section,

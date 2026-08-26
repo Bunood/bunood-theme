@@ -14936,6 +14936,42 @@ async function main() {
 			expect(r.standdown, "Frappe's own OVERWROTE the record — the stand-down wrote where it promised not to");
 		});
 
+		await test("print: Ctrl+P leaves no interactive residue on paper", async () => {
+			// Item 8's hide-list predates the v16 census twice over: item 31
+			// proved the filter controls moved into `.page-form` (the sheet still
+			// hides `.filter-section`, which matches nothing there), and nothing
+			// ever measured the list's selection checkboxes or the like/comment
+			// affordances on paper. The item-35 census quantified the residue: 2
+			// filter blocks, 21 checkboxes, 40 like/comment icons, one stray
+			// button — all interactive chrome, none of it printable. This is the
+			// desk print sheet's FIRST suite coverage ever.
+			//
+			// `emulateMedia` PERSISTS on the shared page (the item-30 hazard) —
+			// reset in `finally`, always.
+			await goDesk("/desk/todo", ".list-row-container, .frappe-list", 2500);
+			try {
+				await page.emulateMedia({ media: "print" });
+				await page.waitForTimeout(300);
+				const residue = await page.evaluate(() => {
+					const vis = (el) => {
+						const r = el.getBoundingClientRect();
+						const cs = getComputedStyle(el);
+						return r.width > 2 && r.height > 2 && cs.display !== "none" && cs.visibility !== "hidden";
+					};
+					return {
+						filters: [...document.querySelectorAll(".page-form, .standard-filter-section")].filter(vis).length,
+						checkboxes: [...document.querySelectorAll(".list-row-checkbox, .list-header-subject input[type=checkbox]")].filter(vis).length,
+						likes: [...document.querySelectorAll(".like-action, .comment-count, .list-liked-by-me")].filter(vis).length,
+					};
+				});
+				expectEq(residue.filters, 0, "the filter strip still prints as a ghost row of empty boxes");
+				expectEq(residue.checkboxes, 0, "selection checkboxes still print");
+				expectEq(residue.likes, 0, "like/comment affordances still print");
+			} finally {
+				await page.emulateMedia({ media: null });
+			}
+		});
+
 		await test("print: the muted ink and table-head contracts clear AA on an ERPNext invoice", async () => {
 			// The census measured stock: `.text-muted` #7c7c7c on #fff = 4.17:1 and
 			// `thead.table-header td` #7c7c7c on #f8f8f8 = 3.93:1 — live AA
