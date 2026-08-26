@@ -3,7 +3,7 @@
     الفاتورة الضريبية القياسية الكاملة مكانها قالب A4.
     مقاس الصفحة معلَن على ‏.print-format‏ (وحده ما يقرأه محرّك الـ PDF)،
     لذا زر PDF يُخرج 80مم فعلياً على المحرّكين. بلا Letter Head. -#}
-{% from "templates/bunood_print_macros.html" import thermal_head, thermal_items, thermal_totals, zatca_qr %}
+{% from "templates/bunood_print_macros.html" import thermal_head, thermal_foot, thermal_items, thermal_totals, zatca_qr %}
 <style>
 /* Page size MUST be declared on `.print-format`: read_options_from_html() reads
    page-width/page-height/margin-* from rules whose selector is PURELY that, and
@@ -25,4 +25,5 @@
   {{ thermal_totals(doc) }}
   {{ zatca_qr(doc, 120) }}
   <div class="bnd-p-th-sub">شكراً لتعاملكم معنا</div>
+  {{ thermal_foot(doc) }}
 </div>

@@ -26,22 +26,6 @@
 @font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Amiri'; src: url('/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 
-/* Official Saudi Riyal sign, U+20C1 (Unicode 17.0), from SAMA's own published
-   outline.
-
-   woff2 ONLY, and the reason is worth stating because this file's header
-   argues the opposite. The header says the engine is wkhtmltopdf (WebKit 534),
-   which cannot read woff2 - so this shipped a TrueType first. It is wrong about
-   this stack. `compose.yaml` sets `chromium_path /usr/bin/chromium-headless-shell`,
-   and bunood_real_estate's Single Source Register names "Print Format + Chrome
-   PDF generator" as the ONE way to make a PDF and lists wkhtmltopdf under
-   Never. A Chromium engine reads woff2, so the TTF was 1.4 KB solving a problem
-   this platform does not have.
-
-   `unicode-range` is an optimisation, not the safety mechanism. The font
-   contains exactly ONE glyph, so even an engine that ignored unicode-range
-   would fall through to Cairo/Amiri for every other character by ordinary
-   glyph-coverage fallback. That is why it is safe to list first. */
 /* Riyal U+20C1 — obeys the ENGINE RULES above, and deviates in exactly one way.
  *
  * This face shipped woff2-ONLY for a day, on the belief that compose.yaml's
@@ -142,6 +126,26 @@
 /* ===== thermal (80mm) — pure black ink: 203dpi monochrome heads have no
    grayscale (mid-grays dither/vanish); brand color stays on A4/browser ===== */
 .bnd-p--thermal { width: 72mm; margin: 0 auto; font-size: 10.5px; text-align: center; color: #000; }
+/* Footer anchoring, browser-print path only.
+
+   The PDF path already pins it: utils/pdf.py lifts #footer-html out of the body
+   and hands it to the engine as the repeating page footer, so it sits at the
+   bottom of every page. Ctrl+P in a browser never goes through that code — the
+   block stays in the flow and lands wherever the content happens to end, which
+   on a short invoice is the middle of the page.
+
+   position:fixed inside @media print repeats on every printed page, which is
+   the behaviour wanted; the padding reserves the strip so a long document
+   cannot run underneath it. */
+@media print {
+  #footer-html { position: fixed; bottom: 0; left: 0; right: 0; }
+  .print-format { padding-bottom: 22mm; }
+}
+
+.bnd-p-th-logo { text-align: center; margin-bottom: 2px; }
+/* 24mm inside a 72mm strip: a logo that reads without pushing the first
+   line off the top of a receipt. max-height caps a tall logo too. */
+.bnd-p-th-logo img { max-width: 24mm; max-height: 12mm; }
 .bnd-p-th-co { font-weight: 800; font-size: 13px; color: #000; }
 .bnd-p-th-sub { color: #000; font-size: 9.5px; }
 .bnd-p-th-title { font-weight: 800; font-size: 12px; margin: 3px 0; }

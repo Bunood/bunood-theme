@@ -270,11 +270,22 @@ def _sync_format(spec):
         # Engine is resolved PER PRINT FORMAT by print_utils.get_print, never
         # from Print Settings, and frappe ships a patch that stamps every format
         # with "wkhtmltopdf" -- so this field is the only place the choice takes
-        # effect, and it is managed here so it self-heals on migrate like the
-        # rest of this dict. Safe on our image: frappe_docker installs
-        # chromium-headless-shell unless INSTALL_CHROMIUM=false (this stack does
-        # not set it), and compose.yaml points chromium_path at that binary.
-        "pdf_generator": "chrome",
+        # effect, and it is managed here so it self-heals on migrate.
+        #
+        # BACK TO wkhtmltopdf, reversing 17afaa7. That commit moved to chrome for
+        # ONE reason: the riyal glyph would not embed under wkhtmltopdf. d205b38
+        # then fixed that properly by registering the face with fontconfig, so
+        # the reason is gone -- and chrome turns out to carry a cost the letter
+        # head cannot pay. Measured on a live bench, same invoice, same company:
+        #
+        #     wkhtmltopdf   34921 B   riyal YES   footer phone/email YES
+        #     chrome       235428 B   riyal YES   footer phone/email NO
+        #
+        # frappe's chrome generator renders the page HEADER and drops the page
+        # FOOTER. Not our markup: the stock "Standard" format loses its footer
+        # under chrome too, which is the control that settles it. So chrome means
+        # no address, phone or email on any printout.
+        "pdf_generator": "wkhtmltopdf",
     }
     if frappe.db.exists("Module Def", MODULE):
         values["module"] = MODULE

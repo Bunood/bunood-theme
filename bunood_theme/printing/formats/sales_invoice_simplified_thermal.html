@@ -1,7 +1,7 @@
 {#- Managed by bunood_theme: edits here are overwritten on every migrate.
     بونود — فاتورة ضريبية مبسطة (حراري 80مم) — إيصال POS. الـQR إلزامي (تحذير مرئي
     عند غيابه). مقاس الصفحة على ‏.print-format‏ — زر PDF يُخرج 80مم فعلياً. -#}
-{% from "templates/bunood_print_macros.html" import thermal_head, thermal_items, thermal_totals, zatca_qr %}
+{% from "templates/bunood_print_macros.html" import thermal_head, thermal_foot, thermal_items, thermal_totals, zatca_qr %}
 <style>
 /* Page size MUST be declared on `.print-format`: read_options_from_html() reads
    page-width/page-height/margin-* from rules whose selector is PURELY that, and
@@ -20,4 +20,5 @@
   {{ thermal_totals(doc) }}
   {{ zatca_qr(doc, 120, required=True) }}
   <div class="bnd-p-th-sub">شكراً لتعاملكم معنا</div>
+  {{ thermal_foot(doc) }}
 </div>
