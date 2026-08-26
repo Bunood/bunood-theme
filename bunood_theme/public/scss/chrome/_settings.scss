@@ -1311,3 +1311,31 @@ html[data-theme] {
 	block-size: 320px;
 	border: 0;
 }
+
+// ── The print preview (item 35) — the email preview's frame, paper-sized ────
+// A4 is portrait, so the frame is taller than email's; same fixed-height
+// argument (sandboxed cross-document content height is unreadable, and a
+// rendered page must never run a script to report it).
+.bnd-prp-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: bnd-space(2);
+	margin-block-start: bnd-space(3);
+	align-items: center;
+}
+.bnd-prp-chipgap {
+	inline-size: bnd-space(3);
+}
+.bnd-prp-preview:not(:empty) {
+	margin-block-start: bnd-space(2);
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	overflow: hidden;
+	background: var(--bnd-pane);
+}
+.bnd-prp-frame {
+	display: block;
+	inline-size: 100%;
+	block-size: 460px;
+	border: 0;
+}

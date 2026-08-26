@@ -22,6 +22,7 @@
 # fresh empty one, and the stand-down is already logged by sheet.print_css.
 
 import os
+import re
 
 import frappe
 
@@ -114,20 +115,59 @@ def _sync_style(settings=None):
         settings.save(ignore_permissions=True)
 
 
-def _sync_letterhead():
+#: `print_letterhead` value -> the `<!--BND lh=slug-->` block that composes it.
+#: `Frappe's own` is deliberately absent: it is the TRUE stand-down — the sync
+#: never touches the record, so a tenant's hand-made letterhead survives.
+LETTERHEAD_SLUGS = {
+    "Bilingual Split": "split",
+    "Centered Mark": "center",
+    "Hairline Minimal": "minimal",
+}
+
+_LH_BLOCK = re.compile(r"<!--BND lh=([\w-]+)-->(.*?)<!--BND-END-->", re.S)
+
+
+def _sync_letterhead(settings=None):
     """Create/refresh the bilingual Letter Head from letterhead/*.html.
+
+    THREE SELECTIONS HAPPEN AT SYNC, so the stored record is one concrete
+    thing: the COMPOSITION (`print_letterhead` picks a marked block — the
+    print sheet's pole mechanism on HTML), the COLOURS (var(--bnd-*)
+    substituted through palette.derive(), because a PDF header renders in
+    isolation where custom properties never resolve), and the LOGO (the
+    theme's own raster logo replaces the `__BND_THEME_LOGO__` placeholder —
+    theme wins, Company falls back, SVG never rides: the email RASTER rule).
+
     Set as default ONLY when the site has no default letter head (respect
-    the admin's choice, same policy as the print style)."""
-    from bunood_theme.email import substitute, tokens
+    the admin's choice, same policy as the print style). Under `Frappe's own`
+    this returns before touching anything.
+    """
+    from bunood_theme.email import RASTER_SUFFIXES, substitute, tokens
+
+    doc = settings or frappe.get_cached_doc("Theme Settings")
+    pole = doc.get("print_letterhead") or "Bilingual Split"
+    if pole not in LETTERHEAD_SLUGS:
+        # "Frappe's own" — and any future value this table does not know reads
+        # as a stand-down rather than a guess, the assembly doctrine.
+        return
+    slug = LETTERHEAD_SLUGS[pole]
 
     lh_dir = os.path.join(os.path.dirname(BASE), "letterhead")
     header = open(os.path.join(lh_dir, "bunood_letterhead_header.html"), encoding="utf-8").read()
     footer = open(os.path.join(lh_dir, "bunood_letterhead_footer.html"), encoding="utf-8").read()
-    # The letterhead renders in the PDF header sub-document, where custom
-    # properties never resolve — so its var(--bnd-*) are substituted here, the
-    # same funnel as the print sheet. substitute() throws on the unknown, and
-    # the per-step guard in sync_print_theme turns that into a logged skip
-    # rather than a half-substituted letterhead.
+
+    found = {m.group(1) for m in _LH_BLOCK.finditer(header)}
+    if slug not in found:
+        raise KeyError(
+            f"print_letterhead is {pole!r} and the header file has no <!--BND lh={slug}--> block"
+        )
+    header = _LH_BLOCK.sub(lambda m: m.group(2) if m.group(1) == slug else "", header)
+
+    logo = (doc.get("logo") or "").strip()
+    if not logo.lower().endswith(RASTER_SUFFIXES):
+        logo = ""
+    header = header.replace("__BND_THEME_LOGO__", frappe.utils.escape_html(logo))
+
     tok = tokens("light")
     header = substitute(header, tok)
     footer = substitute(footer, tok)
@@ -201,7 +241,7 @@ def resync_print_brand(settings=None):
             message=frappe.get_traceback(),
         )
     try:
-        _sync_letterhead()
+        _sync_letterhead(settings)
     except Exception:
         frappe.log_error(
             title="bunood_theme: letterhead resync failed"[:140],

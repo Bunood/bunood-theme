@@ -192,6 +192,7 @@
   "print_totals_style",
   "print_heading_style",
   "print_accent",
+  "print_letterhead",
   "section_generated",
   "brand_css_url"
  ],
@@ -838,6 +839,15 @@
    "hidden": 1,
    "label": "Print Accent",
    "options": "Brand headings\nInk only\nBrand panels"
+  },
+  {
+   "default": "Bilingual Split",
+   "description": "Set by the picker above. How the synced Letter Head is composed from your identity - logo, Arabic and English names. Frappe's own leaves whatever Letter Head the site already uses untouched.",
+   "fieldname": "print_letterhead",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Letterhead",
+   "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
   },
   {
    "fieldname": "section_generated",

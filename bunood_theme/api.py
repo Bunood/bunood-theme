@@ -967,3 +967,91 @@ def print_presets() -> dict:
     from bunood_theme.presets import PRINT_AXES, PRINT_PRESETS
 
     return {"axes": PRINT_AXES, "presets": PRINT_PRESETS}
+
+
+@frappe.whitelist()
+def print_preview(shape: str = "document", lang: str = "en") -> str:
+    """A printed page, rendered for the picker — the THIRD honest live preview.
+
+    Email's was the first (items 32/33 each refused one for reasons that fail
+    here too); this one is MORE honest still: a real ``get_html_and_style``
+    render, through the real Print Style record, of a SPECIMEN document — the
+    ``?doc=`` inline-dict path the census proved, so no tenant record is ever
+    read and nothing needs to exist in the DB. The ``lang`` chip is the one no
+    other kit could offer: the same specimen re-rendered in Arabic, showing the
+    slice-2 direction closure live where the styles are chosen.
+
+    Returns a WHOLE document (the email preview's iframe argument — a print
+    page IS one), or ``""`` on any failure: a failed preview is not a failed
+    picker.
+    """
+    frappe.only_for("System Manager")
+    try:
+        import json
+
+        shape = shape if shape in ("document", "invoice") else "document"
+        lang = lang if lang in ("en", "ar") else "en"
+        keep = frappe.local.lang
+        frappe.local.lang = lang
+        try:
+            from frappe.utils.jinja_globals import bundled_asset
+            from frappe.www.printview import get_html_and_style
+
+            from bunood_theme.setup import is_rtl as _is_rtl
+
+            frappe.local.form_dict = frappe._dict()
+            if shape == "invoice" and frappe.db.exists("DocType", "Sales Invoice"):
+                # An invoice-shaped specimen, because a style that reads right
+                # on prose can fail on a table — the item-34 fixture lesson,
+                # applied to the preview itself. Defensive on erpnext's
+                # presence, like every printing/jinja.py helper.
+                doc = {
+                    "doctype": "Sales Invoice",
+                    "name": "BND-PREVIEW-0042",
+                    "customer": "Specimen Customer",
+                    "customer_name": frappe._("Specimen Customer"),
+                    "posting_date": "2026-08-26",
+                    "due_date": "2026-09-25",
+                    "currency": "SAR",
+                    "company": frappe.db.get_default("company") or "Specimen Co",
+                    "total": 25760.0,
+                    "grand_total": 29624.0,
+                    "items": [
+                        {"doctype": "Sales Invoice Item", "item_name": frappe._("Site survey"),
+                         "qty": 2, "rate": 1500.0, "amount": 3000.0, "idx": 1},
+                        {"doctype": "Sales Invoice Item", "item_name": frappe._("Structural design"),
+                         "qty": 1, "rate": 8400.0, "amount": 8400.0, "idx": 2},
+                    ],
+                    "taxes": [],
+                }
+                r = get_html_and_style(
+                    doc=json.dumps(doc), print_format="Sales Invoice Standard", style="Bunood"
+                )
+            else:
+                doc = {
+                    "doctype": "ToDo",
+                    "name": "BND-PREVIEW-0001",
+                    "description": frappe._("A specimen task, rendered through the standard layout."),
+                    "status": "Open",
+                    "priority": "Medium",
+                    "date": "2026-08-26",
+                }
+                r = get_html_and_style(doc=json.dumps(doc), style="Bunood")
+
+            if not r or not r.get("html"):
+                return ""
+            direction = "rtl" if _is_rtl(lang) else "ltr"
+            bundle = bundled_asset("print.bundle.css")
+            return (
+                f'<!DOCTYPE html><html lang="{lang}" dir="{direction}"><head>'
+                f'<meta charset="utf-8"><link rel="stylesheet" href="{bundle}">'
+                f'<style>{r.get("style") or ""}</style></head>'
+                f'<body class="print-format-gutter">'
+                f'<div class="print-format print-format-preview">{r["html"]}</div>'
+                f"</body></html>"
+            )
+        finally:
+            frappe.local.lang = keep
+    except Exception:
+        frappe.log_error(title="bunood_theme: print preview stood down")
+        return ""

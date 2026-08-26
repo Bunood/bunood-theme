@@ -4537,7 +4537,7 @@ const BND_EMAIL_DEFAULTS = {
 /** Client mirror of presets.PRINT_FIELDS. Keep in sync. */
 const BND_PRINT_FIELDS = [
 	"print_header_style", "print_table_style", "print_totals_style",
-	"print_heading_style", "print_accent",
+	"print_heading_style", "print_accent", "print_letterhead",
 ];
 const BND_PRINT_DEFAULTS = {
 	print_header_style: "Wash Card",
@@ -4545,6 +4545,7 @@ const BND_PRINT_DEFAULTS = {
 	print_totals_style: "Washed Panel",
 	print_heading_style: "Original",
 	print_accent: "Brand panels",
+	print_letterhead: "Bilingual Split",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
@@ -5812,6 +5813,11 @@ const BND_PRINT_GROUPS = [
 		title: () => __("Brand on paper"),
 		desc: () => __("How much of your colour reaches print. Ink only saves toner; thermal receipts always print pure black regardless."),
 	},
+	{
+		field: "print_letterhead",
+		title: () => __("Letterhead"),
+		desc: () => __("Composed from your logo and names and kept in sync with your colours. Frappe's own leaves whatever Letter Head the site already uses untouched."),
+	},
 ];
 
 // The preset table, fetched ONCE per page and cached — the server is the one
@@ -5910,6 +5916,27 @@ function bnd_render_print_picker(frm, host) {
 					},
 					{ zone: "extras", html: groups },
 				]) +
+				(() => {
+					const chip = (k, v, label) =>
+						`<button type="button" class="bnd-cbp-opt bnd-prp-chip" data-k="${k}" data-v="${v}" aria-pressed="${
+							bnd_print_preview_state[k] === v ? "true" : "false"
+						}">${label}</button>`;
+					return (
+						'<div class="bnd-prp-chips" role="group" aria-label="' + __("Print preview") + '">' +
+						chip("shape", "invoice", __("Invoice")) +
+						chip("shape", "document", __("Document")) +
+						'<span class="bnd-prp-chipgap"></span>' +
+						chip("lang", "en", __("English")) +
+						chip("lang", "ar", __("Arabic")) +
+						"</div>" +
+						'<div class="bnd-prp-preview" data-bnd-part="print-preview"></div>' +
+						P.note(
+							__(
+								"A specimen document through the real print pipeline — no record on this site is read. PDFs from wkhtmltopdf can differ in detail."
+							)
+						)
+					);
+				})() +
 				"</div>"
 		)
 	);
@@ -5932,6 +5959,54 @@ function bnd_render_print_picker(frm, host) {
 		const f = this.getAttribute("data-field");
 		bnd_print_set(frm, f, BND_PRINT_DEFAULTS[f]);
 	});
+	$host.find(".bnd-prp-chip").on("click", function () {
+		const k = this.getAttribute("data-k");
+		bnd_print_preview_state[k] = this.getAttribute("data-v");
+		bnd_render_print_picker(frm);
+	});
+
+	bnd_print_preview(frm, $host);
+}
+
+/**
+ * Which specimen the preview shows — TRANSIENT UI state, deliberately not a
+ * field: what an admin last previewed is not site configuration, and a field
+ * for it would be the same-fact trap wearing a convenience.
+ */
+const bnd_print_preview_state = { shape: "invoice", lang: "en" };
+
+/**
+ * The live paper preview — the email preview's mechanics (synchronous frame,
+ * sandboxed srcdoc, refetch per render) over a REAL get_html_and_style render
+ * of a SPECIMEN document. Two chip rows make it the most interactive preview
+ * in the project: the SHAPE chips, because a style that reads right on prose
+ * can fail on a table (the item-34 fixture lesson applied to the preview
+ * itself); and the LANGUAGE chips — the same specimen re-rendered in Arabic,
+ * the one demo of the slice-2 direction closure no other kit could offer.
+ */
+function bnd_print_preview(frm, $host) {
+	const $slot = $host.find('[data-bnd-part="print-preview"]');
+	if (!$slot.length) return;
+
+	const frame = document.createElement("iframe");
+	frame.className = "bnd-prp-frame";
+	frame.setAttribute("title", __("Print preview"));
+	frame.setAttribute("sandbox", "");
+	frame.setAttribute("srcdoc", "");
+	$slot.empty().append(frame);
+
+	frappe
+		.xcall("bunood_theme.api.print_preview", {
+			shape: bnd_print_preview_state.shape,
+			lang: bnd_print_preview_state.lang,
+		})
+		.then((html) => {
+			const live = $host.find(".bnd-prp-frame")[0];
+			if (live && html) live.setAttribute("srcdoc", html);
+		})
+		.catch(() => {
+			// A failed preview is not a failed picker.
+		});
 }
 
 /** Set a print field and re-render. Server-rendered surface: the record is

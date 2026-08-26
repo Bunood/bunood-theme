@@ -976,6 +976,7 @@ PRINT_FIELDS = [
     "print_totals_style",
     "print_heading_style",
     "print_accent",
+    "print_letterhead",
 ]
 
 #: The four SECTION AXES the print anchor decomposed into — the item-35 round's
@@ -1017,6 +1018,16 @@ PRINT_DEFAULTS = {
     # new contrast rows. Thermal never sees any of this: 203dpi heads have no
     # grayscale, and the thermal blocks stay literal black by constraint.
     "print_accent": "Brand panels",
+    # THE LETTERHEAD COMPOSITION — selected at SYNC time: the Letter Head
+    # record a site stores carries one concrete layout, recomposed from the
+    # marked blocks in letterhead/bunood_letterhead_header.html whenever the
+    # axis or the seeds change. `Bilingual Split` is the user's pick and the
+    # legacy convention kept: Arabic name right, mark centre, English left —
+    # deliberately physical, a bilingual-letterhead convention, not RTL.
+    # `Frappe's own` is the TRUE stand-down: the sync does not touch the
+    # record at all, so a tenant's hand-made letterhead survives every save
+    # (proved by a sentinel in the suite).
+    "print_letterhead": "Bilingual Split",
 }
 
 #: The thirteen named styles of the wireframe round, as compositions over

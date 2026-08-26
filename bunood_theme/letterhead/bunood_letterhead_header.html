@@ -1,29 +1,40 @@
 {#- ============================================================================
-    Bunood Letter Head — HEADER (bilingual)
+    Bunood Letter Head — HEADER, three compositions (item 35).
     ----------------------------------------------------------------------------
-    Layout: Arabic legal name on the RIGHT · logo in the CENTER · English name
-    on the LEFT. The right/left placement is a DELIBERATE bilingual-letterhead
-    convention (physical), not RTL — keep it fixed.
+    ONE FILE, MARKED BLOCKS. `printing/install.py::_sync_letterhead` reads
+    `Theme Settings.print_letterhead`, keeps exactly the active
+    `<!--BND lh=slug--> ... <!--BND-END-->` block, and writes the result into
+    the Letter Head record — the same sync-time selection the print sheet's
+    pole blocks use, because a stored record must carry ONE concrete layout.
+    Each composition's wrapper carries a `bnd-lh-<slug>` class as the
+    greppable breadcrumb. Under `Frappe's own` the sync never touches the
+    record at all.
 
     SELF-CONTAINED: styles are inline because a PDF header renders in isolation
-    (parent/theme CSS never reaches it). Colours are var(--bnd-*) tokens,
-    SUBSTITUTED per site by printing/install.py::_sync_letterhead through
-    palette.derive() — the record a site stores carries concrete hexes, and a
-    changed brand seed rewrites them on the next Theme Settings save. (Until
-    item 35 these were hand-mirrored hexes of an ABANDONED palette, kept "in
-    sync" with a design-tokens.md that did not exist.)
+    (parent/theme CSS never reaches it). Colours are --bnd-* tokens (written as CSS custom-property references),
+    SUBSTITUTED per site through palette.derive() at sync — the record carries
+    concrete hexes, and a changed brand seed rewrites them on the next Theme
+    Settings save.
 
-    DATA: map the variables to YOUR Company fields on the bench. `name_ar` reads
-    an Arabic-name field ONLY (no Latin fallback), so if it is unmapped the right
-    cell is intentionally blank rather than duplicating the English name. Requires
-    an Arabic font (Cairo/Amiri/Tajawal, or the Noto Arabic fallbacks) installed
-    on the PDF server — see letterhead/README.md.
+    THE LOGO CHAIN (item 35): the THEME'S own logo wins, the Company's is the
+    fallback — one upload in Theme Settings reaches paper, the email `brand()`
+    precedent. `__BND_THEME_LOGO__` is replaced at sync with the raster logo
+    from Theme Settings, or with nothing (SVG never: the PDF engines are not
+    trustworthy with it, the email RASTER rule).
+
+    Bilingual Split's right/left placement is a DELIBERATE bilingual-letterhead
+    convention (physical), not RTL — keep it fixed. `name_ar` reads an
+    Arabic-name field ONLY (no Latin fallback): unmapped means an intentionally
+    blank cell, never the English name twice. Requires an Arabic font on the
+    PDF server — see letterhead/README.md.
     ============================================================================ -#}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
 {%- set name_ar = (_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") -%}
 {%- set name_en = (_c.company_name if _c else "") -%}
-{%- set logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
-<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
+{%- set theme_logo = "__BND_THEME_LOGO__" -%}
+{%- set logo = theme_logo or (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+<!--BND lh=split-->
+<div dir="rtl" class="bnd-lh-split" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
   <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
       <td style="width:39%; text-align:right; vertical-align:middle; font-size:15px; font-weight:700; line-height:1.35;">
@@ -41,3 +52,24 @@
   <div style="border-top:2px solid var(--bnd-accent); margin-top:8px;"></div>
   <div style="border-top:2px solid var(--bnd-brand-solid);"></div>
 </div>
+<!--BND-END-->
+<!--BND lh=center-->
+<div dir="rtl" class="bnd-lh-center" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
+  {% if logo %}<div><img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-height:44px;"></div>{% endif %}
+  {% if name_ar %}<div style="font-size:15px; font-weight:700; line-height:1.4;">{{ name_ar | e }}</div>{% endif %}
+  {% if name_en %}<div dir="ltr" style="font-size:12px; font-weight:600; color:var(--bnd-ink-muted); line-height:1.4;">{{ name_en | e }}</div>{% endif %}
+  <div style="border-top:2px solid var(--bnd-brand-solid); margin-top:8px; width:46%; margin-left:auto; margin-right:auto;"></div>
+</div>
+<!--BND-END-->
+<!--BND lh=minimal-->
+<div dir="rtl" class="bnd-lh-minimal" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:2px 6px 0;">
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="text-align:right; vertical-align:middle; font-size:12px; font-weight:700;">
+        {% if logo %}<img src="{{ logo | e }}" alt="" style="max-height:22px; vertical-align:middle;"> {% endif %}{{ name_ar | e }}{% if name_ar and name_en %} <span style="color:var(--bnd-ink-muted); font-weight:400;">&middot;</span> {% endif %}<span dir="ltr" style="font-weight:600; color:var(--bnd-ink-muted); font-size:11px;">{{ name_en | e }}</span>
+      </td>
+    </tr>
+  </table>
+  <div style="border-top:1px solid var(--bnd-border); margin-top:6px;"></div>
+</div>
+<!--BND-END-->

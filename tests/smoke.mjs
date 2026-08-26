@@ -4324,9 +4324,10 @@ async function main() {
 				// passed here). All counts MEASURED live, not derived.
 				web_picker: { cards: 3, toggles: 0, opts: 5 },
 				email_picker: { cards: 4, toggles: 0, opts: 10 },
-				// 12 preset cards over four section axes (7+6+5+5 options) plus the
-				// accent's 3 — the preset-over-axes anchor, item 35.
-				print_picker: { cards: 12, toggles: 0, opts: 26 },
+				// 12 preset cards over four section axes (7+6+5+5 options), the
+				// accent's 3, the letterhead's 4 and the preview's 4 chips (which
+				// share the opt class) — the preset-over-axes anchor, item 35.
+				print_picker: { cards: 12, toggles: 0, opts: 34 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
@@ -14844,6 +14845,95 @@ async function main() {
 			expectEq(r.bad.length, 0, `presets write un-offered values: ${r.bad.join(", ")}`);
 			expectEq(r.dupes.length, 0, `presets share a composition — the derived label cannot tell them apart: ${r.dupes.join("; ")}`);
 			expectEq(r.default_is, "Soft Cards", "the shipped default composition is not Soft Cards'");
+		});
+
+		await test("print: the preview renders the real funnel, in either language, and only for a manager", async () => {
+			// THE THIRD HONEST LIVE PREVIEW (after email's first): a print document
+			// is composed on the server from a SPECIMEN — never a tenant record,
+			// which keeps email's honesty argument — through the REAL
+			// get_html_and_style funnel with the REAL Print Style record, wrapped
+			// as the whole document an iframe needs. The language chip is the one
+			// no other kit could ever offer: the same specimen re-rendered in
+			// Arabic, showing slice 2's direction closure live in the picker.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.api import print_preview\n" +
+					"en = print_preview(shape='document', lang='en')\n" +
+					"ar = print_preview(shape='document', lang='ar')\n" +
+					"inv = print_preview(shape='invoice', lang='en')\n" +
+					"try:\n" +
+					"    frappe.set_user('Guest')\n" +
+					"    try:\n" +
+					"        print_preview(shape='document', lang='en')\n" +
+					"        guest = 'ALLOWED'\n" +
+					"    except frappe.PermissionError:\n" +
+					"        guest = 'refused'\n" +
+					"finally:\n" +
+					"    frappe.set_user('Administrator')\n" +
+					"print('BND_PP' + json.dumps({\n" +
+					"    'en_doc': '<html' in en and 'print-format' in en,\n" +
+					"    'en_ltr': 'dir=\"ltr\"' in en, 'ar_rtl': 'dir=\"rtl\"' in ar,\n" +
+					"    'styled': 'bnd-hd-' in en or 'bnd-tb-' in en or '.text-muted' in en,\n" +
+					"    'no_var': 'var(--bnd' not in en,\n" +
+					"    'inv_table': 'items' in inv.lower() or 'table' in inv,\n" +
+					"    'guest': guest}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PP"));
+			if (!line) throw new Error("preview probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_PP".length));
+			expect(r.en_doc, "the preview is not a whole document carrying the print vocabulary");
+			expect(r.en_ltr, "the English preview did not render dir=ltr");
+			expect(r.ar_rtl, "the Arabic preview did not render dir=rtl — the direction closure is not reaching the preview");
+			expect(r.styled, "the preview carries none of the record's styling — it is not rendering through the real Print Style");
+			expect(r.no_var, "a var() reached the preview");
+			expect(r.inv_table, "the invoice shape rendered without its table");
+			expectEq(r.guest, "refused", "a Guest was served the preview");
+		});
+
+		await test("print: the letterhead composes per its axis, and Frappe's own stands the sync down", async () => {
+			// The letterhead axis selects a COMPOSITION at sync time (the record a
+			// site stores carries one concrete layout), and its neutral is a true
+			// stand-down: under "Frappe's own" the sync must not touch the record
+			// at all — the tenant keeps whatever letterhead they use, proved by a
+			// sentinel surviving a resync. The other poles recompose, and the
+			// theme's own logo takes precedence over the Company's at render.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.printing.install import resync_print_brand\n" +
+					"keep = {\n" +
+					"    'field': frappe.db.get_single_value('Theme Settings', 'print_letterhead'),\n" +
+					"    'content': frappe.db.get_value('Letter Head', 'Bunood', 'content'),\n" +
+					"}\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for pole, mark in (('Bilingual Split', 'bnd-lh-split'),\n" +
+					"                       ('Centered Mark', 'bnd-lh-center'),\n" +
+					"                       ('Hairline Minimal', 'bnd-lh-minimal')):\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', pole)\n" +
+					"        frappe.clear_cache(doctype='Theme Settings')\n" +
+					"        resync_print_brand()\n" +
+					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        res[pole] = mark in html and 'var(--bnd' not in html\n" +
+					"    frappe.db.set_value('Letter Head', 'Bunood', 'content', 'BND-SENTINEL', update_modified=False)\n" +
+					"    frappe.db.set_single_value('Theme Settings', 'print_letterhead', \"Frappe's own\")\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"    resync_print_brand()\n" +
+					"    res['standdown'] = frappe.db.get_value('Letter Head', 'Bunood', 'content') == 'BND-SENTINEL'\n" +
+					"finally:\n" +
+					"    frappe.db.set_single_value('Theme Settings', 'print_letterhead', keep['field'])\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"    resync_print_brand()\n" +
+					"    if keep['field'] == \"Frappe's own\":\n" +
+					"        frappe.db.set_value('Letter Head', 'Bunood', 'content', keep['content'], update_modified=False)\n" +
+					"print('BND_LH' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_LH"));
+			if (!line) throw new Error("letterhead probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_LH".length));
+			for (const pole of ["Bilingual Split", "Centered Mark", "Hairline Minimal"]) {
+				expect(r[pole], `${pole} did not recompose the Letter Head record (or left a var() in it)`);
+			}
+			expect(r.standdown, "Frappe's own OVERWROTE the record — the stand-down wrote where it promised not to");
 		});
 
 		await test("print: the muted ink and table-head contracts clear AA on an ERPNext invoice", async () => {

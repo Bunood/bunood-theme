@@ -4,7 +4,7 @@
     Address + phone/email/website, then the privacy-policy line ONLY if a value
     exists. The whole footer is guarded: no data => no rule/band prints at all.
     SELF-CONTAINED inline styles (a PDF footer renders in isolation — theme
-    CSS never reaches it). Colours are var(--bnd-*) tokens, substituted per
+    CSS never reaches it). Colours are --bnd-* tokens (written as CSS custom-property references), substituted per
     site at sync exactly as the header's are — see the header's comment for
     the mechanism. LTR values (phone/email/website) are isolated in dir="ltr"
     spans so bidi never reorders +966… or URLs.
