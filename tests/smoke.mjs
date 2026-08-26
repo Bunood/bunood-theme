@@ -40,6 +40,7 @@ import { extractCatalogue, readExempt, readInherited, readTranslations } from ".
 // `fixturesReady` is the same predicate the tool's own exit code uses, so the
 // suite and the tool cannot disagree about what "ready" means.
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalFixtureStatus } from "../tools/portal-fixtures.mjs";
+import { DOCKER_BIN, dockerArgv } from "../tools/docker.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -213,8 +214,8 @@ function benchPy(code, preConnect = "") {
 	for (let attempt = 1; ; attempt++) {
 		try {
 			return execFileSync(
-				"docker",
-				["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+				DOCKER_BIN,
+				dockerArgv("exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
 				{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
 			);
 		} catch (err) {
