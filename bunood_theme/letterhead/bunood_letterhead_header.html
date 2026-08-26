@@ -1,36 +1,57 @@
 {#- ============================================================================
-    Bunood Letter Head — HEADER (bilingual)
+    Bunood Letter Head — HEADER
     ----------------------------------------------------------------------------
-    Layout: Arabic legal name on the RIGHT · logo in the CENTER · English name
-    on the LEFT. The right/left placement is a DELIBERATE bilingual-letterhead
-    convention (physical), not RTL — keep it fixed.
+    Owner's spec: company name + VAT number + commercial registration, with the
+    logo BESIDE them, on every printout. So the identity block leads (right, in
+    RTL) and the logo sits opposite it — replacing the older name·logo·name
+    arrangement, which had nowhere to put the two numbers.
+
+    WHY THE NUMBERS BELONG HERE AND NOT IN EACH FORMAT
+    A KSA tax invoice must carry the seller's VAT; a letter head is the one place
+    that reaches every print format, including formats other apps ship and any
+    format an admin duplicates later. Putting them in the seven Bunood formats
+    would leave every other document without them.
+
+    FIELDS — read from Company, measured on a v16 bench, not guessed:
+      tax_id                        stock ERPNext field, "Tax ID"    -> VAT
+      bnd_commercial_registration   custom field this app installs   -> CR
+      registration_details          stock Code field, free text      -> CR fallback
+      company_logo                  stock Attach Image
+    There is no stock CR field: Company ships only registration_details, a
+    free-text Code field, which is why printing/install.py adds a dedicated one.
+    The fallback exists so a site that already typed its CR into
+    registration_details still prints something rather than a blank line.
 
     SELF-CONTAINED: styles are inline because a PDF header renders in isolation
-    (parent/theme CSS + design tokens do NOT reach it). The hex values mirror the
-    Bunood primitives (green #1F5145 / gold #C8923C / ink #12251F / muted
-    #5C6B66) — keep in sync with docs/design-tokens.md by hand.
+    (parent/theme CSS and design tokens do NOT reach it). Hex mirrors the Bunood
+    primitives (green #1F5145 / gold #C8923C / ink #12251F / muted #5C6B66) —
+    keep in sync with docs/design-tokens.md in bunood_erpnext by hand.
 
-    DATA: map the variables to YOUR Company fields on the bench. `name_ar` reads
-    an Arabic-name field ONLY (no Latin fallback), so if it is unmapped the right
-    cell is intentionally blank rather than duplicating the English name. Requires
-    an Arabic font (Cairo/Amiri/Tajawal, or the Noto Arabic fallbacks) installed
-    on the PDF server — see letterhead/README.md.
+    Numbers are wrapped in dir="ltr" so bidi never reorders a VAT or CR digit
+    string sitting inside Arabic text.
     ============================================================================ -#}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
 {%- set name_ar = (_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") -%}
 {%- set name_en = (_c.company_name if _c else "") -%}
 {%- set logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+{%- set vat = (_c.get("tax_id") if _c else "") -%}
+{%- set cr = (_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") -%}
 <div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:#12251F; padding:4px 6px 0;">
   <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
-      <td style="width:39%; text-align:right; vertical-align:middle; font-size:15px; font-weight:700; line-height:1.35;">
-        {{ name_ar | e }}
+      <td style="width:72%; text-align:right; vertical-align:middle; line-height:1.45;">
+        {% if name_ar %}<div style="font-size:15px; font-weight:700;">{{ name_ar | e }}</div>{% endif %}
+        {% if name_en %}<div style="font-size:12px; font-weight:600; color:#5C6B66; direction:ltr; text-align:right;">{{ name_en | e }}</div>{% endif %}
+        {% if vat or cr %}
+        <div style="font-size:10px; color:#5C6B66; margin-top:2px;">
+          {% if vat %}<span>الرقم الضريبي: <span dir="ltr">{{ vat | e }}</span></span>{% endif %}
+          {% if vat and cr %}<span> &middot; </span>{% endif %}
+          {% if cr %}<span>السجل التجاري: <span dir="ltr">{{ cr | e }}</span></span>{% endif %}
+        </div>
+        {% endif %}
       </td>
-      <td style="width:22%; text-align:center; vertical-align:middle;">
+      <td style="width:28%; text-align:left; vertical-align:middle;">
         {% if logo %}<img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">{% endif %}
-      </td>
-      <td style="width:39%; text-align:left; vertical-align:middle; direction:ltr; font-size:13px; font-weight:600; color:#5C6B66; line-height:1.35;">
-        {{ name_en | e }}
       </td>
     </tr>
   </table>

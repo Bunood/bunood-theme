@@ -4,6 +4,19 @@
     الـQR إلزامي — غيابه يطبع تحذيراً مرئياً بدل الصمت. -#}
 {% from "templates/bunood_print_macros.html" import doc_title, invoice_meta, party_block, items_table, totals_block, zatca_qr %}
 <div class="bnd-p bnd-p--a4">
+  {#- A custom print format IS the whole page (printview.py: custom_format ->
+      jinja from_string), so the letter head has to be emitted here: frappe
+      passes it in the args, but only standard.html prints it.
+
+      The id/class pair is standard.html's contract with utils/pdf.py, which
+      lifts #header-html and #footer-html out of the body and hands them to the
+      engine as the REPEATING page header/footer. Mirrored exactly rather than
+      invented, so these formats behave like every stock one. -#}
+  {% if not no_letterhead and letter_head %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}>
+    <div class="letter-head">{{ letter_head }}</div>
+  </div>
+  {% endif %}
   {% if doc.get("is_return") %}{{ doc_title("إشعار دائن مبسط", "SIMPLIFIED CREDIT NOTE") }}{% else %}{{ doc_title("فاتورة ضريبية مبسطة", "SIMPLIFIED TAX INVOICE") }}{% endif %}
   <table class="bnd-p-head"><tr>
     <td>{{ invoice_meta(doc) }}</td>
@@ -12,4 +25,10 @@
   {{ party_block(doc, simplified=True) }}
   {{ items_table(doc) }}
   {{ totals_block(doc) }}
+  {#- Page footer: address/phone/email, same contract as the header above. -#}
+  {% if not no_letterhead and footer %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}>
+    <div class="letter-head-footer">{{ footer }}</div>
+  </div>
+  {% endif %}
 </div>

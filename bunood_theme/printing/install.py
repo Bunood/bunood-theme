@@ -17,6 +17,9 @@ import frappe
 
 STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
+# Company has tax_id for VAT but nothing for the commercial registration;
+# printing/install.py adds this one so the letter head has a field to read.
+CR_FIELD = "bnd_commercial_registration"
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 # Styles we are allowed to displace = the ones an app shipped; anything a
@@ -54,6 +57,7 @@ def sync_print_theme():
             message=frappe.get_traceback(),
         )
     try:
+        _company_cr_field()
         _sync_letterhead()
     except Exception:
         frappe.log_error(
@@ -187,9 +191,64 @@ def _sync_letterhead():
         lh = frappe.get_doc(
             {"doctype": "Letter Head", "letter_head_name": STYLE_NAME, **values}
         )
-        if not frappe.db.exists("Letter Head", {"is_default": 1}):
-            lh.is_default = 1
         lh.insert(ignore_permissions=True, ignore_if_duplicate=True)
+
+    _adopt_letterhead_default()
+
+
+def _company_cr_field():
+    """A dedicated Commercial Registration field on Company.
+
+    Company ships `tax_id` for VAT and nothing for the CR — only
+    `registration_details`, a free-text Code field meant for prose. A KSA
+    printout needs the number on its own, so give it somewhere to live. The
+    header falls back to registration_details for sites that already typed it
+    there, so installing this never orphans existing data.
+    """
+    if frappe.db.exists("Custom Field", {"dt": "Company", "fieldname": CR_FIELD}):
+        return
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+
+    create_custom_field(
+        "Company",
+        {
+            "fieldname": CR_FIELD,
+            "label": "Commercial Registration",
+            "fieldtype": "Data",
+            "insert_after": "tax_id",
+            "translatable": 0,
+        },
+        ignore_validate=True,
+    )
+
+
+def _adopt_letterhead_default():
+    """Claim the default letter head, and RE-claim it when ERPNext takes it.
+
+    is_default used to be set on insert only, which loses the race every time:
+    the app installs before any Company exists, so we claim it — and then the
+    admin creates a Company, ERPNext inserts its own letter head with
+    is_default=1, and ours is silently displaced. Measured on a live bench:
+    "Company Letterhead - Grey" held the default with a 0-byte footer while ours
+    sat unused, so nothing printed a header or footer.
+
+    Only a default that CANNOT satisfy the requirement is displaced — one with
+    no footer at all. The owner's spec is address/phone/email on every printout;
+    a footerless letter head cannot deliver it. A default that does carry a
+    footer is a deliberate choice and is left alone. Discriminating on the
+    footer rather than on names like "Company Letterhead%" keeps this from
+    rotting when ERPNext renames its template.
+    """
+    current = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
+    if current == STYLE_NAME:
+        return
+    if current and (frappe.db.get_value("Letter Head", current, "footer") or "").strip():
+        return
+    lh = frappe.get_doc("Letter Head", STYLE_NAME)
+    lh.is_default = 1
+    # save(), not db.set_value: the controller is what clears the flag on the
+    # letter head that held it before.
+    lh.save(ignore_permissions=True)
 
 
 def _sync_format(spec):
