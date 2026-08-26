@@ -1,12 +1,24 @@
 {#- Managed by bunood_theme: edits here are overwritten on every migrate.
     بونود — فاتورة ضريبية مبسطة (حراري 80مم) — إيصال POS. الـQR إلزامي (تحذير مرئي
-    عند غيابه). wkhtmltopdf يتجاهل @page — زر PDF يُخرج A4؛ اطبع من المتصفح/QZ. -#}
-{% from "templates/bunood_print_macros.html" import thermal_head, thermal_items, thermal_totals, zatca_qr %}
-<style>@media print { @page { size: 80mm 297mm; margin: 4mm; } }</style>
+    عند غيابه). مقاس الصفحة على ‏.print-format‏ — زر PDF يُخرج 80مم فعلياً. -#}
+{% from "templates/bunood_print_macros.html" import thermal_head, thermal_foot, thermal_items, thermal_totals, zatca_qr %}
+<style>
+/* Page size MUST be declared on `.print-format`: read_options_from_html() reads
+   page-width/page-height/margin-* from rules whose selector is PURELY that, and
+   that is the only channel either pdf engine sees. @page reaches NEITHER --
+   wkhtmltopdf ignores it, and frappe's chrome path hardcodes
+   preferCSSPageSize=False (utils/pdf_generator/browser.py), so printToPDF's
+   explicit paper size wins. Measured on a live bench: @page alone gives
+   210x297mm on BOTH engines; the rule below gives 80x297mm on both.
+   @page stays for real browser printing (Ctrl+P), which does honour it. */
+.print-format { page-width: 80mm; page-height: 297mm; margin-top: 4mm; margin-bottom: 4mm; margin-left: 4mm; margin-right: 4mm; }
+@media print { @page { size: 80mm 297mm; margin: 4mm; } }
+</style>
 <div class="bnd-p bnd-p--thermal">
   {{ thermal_head(doc, "إشعار دائن مبسط" if doc.get("is_return") else "فاتورة ضريبية مبسطة", "SIMPLIFIED CREDIT NOTE" if doc.get("is_return") else "SIMPLIFIED TAX INVOICE") }}
   {{ thermal_items(doc) }}
   {{ thermal_totals(doc) }}
   {{ zatca_qr(doc, 120, required=True) }}
   <div class="bnd-p-th-sub">شكراً لتعاملكم معنا</div>
+  {{ thermal_foot(doc) }}
 </div>

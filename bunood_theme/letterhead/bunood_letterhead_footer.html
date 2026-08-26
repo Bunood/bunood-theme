@@ -1,32 +1,56 @@
 {#- ============================================================================
     Bunood Letter Head — FOOTER
     ----------------------------------------------------------------------------
-    Address + phone/email/website, then the privacy-policy line ONLY if a value
-    exists. The whole footer is guarded: no data => no rule/band prints at all.
-    SELF-CONTAINED inline styles (a PDF footer renders in isolation — theme
-    CSS never reaches it). Colours are --bnd-* tokens (written as CSS custom-property references), substituted per
-    site at sync exactly as the header's are — see the header's comment for
-    the mechanism. LTR values (phone/email/website) are isolated in dir="ltr"
-    spans so bidi never reorders +966… or URLs.
+    Owner's spec: address, phone, email — all read from the company's own data.
 
-    DATA: map to your Company fields. `address` needs an explicit custom field
-    (plain text; newlines become <br>) — stock Company has no address field.
-    `privacy` is a custom field (URL or short text); hidden when empty.
+    THE ADDRESS BUG THIS FIXES
+    The previous version read a custom field `custom_company_address`. No such
+    field exists on Company, on this stack or in stock ERPNext — measured: the
+    Company doctype carries phone_no, email and website, and an `address_html`
+    DISPLAY field, but no plain address. So the footer's address line silently
+    never rendered, which looks exactly like "the company has not filled it in".
+
+    ERPNext keeps the address in the Address doctype, joined through Dynamic
+    Link. That is what this reads: the primary billing address if one is flagged,
+    otherwise the first address linked to the company.
+
+    SELF-CONTAINED inline styles (a PDF footer renders in isolation — theme
+    CSS never reaches it). Colours are --bnd-* tokens (written as CSS
+    custom-property references), substituted per site at sync exactly as the
+    header's are — see the header's comment for the mechanism. Phone, email
+    and website are isolated in dir="ltr" spans so bidi never reorders +966…
+    or a URL.
+
+    Every line is guarded and so is the whole block: a company with no contact
+    data prints no rule and no band at all, rather than an empty grey strip.
     ============================================================================ -#}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
 {%- set phone = (_c.get("phone_no") if _c else "") -%}
 {%- set email = (_c.get("email") if _c else "") -%}
 {%- set website = (_c.get("website") if _c else "") -%}
-{%- set address = (_c.get("custom_company_address") if _c else "") -%}
 {%- set privacy = (_c.get("custom_privacy_policy") if _c else "") or (_c.get("custom_privacy_policy_url") if _c else "") -%}
+{#- Address lives in its own doctype, joined by Dynamic Link. Prefer the one the
+    company flagged primary; fall back to any linked address. -#}
+{%- set _addr_name = (frappe.db.get_value("Dynamic Link",
+      {"link_doctype": "Company", "link_name": _c.name, "parenttype": "Address"},
+      "parent") if _c else None) -%}
+{%- set _a = frappe.get_doc("Address", _addr_name) if _addr_name else None -%}
+{%- set _parts = [] -%}
+{%- if _a -%}
+  {%- for f in ("address_line1", "address_line2", "city", "state", "pincode", "country") -%}
+    {%- set v = _a.get(f) -%}
+    {%- if v -%}{%- set _ = _parts.append(v) -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- set address = _parts | join("، ") -%}
 {%- if address or phone or email or website or privacy -%}
 <div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
-  {% if address %}<div>{{ address | e | replace("\n", "<br>") | safe }}</div>{% endif %}
+  {% if address %}<div>{{ address | e }}</div>{% endif %}
   {% if phone or email or website %}
   <div>
     {% if phone %}<span>هاتف: <span dir="ltr">{{ phone | e }}</span></span>{% endif %}
     {% if phone and (email or website) %}<span> &middot; </span>{% endif %}
-    {% if email %}<span dir="ltr">{{ email | e }}</span>{% endif %}
+    {% if email %}<span>البريد: <span dir="ltr">{{ email | e }}</span></span>{% endif %}
     {% if email and website %}<span> &middot; </span>{% endif %}
     {% if website %}<span dir="ltr">{{ website | e }}</span>{% endif %}
   </div>

@@ -166,11 +166,39 @@
 	font-display: swap;
 }
 
+/* Riyal U+20C1 — obeys this sheet's engine rules, and deviates in exactly one way.
+ *
+ * (Merged verbatim from the parallel session's bunood_print_style.css work,
+ * which this substituted sheet replaced — the face, its ordering argument and
+ * its measurements carry over unchanged.)
+ *
+ * This face shipped woff2-ONLY for a day, on the belief that compose.yaml's
+ * chromium_path made Chromium the renderer. It does not: Frappe chooses the
+ * engine by Print Settings.pdf_generator (Select wkhtmltopdf|chrome), which
+ * DEFAULTS TO wkhtmltopdf and is set nowhere in this stack. So the rule above
+ * still holds, and the woff2-only face was simply not embedded — measured at
+ * 0.12.6, a 9017-byte PDF carrying no riyal face, i.e. a missing-glyph box
+ * where the currency symbol belongs, on every invoice.
+ *
+ * THE DEVIATION: the sibling faces answer an http failure with fontconfig —
+ * "ALSO install an Arabic font on the PDF server". That safety net cannot
+ * exist here. U+20C1 is a 2025 codepoint and no system font on any PDF server
+ * carries it, so an http failure for THIS face is unrecoverable rather than
+ * merely degraded. Hence the fallback is inline base64 (the whole face is 1560
+ * bytes) instead of a second url(): a data URI has no fetch to fail.
+ *
+ * Order is load-bearing: Chromium takes the woff2 first and never decodes the
+ * blob; Qt WebKit skips the format it cannot read and takes the opentype.
+ * Both measured. Blob == fonts/riyal/bunood-riyal.otf, shipped alongside for
+ * provenance; both flavours come from Saudi_Riyal_Symbol-official.svg via
+ * bunood_setup/tools/build_riyal_font.py. */
+@font-face { font-family: 'Bunood Riyal'; src: url('/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2') format('woff2'), url(data:font/otf;base64,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) format('opentype'); font-weight: 400; font-display: swap; unicode-range: U+20C1; }
+
 /* Site-wide retypeset — the point of a system-default Print Style. Everything
    below stays bnd-p-namespaced so third-party formats are never touched
    structurally. */
 .print-format {
-	font-family: "Cairo", "Amiri", "Tajawal", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+	font-family: "Bunood Riyal", "Cairo", "Amiri", "Tajawal", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
 	color: var(--bnd-ink);
 	font-size: 12px;
 	line-height: 1.55;
@@ -451,7 +479,7 @@
    Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced. Pure
    black for the same hardware reason as thermal. ===== */
 .bnd-p--matrix {
-	font-family: "Courier New", "Cairo", "Noto Naskh Arabic", monospace;
+	font-family: "Bunood Riyal", "Courier New", "Cairo", "Noto Naskh Arabic", monospace;
 	font-size: 11px;
 	color: #000;
 }

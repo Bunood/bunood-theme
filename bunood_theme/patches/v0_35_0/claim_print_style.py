@@ -20,8 +20,10 @@ patch runs exactly once, with Patch Log as the record that it was the patch.
 
 import frappe
 
-#: The styles this one-time claim may displace — the installer's tuple at the
-#: time of this patch, including the two v16 names whose absence was the bug.
+#: Kept for the record: the name tuple this patch shipped with. The LIVE
+#: predicate below is the parallel session's flag-based one — `Print
+#: Style.standard` — because a name list rots (this one already had, twice)
+#: and the flag tracks whatever frappe ships next.
 CLAIMABLE = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
 
@@ -38,7 +40,9 @@ def execute():
             # would point at nothing.
             return
 
+    from bunood_theme.printing.install import _is_displaceable
+
     settings = frappe.get_single("Print Settings")
-    if settings.meta.has_field("print_style") and settings.get("print_style") in CLAIMABLE:
+    if settings.meta.has_field("print_style") and _is_displaceable(settings.get("print_style")):
         settings.print_style = "Bunood"
         settings.save(ignore_permissions=True)
