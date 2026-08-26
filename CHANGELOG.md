@@ -12,6 +12,16 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
+**A ZATCA-style 80mm receipt ksa_compliance never shipped.** «زاتكا - فاتورة
+مبسطة (حراري 80مم)» — the same content rules as their Phase-1 A4 format
+(seller block from ZATCA Phase 1 Business Settings, Standard-vs-Simplified
+detected from the customer's `custom_vat_registration_number`, per-line VAT
+with the pre-0.37.1 fallback, mandatory QR via the theme's phase-aware
+macro) laid out for a receipt roll, plus what a POS receipt needs and theirs
+lacks: payment mode rows, change, and the deferred remainder. Verified on
+the bench against a split-payment POS sale, a credit sale, and a B2B
+invoice (auto-detects Standard and prints the buyer's VAT number).
+
 **The invoice QR now works under ZATCA Phase 1, not only Phase 2.**
 `bunood_zatca_qr_src` knew two sources — an image field on the invoice and
 ksa_compliance's "Sales Invoice Additional Fields" record — and both exist only
