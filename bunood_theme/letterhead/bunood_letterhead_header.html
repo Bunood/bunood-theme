@@ -6,9 +6,12 @@
     convention (physical), not RTL — keep it fixed.
 
     SELF-CONTAINED: styles are inline because a PDF header renders in isolation
-    (parent/theme CSS + design tokens do NOT reach it). The hex values mirror the
-    Bunood primitives (green #1F5145 / gold #C8923C / ink #12251F / muted
-    #5C6B66) — keep in sync with docs/design-tokens.md by hand.
+    (parent/theme CSS never reaches it). Colours are var(--bnd-*) tokens,
+    SUBSTITUTED per site by printing/install.py::_sync_letterhead through
+    palette.derive() — the record a site stores carries concrete hexes, and a
+    changed brand seed rewrites them on the next Theme Settings save. (Until
+    item 35 these were hand-mirrored hexes of an ABANDONED palette, kept "in
+    sync" with a design-tokens.md that did not exist.)
 
     DATA: map the variables to YOUR Company fields on the bench. `name_ar` reads
     an Arabic-name field ONLY (no Latin fallback), so if it is unmapped the right
@@ -20,7 +23,7 @@
 {%- set name_ar = (_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") -%}
 {%- set name_en = (_c.company_name if _c else "") -%}
 {%- set logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
-<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:#12251F; padding:4px 6px 0;">
+<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
   <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
       <td style="width:39%; text-align:right; vertical-align:middle; font-size:15px; font-weight:700; line-height:1.35;">
@@ -29,12 +32,12 @@
       <td style="width:22%; text-align:center; vertical-align:middle;">
         {% if logo %}<img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">{% endif %}
       </td>
-      <td style="width:39%; text-align:left; vertical-align:middle; direction:ltr; font-size:13px; font-weight:600; color:#5C6B66; line-height:1.35;">
+      <td style="width:39%; text-align:left; vertical-align:middle; direction:ltr; font-size:13px; font-weight:600; color:var(--bnd-ink-muted); line-height:1.35;">
         {{ name_en | e }}
       </td>
     </tr>
   </table>
   {#- brand rule as BORDERS (not background) so it prints on every engine incl. headless Chrome -#}
-  <div style="border-top:2px solid #C8923C; margin-top:8px;"></div>
-  <div style="border-top:2px solid #1F5145;"></div>
+  <div style="border-top:2px solid var(--bnd-accent); margin-top:8px;"></div>
+  <div style="border-top:2px solid var(--bnd-brand-solid);"></div>
 </div>

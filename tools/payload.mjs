@@ -60,6 +60,10 @@ const LEDGER = join(ROOT, "payload-budget.json");
 const BUCKETS = [
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
 	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
+	// Substitution INPUT, not wire bytes: printing/sheet.py reads this file and
+	// writes the substituted result into the Print Style record — no page ever
+	// fetches it. Measured anyway: unmeasured growth is unmeasured growth.
+	{ dir: ["css"], prefix: "bunood-print.", key: "print_css" },
 	{ dir: ["css"], prefix: "bunood.", key: "css" },
 	{ dir: ["js"], prefix: "bunood.", key: "js" },
 ];
@@ -100,13 +104,15 @@ export function measure() {
  * The keys a ceiling is enforced on. Kept beside the buckets so the two cannot
  * drift: every bucket gets a ceiling, and `checkPayload` reads them from here.
  *
- * The three are SEPARATE rather than summed on purpose. A desk user fetches
- * `bunood.css` and never the login sheet; a logged-out visitor fetches the
- * login sheet and never the desk bundle. Summing them would bound a number no
- * single page ever pays, and — worse — would break every history row's
- * comparability at the release that introduced the second sheet.
+ * The buckets are SEPARATE rather than summed on purpose — a count-free rule,
+ * because the count has drifted twice ("three" survived item 34's fourth). A
+ * desk user fetches `bunood.css` and never the login sheet; a logged-out
+ * visitor fetches the login sheet and never the desk bundle; nobody fetches
+ * the email or print sheets at all (they are substitution inputs). Summing
+ * would bound a number no single page ever pays, and would break every
+ * history row's comparability at the release that introduced a second sheet.
  */
-export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip", "email_css_gzip"];
+export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip", "email_css_gzip", "print_css_gzip"];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no

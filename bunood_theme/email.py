@@ -31,13 +31,15 @@ WHY THIS MODULE EXISTS AT ALL
 NO ``var()`` MAY REACH AN INBOX
     Premailer does not resolve custom properties and Outlook's Word engine does
     not support them. But hand-mirroring hexes is the defect
-    ``printing/bunood_print_style.css`` already carries — it says to keep five
+    ``printing/bunood_print_style.css`` carried until item 35 retired it onto
+    this very mechanism — it said to keep five
     brand hexes in sync with ``docs/design-tokens.md`` by hand, and that file
-    does not exist.
+    never existed.
 
     So the sheet is authored in ordinary ``var(--bnd-*)`` and SUBSTITUTED here,
     from ``palette.derive()`` — the same function ``brand.py`` formats and
-    ``tools/contrast_gate.py`` measures. One derivation, three consumers now.
+    ``tools/contrast_gate.py`` measures. One derivation, four consumers now
+    (``printing/sheet.py`` joined for paper in item 35).
 
 NEVER RAISES INTO THE MAIL PATH
     Every public entry point catches. An exception here would not produce a

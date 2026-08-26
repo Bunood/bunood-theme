@@ -31,6 +31,13 @@ bunood_theme.patches.v0_11_0.rename_operator
 # one Icons axis, renaming four fields. This carries each existing site's stored
 # value onto its new fieldname so the icon appearance survives the rename.
 bunood_theme.patches.v0_15_0.rename_icon_fields
+# Item 35: claim Print Settings.print_style once for existing sites. v16
+# defaults it to "Redesign", a name the installer's vacancy tuple did not
+# carry, so the Bunood Print Style had been installed everywhere and applied
+# NOWHERE since 0.13.0. One-time by construction (patches run once); the
+# ongoing claim for fresh installs is the widened STOCK_STYLES in
+# printing/install.py. The honest cost is in the patch's docstring.
+bunood_theme.patches.v0_35_0.claim_print_style
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

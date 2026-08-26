@@ -3,10 +3,11 @@
     ----------------------------------------------------------------------------
     Address + phone/email/website, then the privacy-policy line ONLY if a value
     exists. The whole footer is guarded: no data => no rule/band prints at all.
-    SELF-CONTAINED inline styles (a PDF footer renders in isolation — theme CSS
-    and design tokens do NOT reach it). Hex mirrors the Bunood primitives
-    (muted #5C6B66 / border #DCE6E2). LTR values (phone/email/website) are
-    isolated in dir="ltr" spans so bidi never reorders +966… or URLs.
+    SELF-CONTAINED inline styles (a PDF footer renders in isolation — theme
+    CSS never reaches it). Colours are var(--bnd-*) tokens, substituted per
+    site at sync exactly as the header's are — see the header's comment for
+    the mechanism. LTR values (phone/email/website) are isolated in dir="ltr"
+    spans so bidi never reorders +966… or URLs.
 
     DATA: map to your Company fields. `address` needs an explicit custom field
     (plain text; newlines become <br>) — stock Company has no address field.
@@ -19,7 +20,7 @@
 {%- set address = (_c.get("custom_company_address") if _c else "") -%}
 {%- set privacy = (_c.get("custom_privacy_policy") if _c else "") or (_c.get("custom_privacy_policy_url") if _c else "") -%}
 {%- if address or phone or email or website or privacy -%}
-<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:#5C6B66; font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid #DCE6E2;">
+<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
   {% if address %}<div>{{ address | e | replace("\n", "<br>") | safe }}</div>{% endif %}
   {% if phone or email or website %}
   <div>

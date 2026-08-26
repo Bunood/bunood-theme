@@ -14503,6 +14503,205 @@ async function main() {
 			}
 		});
 
+		// ══════════════════════════════════════════════════════════════════
+		// PRINT (item 35) — the thirteenth surface kit, and the first whose
+		// stylesheet is delivered as a DATABASE RECORD rather than an asset: the
+		// compiled `print/print.scss` is substituted per site from
+		// `palette.derive()` (the item-34 mechanism, fourth consumer) and written
+		// into the Print Style "Bunood" by `printing/sheet.py` at sync and on
+		// every Theme Settings save. These checks read the RECORD and render
+		// through the REAL funnel (`get_html_and_style`, the `?doc=` inline-dict
+		// path the census proved), never a mock of either.
+		// ══════════════════════════════════════════════════════════════════
+
+		await test("print: the Print Style record carries the substituted sheet, and no var() survives", async () => {
+			// The slice-1 delivery contract in one read: the record is non-empty,
+			// fully substituted (email.py::substitute throws on a half-done job, so
+			// a surviving `var(` here means someone bypassed it), still carries the
+			// legacy structural vocabulary the seven formats depend on, carries THIS
+			// seed's derived ink — and carries none of the dead green/gold palette
+			// the hand-mirror defect shipped (#1F5145 mirrored a design-tokens.md
+			// that does not exist, in a palette the product abandoned).
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.email import tokens\n" +
+					"css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"tok = tokens('light')\n" +
+					"print('BND_PS' + json.dumps({'n': len(css), 'has_var': 'var(' in css,\n" +
+					"    'bnd_p': '.bnd-p' in css, 'dead': '#1F5145' in css or '#1f5145' in css,\n" +
+					"    'brand_ink': tok['--bnd-brand-ink'], 'ink_in': tok['--bnd-brand-ink'] in css}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PS"));
+			if (!line) throw new Error("print style probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_PS".length));
+			expect(r.n > 1000, `Print Style css is ${r.n} bytes — the substituted sheet did not land`);
+			expectEq(r.has_var, false, "a var() survived into the Print Style record");
+			expect(r.bnd_p, "the legacy .bnd-p vocabulary is gone — the seven formats just lost their styling");
+			expectEq(r.dead, false, "the dead hand-mirrored palette (#1F5145) is still in the record");
+			expect(r.ink_in, `the derived brand ink ${r.brand_ink} is not in the record — the seed does not reach paper`);
+		});
+
+		await test("print: dual break spellings ship, and the heading orphan rule exists at all", async () => {
+			// Frappe's whole print stack has ZERO break-inside/break-after/orphans
+			// (measured in the census; its only keep-together rule is `table td
+			// div`). The kit adds heading orphan control — and because wkhtmltopdf
+			// is Qt-WebKit 534, every such rule must carry BOTH spellings: legacy
+			// `page-break-*` for wkhtml, modern `break-*` for chrome/browser print.
+			// One spelling alone is a rule that silently skips an engine.
+			const css = benchPy(
+				"print(frappe.db.get_value('Print Style', 'Bunood', 'css') or '')\n"
+			);
+			for (const needle of ["page-break-inside", "break-inside", "page-break-after", "break-after"]) {
+				expect(String(css).includes(needle), `the sheet is missing '${needle}' — one engine loses the keep-together contract`);
+			}
+		});
+
+		await test("print: the Bunood style is the system default — v16's Redesign vacancy, claimed once", async () => {
+			// The legacy installer's STOCK_STYLES predates v16, whose shipped
+			// default is "Redesign" — so the vacancy check NEVER fired and the
+			// Bunood style has never applied on any v16 site (measured: this site
+			// printed with Redesign since install). The v0_35_0 patch claims it
+			// once; Patch Log is the record that it was the patch, not an admin.
+			const out = benchPy(
+				"import json\n" +
+					"style = frappe.db.get_single_value('Print Settings', 'print_style')\n" +
+					"logged = frappe.db.count('Patch Log', {'patch': ['like', '%v0_35_0.claim_print_style%']})\n" +
+					"print('BND_DEF' + json.dumps({'style': style, 'logged': logged}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_DEF"));
+			if (!line) throw new Error("default probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_DEF".length));
+			expectEq(r.style, "Bunood", "the Bunood Print Style is not the system default");
+			expect(r.logged > 0, "the claim patch never ran — the default was set some other way, or not at all");
+		});
+
+		await test("print: a brand seed change re-papers the Print Style record", async () => {
+			// THE WHOLE POINT OF M1. Before this item a customer's seed could not
+			// reach paper at all — the record carried hand-mirrored hexes of an
+			// abandoned palette. Now a Theme Settings save must rewrite the record
+			// with the NEW seed's derivation. Driven through a real doc.save() so
+			// the on_update path is what is being tested, and restored the same way
+			// (set_single_value would skip the hook and leave the record stale).
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.email import tokens\n" +
+					"doc = frappe.get_doc('Theme Settings')\n" +
+					"keep = doc.brand_color\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    doc.brand_color = '#2b4fd8'\n" +
+					"    doc.save(ignore_permissions=True)\n" +
+					"    probe_ink = tokens('light', doc)['--bnd-brand-ink']\n" +
+					"    css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"    res = {'probe_ink': probe_ink, 'ink_in': probe_ink in css, 'n': len(css)}\n" +
+					"finally:\n" +
+					"    doc = frappe.get_doc('Theme Settings')\n" +
+					"    doc.brand_color = keep\n" +
+					"    doc.save(ignore_permissions=True)\n" +
+					"back = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"res['restored'] = tokens('light')['--bnd-brand-ink'] in back\n" +
+					"print('BND_SEED' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_SEED"));
+			if (!line) throw new Error("seed probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_SEED".length));
+			expect(r.ink_in, `a saved seed #2b4fd8 (ink ${r.probe_ink}) never reached the record — on_update does not resync print`);
+			expect(r.restored, "the restore save did not re-paper the record back");
+		});
+
+		await test("print: the sheet stands down whole on a bad seed, never half-substituted", async () => {
+			// email.py's substitute() throws on the unknown; sheet.print_css()
+			// catches and returns "" — total, visible degradation, the item-34
+			// contract. And the SYNC refuses to write that emptiness over a
+			// working record: a stale good sheet beats a fresh empty one.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.printing.sheet import print_css\n" +
+					"good = print_css()\n" +
+					"bad = print_css(settings=frappe._dict(brand_color='#nope', accent_color='#nope'))\n" +
+					"print('BND_SD' + json.dumps({'good': len(good), 'good_var': 'var(' in good, 'bad': bad}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_SD"));
+			if (!line) throw new Error("stand-down probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_SD".length));
+			expect(r.good > 1000, "print_css() returned nothing on the good path");
+			expectEq(r.good_var, false, "print_css() left a var() in the good sheet");
+			expectEq(r.bad, "", "a garbage seed produced a NON-EMPTY sheet — a half-substituted sheet shipped");
+		});
+
+		await test("print: the muted ink and table-head contracts clear AA on an ERPNext invoice", async () => {
+			// The census measured stock: `.text-muted` #7c7c7c on #fff = 4.17:1 and
+			// `thead.table-header td` #7c7c7c on #f8f8f8 = 3.93:1 — live AA
+			// failures on the most-printed documents a site has, from the identical
+			// inline <style> all nine ERPNext transaction formats carry. The
+			// contract out-specifies it from the Print Style (which loads BEFORE
+			// the in-body block, so specificity is the only lever). Rendered
+			// through the real funnel with an inline specimen doc, measured in the
+			// composed document exactly as the desk preview composes it.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.www.printview import get_html_and_style\n" +
+					"from frappe.utils.jinja_globals import bundled_asset\n" +
+					"frappe.local.form_dict = frappe._dict()\n" +
+					"doc = {'doctype': 'Sales Invoice', 'name': 'BND-PRINT-SPEC', 'customer': 'Specimen',\n" +
+					"       'customer_name': 'Specimen Customer', 'posting_date': '2026-08-26',\n" +
+					"       'due_date': '2026-09-25', 'currency': 'SAR', 'company': 'Bunood',\n" +
+					"       'total': 25760.0, 'grand_total': 29624.0,\n" +
+					"       'items': [{'doctype': 'Sales Invoice Item', 'item_name': 'Rebar 16mm',\n" +
+					"                  'qty': 12, 'rate': 1500.0, 'amount': 18000.0, 'idx': 1}], 'taxes': []}\n" +
+					"r = get_html_and_style(doc=json.dumps(doc), print_format='Sales Invoice Standard', style='Bunood')\n" +
+					"print('BND_AA' + json.dumps({'html': r.get('html'), 'style': r.get('style'),\n" +
+					"    'bundle': bundled_asset('print.bundle.css')}))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_AA"));
+			if (!line) throw new Error("AA probe produced no JSON: " + String(out).slice(-300));
+			const pack = JSON.parse(line.slice("BND_AA".length));
+			expect(pack.html && pack.style, "the funnel returned no html/style");
+
+			await page.setContent(
+				`<html dir="ltr"><head><link rel="stylesheet" href="${URL_BASE}${pack.bundle}"><style>${pack.style}</style></head>` +
+					`<body><div class="print-format print-format-preview">${pack.html}</div></body></html>`,
+				{ waitUntil: "networkidle" }
+			);
+			// STRINGS COME BACK, NUMBERS ARE COMPUTED HERE — the item-31 rule: one
+			// place knows how a colour serialises.
+			const raw = await page.evaluate(() => {
+				const eff = (el) => {
+					for (let n = el; n; n = n.parentElement) {
+						const bg = getComputedStyle(n).backgroundColor;
+						if (bg && bg !== "transparent" && !/rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\)/.test(bg)) return bg;
+					}
+					return "rgb(255, 255, 255)";
+				};
+				const pick = (sel) => {
+					const el = document.querySelector(sel);
+					return el ? { fg: getComputedStyle(el).color, bg: eff(el) } : null;
+				};
+				return { muted: pick(".print-format .text-muted"), th: pick(".print-format thead.table-header td") };
+			});
+			const chan = (c) => {
+				const m = String(c).match(/[\d.]+/g);
+				if (!m || m.length < 3) throw new Error(`unparseable colour from the page: ${c}`);
+				return m.slice(0, 3).map(Number);
+			};
+			const lum = (rgb) => {
+				const a = rgb.map((v) => {
+					v /= 255;
+					return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+				});
+				return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+			};
+			const ratio = (fg, bg) => {
+				const l1 = lum(chan(fg)), l2 = lum(chan(bg));
+				return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+			};
+			for (const [name, pair] of Object.entries(raw)) {
+				expect(pair, `the invoice render has no ${name} element — the fixture narrowed and the check went blind`);
+				const r = ratio(pair.fg, pair.bg);
+				expect(r >= 4.5, `${name}: ${pair.fg} on ${pair.bg} = ${r.toFixed(2)}:1 — below AA on a printed invoice`);
+			}
+		});
+
 		await test("payload: the bundle is within its budget", async () => {
 			// GUIDELINES §2.5, enforced at last: the bundle grew from 78/183 KB
 			// raw to 92/247 across five releases with nobody deciding it,

@@ -1,0 +1,456 @@
+// ============================================================================
+// THE PRINT SHEET — checklist item 35. The second stylesheet in this project
+// never fetched by a browser as an asset, and the FIRST delivered as a DATABASE
+// RECORD: `printing/sheet.py` reads this compiled file off the package,
+// substitutes every `var(--bnd-*)` from `palette.derive()`, and writes the
+// result into the Print Style "Bunood" — at install, at migrate, and on every
+// Theme Settings save. `frappe/www/printview.py::get_print_style` then inlines
+// the record into every print view and PDF on the site.
+//
+// WHY A RECORD AND NOT A HOOK OR A LINK
+//   Measured in the census (2026-08-26): the ONLY CSS injection points a print
+//   document has are the Print Style record, the Print Format's own `css`
+//   field, and inline `<style>` in the format HTML. There is no
+//   `print_include_css`. We already owned a Print Style record synced from a
+//   file — the delivery mechanism existed; what was wrong was the CONTENT.
+//
+// WHAT THIS FILE REPLACES, AND THE DEFECT IT RETIRES
+//   `printing/bunood_print_style.css` (deleted in the same commit) hand-mirrored
+//   five hexes of a palette the product ABANDONED (#1F5145 green / #C8923C gold
+//   …), against a `docs/design-tokens.md` that does not exist. Every value here
+//   is a token; the substitution is `email.py::substitute`, which THROWS on an
+//   unknown token and refuses a half-done job — one derivation, four consumers
+//   (brand.py, email.py, the contrast gate, and now paper).
+//
+// PAPER IS LIGHT-ONLY. `_print.scss` (the desk's Ctrl+P block, item 8) states
+//   the doctrine: dark backgrounds waste toner and print illegibly. So this
+//   sheet is substituted from the LIGHT derivation only, and no rule here may
+//   assume a dark ground.
+//
+// ENGINE RULES (the sheet is read by THREE renderers — census, 2026-08-26):
+//   wkhtmltopdf 0.12.6 (Qt-WebKit 534, the shipped default): TABLES never flex,
+//   TTF never woff2, no logical properties, no gradients, `@page` ignored;
+//   headless-chrome and the browser print dialog: modern CSS. So:
+//     - layout is tables; `display: flex`/`grid` are refused by the build guard
+//       (`assertPrintSafeCss`), the way `assertEmailSafeCss` refuses them for
+//       Outlook;
+//     - every keep-together rule carries BOTH spellings — legacy `page-break-*`
+//       for wkhtml, modern `break-*` for the other two. The guard enforces the
+//       pairing mechanically; one spelling alone silently skips an engine.
+//
+// DIRECTION IS EXPLICIT, NOT LOGICAL — the one entry exempt from
+//   `assertLogicalOnly`, and the exemption is the constraint, not a licence.
+//   wkhtmltopdf has no logical properties, and nothing rtlcss-processes an
+//   inline Print Style. The Bunood formats are Arabic-first: `.bnd-p` pins
+//   `direction: rtl` and numeric/ID cells carry explicit `dir="ltr"` in the
+//   markup (the macros do this). Physical `text-align` inside `.bnd-p` is
+//   therefore DELIBERATE — the same argument the bilingual letterhead makes.
+//   Non-Bunood formats (no `.bnd-p` wrapper) inherit direction from the
+//   document's `dir`, which item 35's RTL closure now sets correctly.
+//
+// COLOUR COMES FROM TOKENS. GEOMETRY IS LITERAL PX/MM — the email sheet's
+//   argument holds here verbatim: the substitution contract stays "every value
+//   is a hex", and the desk's density system has no meaning on paper.
+//   The THERMAL section is the sanctioned exception to "no raw hex": 203-dpi
+//   monochrome heads have no grayscale (mid-greys dither or vanish), so thermal
+//   ink is literal #000 — a constant of the hardware, not a theme choice.
+//
+// Measured against frappe 16.27.0 / erpnext 16.28.0 on demo.bunood.test,
+// census 2026-08-26. `docs/upstream/frappe-email.md`'s sibling for print is
+// filed with the item's close.
+// ============================================================================
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONTRACTS — outside any style choice, survive every pole including Original
+// (the item-28 rule: these are about whether printed output WORKS).
+// ══════════════════════════════════════════════════════════════════════════
+
+// CONTRACT P1 — the muted ink clears AA on every print format.
+//
+// THE DEFECT, measured in the census: all nine ERPNext transaction formats
+// (Sales Invoice Standard and its family) inline an identical <style> block
+// carrying `.text-muted { color: #7c7c7c }` — 4.17:1 on white, and 3.93:1 for
+// `thead.table-header td` on its own #f8f8f8 fill. Live AA failures on the
+// most-printed documents a site has; the same #7c7c7c literal items 33 and 34
+// repaired on /404, the portal rows and the email footer — this is its FOURTH
+// surface.
+//
+// THE LEVER IS SPECIFICITY ALONE. The Print Style is injected in the document
+// HEAD; the formats' block sits in the BODY and wins every tie, so these
+// selectors exceed instead: `.print-format .text-muted` (0,2,0) beats their
+// `.text-muted` (0,1,0); `.print-format thead.table-header td` (0,2,2) beats
+// their (0,1,2). `--bnd-ink-muted` is fitted at 7.0:1 against the surface
+// family by `palette.derive`, so both halves of the pair (white ground AND the
+// #f8f8f8 header fill, which sits inside that family) pass from one token.
+.print-format .text-muted {
+	color: var(--bnd-ink-muted);
+}
+.print-format thead.table-header td {
+	color: var(--bnd-ink-muted);
+}
+
+// CONTRACT P2 — nothing is orphaned or sliced at a page fold.
+//
+// Frappe's entire print stack carries ZERO break-inside/break-after/orphans
+// (measured; its only keep-together rule is `table td div`). shadcn's typeset
+// is the reference: keep headings with what follows them, never slice a row,
+// a figure or a block quote. Applied to ROWS rather than whole tables — a
+// long invoice table MUST split across pages; a row must not.
+//
+// BOTH SPELLINGS, EVERY RULE — `assertPrintSafeCss` enforces the pairing.
+.print-format h1,
+.print-format h2,
+.print-format h3,
+.print-format h4,
+.print-format .print-heading {
+	page-break-after: avoid;
+	break-after: avoid;
+}
+.print-format tr,
+.print-format img,
+.print-format blockquote,
+.print-format pre,
+.print-format figure {
+	page-break-inside: avoid;
+	break-inside: avoid;
+}
+.print-format p,
+.print-format li {
+	orphans: 3;
+	widows: 3;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE PORTED VOCABULARY — `bunood_print_style.css`, structure kept rule for
+// rule so the seven managed formats render exactly as before, colours moved
+// onto tokens. Two letter-spacing rules from the legacy sheet (.bnd-p-lat 1px,
+// .bnd-p-title__en 1.5px) are DROPPED, not ported: `assertCursiveSafe` refuses
+// tracking in compiled CSS, and extending a guard to make a build pass is the
+// anti-pattern the build doctrine names. The uppercase Latin sub-titles lose
+// 1.5px of tracking; slice 3's typography treatments revisit deliberately.
+// ══════════════════════════════════════════════════════════════════════════
+
+/* Brand fonts, self-hosted TTF (wkhtmltopdf's WebKit cannot read woff2).
+   Fetched over HTTP by the PDF engine; fontconfig on the PDF host is the
+   safety net the legacy README documents. */
+@font-face {
+	font-family: "Cairo";
+	src: url("/assets/bunood_theme/fonts/cairo/Cairo-Variable.ttf") format("truetype");
+	font-weight: 200 900;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Amiri";
+	src: url("/assets/bunood_theme/fonts/amiri/Amiri-Regular.ttf") format("truetype");
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Amiri";
+	src: url("/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf") format("truetype");
+	font-weight: 700;
+	font-display: swap;
+}
+
+/* Site-wide retypeset — the point of a system-default Print Style. Everything
+   below stays bnd-p-namespaced so third-party formats are never touched
+   structurally. */
+.print-format {
+	font-family: "Cairo", "Amiri", "Tajawal", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+	color: var(--bnd-ink);
+	font-size: 12px;
+	line-height: 1.55;
+}
+.print-format .num {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Bunood formats are Arabic-first: pinned RTL regardless of the print-dialog
+   language (numeric/ID cells carry explicit dir="ltr" in the markup). */
+.bnd-p {
+	direction: rtl;
+}
+
+/* ===== bilingual title ===== */
+.bnd-p-title {
+	text-align: center;
+	margin: 6px 0 12px;
+}
+.bnd-p-title__ar {
+	font-size: 19px;
+	font-weight: 800;
+	color: var(--bnd-brand-ink);
+}
+.bnd-p-title__en {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--bnd-ink-muted);
+	text-transform: uppercase;
+}
+
+/* ===== head row (meta + QR) — TABLE, not flex ===== */
+.bnd-p-head {
+	width: 100%;
+	border-collapse: collapse;
+}
+.bnd-p-head td {
+	border: none;
+	padding: 0;
+	vertical-align: top;
+}
+.bnd-p-head__qr {
+	width: 130px;
+	text-align: left;
+}
+.bnd-p-qr {
+	border: 1px solid var(--bnd-border);
+	padding: 3px;
+}
+.bnd-p-qr-missing {
+	width: 120px;
+	border: 2px dashed var(--bnd-critical);
+	color: var(--bnd-critical);
+	font-size: 9px;
+	font-weight: 700;
+	text-align: center;
+	padding: 8px 6px;
+}
+
+/* ===== meta box ===== */
+.bnd-p-meta {
+	border-collapse: collapse;
+	margin-bottom: 10px;
+}
+.bnd-p-meta td {
+	border: 1px solid var(--bnd-border);
+	padding: 4px 10px;
+}
+.bnd-p-meta td:first-child {
+	color: var(--bnd-ink-muted);
+	background: var(--bnd-surface);
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+/* ===== party block ===== */
+.bnd-p-party {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 8px 0 12px;
+	table-layout: fixed;
+}
+.bnd-p-party td {
+	border: 1px solid var(--bnd-border);
+	padding: 8px 10px;
+	vertical-align: top;
+}
+.bnd-p-party__h {
+	font-size: 10px;
+	font-weight: 700;
+	/* Was the legacy gold. `--bnd-accent` is fitted for marks (3:1), not text;
+	   until slice 3 ships a text-fitted secondary, the party heading rides the
+	   brand ink — AA guaranteed by an item-17 gate row, not by luck. */
+	color: var(--bnd-brand-ink);
+	margin-bottom: 3px;
+}
+.bnd-p-party__n {
+	font-weight: 700;
+}
+.bnd-p-party__a {
+	color: var(--bnd-ink-muted);
+	font-size: 11px;
+}
+
+/* ===== items table ===== */
+.bnd-p-items {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 6px 0 10px;
+}
+.bnd-p-items th {
+	border: 1px solid var(--bnd-brand-ink);
+	border-bottom-width: 2px;
+	padding: 6px 8px;
+	background: var(--bnd-surface);
+	color: var(--bnd-brand-ink);
+	font-weight: 700;
+	font-size: 11px;
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+.bnd-p-items td {
+	border: 1px solid var(--bnd-border);
+	padding: 6px 8px;
+}
+.bnd-p-items .c {
+	text-align: center;
+	width: 28px;
+}
+.bnd-p-items .n {
+	text-align: left;
+	direction: ltr;
+	white-space: nowrap;
+}
+.bnd-p-items__d {
+	color: var(--bnd-ink-muted);
+	font-size: 10px;
+}
+
+/* ===== totals (old-WebKit prefixed margin first, standard last) ===== */
+.bnd-p-totals {
+	border-collapse: collapse;
+	-webkit-margin-start: auto;
+	margin-inline-start: auto;
+	min-width: 46%;
+}
+.bnd-p-totals td {
+	border: 1px solid var(--bnd-border);
+	padding: 5px 10px;
+}
+.bnd-p-totals td:first-child {
+	color: var(--bnd-ink-muted);
+}
+.bnd-p-totals .g td {
+	/* The legacy gold rule over the grand total — the accent's 3:1 fit is
+	   exactly right for a 2px mark. */
+	border-top: 2px solid var(--bnd-accent);
+	font-weight: 800;
+	color: var(--bnd-brand-ink);
+	font-size: 13px;
+}
+.bnd-p-words {
+	margin-top: 6px;
+	padding: 6px 10px;
+	border: 1px dashed var(--bnd-border);
+	color: var(--bnd-ink-muted);
+	font-size: 11px;
+}
+
+/* ===== signatures ===== */
+.bnd-p-sigs {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 34px;
+	text-align: center;
+	color: var(--bnd-ink-muted);
+	font-size: 11px;
+}
+.bnd-p-sigs td {
+	padding: 0 16px;
+}
+.bnd-p-sigs__line {
+	border-bottom: 1px solid var(--bnd-ink);
+	margin-bottom: 5px;
+	height: 26px;
+}
+
+/* ===== voucher amount box ===== */
+.bnd-p-amountbox {
+	border: 2px solid var(--bnd-brand-ink);
+	border-radius: 6px;
+	padding: 10px 16px;
+	text-align: center;
+	margin: 10px 0;
+}
+.bnd-p-amountbox__v {
+	font-size: 20px;
+	font-weight: 800;
+	color: var(--bnd-brand-ink);
+	direction: ltr;
+}
+.bnd-p-amountbox__l {
+	font-size: 10px;
+	color: var(--bnd-ink-muted);
+}
+
+/* ===== thermal (80mm) — PURE BLACK ink, a hardware constant: 203dpi
+   monochrome heads have no grayscale (mid-greys dither or vanish); brand
+   colour stays on A4/browser. The literals here are sanctioned — see the
+   header. ===== */
+.bnd-p--thermal {
+	width: 72mm;
+	margin: 0 auto;
+	font-size: 10.5px;
+	text-align: center;
+	color: #000;
+}
+.bnd-p-th-co {
+	font-weight: 800;
+	font-size: 13px;
+	color: #000;
+}
+.bnd-p-th-sub {
+	color: #000;
+	font-size: 9.5px;
+}
+.bnd-p-th-title {
+	font-weight: 800;
+	font-size: 12px;
+	margin: 3px 0;
+}
+.bnd-p-th-title span {
+	font-weight: 600;
+	font-size: 9.5px;
+	color: #000;
+}
+.bnd-p-th-rule {
+	border-top: 1px dashed #000;
+	margin: 5px 0;
+}
+.bnd-p-th-item__n {
+	text-align: right;
+	font-weight: 700;
+}
+/* label/amount pairs — TABLE (flex collapses in wkhtmltopdf) */
+.bnd-p-th-l {
+	width: 100%;
+	border-collapse: collapse;
+}
+.bnd-p-th-l td {
+	border: none;
+	padding: 1px 0;
+}
+.bnd-p-th-l .s {
+	text-align: right;
+}
+.bnd-p-th-l .e {
+	text-align: left;
+}
+.bnd-p-th-l--g {
+	font-weight: 800;
+	font-size: 12.5px;
+	border-top: 1px solid #000;
+	margin-top: 3px;
+}
+.bnd-p-th-l--g td {
+	padding-top: 3px;
+}
+.bnd-p--thermal .bnd-p-qr,
+.bnd-p--thermal .bnd-p-qr-missing {
+	margin: 6px auto 2px;
+	display: block;
+}
+
+/* ===== dot-matrix base (pre-printed / continuous forms) — Courier has no
+   Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced. Pure
+   black for the same hardware reason as thermal. ===== */
+.bnd-p--matrix {
+	font-family: "Courier New", "Cairo", "Noto Naskh Arabic", monospace;
+	font-size: 11px;
+	color: #000;
+}
+.bnd-p--matrix table {
+	border-collapse: collapse;
+	width: 100%;
+}
+.bnd-p--matrix th,
+.bnd-p--matrix td {
+	border: none;
+	padding: 2px 6px;
+}
+.bnd-p--matrix th {
+	border-bottom: 1px solid #000;
+	text-align: right;
+}

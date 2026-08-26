@@ -48,7 +48,7 @@
   POS، أو QZ Tray.
 
 ## قواعد
-- الأنماط العامة في `bunood_print_style.css` **فقط** (تصل عبر Print Style) —
+- الأنماط العامة في `scss/print/print.scss` **فقط** (تُستبدل الرموز لكل موقع عبر `printing/sheet.py` ثم تصل عبر Print Style) —
   لا `<style>` داخل القوالب إلا `@page` الحراري.
 - الألوان تعكس primitives الهوية يدوياً (الـ tokens لا تصل محرّك الـ PDF) —
   حافظ على تزامنها مع `docs/design-tokens.md`.

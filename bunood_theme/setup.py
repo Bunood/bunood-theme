@@ -395,18 +395,31 @@ def _seed_navbar_density_item() -> None:
 def on_theme_settings_update(doc, method=None) -> None:
     """``doc_events`` handler — react to a Theme Settings save.
 
-    Two steps, both needed for a save to actually reach users:
+    Three steps, each needed for a save to actually reach users:
 
     1. Regenerate the brand stylesheet (colours/density travel by CSS). Passes
        ``doc`` through so :func:`write_brand_css` does not re-read the document
        it was just handed.
-    2. Clear the site cache. The desk layout travels in ``frappe.boot``, and
+    2. Re-substitute the print carriers (item 35): the Print Style record and
+       the Letter Head both hold CONCRETE hexes substituted from this doc's
+       seeds — without this step a brand change would repaint the desk and
+       leave every printed document on the old colours, which is exactly the
+       silent-drift class the substitution mechanism exists to remove. Guarded
+       inside :func:`printing.install.resync_print_brand` so a print failure
+       can never block the save.
+    3. Clear the site cache. The desk layout travels in ``frappe.boot``, and
        boot payloads are CACHED PER USER — without this, a layout change would
        reach each user only whenever their session cache happened to expire,
        which reads as "the setting is broken". A full clear on a settings save
        is a deliberate, rare cost.
     """
     write_brand_css(doc)
+    try:
+        from bunood_theme.printing.install import resync_print_brand
+
+        resync_print_brand(doc)
+    except Exception:
+        frappe.log_error("bunood_theme: print resync after Theme Settings save failed")
     try:
         frappe.clear_cache()
     except Exception:

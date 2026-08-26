@@ -7,7 +7,8 @@
            doc_title, invoice_meta, party_block, items_table, totals_block,
            zatca_qr, thermal_head, thermal_items, thermal_totals, sig_row %}
 
-    Styling comes from the global Print Style "Bunood" (bunood_print_style.css).
+    Styling comes from the global Print Style "Bunood" (scss/print/print.scss,
+    substituted per site by printing/sheet.py — item 35).
     Layout uses TABLES (not flex) — wkhtmltopdf's old WebKit drops display:flex.
     Server helpers (hooks jinja.methods, guarded with `is defined` so copies of
     these macros never crash elsewhere): bunood_zatca_qr_src (QR incl.

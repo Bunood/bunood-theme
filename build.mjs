@@ -98,6 +98,16 @@ const ENTRIES = [
 	// no phantom tokens — plus the email-safe property allowlist, which only this
 	// entry has.
 	{ key: "bunood-email", src: "email/email.scss", pyid: "EMAIL_CSS" },
+	// The print sheet is the fourth, and the first delivered as a DATABASE
+	// RECORD: `bunood_theme/printing/sheet.py` reads this compiled file off the
+	// package, substitutes every `var(--bnd-*)` from `palette.derive()` (the
+	// item-34 mechanism, fourth consumer) and writes the result into the Print
+	// Style "Bunood" — which `frappe/www/printview.py` then inlines into every
+	// print view and PDF. Compiled as an entry so it inherits the guards; it is
+	// the ONE entry exempt from `assertLogicalOnly` (wkhtmltopdf has no logical
+	// properties and nothing rtlcss-processes an inline Print Style), carrying
+	// `assertPrintSafeCss` instead — see that guard for the whole argument.
+	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -619,6 +629,113 @@ function assertEmailSafeCss(css, name) {
 	if (seen < 3) {
 		throw new Error(
 			`Email-safe guard: only ${seen} declarations found in ${name} — the extraction ` +
+				"has broken, and a guard that inspects nothing reads as coverage."
+		);
+	}
+}
+
+/**
+ * Print-safe CSS guard — an ALLOWLIST, and only for the print entry.
+ *
+ * WHY THIS ENTRY HAS ITS OWN GUARD AND LOSES `assertLogicalOnly`
+ *   The compiled print sheet is substituted into the Print Style record and
+ *   read by THREE renderers (census 2026-08-26): wkhtmltopdf (Qt-WebKit 534,
+ *   the shipped default — no flexbox, no logical properties, no woff2),
+ *   headless-chrome PDF, and the browser's own print dialog. A logical-only
+ *   sheet is silently direction-broken on the DEFAULT engine, so this entry
+ *   answers direction explicitly instead: `.bnd-p` pins `direction: rtl`
+ *   (Arabic-first formats, the bilingual-letterhead argument) and physical
+ *   `text-align` inside that scope is deliberate. The exemption is a
+ *   CONSTRAINT, not a licence — this allowlist is what bounds it, exactly as
+ *   `assertEmailSafeCss` bounds the sheet Outlook reads.
+ *
+ * THE PAIRING RULE IS THE PART THAT IS NEW. Every keep-together declaration
+ *   must carry BOTH spellings in the same rule — legacy `page-break-*` for
+ *   wkhtml, modern `break-*` for the other two engines. One spelling alone is
+ *   a rule that silently skips an engine, which is exactly the class of defect
+ *   an allowlist cannot see; so the pairing is enforced mechanically below.
+ */
+const PRINT_SAFE_PROPS = new Set([
+	// Box, as a table-based layout uses it. The physical margin/padding
+	// longhands ARE listed here, unlike the email guard: this is the one entry
+	// with no `assertLogicalOnly`, and top/bottom/left/right on paper are
+	// resolved by the pinned `.bnd-p` direction or the document `dir`.
+	"width", "min-width", "max-width", "height", "min-height", "max-height",
+	"padding", "padding-top", "padding-bottom", "padding-left", "padding-right",
+	"margin", "margin-top", "margin-bottom", "margin-left", "margin-right",
+	"-webkit-margin-start", "margin-inline-start",
+	"border", "border-width", "border-style", "border-color",
+	"border-top", "border-bottom", "border-left", "border-right",
+	"border-bottom-width", "border-top-width",
+	"border-radius", "border-collapse", "border-spacing",
+	"table-layout", "vertical-align", "display", "overflow", "box-sizing",
+	// Type.
+	"color", "font", "font-family", "font-size", "font-style", "font-weight",
+	"font-variant-numeric", "font-display", "line-height", "text-align",
+	"text-decoration", "text-transform", "white-space", "word-break",
+	"overflow-wrap", "direction", "unicode-range", "src",
+	// Paint. Backgrounds need the color-adjust triple to survive the browsers'
+	// default "no background graphics" print setting.
+	"background", "background-color",
+	"print-color-adjust", "-webkit-print-color-adjust", "color-adjust",
+	// Paged media — the reason this sheet exists. Dual spellings enforced below.
+	"page-break-inside", "page-break-after", "page-break-before",
+	"break-inside", "break-after", "break-before", "orphans", "widows",
+]);
+
+/** At-rules the three print engines honour or skip without damage. */
+const PRINT_SAFE_AT = new Set(["font-face", "page", "media", "charset"]);
+
+/** `display` values that survive WebKit 534 — flex/grid collapse there. */
+const PRINT_SAFE_DISPLAY = new Set([
+	"block", "inline", "inline-block", "none",
+	"table", "table-cell", "table-row", "table-header-group", "table-footer-group",
+]);
+
+function assertPrintSafeCss(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const bad = new Set();
+
+	for (const m of stripped.matchAll(/(?:^|[{;])\s*display\s*:\s*([^;}!]+)/g)) {
+		const value = m[1].trim().toLowerCase();
+		if (!PRINT_SAFE_DISPLAY.has(value)) bad.add(`display: ${value}`);
+	}
+	for (const m of stripped.matchAll(/(^|[{;])\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/g)) {
+		const prop = m[2].toLowerCase();
+		if (prop.startsWith("--")) continue; // substituted away before any engine reads them
+		if (!PRINT_SAFE_PROPS.has(prop)) bad.add(prop);
+	}
+	for (const m of stripped.matchAll(/@([-a-zA-Z]+)/g)) {
+		const at = m[1].toLowerCase();
+		if (!PRINT_SAFE_AT.has(at)) bad.add("@" + at);
+	}
+
+	// THE PAIRING RULE: within each rule block, a modern `break-*` requires its
+	// legacy `page-break-*` twin and vice versa — otherwise the declaration
+	// silently skips one of the three engines.
+	for (const rule of stripped.split("}")) {
+		const body = rule.slice(rule.indexOf("{") + 1);
+		for (const kind of ["inside", "after", "before"]) {
+			const modern = new RegExp(`(^|[{;\\s])break-${kind}\\s*:`).test(body);
+			const legacy = body.includes(`page-break-${kind}`);
+			if (modern !== legacy) bad.add(`unpaired break-${kind} (needs BOTH spellings in the same rule)`);
+		}
+	}
+
+	if (bad.size) {
+		throw new Error(
+			`Print-safe guard: ${name} uses ${[...bad].join(", ")}, which is outside the ` +
+				"checked set. The sheet is verified in Chromium and rendered by wkhtmltopdf " +
+				"(Qt-WebKit 534), so this list is the only thing standing between the two. " +
+				"If the property works across the print engines OR degrades harmlessly, add " +
+				"it to PRINT_SAFE_PROPS with the reason; if it does not, the layout needs a table."
+		);
+	}
+
+	const seen = [...stripped.matchAll(/(^|[{;])\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/g)].length;
+	if (seen < 3) {
+		throw new Error(
+			`Print-safe guard: only ${seen} declarations found in ${name} — the extraction ` +
 				"has broken, and a guard that inspects nothing reads as coverage."
 		);
 	}
@@ -1155,7 +1272,12 @@ async function buildEntry({ key, src, pyid }) {
 		// versions.
 	});
 
-	assertLogicalOnly(result.css, `${key}.css`);
+	// The print entry is the ONE exemption from logical-only — wkhtmltopdf has
+	// no logical properties and nothing rtlcss-processes an inline Print Style,
+	// so that sheet answers direction explicitly and `assertPrintSafeCss` bounds
+	// what it may use instead. Every other entry keeps the guard.
+	if (key === "bunood-print") assertPrintSafeCss(result.css, `${key}.css`);
+	else assertLogicalOnly(result.css, `${key}.css`);
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
