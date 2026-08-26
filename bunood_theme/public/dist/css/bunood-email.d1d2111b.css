@@ -87,3 +87,24 @@ table.bnd-e.bnd-e--masthead.body-table .bnd-e-band {
   line-height: 6px;
   font-size: 1px;
 }
+
+.bnd-e .bnd-e-body a.btn-primary {
+  background-color: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  border-color: var(--bnd-brand-solid);
+}
+
+.bnd-e--action-outline .bnd-e-body a.btn-primary {
+  background-color: transparent;
+  color: var(--bnd-brand-ink);
+  border-color: var(--bnd-brand-ink);
+}
+
+.bnd-e--action-link .bnd-e-body a.btn-primary {
+  background-color: transparent;
+  color: var(--bnd-brand-ink);
+  border-color: transparent;
+  border-radius: 0;
+  padding: 0;
+  text-decoration: underline;
+}

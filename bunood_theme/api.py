@@ -881,3 +881,71 @@ def get_shipped_defaults() -> dict:
         "layout_chrome": LAYOUT_CHROME,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
     }
+
+
+@frappe.whitelist()
+def email_preview() -> str:
+    """Render a representative email through the REAL funnel, for the picker.
+
+    THE FIRST KIT IN THIS PROJECT WHOSE PREVIEW IS BOTH POSSIBLE AND HONEST, and
+    the two kits before it are why that sentence needs saying. The sign-in kit
+    ships none because ``www/login.py:38-46`` redirects an authenticated session
+    away, so the only person who can open its picker is the only one who cannot
+    load the page. The website kit ships none because an "apply" there is a page
+    load in a different document. Neither argument survives here: an email is
+    composed on the server, contains no other user's data, and this returns the
+    genuine output of ``get_formatted_html`` rather than a mock-up of it.
+
+    WHY NOT ``frappe.email.email_body.get_email_html``, WHICH IS ALREADY
+    WHITELISTED. It calls ``get_formatted_html`` WITHOUT an ``email_account``, and
+    ``email_body.py:419`` resolves that with ``find_outgoing()`` which returns
+    ``None`` when a site has no outgoing account — then line 433 dereferences it.
+    Measured on this site: ``AttributeError: 'NoneType' object has no attribute
+    'get'`` for any call asking for a header or a container, i.e. exactly what a
+    preview wants to show. Filed upstream in ``docs/upstream/frappe-email.md`` §7.
+    Passing our own stub is the whole difference.
+
+    THE SAMPLE IS FIXED AND CARRIES EVERY ELEMENT THE CONTRACTS SPEAK ABOUT — a
+    heading, prose, a bold run, the CTA and a bare link. A preview that omits one
+    would show an admin a clean design and hide the thing a repair was written
+    for, which is the fixture defect this item already shipped once in its own
+    test suite.
+
+    Returns:
+        The rendered HTML, or ``""`` on any failure — the picker draws nothing
+        rather than an error, and the settings page keeps working.
+    """
+    # `frappe.only_for` rather than a hand-rolled check plus our own "Not
+    # permitted" string. The message belongs to the framework and is already
+    # translated in every locale it ships; re-stating it here would have added a
+    # row to `ar.po` for a sentence this app does not own.
+    frappe.only_for("System Manager")
+
+    try:
+        from frappe.email.email_body import get_formatted_html
+
+        # COMPLETE PARAMETERISED MESSAGES, never concatenated fragments —
+        # GUIDELINES §1.6. The first cut built the closing sentence out of
+        # "Or see" + a link + ".", which is three fragments a translator cannot
+        # reorder and which falls apart in any language that puts the verb
+        # elsewhere. The document code stays OUTSIDE the string for the same
+        # reason it is not translated: it is an identifier, not prose.
+        body = (
+            "<p>" + frappe._("Your invoice is ready.") + "</p>"
+            "<p>" + frappe._("The total is {0}.").format("<b>SAR 1,240.00</b>") + "</p>"
+            "<a class='btn btn-primary' href='#'>" + frappe._("View invoice") + "</a>"
+            "<p>"
+            + frappe._("Or see {0}.").format(
+                "<a href='#'>" + frappe._("all your invoices") + "</a>"
+            )
+            + "</p>"
+        )
+        return get_formatted_html(
+            frappe._("Invoice {0}").format("ACC-SINV-0042"),
+            body,
+            email_account=frappe._dict(brand_logo=None, footer=None),
+            with_container=True,
+        )
+    except Exception:
+        frappe.log_error(title="bunood_theme: email preview stood down")
+        return ""

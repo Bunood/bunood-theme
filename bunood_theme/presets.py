@@ -879,6 +879,8 @@ WEB_DEFAULTS = {
 
 EMAIL_FIELDS = [
     "email_style",
+    "email_action",
+    "email_theme",
 ]
 
 #: The shipped email defaults -- the item-34 wireframe round, closed 2026-08-25
@@ -912,6 +914,44 @@ EMAIL_DEFAULTS = {
     # like; none may take it away. That is item 31's rule ("a pole may not take
     # the slot's fill away") arriving one item later by a different route.
     "email_style": "Card",
+    # THE CTA AXIS. Brand fill -- Outline -- Link.
+    #
+    # Stock is `#171717` at 17.93:1: accessible, and carrying no brand at all.
+    # That is a different problem from an illegible one and it is worth being
+    # precise about, because it decides the default. Nothing here is a REPAIR --
+    # the contrast is already fine -- so the whole axis is style, and the default
+    # is the one that does the item's job: the call to action is the single place
+    # an email can carry a colour, and `Brand fill` is where it carries it.
+    #
+    # It costs NO new contrast row. `--bnd-brand-solid` + `--bnd-on-brand` are
+    # jointly fitted (3:1 as a fill, 4.5:1 under their own label) at all eleven
+    # gate seeds in both modes, so the guarantee comes from a row that has existed
+    # since item 17 rather than from one measurement at one seed.
+    "email_action": "Brand fill",
+    # THE MODE AXIS -- and the one pole in this kit whose FEASIBILITY had to be
+    # established before it could be offered.
+    #
+    # Frappe ships no dark handling of any kind: no `prefers-color-scheme`, no
+    # `color-scheme` meta, nothing. Directus drew a full dark block for its own
+    # mail and COMMENTED IT OUT. So "can this even be done" was an open question,
+    # and the census answered it: a `prefers-color-scheme` block survives Premailer
+    # into a preserved `<style>`, and Premailer ADDS `!important` to every rule it
+    # preserves -- which is exactly what lets the dark block beat the inlined light
+    # value it would otherwise lose to.
+    #
+    # `Follow the client` is the NEUTRAL and the default, mirroring `login_theme`
+    # and `web_theme`. The reasoning is not quite theirs, though, and the
+    # difference matters: for a website page the argument is that HTML is cached
+    # under (path, lang) so a stored per-visitor choice would leak. Here nothing is
+    # cached -- but a message is composed ONCE and read by many people on many
+    # devices, so a media query is still the only thing that can answer per reader.
+    #
+    # UNLIKE the other two kits, this axis is NOT a body class. It is resolved
+    # server-side into which rules `email.py` emits, because a mail client cannot
+    # be trusted to resolve a class-scoped media query -- Gmail strips <html> and
+    # <body> outright. `email.py::EMAIL_CLASSES` therefore carries `email_style`
+    # alone, and that asymmetry is deliberate rather than an omission.
+    "email_theme": "Follow the client",
 }
 
 

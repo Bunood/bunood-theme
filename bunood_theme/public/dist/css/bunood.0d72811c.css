@@ -3604,6 +3604,21 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   font-size: var(--bnd-text-xs);
 }
 
+.bnd-emp-preview:not(:empty) {
+  margin-block-start: bnd-space(4);
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  overflow: hidden;
+  background: var(--bnd-pane);
+}
+
+.bnd-emp-frame {
+  display: block;
+  inline-size: 100%;
+  block-size: 320px;
+  border: 0;
+}
+
 html[data-bnd-ws] .ce-block__content,
 html[data-bnd-ws] .ce-block__content > div {
   block-size: 100%;

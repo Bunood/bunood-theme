@@ -41,10 +41,13 @@
   {{ brand_logo }}, {{ with_container }}, {{ print_html }}, {{ subject }},
   {{ site_url }}. `get_formatted_html` supplies every one.
 
-  THIS SLICE SHIPS IT INERT. Byte-identical to the vendor's, so the render is
-  byte-identical too and the only thing under test is whether our copy WINS the
-  loader — `telephony` sorts ahead of `bunood_theme` in the ChoiceLoader and would
-  beat us if it ever shipped one of these.
+  IT SHIPPED INERT AND NO LONGER IS. Slice 1 landed this file byte-identical to
+  the vendor.s, so the render was byte-identical too and the only thing under test
+  was whether our copy WINS the loader — `telephony` sorts ahead of `bunood_theme`
+  in the ChoiceLoader and would beat us if it ever shipped one of these. Since
+  then it has grown the `<style>` block, the pole class, the `color-scheme` meta
+  and two structural rows. The loader check still runs; the byte-identity evidence
+  belongs to slice 1 and is recorded in its commit, not claimed here.
 -#}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -53,6 +56,11 @@
 	<meta name="viewport" content="width=device-width" />
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title>{{ subject or "" }}</title>
+	{#- Item 34. `light only` is the one lever that asks a client NOT to run its
+	     own inversion over a design it cannot see; without it `Always Light` would
+	     mean "light until Gmail on Android decides otherwise". -#}
+	<meta name="color-scheme" content="{{ bunood_email_color_scheme() }}" />
+	<meta name="supported-color-schemes" content="{{ bunood_email_color_scheme() }}" />
 	{#- Item 34. Colour tokens substituted per site by bunood_theme/email.py;
 	     Premailer inlines what it can and preserves the rest. Empty string on any
 	     failure, which stands the whole sheet down rather than half-styling. -#}

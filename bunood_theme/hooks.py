@@ -137,6 +137,7 @@ jinja = {
         # `bunood_theme/email.py`.
         "bunood_theme.email.bunood_email_css",
         "bunood_theme.email.bunood_email_class",
+        "bunood_theme.email.bunood_email_color_scheme",
         "bunood_theme.i18n.rtl_patch.is_rtl",
     ]
 }

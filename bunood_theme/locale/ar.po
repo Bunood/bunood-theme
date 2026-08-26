@@ -4484,3 +4484,100 @@ msgstr "بطاقة، يعلوها شريط بلون علامتك التجاري�
 #, fuzzy
 msgid "Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
 msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء. لا توجد معاينة هنا بعد: تُنشَأ الرسالة على الخادم وتُقرأ في تطبيق بريد، فما يعرضه المتصفّح ليس ما يعرضه صندوق الوارد."
+
+#. src: item34
+#, fuzzy
+msgid "Email Action"
+msgstr "زر البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Set by the picker above. How the button in an email reads. Stock is near-black and carries no brand at all."
+msgstr "يُضبط من المُنتقي أعلاه. كيف يظهر الزر في الرسالة. الوضع الأصلي قريب من الأسود ولا يحمل أي هوية بصرية."
+
+#. src: item34
+#, fuzzy
+msgid "Brand fill"
+msgstr "تعبئة بلون العلامة"
+
+#. src: item34
+#, fuzzy
+msgid "Link"
+msgstr "رابط"
+
+#. src: item34
+#, fuzzy
+msgid "Email Theme"
+msgstr "سمة البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Set by the picker above. One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client."
+msgstr "يُضبط من المُنتقي أعلاه. تُقرأ الرسالة الواحدة من أشخاص كثيرين على أجهزة مختلفة، لذا فإن اتّباع إعداد كل قارئ هو الشيء الوحيد القادر على الإجابة لكل قارئ على حدة. يختلف الدعم حسب تطبيق البريد."
+
+#. src: item34
+#, fuzzy
+msgid "Follow the client"
+msgstr "اتّباع تطبيق البريد"
+
+#. src: item34
+#, fuzzy
+msgid "The one control an email has. Stock is near-black and carries no brand at all."
+msgstr "عنصر التحكّم الوحيد في الرسالة. الوضع الأصلي قريب من الأسود ولا يحمل أي هوية بصرية."
+
+#. src: item34
+#, fuzzy
+msgid "One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client."
+msgstr "تُقرأ الرسالة الواحدة من أشخاص كثيرين على أجهزة مختلفة، لذا فإن اتّباع إعداد كل قارئ هو الشيء الوحيد القادر على الإجابة لكل قارئ على حدة. يختلف الدعم حسب تطبيق البريد."
+
+#. src: item34
+#, fuzzy
+msgid "Applies to every email your site sends — notifications, invitations and password resets alike."
+msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء."
+
+#. src: item34
+#, fuzzy
+msgid "Email preview"
+msgstr "معاينة البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Your invoice is ready."
+msgstr "فاتورتك جاهزة."
+
+#. src: item34
+#, fuzzy
+msgid "The total is {0}."
+msgstr "الإجمالي {0}."
+
+#. src: item34
+#, fuzzy
+msgid "View invoice"
+msgstr "عرض الفاتورة"
+
+#. src: item34
+#, fuzzy
+msgid "Or see {0}."
+msgstr "أو اطّلع على {0}."
+
+#. src: item34
+#, fuzzy
+msgid "all your invoices"
+msgstr "كل فواتيرك"
+
+#. src: item34
+#, fuzzy
+msgid "Invoice {0}"
+msgstr "فاتورة {0}"
+
+#. src: item34
+#, fuzzy
+msgid "Button"
+msgstr "الزر"
+
+#. src: item34
+#. NOT frappe's "موضوع", which is a topic or subject. A visual theme is "سمة",
+#. and `i18n:inherited` proposes the wrong one — see inherited.ar.txt.
+#, fuzzy
+msgid "Theme"
+msgstr "السمة"

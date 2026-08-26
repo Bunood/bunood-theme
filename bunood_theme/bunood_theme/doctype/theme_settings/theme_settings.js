@@ -4523,9 +4523,11 @@ const BND_LOGIN_DEFAULTS = {
  * guard for exactly as long as it takes to forget. Item 32 closed that hole;
  * this is not the place to reopen it.
  */
-const BND_EMAIL_FIELDS = ["email_style"];
+const BND_EMAIL_FIELDS = ["email_style", "email_action", "email_theme"];
 const BND_EMAIL_DEFAULTS = {
 	email_style: "Card",
+	email_action: "Brand fill",
+	email_theme: "Follow the client",
 };
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
@@ -5480,15 +5482,42 @@ const BND_EMAIL_STYLES = [
 	},
 ];
 
+const BND_EMAIL_GROUPS = [
+	{
+		field: "email_action",
+		title: () => __("Button"),
+		desc: () =>
+			__("The one control an email has. Stock is near-black and carries no brand at all."),
+		options: [
+			{ value: "Brand fill", name: () => __("Brand fill") },
+			{ value: "Outline", name: () => __("Outline") },
+			{ value: "Link", name: () => __("Link") },
+		],
+	},
+	{
+		field: "email_theme",
+		title: () => __("Theme"),
+		desc: () =>
+			__(
+				"One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client."
+			),
+		options: [
+			{ value: "Follow the client", name: () => __("Follow the client") },
+			{ value: "Always Light", name: () => __("Always Light") },
+			{ value: "Always Dark", name: () => __("Always Dark") },
+		],
+	},
+];
+
 /**
  * The email picker.
  *
- * ONE BAND AND NO GROUPS SO FAR, which is why there is no `.bnd-cbp-reset`
- * binding here yet: `P.group` emits a reset chip only for a group with a
- * `field`, and this picker renders no groups. `assertResetChipsBound` checks
- * exactly that pairing, so it stays satisfied — and the moment an axis lands the
- * build will demand the binding. That guard exists because
- * `bnd_render_web_picker` shipped two chips rendered, enabled and inert.
+ * BOTH GROUPS COMPOSE WITH `Original` and neither stands down, so no option
+ * carries a `reason`. That is not the same call `bnd_render_login_picker` makes:
+ * its branded CTA sits INSIDE the card `Original` leaves stock, so it genuinely
+ * does not apply there. Here the button and the mode are properties of the
+ * message rather than of the anchor's geometry — a stock-composed email still has
+ * a button, and is still read on a device with a setting.
  */
 function bnd_render_email_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "email_picker", host);
@@ -5506,6 +5535,18 @@ function bnd_render_email_picker(frm, host) {
 		{ selected: current, cls: "bnd-cbp-style bnd-emp-style" }
 	);
 
+	const groups = BND_EMAIL_GROUPS.map((grp) =>
+		P.group({
+			title: grp.title(),
+			desc: grp.desc(),
+			field: grp.field,
+			body: P.options(
+				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
+				{ field: grp.field, value: frm.doc[grp.field] || BND_EMAIL_DEFAULTS[grp.field] }
+			),
+		})
+	).join("");
+
 	$host.html(
 		P.wrap(
 			'<div class="bnd-cbp bnd-emp">' +
@@ -5516,11 +5557,13 @@ function bnd_render_email_picker(frm, host) {
 							cards +
 							P.note(
 								__(
-									"Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
+									"Applies to every email your site sends — notifications, invitations and password resets alike."
 								)
 							),
 					},
+					{ zone: "extras", html: groups },
 				]) +
+				'<div class="bnd-emp-preview" data-bnd-part="email-preview"></div>' +
 				"</div>"
 		)
 	);
@@ -5528,6 +5571,22 @@ function bnd_render_email_picker(frm, host) {
 	$host.find(".bnd-emp-style").on("click", function () {
 		bnd_email_set(frm, "email_style", this.getAttribute("data-value"));
 	});
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_email_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	// THE RESET CHIPS. `P.group` emits a `.bnd-cbp-reset` for any group with a
+	// `field` and both groups here have one, so this binding is not optional —
+	// `assertResetChipsBound` exists because `bnd_render_web_picker` shipped two
+	// of them rendered, enabled and inert, and there is no delegated fallback:
+	// every picker binds inside its own host.
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_email_set(frm, f, BND_EMAIL_DEFAULTS[f]);
+	});
+
+	bnd_email_preview(frm, $host);
 }
 
 /**
@@ -5549,6 +5608,70 @@ function bnd_render_email_picker(frm, host) {
 function bnd_email_set(frm, field, value) {
 	frm.set_value(field, value);
 	bnd_render_email_picker(frm);
+}
+
+/**
+ * The live preview — an iframe carrying a real render.
+ *
+ * AN IFRAME AND NOT `innerHTML`, and the reason is not isolation-in-principle.
+ * The document being previewed sets rules on `body` and `table` and ships its own
+ * `<style>`; dropped into the settings page those would apply TO THE SETTINGS
+ * PAGE. `srcdoc` gives it its own document, which is also what makes the preview
+ * honest — an email IS a whole document, and showing it inside one is the closest
+ * a browser gets to how it will be read.
+ *
+ * WHAT IT DOES NOT CLAIM. A browser is not a mail client. This shows the CSS that
+ * was authored, resolved the way Chromium resolves it; it says nothing about
+ * whether Outlook's Word engine will lay the tables out the same way. That limit
+ * is the reason `assertEmailSafeCss` exists, and the note under the picker says
+ * so in the admin's own words rather than leaving them to assume otherwise.
+ *
+ * REFETCHED ON EVERY RENDER, deliberately. The whole point is that a pole change
+ * is visible immediately, and the render happens SERVER-side — there is nothing
+ * the client could recompute. Each call is one `xcall` against a fixed sample.
+ */
+function bnd_email_preview(frm, $host) {
+	const $slot = $host.find('[data-bnd-part="email-preview"]');
+	if (!$slot.length) return;
+
+	// THE FRAME IS CREATED SYNCHRONOUSLY AND FILLED LATER, which is not a style
+	// choice. Built inside the `.then()` it exists only once the round-trip lands,
+	// so the picker has TWO structures — one before, one after — and which of them
+	// `tools/fingerprint.mjs` captures depends on how fast the backend answered.
+	// Three consecutive fingerprints agreed here, which is exactly how a flake
+	// looks until the day a cold worker takes five seconds (a documented cost of
+	// the first call after a restart) and `settings: no unexplained structural
+	// drift` goes red over nothing. Creating it up front makes the shape one fact.
+	//
+	// It is an iframe and not `innerHTML` because the document being previewed
+	// sets rules on `body` and `table` and ships its own `<style>`; dropped into
+	// the settings page those would style THE SETTINGS PAGE. `srcdoc` also makes
+	// the preview honest — an email IS a whole document.
+	const frame = document.createElement("iframe");
+	frame.className = "bnd-emp-frame";
+	frame.setAttribute("title", __("Email preview"));
+	// No script runs in a rendered email and none should run here. An empty
+	// `sandbox` grants nothing, which also blocks form submission and top-level
+	// navigation — so a link in the sample cannot take the admin off the page.
+	frame.setAttribute("sandbox", "");
+	frame.setAttribute("srcdoc", "");
+	$slot.empty().append(frame);
+
+	frappe
+		.xcall("bunood_theme.api.email_preview")
+		.then((html) => {
+			// The picker may have re-rendered while this was in flight — a second
+			// click before the first resolves. Write into the frame that is in the
+			// DOM NOW, or the render lands in a detached node and the admin watches
+			// the previous pole forever.
+			const live = $host.find(".bnd-emp-frame")[0];
+			if (live && html) live.setAttribute("srcdoc", html);
+		})
+		.catch(() => {
+			// A failed preview is not a failed picker. The endpoint already returns
+			// "" rather than raising for anything it can foresee; this covers the
+			// rest and leaves an empty frame rather than a half-drawn one.
+		});
 }
 
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */

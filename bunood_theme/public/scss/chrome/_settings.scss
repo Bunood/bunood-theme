@@ -1281,3 +1281,33 @@ html[data-theme] {
 	color: var(--bnd-ink-subtle);
 	font-size: var(--bnd-text-xs);
 }
+
+// ── The email preview (item 34) ───────────────────────────────────────────
+//
+// THE FIRST PICKER IN THIS PROJECT THAT SHOWS THE REAL THING. Nine kits preview
+// by applying to the live desk; the sign-in and website kits ship no preview at
+// all, each for a reason that does not hold here. An email is composed on the
+// server and contains no other user's data, so `api.email_preview` can return the
+// genuine output of `get_formatted_html` and this frame can show it.
+//
+// A FIXED HEIGHT AND NOT `auto`. The frame is sandboxed and cross-document, so
+// its content height is unreadable from here without a script inside it — and a
+// rendered email must never run one. 320px shows the masthead, the heading, the
+// prose and the CTA at the widths that matter, which is the whole thing a pole
+// changes.
+.bnd-emp-preview:not(:empty) {
+	margin-block-start: bnd-space(4);
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	overflow: hidden;
+	// The email paints its own ground; this is what shows through while the
+	// srcdoc parses, so it must not flash white on a dark desk.
+	background: var(--bnd-pane);
+}
+
+.bnd-emp-frame {
+	display: block;
+	inline-size: 100%;
+	block-size: 320px;
+	border: 0;
+}

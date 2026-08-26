@@ -123,12 +123,29 @@ SHIPPED_ACCENT = "#4463f0"
 #: the same elements as the STRUCTURAL ones — `.bnd-e-plate`, `.bnd-e-body`,
 #: `.bnd-e-foot` — and `.bnd-e-card` beside `.bnd-e-plate` would give a reader no
 #: way to tell a pole from a part.
+#: `email_theme` is DELIBERATELY ABSENT from this map, and the asymmetry with
+#: `login_theme`/`web_theme` is the point rather than an omission. Those two are
+#: body classes because a browser resolves a class-scoped media query. A mail
+#: client may not: Gmail strips `<html>` and `<body>` outright, so a preserved
+#: rule rooted at a class on either would match nothing. The mode is therefore
+#: resolved SERVER-side into which rules `bunood_email_css` emits at all.
 EMAIL_CLASSES = {
     "email_style": {
         "Original": "",
         "Card": "card",
         "Letter": "letter",
         "Masthead": "masthead",
+    },
+    #: `Brand fill` is the neutral here in the sense every neutral in this project
+    #: is: the ABSENCE of a class, with the sheet's base rule rendering it. It is
+    #: not a stand-down — the base rule is ours and it repaints stock's near-black
+    #: button — because this axis COMPOSES with the anchor rather than hanging off
+    #: it, exactly as `web_header` does and `login_action` does not. A stock-
+    #: composed email still has a button.
+    "email_action": {
+        "Brand fill": "",
+        "Outline": "action-outline",
+        "Link": "action-link",
     },
 }
 
@@ -254,6 +271,31 @@ def email_css(mode: str = "light", settings=None) -> str:
         return ""
 
 
+def _theme(settings=None) -> str:
+    """The stored ``email_theme``, falling back to the shipped default."""
+    from bunood_theme.presets import EMAIL_DEFAULTS
+
+    s = settings or frappe.get_cached_doc("Theme Settings")
+    value = getattr(s, "email_theme", None)
+    return value if value in EMAIL_THEMES else EMAIL_DEFAULTS["email_theme"]
+
+
+#: The three modes, and what each emits. Not a class map — see below.
+EMAIL_THEMES = ("Follow the client", "Always Light", "Always Dark")
+
+#: What the ``color-scheme`` meta declares per theme.
+#:
+#: ``light only`` is not decoration: it is the one lever that asks a client NOT to
+#: run its own inversion algorithm over a design it cannot see. Without it
+#: `Always Light` would mean "light, until Gmail on Android decides otherwise",
+#: which is not a promise worth offering.
+COLOR_SCHEME_META = {
+    "Follow the client": "light dark",
+    "Always Light": "light only",
+    "Always Dark": "dark only",
+}
+
+
 def bunood_email_class(settings=None) -> str:
     """Jinja global. The pole classes for the wrapper element, space-separated.
 
@@ -284,15 +326,72 @@ def bunood_email_class(settings=None) -> str:
         return ""
 
 
-def bunood_email_css(mode: str = "light", settings=None) -> str:
-    """Jinja global. Thin wrapper on :func:`email_css`, named for the template
-    namespace.
+def bunood_email_color_scheme(settings=None) -> str:
+    """Jinja global. The ``color-scheme`` meta value for the stored theme."""
+    try:
+        return COLOR_SCHEME_META[_theme(settings)]
+    except Exception:
+        frappe.log_error(title="bunood_theme: email color-scheme stood down")
+        return "light dark"
+
+
+def bunood_email_css(settings=None) -> str:
+    """Jinja global. The whole ``<style>`` body, with ``email_theme`` resolved.
 
     Frappe's ``jinja.methods`` hook exposes a function under its own ``__name__``
-    into a namespace shared by every installed app, so the three helpers this app
-    already registers are all ``bunood_``-prefixed. A bare ``email_css`` there
-    would sit one collision away from Frappe's own ``email_css`` HOOK name, which
-    is a different thing entirely — and the two are close enough that someone
-    would eventually read one for the other.
+    into a namespace shared by every installed app, so the helpers this app
+    registers are all ``bunood_``-prefixed. A bare ``email_css`` there would sit
+    one collision away from Frappe's own ``email_css`` HOOK name, which is a
+    different thing entirely — and the two are close enough that someone would
+    eventually read one for the other.
+
+    **This is where ``email_theme`` is resolved**, because that axis decides which
+    RULES exist rather than which class sits on an element:
+
+    ``Always Light``      the light sheet, and nothing else.
+    ``Always Dark``       the dark sheet IN PLACE OF it, not in addition. A reader
+                          who asked for dark gets it whatever their client thinks,
+                          and one who did not still gets a coherent design rather
+                          than a light one with dark patches.
+    ``Follow the client`` the light sheet, then the whole sheet again inside
+                          ``@media (prefers-color-scheme: dark)``.
+
+    THE SECOND COPY IS THE POINT, AND IT IS CHEAP. Premailer inlines the light
+    rules onto the elements and PRESERVES the media block into a ``<style>``,
+    adding ``!important`` to every declaration it preserves — which is precisely
+    what lets the dark values beat the inlined light ones they would otherwise
+    lose to. Measured. Emitting the sheet twice costs ~140 bytes gzipped against
+    a 2000 byte ceiling and Gmail's 102 KB clip.
     """
-    return email_css(mode, settings)
+    try:
+        s = settings or frappe.get_cached_doc("Theme Settings")
+        theme = _theme(s)
+
+        if theme == "Always Dark":
+            return email_css("dark", s)
+
+        light = email_css("light", s)
+        if not light or theme == "Always Light":
+            return light
+
+        # NESTING WOULD BE INVALID, so it is refused rather than emitted. Today
+        # the sheet carries no `@media` of its own and `assertEmailSafeCss` allows
+        # one, so this becomes reachable the day someone adds a responsive rule.
+        # A nested media query is not an error a mail client reports — it drops
+        # the block silently, i.e. dark mode would simply stop working with every
+        # gate still green.
+        if "@media" in light:
+            raise ValueError(
+                "the email sheet grew an @media of its own; wrapping it in the "
+                "prefers-color-scheme block would nest one media query inside "
+                "another. Emit the dark rules per-block instead."
+            )
+
+        dark = email_css("dark", s)
+        if not dark:
+            return light
+
+        return light + "\n@media (prefers-color-scheme: dark) {\n" + dark + "\n}\n"
+    except Exception:
+        frappe.log_error(title="bunood_theme: email stylesheet stood down")
+        return ""

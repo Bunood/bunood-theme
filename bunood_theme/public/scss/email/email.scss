@@ -289,3 +289,51 @@ table.bnd-e.bnd-e--letter.body-table {
 table.bnd-e.bnd-e--masthead.body-table {
 	@include composition(var(--bnd-surface), 8px, $plate-shadow, 32px, var(--bnd-brand-solid), 6px, 600px);
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `email_action` — the call to action. Brand fill · Outline · Link.
+//
+// The one control an email has, and the single place it can carry a colour.
+// Stock is `#171717` on white at 17.93:1 — accessible, and carrying no brand at
+// all. That is a different problem from an illegible one, which is why this whole
+// axis is STYLE and none of it is a contract: nothing here repairs anything.
+//
+// SIZED AGAINST A COMPETITOR THAT WAS READ. `email.bundle.scss` styles
+// `.btn-primary` at (0,1,0); these are (0,3,1) via the pole-agnostic `.bnd-e`
+// scope, so they clear it under every pole including `Original` — which is
+// correct, because a style axis composes with the anchor rather than hanging off
+// it, exactly as `web_header` does and `login_action` does not.
+//
+// NO POLE OR AXIS MAY PUT INK ON A FILL IT DID NOT ALSO SET. `--bnd-brand-solid`
+// and `--bnd-on-brand` are a jointly-fitted PAIR (3:1 as a fill, 4.5:1 under
+// their own label, at all eleven gate seeds in both modes). Re-pointing one and
+// not the other is the regression item 32 measured at 1.09:1 and item 33
+// restated; here the two always move together or not at all.
+// ══════════════════════════════════════════════════════════════════════════
+
+.bnd-e .bnd-e-body a.btn-primary {
+	background-color: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
+	border-color: var(--bnd-brand-solid);
+}
+
+// `Outline` survives a client's forced inversion better than a solid does — an
+// inverted transparent fill is still transparent — at the cost of a weaker
+// affordance in a scanned inbox. It takes `--bnd-brand-ink`, the brand fitted as
+// TEXT, and not the solid: the solid is fitted to be read ON, not read.
+.bnd-e--action-outline .bnd-e-body a.btn-primary {
+	background-color: transparent;
+	color: var(--bnd-brand-ink);
+	border-color: var(--bnd-brand-ink);
+}
+
+// `Link` gives up the button entirely. Zero markup risk in every client,
+// including Outlook's Word engine, and the weakest affordance of the three.
+.bnd-e--action-link .bnd-e-body a.btn-primary {
+	background-color: transparent;
+	color: var(--bnd-brand-ink);
+	border-color: transparent;
+	border-radius: 0;
+	padding: 0;
+	text-decoration: underline;
+}

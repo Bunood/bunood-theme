@@ -1015,7 +1015,7 @@ const MUTABLE_FIELDS = [
 	// template's class attribute, so a check for it drives `get_formatted_html`
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
-	"email_style",
+	"email_style", "email_action", "email_theme",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -14121,6 +14121,175 @@ async function main() {
 			} finally {
 				await ctx.close();
 			}
+		});
+
+
+		await test("email: both axes reach a rendered message", async () => {
+			// The whole point of an axis is that changing it changes the email. Item
+			// 29 shipped two poles that would have rendered as nothing and item 31
+			// caught two more by arithmetic; the cheapest guard against the same
+			// class is to drive every value and require the output to differ.
+			//
+			// AND IT CAUGHT ONE HERE ON ITS FIRST RUN. `email_action` was written,
+			// styled and deployed while `EMAIL_CLASSES` still carried `email_style`
+			// alone — so nothing emitted `bnd-e--action-outline`, all three values
+			// rendered an identical brand-filled button, and every other check was
+			// green. A rule with no class to hang on is invisible from the CSS.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"BODY = \"<p>body</p><a class='btn btn-primary' href='#'>Go</a>\"\n" +
+					"keep = {f: frappe.db.get_single_value('Theme Settings', f)\n" +
+					"        for f in ('email_action', 'email_theme')}\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for field, values in (('email_action', ('Brand fill', 'Outline', 'Link')),\n" +
+					"                          ('email_theme', ('Follow the client', 'Always Light', 'Always Dark'))):\n" +
+					"        for v in values:\n" +
+					"            frappe.db.set_single_value('Theme Settings', field, v)\n" +
+					"            frappe.clear_cache(doctype='Theme Settings')\n" +
+					"            res[field + '=' + v] = get_formatted_html('T', BODY, email_account=acct, with_container=True)\n" +
+					"finally:\n" +
+					"    for f, v in keep.items():\n" +
+					"        frappe.db.set_single_value('Theme Settings', f, v)\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_AX' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_AX"));
+			if (!line) throw new Error("axis probe produced no JSON: " + String(out).slice(-300));
+			const render = JSON.parse(line.slice("BND_AX".length));
+
+			// THE CTA. Read the inline style off the button, because that is what a
+			// mail client receives — a rule in the sheet that never got inlined is
+			// exactly the failure this check exists to find.
+			const cta = (html) => (html.match(/<a class="btn btn-primary"[^>]*style="([^"]*)"/) || [])[1] || "";
+			const fill = cta(render["email_action=Brand fill"]);
+			const outline = cta(render["email_action=Outline"]);
+			const link = cta(render["email_action=Link"]);
+			expect(fill && outline && link, "the CTA rendered without an inline style under some value");
+			expect(fill !== outline, `Brand fill and Outline render the same button (${fill})`);
+			expect(outline !== link, `Outline and Link render the same button (${outline})`);
+			expect(
+				/background-color:\s*transparent/.test(outline),
+				`Outline still paints a fill (${outline})`
+			);
+
+			// THE MODE. `Always Dark` must REPLACE the light sheet rather than
+			// append to it — a light design with dark patches is worse than either.
+			const dark = render["email_theme=Always Dark"];
+			const light = render["email_theme=Always Light"];
+			const follow = render["email_theme=Follow the client"];
+			const ground = (html) => {
+				const shell = (html.match(/<table class="bnd-e[^>]*style="([^"]*)"/) || [])[1] || "";
+				return (shell.match(/background-color:\s*([^;]+)/) || [])[1] || "";
+			};
+			expect(ground(dark) !== ground(light), `Always Dark paints the same ground as Always Light`);
+			expectEq(ground(follow), ground(light), "Follow the client must render LIGHT inline, and dark in a media block");
+		});
+
+		await test("email: dark rules ship only where the reader is meant to decide", async () => {
+			// The census established that this is possible at all: a
+			// `prefers-color-scheme` block survives Premailer into a preserved
+			// `<style>`, and Premailer ADDS `!important` to every rule it preserves
+			// — which is the only reason the dark values beat the light ones already
+			// inlined onto the elements. If that ever stops being true the block
+			// still ships, still parses, and silently does nothing, so the
+			// `!important` is asserted rather than assumed.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"keep = frappe.db.get_single_value('Theme Settings', 'email_theme')\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for v in ('Follow the client', 'Always Light', 'Always Dark'):\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'email_theme', v)\n" +
+					"        frappe.clear_cache(doctype='Theme Settings')\n" +
+					"        res[v] = get_formatted_html('T', '<p>body</p>', email_account=acct, with_container=True)\n" +
+					"finally:\n" +
+					"    frappe.db.set_single_value('Theme Settings', 'email_theme', keep)\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_DK' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_DK"));
+			if (!line) throw new Error("dark probe produced no JSON: " + String(out).slice(-300));
+			const render = JSON.parse(line.slice("BND_DK".length));
+
+			const hasBlock = (h) => /@media\s*\(prefers-color-scheme:\s*dark\)/.test(h);
+			expect(hasBlock(render["Follow the client"]), "Follow the client shipped no dark block");
+			expect(!hasBlock(render["Always Light"]), "Always Light shipped a dark block it must not");
+			expect(!hasBlock(render["Always Dark"]), "Always Dark shipped a dark block instead of dark values");
+
+			// The preserved block must carry `!important`, or it loses to the
+			// inlined light declaration on every element and dark mode is decorative.
+			const block = render["Follow the client"].split(/@media\s*\(prefers-color-scheme:\s*dark\)/)[1] || "";
+			expect(
+				block.includes("!important"),
+				"the preserved dark block carries no !important — it would lose to the inlined light values"
+			);
+
+			// And the meta must agree with the setting, or a client runs its own
+			// inversion over a design that already answered the question.
+			const meta = (h) => (h.match(/<meta name="color-scheme" content="([^"]*)"/) || [])[1] || "";
+			expectEq(meta(render["Always Light"]), "light only", "Always Light color-scheme meta");
+			expectEq(meta(render["Always Dark"]), "dark only", "Always Dark color-scheme meta");
+			expectEq(meta(render["Follow the client"]), "light dark", "Follow the client color-scheme meta");
+		});
+
+		await test("email: the preview renders the real thing, and only for a manager", async () => {
+			// THE FIRST PREVIEW IN THIS PROJECT THAT SHOWS THE ACTUAL OUTPUT rather
+			// than applying to the live desk. It exists because the two arguments
+			// that ruled one out for the sign-in and website kits do not hold here.
+			//
+			// It does NOT go through frappe's already-whitelisted `get_email_html`:
+			// that omits `email_account`, and `email_body.py:419` resolves it with
+			// `find_outgoing()` which returns None on a site with no outgoing
+			// account — then line 433 dereferences it. Reproduced below, because a
+			// filing nobody can reproduce gets closed.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.api import email_preview\n" +
+					"res = {}\n" +
+					"res['html'] = email_preview()\n" +
+					"# The upstream crash our endpoint exists to route around.\n" +
+					"try:\n" +
+					"    from frappe.email.email_body import get_formatted_html\n" +
+					"    get_formatted_html('T', '<p>x</p>', with_container=True)\n" +
+					"    res['upstream'] = 'no error'\n" +
+					"except Exception as e:\n" +
+					"    res['upstream'] = type(e).__name__\n" +
+					"# And the permission gate, from a user who has no business here.\n" +
+					"frappe.set_user('Guest')\n" +
+					"try:\n" +
+					"    email_preview()\n" +
+					"    res['guest'] = 'ALLOWED'\n" +
+					"except Exception as e:\n" +
+					"    res['guest'] = type(e).__name__\n" +
+					"finally:\n" +
+					"    frappe.set_user('Administrator')\n" +
+					"print('BND_PV' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PV"));
+			if (!line) throw new Error("preview probe produced no JSON: " + String(out).slice(-300));
+			const res = JSON.parse(line.slice("BND_PV".length));
+
+			expect(res.html && res.html.length > 500, `the preview returned nothing usable (${res.html.length})`);
+			expect(res.html.includes("<html"), "the preview is not a whole document — the iframe needs one");
+			expect(res.html.includes("bnd-e-plate"), "the preview carries none of our structure");
+			expect(!/var\(/.test(res.html), "the preview leaked an unsubstituted var()");
+			// Every element the contracts speak about, so the preview cannot show a
+			// clean design while hiding the thing a repair was written for.
+			for (const needle of ["btn btn-primary", "bnd-e-foot", "<b>"]) {
+				expect(res.html.includes(needle), `the preview sample is missing ${needle}`);
+			}
+			expectEq(res.guest, "PermissionError", "a Guest must not be able to render the preview");
+			expectEq(
+				res.upstream,
+				"AttributeError",
+				"frappe's own get_email_html path no longer crashes without an outgoing account — " +
+					"re-check docs/upstream/frappe-email.md §7 and simplify api.email_preview if it is fixed"
+			);
 		});
 
 		await test("payload: the bundle is within its budget", async () => {
