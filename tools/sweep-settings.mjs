@@ -183,6 +183,7 @@ for (const key of items) {
 			".bnd-flp-style": "filters_style",
 			".bnd-lgp-style": "login_style",
 			".bnd-wbp-style": "web_style",
+			".bnd-emp-style": "email_style",
 			".bnd-icp-style": "icon_style",
 		};
 		const CRUMBS_ONLY =

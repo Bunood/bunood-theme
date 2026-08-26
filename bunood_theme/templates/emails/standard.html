@@ -60,11 +60,30 @@
 </head>
 
 <body>
-	<table class="bnd-e body-table {% if header or with_container %} with-container {% endif %}" cellpadding="0" cellspacing="0">
+	<table class="bnd-e {{ bunood_email_class() }} body-table {% if header or with_container %} with-container {% endif %}" cellpadding="0" cellspacing="0">
 		<tr>
 			<td class="body-content" align="center" valign="top">
 				<table class="bnd-e-plate email-container" border="0" cellpadding="0" cellspacing="0"
 					width="{% if header %} 600 {% else %} 100% {% endif %}">
+					{#- ITEM 34. Two structural rows, and both exist on EVERY pole.
+
+					    THE BAND is sized to nothing except under `Masthead`. A row that
+					    only sometimes exists would put the pole decision in a second
+					    place — this template cannot read the setting, it can only read
+					    the class `bunood_email_class()` wrote, so the CSS has to be the
+					    one thing that decides.
+
+					    THE PAD CELL exists because Frappe put the plate's padding on the
+					    TABLE, and a band inside a padded table is inset by it — a
+					    floating chip rather than a masthead. Padding on a `<td>` is also
+					    simply more reliable in mail clients than padding on a `<table>`.
+					    The inner table is what lets the existing rows stay untouched. -#}
+					<tr>
+						<td class="bnd-e-band"></td>
+					</tr>
+					<tr>
+						<td class="bnd-e-pad" valign="top">
+							<table border="0" cellpadding="0" cellspacing="0" width="100%">
 					{% if brand_logo %}
 					<tr>
 						<td width="40" align="left" valign="middle">
@@ -107,6 +126,9 @@
 										<div class="print-html">{{ print_html or "" }}</div>
 									</td>
 								</tr>
+							</table>
+						</td>
+					</tr>
 							</table>
 						</td>
 					</tr>

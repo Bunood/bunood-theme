@@ -807,6 +807,49 @@ SURFACES = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "email",
+        # The TWELFTH surface kit, and the first that is not rendered by a
+        # browser at all. Item 34.
+        #
+        # ONE LOWERCASE WORD, for the reason the row above spells out:
+        # assertRegistryIdentity matches /^[a-z]+$/ and a key it cannot match is
+        # invisible to it rather than rejected by it.
+        #
+        # IT STRETCHES THIS TABLE'S DEFINITION OF A SURFACE FURTHER THAN ANY
+        # OTHER ROW, AND THAT IS WORTH SAYING RATHER THAN GLOSSING. The header
+        # above defines a surface as "attributes on <html> and a stylesheet over
+        # Frappe's own DOM", with absent attributes AS the stand-down. Item 32
+        # already had to stretch "attributes on <html>" to a server-rendered body
+        # class. This one goes further: the anchor is a class our own Jinja
+        # template writes, and the stylesheet is not fetched at all — it is
+        # substituted to literals and inlined into the message by Premailer.
+        #
+        # What survives, and is why this is still a SURFACE and not chrome: it
+        # MOUNTS NOTHING and INJECTS NOTHING. There is no runtime, no hook that
+        # can act, no native affordance to release. The absent pole class is
+        # still the stand-down. The parts of the definition that carry the
+        # ownership guarantee all hold; only the delivery is different.
+        "part": "email",
+        "label": "Email",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `.bnd-e` alone stays, carrying CONTRACTS E1-E3 — the
+        # floor (a Notification email has NO opaque ancestor above any of its
+        # text), the footer at 4.17:1 and every link at 3.15:1.
+        #
+        # NOT a `body` selector, and that is the one email-specific trap in this
+        # row. Rules Premailer INLINES may be rooted anywhere, because it
+        # resolves them at render; rules it PRESERVES (media queries) are
+        # resolved by the client, and Gmail strips <html> and <body> and re-wraps
+        # the content. A body-scoped dark rule would inline fine, survive into
+        # the <style>, and match nothing where it matters.
+        "selector": ".bnd-e",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 #: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's

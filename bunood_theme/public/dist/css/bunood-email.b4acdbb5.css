@@ -1,0 +1,89 @@
+table.bnd-e.body-table {
+  background-color: var(--bnd-page);
+  color: var(--bnd-ink);
+}
+
+table.bnd-e.body-table.with-container .bnd-e-plate {
+  background-color: var(--bnd-surface);
+}
+
+table.bnd-e-body.email-body {
+  color: var(--bnd-ink);
+}
+
+.bnd-e .bnd-e-foot,
+.bnd-e .bnd-e-foot a {
+  color: var(--bnd-ink-subtle);
+}
+
+.bnd-e .bnd-e-body a:not(.btn) {
+  color: var(--bnd-brand-ink);
+}
+
+table.bnd-e.body-table .bnd-e-plate {
+  background-color: transparent;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+table.bnd-e.body-table .bnd-e-pad {
+  padding: 0;
+}
+table.bnd-e.body-table .bnd-e-band {
+  background-color: transparent;
+  height: 0;
+  line-height: 0;
+  font-size: 1px;
+}
+
+table.bnd-e.bnd-e--card.body-table .bnd-e-plate {
+  background-color: var(--bnd-surface);
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 0;
+}
+table.bnd-e.bnd-e--card.body-table .bnd-e-pad {
+  padding: 32px;
+}
+table.bnd-e.bnd-e--card.body-table .bnd-e-band {
+  background-color: transparent;
+  height: 0;
+  line-height: 0;
+  font-size: 1px;
+}
+
+table.bnd-e.bnd-e--letter.body-table .bnd-e-plate {
+  background-color: transparent;
+  max-width: 560px;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+table.bnd-e.bnd-e--letter.body-table .bnd-e-pad {
+  padding: 40px;
+}
+table.bnd-e.bnd-e--letter.body-table .bnd-e-band {
+  background-color: transparent;
+  height: 0;
+  line-height: 0;
+  font-size: 1px;
+}
+
+table.bnd-e.bnd-e--masthead.body-table .bnd-e-plate {
+  background-color: var(--bnd-surface);
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 0;
+}
+table.bnd-e.bnd-e--masthead.body-table .bnd-e-pad {
+  padding: 32px;
+}
+table.bnd-e.bnd-e--masthead.body-table .bnd-e-band {
+  background-color: var(--bnd-brand-solid);
+  height: 6px;
+  line-height: 6px;
+  font-size: 1px;
+}

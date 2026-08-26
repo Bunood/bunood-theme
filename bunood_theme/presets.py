@@ -877,6 +877,44 @@ WEB_DEFAULTS = {
 }
 
 
+EMAIL_FIELDS = [
+    "email_style",
+]
+
+#: The shipped email defaults -- the item-34 wireframe round, closed 2026-08-25
+#: AFTER the census rather than before it, which is why `Card` won.
+EMAIL_DEFAULTS = {
+    # THE ANCHOR. Four poles.
+    #
+    #   Original  the stand-down -- and it is NARROWER here than in any previous
+    #             kit, which is the census's doing rather than a design choice.
+    #             Contracts E1-E3 survive it: the floor, the footer at 4.17:1 and
+    #             every link at 3.15:1. See below.
+    #   Card      THE DEFAULT. A framed plate on a tinted ground -- frappe's own
+    #             `with_container` intent, applied to every shape instead of one.
+    #   Letter    ground, no plate. Typographic, and the pole that degrades best
+    #             where a client strips backgrounds.
+    #   Masthead  Card plus a brand-coloured band above it.
+    #
+    # WHY `Card` AND NOT THE BOLD ONE -- the SECOND round running to answer this,
+    # after item 33's `Panel`, and for a related reason. The census measured that
+    # a Notification email (the commonest shape a site sends, because
+    # `notification.py:510` passes neither `header` nor `with_container`) has NO
+    # opaque ancestor above any of its text: five of five elements, ink `#171717`,
+    # ground whatever the mail client decides. `Card` is the only pole that
+    # supplies a ground AND a plate on every shape by construction. `Masthead` was
+    # the bolder draw and would have carried a saturated band into exactly the
+    # clients whose forced dark inversion mangles one worst.
+    #
+    # AND THE FLOOR IS NOT THIS FIELD'S JOB. Because the defect is an absence
+    # rather than an ugliness, the ground is a CONTRACT scoped outside the anchor
+    # -- so `Original` still gets one. A pole may change what the floor LOOKS
+    # like; none may take it away. That is item 31's rule ("a pole may not take
+    # the slot's fill away") arriving one item later by a different route.
+    "email_style": "Card",
+}
+
+
 CHROME_DEFAULTS = {
     c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
     for c in CONTAINERS

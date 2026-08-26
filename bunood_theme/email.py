@@ -104,6 +104,34 @@ FLATTEN_AGAINST = {
 SHIPPED_BRAND = "#4d8756"
 SHIPPED_ACCENT = "#4463f0"
 
+#: Settings value to CSS class slug. **THIS IS THE ONLY COPY.**
+#:
+#: `context.py` keeps the same table for the website and login kits and says the
+#: same thing about it, for the same reason: there is no `bunood.js` on this
+#: surface — indeed no JavaScript at all — so there is no second table to drift
+#: against, and there must never be one.
+#:
+#: A MAP AND NOT A DERIVATION, also for `context.py`'s reason. `"Card"` happens to
+#: lowercase into its own slug and `"Original"` does not map to `"original"` at
+#: all — it maps to the ABSENCE of a class, which is what makes the stand-down
+#: structural rather than a rule that has to remember to do nothing. One axis
+#: deriving while another maps reads as a bug later.
+#:
+#: THE SLUG SHAPE IS `bnd-e--<slug>` AND THE DOUBLE DASH IS DELIBERATE. Every
+#: other kit puts its pole on `body` (`body.bnd-web-panel`) where nothing else
+#: lives, so `<base>-<slug>` is unambiguous there. Here the pole classes sit on
+#: the same elements as the STRUCTURAL ones — `.bnd-e-plate`, `.bnd-e-body`,
+#: `.bnd-e-foot` — and `.bnd-e-card` beside `.bnd-e-plate` would give a reader no
+#: way to tell a pole from a part.
+EMAIL_CLASSES = {
+    "email_style": {
+        "Original": "",
+        "Card": "card",
+        "Letter": "letter",
+        "Masthead": "masthead",
+    },
+}
+
 _VAR = re.compile(r"var\(\s*(--bnd-[a-z0-9-]+)\s*\)")
 
 
@@ -223,6 +251,36 @@ def email_css(mode: str = "light", settings=None) -> str:
         return substitute(css, tokens(mode, settings))
     except Exception:
         frappe.log_error(title="bunood_theme: email stylesheet stood down")
+        return ""
+
+
+def bunood_email_class(settings=None) -> str:
+    """Jinja global. The pole classes for the wrapper element, space-separated.
+
+    Returns ``""`` under ``Original`` and on any failure — the absence of a class
+    IS the stand-down, so the degraded path and the neutral pole are the same
+    path, and neither can leave a half-dressed email behind.
+
+    An unknown stored value falls back to the shipped default rather than
+    emitting an orphan slug, exactly as ``context.py`` does for the two web kits.
+    That case is reachable: a Select option removed in a later release leaves the
+    old string in the database until something writes the field again.
+    """
+    try:
+        s = settings or frappe.get_cached_doc("Theme Settings")
+        from bunood_theme.presets import EMAIL_DEFAULTS
+
+        out = []
+        for field, slugs in EMAIL_CLASSES.items():
+            value = getattr(s, field, None)
+            if value not in slugs:
+                value = EMAIL_DEFAULTS[field]
+            slug = slugs[value]
+            if slug:
+                out.append("bnd-e--" + slug)
+        return " ".join(out)
+    except Exception:
+        frappe.log_error(title="bunood_theme: email pole class stood down")
         return ""
 
 

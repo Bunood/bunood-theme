@@ -43,6 +43,7 @@ from bunood_theme.presets import (
     REPORT_DEFAULTS,
     SKELETON_DEFAULTS,
     WEB_DEFAULTS,
+    EMAIL_DEFAULTS,
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
@@ -82,6 +83,7 @@ CHECK_DEFAULTS = {
         REPORT_DEFAULTS,
         SKELETON_DEFAULTS,
         WEB_DEFAULTS,
+        EMAIL_DEFAULTS,
         VIEWS_DEFAULTS,
         WORKSPACE_DEFAULTS,
         PALETTE_DEFAULTS,
@@ -172,6 +174,7 @@ DEFAULTS = {
     # kit is the SECOND whose anchor is a server-rendered body class rather than
     # an <html> attribute, because a website page has no boot payload and no JS.
     **{f: v for f, v in WEB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in EMAIL_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},

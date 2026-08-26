@@ -1010,6 +1010,12 @@ const MUTABLE_FIELDS = [
 	// context (see withGuest).
 	"login_style", "login_action", "login_theme",
 	"web_style", "web_header", "web_theme",
+	// Email (item 34). Not on the desk and not on a website page either: it is
+	// read server-side by `bunood_theme/email.py` and rendered into the wrapper
+	// template's class attribute, so a check for it drives `get_formatted_html`
+	// rather than a page. It belongs here for the ordinary reason — a run that
+	// dies mid-check must not leave the site sending Letter-styled mail.
+	"email_style",
 	"sidebar_preset", "sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -13982,6 +13988,136 @@ async function main() {
 					.map((r, i) => ({ ...r, r: ratios[i] }))
 					.filter((r) => r.r === null || r.r < 4.5);
 				expectEq(bad.length, 0, `below AA: ${bad.map((b) => `${b.what} ${b.color} = ${b.r}`).join(", ")}`);
+			} finally {
+				await ctx.close();
+			}
+		});
+
+
+		await test("email: the class map and the field options are one fact", async () => {
+			// Item 32 built this check for the login kit after `SETTINGS_PANE_KEYS`
+			// was found listing seven kits short; item 33 never got one. It is
+			// cheap and it catches the whole class: a Select option with no class,
+			// a class with no option, a doctype `default` that is not a mapped
+			// value, or a neutral that maps to something other than the ABSENCE of
+			// a class — which is what makes the stand-down structural rather than a
+			// rule that has to remember to do nothing.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.email import EMAIL_CLASSES\n" +
+					"from bunood_theme.presets import EMAIL_DEFAULTS\n" +
+					"meta = frappe.get_meta('Theme Settings')\n" +
+					"res = {}\n" +
+					"for field, slugs in EMAIL_CLASSES.items():\n" +
+					"    df = meta.get_field(field)\n" +
+					"    res[field] = {'options': [o for o in (df.options or '').split(chr(10)) if o],\n" +
+					"                  'default': df.default, 'slugs': slugs,\n" +
+					"                  'shipped': EMAIL_DEFAULTS.get(field)}\n" +
+					"print('BND_MAP' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_MAP"));
+			if (!line) throw new Error("class-map probe produced no JSON: " + String(out).slice(-300));
+			const data = JSON.parse(line.slice("BND_MAP".length));
+			expect(Object.keys(data).length > 0, "EMAIL_CLASSES is empty");
+			for (const [field, d] of Object.entries(data)) {
+				for (const opt of d.options) {
+					expect(opt in d.slugs, `${field}: option "${opt}" has no class`);
+				}
+				for (const value of Object.keys(d.slugs)) {
+					expect(d.options.includes(value), `${field}: class map has orphan "${value}"`);
+				}
+				expect(d.options.includes(d.default), `${field}: doctype default "${d.default}" is not an option`);
+				expectEq(d.default, d.shipped, `${field}: the doctype default and EMAIL_DEFAULTS disagree`);
+				// The neutral is always first, and always maps to no class at all.
+				expectEq(d.slugs[d.options[0]], "", `${field}: the first option must be the neutral`);
+			}
+		});
+
+		await test("email: the four poles compose differently, and none removes the floor", async () => {
+			// THE ANCHOR. Two things at once, because they are one property: a pole
+			// must CHANGE something (or it is not a pole) and must not take the
+			// ground away (or it re-opens the defect contract E1 exists to close).
+			// Item 31 wrote the second half as "a pole may not take the slot's fill
+			// away" after arithmetic caught two poles that would have rendered as
+			// nothing; here the thing protected is a repair rather than a style.
+			//
+			// Drives the real setting through `frappe.db.set_single_value` and
+			// restores it in a `finally`. The suite's snapshot covers `email_style`
+			// via MUTABLE_FIELDS, so a crash here is recoverable either way.
+			const out = benchPy(
+				"import json\n" +
+					"from frappe.email.email_body import get_formatted_html\n" +
+					"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+					"BODY = '<p>body</p>'\n" +
+					"before = frappe.db.get_single_value('Theme Settings', 'email_style')\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for pole in ('Original', 'Card', 'Letter', 'Masthead'):\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'email_style', pole)\n" +
+					"        frappe.clear_cache(doctype='Theme Settings')\n" +
+					"        res[pole] = get_formatted_html('T', BODY, email_account=acct, with_container=False)\n" +
+					"finally:\n" +
+					"    frappe.db.set_single_value('Theme Settings', 'email_style', before or 'Card')\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_POLE' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_POLE"));
+			if (!line) throw new Error("pole probe produced no JSON: " + String(out).slice(-300));
+			const render = JSON.parse(line.slice("BND_POLE".length));
+
+			const ctx = await browser.newContext();
+			const ep = await ctx.newPage();
+			try {
+				const seen = {};
+				for (const [pole, html] of Object.entries(render)) {
+					await ep.setContent(html, { waitUntil: "load" });
+					seen[pole] = await ep.evaluate(() => {
+						const cs = (sel) => {
+							const el = document.querySelector(sel);
+							return el ? getComputedStyle(el) : null;
+						};
+						const shell = cs(".bnd-e");
+						const plate = cs(".bnd-e-plate");
+						const band = cs(".bnd-e-band");
+						return {
+							ground: shell ? shell.backgroundColor : null,
+							plate: plate ? plate.backgroundColor : null,
+							radius: plate ? plate.borderTopLeftRadius : null,
+							measure: plate ? plate.maxWidth : null,
+							pad: (() => { const p = cs(".bnd-e-pad"); return p ? p.paddingTop : null; })(),
+							band: band ? band.backgroundColor : null,
+							bandH: band ? band.height : null,
+						};
+					});
+				}
+
+				// THE FLOOR SURVIVES EVERY POLE, Original included.
+				const transparent = /rgba\(0,\s*0,\s*0,\s*0\)|^transparent$/;
+				for (const [pole, s] of Object.entries(seen)) {
+					expect(s.ground !== null, `${pole}: no .bnd-e element rendered at all`);
+					expect(
+						!transparent.test(s.ground),
+						`${pole} removed the ground — contract E1 says a pole may change the floor, never take it (${s.ground})`
+					);
+				}
+
+				// AND EACH POLE ACTUALLY DIFFERS FROM THE NEUTRAL. A pole that
+				// renders identically to Original is the "would have rendered as
+				// nothing" defect items 29, 31 and 32 each shipped a check for.
+				const sig = (s) => `${s.plate}|${s.radius}|${s.measure}|${s.pad}|${s.band}|${s.bandH}`;
+				for (const pole of ["Card", "Letter", "Masthead"]) {
+					expect(
+						sig(seen[pole]) !== sig(seen.Original),
+						`${pole} composes identically to Original — it would render as nothing (${sig(seen[pole])})`
+					);
+				}
+				// Masthead is Card plus a band, so the BAND is the only thing that
+				// can tell them apart. Asserting anything else would pass for a
+				// Masthead whose band never painted.
+				expect(
+					seen.Masthead.band !== seen.Card.band && !transparent.test(seen.Masthead.band),
+					`Masthead's band is what distinguishes it from Card, and it did not paint (${seen.Masthead.band})`
+				);
 			} finally {
 				await ctx.close();
 			}

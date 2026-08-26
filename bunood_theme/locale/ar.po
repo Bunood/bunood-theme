@@ -4424,3 +4424,63 @@ msgstr "سمة الموقع"
 #, fuzzy
 msgid "Whether the site header carries your brand colour."
 msgstr "ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية."
+
+#. src: item34
+#, fuzzy
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Email Picker"
+msgstr "مُنتقي البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Email Style"
+msgstr "نمط البريد الإلكتروني"
+
+#. src: item34
+#, fuzzy
+msgid "Set by the picker above. How every email your site sends is composed — notifications, invitations, password resets and anything an app mails out. Original leaves the message as Frappe draws it; the legibility repairs apply either way."
+msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور وأي شيء ترسله التطبيقات. يترك «الأصلي» الرسالة كما يرسمها فرابيه؛ وتُطبَّق إصلاحات الوضوح في الحالتين."
+
+#. src: item34
+#, fuzzy
+msgid "Card"
+msgstr "بطاقة"
+
+#. src: item34
+#, fuzzy
+msgid "Letter"
+msgstr "خطاب"
+
+#. src: item34
+#, fuzzy
+msgid "Masthead"
+msgstr "لافتة علوية"
+
+#. src: item34
+#, fuzzy
+msgid "Stock: the message as Frappe composes it. The legibility repairs still apply."
+msgstr "الوضع الأصلي: الرسالة كما يُنشئها فرابيه، مع الإبقاء على إصلاحات الوضوح."
+
+#. src: item34
+#, fuzzy
+msgid "The message sits on a framed card over a tinted ground."
+msgstr "تستقر الرسالة على بطاقة مُؤطَّرة فوق خلفية ملوَّنة."
+
+#. src: item34
+#, fuzzy
+msgid "No card — the message reads as a letter, with room around it."
+msgstr "بلا بطاقة — تُقرأ الرسالة كخطاب، مع مساحة حولها."
+
+#. src: item34
+#, fuzzy
+msgid "A card, with a band of your brand colour across the top."
+msgstr "بطاقة، يعلوها شريط بلون علامتك التجارية."
+
+#. src: item34
+#, fuzzy
+msgid "Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
+msgstr "ينطبق على كل رسالة بريد إلكتروني يرسلها موقعك — الإشعارات والدعوات وإعادة تعيين كلمات المرور على حدٍّ سواء. لا توجد معاينة هنا بعد: تُنشَأ الرسالة على الخادم وتُقرأ في تطبيق بريد، فما يعرضه المتصفّح ليس ما يعرضه صندوق الوارد."

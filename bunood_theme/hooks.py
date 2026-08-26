@@ -136,6 +136,7 @@ jinja = {
         # which silently drops the sheet for scheduler-triggered mail. See
         # `bunood_theme/email.py`.
         "bunood_theme.email.bunood_email_css",
+        "bunood_theme.email.bunood_email_class",
         "bunood_theme.i18n.rtl_patch.is_rtl",
     ]
 }

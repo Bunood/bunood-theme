@@ -499,6 +499,125 @@ function assertNoAuthoredCopy(css, name) {
 	}
 }
 
+
+/**
+ * Email-safe CSS guard — an ALLOWLIST, and only for the email entry.
+ *
+ * WHY THIS EXISTS AND THE OTHER SHEETS DO NOT NEED IT
+ *   Every other stylesheet here is verified the same way the product is used: a
+ *   browser renders it and the suite reads `getComputedStyle` off real pixels. An
+ *   email has no route. Its checks render server-side and measure the result in
+ *   Chromium, which is honest about COLOUR and says nothing at all about whether
+ *   Outlook's Word engine, Gmail's sanitiser or a ten-year-old client will lay the
+ *   thing out. A green gate could sit over an email that is broken for a third of
+ *   its readers.
+ *
+ *   So the risk is bounded structurally instead. This is not a conformance claim
+ *   and must never be described as one — it is a regression net, the role
+ *   GUIDELINES §1.5 already assigns to axe.
+ *
+ * AN ALLOWLIST, NOT A DENYLIST, for the reason `assertBreakpointVocabulary` is one:
+ *   the failure being prevented is someone reaching for a property nobody thought
+ *   about. A denylist answers "is this one of the things we knew to fear"; an
+ *   allowlist answers "is this one of the things we checked". Only the second is
+ *   safe against a property invented after this file was written.
+ *
+ * WHAT EARNS A PLACE
+ *   Either it works across the mail clients that matter, or its ABSENCE degrades
+ *   harmlessly. `box-shadow` is the clearest case of the second kind: Outlook
+ *   ignores it and the element simply has no shadow, which costs an elevation cue
+ *   and breaks nothing. `display:flex` is the opposite — where it is ignored the
+ *   layout collapses to something nobody designed.
+ *
+ * THE PHYSICAL PROPERTIES ARE ABSENT FROM THIS LIST AND THAT IS NOT AN OVERSIGHT.
+ *   `assertLogicalOnly` already refuses them on every entry including this one, and
+ *   `email/email.scss` answers direction by SYMMETRY plus the `dir` attribute rather
+ *   than by logical properties — which mail clients do not support either. Listing
+ *   `padding-left` here as "email-safe" would be true and would still be wrong.
+ *
+ * @param {string} css - compiled stylesheet text
+ * @param {string} name - entry name, for the error message
+ */
+const EMAIL_SAFE_PROPS = new Set([
+	// Box, as a table-based layout uses it.
+	"width", "min-width", "max-width", "height", "min-height", "max-height",
+	"padding", "margin", "border", "border-width", "border-style", "border-color",
+	"border-radius", "border-collapse", "border-spacing", "border-top", "border-bottom",
+	"vertical-align", "display", "overflow", "box-sizing",
+	// Type.
+	"color", "font", "font-family", "font-size", "font-style", "font-weight",
+	"font-variant-numeric", "line-height", "text-align", "text-decoration",
+	"text-transform", "white-space", "word-break", "overflow-wrap", "direction",
+	// Paint. `box-shadow` and `opacity` are here on the degradation rule: a client
+	// that drops them shows a flatter element, not a broken one.
+	"background", "background-color", "background-image", "background-position",
+	"background-repeat", "background-size", "box-shadow", "opacity", "color-scheme",
+	// Client hints. Not CSS anyone reads, but they are what stop iOS and Windows
+	// clients rescaling type out from under the design.
+	"-webkit-text-size-adjust", "-ms-text-size-adjust", "-webkit-font-smoothing",
+	"mso-table-lspace", "mso-table-rspace", "mso-line-height-rule",
+]);
+
+/** At-rules a mail client will either honour or skip without damage. */
+const EMAIL_SAFE_AT = new Set(["media", "font-face", "charset"]);
+
+/**
+ * `display` is allowed as a property and NOT as a blank cheque, which the first
+ * cut of this guard got wrong: `display: flex` passed every check in the build.
+ * The property has to be here — a table layout sets `display: block` on images
+ * and `none` on preheader text — but `flex` and `grid` are precisely the values
+ * whose absence collapses a layout into something nobody designed, which is the
+ * line this guard draws. Found by negative-testing rather than by review.
+ */
+const EMAIL_SAFE_DISPLAY = new Set([
+	"block", "inline", "inline-block", "none",
+	"table", "table-cell", "table-row", "table-header-group",
+]);
+
+function assertEmailSafeCss(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const bad = new Set();
+
+	for (const m of stripped.matchAll(/(?:^|[{;])\s*display\s*:\s*([^;}!]+)/g)) {
+		const value = m[1].trim().toLowerCase();
+		if (!EMAIL_SAFE_DISPLAY.has(value)) bad.add(`display: ${value}`);
+	}
+
+	// Declarations only: a property is `name:` at the start of a declaration, so
+	// anything inside a selector (`a:not(.btn)`, `::before`) is skipped by
+	// requiring the previous non-space character to open or end a declaration.
+	for (const m of stripped.matchAll(/(^|[{;])\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/g)) {
+		const prop = m[2].toLowerCase();
+		if (prop.startsWith("--")) continue; // custom properties are substituted away
+		if (!EMAIL_SAFE_PROPS.has(prop)) bad.add(prop);
+	}
+	for (const m of stripped.matchAll(/@([-a-zA-Z]+)/g)) {
+		const at = m[1].toLowerCase();
+		if (!EMAIL_SAFE_AT.has(at)) bad.add("@" + at);
+	}
+
+	if (bad.size) {
+		throw new Error(
+			`Email-safe guard: ${name} uses ${[...bad].join(", ")}, which is outside the ` +
+				"checked set. An email is verified in Chromium and read in Outlook, so this " +
+				"list is the only thing standing between the two. If the property genuinely " +
+				"works in mail clients OR degrades harmlessly when ignored, add it to " +
+				"EMAIL_SAFE_PROPS with the reason; if it does not, the layout needs a table."
+		);
+	}
+
+	// A guard that silently matches nothing is worse than no guard, and this one
+	// parses rather than greps. Item 22's axe include-coverage tracking exists for
+	// the same reason.
+	const seen = [...stripped.matchAll(/(^|[{;])\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/g)].length;
+	if (seen < 3) {
+		throw new Error(
+			`Email-safe guard: only ${seen} declarations found in ${name} — the extraction ` +
+				"has broken, and a guard that inspects nothing reads as coverage."
+		);
+	}
+}
+
 /**
  * Automatic-theme parity for the chart series (item 25).
  *
@@ -583,7 +702,7 @@ function assertAutomaticParity() {
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "icon", "mobile"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "icon", "mobile"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them. Typography joined in
@@ -1037,6 +1156,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
 	assertNoAuthoredCopy(result.css, `${key}.css`);
+	if (key === "bunood-email") assertEmailSafeCss(result.css, `${key}.css`);
 
 	const digest = hash8(result.css);
 	const filename = `${key}.${digest}.css`;

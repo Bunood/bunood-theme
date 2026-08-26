@@ -193,3 +193,99 @@ table.bnd-e-body.email-body {
 .bnd-e .bnd-e-body a:not(.btn) {
 	color: var(--bnd-brand-ink);
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — `email_style`. Four poles, `Card` the default.
+//
+// WHY `Card` AND NOT THE BOLDEST — the second round running to answer that,
+// after item 33's `Panel`. The census measured that a Notification email has no
+// opaque ancestor above any of its text, and `Card` is the pole that supplies
+// both a ground and a plate on every shape by construction. `Masthead` was the
+// bolder draw, and a saturated band is also what a client's forced dark
+// inversion mangles worst — a measured risk, not a taste objection.
+// `presets.py::EMAIL_DEFAULTS` carries the argument.
+//
+// NO POLE MAY TAKE THE FLOOR AWAY. Contract E1 owns the ground; a pole may change
+// what it looks like and never whether it exists. Item 31 wrote that rule for a
+// fill slot; here it arrives by a different route, because the thing protected is
+// a repair rather than a style. `Letter` is the pole that tests it — it removes
+// the PLATE, and the ground underneath is what stops that being a regression.
+//
+// A MIXIN, NOT A CUSTOM-PROPERTY WORKING SET, AND THE FIRST CUT GOT THIS WRONG.
+//   Every other kit here declares `--bnd-<kit>-*` values on the pole and applies
+//   them in one painting rule, so the composition is written once. That pattern
+//   CANNOT WORK IN EMAIL and the failure is not subtle: Premailer does not resolve
+//   custom properties, and `email.py::substitute` refuses any `var(--bnd-*)` it
+//   cannot resolve — so `var(--bnd-e-plate-bg)` threw, `email_css` stood the whole
+//   sheet down, and all four poles rendered as stock. Visible immediately, which
+//   is exactly what the total-degradation design is for.
+//
+//   A Sass `@mixin` keeps the guarantee the working set existed to provide — the
+//   composition is authored ONCE and the poles supply only values, so no pole can
+//   quietly grow its own layout — while compiling to concrete declarations a mail
+//   client can read. That guarantee is not decorative: item 32's `Split` stacked
+//   below its own form for three slices, with both its checks green, because the
+//   composition was written twice.
+// ══════════════════════════════════════════════════════════════════════════
+
+// Decorative only, and a literal on purpose. This repo's rule is that a colour in
+// a rule comes from a token; a shadow ALPHA is not a token here (no `--bnd-shadow-*`
+// exists) and adding one to `STATIC_TOKENS` for a value Outlook discards outright
+// would grow the substitution surface for nothing. It degrades to no shadow.
+$plate-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+@mixin composition($plate-bg, $radius, $shadow, $pad, $band, $band-h, $measure) {
+	.bnd-e-plate {
+		background-color: $plate-bg;
+		max-width: $measure;
+		border-radius: $radius;
+		box-shadow: $shadow;
+		// NOT padding: frappe puts the plate's padding on the TABLE, and a band
+		// inside a padded table is inset by it — a floating chip rather than a
+		// masthead. It lives on `.bnd-e-pad`, a `<td>`, where padding is also
+		// simply more reliable across mail clients.
+		padding: 0;
+	}
+
+	.bnd-e-pad {
+		padding: $pad;
+	}
+
+	// Present in the markup on every pole and sized to nothing except under
+	// `Masthead`. A row that only sometimes existed would put the pole decision in
+	// a second place — `standard.html` cannot read the setting, only the class.
+	.bnd-e-band {
+		background-color: $band;
+		height: $band-h;
+		line-height: $band-h;
+		font-size: 1px;
+	}
+}
+
+// ORIGINAL — the neutral, at (0,3,1). Clears `email.bundle.scss:133`'s
+// `.body-table.with-container .email-container` at (0,3,0). Measured, and the
+// reason contract E1 above had to be re-sized once already.
+table.bnd-e.body-table {
+	@include composition(transparent, 0, none, 0, transparent, 0, none);
+}
+
+// THE POLES, at (0,4,1) — they EXCEED the neutral rather than tying it and
+// relying on source order. Two ties in this file went opposite ways.
+table.bnd-e.bnd-e--card.body-table {
+	@include composition(var(--bnd-surface), 8px, $plate-shadow, 32px, transparent, 0, 600px);
+}
+
+// `Letter` keeps the ground and drops the plate. Cheapest in bytes, and the pole
+// that degrades best where a client strips backgrounds — with nothing to strip it
+// looks the same either way.
+table.bnd-e.bnd-e--letter.body-table {
+	@include composition(transparent, 0, none, 40px, transparent, 0, 560px);
+}
+
+// `Masthead` is `Card` plus a brand rule above the plate. It re-hues an element
+// Frappe ALREADY paints — `get_header` renders a coloured indicator band — rather
+// than inventing chrome, and it rides `--bnd-brand-solid` (fitted, so never
+// near-white) instead of the raw seed, which GUIDELINES forbids painting with.
+table.bnd-e.bnd-e--masthead.body-table {
+	@include composition(var(--bnd-surface), 8px, $plate-shadow, 32px, var(--bnd-brand-solid), 6px, 600px);
+}

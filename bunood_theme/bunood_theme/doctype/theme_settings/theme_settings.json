@@ -179,6 +179,9 @@
   "web_style",
   "web_header",
   "web_theme",
+  "section_email",
+  "email_picker",
+  "email_style",
   "section_generated",
   "brand_css_url"
  ],
@@ -724,6 +727,25 @@
    "hidden": 1,
    "label": "Website Theme",
    "options": "Follow OS\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_email",
+   "fieldtype": "Section Break",
+   "label": "Email"
+  },
+  {
+   "fieldname": "email_picker",
+   "fieldtype": "HTML",
+   "label": "Email Picker"
+  },
+  {
+   "default": "Card",
+   "description": "Set by the picker above. How every email your site sends is composed — notifications, invitations, password resets and anything an app mails out. Original leaves the message as Frappe draws it; the legibility repairs apply either way.",
+   "fieldname": "email_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Style",
+   "options": "Original\nCard\nLetter\nMasthead"
   },
   {
    "fieldname": "section_generated",

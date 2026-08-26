@@ -914,6 +914,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_filters_picker(frm);
 		bnd_render_login_picker(frm);
 		bnd_render_web_picker(frm);
+		bnd_render_email_picker(frm);
 		bnd_render_icons_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
@@ -1141,6 +1142,7 @@ const BND_SHELL_GROUPS = [
 			// Unlike Sign In an admin CAN load these pages, so the missing live
 			// preview needs a different argument — the picker's docblock makes it.
 			{ key: "web", label: () => __("Website & Portal"), anchors: ["web_style"] },
+			{ key: "email", label: () => __("Email"), anchors: ["email_style"] },
 		],
 	},
 	{
@@ -1254,6 +1256,7 @@ const BND_SHELL_OWNS = {
 	filters: { prefixes: ["filters_"] },
 	login: { prefixes: ["login_"] },
 	web: { prefixes: ["web_"] },
+	email: { prefixes: ["email_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
@@ -4511,6 +4514,20 @@ const BND_LOGIN_DEFAULTS = {
 	login_theme: "Follow OS",
 };
 
+/**
+ * Client mirror of presets.EMAIL_FIELDS (item 34).
+ *
+ * Landed WITH the Python rather than after it. `assertFieldMirrors` SKIPS a
+ * family that has no `BND_<X>_FIELDS` at all — `!(name in js) continue` — so a
+ * kit shipping its Python fields first and its mirror later is exempt from the
+ * guard for exactly as long as it takes to forget. Item 32 closed that hole;
+ * this is not the place to reopen it.
+ */
+const BND_EMAIL_FIELDS = ["email_style"];
+const BND_EMAIL_DEFAULTS = {
+	email_style: "Card",
+};
+
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
 const BND_SKELETON_DEFAULTS = {
 	skeleton_style: "Sweep",
@@ -5402,6 +5419,138 @@ function bnd_web_set(frm, fieldname, value) {
 	bnd_render_web_picker(frm);
 }
 
+/**
+ * The email thumbnail — an envelope's worth of anatomy at 120x72.
+ *
+ * DRAWN AS A MESSAGE, NOT A PAGE, and that is the only reason it is a separate
+ * function from `bnd_web_thumb`. A website thumbnail needs a chrome bar and a
+ * nav rail; an email has neither, and reusing the web one would have shown the
+ * reader a browser window for a thing that arrives in an inbox.
+ */
+function bnd_email_thumb(o) {
+	const ground = `<rect x="0" y="0" width="120" height="72" fill="currentColor" fill-opacity="${
+		o.ground === undefined ? 0.05 : o.ground
+	}"/>`;
+	// The plate. `fill="none"` rather than opacity 0 so a pole with no card reads
+	// as absent rather than as a white card on a white ground.
+	const x = o.measure === "narrow" ? 22 : 16;
+	const w = 120 - x * 2;
+	const plate =
+		`<rect x="${x}" y="${o.band ? 14 : 10}" width="${w}" height="${o.band ? 48 : 52}" rx="${
+			o.radius === undefined ? 0 : o.radius
+		}"` +
+		(o.card === undefined ? ' fill="none"' : ` fill="currentColor" fill-opacity="${o.card}"`) +
+		"/>";
+	const band = o.band
+		? `<rect x="${x}" y="10" width="${w}" height="4" rx="${o.radius ? 1.5 : 0}" fill="currentColor" fill-opacity="0.5"/>`
+		: "";
+	const row = (y, ww, op) =>
+		`<rect x="${x + 8}" y="${y}" width="${ww}" height="3" rx="1.5" fill="currentColor" fill-opacity="${op}"/>`;
+	const inner =
+		row(o.band ? 22 : 18, Math.min(30, w - 16), 0.6) +
+		row(o.band ? 32 : 28, w - 16, 0.16) +
+		row(o.band ? 40 : 36, w - 16, 0.16) +
+		// The CTA — the one control an email has, so it is what a reader looks for
+		// when comparing two of these.
+		`<rect x="${x + 8}" y="${o.band ? 49 : 46}" width="26" height="7" rx="2" fill="currentColor" fill-opacity="0.42"/>`;
+	return `<svg viewBox="0 0 120 72">${ground}${plate}${band}${inner}</svg>`;
+}
+
+const BND_EMAIL_STYLES = [
+	{
+		value: "Original",
+		blurb: () =>
+			__("Stock: the message as Frappe composes it. The legibility repairs still apply."),
+		svg: bnd_email_thumb({ ground: 0.03 }),
+	},
+	{
+		value: "Card",
+		blurb: () => __("The message sits on a framed card over a tinted ground."),
+		svg: bnd_email_thumb({ ground: 0.06, card: 0.02, radius: 4 }),
+	},
+	{
+		value: "Letter",
+		blurb: () => __("No card — the message reads as a letter, with room around it."),
+		svg: bnd_email_thumb({ ground: 0.05, measure: "narrow" }),
+	},
+	{
+		value: "Masthead",
+		blurb: () => __("A card, with a band of your brand colour across the top."),
+		svg: bnd_email_thumb({ ground: 0.06, card: 0.02, radius: 4, band: true }),
+	},
+];
+
+/**
+ * The email picker.
+ *
+ * ONE BAND AND NO GROUPS SO FAR, which is why there is no `.bnd-cbp-reset`
+ * binding here yet: `P.group` emits a reset chip only for a group with a
+ * `field`, and this picker renders no groups. `assertResetChipsBound` checks
+ * exactly that pairing, so it stays satisfied — and the moment an axis lands the
+ * build will demand the binding. That guard exists because
+ * `bnd_render_web_picker` shipped two chips rendered, enabled and inert.
+ */
+function bnd_render_email_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "email_picker", host);
+	if (!$host) return;
+
+	const current = frm.doc.email_style || BND_EMAIL_DEFAULTS.email_style;
+	const offered = bnd_field_slots(frm, "email_style");
+	const cards = P.cards(
+		BND_EMAIL_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
+			value: s.value,
+			name: __(s.value),
+			blurb: s.blurb(),
+			svg: s.svg,
+		})),
+		{ selected: current, cls: "bnd-cbp-style bnd-emp-style" }
+	);
+
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-emp">' +
+				bnd_bands([
+					{
+						zone: "style",
+						html:
+							cards +
+							P.note(
+								__(
+									"Applies to every email your site sends — notifications, invitations and password resets alike. There is no preview here yet: an email is composed on the server and read in a mail client, so what a browser shows is not what an inbox shows."
+								)
+							),
+					},
+				]) +
+				"</div>"
+		)
+	);
+
+	$host.find(".bnd-emp-style").on("click", function () {
+		bnd_email_set(frm, "email_style", this.getAttribute("data-value"));
+	});
+}
+
+/**
+ * Set an email field and re-render.
+ *
+ * NO PREVIEW CALL, and unlike the sign-in and website kits this is a DEFERRAL
+ * rather than a refusal — which is worth stating precisely, because the
+ * mandatory-hook rule exists to catch a picker whose click does nothing.
+ *
+ * The sign-in kit has no preview because the only person who can open its picker
+ * is the only one who cannot load the page (`www/login.py:38-46` redirects an
+ * authenticated session away). The website kit has none because an "apply" there
+ * is a page load in a different document. NEITHER argument holds here:
+ * `frappe.email.email_body.get_email_html` is whitelisted, renders the real
+ * thing through the real funnel, and contains no other user's data. A preview is
+ * both possible and honest on this surface — it is simply not built yet, and
+ * claiming otherwise in a comment would be the lie the rule is about.
+ */
+function bnd_email_set(frm, field, value) {
+	frm.set_value(field, value);
+	bnd_render_email_picker(frm);
+}
+
 /** Client mirror of presets.STATUS_FIELDS. Keep in sync. */
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
@@ -6231,7 +6380,7 @@ function bnd_sb_export(frm) {
 	const keys = [
 		"desk_layout", "company_name", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_MOBILE_FIELDS);
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_MOBILE_FIELDS);
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -6260,7 +6409,7 @@ function bnd_sb_import(frm) {
 			const known = new Set(
 				["desk_layout", "company_name", "brand_color", "accent_color",
 					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_MOBILE_FIELDS)
+				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_MOBILE_FIELDS)
 			);
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
@@ -6302,6 +6451,7 @@ function bnd_sb_import(frm) {
 			bnd_render_filters_picker(frm);
 			bnd_render_login_picker(frm);
 			bnd_render_web_picker(frm);
+			bnd_render_email_picker(frm);
 			bnd_render_icons_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
