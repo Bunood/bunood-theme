@@ -45,7 +45,11 @@
     Numbers and the Latin name are wrapped `dir="ltr"` so bidi never reorders
     a digit string or a Latin run sitting inside Arabic text.
     ============================================================================ -#}
-{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
+{#- exists-guarded: get_doc THROWS on a company that does not resolve (a
+    deleted record, a specimen doc, any doctype whose company field is free
+    text) and a crashed print is worse than an empty identity — found by the
+    print suite's dangling-company specimen after the merge. -#}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set name_ar = ((_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") or "") -%}
 {%- set name_en = ((_c.company_name if _c else "") or "") -%}
 {%- set theme_logo = "__BND_THEME_LOGO__" -%}

@@ -169,7 +169,7 @@
     rather than doc.company / doc.company_tax_id is what stops the receipt and
     the A4 letter head drifting apart as fields are added. -#}
 {% macro thermal_head(doc, title_ar, title_en) -%}
-{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") else None -%}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set _logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
 {%- set _vat = (_c.get("tax_id") if _c else "") or doc.get("company_tax_id") -%}
 {%- set _cr = (_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") -%}
@@ -188,7 +188,7 @@
     NOT a page footer — an 80x297mm page is cut after the content, so anything
     anchored to the page bottom prints on paper that gets thrown away. -#}
 {% macro thermal_foot(doc) -%}
-{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") else None -%}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set _phone = (_c.get("phone_no") if _c else "") -%}
 {%- set _email = (_c.get("email") if _c else "") -%}
 {%- set _an = (frappe.db.get_value("Dynamic Link",

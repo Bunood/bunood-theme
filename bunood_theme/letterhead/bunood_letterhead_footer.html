@@ -24,7 +24,11 @@
     Every line is guarded and so is the whole block: a company with no contact
     data prints no rule and no band at all, rather than an empty grey strip.
     ============================================================================ -#}
-{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") else None -%}
+{#- exists-guarded: get_doc THROWS on a company that does not resolve (a
+    deleted record, a specimen doc, any doctype whose company field is free
+    text) and a crashed print is worse than an empty identity — found by the
+    print suite's dangling-company specimen after the merge. -#}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set phone = (_c.get("phone_no") if _c else "") -%}
 {%- set email = (_c.get("email") if _c else "") -%}
 {%- set website = (_c.get("website") if _c else "") -%}
