@@ -6043,7 +6043,15 @@ function bnd_print_preview(frm, $host) {
 	const frame = document.createElement("iframe");
 	frame.className = "bnd-prp-frame";
 	frame.setAttribute("title", __("Print preview"));
-	frame.setAttribute("sandbox", "");
+	// `allow-same-origin` and NOTHING else — unlike the email frame's empty
+	// sandbox. The print sheet declares real @font-face rules (Cairo, Amiri)
+	// with same-site URLs, and an empty sandbox gives the srcdoc a `null`
+	// origin whose font fetches CORS-fail: a console error per render and the
+	// preview showing Arabic in a fallback face — a preview that lies about
+	// typography. Scripts, forms and navigation stay blocked; the content is
+	// our own server's render of a specimen, the same document /printview
+	// serves top-level.
+	frame.setAttribute("sandbox", "allow-same-origin");
 	frame.setAttribute("srcdoc", "");
 	$slot.empty().append(frame);
 
