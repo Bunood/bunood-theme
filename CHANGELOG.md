@@ -24,12 +24,14 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-### Settings singleton (item 36) — code complete, NOT yet released
+(nothing yet)
 
-Deliberately still under `[Unreleased]`: the heading, the version bump, the
-payload record row and the tag arrive together with the gates, which is the
-lesson the half-released 0.33.0 taught. Nothing here is a promise that it
-shipped.
+## [0.36.0] — 2026-08-27 — Settings singleton (item 36)
+
+Gated at 407/407 with contrast over 4,080 pairs, the build guards and the
+payload ceiling; the adversarial release review ran over the whole diff and
+found twenty confirmed defects, every one fixed — including a stored XSS this
+item introduced.
 
 The settings surface's own closure — the one page every other item shipped its
 controls through. The ROADMAP entry that opened this item ("brand, logo,

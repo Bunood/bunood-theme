@@ -1,218 +1,233 @@
 {
-    "_readme": [
-        "The payload budget (GUIDELINES §2.5). `ceiling` is a HARD gate on the",
-        "built bundle's gzip bytes — tools/payload.mjs --check fails when the",
-        "build crosses it, and the suite runs that check on every verify.",
-        "Raising a ceiling is a DECISION: edit the number in the same commit",
-        "as the change that needs it, and say why in that commit's message.",
-        "`history` is the per-release record — append with",
-        "`node tools/payload.mjs --record vX.Y.Z` at tag time. Raw bytes are",
-        "recorded for parse-cost context; the ceiling is gzip because the wire",
-        "is what a first paint waits on.",
-        "Ceilings start at ~15% over the v0.12.0 measurement — headroom for a",
-        "normal slice, tight enough that a dependency or a generated blob",
-        "cannot slip in unnoticed.",
-        "SEPARATE CEILINGS, NOT A SUM (item 32; count-free since item 35 — the count drifted twice). `css_gzip` is the desk bundle, which",
-        "only an authenticated desk fetches; `web_css_gzip` is bunood-web.<hash>.css,",
-        "which every WEBSITE page fetches. They are never both on one page, so summing",
-        "them would bound a number nobody pays — and would break every history row's",
-        "comparability at the release that introduced the second sheet. Rows before",
-        "v0.32.0 carry no web_css_* keys because the file did not exist; that is the",
-        "honest shape, not a gap.",
-        "THAT SECOND SENTENCE USED TO READ 'the login sheet, which only a logged-out",
-        "visitor fetches', and item 33 made it false in the same release that made it",
-        "matter: the sheet now loads on every public page, every portal page and every",
-        "web form, for signed-in and signed-out visitors alike. The audience for these",
-        "bytes went from two routes to the whole website, so the ceiling is now the",
-        "tightest one here in practice even though it is the smallest number.",
-        "tools/payload.mjs THROWS on any dist file that matches no bucket, so a",
-        "third entry cannot repeat item 32's near-miss of shipping unmeasured."
-    ],
-    "ceiling": {
-        "css_gzip": 21500,
-        "js_gzip": 93000,
-        "web_css_gzip": 4000,
-        "email_css_gzip": 2000,
-        "print_css_gzip": 8000
-    },
-    "history": [
-        {
-            "version": "v0.12.0",
-            "date": "2026-08-09",
-            "css_raw": 91832,
-            "css_gzip": 12597,
-            "js_raw": 247420,
-            "js_gzip": 76718,
-            "note": "first measurement ever recorded; GUIDELINES' 78/183 KB raw figures had silently grown to 92/247"
-        },
-        {
-            "version": "v0.13.0",
-            "date": "2026-08-10",
-            "css_raw": 91874,
-            "css_gzip": 12610,
-            "js_raw": 247420,
-            "js_gzip": 76718,
-            "note": "css +13b, js +0b gzip vs v0.12.0"
-        },
-        {
-            "version": "v0.14.0",
-            "date": "2026-08-13",
-            "css_raw": 105030,
-            "css_gzip": 14211,
-            "js_raw": 254773,
-            "js_gzip": 78039,
-            "note": "css +1601b, js +1321b gzip vs v0.13.0"
-        },
-        {
-            "version": "v0.15.0",
-            "date": "2026-08-14",
-            "css_raw": 108178,
-            "css_gzip": 14961,
-            "js_raw": 265060,
-            "js_gzip": 81965,
-            "note": "backfilled 2026-08-16: the release chain skipped this row at tag time; measured from the v0.15.0 tag's committed dist. css +750b, js +3926b gzip vs v0.14.0"
-        },
-        {
-            "version": "v0.16.0",
-            "date": "2026-08-16",
-            "css_raw": 109325,
-            "css_gzip": 14782,
-            "js_raw": 275133,
-            "js_gzip": 85096,
-            "note": "css +571b, js +7057b gzip vs v0.14.0"
-        },
-        {
-            "version": "v0.17.0",
-            "date": "2026-08-16",
-            "css_raw": 119353,
-            "css_gzip": 16104,
-            "js_raw": 287240,
-            "js_gzip": 88889,
-            "note": "css +1322b, js +3793b gzip vs v0.16.0"
-        },
-        {
-            "version": "v0.18.0",
-            "date": "2026-08-17",
-            "css_raw": 126764,
-            "css_gzip": 16819,
-            "js_raw": 289621,
-            "js_gzip": 89294,
-            "note": "css +715b, js +405b gzip vs v0.17.0"
-        },
-        {
-            "version": "v0.18.1",
-            "date": "2026-08-18",
-            "css_raw": 126923,
-            "css_gzip": 16839,
-            "js_raw": 289621,
-            "js_gzip": 89294,
-            "note": "css +20b, js +0b gzip vs v0.18.0"
-        },
-        {
-            "version": "v0.19.0",
-            "date": "2026-08-18",
-            "css_raw": 133684,
-            "css_gzip": 17749,
-            "js_raw": 298636,
-            "js_gzip": 92059,
-            "note": "css +910b, js +2765b gzip vs v0.18.1"
-        },
-        {
-            "version": "v0.20.0",
-            "date": "2026-08-19",
-            "css_raw": 140818,
-            "css_gzip": 18890,
-            "js_raw": 302357,
-            "js_gzip": 92921,
-            "note": "css +1141b, js +862b gzip vs v0.19.0"
-        },
-        {
-            "version": "v0.29.0",
-            "date": "2026-08-20",
-            "css_raw": 143361,
-            "css_gzip": 19273,
-            "js_raw": 292659,
-            "js_gzip": 92071,
-            "note": "css +383b, js -850b gzip vs v0.20.0 — the JS SHRANK: collapsing six surface-kit blocks into one table freed more than the seventh kit cost. Measured from the v0.29.0 tree (tagged at item 29's close, which predates the release), not from a live --record."
-        },
-        {
-            "version": "v0.30.0",
-            "date": "2026-08-20",
-            "css_raw": 146868,
-            "css_gzip": 19847,
-            "js_raw": 293105,
-            "js_gzip": 92225,
-            "note": "css +574b, js +154b gzip vs v0.29.0"
-        },
-        {
-            "version": "v0.31.0",
-            "date": "2026-08-21",
-            "css_raw": 156293,
-            "css_gzip": 20834,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "css +987b, js +355b gzip vs v0.30.0"
-        },
-        {
-            "version": "v0.32.0",
-            "date": "2026-08-22",
-            "web_css_raw": 18345,
-            "web_css_gzip": 3174,
-            "css_raw": 156293,
-            "css_gzip": 20834,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "css +0b, js +0b, web_css 3174b gzip (new) gzip vs v0.31.0"
-        },
-        {
-            "version": "v0.32.1",
-            "date": "2026-08-23",
-            "web_css_raw": 18768,
-            "web_css_gzip": 3201,
-            "css_raw": 155465,
-            "css_gzip": 20729,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "css -105b, js +0b, web_css +27b gzip vs v0.32.0"
-        },
-        {
-            "version": "v0.33.0",
-            "date": "2026-08-25",
-            "web_css_raw": 26418,
-            "web_css_gzip": 3832,
-            "css_raw": 155465,
-            "css_gzip": 20729,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "RETRO row (item 35's review found the tag rowless): measured from the tagged tree 0f231e3 by the validated git-cat-file method. css +0b, js +0b, web_css +631b gzip vs v0.32.1"
-        },
-        {
-            "version": "v0.34.0",
-            "date": "2026-08-26",
-            "web_css_raw": 26418,
-            "web_css_gzip": 3832,
-            "email_css_raw": 2778,
-            "email_css_gzip": 550,
-            "css_raw": 155757,
-            "css_gzip": 20781,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "RETRO row, measured from the tagged tree c622924. The email bucket's first row (550b gzip against 2000). css +52b, js +0b, web_css +0b gzip vs v0.33.0"
-        },
-        {
-            "version": "v0.35.0",
-            "date": "2026-08-26",
-            "web_css_raw": 26418,
-            "web_css_gzip": 3832,
-            "email_css_raw": 2778,
-            "email_css_gzip": 550,
-            "print_css_raw": 23754,
-            "print_css_gzip": 6812,
-            "css_raw": 156391,
-            "css_gzip": 20860,
-            "js_raw": 294073,
-            "js_gzip": 92580,
-            "note": "The print bucket's first row (6812b gzip against 6000 — a DB-record substitution input, no page fetches it). css +79b, js +0b, web_css +0b, email_css +0b gzip vs v0.34.0"
-        }
-    ]
+	"_readme": [
+		"The payload budget (GUIDELINES §2.5). `ceiling` is a HARD gate on the",
+		"built bundle's gzip bytes — tools/payload.mjs --check fails when the",
+		"build crosses it, and the suite runs that check on every verify.",
+		"Raising a ceiling is a DECISION: edit the number in the same commit",
+		"as the change that needs it, and say why in that commit's message.",
+		"`history` is the per-release record — append with",
+		"`node tools/payload.mjs --record vX.Y.Z` at tag time. Raw bytes are",
+		"recorded for parse-cost context; the ceiling is gzip because the wire",
+		"is what a first paint waits on.",
+		"Ceilings start at ~15% over the v0.12.0 measurement — headroom for a",
+		"normal slice, tight enough that a dependency or a generated blob",
+		"cannot slip in unnoticed.",
+		"SEPARATE CEILINGS, NOT A SUM (item 32; count-free since item 35 — the count drifted twice). `css_gzip` is the desk bundle, which",
+		"only an authenticated desk fetches; `web_css_gzip` is bunood-web.<hash>.css,",
+		"which every WEBSITE page fetches. They are never both on one page, so summing",
+		"them would bound a number nobody pays — and would break every history row's",
+		"comparability at the release that introduced the second sheet. Rows before",
+		"v0.32.0 carry no web_css_* keys because the file did not exist; that is the",
+		"honest shape, not a gap.",
+		"THAT SECOND SENTENCE USED TO READ 'the login sheet, which only a logged-out",
+		"visitor fetches', and item 33 made it false in the same release that made it",
+		"matter: the sheet now loads on every public page, every portal page and every",
+		"web form, for signed-in and signed-out visitors alike. The audience for these",
+		"bytes went from two routes to the whole website, so the ceiling is now the",
+		"tightest one here in practice even though it is the smallest number.",
+		"tools/payload.mjs THROWS on any dist file that matches no bucket, so a",
+		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
+	],
+	"ceiling": {
+		"css_gzip": 21500,
+		"js_gzip": 93000,
+		"web_css_gzip": 4000,
+		"email_css_gzip": 2000,
+		"print_css_gzip": 8000
+	},
+	"history": [
+		{
+			"version": "v0.12.0",
+			"date": "2026-08-09",
+			"css_raw": 91832,
+			"css_gzip": 12597,
+			"js_raw": 247420,
+			"js_gzip": 76718,
+			"note": "first measurement ever recorded; GUIDELINES' 78/183 KB raw figures had silently grown to 92/247"
+		},
+		{
+			"version": "v0.13.0",
+			"date": "2026-08-10",
+			"css_raw": 91874,
+			"css_gzip": 12610,
+			"js_raw": 247420,
+			"js_gzip": 76718,
+			"note": "css +13b, js +0b gzip vs v0.12.0"
+		},
+		{
+			"version": "v0.14.0",
+			"date": "2026-08-13",
+			"css_raw": 105030,
+			"css_gzip": 14211,
+			"js_raw": 254773,
+			"js_gzip": 78039,
+			"note": "css +1601b, js +1321b gzip vs v0.13.0"
+		},
+		{
+			"version": "v0.15.0",
+			"date": "2026-08-14",
+			"css_raw": 108178,
+			"css_gzip": 14961,
+			"js_raw": 265060,
+			"js_gzip": 81965,
+			"note": "backfilled 2026-08-16: the release chain skipped this row at tag time; measured from the v0.15.0 tag's committed dist. css +750b, js +3926b gzip vs v0.14.0"
+		},
+		{
+			"version": "v0.16.0",
+			"date": "2026-08-16",
+			"css_raw": 109325,
+			"css_gzip": 14782,
+			"js_raw": 275133,
+			"js_gzip": 85096,
+			"note": "css +571b, js +7057b gzip vs v0.14.0"
+		},
+		{
+			"version": "v0.17.0",
+			"date": "2026-08-16",
+			"css_raw": 119353,
+			"css_gzip": 16104,
+			"js_raw": 287240,
+			"js_gzip": 88889,
+			"note": "css +1322b, js +3793b gzip vs v0.16.0"
+		},
+		{
+			"version": "v0.18.0",
+			"date": "2026-08-17",
+			"css_raw": 126764,
+			"css_gzip": 16819,
+			"js_raw": 289621,
+			"js_gzip": 89294,
+			"note": "css +715b, js +405b gzip vs v0.17.0"
+		},
+		{
+			"version": "v0.18.1",
+			"date": "2026-08-18",
+			"css_raw": 126923,
+			"css_gzip": 16839,
+			"js_raw": 289621,
+			"js_gzip": 89294,
+			"note": "css +20b, js +0b gzip vs v0.18.0"
+		},
+		{
+			"version": "v0.19.0",
+			"date": "2026-08-18",
+			"css_raw": 133684,
+			"css_gzip": 17749,
+			"js_raw": 298636,
+			"js_gzip": 92059,
+			"note": "css +910b, js +2765b gzip vs v0.18.1"
+		},
+		{
+			"version": "v0.20.0",
+			"date": "2026-08-19",
+			"css_raw": 140818,
+			"css_gzip": 18890,
+			"js_raw": 302357,
+			"js_gzip": 92921,
+			"note": "css +1141b, js +862b gzip vs v0.19.0"
+		},
+		{
+			"version": "v0.29.0",
+			"date": "2026-08-20",
+			"css_raw": 143361,
+			"css_gzip": 19273,
+			"js_raw": 292659,
+			"js_gzip": 92071,
+			"note": "css +383b, js -850b gzip vs v0.20.0 — the JS SHRANK: collapsing six surface-kit blocks into one table freed more than the seventh kit cost. Measured from the v0.29.0 tree (tagged at item 29's close, which predates the release), not from a live --record."
+		},
+		{
+			"version": "v0.30.0",
+			"date": "2026-08-20",
+			"css_raw": 146868,
+			"css_gzip": 19847,
+			"js_raw": 293105,
+			"js_gzip": 92225,
+			"note": "css +574b, js +154b gzip vs v0.29.0"
+		},
+		{
+			"version": "v0.31.0",
+			"date": "2026-08-21",
+			"css_raw": 156293,
+			"css_gzip": 20834,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "css +987b, js +355b gzip vs v0.30.0"
+		},
+		{
+			"version": "v0.32.0",
+			"date": "2026-08-22",
+			"web_css_raw": 18345,
+			"web_css_gzip": 3174,
+			"css_raw": 156293,
+			"css_gzip": 20834,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "css +0b, js +0b, web_css 3174b gzip (new) gzip vs v0.31.0"
+		},
+		{
+			"version": "v0.32.1",
+			"date": "2026-08-23",
+			"web_css_raw": 18768,
+			"web_css_gzip": 3201,
+			"css_raw": 155465,
+			"css_gzip": 20729,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "css -105b, js +0b, web_css +27b gzip vs v0.32.0"
+		},
+		{
+			"version": "v0.33.0",
+			"date": "2026-08-25",
+			"web_css_raw": 26418,
+			"web_css_gzip": 3832,
+			"css_raw": 155465,
+			"css_gzip": 20729,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "RETRO row (item 35's review found the tag rowless): measured from the tagged tree 0f231e3 by the validated git-cat-file method. css +0b, js +0b, web_css +631b gzip vs v0.32.1"
+		},
+		{
+			"version": "v0.34.0",
+			"date": "2026-08-26",
+			"web_css_raw": 26418,
+			"web_css_gzip": 3832,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"css_raw": 155757,
+			"css_gzip": 20781,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "RETRO row, measured from the tagged tree c622924. The email bucket's first row (550b gzip against 2000). css +52b, js +0b, web_css +0b gzip vs v0.33.0"
+		},
+		{
+			"version": "v0.35.0",
+			"date": "2026-08-26",
+			"web_css_raw": 26418,
+			"web_css_gzip": 3832,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 23754,
+			"print_css_gzip": 6812,
+			"css_raw": 156391,
+			"css_gzip": 20860,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "The print bucket's first row (6812b gzip against 6000 — a DB-record substitution input, no page fetches it). css +79b, js +0b, web_css +0b, email_css +0b gzip vs v0.34.0"
+		},
+		{
+			"version": "v0.36.0",
+			"date": "2026-08-27",
+			"web_css_raw": 26418,
+			"web_css_gzip": 3832,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 23754,
+			"print_css_gzip": 6812,
+			"css_raw": 159350,
+			"css_gzip": 21242,
+			"js_raw": 294073,
+			"js_gzip": 92580,
+			"note": "css +382b, js +0b, web_css +0b, email_css +0b, print_css +0b gzip vs v0.35.0"
+		}
+	]
 }

@@ -1056,8 +1056,9 @@ entry.
     (source-confirmed two-colour model), Stripe's restraint, shadcn typeset's
     `break-*` pairing; wireframes:
     <https://claude.ai/code/artifact/9f3c2014-976c-4790-98bc-969c37f55f2f>.
-- `[x]` **36 · Settings singleton** *(was 29, code complete 2026-08-27, NOT RELEASED —
-  the full suite and the release chain are owed)* — the settings surface's own closure,
+- `[x]` **36 · Settings singleton** *(was 29, done 2026-08-27, released as `v0.36.0`;
+  suite 407/407, contrast 4,080 pairs, adversarial review run and every one of its
+  twenty confirmed findings fixed)* — the settings surface's own closure,
   and the first item whose subject is the page every other item shipped its controls
   through. The entry that opened it read "brand, logo, favicon exist; being restructured
   by phase 0 and effectively completed by it": two lines written before items 32–35 hung
