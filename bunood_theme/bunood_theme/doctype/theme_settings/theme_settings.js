@@ -891,17 +891,24 @@ frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
-		// The layout is becoming a PRESET rather than a setting the desk reads
-		// at runtime (component rework). Read-only for one release so support
-		// can still see what a site was, while the component fields below are
-		// the truth. It is not hidden, because "my layout dropdown vanished"
-		// is a worse first impression than a greyed field with a reason.
-		frm.set_df_property(
-			"desk_layout",
-			"description",
-			__("Replaced by the component settings below. Kept visible for reference; it no longer decides anything on its own.")
-		);
-		frm.set_df_property("desk_layout", "read_only", 1);
+		// THE LAYOUT IS A PRESET, AND ITS FIELD IS NOW A RECORD OF ONE (item 36).
+		// The "read-only for one release so support can still see what a site
+		// was" that stood here expired many releases ago; the picker's derived
+		// label (`bnd_match_layout`) has said what the desk actually IS since
+		// the last container landed, and the Overview reads it too.
+		//
+		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
+		// plan had missed: boot still serves this name and `bunood.js` stamps
+		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
+		// position panels by. Deleting the field today would leave a CUSTOM
+		// desk — containers matching no preset — with nothing to stamp, i.e. a
+		// silent rendering change on exactly the sites that diverged. The
+		// honest sequence is to finish phase 0's own direction first (re-key
+		// those rules to container OUTCOMES, as `data-bnd-topbar` already was),
+		// then delete. Filed; this hides the control so nobody sets it by hand
+		// in the meantime, while the stored value keeps the desk rendering and
+		// stays queryable for support.
+		frm.set_df_property("desk_layout", "hidden", 1);
 
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
@@ -1289,7 +1296,16 @@ const BND_SHELL_OWNS = {
 	email: { prefixes: ["email_"] },
 	print: { prefixes: ["print_"] },
 	palette: { prefixes: ["palette_"], fields: ["palette_enabled"] },
-	layout: { fields: ["desk_layout"] },
+	// The Layout entry owns the five container toggles it WRITES, not the
+	// stored preset name (item 36). A preset that writes values and stops
+	// existing has nothing of its own to be "changed" about; what the entry can
+	// honestly answer for is the desk it produced. Deliberately the same fields
+	// the five container entries own — the placement board set that precedent:
+	// a second view over one state means both dots light, and both claims are
+	// true. `desk_layout` itself is owned by nothing now: it is a hidden record
+	// of the last preset applied, and a dot on it would light for a value no
+	// control sets.
+	layout: { fields: ["topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled"] },
 	// Map 1 (item 36): one Identity page owns the name, the marks, the tagline
 	// AND the seeds. `brand_css_url` shares the pane and stays deliberately
 	// UNOWNED: it is a generated artefact that changes on every colour save,
@@ -7146,7 +7162,13 @@ function bnd_render_identity_picker(frm, host) {
  */
 function bnd_theme_keys() {
 	return [
-		"desk_layout", "company_name", "tagline", "arabic_font",
+		// `desk_layout` does NOT travel (item 36): it is a hidden record of the
+		// last preset applied, and the five container toggles below — which DO
+		// travel — are what actually reproduce the desk. Exporting the name too
+		// would let an import write a preset label that disagrees with the
+		// containers it also wrote, which is the same-fact-twice trap in one
+		// file.
+		"company_name", "tagline", "arabic_font",
 		"brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "density_default", "sidebar_preset",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",

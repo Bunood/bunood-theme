@@ -5004,11 +5004,15 @@ async function main() {
 			]) {
 				expect(body.includes(`"${f}"`), `${f} travels — it is named in bnd_theme_keys`);
 			}
-			// The user's one exclusion (2026-08-26): site-local file URLs never
-			// travel. Asserted here so an accidental future addition is a red
-			// suite, not a broken importing site.
-			for (const f of ["logo", "favicon"]) {
-				expect(!body.includes(`"${f}"`), `${f} must NOT travel — it is a site-local file URL`);
+			// The exclusions, each for its own reason, asserted so an accidental
+			// future addition is a red suite and not a broken importing site:
+			// logo/favicon are site-local file URLs (the user's call), and
+			// `desk_layout` is a hidden RECORD of the last preset applied — the
+			// five container toggles above are what reproduce the desk, and
+			// exporting the label too would let an import write a name that
+			// disagrees with the containers it also wrote.
+			for (const f of ["logo", "favicon", "desk_layout"]) {
+				expect(!body.includes(`"${f}"`), `${f} must NOT travel`);
 			}
 			// One list means ONE: neither call site may grow its own concat back.
 			expect(
@@ -5194,6 +5198,42 @@ async function main() {
 					return n ? n.textContent : "";
 				});
 				expect(/custom/i.test(note), `the Overview note reads Custom when a toggle differs ("${note}")`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("shell: the Layout entry answers for the desk, not for a stored label", async () => {
+			// desk_layout is HIDDEN as of item 36 — a record of the last preset
+			// applied, not a control. So the Layout entry owns the five container
+			// toggles it WRITES: a container that differs from the shipped desk
+			// must light this entry's dot, and the picker's note must read the
+			// DERIVED label. Watched red against the fields:["desk_layout"]
+			// ownership, where flipping a container lit the container's dot and
+			// left Layout claiming "Default" over a desk that had changed.
+			const before = getSettings(["dock_enabled", "desk_layout"]);
+			try {
+				setSettings({ desk_layout: "Top Bar" });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				const atRest = await page.evaluate(() =>
+					document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden")
+				);
+				expect(atRest, "the Layout dot is lit on a desk that matches its preset");
+				// Dock on WITH topbar on matches no layout — a genuine Custom.
+				setSettings({ desk_layout: "Top Bar", dock_enabled: 1 });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				const changed = await page.evaluate(() => ({
+					lit: !document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden"),
+					note: (document.querySelector('[data-bnd-note="layout"]') || {}).textContent || "",
+				}));
+				expect(changed.lit, "a container that differs did not light the Layout dot");
+				expect(/custom/i.test(changed.note), `the Layout note reads the derived label ("${changed.note}")`);
+				// And the hidden field is genuinely not a control any more.
+				const hidden = await page.evaluate(() => {
+					const f = window.cur_frm && window.cur_frm.get_field("desk_layout");
+					return !!(f && f.df && f.df.hidden);
+				});
+				expect(hidden, "desk_layout is still offered as a control");
 			} finally {
 				setSettings(before);
 			}
