@@ -4962,6 +4962,90 @@ async function main() {
 			}
 		});
 
+		await test("settings: theme portability reads one list, and the list covers the kits", async () => {
+			// STRUCTURAL, READ FROM THE SOURCE. Export and import each carried a
+			// private copy of the key concat and BOTH were wrong twice at once
+			// (the print kit until the 34+35 review; the layout fields until item
+			// 36). The refactor made them one function; this pins the function's
+			// coverage so the NEXT kit's mirror list cannot be forgotten — every
+			// `BND_<X>_FIELDS` declared anywhere in the file must be concatenated
+			// into `bnd_theme_keys`, and the identity/layout scalars must be
+			// present by name. Sabotage-verified: removing BND_PRINT_FIELDS from
+			// the const failed this with its name in the message.
+			const src = readFileSync(
+				new URL("../bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+				"utf8"
+			);
+			const bodyMatch = src.match(/function bnd_theme_keys\(\)[\s\S]*?\n\}/);
+			expect(bodyMatch, "bnd_theme_keys exists — the one list both halves read");
+			const body = bodyMatch[0];
+			const families = [...src.matchAll(/const (BND_[A-Z]+_FIELDS) = \[/g)].map((m) => m[1]);
+			expect(families.length >= 20, `only ${families.length} kit mirror lists found — the parse went blind`);
+			const missing = families.filter((f) => !body.includes(f));
+			expectEq(missing.join(","), "", `kit lists missing from bnd_theme_keys: ${missing.join(",")}`);
+			for (const f of [
+				"company_name", "tagline", "arabic_font", "desk_order",
+				"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
+				"inbox_placement", "user_placement", "home_placement", "apps_placement",
+			]) {
+				expect(body.includes(`"${f}"`), `${f} travels — it is named in bnd_theme_keys`);
+			}
+			// The user's one exclusion (2026-08-26): site-local file URLs never
+			// travel. Asserted here so an accidental future addition is a red
+			// suite, not a broken importing site.
+			for (const f of ["logo", "favicon"]) {
+				expect(!body.includes(`"${f}"`), `${f} must NOT travel — it is a site-local file URL`);
+			}
+			// One list means ONE: neither call site may grow its own concat back.
+			expect(
+				(src.match(/\.concat\(bnd_sb_catalogue\.fields/g) || []).length === 1,
+				"a second private key concat grew back beside bnd_theme_keys"
+			);
+		});
+
+		await test("settings: an imported theme lands on the form and survives its save", async () => {
+			// THE DIALOG PATH HAD NO CHECK — which is exactly how both coverage
+			// holes shipped silently. One identity-text field (tagline — the
+			// user's pick is that it travels) and one layout field (a container
+			// toggle) go through the REAL prompt: paste, apply, autosave, DB.
+			// tagline is guarded by withBranding pinned to its own current value,
+			// so the restore is verified even if the dialog path dies mid-way;
+			// topbar_enabled is MUTABLE and restored explicitly below.
+			const PROBE = "bnd-import-probe";
+			const cur = getSettings(["tagline"]).tagline;
+			await withBranding({ tagline: cur ?? "" }, async () => {
+				setSettings({ topbar_enabled: 1 });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="sidepane"]');
+				await page.waitForSelector(".bnd-sbp-import", { timeout: 15000 });
+				await page.click(".bnd-sbp-import");
+				await page.waitForSelector('.modal [data-fieldname="json"] textarea', { timeout: 15000 });
+				await page.fill(
+					'.modal [data-fieldname="json"] textarea',
+					JSON.stringify({ bunood_theme: 1, tagline: PROBE, topbar_enabled: 0 })
+				);
+				await page.click(".modal .btn-primary");
+				await page.waitForFunction(
+					(v) => window.cur_frm && window.cur_frm.doc.tagline === v,
+					PROBE,
+					{ timeout: 15000 }
+				);
+				// The autosave debounce is 400ms; give it a real margin, then ask
+				// the DATABASE — an import that only reaches the form is a draft,
+				// not a theme.
+				await page.waitForTimeout(1500);
+				const db = getSettings(["tagline", "topbar_enabled"]);
+				expectEq(db.tagline, PROBE, "the imported tagline reached the DB through the autosave");
+				expectEq(String(db.topbar_enabled), "0", "the imported container toggle reached the DB");
+			});
+			setSettings({ topbar_enabled: 1 });
+			expectEq(
+				getSettings(["tagline"]).tagline ?? "",
+				cur ?? "",
+				"tagline is back to its pre-import value"
+			);
+		});
+
 		await test("shell: the note names a real preset, and never invents one", async () => {
 			// The value is the second half: this fails if someone later makes
 			// crumb_style or inbox_style print a preset name, which would be a

@@ -2549,9 +2549,10 @@ msgid "Theme Settings"
 msgstr "إعدادات المظهر"
 
 #. In theme_settings.js
-#. src: ai
-msgid "Theme exported (downloaded and copied)"
-msgstr "صُدّر المظهر (نُزّل ونُسخ)"
+#. src: item36
+#, fuzzy
+msgid "Theme exported (downloaded and copied). The logo and favicon are files on this site and do not travel."
+msgstr "صُدّر المظهر (نُزّل ونُسخ). الشعار وأيقونة المتصفح ملفان على هذا الموقع ولا ينتقلان معه."
 
 #. In theme_settings.js
 #. src: ai

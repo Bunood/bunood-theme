@@ -6913,11 +6913,23 @@ function bnd_status_set(frm, fieldname, value) {
  *
  * A function, not a const: `bnd_sb_catalogue.fields` is fetched lazily and
  * must be read at call time, exactly as both call sites always did.
+ *
+ * WHAT TRAVELS (the user's pick, 2026-08-26): full reproduction including
+ * identity TEXT. `company_name` and `tagline` are a theme's voice and travel;
+ * `arabic_font` is styling and travels; the five container toggles,
+ * `desk_order` and every placement are the desk's layout and travel — an
+ * imported theme that reproduced the look but not where anything sat was
+ * half a theme. `logo` and `favicon` DO NOT travel and never join: they are
+ * site-local /files URLs that break on any other site, and the export toast
+ * says so where the admin can see it.
  */
 function bnd_theme_keys() {
 	return [
-		"desk_layout", "company_name", "brand_color", "accent_color",
+		"desk_layout", "company_name", "tagline", "arabic_font",
+		"brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
+		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
+		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
 	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
@@ -6939,7 +6951,12 @@ function bnd_sb_export(frm) {
 	a.download = "bunood-theme.json";
 	a.click();
 	URL.revokeObjectURL(a.href);
-	frappe.show_alert({ message: __("Theme exported (downloaded and copied)"), indicator: "green" });
+	// The exclusion is SAID, not silent: an admin who exports expecting their
+	// logo to travel should learn here, not on the importing site.
+	frappe.show_alert({
+		message: __("Theme exported (downloaded and copied). The logo and favicon are files on this site and do not travel."),
+		indicator: "green",
+	});
 }
 
 /** Import a theme JSON: validate known keys, set, preview. Save to keep. */
