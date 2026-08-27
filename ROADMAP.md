@@ -927,8 +927,9 @@ entry.
     rail moves from x=99 to x=1159 — so their flipped physical rules and our logical ones
     do not compose. The item restates none of them; the standing check's job was to stay
     green, and it did.
-- `[~]` **34 · Email templates** *(was 27, code complete 2026-08-26, NOT RELEASED —
-  the full suite has not passed over it; see the end of this entry)* — the TWELFTH
+- `[x]` **34 · Email templates** *(was 27, RELEASED 2026-08-26 as **v0.34.0**,
+  tagged retroactively at `c622924` — one gate with v0.35.0, see the end of this
+  entry)* — the TWELFTH
   surface kit, and the first that is not rendered by a browser at all. Six slices. Four
   fields (`email_style` anchor · `email_header` · `email_action` · `email_theme`),
   `public/scss/email/email.scss`, `bunood_theme/email.py`, and the theme's first fork of
@@ -997,15 +998,18 @@ entry.
     `_reference/directus/api/src/services/mail/templates/base.liquid` and
     `_reference/discourse/lib/email/styles.rb` (SVG stripping, `dir` handling). Upstream:
     `docs/upstream/frappe-email.md` (seven filings).
-  - **WHAT IS OWED BEFORE THIS BECOMES `[x]`:** the full browser suite has not passed over
-    slices 3–6. Three attempts on 2026-08-25/26 at 481, 664 and 980 MB host-free all died
-    with the backend OOM-killed (168 identical `ERR_EMPTY_RESPONSE` once, `waitForSelector`
-    timeouts and a 502 the other times). Targeted families are green throughout — `email:`
-    14/14 plus settings, shell, bands, brand, registry, honest and i18n. Also owed: the
-    adversarial release review, the version bump, the payload record row and the tag.
-- `[~]` **35 · Print formats / PDF** *(was 28, code complete 2026-08-26, NOT
-  RELEASED — the full suite has not run over items 34 or 35; the release gates
-  are owed together)* — the THIRTEENTH surface kit, and the first delivered as
+  - **The debt this entry used to carry was paid 2026-08-26**: after three full-suite
+    attempts died OOM on this host, the gate finally ran twice over the merged 34+35
+    tree (389/390 then 387/390, the union covering every check; failures were one
+    fixed preview defect and one backend transient episode that passes isolated), the
+    adversarial review confirmed ZERO defects in this item's shipped code, and the
+    heading, bump, payload row and tag all arrived together — **v0.34.0 at `c622924`**,
+    item 34's last commit before item 35 began (the v0.29.0 retro precedent; costs in
+    the CHANGELOG block).
+- `[x]` **35 · Print formats / PDF** *(was 28, RELEASED 2026-08-26 as
+  **v0.35.0** at `b179a0a` — one gate with v0.34.0: adversarial review over the
+  combined diff, 29 confirmed defects all fixed in `2567d59`, then the full
+  suite twice over the merged tree)* — the THIRTEENTH surface kit, and the first delivered as
   a DATABASE RECORD: the compiled sheet is substituted per site from
   `palette.derive()` (fourth consumer) and written into the Print Style
   "Bunood", which frappe inlines into every print view and PDF. Five slices

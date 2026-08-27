@@ -29,8 +29,10 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 35 (print / PDF) — CODE COMPLETE 2026-08-26, NOT RELEASED; the full suite is
-owed over items 34 AND 35 together.** Six commits: `d15330a` slice 1 (the substituted
+**ITEM 35 (print / PDF) — RELEASED 2026-08-26 as `v0.35.0` at `b179a0a`, one gate
+with v0.34.0** (adversarial review over the combined diff, 29 confirmed defects all
+fixed in `2567d59`; the full suite twice over the merged tree; two post-review fixes,
+`11f2e1e` dangling-company and `ede1d26` preview-frame origin). Six slice commits: `d15330a` slice 1 (the substituted
 sheet + contracts + the never-applied default claimed) · `5725b3b` slice 2 (the RTL
 closure, structural) · `ad568e9` slice 3 (the preset-over-axes anchor + the Print pane) ·
 `4e01ac8` slice 4 (the third honest live preview + letterhead compositions) · `bcc7a44`
@@ -38,10 +40,10 @@ slice 5 (Ctrl+P residue) · the close (switches + docs). The thirteenth surface 
 first delivered as a DATABASE RECORD. Twelve fields; CHANGELOG's `[Unreleased]` block and
 ROADMAP's item-35 entry carry the full account. What will cost time again:
 
-- **THE FULL SUITE IS OWED, over both unreleased items, and the machine-limits doctrine
-  applies unchanged** (quiet machine, freshly restarted backend, never pipe verify).
-  Targeted families green throughout: `print:` 12, `direction:` 4, settings/shell/bands
-  21, list 10, the settings a11y walks.
+- **The full-suite debt was paid at release** — two sweeps over the merged tree
+  (389/390 then 387/390; the union covered every check, failures were one fixed
+  preview defect and one backend transient episode that passes isolated). The
+  machine-limits doctrine applies unchanged for the next item.
 - **PDF DOWNLOAD OF A REAL DOCUMENT HAS NEVER WORKED ON THIS LOCAL STACK** — wkhtmltopdf
   gets `HostNotFoundError` because `get_url()` = `http://demo.bunood.test` does not
   resolve inside the backend container (bare-HTML `get_pdf` works, the engine is fine).
@@ -60,10 +62,13 @@ ROADMAP's item-35 entry carry the full account. What will cost time again:
   because the rtl_patch's reach was an import-order accident and a green that depends on
   import order is not a closure.
 - **The item-35 Arabic is APPROVED** — the user approved the 118 drafts 2026-08-26 and
-  the flags were cleared in `23ab02f` (CSV byte-identical, md5-proved). `ar.po` carries
-  zero fuzzy rows.
+  the flags were cleared in `23ab02f` (CSV byte-identical, md5-proved). The merge then
+  brought THREE new fuzzy rows from the parallel session (upstream-gap strings: Tools ·
+  What's New · Save Current Filter) — those are NOT covered by the earlier approval and
+  still await the user's review.
 
-**ITEM 34 (email) — CODE COMPLETE 2026-08-26, NOT RELEASED, FULL SUITE NOT PASSED.**
+**ITEM 34 (email) — RELEASED 2026-08-26 as `v0.34.0`, tagged retroactively at
+`c622924` (the v0.29.0 precedent; costs in the CHANGELOG block).**
 Five commits: `5c7aad8` slices 1+2 (the fork, the sheet, contracts E1–E3) · `d33b5af`
 (the `ar.po` repair, its own commit) · `bc699d8` slice 3 (the anchor, `assertEmailSafeCss`)
 · `e36ee71` slice 4 (the two axes, the preview) · `19bc4b4` slice 5 (branding). The
@@ -74,15 +79,14 @@ twelfth surface kit and the first not rendered by a browser. Four fields
 carries the full account; what belongs HERE is the state and the things that will cost
 time again:
 
-- **THE FULL SUITE HAS NOT PASSED OVER SLICES 3–6, AND THIS IS THE ONE THING BLOCKING A
-  TAG.** Three attempts (2026-08-25/26) at **481, 664 and 980 MB** host-free all died —
-  once as 168 identical `net::ERR_EMPTY_RESPONSE`, twice as `waitForSelector` timeouts
-  with the site answering 502. The third had a freshly restarted backend (125 MiB) and all
-  three worker containers stopped. **The constraint is the editor sessions, not the
-  stack**: three `claude` processes held ~774 MB and `vmmemWSL` ~1.1 GB. Targeted families
-  are green throughout (`email:` 14/14, plus settings, shell, bands, brand, registry,
-  honest, i18n — 45 in one run). Also owed: the adversarial release review, the version
-  bump, `payload.mjs --record`, and the tag.
+- **RELEASED 2026-08-26 as `v0.34.0`, tagged retroactively at `c622924`** — one gate
+  with v0.35.0. After three full-suite attempts died OOM (the history the paragraph that
+  stood here recorded: **481, 664 and 980 MB** host-free, `ERR_EMPTY_RESPONSE` once, 502s
+  twice; the constraint was the editor sessions, not the stack), the gate ran twice over
+  the merged 34+35 tree on a quiet machine — 389/390 then 387/390, the union covering
+  every check; the adversarial review confirmed zero defects in this item's shipped code.
+  Heading, bump, payload row and tag arrived together, the discipline the old paragraph
+  demanded.
 - **`v0.33.0` IS NOW TAGGED — at `0f231e3`, 2026-08-25, by the other session** *(this
 paragraph said "never tagged" until the item-35 release review re-checked; resolve tag
 state with `git tag`/`git ls-remote`, never from this file — its third such correction)*.
@@ -91,7 +95,10 @@ There is STILL no v0.33.0
   while `__init__.py` and `hooks.py` both read `0.33.0` and CHANGELOG carries a `[0.33.0]`
   heading. The user's call (2026-08-25) was to leave it and start 34. **Item 34 therefore
   writes its CHANGELOG under `[Unreleased]` and does NOT create a `[0.34.0]` heading** —
-  the heading-plus-bump-without-tag pattern is exactly what produced this.
+  the heading-plus-bump-without-tag pattern is exactly what produced this. *(Resolved
+  2026-08-26: the v0.33.0 payload history row was written retroactively — measured from
+  the tagged tree `0f231e3` by the validated git-cat-file method — in the v0.35.0 release
+  commit, alongside v0.34.0's row and heading, which arrived WITH their tag.)*
 - **THE `email_css` HOOK IS A TRAP AND ERPNEXT IS IN IT.** Frappe's hook is a STATIC file
   list (so it can never carry a seed) and its `os.path.exists` filter is CWD-relative in
   whichever process sends — the queue and scheduler containers have no `bunood_theme`
