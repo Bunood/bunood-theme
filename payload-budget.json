@@ -174,6 +174,45 @@
             "js_raw": 294073,
             "js_gzip": 92580,
             "note": "css -105b, js +0b, web_css +27b gzip vs v0.32.0"
+        },
+        {
+            "version": "v0.33.0",
+            "date": "2026-08-25",
+            "web_css_raw": 26418,
+            "web_css_gzip": 3832,
+            "css_raw": 155465,
+            "css_gzip": 20729,
+            "js_raw": 294073,
+            "js_gzip": 92580,
+            "note": "RETRO row (item 35's review found the tag rowless): measured from the tagged tree 0f231e3 by the validated git-cat-file method. css +0b, js +0b, web_css +631b gzip vs v0.32.1"
+        },
+        {
+            "version": "v0.34.0",
+            "date": "2026-08-26",
+            "web_css_raw": 26418,
+            "web_css_gzip": 3832,
+            "email_css_raw": 2778,
+            "email_css_gzip": 550,
+            "css_raw": 155757,
+            "css_gzip": 20781,
+            "js_raw": 294073,
+            "js_gzip": 92580,
+            "note": "RETRO row, measured from the tagged tree c622924. The email bucket's first row (550b gzip against 2000). css +52b, js +0b, web_css +0b gzip vs v0.33.0"
+        },
+        {
+            "version": "v0.35.0",
+            "date": "2026-08-26",
+            "web_css_raw": 26418,
+            "web_css_gzip": 3832,
+            "email_css_raw": 2778,
+            "email_css_gzip": 550,
+            "print_css_raw": 23754,
+            "print_css_gzip": 6812,
+            "css_raw": 156391,
+            "css_gzip": 20860,
+            "js_raw": 294073,
+            "js_gzip": 92580,
+            "note": "The print bucket's first row (6812b gzip against 6000 — a DB-record substitution input, no page fetches it). css +79b, js +0b, web_css +0b, email_css +0b gzip vs v0.34.0"
         }
     ]
 }

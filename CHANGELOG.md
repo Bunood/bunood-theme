@@ -24,13 +24,24 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-### Print formats / PDF (item 35) — code complete, NOT yet released
+(nothing yet)
 
-**Under `[Unreleased]` for the same reason item 34 is** — the full browser suite
-has not run over either item on this memory-bound host; the heading, the bump
-and the tag arrive together with the gates. Targeted families are green
-throughout: `print:` 12, `direction:` 4 (two new), settings/shell/bands 21,
-list 10.
+## [0.35.0] — 2026-08-26 — Print formats / PDF (item 35)
+
+**Released together with v0.34.0, one gate for both**: the adversarial release
+review ran over the combined never-reviewed diff — 29 confirmed defects, every
+one fixed in `2567d59` (its message is the register) — and the full browser
+suite ran TWICE over the combined tree. The first sweep (389/390) caught what
+no targeted family could: the print preview's `sandbox=""` frame has a `null`
+origin, so the print sheet's own Cairo/Amiri @font-face fetches CORS-failed —
+a console error per render and Arabic previewed in a fallback face. Fixed in
+`ede1d26` (`allow-same-origin`, nothing else granted) and verified absent in
+the second sweep; that sweep's three failures were one backend transient
+episode (a 502 on a stock Frappe API mid-run) and pass isolated. Two more
+post-review fixes rode the merge: `11f2e1e` (a dangling company name renders
+an empty letterhead identity, never a crashed document — found by the suite's
+specimen doc). Families at the close: `print:` 13, `direction:` 4, `email:`
+14, settings/shell/bands 21, list 10.
 
 **The thirteenth surface kit, and the first delivered as a DATABASE RECORD.**
 The compiled `scss/print/print.scss` is substituted per site from
@@ -108,15 +119,18 @@ COMPOSITIONS cover the coarse need), `print_meta`, `print_contact`,
 `print_css_gzip` (ceiling 4000, at 2305); desk css 20868/21000 after the
 preview chrome. The 118 `ar.po` rows were drafted `#, fuzzy` and APPROVED by the user 2026-08-26 (`23ab02f`).
 
-### Email (item 34) — code complete, NOT yet released
+## [0.34.0] — 2026-08-26 — Email templates (item 34)
 
-**Deliberately still under `[Unreleased]`.** The house pattern is to write the
-`[X.Y.0]` heading with the item, and that pattern is exactly what produced the
-half-released 0.33.0 above: a heading, a version bump, and no tag, because the
-gates were never finished. This item's full browser suite has not passed — three
-attempts died with the backend OOM-killed on a 6 GB host — so the heading, the
-version bump, the payload record row and the tag all wait. Nothing here is a
-promise that it shipped.
+**Released together with v0.35.0, one gate for both** — the discipline the
+paragraph that used to sit here demanded: the heading, the bump, the row and
+the tag arrive only now, WITH the passed suite and the clean review. **The tag
+is RETROACTIVE at `c622924`** — item 34's last commit before item 35 began —
+so a release named for email carries no print source, the v0.29.0 precedent
+exactly. Its payload row is measured FROM THAT TREE by the validated
+git-cat-file method, never from a later dist. The costs, recorded: the version
+files at that commit still read 0.33.0, and the review-driven test hardening
+(the E2 fixture) lives in later commits; the review confirmed ZERO defects in
+item 34's shipped code.
 
 **Your brand reaches an inbox.** Every email your site sends — notifications,
 invitations, password resets, anything an app mails out — now carries your
