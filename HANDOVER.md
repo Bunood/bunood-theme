@@ -1837,8 +1837,12 @@ placement on every route change.
 - ~~`home_placement` / `apps_placement` accept "Dock" with no runtime branch~~
   — CLOSED by E1: `sb_mount_utils` resolves every slot through `parse_slot`
   against `BAR_HOSTS`, and the dock is one of them.
-- Clicking a slot in the User or Home/All-Apps picker does not repaint that
-  picker, so the selection does not move until the form is refreshed.
+- ~~Clicking a slot in the User or Home/All-Apps picker does not repaint that
+  picker~~ — CLOSED by item 36's picker audit: both routed through the inbox
+  setter, which repainted the inbox picker. Measured with the defect reinstated,
+  the selection was still wrong at t+1214ms and corrected at t+3003ms by the
+  autosave's own `refresh()` — so a check with a generous timeout passed on the
+  defect too, and the check's WINDOW (900ms) is the assertion.
 - `tools/fingerprint.mjs` hardcodes an absolute path to one machine
   (`createRequire("C:/Users/saltedfish/...")`), so the documented
   fixture-regeneration command only runs there.

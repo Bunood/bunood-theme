@@ -3,10 +3,10 @@
 /**
  * Theme Settings form script — the visual pickers.
  *
- * SEVEN PICKERS LIVE HERE
- *   Desk Layout (item 9), Sidebar Style (10), Breadcrumbs (11), Command
- *   Palette (12), Notifications (13), Search placement and Status Bar (14).
- *   Each writes hidden fields; none of them is a control the user types into.
+ * ONE PICKER PER COMPONENT LIVES HERE (items 9-36)
+ *   The `refresh` hook's render calls ARE the list — it started at seven and
+ *   is now twenty-six, which is why this no longer counts them. Each writes
+ *   hidden fields; none of them is a control the user types into.
  *
  * ONE VOCABULARY, BUILT BY `P`
  *   Every picker composes the same handful of shapes — a style card, a small
@@ -536,7 +536,8 @@ function bnd_placement_control(frm, field, note) {
  *
  * WHY THE VOCABULARY IS LONGER THAN THREE
  *   Placement / Style / Extras is the right split for five of the six pickers.
- *   The side pane is not one of them: it has 20 option groups, so a single
+ *   The side pane is not one of them: it has more option groups than any
+ *   other picker, so a single
  *   "Style" band there would be a longer wall than the split exists to remove.
  *   `pane` / `links` / `rail` divide it where its own settings already divide —
  *   the surface, what sits on it, and the collapsed rail. A longer vocabulary
@@ -1055,7 +1056,7 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
 	// The side pane's own picker joins them (item 36's picker audit): toggling
-	// "Show the side pane" left its twenty option groups offering themselves as
+	// "Show the side pane" left its option groups offering themselves as
 	// live over a pane that no longer existed, and the kit-off note never
 	// appeared — the same staleness this function exists to prevent, for the
 	// one picker it had omitted. The CATALOGUE-SAFE wrapper, never
@@ -1105,7 +1106,7 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Desk"),
 		items: [
-			// The only entry that renders rather than relocating: it owns no
+			// Renders rather than relocating, like Translations below: it owns no
 			// fields, it reads them.
 			{ key: "overview", label: () => __("Overview"), render: bnd_render_overview },
 		],
@@ -1259,9 +1260,10 @@ let bnd_container_toggles = null;
  * prefix IS the naming rule `build.mjs` already enforces, so this reads the
  * convention instead of restating its contents.
  *
- * The four entries with no prefix are listed explicitly, because identity and
- * colour are axes rather than components and deliberately carry no prefix —
- * `build.mjs`'s FIELD_EXCEPTIONS says exactly that.
+ * Entries listed by explicit `fields` are either axes that carry no prefix by
+ * design — identity and fonts, which `build.mjs`'s FIELD_EXCEPTIONS says
+ * exactly that about — or views over fields another entry also owns (the
+ * board, the layout preset), where both claims are true.
  */
 const BND_SHELL_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
@@ -1372,7 +1374,8 @@ function bnd_changed_fields(key, frm) {
  * TWO ENTRIES HAVE A REAL CATALOGUE; the rest do not, and pretending otherwise
  * would be the defect this rework exists to remove.
  *
- *   sidepane  — `SIDEBAR_PRESETS`, 22 values per preset, matched since item 10.
+ *   sidepane  — `SIDEBAR_PRESETS`, every field in `presets.SIDEBAR_FIELDS`,
+ *               matched since item 10.
  *   layout    — `registry.LAYOUT_CHROME` as of slice 2c. **This is new**, and
  *               it is what the whole container split was for. Until the split
  *               there was no table anywhere stating what a layout writes: the
@@ -1408,8 +1411,9 @@ function bnd_shell_note(key, frm) {
  * name pins nothing: the name is what was last APPLIED, and every container has
  * its own switch afterwards, so a desk can carry the label "Dock" while showing
  * a top bar and a side pane. The side pane's picker has worked this way since
- * item 10 for exactly this reason — its label is derived by comparing 23 values
- * — and this is the same rule reaching the last preset that lacked it.
+ * item 10 for exactly this reason — its label is derived by comparing every
+ * field the catalogue names — and this is the same rule reaching the last
+ * preset that lacked it.
  *
  * Falls back to the stored name when the catalogue has not arrived. That is the
  * honest answer to "cannot say": it is what a user picked, merely unverified.
@@ -2458,7 +2462,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			: "";
 
 	// Collected BY BAND rather than joined into one string: the side pane has
-	// twenty option groups, and one undifferentiated column of them is the wall
+	// more option groups than any other picker, and one undifferentiated column
+	// of them is the wall
 	// this split exists to remove.
 	const by_zone = {};
 	const add = (zone, html) => {
@@ -2604,7 +2609,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 /**
  * LIVE PREVIEW: hand the form's current sidebar values to the desk engine —
  * the chrome around this very form restyles instantly. Saving makes it
- * permanent for everyone; leaving without saving reverts on next load.
+ * permanent for everyone the moment it is clicked — this form autosaves.
  */
 function bnd_sb_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.sb_apply || !bnd_sb_catalogue) return;
@@ -3065,7 +3070,7 @@ function bnd_render_crumbs_picker(frm, host) {
 /**
  * LIVE PREVIEW: hand the form's current crumb values to the desk engine —
  * the trail above this very form restyles instantly. Saving makes it
- * permanent for everyone; leaving without saving reverts on next load.
+ * permanent for everyone the moment it is clicked — this form autosaves.
  */
 function bnd_crumb_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.crumb_apply) return;
@@ -4239,10 +4244,13 @@ function bnd_render_chart_picker(frm, host) {
 	$host.find(".bnd-chp-style").on("click", function () {
 		bnd_chart_set(frm, "chart_grid", this.getAttribute("data-value"));
 	});
-	$host.find(".bnd-cbp-reset").on("click", function (e) {
-		e.stopPropagation();
-		bnd_chart_set(frm, "chart_grid", BND_CHART_DEFAULTS.chart_grid);
-	});
+	// NO RESET BINDING HERE, and that is not an omission: this picker renders
+	// no `P.group`, so it emits no `.bnd-cbp-reset` and the handler that used
+	// to sit here matched nothing (item 36's picker audit). `assertResetChipsBound`
+	// only guards render-without-bind, so the inverse — a binding with nothing
+	// to bind — read as coverage while being dead code. Deleted rather than
+	// answered with a chip: adding one would change this picker's complement,
+	// which the suite and the shape fixture both pin.
 }
 
 /** Hand the chart values to the desk engine — live preview. */
@@ -5301,7 +5309,8 @@ const BND_LOGIN_GROUPS = [
 
 /** Render the sign-in picker.
  *
- * THE ONE KIT WITH NO LIVE PREVIEW, and it is not an omission. Every other
+ * NO LIVE PREVIEW, AND UNLIKE THE WEBSITE KIT'S THE REASON IS IMPOSSIBILITY
+ * RATHER THAN COST — it is not an omission. Every other
  * surface repaints on click through `bunood.<kit>_apply`, because the surface is
  * on the desk the settings page lives in. This one dresses /login and
  * /update-password — and `www/login.py:38-46` REDIRECTS any authenticated
@@ -5557,7 +5566,9 @@ function bnd_render_web_picker(frm, host) {
 	// `.bnd-cbp-reset` for any group with a `field`, and both groups here have
 	// one — the fixture banks the two nodes — but this function was copied from
 	// `bnd_render_login_picker` without its binding, so the chips were visible,
-	// enabled and inert. Twelve other pickers carry this handler and there is no
+	// enabled and inert. Every other picker carries this handler — and nothing
+	// counts them here, because `assertResetChipsBound` in `build.mjs` is what
+	// actually enforces it. There is no
 	// delegated fallback: every picker binds inside its own host, so no other
 	// kit's handler can reach these. Found by the v0.33.0 release review.
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
@@ -6087,10 +6098,19 @@ function bnd_render_print_picker(frm, host) {
 					{ zone: "extras", html: groups },
 				]) +
 				(() => {
-					const chip = (k, v, label) =>
-						`<button type="button" class="bnd-cbp-opt bnd-prp-chip" data-k="${k}" data-v="${v}" aria-pressed="${
-							bnd_print_preview_state[k] === v ? "true" : "false"
-						}">${label}</button>`;
+					// ONE test, written to BOTH the class and the attribute (item 36's
+					// picker audit). These four chips announced their selection only
+					// through `aria-pressed`, and no shipped rule targets it — so all
+					// four looked identical whichever specimen was showing, while a
+					// screen reader was told correctly. `.bnd-cbp-on` is the class the
+					// rest of the surface paints a selected chip with; computing the
+					// test twice is how the two would drift apart.
+					const chip = (k, v, label) => {
+						const on = bnd_print_preview_state[k] === v;
+						return `<button type="button" class="bnd-cbp-opt bnd-prp-chip${
+							on ? " bnd-cbp-on" : ""
+						}" data-k="${k}" data-v="${v}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
+					};
 					return (
 						'<div class="bnd-prp-chips" role="group" aria-label="' + __("Print preview") + '">' +
 						chip("shape", "invoice", __("Invoice")) +
