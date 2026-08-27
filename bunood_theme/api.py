@@ -874,10 +874,15 @@ def get_shipped_defaults() -> dict:
         that needs both and asks twice can render a moment where it has one.
     """
     from bunood_theme.registry import LAYOUT_CHROME, CONTAINERS
-    from bunood_theme.setup import SHIPPED
+    from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
 
+    # The shipped-EMPTY identity fields ride in as "" so the change dots can
+    # compare against them (item 36) — `SHIPPED` itself stays a seeding fact
+    # and never learns these keys. Order matters only in principle: the two
+    # sets are disjoint by construction, and `SHIPPED` winning a collision is
+    # the correct answer if that ever stops being true.
     return {
-        "defaults": dict(SHIPPED),
+        "defaults": {**{f: "" for f in SHIPPED_EMPTY}, **SHIPPED},
         "layout_chrome": LAYOUT_CHROME,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
     }

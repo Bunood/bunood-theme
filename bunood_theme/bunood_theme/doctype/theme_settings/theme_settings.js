@@ -1270,7 +1270,13 @@ const BND_SHELL_OWNS = {
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
 	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
-	colors: { fields: ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark"] },
+	// `arabic_font` joined in item 36: it was the only visible, user-editable
+	// Select in the whole form that NO entry owned — placed in this pane by its
+	// section, invisible to the dot and the note. `brand_css_url` shares the
+	// pane and stays deliberately UNOWNED: it is a generated artefact that
+	// changes on every colour save, so a dot on it would light beside every
+	// seed change and mean nothing.
+	colors: { fields: ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark", "arabic_font"] },
 	// The Icons axis owns every icon_* field by prefix — the same rule the
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },

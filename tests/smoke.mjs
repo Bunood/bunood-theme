@@ -4838,8 +4838,18 @@ async function main() {
 			// this test's author once ("Soft Tint" is a real option and is NOT the
 			// default; "Soft Pill" is, so a restore to the wrong one left the dot
 			// correctly lit and looked like a bug).
+			// THE SAME FACT THE DOTS READ. This pinned against `setup.SHIPPED`
+			// until item 36 gave the shipped-EMPTY identity fields a served ""
+			// entry (`SHIPPED_EMPTY`) — tagline is mutable and holds a real value
+			// on this site, so a pin that ignored the served empties would light
+			// the branding dot "at defaults" and fail honestly-but-uselessly.
+			// Pinning against the endpoint's own merge keeps check and feature
+			// reading one fact.
 			const shipped = JSON.parse(
-				benchPy(`from bunood_theme.setup import SHIPPED\nprint(json.dumps(SHIPPED))\n`)
+				benchPy(
+					`from bunood_theme.api import get_shipped_defaults\n` +
+						`print(json.dumps(get_shipped_defaults()["defaults"]))\n`
+				)
 					.trim().split("\n").pop()
 			);
 			const lit = async () => {
@@ -4884,6 +4894,72 @@ async function main() {
 			setSettings({ crumb_hover: shipped.crumb_hover });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
+		});
+
+		await test("shell: the dot lights for identity fields the seeder never writes", async () => {
+			// THE STRUCTURAL BLINDNESS THIS CLOSES: `bnd_changed_fields`
+			// intersects an entry's owned fields with the SERVED shipped map,
+			// and that map had no entry for logo, favicon, tagline or the dark
+			// seeds — so a site with a logo showed "Default" under Branding,
+			// forever. `SHIPPED_EMPTY` (setup.py) gives them a served "" to
+			// compare against, without ever entering `_seed_defaults` — a seeder
+			// writing "" rows for fields whose empty IS the shipped state would
+			// be noise at best and a fight with a deliberate clearing at worst.
+			// Watched RED against the pre-SHIPPED_EMPTY tree: the logo write
+			// below lit nothing.
+			//
+			// `arabic_font` rides the same check from the other direction: it
+			// was served (it IS seeded) but OWNED BY NO ENTRY — the only
+			// visible Select in the form whose change no dot answered for.
+			const served = JSON.parse(
+				benchPy(
+					`from bunood_theme.api import get_shipped_defaults\n` +
+						`print(json.dumps(get_shipped_defaults()["defaults"]))\n`
+				)
+					.trim().split("\n").pop()
+			);
+			for (const f of ["logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark"]) {
+				expect(f in served, `the served shipped map carries ${f}`);
+			}
+			const lit = async () => {
+				const m = await page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-shell-item")]
+						.filter(
+							(n) =>
+								!document
+									.querySelector(`[data-bnd-dot="${n.dataset.key}"]`)
+									.hasAttribute("hidden")
+						)
+						.map((n) => n.dataset.key)
+				);
+				return m.join(",");
+			};
+			setSettings(
+				Object.fromEntries(
+					Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
+				)
+			);
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
+			// One field per blindness class: logo → branding (shipped-empty),
+			// dark seed → colours (shipped-empty), arabic_font → colours
+			// (served all along, but unowned).
+			for (const [values, key] of [
+				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "branding"],
+				[{ brand_color_dark: "#1a2f6e" }, "colors"],
+				[{ arabic_font: "Almarai" }, "colors"],
+			]) {
+				await withBranding(values, async () => {
+					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+					expectEq(
+						await lit(),
+						key,
+						`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
+					);
+				});
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
+			}
 		});
 
 		await test("shell: the note names a real preset, and never invents one", async () => {

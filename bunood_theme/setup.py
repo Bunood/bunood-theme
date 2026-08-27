@@ -202,6 +202,23 @@ DEFAULTS = {
 #:     They get this.
 SHIPPED = {**DEFAULTS, **CHECK_DEFAULTS}
 
+#: The identity fields that SHIP EMPTY — item 36.
+#:
+#: NOT in ``DEFAULTS``, ON PURPOSE, TWICE OVER: the seeder is truthiness-based,
+#: so an empty-string "default" would either be a no-op row or — worse — a
+#: fight with a tenant's deliberate clearing on every migrate. And empty is not
+#: a hole here: an unset logo MEANS "use the fallback chain", which is the
+#: shipped behaviour.
+#:
+#: WHY THE TUPLE EXISTS AT ALL: the settings form's change dots compare a
+#: field's value against the served shipped map
+#: (:func:`bunood_theme.api.get_shipped_defaults`), and a field with no entry
+#: there is structurally invisible to them — a site with a logo read "Default"
+#: under Branding, forever. The API merges these in as ``""`` so the dots can
+#: answer; nothing else may consume this tuple, and it must NEVER be fed to
+#: :func:`_seed_defaults`.
+SHIPPED_EMPTY = ("logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark")
+
 #: Label of the user-menu density toggle. Module-level so the seeder and any
 #: future remover agree on the one string that identifies our row.
 NAVBAR_DENSITY_LABEL = "Toggle Density"
