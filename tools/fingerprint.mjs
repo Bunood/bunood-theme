@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
+import { browserLaunchOptions } from "./browser.mjs";
 // Derived from this file's own location, not a hardcoded machine path, so the
 // documented regeneration command runs anywhere (item 27, §4.9).
 const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
@@ -44,7 +45,7 @@ print(json.dumps(SHIPPED))
 // would write an orphan tabSingles row the doctype no longer knows.
 const SHAPE_STATE = { ...shipped, inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
 set(SHAPE_STATE);
-const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
+const b=await chromium.launch(browserLaunchOptions()); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
 await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
 // REFUSE TO CAPTURE A PAGE THAT IS NOT SHOWING THE PINNED STATE.
 //

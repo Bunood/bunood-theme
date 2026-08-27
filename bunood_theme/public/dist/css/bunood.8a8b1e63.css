@@ -2331,22 +2331,6 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   text-transform: uppercase;
 }
 
-html[data-bnd-desktop] .bnd-topbar,
-html[data-bnd-desktop] .bnd-statusbar,
-html[data-bnd-desktop] .bnd-apps-rail,
-html[data-bnd-desktop] .bnd-dock {
-  display: none;
-}
-html[data-bnd-desktop] .dropdown-notifications {
-  position: static;
-  inline-size: auto;
-  max-height: none;
-  overflow-y: visible;
-  background: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-top,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom,

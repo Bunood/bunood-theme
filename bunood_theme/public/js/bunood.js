@@ -524,9 +524,9 @@
 	// ════════════════════════════════════════════════════════════════════════
 	//
 	// Below Frappe's own mobile boundary — `frappe.is_mobile()` is exactly
-	// `innerWidth < 768` — the desktop chrome cannot stand: `toolbar.js` swaps
-	// away the <header> the top bar mounts into (desk.html:38), and Frappe
-	// collapses the side pane to an off-canvas drawer. So the desk COLLAPSES to
+	// `innerWidth < 768` — the desktop chrome cannot stand. Current v16 keeps
+	// desk.html's empty <header> in the DOM, but Frappe still collapses the side
+	// pane to an off-canvas drawer. So the desk COLLAPSES to
 	// one preset, `bnd_narrow_chrome` (registry.NARROW_CHROME): the host-free
 	// bottom bar carries the critical tenants (`bnd_narrow_placement`), and
 	// Frappe's own drawer — reached by its top-left menu — carries workspaces, so
@@ -537,7 +537,7 @@
 	// is a runtime override read by `container_on` / `active_placement` while
 	// narrow, and touches neither the stored fields nor the layout's derived name.
 	//
-	// REACTS TO THE BREAKPOINT, NOT `resize`. The <header> swap was a boot
+	// REACTS TO THE BREAKPOINT, NOT `resize`. The narrow chrome choice is a boot
 	// decision nothing re-ran, so a desk loaded at 400px and widened kept no top
 	// bar until reload. `matchMedia` fixes both directions: crossing 768 re-runs
 	// the container ladder (`remount_chrome`). Falls open — no payload means
@@ -607,10 +607,9 @@
 	 * SAME POLARITY AS `data-bnd-own`, and for the same reason. `data-bnd-
 	 * layout` is a declaration made at boot about what we INTEND to mount;
 	 * `mount_topbar` bails whenever `.main-section > header` is missing. That is
-	 * NOT "every viewport under ~480px" (this comment's old claim, corrected by
-	 * item 24): Frappe renders the empty <header> at every width (desk.html:38),
-	 * then `toolbar.js` REPLACES it whenever `frappe.is_mobile()` (innerWidth <
-	 * 768) OR read_only OR impersonation OR an announcement widget is set — so
+	 * not the mobile signal: current v16 keeps the empty header below 768, while
+	 * `container_on` deliberately selects the narrow container set there. The
+	 * header can still be absent for read_only, impersonation or announcements, so
 	 * the bar can be absent on a 1920px desk too. A stylesheet keyed on the
 	 * intention then reserves space for a bar that is not there, or sticks a
 	 * page head below a bar that never arrived. Keyed on the outcome there is
@@ -1310,6 +1309,26 @@
 		const Cal = window.frappe && frappe.views && frappe.views.Calendar;
 		if (!Cal || typeof Cal.prototype.prepare_colors !== "function") return;
 
+		// Frappe v16's generic endpoint now annotates start/end as date, while
+		// calendar.js still sends convert_to_system_tz() datetimes. In any
+		// non-UTC zone that becomes e.g. "2026-07-26 02:30:00" and Pydantic
+		// rejects the request with 417 before a single event can render. Keep
+		// custom calendar methods untouched; normalize only the generic method's
+		// documented date range at its one client-side funnel.
+		if (typeof Cal.prototype.get_args === "function") {
+			const NativeArgs = Cal.prototype.get_args;
+			Cal.prototype.get_args = function (start, end) {
+				const args = NativeArgs.call(this, start, end);
+				const generic = !this.get_events_method || this.get_events_method === "frappe.desk.calendar.get_events";
+				if (generic) {
+					for (const key of ["start", "end"]) {
+						if (typeof args[key] === "string") args[key] = args[key].split(/[ T]/)[0];
+					}
+				}
+				return args;
+			};
+		}
+
 		const live = new Set();
 		const HEX6 = /^#[0-9a-f]{6}$/i;
 		const token = (name) => {
@@ -1743,14 +1762,12 @@
 	}
 
 	/**
-	 * Route "" is v16's Desktop page, which ships its own navbar and search
-	 * and hides the normal sidebar — every piece of Bunood chrome stands down
-	 * there via the data-bnd-desktop attribute (chrome/_sidebar.scss).
+	 * Route to the first-class Home workspace, not Desk's empty route. Frappe
+	 * v16 keeps it as a standard workspace while /desk itself is only a shell
+	 * that self-redirects forever when a brand chip sends the user there.
 	 */
-	function update_desktop_mode() {
-		const route = frappe.get_route ? frappe.get_route() || [] : [];
-		const on_desktop = !route.length || (route.length === 1 && !route[0]);
-		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
+	function go_home() {
+		frappe.set_route("home");
 	}
 
 	// ── The theme's dropdown menu ───────────────────────────────────────────
@@ -1966,14 +1983,14 @@
 		});
 
 		// Place-switching that has no other home now that the old brand menu
-		// is retired: Website for everyone, Desktop where the sidebar is gone.
+		// is retired: Website for everyone, Home where the sidebar is gone.
 		// Asks the DOM, not the layout: this item exists because the side pane
-		// — which normally carries the Desktop route — is not reachable. Since
+		// — which normally carries the Home route — is not reachable. Since
 		// the container split that is a question about the PANE, not about
 		// which layout is active, and the menu is built on click so the honest
 		// answer is available by then.
 		if (sidebar_is_hidden()) {
-			items.push({ label: __("Desktop"), icon: "icon-home", run: () => frappe.set_route("") });
+			items.push({ label: __("Home"), icon: "icon-home", run: go_home });
 		}
 		items.push({
 			label: __("Website"),
@@ -4157,19 +4174,23 @@ function sb_zone_anchor(pane, zone, node) {
 			// consume every key and leave Recent permanently empty (release
 			// review v0.7.0..HEAD). pal_row already added the frecency boost
 			// — no second pass, or the documented cap doubles.
-			// Dedupe WITHIN each group as well as across: frappe.route_history
-			// is appended per navigation with no dedupe, so revisiting a list
-			// twice would otherwise render it twice and eat the cap.
+			// Dedupe WITHIN each group as well as across. Use the visible label,
+			// not only the route: v16 emits one frequent-link option per view
+			// (`List/Item/List` and `List/Item/Image`) but labels both "Item
+			// List". Two indistinguishable rows are not two useful choices; keep
+			// the higher-ranked one. The key remains the fallback for icon-only
+			// or otherwise unlabeled options.
+			const identity = (row) => row.marked || row.plain || row.key;
 			const uniq = (rows) => {
 				const seen = new Set();
-				return rows.filter((r) => !seen.has(r.key) && seen.add(r.key));
+				return rows.filter((r) => !seen.has(identity(r)) && seen.add(identity(r)));
 			};
 			const frequents = uniq(pal_source("get_frequent_links", "").map((o) => pal_row(o, "frequent", "")))
 				.sort((a, b) => b.index - a.index)
 				.slice(0, 5);
-			const kept = new Set(frequents.map((r) => r.key));
+			const kept = new Set(frequents.map(identity));
 			const recents = uniq(pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", "")))
-				.filter((r) => !kept.has(r.key))
+				.filter((r) => !kept.has(identity(r)))
 				.sort((a, b) => b.index - a.index)
 				.slice(0, 7);
 			if (frequents.length) groups.push({ species: "frequent", rows: frequents });
@@ -4229,6 +4250,20 @@ function sb_zone_anchor(pane, zone, node) {
 	 * for X"). Calculator included: same convenience as stock, but behind a
 	 * strict arithmetic whitelist instead of a raw eval.
 	 */
+	function pal_open_global_search(txt) {
+		let search = frappe.searchdialog && frappe.searchdialog.search;
+		// Toolbar.setup_help() now skips construction when notifications are
+		// disabled. The SearchDialog class is still shipped; create it only when
+		// the user asks for the fallback instead of silently dropping the row.
+		if (!search && frappe.search && frappe.search.SearchDialog) {
+			search = new frappe.search.SearchDialog();
+			frappe.provide("frappe.searchdialog");
+			frappe.searchdialog.search = search;
+		}
+		if (search && search.open_global_search_dialog) search.open_global_search_dialog(txt);
+		else if (search && search.init_search) search.init_search(txt, "global_search");
+	}
+
 	function pal_fallbacks(txt) {
 		const rows = [];
 		if (!txt || !parseInt(pal_state.fallbacks, 10)) return rows;
@@ -4261,7 +4296,7 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 		}
 		// Global search hand-off: proxy to Frappe's own full-text dialog.
-		if (frappe.searchdialog && frappe.searchdialog.search) {
+		if ((frappe.searchdialog && frappe.searchdialog.search) || (frappe.search && frappe.search.SearchDialog)) {
 			rows.push({
 				species: "fallback",
 				// Typographic quotes, not escaped ASCII ones. Every regex-based
@@ -4273,7 +4308,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// extracted msgid and the runtime key agree again.
 				marked: frappe.utils.escape_html(__("Search all documents for “{0}”", [txt])),
 				plain: txt,
-				onclick: () => frappe.searchdialog.search.init_search(txt, "global_search"),
+				onclick: () => pal_open_global_search(txt),
 				key: "",
 				index: 0,
 			});
@@ -5627,7 +5662,7 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
 		});
 		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		brand.addEventListener("click", () => frappe.set_route(""));
+		brand.addEventListener("click", go_home);
 		dock.appendChild(brand);
 
 		const slug = (name) =>
@@ -5798,7 +5833,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const name = el("span", "bnd-sb-brand-name");
 		name.textContent = frappe.boot.bnd_company || "Home";
 		brand.appendChild(name);
-		brand.addEventListener("click", () => frappe.set_route(""));
+		brand.addEventListener("click", go_home);
 		sidebar.insertBefore(brand, sidebar.firstChild);
 	}
 
@@ -5819,7 +5854,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const is_home = which === "home";
 		const title = is_home ? __("Home") : __("All Apps");
 		const run = is_home
-			? () => frappe.set_route("")
+			? go_home
 			: () => {
 					window.location.href = "/apps";
 			  };
@@ -6300,7 +6335,7 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
 		});
 		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		brand.addEventListener("click", () => frappe.set_route(""));
+		brand.addEventListener("click", go_home);
 		rail.appendChild(brand);
 		rail.appendChild(el("span", "bnd-apps-rail-divider"));
 
@@ -6922,7 +6957,6 @@ function sb_zone_anchor(pane, zone, node) {
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
-		update_desktop_mode();
 		decorate_crumbs();
 
 		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
