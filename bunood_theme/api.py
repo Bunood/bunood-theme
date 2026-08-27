@@ -873,7 +873,7 @@ def get_shipped_defaults() -> dict:
         whole rework exists to have exactly once. Same request, because a form
         that needs both and asks twice can render a moment where it has one.
     """
-    from bunood_theme.registry import LAYOUT_CHROME, CONTAINERS
+    from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS
     from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
 
     # The shipped-EMPTY identity fields ride in as "" so the change dots can
@@ -881,9 +881,20 @@ def get_shipped_defaults() -> dict:
     # and never learns these keys. Order matters only in principle: the two
     # sets are disjoint by construction, and `SHIPPED` winning a collision is
     # the correct answer if that ever stops being true.
+    #
+    # `layout_tenants` RIDES ALONG BECAUSE A LAYOUT IS BOTH HALVES (item 36's
+    # picker audit). Every layout card's blurb names where search, the bell and
+    # the profile will sit — and the client had only the container half to
+    # write, so picking "Bottom Bar" switched the top bar off and left the bell
+    # pointing at a region that no longer existed, which the runtime resolves
+    # to "absent". `registry.layout_settings` has composed both halves all
+    # along and the SUITE applied it; the form never could. Same request as the
+    # chrome for the same reason the chrome is here: a form that needs both and
+    # asks twice can render a moment where it has one.
     return {
         "defaults": {**{f: "" for f in SHIPPED_EMPTY}, **SHIPPED},
         "layout_chrome": LAYOUT_CHROME,
+        "layout_tenants": LAYOUT_TENANTS,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
     }
 

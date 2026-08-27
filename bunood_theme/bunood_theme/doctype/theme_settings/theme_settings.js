@@ -1054,7 +1054,15 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_user_picker(frm);
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
-		bnd_render_placement_board(frm);
+	// The side pane's own picker joins them (item 36's picker audit): toggling
+	// "Show the side pane" left its twenty option groups offering themselves as
+	// live over a pane that no longer existed, and the kit-off note never
+	// appeared — the same staleness this function exists to prevent, for the
+	// one picker it had omitted. The CATALOGUE-SAFE wrapper, never
+	// `bnd_render_sidebar_picker_now`, which destructures the fetched
+	// catalogue and throws if the call has not landed.
+	bnd_render_sidebar_picker(frm);
+	bnd_render_placement_board(frm);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1235,6 +1243,10 @@ let bnd_shipped = null;
  * half a preset from a guess.
  */
 let bnd_layout_chrome = null;
+//: The other half of a layout: where the tenants go (item 36's picker audit).
+//: `registry.LAYOUT_TENANTS`, served beside the chrome because a layout is
+//: BOTH — every card's blurb names where search, the bell and the profile sit.
+let bnd_layout_tenants = null;
 let bnd_container_toggles = null;
 
 /**
@@ -1858,6 +1870,7 @@ function bnd_load_shipped() {
 		.then((data) => {
 			bnd_shipped = (data && data.defaults) || null;
 			bnd_layout_chrome = (data && data.layout_chrome) || null;
+			bnd_layout_tenants = (data && data.layout_tenants) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
 		})
 		.catch(() => {
@@ -1900,6 +1913,26 @@ function bnd_apply_layout_preset(frm) {
 			const field = bnd_container_toggles[key];
 			if (!(key in row) || !frm.get_field(field)) continue;
 			frm.set_value(field, row[key]);
+		}
+		// AND THE TENANT PLACEMENTS — the half this loop was missing (item 36's
+		// picker audit). Every card's blurb promises where search, the bell and
+		// the profile will sit, and only the containers were written: picking
+		// "Bottom Bar" switched the top bar off and left the bell pointing at a
+		// region that no longer existed, which the runtime resolves to
+		// "absent" — the card drew a bell in the bottom strip and the desk
+		// showed none. `registry.layout_settings` has composed both halves all
+		// along and the suite applied it through `setSettings`; the form could
+		// not, so the suite was exercising a path no gesture could reach.
+		//
+		// Guarded on the field EXISTING, exactly as the containers are: a
+		// catalogue that names a field this doctype lacks must skip it rather
+		// than orphan a tabSingles row.
+		const tenants = (bnd_layout_tenants && bnd_layout_tenants[frm.doc.desk_layout]) || null;
+		if (tenants) {
+			for (const field of Object.keys(tenants)) {
+				if (!frm.get_field(field)) continue;
+				frm.set_value(field, tenants[field]);
+			}
 		}
 	});
 }
@@ -3474,11 +3507,31 @@ function bnd_inbox_preview(frm) {
 	window.bunood_theme.inbox_apply(values);
 }
 
-/** Set one inbox option, preview, re-render. */
+/**
+ * Set one option and repaint the picker that OWNS the field.
+ *
+ * IT USED TO REPAINT THE INBOX PICKER AND NOTHING ELSE (item 36, the defect
+ * HANDOVER §8 had filed): the user and links pickers route their clicks here
+ * too, so clicking a slot in either wrote the value and left the diagram
+ * showing the OLD selection until the form was refreshed. A control that does
+ * not visibly move is indistinguishable from one that did nothing — the honest
+ * -picker rule this surface is built on.
+ *
+ * Routed by FIELD rather than by a caller-supplied renderer: the three pickers
+ * share one setter precisely so a fourth cannot forget to pass one, and the
+ * field already says which picker owns it. The inbox picker repaints for its
+ * own fields and for nothing else, so a links click no longer redraws it.
+ */
 function bnd_inbox_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_inbox_preview(frm);
-	bnd_render_inbox_picker(frm);
+	if (fieldname === "user_placement") bnd_render_user_picker(frm);
+	else if (fieldname === "home_placement" || fieldname === "apps_placement") bnd_render_links_picker(frm);
+	else bnd_render_inbox_picker(frm);
+	// The board draws the same five placements: a slot moved from any of these
+	// pickers must move on the board too, or the two views disagree about one
+	// state (the board's own docblock calls that the lie it exists to prevent).
+	bnd_render_placement_board(frm);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3687,6 +3740,25 @@ const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_c
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
 const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
+
+/**
+ * Client mirror of presets.LINKS_DEFAULTS — keep in sync.
+ *
+ * Landed with item 36's picker audit: the links picker's reset chip had been
+ * writing `bnd_field_first_slot`, i.e. "Top Bar Start", while both links ship
+ * in "Side Pane Start" — a chip labelled "Reset to default" whose click was
+ * the surest way to make the change dot say Changed.
+ *
+ * DEFAULTS ONLY, deliberately no `BND_LINKS_FIELDS` beside it: the two
+ * placements are already named in `bnd_theme_keys`, and adding a FIELDS mirror
+ * made the portability check demand it be concatenated there too — a second
+ * statement of the same two fieldnames in one file. The check was right; the
+ * mirror was the mistake.
+ */
+const BND_LINKS_DEFAULTS = {
+	home_placement: "Side Pane Start",
+	apps_placement: "Side Pane Start",
+};
 
 /** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
 const BND_FORM_DEFAULTS = {
@@ -6713,7 +6785,13 @@ function bnd_render_links_picker(frm, host) {
 	});
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
-		bnd_inbox_set(frm, this.getAttribute("data-field"), bnd_field_first_slot(frm, this.getAttribute("data-field")));
+		// THE SHIPPED DEFAULT, not the field's first slot (item 36's picker
+		// audit). Both links ship in "Side Pane Start"; the first slot the
+		// field offers is "Top Bar Start", so a chip labelled "Reset to
+		// default" was writing the one value guaranteed to make the shell's
+		// change dot say Changed. A mirror of presets.LINKS_DEFAULTS, guarded
+		// by assertFieldMirrors like every other kit's.
+		bnd_inbox_set(frm, this.getAttribute("data-field"), BND_LINKS_DEFAULTS[this.getAttribute("data-field")]);
 	});
 }
 
@@ -7202,7 +7280,15 @@ function bnd_sb_export(frm) {
 	});
 }
 
-/** Import a theme JSON: validate known keys, set, preview. Save to keep. */
+/**
+ * Import a theme JSON: validate known keys, set, preview — and it SAVES.
+ *
+ * The docblock and the toast both said "Save to keep" (item 36's picker
+ * audit). There is no Save step: every `frm.set_value` here goes through the
+ * wrapped `frm.dirty` and autosave writes it ~400ms later, which three other
+ * notes in this file tell the user plainly. Asking for an action that does not
+ * exist also implies the import has not stuck, which is the opposite of true.
+ */
 function bnd_sb_import(frm) {
 	frappe.prompt(
 		[{ fieldname: "json", fieldtype: "Small Text", label: __("Paste theme JSON"), reqd: 1 }],
@@ -7263,7 +7349,7 @@ function bnd_sb_import(frm) {
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
 			// Frappe's plural-free dictionary.
-			frappe.show_alert({ message: __("Settings applied: {0} — Save to keep", [applied]), indicator: "blue" });
+			frappe.show_alert({ message: __("Settings applied: {0} — saved automatically", [applied]), indicator: "blue" });
 		},
 		__("Import theme"),
 		__("Apply")

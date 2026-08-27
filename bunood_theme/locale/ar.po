@@ -2270,9 +2270,10 @@ msgid "Set by the picker below. Values live in the individual style fields; the 
 msgstr "يضبطه المنتقي أدناه. القيم تقيم في حقول النمط المفردة؛ النمط الجاهز مجرد تسمية."
 
 #. In theme_settings.js
-#. src: ai
-msgid "Settings applied: {0} — Save to keep"
-msgstr "الإعدادات المطبقة: {0} — احفظ للإبقاء"
+#. src: item36
+#, fuzzy
+msgid "Settings applied: {0} — saved automatically"
+msgstr "طُبّقت الإعدادات: {0} — حُفظت تلقائيًا"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai

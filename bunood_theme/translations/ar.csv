@@ -874,7 +874,7 @@ Set by the picker below. Original leaves ERPNext's stock Ctrl+K modal untouched.
 Set by the picker below. Original leaves ERPNext's stock notification panel untouched.,يضبطه المنتقي أدناه. «الأصلي» يترك لوحة إخطارات ERPNext الأصلية كما هي.,
 Set by the picker below. Original leaves ERPNext's stock trail untouched.,يضبطه المنتقي أدناه. «الأصلي» يترك مسار ERPNext كما هو.,
 Set by the picker below. Values live in the individual style fields; the preset is a label.,يضبطه المنتقي أدناه. القيم تقيم في حقول النمط المفردة؛ النمط الجاهز مجرد تسمية.,
-Settings applied: {0} — Save to keep,الإعدادات المطبقة: {0} — احفظ للإبقاء,
+Settings applied: {0} — saved automatically,طُبّقت الإعدادات: {0} — حُفظت تلقائيًا,
 Show,إظهار,
 Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load.,إظهار الإشعارات في الشريط السفلي عند العرض دون 768 بكسل. البحث موجود دائمًا (فهو البحث الوحيد على الهاتف)؛ يختار هذا الخيار والخياران التاليان ما ينضمّ إليه. يسري عند تحميل الصفحة التالي.,
 Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way.,إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين.,

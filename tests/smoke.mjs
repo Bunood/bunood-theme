@@ -5203,6 +5203,167 @@ async function main() {
 			}
 		});
 
+		await test("honest: a reset chip writes the SHIPPED default, not the first slot on offer", async () => {
+			// The links picker's chip said "Reset to default" and wrote the
+			// field's first offered slot — "Top Bar Start" — while both links
+			// ship in "Side Pane Start". So the one click that promises to
+			// restore the default was the surest way to make the change dot say
+			// Changed (item 36's picker audit). Asserted against the SERVER's
+			// map, not a literal: a check that spelled the value would pass
+			// identically whether the chip read the catalogue or guessed.
+			const shipped = JSON.parse(
+				benchPy(
+					"from bunood_theme.presets import LINKS_DEFAULTS\n" +
+						"print(json.dumps(LINKS_DEFAULTS))\n"
+				).trim().split("\n").pop()
+			);
+			const before = getSettings(["home_placement", "apps_placement"]);
+			try {
+				setSettings({ home_placement: "Top Bar End", sidebar_enabled: 1 });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="links"]');
+				await page.waitForSelector('[data-fieldname="links_picker"] .bnd-cbp-reset', { timeout: 15000 });
+				await page.click('[data-fieldname="links_picker"] .bnd-cbp-reset[data-field="home_placement"]');
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+				expectEq(
+					getSettings(["home_placement"]).home_placement,
+					shipped.home_placement,
+					"the reset chip wrote the shipped default"
+				);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("honest: picking a layout writes BOTH halves — the containers and the tenants", async () => {
+			// THE PICKER AUDIT'S HEADLINE FINDING (item 36). Every layout card's
+			// blurb names where search, notifications and the profile will sit,
+			// and the click wrote only the five container toggles: picking
+			// "Bottom Bar" switched the top bar off and left the bell pointing at
+			// a region that no longer existed, which bunood.js resolves to
+			// "absent" — the card drew a bell in the bottom strip and the desk
+			// showed none.
+			//
+			// AND THE SUITE COULD NOT SEE IT, which is the part worth recording:
+			// `setSettings` applies `registry.layout_settings`, which has
+			// composed containers AND placements all along, so every existing
+			// layout check drove a state no gesture could produce. This one
+			// clicks the CARD.
+			const before = getSettings([
+				"desk_layout", "topbar_enabled", "bottombar_enabled",
+				"inbox_placement", "user_placement", "search_placement",
+			]);
+			try {
+				setSettings({ desk_layout: "Top Bar" });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="layout"]');
+				await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
+				await page.click('.bnd-lp-card[data-value="Bottom Bar"]');
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 20000 });
+				const got = getSettings([
+					"topbar_enabled", "bottombar_enabled",
+					"inbox_placement", "user_placement", "search_placement",
+				]);
+				// The container half, which always worked.
+				expectEq(String(got.topbar_enabled), "0", "Bottom Bar switched the top bar off");
+				expectEq(String(got.bottombar_enabled), "1", "Bottom Bar switched the bottom bar on");
+				// The half that did not: every tenant must now name a region the
+				// layout actually mounts. Read the catalogue rather than pinning
+				// literals — the table is the fact, this is its consumer.
+				const want = JSON.parse(
+					benchPy(
+						"from bunood_theme.registry import LAYOUT_TENANTS\n" +
+							"print(json.dumps(LAYOUT_TENANTS['Bottom Bar']))\n"
+					).trim().split("\n").pop()
+				);
+				for (const [field, value] of Object.entries(want)) {
+					expectEq(got[field], value, `${field} followed the layout card's promise`);
+					expect(
+						!/^Top Bar/.test(String(got[field])),
+						`${field} still points at the top bar the layout just switched off`
+					);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("honest: a placement click moves the selection in the picker that was clicked", async () => {
+			// HANDOVER §8's filed defect, closed in item 36: the user and links
+			// pickers routed their clicks through the inbox setter, which
+			// repainted the INBOX picker — so the diagram kept showing the old
+			// slot until the form refreshed, and a control that does not visibly
+			// move is indistinguishable from one that did nothing. Driven, not
+			// read: click a slot, then assert the SAME picker's marked slot moved
+			// without a reload. Watched red against the shared-setter version.
+			// TWO THINGS THIS CHECK HAD TO LEARN, both by passing against a
+			// deliberately reinstated defect:
+			//
+			// 1. SCOPE TO THE PICKER'S OWN ROOT. The placement BOARD draws slots
+			//    carrying the same `data-field` and repaints on every placement
+			//    write, so an unscoped `[data-field=…].bnd-dgm-on` query finds
+			//    the board's slot and passes whether or not the clicked picker
+			//    moved (CLAUDE.md's first-named trap, live).
+			// 2. THE WINDOW IS THE ASSERTION. Autosave's post-save `refresh()`
+			//    re-renders every picker, so a generous timeout passes on the
+			//    defect too — just late. Measured with the defect reinstated:
+			//    still showing the OLD slot at t+1214ms, moved by t+3003ms. So
+			//    the deadline below is well under that and well over an
+			//    immediate repaint; a click must move its own selection NOW, not
+			//    after a database round-trip.
+			const MOVE_MS = 900;
+			const before = getSettings(["user_placement", "home_placement"]);
+			try {
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				for (const [key, field] of [["user", "user_placement"], ["links", "home_placement"]]) {
+					const root = `[data-fieldname="${key}_picker"]`;
+					await page.click(`.bnd-shell-item[data-key="${key}"]`);
+					await page.waitForSelector(`${root} .bnd-dgm-slot`, { timeout: 15000 });
+					const target = await page.evaluate(
+						(args) => {
+							const host = document.querySelector(args.root);
+							const slots = [...host.querySelectorAll(`[data-field="${args.f}"].bnd-dgm-slot`)];
+							const off = slots.find(
+								(s) => !s.classList.contains("bnd-dgm-on") && !s.hasAttribute("disabled")
+							);
+							return off ? off.getAttribute("data-value") : null;
+						},
+						{ root, f: field }
+					);
+					expect(target, `${key}: no unselected slot to click in its own picker`);
+					await page.click(`${root} [data-field="${field}"].bnd-dgm-slot[data-value="${target}"]`);
+					// No reload, and no waiting for the save: THIS picker must
+					// repaint itself, inside MOVE_MS.
+					await page.waitForFunction(
+						(args) => {
+							const host = document.querySelector(args.root);
+							const on = host && host.querySelector(`[data-field="${args.f}"].bnd-dgm-slot.bnd-dgm-on`);
+							return !!on && on.getAttribute("data-value") === args.t;
+						},
+						{ root, f: field, t: target },
+						{ timeout: MOVE_MS }
+					);
+					// Let the autosave land before the next iteration reads state.
+					await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+					// And the board — the second view over the same state — agrees.
+					// Its markup is chips in zones (`.bnd-bd-chip` inside
+					// `.bnd-bd-zone[data-slot]`), NOT the diagram's marked slots:
+					// asserting the diagram's shape here returned null and failed
+					// a working repaint, which is the same measure-the-wrong-
+					// element trap one level along.
+					const tenant = { user_placement: "user", home_placement: "home" }[field];
+					const onBoard = await page.evaluate((t) => {
+						const c = document.querySelector(`.bnd-bd-chip[data-tenant="${t}"]`);
+						const z = c && c.closest(".bnd-bd-zone");
+						return z ? z.getAttribute("data-slot") : null;
+					}, tenant);
+					expectEq(onBoard, target, `${key}: the board disagrees with the picker about one state`);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("shell: the Layout entry answers for the desk, not for a stored label", async () => {
 			// desk_layout is HIDDEN as of item 36 — a record of the last preset
 			// applied, not a control. So the Layout entry owns the five container
