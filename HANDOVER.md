@@ -2,7 +2,7 @@
 
 > Written 2026-08-06. Everything needed to pick this up in a fresh session.
 > `CLAUDE.md` is the working contract, `GUIDELINES.md` the doctrine and audit,
-> `ROADMAP.md` the 38 items. **This file is the state of play**; those three are
+> `ROADMAP.md` the 39 items. **This file is the state of play**; those three are
 > the standing rules. If this file and `ROADMAP.md` disagree, ROADMAP wins and
 > this one is stale.
 
@@ -22,6 +22,18 @@ releases. CHANGELOG's policy paragraph is the authority.
 `origin/main` sat at `d6c7d5f` — NOT the `31bf8f3` an earlier revision of this file claimed;
 `31bf8f3` is v0.20.0's release commit and `d6c7d5f` is the doc commit pushed on top of it.
 Resolve the remote tip with `git rev-parse origin/main` rather than from this file.
+
+**PHASE 0 SLICE 2 / WO-1 — CLOSED 2026-08-28 in `v0.39.1`.** The parent
+marker finally agrees with its completed children. The release candidate was
+rebased onto the concurrent Report Studio release (`v0.39.0`) and passed the
+full browser gate **390/390** on a complete seeded Frappe 16.31 site; static
+gates passed 4,080 contrast pairs, 46 icon ids, and 1,240 source strings.
+The close also makes Docker and the Playwright browser nameable, seeds a fresh
+bench through the setup-wizard data it actually needs, and fixes the v16 Home
+route, calendar date arguments, command-palette state/lazy search, and the
+16.31 email-template drift. Frappe's non-finite Home chart geometry is filed at
+https://github.com/frappe/frappe/issues/42187 and only its exact SVG parser
+messages are classified; every other console error remains fatal.
 
 **`v0.29.0` IS TAGGED AT `e89cd45`, NOT AT THE RELEASE COMMIT** — item 30 was already
 committed when the numbering was decided, and a v0.29.0 cut at HEAD would have carried item

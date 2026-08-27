@@ -26,6 +26,35 @@ an "item N" cited below against today's numbering.
 
 (nothing yet)
 
+## [0.39.1] — 2026-08-28 — v16 compatibility and reproducible verification
+
+**Phase 0 slice 2 is closed.** Its parent marker had stayed partial after every
+child landed; the actual current-main release candidate now passes the complete
+browser gate 390/390 on a seeded Frappe 16.31 site. The supporting gates pass
+4,080 contrast pairs, all 46 emitted icon ids, and all 1,240 source strings.
+
+**The suite and a fresh bench now meet each other honestly.** Docker's binary
+name and Playwright's browser channel/executable are configurable; the seeder
+writes the masters, defaults, ledger, form, view, and portal fixtures the tests
+consume; and navigation verifies where Frappe landed instead of trusting a
+resolved `goto`. The Report Studio suite added in 0.39.0 uses the same browser
+selection mechanism.
+
+**Frappe 16.31 compatibility is explicit.** Home affordances route to the real
+`/desk/home` workspace; generic calendar calls send dates instead of datetimes;
+the command palette owns its state and can lazily instantiate v16's search
+dialog; the mobile boundary asserts the mounted outcome; and email previewing
+uses Frappe's repaired no-outgoing-account path. The three forked email
+templates are re-pinned to 16.31, including its conditional footer divider,
+while Bunood deliberately keeps the 4.17:1 `text-muted` footer class out.
+
+Frappe's Home chart still emits non-finite SVG geometry. It is reported at
+https://github.com/frappe/frappe/issues/42187; the console budget classifies
+only the exact SVG parser forms reproduced by the seeded ledger. The only
+other new classification is axe-core attempting script injection into the
+email preview's intentional `sandbox=""` frame—the browser's exact refusal,
+not arbitrary sandbox errors.
+
 ## [0.39.0] — 2026-08-27 — Report Studio (item 39) + ZATCA Phase-1 printing
 
 **The Report Studio — a bilingual reading room for the numbers (item 39;

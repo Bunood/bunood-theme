@@ -177,7 +177,11 @@ defect in 0.10.0.
   - **Overview**: every placed component on one desk, each mark a route to its control.
     Read-only on purpose — two ways to set one value is the duplication this rework
     exists to remove
-- `[~]` **Slice 2** — remaining containers and tenants.
+- `[x]` **Slice 2** — remaining containers and tenants *(closed 2026-08-28)*.
+  The stale parent marker is paid: every child below is complete, and the
+  closure ran 390/390 browser checks on a complete seeded v16.31 site after
+  rebasing onto `v0.39.0`. Static gates at the close: 4,080 contrast pairs,
+  46 emitted icons, and 1,240 source strings with coverage complete.
   - `[x]` **Home and All Apps place themselves** *(2026-08-06)*. They shared one
     field, `sidebar_quick_links`, which rode the sidebar STYLE kit — so a preset
     decided where both lived and neither could move alone. Now `home_placement` /
