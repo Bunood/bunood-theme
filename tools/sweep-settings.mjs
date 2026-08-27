@@ -39,6 +39,8 @@
  */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
+import { browserLaunchOptions } from "./browser.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
@@ -48,8 +50,8 @@ const URL_BASE = "http://localhost:8080";
 
 const py = (c) =>
 	execFileSync(
-		"docker",
-		["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+		DOCKER_BIN,
+		dockerArgv("exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
 		{
 			input:
 				`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n` + c,
@@ -77,7 +79,7 @@ const restore = () =>
 		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\nfor f, v in vals.items():\n    if f in ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus"):\n        continue\n    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\nfrappe.clear_cache()\nfrappe.db.commit()\nprint("restored")\n`
 	);
 
-const b = await chromium.launch();
+const b = await chromium.launch(browserLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 } });
 await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
 const page = await ctx.newPage();

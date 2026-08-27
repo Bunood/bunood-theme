@@ -20,6 +20,7 @@
  *   Runs INSIDE the bench container (python is reached directly, no docker
  *   exec):  cd apps/bunood_theme && node tests/studio.mjs
  *   Needs: npx playwright install chromium (one-time).
+ *   Or set BND_BROWSER_CHANNEL=chrome to use an installed Chrome build.
  *
  * USAGE
  *   BND_URL=http://bunood.localhost:8000 BND_SITE=bunood.localhost \
@@ -28,6 +29,7 @@
 
 import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
+import { browserLaunchOptions } from "../tools/browser.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://bunood.localhost:8000";
 const SITE = process.env.BND_SITE || "bunood.localhost";
@@ -187,6 +189,7 @@ async function main() {
 	console.log("expectations minted:", Object.keys(expect).length, "figures");
 
 	const browser = await chromium.launch({
+		...browserLaunchOptions(),
 		args: ['--host-resolver-rules=MAP bunood.localhost 127.0.0.1'],
 	});
 	const context = await browser.newContext({

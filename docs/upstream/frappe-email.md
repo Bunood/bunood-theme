@@ -205,7 +205,7 @@ is used at all.
 
 ---
 
-## 7. `get_formatted_html` crashes when a site has no outgoing Email Account
+## 7. `get_formatted_html` crashed when a site had no outgoing Email Account — resolved in 16.31
 
 `email_body.py:419`:
 
@@ -213,8 +213,8 @@ is used at all.
 email_account = email_account or EmailAccount.find_outgoing(match_by_email=sender)
 ```
 
-`find_outgoing` is called **without `_raise_error=True`**, so it returns `None`; line 433
-then dereferences it unconditionally:
+On 16.27, `find_outgoing` returned `None` and `get_brand_logo` then dereferenced it
+unconditionally:
 
 ```python
 "brand_logo": get_brand_logo(email_account) if with_container or header else None,
@@ -226,13 +226,12 @@ Reproduced on this site (zero accounts with `enable_outgoing`):
 AttributeError: 'NoneType' object has no attribute 'get'
 ```
 
-Note the guard is on `with_container or header`, so the crash appears only for emails
-that ask for a container or a header — which is most system mail, and none of the
-Notification path. A site that has not finished configuring outgoing mail therefore hits
-this on some emails and not others.
+The crash appeared only for emails asking for a container or header. Bunood's preview
+temporarily supplied a synthetic account to keep that common setup state usable.
 
-***Filing:*** pass `_raise_error=True`, or guard the dereference. `get_brand_logo` should
-also tolerate `None` rather than assuming a document.
+**Rechecked on Frappe 16.31.0 (2026-08-27): fixed.** The stock formatter now returns a
+complete message with `with_container=True` and no outgoing Email Account. Bunood removed
+its synthetic account and the smoke gate now requires the upstream path to remain safe.
 
 ---
 

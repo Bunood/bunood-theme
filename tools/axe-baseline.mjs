@@ -29,9 +29,11 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const { AxeBuilder } = require("@axe-core/playwright");
+import { browserLaunchOptions } from "./browser.mjs";
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalStatus } from "./portal-fixtures.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -104,8 +106,8 @@ const ROUTES = [
 
 const py = (c) =>
 	execFileSync(
-		"docker",
-		["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
+		DOCKER_BIN,
+		dockerArgv("exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
 		{
 			input:
 				`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n` + c,
@@ -152,7 +154,7 @@ print("pinned")
 `
 );
 
-const b = await chromium.launch();
+const b = await chromium.launch(browserLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
 await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
 const page = await ctx.newPage();

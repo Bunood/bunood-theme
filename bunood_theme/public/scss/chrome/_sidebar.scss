@@ -991,38 +991,6 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   text-transform: uppercase;
 }
 
-// ── The Desktop page owns its own chrome ────────────────────────────────────
-// Route "" is v16's Desktop (#page-desktop): it ships its OWN navbar, its own
-// search, and hides the normal sidebar. Every piece of Bunood chrome stands
-// down there — bunood.js stamps data-bnd-desktop on <html> for that route.
-// Measured 2026-07-30: without this, our topbar duplicated the Desktop's
-// search header and the apps rail overlaid its icon grid.
-html[data-bnd-desktop] {
-  .bnd-topbar,
-  .bnd-statusbar,
-  .bnd-apps-rail,
-  .bnd-dock {
-    display: none;
-  }
-  // No .main-section reset is needed to go with that display:none. The bottom
-  // reserve is MEASURED from the chrome that is actually rendered
-  // (chrome/_layouts.scss), and a display:none bar measures zero — so standing
-  // the chrome down here already releases the space it had claimed.
-
-  // The Desktop navbar has its OWN notifications dropdown; the layouts'
-  // panel relocation (chrome/_layouts.scss) must not seize it — measured as
-  // a stray white pill floating at the page's top edge.
-  .dropdown-notifications {
-    position: static;
-    inline-size: auto;
-    max-height: none;
-    overflow-y: visible;
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-  }
-}
-
 // ── Rail rest state: calm, not compressed ───────────────────────────────────
 // A workspace can hold 70+ links; rendering them as micro-rows in a 52px rail
 // is noise (measured on the Stock workspace). At rest the rail shows ONLY the
