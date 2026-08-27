@@ -29,8 +29,34 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**ITEM 36 (settings singleton) — CODE COMPLETE 2026-08-27, NOT RELEASED; the full
-suite and the release chain are owed.** Ten commits: `efa0aef` slice 1 (the identity
+**THIS BRANCH HAS DIVERGED FROM `origin/main`, AND THE MERGE IS OWED — READ THIS
+BEFORE PUSHING ANYTHING.** As of 2026-08-27 local `main` is **ahead 19, behind 6**.
+The other session took `origin/main` to **`v0.39.0`** (the Report Studio as a new
+item 39, plus ZATCA Phase-1 QR and an 80mm receipt format); this branch carries item
+36 and is tagged **`v0.36.0` LOCALLY, UNPUSHED**. Neither tree contains the other.
+
+- **No substantive collision.** `origin`'s item-36 entry is still the two stale
+  `[~]` lines — the settings surface is untouched there. `theme_settings.js`,
+  `context.py`, `api.py` and `_settings.scss` are this branch's alone.
+- **The merge surface is NINE files, all ledgers and metadata**: `CHANGELOG.md`,
+  `ROADMAP.md`, `payload-budget.json`, `bunood_theme/__init__.py`, `hooks.py`,
+  `build.mjs`, `boot.py`, and the generated `assets.py` / `translations/ar.csv`.
+  Merge base is `5bf9593`.
+- **THE VERSION DECISION, MADE BY THE USER 2026-08-27, so the merge does not have to
+  re-litigate it:** the `v0.36.0` tag KEEPS the item number (MINOR = the ROADMAP item
+  number is the standing rule, and the tag records item 36's tree). On merging,
+  `__version__` / `app_version` must take the **HIGHER RELEASED VALUE** — 0.39.0 or
+  whatever `origin` has by then — because 0.39.0 is already released and an app must
+  never downgrade. The cost is the recorded `v0.29.0` shape: the version files at the
+  `v0.36.0` commit read 0.36.0 while HEAD reads higher. Written down here rather than
+  rediscovered as a bug.
+- The merge itself was deliberately NOT done in the item-36 session, at the user's
+  direction. Re-run the gates over the COMBINED tree before any tag or push.
+
+**ITEM 36 (settings singleton) — DONE 2026-08-27, released as `v0.36.0` (local tag,
+NOT pushed; see the divergence note above). Suite 407/407, contrast 4,080 pairs,
+build guards and payload green, adversarial review run with all twenty confirmed
+findings fixed.** Commits: `efa0aef` slice 1 (the identity
 matrix + `_identity_meta` + `withBranding` + the hygiene preamble) · `53ee3db` 2a
 (`SHIPPED_EMPTY` dots + `arabic_font` ownership) · `d94d8e4` 2b (export/import one
 list) · `ea09ed7` 2c (the field set) · `f6ed35e` 3a (the Map 1 restructure) · `1929bec`
@@ -40,10 +66,17 @@ hidden) · `a89c672` + `00b7a5a` 5/5b (the honest-picker audit). ROADMAP's item-
 and CHANGELOG's `[Unreleased]` block carry the full account; what belongs HERE is the
 state and the things that will cost time again:
 
-- **THE FULL SUITE HAS NOT RUN OVER THIS ITEM.** Targeted families green throughout
-  (settings/shell/bands 23, board/honest/order/layout, identity 5, print/drift/complement
-  15). Owed: the full suite on a quiet machine, the adversarial release review, the
-  version bump, `payload.mjs --record v0.36.0`, the tag. Machine-limits doctrine unchanged.
+- **THE GATES ARE PAID, and it took five full-suite runs to get there** — each of the
+  first four found something the last had not. Run 1: a server 500 on every run since
+  item 35 (a `direction:` check navigating `/desk/print/user/...` with a LOWERCASE
+  doctype, which print.js hands straight to `getdoc`), plus this item's own letterhead
+  residue. Run 2: axe's injected script blocked by the email preview's sandbox —
+  allowed, narrowly. Run 3: INVALID, and worth recording as a process failure — assets
+  were deployed WHILE it ran, which the working contract forbids precisely because it
+  manufactures phantom failures; its four failures were mine, not findings. Run 4: a
+  fixture path that does not exist (`frappe-favicon.png`; frappe ships that mark as an
+  SVG) and the email preview's absolutised mark on a non-standard port. Run 5:
+  **407/407**, with contrast at 4,080 pairs, the build guards and the payload ceiling.
 - **`desk_layout` IS HIDDEN, NOT DELETED, AND THE REMAINDER IS FILED.** Boot still serves
   the stored name and `bunood.js` stamps `data-bnd-layout` from it; ~a dozen
   `_layouts.scss` rules position panels by that attribute. Deleting the field today would
