@@ -89,6 +89,25 @@ const CONSOLE_ALLOWLIST = [
 	// The consequence for a real desk is recorded in HANDOVER: an already-open
 	// tab loses its brand colours after somebody changes them, until reloaded.
 	/Refused to apply style from[\s\S]*brand_[0-9a-f]+\.css/,
+	// Axe meeting the email preview's sandbox.
+	//
+	// The email and print previews render a real server document into a
+	// `srcdoc` iframe sandboxed WITHOUT `allow-scripts` — deliberately, so a
+	// rendered message can never execute anything in the settings page. The
+	// axe pane walk injects its own script into every frame it discovers
+	// before it applies the `exclude`, so the browser blocks it and says so.
+	// The suite already records the same fact from the other side: the axe
+	// check excludes `.bnd-emp-frame` "because its sandbox refuses axe's
+	// injected script".
+	//
+	// So this message is the sandbox WORKING, not a defect — and allowing it
+	// hides nothing, because the frame it concerns is one axe was never going
+	// to audit, and the preview's own markup is asserted where it is generated
+	// (the `email:` and `print:` families render through the real funnel and
+	// read the HTML directly). Intermittent by nature: it depends on whether
+	// the preview's srcdoc has been written by the time the walk reaches that
+	// pane, which is why it surfaced on a re-run and not the run before.
+	/Blocked script execution in 'about:srcdoc'/,
 ];
 
 // ── Tiny sequential test runner ─────────────────────────────────────────────
