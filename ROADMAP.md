@@ -1056,8 +1056,65 @@ entry.
     (source-confirmed two-colour model), Stripe's restraint, shadcn typeset's
     `break-*` pairing; wireframes:
     <https://claude.ai/code/artifact/9f3c2014-976c-4790-98bc-969c37f55f2f>.
-- `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being
-  restructured by phase 0 and effectively completed by it
+- `[x]` **36 · Settings singleton** *(was 29, code complete 2026-08-27, NOT RELEASED —
+  the full suite and the release chain are owed)* — the settings surface's own closure,
+  and the first item whose subject is the page every other item shipped its controls
+  through. The entry that opened it read "brand, logo, favicon exist; being restructured
+  by phase 0 and effectively completed by it": two lines written before items 32–35 hung
+  six consuming surfaces, a sanitisation layer and two substitution pipelines off the
+  identity fields. A nine-reader census found what phase 0 had actually left.
+
+  **What "done" means for this item**, since nothing anywhere defined it: (a) identity is
+  a first-class surface with the same picker treatment every component kit got; (b) every
+  identity field is exercised with a REAL value on every surface that consumes it; (c) no
+  control on this page renders a claim it cannot keep; (d) the phase-0 leftovers the code
+  itself scheduled are closed or their remainder is written down with a reason. All four
+  are met.
+
+  - **The Identity page.** Branding and Colours were the only panes in the shell without
+    a picker — bare native controls, no preview, no reset, no specimen. Now ONE Identity
+    page in its own group (name, marks, tagline and the four seeds together, the Directus
+    co-location extended with the name), with Language & Fonts moved out beside
+    Translations. Picked from drawings, as items 15–35 were: six candidates drawn live,
+    <https://claude.ai/code/artifact/04026b61-7ea9-4ab4-8639-0055809aeceb>. The native
+    controls stay the only write surface; the picker adds a five-miniature specimen strip
+    and a seed console, both composed by `api.effective_identity` from the same functions
+    the real surfaces use — **the pane renders facts it did not author**, which is what
+    keeps it from drifting into a second statement of the chains.
+  - **The silent rules, said.** An SVG logo falls back to the wordmark on email and paper;
+    the splash derives from the *logo*; the favicon follows Website Settings then the
+    vendor mark; paper uses the *Company record's* name. The contrast-adjustment report
+    the server always computed and threw away as a toast is resident in the pane, and says
+    "your colours are used as entered" where it used to say nothing.
+  - **Identity reaches the tab and the link preview** (`_identity_meta`) — measured absent
+    even with a name and logo set. Error pages get the preview half only: their visible
+    title is a hardcoded template block, and forking Frappe's error templates was refused.
+  - **The change dots stopped lying by omission** (`SHIPPED_EMPTY`, served not seeded);
+    `arabic_font` gained the owner it never had; export and import collapsed to one list
+    that carries the layout and the identity text, never the site-local file URLs.
+  - **Phase 0's leftovers, closed on their own charter**: `SHIPPED_CONTAINERS` deleted;
+    the two renames its KNOWN VIOLATIONS block had promised executed with a data patch
+    (`v0_36_0/rename_axis_fields`), emptying the block; `desk_layout` hidden and the
+    Layout entry re-pointed at the containers it writes. **The field is not deleted, and
+    the remainder is the honest part**: boot still stamps `data-bnd-layout` from it and a
+    dozen rules position panels by that, so deleting it today would silently unstyle every
+    CUSTOM desk. Re-keying those rules to container outcomes — phase 0's own direction,
+    already done for `data-bnd-topbar` — comes first, in its own measured slice.
+  - **The honest-picker audit** (ROADMAP's unnumbered thread, run bounded here): 34
+    findings, 13 refuted adversarially, the live ones fixed. The headline is that **a
+    layout wrote half of itself** — every card promises where search, the bell and the
+    profile will sit, and only the containers were written, so "Bottom Bar" left the bell
+    pointing at a region that no longer existed. `registry.layout_settings` composed both
+    halves all along and `setSettings` applied it, **so the suite had been driving a state
+    no gesture could produce** — the sharpest instance yet of a green test over a path the
+    product cannot take. Also: a placement click that did not move its own selection, a
+    reset chip that wrote the one value guaranteed to light the change dot, and an import
+    toast asking for a Save that does not exist.
+  - **Two checks that passed against a live defect before they were right**, both recorded
+    because the shape recurs: an unscoped `[data-field=…]` query found the placement
+    BOARD's slot rather than the clicked picker's, and a generous timeout passed on the
+    defect because autosave's own `refresh()` corrects it ~3s later — measured wrong at
+    t+1214ms, right at t+3003ms. **The window is the assertion.**
 - `[~]` **37 · Presets** *(was 30)* — sidebar preset system shipped in 0.5.0; remaining:
   colour-palette seeds per preset, more palettes. Item 17 (contrast) is CLOSED
   (2026-08-06), so the old "blocked on 17" no longer holds — the gate it built is what

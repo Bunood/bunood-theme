@@ -24,7 +24,96 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-(nothing yet)
+### Settings singleton (item 36) — code complete, NOT yet released
+
+Deliberately still under `[Unreleased]`: the heading, the version bump, the
+payload record row and the tag arrive together with the gates, which is the
+lesson the half-released 0.33.0 taught. Nothing here is a promise that it
+shipped.
+
+The settings surface's own closure — the one page every other item shipped its
+controls through. The ROADMAP entry that opened this item ("brand, logo,
+favicon exist; being restructured by phase 0 and effectively completed by it")
+was two lines written before items 32–35 hung six consuming surfaces, a
+sanitisation layer and two substitution pipelines off the identity fields.
+
+**The Identity page.** Branding and Colours were the only two panes in the
+shell that never got the picker treatment — bare native controls, no preview,
+no reset, no specimen. They are now ONE Identity page in its own group (name,
+logo, favicon, tagline and the four seeds together), with Language & Fonts
+moved out beside Translations. The page adds a read-only layer over the native
+controls, which stay the only write surface: a five-miniature specimen strip
+(sidebar block, browser tab, email header, bilingual letterhead, a sign-in
+drawing) composed from what the identity actually RESOLVES to per surface, and
+a seed console showing the three roles a brand is — wash, fill+ink, text — for
+both modes. `api.effective_identity` computes all of it server-side from the
+same functions the real surfaces use, so the pane renders facts it did not
+author and cannot drift from reality.
+
+**Things the pipeline enforced silently, now said out loud.** An SVG logo falls
+back to the wordmark on email and paper (raster only): the field description
+says so, the email miniature demonstrates it with a badge, and `validate()`
+raises a non-blocking note on the save that introduces it. The splash derives
+from the *logo*; the favicon follows Website Settings then the vendor mark;
+printed documents use the *Company record's* name, not this one. The
+contrast-adjustment report — which the server has always computed and thrown
+away as a save toast — is now resident in the pane, with "your colours are used
+as entered" where it used to say nothing at all.
+
+**Identity reaches the tab and the link preview.** Measured: with a company
+name AND logo set, a guest `/` still served `<title>Login</title>`, no
+`og:site_name` and no `og:image`. `_identity_meta` composes `<page> · <name>`
+and emits the preview tags on the auth and website branches. Error pages get
+the preview half only — their visible title is a hardcoded template block no
+context value reaches, and shadowing Frappe's error templates was refused as a
+fork that drifts.
+
+**The change dots stopped lying by omission.** They compare against the served
+shipped map, which had no entry for logo, favicon, tagline or the dark seeds —
+so a site with a logo read "Default" forever. `SHIPPED_EMPTY` gives them a
+served `""` to compare against without ever entering the seeder. `arabic_font`
+gained an owner (it was the only visible user-editable Select no entry
+answered for); `brand_css_url` stays deliberately unowned.
+
+**A theme travels whole.** Export and import each carried a private copy of the
+key list and both were wrong twice at once. One shared list now, carrying the
+kit fields, the seeds, `arabic_font`, the container toggles, `desk_order`,
+every placement and the identity TEXT; `logo`/`favicon` never travel (site-local
+file URLs) and the export toast says so.
+
+**Phase 0's own leftovers, closed on their own charter.** `SHIPPED_CONTAINERS`
+deleted (its docstring said it "is deleted with the last one"); the two renames
+`build.mjs` had promised to "the component rework's patch" executed with a data
+patch carrying each site's stored values (`enable_command_palette` →
+`palette_enabled`, `default_density` → `density_default`), emptying the KNOWN
+VIOLATIONS block; `desk_layout` hidden — the derived label has said what the
+desk IS since the last container landed, and the Layout entry now owns the
+container toggles it writes rather than a stored name. The field is not deleted
+yet, and the reason is written down: boot still stamps `data-bnd-layout` from
+it and a dozen rules position panels by that, so a CUSTOM desk would silently
+lose its styling; re-keying those rules to container outcomes comes first.
+
+**The honest-picker audit** (the unnumbered thread, run bounded here): 34
+findings across four dimensions, 13 refuted adversarially, the live ones fixed.
+The headline — **a layout wrote half of itself**. Every card's blurb names
+where search, the bell and the profile will sit; the click wrote only the five
+container toggles, so picking "Bottom Bar" switched the top bar off and left
+the bell pointing at a region that no longer existed, which the runtime
+resolves to "absent". `registry.layout_settings` composed both halves all
+along and the suite applied it, so every existing layout check drove a state no
+gesture could reach. Also fixed: a placement click that did not move its own
+selection (the user and links pickers repainted the *inbox* picker), a reset
+chip labelled "Reset to default" that wrote the one value guaranteed to light
+the change dot, and an import toast asking for a Save that does not exist.
+
+**The identity test matrix.** Every identity field is now exercised with a real
+value on every surface that consumes it, through one `withBranding` helper
+(snapshot → `doc.save` → restore → read-back verified), plus a `site data:`
+hygiene preamble that runs first and makes any crash leftover the next run's
+first failure instead of a fixture string on the public sign-in page.
+
+Payload: `css_gzip` ceiling 21000 → 21500 for the specimen strip's layout rules
+(the dynamic colours are inline, not rules).
 
 ## [0.35.0] — 2026-08-26 — Print formats / PDF (item 35)
 

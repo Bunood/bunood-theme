@@ -29,6 +29,57 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
+**ITEM 36 (settings singleton) — CODE COMPLETE 2026-08-27, NOT RELEASED; the full
+suite and the release chain are owed.** Ten commits: `efa0aef` slice 1 (the identity
+matrix + `_identity_meta` + `withBranding` + the hygiene preamble) · `53ee3db` 2a
+(`SHIPPED_EMPTY` dots + `arabic_font` ownership) · `d94d8e4` 2b (export/import one
+list) · `ea09ed7` 2c (the field set) · `f6ed35e` 3a (the Map 1 restructure) · `1929bec`
+3 (the Identity pane + `effective_identity`) · `3e57352` 4 (phase-0 closures + doc
+repairs) · `583b959` 4c (the two renames + patch) · `9aaba93` 4b (`desk_layout`
+hidden) · `a89c672` + `00b7a5a` 5/5b (the honest-picker audit). ROADMAP's item-36 entry
+and CHANGELOG's `[Unreleased]` block carry the full account; what belongs HERE is the
+state and the things that will cost time again:
+
+- **THE FULL SUITE HAS NOT RUN OVER THIS ITEM.** Targeted families green throughout
+  (settings/shell/bands 23, board/honest/order/layout, identity 5, print/drift/complement
+  15). Owed: the full suite on a quiet machine, the adversarial release review, the
+  version bump, `payload.mjs --record v0.36.0`, the tag. Machine-limits doctrine unchanged.
+- **`desk_layout` IS HIDDEN, NOT DELETED, AND THE REMAINDER IS FILED.** Boot still serves
+  the stored name and `bunood.js` stamps `data-bnd-layout` from it; ~a dozen
+  `_layouts.scss` rules position panels by that attribute. Deleting the field today would
+  leave a CUSTOM desk — containers matching no preset — with nothing to stamp, i.e. a
+  silent rendering change on exactly the sites that diverged. **Re-key those rules to
+  container OUTCOMES first** (phase 0's own direction, already done for
+  `data-bnd-topbar`), then the field deletes cleanly. Its own measured slice.
+- **A LAYOUT WROTE HALF OF ITSELF FOR THE WHOLE OF PHASE 0, AND THE SUITE COULD NOT SEE
+  IT.** `setSettings` applies `registry.layout_settings`, which composes containers AND
+  tenant placements; the FORM's `bnd_apply_layout_preset` wrote only the containers. So
+  every layout check drove a state no gesture could produce, and picking "Bottom Bar" in
+  the real picker left the bell pointing at a switched-off region. `LAYOUT_TENANTS` now
+  rides beside the chrome in `get_shipped_defaults`. **When a helper composes two halves,
+  check that the PRODUCT's writer uses it and not just the suite's.**
+- **TWO CHECKS PASSED AGAINST A LIVE DEFECT BEFORE THEY WERE RIGHT.** (a) An unscoped
+  `[data-field=…].bnd-dgm-on` query found the placement BOARD's slot, not the clicked
+  picker's — the board draws the same `data-field` and repaints either way. (b) A generous
+  `waitForFunction` timeout passed because autosave's own `refresh()` repaints everything
+  ~3s later: measured still-wrong at t+1214ms, corrected at t+3003ms. **On anything the
+  autosave also fixes, the WINDOW is the assertion** (900ms here).
+- **A SINGLE'S `doc.save()` REWRITES ITS WHOLE `tabSingles` ROWSET.** So the orphan
+  old-name rows a rename patch deliberately leaves behind are reaped by the first save
+  after the migrate — which means a rename-survival check must INSERT its simulated old
+  rows, not UPDATE them (an UPDATE on an absent row is a silent no-op, and the first draft
+  measured exactly that as a failed carry). Real sites are safe: patches run before saves.
+- **`get_single_value` READS THROUGH A VALUE CACHE that raw-SQL simulation does not
+  invalidate** — a probe that writes tabSingles directly must read it back the same way.
+- **The identity fields are exercised through ONE helper, `withBranding`** (snapshot →
+  `doc.save` → restore → READ-BACK VERIFIED, loud banner naming the value on failure).
+  Never `setSettings` (throws outside MUTABLE_FIELDS by design), never bare
+  `set_single_value` for a `BRAND_INPUTS` field. The `site data:` hygiene preamble runs
+  FIRST and makes any crash leftover the next run's first failure.
+- **37 `ar.po` rows are `#, fuzzy` and await the user's review** — 34 of them
+  `#. src: item36`, plus the 3 the item-35 merge left. The item-7 handoff; their own
+  commit as always.
+
 **ITEM 35 (print / PDF) — RELEASED 2026-08-26 as `v0.35.0` at `b179a0a`, one gate
 with v0.34.0** (adversarial review over the combined diff, 29 confirmed defects all
 fixed in `2567d59`; the full suite twice over the merged tree; two post-review fixes,
