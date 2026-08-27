@@ -366,6 +366,57 @@ function getSettings(fields) {
 }
 
 /**
+ * Write BRANDING fields through a real `doc.save()`, run `fn`, restore the same
+ * way, and VERIFY the restore by read-back. Item 36's identity matrix runs on
+ * this — one helper so the damage protocol cannot be half-copied.
+ *
+ * WHY `doc.save` AND NOT `set_single_value`: an identity write must behave like
+ * the admin's own click — `on_update` fires, so the brand sheet regenerates,
+ * BOTH print carriers re-substitute and the cached boot/website renders clear.
+ * A `set_single_value` write skips all three, which is the stale-sheet incident
+ * class `setSettings`'s docstring records (the tagline shipped in that state).
+ *
+ * WHY THE RESTORE IS VERIFIED: these fields are outside MUTABLE_FIELDS because
+ * a failed restore is permanent damage, not a wrong-looking page. A restore
+ * that silently half-applies is worse than one that throws — so the `finally`
+ * reads the fields back and fails LOUDLY, naming every field and the value to
+ * put back by hand. The `site data:` preamble makes any leftover the FIRST
+ * failure of the NEXT run, so even a crash between write and restore cannot
+ * ship a fixture string to the operator's site unnoticed.
+ */
+async function withBranding(values, fn) {
+	const fields = Object.keys(values);
+	const snap = getSettings(fields);
+	const write = (vals) =>
+		benchPy(
+			`doc = frappe.get_doc("Theme Settings")\n` +
+				Object.entries(vals)
+					.map(
+						([f, v]) =>
+							`doc.set(${JSON.stringify(f)}, ${v === null || v === undefined ? '""' : JSON.stringify(v)})`
+					)
+					.join("\n") +
+				"\n" +
+				`doc.save(ignore_permissions=True)\n` +
+				`frappe.db.commit()\nprint("ok")\n`
+		);
+	write(values);
+	try {
+		return await fn();
+	} finally {
+		write(snap);
+		const back = getSettings(fields);
+		const wrong = fields.filter((f) => String(back[f] ?? "") !== String(snap[f] ?? ""));
+		if (wrong.length) {
+			throw new Error(
+				"BRANDING RESTORE FAILED — restore by hand NOW: " +
+					wrong.map((f) => `${f}=${JSON.stringify(snap[f])} (site holds ${JSON.stringify(back[f])})`).join(", ")
+			);
+		}
+	}
+}
+
+/**
  * Write Theme Settings fields + clear cache so boot picks them up.
  *
  * REFUSES ANY FIELD THE SUITE DOES NOT RESTORE. `main()` snapshots
@@ -1225,6 +1276,29 @@ async function main() {
 	}
 
 	try {
+		// ── Site hygiene ───────────────────────────────────────────────────
+		await test("site data: no crash leftovers in the branding fields", async () => {
+			// THE INCIDENT, TWICE: a run that died before its `finally` left
+			// `tagline` as `smoke-<timestamp>`, which rendered on the PUBLIC
+			// sign-in page until a human noticed (HANDOVER records both). The
+			// branding fields are outside MUTABLE_FIELDS so no snapshot restores
+			// them — this preamble runs FIRST and makes any leftover the first
+			// failure of the run instead of a public artifact.
+			//
+			// PATTERN-BASED ON PURPOSE: a tenant's real values must pass; only
+			// the suite's own fixture strings fail. Every string here is one a
+			// check in this file writes — extend the pattern WITH the check that
+			// introduces a new fixture value, or that check's crash is invisible.
+			const vals = getSettings(["company_name", "tagline", "logo", "favicon"]);
+			const residue = /smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.svg|frappe-framework-logo\.svg/;
+			const dirty = Object.entries(vals).filter(([, v]) => residue.test(String(v ?? "")));
+			expect(
+				!dirty.length,
+				"crash leftovers in branding fields — restore by hand: " +
+					dirty.map(([f, v]) => `${f}=${JSON.stringify(v)}`).join(", ")
+			);
+		});
+
 		// ── Boot & assets ──────────────────────────────────────────────────
 		const assetsPy = readFileSync(new URL("../bunood_theme/assets.py", import.meta.url), "utf8");
 		const cssPath = assetsPy.match(/THEME_CSS = "([^"]+)"/)[1];
@@ -13753,6 +13827,163 @@ async function main() {
 			}
 		});
 
+		// ── Identity matrix (item 36) ──────────────────────────────────────
+		// Every check here writes a branding field with a REAL value through
+		// `withBranding` (doc.save + verified restore) — the item-32 doctrine:
+		// a branch whose guard is false on the dev site is untested, and every
+		// identity field ships empty here except company_name.
+
+		await test("identity: the mail wordmark carries the tenant's name", async () => {
+			// email.py builds the wordmark from `company_name or _vendor_name()`,
+			// and the email family varies only `logo`/`email_header` — so the
+			// NAME arm of the wordmark was never exercised with a tenant value.
+			// Stock FIRST, naming the vendor string that must not survive the write.
+			const render = () => {
+				const out = benchPy(
+					"from frappe.email.email_body import get_formatted_html\n" +
+						"acct = frappe._dict(brand_logo=None, footer=None)\n" +
+						"keep = frappe.db.get_single_value('Theme Settings', 'email_header')\n" +
+						"try:\n" +
+						"    frappe.db.set_single_value('Theme Settings', 'email_header', 'Wordmark')\n" +
+						"    frappe.clear_cache(doctype='Theme Settings')\n" +
+						"    html = get_formatted_html('T', '<p>body</p>', email_account=acct, with_container=True)\n" +
+						"finally:\n" +
+						"    frappe.db.set_single_value('Theme Settings', 'email_header', keep)\n" +
+						"    frappe.clear_cache(doctype='Theme Settings')\n" +
+						"print('BND_WM' + json.dumps(html))\n"
+				);
+				const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_WM"));
+				if (!line) throw new Error("wordmark render produced no JSON: " + String(out).slice(-300));
+				const html = JSON.parse(line.slice("BND_WM".length));
+				return (html.match(/<span class="bnd-e-wordmark"[^>]*>([^<]*)<\/span>/) || [])[1] || "";
+			};
+			const stock = render();
+			expectEq(stock, vendor().name, "unset, the wordmark is the vendor name — the seam is alive");
+			await withBranding({ company_name: "ACME Trading" }, async () => {
+				expectEq(render(), "ACME Trading", "set, the wordmark is the tenant's name");
+			});
+		});
+
+		await test("identity: the tab title and link preview carry the tenant everywhere a guest lands", async () => {
+			// SLICE-0 MEASURED THE HOLE (2026-08-26): with company_name AND logo
+			// both set, a guest `/` still served `<title>Login</title>`,
+			// `og:title="Login"`, NO og:site_name and NO og:image — a tenant's
+			// sign-in link previews as an anonymous "Login". This check was
+			// watched RED against that tree; `_identity_meta` in context.py is
+			// the repair. Error pages are in the walk because the adjudication
+			// put them there — same repair, same family.
+			const LOGO = "/assets/frappe/images/frappe-favicon.svg";
+			const read = (route, waitSel) =>
+				withGuest(route, waitSel, (gp) =>
+					gp.evaluate(() => ({
+						title: document.title,
+						site: document.querySelector('meta[property="og:site_name"]')?.getAttribute("content") || null,
+						og: document.querySelector('meta[property="og:title"]')?.getAttribute("content") || null,
+						image: document.querySelector('meta[property="og:image"]')?.getAttribute("content") || null,
+					}))
+				);
+			await withBranding({ company_name: "ACME Trading", logo: LOGO }, async () => {
+				// THE ERROR PAGE GETS THE PREVIEW HALF ONLY — the user's pick
+				// (2026-08-26). Its visible <title> is hardcoded in the template's
+				// own title block (`404.html:3` overrides it with a literal), which
+				// no context value can reach; the alternative was shadowing
+				// Frappe's error templates, refused as a fork whose body copy
+				// drifts. So: /login asserts the full composition, the 404 route
+				// asserts og enrichment only, and neither asserts the other's
+				// shape — upstream fixing its title block must not fail us.
+				for (const [route, sel, page, titled] of [
+					["/login", ".page-card", "Login", true],
+					["/bnd-no-such-route-identity", null, "404", false],
+				]) {
+					const got = await read(route, sel);
+					if (titled) {
+						expect(
+							got.title.includes(page) && got.title.includes("ACME Trading"),
+							`${route}: the tab title composes page and tenant ("${got.title}")`
+						);
+					}
+					expectEq(got.site, "ACME Trading", `${route}: og:site_name`);
+					expect(
+						(got.og || "").includes("ACME Trading"),
+						`${route}: og:title carries the enriched title ("${got.og}")`
+					);
+					expect((got.image || "").includes(LOGO), `${route}: og:image is the tenant's logo ("${got.image}")`);
+				}
+			});
+			// UNSET (post-restore, cache just cleared by the restoring save):
+			// the vendor name — never the framework's — and NO og:image, because
+			// an absent logo must not invent an image.
+			const stock = await read("/login", ".page-card");
+			expect(
+				stock.title.includes(vendor().name),
+				`unset, the title carries the vendor name ("${stock.title}")`
+			);
+			expectEq(stock.image, null, "unset, no og:image is invented");
+		});
+
+		await test("identity: an explicit dark seed reaches the dark block as itself", async () => {
+			// `brand_color_dark` falls back to the light seed when empty — so the
+			// explicit-dark arm of the derivation had never been driven (no check
+			// writes it; it is not even seeded). The assertion is on the VALUE'S
+			// SHAPE per item 32: the per-site sheet emits the dark seed as a
+			// concrete hex inside the dark scope, and the light half keeps its own.
+			const DARK = "#1a2f6e";
+			const sheet = () => {
+				const out = benchPy(
+					`url = frappe.db.get_single_value("Theme Settings", "brand_css_url")\n` +
+						`path = frappe.get_site_path("public", *url.lstrip("/").split("/"))\n` +
+						`print("BND_CSS" + json.dumps({"url": url, "css": open(path).read()}))\n`
+				);
+				const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_CSS"));
+				if (!line) throw new Error("sheet read produced no JSON: " + String(out).slice(-300));
+				return JSON.parse(line.slice("BND_CSS".length));
+			};
+			const stock = sheet();
+			expect(!stock.css.includes(DARK), "sanity: the probe seed cannot pre-exist in the sheet");
+			await withBranding({ brand_color_dark: DARK }, async () => {
+				const ours = sheet();
+				expect(ours.url !== stock.url, "the content hash moved with the dark seed");
+				const cut = ours.css.indexOf('data-theme="dark"');
+				expect(cut > -1, "the sheet has a dark scope");
+				expect(
+					new RegExp(`--bnd-brand:\\s*${DARK}`).test(ours.css.slice(cut)),
+					"the dark block carries the EXPLICIT dark seed, not the light fallback"
+				);
+				expect(!ours.css.slice(0, cut).includes(DARK), "the dark seed did not leak into the light half");
+			});
+			expectEq(sheet().url, stock.url, "restore returned the original content-hash URL");
+		});
+
+		await test("identity: a non-shipped seed re-papers a served browser surface", async () => {
+			// The only real-value seed write in the suite was print's re-paper
+			// check — no browser surface had ever been measured under a seed the
+			// site does not ship. The sign-in page is the surface: cookie-less,
+			// links the per-site sheet, and the sheet must carry the seed itself.
+			const SEED = "#2b4fd8";
+			const before = getSettings(["brand_css_url"]).brand_css_url;
+			await withBranding({ brand_color: SEED }, async () => {
+				const url = getSettings(["brand_css_url"]).brand_css_url;
+				expect(url && url !== before, "the content hash moved with the seed");
+				const got = await withGuest("/login", ".page-card", (gp) =>
+					gp.evaluate(async (seed) => {
+						const link = [...document.querySelectorAll("link")].find((l) =>
+							(l.getAttribute("href") || "").includes("/files/bunood/brand_")
+						);
+						if (!link) return { href: null, carries: false };
+						const css = await (await fetch(link.getAttribute("href"))).text();
+						return { href: link.getAttribute("href"), carries: css.includes(seed) };
+					}, SEED)
+				);
+				expectEq(got.href, url, "the guest page links the exact stored sheet");
+				expect(got.carries, "and that sheet carries the tenant's seed");
+			});
+			expectEq(
+				getSettings(["brand_css_url"]).brand_css_url,
+				before,
+				"restore returned the ORIGINAL content-hash URL — the digest proven in the same breath"
+			);
+		});
+
 		await test("desk: the framework's marks are ours, and the tenant's beat them", async () => {
 			// SLICE 7b. The desk is not a surface kit and has no census, but it
 			// renders the same `<head>` as everything else and it was serving a
@@ -14940,19 +15171,36 @@ async function main() {
 					"    resync_print_brand()\n" +
 					"    res['standdown'] = frappe.db.get_value('Letter Head', 'Bunood', 'content') == 'BND-SENTINEL'\n" +
 					"    keep_logo = frappe.db.get_single_value('Theme Settings', 'logo')\n" +
+					"    company = frappe.db.get_default('company') or frappe.db.get_value('Company', {}, 'name')\n" +
+					// ITEM 36 HARDENING: the original probe proved the theme's logo
+					// REACHES the render, but never set a Company logo beside it — so
+					// "prefers the theme's over the Company's" was asserted against a
+					// Company that may have had nothing to prefer it over. Both set is
+					// the precedence claim; theme-empty is the falsifiable control
+					// proving the Company arm is live (and therefore that the win is a
+					// win, not a dead branch).
+					"    keep_clogo = frappe.db.get_value('Company', company, 'company_logo')\n" +
 					"    try:\n" +
+					"        frappe.db.set_value('Company', company, 'company_logo', '/files/company-own.png', update_modified=False)\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'logo', '/files/bnd&spec.png')\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', 'Bilingual Split')\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
 					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
-					"        company = frappe.db.get_default('company') or frappe.db.get_value('Company', {}, 'name')\n" +
 					"        rendered = frappe.render_template(html, {'doc': frappe._dict(company=company)})\n" +
 					"        res['theme_logo_precedence'] = 'src=\"/files/bnd&amp;spec.png\"' in rendered\n" +
+					"        res['company_logo_lost'] = '/files/company-own.png' not in rendered\n" +
 					"        res['logo_single_escaped'] = '&amp;amp;' not in rendered\n" +
 					"        import re as _re\n" +
 					"        res['no_none_name'] = not _re.search(r'>\\s*None\\s*<', rendered)\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', '')\n" +
+					"        frappe.clear_cache(doctype='Theme Settings')\n" +
+					"        resync_print_brand()\n" +
+					"        html2 = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        rendered2 = frappe.render_template(html2, {'doc': frappe._dict(company=company)})\n" +
+					"        res['company_arm_live'] = '/files/company-own.png' in rendered2\n" +
 					"    finally:\n" +
+					"        frappe.db.set_value('Company', company, 'company_logo', keep_clogo, update_modified=False)\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'logo', keep_logo)\n" +
 					"finally:\n" +
 					"    frappe.db.set_single_value('Theme Settings', 'print_letterhead', keep['field'])\n" +
@@ -14970,6 +15218,8 @@ async function main() {
 			}
 			expect(r.standdown, "Frappe's own OVERWROTE the record — the stand-down wrote where it promised not to");
 			expect(r.theme_logo_precedence, "the theme's own logo never reached the rendered letterhead (or arrived mangled)");
+			expect(r.company_logo_lost, "the Company's logo rendered BESIDE the theme's — precedence means one wins");
+			expect(r.company_arm_live, "theme logo empty, the Company's own logo never rendered — the fallback arm is dead, so 'precedence' was a dead branch winning by default");
 			expect(r.logo_single_escaped, "the logo URL is DOUBLE-escaped — &amp;amp; reached the render, so any &-bearing path 404s");
 			expect(r.no_none_name, "the letterhead rendered the literal string 'None' where the Arabic company name goes");
 		});

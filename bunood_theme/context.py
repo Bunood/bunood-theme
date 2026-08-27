@@ -678,6 +678,7 @@ def _web_context(context):
     # these asserts the stock render FIRST.
     _vendor_marks(context)
     _web_chrome(context)
+    _identity_meta(context)
 
 
 def _add_brand_sheet(context):
@@ -705,6 +706,54 @@ def _add_brand_sheet(context):
     url = _brand_css_url()
     if url:
         context.web_include_css = [*(context.get("web_include_css") or []), url]
+
+
+def _identity_meta(context):
+    """The tenant's name in the tab title and the link preview — item 36.
+
+    Slice 0 measured the hole (2026-08-26): with ``company_name`` AND ``logo``
+    both set, a guest ``/`` still served ``<title>Login</title>``,
+    ``og:title="Login"``, no ``og:site_name`` and no ``og:image`` — a tenant's
+    sign-in link previews as an anonymous "Login" with no mark. Shared by the
+    auth and website branches (error pages ride the website branch), for the
+    same reason :func:`_add_brand_sheet` is shared: two copies of a small seam
+    is how one surface gets forgotten.
+
+    SITE STATE ONLY. The page cache serves this render to every visitor for the
+    TTL (the ``body_class`` rule above) — identity is the same for everyone, so
+    it is cache-safe by construction. Nothing here may ever read the session.
+
+    THE TITLE COMPOSES, NEVER REPLACES: ``<page> · <name>`` keeps the page's
+    own title first — the shape Directus uses (``%s · %projectName``). Skipped
+    when the title already carries the name, so a page titled after the site
+    does not read "Bunood · Bunood". The name is passed RAW: the base template
+    escapes the ``<title>`` and ``meta_block.html`` pipes every metatag through
+    ``striptags | escape`` — pre-escaping here would be the double-escape class
+    the 34+35 review just repaired on the letterhead logo.
+
+    ``og:title`` is SET, not merely enriched — the 404 page ships no metatags
+    at all, and a preview fetcher that finds ``og:site_name`` but no
+    ``og:title`` falls back to the bare ``<title>`` inconsistently across
+    clients. ``og:image`` only when a logo exists: an absent logo must not
+    invent an image (``_attr``-stripped, the item-33 rule for URL seams).
+    """
+    tenant = _tenant_branding()
+    name = tenant["company_name"] or _vendor_name()
+    title = (context.get("title") or "").strip()
+    if not title:
+        context.title = name
+    elif name.lower() not in title.lower():
+        context.title = f"{title} · {name}"
+    tags = context.get("metatags")
+    if tags is None:
+        tags = frappe._dict()
+        context.metatags = tags
+    tags["og:site_name"] = name
+    tags["og:title"] = context.title
+    if tags.get("twitter:title"):
+        tags["twitter:title"] = context.title
+    if tenant["logo"]:
+        tags["og:image"] = _attr(tenant["logo"])
 
 
 def _auth_context(context):
@@ -800,6 +849,8 @@ def _auth_context(context):
         context.logo = _attr(tenant["logo"])
     elif context.get("logo") in (frappe.get_hooks("app_logo_url") or []):
         context.logo = _attr(VENDOR_MARK)
+
+    _identity_meta(context)
 
 
 def _brand_css_url():
