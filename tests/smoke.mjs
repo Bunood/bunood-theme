@@ -108,6 +108,24 @@ const CONSOLE_ALLOWLIST = [
 	// the preview's srcdoc has been written by the time the walk reaches that
 	// pane, which is why it surfaced on a re-run and not the run before.
 	/Blocked script execution in 'about:srcdoc'/,
+	// The email preview's mark, on a stack served from a non-standard port.
+	//
+	// A real email must carry ABSOLUTE image URLs — a mail client has no origin
+	// to resolve a path against — so `get_formatted_html` absolutises the mark,
+	// and the preview shows the genuine output rather than a mock. Inside a
+	// browser-originated request `frappe.utils.get_url()` derives the host from
+	// that request and drops a non-default port, so on this stack (`:8080`) the
+	// preview asks for `http://localhost/assets/…` and is refused. On a real
+	// deployment at :80/:443 the same URL is correct, which is why this is
+	// environmental rather than a defect: the preview is right about what the
+	// email will contain.
+	//
+	// Surfaced only once item 36's specimen check began setting a logo with the
+	// settings page open — every picker renders on refresh, including email's.
+	// Narrow on purpose: the suite's own navigation always carries `:8080`, so
+	// a port-less `localhost` asset URL cannot come from anything but an
+	// absolutised document rendered into a frame.
+	/net::ERR_CONNECTION_REFUSED[\s\S]*http:\/\/localhost\/assets\//,
 ];
 
 // ── Tiny sequential test runner ─────────────────────────────────────────────
@@ -1335,7 +1353,7 @@ async function main() {
 				"company_name", "tagline", "logo", "favicon", "brand_color", "brand_color_dark",
 			]);
 			const residue =
-				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.svg|bunood-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
+				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.(svg|png)|bunood-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
 			// MARKUP-SHAPED RESIDUE IS NEVER A TENANT'S REAL VALUE, and this arm
 			// is here because the fixture list above did not catch the one that
 			// mattered: an interrupted run left `company_name` holding an XSS
@@ -14596,7 +14614,13 @@ async function main() {
 			// The negative that proves the query CAN fail — without it the raster
 			// arm below is unfalsifiable.
 			expect(!unset.hasImg, "unset, the sidebar cell draws the monogram and no image");
-			await withBranding({ logo: "/assets/frappe/images/frappe-favicon.png" }, async () => {
+			// A RASTER PATH THAT EXISTS. The first draft used
+			// `frappe-favicon.png` — frappe ships that mark as an SVG, so the
+			// specimen dutifully rendered an <img> at a 404 and the console-error
+			// budget counted it. A check that writes a fixture must write one the
+			// site can actually serve, or it manufactures the noise it is measured
+			// against.
+			await withBranding({ logo: "/assets/frappe/images/frappe-framework-logo.png" }, async () => {
 				await openIdentity();
 				const raster = await read();
 				expect(raster.hasImg, "a raster logo renders as an image in the sidebar cell");
