@@ -24,7 +24,7 @@
   PINS us to the version copied, and a Frappe change here would be invisible — in
   an inbox — indefinitely. So the fork is pinned rather than merely taken:
   `tests/smoke.mjs` hashes Frappe's shipped copies and fails loudly when upstream
-  moves. Forked at frappe 16.27.0, sha256 ef600441177479bc.
+  moves. Reconciled through frappe 16.31.0, sha256 fd3e883de26cc12a.
 
   WHAT MUST NOT BE LOST, and it is not styling. Three markers in these templates
   are rewritten per recipient downstream; losing one is a dead unsubscribe link or
@@ -72,7 +72,7 @@
 		<tr>
 			<td class="body-content" align="center" valign="top">
 				<table class="bnd-e-plate email-container" border="0" cellpadding="0" cellspacing="0"
-					width="{% if header %} 600 {% else %} 100% {% endif %}">
+					width="{% if header or with_container %} 600 {% else %} 100% {% endif %}">
 					{#- ITEM 34. Two structural rows, and both exist on EVERY pole.
 
 					    THE BAND is sized to nothing except under `Masthead`. A row that
@@ -112,7 +112,7 @@
 					{%- set bnd_brand = bunood_email_brand(brand_logo) -%}
 					{% if bnd_brand.show_mark or bnd_brand.show_name %}
 					<tr>
-						<td class="bnd-e-brand" align="left" valign="middle">
+						<td class="bnd-e-brand email-masthead" align="left" valign="middle">
 							{% if site_url %}<a class="bnd-e-brand-link" href="{{ site_url | e }}">{% endif %}
 							{%- if bnd_brand.show_mark %}<img class="bnd-e-mark" src="{{ bnd_brand.mark | e }}" alt="{{ bnd_brand.name | e }}" height="32" />{% endif -%}
 							{%- if bnd_brand.show_name %}<span class="bnd-e-wordmark">{{ bnd_brand.name | e }}</span>{% endif -%}
@@ -121,23 +121,23 @@
 					</tr>
 					{% endif %}
 					<tr>
-						<td valign="top">
+						<td valign="top" class="email-title-cell">
 							{{ header or "" }}
 						</td>
 					</tr>
 					<tr>
-						<td valign="top">
+						<td valign="top" class="email-body-cell">
 							<table class="bnd-e-body email-body" border="0" cellpadding="0" cellspacing="0" width="100%">
 								<tr>
 									<td valign="top">
-										<p>{{ content }}</p>
+										<div>{{ content }}</div>
 									</td>
 								</tr>
 							</table>
 						</td>
 					</tr>
 					<tr>
-						<td valign="top">
+						<td valign="top" class="email-footer-cell {% if footer and 'with-divider' in footer %}filled{% endif %}">
 							<table class="bnd-e-foot email-footer" border="0" cellpadding="0" cellspacing="0" width="100%">
 								<tr>
 									<td valign="top" data-email-footer="true">

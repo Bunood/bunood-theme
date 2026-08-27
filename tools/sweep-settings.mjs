@@ -40,6 +40,7 @@
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
+import { browserLaunchOptions } from "./browser.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
@@ -78,7 +79,7 @@ const restore = () =>
 		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\nfor f, v in vals.items():\n    if f in ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus"):\n        continue\n    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\nfrappe.clear_cache()\nfrappe.db.commit()\nprint("restored")\n`
 	);
 
-const b = await chromium.launch();
+const b = await chromium.launch(browserLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 } });
 await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
 const page = await ctx.newPage();

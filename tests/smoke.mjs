@@ -21,6 +21,7 @@
  *     and flips settings server-side via `docker exec` (boot is cached, so
  *     settings changes need a cache clear — only bench can do that).
  *   - npm i -D playwright  &&  npx playwright install chromium   (one-time)
+ *     or BND_BROWSER_CHANNEL=chrome to use an installed Chrome build.
  *
  * USAGE
  *   npm test                     # BND_URL defaults to http://localhost:8080
@@ -41,6 +42,7 @@ import { extractCatalogue, readExempt, readInherited, readTranslations } from ".
 // suite and the tool cannot disagree about what "ready" means.
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalFixtureStatus } from "../tools/portal-fixtures.mjs";
 import { DOCKER_BIN, dockerArgv } from "../tools/docker.mjs";
+import { browserLaunchOptions } from "../tools/browser.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -54,6 +56,21 @@ const CONSOLE_ALLOWLIST = [
 	/\/undefined/,           // Frappe's own stray request, present on stock desks
 	/Failed to load resource.*40[34]/, // avatar images etc. on empty dev data
 	/impersonate you/i,      // Chrome's own console warning banner
+	// axe-core attempts its frame injection before applying the iframe selector
+	// exclusion below. The email preview deliberately has sandbox=""; Chromium
+	// therefore reports the blocked injection even though the frame is excluded
+	// from analysis. Exact security-boundary message only.
+	/^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set\./,
+	// Frappe v16.31's Home workspace chart renderer emits invalid SVG while
+	// assembling its stock chart paths over the seeded ledger. Exact upstream
+	// report: https://github.com/frappe/frappe/issues/42187. Keep these scoped
+	// to the browser's SVG parser messages and the non-finite tokens; any other
+	// chart or console error still fails the budget.
+	/^Error: <svg> attribute width: Expected length, "NaN"\./,
+	/^Error: <line> attribute x2: Expected length, "NaN"\./,
+	/^Error: <g> attribute transform: Expected number, "translate\(NaN, 0\)"\./,
+	/^Error: <path> attribute d: Unexpected end of attribute\. Expected number, "M"\./,
+	/^Error: <path> attribute d: Expected number, "M[^"]*(?:undefined|NaN)[^"]*"\./,
 	// A recovered Single-write conflict.
 	//
 	// Saving Theme Settings writes the WHOLE document (`update_single` deletes
@@ -174,7 +191,7 @@ async function test(name, fn) {
 		process.stdout.write(`  ok    ${name}\n`);
 	} catch (err) {
 		results.push({ name, ok: false, err: String(err.message || err) });
-		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 300)}\n`);
+		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 1200)}\n`);
 	}
 }
 
@@ -1202,7 +1219,7 @@ async function main() {
 		benchPy(`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	browser = await chromium.launch();
+	browser = await chromium.launch(browserLaunchOptions());
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);
@@ -1470,17 +1487,23 @@ async function main() {
 		}
 		setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 
-		await test("Desktop page: all theme chrome stands down and returns", async () => {
-			await goDesk("/desk", "#page-desktop", 2000);
-			expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop")), "desktop attr");
-			for (const sel of [".bnd-topbar", ".bnd-statusbar", ".bnd-apps-rail"]) {
-				const vis = await visible(sel);
-				expect(vis === null || vis === false, `${sel} hidden on Desktop`);
-			}
-			await page.evaluate(() => window.frappe.set_route("invoicing"));
-			await page.waitForTimeout(2500);
-			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "attr cleared on workspace");
-			expectEq(await visible(".bnd-topbar"), true, "topbar returns");
+		await test("Home affordance: v16 routes to the Home workspace and returns", async () => {
+			// v16's /desk is only a shell and repeatedly reloads through the setup
+			// wizard page; the real first-class surface is /desk/home. Click the
+			// user-facing control so this proves the contract, not only a route API.
+			await goDesk("/desk/invoicing", ".bnd-topbar", 2000);
+			const home = page.locator('[data-bnd-part="home"]:visible').first();
+			expect(await home.count(), "a visible Home affordance exists");
+			await home.click();
+			await page.waitForURL((url) => url.pathname.startsWith("/desk/home"), { timeout: 30000 });
+			await page.waitForFunction(() => window.frappe.get_route?.()[1] === "Home", null, { timeout: 30000 });
+			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "no legacy Desktop attr on the Home workspace");
+			expectEq(await visible(".bnd-topbar"), true, "topbar remains available at Home");
+			await page.evaluate(() => setTimeout(() => window.frappe.set_route("invoicing"), 0));
+			await page.waitForURL((url) => url.pathname.startsWith("/desk/invoicing"), { timeout: 30000 });
+			await page.waitForTimeout(1000);
+			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "legacy attr remains absent on workspace");
+			expectEq(await visible(".bnd-topbar"), true, "topbar remains available after returning");
 		});
 
 		// ── Breadcrumb kit (item 11): styles, Original, icon scope, preview ─
@@ -1572,6 +1595,17 @@ async function main() {
 		});
 
 		await test("palette: grouped results with the pinned fallback", async () => {
+			// This check used to inherit an open palette from the preceding test.
+			// Filtered runs skip that predecessor, turning a valid assertion into a
+			// 30-second wait for markup nobody asked to mount. Own the whole state.
+			setSettings({
+				palette_style: "Bunood Palette", enable_command_palette: 1,
+				palette_frecency: 1, palette_footer: 1, palette_newtab: 1,
+				palette_fallbacks: 1, palette_suggest: 1, palette_sigils: 1,
+			});
+			await goDesk("/desk/sales-invoice", ".page-head", 2500);
+			await page.keyboard.press("Control+k");
+			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
 			await page.fill(".bnd-palette-input", "item");
 			await page.waitForTimeout(400);
 			expect(
@@ -1599,7 +1633,11 @@ async function main() {
 				rows.some((r) => r.species === "action" && r.type === "New"),
 				"a New-doctype row is in the Actions group"
 			);
-			expect(rows[rows.length - 1].species === "fallback", "search-all pinned last");
+			const fallbackState = await page.evaluate(() => ({
+				available: Boolean(window.frappe.searchdialog?.search || window.frappe.search?.SearchDialog),
+				setting: window.frappe.boot?.bnd_palette?.palette_fallbacks,
+			}));
+			expect(rows[rows.length - 1].species === "fallback", `search-all pinned last (available=${fallbackState.available}, setting=${fallbackState.setting}, last=${rows[rows.length - 1].species})`);
 		});
 
 		await test("palette: execution routes and records frecency", async () => {
@@ -5236,7 +5274,9 @@ async function main() {
 			// PAGE, because that is the page whose iframe consumes the answer,
 			// and a regression in boot threading would otherwise show up only as
 			// a customer's ur preview quietly flipping LTR.
-			await goDesk("/desk/print/user/Administrator", ".print-preview-wrapper", 3000);
+			// v16.31's form loader treats the route's DocType token as case-sensitive;
+			// use the canonical name so the print contract does not manufacture a 500.
+			await goDesk("/desk/print/User/Administrator", ".print-preview-wrapper", 3000);
 			const got = await page.evaluate(() => ({
 				ur: frappe.utils.is_rtl("ur"),
 				ckb: frappe.utils.is_rtl("ckb"),
@@ -5586,7 +5626,7 @@ async function main() {
 		// ARIA" and "keeps its ARIA promises".
 
 		await test("a11y: the palette is a combobox and focus comes back where it left", async () => {
-			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette" });
+			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette", palette_fallbacks: 1 });
 			await goDesk("/desk/item", ".page-head", 3000);
 			// Open FROM the trigger, so "restore" has something real to claim.
 			await page.focus(".bnd-search-field");
@@ -5607,9 +5647,12 @@ async function main() {
 			expectEq(open.controls, open.listId, "aria-controls points at the listbox");
 			// The selection moves without focus moving — activedescendant is
 			// the contract, asserted as a TRANSITION.
-			const before = await page.evaluate(() =>
-				document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant")
-			);
+			await page.fill(".bnd-palette-input", "item");
+			await page.waitForFunction(() => document.querySelectorAll(".bnd-palette-row").length > 1);
+			const before = await page.evaluate(() => ({
+				active: document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant"),
+				rows: document.querySelectorAll(".bnd-palette-row").length,
+			}));
 			await page.keyboard.press("ArrowDown");
 			const after = await page.evaluate(() => {
 				const input = document.querySelector(".bnd-palette-input");
@@ -5617,7 +5660,7 @@ async function main() {
 				const marked = document.querySelectorAll('.bnd-palette-row[aria-selected="true"]');
 				return { active, markedCount: marked.length, markedId: marked.length === 1 ? marked[0].id : null };
 			});
-			expect(after.active && after.active !== before, "aria-activedescendant moved with the arrow");
+			expect(after.active && after.active !== before.active, `aria-activedescendant moved with the arrow (${JSON.stringify({ before, after })})`);
 			expectEq(after.markedCount, 1, "exactly one option is aria-selected");
 			expectEq(after.active, after.markedId, "activedescendant names the selected option");
 			// Tab is trapped — aria-modal promised it.
@@ -5627,6 +5670,16 @@ async function main() {
 				"Tab stays inside the dialog"
 			);
 			// Two-stage Esc, then focus is back on the trigger.
+			await page.keyboard.press("Escape");
+			expectEq(
+				await page.inputValue(".bnd-palette-input"),
+				"",
+				"first Escape clears the query"
+			);
+			expect(
+				await page.isVisible(".bnd-palette-backdrop"),
+				"first Escape keeps the palette open"
+			);
 			await page.keyboard.press("Escape");
 			// state:"attached", NOT the default: the default wait is for
 			// visibility, and a [hidden] element is precisely never visible.
@@ -6583,12 +6636,10 @@ async function main() {
 				// THE EMAIL PREVIEW IS EXCLUDED, and it is the sandbox that makes
 				// this necessary rather than a wish to look away. axe descends into
 				// every frame to analyse it; that frame carries `sandbox=""` because
-				// no script may run inside a rendered email, so the injection is
-				// refused and Chromium logs "Blocked script execution in
-				// 'about:srcdoc'". The console budget caught it — two messages in
-				// 374 checks — and it took the run-attribution added alongside this
-				// to say where they came from, after six failed reproductions by
-				// hand.
+				// no script may run inside a rendered email. Current axe-core attempts
+				// injection before applying the exclusion, so Chromium reports the
+				// exact blocked-script message allowlisted above. The refusal is the
+				// security boundary working; granting scripts to silence it is wrong.
 				//
 				// Nothing is lost by excluding it. axe CANNOT see through the
 				// sandbox, so the alternative is not coverage, it is a warning per
@@ -10624,10 +10675,10 @@ async function main() {
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
-		// `window.innerWidth < 768` (utils/common.js). At that width toolbar.js
-		// REPLACES the empty <header> that `mount_topbar` needs (desk.html:38
-		// renders it at every width; the swap, not the width, is what removes it),
-		// so the top-bar cluster does not mount and its tenants fall back. The old
+		// `window.innerWidth < 768` (utils/common.js). Current v16 keeps the empty
+		// <header> at that width, but Bunood deliberately selects the narrow
+		// container set, so the top-bar cluster does not mount and its tenants fall
+		// back. The old
 		// ROADMAP text ("~480px, header not rendered") was wrong on both counts;
 		// item 24 measured the real mechanism and these tests pin it.
 		//
@@ -10649,7 +10700,7 @@ async function main() {
 			// a node zero-boxed inside Frappe's collapsed (width:0) sidebar is not.
 			const visSrc = `(s)=>{const n=document.querySelector(s);if(!n)return false;const r=n.getBoundingClientRect();const c=getComputedStyle(n);return r.width>0&&r.height>0&&c.visibility!=="hidden"&&c.display!=="none";}`;
 
-			await test("responsive: the topbar follows the header's real presence at the 768 boundary", async () => {
+			await test("responsive: the topbar follows Frappe's mobile boundary at 768", async () => {
 				setSettings(topBar());
 				// 768 is the first NON-mobile width (`< 768` is the test), so the
 				// <header> survives, mount_topbar finds it, and the OUTCOME stamp
@@ -10661,9 +10712,9 @@ async function main() {
 					topbar: !!document.querySelector(".bnd-topbar"),
 					attr: document.documentElement.hasAttribute("data-bnd-topbar"),
 				}));
-				// 767 is mobile: toolbar.js has swapped the <header>, the query
-				// misses, nothing mounts, and — the whole reason the attribute is
-				// keyed on reality — nothing is stamped.
+				// 767 is mobile. Current v16 still leaves the empty <header> in the
+				// DOM, so the contract is the outcome: no bar mounts and no ownership
+				// attribute is stamped.
 				await page.setViewportSize({ width: 767, height: 1024 });
 				await goDesk("/desk/item", ".page-head", 3500);
 				const at767 = await page.evaluate(() => ({
@@ -10673,7 +10724,7 @@ async function main() {
 				}));
 				await wideAgain();
 				expect(at768.header && at768.topbar && at768.attr, `768 mounts the bar (${JSON.stringify(at768)})`);
-				expect(!at767.header && !at767.topbar && !at767.attr, `767 mounts nothing, stamps nothing (${JSON.stringify(at767)})`);
+				expect(!at767.topbar && !at767.attr, `767 mounts no topbar and stamps nothing (${JSON.stringify(at767)})`);
 			});
 
 			await test("responsive: search reachable, page never scrolls sideways, chrome never overlaps at 390", async () => {
@@ -13949,9 +14000,9 @@ async function main() {
 			// port anything load-bearing (a new marker, a new context key), then
 			// update the hash in the same commit with the diff in its message.
 			const PINNED = {
-				standard: "ef600441177479bc327042bea532a10b52dc9e8415994d9a47a12458cce91457",
+				standard: "fd3e883de26cc12aa10f723e36bdc5ab9ebae160fcaa91fd62913a8c4f0ddf88",
 				email_header: "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
-				email_footer: "3275615ecd933fb4936f44955046a19056ff05ed9a14ade8bc6df3419e961480",
+				email_footer: "801fd923887b41f710296218688a91f54311fccaf3220519b3c1fe3244982ad0",
 			};
 			const p = emailProbe();
 			for (const [name, want] of Object.entries(PINNED)) {
@@ -14490,17 +14541,15 @@ async function main() {
 			// than applying to the live desk. It exists because the two arguments
 			// that ruled one out for the sign-in and website kits do not hold here.
 			//
-			// It does NOT go through frappe's already-whitelisted `get_email_html`:
-			// that omits `email_account`, and `email_body.py:419` resolves it with
-			// `find_outgoing()` which returns None on a site with no outgoing
-			// account — then line 433 dereferences it. Reproduced below, because a
-			// filing nobody can reproduce gets closed.
+			// Frappe 16.31 fixed the no-outgoing-account crash. Prove the stock
+			// formatter stays fixed and that our preview no longer needs the
+			// synthetic Email Account which used to route around it.
 			const out = benchPy(
 				"import json\n" +
 					"from bunood_theme.api import email_preview\n" +
 					"res = {}\n" +
 					"res['html'] = email_preview()\n" +
-					"# The upstream crash our endpoint exists to route around.\n" +
+					"# The upstream path must stay safe without an outgoing account.\n" +
 					"try:\n" +
 					"    from frappe.email.email_body import get_formatted_html\n" +
 					"    get_formatted_html('T', '<p>x</p>', with_container=True)\n" +
@@ -14534,9 +14583,8 @@ async function main() {
 			expectEq(res.guest, "PermissionError", "a Guest must not be able to render the preview");
 			expectEq(
 				res.upstream,
-				"AttributeError",
-				"frappe's own get_email_html path no longer crashes without an outgoing account — " +
-					"re-check docs/upstream/frappe-email.md §7 and simplify api.email_preview if it is fixed"
+				"no error",
+				"frappe's formatter handles a missing outgoing account"
 			);
 		});
 

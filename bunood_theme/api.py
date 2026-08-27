@@ -896,14 +896,10 @@ def email_preview() -> str:
     composed on the server, contains no other user's data, and this returns the
     genuine output of ``get_formatted_html`` rather than a mock-up of it.
 
-    WHY NOT ``frappe.email.email_body.get_email_html``, WHICH IS ALREADY
-    WHITELISTED. It calls ``get_formatted_html`` WITHOUT an ``email_account``, and
-    ``email_body.py:419`` resolves that with ``find_outgoing()`` which returns
-    ``None`` when a site has no outgoing account — then line 433 dereferences it.
-    Measured on this site: ``AttributeError: 'NoneType' object has no attribute
-    'get'`` for any call asking for a header or a container, i.e. exactly what a
-    preview wants to show. Filed upstream in ``docs/upstream/frappe-email.md`` §7.
-    Passing our own stub is the whole difference.
+    Frappe 16.31 fixed the no-outgoing-account path described in
+    ``docs/upstream/frappe-email.md`` §7. The preview therefore calls the real
+    formatter without a synthetic Email Account; if upstream regresses, this
+    endpoint stands down to an empty frame like any other render failure.
 
     THE SAMPLE IS FIXED AND CARRIES EVERY ELEMENT THE CONTRACTS SPEAK ABOUT — a
     heading, prose, a bold run, the CTA and a bare link. A preview that omits one
@@ -943,7 +939,6 @@ def email_preview() -> str:
         return get_formatted_html(
             frappe._("Invoice {0}").format("ACC-SINV-0042"),
             body,
-            email_account=frappe._dict(brand_logo=None, footer=None),
             with_container=True,
         )
     except Exception:

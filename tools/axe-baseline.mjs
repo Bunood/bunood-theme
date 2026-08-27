@@ -33,6 +33,7 @@ import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const { AxeBuilder } = require("@axe-core/playwright");
+import { browserLaunchOptions } from "./browser.mjs";
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalStatus } from "./portal-fixtures.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -153,7 +154,7 @@ print("pinned")
 `
 );
 
-const b = await chromium.launch();
+const b = await chromium.launch(browserLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
 await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
 const page = await ctx.newPage();
