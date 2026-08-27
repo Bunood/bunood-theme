@@ -1,0 +1,54 @@
+{
+ "app": "bunood_theme",
+ "charts": [],
+ "content": "[{\"id\":\"bndReportsHead\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Report Studio\",\"col\":4}},{\"id\":\"bndReportsVat\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":4}},{\"id\":\"bndReportsStmt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Statement of Account\",\"col\":4}}]",
+ "creation": "2026-08-27 13:30:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "table",
+ "idx": 0,
+ "indicator_color": "",
+ "is_hidden": 0,
+ "label": "Reports",
+ "links": [],
+ "modified": "2026-08-27 13:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Reports",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [],
+ "sequence_id": 3.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Report Studio",
+   "link_to": "bnd-report-studio",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "",
+   "label": "VAT Return",
+   "type": "URL",
+   "url": "/app/bnd-report-studio/vat-return"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "",
+   "label": "Statement of Account",
+   "type": "URL",
+   "url": "/app/bnd-report-studio/account-statement"
+  }
+ ],
+ "title": "Reports",
+ "type": "Workspace"
+}
