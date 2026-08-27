@@ -7,7 +7,7 @@ had drifted EIGHT behind the roadmap (0.20.0 was item 28) so that a version
 number told you nothing about what was in it. Releases before 0.29.0 keep the
 numbers they shipped under and are never renumbered: the jump from 0.20.0 to
 0.29.0 is this adoption, not eight lost releases. **v1.0.0 is reserved for the
-completion of all 38 coverage items.**
+completion of all 39 coverage items.**
 
 Every release is an annotated git tag, and `app_version` in hooks.py matches
 the latest tag — with ONE recorded exception. `v0.29.0` is tagged at item 29's
@@ -23,6 +23,32 @@ shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to
 an "item N" cited below against today's numbering.
 
 ## [Unreleased]
+
+(nothing yet)
+
+## [0.39.0] — 2026-08-27 — Report Studio (item 39) + ZATCA Phase-1 printing
+
+**The Report Studio — a bilingual reading room for the numbers (item 39;
+merged from #7 as one piece, the original narrative lives in that PR).** A
+desk page (`/app/bnd-report-studio`) serving 21 curated cards across selling,
+buying and accounting: registers with tax as a first-class figure,
+sales/purchases with returns split by stored sign, gross profit with a
+weighted margin tile and a net-of-VAT clarity strip, statements of account
+for any customer/supplier/employee/ledger account behind a picker, the five
+accounting surfaces under a data-caution doctrine (no heuristic sums — tiles
+read the report's own labeled rows, array totals or report_summary), and the
+ZATCA VAT return from bunood_real_estate's worksheet with both nets (invoices
+and ledger-true; their gap is the journal entries). Every card is a route —
+the browser's back steps inside the studio — a public Reports workspace is
+the front door, print is an A4 landscape information-only document with a
+letterhead and a repeating table header, and Export Excel is a hand-built
+xlsx: ZIP+CRC32, inline strings, a real Excel Table with filters, styles read
+from the theme tokens at export time, negatives red by number format. The
+page-scoped second JS entry rides its own payload bucket (`studio_js`,
+25557 gzip against 27000) and the desk css ceiling moved 21000 → 24000 for
+the measured +2499 the surface kit costs. Verified by `tests/studio.mjs` —
+31/31 in a real browser against server-minted expectations (money tiles to
+the fils; the exported workbook reopened with openpyxl and summed back).
 
 **A ZATCA-style 80mm receipt ksa_compliance never shipped.** «زاتكا - فاتورة
 مبسطة (حراري 80مم)» — the same content rules as their Phase-1 A4 format

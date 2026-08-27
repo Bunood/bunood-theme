@@ -282,7 +282,7 @@ defect in 0.10.0.
 
 ---
 
-## The 38 items, in the order we work them
+## The 39 items, in the order we work them
 
 Items 1–14 are unchanged from before the renumber and are all done: 1 tokens · 2 Frappe
 bridge · 3 light/dark/automatic · 4 density · 5 type scale · 6 motion · 7 RTL &
@@ -1058,6 +1058,15 @@ entry.
   an illegible seed is worse than no preset
 - `[ ]` **38 · Per-user preferences** *(was 31)* — via `User.desk_theme`, never a parallel
   localStorage
+- `[x]` **39 · Report Studio** *(added at ship time, 2026-08-27)* — the bilingual
+  reading room at `/app/bnd-report-studio`: 21 curated cards over the ERPNext
+  reports across selling/buying/accounting, statements of account behind a
+  picker, the ZATCA VAT return with its ledger-true net, route-stepped
+  navigation, an A4 landscape information-only print with a letterhead, a
+  hand-built xlsx export (a real Excel Table, theme-token colours), and a
+  public Reports workspace as the front door. Off the original 38, numbered by
+  the standing policy — MINOR names the item that ships. Verified by
+  `tests/studio.mjs`: 31/31 in a real browser against server-minted figures.
 
 ---
 
