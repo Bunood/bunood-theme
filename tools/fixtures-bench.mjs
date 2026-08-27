@@ -249,6 +249,52 @@ function ledger() {
 }
 
 /**
+ * The form fixture — BND-TEST-001, with two UOM rows.
+ *
+ * WHY IT IS HERE AND NOT LEFT TO THE SUITE
+ *   The suite does ensure this item, inside the FORM check. But the crumbs
+ *   checks walk /desk/item/BND-TEST-001 some five thousand lines EARLIER, so on
+ *   a site where the item does not already exist they land on a page that never
+ *   renders and time out waiting for `.page-head` — seven failures whose text
+ *   mentions neither the item nor the fixture.
+ *
+ *   That ordering bug is invisible on any bench that has been run before, since
+ *   the item survives from the previous run. It showed up the first time the
+ *   suite met a genuinely fresh site: 324/17 here against 333/8 on a bench I
+ *   had already used, with the whole crumbs cluster as the difference.
+ *
+ *   Seeding it here fixes the symptom for a fresh bench. The ordering itself is
+ *   still worth fixing in the suite — a check should not depend on a fixture a
+ *   later check creates — but that is a change to the suite's shape, not to a
+ *   bench, so it is written down rather than done quietly here.
+ *
+ *   Two UOM rows because that is what the form check asserts; needs masters()
+ *   to have run, or there is only one UOM to choose from.
+ */
+function formFixture() {
+	return py(
+		`if not frappe.db.exists("Item", "BND-TEST-001"):\n` +
+			`    d = frappe.new_doc("Item")\n` +
+			`    d.item_code = "BND-TEST-001"\n` +
+			`    d.item_group = frappe.db.get_value("Item Group", {"is_group": 0}, "name")\n` +
+			`    d.stock_uom = "Nos"\n` +
+			`    d.insert(ignore_permissions=True)\n` +
+			`d = frappe.get_doc("Item", "BND-TEST-001")\n` +
+			`if len(d.uoms) < 2:\n` +
+			`    have = {r.uom for r in d.uoms}\n` +
+			`    for u in frappe.get_all("UOM", limit=6):\n` +
+			`        if u["name"] not in have:\n` +
+			`            d.append("uoms", {"uom": u["name"], "conversion_factor": 12})\n` +
+			`            have.add(u["name"])\n` +
+			`        if len(d.uoms) >= 2:\n` +
+			`            break\n` +
+			`    d.save(ignore_permissions=True)\n` +
+			`frappe.db.commit()\n` +
+			`print("form fixture: BND-TEST-001 with %d uom rows" % len(frappe.get_doc("Item", "BND-TEST-001").uoms))\n`
+	);
+}
+
+/**
  * Mark setup complete.
  *
  * LAST, on purpose. frappe.is_setup_complete() reads
@@ -275,7 +321,7 @@ if (REPORT_ONLY) {
 	process.exit(0);
 }
 
-for (const step of [masters, prerequisites, company, accounting, defaults, ledger, markComplete]) {
+for (const step of [masters, prerequisites, company, accounting, defaults, ledger, formFixture, markComplete]) {
 	console.log("  " + step().split("\n").pop());
 }
 
