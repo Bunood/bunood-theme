@@ -296,9 +296,13 @@ def _tenant_branding():
 
     ``company_name``/``logo``/``favicon``/``tagline`` are the Branding section of
     Theme Settings — the surface a tenant is told to use. They are deliberately
-    OUTSIDE ``MUTABLE_FIELDS``, because a failed restore of a branding field is
-    permanent damage rather than a wrong-looking page, which is also why every
-    check that exercises one writes it directly and restores in a ``finally``.
+    OUTSIDE ``MUTABLE_FIELDS`` — three of the four — because a failed restore
+    of a branding field is permanent damage rather than a wrong-looking page,
+    which is also why every check that exercises one writes it directly and
+    restores in a ``finally``. ``tagline`` is the exception: it IS in
+    ``MUTABLE_FIELDS`` (it is the suite's save-round-trip scratch field, and
+    leaving it out made every run clobber it), and item 36's ``site data:``
+    hygiene preamble is the backstop for the crash-leftover case.
 
     ``tagline`` is not read here: it is baked into the brand stylesheet by
     ``brand.py`` (it is in ``BRAND_INPUTS``), not injected through the render

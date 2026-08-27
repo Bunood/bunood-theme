@@ -172,9 +172,9 @@ play and the things that will cost time again:
   so a 4-failure run reported "exited with code 0". That is the exact class of defect
   `tools/verify.mjs` was written to prevent, and it was reintroduced from outside.
   Redirect to a file instead.
-- **The axe route list is duplicated** between `tools/axe-baseline.mjs` and the suite's
-  `axe over the Desk` check, and nothing enforces that they agree. Item 33 added five
-  routes to both by hand rather than refactor mid-release; a follow-up task is filed.
+- ~~**The axe route list is duplicated**~~ — CLOSED by `b6400d4` (2026-08-25, the
+  parallel session): the two lists were made unable to disagree about context. The
+  "follow-up task is filed" note above it was stale; confirmed by the item-36 census.
 - **Three session contexts now exist for scanning**: Administrator, cookie-less guest,
   and the portal fixture user. The last is not optional — an Administrator renders a
   populated portal list through a DIFFERENT branch of `website_list_for_contact.py`, so
@@ -339,8 +339,10 @@ IN · four poles** (`Bare` drawn and dropped in the round). Facts worth keeping:
   "the guard skipped" stood in for evidence until the user asked. Measured properly it
   works (unset -> erpnext-logo.svg, set -> Theme Settings' value, both routes) and it is
   now watched-to-fail. **A branch whose guard is false on the dev site is an untested
-  branch, not a working one** — and `logo`, `favicon`, `company_name` and `tagline` are
-  all in that category, because branding fields are deliberately outside MUTABLE_FIELDS.
+  branch, not a working one** — and `logo`, `favicon` and `company_name` are in that
+  category, because those three sit outside MUTABLE_FIELDS by design. `tagline` is the
+  exception (it IS in MUTABLE_FIELDS, the save-round-trip scratch field); item 36's
+  `site data:` hygiene preamble backstops the crash-leftover case the exclusion feared.
 - **The 24 `ar.po` rows are `#, fuzzy` and AWAIT THE USER'S REVIEW** — the item-7 handoff.
   Clear them in their own commit, as items 27, 28, 29/30 and 31 all did.
 - **Payload: the desk bundle is UNTOUCHED** (`css_gzip` 20809, 166 b free) because the login

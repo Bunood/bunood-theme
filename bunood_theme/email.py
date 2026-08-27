@@ -103,8 +103,18 @@ FLATTEN_AGAINST = {
     "--bnd-border-strong": "--bnd-surface",
 }
 
-SHIPPED_BRAND = "#4d8756"
-SHIPPED_ACCENT = "#4463f0"
+#: The shipped seed pair, DERIVED from the one place that owns it — item 36.
+#: These were a second literal copy of ``setup.DEFAULTS``'s ``brand_color`` /
+#: ``accent_color``, the duplicate-fact class the working contract warns about;
+#: read from the map instead so a re-seed cannot leave email behind. Imported
+#: lazily at module load (``setup`` imports nothing from here, so there is no
+#: cycle) and pinned to a literal fallback only against the vanishing chance the
+#: key is ever removed, which the coverage of ``get_shipped_defaults`` would
+#: catch first.
+from bunood_theme.setup import DEFAULTS as _SHIPPED_DEFAULTS
+
+SHIPPED_BRAND = _SHIPPED_DEFAULTS.get("brand_color", "#4d8756")
+SHIPPED_ACCENT = _SHIPPED_DEFAULTS.get("accent_color", "#4463f0")
 
 #: Settings value to CSS class slug. **THIS IS THE ONLY COPY.**
 #:

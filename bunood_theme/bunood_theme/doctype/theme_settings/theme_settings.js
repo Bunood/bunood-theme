@@ -543,11 +543,12 @@ function bnd_placement_control(frm, field, note) {
  *   where the data earns it, not a second mechanism.
  *
  * WHY `placement` IS USUALLY EMPTY, AND THAT IS CORRECT
- *   Only the side pane and the search picker have placement controls today.
- *   `inbox_placement` and `user_placement` appear ZERO times in this file — they
- *   are settings with no control yet, and rework step 3 (the shared desk
- *   diagram) is where they get one. A band renders only when it has content, so
- *   step 3 fills this in without editing anything here.
+ *   A band renders only when it has content. `inbox_placement` and
+ *   `user_placement` DO have controls now (the inbox and user pickers, and the
+ *   placement board) — the docblock said they appeared "zero times" through the
+ *   phase-0 rework and item 36 corrected it — but most pickers still carry no
+ *   placement band, and the empty-band-renders-nothing rule is what keeps that
+ *   from showing as a blank heading.
  */
 const BND_ZONES = [
 	// Style leads. Where a picker has cards, they are its headline choice — the
@@ -1468,12 +1469,15 @@ function bnd_render_overview(frm, $pane) {
 				// "Layout PRESET", not "Layout". Since slice 2c a container can
 				// contradict the layout it came from — a top bar on a Classic
 				// desk — so naming the layout as though it described the picture
-				// above would be a claim this line cannot back. It names what
-				// was last APPLIED, which it can. The derived "Custom" label
-				// that makes the difference visible arrives with the last
-				// container, when the catalogue reaches the client.
+				// above would be a claim this line cannot back. It names the
+				// DERIVED label now: `bnd_match_layout` compares the container
+				// values against the catalogue and says "Custom" the moment one
+				// differs, which is exactly the difference this line used to be
+				// unable to show. The catalogue arrived with the last container
+				// (item 36); until it loads the function falls back to the
+				// stored name, so this reads correctly either way.
 				__("Layout preset: {0}. Each mark is a control — select it to change where that piece lives.", [
-					__(frm.doc.desk_layout || "Top Bar"),
+					bnd_match_layout(frm),
 				])
 			) + hidden
 		)
@@ -2109,14 +2113,11 @@ function bnd_render_layout_picker(frm, host) {
 		{ selected: current, cls: "bnd-cbp-style bnd-lp-card" }
 	);
 
-	const toolbar =
-		'<div class="bnd-sbp-toolbar">' +
-		'<input type="search" class="bnd-sbp-search" aria-label="' + __("Search settings") + '" placeholder="' + __("Search settings…") + '">' +
-		'<button type="button" class="btn btn-xs btn-default bnd-sbp-export">' + __("Export") + "</button>" +
-		'<button type="button" class="btn btn-xs btn-default bnd-sbp-import">' + __("Import") + "</button>" +
-		'<span class="bnd-sbp-hint">' + __("Changes apply as you click — there is nothing to save.") + "</span>" +
-		"</div>";
-
+	// The export/import toolbar lives on the SIDEBAR picker (bnd_render_sidebar_picker,
+	// bnd-sbp-toolbar) — this picker built a second copy of it and then never appended
+	// it (`$host.html(P.wrap(cards))` ignored the local), so it rendered nowhere and
+	// its strings were dead. Deleted in item 36; the fixture is byte-identical, which
+	// is the proof it never reached the DOM.
 	$host.html(P.wrap(cards));
 
 	$host.find(".bnd-lp-card").on("click", function () {
@@ -6716,9 +6717,10 @@ function bnd_render_search_picker(frm, host) {
 	});
 
 	// One band, so `bnd_bands` prints no heading at all and this renders exactly
-	// as it did before. Marked anyway: search IS the placement control, and when
-	// step 3's desk diagram gives the bell and the user menu one too, they join
-	// this band rather than needing the picker restructured.
+	// as it did before. Marked anyway: search IS the placement control, and the
+	// bell and the user menu now have their own placement controls too (the
+	// inbox and user pickers plus the placement board) — the "step 3 will give
+	// them one" the comment used to promise has landed.
 	$host.html(
 		P.wrap(
 			bnd_bands([

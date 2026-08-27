@@ -801,17 +801,6 @@ LOGIN_DEFAULTS = {
 DEFAULT_DESK_LAYOUT = "Top Bar"
 
 #: Containers whose on/off field the doctype has actually grown.
-#:
-#: The container split lands one container per slice (ROADMAP phase 0, slice
-#: 2c), and :data:`registry.LAYOUT_CHROME` names all five from the start —
-#: authoring half a catalogue would be worse than none. Seeding a field the
-#: doctype does not have yet would put an orphan row in ``tabSingles`` that
-#: ``get_single_value`` then refuses to read back (it raises; measured), so the
-#: seed is filtered to what exists. **This tuple grows with each slice and is
-#: deleted with the last one** — when it lists every container it says nothing,
-#: and `CHROME_DEFAULTS` should go back to being the whole catalogue row.
-SHIPPED_CONTAINERS = ("topbar", "pagehead", "dock", "sidepane", "bottombar")
-
 #: What a fresh install writes for each container it ships, derived from the
 #: catalogue rather than restated beside it.
 
@@ -1143,7 +1132,6 @@ PRINT_PRESETS = {
 CHROME_DEFAULTS = {
     c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
     for c in CONTAINERS
-    if c["key"] in SHIPPED_CONTAINERS
 }
 
 #: Mobile bar contents (item 24). Which tenants join search in the phone bottom

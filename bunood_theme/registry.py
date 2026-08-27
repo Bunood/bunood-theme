@@ -891,13 +891,14 @@ def layout_settings(layout: str) -> dict:
     fail-open rule the rest of the layout system follows, where a value nobody
     recognises degrades to the stock desk instead of breaking one.
 
-    IT NAMES FIELDS THE DOCTYPE MAY NOT HAVE YET. The split lands one container
-    per slice and this table is complete from the start, so a caller that
-    WRITES these values must intersect them with the fields that exist —
-    ``presets.SHIPPED_CONTAINERS`` is that list, and it is deleted with the
-    last slice. Reading is safe; writing a field the doctype has not grown
-    leaves an orphan row in ``tabSingles`` that ``get_single_value`` then
-    refuses to read back.
+    ALL FIVE CONTAINERS NOW EXIST, so this writes every field it names. Through
+    phase 0 the split landed one container per slice while this table was
+    complete from the start, and a writer had to intersect with the fields that
+    existed (``presets.SHIPPED_CONTAINERS``); item 36 deleted that tuple with
+    the last container, per its own charter. Writing a field the doctype has
+    not grown still leaves an orphan ``tabSingles`` row ``get_single_value``
+    refuses to read back — but there is no such field any more, so the caution
+    is history, not a live constraint.
     """
     chrome = LAYOUT_CHROME.get(layout)
     if not chrome:

@@ -74,8 +74,10 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - **A branch whose guard is false on the dev site is UNTESTED, not working.** Item 32's
   logo override shipped for three slices on the strength of "the `if logo:` guard
   correctly skipped" — with `logo` empty here, that sentence is true and proves nothing.
-  Every branding field (`logo`, `favicon`, `company_name`, `tagline`) is in this
-  category, because they sit outside MUTABLE_FIELDS by design.
+  Three branding fields (`logo`, `favicon`, `company_name`) are in this
+  category, because they sit outside MUTABLE_FIELDS by design. `tagline` is the
+  exception — it IS in MUTABLE_FIELDS (the save-round-trip scratch field), and
+  item 36's `site data:` hygiene preamble is the crash-leftover backstop.
 - **Verifying against the wrong tree or stale assets.** Confirm the container is
   serving the hash you just built. GUIDELINES §2.0 is an audit of the wrong repo.
 - **Proving the output inert and calling the change inert.** A byte-identical rebuild

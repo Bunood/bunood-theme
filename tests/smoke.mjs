@@ -5170,6 +5170,35 @@ async function main() {
 			}
 		});
 
+		await test("shell: the Overview names the derived layout, not the stored one", async () => {
+			// The Overview note read the raw stored `desk_layout` and its own
+			// comment admitted the derived "Custom" label "arrives with the last
+			// container" — which it had (bnd_match_layout exists and feeds the
+			// shell note). Item 36 switched the note to the derived label. This
+			// pins it: a container toggle that contradicts the stored layout must
+			// make the Overview say "Custom". Container toggles ARE mutable, so
+			// setSettings restores them. Watched RED against the stored-name note.
+			const before = getSettings(["dock_enabled", "desk_layout"]);
+			try {
+				// Top Bar ships topbar on / dock off; Dock ships the reverse. Turn
+				// dock ON while topbar stays on and the combination matches NEITHER
+				// layout — a genuine "Custom" the matcher cannot name (turning a
+				// single toggle the other way just lands on another real layout,
+				// which is what the first draft of this check got wrong).
+				setSettings({ desk_layout: "Top Bar", dock_enabled: 1 });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+				await page.click('.bnd-shell-item[data-key="overview"]');
+				await page.waitForSelector(".bnd-dgm-overview", { timeout: 15000 });
+				const note = await page.evaluate(() => {
+					const n = document.querySelector(".bnd-shell-detail .bnd-cbp-note");
+					return n ? n.textContent : "";
+				});
+				expect(/custom/i.test(note), `the Overview note reads Custom when a toggle differs ("${note}")`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("settings: nothing overflows the form horizontally", async () => {
 			const overflow = await page.evaluate(() =>
 				[...document.querySelectorAll('[data-fieldname$="_picker"]')]

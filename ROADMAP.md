@@ -177,7 +177,9 @@ defect in 0.10.0.
   - **Overview**: every placed component on one desk, each mark a route to its control.
     Read-only on purpose — two ways to set one value is the duplication this rework
     exists to remove
-- `[~]` **Slice 2** — remaining containers and tenants.
+- `[x]` **Slice 2** — remaining containers and tenants. *(Marked done in item 36: every
+  sub-item below is `[x]`, and item 36 closed the last phase-0 leftovers this slice
+  implied — `SHIPPED_CONTAINERS` deleted per its own charter, `desk_layout` retired.)*
   - `[x]` **Home and All Apps place themselves** *(2026-08-06)*. They shared one
     field, `sidebar_quick_links`, which rode the sidebar STYLE kit — so a preset
     decided where both lived and neither could move alone. Now `home_placement` /
@@ -261,7 +263,10 @@ defect in 0.10.0.
     "<Region> Start|Center|End" derived from `registry.slots_for`; the side pane
     honestly offers two zones; a component offers only the zones its runtime
     implements. The migration maps each old value to what it MEASURABLY
-    rendered; `heal_unknown_placements` runs on every migrate forever, because
+    rendered; `heal_unknown_placements` stays in `patches.txt` so every FUTURE
+    site runs it once (Frappe records a patch as run per site — it is not an
+    every-migrate hook, and `setup.py`'s `after_migrate` never calls it; the
+    everyday guarantee on an already-patched site is the suite-side heal), because
     one un-offered Select value on a Single silently fails every later save of
     the whole document (measured: six unrelated tests red)
   - `[x]` **E2 · The desk is the form** *(2026-08-08)*. The placement board —
@@ -1054,8 +1059,10 @@ entry.
 - `[~]` **36 · Settings singleton** *(was 29)* — brand, logo, favicon exist; being
   restructured by phase 0 and effectively completed by it
 - `[~]` **37 · Presets** *(was 30)* — sidebar preset system shipped in 0.5.0; remaining:
-  colour-palette seeds per preset, more palettes. Blocked on 17 — a preset that ships
-  an illegible seed is worse than no preset
+  colour-palette seeds per preset, more palettes. Item 17 (contrast) is CLOSED
+  (2026-08-06), so the old "blocked on 17" no longer holds — the gate it built is what
+  now makes a preset's seed safe to ship (a preset that shipped an illegible seed was
+  the risk; `npm run contrast` over 11 seeds × 2 modes is the answer)
 - `[ ]` **38 · Per-user preferences** *(was 31)* — via `User.desk_theme`, never a parallel
   localStorage
 
