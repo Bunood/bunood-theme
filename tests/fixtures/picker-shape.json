@@ -4,7 +4,7 @@
   "brand_color": "#4d8756",
   "accent_color": "#4463f0",
   "arabic_font": "IBM Plex Sans Arabic",
-  "default_density": "Comfortable",
+  "density_default": "Comfortable",
   "desk_layout": "Top Bar",
   "sidebar_preset": "Bunood Night",
   "desk_order": "search,inbox,user,home,apps",
@@ -128,7 +128,7 @@
   "mobile_inbox": 1,
   "mobile_user": 1,
   "mobile_apps": 1,
-  "enable_command_palette": 1
+  "palette_enabled": 1
  },
  "pickers": {
   "layout_picker": {

@@ -1177,7 +1177,7 @@ INBOX_DEFAULTS = {
 #: shell over Frappe's own search sources, grouped sections, pinned fallback
 #: rows, per-user frecency. "Original" leaves the stock Ctrl+K modal
 #: untouched; "Refined" only restyles it; "Palette Pro" adds mode sigils and
-#: the record-search stage. The legacy visible `enable_command_palette`
+#: the record-search stage. The legacy visible `palette_enabled`
 #: check is the kit's master gate: 0 forces Original whatever the style.
 PALETTE_DEFAULTS = {
     "palette_style": "Bunood Palette",

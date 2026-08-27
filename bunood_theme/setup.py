@@ -103,7 +103,7 @@ CHECK_DEFAULTS = {
 # where truthiness seeding would flip an admin's explicit 0 back to 1 on
 # every migrate — the tagline bug's exact shape, caught by the v0.8.0
 # release review before it could bite.
-CHECK_DEFAULTS["enable_command_palette"] = 1
+CHECK_DEFAULTS["palette_enabled"] = 1
 
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
@@ -119,10 +119,10 @@ DEFAULTS = {
     # Density site default (decision "G with C"). Seeded here because a field
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
-    "default_density": "Comfortable",
+    "density_default": "Comfortable",
     # Desk layout (checklist item 9). "Top Bar" is the layout the user chose as
     # the default: global bar above the page, breadcrumb title row, slim status
-    # bar below. Same seeding rationale as default_density.
+    # bar below. Same seeding rationale as density_default.
     #
     # Named in presets.py rather than spelt out here because the CONTAINER
     # defaults are derived from this layout's catalogue row: a literal in both

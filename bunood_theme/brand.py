@@ -81,7 +81,7 @@ BRAND_INPUTS = (
     "accent_color",
     "brand_color_dark",
     "accent_color_dark",
-    "default_density",
+    "density_default",
     "tagline",
     "arabic_font",
 )
@@ -138,7 +138,7 @@ def render_brand_css(settings=None) -> str:
     # bytes to every site's brand sheet. NO font tokens belong here, ever —
     # compact changes geometry, not readability.
     density = ""
-    if (getattr(s, "default_density", None) or "").strip().lower() == "compact":
+    if (getattr(s, "density_default", None) or "").strip().lower() == "compact":
         density = """
   --bnd-row-h: 24px;
   --bnd-control-h: 26px;

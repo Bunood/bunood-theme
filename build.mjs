@@ -865,7 +865,7 @@ function assertAutomaticParity() {
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design and a layout preset must never write them. Typography joined in
@@ -876,10 +876,10 @@ const FIELD_EXCEPTIONS = new Set([
 	"arabic_font",
 	// Generated artefact, not a setting.
 	"brand_css_url",
-	// KNOWN VIOLATIONS, to be renamed by the component rework's patch:
-	//   enable_command_palette -> palette_enabled
-	//   default_density        -> density_default
-	"enable_command_palette", "default_density",
+	// The KNOWN VIOLATIONS block that lived here is EMPTY as of item 36: the
+	// component rework's promised renames finally ran (enable_command_palette
+	// -> palette_enabled, default_density -> density_default, patch
+	// v0_36_0/rename_axis_fields), and each new name rides its axis's prefix.
 ]);
 
 /**

@@ -426,7 +426,7 @@ async function withBranding(values, fn) {
  * This has now happened twice. The first time it was `tagline`, and the fix was
  * a comment plus an intersection at the one call site that had caused it — which
  * is why the pre-run reset filters and this one did not. The second time it was
- * `company_name`, `brand_color`, `accent_color` and `default_density`, written
+ * `company_name`, `brand_color`, `accent_color` and `density_default`, written
  * by `setSettings(fixture.state)` because a fixture's `state` is the whole
  * SHIPPED map and nobody thought of it as a call site at all.
  *
@@ -1119,7 +1119,7 @@ const MUTABLE_FIELDS = [
 	// Command palette kit (item 12).
 	"palette_style", "palette_frecency", "palette_footer", "palette_newtab",
 	"palette_fallbacks", "palette_suggest", "palette_sigils",
-	"enable_command_palette",
+	"palette_enabled",
 	// Notification centre kit (item 13).
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
@@ -1601,7 +1601,7 @@ async function main() {
 
 		for (const [style, slugValue] of Object.entries(PAL_STYLE_SLUG)) {
 			await test(`palette: ${style} attribute`, async () => {
-				setSettings({ palette_style: style, enable_command_palette: 1 });
+				setSettings({ palette_style: style, palette_enabled: 1 });
 				await goDesk("/desk/item", ".page-head", 2500);
 				expectEq(await attr("data-bnd-palette"), slugValue, "style attr");
 			});
@@ -5127,7 +5127,7 @@ async function main() {
 			// bug in the shell rather than an omission in its table. This is the
 			// check that names it. It also catches the opposite error: two entries
 			// claiming ONE section, which used to make the loser silently empty —
-			// `default_density` and `enable_command_palette` share
+			// `density_default` and `palette_enabled` share
 			// `section_features`, and that is how it was found.
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
 			const stranded = await page.evaluate(() =>
@@ -5197,6 +5197,63 @@ async function main() {
 			} finally {
 				setSettings(before);
 			}
+		});
+
+		await test("settings: the axis renames carry a site's NON-default choices", async () => {
+			// The v0_36_0 patch's whole job is an existing site that CHOSE
+			// something: an admin's palette off (the explicit 0 the None-aware
+			// seeding protects) and Compact density. A fresh site proves nothing
+			// — both values match the defaults there — so this SIMULATES the
+			// pre-rename site: non-default values under the OLD fieldnames, the
+			// new rows deleted, the patch re-run. Then it asserts the choices
+			// arrived, and restores everything. Watched red by asserting before
+			// the re-run inside the same probe (`before_rerun` must show the
+			// defaults, or the simulation itself is not simulating).
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.patches.v0_36_0.rename_axis_fields import execute\n" +
+					// Raw tabSingles reads on BOTH sides of the re-run — the same
+					// spelling the patch itself uses. get_single_value reads
+					// through a per-process value cache that raw-SQL simulation
+					// writes do not invalidate, so a cached answer here would
+					// measure the cache, not the migration (the first draft did,
+					// and reported "" for a value the patch had written).
+					"def raw(f):\n" +
+					"    rows = frappe.db.sql(\"select value from tabSingles where doctype='Theme Settings' and field=%s\", (f,))\n" +
+					"    return rows[0][0] if rows else None\n" +
+					"keep = {f: raw(f) for f in ('palette_enabled', 'density_default')}\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('palette_enabled','density_default','enable_command_palette','default_density')\")\n" +
+					// INSERT, never UPDATE: the old-name rows are ALREADY GONE on
+					// this site — a Single's doc.save() rewrites its whole
+					// tabSingles rowset from current meta, so the first save after
+					// the migrate reaped the orphans (real sites are safe: the
+					// patch runs during migrate, before any save). An UPDATE on an
+					// absent row is a silent no-op, and the first draft of this
+					// simulation measured exactly that as a 'failed' carry.
+					"    frappe.db.sql(\"insert into tabSingles (doctype, field, value) values ('Theme Settings','enable_command_palette','0'), ('Theme Settings','default_density','Compact')\")\n" +
+					"    res['before_rerun'] = {f: raw(f) for f in ('palette_enabled', 'density_default')}\n" +
+					"    execute()\n" +
+					"    res['after'] = {f: raw(f) for f in ('palette_enabled', 'density_default')}\n" +
+					"finally:\n" +
+					"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('palette_enabled','density_default','enable_command_palette','default_density')\")\n" +
+					"    for f, v in keep.items():\n" +
+					"        if v is not None:\n" +
+					"            frappe.db.set_single_value('Theme Settings', f, v, update_modified=False)\n" +
+					"    frappe.db.commit()\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_RN' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_RN"));
+			if (!line) throw new Error("rename probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_RN".length));
+			expect(
+				!r.before_rerun.palette_enabled && !r.before_rerun.density_default,
+				`the simulation holds before the patch re-runs (${JSON.stringify(r.before_rerun)})`
+			);
+			expectEq(String(r.after.palette_enabled), "0", "the admin's explicit palette OFF survived the rename");
+			expectEq(r.after.density_default, "Compact", "the site's Compact density survived the rename");
 		});
 
 		await test("settings: nothing overflows the form horizontally", async () => {
@@ -5626,7 +5683,7 @@ async function main() {
 				await goDesk("/desk/item", ".page-head", 2500);
 				offenders.push(...(await collect()).map((o) => `desk: ${o}`));
 				// The palette, open with its empty-state suggestions.
-				setSettings({ palette_style: "Bunood Palette", enable_command_palette: 1 });
+				setSettings({ palette_style: "Bunood Palette", palette_enabled: 1 });
 				await goDesk("/desk/item", ".page-head", 2500);
 				await page.keyboard.press("Control+k");
 				await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 6000 }).catch(() => {});

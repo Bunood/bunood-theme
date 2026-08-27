@@ -76,7 +76,7 @@
   "palette_fallbacks",
   "palette_suggest",
   "palette_sigils",
-  "enable_command_palette",
+  "palette_enabled",
   "section_inbox",
   "inbox_style",
   "inbox_placement",
@@ -118,7 +118,7 @@
   "mobile_user",
   "mobile_apps",
   "section_density",
-  "default_density",
+  "density_default",
   "section_list",
   "list_picker",
   "list_style",
@@ -546,7 +546,7 @@
    "hidden": 1
   },
   {
-   "fieldname": "enable_command_palette",
+   "fieldname": "palette_enabled",
    "fieldtype": "Check",
    "label": "Enable Command Palette",
    "default": "1",
@@ -935,7 +935,7 @@
    "description": "Written by bunood_theme.brand on every save. Content-hashed, so the URL is immutable and needs no cache-busting query string."
   },
   {
-   "fieldname": "default_density",
+   "fieldname": "density_default",
    "fieldtype": "Select",
    "label": "Default Density",
    "options": "Comfortable\nCompact",

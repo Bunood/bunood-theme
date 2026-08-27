@@ -139,7 +139,7 @@ def extend_bootinfo(bootinfo):
             value = settings.get(field)
             return PALETTE_DEFAULTS[field] if value in (None, "") else value
 
-        gate = settings.get("enable_command_palette")
+        gate = settings.get("palette_enabled")
         bootinfo.bnd_palette = {
             "style": "Original" if gate is not None and not int(gate or 0) else pal("palette_style"),
             "frecency": pal("palette_frecency"),

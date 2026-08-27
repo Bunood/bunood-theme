@@ -1125,10 +1125,10 @@ const BND_SHELL_GROUPS = [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
-			// `enable_command_palette` now sits with its seven siblings in
+			// `palette_enabled` now sits with its seven siblings in
 			// section_palette, so one anchor reaches the whole component. It used
 			// to live three sections away, and anchoring it here claimed the
-			// section that also held `default_density` — which left a stranded
+			// section that also held `density_default` — which left a stranded
 			// "Features" heading over nothing and evicted the density control.
 			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
@@ -1183,15 +1183,15 @@ const BND_SHELL_GROUPS = [
 			// own picker like every other kit; the relocated Selects sit hidden
 			// behind the card picker's controls.
 			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
-			// `default_density` has its own section as of the shell work. It used
-			// to share `section_features` with `enable_command_palette`, and the
+			// `density_default` has its own section as of the shell work. It used
+			// to share `section_features` with `palette_enabled`, and the
 			// fallback that handles a twice-claimed section handled it — but only
 			// by moving a bare $wrapper out of `.form-column > form`, which severs
 			// the direct-descendant chain Frappe caps input width with
 			// (form.scss `.form-column.col-sm-12 > form > .input-max-width`).
 			// Measured: 636px against every other Select's 273px. The fallback is
 			// still there for the next collision; this one is fixed at the root.
-			{ key: "density", label: () => __("Density"), anchors: ["default_density"] },
+			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
 		],
 	},
 	{
@@ -1288,7 +1288,7 @@ const BND_SHELL_OWNS = {
 	web: { prefixes: ["web_"] },
 	email: { prefixes: ["email_"] },
 	print: { prefixes: ["print_"] },
-	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
+	palette: { prefixes: ["palette_"], fields: ["palette_enabled"] },
 	layout: { fields: ["desk_layout"] },
 	// Map 1 (item 36): one Identity page owns the name, the marks, the tagline
 	// AND the seeds. `brand_css_url` shares the pane and stays deliberately
@@ -1307,7 +1307,7 @@ const BND_SHELL_OWNS = {
 	// The Icons axis owns every icon_* field by prefix — the same rule the
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },
-	density: { fields: ["default_density"] },
+	density: { fields: ["density_default"] },
 	// The phone bar (item 24): the three mobile_* toggles by prefix.
 	mobile: { prefixes: ["mobile_"] },
 };
@@ -1749,7 +1749,7 @@ function bnd_shell_setup(frm) {
 
 	const $detail = $shell.find(".bnd-shell-detail");
 	// A section can only be in one pane. Two entries claiming the same one is not
-	// hypothetical — `default_density` and `enable_command_palette` share
+	// hypothetical — `density_default` and `palette_enabled` share
 	// `section_features`, so the second claim silently stole the first entry's
 	// content until this existed. First claim wins the whole section; a later one
 	// takes just its own field, which is the smaller, still-correct move.
@@ -3137,7 +3137,7 @@ function bnd_render_palette_picker(frm, host) {
 	if (!$host) return;
 
 	const current_style = frm.doc.palette_style || "Bunood Palette";
-	const kit_down = current_style === "Original" || !parseInt(frm.doc.enable_command_palette ?? 1, 10);
+	const kit_down = current_style === "Original" || !parseInt(frm.doc.palette_enabled ?? 1, 10);
 	const is_pro = current_style === "Palette Pro";
 
 	const style_cards = P.cards(
@@ -3215,7 +3215,7 @@ function bnd_palette_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.palette_apply) return;
 	const values = {};
 	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
-	if (!parseInt(frm.doc.enable_command_palette ?? 1, 10)) values.palette_style = "Original";
+	if (!parseInt(frm.doc.palette_enabled ?? 1, 10)) values.palette_style = "Original";
 	window.bunood_theme.palette_apply(values);
 }
 
@@ -7148,7 +7148,7 @@ function bnd_theme_keys() {
 	return [
 		"desk_layout", "company_name", "tagline", "arabic_font",
 		"brand_color", "accent_color",
-		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
+		"brand_color_dark", "accent_color_dark", "density_default", "sidebar_preset",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
 	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
