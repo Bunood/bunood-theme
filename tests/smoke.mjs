@@ -5751,7 +5751,15 @@ async function main() {
 			// PAGE, because that is the page whose iframe consumes the answer,
 			// and a regression in boot threading would otherwise show up only as
 			// a customer's ur preview quietly flipping LTR.
-			await goDesk("/desk/print/user/Administrator", ".print-preview-wrapper", 3000);
+			// `User`, NOT `user` — the doctype's real name, which is what Frappe's
+			// own router produces when a person navigates here. The lowercase
+			// spelling this check shipped with reaches the same page, so it looked
+			// fine, and print.js hands the raw route segment to
+			// `frappe.desk.form.load.getdoc`, which raises DoesNotExistError on a
+			// doctype called "user": a 500 on every run, invisible until the
+			// console-error budget counted it. Measured both spellings side by
+			// side — the 500 appears under the lowercase one only.
+			await goDesk("/desk/print/User/Administrator", ".print-preview-wrapper", 3000);
 			const got = await page.evaluate(() => ({
 				ur: frappe.utils.is_rtl("ur"),
 				ckb: frappe.utils.is_rtl("ckb"),
@@ -14519,6 +14527,15 @@ async function main() {
 			// changes to an SVG and stay silent for a raster or an unchanged save.
 			// Read the message log the save returns, not a toast in a browser —
 			// this is a server behaviour and benchPy sees frappe.message_log.
+			// THE RESTORE GOES BACK THROUGH doc.save(), and the first draft's did
+			// not — which left real residue: `on_update` re-substitutes the LETTER
+			// HEAD record with the logo baked in, and `set_single_value` skips
+			// `on_update`, so the site kept serving a letterhead pointing at
+			// `/files/mark.png` long after the field was clean. Found as two 404s
+			// on an unrelated print-page probe. It is the same rule HANDOVER
+			// states for the brand stylesheet, in its print-carrier form: a
+			// branding field is restored the way it was written, or the things
+			// downstream of it are not restored at all.
 			const probe = (logo) => {
 				const out = benchPy(
 					"import json\n" +
@@ -14530,7 +14547,9 @@ async function main() {
 						"    doc.save(ignore_permissions=True)\n" +
 						"    msgs = [m.get('message', '') if isinstance(m, dict) else str(m) for m in frappe.message_log]\n" +
 						"finally:\n" +
-						"    frappe.db.set_single_value('Theme Settings', 'logo', keep)\n" +
+						"    back = frappe.get_doc('Theme Settings')\n" +
+						"    back.logo = keep\n" +
+						"    back.save(ignore_permissions=True)\n" +
 						"    frappe.db.commit()\n" +
 						"print('BND_MSG' + json.dumps(msgs))\n"
 				);
