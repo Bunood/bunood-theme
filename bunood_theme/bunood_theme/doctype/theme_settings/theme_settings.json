@@ -18,6 +18,7 @@
   "column_break_colors",
   "brand_color_dark",
   "accent_color_dark",
+  "section_language",
   "arabic_font",
   "section_icons",
   "icons_picker",
@@ -297,6 +298,11 @@
    "fieldtype": "Color",
    "label": "Accent Color (Dark Mode)",
    "description": "Optional."
+  },
+  {
+   "fieldname": "section_language",
+   "fieldtype": "Section Break",
+   "label": "Language & Fonts"
   },
   {
    "fieldname": "arabic_font",

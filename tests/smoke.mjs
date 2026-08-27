@@ -4941,13 +4941,14 @@ async function main() {
 			);
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
-			// One field per blindness class: logo → branding (shipped-empty),
-			// dark seed → colours (shipped-empty), arabic_font → colours
-			// (served all along, but unowned).
+			// One field per blindness class: logo → identity (shipped-empty),
+			// dark seed → identity (shipped-empty), arabic_font → fonts
+			// (served all along, but unowned until item 36; Map 1 moved it to
+			// the Language & fonts entry with its own section).
 			for (const [values, key] of [
-				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "branding"],
-				[{ brand_color_dark: "#1a2f6e" }, "colors"],
-				[{ arabic_font: "Almarai" }, "colors"],
+				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
+				[{ brand_color_dark: "#1a2f6e" }, "identity"],
+				[{ arabic_font: "Almarai" }, "fonts"],
 			]) {
 				await withBranding(values, async () => {
 					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);

@@ -1333,6 +1333,12 @@ msgstr "نمط الأيقونات"
 msgid "Icons"
 msgstr "الأيقونات"
 
+#. Label of the "section_language" section and the shell's Language & Fonts entry
+#. src: item36
+#, fuzzy
+msgid "Language & Fonts"
+msgstr "اللغة والخطوط"
+
 #. Label of the "icon_weight" field in DocType 'Theme Settings'
 #. src: ai
 msgid "Icon Weight"

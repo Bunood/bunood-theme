@@ -1155,14 +1155,28 @@ const BND_SHELL_GROUPS = [
 		],
 	},
 	{
+		// ITEM 36, THE USER'S MAP 1: identity is ONE page in its own group —
+		// name, logo, favicon, tagline AND the colour seeds together. The
+		// Directus co-location (its Appearance page holds colour + logos +
+		// favicon on one surface) extended with the name, because at this scale
+		// (four identity fields, four seeds) a split page just separates the
+		// specimen from half its inputs. The entry anchors THREE sections:
+		// branding, colours, and the generated stylesheet line — brand_css_url
+		// belongs beside the seeds that produce it, not in a "Generated"
+		// section at the bottom of the form where nobody connects the two.
+		group: () => __("Identity"),
+		items: [
+			{
+				key: "identity",
+				label: () => __("Identity"),
+				anchors: ["company_name", "brand_color", "brand_css_url"],
+			},
+		],
+	},
+	{
 		group: () => __("Appearance"),
 		items: [
 			{ key: "layout", label: () => __("Layout preset"), anchors: ["desk_layout"] },
-			{ key: "branding", label: () => __("Branding"), anchors: ["company_name"] },
-			// brand_css_url is the generated stylesheet path — it belongs beside
-			// the colours that produce it, not in a "Generated" section of its own
-			// at the bottom of the form where nobody connects the two.
-			{ key: "colors", label: () => __("Colours"), anchors: ["brand_color", "brand_css_url"] },
 			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
 			// own picker like every other kit; the relocated Selects sit hidden
 			// behind the card picker's controls.
@@ -1181,6 +1195,11 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Language"),
 		items: [
+			// Item 36, the user's direction: language and fonts move out of the
+			// Colours pane into their own place beside Translation. The Arabic
+			// face is the entry's whole surface today; the section is where any
+			// later language-shaped field lands.
+			{ key: "fonts", label: () => __("Language & Fonts"), anchors: ["arabic_font"] },
 			// Renders rather than relocating, like the overview: the surface's
 			// state lives in its own doctypes (Bunood Translation Settings /
 			// Scan / Proposal), not in Theme Settings fields — which is what
@@ -1269,14 +1288,20 @@ const BND_SHELL_OWNS = {
 	print: { prefixes: ["print_"] },
 	palette: { prefixes: ["palette_"], fields: ["enable_command_palette"] },
 	layout: { fields: ["desk_layout"] },
-	branding: { fields: ["company_name", "logo", "favicon", "tagline"] },
-	// `arabic_font` joined in item 36: it was the only visible, user-editable
-	// Select in the whole form that NO entry owned — placed in this pane by its
-	// section, invisible to the dot and the note. `brand_css_url` shares the
-	// pane and stays deliberately UNOWNED: it is a generated artefact that
-	// changes on every colour save, so a dot on it would light beside every
-	// seed change and mean nothing.
-	colors: { fields: ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark", "arabic_font"] },
+	// Map 1 (item 36): one Identity page owns the name, the marks, the tagline
+	// AND the seeds. `brand_css_url` shares the pane and stays deliberately
+	// UNOWNED: it is a generated artefact that changes on every colour save,
+	// so a dot on it would light beside every seed change and mean nothing.
+	identity: {
+		fields: [
+			"company_name", "logo", "favicon", "tagline",
+			"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+		],
+	},
+	// `arabic_font` was the only visible, user-editable Select in the whole
+	// form that NO entry owned (item 36 gave it one in the Colours pane, then
+	// Map 1 moved it here with the field's own section).
+	fonts: { fields: ["arabic_font"] },
 	// The Icons axis owns every icon_* field by prefix — the same rule the
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },
