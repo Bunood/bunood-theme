@@ -66,6 +66,10 @@ const BUCKETS = [
 	{ dir: ["css"], prefix: "bunood-print.", key: "print_css" },
 	{ dir: ["css"], prefix: "bunood.", key: "css" },
 	{ dir: ["js"], prefix: "bunood.", key: "js" },
+	// Page-scoped, lazily fetched: only the bnd-report-studio page
+	// frappe.require()s it, so it rides its own ceiling — the desk bundle's
+	// budget is exactly the bytes every desk user pays, unchanged.
+	{ dir: ["js"], prefix: "bnd-studio.", key: "studio_js" },
 ];
 
 export function measure() {
@@ -112,7 +116,7 @@ export function measure() {
  * would bound a number no single page ever pays, and would break every
  * history row's comparability at the release that introduced a second sheet.
  */
-export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip", "email_css_gzip", "print_css_gzip"];
+export const CEILING_KEYS = ["css_gzip", "js_gzip", "studio_js_gzip", "web_css_gzip", "email_css_gzip", "print_css_gzip"];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no

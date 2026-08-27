@@ -1,0 +1,945 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THE REPORT STUDIO — the surface's whole appearance.
+//
+// WHAT
+//   Styles for the bnd-report-studio page: the gallery of report cards, and
+//   the viewer (KPI tiles, chart card, refined table). The DOM is built by
+//   public/js/report_studio.js; nothing here touches Frappe-generated markup.
+//
+// THE TWO STANDING RULES, RESTATED
+//   * LOGICAL PROPERTIES ONLY. One sheet serves English and Arabic; the build
+//     fails on a single margin-left. Alignment is start/end, never left/right.
+//   * TOKENS ONLY. Colour, spacing, radius, type and motion all come from
+//     --bnd-*; the categorical accent each card carries is one of the theme's
+//     own --bnd-cat-N tints, threaded through --bnd-studio-cat by the JS.
+//     Dark mode therefore costs this file nothing: the tokens remap, we
+//     repaint.
+//
+// WHY EVERYTHING IS SCOPED UNDER .bnd-studio
+//   This surface owns its DOM outright, so it needs no specificity war with
+//   Frappe — the html[data-theme] prefix is kept anyway for consistency with
+//   every other partial and so any Frappe variable read here stays mode-safe.
+// ============================================================================
+
+html[data-theme] .bnd-studio {
+	--bnd-studio-cat: var(--bnd-brand);
+
+	max-inline-size: 88rem;
+	margin-inline: auto;
+	padding-block: var(--bnd-sp-5);
+	padding-inline: var(--bnd-sp-4);
+	color: var(--bnd-ink);
+
+	// ── Hero ────────────────────────────────────────────────────────────────
+	.bnd-studio__hero {
+		margin-block-end: var(--bnd-sp-5);
+	}
+
+	.bnd-studio__title {
+		margin: 0;
+		font-size: var(--bnd-text-2xl);
+		line-height: var(--bnd-leading-tight);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-studio__subtitle {
+		margin-block: var(--bnd-sp-1) 0;
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-md);
+	}
+
+	// ── Domain rail ─────────────────────────────────────────────────────────
+	.bnd-studio__domains {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+		margin-block-end: var(--bnd-sp-5);
+	}
+
+	.bnd-studio__domain {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--bnd-sp-2);
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-4);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-pill);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		font-size: var(--bnd-text-md);
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			border-color var(--bnd-dur-fast) var(--bnd-ease),
+			transform var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover:not(:disabled) {
+			background: var(--bnd-hover);
+		}
+
+		&.is-active {
+			background: var(--bnd-brand-solid);
+			border-color: var(--bnd-brand-solid);
+			color: var(--bnd-on-brand);
+		}
+
+		&.is-soon {
+			color: var(--bnd-ink-subtle);
+			cursor: default;
+		}
+	}
+
+	// Every control this surface builds keeps a visible keyboard ring — the
+	// accessibility contract (item 22) extended to the studio's own controls.
+	.bnd-studio__domain:focus-visible,
+	.bnd-studio__back:focus-visible,
+	.bnd-studio__action:focus-visible,
+	.bnd-studio__chip:focus-visible,
+	.bnd-studio__company:focus-visible,
+	.bnd-studio__search:focus-visible,
+	.bnd-studio__caret:focus-visible,
+	.bnd-studio__picker-item:focus-visible {
+		outline: 2px solid var(--bnd-accent);
+		outline-offset: 2px;
+	}
+
+	.bnd-studio__soon {
+		font-size: var(--bnd-text-xs);
+		padding-block: 0;
+		padding-inline: var(--bnd-sp-2);
+		border-radius: var(--bnd-radius-pill);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink-muted);
+	}
+
+	// ── Gallery grid ────────────────────────────────────────────────────────
+	.bnd-studio__grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
+		gap: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__card {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: var(--bnd-sp-4);
+		padding: var(--bnd-sp-4);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-xl);
+		background:
+			linear-gradient(
+				135deg,
+				color-mix(in srgb, var(--bnd-studio-cat) 9%, var(--bnd-surface)),
+				var(--bnd-surface) 45%
+			);
+		box-shadow: var(--bnd-shadow-sm);
+		color: inherit;
+		text-align: start;
+		cursor: pointer;
+		transition:
+			transform var(--bnd-dur-base) var(--bnd-ease-spring),
+			box-shadow var(--bnd-dur-base) var(--bnd-ease),
+			border-color var(--bnd-dur-base) var(--bnd-ease);
+
+		&:hover:not(:disabled) {
+			transform: translateY(calc(var(--bnd-sp-1) * -0.5));
+			box-shadow: var(--bnd-shadow-md);
+			border-color: color-mix(in srgb, var(--bnd-studio-cat) 45%, var(--bnd-border));
+
+			.bnd-studio__card-go {
+				opacity: 1;
+				translate: 0;
+			}
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+
+		&.is-missing {
+			opacity: 0.45;
+			cursor: default;
+		}
+	}
+
+	.bnd-studio__glyph {
+		flex: none;
+		display: grid;
+		place-items: center;
+		inline-size: calc(var(--bnd-sp-7) + var(--bnd-sp-2));
+		block-size: calc(var(--bnd-sp-7) + var(--bnd-sp-2));
+		border-radius: var(--bnd-radius-lg);
+		background: color-mix(in srgb, var(--bnd-studio-cat) 16%, transparent);
+		color: color-mix(in srgb, var(--bnd-studio-cat) 80%, var(--bnd-ink));
+
+		svg {
+			inline-size: 55%;
+			block-size: 55%;
+		}
+	}
+
+	.bnd-studio__card-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--bnd-sp-1);
+		min-inline-size: 0;
+	}
+
+	.bnd-studio__card-title {
+		font-size: var(--bnd-text-lg);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-studio__card-desc {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		line-height: var(--bnd-leading-base);
+	}
+
+	.bnd-studio__card-go {
+		margin-inline-start: auto;
+		color: var(--bnd-ink-subtle);
+		opacity: 0;
+		translate: calc(var(--bnd-sp-2) * -1) 0;
+		transition:
+			opacity var(--bnd-dur-base) var(--bnd-ease),
+			translate var(--bnd-dur-base) var(--bnd-ease);
+	}
+
+	// ── Viewer head ─────────────────────────────────────────────────────────
+	.bnd-studio__viewhead {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__back {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--bnd-sp-2);
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-3);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-pill);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		cursor: pointer;
+		transition: background var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover {
+			background: var(--bnd-hover);
+			color: var(--bnd-ink);
+		}
+	}
+
+	.bnd-studio__heading {
+		min-inline-size: 0;
+
+		.bnd-studio__title {
+			font-size: var(--bnd-text-xl);
+		}
+
+		.bnd-studio__subtitle {
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-studio__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+		margin-inline-start: auto;
+	}
+
+	.bnd-studio__action {
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-3);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		font-size: var(--bnd-text-sm);
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			border-color var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover {
+			background: var(--bnd-hover);
+		}
+
+		&.is-quiet {
+			border-color: transparent;
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	// ── Controls: period chips + company ────────────────────────────────────
+	.bnd-studio__controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__chips {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: calc(var(--bnd-sp-1) / 2);
+		padding: calc(var(--bnd-sp-1) / 2);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-pill);
+		background: var(--bnd-pane);
+	}
+
+	.bnd-studio__chip {
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-3);
+		border: none;
+		border-radius: var(--bnd-radius-pill);
+		background: transparent;
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			color var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover {
+			color: var(--bnd-ink);
+		}
+
+		&.is-active {
+			background: var(--bnd-surface);
+			color: var(--bnd-ink);
+			box-shadow: var(--bnd-shadow-sm);
+			font-weight: var(--bnd-weight-medium);
+		}
+	}
+
+	.bnd-studio__company {
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-3);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		font-size: var(--bnd-text-sm);
+	}
+
+	// ── KPI tiles ───────────────────────────────────────────────────────────
+	.bnd-studio__kpis {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+		gap: var(--bnd-sp-3);
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__kpi {
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		gap: var(--bnd-sp-1);
+		padding: var(--bnd-sp-4);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-raised);
+		box-shadow: var(--bnd-shadow-sm);
+
+		&.is-skeleton {
+			min-block-size: calc(var(--bnd-sp-7) * 2);
+			background:
+				linear-gradient(
+					100deg,
+					var(--bnd-raised),
+					var(--bnd-hover) 50%,
+					var(--bnd-raised)
+				);
+			background-size: 200% 100%;
+			animation: bnd-studio-shimmer calc(var(--bnd-dur-slow) * 5) var(--bnd-ease) infinite;
+		}
+	}
+
+	.bnd-studio__kpi-label {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-studio__kpi-value {
+		font-size: var(--bnd-text-2xl);
+		line-height: var(--bnd-leading-tight);
+		font-weight: var(--bnd-weight-medium);
+		font-variant-numeric: tabular-nums;
+
+		// بلاطات الحكم (متوازن / ربح موجب) تحمل حكمها لوناً — من رموز الدلالة
+		&.is-good {
+			color: var(--bnd-good);
+		}
+
+		&.is-bad {
+			color: var(--bnd-critical);
+		}
+	}
+
+	.bnd-studio__kpi-delta {
+		display: inline-flex;
+		align-items: baseline;
+		gap: var(--bnd-sp-1);
+		font-size: var(--bnd-text-sm);
+		font-variant-numeric: tabular-nums;
+
+		&.is-up {
+			color: var(--bnd-good);
+		}
+
+		&.is-down {
+			color: var(--bnd-critical);
+		}
+
+		&.is-flat {
+			color: var(--bnd-ink-subtle);
+		}
+	}
+
+	.bnd-studio__kpi-arrow {
+		font-size: var(--bnd-text-xs);
+	}
+
+	.bnd-studio__kpi-vs {
+		color: var(--bnd-ink-subtle);
+	}
+
+	.bnd-studio__spark {
+		position: absolute;
+		inset-block-end: 0;
+		inset-inline: 0;
+		block-size: var(--bnd-sp-6);
+		color: color-mix(in srgb, var(--bnd-studio-cat) 55%, transparent);
+		pointer-events: none;
+	}
+
+	// A one-line clarity strip under the KPIs — where a report's arithmetic
+	// deserves a sentence (Gross Profit: selling is net of VAT).
+	.bnd-studio__note {
+		grid-column: 1 / -1;
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-3);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	// ── Chart card ──────────────────────────────────────────────────────────
+	.bnd-studio__chartcard {
+		margin-block-end: var(--bnd-sp-4);
+		padding: var(--bnd-sp-4);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+		box-shadow: var(--bnd-shadow-sm);
+
+		&.is-empty {
+			display: none;
+		}
+	}
+
+	.bnd-studio__chart-title {
+		margin: 0;
+		margin-block-end: var(--bnd-sp-2);
+		font-size: var(--bnd-text-md);
+		font-weight: var(--bnd-weight-medium);
+		color: var(--bnd-ink-muted);
+	}
+
+	// ── Table card ──────────────────────────────────────────────────────────
+	.bnd-studio__tablecard {
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+		box-shadow: var(--bnd-shadow-sm);
+		overflow: hidden;
+	}
+
+	.bnd-studio__tabletools {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-3);
+		border-block-end: 1px solid var(--bnd-line);
+	}
+
+	.bnd-studio__search {
+		flex: 1 1 12rem;
+		max-inline-size: 22rem;
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-3);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-page);
+		color: var(--bnd-ink);
+		font-size: var(--bnd-text-sm);
+
+		&:focus {
+			outline: 2px solid color-mix(in srgb, var(--bnd-accent) 55%, transparent);
+			outline-offset: 0;
+		}
+	}
+
+	.bnd-studio__count {
+		color: var(--bnd-ink-subtle);
+		font-size: var(--bnd-text-sm);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.bnd-studio__tablewrap {
+		overflow: auto;
+		max-block-size: 60vh;
+	}
+
+	.bnd-studio__table {
+		inline-size: 100%;
+		border-collapse: collapse;
+		font-size: var(--bnd-text-sm);
+
+		th,
+		td {
+			padding-block: var(--bnd-sp-2);
+			padding-inline: var(--bnd-sp-3);
+			text-align: start;
+			white-space: nowrap;
+		}
+
+		thead th {
+			position: sticky;
+			inset-block-start: 0;
+			background: var(--bnd-pane);
+			color: var(--bnd-ink-muted);
+			font-weight: var(--bnd-weight-medium);
+			font-size: var(--bnd-text-xs);
+			text-transform: none;
+			border-block-end: 1px solid var(--bnd-border);
+			z-index: 1;
+		}
+
+		tbody tr {
+			border-block-end: 1px solid var(--bnd-line);
+			transition: background var(--bnd-dur-fast) var(--bnd-ease);
+
+			&:hover {
+				background: var(--bnd-hover);
+			}
+
+			// عقدة مجموعة في شجرة القوائم المالية
+			&.is-group > td {
+				font-weight: var(--bnd-weight-medium);
+			}
+
+			// فاصل بصري بين أقسام القائمة (صفوف إرمبنكست الفارغة)
+			&.is-spacer {
+				border-block-end: none;
+
+				td {
+					padding: 0;
+					block-size: var(--bnd-sp-3);
+				}
+			}
+
+			// A return row wears a faint wash of the critical hue — visible in a
+			// scan, quiet enough not to shout over the figures.
+			&.is-return {
+				background: color-mix(in srgb, var(--bnd-critical) 5%, transparent);
+			}
+
+			&.is-total {
+				background: var(--bnd-pane);
+				font-weight: var(--bnd-weight-medium);
+			}
+
+			// عنوان قسم في ورقةٍ تصرّح صفوفها بطبيعتها (الإقرار الضريبي):
+			// شريط هادئ بلون فئة البطاقة يفصل المبيعات عن المشتريات عن الصافي.
+			&.is-section {
+				background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
+
+				> td {
+					padding-block: var(--bnd-sp-2);
+					font-size: var(--bnd-text-xs);
+					color: var(--bnd-ink);
+				}
+
+				&:hover {
+					background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
+				}
+			}
+		}
+
+		.bnd-studio__caret {
+			margin-inline-end: var(--bnd-sp-2);
+			inline-size: var(--bnd-sp-5);
+			border: 1px solid var(--bnd-border);
+			border-radius: var(--bnd-radius-sm);
+			background: var(--bnd-surface);
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-xs);
+			line-height: 1;
+			cursor: pointer;
+
+			&:hover {
+				background: var(--bnd-hover);
+				color: var(--bnd-ink);
+			}
+		}
+
+		.bnd-studio__kindchip {
+			display: inline-block;
+			padding-block: 0;
+			padding-inline: var(--bnd-sp-2);
+			border-radius: var(--bnd-radius-pill);
+			background: color-mix(in srgb, var(--bnd-good) 14%, transparent);
+			color: var(--bnd-good);
+			font-size: var(--bnd-text-xs);
+			font-weight: var(--bnd-weight-medium);
+
+			&.is-return {
+				background: color-mix(in srgb, var(--bnd-critical) 14%, transparent);
+				color: var(--bnd-critical);
+			}
+		}
+
+		td.is-num,
+		th.is-num {
+			text-align: end;
+			font-variant-numeric: tabular-nums;
+		}
+
+		td.is-neg {
+			color: var(--bnd-critical);
+		}
+
+		tfoot td {
+			position: sticky;
+			inset-block-end: 0;
+			background: var(--bnd-raised);
+			border-block-start: 2px solid var(--bnd-border-strong);
+			font-weight: var(--bnd-weight-medium);
+		}
+	}
+
+	// ── منتقي كشف الحساب ────────────────────────────────────────────────────
+	.bnd-studio__picker {
+		display: flex;
+		flex-direction: column;
+		gap: var(--bnd-sp-4);
+		max-inline-size: 42rem;
+		margin-inline: auto;
+		padding: var(--bnd-sp-6);
+	}
+
+	.bnd-studio__picker-title {
+		margin: 0;
+		font-size: var(--bnd-text-lg);
+		font-weight: var(--bnd-weight-medium);
+		text-align: center;
+	}
+
+	.bnd-studio__picker-quick {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--bnd-sp-2);
+	}
+
+	.bnd-studio__picker-hint {
+		color: var(--bnd-ink-subtle);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-studio__picker-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
+		gap: var(--bnd-sp-2);
+	}
+
+	.bnd-studio__picker-item {
+		display: flex;
+		flex-direction: column;
+		align-items: start;
+		gap: calc(var(--bnd-sp-1) / 2);
+		padding: var(--bnd-sp-3);
+		border: 1px solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		text-align: start;
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			border-color var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover {
+			background: var(--bnd-hover);
+			border-color: color-mix(in srgb, var(--bnd-studio-cat) 45%, var(--bnd-border));
+		}
+	}
+
+	.bnd-studio__picker-sub {
+		color: var(--bnd-ink-subtle);
+		font-size: var(--bnd-text-xs);
+	}
+
+	// ── States ──────────────────────────────────────────────────────────────
+	.bnd-studio__shimmer {
+		block-size: calc(var(--bnd-sp-7) * 4);
+		border-radius: var(--bnd-radius-lg);
+		background:
+			linear-gradient(
+				100deg,
+				var(--bnd-pane),
+				var(--bnd-hover) 50%,
+				var(--bnd-pane)
+			);
+		background-size: 200% 100%;
+		animation: bnd-studio-shimmer calc(var(--bnd-dur-slow) * 5) var(--bnd-ease) infinite;
+
+		&.is-tall {
+			block-size: calc(var(--bnd-sp-7) * 7);
+		}
+	}
+
+	.bnd-studio__empty,
+	.bnd-studio__error {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--bnd-sp-2);
+		padding: var(--bnd-sp-7);
+		text-align: center;
+		color: var(--bnd-ink-muted);
+
+		strong {
+			color: var(--bnd-ink);
+			font-size: var(--bnd-text-lg);
+			font-weight: var(--bnd-weight-medium);
+		}
+	}
+
+	.bnd-studio__error {
+		color: var(--bnd-critical);
+
+		strong {
+			color: var(--bnd-critical);
+		}
+	}
+}
+
+@keyframes bnd-studio-shimmer {
+	from {
+		background-position: 200% 0;
+	}
+
+	to {
+		background-position: -200% 0;
+	}
+}
+
+// ── Presentation mode ─────────────────────────────────────────────────────
+// Fullscreen the surface for a meeting: the KPIs and the chart carry the
+// story; the table steps back. Scoped on the modifier the JS toggles.
+html[data-theme] .bnd-studio--present {
+	background: var(--bnd-page);
+	max-inline-size: none;
+	padding-inline: var(--bnd-sp-7);
+
+	.bnd-studio__tablecard,
+	.bnd-studio__controls,
+	.bnd-studio__back {
+		display: none;
+	}
+
+	.bnd-studio__kpis {
+		grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+	}
+
+	.bnd-studio__kpi-value {
+		font-size: calc(var(--bnd-text-2xl) * 1.6);
+	}
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────
+// ── Print: an A4 document, not a screenshot ───────────────────────────────
+// The letterhead (company, VAT registration, period, timestamp) exists only
+// on paper; chrome and inputs vanish; the table becomes a full ruled grid
+// whose header repeats on every page; a fixed footer signs each sheet.
+.bnd-studio__printhead,
+.bnd-studio__printfoot {
+	display: none;
+}
+
+@media print {
+	// Physical units belong to the one at-rule that addresses paper.
+	// Landscape by the owner's word: the tables are the document, and a wide
+	// worksheet breathes across the page instead of squeezing into portrait.
+	@page {
+		size: A4 landscape;
+		margin: 10mm 12mm;
+	}
+
+	// The desk's own chrome has no business on paper — frappe's and OURS:
+	// the theme's top bar (search) and status bar print as stray boxes
+	// otherwise (measured on the A4 preview). Identity, not class.
+	html[data-theme] .navbar,
+	html[data-theme] .page-head,
+	html[data-theme] .layout-side-section,
+	html[data-theme] [data-bnd-part="topbar"],
+	html[data-theme] [data-bnd-part="bottombar"],
+	html[data-theme] [data-bnd-part="dock"] {
+		display: none;
+	}
+
+	html[data-theme] body {
+		background: var(--bnd-surface);
+	}
+
+	html[data-theme] .bnd-studio {
+		max-inline-size: none;
+		padding: 0;
+		// مساحة لذيل الصفحة الثابت كي لا يركب آخر سطر.
+		padding-block-end: var(--bnd-sp-7);
+
+		.bnd-studio__actions,
+		.bnd-studio__controls,
+		.bnd-studio__back,
+		.bnd-studio__tabletools,
+		.bnd-studio__domains {
+			display: none;
+		}
+
+		// ── الترويسة الرسمية ────────────────────────────────────────────
+		.bnd-studio__printhead {
+			display: block;
+			margin-block-end: var(--bnd-sp-4);
+			padding-block-end: var(--bnd-sp-3);
+			border-block-end: 3px solid var(--bnd-brand);
+		}
+
+		.bnd-studio__printhead-brand {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: var(--bnd-sp-4);
+
+			strong {
+				font-size: var(--bnd-text-xl);
+			}
+
+			span {
+				color: var(--bnd-ink-muted);
+				font-size: var(--bnd-text-md);
+			}
+		}
+
+		.bnd-studio__printhead-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: var(--bnd-sp-4);
+			margin-block-start: var(--bnd-sp-2);
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-xs);
+
+			b {
+				color: var(--bnd-ink);
+				font-weight: var(--bnd-weight-medium);
+			}
+		}
+
+		// معلومات فقط، بأمر المالك: لا بلاطات تحليل ولا مخطط ولا عنوانَ شاشةٍ
+		// مكرر — الترويسة تحمل الهوية، والجدول يحمل البيانات، وسطر النطاق يبقى
+		// لأنه معلومة لا زينة.
+		.bnd-studio__viewhead,
+		.bnd-studio__kpi,
+		.bnd-studio__chartcard {
+			display: none;
+		}
+
+		.bnd-studio__printfoot {
+			display: block;
+			position: fixed;
+			inset-block-end: 0;
+			inset-inline: 0;
+			padding-block-start: var(--bnd-sp-1);
+			border-block-start: 1px solid var(--bnd-line);
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-xs);
+			text-align: center;
+		}
+
+		.bnd-studio__tablecard {
+			box-shadow: none;
+			border-color: var(--bnd-border-strong);
+		}
+
+		.bnd-studio__kpis {
+			gap: 0;
+		}
+
+		.bnd-studio__note {
+			border-color: var(--bnd-border-strong);
+			margin-block-end: var(--bnd-sp-3);
+		}
+
+		.bnd-studio__tablewrap {
+			overflow: visible;
+			max-block-size: none;
+		}
+
+		// ── جدول محكم: شبكة كاملة، رأس يتكرر مع كل صفحة ─────────────────
+		.bnd-studio__table {
+			font-size: var(--bnd-text-xs);
+
+			thead {
+				display: table-header-group;
+			}
+
+			tbody tr {
+				break-inside: avoid;
+			}
+
+			th,
+			td {
+				white-space: normal;
+				border: 1px solid var(--bnd-line);
+				padding-block: var(--bnd-sp-1);
+				padding-inline: var(--bnd-sp-2);
+			}
+
+			th {
+				border-block-end: 2px solid var(--bnd-border-strong);
+			}
+
+			td.is-num {
+				white-space: nowrap;
+			}
+
+			tfoot td {
+				position: static;
+			}
+		}
+
+		// الأصباغ تُطبع كما تُرى — الأقسام والإجماليات والمرتجعات بألوانها.
+		.bnd-studio__table tbody tr.is-section,
+		.bnd-studio__table tbody tr.is-total,
+		.bnd-studio__table tbody tr.is-return,
+		.bnd-studio__printhead {
+			print-color-adjust: exact;
+		}
+	}
+}

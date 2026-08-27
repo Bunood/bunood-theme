@@ -1353,7 +1353,15 @@ async function buildEntry({ key, src, pyid }) {
  * scripts tiny, and a copy step has zero dependencies to break. If the JS ever
  * grows enough to want imports, add esbuild THEN, not preemptively.
  */
-const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
+const JS_ENTRIES = [
+	{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" },
+	// The Report Studio engine. A SECOND entry, not a bunood.js section, because
+	// it is page-scoped by design: hooks.py never includes it, boot.py exposes its
+	// hashed URL, and the bnd-report-studio page frappe.require()s it on first
+	// visit — so the global desk payload does not pay for a surface only report
+	// readers open. Still a plain hashed copy: the no-esbuild policy holds.
+	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+];
 
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
