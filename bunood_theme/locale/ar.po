@@ -5040,3 +5040,190 @@ msgstr "ما الجديد"
 #, fuzzy
 msgid "Save Current Filter"
 msgstr "حفظ التصفية الحالية"
+
+#. Description of a Data field in DocType 'Theme Settings'
+#. src: item36
+#, fuzzy
+msgid "Shown in the sidebar, the browser tab, the sign-in page, the website navbar and email headers. Printed documents use the Company record's name instead."
+msgstr "يظهر في الشريط الجانبي وتبويب المتصفح وصفحة الدخول وشريط الموقع وترويسات البريد. تستخدم المستندات المطبوعة اسم سجل الشركة بدلاً منه."
+
+#. Description of a Attach Image field in DocType 'Theme Settings'
+#. src: item36
+#, fuzzy
+msgid "Desk, sign-in and website. Email and printed documents accept a raster image (PNG/JPG) only — an SVG here shows the wordmark on those instead."
+msgstr "المكتب وصفحة الدخول والموقع. يقبل البريد والمستندات المطبوعة صورة نقطية (PNG/JPG) فقط — وملف SVG هنا يعرض الاسم النصي هناك بدلاً منه."
+
+#. Description of a Attach Image field in DocType 'Theme Settings'
+#. src: item36
+#, fuzzy
+msgid "The browser-tab icon. Empty — follows Website Settings, then the Bunood mark."
+msgstr "أيقونة تبويب المتصفح. فارغة — تتبع إعدادات الموقع ثم علامة Bunood."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Identity applies on the next page load."
+msgstr "تظهر الهوية عند تحميل الصفحة التالي."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "your logo"
+msgstr "شعارك"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "first letter — no logo"
+msgstr "الحرف الأول — لا شعار"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Browser tab"
+msgstr "تبويب المتصفح"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "your favicon"
+msgstr "أيقونتك"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Website Settings' favicon"
+msgstr "أيقونة إعدادات الموقع"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "the Bunood mark"
+msgstr "علامة Bunood"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Email header"
+msgstr "ترويسة البريد"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "SVG — wordmark used"
+msgstr "SVG — استُخدم الاسم النصي"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "names from the Company record"
+msgstr "الأسماء من سجل الشركة"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Sign-in"
+msgstr "تسجيل الدخول"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "a specimen — /login cannot be previewed"
+msgstr "عيّنة — لا يمكن معاينة /login"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "How each surface reads your identity now, and after staff reload."
+msgstr "كيف يقرأ كل سطح هويتك الآن، وبعد إعادة تحميل الموظفين."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "wash"
+msgstr "غسلة"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "fill"
+msgstr "تعبئة"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "text"
+msgstr "نص"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Your colours are used as entered."
+msgstr "تُستخدم ألوانك كما أُدخلت."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Generated stylesheet: {0} — rewritten on every save."
+msgstr "الملف المولّد: {0} — يُعاد إنشاؤه عند كل حفظ."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "How the seed derives"
+msgstr "كيف تشتق البذرة"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Light"
+msgstr "فاتح"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Dark"
+msgstr "داكن"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Reset returns the shipped name."
+msgstr "تعيد الاستعادة الاسم المضمَّن."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Empty — the splash follows Website Settings, then the Bunood mark. Email and paper need a raster image."
+msgstr "فارغ — تتبع شاشة البدء إعدادات الموقع ثم علامة Bunood. يحتاج البريد والورق صورة نقطية."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Empty — the tab icon follows Website Settings, then the Bunood mark."
+msgstr "فارغ — تتبع أيقونة التبويب إعدادات الموقع ثم علامة Bunood."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Appears under the sign-in card only. Empty — nothing shows there."
+msgstr "يظهر أسفل بطاقة الدخول فقط. فارغ — لا يظهر شيء هناك."
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Reset to {0}"
+msgstr "إعادة إلى {0}"
+
+#. In theme_settings.js
+#. src: item36
+#, fuzzy
+msgid "Clear"
+msgstr "مسح"
+
+#. In theme_settings.py
+#. src: item36
+#, fuzzy
+msgid "Email and printed documents will show your company name instead of this logo — they accept a PNG or JPG, not an SVG."
+msgstr "سيعرض البريد والمستندات المطبوعة اسم شركتك بدلاً من هذا الشعار — فهي تقبل PNG أو JPG لا SVG."
+

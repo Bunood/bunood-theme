@@ -889,6 +889,102 @@ def get_shipped_defaults() -> dict:
 
 
 @frappe.whitelist()
+def effective_identity() -> dict:
+    """What the tenant's identity RESOLVES TO on each surface — item 36.
+
+    THE PANE RENDERS FACTS IT DID NOT AUTHOR. The specimen strip (B) and the
+    seed console (D) both need answers the client cannot compute without
+    re-deriving the platform's own chains — the favicon fallback, the raster
+    rule, the Company-vs-Theme name split on paper, the whole ``palette.derive``
+    lattice. Every one of those already lives in Python, and a client copy is
+    the same-fact-in-two-places trap the whole settings rework exists to avoid.
+    So this composes them ONCE, on the server, from the same functions the real
+    surfaces use, and the pane only ever displays what it is handed.
+
+    NOT A PREVIEW OF A DOCUMENT — a resolution table. The email and print panes
+    own the real server renders; this is the cheap, honest layer beneath them:
+    "given what you have stored, here is which mark wins where, and why."
+
+    System-Manager only, like every other pane endpoint. Never raises: a pane
+    that cannot draw its specimen falls back to the native controls, which are
+    the real write surface anyway.
+    """
+    frappe.only_for("System Manager")
+
+    from bunood_theme import palette
+    from bunood_theme.context import VENDOR_MARK, _tenant_branding, _vendor_name
+    from bunood_theme.email import RASTER_SUFFIXES
+    from bunood_theme.bunood_theme.doctype.theme_settings.theme_settings import _note_sentence
+
+    def _is_raster(url: str) -> bool:
+        return bool(url) and url.lower().endswith(RASTER_SUFFIXES)
+
+    tenant = _tenant_branding()
+    settings = frappe.get_single("Theme Settings")
+    logo = tenant["logo"] or ""
+    favicon = tenant["favicon"] or ""
+    name = tenant["company_name"] or _vendor_name()
+    tagline = settings.get("tagline") or ""
+
+    site_favicon = frappe.get_cached_value("Website Settings", "Website Settings", "favicon") or ""
+
+    # The Company doctype's names — paper reads these, not Theme Settings, so
+    # the specimen states the divergence instead of hiding it (the census gap).
+    company = frappe.defaults.get_global_default("company") or frappe.db.get_value("Company", {}, "name")
+    company_en = company_ar = ""
+    if company:
+        c = frappe.get_cached_doc("Company", company)
+        company_en = c.get("company_name") or company
+        company_ar = c.get("company_name_in_arabic") or c.get("custom_company_name_ar") or ""
+
+    # The seed lattice, both modes, from the ONE derivation. The three roles a
+    # brand IS here (CLAUDE.md): wash / fill+ink / text. Named, not indexed, so
+    # the pane cannot mis-map them.
+    def _roles(mode: str) -> dict:
+        d = palette.derive(
+            settings.get("brand_color") or "#4d8756",
+            settings.get("accent_color") or "#4463f0",
+            mode,
+        )
+        return {
+            "wash": d["--bnd-active"],
+            "fill": d["--bnd-brand-solid"],
+            "on_fill": d["--bnd-on-brand"],
+            "text": d["--bnd-brand-ink"],
+            "ground": d["--bnd-page"],
+            "ring": d["--bnd-accent"],
+        }
+
+    try:
+        report = [_note_sentence(n) for n in palette.adjustments(
+            settings.get("brand_color") or "#4d8756",
+            settings.get("accent_color") or "#4463f0",
+        )]
+        report = [s for s in report if s]
+    except Exception:
+        # A colour that cannot be modelled falls back to the shipped palette
+        # (brand.py already does), and the report is silent rather than wrong —
+        # the same non-blocking stance validate() takes.
+        report = []
+
+    return {
+        "name": {"value": name, "source": "tenant" if tenant["company_name"] else "vendor"},
+        "logo": {"value": logo, "is_raster": _is_raster(logo)},
+        "favicon": {"value": favicon, "site": site_favicon, "vendor": VENDOR_MARK},
+        "tagline": tagline,
+        "surfaces": {
+            "sidebar": {"logo": logo, "name": name, "letter": (name[:1] or "B")},
+            "tab": {"favicon": favicon or site_favicon or VENDOR_MARK, "title": name},
+            "email": {"mark": logo if _is_raster(logo) else "", "name": name, "svg_dropped": bool(logo) and not _is_raster(logo)},
+            "paper": {"logo": logo if _is_raster(logo) else "", "name_en": company_en, "name_ar": company_ar, "svg_dropped": bool(logo) and not _is_raster(logo)},
+            "login": {"logo": logo or VENDOR_MARK, "tagline": tagline},
+        },
+        "palette": {"light": _roles("light"), "dark": _roles("dark"), "report": report},
+        "receipt": settings.get("brand_css_url") or "",
+    }
+
+
+@frappe.whitelist()
 def email_preview() -> str:
     """Render a representative email through the REAL funnel, for the picker.
 

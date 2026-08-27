@@ -44,6 +44,40 @@ class ThemeSettings(Document):
 				self.set(field, value.strip().lower())
 
 		self.report_contrast_adjustments()
+		self.report_logo_reach()
+
+	def report_logo_reach(self):
+		"""Tell the administrator where an SVG logo will NOT travel — item 36.
+
+		The same report-never-reject stance as the contrast notes above, applied
+		to the one identity rule the pipeline enforces silently: email and the
+		printed letterhead accept a raster mark only (mail clients do not render
+		SVG; the letterhead sync drops it), so an SVG logo falls through to the
+		wordmark there while rendering fine on the desk, sign-in and website. The
+		admin who attaches ``mark.svg`` should learn that at the moment they do,
+		not from a customer's invoice.
+
+		Fires ONLY when ``logo`` changed to a non-raster value in this save — the
+		contrast report's discipline: a note on every unrelated save is noise. A
+		raster logo, an empty logo, or a save that did not touch the logo says
+		nothing. Never blocks: the SVG is still the right desk mark, so this is
+		information, not a wall.
+		"""
+		before = self.get_doc_before_save()
+		if before is not None and (before.get("logo") or "") == (self.get("logo") or ""):
+			return
+
+		from bunood_theme.email import RASTER_SUFFIXES
+
+		logo = (self.get("logo") or "").strip().lower()
+		if not logo or logo.endswith(RASTER_SUFFIXES):
+			return
+
+		frappe.msgprint(
+			_("Email and printed documents will show your company name instead of this logo — they accept a PNG or JPG, not an SVG."),
+			indicator="blue",
+			alert=True,
+		)
 
 	def report_contrast_adjustments(self):
 		"""Tell the administrator what the theme did with their colours.

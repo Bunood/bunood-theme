@@ -924,6 +924,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_email_picker(frm);
 		bnd_render_print_picker(frm);
 		bnd_render_icons_picker(frm);
+		bnd_render_identity_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
 		bnd_render_placement_board(frm);
@@ -6928,6 +6929,199 @@ function bnd_status_set(frm, fieldname, value) {
 }
 
 /**
+ * The identity pane's specimen + colours console, from the server — item 36.
+ *
+ * Map 1: one Identity page holds the name, marks, tagline AND the seeds. The
+ * NATIVE controls Frappe relocates into this pane stay the only write surface;
+ * this picker adds the read-only layer the round picked (B specimen strip + D
+ * seed console) plus reset chips that write THROUGH those native fields.
+ *
+ * EVERYTHING SHOWN IS SERVER-RESOLVED. `effective_identity` composes the
+ * fallback chains, the raster rule and the whole `palette.derive` lattice on
+ * the server; the pane never re-derives a chain or a colour, so it cannot drift
+ * from what the real surfaces do. Fetched on every render (identity changes
+ * move the answer), drawn into a placeholder the moment it resolves — a slow
+ * call leaves the native controls fully usable, never a spinner over them.
+ */
+let bnd_identity_cache = null;
+
+function bnd_identity_note(frm) {
+	// "Applies on the next page load" — identity travels in boot and the served
+	// <head>, so unlike every style kit there is no live desk repaint, and a
+	// pane that implied one would lie.
+	return P.note(__("Identity applies on the next page load."));
+}
+
+function bnd_identity_specimen(data) {
+	if (!data) return "";
+	const s = data.surfaces;
+	const esc = bnd_esc;
+	const chip = (fill, glyph) =>
+		'<span class="bnd-idp-mark" style="background:' + esc(fill) + '">' + esc(glyph) + "</span>";
+
+	// Each miniature is a drawing captioned with its SOURCE — the frappe-ui
+	// compose-the-tenant's-own-values thumbnail crossed with Discourse's
+	// show-the-computed-fallback. Colours are inline (dynamic per seed); layout
+	// is `.bnd-idp-*` in _settings.scss.
+	const mark = data.logo.value && data.logo.is_raster;
+	const light = data.palette.light;
+	const cell = (title, body, note) =>
+		'<div class="bnd-idp-cell"><div class="bnd-idp-frame">' + body + "</div>" +
+		'<div class="bnd-idp-cap">' + esc(title) + (note ? " — " + esc(note) : "") + "</div></div>";
+
+	const sidebar = cell(
+		__("Sidebar"),
+		'<div class="bnd-idp-row">' +
+			(mark ? '<img class="bnd-idp-img" src="' + esc(s.sidebar.logo) + '" alt="">' : chip(light.fill, esc(s.sidebar.letter))) +
+			'<b>' + esc(s.sidebar.name) + "</b></div>",
+		mark ? __("your logo") : __("first letter — no logo")
+	);
+	const tab = cell(
+		__("Browser tab"),
+		'<div class="bnd-idp-tab"><img class="bnd-idp-fav" src="' + esc(s.tab.favicon) + '" alt="">' +
+			"<span>" + esc(s.tab.title) + "</span></div>",
+		data.favicon.value ? __("your favicon") : (data.favicon.site ? __("Website Settings' favicon") : __("the Bunood mark"))
+	);
+	const email = cell(
+		__("Email header"),
+		'<div class="bnd-idp-center">' +
+			(s.email.mark
+				? '<img class="bnd-idp-img" src="' + esc(s.email.mark) + '" alt="">'
+				: '<b style="color:' + esc(light.text) + '">' + esc(s.email.name) + "</b>") +
+			(s.email.svg_dropped ? '<span class="bnd-idp-badge">' + __("SVG — wordmark used") + "</span>" : "") +
+			"</div>",
+		null
+	);
+	const paper = cell(
+		__("Letterhead"),
+		'<div class="bnd-idp-paper" dir="ltr"><span>' + esc(s.paper.name_en || "—") + "</span>" +
+			(s.paper.logo ? '<img class="bnd-idp-fav" src="' + esc(s.paper.logo) + '" alt="">' : "") +
+			'<span dir="rtl">' + esc(s.paper.name_ar || "—") + "</span></div>",
+		__("names from the Company record")
+	);
+	const login = cell(
+		__("Sign-in"),
+		'<div class="bnd-idp-center"><img class="bnd-idp-img" src="' + esc(s.login.logo) + '" alt="">' +
+			(s.login.tagline ? '<span class="bnd-idp-tagline">' + esc(s.login.tagline) + "</span>" : "") +
+			"</div>",
+		__("a specimen — /login cannot be previewed")
+	);
+
+	return (
+		'<div class="bnd-idp-strip">' + sidebar + tab + email + paper + login + "</div>" +
+		P.note(__("How each surface reads your identity now, and after staff reload."))
+	);
+}
+
+function bnd_identity_console(frm, data) {
+	if (!data) return "";
+	const esc = bnd_esc;
+	const p = data.palette;
+	// The three roles a brand IS (wash / fill+ink / text), both modes, from the
+	// served hexes — never a live var() read (the tab's own sheet is one load
+	// stale) and never client maths.
+	const roleRow = (mode, label) => {
+		const r = p[mode];
+		const sw = (bg, fg, txt) =>
+			'<span class="bnd-idp-role" style="background:' + esc(bg) + (fg ? ";color:" + esc(fg) : "") + '">' + esc(txt) + "</span>";
+		return (
+			'<div class="bnd-idp-roles"><span class="bnd-idp-rlabel">' + esc(label) + "</span>" +
+			sw(r.wash, r.text, __("wash")) + sw(r.fill, r.on_fill, __("fill")) +
+			'<span class="bnd-idp-role" style="background:' + esc(r.ground) + ";color:" + esc(r.text) + '">' + __("text") + "</span>" +
+			"</div>"
+		);
+	};
+	// The adjustment report, RESIDENT. The server already computes these whole
+	// translated sentences and throws them away as a save-time toast; here they
+	// live where the seeds are. "Used as entered" when the derivation changed
+	// nothing — silence was the ambiguity.
+	const report = p.report.length
+		? '<div class="bnd-idp-report">' + p.report.map((line) => "<div>" + esc(line) + "</div>").join("") + "</div>"
+		: P.note(__("Your colours are used as entered."));
+
+	const receipt = data.receipt
+		? P.note(__("Generated stylesheet: {0} — rewritten on every save.", [data.receipt.split("/").pop()]))
+		: "";
+
+	return P.group({
+		title: __("How the seed derives"),
+		body: roleRow("light", __("Light")) + roleRow("dark", __("Dark")) + report + receipt,
+	});
+}
+
+function bnd_render_identity_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "identity_picker", host);
+	if (!$host) return;
+
+	const esc = bnd_esc;
+	const shipped = (bnd_shipped && bnd_shipped.company_name) || "Bunood";
+	// The honesty ledger: one group per identity field with a reset/clear chip
+	// (bound below) and its effective-value line. company_name RESETS to the
+	// shipped name (the user's pick — and the migrate seeder would refill it
+	// anyway, so the chip says what actually happens); the others CLEAR, and
+	// their note states the fallback the empty value follows.
+	const ledger = [
+		{ field: "company_name", verb: "reset", to: shipped, label: __("Company Name"),
+		  note: __("Reset returns the shipped name.") },
+		{ field: "logo", verb: "clear", to: "", label: __("Logo"),
+		  note: __("Empty — the splash follows Website Settings, then the Bunood mark. Email and paper need a raster image.") },
+		{ field: "favicon", verb: "clear", to: "", label: __("Favicon"),
+		  note: __("Empty — the tab icon follows Website Settings, then the Bunood mark.") },
+		{ field: "tagline", verb: "clear", to: "", label: __("Tagline"),
+		  note: __("Appears under the sign-in card only. Empty — nothing shows there.") },
+	].map((row) =>
+		P.group({
+			field: row.field,
+			resetTitle: row.verb === "reset" ? __("Reset to {0}", [shipped]) : __("Clear"),
+			title: row.label,
+			body: P.note(row.note),
+		})
+	).join("");
+
+	// Draw the frame immediately with a placeholder for the async parts, so the
+	// native controls below are never blocked; fill on resolve.
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cbp bnd-idp">' +
+				bnd_identity_note(frm) +
+				'<div class="bnd-idp-async">' +
+				(bnd_identity_cache ? bnd_identity_specimen(bnd_identity_cache) + bnd_identity_console(frm, bnd_identity_cache) : "") +
+				"</div>" +
+				ledger +
+				"</div>"
+		)
+	);
+
+	// Reset/clear chips write THROUGH the native fields — autosave fires, the
+	// specimen re-fetches, the dot updates. `.bnd-cbp-reset` bound here, which
+	// is what `assertResetChipsBound` checks for.
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		const to = f === "company_name" ? shipped : "";
+		frm.set_value(f, to);
+		bnd_render_identity_picker(frm);
+	});
+
+	// FETCH LAST, and re-render the async region in place when it lands. Guarded
+	// on the host still being attached — a shell torn down mid-fetch must not
+	// throw into a detached node. A failed fetch leaves the native controls and
+	// the ledger fully usable, which is the honest degrade (item 32's rule that
+	// a cosmetic endpoint failure costs the cosmetics and nothing else).
+	frappe
+		.xcall("bunood_theme.api.effective_identity")
+		.then((data) => {
+			if (!data) return;
+			bnd_identity_cache = data;
+			const $slot = $host.find(".bnd-idp-async");
+			if ($slot.length && document.body.contains($slot[0])) {
+				$slot.html(bnd_identity_specimen(bnd_identity_cache) + bnd_identity_console(frm, bnd_identity_cache));
+			}
+		})
+		.catch(() => {});
+}
+
+/**
  * The ONE list both halves of theme portability read — item 36.
  *
  * Export and import each carried their own copy of this concat, and the two
@@ -7040,6 +7234,8 @@ function bnd_sb_import(frm) {
 			bnd_render_print_picker(frm);
 			bnd_render_email_picker(frm);
 			bnd_render_icons_picker(frm);
+			bnd_identity_cache = null;
+			bnd_render_identity_picker(frm);
 			// Label + value: see the note in bunood.js's status segments. A
 			// counted noun cannot be translated correctly into Arabic through
 			// Frappe's plural-free dictionary.

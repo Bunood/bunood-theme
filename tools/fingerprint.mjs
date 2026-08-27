@@ -77,6 +77,15 @@ async function settleOnPinnedState() {
   );
 }
 await settleOnPinnedState();
+// IDENTITY_PICKER IS DELIBERATELY NOT FINGERPRINTED (item 36). This net records
+// text LENGTH and node sequence, and the identity pane's specimen composes from
+// LIVE identity + the async `effective_identity` fetch — the brand_css_url hash,
+// the derived hexes, the tenant name — none of which the pinned MUTABLE state
+// controls. Its structure is covered instead by the complement check (five
+// cells + four reset chips, with its own async wait) and its correctness by
+// `settings: the identity specimen tells the truth`. Fingerprinting it would
+// trade real coverage for a flaky text-length compare on data this net cannot
+// pin.
 const fp = await page.evaluate(()=>{
   const out={};
   for (const f of ["layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker",

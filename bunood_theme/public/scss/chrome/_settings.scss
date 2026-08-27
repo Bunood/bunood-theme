@@ -1339,3 +1339,148 @@ html[data-theme] {
 	block-size: 460px;
 	border: 0;
 }
+
+// ── The identity pane (item 36) — the specimen strip and the seed console ────
+// The one pane whose subject is the tenant's own identity. The strip's cells
+// and the role swatches carry DYNAMIC colours (the seed, the derived lattice)
+// as inline styles — those cannot live in this sheet; everything here is
+// layout and neutral chrome, tokens only.
+.bnd-idp-strip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--bnd-sp-2);
+	margin-block: var(--bnd-sp-3);
+}
+.bnd-idp-cell {
+	flex: 1 1 120px;
+	min-inline-size: 118px;
+	max-inline-size: 190px;
+}
+.bnd-idp-frame {
+	block-size: 74px;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	background: var(--bnd-surface);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	position: relative;
+	padding: var(--bnd-sp-2);
+}
+.bnd-idp-cap {
+	margin-block-start: var(--bnd-sp-1);
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-subtle);
+	line-height: 1.35;
+}
+.bnd-idp-row {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+	inline-size: 100%;
+}
+.bnd-idp-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--bnd-sp-1);
+	text-align: center;
+}
+.bnd-idp-mark {
+	inline-size: 26px;
+	block-size: 26px;
+	border-radius: var(--bnd-radius-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-weight: 700;
+	flex: 0 0 auto;
+}
+.bnd-idp-img {
+	max-inline-size: 32px;
+	max-block-size: 26px;
+	object-fit: contain;
+}
+.bnd-idp-fav {
+	inline-size: 14px;
+	block-size: 14px;
+	object-fit: contain;
+	flex: 0 0 auto;
+}
+.bnd-idp-tab {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-1);
+	font-size: var(--bnd-text-xs);
+	inline-size: 100%;
+	padding-inline: var(--bnd-sp-1);
+
+	span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+.bnd-idp-paper {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-1);
+	inline-size: 100%;
+	font-size: 10px;
+	background: #fff;
+	color: #1d251f;
+	border-radius: var(--bnd-radius-sm);
+	padding: var(--bnd-sp-1) var(--bnd-sp-2);
+}
+.bnd-idp-tagline {
+	font-size: 9px;
+	color: var(--bnd-ink-subtle);
+}
+.bnd-idp-badge {
+	font-size: 9px;
+	font-weight: 600;
+	border-radius: var(--bnd-radius-sm);
+	padding: 0 var(--bnd-sp-1);
+	background: var(--bnd-hover);
+	color: var(--bnd-ink-muted);
+}
+.bnd-idp-roles {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+	margin-block: var(--bnd-sp-1);
+	flex-wrap: wrap;
+}
+.bnd-idp-rlabel {
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-subtle);
+	inline-size: 40px;
+}
+.bnd-idp-role {
+	min-inline-size: 46px;
+	block-size: 24px;
+	border-radius: var(--bnd-radius-sm);
+	border: 1px solid var(--bnd-border);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--bnd-text-xs);
+	font-weight: 600;
+}
+.bnd-idp-report {
+	margin-block: var(--bnd-sp-2);
+	padding: var(--bnd-sp-2) var(--bnd-sp-3);
+	border-inline-start: 3px solid var(--bnd-warn);
+	background: var(--bnd-surface);
+	border-radius: var(--bnd-radius-sm);
+	font-size: var(--bnd-text-xs);
+	line-height: 1.5;
+	color: var(--bnd-ink-muted);
+
+	> div + div {
+		margin-block-start: var(--bnd-sp-1);
+	}
+}

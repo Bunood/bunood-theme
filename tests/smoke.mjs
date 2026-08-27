@@ -4318,6 +4318,13 @@ async function main() {
 		// of this machine's font rendering and would fail on anyone else's.
 		await test("settings: every picker renders its full complement", async () => {
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+			// The identity pane's specimen fills from an async server fetch;
+			// wait for its cells before counting, or it reads as "rendered
+			// nothing" the way a thrown render would (item 36).
+			await page.waitForFunction(
+				() => document.querySelectorAll('[data-fieldname="identity_picker"] .bnd-idp-cap').length >= 5,
+				{ timeout: 20000 }
+			);
 			// Structural counts catch a picker that silently rendered nothing —
 			// which is what a thrown error inside one render function looks
 			// like, since each is called in sequence from refresh().
@@ -4403,6 +4410,10 @@ async function main() {
 				// 3+2+3+3+2+3 and the preview's 4 chips (which share the opt
 				// class) — the preset-over-axes anchor plus the switch catalogue.
 				print_picker: { cards: 12, toggles: 0, opts: 50 },
+				// Item 36, Map 1: not a card picker — its complement is the five
+				// specimen cells and the four reset chips (company_name resets,
+				// three clear). The specimen fills async; the wait above settles it.
+				identity_picker: { cards: 0, cells: 5, resets: 4 },
 			};
 			const got = await page.evaluate(() => {
 				const out = {};
@@ -4411,7 +4422,7 @@ async function main() {
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
 					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, login_picker: 1, icons_picker: 1,
-					web_picker: 1, email_picker: 1, print_picker: 1,
+					web_picker: 1, email_picker: 1, print_picker: 1, identity_picker: 1,
 				})) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
@@ -4421,6 +4432,8 @@ async function main() {
 								slots: el.querySelectorAll(".bnd-dgm-slot").length,
 								toggles: el.querySelectorAll(".bnd-cbp-toggle,.bnd-sbp-toggle").length,
 								opts: el.querySelectorAll(".bnd-cbp-opt").length,
+								cells: el.querySelectorAll(".bnd-idp-cell").length,
+								resets: el.querySelectorAll(".bnd-cbp-reset").length,
 						  }
 						: null;
 				}
@@ -14142,6 +14155,111 @@ async function main() {
 				getSettings(["brand_css_url"]).brand_css_url,
 				before,
 				"restore returned the ORIGINAL content-hash URL — the digest proven in the same breath"
+			);
+		});
+
+		await test("settings: the identity specimen tells the truth about the logo", async () => {
+			// The pane's whole claim is that it shows FACTS it did not author —
+			// the specimen composes from `effective_identity`, which resolves the
+			// chains on the server. So the honest test is the item-32 shape:
+			// unset, the sidebar miniature shows the first-letter chip and says
+			// "no logo"; set to a raster, it shows the image; set to an SVG, the
+			// EMAIL miniature demonstrates the wordmark fallback with its badge.
+			const openIdentity = async () => {
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="identity"]');
+				await page.waitForSelector(".bnd-idp-strip", { timeout: 15000 });
+				// the async fetch fills the strip; wait for a cell to carry a caption
+				await page.waitForFunction(
+					() => document.querySelectorAll(".bnd-idp-cap").length >= 5,
+					{ timeout: 15000 }
+				);
+			};
+			const read = () =>
+				page.evaluate(() => {
+					const idp = document.querySelector(".bnd-idp");
+					return {
+						sidebarCap: idp.querySelector(".bnd-idp-cell .bnd-idp-cap").textContent,
+						hasImg: !!idp.querySelector(".bnd-idp-strip img.bnd-idp-img"),
+						svgBadge: /wordmark used/i.test(idp.textContent),
+					};
+				});
+			await openIdentity();
+			const unset = await read();
+			expect(/no logo/i.test(unset.sidebarCap), `unset, the sidebar caption says no logo ("${unset.sidebarCap}")`);
+			await withBranding({ logo: "/assets/frappe/images/frappe-favicon.png" }, async () => {
+				await openIdentity();
+				const raster = await read();
+				expect(raster.hasImg, "a raster logo renders as an image in the strip");
+				expect(!raster.svgBadge, "a raster logo shows no wordmark-fallback badge");
+			});
+			await withBranding({ logo: "/assets/bunood_theme/images/bunood-mark.svg" }, async () => {
+				await openIdentity();
+				const svg = await read();
+				expect(svg.svgBadge, "an SVG logo makes the email miniature demonstrate the wordmark fallback");
+			});
+		});
+
+		await test("settings: the identity reset chips clear and restore, and write through", async () => {
+			// The chips are the pane's only WRITE — reset company_name to the
+			// shipped name (the user's pick), clear the others. `assertResetChipsBound`
+			// proves one is bound; this proves the binding does the right thing and
+			// reaches the DB through autosave. company_name is guarded by
+			// withBranding pinned to its own value; the chip must land the shipped
+			// name in between.
+			const V = vendor();
+			await withBranding({ company_name: "ACME Trading" }, async () => {
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="identity"]');
+				await page.waitForSelector(".bnd-idp", { timeout: 15000 });
+				await page.click('.bnd-idp .bnd-cbp-reset[data-field="company_name"]');
+				await page.waitForFunction(
+					() => window.cur_frm && window.cur_frm.doc.company_name === "Bunood",
+					{ timeout: 15000 }
+				);
+				await page.waitForTimeout(1500);
+				expectEq(
+					getSettings(["company_name"]).company_name,
+					V.name,
+					"the reset chip landed the shipped name in the DB through autosave"
+				);
+			});
+		});
+
+		await test("identity: the SVG-logo note fires on save, and only for an SVG", async () => {
+			// validate()'s report-never-reject layer — the item-32 contrast-note
+			// shape, applied to the raster rule. It must fire when the logo
+			// changes to an SVG and stay silent for a raster or an unchanged save.
+			// Read the message log the save returns, not a toast in a browser —
+			// this is a server behaviour and benchPy sees frappe.message_log.
+			const probe = (logo) => {
+				const out = benchPy(
+					"import json\n" +
+						"keep = frappe.db.get_single_value('Theme Settings', 'logo')\n" +
+						"try:\n" +
+						"    doc = frappe.get_doc('Theme Settings')\n" +
+						`    doc.logo = ${JSON.stringify(logo)}\n` +
+						"    frappe.message_log = []\n" +
+						"    doc.save(ignore_permissions=True)\n" +
+						"    msgs = [m.get('message', '') if isinstance(m, dict) else str(m) for m in frappe.message_log]\n" +
+						"finally:\n" +
+						"    frappe.db.set_single_value('Theme Settings', 'logo', keep)\n" +
+						"    frappe.db.commit()\n" +
+						"print('BND_MSG' + json.dumps(msgs))\n"
+				);
+				const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_MSG"));
+				if (!line) throw new Error("logo-note probe produced no JSON: " + String(out).slice(-300));
+				return JSON.parse(line.slice("BND_MSG".length));
+			};
+			const svg = probe("/files/mark.svg");
+			expect(
+				svg.some((m) => /PNG or JPG|SVG/i.test(m)),
+				"an SVG logo did not raise the raster-rule note on save"
+			);
+			const raster = probe("/files/mark.png");
+			expect(
+				!raster.some((m) => /PNG or JPG/i.test(m)),
+				"a raster logo wrongly raised the SVG note"
 			);
 		});
 

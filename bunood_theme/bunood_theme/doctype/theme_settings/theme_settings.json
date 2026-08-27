@@ -7,6 +7,7 @@
   "section_shell",
   "chrome_shell",
   "section_branding",
+  "identity_picker",
   "company_name",
   "logo",
   "column_break_branding",
@@ -235,19 +236,23 @@
   {
    "fieldname": "section_branding",
    "fieldtype": "Section Break",
-   "label": "Branding"
+   "label": "Identity"
+  },
+  {
+   "fieldname": "identity_picker",
+   "fieldtype": "HTML"
   },
   {
    "fieldname": "company_name",
    "fieldtype": "Data",
    "label": "Company Name",
-   "description": "Shown in the sidebar and the browser tab."
+   "description": "Shown in the sidebar, the browser tab, the sign-in page, the website navbar and email headers. Printed documents use the Company record's name instead."
   },
   {
    "fieldname": "logo",
    "fieldtype": "Attach Image",
    "label": "Logo",
-   "description": "Frappe also reads Website Settings and Navbar Settings for a logo; set it there to have it appear before this app's JS runs."
+   "description": "Desk, sign-in and website. Email and printed documents accept a raster image (PNG/JPG) only — an SVG here shows the wordmark on those instead."
   },
   {
    "fieldname": "column_break_branding",
@@ -256,7 +261,8 @@
   {
    "fieldname": "favicon",
    "fieldtype": "Attach Image",
-   "label": "Favicon"
+   "label": "Favicon",
+   "description": "The browser-tab icon. Empty — follows Website Settings, then the Bunood mark."
   },
   {
    "fieldname": "tagline",
