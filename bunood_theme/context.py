@@ -712,7 +712,54 @@ def _add_brand_sheet(context):
         context.web_include_css = [*(context.get("web_include_css") or []), url]
 
 
-def _identity_meta(context):
+def _title_text(value):
+    """A tenant name safe to place in a ``<title>`` Frappe will ``striptags``.
+
+    WHY NOT ``escape_html``, AND WHY NOT ``_attr`` — both were MEASURED against
+    the two payload families, and each is safe against one and live against the
+    other:
+
+    ======================  ==================  ====================
+    through ``striptags``   entity payload      ``<a title="…">``
+    ======================  ==================  ====================
+    ``escape_html``         safe                **live**
+    ``_attr``               **live**            safe
+    unescape → strip        safe                safe
+    ======================  ==================  ====================
+
+    This is the repo's own rule, in a new place: *strip, do not encode*, because
+    encoding is not a fix for a value another layer re-serialises
+    (``docs/upstream/frappe-website.md`` §12 — an entity-escaped favicon still
+    executed once the desk read the attribute back).
+
+    THE UNESCAPE IS A FIXPOINT, NOT ONE PASS, and that is the half a single
+    ``html.unescape`` misses: ``&amp;lt;/title&amp;gt;`` decodes once to
+    ``&lt;/title&gt;``, which carries no literal ``<`` for the strip to catch —
+    and ``striptags`` downstream decodes it a second time, back into live
+    markup. Measured at three nesting depths and on numeric entities. Capped so
+    a pathological value cannot spin.
+
+    ``<`` and ``>`` ONLY, not ``_attr``'s full set: a company name legitimately
+    contains an apostrophe (``Ben & Jerry's``), and only ``</title`` can end an
+    RCDATA element. Verified that ampersands and Arabic survive intact.
+    """
+    import html as _html
+
+    from frappe.utils import strip_html_tags
+
+    out = str(value or "")
+    for _ in range(6):
+        decoded = _html.unescape(out)
+        if decoded == out:
+            break
+        out = decoded
+    out = strip_html_tags(out)
+    for ch in ("<", ">"):
+        out = out.replace(ch, "")
+    return out.strip()
+
+
+def _identity_meta(context, compose_title=False):
     """The tenant's name in the tab title and the link preview — item 36.
 
     Slice 0 measured the hole (2026-08-26): with ``company_name`` AND ``logo``
@@ -730,10 +777,19 @@ def _identity_meta(context):
     THE TITLE COMPOSES, NEVER REPLACES: ``<page> · <name>`` keeps the page's
     own title first — the shape Directus uses (``%s · %projectName``). Skipped
     when the title already carries the name, so a page titled after the site
-    does not read "Bunood · Bunood". The name is passed RAW: the base template
-    escapes the ``<title>`` and ``meta_block.html`` pipes every metatag through
-    ``striptags | escape`` — pre-escaping here would be the double-escape class
-    the 34+35 review just repaired on the letterhead logo.
+    does not read "Bunood · Bunood".
+
+    THE NAME IS PUT THROUGH :func:`_title_text`, AND THE FIRST DRAFT OF THIS
+    DOCBLOCK IS WHY. It said the name could be passed raw "because the base
+    template escapes the ``<title>``". **It does not.** ``base.html:13`` is
+    ``{{ title | striptags }}``, and markupsafe's ``striptags`` ENDS in
+    ``.unescape()`` — so an entity-encoded payload is decoded back into live
+    markup inside ``<head>``, with Frappe's autoescaping off. Measured on the
+    running stack: ``company_name`` of ``&lt;/title&gt;&lt;script&gt;…`` served
+    ``<title>Login · </title><script>…</script></title>`` on ``/login`` AND the
+    site root, to every guest, from the page cache. A System Manager can write
+    that field. Found by the release review; the same privilege boundary item
+    33 closed for ``app_name``, reopened by a sibling seam that skipped it.
 
     ``og:title`` is SET, not merely enriched — the 404 page ships no metatags
     at all, and a preview fetcher that finds ``og:site_name`` but no
@@ -742,22 +798,43 @@ def _identity_meta(context):
     invent an image (``_attr``-stripped, the item-33 rule for URL seams).
     """
     tenant = _tenant_branding()
-    name = tenant["company_name"] or _vendor_name()
+    name = _title_text(tenant["company_name"]) or _vendor_name()
     title = (context.get("title") or "").strip()
-    if not title:
-        context.title = name
-    elif name.lower() not in title.lower():
-        context.title = f"{title} · {name}"
+    composed = name if not title else (title if name.lower() in title.lower() else f"{title} · {name}")
+
+    # THE TAB TITLE IS COMPOSED ONLY WHERE `title` IS A TAB TITLE. On a website
+    # page it is ALSO the visible heading — `web_page.html` and the portal
+    # templates render it as an `<h1>`/`<h2>` — so composing there corrupted the
+    # page: `/partners` served `<h2>Partners · Bunood</h2>` above its content.
+    # Measured, and found by the release review. The auth templates draw their
+    # own headings ("Sign In" is a template macro, not `title`), so /login is
+    # where the composition is free.
+    #
+    # The website half loses nothing that matters: `og:site_name` is the tag
+    # that exists to say which site a page belongs to, and it carries the name
+    # on every route.
+    if compose_title:
+        context.title = composed
+
     tags = context.get("metatags")
     if tags is None:
         tags = frappe._dict()
         context.metatags = tags
     tags["og:site_name"] = name
-    tags["og:title"] = context.title
+    tags["og:title"] = composed
     if tags.get("twitter:title"):
-        tags["twitter:title"] = context.title
-    if tenant["logo"]:
-        tags["og:image"] = _attr(tenant["logo"])
+        tags["twitter:title"] = composed
+
+    # A FALLBACK, NOT AN OVERRIDE, and ABSOLUTE. `setdefault` because a page
+    # that has chosen its own preview image — a Web Page's Meta Image, or the
+    # first image `web_page.py` finds in the content — means it, and a tenant
+    # logo stamped over every article's picture is a worse preview, not a
+    # branded one. `get_url` because a relative path is not a URL a preview
+    # fetcher can resolve: it is read off-site, by a crawler with no origin.
+    # Stripped BEFORE absolutising, so the item-33 rule for tenant-controlled
+    # URL seams still runs on the value.
+    if tenant["logo"] and not tags.get("og:image"):
+        tags["og:image"] = frappe.utils.get_url(_attr(tenant["logo"]))
 
 
 def _auth_context(context):
@@ -854,7 +931,7 @@ def _auth_context(context):
     elif context.get("logo") in (frappe.get_hooks("app_logo_url") or []):
         context.logo = _attr(VENDOR_MARK)
 
-    _identity_meta(context)
+    _identity_meta(context, compose_title=True)
 
 
 def _brand_css_url():

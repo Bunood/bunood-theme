@@ -1394,7 +1394,9 @@ html[data-theme] {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: #fff;
+	// NO INK HERE. It arrives inline, paired with the fill from the same
+	// `palette.derive` dict — a `color: #fff` literal discarded the `on_fill`
+	// the server derives and drew white on a pale seed's near-white chip.
 	font-weight: 700;
 	flex: 0 0 auto;
 }
@@ -1473,7 +1475,11 @@ html[data-theme] {
 .bnd-idp-report {
 	margin-block: var(--bnd-sp-2);
 	padding: var(--bnd-sp-2) var(--bnd-sp-3);
-	border-inline-start: 3px solid var(--bnd-warn);
+	// ACCENT, NOT WARN. These sentences say the derivation did its job — the
+	// same non-blocking report the save ships with `indicator="blue"`. An amber
+	// caution stripe told a tenant whose seed was nudged one shade that
+	// something was wrong.
+	border-inline-start: 3px solid var(--bnd-accent);
 	background: var(--bnd-surface);
 	border-radius: var(--bnd-radius-sm);
 	font-size: var(--bnd-text-xs);

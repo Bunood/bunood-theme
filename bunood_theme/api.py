@@ -941,12 +941,22 @@ def effective_identity() -> dict:
 
     # The Company doctype's names — paper reads these, not Theme Settings, so
     # the specimen states the divergence instead of hiding it (the census gap).
-    company = frappe.defaults.get_global_default("company") or frappe.db.get_value("Company", {}, "name")
+    #
+    # GUARDED, because Company is ERPNEXT'S doctype and this app does not depend
+    # on ERPNext. On a Frappe-only site `get_value("Company", …)` does not return
+    # None — it raises ProgrammingError 1146, "table doesn't exist" — which would
+    # 500 the whole endpoint and take the specimen AND the seed console down with
+    # it, on a site that has no paper to be wrong about. The docstring promises
+    # this never raises; the palette report below already takes the same stance.
     company_en = company_ar = ""
-    if company:
-        c = frappe.get_cached_doc("Company", company)
-        company_en = c.get("company_name") or company
-        company_ar = c.get("company_name_in_arabic") or c.get("custom_company_name_ar") or ""
+    try:
+        company = frappe.defaults.get_global_default("company") or frappe.db.get_value("Company", {}, "name")
+        if company:
+            c = frappe.get_cached_doc("Company", company)
+            company_en = c.get("company_name") or company
+            company_ar = c.get("company_name_in_arabic") or c.get("custom_company_name_ar") or ""
+    except Exception:
+        pass
 
     # The seed lattice, both modes, from the ONE derivation. The three roles a
     # brand IS here (CLAUDE.md): wash / fill+ink / text. Named, not indexed, so

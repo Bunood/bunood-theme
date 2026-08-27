@@ -7072,15 +7072,32 @@ function bnd_identity_specimen(data) {
 	if (!data) return "";
 	const s = data.surfaces;
 	const esc = bnd_esc;
-	const chip = (fill, glyph) =>
-		'<span class="bnd-idp-mark" style="background:' + esc(fill) + '">' + esc(glyph) + "</span>";
+	// INK AND FILL FROM ONE DICT. The ink was a hardcoded white in the
+	// stylesheet, which discarded the `on_fill` `palette.derive` already
+	// returns beside every fill — so a pale seed drew a white monogram on a
+	// near-white chip. The seed console two blocks below always paired them
+	// correctly; this is the specimen catching up.
+	const chip = (fill, ink, glyph) =>
+		'<span class="bnd-idp-mark" style="background:' + esc(fill) + ";color:" + esc(ink) + '">' + esc(glyph) + "</span>";
 
 	// Each miniature is a drawing captioned with its SOURCE — the frappe-ui
 	// compose-the-tenant's-own-values thumbnail crossed with Discourse's
 	// show-the-computed-fallback. Colours are inline (dynamic per seed); layout
 	// is `.bnd-idp-*` in _settings.scss.
-	const mark = data.logo.value && data.logo.is_raster;
-	const light = data.palette.light;
+	// THE MODE THE PANE IS ACTUALLY IN. This read `data.palette.light`
+	// unconditionally, and `--bnd-brand-ink` is fitted against the LIGHT
+	// surfaces only — so on a dark desk the wordmark landed on a dark card at
+	// 3.0:1, at every seed. The server sends both modes; the pane picks the one
+	// it is rendering in, the way every other kit reads `data-theme`.
+	//
+	// `mark` follows the SIDEBAR's own resolved logo, not the raster rule: the
+	// desk sidebar renders an SVG perfectly well (`sb_mount_brand` sets an
+	// <img> from boot), and captioning it "first letter — no logo" told an
+	// admin their SVG was unused on the one surface where it is used. The
+	// raster rule belongs to email and paper, and those cells carry it already.
+	const mark = !!s.sidebar.logo;
+	const dark = (document.documentElement.getAttribute("data-theme") || "").indexOf("dark") > -1;
+	const light = dark ? data.palette.dark : data.palette.light;
 	const cell = (title, body, note) =>
 		'<div class="bnd-idp-cell"><div class="bnd-idp-frame">' + body + "</div>" +
 		'<div class="bnd-idp-cap">' + esc(title) + (note ? " — " + esc(note) : "") + "</div></div>";
@@ -7088,7 +7105,7 @@ function bnd_identity_specimen(data) {
 	const sidebar = cell(
 		__("Sidebar"),
 		'<div class="bnd-idp-row">' +
-			(mark ? '<img class="bnd-idp-img" src="' + esc(s.sidebar.logo) + '" alt="">' : chip(light.fill, esc(s.sidebar.letter))) +
+			(mark ? '<img class="bnd-idp-img" src="' + esc(s.sidebar.logo) + '" alt="">' : chip(light.fill, light.on_fill, s.sidebar.letter)) +
 			'<b>' + esc(s.sidebar.name) + "</b></div>",
 		mark ? __("your logo") : __("first letter — no logo")
 	);
@@ -7103,7 +7120,7 @@ function bnd_identity_specimen(data) {
 		'<div class="bnd-idp-center">' +
 			(s.email.mark
 				? '<img class="bnd-idp-img" src="' + esc(s.email.mark) + '" alt="">'
-				: '<b style="color:' + esc(light.text) + '">' + esc(s.email.name) + "</b>") +
+				: '<b style="color: var(--bnd-brand-ink)">' + esc(s.email.name) + "</b>") +
 			(s.email.svg_dropped ? '<span class="bnd-idp-badge">' + __("SVG — wordmark used") + "</span>" : "") +
 			"</div>",
 		null
@@ -7319,6 +7336,34 @@ function bnd_sb_import(frm) {
 			} catch (e) {
 				frappe.msgprint(__("That is not valid JSON."));
 				return;
+			}
+			// A FILE EXPORTED BEFORE 0.36.0 STILL CARRIES THE OLD NAMES, and the
+			// import filter would have dropped them silently — an admin moving a
+			// Bottom Bar, Compact desk from a 0.35.0 site would have got the
+			// styling and neither the layout nor the density, with a toast saying
+			// how many keys applied. The renames are the same table the data patch
+			// carries (`v0_36_0/rename_axis_fields`); `desk_layout` no longer
+			// travels at all, so it is translated into the container toggles the
+			// layout it names writes — which is what actually reproduces the desk.
+			for (const [was, now] of [["default_density", "density_default"], ["enable_command_palette", "palette_enabled"]]) {
+				if (was in data && !(now in data)) {
+					data[now] = data[was];
+					delete data[was];
+				}
+			}
+			if ("desk_layout" in data && bnd_layout_chrome && bnd_container_toggles) {
+				const row = bnd_layout_chrome[data.desk_layout];
+				if (row) {
+					for (const key of Object.keys(bnd_container_toggles)) {
+						const field = bnd_container_toggles[key];
+						if (key in row && !(field in data)) data[field] = row[key];
+					}
+					const tenants = (bnd_layout_tenants && bnd_layout_tenants[data.desk_layout]) || null;
+					if (tenants) {
+						for (const f of Object.keys(tenants)) if (!(f in data)) data[f] = tenants[f];
+					}
+				}
+				delete data.desk_layout;
 			}
 			const known = new Set(bnd_theme_keys());
 			let applied = 0;

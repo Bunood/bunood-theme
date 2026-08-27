@@ -701,6 +701,22 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
  * `goDesk` is unusable here: its default readiness selector is
  * `.body-sidebar-container`, which no website page has.
  */
+/**
+ * The DELIVERED HTML of a route, as a guest, with no browser involved.
+ *
+ * A booted DOM is the wrong instrument for a `<head>` defect: by the time a
+ * page has run its scripts, an injected `<script>` has already executed or
+ * already been neutralised, and either way the tokeniser's own reading of the
+ * bytes is gone. Item 36's release review found a stored XSS in `<title>` that
+ * only the raw bytes show. Cache-busted, because a website render is cached on
+ * `(path, lang)` and this is called right after a settings write.
+ */
+async function fetchText(route) {
+	const url = `${URL_BASE}${route}${route.includes("?") ? "&" : "?"}bnd=${Date.now()}`;
+	const res = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
+	return await res.text();
+}
+
 async function withGuest(route, waitSel, fn, opts = {}) {
 	// `bust` MIRRORS `withPortalUser`'s, and item 33 slice 6 is why it is here
 	// too. Frappe's website HTML cache is keyed on `(path, lang)` and NOTHING
@@ -1308,9 +1324,31 @@ async function main() {
 			// the suite's own fixture strings fail. Every string here is one a
 			// check in this file writes — extend the pattern WITH the check that
 			// introduces a new fixture value, or that check's crash is invisible.
-			const vals = getSettings(["company_name", "tagline", "logo", "favicon"]);
-			const residue = /smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.svg|frappe-framework-logo\.svg/;
-			const dirty = Object.entries(vals).filter(([, v]) => residue.test(String(v ?? "")));
+			// THE FIELDS AND THE VALUES BOTH GREW WITH THE ITEM. The first cut
+			// read four fields against the values checks wrote BEFORE item 36 —
+			// so the seeds this item writes (#2b4fd8, #1a2f6e), the marks its
+			// specimen check attaches and the raster/SVG probes were all invisible
+			// to the very preamble that exists to catch them. Extend this WITH the
+			// check that introduces a fixture value, or that check's crash is
+			// silent again.
+			const vals = getSettings([
+				"company_name", "tagline", "logo", "favicon", "brand_color", "brand_color_dark",
+			]);
+			const residue =
+				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.svg|bunood-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
+			// MARKUP-SHAPED RESIDUE IS NEVER A TENANT'S REAL VALUE, and this arm
+			// is here because the fixture list above did not catch the one that
+			// mattered: an interrupted run left `company_name` holding an XSS
+			// probe's double-encoded payload, this preamble passed it, and the
+			// next run's XSS check faithfully restored the payload as though it
+			// were the site's own value — after which every identity check failed
+			// for a reason none of them named. A pattern that enumerates fixtures
+			// can only catch the fixtures somebody remembered; this one catches
+			// the SHAPE, so a probe payload nobody listed still fails here first.
+			const markup = /<\s*script|<\s*a\s+title|<\/\s*title|&lt;|&#\d|__bndXss/i;
+			const dirty = Object.entries(vals).filter(
+				([, v]) => residue.test(String(v ?? "")) || markup.test(String(v ?? ""))
+			);
 			expect(
 				!dirty.length,
 				"crash leftovers in branding fields — restore by hand: " +
@@ -13781,6 +13819,43 @@ async function main() {
 				expect(seen.bootOk, `${field}: frappe.boot still parsed — it did not break out of the boot script`);
 				expect(seen.deskBooted, `${field}: and the desk booted`);
 				}
+
+				// AND THE GUEST ROUTES, which this check did not visit until item
+				// 36's release review found a live stored XSS there. `_identity_meta`
+				// composes `company_name` into `context.title`, and `base.html:13`
+				// renders `{{ title | striptags }}` — markupsafe's `striptags` ENDS
+				// in `.unescape()`, so an entity-encoded payload is decoded back into
+				// live markup inside `<head>` on `/login` and the site root, served
+				// to every guest from the page cache. A desk-only XSS check cannot
+				// see a website seam; this one now reads the DELIVERED HTML rather
+				// than a booted DOM, because that is where the defect lives.
+				//
+				// BOTH PAYLOAD FAMILIES, and at two entity depths, because each
+				// candidate fix is safe against one and live against the other:
+				// `escape_html` survives the anchor form, a plain strip survives the
+				// entity form, and a SINGLE unescape survives the double-encoded one
+				// (it decodes to `&lt;` — no literal `<` for the strip to catch, and
+				// `striptags` decodes it again downstream). All measured.
+				const GUEST_PAYLOADS = [
+					["entity", "&lt;/title&gt;&lt;script&gt;window.__bndXss=1;&lt;/script&gt;"],
+					["double-entity", "&amp;lt;/title&amp;gt;&amp;lt;script&amp;gt;window.__bndXss=1;&amp;lt;/script&amp;gt;"],
+					["anchor", '<a title="</title><script>window.__bndXss=1;</script>">x</a>'],
+				];
+				for (const [label, payload] of GUEST_PAYLOADS) {
+					setSingle("Theme Settings", { ...before, company_name: payload });
+					for (const route of ["/login", "/"]) {
+						const html = await fetchText(route);
+						const head = html.slice(0, html.indexOf("</head>") + 7);
+						expect(
+							!/<script[^>]*>[^<]*__bndXss/i.test(head),
+							`${label} on ${route}: a script from company_name reached <head>`
+						);
+						expect(
+							!/<\/title>[\s\S]{0,40}<script/i.test(head),
+							`${label} on ${route}: the <title> element was terminated early`
+						);
+					}
+				}
 			} finally {
 				setSingle("Theme Settings", before);
 			}
@@ -14361,14 +14436,24 @@ async function main() {
 			// the repair. Error pages are in the walk because the adjudication
 			// put them there — same repair, same family.
 			const LOGO = "/assets/frappe/images/frappe-favicon.svg";
+			// `bust: true` — this reads a guest page IMMEDIATELY after a settings
+			// write, which is the exact case `withGuest`'s own option exists for:
+			// Frappe caches website HTML on `(path, lang)` and nothing else, so an
+			// unbusted read can be served a render from before the write and look
+			// exactly like the setting never applying. Seen once as an
+			// order-dependent failure of this check behind the XSS one.
 			const read = (route, waitSel) =>
-				withGuest(route, waitSel, (gp) =>
-					gp.evaluate(() => ({
-						title: document.title,
-						site: document.querySelector('meta[property="og:site_name"]')?.getAttribute("content") || null,
-						og: document.querySelector('meta[property="og:title"]')?.getAttribute("content") || null,
-						image: document.querySelector('meta[property="og:image"]')?.getAttribute("content") || null,
-					}))
+				withGuest(
+					route,
+					waitSel,
+					(gp) =>
+						gp.evaluate(() => ({
+							title: document.title,
+							site: document.querySelector('meta[property="og:site_name"]')?.getAttribute("content") || null,
+							og: document.querySelector('meta[property="og:title"]')?.getAttribute("content") || null,
+							image: document.querySelector('meta[property="og:image"]')?.getAttribute("content") || null,
+						})),
+					{ bust: true }
 				);
 			await withBranding({ company_name: "ACME Trading", logo: LOGO }, async () => {
 				// THE ERROR PAGE GETS THE PREVIEW HALF ONLY — the user's pick
@@ -14492,25 +14577,40 @@ async function main() {
 			const read = () =>
 				page.evaluate(() => {
 					const idp = document.querySelector(".bnd-idp");
+					// SCOPED TO THE SIDEBAR CELL, and the first draft was not:
+					// `.bnd-idp-strip img.bnd-idp-img` matched the SIGN-IN cell,
+					// which draws `logo or VENDOR_MARK` and therefore ALWAYS has an
+					// image — so the raster arm asserted a node the pane cannot fail
+					// to draw. The sidebar cell is the one whose image depends on
+					// the logo, and it is the first cell in the strip.
+					const sb = idp.querySelector(".bnd-idp-cell");
 					return {
-						sidebarCap: idp.querySelector(".bnd-idp-cell .bnd-idp-cap").textContent,
-						hasImg: !!idp.querySelector(".bnd-idp-strip img.bnd-idp-img"),
+						sidebarCap: sb.querySelector(".bnd-idp-cap").textContent,
+						hasImg: !!sb.querySelector("img.bnd-idp-img"),
 						svgBadge: /wordmark used/i.test(idp.textContent),
 					};
 				});
 			await openIdentity();
 			const unset = await read();
 			expect(/no logo/i.test(unset.sidebarCap), `unset, the sidebar caption says no logo ("${unset.sidebarCap}")`);
+			// The negative that proves the query CAN fail — without it the raster
+			// arm below is unfalsifiable.
+			expect(!unset.hasImg, "unset, the sidebar cell draws the monogram and no image");
 			await withBranding({ logo: "/assets/frappe/images/frappe-favicon.png" }, async () => {
 				await openIdentity();
 				const raster = await read();
-				expect(raster.hasImg, "a raster logo renders as an image in the strip");
+				expect(raster.hasImg, "a raster logo renders as an image in the sidebar cell");
 				expect(!raster.svgBadge, "a raster logo shows no wordmark-fallback badge");
 			});
 			await withBranding({ logo: "/assets/bunood_theme/images/bunood-mark.svg" }, async () => {
 				await openIdentity();
 				const svg = await read();
 				expect(svg.svgBadge, "an SVG logo makes the email miniature demonstrate the wordmark fallback");
+				// AND THE SIDEBAR STILL SHOWS IT. The desk sidebar renders an SVG
+				// perfectly well, so captioning that cell "no logo" told an admin
+				// their mark was unused on the one surface that uses it. The raster
+				// rule belongs to email and paper, which say so themselves.
+				expect(svg.hasImg, "an SVG logo still renders in the sidebar cell, where the desk does render it");
 			});
 		});
 
