@@ -6903,16 +6903,32 @@ function bnd_status_set(frm, fieldname, value) {
 }
 
 /**
+ * The ONE list both halves of theme portability read — item 36.
+ *
+ * Export and import each carried their own copy of this concat, and the two
+ * had already been wrong together twice: `BND_PRINT_FIELDS` was wired into
+ * NEITHER list until the 34+35 release review, and the container toggles,
+ * `desk_order` and four of the five placements were in neither until item 36.
+ * Two copies cannot drift apart when there is one copy.
+ *
+ * A function, not a const: `bnd_sb_catalogue.fields` is fetched lazily and
+ * must be read at call time, exactly as both call sites always did.
+ */
+function bnd_theme_keys() {
+	return [
+		"desk_layout", "company_name", "brand_color", "accent_color",
+		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
+	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+}
+
+/**
  * Export the whole theme (desk layout, branding colors, every sidebar style
  * field, every breadcrumb field, every palette field, every notification
  * field, search placement and the status bar) as a JSON file + clipboard
  * copy — portable between tenant sites.
  */
 function bnd_sb_export(frm) {
-	const keys = [
-		"desk_layout", "company_name", "brand_color", "accent_color",
-		"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	const keys = bnd_theme_keys();
 	const data = {};
 	for (const k of keys) data[k] = frm.doc[k];
 	const text = JSON.stringify({ bunood_theme: 1, ...data }, null, 2);
@@ -6938,11 +6954,7 @@ function bnd_sb_import(frm) {
 				frappe.msgprint(__("That is not valid JSON."));
 				return;
 			}
-			const known = new Set(
-				["desk_layout", "company_name", "brand_color", "accent_color",
-					"brand_color_dark", "accent_color_dark", "default_density", "sidebar_preset",
-				].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS)
-			);
+			const known = new Set(bnd_theme_keys());
 			let applied = 0;
 			for (const [k, val] of Object.entries(data)) {
 				if (known.has(k) && val !== undefined && val !== null) {
