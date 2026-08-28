@@ -48,6 +48,7 @@ from bunood_theme.contrast import (  # noqa: E402
     to_hex,
     to_lab,
 )
+from bunood_theme.contrast import delta_e  # noqa: E402
 
 #: Chart series separation floors (item 25). A worst-pair CIEDE2000 under
 #: colour-vision simulation, NOT a WCAG ratio — see contrast.separation.
@@ -457,6 +458,12 @@ def pairs():
     return out
 
 
+#: How far a shipped palette's focus ring must sit from every status colour
+#: (CIEDE2000). Measured: the catalogue's worst is 31.5 and the two candidates the
+#: round rejected scored 9.6 (tomato, against --bnd-serious) and 3.7 (the ring
+#: following a green brand, against --bnd-good). 25 sits clear of both.
+ACCENT_STATUS_MIN_DE = 25.0
+
 #: The lightness floor the DARK brand fill must clear (item 37).
 DARK_FILL_MIN_L = 62.0
 
@@ -478,6 +485,28 @@ SEEDS = [
     ("#ffffff", "pure white"),
     ("#000000", "pure black"),
     ("#7f7f7f", "mid grey"),
+    # ── The shipped palettes (item 37) ───────────────────────────────────────
+    # A published palette is a colour a tenant reaches in ONE CLICK, so it is not
+    # "a colour somebody might paste in" — it has to be swept like the shipped
+    # default. `check_palette_catalogue` additionally re-derives each one as the
+    # (brand, accent, ground) TRIPLE it actually ships; this list is what puts its
+    # brand through the full pair set. Bunood is already the shipped default above.
+    ("#3e63dd", "palette Indigo"),
+    ("#0090ff", "palette Blue"),
+    ("#00a2c7", "palette Cyan"),
+    ("#12a594", "palette Teal"),
+    ("#6e56cf", "palette Violet"),
+    ("#ab4aba", "palette Plum"),
+    ("#e93d82", "palette Crimson"),
+    ("#e5484d", "palette Red"),
+    ("#f76b15", "palette Orange"),
+    ("#a18072", "palette Bronze"),
+    ("#8b8d98", "palette Slate"),
+    ("#ffc53d", "palette Ochre"),
+    ("#ffe629", "palette Olive"),
+    ("#bdee63", "palette Moss"),
+    ("#86ead4", "palette Sea"),
+    ("#7ce2fe", "palette Steel"),
 ]
 
 
@@ -745,14 +774,16 @@ def check_palette_catalogue() -> list[str]:
     grows coverage it does not have — the gate would still say "all pairs pass" while
     saying nothing about the colour a tenant just clicked.
     """
-    try:
-        from bunood_theme.presets import PALETTES
-    except ImportError:
-        return []  # catalogue not landed yet
+    from bunood_theme.presets import GROUNDS, PALETTES
+
     known = {s.lower() for s, _ in SEEDS}
     bad: list[str] = []
     for name, p in PALETTES.items():
-        brand, accent, ground = p["brand_color"], p["accent_color"], p.get("ground")
+        brand, accent = p["brand_color"], p["accent_color"]
+        ground = GROUNDS.get(p["ground"])
+        if ground is None:
+            bad.append(f"{name}: ground {p['ground']!r} is not in GROUNDS")
+            continue
         if brand.lower() not in known:
             bad.append(f"{name}: brand {brand} is not in SEEDS, so no pair sweep covers it")
         for mode in ("light", "dark"):
@@ -767,6 +798,28 @@ def check_palette_catalogue() -> list[str]:
                 got = ratio(parse_color(ink), parse_color(bg))
                 if got < need:
                     bad.append(f"{name}/{mode}: {what} is {got:.2f}:1, needs {need}")
+
+            # THE ARM THAT ACTUALLY GATES CATALOGUE DATA. The three ratios above are a
+            # regression net on `derive`, not a test of the palette: `fill_pair` and
+            # `fit_ink` GUARANTEE those floors, so a deliberately terrible accent is
+            # silently corrected and the ratios pass. Proved by sabotage — a near-white
+            # ring was fixed before it could be measured.
+            #
+            # What no fitter can rescue is MEANING. The ring is fitted for contrast, not
+            # for distinctness, so an accent may land a shade away from "this failed".
+            # Measured on the first cut of this catalogue: Blue shipped an orange ring
+            # 9.0 from --bnd-serious, Cyan shipped tomato at 9.6 — the exact colour the
+            # round rejected for Bunood — and five more sat under 20. Our status ramp
+            # owns green, amber, orange and red, so ANY warm accent collides; the floor
+            # is what forces the catalogue onto the cool half of the wheel.
+            ring = d["--bnd-accent"]
+            for k in ("good", "warn", "serious", "critical"):
+                de = delta_e(to_lab(parse_color(ring)), to_lab(parse_color(d[f"--bnd-{k}"])))
+                if de < ACCENT_STATUS_MIN_DE:
+                    bad.append(
+                        f"{name}/{mode}: ring {ring} is dE {de:.1f} from --bnd-{k}; "
+                        f"a focus ring must not read as a status (floor {ACCENT_STATUS_MIN_DE})"
+                    )
     return bad
 
 

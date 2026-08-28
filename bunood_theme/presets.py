@@ -1191,3 +1191,93 @@ PALETTE_DEFAULTS = {
     "palette_suggest": 1,
     "palette_sigils": 1,
 }
+
+
+#: The six neutrals a GROUND is chosen from, read out of the vendored Radix
+#: Colors (`_reference/radix-colors/src/light.ts`, step 9). Radix names them for
+#: hue families and publishes which chromatic scale each one partners, so this
+#: table is a citation rather than a set of colours somebody eyeballed.
+GROUNDS = {
+    "sage": "#868e8b",    # green, teal, jade, mint
+    "slate": "#8b8d98",   # blue, cyan, sky, indigo, iris
+    "mauve": "#8e8c99",   # purple, violet, plum, pink, crimson, red
+    "sand": "#8d8d86",    # yellow, amber, orange, brown, bronze
+    "olive": "#898e87",   # grass, lime
+    "gray": "#8d8d8d",    # no hue at all
+}
+
+#: The shipped palettes (item 37). A palette is a TRIPLE — the brand, the focus
+#: ring, and what the surfaces are mixed from — and all three are needed before
+#: the desk has a colour, which is why they live together rather than as three
+#: unrelated defaults.
+#:
+#: WHY THE SEEDS ARE RADIX STEP 9 AND NOT OUR OWN
+#:     Radix designs step 9 as the *saturated solid*: the one step meant to be a
+#:     filled background with a label on it. That is exactly the job
+#:     ``--bnd-brand-solid`` does. Measured, it shows — the Radix seeds need two
+#:     or three corrections from ``palette.adjustments`` where our own former
+#:     green needed four, and most pass through unchanged as the fill in at least
+#:     one mode. A scale already fitted for solid-with-a-label asks almost nothing
+#:     of our fitter.
+#:
+#: WHY EACH PALETTE NAMES A GROUND
+#:     Before item 37 the surfaces were mixed from the brand, so a tenant could
+#:     not have a neutral desk under a coloured brand — and the side pane had
+#:     three surface controls the desk itself did not. The ground is the desk's.
+#:     Each palette takes the Radix neutral matching its hue family, so the
+#:     chrome stays coherent with the brand without being tinted by it.
+#:
+#: WHY THE LAST FIVE ARE NAMED FOR SOMETHING ELSE
+#:     Ochre, Olive, Moss, Sea and Steel are Radix's amber, yellow, lime, mint
+#:     and sky. Those are its high-contrast hues: measured, ``fill_pair`` darkens
+#:     every one of them hard in LIGHT (amber #ffc53d paints #927123) while dark
+#:     keeps the bright seed and flips the ink. Shipping them as "Amber" would
+#:     name the seed and not the result, which is the same shape of claim the
+#:     preset cards were making before this item. They are named for what they
+#:     paint; the picker says they stay bright in dark.
+#:
+#: Every brand seed here is a member of ``contrast_gate.SEEDS``, and
+#: ``check_palette_catalogue`` re-derives each triple in both modes and re-measures
+#: the fill, its label and the ring. A palette the sweep does not carry would be
+#: coverage the gate claims and does not have.
+PALETTES = {
+    "Bunood":  {"brand_color": "#3d8150", "accent_color": "#0090ff", "ground": "sage"},
+    "Indigo":  {"brand_color": "#3e63dd", "accent_color": "#00a2c7", "ground": "slate"},
+    "Blue":    {"brand_color": "#0090ff", "accent_color": "#ab4aba", "ground": "slate"},
+    "Cyan":    {"brand_color": "#00a2c7", "accent_color": "#ab4aba", "ground": "slate"},
+    "Teal":    {"brand_color": "#12a594", "accent_color": "#5b5bd6", "ground": "sage"},
+    "Violet":  {"brand_color": "#6e56cf", "accent_color": "#00a2c7", "ground": "mauve"},
+    "Plum":    {"brand_color": "#ab4aba", "accent_color": "#00a2c7", "ground": "mauve"},
+    "Crimson": {"brand_color": "#e93d82", "accent_color": "#0090ff", "ground": "mauve"},
+    "Red":     {"brand_color": "#e5484d", "accent_color": "#0090ff", "ground": "mauve"},
+    "Orange":  {"brand_color": "#f76b15", "accent_color": "#0090ff", "ground": "sand"},
+    "Bronze":  {"brand_color": "#a18072", "accent_color": "#0090ff", "ground": "sand"},
+    "Slate":   {"brand_color": "#8b8d98", "accent_color": "#0090ff", "ground": "slate"},
+    # Radix's high-contrast set, named for the colour they paint in light.
+    "Ochre":   {"brand_color": "#ffc53d", "accent_color": "#0090ff", "ground": "sand"},
+    "Olive":   {"brand_color": "#ffe629", "accent_color": "#0090ff", "ground": "olive"},
+    "Moss":    {"brand_color": "#bdee63", "accent_color": "#0090ff", "ground": "olive"},
+    "Sea":     {"brand_color": "#86ead4", "accent_color": "#6e56cf", "ground": "sage"},
+    "Steel":   {"brand_color": "#7ce2fe", "accent_color": "#ab4aba", "ground": "slate"},
+}
+
+#: The palette a fresh install gets. Named once: it seeds ``brand_color`` and
+#: ``accent_color`` in :mod:`setup`, and it is what the derived label must match
+#: or a brand-new site reads "Custom" on the day it is installed.
+DEFAULT_PALETTE = "Bunood"
+
+
+def palette_seeds(name: str) -> dict:
+    """The four values a palette writes, resolved. ``{}`` for an unknown name.
+
+    Fail-open like :func:`registry.layout_settings`: a name nobody recognises
+    degrades to writing nothing rather than to a half-applied palette.
+    """
+    p = PALETTES.get(name)
+    if not p:
+        return {}
+    return {
+        "brand_color": p["brand_color"],
+        "accent_color": p["accent_color"],
+        "brand_ground": GROUNDS[p["ground"]],
+    }
