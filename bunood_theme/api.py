@@ -309,6 +309,48 @@ def get_workspace_links(workspace: str) -> list:
         return []
 
 
+def _personal_open(key: str) -> bool:
+    """Whether the site still offers the axis one per-user key belongs to.
+
+    ENFORCED AT THE WRITE, not only in the picker that offers it. A lock checked
+    solely where the control is drawn is a suggestion: the endpoints below are
+    ``@frappe.whitelist()``, so anyone with a desk session can call them
+    directly, and "the button is not on the page" has never been an access
+    control. The dialog hides nothing and the boot resolve skips a locked axis;
+    this is the third of the three points, and it is the one that makes the
+    other two a convenience rather than the mechanism.
+
+    Polarity is :func:`bunood_theme.personal.lock_open`'s, deliberately — an
+    unwritten Check reads back ``None`` and must mean the SHIPPED answer, or the
+    first load after an upgrade withdraws every stored preference on the site.
+
+    READ THROUGH THE CACHED DOC, NEVER ``get_single_value``, and both halves of
+    that were measured on 2026-08-29 rather than assumed:
+
+      * For a field the doctype meta does not have YET — the state of every site
+        between deploying this code and running ``bench migrate`` —
+        ``get_single_value`` does not return ``None``, it **raises**
+        ``ValidationError``. A whitelisted endpoint would 500 for every caller
+        during that window.
+      * Once the field exists but its ``tabSingles`` row does not,
+        ``get_single_value`` **casts a missing Check to 0** — the seeder in
+        ``setup.py`` records the same measurement and reads row-absence in raw
+        SQL to avoid it. Zero is exactly the value that means "locked", so the
+        polarity helper would be handed the wrong answer with nothing to detect.
+
+    ``get_cached_doc(...).get()`` returns ``None`` in both states, which is the
+    input :func:`~bunood_theme.personal.lock_open` is written for. It is also the
+    read ``boot.py`` uses, so the two paths cannot disagree about whether an axis
+    is offered.
+    """
+    from bunood_theme import personal
+
+    lock = personal.lock_for(key)
+    if lock is None:
+        return True
+    return personal.lock_open(lock, frappe.get_cached_doc("Theme Settings").get(lock))
+
+
 def _personal_values(key: str) -> tuple:
     """The values one per-user key accepts, plus the empty state.
 
@@ -354,6 +396,8 @@ def set_user_density(density: str = "") -> dict:
     """
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
+    if not _personal_open("bnd_density"):
+        frappe.throw("Personal comfort settings are switched off for this site")
     if density not in DENSITY_VALUES:
         frappe.throw(f"Invalid density: {density!r}")
 
@@ -404,6 +448,8 @@ def set_user_sidebar_preset(preset: str = "") -> dict:
     """
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
+    if not _personal_open("bnd_sidebar_preset"):
+        frappe.throw("Personal looks are switched off for this site")
     # VALIDATED AGAINST THE THEME CATALOGUE (item 37), which is what the menu now
     # lists. Only the sidebar slice of the named look is applied — see boot.py.
     # Reached through personal.py (item 38) so the accepted values and the row

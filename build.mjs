@@ -865,7 +865,15 @@ function assertAutomaticParity() {
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density"];
+//
+// `personal` (item 38) is the second entry earned by an axis, on the same terms:
+// three Checks deciding whether a person may choose their own look, their own
+// desk shape, and their own comfort. It is deliberately NOT `user`, which is
+// already taken by the User profile COMPONENT (`user_placement`) — overloading
+// it would make "which user thing is this" a question the prefix no longer
+// answers. The axis itself is declared in `bunood_theme/personal.py`, which is
+// also what `assertPersonalAxes` reads.
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly

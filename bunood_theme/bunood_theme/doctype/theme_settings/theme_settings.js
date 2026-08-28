@@ -1181,6 +1181,12 @@ const BND_SHELL_GROUPS = [
 			// Measured: 636px against every other Select's 273px. The fallback is
 			// still there for the next collision; this one is fixed at the root.
 			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
+			// Item 38. Not a look but a POLICY about looks: which axes a person
+			// may decide for themselves. It sits under Appearance because that is
+			// what it governs, and the three Checks are visible rather than
+			// picker-driven — the same shape the container toggles use, and one
+			// fewer surface to keep truthful.
+			{ key: "personal", label: () => __("Personalization"), anchors: ["personal_look"] },
 		],
 	},
 	{
@@ -1312,6 +1318,9 @@ const BND_SHELL_OWNS = {
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },
 	density: { fields: ["density_default"] },
+	// Prefix rather than fields: the axis is `personal_*` and every field it
+	// grows belongs to this pane by construction (item 38).
+	personal: { prefixes: ["personal_"] },
 	// The phone bar (item 24): the three mobile_* toggles by prefix.
 	mobile: { prefixes: ["mobile_"] },
 };

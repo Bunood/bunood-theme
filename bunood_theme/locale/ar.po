@@ -5322,3 +5322,38 @@ msgstr "اللوحة الجانبية: {0} — الألوان والتخطيط �
 #, fuzzy
 msgid "Side pane: following the site"
 msgstr "اللوحة الجانبية: تتبع إعدادات الموقع"
+
+#. src: item38
+#, fuzzy
+msgid "Personalization"
+msgstr "التخصيص الشخصي"
+
+#. src: item38
+#, fuzzy
+msgid "People may choose their own look"
+msgstr "يمكن للأشخاص اختيار مظهرهم الخاص"
+
+#. src: item38
+#, fuzzy
+msgid "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
+msgstr "يمكن لكل شخص اختيار أحد المظاهر المرفقة لنفسه، من نافذة المظهر. أما الألوان فتتبع إعدادات الموقع دائمًا."
+
+#. src: item38
+#, fuzzy
+msgid "People may choose their own desk shape"
+msgstr "يمكن للأشخاص اختيار شكل مكتبهم الخاص"
+
+#. src: item38
+#, fuzzy
+msgid "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
+msgstr "يمكن لكل شخص اختيار تخطيط مكتبه: أي الأشرطة تظهر، وأين يقع البحث والإشعارات والملف الشخصي. مُعطَّل افتراضيًا، لأن مواد التدريب ومكالمات الدعم تصف مكتبًا واحدًا."
+
+#. src: item38
+#, fuzzy
+msgid "People may set their own comfort"
+msgstr "يمكن للأشخاص ضبط إعدادات الراحة الخاصة بهم"
+
+#. src: item38
+#, fuzzy
+msgid "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
+msgstr "يمكن لكل شخص ضبط الوضع الفاتح أو الداكن وكثافة الصفوف. أما تقليل الحركة فمتاح للجميع دائمًا ولا يتأثر بهذا الإعداد."

@@ -82,6 +82,21 @@ def extend_bootinfo(bootinfo):
     try:
         settings = frappe.get_cached_doc("Theme Settings")
 
+        def personal_open(key: str) -> bool:
+            """Whether this site still offers the axis one per-user key belongs to.
+
+            Reads the lock off the settings doc already in hand rather than
+            issuing its own query, and resolves an unwritten Check through
+            :func:`bunood_theme.personal.lock_open` — where ``None`` means the
+            SHIPPED answer. The opposite reading would make the first load after
+            an upgrade, before the seeding patch runs, silently withdraw every
+            stored preference on the site.
+            """
+            from bunood_theme import personal
+
+            lock = personal.lock_for(key)
+            return True if lock is None else personal.lock_open(lock, settings.get(lock))
+
         # RTL language set (item 7 follow-up). A pure constant — no Theme
         # Settings read, no per-user variance — so it is the cheapest thing
         # this function adds. bunood.js reads it to correct
@@ -161,7 +176,15 @@ def extend_bootinfo(bootinfo):
         # splash, so an attribute applied from boot is applied before anything it
         # changes exists. Empty string = follow the site default, which travels in
         # the brand stylesheet instead.
-        bootinfo.bnd_density = frappe.defaults.get_user_default("bnd_density") or ""
+        #
+        # LOCKED MEANS IT STOPS APPLYING, not merely that it stops being offered
+        # (item 38). The stored value is deliberately left alone, so unlocking
+        # restores what each person had rather than starting everyone over.
+        bootinfo.bnd_density = (
+            frappe.defaults.get_user_default("bnd_density") or ""
+            if personal_open("bnd_density")
+            else ""
+        )
 
         # Desk layout (checklist item 9). Same flash exemption as density: the
         # layout attribute only hides sidebar rows and mounts bars — all elements
@@ -597,7 +620,15 @@ def extend_bootinfo(bootinfo):
         # per site) and per-user containers or placements are out of scope by
         # design, so `theme_settings` is asked for the whole look and this reads
         # the eighteen fields it is allowed to honour.
-        user_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
+        # ITEM 38: and it applies only while the site still offers the axis. A
+        # locked look leaves the stored name untouched — the person gets the
+        # site's side pane, and unlocking gives them theirs back rather than
+        # making everyone choose again.
+        user_preset = (
+            frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
+            if personal_open("bnd_sidebar_preset")
+            else ""
+        )
         if user_preset and user_preset in THEME_PRESETS:
             chosen = theme_settings(user_preset)
             key_map = {

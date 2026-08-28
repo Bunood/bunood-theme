@@ -384,6 +384,43 @@ def lock_for(key: str) -> str | None:
     return row.get("lock") if row else None
 
 
+def lock_open(field: str, value) -> bool:
+    """Whether a locked axis is offered, given the Check's stored value.
+
+    ONE IMPLEMENTATION BECAUSE THE POLARITY IS THE WHOLE RISK, and it is the
+    inverse of what a careless reader would write. A Check that has never been
+    written reads back ``None``, not 0 — the field exists in the doctype from the
+    moment it is declared, but its ``tabSingles`` row only appears when something
+    stores a value. So on the FIRST load after an upgrade, before the seeding
+    patch has run, every lock reads ``None``.
+
+    Read ``None`` as "closed" and that load silently drops every stored preference
+    on the site: two features that have shipped since v0.2.0 and v0.6.0 simply
+    stop applying, with nothing in the log and nothing on screen to say why, and
+    the desks come back only if somebody thinks to look at three new checkboxes.
+    Read it as the SHIPPED answer and nothing moves. This function exists so that
+    reading is written once, next to the reason, instead of at three call sites.
+
+    The empty string is treated as unwritten for the same reason ``container()``
+    does: a Single's value can be ``""`` where a row exists but carries nothing,
+    and that is an absence of a decision rather than a decision to close.
+
+    Args:
+        field: a key of :data:`LOCKS`.
+        value: whatever the Single returned — ``None``, ``""``, ``0``, ``1``.
+
+    Returns:
+        True when a person may set this axis for themselves.
+    """
+    row = LOCKS.get(field)
+    if row is None:
+        # Not a lock we know. Fail OPEN rather than silently withdrawing an axis
+        # over a typo — the same fail-open rule the layout system follows, and
+        # the build guard is what turns a typo into a loud failure instead.
+        return True
+    return bool(int(row["default"] if value in (None, "") else value))
+
+
 def partition() -> dict:
     """The four field sets and what, if anything, no set claims.
 

@@ -1212,6 +1212,11 @@ const MUTABLE_FIELDS = [
 	"sidebar_scroll_fades",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
 	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
+	// Personalization locks (item 38). Here for the ordinary reason and one of
+	// their own: a run that dies with `personal_look` at 0 leaves every stored
+	// per-user look inert site-wide, which reads as the personalize menu being
+	// broken rather than as residue.
+	"personal_look", "personal_shape", "personal_comfort",
 	// The save round-trip test writes tagline; release review v0.6.2..HEAD
 	// caught that leaving it out made every run permanently clobber the field.
 	"tagline",

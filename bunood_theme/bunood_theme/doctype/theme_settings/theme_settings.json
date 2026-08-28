@@ -203,7 +203,11 @@
   "print_words",
   "print_signatures",
   "section_generated",
-  "brand_css_url"
+  "brand_css_url",
+  "section_personal",
+  "personal_look",
+  "personal_shape",
+  "personal_comfort"
  ],
  "fields": [
   {
@@ -1587,6 +1591,32 @@
    "label": "All Apps Link Placement",
    "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
    "hidden": 1
+  },
+  {
+   "fieldname": "section_personal",
+   "fieldtype": "Section Break",
+   "label": "Personalization"
+  },
+  {
+   "fieldname": "personal_look",
+   "fieldtype": "Check",
+   "label": "People may choose their own look",
+   "default": "1",
+   "description": "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
+  },
+  {
+   "fieldname": "personal_shape",
+   "fieldtype": "Check",
+   "label": "People may choose their own desk shape",
+   "default": "0",
+   "description": "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
+  },
+  {
+   "fieldname": "personal_comfort",
+   "fieldtype": "Check",
+   "label": "People may set their own comfort",
+   "default": "1",
+   "description": "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
   }
  ],
  "issingle": 1,

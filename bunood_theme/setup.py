@@ -105,6 +105,17 @@ CHECK_DEFAULTS = {
 # release review before it could bite.
 CHECK_DEFAULTS["palette_enabled"] = 1
 
+# The three personalization locks (item 38), read from the one table rather than
+# restated. They belong in CHECK_DEFAULTS and not DEFAULTS for the reason above
+# and one of their own: `personal_shape` ships as 0, so truthiness seeding would
+# never write it at all and the field would sit unwritten forever — reading back
+# None, which `personal.lock_open` resolves correctly but which leaves the
+# doctype unable to say what the site actually decided.
+from bunood_theme import personal as _personal  # noqa: E402  (after the maps it reads)
+
+for _lock, _row in _personal.LOCKS.items():
+    CHECK_DEFAULTS[_lock] = _row["default"]
+
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
 DEFAULTS = {

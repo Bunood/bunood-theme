@@ -1348,6 +1348,34 @@ def check_personal_partition() -> list[str]:
             + (f" (extra {', '.join(extra)})" if extra else "")
         )
 
+    # EVERY LOCK IS A REAL FIELD, WITH THE DEFAULT THE TABLE CLAIMS. `LOCKS` and
+    # the doctype are the same fact in two files — the trap this repo pays for
+    # more than any other — and the failure is silent in both directions: a lock
+    # naming a field the doctype lacks reads back None forever and the axis is
+    # permanently open, while a default that disagrees means the seeder writes
+    # one answer and `lock_open` resolves another for every site that has not
+    # migrated yet.
+    doctype_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "bunood_theme",
+        "bunood_theme", "doctype", "theme_settings", "theme_settings.json",
+    )
+    with open(doctype_path, encoding="utf-8") as fh:
+        doctype = json.load(fh)
+    by_name = {f.get("fieldname"): f for f in doctype.get("fields", [])}
+    for lock, row in personal.LOCKS.items():
+        field = by_name.get(lock)
+        if field is None:
+            bad.append(f"{lock} is declared in personal.LOCKS but is not a Theme Settings field")
+            continue
+        if field.get("fieldtype") != "Check":
+            bad.append(f"{lock} is a {field.get('fieldtype')} — a lock must be a Check")
+        declared = str(row["default"])
+        stored = str(field.get("default", "0"))
+        if declared != stored:
+            bad.append(
+                f"{lock} defaults to {declared} in personal.LOCKS but {stored} in the doctype"
+            )
+
     # Every axis this app stores must name a lock that exists, or be one of the
     # deliberately unlockable ones. A typo here would read as "no lock" and the
     # axis would be ungoverned rather than loudly wrong.
