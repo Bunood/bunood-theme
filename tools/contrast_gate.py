@@ -46,6 +46,7 @@ from bunood_theme.contrast import (  # noqa: E402
     ratio,
     separation,
     to_hex,
+    to_lab,
 )
 
 #: Chart series separation floors (item 25). A worst-pair CIEDE2000 under
@@ -456,6 +457,9 @@ def pairs():
     return out
 
 
+#: The lightness floor the DARK brand fill must clear (item 37).
+DARK_FILL_MIN_L = 62.0
+
 #: Seeds to check. The first is what ships; the rest are the colours a tenant
 #: plausibly picks, including the two GUIDELINES §2.2 measured as catastrophic.
 SEEDS = [
@@ -717,6 +721,51 @@ _SHARMA_2005 = [
     ((6.7747, -0.2908, -2.4247), (5.8714, -0.0985, -2.2286), 0.6377),
     ((2.0776, 0.0795, -1.1350), (0.9033, -0.0636, -0.5514), 0.9082),
 ]
+
+
+def check_dark_lift() -> list[str]:
+    """The dark brand fill must clear a LIGHTNESS floor, not merely the contrast floor.
+
+    Item 37. `fill_pair` solves for the minimum correction that clears 3:1 against the
+    surfaces and 4.5:1 under the label, and measured, that lands every dark seed at
+    L* ~54 — legible, and dimmer than the brand a tenant chose. Radix holds its solid
+    step across modes and Material 3 lifts the resolved role; this is the second, done
+    inside `derive()` so ONE stored seed produces it. A palette needs no dark colour of
+    its own.
+
+    Two arms, and the second is the one that stops the lift leaking:
+
+      * DARK: every seed's fill sits at or above the floor. Seeds already lighter than
+        the target keep their own value (gold, teal, near-white, white are untouched),
+        so the assertion is a floor and not an equality.
+      * LIGHT: the fill is NOT lifted. The lift is a dark-mode answer to a dark-mode
+        problem — a light ground needs the fill DARKER, not lighter — and a helper
+        applied in both modes would wash the brand out on white. Pinned to the shipped
+        seed's concrete light value so the arm cannot pass vacuously.
+
+    The pairs are re-asserted here too: a brighter fill needs a darker ink, and
+    `fill_pair` re-solves both together, so the floors are re-proved rather than assumed
+    to survive.
+    """
+    floor = DARK_FILL_MIN_L
+    bad: list[str] = []
+    for seed, label in SEEDS:
+        d = palette.derive(seed, ACCENT_SEED, "dark")
+        fill, ink = d["--bnd-brand-solid"], d["--bnd-on-brand"]
+        lum = to_lab(parse_color(fill))[0]
+        if lum < floor - 1.0:
+            bad.append(f"{label}/dark: fill {fill} is L* {lum:.1f}, under the {floor:.0f} floor")
+        r_fill = ratio(parse_color(fill), parse_color(d["--bnd-page"]))
+        r_lab = ratio(parse_color(ink), parse_color(fill))
+        if r_fill < AA_NON_TEXT:
+            bad.append(f"{label}/dark: lifted fill {fill} is {r_fill:.2f}:1 on the page")
+        if r_lab < AA_TEXT:
+            bad.append(f"{label}/dark: label {ink} on {fill} is {r_lab:.2f}:1")
+
+    light = palette.derive(SEEDS[0][0], ACCENT_SEED, "light")["--bnd-brand-solid"]
+    if light.lower() != "#4a8253":
+        bad.append(f"light fill moved to {light}; the lift must be dark-only (want #4a8253)")
+    return bad
 
 
 def check_ground_inert() -> list[str]:

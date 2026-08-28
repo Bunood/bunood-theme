@@ -132,7 +132,7 @@ html[data-theme=dark] {
   --bnd-ink: #e8eaec;
   --bnd-ink-muted: #b9bec5;
   --bnd-ink-subtle: #9298a2;
-  --bnd-brand-solid: #558d5e;
+  --bnd-brand-solid: #68a370;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #76a27c;
   --bnd-accent: #516ef1;
@@ -191,7 +191,7 @@ html[data-theme=dark] {
     --bnd-ink: #e8eaec;
     --bnd-ink-muted: #b9bec5;
     --bnd-ink-subtle: #9298a2;
-    --bnd-brand-solid: #558d5e;
+    --bnd-brand-solid: #68a370;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #76a27c;
     --bnd-accent: #516ef1;
@@ -240,7 +240,7 @@ html[data-bnd-density=compact] {
     --bnd-ink: #e8eaec;
     --bnd-ink-muted: #b9bec5;
     --bnd-ink-subtle: #9298a2;
-    --bnd-brand-solid: #558d5e;
+    --bnd-brand-solid: #68a370;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #76a27c;
     --bnd-accent: #516ef1;
@@ -298,7 +298,7 @@ body.bnd-auth-theme-dark {
   --bnd-ink: #e8eaec;
   --bnd-ink-muted: #b9bec5;
   --bnd-ink-subtle: #9298a2;
-  --bnd-brand-solid: #558d5e;
+  --bnd-brand-solid: #68a370;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #76a27c;
   --bnd-accent: #516ef1;
@@ -585,7 +585,7 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
     --bnd-ink: #e8eaec;
     --bnd-ink-muted: #b9bec5;
     --bnd-ink-subtle: #9298a2;
-    --bnd-brand-solid: #558d5e;
+    --bnd-brand-solid: #68a370;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #76a27c;
     --bnd-accent: #516ef1;
@@ -643,7 +643,7 @@ body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
   --bnd-ink: #e8eaec;
   --bnd-ink-muted: #b9bec5;
   --bnd-ink-subtle: #9298a2;
-  --bnd-brand-solid: #558d5e;
+  --bnd-brand-solid: #68a370;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #76a27c;
   --bnd-accent: #516ef1;

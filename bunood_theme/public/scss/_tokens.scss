@@ -392,7 +392,7 @@
   // the 3:1 it needs to be seen at all (measured 2.98:1 against --bnd-hover). So
   // the fill is LIGHTENED and takes dark ink instead. Both constraints are
   // solved together for exactly this reason — see contrast.fill_pair.
-  --bnd-brand-solid: #558d5e;
+  --bnd-brand-solid: #68a370;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #76a27c;
 
@@ -511,7 +511,7 @@ html[data-theme="dark"] {
     --bnd-ink: #e8eaec;
     --bnd-ink-muted: #b9bec5;
     --bnd-ink-subtle: #9298a2;
-    --bnd-brand-solid: #558d5e;
+    --bnd-brand-solid: #68a370;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #76a27c;
     --bnd-accent: #516ef1;

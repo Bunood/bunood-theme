@@ -286,6 +286,57 @@ def to_lab(color):
     return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
 
 
+def _from_lab(lab):
+    """CIELAB back to LINEAR-light sRGB. May fall outside 0-1 — see :func:`lift_lightness`."""
+    L, a, b = lab[:3]
+    fy = (L + 16) / 116
+    fx, fz = fy + a / 500, fy - b / 200
+
+    def finv(t):
+        return t ** 3 if t ** 3 > 216 / 24389 else (t - 4 / 29) * 108 / 841
+
+    x, y, z = finv(fx) * _XN, finv(fy) * _YN, finv(fz) * _ZN
+    return (
+        3.2404542 * x - 1.5371385 * y - 0.4985314 * z,
+        -0.9692660 * x + 1.8760108 * y + 0.0415560 * z,
+        0.0556434 * x - 0.2040259 * y + 1.0572252 * z,
+    )
+
+
+def lift_lightness(color, target_l: float):
+    """Raise ``color`` to ``target_l`` in CIELAB, holding its hue.
+
+    Returns the colour unchanged when it is already at or above the target, so this is
+    a FLOOR and never a repaint: a seed the tenant chose light stays exactly as chosen.
+
+    WHY CHROMA IS REDUCED RATHER THAN CHANNELS CLAMPED
+        A saturated dark colour has no in-gamut sRGB equivalent at a high L* — a deep red
+        at L* 62 does not exist. Clamping each channel into 0-1 silently SHIFTS THE HUE,
+        which is the "helper that guesses at an unrecognised input" defect this project
+        has already paid for once. Reducing chroma toward the neutral axis keeps hue and
+        lightness exactly and gives up only saturation, which is the one of the three a
+        viewer will not notice. Bisected to 1/1000 of the chroma range, which is finer
+        than the 8-bit channels anything is rasterised into.
+    """
+    L, a, b = to_lab(color)[:3]
+    if L >= target_l:
+        return quantise(color)[:3]
+
+    lo, hi = 0.0, 1.0                      # fraction of the original chroma to keep
+    def rgb(scale):
+        return _from_lab((target_l, a * scale, b * scale))
+    if all(-1e-9 <= c <= 1 + 1e-9 for c in rgb(1.0)):
+        lo = 1.0
+    else:
+        for _ in range(10):                # 2^-10 of the range
+            mid = (lo + hi) / 2
+            if all(-1e-9 <= c <= 1 + 1e-9 for c in rgb(mid)):
+                lo = mid
+            else:
+                hi = mid
+    return quantise(tuple(_delinear(c) for c in rgb(lo)))[:3]
+
+
 def delta_e(lab1, lab2) -> float:
     """CIEDE2000 colour difference between two CIELAB triples (kL=kC=kH=1).
 

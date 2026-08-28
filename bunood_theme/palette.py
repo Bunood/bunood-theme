@@ -47,6 +47,7 @@ from bunood_theme.contrast import (
     AA_TEXT,
     fill_pair,
     fit_ink,
+    lift_lightness,
     luminance,
     parse_color,
     to_hex,
@@ -61,6 +62,20 @@ from bunood_theme.contrast import (
 #: primary / secondary / tertiary and all three are legible. This number is a
 #: design decision, NOT a WCAG requirement — 4.5 is the requirement.
 INK_MUTED_TARGET = 7.0
+
+#: The lightness the DARK brand fill is lifted to before it is fitted.
+#:
+#: `fill_pair` solves for the MINIMUM correction that clears 3:1 against the surfaces
+#: and 4.5:1 under its own label, and measured, that lands every dark seed at L* ~54 —
+#: legible, and dimmer than the brand the tenant chose. Radix holds its solid step
+#: across modes and Material 3 lifts the resolved role instead; this is the second,
+#: done HERE so one stored seed produces it and a palette needs no dark colour of its
+#: own. A seed already lighter than this keeps its own value, so it is a floor and
+#: never a repaint.
+#:
+#: Measured at 62: the fills land at 5.8-6.0:1 on both the page and under their label,
+#: where the old minima sat nearer the 3:1/4.5:1 floors — brighter AND more legible.
+DARK_FILL_TARGET_L = 62.0
 
 #: How each surface is mixed. ``(token, seed_percent, base)``.
 #:
@@ -355,8 +370,13 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     # Solved jointly, not one after the other — see fill_pair's docstring. In
     # dark mode the two constraints pull in opposite directions and no ordering
     # of two independent fits converges.
+    # DARK ONLY. A light ground needs the fill DARKER, so lifting in both modes would
+    # wash the brand out on white — the check pins the light value for that reason.
+    fill_seed = brand
+    if mode != "light":
+        fill_seed = to_hex(lift_lightness(parse_color(brand), DARK_FILL_TARGET_L))
     out["--bnd-brand-solid"], out["--bnd-on-brand"], _ = fill_pair(
-        brand, surfaces=surfaces
+        fill_seed, surfaces=surfaces
     )
 
     # `--bnd-brand-ink` is the third role, and it is NOT the same value as either
