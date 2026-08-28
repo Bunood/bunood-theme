@@ -51,6 +51,36 @@ each, and **no preset name stored anywhere** — `sidebar_preset` and `desk_layo
 deleted. ROADMAP's item-37 entry and CHANGELOG carry the account; what belongs here is
 what will cost time again:
 
+- **THE RELEASE REVIEW FOUND SEVENTEEN DEFECTS AND THE TAG MOVED** (the item-32
+  precedent). Run as six independent dimensions over `bd59f9b..HEAD` with every
+  finding adversarially refuted-or-confirmed. The headline: **the per-user "Sidebar
+  Style" menu was dead for every non-administrator.** Item 37 re-pointed it at
+  `api.get_theme_presets`, which opens `frappe.only_for("System Manager")`, while
+  the menu entry is pushed for EVERY desk user — deliberately, unlike the "Theme
+  Settings" entry three lines above it. Every non-admin click was a 403 swallowed by
+  an empty `catch`. **THE SUITE RUNS AS ADMINISTRATOR AND STRUCTURALLY CANNOT SEE
+  THIS CLASS.** Three dimensions found it independently. The fix is a separate
+  ungated `get_theme_sidebar_presets` serving only the eighteen fields `sb_apply`
+  reads — which also stops handing non-admins the site's brand seeds.
+  - **Five of eight per-user sidebar choices would have been silently voided**;
+    `v0_37_0/migrate_user_sidebar_preset` maps each stored name to the theme preset
+    carrying the identical side pane, derived from the catalogue rather than a table.
+    Every one of the eight maps exactly, so nobody's desk changes.
+  - **`get_single_value` RAISES for a field the doctype has lost** — measured, not
+    assumed, after I refuted this finding wrongly. `v0_11_0/chrome_placement` read
+    the deleted `desk_layout` that way and would have aborted `bench migrate` on any
+    site last migrated before 0.11.0. Two of this item's own patch docstrings claimed
+    the opposite and were corrected.
+  - **The ground did not travel.** `api.effective_identity`, `palette.adjustments`
+    and `email.tokens` all re-derived without it, so the Identity pane's console, its
+    adjustment report, and email/print/letterhead described colours the desk does not
+    paint.
+  - **A translated label was compared against untranslated card values**, so no
+    layout card lit on a localized desk; and `bnd_match_layout` compared only the
+    five container toggles, colliding Bottom Bar into Classic — the same defect
+    fixed server-side, still live in JS. Matchers return RAW names now; `bnd_tr_layout`
+    translates at the edge, with `__("Custom")` spelled out because the extractor
+    reads literals only.
 - **A SCRIPTED DELETION TOOK 337 LINES AND `node --check` PASSED.** The edit was aimed at
   `LAYOUT_SLUGS` and one IIFE in `bunood.js`; it also removed density, icon weight, the
   `is_rtl` correction, chart grid and the chart colour patch. Deleting whole functions

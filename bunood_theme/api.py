@@ -965,9 +965,13 @@ def effective_identity() -> dict:
     # the pane cannot mis-map them.
     def _roles(mode: str) -> dict:
         d = palette.derive(
-            settings.get("brand_color") or "#3d8150",
-            settings.get("accent_color") or "#0090ff",
+            settings.get("brand_color") or _seed("brand_color"),
+            settings.get("accent_color") or _seed("accent_color"),
             mode,
+            # THE GROUND OR THE PANE LIES. brand.py derives the real sheet with
+            # it, and the fill is fitted against ground-mixed surfaces, so a
+            # console that omitted it printed colours the desk does not paint.
+            ground=(settings.get("ground_color") or "").strip() or None,
         )
         return {
             "wash": d["--bnd-active"],
@@ -980,8 +984,9 @@ def effective_identity() -> dict:
 
     try:
         report = [_note_sentence(n) for n in palette.adjustments(
-            settings.get("brand_color") or "#3d8150",
-            settings.get("accent_color") or "#0090ff",
+            settings.get("brand_color") or _seed("brand_color"),
+            settings.get("accent_color") or _seed("accent_color"),
+            ground=(settings.get("ground_color") or "").strip() or None,
         )]
         report = [s for s in report if s]
     except Exception:
@@ -1145,6 +1150,59 @@ def get_theme_presets() -> dict:
     return {
         "axes": THEME_AXES,
         "presets": {name: theme_settings(name) for name in THEME_PRESETS},
+        "default": DEFAULT_THEME_PRESET,
+    }
+
+
+def _seed(field: str) -> str:
+    """The shipped value of a colour seed, from the ONE catalogue.
+
+    Written because the retired seeds were still hardcoded in two places after
+    item 37 recalibrated them — ``theme_settings.report_contrast_adjustments``
+    was measuring against ``#4d8756``/``#4463f0``, colours the app no longer
+    ships, so its report described a palette nobody has. A literal hex in a
+    fallback is the same-fact-twice trap with a long fuse: it is only read when
+    the field is empty, so it survives every test that sets one.
+    """
+    from bunood_theme.presets import DEFAULT_PALETTE, PALETTES
+
+    return PALETTES[DEFAULT_PALETTE][field]
+
+
+@frappe.whitelist()
+def get_theme_sidebar_presets() -> dict:
+    """The shipped looks' SIDE PANE slice — the per-user "personalize" menu's data.
+
+    WHY THIS IS NOT ``get_theme_presets``, and the defect that says so. Item 37
+    re-pointed the avatar menu at ``get_theme_presets``, which opens with
+    ``frappe.only_for("System Manager")``. That menu entry is pushed for EVERY
+    desk user — deliberately, unlike the "Theme Settings" entry three lines above
+    it, which is role-gated. So every non-admin's click became a 403 rejected into
+    an empty ``catch``: personalization silently dead for everyone but
+    administrators, and INVISIBLE TO THE SUITE, which runs as Administrator. Found
+    by the adversarial release review, by three dimensions independently.
+
+    It also over-served. The per-user layer applies the side pane and nothing else
+    — colours are one content-hashed stylesheet per SITE, and containers are the
+    site's — so handing a non-admin all 124 values, brand seeds included, was a
+    payload they could neither use nor be shown. This returns exactly the fields
+    ``sb_apply`` reads, in the same shape the retired ``get_sidebar_presets`` used,
+    so the client needed no unpacking either way.
+    """
+    from bunood_theme.presets import (
+        DEFAULT_THEME_PRESET,
+        SIDEBAR_FIELDS,
+        THEME_PRESETS,
+        theme_settings,
+    )
+
+    wanted = set(SIDEBAR_FIELDS)
+    return {
+        "presets": {
+            name: {f: v for f, v in theme_settings(name).items() if f in wanted}
+            for name in THEME_PRESETS
+        },
+        "fields": SIDEBAR_FIELDS,
         "default": DEFAULT_THEME_PRESET,
     }
 

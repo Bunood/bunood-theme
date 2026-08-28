@@ -197,8 +197,16 @@ html[data-theme] .bnd-inbox {
 // What the rule is about is where the BELL mounted, which `data-bnd-bell` has
 // carried since item 22 - stamped from the mount's OUTCOME - and which
 // _layouts.scss already uses three rules away.
-html[data-bnd-bell="bottombar"] .bnd-inbox,
-html[data-bnd-dock] .bnd-inbox {
+//
+// A SECOND SELECTOR WAS DELETED HERE, and it was already dead before item 37:
+// `html[data-bnd-dock]` names an attribute NOTHING in this app has ever written
+// (the written set is data-bnd-bell / desk / search / status / narrow / ... ),
+// so the dock arm of this rule has never once applied. It is removed rather than
+// re-keyed to `data-bnd-bell="dock"`, because that would not be a repair - it
+// would switch on, for the first time, an offset nobody has measured against a
+// desk whose bottom strip may not even be mounted. If the dock's bell panel
+// needs lifting, that is a measured slice with a check, not a one-word edit.
+html[data-bnd-bell="bottombar"] .bnd-inbox {
   inset-block-start: auto;
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
 }

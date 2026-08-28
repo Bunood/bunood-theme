@@ -166,8 +166,16 @@ for (const key of items) {
 		// a fix. It caught the list kit fourth and item 33's web kit fifth,
 		// each reported as crumb_style writes that never landed. A specific
 		// class now excludes itself from the catch-all by existing.
+		// CARDS THAT WRITE MANY FIELDS, NOT ONE. The layout cards and (item 37)
+		// the theme cards apply a whole PRESET — the layout cards write the five
+		// container toggles, a theme card writes 124 values — so there is no
+		// single `field` to click-and-assert, and `desk_layout` (which this list
+		// mapped until item 37 deleted it) does not exist to hold the answer.
+		// They still have to be NAMED here, because the crumbs catch-all below is
+		// the complement of these keys: leave one out and every one of its cards
+		// is swept as a crumb_style write that never lands.
+		const MULTI = [".bnd-lp-card", ".bnd-thp-style"];
 		const IMPLICIT = {
-			".bnd-lp-card": "desk_layout",
 			".bnd-plp-style": "palette_style",
 			".bnd-ibp-style": "inbox_style",
 			".bnd-stp-style": "status_style",
@@ -187,7 +195,8 @@ for (const key of items) {
 			".bnd-icp-style": "icon_style",
 		};
 		const CRUMBS_ONLY =
-			".bnd-cbp-style" + Object.keys(IMPLICIT).map((c) => `:not(${c})`).join("");
+			".bnd-cbp-style" +
+			Object.keys(IMPLICIT).concat(MULTI).map((c) => `:not(${c})`).join("");
 		IMPLICIT[CRUMBS_ONLY] = "crumb_style";
 		for (const [sel, field] of Object.entries(IMPLICIT)) {
 			for (const n of document.querySelectorAll(sel)) {

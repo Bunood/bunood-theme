@@ -251,11 +251,18 @@ function isTransparent(css) {
 			`rather than letting it guess (see the oklab lesson in CLAUDE.md)`
 		);
 	}
-	const parts = m[1].split(/[,/]/).map((t) => parseFloat(t.trim()));
-	if (parts.some((n) => Number.isNaN(n))) {
+	// BOTH SPELLINGS, because the regex above accepts both and the legacy split
+	// silently mis-read one. CSS Color 4 allows `rgb(R G B / A)`; splitting only
+	// on comma-or-slash turned that into TWO fields ("0 0 0", "0"), parseFloat
+	// read the first as 0 rather than NaN, so the length check fell through to
+	// `false` — a fully TRANSPARENT colour reported as painted. At the inverted
+	// call site ("the rail is painted") that certifies a live defect as repaired,
+	// which is the exact failure the throw below exists to prevent.
+	const parts = m[1].trim().split(/[\s,/]+/).filter(Boolean).map((c) => parseFloat(c));
+	if (parts.length < 3 || parts.length > 4 || parts.some((n) => Number.isNaN(n))) {
 		throw new Error(`isTransparent: could not parse channels from ${JSON.stringify(css)}`);
 	}
-	return parts.length >= 4 ? parts[3] === 0 : false;
+	return parts.length === 4 ? parts[3] === 0 : false;
 }
 
 // ── Server-side helpers (docker exec) ───────────────────────────────────────
@@ -4433,6 +4440,82 @@ async function main() {
 		//
 		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
 		// of this machine's font rendering and would fail on anyone else's.
+		await test("theme: the picker's own gesture writes the look the server composed", async () => {
+			// THE HEADLINE FEATURE, DRIVEN. Everything else about this catalogue was
+			// checked by COUNTING cards and reading a note; nothing clicked one. That is
+			// this repo's first-named trap - assert existence, not correctness - sitting
+			// on the largest write in the app: 124 values from a single gesture.
+			//
+			// IT DRIVES THE REAL PICKER, never setSettings, because item 36's sharpest
+			// finding was a suite driving a state no gesture could produce. And it
+			// snapshots ALL of THEME_AXES rather than a named few: a card writes the
+			// brand seeds, which sit outside MUTABLE_FIELDS by design, so nothing else
+			// in this file would put them back.
+			const PICK = "Focus";
+			const axesState = () =>
+				JSON.parse(
+					benchPy(
+						`from bunood_theme.presets import THEME_AXES\ndoc = frappe.get_doc("Theme Settings")\nprint(json.dumps({f: ("" if doc.get(f) is None else doc.get(f)) for f in THEME_AXES}))\n`
+					).trim().split("\n").pop()
+				);
+			const wanted = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import theme_settings\nprint(json.dumps(theme_settings("Focus")))\n`
+				).trim().split("\n").pop()
+			);
+			const before = axesState();
+			try {
+				await goDesk("/desk/theme-settings?shell=0", "[data-fieldname='theme_picker'] .bnd-thp-style", 5000);
+				// Scoped to the picker's own host: every style card on the page wears the
+				// same base class, and item 36 measured the wrong element twice that way.
+				const sel = "[data-fieldname='theme_picker'] .bnd-thp-style[data-value='" + PICK + "']";
+				expect(await q(sel), "the " + PICK + " card is on the page to click");
+				await page.click(sel);
+				// Autosave settles late: item 36 measured this wrong at t+1214ms and right
+				// at t+3003ms. The window IS the assertion.
+				await page.waitForTimeout(4000);
+				
+				const after = axesState();
+				const wrong = Object.keys(wanted).filter(
+					(f) => String(after[f] ?? "") !== String(wanted[f] ?? "")
+				);
+				expectEq(
+					wrong.length,
+					0,
+					"the gesture wrote every axis the server composed (missed: " +
+						wrong.slice(0, 6).map((f) => f + "=" + JSON.stringify(after[f])).join(", ") +
+						")"
+				);
+				// AND THE SEEDS MOVED - the half a suite running on MUTABLE_FIELDS could
+				// never see. A look carries its palette, or it is not a look.
+				expectEq(String(after.brand_color), String(wanted.brand_color), "the card wrote its brand seed");
+				// The derived highlight agrees with the desk the gesture just made.
+				const lit = await page.evaluate(() => {
+					const host = document.querySelector("[data-fieldname=\"theme_picker\"]");
+					const on = host && host.querySelector(".bnd-thp-style.bnd-cbp-on");
+					return on ? on.getAttribute("data-value") : null;
+				});
+				expectEq(lit, PICK, "the derived highlight names the look that was applied");
+			} finally {
+				// Verified restore, withBranding's contract: the seeds are outside
+				// MUTABLE_FIELDS, so a silent failure here is real damage to the site.
+				benchPy(
+					`doc = frappe.get_doc("Theme Settings")\n` +
+						`vals = json.loads(` + JSON.stringify(JSON.stringify(before)) + `)\n` +
+						`for f, v in vals.items(): doc.set(f, v)\ndoc.save(ignore_permissions=True)\nfrappe.db.commit()\nprint("ok")\n`
+				);
+				const back = axesState();
+				const notBack = Object.keys(before).filter(
+					(f) => String(back[f] ?? "") !== String(before[f] ?? "")
+				);
+				if (notBack.length) {
+					throw new Error(
+						"THEME RESTORE FAILED - restore by hand NOW: " +
+							notBack.map((f) => f + "=" + JSON.stringify(before[f])).join(", ")
+					);
+				}
+			}
+		});
 		await test("settings: every picker renders its full complement", async () => {
 			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
 			// The identity pane's specimen fills from an async server fetch;
@@ -4445,10 +4528,19 @@ async function main() {
 			// Structural counts catch a picker that silently rendered nothing —
 			// which is what a thrown error inside one render function looks
 			// like, since each is called in sequence from refresh().
+			// ASKED, NOT ASSUMED. This was the literal 12 under a comment saying
+			// "matching THEME_PRESETS in presets.py" — which the check could not
+			// know, because the cards are rendered from the CLIENT's art table.
+			// A thirteenth preset added server-side would have rendered twelve
+			// cards and passed, with the comment still claiming otherwise. The
+			// count comes from the catalogue that owns it.
+			const themeCount = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_PRESETS\nprint(json.dumps(len(THEME_PRESETS)))\n`
+				).trim().split("\n").pop()
+			);
 			const EXPECTED = {
-				// TWELVE, matching THEME_PRESETS in presets.py (item 37). The looks
-				// are one catalogue now, and this is where they are counted.
-				theme_picker: { cards: 12 },
+				theme_picker: { cards: themeCount },
 				layout_picker: { cards: 5 },
 				// ZERO SINCE ITEM 37, and that is the point rather than a regression.
 				// This said eight, matching SIDEBAR_PRESETS — cards that painted four
@@ -4607,9 +4699,20 @@ async function main() {
 			// Intersected with MUTABLE_FIELDS: a fixture's `state` is the whole
 			// SHIPPED map, which includes identity and colour fields the suite
 			// does not snapshot. Writing them here destroyed them permanently.
-			// Safe for this check: the fingerprint is purely structural — node
-			// sequence, svg count, text length — and a brand colour or a company
-			// name changes none of those.
+			// THAT SENTENCE USED TO END "safe for this check: the fingerprint is
+			// purely structural — a brand colour or a company name changes none of
+			// those", AND ITEM 37 MADE IT FALSE. The theme picker's fingerprint
+			// records which card carries `bnd-cbp-on` and how long its note is,
+			// and both come from a label DERIVED by comparing all 124 axes — of
+			// which the four colour seeds and the ground are outside
+			// MUTABLE_FIELDS, so this pin cannot write them.
+			//
+			// The check is still sound HERE, and only here: `npm run verify` drives
+			// the local stack alone, whose ambient seeds are the shipped ones that
+			// `tools/fingerprint.mjs` wrote when it captured the fixture. Every
+			// suite writer of a seed restores it with a verified read-back that
+			// throws. What is no longer true is the REASON, so it is not left
+			// standing as though it were.
 			setSettings(
 				Object.fromEntries(
 					Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
@@ -12927,10 +13030,19 @@ async function main() {
 				const want = JSON.parse(
 					benchPy(
 						"from bunood_theme import palette\n" +
+							"from bunood_theme.presets import DEFAULT_PALETTE, PALETTES\n" +
+							"shipped = PALETTES[DEFAULT_PALETTE]\n" +
 							"s = frappe.get_single('Theme Settings')\n" +
-							"brand = (s.brand_color_dark or s.brand_color or '#4d8756').strip()\n" +
-							"accent = (s.accent_color_dark or s.accent_color or '#4463f0').strip()\n" +
-							"d = palette.derive(brand, accent, 'dark')\n" +
+							// THE SHIPPED SEEDS FROM THE CATALOGUE, and the GROUND passed
+							// through. These were the retired #4d8756/#4463f0 literals and a
+							// ground-less derive: on a site that had set a ground, the
+							// expectation came from a derivation the stylesheet does not use,
+							// so the check would have failed on a correct desk. Both halves
+							// found by item 37's release review.
+							"brand = (s.brand_color_dark or s.brand_color or shipped['brand_color']).strip()\n" +
+							"accent = (s.accent_color_dark or s.accent_color or shipped['accent_color']).strip()\n" +
+							"ground = (s.ground_color or '').strip() or None\n" +
+							"d = palette.derive(brand, accent, 'dark', ground=ground)\n" +
 							"print(json.dumps({k: d[k] for k in ('--bnd-page', '--bnd-brand-solid')}))\n"
 					)
 						.trim()

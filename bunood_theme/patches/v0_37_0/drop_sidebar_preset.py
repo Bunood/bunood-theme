@@ -26,9 +26,13 @@ WHY A PATCH AND NOT NOTHING
     A Single keeps its values as ``tabSingles`` rows, and a row for a field the
     doctype no longer has is not inert. ``doc.save()`` rewrites the whole rowset,
     so the orphan would vanish on the next save anyway — but only on the next
-    save, and until then it is a value ``get_single_value`` will happily return
-    to anything that asks by name. Deleting it is one statement and removes the
-    question.
+    save.
+
+    NOT, AS THIS SAID, BECAUSE ``get_single_value`` WOULD KEEP RETURNING IT.
+    Measured against frappe v16, that helper consults the doctype meta and
+    RAISES for a field the doctype has lost. The orphan is a row no reader can
+    reach, and the honest reason to delete it is that a stale row invites
+    exactly the mistake its sibling patch made — reading a dead field by name.
 """
 
 import frappe

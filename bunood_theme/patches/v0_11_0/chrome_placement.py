@@ -65,7 +65,25 @@ def execute():
     if "inbox_placement" in stored:
         return
 
-    layout = frappe.db.get_single_value("Theme Settings", "desk_layout")
+    # RAW SQL, NOT get_single_value, and item 37 is why. That helper resolves
+    # the field through the doctype META, and this patch reads a field the
+    # doctype no longer HAS: item 37 deleted ``desk_layout``, and patches run
+    # post_model_sync, so the meta has already forgotten it by the time this
+    # executes. Frappe raises "Field desk_layout does not exist on Theme
+    # Settings" and the whole migration aborts.
+    #
+    # ONLY A SITE THAT NEVER RAN THIS PATCH REACHES THE LINE - its guard above
+    # is row-absence, and every site at 0.11.0 or later has the row - so the
+    # exposed population is exactly the one this patch exists for: a desk last
+    # migrated at 0.10.x, or a pre-0.11.0 dump restored into a current bench.
+    # Its five container_* siblings already read this way; this was the one
+    # that did not, and the repo warns about the same trap in three other
+    # files. Found by the adversarial release review, not by any gate.
+    rows = frappe.db.sql(
+        "select value from tabSingles where doctype = %s and field = %s",
+        ("Theme Settings", "desk_layout"),
+    )
+    layout = rows[0][0] if rows else None
     inbox, user = RENDERED.get(layout, FALLBACK)
 
     frappe.db.set_single_value("Theme Settings", "inbox_placement", inbox, update_modified=False)

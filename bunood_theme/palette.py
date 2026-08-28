@@ -411,7 +411,7 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     return out
 
 
-def adjustments(brand: str, accent: str) -> list[dict]:
+def adjustments(brand: str, accent: str, ground: str | None = None) -> list[dict]:
     """What had to move, as FACTS rather than prose.
 
     Empty means the seeds were used exactly as chosen. Non-empty is not an error
@@ -441,7 +441,7 @@ def adjustments(brand: str, accent: str) -> list[dict]:
     """
     notes = []
     for mode in ("light", "dark"):
-        d = derive(brand, accent, mode)
+        d = derive(brand, accent, mode, ground=ground)
         solid, ink = d["--bnd-brand-solid"], d["--bnd-on-brand"]
         if solid.lower() != brand.lower():
             notes.append({"kind": "brand_fill", "mode": mode, "used": solid, "chosen": brand})

@@ -1166,6 +1166,21 @@ entry.
     `layout()` was also answering two questions — "which shape" and "is our system
     running" — which diverged the moment the shape stopped being stored; they are
     `layout()` and `theme_active()` now.
+  - **The adversarial release review found SEVENTEEN defects, and the tag moved.**
+    Six independent dimensions over the whole diff, every finding refuted-or-confirmed
+    by skeptics before it was acted on. The one that matters most: **the per-user
+    "Sidebar Style" menu was dead for every non-administrator** — this item pointed it
+    at an endpoint guarded `only_for("System Manager")` while the menu entry is shown
+    to every user, so each click was a 403 swallowed by an empty `catch`. **The suite
+    runs as Administrator and structurally cannot see that class of defect**; three
+    dimensions found it independently. Also caught: five of eight per-user side-pane
+    choices silently voided on upgrade (now migrated exactly, since every old name has
+    a theme preset carrying the identical pane); a `bench migrate` that would ABORT on
+    any site last migrated before 0.11.0, because `get_single_value` raises for a field
+    the doctype has lost — which I first refuted and then measured; the new ground not
+    reaching the Identity pane, the adjustment report or email; and a layout highlight
+    comparing a TRANSLATED name against untranslated cards, so no card lit on a
+    localized desk. One finding was refuted and recorded rather than "fixed".
   - **The repair that cost the most, and what actually found it.** A scripted deletion
     aimed at `LAYOUT_SLUGS` and one IIFE took **337 lines** with it — density, icon
     weight, the `is_rtl` correction, chart grid and the chart colour patch — and

@@ -10,7 +10,7 @@
 		webfont has loaded. Frappe's and erpnext's own marks are paths for the same
 		reason; this one sits beside them in a tab strip.
 
-		THE FILL IS THE SHIPPED SEED (#4d8756) AS A LITERAL, and that is the one
+		THE FILL IS THE MARK'S OWN GREEN (#4d8756) AS A LITERAL, and that is the one
 		place in this repo where a raw hex is correct: a vendor mark does not follow
 		a tenant's palette. A tenant who wants their own colours attaches their own
 		favicon and logo in Theme Settings -> Branding, which wins over this file.

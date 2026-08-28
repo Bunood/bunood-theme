@@ -37,8 +37,16 @@ WHAT REPLACED IT
 WHY A PATCH
     A Single keeps values as ``tabSingles`` rows, and a row for a field the
     doctype no longer has outlives the field until the next ``doc.save()``
-    rewrites the rowset. Until then ``get_single_value`` will still return it to
-    anything that asks by name. One statement removes the question.
+    rewrites the rowset — a stale value sitting in the database for as long as
+    nobody saves the settings.
+
+    THIS PARAGRAPH USED TO SAY ``get_single_value`` WOULD KEEP SERVING IT, AND
+    THAT IS EXACTLY BACKWARDS. Measured against frappe v16: it resolves the
+    field through the doctype META first and RAISES ``Field desk_layout does not
+    exist on Theme Settings`` once the field is gone. The orphan row is not a
+    value that leaks; it is a value nothing can read and a migration can trip
+    over — which is precisely what ``v0_11_0/chrome_placement`` did until item
+    37's release review caught it. One statement removes the question either way.
 """
 
 import frappe

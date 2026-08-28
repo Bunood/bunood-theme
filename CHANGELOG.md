@@ -29,7 +29,10 @@ an "item N" cited below against today's numbering.
 ## [0.37.0] — 2026-08-28 — Presets (item 37)
 
 Gated at 407/407 with contrast over 9,520 pairs across 27 seeds, the build guards
-and the payload ceiling.
+and the payload ceiling. **The adversarial release review ran over the whole diff
+and found 17 defects, every one fixed** — including one that would have shipped the
+per-user "Sidebar Style" menu broken for every non-administrator, which no suite
+could see because the suite runs as Administrator.
 
 **Your dark brand colour gets brighter, and every desk surface can now take a
 neutral ground.** Both come from one change inside `palette.derive`, so they land

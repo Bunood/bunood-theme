@@ -1320,6 +1320,23 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
+    """Every field a theme preset writes and compares — 124 of the doctype's 134.
+
+    THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
+
+      * ``company_name`` ``tagline`` ``logo`` ``favicon`` describe the COMPANY,
+        not the desk. A look that renamed the business would be absurd.
+      * ``brand_css_url`` is GENERATED - the content-hashed sheet's own address.
+        Writing it would hand a preset the power to point a site at a stale file.
+      * ``arabic_font`` is a language choice, which item 36 deliberately moved
+        out of Appearance.
+      * ``palette_enabled`` ``mobile_inbox`` ``mobile_user`` ``mobile_apps`` are
+        the honest gap. They DO describe the desk, and a preset does not write
+        them, so two desks differing only in a phone-bar toggle both read the
+        same preset name. Named here rather than left to be discovered, because
+        an unwritten axis is invisible: the derived label compares this list, so
+        a field missing from it can never make a desk read "Custom".
+    """
     seen: set = set()
     out: list = []
     groups = (
@@ -1493,9 +1510,16 @@ THEME_PRESETS = {
             "login_style": "Original", "web_style": "Original",
             "email_style": "Original", "print_header_style": "Original",
             "print_table_style": "Original", "print_totals_style": "Original",
-            # The three that cannot stand down take their quietest pole instead.
-            "icon_style": "Monochrome", "status_style": "Minimal",
-            "chart_grid": "Hairline Axes",
+            # THE ICON KIT DOES STAND DOWN, and leaving it out was the card
+            # telling a story its values did not keep. `icon_source` ships an
+            # "Original" - it hands the desk back Frappe's own icons - so a look
+            # whose whole promise is "everything that can stand down does" has to
+            # take it. `icon_style` keeps its quietest pole for what remains.
+            "icon_source": "Original", "icon_style": "Monochrome",
+            # The three that genuinely cannot: the side pane and the status bar
+            # MOUNT chrome, and chart_grid ships no Original. They take their
+            # quietest setting instead, and the card's blurb names all three.
+            "status_style": "Minimal", "chart_grid": "Hairline Axes",
         },
     },
 }

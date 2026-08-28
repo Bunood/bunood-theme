@@ -186,7 +186,12 @@ def tokens(mode: str, settings=None) -> dict[str, str]:
         brand = (getattr(s, "brand_color_dark", None) or brand).strip()
         accent = (getattr(s, "accent_color_dark", None) or accent).strip()
 
-    out = dict(derive(brand, accent, mode))
+    # THE GROUND TRAVELS. Without it a site that chose a neutral ground got a
+    # desk on that ground and email, print and its letterhead still on
+    # brand-mixed surfaces - one identity rendering two ways across the same
+    # document set.
+    ground = (getattr(s, "ground_color", None) or "").strip() or None
+    out = dict(derive(brand, accent, mode, ground=ground))
     out.update(STATIC_TOKENS[mode])
 
     # Flatten LAST, so a translucent token composites against the derived surface

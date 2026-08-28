@@ -1378,14 +1378,30 @@ function bnd_shell_note(key, frm) {
 	// the fetch repaints the marks when it lands — the side pane's note learned
 	// that race the hard way (it read "Default" intermittently on the one entry
 	// with a real preset to name, which is the worst kind of wrong).
-	if (key === "theme" && bnd_theme_cache) return bnd_theme_match(frm);
+	if (key === "theme" && bnd_theme_cache) return bnd_tr_layout(bnd_theme_match(frm));
 	// An entry that owns no fields has no state to report. The Overview READS
 	// settings; saying "Default" under it claims it has some, and would go on
 	// saying it while every component it shows had been changed.
 	if (!BND_SHELL_OWNS[key]) return "";
 	if (key === "sidepane" && bnd_sb_catalogue) return bnd_sb_match_preset(frm);
-	if (key === "layout") return bnd_match_layout(frm);
+	// Translated HERE, not in the matcher: this is a display string, while the
+	// picker compares the same answer against untranslated card values.
+	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
 	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
+}
+
+/**
+ * Display form of a matched layout or theme name. Empty stays empty — "cannot say".
+ *
+ * "Custom" IS SPELLED OUT, and the build guard is why. The extractor reads
+ * LITERAL `__("...")` calls only, so a purely dynamic `__(name)` ships the string
+ * untranslated with the coverage gate green — the same trap the twelve preset
+ * names hit earlier in this item. The catalogue names are covered by the literal
+ * thunks on their own cards; "Custom" belongs to no card, so it is written here.
+ */
+function bnd_tr_layout(name) {
+	if (!name) return "";
+	return name === "Custom" ? __("Custom") : __(name);
 }
 
 /**
@@ -1413,9 +1429,20 @@ function bnd_match_layout(frm) {
 			if (!(key in row) || !frm.get_field(field)) return true;
 			return parseInt(frm.doc[field] ?? row[key], 10) === row[key];
 		});
-		if (matches) return __(name);
+		// THE CONTAINERS ARE NOT ENOUGH, and Classic and Bottom Bar are why: their
+		// container rows are byte-identical, so comparing only the five toggles
+		// returned whichever came first in the catalogue and a Bottom Bar desk
+		// highlighted the Classic card. What separates them is where the bell, the
+		// profile and search sit — which is the rest of what the card WRITES, so
+		// comparing it is also what makes "Custom" mean what it says.
+		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || {};
+		const placed = Object.keys(tenants).every((field) => {
+			if (!frm.get_field(field)) return true;
+			return String(frm.doc[field] ?? tenants[field]) === String(tenants[field]);
+		});
+		if (matches && placed) return name;
 	}
-	return __("Custom");
+	return "Custom";
 }
 
 /**
@@ -1492,7 +1519,7 @@ function bnd_render_overview(frm, $pane) {
 				// (item 36); until it loads the function falls back to the
 				// stored name, so this reads correctly either way.
 				__("Layout preset: {0}. Each mark is a control — select it to change where that piece lives.", [
-					bnd_match_layout(frm),
+					bnd_tr_layout(bnd_match_layout(frm)),
 				])
 			) + hidden
 		)
@@ -2759,6 +2786,11 @@ function bnd_apply_theme_preset(frm, name) {
 	for (const [field, value] of Object.entries(values)) frm.set_value(field, value);
 	bnd_all_previews(frm);
 	bnd_render_theme_picker(frm);
+	// AND THE LAYOUT PICKER, because a theme writes the five container toggles:
+	// without this the layout card kept its old highlight while the Overview's
+	// Layout row (recomputed by bnd_shell_marks) told the truth, and the two rows
+	// of one form disagreed about one desk.
+	bnd_render_layout_picker(frm);
 	bnd_shell_marks(frm);
 }
 

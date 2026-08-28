@@ -469,9 +469,11 @@
 	 * The active layout's slug, or "" when the containers spell no shipped shape.
 	 *
 	 * DERIVED, NEVER STORED (item 37). `desk_layout` is deleted, so the shape is
-	 * computed server-side by `registry.layout_of` comparing the live containers
-	 * against `LAYOUT_CHROME` - one catalogue, one derivation, the same rule the
-	 * picker's highlight follows. A desk whose containers match no preset answers
+	 * computed server-side by `presets.layout_of`, comparing the live settings
+	 * against `registry.layout_settings` - one catalogue, one derivation. It reads
+	 * the tenant placements as well as the containers, because Classic and Bottom
+	 * Bar have identical container rows, and it EXCLUDES `search_placement`,
+	 * because search's own slot is the question this answer is asked to serve. A desk whose containers match no preset answers
 	 * "", which is a real and common state since the container split; the two
 	 * callers below fall back rather than guess.
 	 */
@@ -6433,9 +6435,15 @@ function sb_zone_anchor(pane, zone, node) {
 	 * RE-POINTED AT THE ONE CATALOGUE (item 37). It used to list the sidebar's own
 	 * eight presets; it lists the shipped THEME looks now, so a person sees the
 	 * same names their administrator does rather than a parallel set that matched
-	 * by coincidence. `sb_apply` indexes by Theme Settings field name, so the
-	 * flattened 124-field map it receives needs no unpacking — the eighteen
-	 * sidebar fields are simply the ones it reads.
+	 * by coincidence.
+	 *
+	 * IT READS `get_theme_sidebar_presets`, NOT `get_theme_presets`, AND THE
+	 * DIFFERENCE IS A 403. The latter is `only_for("System Manager")`, and this
+	 * menu entry is pushed for EVERY desk user — so pointing it there made every
+	 * non-admin's click a permission error swallowed by the `catch` below, with
+	 * the suite unable to see it because the suite is Administrator. The endpoint
+	 * it uses now serves only the eighteen fields `sb_apply` reads, in the same
+	 * shape, so a non-admin is never handed the site's brand seeds either.
 	 *
 	 * IT APPLIES THE SIDEBAR SLICE AND NOTHING ELSE, and that is a limit rather
 	 * than an omission. The seeds produce ONE content-hashed stylesheet per site,
@@ -6445,7 +6453,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sb_personalize_menu() {
 		frappe
-			.xcall("bunood_theme.api.get_theme_presets")
+			.xcall("bunood_theme.api.get_theme_sidebar_presets")
 			.then((data) => {
 				const current = (sb_state && sb_state.user_preset) || "";
 				const anchor = document.querySelector(".bnd-avatar-btn") || document.body;

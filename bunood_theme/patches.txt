@@ -47,6 +47,7 @@ bunood_theme.patches.v0_36_0.rename_axis_fields
 # Item 37: the last stored preset NAMES go. A preset writes values and stops
 # existing; the label is derived by comparison, which is what the settings
 # architecture has said since phase 0.
+bunood_theme.patches.v0_37_0.migrate_user_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_desk_layout
 

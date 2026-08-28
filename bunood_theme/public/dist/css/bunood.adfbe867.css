@@ -2384,8 +2384,7 @@ html[data-theme] .bnd-inbox {
   outline: none;
 }
 
-html[data-bnd-bell=bottombar] .bnd-inbox,
-html[data-bnd-dock] .bnd-inbox {
+html[data-bnd-bell=bottombar] .bnd-inbox {
   inset-block-start: auto;
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
 }

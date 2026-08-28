@@ -119,9 +119,17 @@ class ThemeSettings(Document):
 			return
 
 		try:
+			# THE SHIPPED SEEDS COME FROM THE CATALOGUE, not from literals here.
+			# These read "#4d8756"/"#4463f0" until item 37 recalibrated the
+			# palette and left them behind, so an empty seed was measured
+			# against colours the app no longer ships.
+			from bunood_theme.presets import DEFAULT_PALETTE, PALETTES
+
+			shipped = PALETTES[DEFAULT_PALETTE]
 			notes = palette.adjustments(
-				(self.get("brand_color") or "#4d8756"),
-				(self.get("accent_color") or "#4463f0"),
+				(self.get("brand_color") or shipped["brand_color"]),
+				(self.get("accent_color") or shipped["accent_color"]),
+				ground=(self.get("ground_color") or "").strip() or None,
 			)
 		except Exception:
 			frappe.log_error("bunood_theme: contrast adjustment report failed")
