@@ -27,3 +27,4 @@ ruvector.db*
 
 # Read-only reference clones (shallow) — never shipped
 _reference/
+run.txt

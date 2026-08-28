@@ -511,6 +511,13 @@ async function withBranding(values, fn) {
  * colours only changed at the next migrate, with nothing to connect the two.
  */
 function setSettings(values) {
+	// `desk_layout` IS NO LONGER A FIELD (item 37) - it is this suite's shorthand
+	// for "the admin picked this layout", and it expands to the containers below.
+	// Split off before the guard so it is neither restore-checked nor written:
+	// writing it would recreate the orphan tabSingles row v0_37_0 deleted, and
+	// `get_single_value` would keep serving it to anything that asked by name.
+	const { desk_layout: layoutPick, ...values_ } = values;
+	values = values_;
 	const unrestorable = Object.keys(values).filter((f) => !MUTABLE_FIELDS.includes(f));
 	if (unrestorable.length) {
 		throw new Error(
@@ -550,11 +557,12 @@ function setSettings(values) {
 	const out = benchPy(
 		`from bunood_theme.registry import layout_settings\n` +
 		`vals = json.loads(${JSON.stringify(JSON.stringify(values))})\n` +
+		`pick = json.loads(${JSON.stringify(JSON.stringify(layoutPick || ""))})\n` +
 		`restorable = set(json.loads(${JSON.stringify(JSON.stringify(MUTABLE_FIELDS))}))\n` +
 		`meta = frappe.get_meta("Theme Settings")\n` +
 		`unrestorable = []\n` +
-		`if "desk_layout" in vals:\n` +
-		`    for f, v in layout_settings(vals["desk_layout"]).items():\n` +
+		`if pick:\n` +
+		`    for f, v in layout_settings(pick).items():\n` +
 		// Containers whose slice has not landed have no field yet; writing one
 		// would leave an orphan tabSingles row that get_single_value refuses to
 		// read back. Ask the doctype, so there is no list of landed slices.
@@ -1155,7 +1163,7 @@ const ATTR_OF = {
 
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
 const MUTABLE_FIELDS = [
-	"desk_layout", "desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
+	"desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// Workspace tile + chart surfaces (item 25).
@@ -5313,7 +5321,7 @@ async function main() {
 			// pins it: a container toggle that contradicts the stored layout must
 			// make the Overview say "Custom". Container toggles ARE mutable, so
 			// setSettings restores them. Watched RED against the stored-name note.
-			const before = getSettings(["dock_enabled", "desk_layout"]);
+			const before = getSettings(["dock_enabled"]);
 			try {
 				// Top Bar ships topbar on / dock off; Dock ships the reverse. Turn
 				// dock ON while topbar stays on and the combination matches NEITHER
@@ -5496,14 +5504,14 @@ async function main() {
 		});
 
 		await test("shell: the Layout entry answers for the desk, not for a stored label", async () => {
-			// desk_layout is HIDDEN as of item 36 — a record of the last preset
+			// desk_layout IS GONE as of item 37, where item 36 had only hidden it.
 			// applied, not a control. So the Layout entry owns the five container
 			// toggles it WRITES: a container that differs from the shipped desk
 			// must light this entry's dot, and the picker's note must read the
 			// DERIVED label. Watched red against the fields:["desk_layout"]
 			// ownership, where flipping a container lit the container's dot and
 			// left Layout claiming "Default" over a desk that had changed.
-			const before = getSettings(["dock_enabled", "desk_layout"]);
+			const before = getSettings(["dock_enabled"]);
 			try {
 				setSettings({ desk_layout: "Top Bar" });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
@@ -5520,12 +5528,17 @@ async function main() {
 				}));
 				expect(changed.lit, "a container that differs did not light the Layout dot");
 				expect(/custom/i.test(changed.note), `the Layout note reads the derived label ("${changed.note}")`);
-				// And the hidden field is genuinely not a control any more.
-				const hidden = await page.evaluate(() => {
-					const f = window.cur_frm && window.cur_frm.get_field("desk_layout");
-					return !!(f && f.df && f.df.hidden);
-				});
-				expect(hidden, "desk_layout is still offered as a control");
+				// AND THE FIELD IS GONE, not merely hidden. Item 36 left it hidden; this
+				// check asserted `df.hidden`, which a DELETED field can never satisfy -
+				// `get_field` returns null and the assertion read false. Ask the question
+				// item 37 actually answers: neither the form nor the doctype carries it.
+				const stored = await page.evaluate(() => ({
+					onForm: !!(window.cur_frm && window.cur_frm.get_field("desk_layout")),
+					inMeta: (frappe.get_meta("Theme Settings").fields || [])
+						.some((f) => f.fieldname === "desk_layout"),
+				}));
+				expect(!stored.onForm, "desk_layout is still a field on the form");
+				expect(!stored.inMeta, "desk_layout is still in the doctype meta");
 			} finally {
 				setSettings(before);
 			}

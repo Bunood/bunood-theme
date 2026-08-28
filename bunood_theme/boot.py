@@ -193,6 +193,7 @@ def extend_bootinfo(bootinfo):
         # Same flash exemption as the layout above: every container is built by
         # Frappe's JS or ours after the splash, so a boot-delivered answer
         # paints nothing stale.
+        from bunood_theme.presets import layout_of
         from bunood_theme.registry import CONTAINERS
 
         def container(field):
@@ -204,6 +205,18 @@ def extend_bootinfo(bootinfo):
             for c in CONTAINERS
             if c["toggle"] in CHROME_DEFAULTS
         }
+
+        # The layout's identity, DERIVED from the containers every request.
+        #
+        # ITEM 37 DELETED THE STORED NAME, and two runtime call sites still
+        # needed the shape: `search_fallback_order` (which slot search tries
+        # first when its own is unavailable) and `container_on`'s fall-open.
+        # A stored label would have been the same-fact-twice trap the whole
+        # item exists to close, so this is computed by comparison against
+        # `registry.layout_settings` - the one catalogue, one derivation, exactly
+        # as the picker's highlight is. "" when the containers spell no shipped
+        # layout, which is a real and common state since the container split.
+        bootinfo.bnd_desk_shape = layout_of(settings)
 
         # The components a user must never lose every route to, as the pair of
         # selectors that answers "is there a route to this" — ours, and the

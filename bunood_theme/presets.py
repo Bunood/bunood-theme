@@ -1541,6 +1541,58 @@ def _shipped_baseline() -> dict:
     return out
 
 
+SHAPE_IGNORES = ("search_placement",)
+
+
+def layout_of(settings, ignore=SHAPE_IGNORES) -> str:
+    """Which layout, if any, do these live settings spell? "" when none does.
+
+    THE REVERSE OF :func:`registry.layout_settings`, and item 37's answer to a
+    question deleting ``desk_layout`` asked: the stored NAME is gone, so anything
+    still needing the layout's identity must DERIVE it from the values, which are
+    the truth. That is this project's own rule - presets write values and then
+    stop existing, the label is derived by comparison - applied to the runtime
+    rather than to a picker.
+
+    CONTAINERS ALONE ARE NOT ENOUGH, and finding that out is why this function
+    reads the whole map. ``Classic`` and ``Bottom Bar`` have byte-identical
+    container rows; they differ only in where the bell, the profile and search
+    sit. A first draft compared the five toggles, and every Bottom Bar desk in
+    the world would have reported itself as Classic - which is precisely the
+    fallback order for search that the two layouts disagree about.
+
+    EXACT MATCH ON EVERY FIELD THE LAYOUT WRITES, never a subset: a desk with a
+    top bar added to Classic is a shape no preset names, and "" is the honest
+    answer. Unset fields take the shipped default, the same rule boot uses
+    everywhere else, so a site that never touched a placement still matches.
+
+    ``search_placement`` IS EXCLUDED, and that is the point rather than a fudge.
+    The one runtime consumer of this answer is search's own fallback order - the
+    slots it tries when the one it ASKED for is unavailable. Search's requested
+    placement is therefore the question being asked; letting it also decide the
+    shape means every desk that wants search somewhere unusual reports "" and
+    silently takes the Top Bar order. Measured: a Classic desk asking for search
+    in a top bar it does not have fell to ``botcenter`` instead of the side pane.
+    Everything else about the shape still counts - and Classic and Bottom Bar,
+    whose container rows are identical, are still told apart by where the bell
+    and the profile sit, which is what those two names actually mean.
+    """
+    base = _shipped_baseline()
+    for name in LAYOUT_CHROME:
+        want = layout_settings(name)
+        for field, value in want.items():
+            if field in ignore:
+                continue
+            live = settings.get(field)
+            if live is None or live == "":
+                live = base.get(field)
+            if str(live) != str(value):
+                break
+        else:
+            return name
+    return ""
+
+
 def theme_settings(name: str) -> dict:
     """The Theme Settings values a theme preset writes, keyed by FIELD.
 

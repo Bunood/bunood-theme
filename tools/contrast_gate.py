@@ -1236,6 +1236,59 @@ def emit_defaults() -> int:
     return 0
 
 
+def check_layout_identity() -> list[str]:
+    """The layout's identity survives losing its stored name — item 37.
+
+    ``desk_layout`` is deleted, so `presets.layout_of` derives the shape by
+    comparing the live values against `registry.layout_settings`. Two runtime
+    call sites depend on the answer, and both were measured WRONG before this
+    check existed, so it holds three properties rather than one:
+
+      * EVERY LAYOUT ROUND-TRIPS. `layout_of(layout_settings(name)) == name` for
+        all five, which is the only thing that makes the derivation a substitute
+        for the field it replaced.
+      * CLASSIC AND BOTTOM BAR ARE TOLD APART. Their CONTAINER rows are
+        byte-identical - a first draft compared only the five toggles and every
+        Bottom Bar desk reported itself as Classic, which is exactly the search
+        fallback order the two disagree about. They differ only in where the bell
+        and the profile sit, so this pins that the comparison reads them.
+      * A SEARCH OVERRIDE DOES NOT CHANGE THE SHAPE. `search_placement` is the
+        question the one consumer is asking, so it must not also be the answer.
+        Including it made a Classic desk that wanted search in a top bar it does
+        not have report "" and fall to the Top Bar order.
+
+    A shape no preset names must answer "" - callers fall back rather than guess.
+    """
+    from bunood_theme.presets import layout_of
+    from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+
+    bad: list[str] = []
+    for name in LAYOUT_CHROME:
+        got = layout_of(layout_settings(name))
+        if got != name:
+            bad.append(f"{name} does not round-trip: layout_of said {got!r}")
+
+    containers = {c for c in layout_settings("Classic") if c.endswith("_enabled")}
+    if all(layout_settings("Classic")[c] == layout_settings("Bottom Bar")[c] for c in containers):
+        if layout_of(layout_settings("Bottom Bar")) == "Classic":
+            bad.append("Classic and Bottom Bar collapse - the comparison reads containers only")
+
+    for name in ("Classic", "Dock"):
+        moved = dict(layout_settings(name))
+        moved["search_placement"] = "Top Bar Center"
+        got = layout_of(moved)
+        if got != name:
+            bad.append(f"{name} with search moved reports {got!r} - search_placement is "
+                       f"deciding the shape it is supposed to be asking about")
+
+    odd = dict(layout_settings("Classic"))
+    odd["topbar_enabled"] = 1
+    if layout_of(odd) == "Classic":
+        bad.append("a Classic desk with a top bar still reports Classic - the match is "
+                   "not exact")
+    return bad
+
+
 def main() -> int:
     args = sys.argv[1:]
     only_seed = next((a.split("=", 1)[1] for a in args if a.startswith("--seed=")), None)
@@ -1307,6 +1360,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    shape = check_layout_identity()
+    if shape:
+        print("the layout's derived identity does not hold:")
+        for m in shape:
+            print(f"   {m}")
+        print()
+
     cat = check_palette_catalogue()
     if cat:
         print("a shipped palette does not hold:")
@@ -1348,7 +1408,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref or inert or lift or cat or theme:
+    if failures or drift or sep or ref or inert or lift or cat or theme or shape:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
