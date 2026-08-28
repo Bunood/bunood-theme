@@ -23,7 +23,7 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
-from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, TENANTS, layout_settings
 
 #: Ordered field names, matching theme_settings.json. Order matters only for
 #: the picker's "does the current state match a preset?" comparison.
@@ -1241,7 +1241,7 @@ GROUNDS = {
 #: the fill, its label and the ring. A palette the sweep does not carry would be
 #: coverage the gate claims and does not have.
 PALETTES = {
-    "Bunood":  {"brand_color": "#3d8150", "accent_color": "#0090ff", "ground": "sage"},
+    "Bunood":  {"brand_color": "#3d8150", "accent_color": "#0090ff", "ground": None},
     "Indigo":  {"brand_color": "#3e63dd", "accent_color": "#00a2c7", "ground": "slate"},
     "Blue":    {"brand_color": "#0090ff", "accent_color": "#ab4aba", "ground": "slate"},
     "Cyan":    {"brand_color": "#00a2c7", "accent_color": "#ab4aba", "ground": "slate"},
@@ -1261,6 +1261,13 @@ PALETTES = {
     "Steel":   {"brand_color": "#7ce2fe", "accent_color": "#ab4aba", "ground": "slate"},
 }
 
+#: ``ground: None`` means "mix the brand", which is what every desk did before
+#: item 37 — and it is why **Bunood** takes it. The shipped default must equal a
+#: palette exactly or a brand-new site reads "Custom" on the day it is installed,
+#: and shipping a neutral ground by default would repaint the page tint of every
+#: site that upgrades. The axis is offered, not imposed; the other sixteen carry a
+#: real neutral because that is the point of choosing one.
+
 #: The palette a fresh install gets. Named once: it seeds ``brand_color`` and
 #: ``accent_color`` in :mod:`setup`, and it is what the derived label must match
 #: or a brand-new site reads "Custom" on the day it is installed.
@@ -1279,5 +1286,286 @@ def palette_seeds(name: str) -> dict:
     return {
         "brand_color": p["brand_color"],
         "accent_color": p["accent_color"],
-        "brand_ground": GROUNDS[p["ground"]],
+        # "" rather than a hex when the palette mixes the brand: the FIELD is what
+        # brand.py reads, and empty is how it spells "use the brand". Writing the
+        # brand's own hex here would work today and lie tomorrow, the moment a
+        # tenant edited brand_color and the ground silently stayed behind.
+        "ground_color": GROUNDS[p["ground"]] if p["ground"] else "",
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# THEME PRESETS — item 37
+# ════════════════════════════════════════════════════════════════════════════
+
+#: Every field a theme preset writes, DERIVED from the per-kit lists rather than
+#: restated beside them. A second copy of "which fields are the desk" is the drift
+#: this module exists to prevent, and it would rot the first time a kit grew a field.
+#:
+#: THE SCOPE IS THE WHOLE DESK, and the exclusions are the argument. ``company_name``
+#: and ``tagline`` describe the COMPANY: they ride in ``bnd_theme_keys()`` because
+#: that list's job is cloning a site, which is not a preset's job. ``arabic_font`` is
+#: a language choice item 36 deliberately moved out of Appearance. ``logo`` and
+#: ``favicon`` are site-local file URLs that do not travel.
+#:
+#: Everything else that decides how the desk LOOKS is written, Checks included —
+#: read their labels: Reveal Checkboxes on Hover, Reason Chips, Status Pill in Trail
+#: Row, Footer Hint Bar, Scroll Fades, Freshness Stamp. Roughly twenty-two of the
+#: twenty-eight are visual decisions rather than behaviour, and the segment Checks
+#: mean "show IF PERMITTED, never show regardless" — so writing one promises nothing
+#: the server has to overrule.
+#:
+#: Named ``_AXES`` and not ``_FIELDS`` on purpose: ``build.mjs``'s
+#: ``assertFieldMirrors`` demands a ``BND_<X>_FIELDS`` mirror in the picker JS for
+#: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
+#: never mirrored. ``PRINT_AXES`` set the precedent.
+def _theme_axes() -> list:
+    seen: set = set()
+    out: list = []
+    groups = (
+        ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+         "ground_color", "density_default", "desk_order"],
+        [c["toggle"] for c in CONTAINERS],
+        list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS),
+        SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
+        STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
+        REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
+        FILTERS_FIELDS, LOGIN_FIELDS, WEB_FIELDS, EMAIL_FIELDS, PRINT_FIELDS,
+    )
+    for group in groups:
+        for field in group:
+            if field not in seen:
+                seen.add(field)
+                out.append(field)
+    return out
+
+
+THEME_AXES = _theme_axes()
+
+#: The shipped looks. A preset NAMES its inputs rather than restating them — the
+#: layout composes containers and tenant placements through
+#: ``registry.layout_settings``, the palette composes the colour fields through
+#: :func:`palette_seeds`, and the sidebar names a :data:`SIDEBAR_PRESETS` entry —
+#: then ``values`` overrides individual fields on top of the shipped defaults.
+#:
+#: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
+#: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
+#: all ~124 values. It also makes the one invariant free: ``Bunood Night`` overrides
+#: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
+#: on the day it is installed.
+#:
+#: The compositions are grounded in design languages rather than invented — Linear's
+#: density, Notion's unframed canvas, Stripe's ruled precision, Material 3's
+#: elevation, IBM Carbon's grid, Odoo's document sheet, shadcn's neutral — but every
+#: value is drawn from that field's own ``options`` list, so nothing here is a value
+#: the doctype would refuse.
+THEME_PRESETS = {
+    "Bunood Night": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
+        "values": {},
+    },
+    "Bunood Day": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Light",
+        "values": {},
+    },
+    "Focus": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Ink",
+        "values": {
+            "icon_style": "Monochrome", "crumb_style": "Original",
+            "list_style": "Hairline Rows", "list_hover": "Soft Wash",
+            "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
+            "report_style": "Ruled Grid", "report_grain": "Plain",
+            "views_style": "Hairline", "overlay_style": "Hairline",
+            "empty_style": "Quiet", "skeleton_style": "Still",
+            "filters_style": "Ruled", "login_style": "Panel", "web_style": "Panel",
+            "email_style": "Letter", "print_header_style": "Hairline",
+            "status_style": "Minimal", "chart_grid": "Hairline Axes",
+        },
+    },
+    "Canvas": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
+        "values": {
+            "icon_style": "Duotone", "crumb_style": "Eyebrow Title",
+            "list_style": "Open Rows", "form_style": "Open Canvas",
+            "workspace_style": "Open Board", "report_style": "Open Sheet",
+            "views_style": "Hairline", "overlay_style": "Hairline",
+            "empty_style": "Open", "filters_style": "Ruled",
+            "print_header_style": "Rule", "chart_grid": "Ruled Baseline",
+        },
+    },
+    "Ledger": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Daylight",
+        "values": {
+            "list_style": "Zebra Stripes", "form_style": "Hairline Panels",
+            "workspace_style": "Mixed Weights", "report_style": "Ledger Rows",
+            "report_grain": "Row Stripes", "views_style": "Soft Tiles",
+            "overlay_style": "Soft", "empty_style": "Open",
+            "filters_style": "Outlined", "print_header_style": "Rule",
+            "print_table_style": "Ruled", "chart_grid": "Ruled Baseline",
+        },
+    },
+    "Elevated": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Violet", "sidebar": "Aurora",
+        "values": {
+            "list_style": "Floating Cards", "form_style": "Floating Panels",
+            "workspace_style": "Soft Tiles", "views_style": "Soft Tiles",
+            "overlay_style": "Soft", "empty_style": "Filled",
+            "skeleton_style": "Pulse", "filters_style": "Pill",
+            "print_header_style": "Wash Card", "chart_grid": "Filled Area",
+        },
+    },
+    "Carbon": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Teal", "sidebar": "Carbon",
+        "values": {
+            "icon_style": "Brand Lines", "list_style": "Hairline Rows",
+            "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
+            "report_style": "Ruled Grid", "views_style": "Hairline",
+            "overlay_style": "Hairline", "empty_style": "Quiet",
+            "skeleton_style": "Still", "filters_style": "Trough",
+            "print_header_style": "Frame", "chart_grid": "Hairline Axes",
+        },
+    },
+    "Records": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
+        "values": {
+            "list_style": "Hairline Rows", "form_style": "Paper Sheet",
+            "workspace_style": "Headed Panel", "report_style": "Ledger Rows",
+            "views_style": "Soft Tiles", "overlay_style": "Soft",
+            "empty_style": "Framed", "skeleton_style": "Pulse",
+            "filters_style": "Ruled", "print_header_style": "Frame",
+            "email_style": "Letter", "chart_grid": "Ruled Baseline",
+        },
+    },
+    "Studio": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Bunood Light",
+        "values": {
+            "list_style": "Floating Cards", "form_style": "Floating Panels",
+            "workspace_style": "Hairline Grid", "report_style": "Open Sheet",
+            "views_style": "Floating Cards", "overlay_style": "Floating",
+            "empty_style": "Open", "filters_style": "Outlined",
+            "print_header_style": "Hairline",
+        },
+    },
+    "Contrast": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Carbon",
+        "values": {
+            "icon_style": "Filled Color", "crumb_style": "Crumb Pills",
+            "list_style": "Floating Cards", "list_selection": "Bold Bar",
+            "form_style": "Floating Panels", "workspace_style": "Headed Panel",
+            "report_style": "Pinned Slab", "views_style": "Solid Panels",
+            "overlay_style": "Solid", "empty_style": "Filled",
+            "filters_style": "Pill", "login_style": "Plate", "web_style": "Plate",
+            "email_style": "Masthead", "print_header_style": "Band",
+            "print_accent": "Brand panels", "status_style": "Always On",
+            "chart_grid": "Bold Data",
+        },
+    },
+    "Workbench": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Workbench",
+        "values": {
+            "icon_style": "Brand Lines", "crumb_style": "Original",
+            "list_style": "Hairline Rows", "form_style": "Hairline Panels",
+            "workspace_style": "Mixed Weights", "report_style": "Ruled Grid",
+            "report_grain": "Row Stripes", "views_style": "Hairline",
+            "overlay_style": "Hairline", "empty_style": "Quiet",
+            "skeleton_style": "Still", "filters_style": "Trough",
+            "print_header_style": "Rail", "status_style": "Always On",
+            "chart_grid": "Hairline Axes",
+        },
+    },
+    # THE HONEST STAND-DOWN, and its name is the finding. Seventeen of the twenty
+    # kits carry an "Original"; three cannot. The side pane and the status bar MOUNT
+    # chrome rather than restyle it, and chart_grid ships no Original by design
+    # ("the base --charts-* theming is always on; raw vendor hex is worse, never a
+    # choice"). So a card called "Stock" would promise a stand-down it cannot
+    # perform in three places. This is what can honestly be built: every kit that
+    # CAN stand down does, the three that cannot take their quietest pole, and the
+    # picker's blurb says which three and why.
+    "Quiet": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Ink",
+        "values": {
+            "crumb_style": "Original", "palette_style": "Original",
+            "inbox_style": "Original", "list_style": "Original",
+            "form_style": "Original", "workspace_style": "Original",
+            "report_style": "Original", "views_style": "Original",
+            "overlay_style": "Original", "empty_style": "Original",
+            "skeleton_style": "Original", "filters_style": "Original",
+            "login_style": "Original", "web_style": "Original",
+            "email_style": "Original", "print_header_style": "Original",
+            "print_table_style": "Original", "print_totals_style": "Original",
+            # The three that cannot stand down take their quietest pole instead.
+            "icon_style": "Monochrome", "status_style": "Minimal",
+            "chart_grid": "Hairline Axes",
+        },
+    },
+}
+
+#: The look a fresh install gets. It must be the one whose ``values`` are empty.
+DEFAULT_THEME_PRESET = "Bunood Night"
+
+
+def _shipped_baseline() -> dict:
+    """Every axis's shipped value, composed from THIS module's own default maps.
+
+    NOT read from :mod:`bunood_theme.setup`, and the reason is not style. That
+    module imports frappe, so a composer that reached for ``setup.SHIPPED`` could
+    never run in ``tools/contrast_gate.py`` — which has no site, no database and no
+    frappe, and is precisely where a preset's colours want checking. It would also
+    be a cycle: setup imports this file.
+
+    There is no second copy either way: ``setup.DEFAULTS`` is itself composed by
+    splatting these same maps (it only splits them by type, because a Check needs
+    None-aware seeding where a Select does not). The values live here; the seeder
+    is one consumer and this is another.
+
+    ``ground_color`` and the dark seeds are absent on purpose — they SHIP EMPTY, and
+    a preset writes "" for them unless its palette says otherwise.
+    """
+    out: dict = {
+        "brand_color": PALETTES[DEFAULT_PALETTE]["brand_color"],
+        "accent_color": PALETTES[DEFAULT_PALETTE]["accent_color"],
+        "brand_color_dark": "",
+        "accent_color_dark": "",
+        "ground_color": "",
+        "density_default": "Comfortable",
+        "desk_order": ",".join(t["key"] for t in TENANTS),
+    }
+    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, ICON_DEFAULTS,
+              CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
+              LIST_DEFAULTS, FORM_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
+              REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,
+              SKELETON_DEFAULTS, FILTERS_DEFAULTS, LOGIN_DEFAULTS, WEB_DEFAULTS,
+              EMAIL_DEFAULTS, PRINT_DEFAULTS):
+        out.update(d)
+    out.update(SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET])
+    return out
+
+
+def theme_settings(name: str) -> dict:
+    """The Theme Settings values a theme preset writes, keyed by FIELD.
+
+    THE ONE COMPOSER, and that is structural rather than tidy. Item 36's sharpest
+    finding was that a layout wrote HALF of itself for the whole of phase 0: the
+    settings form composed the containers while ``registry.layout_settings``
+    composed containers *and* tenant placements, so the suite drove a state no
+    gesture could produce, and picking "Bottom Bar" left the bell pointing at a
+    region that no longer existed. At ~124 values that failure is a certainty
+    unless the product's writer and the suite's writer call the same function.
+    This is that function; nothing else may assemble a preset.
+
+    Returns ``{}`` for an unknown name — the fail-open rule the rest of the preset
+    system follows, where a value nobody recognises degrades to writing nothing
+    rather than to half a desk.
+    """
+    spec = THEME_PRESETS.get(name)
+    if not spec:
+        return {}
+
+    axes = set(THEME_AXES)
+    out = {f: v for f, v in _shipped_baseline().items() if f in axes}
+    out.update(layout_settings(spec["layout"]))
+    out.update(palette_seeds(spec["palette"]))
+    out.update(SIDEBAR_PRESETS.get(spec["sidebar"], {}))
+    out.update(spec["values"])
+    # Never write outside the declared axes, whatever a table says.
+    return {f: v for f, v in out.items() if f in axes}

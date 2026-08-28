@@ -5191,3 +5191,14 @@ msgstr "مسح"
 msgid "Email and printed documents will show your company name instead of this logo — they accept a PNG or JPG, not an SVG."
 msgstr "سيعرض البريد والمستندات المطبوعة اسم شركتك بدلاً من هذا الشعار — فهي تقبل PNG أو JPG لا SVG."
 
+#. Label of the "ground_color" field in DocType 'Theme Settings'
+#. src: item37
+#, fuzzy
+msgid "Ground Color"
+msgstr "لون الأرضية"
+
+#. Description of the "ground_color" field in DocType 'Theme Settings'
+#. src: item37
+#, fuzzy
+msgid "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
+msgstr "اختياري. ما تُمزج منه أسطح المكتب. الفراغ يعني لون العلامة، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."

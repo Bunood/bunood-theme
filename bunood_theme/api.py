@@ -1074,6 +1074,53 @@ def email_preview() -> str:
 
 
 @frappe.whitelist()
+def get_palettes() -> dict:
+    """The shipped colour palettes — item 37.
+
+    THE ONE COPY, SERVED. ``presets.PALETTES`` is the only statement of which
+    colours each named palette writes, and the picker fetches it rather than
+    mirroring it: a second copy in JS is the drift the derived label exists to
+    surface. ``GROUNDS`` rides along because a palette names its ground rather
+    than restating the hex, and the client needs to resolve it to draw a swatch.
+    """
+    frappe.only_for("System Manager")
+    from bunood_theme.presets import DEFAULT_PALETTE, GROUNDS, PALETTES
+
+    return {"palettes": PALETTES, "grounds": GROUNDS, "default": DEFAULT_PALETTE}
+
+
+@frappe.whitelist()
+def get_theme_presets() -> dict:
+    """The shipped looks, FLATTENED — item 37.
+
+    Each entry is the full ``{field: value}`` map its card writes, composed by
+    ``presets.theme_settings`` — the ONE composer. The client never assembles a
+    preset from its parts, and that is structural rather than tidy: item 36 found
+    a layout writing HALF of itself for the whole of phase 0 because the form
+    composed the containers while ``registry.layout_settings`` composed containers
+    *and* tenant placements, so the suite drove a state no gesture could produce.
+    At ~124 values that failure is a certainty unless both writers call the same
+    function. They do; this is it.
+
+    ``axes`` rides along so the client derives its label by comparing the same
+    field list the server composed over — "Custom" the moment one differs.
+    """
+    frappe.only_for("System Manager")
+    from bunood_theme.presets import (
+        DEFAULT_THEME_PRESET,
+        THEME_AXES,
+        THEME_PRESETS,
+        theme_settings,
+    )
+
+    return {
+        "axes": THEME_AXES,
+        "presets": {name: theme_settings(name) for name in THEME_PRESETS},
+        "default": DEFAULT_THEME_PRESET,
+    }
+
+
+@frappe.whitelist()
 def print_presets() -> dict:
     """The named print styles as compositions over the section axes — item 35.
 

@@ -19,6 +19,7 @@
   "column_break_colors",
   "brand_color_dark",
   "accent_color_dark",
+  "ground_color",
   "section_language",
   "arabic_font",
   "section_icons",
@@ -304,6 +305,12 @@
    "fieldtype": "Color",
    "label": "Accent Color (Dark Mode)",
    "description": "Optional."
+  },
+  {
+   "fieldname": "ground_color",
+   "fieldtype": "Color",
+   "label": "Ground Color",
+   "description": "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
   },
   {
    "fieldname": "section_language",

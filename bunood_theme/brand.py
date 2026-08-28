@@ -129,6 +129,10 @@ def render_brand_css(settings=None) -> str:
     # rather than an unthemed one.
     brand_dark = (getattr(s, "brand_color_dark", None) or brand).strip()
     accent_dark = (getattr(s, "accent_color_dark", None) or accent).strip()
+    # What the SURFACES are mixed from (item 37). Empty means the brand, which is
+    # what every site did before this field existed and is why it ships empty: a
+    # tenant who never opens the palette catalogue sees no change at all.
+    ground = (getattr(s, "ground_color", None) or "").strip() or None
 
     # Site-default density (decision "G with C"). Emitted at :root, which the
     # per-user attribute blocks in _tokens.scss deliberately outrank at (0,1,1)
@@ -153,8 +157,8 @@ def render_brand_css(settings=None) -> str:
     # illegible desk: derive() raises only when no fill can satisfy both
     # constraints, write_brand_css catches, and context.py appends nothing.
     try:
-        light = palette.derive(brand, accent, "light")
-        dark = palette.derive(brand_dark, accent_dark, "dark")
+        light = palette.derive(brand, accent, "light", ground=ground)
+        dark = palette.derive(brand_dark, accent_dark, "dark", ground=ground)
     except ValueError:
         frappe.log_error("bunood_theme.brand: seed rejected by palette.derive")
         raise

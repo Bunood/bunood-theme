@@ -752,6 +752,84 @@ _SHARMA_2005 = [
 ]
 
 
+def check_theme_catalogue() -> list[str]:
+    """The theme catalogue, held to what the doctype will actually accept.
+
+    Item 37. A theme preset writes ~124 values in one click — the largest blast
+    radius any control in this app has had — so the table is checked against the
+    doctype rather than trusted, on four properties:
+
+      * EVERY AXIS IS WRITTEN. A preset that writes 123 of 124 leaves one field at
+        whatever the last preset set, so clicking A then B does not give you B.
+      * ONLY OFFERED VALUES. A Select that stores a value its options do not list
+        is not a cosmetic fault on a Single: one un-offered value silently fails
+        every later save of the whole document (item 36 measured six unrelated
+        tests going red from exactly that).
+      * PAIRWISE DISTINCT. Two presets with one composition make the derived label
+        ambiguous, and "Custom" would be the only honest answer to both.
+      * THE DEFAULT PRESET IS THE SHIPPED DEFAULT. If they differ by one value a
+        brand-new site reads "Custom" on the day it is installed, which is the
+        first thing its owner sees the settings page say.
+
+    Frappe-free by construction: the options come from the doctype JSON on disk,
+    which is the same file the server loads.
+    """
+    import json
+
+    from bunood_theme.presets import (
+        DEFAULT_THEME_PRESET,
+        THEME_AXES,
+        THEME_PRESETS,
+        _shipped_baseline,
+        theme_settings,
+    )
+
+    doctype = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "bunood_theme",
+        "bunood_theme", "doctype", "theme_settings", "theme_settings.json",
+    )
+    with open(doctype, encoding="utf-8") as fh:
+        meta = json.load(fh)
+    options = {
+        f["fieldname"]: [o for o in (f.get("options") or "").split("\n") if o]
+        for f in meta["fields"]
+        if f.get("fieldname") and f.get("fieldtype") == "Select"
+    }
+
+    bad: list[str] = []
+    axes = set(THEME_AXES)
+    composed: dict = {}
+
+    for name in THEME_PRESETS:
+        values = theme_settings(name)
+        composed[name] = values
+
+        missing = axes - set(values)
+        if missing:
+            bad.append(f"{name}: writes {len(values)} of {len(axes)} axes, missing "
+                       f"{', '.join(sorted(missing)[:4])}")
+
+        for field, value in values.items():
+            allowed = options.get(field)
+            if allowed and str(value) not in allowed:
+                bad.append(f"{name}: {field}={value!r} is not one of the doctype's "
+                           f"options ({', '.join(allowed[:4])}…)")
+
+    names = list(composed)
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            if composed[a] == composed[b]:
+                bad.append(f"{a} and {b} compose identically — the derived label "
+                           f"cannot name either")
+
+    base = {f: v for f, v in _shipped_baseline().items() if f in axes}
+    drift = {k for k in axes if base.get(k) != composed.get(DEFAULT_THEME_PRESET, {}).get(k)}
+    if drift:
+        bad.append(f"{DEFAULT_THEME_PRESET} is not the shipped default; a fresh install "
+                   f"would read Custom. Differs at: {', '.join(sorted(drift)[:4])}")
+    return bad
+
+
 def check_palette_catalogue() -> list[str]:
     """Every SHIPPED palette must hold, as the triple it actually ships.
 
@@ -780,10 +858,14 @@ def check_palette_catalogue() -> list[str]:
     bad: list[str] = []
     for name, p in PALETTES.items():
         brand, accent = p["brand_color"], p["accent_color"]
-        ground = GROUNDS.get(p["ground"])
-        if ground is None:
-            bad.append(f"{name}: ground {p['ground']!r} is not in GROUNDS")
-            continue
+        # `ground: None` is legal and means "mix the brand" — the shipped default's
+        # own case. Only a NAME that GROUNDS does not know is a fault.
+        ground = None
+        if p["ground"] is not None:
+            ground = GROUNDS.get(p["ground"])
+            if ground is None:
+                bad.append(f"{name}: ground {p['ground']!r} is not in GROUNDS")
+                continue
         if brand.lower() not in known:
             bad.append(f"{name}: brand {brand} is not in SEEDS, so no pair sweep covers it")
         for mode in ("light", "dark"):
@@ -1218,6 +1300,13 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
+    theme = check_theme_catalogue()
+    if theme:
+        print("the theme catalogue does not hold:")
+        for m in theme:
+            print(f"   {m}")
+        print()
+
     cat = check_palette_catalogue()
     if cat:
         print("a shipped palette does not hold:")
@@ -1259,7 +1348,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref or inert or lift or cat:
+    if failures or drift or sep or ref or inert or lift or cat or theme:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}

@@ -868,11 +868,20 @@ function assertAutomaticParity() {
 const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
-	// design and a layout preset must never write them. Typography joined in
-	// item 7(b): a typeface is an axis in exactly the same sense as a colour.
-	// This block is PERMANENT; the shrink rule below governs violations only.
+	// design. Typography joined in item 7(b): a typeface is an axis in exactly
+	// the same sense as a colour. This block is PERMANENT; the shrink rule below
+	// governs violations only.
+	//
+	// THIS COMMENT USED TO SAY "and a LAYOUT preset must never write them", which
+	// was true and is now half the story. Item 37 gives the desk a THEME preset,
+	// and a theme preset writes the colour axis on purpose — that is the whole
+	// point of a palette. The layout preset still must not, and no longer can:
+	// item 37 retires it into the theme catalogue.
 	"company_name", "logo", "favicon", "tagline",
 	"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+	// The GROUND (item 37): what the surfaces are mixed from. Same axis, same
+	// reasoning — it is a colour, not a component.
+	"ground_color",
 	"arabic_font",
 	// Generated artefact, not a setting.
 	"brand_css_url",

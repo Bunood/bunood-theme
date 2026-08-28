@@ -217,7 +217,15 @@ SHIPPED = {**DEFAULTS, **CHECK_DEFAULTS}
 #: under Branding, forever. The API merges these in as ``""`` so the dots can
 #: answer; nothing else may consume this tuple, and it must NEVER be fed to
 #: :func:`_seed_defaults`.
-SHIPPED_EMPTY = ("logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark")
+SHIPPED_EMPTY = (
+    "logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark",
+    # The GROUND (item 37) ships empty and means "mix the brand". It is served
+    # here so the change dot compares against "" rather than reading a site that
+    # never set it as diverged — and, unlike the four above, so that seeding it
+    # is never even attempted: a seeded ground would repaint the page tint of
+    # every site that upgrades, which is the one thing this field must not do.
+    "ground_color",
+)
 
 #: Label of the user-menu density toggle. Module-level so the seeder and any
 #: future remover agree on the one string that identifies our row.
