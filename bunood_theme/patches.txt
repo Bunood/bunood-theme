@@ -44,6 +44,12 @@ bunood_theme.patches.v0_35_0.claim_print_style
 # density_default). Carries each existing site's stored value onto its new
 # fieldname; the v0_15_0 icon rename is the copied precedent.
 bunood_theme.patches.v0_36_0.rename_axis_fields
+# Item 37: the last stored preset NAMES go. A preset writes values and stops
+# existing; the label is derived by comparison, which is what the settings
+# architecture has said since phase 0.
+bunood_theme.patches.v0_37_0.drop_sidebar_preset
+bunood_theme.patches.v0_37_0.drop_desk_layout
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

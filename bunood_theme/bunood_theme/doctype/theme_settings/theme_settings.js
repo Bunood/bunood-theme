@@ -340,7 +340,6 @@ function bnd_slot_geom(label) {
  * it unconditionally, everyone else borrows the status bar.
  */
 function bnd_region_blocker(frm, region) {
-	const layout = frm.doc.desk_layout || "Top Bar";
 	// A container that has been split out (slice 2c) answers for itself: the
 	// question "is there a top bar" is `topbar_enabled`, not the layout, and
 	// giving the old answer here would grey out a slot that works — the
@@ -909,8 +908,6 @@ frappe.ui.form.on("Theme Settings", {
 		// then delete. Filed; this hides the control so nobody sets it by hand
 		// in the meantime, while the stored value keeps the desk rendering and
 		// stays queryable for support.
-		frm.set_df_property("desk_layout", "hidden", 1);
-
 		bnd_render_theme_picker(frm);
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
@@ -948,25 +945,6 @@ frappe.ui.form.on("Theme Settings", {
 		setTimeout(() => {
 			bnd_all_previews(frm);
 		}, 300);
-	},
-	desk_layout(frm) {
-		// The preset WRITES first, then everything repaints against what it
-		// wrote. The other order paints the old containers and leaves them on
-		// screen until the next refresh.
-		//
-		// Fires only on a real change — Frappe does not run field handlers on
-		// load — so this cannot overwrite an admin's container choices when
-		// they merely open the form. The one place `desk_layout` is written is
-		// the layout picker's click handler, which is exactly the gesture that
-		// should mean "apply this preset".
-		bnd_apply_layout_preset(frm).then(() => {
-			// The preset just wrote five container values and the placements;
-			// without this the desk keeps the OLD layout's chrome until a
-			// reload, which is the same "nothing applied" the containers had.
-			bnd_container_changed(frm);
-			bnd_render_theme_picker(frm);
-			bnd_render_layout_picker(frm);
-		});
 	},
 	// A container's on/off changes which regions can hold anything, exactly as
 	// the layout used to — so it invalidates the same set of diagrams. One
@@ -1109,7 +1087,7 @@ const BND_SHELL_GROUPS = [
 			// once the last one has.
 			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
 			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
-			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_preset"] },
+			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_picker"] },
 			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
 			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
@@ -1184,10 +1162,12 @@ const BND_SHELL_GROUPS = [
 		items: [
 			// ITEM 37, AND IT LEADS THE GROUP because it is the control that answers
 			// "what does this desk look like" in one gesture. The entries under it
-			// are the axes a look composes from; the Layout preset below is the last
-			// catalogue that has not folded in, and it goes when `desk_layout` does.
+			// are the axes a look composes from. The Layout preset below KEEPS its
+			// picker — the five layouts stay one click away — but it no longer stores
+			// a name: it writes the containers and derives its highlight from them,
+			// which is what a preset is supposed to do.
 			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
-			{ key: "layout", label: () => __("Layout preset"), anchors: ["desk_layout"] },
+			{ key: "layout", label: () => __("Layout preset"), anchors: ["layout_picker"] },
 			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
 			// own picker like every other kit; the relocated Selects sit hidden
 			// behind the card picker's controls.
@@ -1309,9 +1289,10 @@ const BND_SHELL_OWNS = {
 	// honestly answer for is the desk it produced. Deliberately the same fields
 	// the five container entries own — the placement board set that precedent:
 	// a second view over one state means both dots light, and both claims are
-	// true. `desk_layout` itself is owned by nothing now: it is a hidden record
-	// of the last preset applied, and a dot on it would light for a value no
-	// control sets.
+	// true. The stored `desk_layout` is GONE as of item 37 — it was a hidden
+	// record of the last preset applied, and there was nothing for a dot on it
+	// to mean. The containers it wrote are the state, and they are what this
+	// entry owns.
 	layout: { fields: ["topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled"] },
 	// Map 1 (item 36): one Identity page owns the name, the marks, the tagline
 	// AND the seeds. `brand_css_url` shares the pane and stays deliberately
@@ -1422,8 +1403,7 @@ function bnd_shell_note(key, frm) {
  * honest answer to "cannot say": it is what a user picked, merely unverified.
  */
 function bnd_match_layout(frm) {
-	const current = frm.doc.desk_layout || "";
-	if (!bnd_layout_chrome || !bnd_container_toggles) return __(current);
+	if (!bnd_layout_chrome || !bnd_container_toggles) return "";
 
 	for (const name of Object.keys(bnd_layout_chrome)) {
 		const row = bnd_layout_chrome[name];
@@ -1911,10 +1891,10 @@ function bnd_load_shipped() {
  * THE FORM whether the field exists, rather than by consulting a list of which
  * slices have landed. There is no such list to fall out of step with.
  */
-function bnd_apply_layout_preset(frm) {
+function bnd_apply_layout_preset(frm, name) {
 	return bnd_load_shipped().then(() => {
 		if (!bnd_layout_chrome || !bnd_container_toggles) return;
-		const row = bnd_layout_chrome[frm.doc.desk_layout];
+		const row = bnd_layout_chrome[name];
 		if (!row) return; // unknown layout: write nothing, same fail-open rule
 		for (const key of Object.keys(bnd_container_toggles)) {
 			const field = bnd_container_toggles[key];
@@ -1934,7 +1914,7 @@ function bnd_apply_layout_preset(frm) {
 		// Guarded on the field EXISTING, exactly as the containers are: a
 		// catalogue that names a field this doctype lacks must skip it rather
 		// than orphan a tabSingles row.
-		const tenants = (bnd_layout_tenants && bnd_layout_tenants[frm.doc.desk_layout]) || null;
+		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || null;
 		if (tenants) {
 			for (const field of Object.keys(tenants)) {
 				if (!frm.get_field(field)) continue;
@@ -2186,7 +2166,12 @@ function bnd_render_layout_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "layout_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.desk_layout || "Top Bar";
+	// DERIVED, not read back (item 37). This took the stored `desk_layout`, so a
+	// desk whose containers had drifted still highlighted the last name written.
+	// `bnd_match_layout` compares the containers and answers "Custom" — which
+	// highlights nothing, correctly — and it is the same comparison the shell's
+	// note already used, so the card and the note cannot disagree.
+	const current = bnd_match_layout(frm);
 	// The shared vocabulary, not a parallel one. `bnd-lp-*` duplicated
 	// `bnd-cbp-*` rule for rule — same card, same thumb, same blurb, two
 	// spellings — and the only differences were unintended: a name one step
@@ -2208,7 +2193,15 @@ function bnd_render_layout_picker(frm, host) {
 		// `data-value`, not `data-layout`: the shared builder emits one
 		// attribute name for every picker, so a handler cannot be written
 		// against a spelling only this picker used.
-		frm.set_value("desk_layout", this.getAttribute("data-value"));
+		// APPLIED DIRECTLY (item 37). This used to write `desk_layout` and let the
+		// field handler apply the preset — a stored name as a trigger. The field is
+		// gone, so the gesture calls the composer, and the card highlight comes back
+		// from comparing the containers, as it already did.
+		bnd_apply_layout_preset(frm, this.getAttribute("data-value")).then(() => {
+			bnd_container_changed(frm);
+			bnd_render_theme_picker(frm);
+			bnd_render_layout_picker(frm);
+		});
 	});
 }
 
@@ -2623,7 +2616,6 @@ function bnd_sb_set(frm, fieldname, value) {
 			indicator: "orange",
 		});
 	}
-	frm.set_value("sidebar_preset", bnd_sb_match_preset(frm));
 	bnd_sb_preview(frm);
 	bnd_render_sidebar_picker_now(frm);
 }
@@ -7468,15 +7460,14 @@ function bnd_render_identity_picker(frm, host) {
  */
 function bnd_theme_keys() {
 	return [
-		// `desk_layout` does NOT travel (item 36): it is a hidden record of the
-		// last preset applied, and the five container toggles below — which DO
-		// travel — are what actually reproduce the desk. Exporting the name too
-		// would let an import write a preset label that disagrees with the
-		// containers it also wrote, which is the same-fact-twice trap in one
-		// file.
+		// The five container toggles below are what reproduce the desk. There is no
+		// layout NAME to travel any more (item 37 deleted it, and item 37's own
+		// theme catalogue is not exported either): a name beside the values it
+		// wrote is the same-fact-twice trap, and an import could write a label that
+		// disagreed with the containers it wrote in the same pass.
 		"company_name", "tagline", "arabic_font",
 		"brand_color", "accent_color",
-		"brand_color_dark", "accent_color_dark", "density_default", "sidebar_preset",
+		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
 	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);

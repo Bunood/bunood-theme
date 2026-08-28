@@ -128,11 +128,9 @@ DEFAULTS = {
     # defaults are derived from this layout's catalogue row: a literal in both
     # places is a shipped default that can disagree with what the shipped
     # default renders.
-    "desk_layout": DEFAULT_DESK_LAYOUT,
     # Sidebar style kit (item 10): seed the default preset's name and every
     # one of its field values. Values, not the name, are the canon — see
     # bunood_theme/presets.py.
-    "sidebar_preset": DEFAULT_SIDEBAR_PRESET,
     # E3: the tenants' desk order, seeded from the registry so the field's
     # default and the table cannot drift. The suite pins the doctype's literal
     # default to the same function.

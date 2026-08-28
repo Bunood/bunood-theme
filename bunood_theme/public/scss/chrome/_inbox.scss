@@ -186,7 +186,18 @@ html[data-theme] .bnd-inbox {
   outline: none;
 }
 
-html[data-bnd-layout="bottombar"] .bnd-inbox,
+// KEYED ON THE BELL, NOT ON THE LAYOUT (item 37). This asked
+// `html[data-bnd-desk="bottombar"]`, which means "the Bottom Bar LAYOUT" and was
+// the last value-keyed read of that attribute anywhere in the tree.
+//
+// Re-keying it to `data-bnd-bottombar` would have looked equivalent and been a
+// SILENT REGRESSION: all five layouts write `bottombar: 1`, so the rule would
+// fire on every desk and lift the panel above a bar the bell is nowhere near.
+//
+// What the rule is about is where the BELL mounted, which `data-bnd-bell` has
+// carried since item 22 - stamped from the mount's OUTCOME - and which
+// _layouts.scss already uses three rules away.
+html[data-bnd-bell="bottombar"] .bnd-inbox,
 html[data-bnd-dock] .bnd-inbox {
   inset-block-start: auto;
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));

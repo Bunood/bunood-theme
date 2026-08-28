@@ -52,7 +52,7 @@
 
 // ── Chrome: the frame ───────────────────────────────────────────────────────
 // Item 9: the desk-layout system. _layouts.scss is the conditional matrix
-// (what each data-bnd-layout value hides and where panels open); the others
+// (what each data-bnd-desk value hides and where panels open); the others
 // are the appearance of the pieces bunood.js mounts.
 @use "chrome/layouts";
 @use "chrome/navbar";

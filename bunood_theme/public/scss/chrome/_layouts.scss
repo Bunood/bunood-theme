@@ -4,7 +4,7 @@
 //
 // WHAT
 //   Five desk layouts, selected site-wide in Theme Settings and delivered as
-//   `data-bnd-layout` on <html> (set by bunood.js from boot, before
+//   `data-bnd-desk` on <html> (set by bunood.js from boot, before
 //   DOMContentLoaded). This file holds everything CONDITIONAL on the layout:
 //   which native sidebar rows hide, where the notifications panel opens, and
 //   how much space page content reserves for bars. The bars' own appearance
@@ -34,13 +34,13 @@
 //   hidden and nothing mounts. The failure mode of the whole layout system is
 //   "stock v16", never a desk with controls hidden and no replacement.
 //
-// Scoped html[data-bnd-layout] throughout — (0,1,1)+ beats Frappe's unlayered
+// Scoped html[data-bnd-desk] throughout — (0,1,1)+ beats Frappe's unlayered
 // class rules without !important. Logical properties only (RTL guard).
 // ============================================================================
 
 // ── Shared: hide a native row ONLY once we have replaced it ─────────────────
 // Keyed on `data-bnd-own`, which bunood.js stamps AFTER a replacement is in the
-// document — never on `data-bnd-layout`, which is a declaration made at boot
+// document — never on `data-bnd-desk`, which is a declaration made at boot
 // about what we intend to mount.
 //
 // WHY THE POLARITY MATTERS MORE THAN IT LOOKS
@@ -62,7 +62,7 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
 
 // ── The side pane, switched off ─────────────────────────────────────────────
 // `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
-// `html[data-bnd-layout="dock"]` hid the pane, so "dock" and "no side pane"
+// `html[data-bnd-desk="dock"]` hid the pane, so "dock" and "no side pane"
 // were one choice nobody could take apart. They are two containers now and
 // they are independent: turn both on and you get both. What the Dock PRESET
 // writes is `dock: 1, sidepane: 0`, which is the same desk arrived at honestly.
@@ -89,7 +89,7 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
 //   `mount_placed_tenants` strikes when it releases a token first and only then
 //   asks what became visible. That is what makes a declaration safe here when
 //   it was not safe for the bell, and why build.mjs's ownership guard names
-//   `data-bnd-layout` and `data-bnd-search` — declarations with no release
+//   `data-bnd-desk` and `data-bnd-search` — declarations with no release
 //   path — and deliberately not this one.
 //
 // !important is REQUIRED, not casual: Frappe's sidebar JS writes
@@ -138,7 +138,7 @@ html[data-bnd-chrome-off~="sidepane"] {
 //   them; and Bottom Bar with the status bar switched Off reserved 40px of
 //   dead space. One measurement answers all three and cannot drift.
 //
-// Scoped to html[data-bnd-layout] so a failed boot leaves .main-section
+// Scoped to html[data-bnd-desk] so a failed boot leaves .main-section
 // exactly as Frappe sized it. A layout with no bottom chrome measures 0 and
 // resolves to calc(100vh - 0px) — stock geometry, no dead band.
 //
@@ -151,7 +151,7 @@ html[data-bnd-chrome-off~="sidepane"] {
 // dvh gain is unverifiable in a headless (chrome-less) browser, so switching on
 // an assumption would break the "measure, don't assume" rule. Revisit only with
 // a real-device measurement showing content lost under the mobile URL bar.
-html[data-bnd-layout] .main-section {
+html[data-bnd-desk] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve));
 }
 
@@ -172,7 +172,7 @@ html[data-bnd-layout] .main-section {
 // there.
 //
 // Specificity is deliberate and load-bearing: Frappe's selector is (0,2,1), so
-// a bare `html[data-bnd-layout] .layout-side-section` would only TIE and be
+// a bare `html[data-bnd-desk] .layout-side-section` would only TIE and be
 // decided by which sheet loads last. Naming body[data-route] too makes it
 // (0,3,2) and settles it on specificity instead of on app order.
 // Theme Settings stands its form sidebar down. Assign / Attachments / Share /
@@ -183,11 +183,11 @@ html[data-bnd-layout] .main-section {
 // Prefix, not exact: a Single's route carries the docname too, so this form is
 // `Form/Theme Settings/Theme Settings` (measured, after an exact match matched
 // nothing).
-html[data-bnd-layout] body[data-route^="Form/Theme Settings"] .layout-side-section {
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
   display: none;
 }
 
-html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
+html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
@@ -222,18 +222,18 @@ html[data-bnd-layout] body[data-route^="Form"] .layout-side-section {
 // (.layout-main-section) is not !important, so the paging row still clears
 // there — only the scroll box's own height stays un-reserve-aware below sm. A
 // known, narrow limitation, recorded in the commit, NOT recorded as closed.
-html[data-bnd-layout] .report-view .layout-main-section {
+html[data-bnd-desk] .report-view .layout-main-section {
   block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve));
 }
-html[data-bnd-layout] .report-view .dt-scrollable {
+html[data-bnd-desk] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve));
 }
-html[data-bnd-topbar][data-bnd-layout] .report-view .layout-main-section {
+html[data-bnd-topbar][data-bnd-desk] .report-view .layout-main-section {
   block-size: calc(
     100vh - var(--page-head-height) - var(--bnd-bottom-reserve) - var(--bnd-topbar-h)
   );
 }
-html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
+html[data-bnd-topbar][data-bnd-desk] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve) - var(--bnd-topbar-h));
 }
 
@@ -273,7 +273,7 @@ html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
 // subtracting the reserve from them would only widen their dead band, the
 // opposite of a fix. Their fixed 240/250 offsets are Frappe's, not ours to
 // re-guess.
-html[data-bnd-topbar][data-bnd-layout] .kanban-column {
+html[data-bnd-topbar][data-bnd-desk] .kanban-column {
   min-block-size: calc(
     100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 -
       var(--bnd-bottom-reserve)

@@ -360,35 +360,35 @@ html[data-bnd-chrome-off~=sidepane] .page-title .sidebar-toggle-btn {
   display: none;
 }
 
-html[data-bnd-layout] .main-section {
+html[data-bnd-desk] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve));
 }
 
-html[data-bnd-layout] body[data-route^="Form/Theme Settings"] .layout-side-section {
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
   display: none;
 }
 
-html[data-bnd-layout] body[data-route^=Form] .layout-side-section {
+html[data-bnd-desk] body[data-route^=Form] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
-html[data-bnd-layout] .report-view .layout-main-section {
+html[data-bnd-desk] .report-view .layout-main-section {
   block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve));
 }
 
-html[data-bnd-layout] .report-view .dt-scrollable {
+html[data-bnd-desk] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve));
 }
 
-html[data-bnd-topbar][data-bnd-layout] .report-view .layout-main-section {
+html[data-bnd-topbar][data-bnd-desk] .report-view .layout-main-section {
   block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve) - var(--bnd-topbar-h));
 }
 
-html[data-bnd-topbar][data-bnd-layout] .report-view .dt-scrollable {
+html[data-bnd-topbar][data-bnd-desk] .report-view .dt-scrollable {
   block-size: calc(100vh - 240px - var(--bnd-bottom-reserve) - var(--bnd-topbar-h));
 }
 
-html[data-bnd-topbar][data-bnd-layout] .kanban-column {
+html[data-bnd-topbar][data-bnd-desk] .kanban-column {
   min-block-size: calc(100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 - var(--bnd-bottom-reserve));
 }
 
@@ -2384,7 +2384,7 @@ html[data-theme] .bnd-inbox {
   outline: none;
 }
 
-html[data-bnd-layout=bottombar] .bnd-inbox,
+html[data-bnd-bell=bottombar] .bnd-inbox,
 html[data-bnd-dock] .bnd-inbox {
   inset-block-start: auto;
   inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
@@ -5600,7 +5600,7 @@ html[data-bnd-icon-weight] .bnd-sb-chip svg {
     width: auto;
     max-width: none;
   }
-  html[data-bnd-layout] .main-section {
+  html[data-bnd-desk] .main-section {
     block-size: auto;
   }
   thead {

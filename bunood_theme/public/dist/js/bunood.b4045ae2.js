@@ -6,7 +6,7 @@
  *     1. Per-user density override (checklist item 4, decision "G with C").
  *     2. The desk-layout system (checklist item 9): five chrome layouts —
  *        Top Bar / Compact / Classic / Bottom Bar / Dock — selected on Theme
- *        Settings, delivered via boot, applied as `data-bnd-layout` on <html>,
+ *        Settings, delivered via boot, applied as `data-bnd-desk` on <html>,
  *        with the bars/dock mounted here after the desk is built.
  *
  * WHY THIS MUCH JS IS ALLOWED (the architecture rule, restated)
@@ -50,359 +50,22 @@
 	/** The cycle order for the toggle: follow-site -> comfortable -> compact. */
 	const CYCLE = ["", "Comfortable", "Compact"];
 
-	/**
-	 * Reflect a density value onto <html>.
-	 *
-	 * Lowercased because the attribute participates in a CSS selector. Empty
-	 * removes the attribute — "follow the site default" must genuinely be the
-	 * absence of an override.
-	 *
-	 * @param {string} density - "", "Comfortable" or "Compact".
-	 */
-	function apply_density(density) {
-		const html = document.documentElement;
-		if (density) {
-			html.setAttribute("data-bnd-density", density.toLowerCase());
-		} else {
-			html.removeAttribute("data-bnd-density");
-		}
-	}
-
-	/**
-	 * Persist a density choice and apply it immediately (optimistic, with
-	 * rollback on server failure so the visible state never lies).
-	 *
-	 * @param {string} density - one of the CYCLE values.
-	 * @returns {Promise<void>}
-	 */
-	bunood.set_density = function (density) {
-		const previous = frappe.boot.bnd_density || "";
-		apply_density(density);
-		return frappe
-			.xcall("bunood_theme.api.set_user_density", { density })
-			.then(() => {
-				frappe.boot.bnd_density = density;
-				refresh_density_label();
-				frappe.show_alert({
-					message: density
-						? __("Density: {0}", [__(density)])
-						: __("Density: following site default"),
-					indicator: "green",
-				});
-			})
-			.catch(() => {
-				apply_density(previous);
-				refresh_density_label();
-				frappe.show_alert({
-					message: __("Could not save density preference"),
-					indicator: "red",
-				});
-			});
-	};
-
-	/**
-	 * Advance to the next density in the cycle. Wired to the "Toggle Density"
-	 * Navbar Settings item (classic layout) and the avatar menu / status bar
-	 * (all other layouts).
-	 */
-	bunood.cycle_density = function () {
-		const current = frappe.boot.bnd_density || "";
-		const next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
-		bunood.set_density(next);
-	};
-
-	// Apply the boot value NOW — before DOMContentLoaded, therefore before
-	// Frappe renders anything density affects. See file header.
-	apply_density((window.frappe && frappe.boot && frappe.boot.bnd_density) || "");
-
-	// ── Icon weight (item 23) ─────────────────────────────────────────────────
-	/**
-	 * Stamp the global icon stroke weight on <html>. It applies to EVERY desk
-	 * icon through _icons.scss, so it is a document attribute, applied at boot
-	 * before first paint exactly like density.
-	 * @param {string} weight - "1.25" | "1.5" | "1.75" | "2", or "" to clear.
-	 */
-	function apply_icon_weight(weight) {
-		const html = document.documentElement;
-		if (weight) html.setAttribute("data-bnd-icon-weight", weight);
-		else html.removeAttribute("data-bnd-icon-weight");
-	}
-
-	/**
-	 * Live-apply the global icon axes from the settings form. The Icons picker
-	 * calls this alongside sb_apply / crumb_apply, because its fields feed three
-	 * different runtimes (the sidebar, the breadcrumb, and this document-level
-	 * weight). MANDATORY per the kit contract — a picker that saves without
-	 * applying is the status-kit failure class.
-	 * @param {object} values - a Theme Settings values object (frm.doc is fine).
-	 */
-	bunood.icon_apply = function (values) {
-		if (values && values.icon_weight !== undefined) apply_icon_weight(values.icon_weight);
-	};
-
-	apply_icon_weight(
-		(window.frappe && frappe.boot && frappe.boot.bnd_icons && frappe.boot.bnd_icons.weight) || ""
-	);
-
-	// ════════════════════════════════════════════════════════════════════════
-	// RTL correction — see bunood_theme/i18n/rtl_patch.py for the Python half.
-	// ════════════════════════════════════════════════════════════════════════
-
-	// frappe.utils.is_rtl() independently hardcodes the same four-language
-	// list as its Python counterpart (public/js/frappe/utils/utils.js) — not
-	// derived from any boot field, so the Python-side patch does not reach
-	// it; this is a second, separate copy of the same defect. Every consumer
-	// (toolbar, sidebar, menu, report views, print) calls this ONE function,
-	// and unlike Python's import-time name binding, a JS object's property
-	// lookup is live at call time — so reassigning it here, before anything
-	// has had a chance to call it, is safe regardless of script load order.
-	(function patch_is_rtl() {
-		const rtl_langs = (window.frappe && frappe.boot && frappe.boot.bnd_rtl_langs) || [];
-		if (!frappe.utils || !rtl_langs.length) return;
-		frappe.utils.is_rtl = function (lang) {
-			const code = lang || frappe.boot.lang || "";
-			const parent = code.split("-")[0].split("_")[0];
-			return rtl_langs.indexOf(parent) !== -1;
-		};
-	})();
-
-	// ════════════════════════════════════════════════════════════════════════
-	// Chart chrome — the chart_grid axis (item 25)
-	// ════════════════════════════════════════════════════════════════════════
-	//
-	// The data-bnd-chart-grid attribute drives surfaces/_charts.scss: it themes
-	// frappe-charts' own --charts-* variables and chooses where a chart carries its
-	// weight. This is a CSS concern, independent of the colour wrap below — so it is
-	// applied here whether or not frappe.Chart exists, exactly like the layout and
-	// status attributes. Unknown label → no attribute → the base themed frame.
-	const CHART_GRID_SLUGS = {
-		"Hairline Axes": "axes",
-		"Ruled Baseline": "ruled",
-		"Dashed Guides": "dashed",
-		"Bold Data": "bold",
-		"Filled Area": "filled",
-	};
-
-	function apply_chart_grid_attr(label) {
-		const slug = CHART_GRID_SLUGS[label];
-		const html = document.documentElement;
-		if (slug) html.setAttribute("data-bnd-chart-grid", slug);
-		else html.removeAttribute("data-bnd-chart-grid");
-	}
-
-	apply_chart_grid_attr(
-		((window.frappe && frappe.boot && frappe.boot.bnd_chart) || {}).chart_grid || ""
-	);
-
-	// ════════════════════════════════════════════════════════════════════════
-	// Chart series palette (item 25)
-	// ════════════════════════════════════════════════════════════════════════
-	//
-	// WHAT AND WHY. frappe-charts takes series colours as a JS array and writes
-	// them as inline SVG styles — unreachable from CSS — and when a chart supplies
-	// none it falls back to the vendor's own palette, which no gate has measured
-	// (its default first colour is 2.4:1 on a white card). So the colours come
-	// from us instead: a contrast-validated, colour-vision-safe ramp derived in
-	// palette.series_ramp and shipped as the --bnd-series-* tokens.
-	//
-	// HOW. Every chart in v16 is built through ONE funnel, `new frappe.Chart(...)`
-	// (frappe/public/js/frappe/ui/chart.js). We wrap that constructor — reaching
-	// all seven call sites, where wrapping the widget method would reach only two.
-	// A plain function, NOT `class extends`: frappe-charts' Chart constructor
-	// RETURNS a different object (getChartByType), so a subclass's `this` is
-	// silently rebound and its prototype never joins the chain. Reassigning a
-	// function binding, before anything constructs a chart, is the same safe act
-	// as the is_rtl patch above and for the same live-lookup reason.
-	//
-	// FALLS OPEN. No frappe.Chart, tokens that will not resolve to plain hex, or a
-	// chart type we leave alone (heatmap wants a sequential ramp, not this) — any
-	// of these and we install nothing extra and the chart renders exactly as stock.
-	(function patch_chart_colors() {
-		if (!window.frappe || typeof frappe.Chart !== "function") return;
-
-		// Whether a slot carries an admin colour worth KEEPING — deliberately
-		// permissive: any non-empty string. frappe-charts accepts more than #hex /
-		// rgb() / hsl() (its own PRESET_COLOR_MAP honours "teal", "blue", … via
-		// custom_options), and it validates each entry itself, so a stricter test
-		// here would DISCARD a valid admin colour and overwrite it with the ramp —
-		// the opposite of the intent. A `[]` (the vendor's `[[]]` degenerate for an
-		// uncoloured chart), `""`, undefined or a non-string is an empty slot.
-		const admin_set = (c) => typeof c === "string" && c.trim().length > 0;
-
-		// The resolved ramp, cached per theme generation. getComputedStyle returns
-		// the token's computed value; our tokens are authored as plain 6-digit hex
-		// precisely so this is a hex and not a var()/color-mix string frappe-charts
-		// would reject. If ANY slot is not clean hex we return null and leave the
-		// chart on the vendor default — a coherent stock palette beats a mixture of
-		// ours and theirs that looks deliberate.
-		let ramp_cache = null;
-		let ramp_gen = 0;
-		let ramp_cache_gen = -1;
-		function resolve_ramp() {
-			if (ramp_cache && ramp_cache_gen === ramp_gen) return ramp_cache;
-			const cs = getComputedStyle(document.documentElement);
-			const out = [];
-			for (let i = 1; i <= 7; i++) {
-				const v = cs.getPropertyValue("--bnd-series-" + i).trim();
-				if (!/^#[0-9a-f]{6}$/i.test(v)) return null;
-				out.push(v.toLowerCase());
-			}
-			ramp_cache = out;
-			ramp_cache_gen = ramp_gen;
-			return out;
-		}
-
-		// Fill only what the admin left empty. A per-chart colour the admin set on
-		// the Dashboard Chart doc is their data and is kept in place; a hole (a
-		// null field, or the vendor's `[[]]` degenerate for an uncoloured Line/Bar
-		// that otherwise logs `"" is not a valid color`) takes the ramp. Heatmap is
-		// returned untouched.
-		function merged_colors(given, type) {
-			if (type === "heatmap") return given;
-			const ramp = resolve_ramp();
-			if (!ramp) return given;
-			const n = Math.max(ramp.length, given.length);
-			const out = [];
-			for (let i = 0; i < n; i++) {
-				const a = given[i];
-				out[i] = admin_set(a) ? a : ramp[i % ramp.length];
-			}
-			return out;
-		}
-
-		// Live charts, so a theme flip can repaint them. A plain Set pruned by
-		// `container.isConnected` — the honest synchronous "still on screen" test;
-		// a GC'd chart needs no repaint, so WeakRef would be over-engineering.
-		const live = new Set();
-		const deferred = new Set();
-
-		function repaint_one(c) {
-			if (!c || c._bnd_type === "heatmap" || !c.container || !c.container.isConnected) return;
-			const colors = merged_colors(c._bnd_given || [], c._bnd_type);
-			c.colors = colors;
-			if (c.tip) c.tip.colors = colors; // SvgTip captured the array separately
-			try {
-				// draw(false, false): rebuild components in place, same instance and
-				// container, no refetch, no entry animation. Reconstructing would
-				// strand the widget's reference to this chart.
-				c.draw(false, false);
-			} catch (e) {
-				/* a vendor draw throwing must not take the desk down */
-			}
-		}
-
-		// A repaint destroys an open tooltip, so a chart the user is pointing at or
-		// keyboarding through is parked and flushed when they leave it.
-		function busy(c) {
-			return (
-				(c.container.matches && c.container.matches(":hover")) ||
-				c.container.contains(document.activeElement)
-			);
-		}
-		function repaint_all() {
-			ramp_gen++; // invalidate the cache: the theme moved
-			for (const c of Array.from(live)) {
-				if (!c.container || !c.container.isConnected) {
-					live.delete(c);
-					continue;
-				}
-				if (busy(c)) deferred.add(c);
-				else repaint_one(c);
-			}
-		}
-		function flush_deferred() {
-			for (const c of Array.from(deferred)) {
-				if (!c.container || !c.container.isConnected) {
-					deferred.delete(c);
-					continue;
-				}
-				if (busy(c)) continue;
-				deferred.delete(c);
-				repaint_one(c);
-			}
-		}
-		document.addEventListener("pointerout", flush_deferred, true);
-		document.addEventListener("focusout", flush_deferred, true);
-
-		const NativeChart = frappe.Chart;
-		function BndChart(parent, options) {
-			const given =
-				options && Array.isArray(options.colors) ? options.colors.slice() : [];
-			if (options) options.colors = merged_colors(given, options.type);
-			// Turn the area fill on for every line chart so the Filled Area style
-			// (surfaces/_charts.scss) has a .region-fill to reveal — CSS then shows
-			// or hides it per chart_grid, keeping that axis a pure-CSS live preview.
-			// The fill's gradient is generated by frappe-charts from OUR series
-			// colour. Left alone if the doc already set it.
-			if (options && options.type === "line") {
-				options.lineOptions = options.lineOptions || {};
-				if (options.lineOptions.regionFill === undefined) options.lineOptions.regionFill = 1;
-			}
-			const chart = new NativeChart(parent, options);
-			if (chart && chart.container) {
-				chart._bnd_given = given;
-				chart._bnd_type = options && options.type;
-				// Prune opportunistically so the set cannot grow without bound on a
-				// long-lived desk that renders many charts.
-				for (const c of live) if (!c.container || !c.container.isConnected) live.delete(c);
-				live.add(chart);
-			}
-			return chart;
-		}
-		BndChart.prototype = NativeChart.prototype;
-		frappe.Chart = BndChart;
-
-		// The ONE honest theme-flip signal: frappe.ui.set_theme writes data-theme
-		// and emits no event. One observer on one node for the document's lifetime
-		// — the leak class is per-chart listeners, which this avoids. Coalesced to
-		// one pass per frame so a flip that also swaps the brand sheet redraws once.
-		let raf_queued = false;
-		if (typeof MutationObserver === "function" && document.documentElement) {
-			new MutationObserver(function () {
-				if (raf_queued) return;
-				raf_queued = true;
-				requestAnimationFrame(function () {
-					raf_queued = false;
-					repaint_all();
-				});
-			}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-		}
-
-		// The MANDATORY live-preview hook, present from day one — a kit that saves
-		// but does not apply is the recorded failure class. The chart_grid picker
-		// calls this with the new label: the attribute flips (CSS responds instantly
-		// — gridlines, the area fill's opacity) and the series are repainted, so a
-		// theme flip and a settings change go through one door.
-		bunood.chart_apply = function (values) {
-			if (values && values.chart_grid !== undefined) apply_chart_grid_attr(values.chart_grid);
-			repaint_all();
-		};
-	})();
-
-	// ════════════════════════════════════════════════════════════════════════
-	// Desk layouts (item 9)
-	// ════════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Theme Settings label -> attribute slug. The Select stores the human
-	 * label; CSS wants a stable token. Unknown labels fall through to no
-	 * attribute (= stock desk), so a typo can never half-apply a layout.
-	 */
-	const LAYOUT_SLUGS = {
-		"Top Bar": "topbar",
-		"Compact": "compact",
-		"Classic": "classic",
-		"Bottom Bar": "bottombar",
-		"Dock": "dock",
-	};
-
 	// Set the attribute NOW, for the same timing reason as density: the CSS
 	// matrix (chrome/_layouts.scss) must know the layout before Frappe builds
 	// the sidebar, or hidden rows would flash in and out.
-	(function apply_layout() {
-		const label = (window.frappe && frappe.boot && frappe.boot.bnd_layout) || "";
-		const slug = LAYOUT_SLUGS[label];
-		if (slug) document.documentElement.setAttribute("data-bnd-layout", slug);
+	(function mark_desk_active() {
+		// UNCONDITIONAL SINCE ITEM 37. This used to stamp a LAYOUT SLUG read from
+		// `frappe.boot.bnd_layout`, and every rule keyed on it was really asking
+		// "did our chrome system start" rather than "which layout is this" - only
+		// ONE rule in the whole tree ever read the value, and it was really about
+		// where the bell mounted (now `data-bnd-bell`). With the layout no longer
+		// stored there is no slug to carry, so the attribute becomes what it always
+		// meant: a presence mark, absent only when this file never ran.
+		//
+		// STAMPED HERE, EARLY, for the same timing reason as density: the CSS matrix
+		// must see it before Frappe builds the sidebar, or scoped rules would flash
+		// in and out.
+		document.documentElement.setAttribute("data-bnd-desk", "");
 	})();
 
 	// The status style travels as an attribute for the same reason as the
@@ -462,7 +125,7 @@
 
 	/** Current layout slug, or "" when the system is inactive. */
 	function layout() {
-		return document.documentElement.getAttribute("data-bnd-layout") || "";
+		return document.documentElement.hasAttribute("data-bnd-desk") ? "desk" : "";
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
@@ -913,7 +576,7 @@
 	// THE POLARITY OF EVERY NATIVE-HIDING RULE.
 	//
 	// The old rule was: the LAYOUT declares it will replace the sidebar's bell,
-	// so CSS hides that bell at first paint from `data-bnd-layout`. What
+	// so CSS hides that bell at first paint from `data-bnd-desk`. What
 	// actually mounts is decided later, in the DOM, by code that can fail —
 	// mount_topbar bails if Frappe rendered no <header>, and the Bottom Bar
 	// strip refused to mount at all when the status style was "Off". When the

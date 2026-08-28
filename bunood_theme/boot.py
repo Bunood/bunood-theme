@@ -171,12 +171,13 @@ def extend_bootinfo(bootinfo):
         # missing value degrades to the stock desk (fails open).
         from bunood_theme.presets import CHROME_DEFAULTS, DEFAULT_DESK_LAYOUT
 
-        bootinfo.bnd_layout = settings.get("desk_layout") or DEFAULT_DESK_LAYOUT
 
         # Which containers this desk mounts (component rework, slice 2c).
         #
-        # WHY IT IS A SEPARATE PAYLOAD FROM bnd_layout AND NOT DERIVED FROM IT
-        #     That derivation is the thing being removed. `desk_layout` used to
+        # WHY IT IS THE PAYLOAD, AND NOT DERIVED FROM A LAYOUT NAME
+        #     There is no name left to derive from: item 37 deleted the stored
+        #     `desk_layout` and boot no longer serves `bnd_layout` at all.
+        #     Historically `desk_layout` used to
         #     be read at mount time and a ladder of branches decided which
         #     containers appeared; each container is its own setting now, and a
         #     layout is a preset that WRITES them. Deriving here would keep the
@@ -269,7 +270,6 @@ def extend_bootinfo(bootinfo):
         # unchanged (item 23 kept the client contract stable across the rename).
         icon = lambda f: ICON_DEFAULTS[f] if settings.get(f) in (None, "") else settings.get(f)  # noqa: E731
         bootinfo.bnd_sidebar = {
-            "preset": settings.get("sidebar_preset") or DEFAULT_SIDEBAR_PRESET,
             "placement": get("sidebar_placement"),
             "material": get("sidebar_material"),
             "glass_opacity": get("sidebar_glass_opacity"),

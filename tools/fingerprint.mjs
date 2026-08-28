@@ -20,7 +20,8 @@ const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.
 // The state the fixture is captured in — read from the app's OWN shipped
 // defaults, not restated here. That matters for the sidebar picker in
 // particular: its label is DERIVED by comparing all 22 sidebar_* values
-// against the preset dicts, so pinning `sidebar_preset: "Bunood Night"`
+// against the preset dicts. The stored `sidebar_preset` it used to pin is
+// GONE (item 37) — the label is derived now, so there is nothing to pin
 // pins a label the picker then recomputes as "Custom" from whatever values
 // the run left behind. One node and 22 characters of difference, on every
 // run, in a picker nobody touched.

@@ -32,7 +32,6 @@
   "section_theme",
   "theme_picker",
   "section_layout",
-  "desk_layout",
   "layout_picker",
   "section_topbar",
   "topbar_enabled",
@@ -42,7 +41,6 @@
   "dock_enabled",
   "section_sidebar",
   "sidebar_enabled",
-  "sidebar_preset",
   "sidebar_picker",
   "sidebar_placement",
   "sidebar_material",
@@ -343,14 +341,6 @@
    "label": "Desk Layout"
   },
   {
-   "fieldname": "desk_layout",
-   "fieldtype": "Select",
-   "label": "Desk Layout",
-   "options": "Top Bar\nCompact\nClassic\nBottom Bar\nDock",
-   "default": "Top Bar",
-   "description": "Where global search, notifications and your profile live. Applies site-wide on the next page load; pick visually below."
-  },
-  {
    "fieldname": "layout_picker",
    "fieldtype": "HTML",
    "label": "Layout Picker"
@@ -402,15 +392,6 @@
    "label": "Show the side pane",
    "default": "1",
    "description": "Frappe's own left pane, and the home of its search row, notifications and user button. Independent of every other container: a dock and a side pane can both be shown. Switching it off is refused while nothing else can reach search, notifications or Log Out. Applies site-wide on the next page load."
-  },
-  {
-   "fieldname": "sidebar_preset",
-   "fieldtype": "Select",
-   "label": "Sidebar Preset",
-   "options": "Bunood Night\nBunood Light\nDaylight\nInk\nCarbon\nPaper\nAurora\nWorkbench\nCustom",
-   "default": "Bunood Night",
-   "hidden": 1,
-   "description": "Set by the picker below. Values live in the individual style fields; the preset is a label."
   },
   {
    "fieldname": "sidebar_picker",

@@ -116,7 +116,7 @@
   // here; chrome/_layouts.scss replaces it with `100vh` minus the bottom
   // reserve, so this rule has to name the same scope to win (the reset above
   // is (0,1,0) and would lose to (0,2,1) regardless of source order).
-  html[data-bnd-layout] .main-section {
+  html[data-bnd-desk] .main-section {
     block-size: auto;
   }
 

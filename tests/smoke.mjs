@@ -1187,7 +1187,7 @@ const MUTABLE_FIELDS = [
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
-	"sidebar_preset", "sidebar_placement", "sidebar_material",
+	"sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
@@ -2784,7 +2784,7 @@ async function main() {
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
-				setSettings({ ...values, sidebar_preset: name });
+				setSettings(values);
 				await goDesk("/desk/sales-invoice", ".page-head", 3000);
 				for (const [field, attrName] of Object.entries(ATTR_OF)) {
 					// A preset only drives the fields it sets. icon_style left the
@@ -2816,7 +2816,7 @@ async function main() {
 			// always expanded — after which this test was exercising a rail
 			// that never mounted and passing on nothing. The behaviour under
 			// test did not change; the preset carrying it did.
-			setSettings({ ...presets["Bunood Light"], sidebar_preset: "Bunood Light" });
+			setSettings(presets["Bunood Light"]);
 			await goDesk("/desk/sales-invoice", ".page-head", 3000);
 			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(300);

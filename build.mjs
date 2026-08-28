@@ -896,11 +896,17 @@ const FIELD_EXCEPTIONS = new Set([
  * MOUNTED, never from what a layout declared it would mount.
  *
  * Fails the build on any rule that hides one of Frappe's own affordances while
- * keyed on `data-bnd-layout` or `data-bnd-search`. Both are declarations made
+ * keyed on `data-bnd-desk` or `data-bnd-search`. Both are declarations made
  * before the DOM is known; hiding from them deletes the affordance whenever
  * the replacement does not arrive, which is how "Off" cost the Bottom Bar
  * layout its logout and how a resolved-but-unmounted search placement hid the
  * sidebar's search row with nothing to replace it.
+ *
+ * RENAMED WITH THE ATTRIBUTE (item 37). This guard named `data-bnd-layout`; that
+ * attribute is `data-bnd-desk` now, and the rename had to come here in the same
+ * commit or the guard would have gone on matching a string nothing emits — still
+ * green, guarding nothing. That is item 32's `_tokens.scss` lesson exactly: ask
+ * who else READS the thing you are renaming.
  *
  * Keyed on `data-bnd-own`, which is stamped after the node is in the document.
  */
@@ -914,7 +920,7 @@ function assertOwnershipPolarity(css, name) {
 		const [, selector, body] = m;
 		if (!/display\s*:\s*none/.test(body)) continue;
 		if (!OWNED_NATIVES.some((n) => selector.includes(n))) continue;
-		if (/data-bnd-(layout|search)/.test(selector)) {
+		if (/data-bnd-(desk|search)/.test(selector)) {
 			offenders.push(selector.trim().slice(0, 120));
 		}
 	}
