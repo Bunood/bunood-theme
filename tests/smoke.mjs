@@ -5224,8 +5224,22 @@ async function main() {
 				`layout note "${notes.layout}" is neither a real layout name nor "Custom"`
 			);
 
+			// THE THIRD CATALOGUE (item 37), and the largest: twelve looks over 124
+			// values. Checked exactly as the other two are — against the server's
+			// own table — so a card and a note cannot drift into naming something
+			// the catalogue does not contain.
+			const themes = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_PRESETS\nprint(json.dumps(list(THEME_PRESETS)))\n`
+				).trim().split("\n").pop()
+			);
+			expect(
+				themes.includes(notes.theme) || notes.theme === "Custom",
+				`theme note "${notes.theme}" is neither a real theme preset nor "Custom"`
+			);
+
 			for (const [key, note] of Object.entries(notes)) {
-				if (key === "sidepane" || key === "layout") continue;
+				if (key === "sidepane" || key === "layout" || key === "theme") continue;
 				// RENDER-ONLY ENTRIES OWN NO FIELDS — they read state or hold it
 				// in their own doctypes — so they have no Default/Changed to
 				// report and must stay silent. Saying "Default" under the

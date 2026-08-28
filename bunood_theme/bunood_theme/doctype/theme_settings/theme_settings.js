@@ -1388,6 +1388,16 @@ function bnd_changed_fields(key, frm) {
  */
 function bnd_shell_note(key, frm) {
 	if (!bnd_shipped) return "";
+	// THE THEME ENTRY OWNS NO FIELDS OF ITS OWN — it writes other entries'. So it
+	// is answered BEFORE the ownership guard below, which would otherwise send it
+	// down the "no state to report" path and print nothing under the one control
+	// with the largest catalogue on the page. What it can honestly report is
+	// which shipped look the desk currently IS, which is a comparison rather than
+	// a field it holds. Falls through while the catalogue is still in flight, and
+	// the fetch repaints the marks when it lands — the side pane's note learned
+	// that race the hard way (it read "Default" intermittently on the one entry
+	// with a real preset to name, which is the worst kind of wrong).
+	if (key === "theme" && bnd_theme_cache) return bnd_theme_match(frm);
 	// An entry that owns no fields has no state to report. The Overview READS
 	// settings; saying "Default" under it claims it has some, and would go on
 	// saying it while every component it shows had been changed.
@@ -2762,6 +2772,10 @@ function bnd_render_theme_picker(frm, host) {
 		frappe.xcall("bunood_theme.api.get_theme_presets").then((r) => {
 			bnd_theme_cache = r;
 			bnd_render_theme_picker(frm);
+			// The shell's Theme note DERIVES from this catalogue, and two fetches
+			// race here. Painting again is the cheap half of the fix; the marks are
+			// idempotent, so the redundant repaint costs nothing.
+			bnd_shell_marks(frm);
 		}).catch(() => {
 			// The flag RESETS so the next render retries — item 35's review caught
 			// a first cut latching one transient failure into a dead card row for
