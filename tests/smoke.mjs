@@ -224,6 +224,40 @@ function expectEq(actual, wanted, what) {
 	if (actual !== wanted) throw new Error(`${what}: wanted ${JSON.stringify(wanted)}, got ${JSON.stringify(actual)}`);
 }
 
+/**
+ * Is a computed colour INVISIBLE — i.e. alpha exactly 0?
+ *
+ * Both call sites used to ask this with `css.includes("0)")`, and item 37 caught
+ * why that is not the same question. A recalibrated brand seed paints the list's
+ * selection rail `rgb(61, 129, 80)`, whose string ENDS IN "80)" — so a correctly
+ * painted rail read as transparent and the check went red. The previous seed
+ * happened to end "86)" and slipped past for as long as the check has existed.
+ *
+ * The other call site is the dangerous one, because its polarity is inverted: it
+ * asserts that Open Rows draw NO separator, so a separator painted with any
+ * channel ending in 0 would have been accepted as absent. A false GREEN, silent.
+ *
+ * THROWS on a form it does not recognise, rather than guessing. `triple()` in
+ * this file once read `oklab(...)` — which Chrome also emits for `color-mix()` —
+ * as near-black and said nothing; CLAUDE.md carries that as a standing rule.
+ * Parsing happens HERE, on the Node side, because the page returns strings.
+ */
+function isTransparent(css) {
+	if (css === null || css === undefined || css === "" || css === "transparent") return true;
+	const m = String(css).trim().match(/^rgba?\(([^)]*)\)$/i);
+	if (!m) {
+		throw new Error(
+			`isTransparent: unrecognised colour ${JSON.stringify(css)} — teach the helper ` +
+			`rather than letting it guess (see the oklab lesson in CLAUDE.md)`
+		);
+	}
+	const parts = m[1].split(/[,/]/).map((t) => parseFloat(t.trim()));
+	if (parts.some((n) => Number.isNaN(n))) {
+		throw new Error(`isTransparent: could not parse channels from ${JSON.stringify(css)}`);
+	}
+	return parts.length >= 4 ? parts[3] === 0 : false;
+}
+
 // ── Server-side helpers (docker exec) ───────────────────────────────────────
 
 /** Run a python snippet inside the backend container against the site. */
@@ -7519,7 +7553,7 @@ async function main() {
 					expect(px.sepWidth !== "0px", `hairline draws a separator (${px.sepWidth})`);
 				}
 				if (slug === "open") {
-					expect(px.sepWidth === "0px" || px.sep.includes("0)"), "open rows draw no separator");
+					expect(px.sepWidth === "0px" || isTransparent(px.sep), `open rows draw no separator (${px.sepWidth}, ${px.sep})`);
 					expectEq(px.firstBg, px.secondBg, "open rows draw no zebra either");
 				}
 				if (slug === "zebra") {
@@ -7579,7 +7613,7 @@ async function main() {
 			});
 			expect(sel.checked, "a row is checked");
 			expect(sel.boxVisible, "the checked mark is visible — selection is never colour alone");
-			expect(sel.rail && !sel.rail.includes("0)"), `the rail is painted (${sel.rail})`);
+			expect(sel.rail && !isTransparent(sel.rail), `the rail is painted (${sel.rail})`);
 			if (sel.bulk) {
 				expect(sel.headBg && sel.headBg !== "rgba(0, 0, 0, 0)", `Bold Bar owns the header (${sel.headBg})`);
 			}
