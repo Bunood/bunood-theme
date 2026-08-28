@@ -24,7 +24,13 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-### The vendor mark follows the recalibrated seed
+(nothing yet)
+
+## [0.37.1] — 2026-08-28 — The vendor mark follows the recalibrated seed
+
+Gated at 408/408 with contrast over 9,520 pairs across 27 seeds, the build
+guards and the payload ceiling. A refinement on item 37, so PATCH rather than
+MINOR: the roadmap item number does not move.
 
 - **The Bunood mark is repainted `#4d8756` → `#3d8150`**, matching the brand seed
   item 37 recalibrated. It is one file with two uses — the browser-tab favicon and
