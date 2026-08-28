@@ -24,7 +24,68 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-(nothing yet)
+### Presets — one catalogue for the whole desk (item 37)
+
+**Your dark brand colour gets brighter, and every desk surface can now take a
+neutral ground.** Both come from one change inside `palette.derive`, so they land
+together rather than across two releases: read the two bullets under *Colour*
+before upgrading a site whose brand is tuned.
+
+- **A theme is one click.** Twelve shipped looks, each writing **124 values** — every
+  kit's style *and* its switches, the five containers, the placements, the desk
+  order, the density and the four colour seeds. `presets.theme_settings(name)` is
+  the only thing that composes one, so the settings form and the test suite write
+  identical states.
+- **Nothing remembers which look you picked.** `sidebar_preset` and `desk_layout`
+  are deleted — the last two stored preset names in the app. The highlighted card
+  is derived by comparing the live values, so it reads **Custom** the moment one of
+  the 124 differs. If you have tuned anything, Custom is the honest answer and the
+  one you should expect.
+- **A look carries its colours.** 17 palettes, seeds and accents both taken from
+  Radix's step 9 — the step designed to be a saturated solid, which is the role our
+  brand fill plays. Clicking a look overwrites your seeds; the card shows the
+  colours it will write.
+
+#### Colour
+
+- **The dark brand fill brightens on every existing site.** In dark mode the seed is
+  pre-lifted to L\* 62 before the fill is solved, by reducing chroma rather than
+  clamping channels, so the hue holds. Contrast improves — the pairs sit at 5.8–6.0
+  where they used to sit nearer the 4.5 floor — but the colour visibly changes.
+- **Every palette carries a ground**, and presets write it. Surfaces mix the ground
+  while the fill, ink and ring still fit the brand, so a desk can be hue-coherent
+  without being brand-tinted. Unset means "mix the brand", which is the old
+  behaviour exactly — an existing site that does not touch it does not move.
+- **The shipped brand is recalibrated to `#3d8150`** (today's hue and chroma, corrected
+  lightness) and the accent default becomes `#0090ff`. **New installs only**: the
+  seeder writes a default only where none is stored, so an existing site keeps its
+  colours.
+- **The accent was chosen by measurement, not taste.** CIEDE2000 against the fitted
+  status ramp killed two candidates outright — a tomato focus ring sat ΔE 9.6 from
+  "this failed", and following the brand sat 3.7 from "this succeeded". A ring you
+  cannot tell from an error is a defect, not a preference.
+
+#### Gates
+
+- `npm run contrast` now measures **9,520 pairs over 27 seeds**, up from 4,080 over 11,
+  and gained four arms: the ground parameter's inertness, the dark lift (whose light
+  half is an invariance test), each palette's accent-to-status separation, and the
+  theme catalogue checked against the doctype's own Select options. The separation arm
+  immediately caught a shipped palette pairing an orange ring with the error red at
+  ΔE 9.0; every accent was re-picked, and the worst collision is now 31.5.
+- A new arm pins the **derived layout identity**: with `desk_layout` gone, the shape is
+  computed by comparing live values against the layout catalogue, and Classic and
+  Bottom Bar — whose container rows are byte-identical — must still be told apart.
+
+#### Internal
+
+- `data-bnd-layout` becomes `data-bnd-desk`, a presence mark, because fourteen of its
+  fifteen uses were only ever asking "did our chrome system start". The one rule that
+  read a value is about where the notification bell mounted and is now keyed on
+  `data-bnd-bell`.
+- The per-user "personalize" menu lists the shipped looks instead of a parallel set of
+  sidebar presets, and says plainly that it applies the side pane only: colours are one
+  stylesheet per site, so a per-user palette is not buildable.
 
 ## [0.36.0] — 2026-08-27 — Settings singleton (item 36)
 

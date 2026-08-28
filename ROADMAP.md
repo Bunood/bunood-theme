@@ -1116,11 +1116,63 @@ entry.
     BOARD's slot rather than the clicked picker's, and a generous timeout passed on the
     defect because autosave's own `refresh()` corrects it ~3s later — measured wrong at
     t+1214ms, right at t+3003ms. **The window is the assertion.**
-- `[~]` **37 · Presets** *(was 30)* — sidebar preset system shipped in 0.5.0; remaining:
-  colour-palette seeds per preset, more palettes. Item 17 (contrast) is CLOSED
-  (2026-08-06), so the old "blocked on 17" no longer holds — the gate it built is what
-  now makes a preset's seed safe to ship (a preset that shipped an illegible seed was
-  the risk; `npm run contrast` over 11 seeds × 2 modes is the answer)
+- `[x]` **37 · Presets** *(was 30)* — **CLOSED 2026-08-28, v0.37.0.** The item was two
+  lines written when the theme had one kit ("colour-palette seeds per preset, more
+  palettes"). Read at today's scale — nineteen kits, 109 kit fields, four seeds — it was
+  the last piece of the settings architecture below, and that is what shipped.
+  - **One catalogue, one composer.** `presets.THEME_PRESETS` over `THEME_AXES` — **124
+    values**: every kit Select *and* Check, the five containers, the placements,
+    `desk_order`, `density_default`, the four seeds and the new ground.
+    `presets.theme_settings(name)` is the ONE composer, so the product's writer and the
+    suite's writer call the same function. That is the direct fix for item 36's sharpest
+    finding, where a layout wrote half of itself and the suite drove a state no gesture
+    could produce.
+  - **No preset name is stored anywhere.** `sidebar_preset` and `desk_layout` are both
+    deleted (`v0_37_0`) — the last two stored labels in the app. Every active-preset
+    label is derived by comparison and reads "Custom" the moment one of 124 values
+    differs, which at this scope is the honest and common answer.
+  - **A preset carries its palette.** 17 palettes, every seed a Radix step 9 except the
+    recalibrated Bunood green (`#3d8150`, painted verbatim as the light fill). The accent
+    default moves to `#0090ff`, chosen by CIEDE2000 against the fitted status ramp: two
+    candidates died by that measurement (tomato at ΔE 9.6 from `--bnd-serious`,
+    follow-the-brand at 3.7 from `--bnd-good`), and the new gate arm then caught **Blue
+    shipping an orange ring at ΔE 9.0** — worse than the candidate it had rejected. Every
+    accent was re-picked by measurement; the worst collision is now 31.5.
+  - **Dark brightens from ONE seed**, pre-lifted to L\* 62 inside `derive()` by REDUCING
+    CHROMA rather than clamping channels, so the hue holds. Every existing site's dark
+    brand gets brighter on upgrade — a CHANGELOG headline, not a footnote.
+  - **Every palette carries a GROUND** (Radix's six hue-family neutrals), and the obvious
+    implementation was rejected by measurement: a "how much brand" multiplier with a
+    neutral pole at 0% collapses page, surface, raised, pane and active to one flat
+    white. Item 31's rule verbatim — a pole may not take the slot's fill away.
+  - **The gate grew with the catalogue**: 9,520 pairs over 27 seeds, plus four new arms —
+    ground inertness, the dark lift (whose LIGHT arm is an invariance test), the palette
+    catalogue's status separation, and the theme catalogue checked against the doctype's
+    own Select options.
+  - **Item 36's filed remainder was smaller than recorded, and its obvious fix was a
+    trap.** HANDOVER said "~a dozen rules position panels by that attribute"; measured,
+    **fourteen of fifteen** `data-bnd-layout` uses were bare presence guards and ONE read
+    a value. Re-keying that one to `data-bnd-bottombar` would have been a silent
+    regression — all five layouts write `bottombar: 1` — because it is about where the
+    BELL mounted: `data-bnd-bell`. The guards became `data-bnd-desk`, with
+    `assertOwnershipPolarity` renamed in the same commit.
+  - **Deleting the stored name did not delete the need for the identity**, and this cost
+    two runs. Two call sites still needed the shape, so it is DERIVED server-side
+    (`presets.layout_of`) against the one catalogue. Containers alone cannot tell
+    **Classic from Bottom Bar** — their rows are byte-identical, and only the bell and
+    profile placements differ. And the derivation must EXCLUDE the field whose question
+    it answers: letting `search_placement` decide the shape made every desk wanting
+    search somewhere unusual report "" and silently take the Top Bar fallback order.
+    `layout()` was also answering two questions — "which shape" and "is our system
+    running" — which diverged the moment the shape stopped being stored; they are
+    `layout()` and `theme_active()` now.
+  - **The repair that cost the most, and what actually found it.** A scripted deletion
+    aimed at `LAYOUT_SLUGS` and one IIFE took **337 lines** with it — density, icon
+    weight, the `is_rtl` correction, chart grid and the chart colour patch — and
+    `node --check` PASSED, because deleting whole functions leaves valid JS. Twelve suite
+    failures across five unrelated kits were the only signal, and they read like five
+    bugs. **A parse check proves syntax, not extent**; a payload bucket that unexpectedly
+    shrinks is the other tell, and it had masked the feature's real growth.
 - `[ ]` **38 · Per-user preferences** *(was 31)* — via `User.desk_theme`, never a parallel
   localStorage
 

@@ -120,6 +120,24 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   Assert the thing the sharing could break.
 - **Scripted multi-site edits.** End every one with a parse check (`node --check`,
   `ast.parse`). A heredoc with `\n` has mangled a file twice.
+- **A parse check proves SYNTAX, not EXTENT.** Item 37's slice-4 deletion aimed at
+  `LAYOUT_SLUGS` and one IIFE and took **337 lines** with it - density, icon weight, the
+  `is_rtl` correction, chart grid, the chart colour patch - and `node --check` PASSED,
+  because deleting whole functions leaves valid JS. The only signal was twelve suite
+  failures across five unrelated kits, which read like five bugs and were one. Diff the
+  line count against the previous commit and account for the delta; assert the boundary
+  lines INSIDE the edit script. **And a payload bucket that unexpectedly SHRINKS is the
+  tell, not a win** - the truncated bundle came in under `js_gzip` and masked the real
+  growth of the feature being added.
+- **Deleting a stored name does not delete the need for the identity.** `desk_layout`
+  went, and two runtime call sites still had to know the shape - so it is DERIVED by
+  comparison (`presets.layout_of`), server-side, against the one catalogue. Two things
+  that cost a run each: containers alone cannot tell **Classic from Bottom Bar** (their
+  rows are byte-identical; only the bell and profile placements differ), and the
+  derivation must EXCLUDE the field whose question it answers - letting `search_placement`
+  decide the shape made every desk wanting search somewhere unusual report "" and take the
+  Top Bar order. Also split the name: `layout()` was answering both "which shape" and "is
+  our system running", and those diverged the moment the shape stopped being stored.
 
 ## Where things are
 

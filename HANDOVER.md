@@ -14,7 +14,7 @@
 ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
 fixes-on-top. The old increment-by-one scheme had drifted EIGHT behind the roadmap (0.20.0
 was item 28), so a version number carried no information about its contents. **The next
-item, 31, releases as `v0.31.0` — do NOT compute it from the previous tag.** Releases
+item, 38, releases as `v0.38.0` — do NOT compute it from the previous tag.** Releases
 before 0.29.0 keep their numbers; the 0.20.0 to 0.29.0 jump is the adoption, not lost
 releases. CHANGELOG's policy paragraph is the authority.
 
@@ -29,32 +29,70 @@ committed when the numbering was decided, and a v0.29.0 cut at HEAD would have c
 is not rediscovered as a bug: the version files at that commit still read 0.20.0. The
 "`app_version` matches latest tag" invariant resumes at `v0.30.0` (`649f4d1`).
 
-**THIS BRANCH HAS DIVERGED FROM `origin/main`, AND THE MERGE IS OWED — READ THIS
-BEFORE PUSHING ANYTHING.** As of 2026-08-27 local `main` is **ahead 19, behind 6**.
-The other session took `origin/main` to **`v0.39.0`** (the Report Studio as a new
-item 39, plus ZATCA Phase-1 QR and an 80mm receipt format); this branch carries item
-36 and is tagged **`v0.36.0` LOCALLY, UNPUSHED**. Neither tree contains the other.
+**THE DIVERGENCE IS RESOLVED (2026-08-27, at the user's direction), AND THE SHAPE IS
+WORTH KNOWING BEFORE YOU PUSH ANYTHING.** `origin/main` had reached `v0.39.1` — a
+Report Studio numbered as item 39, plus ZATCA Phase-1 QR — from two human teammates,
+**Hesham Mohammed Ahmed Ali** and **MrBrokenrightArm**. Neither tree contained the
+other. The user chose to keep `main` as their own line: that work is preserved on the
+pushed branch **`studio-zatca`** (`2b5cc83`), along with `feat/report-studio`,
+`feat/zatca-phase1-qr` and the `v0.39.0` / `v0.39.1` tags, and local `main` was
+force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 
-- **No substantive collision.** `origin`'s item-36 entry is still the two stale
-  `[~]` lines — the settings surface is untouched there. `theme_settings.js`,
-  `context.py`, `api.py` and `_settings.scss` are this branch's alone.
-- **The merge surface is NINE files, all ledgers and metadata**: `CHANGELOG.md`,
-  `ROADMAP.md`, `payload-budget.json`, `bunood_theme/__init__.py`, `hooks.py`,
-  `build.mjs`, `boot.py`, and the generated `assets.py` / `translations/ar.csv`.
-  Merge base is `5bf9593`.
-- **THE VERSION DECISION, MADE BY THE USER 2026-08-27, so the merge does not have to
-  re-litigate it:** the `v0.36.0` tag KEEPS the item number (MINOR = the ROADMAP item
-  number is the standing rule, and the tag records item 36's tree). On merging,
-  `__version__` / `app_version` must take the **HIGHER RELEASED VALUE** — 0.39.0 or
-  whatever `origin` has by then — because 0.39.0 is already released and an app must
-  never downgrade. The cost is the recorded `v0.29.0` shape: the version files at the
-  `v0.36.0` commit read 0.36.0 while HEAD reads higher. Written down here rather than
-  rediscovered as a bug.
-- The merge itself was deliberately NOT done in the item-36 session, at the user's
-  direction. Re-run the gates over the COMBINED tree before any tag or push.
+- **`origin/main` is a SHARED branch with human collaborators on it.** Check
+  `git log origin/main` before assuming a divergence is another assistant session's,
+  and never resolve one by discarding work without asking.
+- **The version numbers on that branch are spent.** Items 39 and the 0.39.x tags name
+  work that is not on `main`. MINOR = the ROADMAP item number still holds for this
+  line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
-**ITEM 36 (settings singleton) — DONE 2026-08-27, released as `v0.36.0` (local tag,
-NOT pushed; see the divergence note above). Suite 407/407, contrast 4,080 pairs,
+**ITEM 37 (presets) — DONE 2026-08-28, released as `v0.37.0`.** The last piece of the
+settings architecture: one catalogue for the whole desk, twelve looks writing 124 values
+each, and **no preset name stored anywhere** — `sidebar_preset` and `desk_layout` are both
+deleted. ROADMAP's item-37 entry and CHANGELOG carry the account; what belongs here is
+what will cost time again:
+
+- **A SCRIPTED DELETION TOOK 337 LINES AND `node --check` PASSED.** The edit was aimed at
+  `LAYOUT_SLUGS` and one IIFE in `bunood.js`; it also removed density, icon weight, the
+  `is_rtl` correction, chart grid and the chart colour patch. Deleting whole functions
+  leaves valid JS, so the parse check this repo mandates said nothing. The signal was
+  twelve suite failures across five unrelated kits — charts unwrapped, no icon stroke, no
+  RTL correction — which read like five bugs and were one. **Diff the line count against
+  the previous commit and account for the delta**, and assert the boundary lines inside
+  the edit script. The repair is `git show <prev>:path` plus re-applying the four intended
+  hunks, not a hand-patch.
+- **A PAYLOAD BUCKET THAT SHRINKS IS A SYMPTOM, NOT A WIN.** The truncated bundle came in
+  UNDER `js_gzip` and masked the theme picker's real growth. When the deletion was
+  repaired the ceiling failed by 109 bytes and was raised to 93,600 deliberately.
+- **DELETING A STORED NAME DOES NOT DELETE THE NEED FOR THE IDENTITY**, and this cost two
+  full runs. Two runtime call sites still need the layout's shape (`search_fallback_order`
+  and `container_on`'s fall-open), so it is DERIVED server-side by `presets.layout_of`
+  comparing live values against `registry.layout_settings`, and served as
+  `boot.bnd_desk_shape`. Three findings, all measured:
+  - **Containers alone cannot tell Classic from Bottom Bar.** Their container rows are
+    byte-identical; only the bell and profile placements differ. A first draft compared
+    the five toggles and every Bottom Bar desk reported itself as Classic.
+  - **The derivation must EXCLUDE the field whose question it answers.** With
+    `search_placement` in the comparison, a Classic desk asking for search in a top bar it
+    does not have matched nothing, reported `""`, and silently took the Top Bar fallback
+    order. `presets.SHAPE_IGNORES` carries the exclusion and the reason.
+  - **`layout()` was answering two questions** — "which shape" and "is our chrome system
+    running" — which diverged the moment the shape stopped being stored. They are
+    `layout()` and `theme_active()` now, and the second reads the BOOT PAYLOAD, because
+    `data-bnd-desk` is stamped unconditionally and can no longer answer it.
+- **`npm run contrast` gained `check_layout_identity`** and was watched to fail both ways:
+  drop the search exclusion and two layouts report `""`; compare containers only and
+  Bottom Bar collapses into Classic.
+- **KILLING A SUITE MID-RUN COSTS A SITE HEAL, TWICE PAID HERE.** `TaskStop` on a running
+  verify left `tagline="smoke-<ts>"` in the branding fields — which renders on the public
+  sign-in page — and on the second occasion seven kit fields mid-test. The `site data:`
+  hygiene preamble catches the branding half on the next run; **the kit fields it does
+  not**. Heal with a diff against `presets._shipped_baseline()` and one `doc.save()`.
+- **`presets.py` is now the composer AND the reverse.** `theme_settings(name)` flattens a
+  look to fields; `layout_of(settings)` names the shape. `registry` stays the catalogue —
+  the reverse lives in `presets` because `registry` cannot import it without a cycle.
+
+**ITEM 36 (settings singleton) — DONE 2026-08-27, released as `v0.36.0` (tagged and
+PUSHED 2026-08-27). Suite 407/407, contrast 4,080 pairs,
 build guards and payload green, adversarial review run with all twenty confirmed
 findings fixed.** Commits: `efa0aef` slice 1 (the identity
 matrix + `_identity_meta` + `withBranding` + the hygiene preamble) · `53ee3db` 2a
@@ -77,13 +115,11 @@ state and the things that will cost time again:
   fixture path that does not exist (`frappe-favicon.png`; frappe ships that mark as an
   SVG) and the email preview's absolutised mark on a non-standard port. Run 5:
   **407/407**, with contrast at 4,080 pairs, the build guards and the payload ceiling.
-- **`desk_layout` IS HIDDEN, NOT DELETED, AND THE REMAINDER IS FILED.** Boot still serves
-  the stored name and `bunood.js` stamps `data-bnd-layout` from it; ~a dozen
-  `_layouts.scss` rules position panels by that attribute. Deleting the field today would
-  leave a CUSTOM desk — containers matching no preset — with nothing to stamp, i.e. a
-  silent rendering change on exactly the sites that diverged. **Re-key those rules to
-  container OUTCOMES first** (phase 0's own direction, already done for
-  `data-bnd-topbar`), then the field deletes cleanly. Its own measured slice.
+- **`desk_layout` WAS HIDDEN, NOT DELETED, AND THE REMAINDER IS NOW CLOSED BY ITEM 37 —
+  but the estimate recorded here was wrong and the correction is the useful part.** This
+  file said "~a dozen `_layouts.scss` rules position panels by that attribute". Measured:
+  of FIFTEEN uses, **fourteen were bare presence guards** — "our chrome system started" —
+  and exactly ONE read a value. **Count before you file a cost.**
 - **A LAYOUT WROTE HALF OF ITSELF FOR THE WHOLE OF PHASE 0, AND THE SUITE COULD NOT SEE
   IT.** `setSettings` applies `registry.layout_settings`, which composes containers AND
   tenant placements; the FORM's `bnd_apply_layout_preset` wrote only the containers. So
@@ -109,9 +145,9 @@ state and the things that will cost time again:
   Never `setSettings` (throws outside MUTABLE_FIELDS by design), never bare
   `set_single_value` for a `BRAND_INPUTS` field. The `site data:` hygiene preamble runs
   FIRST and makes any crash leftover the next run's first failure.
-- **37 `ar.po` rows are `#, fuzzy` and await the user's review** — 34 of them
-  `#. src: item36`, plus the 3 the item-35 merge left. The item-7 handoff; their own
-  commit as always.
+- **Item 36's 37 fuzzy `ar.po` rows were cleared by the user** (`5593dad`). **26 NEW
+  ones from item 37 now await review** — the palette and preset names, their card blurbs
+  and the picker copy. The item-7 handoff; their own commit as always.
 
 **ITEM 35 (print / PDF) — RELEASED 2026-08-26 as `v0.35.0` at `b179a0a`, one gate
 with v0.34.0** (adversarial review over the combined diff, 29 confirmed defects all
