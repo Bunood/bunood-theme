@@ -254,7 +254,13 @@ def extend_bootinfo(bootinfo):
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the
         # sidebar is built by Frappe's JS after the splash.
-        from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, ICON_DEFAULTS, SIDEBAR_PRESETS
+        from bunood_theme.presets import (
+            DEFAULT_SIDEBAR_PRESET,
+            ICON_DEFAULTS,
+            SIDEBAR_PRESETS,
+            THEME_PRESETS,
+            theme_settings,
+        )
 
         preset = SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET]
         get = lambda f: settings.get(f) or preset.get(f)  # noqa: E731
@@ -573,9 +579,14 @@ def extend_bootinfo(bootinfo):
         # preset REPLACES the style values wholesale — never a field-level
         # merge, so a user always sees a designed combination. Stored in
         # frappe.defaults like density; empty = follow the site.
+        # ITEM 37: the name is a THEME preset now, and only its SIDEBAR slice is
+        # applied. A per-user palette is unbuildable (one content-hashed stylesheet
+        # per site) and per-user containers or placements are out of scope by
+        # design, so `theme_settings` is asked for the whole look and this reads
+        # the eighteen fields it is allowed to honour.
         user_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
-        if user_preset and user_preset in SIDEBAR_PRESETS:
-            chosen = SIDEBAR_PRESETS[user_preset]
+        if user_preset and user_preset in THEME_PRESETS:
+            chosen = theme_settings(user_preset)
             key_map = {
                 "sidebar_placement": "placement",
                 "sidebar_material": "material",

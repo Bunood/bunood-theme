@@ -385,12 +385,14 @@ def set_user_sidebar_preset(preset: str = "") -> dict:
     Returns:
         ``{"preset": <stored value>}``.
     """
-    from bunood_theme.presets import SIDEBAR_PRESETS
+    from bunood_theme.presets import THEME_PRESETS
 
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
-    if preset and preset not in SIDEBAR_PRESETS:
-        frappe.throw(f"Unknown sidebar preset: {preset!r}")
+    # VALIDATED AGAINST THE THEME CATALOGUE (item 37), which is what the menu now
+    # lists. Only the sidebar slice of the named look is applied — see boot.py.
+    if preset and preset not in THEME_PRESETS:
+        frappe.throw(f"Unknown theme preset: {preset!r}")
 
     if preset:
         frappe.defaults.set_user_default("bnd_sidebar_preset", preset)

@@ -2425,30 +2425,6 @@ function bnd_sb_norm(field, value) {
 	return String(value ?? "");
 }
 
-/** Preset card palette dots, hand-picked per preset for recognisability. */
-const BND_SB_PRESET_DOTS = {
-	"Bunood Night": ["#16211b", "#4d8756", "#5b8def", "#e8a13c"],
-	"Bunood Light": ["#f7faf7", "#4d8756", "#3b6fd4", "#d98e2b"],
-	"Daylight": ["#eef4ef", "#4d8756", "#3b6fd4", "#c4524a"],
-	"Ink": ["#fafafa", "#2c2c2a", "#888780", "#4d8756"],
-	"Carbon": ["#131714", "#5DCAA5", "#85B7EB", "#FAC775"],
-	"Paper": ["#f6f3ec", "#4d8756", "#534AB7", "#BA7517"],
-	"Aurora": ["#fdfefd", "#4d8756", "#378ADD", "#7F77DD"],
-	"Workbench": ["#ffffff", "#2c2c2a", "#4d8756", "#B4B2A9"],
-};
-
-/** One-line blurbs for the preset cards. */
-const BND_SB_PRESET_BLURBS = {
-	"Bunood Night": () => __("Dark glass float, hue-washed cards, hover rail. The default."),
-	"Bunood Light": () => __("The same design in daylight: white glass, soft hue cards."),
-	"Daylight": () => __("Attached tinted pane, chips, solid pill. The safe beauty."),
-	"Ink": () => __("Minimal: mono icons, soft pill, no decoration."),
-	"Carbon": () => __("Deep dark, glow actives."),
-	"Paper": () => __("Warm and editorial."),
-	"Aurora": () => __("Luminous light glass."),
-	"Workbench": () => __("Dense rows, live counts, hairline actives."),
-};
-
 /**
  * Full render of the sidebar picker. Wholesale re-render on every change —
  * state lives in the form document, never in this DOM.
@@ -2456,30 +2432,6 @@ const BND_SB_PRESET_BLURBS = {
 function bnd_render_sidebar_picker_now(frm, host) {
 	const $host = bnd_picker_host(frm, "sidebar_picker", host);
 	if (!$host) return;
-	const { presets } = bnd_sb_catalogue;
-	const active_preset = bnd_sb_match_preset(frm);
-
-	const preset_cards = Object.keys(presets)
-		.map((name) => {
-			const dots = (BND_SB_PRESET_DOTS[name] || [])
-				.map((c) => '<span class="bnd-sbp-dot" style="background:' + c + '"></span>')
-				.join("");
-			const blurb = BND_SB_PRESET_BLURBS[name] ? BND_SB_PRESET_BLURBS[name]() : "";
-			const on = name === active_preset ? " bnd-sbp-on" : "";
-			return (
-				'<button type="button" class="bnd-sbp-preset' + on + '" data-preset="' + name + '">' +
-				'<span class="bnd-sbp-pname">' + __(name) + "</span>" +
-				'<span class="bnd-sbp-pblurb">' + blurb + "</span>" +
-				'<span class="bnd-sbp-dots">' + dots + "</span>" +
-				"</button>"
-			);
-		})
-		.join("");
-
-	const custom_note =
-		active_preset === "Custom"
-			? '<div class="bnd-sbp-custom">' + __("Custom — your own combination.") + "</div>"
-			: "";
 
 	// Collected BY BAND rather than joined into one string: the side pane has
 	// more option groups than any other picker, and one undifferentiated column
@@ -2575,8 +2527,14 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	$host.html(
 		'<div class="bnd-sbp">' + toolbar +
 			bnd_bands([
-				{ zone: "style", html: '<div class="bnd-sbp-presets">' + preset_cards + "</div>" + custom_note +
-					(kit_off ? P.note(kit_off) : "") },
+				// THE PRESET CARDS ARE GONE (item 37). They lived here and painted a
+				// palette no sidebar preset carried — Carbon a teal, Paper a violet,
+				// while all eight rendered in whatever seed the site was on. The looks
+				// are ONE catalogue now, under Appearance > Theme, and this pane is
+				// the options a look composes from. `bnd_sb_match_preset` stays: the
+				// shell's note and the per-option reset both still ask which
+				// composition this is.
+				{ zone: "style", html: (kit_off ? P.note(kit_off) : "") },
 				{ zone: "placement", html: by_zone.placement },
 				// The blur control is authored inline rather than in a table, so
 				// its band is stated here. It belongs with the surface it blurs.
@@ -2592,9 +2550,6 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	);
 
 	// One delegated pass wires everything; re-render happens on any change.
-	$host.find(".bnd-sbp-preset").on("click", function () {
-		bnd_sb_apply_preset(frm, this.getAttribute("data-preset"));
-	});
 	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
@@ -2637,16 +2592,6 @@ function bnd_sb_preview(frm) {
 	for (const f of bnd_sb_catalogue.fields) values[f] = frm.doc[f];
 	values.sidebar_menu_rail = bnd_sb_norm("sidebar_menu_rail", values.sidebar_menu_rail);
 	window.bunood_theme.sb_apply(values);
-}
-
-/** Apply a preset: write every field, then relabel, preview and re-render. */
-function bnd_sb_apply_preset(frm, name) {
-	const values = bnd_sb_catalogue.presets[name];
-	if (!values) return;
-	for (const [field, value] of Object.entries(values)) frm.set_value(field, value);
-	frm.set_value("sidebar_preset", name);
-	bnd_sb_preview(frm);
-	bnd_render_sidebar_picker_now(frm);
 }
 
 /**

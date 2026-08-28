@@ -5312,3 +5312,13 @@ msgstr "مخصّص — تركيبتك أنت. اختيار مظهر يستبدل
 #, fuzzy
 msgid "Every setting this look names is applied. Change any one of them and this reads Custom."
 msgstr "كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص»."
+
+#. src: item37
+#, fuzzy
+msgid "Side pane: {0} — colours and layout still follow the site"
+msgstr "اللوحة الجانبية: {0} — الألوان والتخطيط لا تزال تتبع إعدادات الموقع"
+
+#. src: item37
+#, fuzzy
+msgid "Side pane: following the site"
+msgstr "اللوحة الجانبية: تتبع إعدادات الموقع"

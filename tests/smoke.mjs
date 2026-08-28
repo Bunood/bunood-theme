@@ -3000,7 +3000,7 @@ async function main() {
 
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2000);
 			// Start from the DB's current state: earlier tests write Theme
 			// Settings through set_single_value, which bumps `modified`, so
 			// without this round 1 can fail on inherited staleness and mask
@@ -3274,7 +3274,7 @@ async function main() {
 			// waited 30s for something it could never click. A test that depends
 			// on its predecessor's navigation is a landmine for whoever adds the
 			// next one, so this states what it needs.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 2500);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
 			const before = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
 			await page.click('.bnd-sbp-opt[data-field="sidebar_color"][data-value="Minimal"]');
 			await page.waitForTimeout(700);
@@ -3859,14 +3859,14 @@ async function main() {
 			// The status picker had a reason string for exactly this and it had
 			// gone dead: it read `status_style === "Off"`, an option removed in
 			// slice 2c-4, so the condition could never be true again.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 3000);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 3000);
 
 			for (const [field, value, picker, want] of [
 				["sidebar_enabled", 0, "sidebar_picker", /side pane/i],
 				["bottombar_enabled", 0, "status_picker", /bottom bar/i],
 			]) {
 				setSettings({ ...CHROME_DEFAULTS, [field]: value });
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 3000);
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 3000);
 				const note = await page.evaluate(
 					(p) => {
 						const host = document.querySelector(`[data-fieldname="${p}"]`);
@@ -4438,12 +4438,20 @@ async function main() {
 			// which is what a thrown error inside one render function looks
 			// like, since each is called in sequence from refresh().
 			const EXPECTED = {
+				// TWELVE, matching THEME_PRESETS in presets.py (item 37). The looks
+				// are one catalogue now, and this is where they are counted.
+				theme_picker: { cards: 12 },
 				layout_picker: { cards: 5 },
-				// Eight, matching SIDEBAR_PRESETS in presets.py. Worth stating
-				// because the first draft of this test said three: it counted
-				// `.bnd-sbp-card`, a decorative part INSIDE a preset thumbnail,
-				// rather than `.bnd-sbp-preset`, the card itself.
-				sidebar_picker: { cards: 8 },
+				// ZERO SINCE ITEM 37, and that is the point rather than a regression.
+				// This said eight, matching SIDEBAR_PRESETS — cards that painted four
+				// hand-authored swatches per preset for a colour no preset carried.
+				// They are gone; the pane is the OPTIONS a look composes from, and
+				// the looks are counted on theme_picker above.
+				//
+				// The number is kept rather than the entry deleted, because "the
+				// sidebar picker draws no cards" is a claim worth failing on if a
+				// future change quietly puts some back.
+				sidebar_picker: { cards: 0 },
 				// opts 10 -> 7: the crumb_icons group (First/Every/Off) left for the
 				// Icons axis (item 23). cards and toggles are unchanged, and the
 				// sidebar picker's own icon options were .bnd-sbp-opt (not counted
@@ -4527,7 +4535,7 @@ async function main() {
 			const got = await page.evaluate(() => {
 				const out = {};
 				for (const f of Object.keys({
-					layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
+					theme_picker: 1, layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
 					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
 					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
 					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, login_picker: 1, icons_picker: 1,
@@ -4537,7 +4545,7 @@ async function main() {
 					out[f] = el
 						? {
 								h: Math.round(el.getBoundingClientRect().height),
-								cards: el.querySelectorAll(".bnd-cbp-style,.bnd-lp-card,.bnd-sbp-preset").length,
+								cards: el.querySelectorAll(".bnd-cbp-style,.bnd-lp-card").length,
 								slots: el.querySelectorAll(".bnd-dgm-slot").length,
 								toggles: el.querySelectorAll(".bnd-cbp-toggle,.bnd-sbp-toggle").length,
 								opts: el.querySelectorAll(".bnd-cbp-opt").length,
@@ -4727,7 +4735,7 @@ async function main() {
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4500);
 			expectEq(await q(".bnd-shell"), true, "the plain settings URL does not show the shell");
 
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-presets", 4500);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 4500);
 			expectEq(await q(".bnd-shell"), false, "?shell=0 still rendered the shell");
 			expect(await visible('[data-fieldname="sidebar_picker"]'), "?shell=0 lost the stacked form");
 		});

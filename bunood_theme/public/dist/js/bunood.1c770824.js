@@ -6411,14 +6411,26 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	/**
-	 * The user-facing "personalize" picker: choose a whole PRESET for
-	 * yourself (or follow the site). Users never get option-level knobs —
-	 * they always land on designed combinations. Persisted server-side and
-	 * applied instantly.
+	 * The user-facing "personalize" picker: choose a whole look for yourself (or
+	 * follow the site). Users never get option-level knobs — they always land on
+	 * designed combinations. Persisted server-side and applied instantly.
+	 *
+	 * RE-POINTED AT THE ONE CATALOGUE (item 37). It used to list the sidebar's own
+	 * eight presets; it lists the shipped THEME looks now, so a person sees the
+	 * same names their administrator does rather than a parallel set that matched
+	 * by coincidence. `sb_apply` indexes by Theme Settings field name, so the
+	 * flattened 124-field map it receives needs no unpacking — the eighteen
+	 * sidebar fields are simply the ones it reads.
+	 *
+	 * IT APPLIES THE SIDEBAR SLICE AND NOTHING ELSE, and that is a limit rather
+	 * than an omission. The seeds produce ONE content-hashed stylesheet per site,
+	 * so a per-user palette is unbuildable without a second delivery mechanism;
+	 * and per-user containers or placements would let somebody switch their own
+	 * top bar off and file a bug against the desk. The blurb says so.
 	 */
 	function sb_personalize_menu() {
 		frappe
-			.xcall("bunood_theme.api.get_sidebar_presets")
+			.xcall("bunood_theme.api.get_theme_presets")
 			.then((data) => {
 				const current = (sb_state && sb_state.user_preset) || "";
 				const anchor = document.querySelector(".bnd-avatar-btn") || document.body;
@@ -6433,7 +6445,7 @@ function sb_zone_anchor(pane, zone, node) {
 								window.location.reload(); // site values live server-side
 							}
 							frappe.show_alert({
-								message: name ? __("Sidebar: {0}", [__(name)]) : __("Sidebar: following the site"),
+								message: name ? __("Side pane: {0} — colours and layout still follow the site", [__(name)]) : __("Side pane: following the site"),
 								indicator: "green",
 							});
 						})
