@@ -295,13 +295,29 @@ def status_ramp(mode: str) -> dict[str, str]:
     return out
 
 
-def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
+def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:
     """Every seed-dependent token for one mode.
 
     Args:
         brand: the brand seed, any form :func:`contrast.parse_color` accepts.
         accent: the accent seed.
         mode: ``"light"`` or ``"dark"``.
+        ground: what the SURFACES are mixed from. ``None`` means the brand, which is
+            the behaviour every caller had before item 37 and what ``_tokens.scss`` is
+            a static copy of — so the default must stay bit-exact.
+
+            IT IS A COLOUR AND NOT AN AMOUNT, and that is the whole design. The
+            obvious axis ("how much brand bleeds in") has a neutral pole at 0%, which
+            collapses page, surface, raised, pane and active onto ``#ffffff``: one flat
+            white with no delta anywhere. Item 31's rule — *a pole may not take the
+            slot's fill away* — refuses that. Mixing a NEUTRAL hue at the same
+            percentages keeps every separation (measured 5-6 channels light, 10-11
+            dark) while taking the brand out of the chrome, which is what a tenant
+            asking for "a grey desk with a green brand" actually wants.
+
+            Only the surfaces move. ``--bnd-brand`` stays the customer's exact colour,
+            and the fill / ink / ring are still fitted for the BRAND against whatever
+            surfaces the ground produced — so legibility is re-solved, not assumed.
 
     Returns:
         Token name to concrete hex. Includes ``--bnd-brand``/``--bnd-accent``
@@ -314,8 +330,10 @@ def derive(brand: str, accent: str, mode: str) -> dict[str, str]:
     base = BASE_LIGHT if mode == "light" else BASE_DARK
 
     out: dict[str, str] = {"--bnd-brand": brand, "--bnd-accent": accent}
+    # The surfaces mix the GROUND; everything read on top of them still fits the BRAND.
+    surface_seed = ground or brand
     for token, pct, white_or_dark in ramp:
-        out[token] = mix(brand, pct, white_or_dark)
+        out[token] = mix(surface_seed, pct, white_or_dark)
 
     surfaces = [out[t] for t, _, _ in ramp]
 

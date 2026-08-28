@@ -719,6 +719,42 @@ _SHARMA_2005 = [
 ]
 
 
+def check_ground_inert() -> list[str]:
+    """The ground parameter must be INERT by default, and must move the surfaces when set.
+
+    Item 37 lets a palette choose what the SURFACES are mixed from, so a tenant can
+    have a neutral desk under a coloured brand. Two properties have to hold together,
+    and only one of them is obvious:
+
+      * ``ground=None`` (and ``ground == brand``) must reproduce today's derivation
+        EXACTLY. ``_tokens.scss`` is a static copy of the shipped seed's output and
+        ``check_defaults_agree`` pins it, so a parameter that shifts the default by one
+        channel breaks every seed at once.
+      * a ground that differs must actually move ``--bnd-page``. The obvious
+        implementation — scaling the seed percentage toward zero — collapses page,
+        surface, raised, pane and active onto ``#ffffff``: one flat white, no deltas.
+        That is item 31's rule ("a pole may not take the slot's fill away") and it is
+        why the axis changes WHAT is mixed rather than how much.
+
+    Checked over four seeds x both modes rather than one, because "inert" is a claim
+    about the function and not about the shipped colour.
+    """
+    bad: list[str] = []
+    neutral = "#8b8d98"  # radix slate9, a ground no brand seed here resolves to
+    for seed, label in SEEDS[:4]:
+        for mode in ("light", "dark"):
+            base = palette.derive(seed, ACCENT_SEED, mode)
+            for arg, why in ((None, "ground=None"), (seed, "ground == brand")):
+                got = palette.derive(seed, ACCENT_SEED, mode, ground=arg)
+                if got != base:
+                    diff = [k for k in base if base[k] != got.get(k)]
+                    bad.append(f"{label}/{mode}: {why} is not inert; moved {', '.join(diff[:4])}")
+            moved = palette.derive(seed, ACCENT_SEED, mode, ground=neutral)
+            if moved["--bnd-page"] == base["--bnd-page"] and seed.lower() != neutral:
+                bad.append(f"{label}/{mode}: ground={neutral} did not move --bnd-page")
+    return bad
+
+
 def check_deltae_reference() -> list[str]:
     """Pin ``contrast.delta_e`` to the Sharma-Wu-Dalal reference values.
 
@@ -1017,6 +1053,13 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
+    inert = check_ground_inert()
+    if inert:
+        print("the ground parameter is not inert (or does not move the surfaces):")
+        for m in inert:
+            print(f"   {m}")
+        print()
+
     ref = check_deltae_reference()
     if ref:
         print(f"CIEDE2000 disagrees with the Sharma-Wu-Dalal reference ({len(ref)}):")
@@ -1037,7 +1080,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref:
+    if failures or drift or sep or ref or inert:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
