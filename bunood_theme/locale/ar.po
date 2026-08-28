@@ -5202,3 +5202,113 @@ msgstr "لون الأرضية"
 #, fuzzy
 msgid "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
 msgstr "اختياري. ما تُمزج منه أسطح المكتب. الفراغ يعني لون العلامة، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
+
+#. src: item37
+#, fuzzy
+msgid "Bunood Day"
+msgstr "بنود نهاري"
+
+#. src: item37
+#, fuzzy
+msgid "Focus"
+msgstr "تركيز"
+
+#. src: item37
+#, fuzzy
+msgid "Canvas"
+msgstr "لوحة"
+
+#. src: item37
+#, fuzzy
+msgid "Ledger"
+msgstr "دفتر"
+
+#. src: item37
+#, fuzzy
+msgid "Records"
+msgstr "سجلات"
+
+#. src: item37
+#, fuzzy
+msgid "Studio"
+msgstr "استوديو"
+
+#. src: item37
+#, fuzzy
+msgid "Contrast"
+msgstr "تباين"
+
+#. src: item37
+#, fuzzy
+msgid "Theme Picker"
+msgstr "منتقي السمة"
+
+#. src: item37
+#, fuzzy
+msgid "The shipped look. Floating cards on a hue-washed pane."
+msgstr "المظهر المُضمَّن. بطاقات عائمة على لوحة مغسولة بالتدرّج اللوني."
+
+#. src: item37
+#, fuzzy
+msgid "The same design in daylight — floating glass instead of attached solid."
+msgstr "التصميم نفسه في وضح النهار — زجاج عائم بدل اللوح المصمت الملتصق."
+
+#. src: item37
+#, fuzzy
+msgid "Dense hairlines, monochrome glyphs, nothing raised."
+msgstr "خطوط شعرية كثيفة، أيقونات أحادية اللون، ولا شيء مرتفع."
+
+#. src: item37
+#, fuzzy
+msgid "Unframed and text-forward — the container does the framing."
+msgstr "بلا إطارات ومع تقديم النص — الحاوية هي التي تؤطّر."
+
+#. src: item37
+#, fuzzy
+msgid "Ruled and precise: zebra rows, weighted tiles."
+msgstr "مسطّر ودقيق: صفوف مخطّطة وبطاقات متفاوتة الوزن."
+
+#. src: item37
+#, fuzzy
+msgid "Soft tiles, filled empties, rounded elevation throughout."
+msgstr "بطاقات ناعمة، وحالات فارغة ممتلئة، وارتفاع مستدير في كل مكان."
+
+#. src: item37
+#, fuzzy
+msgid "Structured and sharp — a grid you can feel, on a deep pane."
+msgstr "منظّم وحادّ — شبكة تكاد تلمسها، على لوحة داكنة."
+
+#. src: item37
+#, fuzzy
+msgid "Document-centric: a paper sheet on a headed board."
+msgstr "مُتمحور حول المستند: ورقة على لوح معنون."
+
+#. src: item37
+#, fuzzy
+msgid "The modern neutral — subtle borders, colour used sparingly."
+msgstr "الحياد الحديث — حدود خفيفة، ولون يُستخدم باقتصاد."
+
+#. src: item37
+#, fuzzy
+msgid "Bold and high-contrast: solid panels, filled colour."
+msgstr "جريء وعالي التباين: ألواح مصمتة ولون ممتلئ."
+
+#. src: item37
+#, fuzzy
+msgid "Dense rows, live count badges, the status bar always on."
+msgstr "صفوف كثيفة، وشارات عدّ حيّة، وشريط الحالة ظاهر دائمًا."
+
+#. src: item37
+#, fuzzy
+msgid "Every kit that can stand down does. The side pane, status bar and charts cannot — they mount chrome, or ship no Original — so they take their quietest setting."
+msgstr "كل طقم يستطيع التنحّي يفعل. اللوحة الجانبية وشريط الحالة والرسوم البيانية لا تستطيع — فهي تركّب عناصر واجهة، أو لا تقدّم خيار «الأصلي» — لذا تأخذ أهدأ إعداد لها."
+
+#. src: item37
+#, fuzzy
+msgid "Custom — your own combination. Picking a look overwrites every setting it names, including the colours."
+msgstr "مخصّص — تركيبتك أنت. اختيار مظهر يستبدل كل إعداد يسمّيه، بما في ذلك الألوان."
+
+#. src: item37
+#, fuzzy
+msgid "Every setting this look names is applied. Change any one of them and this reads Custom."
+msgstr "كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص»."

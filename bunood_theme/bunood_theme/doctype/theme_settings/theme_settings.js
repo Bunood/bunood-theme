@@ -945,21 +945,7 @@ frappe.ui.form.on("Theme Settings", {
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
 		setTimeout(() => {
-			bnd_sb_preview(frm);
-			bnd_crumb_preview(frm);
-			bnd_palette_preview(frm);
-			bnd_inbox_preview(frm);
-			bnd_list_preview(frm);
-			bnd_form_preview(frm);
-			bnd_workspace_preview(frm);
-			bnd_chart_preview(frm);
-			bnd_report_preview(frm);
-			bnd_views_preview(frm);
-			bnd_overlay_preview(frm);
-			bnd_empty_preview(frm);
-			bnd_skeleton_preview(frm);
-			bnd_filters_preview(frm);
-			bnd_icon_preview(frm);
+			bnd_all_previews(frm);
 		}, 300);
 	},
 	desk_layout(frm) {
@@ -977,6 +963,7 @@ frappe.ui.form.on("Theme Settings", {
 			// without this the desk keeps the OLD layout's chrome until a
 			// reload, which is the same "nothing applied" the containers had.
 			bnd_container_changed(frm);
+			bnd_render_theme_picker(frm);
 			bnd_render_layout_picker(frm);
 		});
 	},
@@ -1194,6 +1181,11 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Appearance"),
 		items: [
+			// ITEM 37, AND IT LEADS THE GROUP because it is the control that answers
+			// "what does this desk look like" in one gesture. The entries under it
+			// are the axes a look composes from; the Layout preset below is the last
+			// catalogue that has not folded in, and it goes when `desk_layout` does.
+			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
 			{ key: "layout", label: () => __("Layout preset"), anchors: ["desk_layout"] },
 			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
 			// own picker like every other kit; the relocated Selects sit hidden
@@ -2128,6 +2120,34 @@ const BND_LAYOUTS = [
  */
 const bnd_picker_hosts = {};
 
+/**
+ * Hand every kit's values to the desk at once.
+ *
+ * THE SAME FIFTEEN CALLS, IN THE SAME ORDER, existed twice — on refresh and in
+ * the theme import — and item 37 was about to make it three. Extracted because
+ * those two ARE one fact. The picker-repaint lists beside them are NOT, and are
+ * deliberately left alone: the import repaints a smaller set and reaches the
+ * sidebar through `_now` because its catalogue is already loaded. Folding those
+ * together would be a behaviour change wearing a refactor's clothes.
+ */
+function bnd_all_previews(frm) {
+	bnd_sb_preview(frm);
+	bnd_crumb_preview(frm);
+	bnd_palette_preview(frm);
+	bnd_inbox_preview(frm);
+	bnd_list_preview(frm);
+	bnd_form_preview(frm);
+	bnd_workspace_preview(frm);
+	bnd_chart_preview(frm);
+	bnd_report_preview(frm);
+	bnd_views_preview(frm);
+	bnd_overlay_preview(frm);
+	bnd_empty_preview(frm);
+	bnd_skeleton_preview(frm);
+	bnd_filters_preview(frm);
+	bnd_icon_preview(frm);
+}
+
 function bnd_picker_host(frm, fieldname, host) {
 	// REMEMBERED, not threaded. A picker re-renders itself from places that
 	// have no idea where it was drawn — applying a preset, setting one value,
@@ -2650,6 +2670,217 @@ function bnd_sb_set(frm, fieldname, value) {
 	frm.set_value("sidebar_preset", bnd_sb_match_preset(frm));
 	bnd_sb_preview(frm);
 	bnd_render_sidebar_picker_now(frm);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Theme presets (item 37)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// THE CATALOGUE IS THE SERVER'S. `presets.THEME_PRESETS` is the only statement of
+// which values each look writes, flattened by `presets.theme_settings` — the ONE
+// composer — and fetched over `bunood_theme.api.get_theme_presets`. Nothing here
+// assembles a preset from its parts, and that is structural rather than tidy:
+// item 36 found a layout writing HALF of itself for the whole of phase 0 because
+// the form composed the containers while `registry.layout_settings` composed
+// containers AND tenant placements, so the suite drove a state no gesture could
+// produce. At ~124 values that failure is a certainty unless both writers call
+// one function.
+//
+// ART AND BLURBS ONLY BELOW. A name listed here that the server does not know
+// renders disabled with the reason, so the two lists cannot drift silently.
+
+/** Card art + copy per shipped look. No VALUES — those are the server's. */
+const BND_THEME_ART = {
+	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The shipped look. Floating cards on a hue-washed pane.") },
+	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — floating glass instead of attached solid.") },
+	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
+	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
+	"Ledger": { name: () => __("Ledger"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
+	"Elevated": { name: () => __("Elevated"), pane: "glass", card: "float", rows: "plain", blurb: () => __("Soft tiles, filled empties, rounded elevation throughout.") },
+	"Carbon": { name: () => __("Carbon"), pane: "dark", card: "hairline", rows: "rule", blurb: () => __("Structured and sharp — a grid you can feel, on a deep pane.") },
+	"Records": { name: () => __("Records"), pane: "tint", card: "sheet", rows: "rule", blurb: () => __("Document-centric: a paper sheet on a headed board.") },
+	"Studio": { name: () => __("Studio"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The modern neutral — subtle borders, colour used sparingly.") },
+	"Contrast": { name: () => __("Contrast"), pane: "brand", card: "solid", rows: "plain", blurb: () => __("Bold and high-contrast: solid panels, filled colour.") },
+	"Workbench": { name: () => __("Workbench"), pane: "plain", card: "hairline", rows: "zebra", blurb: () => __("Dense rows, live count badges, the status bar always on.") },
+	// THE HONEST STAND-DOWN. The blurb names the three kits that cannot comply,
+	// because a card claiming "stock" while three surfaces stay ours is exactly
+	// the promise this item exists to stop making.
+	"Quiet": { name: () => __("Quiet"), pane: "plain", card: "open", rows: "none", blurb: () => __("Every kit that can stand down does. The side pane, status bar and charts cannot — they mount chrome, or ship no Original — so they take their quietest setting.") },
+};
+
+/**
+ * One desk, twelve dressings — `bnd_print_thumb`'s lesson, in colour.
+ *
+ * Drawn in LIGHT for every card on purpose: light or dark is the viewer's choice
+ * (or their OS's), never the preset's, so a card that picked one would be
+ * answering a question it was not asked. The PANE may still be dark — that is
+ * `sidebar_color`, which a preset does decide.
+ *
+ * Every colour is the server's `palette.derive` output for that palette, handed
+ * over by `api.get_palettes`. Nothing is computed here: a JS reimplementation of
+ * the derivation is the one thing this project forbids outright, because the gate
+ * measures the Python and the copy is what would drift.
+ */
+function bnd_theme_thumb(sw, art) {
+	if (!sw) return "";
+	const a = art || {};
+	const line = "rgba(0,0,0,.12)";
+	const pane =
+		a.pane === "dark" ? "#1b2023" :
+		a.pane === "brand" ? sw.fill :
+		a.pane === "tint" ? sw.pane :
+		a.pane === "glass" ? sw.surface : sw.page;
+	const paneInk = a.pane === "dark" || a.pane === "brand" ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.30)";
+	const p = [`<rect x="0" y="0" width="120" height="72" fill="${sw.page}"/>`];
+	// The side pane, and its active item — the one place the brand is a FILL.
+	p.push(`<rect x="0" y="0" width="34" height="72" fill="${pane}"/>`);
+	p.push(`<rect x="5" y="7" width="24" height="7" rx="3.5" fill="${a.pane === "brand" ? "rgba(255,255,255,.85)" : sw.fill}"/>`);
+	for (let i = 0; i < 3; i++) {
+		p.push(`<rect x="5" y="${20 + i * 8}" width="${20 - i * 3}" height="3" rx="1.5" fill="${paneInk}"/>`);
+	}
+	// The top bar, with the focus ring's colour as the one accent mark.
+	p.push(`<rect x="34" y="0" width="86" height="12" fill="${sw.surface}"/>`);
+	p.push(`<rect x="34" y="11.6" width="86" height="0.6" fill="${line}"/>`);
+	p.push(`<circle cx="112" cy="6" r="2.4" fill="${sw.ring}"/>`);
+	// Two cards, dressed by the anchor.
+	for (let i = 0; i < 2; i++) {
+		const y = 18 + i * 26;
+		if (a.card === "float") {
+			p.push(`<rect x="40" y="${y + 1}" width="74" height="21" rx="3" fill="rgba(0,0,0,.07)"/>`);
+			p.push(`<rect x="40" y="${y}" width="74" height="21" rx="3" fill="${sw.surface}"/>`);
+		} else if (a.card === "hairline") {
+			p.push(`<rect x="40" y="${y}" width="74" height="21" rx="1.5" fill="${sw.surface}" stroke="${line}" stroke-width="0.7"/>`);
+		} else if (a.card === "solid") {
+			p.push(`<rect x="40" y="${y}" width="74" height="21" rx="2" fill="${sw.pane}" stroke="${sw.fill}" stroke-width="0.9"/>`);
+		} else if (a.card === "sheet") {
+			p.push(`<rect x="43" y="${y}" width="68" height="21" fill="${sw.surface}" stroke="${line}" stroke-width="0.7"/>`);
+		} else {
+			p.push(`<rect x="40" y="${y + 20.4}" width="74" height="0.6" fill="${line}"/>`);
+		}
+		p.push(`<rect x="45" y="${y + 5}" width="26" height="3" rx="1.5" fill="${sw.ink}"/>`);
+		if (a.rows === "zebra") p.push(`<rect x="45" y="${y + 12}" width="64" height="5" fill="rgba(0,0,0,.05)"/>`);
+		if (a.rows === "rule") p.push(`<rect x="45" y="${y + 15}" width="64" height="0.6" fill="${line}"/>`);
+		p.push(`<rect x="45" y="${y + 12}" width="40" height="2.6" rx="1.3" fill="rgba(0,0,0,.22)"/>`);
+	}
+	return `<svg viewBox="0 0 120 72">${p.join("")}</svg>`;
+}
+
+let bnd_theme_cache = null;
+let bnd_theme_inflight = false;
+let bnd_palette_cache = null;
+let bnd_palette_inflight = false;
+
+/** Which shipped look, if any, does the form's current state EXACTLY match? */
+function bnd_theme_match(frm) {
+	if (!bnd_theme_cache) return null;
+	const { axes, presets } = bnd_theme_cache;
+	for (const [name, values] of Object.entries(presets)) {
+		if (axes.every((f) => String(frm.doc[f] ?? "") === String(values[f] ?? ""))) return name;
+	}
+	return "Custom";
+}
+
+/**
+ * Apply a look: write every axis the server composed, then let the kits repaint.
+ *
+ * IT WRITES THE SEEDS TOO, which is the decision this item was given and the
+ * reason the card shows the colours it will write. `frm.set_value` on a Color
+ * field goes through the same autosave every other control here does, and
+ * `on_update` regenerates the per-site brand sheet — so the desk's colour follows
+ * within the save, not on a reload.
+ */
+function bnd_apply_theme_preset(frm, name) {
+	const values = bnd_theme_cache && bnd_theme_cache.presets[name];
+	if (!values) return;
+	for (const [field, value] of Object.entries(values)) frm.set_value(field, value);
+	bnd_all_previews(frm);
+	bnd_render_theme_picker(frm);
+	bnd_shell_marks(frm);
+}
+
+/**
+ * The theme picker — a GALLERY of complete looks.
+ *
+ * The presets write values and then stop existing (the settings-architecture
+ * doctrine): clicking a card sets ~124 fields and nothing remembers the click.
+ * The highlighted card is DERIVED by comparing the live values against the
+ * server's table, so it reads "Custom" the moment one differs — which, at this
+ * scope, is the honest answer and will be the common one.
+ */
+function bnd_render_theme_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "theme_picker", host);
+	if (!$host) return;
+
+	if (!bnd_theme_cache && !bnd_theme_inflight) {
+		bnd_theme_inflight = true;
+		frappe.xcall("bunood_theme.api.get_theme_presets").then((r) => {
+			bnd_theme_cache = r;
+			bnd_render_theme_picker(frm);
+		}).catch(() => {
+			// The flag RESETS so the next render retries — item 35's review caught
+			// a first cut latching one transient failure into a dead card row for
+			// the rest of the page's life.
+			bnd_theme_inflight = false;
+		});
+	}
+	if (!bnd_palette_cache && !bnd_palette_inflight) {
+		bnd_palette_inflight = true;
+		frappe.xcall("bunood_theme.api.get_palettes").then((r) => {
+			bnd_palette_cache = r;
+			bnd_render_theme_picker(frm);
+		}).catch(() => {
+			bnd_palette_inflight = false;
+		});
+	}
+
+	const match = bnd_theme_match(frm);
+	const swatches = (bnd_palette_cache && bnd_palette_cache.swatches) || {};
+	const served = bnd_theme_cache && bnd_theme_cache.presets;
+
+	const cards = P.cards(
+		Object.keys(BND_THEME_ART).map((name) => {
+			const art = BND_THEME_ART[name];
+			// Which palette this look carries, read from what the server composed
+			// rather than from a second table here.
+			const seed = served && served[name] && served[name].brand_color;
+			const palName = seed
+				? Object.keys(swatches).find(
+						(k) => bnd_palette_cache.palettes[k].brand_color.toLowerCase() === String(seed).toLowerCase()
+				  )
+				: null;
+			const sw = palName && swatches[palName] ? swatches[palName].light : null;
+			return {
+				value: name,
+				// LITERAL name thunks, not __(name): the extractor reads literal
+				// __("...") calls only, and preset names have no doctype Select to
+				// cover them — a dynamic call ships them untranslated with the
+				// coverage gate green. The first cut of this file did exactly that,
+				// and the gate said nothing; the thunks in BND_THEME_ART are what
+				// make the names visible to it.
+				name: art.name(),
+				blurb: art.blurb(),
+				svg: bnd_theme_thumb(sw, art),
+				reason:
+					served && !served[name]
+						? __("Not in the shipped preset table — the card and the server disagree.")
+						: "",
+			};
+		}),
+		{ selected: match || "", cls: "bnd-cbp-style bnd-thp-style" }
+	);
+
+	const note =
+		match === "Custom"
+			? P.note(__("Custom — your own combination. Picking a look overwrites every setting it names, including the colours."))
+			: match
+			? P.note(__("Every setting this look names is applied. Change any one of them and this reads Custom."))
+			: "";
+
+	$host.html(P.wrap(cards + note));
+	$host.find(".bnd-thp-style").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_apply_theme_preset(frm, this.getAttribute("data-value"));
+	});
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7373,21 +7604,7 @@ function bnd_sb_import(frm) {
 					applied++;
 				}
 			}
-			bnd_sb_preview(frm);
-			bnd_crumb_preview(frm);
-			bnd_palette_preview(frm);
-			bnd_inbox_preview(frm);
-			bnd_list_preview(frm);
-			bnd_form_preview(frm);
-			bnd_workspace_preview(frm);
-			bnd_chart_preview(frm);
-			bnd_report_preview(frm);
-			bnd_views_preview(frm);
-			bnd_overlay_preview(frm);
-			bnd_empty_preview(frm);
-			bnd_skeleton_preview(frm);
-			bnd_filters_preview(frm);
-			bnd_icon_preview(frm);
+			bnd_all_previews(frm);
 			bnd_render_sidebar_picker_now(frm);
 			bnd_render_crumbs_picker(frm);
 			bnd_render_palette_picker(frm);

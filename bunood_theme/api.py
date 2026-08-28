@@ -1084,9 +1084,36 @@ def get_palettes() -> dict:
     than restating the hex, and the client needs to resolve it to draw a swatch.
     """
     frappe.only_for("System Manager")
+    from bunood_theme import palette as pal
     from bunood_theme.presets import DEFAULT_PALETTE, GROUNDS, PALETTES
 
-    return {"palettes": PALETTES, "grounds": GROUNDS, "default": DEFAULT_PALETTE}
+    # THE SWATCHES ARE DERIVED HERE, NOT IN THE PICKER. A card that drew its own
+    # colours from the seed would be reimplementing palette.derive in JS — the one
+    # thing this project forbids outright, because the gate measures the Python and
+    # a JS copy is what would drift. The client receives the colours the desk would
+    # actually paint and draws them; it computes nothing.
+    def roles(p: dict, mode: str) -> dict:
+        ground = GROUNDS.get(p["ground"]) if p["ground"] else None
+        d = pal.derive(p["brand_color"], p["accent_color"], mode, ground=ground)
+        return {
+            "page": d["--bnd-page"],
+            "surface": d["--bnd-surface"],
+            "pane": d["--bnd-pane"],
+            "fill": d["--bnd-brand-solid"],
+            "on_fill": d["--bnd-on-brand"],
+            "ink": d["--bnd-brand-ink"],
+            "ring": d["--bnd-accent"],
+        }
+
+    return {
+        "palettes": PALETTES,
+        "grounds": GROUNDS,
+        "default": DEFAULT_PALETTE,
+        "swatches": {
+            name: {"light": roles(p, "light"), "dark": roles(p, "dark")}
+            for name, p in PALETTES.items()
+        },
+    }
 
 
 @frappe.whitelist()

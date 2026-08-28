@@ -29,6 +29,8 @@
   "icon_source",
   "icon_rail_button",
   "icon_crumbs",
+  "section_theme",
+  "theme_picker",
   "section_layout",
   "desk_layout",
   "layout_picker",
@@ -324,6 +326,16 @@
    "options": "System\nIBM Plex Sans Arabic\nNoto Sans Arabic\nAlmarai\nCairo",
    "default": "IBM Plex Sans Arabic",
    "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
+  },
+  {
+   "fieldname": "section_theme",
+   "fieldtype": "Section Break",
+   "label": "Theme"
+  },
+  {
+   "fieldname": "theme_picker",
+   "fieldtype": "HTML",
+   "label": "Theme Picker"
   },
   {
    "fieldname": "section_layout",
