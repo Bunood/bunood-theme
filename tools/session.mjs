@@ -101,13 +101,24 @@ export function benchJson(code) {
 }
 
 /**
- * Mint an Administrator session id.
+ * Mint a session id, Administrator by default.
  *
  * The request stub is load-bearing: Frappe's login path dereferences
  * `request.path`, `.cookies`, `.headers` and `.environ`, and omitting any one
  * of them raises inside LoginManager rather than returning a usable error.
+ *
+ * THE `user` PARAMETER, and why it arrived late (item 38). This helper was
+ * Administrator-only, which made every ad-hoc probe an Administrator probe —
+ * and the per-user layer is precisely the thing an Administrator session cannot
+ * see. `tests/smoke.mjs`'s own copy grew the same parameter in item 33 for the
+ * portal user; this is that change, backported, so the two copies stop
+ * disagreeing about what a session can be.
+ *
+ * @param {string} user - the account to log in as. Must exist and be enabled;
+ *   `login_as` does not validate, it simply produces a session for a name that
+ *   later resolves to nothing.
  */
-export function mintSid() {
+export function mintSid(user = "Administrator") {
 	const out = benchPy(
 		"from frappe.auth import CookieManager, LoginManager\n" +
 			"frappe.local.cookie_manager = CookieManager()\n" +
@@ -116,7 +127,7 @@ export function mintSid() {
 			"cookies=frappe._dict(), headers=frappe._dict(), environ=frappe._dict())\n" +
 			"frappe.local.request_ip = '127.0.0.1'\n" +
 			"lm = LoginManager()\n" +
-			"lm.login_as('Administrator')\n" +
+			`lm.login_as(${JSON.stringify(user)})\n` +
 			"frappe.db.commit()\n" +
 			"print('SID=' + frappe.session.sid)\n"
 	);
@@ -133,9 +144,9 @@ export function mintSid() {
  *   environmental on this stack and mean nothing (socket.io cannot reach the
  *   websocket container from a headless context).
  */
-export async function openDesk({ width = 1440, height = 900 } = {}) {
+export async function openDesk({ width = 1440, height = 900, user = "Administrator" } = {}) {
 	const { chromium } = require("playwright");
-	const sid = mintSid();
+	const sid = mintSid(user);
 	const browser = await chromium.launch();
 	const context = await browser.newContext({ viewport: { width, height } });
 	await context.addCookies([
