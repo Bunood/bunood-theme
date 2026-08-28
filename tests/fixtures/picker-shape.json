@@ -5,8 +5,6 @@
   "accent_color": "#0090ff",
   "arabic_font": "IBM Plex Sans Arabic",
   "density_default": "Comfortable",
-  "desk_layout": "Top Bar",
-  "sidebar_preset": "Bunood Night",
   "desk_order": "search,inbox,user,home,apps",
   "sidebar_placement": "Attached",
   "sidebar_material": "Solid",

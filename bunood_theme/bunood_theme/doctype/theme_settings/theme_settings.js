@@ -2166,6 +2166,22 @@ function bnd_render_layout_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "layout_picker", host);
 	if (!$host) return;
 
+	// THE HIGHLIGHT IS DERIVED NOW (item 37), so this picker cannot answer until
+	// the catalogue is here. It used to fall back to the stored `desk_layout` and
+	// light the right card from the first paint; with the field gone, a render
+	// that arrives first would keep an unhighlighted picker for the whole session.
+	//
+	// SELF-HEALING HERE rather than at the call site, because the first fix was put
+	// in `bnd_shell_setup` — which only runs when the shell is wanted, so `?shell=0`
+	// never got it and the fixture still showed no `bnd-cbp-on`. A picker that
+	// depends on a fetch should say so itself; every caller getting it right is the
+	// arrangement that fails the moment a caller is added.
+	if (!bnd_layout_chrome) {
+		bnd_load_shipped().then(() => {
+			if (bnd_layout_chrome) bnd_render_layout_picker(frm);
+		});
+	}
+
 	// DERIVED, not read back (item 37). This took the stored `desk_layout`, so a
 	// desk whose containers had drifted still highlighted the last name written.
 	// `bnd_match_layout` compares the containers and answers "Custom" — which

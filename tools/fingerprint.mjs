@@ -39,7 +39,9 @@ print(json.dumps(SHIPPED))
 // pinned state the site cannot hold is not a baseline, it is a guess. The
 // comment below is emphatic that a capture must show the pinned state; an
 // illegal value is the one way to violate that without the check noticing.
-const SHAPE_STATE = { ...shipped, desk_layout: "Top Bar", inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
+// `desk_layout` used to be pinned here; item 37 deleted the field, so pinning it
+// would write an orphan tabSingles row the doctype no longer knows.
+const SHAPE_STATE = { ...shipped, inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
 set(SHAPE_STATE);
 const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
 await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
