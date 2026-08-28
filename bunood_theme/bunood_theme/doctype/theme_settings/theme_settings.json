@@ -279,14 +279,14 @@
    "fieldname": "brand_color",
    "fieldtype": "Color",
    "label": "Brand Color",
-   "default": "#4d8756",
+   "default": "#3d8150",
    "description": "The single seed. Every surface, hover and border is derived from it with color-mix()."
   },
   {
    "fieldname": "accent_color",
    "fieldtype": "Color",
    "label": "Accent Color",
-   "default": "#4463f0",
+   "default": "#0090ff",
    "description": "Interactive elements: links, focus rings, primary actions."
   },
   {

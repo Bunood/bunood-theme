@@ -2029,7 +2029,7 @@ const BND_LAYOUTS = [
 			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
 			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".14"/>' +
 			'<rect x="34" y="5" width="30" height="5" rx="2.5" fill="currentColor" opacity=".2"/>' +
-			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<circle cx="98" cy="7.5" r="2" fill="currentColor" opacity=".35"/>' +
 			'<rect x="30" y="16" width="88" height="8" fill="currentColor" opacity=".06"/>' +
 			'<rect x="34" y="30" width="80" height="4" fill="currentColor" opacity=".1"/>' +
@@ -2047,7 +2047,7 @@ const BND_LAYOUTS = [
 			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
 			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".1"/>' +
 			'<rect x="34" y="5" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
-			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<circle cx="98" cy="7.5" r="2" fill="currentColor" opacity=".35"/>' +
 			'<rect x="34" y="20" width="80" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="34" y="28" width="80" height="4" fill="currentColor" opacity=".1"/>' +
@@ -2065,7 +2065,7 @@ const BND_LAYOUTS = [
 			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
 			'<rect x="5" y="8" width="20" height="4" rx="2" fill="currentColor" opacity=".25"/>' +
 			'<circle cx="8" cy="18" r="2" fill="currentColor" opacity=".35"/>' +
-			'<circle cx="8" cy="66" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="8" cy="66" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".1"/>' +
 			'<rect x="34" y="5" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
 			'<rect x="34" y="20" width="80" height="4" fill="currentColor" opacity=".1"/>' +
@@ -2088,7 +2088,7 @@ const BND_LAYOUTS = [
 			'<rect x="34" y="36" width="80" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="30" y="63" width="88" height="11" fill="currentColor" opacity=".16"/>' +
 			'<rect x="34" y="66" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
-			'<circle cx="106" cy="68.5" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="106" cy="68.5" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<circle cx="98" cy="68.5" r="2" fill="currentColor" opacity=".35"/>' +
 			"</svg>",
 	},
@@ -2105,11 +2105,11 @@ const BND_LAYOUTS = [
 			'<rect x="6" y="36" width="108" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="6" y="44" width="108" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="28" y="60" width="64" height="12" rx="6" fill="currentColor" opacity=".16"/>' +
-			'<circle cx="36" cy="66" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="36" cy="66" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<circle cx="46" cy="66" r="2.5" fill="currentColor" opacity=".35"/>' +
 			'<circle cx="55" cy="66" r="2.5" fill="currentColor" opacity=".35"/>' +
 			'<circle cx="64" cy="66" r="2.5" fill="currentColor" opacity=".35"/>' +
-			'<circle cx="84" cy="66" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="84" cy="66" r="3" fill="var(--primary, #3d8150)"/>' +
 			"</svg>",
 	},
 ];
@@ -2232,7 +2232,7 @@ const BND_SB_GROUPS = [
 			{ value: "Match Theme", name: () => __("Match theme"), thumb: bnd_sb_pane("#dfeae1") },
 			{ value: "Minimal", name: () => __("Minimal"), thumb: bnd_sb_pane("#f2f2f0", "outline:1px solid rgba(0,0,0,.08);outline-offset:-1px") },
 			{ value: "Dark Contrast", name: () => __("Dark contrast"), thumb: bnd_sb_pane("#16211b") },
-			{ value: "Brand", name: () => __("Brand"), thumb: bnd_sb_pane("var(--primary, #4d8756)") },
+			{ value: "Brand", name: () => __("Brand"), thumb: bnd_sb_pane("var(--primary, #3d8150)") },
 		],
 	},
 	// Icon style and Icon source moved to the Icons axis (item 23). The sidebar
@@ -2243,12 +2243,12 @@ const BND_SB_GROUPS = [
 		title: () => __("Active link"),
 		desc: () => __("How the current page is marked."),
 		options: [
-			{ value: "Solid Pill", name: () => __("Solid pill"), thumb: '<span class="bnd-sbp-row" style="background:var(--primary,#4d8756);color:#fff"></span>' },
-			{ value: "Soft Pill", name: () => __("Soft pill"), thumb: '<span class="bnd-sbp-row" style="background:color-mix(in srgb, var(--primary,#4d8756) 18%, transparent)"></span>' },
-			{ value: "Accent Rail", name: () => __("Accent rail"), thumb: '<span class="bnd-sbp-row" style="border-inline-start:3px solid var(--primary,#4d8756);border-radius:0;background:color-mix(in srgb, var(--primary,#4d8756) 8%, transparent)"></span>' },
-			{ value: "Glow Ring", name: () => __("Glow ring"), thumb: '<span class="bnd-sbp-row" style="outline:2px solid color-mix(in srgb, var(--primary,#4d8756) 55%, transparent);outline-offset:1px"></span>' },
-			{ value: "Outline", name: () => __("Outline"), thumb: '<span class="bnd-sbp-row" style="box-shadow:inset 0 0 0 1.5px var(--primary,#4d8756)"></span>' },
-			{ value: "Dot Marker", name: () => __("Dot marker"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:var(--primary,#4d8756)"></span>' },
+			{ value: "Solid Pill", name: () => __("Solid pill"), thumb: '<span class="bnd-sbp-row" style="background:var(--primary,#3d8150);color:#fff"></span>' },
+			{ value: "Soft Pill", name: () => __("Soft pill"), thumb: '<span class="bnd-sbp-row" style="background:color-mix(in srgb, var(--primary,#3d8150) 18%, transparent)"></span>' },
+			{ value: "Accent Rail", name: () => __("Accent rail"), thumb: '<span class="bnd-sbp-row" style="border-inline-start:3px solid var(--primary,#3d8150);border-radius:0;background:color-mix(in srgb, var(--primary,#3d8150) 8%, transparent)"></span>' },
+			{ value: "Glow Ring", name: () => __("Glow ring"), thumb: '<span class="bnd-sbp-row" style="outline:2px solid color-mix(in srgb, var(--primary,#3d8150) 55%, transparent);outline-offset:1px"></span>' },
+			{ value: "Outline", name: () => __("Outline"), thumb: '<span class="bnd-sbp-row" style="box-shadow:inset 0 0 0 1.5px var(--primary,#3d8150)"></span>' },
+			{ value: "Dot Marker", name: () => __("Dot marker"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:var(--primary,#3d8150)"></span>' },
 			{
 				value: "Folder Tab",
 				name: () => __("Folder tab"),
@@ -2681,8 +2681,8 @@ const BND_ICON_STYLES = [
 	{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
 	{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
 	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
-	{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756);opacity:.5">◪</span>' },
-	{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#4d8756)">○</span>' },
+	{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150);opacity:.5">◪</span>' },
+	{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">○</span>' },
 	{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
 ];
 
@@ -2880,7 +2880,7 @@ const BND_CRUMB_STYLES = [
 		svg:
 			'<svg viewBox="0 0 120 36">' +
 			'<circle cx="10" cy="18" r="4" fill="currentColor" opacity=".3"/>' +
-			'<rect x="20" y="14" width="8" height="8" rx="2.5" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			'<rect x="20" y="14" width="8" height="8" rx="2.5" fill="var(--primary, #3d8150)" opacity=".35"/>' +
 			'<rect x="31" y="16" width="18" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
 			'<path d="M54 14l3 4-3 4" stroke="currentColor" fill="none" opacity=".3"/>' +
 			'<rect x="61" y="16" width="14" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
@@ -2922,7 +2922,7 @@ const BND_CRUMB_STYLES = [
 			'<circle cx="12" cy="18" r="3" fill="currentColor" opacity=".35"/>' +
 			'<rect x="24" y="12" width="26" height="12" rx="6" fill="none" stroke="currentColor" opacity=".35"/>' +
 			'<rect x="54" y="12" width="24" height="12" rx="6" fill="none" stroke="currentColor" opacity=".35"/>' +
-			'<rect x="82" y="12" width="32" height="12" rx="6" fill="var(--primary, #4d8756)" opacity=".4"/>' +
+			'<rect x="82" y="12" width="32" height="12" rx="6" fill="var(--primary, #3d8150)" opacity=".4"/>' +
 			"</svg>",
 	},
 	{
@@ -3121,7 +3121,7 @@ const BND_PALETTE_STYLES = [
 			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
 			'<rect x="23" y="10" width="74" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
 			'<rect x="24" y="22" width="18" height="3" rx="1.5" fill="currentColor" opacity=".25"/>' +
-			'<rect x="23" y="27" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="23" y="27" width="74" height="6" rx="2.5" fill="var(--primary, #3d8150)" opacity=".3"/>' +
 			'<rect x="24" y="36" width="14" height="3" rx="1.5" fill="currentColor" opacity=".25"/>' +
 			'<rect x="23" y="41" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="18" y="52" width="84" height="0.75" fill="currentColor" opacity=".3"/>' +
@@ -3134,9 +3134,9 @@ const BND_PALETTE_STYLES = [
 			'<svg viewBox="0 0 120 64">' +
 			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
 			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
-			'<rect x="23" y="10" width="14" height="8" rx="3" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			'<rect x="23" y="10" width="14" height="8" rx="3" fill="var(--primary, #3d8150)" opacity=".35"/>' +
 			'<rect x="40" y="10" width="57" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
-			'<rect x="23" y="24" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="23" y="24" width="74" height="6" rx="2.5" fill="var(--primary, #3d8150)" opacity=".3"/>' +
 			'<rect x="23" y="33" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="23" y="42" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="18" y="52" width="84" height="0.75" fill="currentColor" opacity=".3"/>' +
@@ -3150,7 +3150,7 @@ const BND_PALETTE_STYLES = [
 			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
 			'<rect x="18" y="6" width="84" height="46" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
 			'<rect x="23" y="10" width="74" height="8" rx="3" fill="currentColor" opacity=".12"/>' +
-			'<rect x="23" y="23" width="74" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="23" y="23" width="74" height="6" rx="2.5" fill="var(--primary, #3d8150)" opacity=".3"/>' +
 			'<rect x="23" y="32" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="23" y="41" width="74" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			"</svg>",
@@ -3310,7 +3310,7 @@ const BND_INBOX_STYLES = [
 			'<svg viewBox="0 0 120 64">' +
 			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
 			'<rect x="6" y="6" width="50" height="52" rx="4" fill="none" stroke="currentColor" opacity=".35"/>' +
-			'<rect x="10" y="11" width="42" height="6" rx="2.5" fill="var(--primary, #4d8756)" opacity=".3"/>' +
+			'<rect x="10" y="11" width="42" height="6" rx="2.5" fill="var(--primary, #3d8150)" opacity=".3"/>' +
 			'<rect x="10" y="21" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="10" y="31" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
 			'<rect x="10" y="41" width="42" height="6" rx="2.5" fill="currentColor" opacity=".1"/>' +
@@ -3318,7 +3318,7 @@ const BND_INBOX_STYLES = [
 			'<rect x="67" y="12" width="30" height="5" rx="2" fill="currentColor" opacity=".35"/>' +
 			'<rect x="67" y="22" width="40" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
 			'<rect x="67" y="29" width="34" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
-			'<rect x="67" y="44" width="20" height="8" rx="3" fill="var(--primary, #4d8756)" opacity=".35"/>' +
+			'<rect x="67" y="44" width="20" height="8" rx="3" fill="var(--primary, #3d8150)" opacity=".35"/>' +
 			"</svg>",
 	},
 	{
@@ -3328,10 +3328,10 @@ const BND_INBOX_STYLES = [
 			'<svg viewBox="0 0 120 64">' +
 			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
 			'<circle cx="99" cy="9" r="4" fill="currentColor" opacity=".3"/>' +
-			'<circle cx="103" cy="6" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="103" cy="6" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<rect x="46" y="14" width="68" height="44" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
 			'<rect x="51" y="19" width="24" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
-			'<rect x="51" y="28" width="58" height="7" rx="3" fill="var(--primary, #4d8756)" opacity=".28"/>' +
+			'<rect x="51" y="28" width="58" height="7" rx="3" fill="var(--primary, #3d8150)" opacity=".28"/>' +
 			'<rect x="51" y="38" width="58" height="7" rx="3" fill="currentColor" opacity=".1"/>' +
 			'<rect x="51" y="48" width="58" height="7" rx="3" fill="currentColor" opacity=".1"/>' +
 			"</svg>",
@@ -3343,7 +3343,7 @@ const BND_INBOX_STYLES = [
 			'<svg viewBox="0 0 120 64">' +
 			'<rect x="1" y="1" width="118" height="62" rx="4" fill="currentColor" opacity=".05"/>' +
 			'<circle cx="99" cy="9" r="4" fill="currentColor" opacity=".3"/>' +
-			'<circle cx="103" cy="6" r="3" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="103" cy="6" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<rect x="46" y="14" width="68" height="44" rx="5" fill="none" stroke="currentColor" opacity=".35"/>' +
 			'<rect x="51" y="19" width="14" height="3" rx="1.5" fill="currentColor" opacity=".35"/>' +
 			'<rect x="68" y="19" width="12" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
@@ -6874,7 +6874,7 @@ const BND_STATUS_STYLES = [
 		svg:
 			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
 			'<rect x="2" y="42" width="116" height="10" fill="currentColor" opacity=".06"/>' +
-			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #3d8150)"/>' +
 			'<rect x="16" y="45" width="16" height="4" rx="2" fill="currentColor" opacity=".35"/>' +
 			'<rect x="36" y="45" width="14" height="4" rx="2" fill="#b42318" opacity=".55"/>' +
 			'<rect x="54" y="45" width="18" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
@@ -6887,7 +6887,7 @@ const BND_STATUS_STYLES = [
 		svg:
 			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
 			'<rect x="2" y="42" width="116" height="10" fill="currentColor" opacity=".06"/>' +
-			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #4d8756)"/>' +
+			'<circle cx="10" cy="47" r="2.5" fill="var(--primary, #3d8150)"/>' +
 			'<rect x="90" y="45" width="12" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
 			'<rect x="105" y="45" width="9" height="4" rx="2" fill="currentColor" opacity=".3"/></svg>',
 	},

@@ -89,7 +89,7 @@ STATUS_NAMES = tuple(palette.STATUS_HUES)
 #: The shipped accent. Held constant while the brand seed varies: the two are
 #: independent settings, and varying both would multiply the matrix without
 #: testing anything the brand axis does not already cover.
-ACCENT_SEED = "#4463f0"
+ACCENT_SEED = "#0090ff"
 
 TOKENS_SCSS = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -463,8 +463,8 @@ DARK_FILL_MIN_L = 62.0
 #: Seeds to check. The first is what ships; the rest are the colours a tenant
 #: plausibly picks, including the two GUIDELINES §2.2 measured as catastrophic.
 SEEDS = [
-    ("#4d8756", "shipped default"),
-    ("#4463f0", "accent blue"),
+    ("#3d8150", "shipped default"),
+    ("#0090ff", "accent blue"),
     ("#c8923c", "gold"),
     ("#f5c542", "bright yellow"),
     ("#111111", "near-black"),
@@ -723,6 +723,53 @@ _SHARMA_2005 = [
 ]
 
 
+def check_palette_catalogue() -> list[str]:
+    """Every SHIPPED palette must hold, as the triple it actually ships.
+
+    Item 37. The eleven :data:`SEEDS` sweep the pair set against one accent and no
+    ground, which is the right shape for "any colour a tenant might paste in". It is the
+    wrong shape for a palette we PUBLISH: a shipped palette is a (brand, accent, ground)
+    triple, and the ground moves the very surfaces the other two are fitted against. A
+    catalogue checked only through the generic sweep would be gated on a combination it
+    never renders.
+
+    So each palette is derived exactly as `brand.py` will derive it, in both modes, and
+    the three floors are re-measured on the result:
+
+      * the brand fill against the page (1.4.11, 3:1),
+      * its own label on that fill (1.4.3, 4.5:1),
+      * the focus ring against the page (1.4.11, 3:1).
+
+    ALSO CHECKED, and it is the one that would rot silently: every shipped brand seed is
+    a member of :data:`SEEDS`. Ship a palette the sweep does not carry and the catalogue
+    grows coverage it does not have — the gate would still say "all pairs pass" while
+    saying nothing about the colour a tenant just clicked.
+    """
+    try:
+        from bunood_theme.presets import PALETTES
+    except ImportError:
+        return []  # catalogue not landed yet
+    known = {s.lower() for s, _ in SEEDS}
+    bad: list[str] = []
+    for name, p in PALETTES.items():
+        brand, accent, ground = p["brand_color"], p["accent_color"], p.get("ground")
+        if brand.lower() not in known:
+            bad.append(f"{name}: brand {brand} is not in SEEDS, so no pair sweep covers it")
+        for mode in ("light", "dark"):
+            d = palette.derive(brand, accent, mode, ground=ground)
+            page, fill = d["--bnd-page"], d["--bnd-brand-solid"]
+            pairs = (
+                ("fill on the page", fill, page, AA_NON_TEXT),
+                ("label on the fill", d["--bnd-on-brand"], fill, AA_TEXT),
+                ("focus ring on the page", d["--bnd-accent"], page, AA_NON_TEXT),
+            )
+            for what, ink, bg, need in pairs:
+                got = ratio(parse_color(ink), parse_color(bg))
+                if got < need:
+                    bad.append(f"{name}/{mode}: {what} is {got:.2f}:1, needs {need}")
+    return bad
+
+
 def check_dark_lift() -> list[str]:
     """The dark brand fill must clear a LIGHTNESS floor, not merely the contrast floor.
 
@@ -762,9 +809,25 @@ def check_dark_lift() -> list[str]:
         if r_lab < AA_TEXT:
             bad.append(f"{label}/dark: label {ink} on {fill} is {r_lab:.2f}:1")
 
-    light = palette.derive(SEEDS[0][0], ACCENT_SEED, "light")["--bnd-brand-solid"]
-    if light.lower() != "#4a8253":
-        bad.append(f"light fill moved to {light}; the lift must be dark-only (want #4a8253)")
+    # AN INVARIANCE TEST, and the two drafts before it were both worthless.
+    #
+    # Pinning the shipped seed's light fill went stale the moment that seed was
+    # recalibrated. Asserting the light fill's L* stays under the floor was VACUOUS:
+    # in light mode `fill_pair` DARKENS a lifted seed straight back down, because a
+    # light ground needs a dark fill — so a lift applied in both modes is invisible
+    # in the light output, which is exactly why it would have shipped.
+    #
+    # What is actually true is that light does not DEPEND on the dark target. Move the
+    # constant somewhere absurd and light must not move at all.
+    original = palette.DARK_FILL_TARGET_L
+    try:
+        before = {s0: palette.derive(s0, ACCENT_SEED, "light") for s0, _ in SEEDS}
+        palette.DARK_FILL_TARGET_L = 95.0
+        for seed, label in SEEDS:
+            if palette.derive(seed, ACCENT_SEED, "light") != before[seed]:
+                bad.append(f"{label}/light: moved when the DARK target moved; the lift is leaking")
+    finally:
+        palette.DARK_FILL_TARGET_L = original
     return bad
 
 
@@ -1102,6 +1165,20 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
+    cat = check_palette_catalogue()
+    if cat:
+        print("a shipped palette does not hold:")
+        for m in cat:
+            print(f"   {m}")
+        print()
+
+    lift = check_dark_lift()
+    if lift:
+        print("the dark brand fill is under its lightness floor:")
+        for m in lift:
+            print(f"   {m}")
+        print()
+
     inert = check_ground_inert()
     if inert:
         print("the ground parameter is not inert (or does not move the surfaces):")
@@ -1129,7 +1206,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref or inert:
+    if failures or drift or sep or ref or inert or lift or cat:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}

@@ -963,8 +963,8 @@ def effective_identity() -> dict:
     # the pane cannot mis-map them.
     def _roles(mode: str) -> dict:
         d = palette.derive(
-            settings.get("brand_color") or "#4d8756",
-            settings.get("accent_color") or "#4463f0",
+            settings.get("brand_color") or "#3d8150",
+            settings.get("accent_color") or "#0090ff",
             mode,
         )
         return {
@@ -978,8 +978,8 @@ def effective_identity() -> dict:
 
     try:
         report = [_note_sentence(n) for n in palette.adjustments(
-            settings.get("brand_color") or "#4d8756",
-            settings.get("accent_color") or "#4463f0",
+            settings.get("brand_color") or "#3d8150",
+            settings.get("accent_color") or "#0090ff",
         )]
         report = [s for s in report if s]
     except Exception:

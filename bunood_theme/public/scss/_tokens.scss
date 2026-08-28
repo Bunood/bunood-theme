@@ -34,8 +34,8 @@
   // Overridden per site by brand.py. Named "seed" because every surface below
   // is derived from them with color-mix() rather than authored — one seed has
   // to produce a coherent scale for whatever colour a customer picks.
-  --bnd-brand: #4d8756;
-  --bnd-accent: #4463f0;
+  --bnd-brand: #3d8150;
+  --bnd-accent: #0088f2;
 
   // ── The brand's three roles (checklist item 32) ───────────────────────────
   // THE SEED IS NOT A COLOUR YOU CAN PAINT WITH. It is a hue the tenant chose,
@@ -57,9 +57,9 @@
   // These are FITTED values, not formulas — the output of a search in
   // `palette.py`, restated here because this file must render with no per-site
   // stylesheet. `tools/contrast_gate.py` fails if the two ever disagree.
-  --bnd-brand-solid: #4a8253;
+  --bnd-brand-solid: #3d8150;
   --bnd-on-brand: #ffffff;
-  --bnd-brand-ink: #44764b;
+  --bnd-brand-ink: #387649;
 
   // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
@@ -90,8 +90,8 @@
   // is seed-dependent — so brand.py re-derives them per tenant and these are the
   // shipped-seed answers.
   --bnd-ink: #16181d;
-  --bnd-ink-muted: #4a4e58;
-  --bnd-ink-subtle: #676b72;
+  --bnd-ink-muted: #494d57;
+  --bnd-ink-subtle: #666a71;
   // Plain white, for ink on a known-dark surface. It is NO LONGER the answer to
   // "what goes on a brand fill" — that is --bnd-on-brand, which is derived and
   // is not always white. Every former consumer here moved on 2026-08-06 (item
@@ -341,7 +341,7 @@
   // greyscale printing.
   // --bnd-warn was #b06f00 and measured 4.01:1 as text on --bnd-raised. Fitted.
   --bnd-good: #1a7f45;
-  --bnd-warn: #965f00;
+  --bnd-warn: #965e00;
   --bnd-serious: #c2410c;
   --bnd-critical: #b42318;
   // Foreground for anything filled with --bnd-critical (the unread badge).
@@ -384,20 +384,20 @@
   --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
 
   --bnd-ink: #e8eaec;
-  --bnd-ink-muted: #b9bec5;
-  --bnd-ink-subtle: #9298a2;
+  --bnd-ink-muted: #b8bdc4;
+  --bnd-ink-subtle: #9197a1;
 
   // Dark mode takes the OTHER branch of the fill derivation: darkening the seed
   // so white text clears 4.5:1 would push it toward the dark surfaces and cost
   // the 3:1 it needs to be seen at all (measured 2.98:1 against --bnd-hover). So
   // the fill is LIGHTENED and takes dark ink instead. Both constraints are
   // solved together for exactly this reason — see contrast.fill_pair.
-  --bnd-brand-solid: #68a370;
+  --bnd-brand-solid: #60a471;
   --bnd-on-brand: #16181d;
-  --bnd-brand-ink: #76a27c;
+  --bnd-brand-ink: #6fa27d;
 
   // The focus ring has to clear 3:1 on every dark surface; #4463f0 does not.
-  --bnd-accent: #516ef1;
+  --bnd-accent: #0090ff;
 
   --bnd-border: rgba(255, 255, 255, 0.1);
   --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -509,12 +509,12 @@ html[data-theme="dark"] {
     // is exactly when that would show.
     --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
     --bnd-ink: #e8eaec;
-    --bnd-ink-muted: #b9bec5;
-    --bnd-ink-subtle: #9298a2;
-    --bnd-brand-solid: #68a370;
+    --bnd-ink-muted: #b8bdc4;
+    --bnd-ink-subtle: #9197a1;
+    --bnd-brand-solid: #60a471;
     --bnd-on-brand: #16181d;
-    --bnd-brand-ink: #76a27c;
-    --bnd-accent: #516ef1;
+    --bnd-brand-ink: #6fa27d;
+    --bnd-accent: #0090ff;
     --bnd-on-critical: #16181d;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);

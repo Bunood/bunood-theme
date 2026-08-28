@@ -122,8 +122,8 @@ def render_brand_css(settings=None) -> str:
     """
     s = settings or frappe.get_single("Theme Settings")
 
-    brand = (getattr(s, "brand_color", None) or "#4d8756").strip()
-    accent = (getattr(s, "accent_color", None) or "#4463f0").strip()
+    brand = (getattr(s, "brand_color", None) or "#3d8150").strip()
+    accent = (getattr(s, "accent_color", None) or "#0090ff").strip()
     # Empty dark seeds fall back to the light ones. That is deliberate: a customer who
     # has not thought about dark mode still gets a coherent (if less tuned) result,
     # rather than an unthemed one.

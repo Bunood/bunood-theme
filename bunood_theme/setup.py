@@ -109,8 +109,8 @@ CHECK_DEFAULTS["palette_enabled"] = 1
 #: current value is empty, so this is safe to re-run forever.
 DEFAULTS = {
     "company_name": "Bunood",
-    "brand_color": "#4d8756",
-    "accent_color": "#4463f0",
+    "brand_color": "#3d8150",
+    "accent_color": "#0090ff",
     # Item 7(b). Read from the face catalogue, never restated: typography.py is
     # the one table, and this seeder is just another of its consumers. Seeded
     # here because a field `default` only applies to NEW records and Theme
