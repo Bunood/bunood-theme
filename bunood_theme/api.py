@@ -309,7 +309,25 @@ def get_workspace_links(workspace: str) -> list:
         return []
 
 
-DENSITY_VALUES = ("", "Comfortable", "Compact")
+def _personal_values(key: str) -> tuple:
+    """The values one per-user key accepts, plus the empty state.
+
+    READ FROM :mod:`bunood_theme.personal`, which is the one table describing
+    every per-user store — its key, its lock, and what empty means. Item 38 wrote
+    that table because four of these had accumulated with four hand-written
+    validators and no statement anywhere of what may be personal.
+
+    The empty string is added HERE rather than listed there, because it is not a
+    member of the value set: it is the absence of a choice, stored as the absence
+    of a row. Listing it would invite a caller to write "" and create a row that
+    means "no row".
+    """
+    from bunood_theme import personal
+
+    return ("",) + (personal.values_for(key) or ())
+
+
+DENSITY_VALUES = _personal_values("bnd_density")
 """Valid per-user density choices. Empty string means "follow the site default" —
 a real state, not an absence: it is what lets an admin change the default and have
 every undecided user follow along."""
@@ -379,19 +397,19 @@ def set_user_sidebar_preset(preset: str = "") -> dict:
     the same reasons as density — rides into boot, never localStorage.
 
     Args:
-        preset: a name from :data:`bunood_theme.presets.SIDEBAR_PRESETS`, or
-            empty for "follow the site".
+        preset: a name from the theme catalogue, or empty for "follow the site".
 
     Returns:
         ``{"preset": <stored value>}``.
     """
-    from bunood_theme.presets import THEME_PRESETS
-
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
     # VALIDATED AGAINST THE THEME CATALOGUE (item 37), which is what the menu now
     # lists. Only the sidebar slice of the named look is applied — see boot.py.
-    if preset and preset not in THEME_PRESETS:
+    # Reached through personal.py (item 38) so the accepted values and the row
+    # describing this key cannot drift apart; that module names the catalogue
+    # rather than copying it.
+    if preset and preset not in _personal_values("bnd_sidebar_preset"):
         frappe.throw(f"Unknown theme preset: {preset!r}")
 
     if preset:

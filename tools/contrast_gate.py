@@ -1289,6 +1289,81 @@ def check_layout_identity() -> list[str]:
     return bad
 
 
+def check_personal_partition() -> list[str]:
+    """Every theme axis is filed as exactly one kind of thing — item 38.
+
+    ``personal.py`` splits the 124 fields a theme preset writes into four sets:
+    what a person's LOOK may carry, what their SHAPE is, what belongs to surfaces
+    that are not the desk, and what stays the administrator's. The split decides
+    what the per-user layer is allowed to touch, so it has to be a partition and
+    not a set of opinions that happen not to have collided yet.
+
+    THIS EXISTS BECAUSE THE FIRST DRAFT DEFINED THE LOOK BY SUBTRACTION, and
+    subtraction quietly admitted twenty-two fields it must never carry: the
+    sign-in page and the website render through a cache keyed on ``(path, lang)``
+    and nothing else, so a per-user value there is served to the next visitor;
+    email renders in a different process; print is regenerated as a per-site
+    record. A look that "worked" would have been leaking or inert, and nothing
+    would have said which.
+
+    Three properties, each failing differently:
+
+      * NO OVERLAP. A field in both LOOK and SHAPE has two owners on one request
+        and the winner is decided by composition order.
+      * NOTHING UNCLAIMED. A field a future kit adds and nobody files is a field
+        a look silently cannot carry — invisible, because the look still applies.
+      * NOTHING PHANTOM. A field filed here that no preset writes is describing
+        something that has been renamed or deleted.
+
+    And one that is not arithmetic: SHAPE must be exactly what a named layout
+    writes. Under "names only" a person picks a layout, so a shape field outside
+    ``layout_settings`` is one no gesture could ever set.
+    """
+    from bunood_theme import personal
+    from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+
+    bad: list[str] = []
+    p = personal.partition()
+
+    for pair, fields in p["overlap"].items():
+        bad.append(f"{pair} claim the same field(s): {', '.join(fields)}")
+    if p["unclaimed"]:
+        bad.append(
+            "filed nowhere, so no look can carry them and nothing says why: "
+            + ", ".join(p["unclaimed"])
+        )
+    if p["phantom"]:
+        bad.append(
+            "filed but not written by any preset — renamed or deleted: "
+            + ", ".join(p["phantom"])
+        )
+
+    written = {f for name in LAYOUT_CHROME for f in layout_settings(name)}
+    if set(p["shape"]) != written:
+        missing = sorted(written - set(p["shape"]))
+        extra = sorted(set(p["shape"]) - written)
+        bad.append(
+            "SHAPE_FIELDS is not what the layouts write"
+            + (f" (missing {', '.join(missing)})" if missing else "")
+            + (f" (extra {', '.join(extra)})" if extra else "")
+        )
+
+    # Every axis this app stores must name a lock that exists, or be one of the
+    # deliberately unlockable ones. A typo here would read as "no lock" and the
+    # axis would be ungoverned rather than loudly wrong.
+    for row in personal.AXES:
+        lock = row.get("lock")
+        if lock is None:
+            if row["kind"] == personal.PREFERENCE and row["key"] not in personal.UNLOCKABLE:
+                bad.append(f"{row['key']} is a preference with no lock and is not in UNLOCKABLE")
+        elif lock not in personal.LOCKS:
+            bad.append(f"{row['key']} names a lock that does not exist: {lock!r}")
+        if not row["key"].startswith(personal.PREFIX):
+            bad.append(f"{row['key']} does not carry the {personal.PREFIX!r} prefix")
+
+    return bad
+
+
 def main() -> int:
     args = sys.argv[1:]
     only_seed = next((a.split("=", 1)[1] for a in args if a.startswith("--seed=")), None)
@@ -1367,6 +1442,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    split = check_personal_partition()
+    if split:
+        print("the per-user field partition does not hold:")
+        for m in split:
+            print(f"   {m}")
+        print()
+
     cat = check_palette_catalogue()
     if cat:
         print("a shipped palette does not hold:")
@@ -1408,7 +1490,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref or inert or lift or cat or theme or shape:
+    if failures or drift or sep or ref or inert or lift or cat or theme or shape or split:
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}

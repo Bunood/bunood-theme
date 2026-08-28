@@ -1289,6 +1289,97 @@ function assertAxeRoutesAgree(toolSrc, suiteSrc) {
 	}
 }
 
+/**
+ * Every per-user store is declared, and every write names whose it is — item 38.
+ *
+ * TWO FAILURES THIS CATCHES, BOTH SILENT AND BOTH SITE-WIDE.
+ *
+ *   `frappe.defaults.set_default(key, value)` does NOT write the current user's
+ *   default. Its parent defaults to `__default`, which is the GLOBAL row — every
+ *   account inherits it, Guest included. The safe spellings are
+ *   `set_user_default(key, value)` and `clear_default(key, parent=...)`, and the
+ *   difference between right and catastrophic is one keyword argument that no
+ *   test would notice, because the value does apply to the user who wrote it.
+ *
+ *   And a `bnd_*` key written from somewhere `personal.py` does not know about is
+ *   a fifth ad-hoc store — precisely the drift that made item 38 necessary, since
+ *   four of them accumulated with nobody deciding anything.
+ *
+ * THE CHECK IS BIDIRECTIONAL, which is what makes the table worth having: a
+ * declared key with no reader is a row describing something that no longer
+ * exists, and the guard says so rather than letting the table rot into a wish
+ * list. That is why `personal.py` declares only what ships.
+ */
+function assertPersonalAxes(personalPy, sources) {
+	// Only the `bnd_*` rows — NATIVE deliberately carries `User.desk_theme` and
+	// `__UserSettings`, which are Frappe's to write and ours only to read.
+	const declared = new Set(
+		[...personalPy.matchAll(/"key":\s*"(bnd_[a-z0-9_]+)"/g)].map((m) => m[1])
+	);
+	if (!declared.size) {
+		throw new Error("Personal-axes guard: personal.py declares no bnd_* keys — did AXES move?");
+	}
+
+	const problems = [];
+	const seen = new Set();
+
+	for (const { path, text } of sources) {
+		if (/set_global_default\s*\(/.test(text)) {
+			problems.push(`${path}: set_global_default writes a value every account inherits`);
+		}
+		// `set_default` / `clear_default` must name a parent. Matched to the
+		// closing paren of the call, which is single-line for every live caller;
+		// a multi-line call simply fails to match and is caught by the key scan.
+		for (const m of text.matchAll(/frappe\.defaults\.(set_default|clear_default)\s*\(([^)]*)\)/g)) {
+			if (!/\bparent\s*=/.test(m[2])) {
+				problems.push(
+					`${path}: ${m[1]}(${m[2].trim().slice(0, 40)}...) does not name a parent — ` +
+						"without parent= this writes the global row"
+				);
+			}
+		}
+		// Every bnd_* key handed to the defaults API must be declared.
+		for (const m of text.matchAll(
+			/frappe\.defaults\.[a-z_]+\s*\(\s*["'](bnd_[a-z0-9_]+)["']/g
+		)) {
+			seen.add(m[1]);
+			if (!declared.has(m[1])) {
+				problems.push(
+					`${path}: ${m[1]} is written or read through frappe.defaults but is not in ` +
+						"personal.AXES — declare it there, in this commit, with its lock and what empty means"
+				);
+			}
+		}
+	}
+
+	for (const key of declared) {
+		if (!seen.has(key)) {
+			problems.push(
+				`personal.py declares ${key} but nothing reads or writes it — the table describes ` +
+					"what ships, so remove the row or land its reader"
+			);
+		}
+	}
+
+	if (problems.length) {
+		throw new Error("Personal-axes guard:\n  " + problems.join("\n  "));
+	}
+}
+
+/** Every `.py` under a directory, recursively. */
+async function pythonSources(dirUrl, prefix = "bunood_theme") {
+	const out = [];
+	for (const entry of await readdir(dirUrl, { withFileTypes: true })) {
+		const child = new URL(entry.name + (entry.isDirectory() ? "/" : ""), dirUrl);
+		if (entry.isDirectory()) {
+			out.push(...(await pythonSources(child, `${prefix}/${entry.name}`)));
+		} else if (entry.name.endsWith(".py")) {
+			out.push({ path: `${prefix}/${entry.name}`, text: await readFile(child, "utf8") });
+		}
+	}
+	return out;
+}
+
 function assertFieldNaming(doctypeJson) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
@@ -1468,6 +1559,14 @@ async function main() {
 	// Item 7(c). A counted noun has no correct Arabic through a plural-free
 	// dictionary, so it is refused at the source rather than left for a
 	// translator who cannot fix it.
+	// Item 38. Every per-user store declared in one table, and no write that
+	// silently lands on the global row every account inherits.
+	assertPersonalAxes(
+		await readFile(new URL("./bunood_theme/personal.py", import.meta.url), "utf8"),
+		(await pythonSources(new URL("./bunood_theme/", import.meta.url))).filter(
+			(s) => !s.path.endsWith("/personal.py")
+		)
+	);
 	assertNoCountGoverned();
 	// Item 7(d). Held out of the build while it was red — a red build blocks
 	// every deploy — and wired in the moment translations/ar.csv shipped. From
