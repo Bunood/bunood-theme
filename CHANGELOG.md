@@ -24,7 +24,12 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-### Presets — one catalogue for the whole desk (item 37)
+(nothing yet)
+
+## [0.37.0] — 2026-08-28 — Presets (item 37)
+
+Gated at 407/407 with contrast over 9,520 pairs across 27 seeds, the build guards
+and the payload ceiling.
 
 **Your dark brand colour gets brighter, and every desk surface can now take a
 neutral ground.** Both come from one change inside `palette.derive`, so they land
