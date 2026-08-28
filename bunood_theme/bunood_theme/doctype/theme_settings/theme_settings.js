@@ -911,6 +911,7 @@ frappe.ui.form.on("Theme Settings", {
 		// stays queryable for support.
 		frm.set_df_property("desk_layout", "hidden", 1);
 
+		bnd_render_theme_picker(frm);
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
 		bnd_render_crumbs_picker(frm);
