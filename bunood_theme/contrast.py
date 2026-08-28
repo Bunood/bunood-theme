@@ -590,11 +590,16 @@ def fill_pair(
 
     WHY THE FILL MOVES AND NOT ONLY THE INK
         With ``INK_DARK`` at ``#16181d`` there is a band of luminances where
-        NEITHER white nor our dark ink reaches 4.5:1, and the shipped default
-        ``#4d8756`` sits in it — 4.27 against white, 4.16 against dark. Choosing
-        the better ink is not enough on its own, which is the case GUIDELINES
-        §2.2 flags. Moving the fill a few percent closes it while leaving the
-        colour recognisably the customer's.
+        NEITHER white nor our dark ink reaches 4.5:1. The theme's OWN default sat
+        squarely in it until item 37: ``#4d8756`` measures 4.27 against white and
+        4.16 against dark, so choosing the better ink is not enough on its own —
+        the case GUIDELINES §2.2 flags. Moving the fill a few percent closes it
+        while leaving the colour recognisably the customer's.
+
+        The shipped seed is ``#3d8150`` now, which clears the band at 4.71 against
+        white and is therefore painted VERBATIM — the recalibration's whole point.
+        The example is kept because the band did not go anywhere: it is where any
+        mid-luminance customer seed still lands, and this branch is what catches it.
 
         A bright yellow takes the other branch untouched: ``#F5C542`` is 1.62:1
         against white but 10.9:1 against our dark ink, so the yellow stays yellow

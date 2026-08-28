@@ -24,7 +24,22 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased]
 
-(nothing yet)
+### The vendor mark follows the recalibrated seed
+
+- **The Bunood mark is repainted `#4d8756` → `#3d8150`**, matching the brand seed
+  item 37 recalibrated. It is one file with two uses — the browser-tab favicon and
+  the desk splash — so both move together. **Only sites that have set no favicon or
+  logo of their own see it at all**; anything a tenant attaches in Theme Settings ▸
+  Branding still wins.
+- It is a legibility gain as well as a consistency one: the mark is a white glyph on
+  that field, and the new seed lifts its own contrast from **4.27:1 to 4.71:1**.
+- The asset sits outside the palette derivation and outside `npm run contrast` by
+  design — a favicon is fetched with no site context and the splash renders before
+  any per-site sheet is parsed — which is exactly why the hex had gone stale with
+  nothing failing. Three other retired-seed references went with it: email's shipped
+  fallback (which now raises instead of quietly painting a colour the product no
+  longer ships), and two present-tense claims in `contrast.py` and `GUIDELINES.md`.
+  The dated audit measurements taken at the old seed are left as the record they are.
 
 ## [0.37.0] — 2026-08-28 — Presets (item 37)
 

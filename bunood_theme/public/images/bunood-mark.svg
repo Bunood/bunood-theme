@@ -10,13 +10,27 @@
 		webfont has loaded. Frappe's and erpnext's own marks are paths for the same
 		reason; this one sits beside them in a tab strip.
 
-		THE FILL IS THE MARK'S OWN GREEN (#4d8756) AS A LITERAL, and that is the one
-		place in this repo where a raw hex is correct: a vendor mark does not follow
-		a tenant's palette. A tenant who wants their own colours attaches their own
-		favicon and logo in Theme Settings -> Branding, which wins over this file.
-		The "tokens, never raw hex" rule governs RULES in a stylesheet; this is an
-		image asset, outside the palette derivation and outside the contrast gate.
+		THE FILL IS THE SHIPPED BRAND SEED (#3d8150) AS A LITERAL, and that is the
+		one place in this repo where a raw hex is correct: a vendor mark does not
+		follow a TENANT's palette. A tenant who wants their own colours attaches
+		their own favicon and logo in Theme Settings -> Branding, which wins over
+		this file. The "tokens, never raw hex" rule governs RULES in a stylesheet;
+		this is an image asset, outside the palette derivation and outside the
+		contrast gate.
+
+		REPAINTED FROM #4d8756 IN ITEM 37, when the shipped seed was recalibrated
+		and this file was left behind — the release review caught the comment here
+		still asserting the old hex WAS the shipped one. Being outside the gate is
+		exactly why it needed saying: nothing would ever have failed. Not a pure
+		tidy-up either, because the mark is a white glyph on this field and the
+		recalibration lifts its own internal contrast from 4.27:1 to 4.71:1.
+
+		IT IS A LITERAL AND MUST STAY ONE. A favicon is fetched by the browser as a
+		static asset with no site context, and the splash renders before any
+		per-site sheet is parsed, so there is no token to read here even in
+		principle. If the seed moves again, this hex moves with it BY HAND — which
+		is what happened this time, one release late.
 	-->
-	<rect width="100" height="100" rx="12" fill="#4d8756"/>
+	<rect width="100" height="100" rx="12" fill="#3d8150"/>
 	<path fill-rule="evenodd" clip-rule="evenodd" fill="#ffffff" d="M30 22H50A14 14 0 0 1 50 50H54A14 14 0 0 1 54 78H30ZM43 32H49A4 4 0 0 1 49 40H43ZM43 60H53A4 4 0 0 1 53 68H43Z"/>
 </svg>

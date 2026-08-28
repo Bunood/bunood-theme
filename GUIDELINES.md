@@ -225,8 +225,10 @@ the wrong tree and reporting absence you didn't verify.
 points at it. It documents a **green/gold palette** (`--bnd-primary: #1F5145`,
 `--bnd-gold: #C8923C`, `--bnd-ink: #12251F`, flat hex borders).
 
-This repo ships **none of those**. `_tokens.scss` has `--bnd-brand: #4d8756`,
-`--bnd-accent: #4463f0`, `--bnd-ink: #16181d`, `rgba()` borders, and derives every
+This repo ships **none of those**. `_tokens.scss` has `--bnd-brand: #3d8150`,
+`--bnd-accent: #0090ff` (both recalibrated in item 37; the audit measurements below
+were taken at the previous `#4d8756`/`#4463f0` and are left as the dated record they
+are), `--bnd-ink: #16181d`, `rgba()` borders, and derives every
 surface with `color-mix()` from a seed that `brand.py` overrides per site. The
 documented architecture (fixed palette) and the shipped architecture (seed-derived
 surfaces) are different systems.
