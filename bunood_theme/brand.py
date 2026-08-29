@@ -81,6 +81,16 @@ BRAND_INPUTS = (
     "accent_color",
     "brand_color_dark",
     "accent_color_dark",
+    # Item 40. `render_brand_css` has read this since the ground landed
+    # (`brand.py`'s own `ground` local) and `email.py` reads it too, but it was
+    # never listed here — against this list's own stated rule. The suite writes
+    # settings with `set_single_value`, which does not fire `on_update`, so its
+    # restore path regenerates only for the fields named here. Measured before
+    # the fix: writing a ground moved the rendered `--bnd-page` from #f7faf8 to
+    # #fcf6f6 while `set(vals) & set(BRAND_INPUTS)` stayed empty — the sheet
+    # would have kept a test's ground after the DB was restored, which is the
+    # `tagline` leak this list was created for, with a colour seed instead.
+    "ground_color",
     "density_default",
     "tagline",
     "arabic_font",

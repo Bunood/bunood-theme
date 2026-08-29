@@ -1308,6 +1308,9 @@ const ATTR_OF = {
 
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
 const MUTABLE_FIELDS = [
+	// Item 40: the ground is the first COLOUR SEED the suite may write, and it is
+	// in BRAND_INPUTS so the `finally` restore regenerates the sheet with it.
+	"ground_color",
 	"desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
