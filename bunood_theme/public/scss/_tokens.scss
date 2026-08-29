@@ -497,41 +497,22 @@ html[data-theme="dark"] {
 // This block is the fix, and it must stay in CSS: JS runs after first paint.
 @media (prefers-color-scheme: dark) {
   html[data-theme="automatic"] {
-    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
-    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
-    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
-    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
-    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
-    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
-    // Item 30: the automatic block is a curated subset and nothing enforces
-    // membership — a token in :root + dark but NOT here resolves LIGHT on
-    // automatic + OS-dark. A skeleton paints before the theme resolves, which
-    // is exactly when that would show.
-    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
-    --bnd-ink: #e8eaec;
-    --bnd-ink-muted: #b8bdc4;
-    --bnd-ink-subtle: #9197a1;
-    --bnd-brand-solid: #60a471;
-    --bnd-on-brand: #16181d;
-    --bnd-brand-ink: #6fa27d;
-    --bnd-accent: #0090ff;
-    --bnd-on-critical: #16181d;
-    --bnd-border: rgba(255, 255, 255, 0.1);
-    --bnd-border-strong: rgba(255, 255, 255, 0.18);
-
-    // Chart series must match the dark block here, not fall through to :root's
-    // light values. Unlike everything else in this block, these are read by JS
-    // (getComputedStyle in the chart hook) — and a chart can construct while the
-    // theme is still the unresolved "automatic", so a dark-OS user would get the
-    // LIGHT ramp on dark cards. assertAutomaticParity in build.mjs guards it.
-    --bnd-series-1: #cc6677;
-    --bnd-series-2: #8075b5;
-    --bnd-series-3: #ddcc77;
-    --bnd-series-4: #388e55;
-    --bnd-series-5: #88ccee;
-    --bnd-series-6: #ad688b;
-    --bnd-series-7: #44aa99;
-    --bnd-series-other: #808080;
+    // ITEM 40: this block was a CURATED SUBSET — 25 of the dark set's 55 — and
+    // its own comment recorded that nothing enforced membership. Measured
+    // 2026-08-29 against the compiled sheet: 30 tokens resolved LIGHT here on a
+    // dark OS, including all seven category hues, all twelve status colours,
+    // critical/good/serious/warn, both scrims and all three shadows. A skeleton
+    // paints before the theme resolves, which is exactly when that showed.
+    //
+    // The subset is now the whole set, which is what the previous comment said
+    // the fix was. Verified a PURE SUPERSET before making it: of the 25 tokens
+    // both blocks declared, ZERO had differing values, so nothing that already
+    // worked changes — this only stops 30 tokens falling through to light.
+    //
+    // The series tokens are no longer listed separately; `dark` carries them,
+    // and assertAutomaticParity still guards that they match, now by construction
+    // rather than by a second hand-kept copy.
+    @include dark;
   }
 }
 

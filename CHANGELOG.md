@@ -78,6 +78,24 @@ them back.
   before the point the old per-user overlay ran. Moving the resolve into fieldname
   space *before* composition fixes it by construction.
 
+- **The "Automatic" theme was a subset, and on a dark OS the desk painted light
+  until JS resolved it.** Not item 38's — found while planning item 40, fixed here
+  because it lives in the same block. `html[data-theme="automatic"]` hand-listed 25
+  of the dark set's 55 tokens; the 30 missing were every category hue, every status
+  colour, critical/good/serious/warn, both scrims and all three shadows, and each
+  resolved LIGHT for the first-paint window on every load. The side pane was worse —
+  its two dark blocks had no automatic arm at all, so Match Theme's seven hues
+  painted their light fits on a dark pane (worst 1.79:1 against a 4.5 floor) and
+  Minimal rendered a `#fafbfa` pane beside a `#131a1a` page. Skeletons paint in
+  exactly that window, which is where it showed. The block now `@include dark;` —
+  the one-line fix its own comment had already named — and the pane's dark sets are
+  emitted under both selectors from shared mixins. Verified a pure superset first:
+  of the 25 tokens both blocks declared, none differed.
+- **Minimal's dark pane was missing two of its fourteen declarations**, so the chip
+  wash and chip ink fell through to the LIGHT set — `#6d7570` on `#15181a`, 3.76:1.
+  They now take the mode's own muted ink, which is what light Minimal already does:
+  5.66:1.
+
 ### Internal
 
 - The boot resolve moved to the top of `extend_bootinfo`, over a **copy** of the
@@ -92,6 +110,19 @@ them back.
   endpoint reachable from a per-user surface may not carry a role gate, and its
   check must run as the fixture user.
 - `js_gzip` raised 93,900 → 98,200 for the dialog.
+- **`assertAutomaticParity` had been inert since item 32.** It read the body of
+  `html[data-theme="dark"]`, which has contained only `@include dark;` since the
+  mixin landed — no declarations at all. Every comparison loop ran zero times, so
+  the guard passed whatever the automatic block said, which is how the 30-token gap
+  grew behind a guard written to prevent it. Proven by gutting the automatic block
+  entirely and watching the build stay green. It now resolves the include, compares
+  EVERY token rather than the eight chart-series ones, and accepts parity by
+  construction. A new `assertAutomaticArms` covers the other half: any
+  `[data-theme="dark"]` selector must have an `automatic` twin inside a prefers-dark
+  block. Both were watched failing, for the right reasons, before being trusted.
+- **The seven dark category hues were byte-identical in three blocks** — 21
+  declarations carrying seven facts. One `sb-dark-hues` mixin now, so a re-fit is a
+  single edit rather than three that can drift apart silently.
 
 ### Not delivered
 

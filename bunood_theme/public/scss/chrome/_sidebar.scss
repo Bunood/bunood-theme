@@ -90,7 +90,17 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-chip-ink: #6d7570;
   --bnd-sb-card-base: #ffffff;
 }
-html[data-theme="dark"][data-bnd-sb-color="minimal"] {
+// The seven category hues, DARK fit. One set, three consumers — minimal-dark,
+// theme-dark and dark-contrast all carried byte-identical copies of these
+// seven lines. Twenty-one declarations expressing seven facts is the defect
+// this repo names first, so they live here once. A re-fit is now one edit,
+// not three that can drift apart silently.
+//
+// Fitted against the DARK panes only. `fit_ink` bisects and its own docstring
+// warns that backgrounds straddling the ink return a value on the wrong side
+// of the dip — the four panes straddle, so the light and dark sets are fitted
+// separately and must stay that way.
+@mixin sb-dark-hues {
   --bnd-sb-cat-1: #7aabe5;
   --bnd-sb-cat-2: #f08e66;
   --bnd-sb-cat-3: #1dbe84;
@@ -98,23 +108,46 @@ html[data-theme="dark"][data-bnd-sb-color="minimal"] {
   --bnd-sb-cat-5: #eb8aae;
   --bnd-sb-cat-6: #00c300;
   --bnd-sb-cat-7: #a9a0de;
+}
+
+// ── Dark arms of the two modes that have one ────────────────────────────────
+// MIXINS, for the reason _tokens.scss gives at its own `dark` mixin: each set
+// must be emitted under BOTH `[data-theme="dark"]` and the `automatic` + OS-dark
+// arm, and every extra emission point is another copy of the same fact.
+//
+// ITEM 40, measured 2026-08-29: there WAS no automatic arm. `data-theme` is
+// literally "automatic" until JS resolves it, so on a dark OS neither block
+// below matched and the pane painted its LIGHT set on a dark desk — the seven
+// Match Theme hues at 1.79-2.79:1 against a 4.5 floor, and Minimal as a #fafbfa
+// pane beside a #131a1a page. Verified absent in the compiled sheet, not inferred.
+@mixin sb-minimal-dark {
+  @include sb-dark-hues;
   --bnd-sb-bg: #15181a;
   --bnd-sb-ink: #d7dad8;
   --bnd-sb-ink-muted: #8b938e;
   --bnd-sb-line: rgba(255, 255, 255, 0.08);
   --bnd-sb-card-base: #1b1f21;
+
+  // Item 40: these two were MISSING from this block, so both fell through to the
+  // light minimal set — `transparent` and #6d7570, which measures 3.76:1 on this
+  // pane against a 4.5 floor. The mode's own pattern is what light minimal does:
+  // a transparent chip, and chip ink that IS the mode's muted ink. #8b938e -> 5.66:1.
+  --bnd-sb-chip-bg: transparent;
+  --bnd-sb-chip-ink: #8b938e;
+}
+
+@mixin sb-theme-dark {
+  @include sb-dark-hues;
+}
+
+html[data-theme="dark"][data-bnd-sb-color="minimal"] {
+  @include sb-minimal-dark;
 }
 
 // Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
 // from the brand seed so tenants get a tinted ink, not generic charcoal.
 html[data-bnd-sb-color="dark"] {
-  --bnd-sb-cat-1: #7aabe5;
-  --bnd-sb-cat-2: #f08e66;
-  --bnd-sb-cat-3: #1dbe84;
-  --bnd-sb-cat-4: #eda100;
-  --bnd-sb-cat-5: #eb8aae;
-  --bnd-sb-cat-6: #00c300;
-  --bnd-sb-cat-7: #a9a0de;
+  @include sb-dark-hues;
   --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 10%, #131a15);
   --bnd-sb-ink: #eef3ef;
   --bnd-sb-ink-muted: #b7c2ba;
@@ -159,13 +192,18 @@ html[data-bnd-sb-color="brand"] {
 }
 
 html[data-theme="dark"][data-bnd-sb-color="theme"] {
-  --bnd-sb-cat-1: #7aabe5;
-  --bnd-sb-cat-2: #f08e66;
-  --bnd-sb-cat-3: #1dbe84;
-  --bnd-sb-cat-4: #eda100;
-  --bnd-sb-cat-5: #eb8aae;
-  --bnd-sb-cat-6: #00c300;
-  --bnd-sb-cat-7: #a9a0de;
+  @include sb-theme-dark;
+}
+
+// The automatic arm. Specificity (0,2,1) — it must match the `[data-theme="dark"]`
+// blocks above and beat the single-attribute light blocks, which it does.
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"][data-bnd-sb-color="minimal"] {
+    @include sb-minimal-dark;
+  }
+  html[data-theme="automatic"][data-bnd-sb-color="theme"] {
+    @include sb-theme-dark;
+  }
 }
 
 // ── Pane surface: color + material + placement ──────────────────────────────

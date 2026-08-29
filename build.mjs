@@ -813,19 +813,99 @@ function assertAutomaticParity() {
 		for (const m of body.matchAll(/(--bnd-series-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
 		return out;
 	};
-	const dark = series(blockAfter('html[data-theme="dark"]'));
-	const auto = series(blockAfter('html[data-theme="automatic"]'));
+	// RESOLVE `@include dark`. The dark RULE's body is just `@include dark;` — it
+	// holds no declarations at all. Reading it directly yields an empty set, every
+	// comparison loop runs zero times, and the guard passes whatever the automatic
+	// block says. That is not hypothetical: this guard was inert from the moment
+	// item 32 introduced the mixin, PROVEN 2026-08-29 by gutting the automatic
+	// block entirely and watching the build stay green — which is exactly how the
+	// 30-token gap grew unseen behind a guard written to prevent it.
+	const resolved = (body) =>
+		/@include\s+dark\s*;/.test(body) ? blockAfter("@mixin dark") : body;
+
+	const autoBody = blockAfter('html[data-theme="automatic"]');
+
+	// PARITY BY CONSTRUCTION (item 40). The automatic block used to hand-list a
+	// curated subset of the dark set, and its own comment admitted that nothing
+	// enforced membership. Measured 2026-08-29: 30 of 55 tokens resolved LIGHT on
+	// a dark OS — every status colour, every category hue, both scrims, all three
+	// shadows. It now `@include dark;`, so the two sets ARE one set and there is
+	// nothing left to drift.
+	if (/@include\s+dark\s*;/.test(autoBody)) return;
+
+	// It does not, so compare EVERY token — not just the series, which is all this
+	// guard used to check and is exactly why the other thirty went unseen.
+	const decls = (body) => {
+		const out = {};
+		for (const m of body.matchAll(/(--bnd-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+		return out;
+	};
+	const dark = decls(resolved(blockAfter('html[data-theme="dark"]')));
+	const auto = decls(autoBody);
 	const problems = [];
 	for (const [tok, val] of Object.entries(dark)) {
-		if (!(tok in auto)) problems.push(`automatic block is missing ${tok} (dark has ${val})`);
+		if (!(tok in auto)) problems.push(`automatic is missing ${tok} (dark has ${val})`);
 		else if (auto[tok] !== val) problems.push(`${tok}: dark is ${val}, automatic is ${auto[tok]}`);
 	}
 	if (problems.length) {
 		throw new Error(
-			"Automatic-parity guard: the chart series must match the dark block in the " +
-				"`@media (prefers-color-scheme: dark) html[data-theme=\"automatic\"]` block, " +
-				"because JS reads these tokens before the theme resolves:\n  " +
+			"Automatic-parity guard: the automatic block must declare everything the " +
+				"dark block does. A token missing there resolves LIGHT on a dark OS, " +
+				"before JS resolves the theme. Simplest fix is `@include dark;`:\n  " +
 				problems.join("\n  ")
+		);
+	}
+}
+
+/**
+ * Automatic-ARM guard — every `[data-theme="dark"]` selector context must have a
+ * matching `[data-theme="automatic"]` twin inside a `prefers-color-scheme: dark`
+ * block.
+ *
+ * WHAT IT CAUGHT, AND WHY THE OTHER GUARD COULD NOT. `assertAutomaticParity`
+ * guards the token BLOCK. It cannot see a whole RULE with a dark arm and no
+ * automatic one — and the side pane had two. Measured 2026-08-29 against the
+ * compiled sheet: on Automatic with a dark OS the pane painted its LIGHT set on a
+ * dark desk, the seven Match Theme hues landing at 1.79-2.79:1 against a 4.5
+ * floor, and Minimal rendering a #fafbfa pane beside a #131a1a page.
+ *
+ * Nothing could see it. `npm run contrast` gates `light` and `dark`; it never
+ * gates the unresolved `automatic`, which is a real runtime state because CSS
+ * paints before JS resolves the theme.
+ */
+function assertAutomaticArms(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const selectors = new Set();
+	for (const m of stripped.matchAll(/([^{}]+)\{/g)) {
+		for (const part of m[1].split(",")) {
+			const p = part.trim();
+			if (p.includes("data-theme")) selectors.add(p);
+		}
+	}
+	// The bodies of every prefers-dark media block, where a valid twin must live.
+	let inDark = "";
+	for (const m of stripped.matchAll(/@media[^{]*prefers-color-scheme:\s*dark[^{]*\{/g)) {
+		let i = m.index + m[0].length - 1, depth = 0;
+		const start = i + 1;
+		for (; i < stripped.length; i++) {
+			if (stripped[i] === "{") depth++;
+			else if (stripped[i] === "}" && --depth === 0) break;
+		}
+		inDark += stripped.slice(start, i);
+	}
+	const missing = [];
+	for (const sel of selectors) {
+		if (!/\[data-theme=["']?dark["']?\]/.test(sel)) continue;
+		const twin = sel.replace(/(\[data-theme=["']?)dark(["']?\])/, "$1automatic$2");
+		if (!inDark.includes(twin)) missing.push(`${sel}  ->  needs  ${twin}`);
+	}
+	if (missing.length) {
+		throw new Error(
+			`Automatic-arm guard (${name}): a dark rule with no automatic twin does not ` +
+				"apply on a dark OS until JS resolves the theme, so it paints LIGHT first.\n  " +
+				missing.join("\n  ") +
+				"\nAdd the twin inside `@media (prefers-color-scheme: dark)`, and share the " +
+				"declarations through a mixin rather than copying them."
 		);
 	}
 }
@@ -1435,6 +1515,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`);
 	assertCursiveSafe(result.css, `${key}.css`);
+	assertAutomaticArms(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
 	assertNoAuthoredCopy(result.css, `${key}.css`);
