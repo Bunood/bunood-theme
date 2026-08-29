@@ -958,11 +958,22 @@ async function withDeskUser(route, waitSel, fn, opts = {}) {
  * values for every check that follows, and the failures read as a dozen
  * unrelated kit bugs.
  *
- * THE PARENT IS ALWAYS EXPLICIT. `benchPy` runs as Administrator, so a bare
- * `set_user_default` would write the wrong person's row — and a bare
- * `set_default` would write `__default`, which every account inherits including
- * Guest. Both spellings are refused by `build.mjs`'s personal-axes guard; this
- * helper is the only writer the suite needs.
+ * THE PARENT IS ALWAYS EXPLICIT, ON THE READS AS WELL AS THE WRITES, and the
+ * first draft got the reads wrong in a way that made this helper's whole safety
+ * argument vacuous. `benchPy` runs as Administrator, so a bare
+ * `set_user_default` writes the wrong person's row and a bare `set_default`
+ * writes `__default`, which every account inherits including Guest — both are
+ * refused by `build.mjs`'s personal-axes guard. But `get_user_default(key)`
+ * silently reads the SESSION user too: measured 2026-08-29, with the fixture
+ * holding `bnd_density = "Compact"`, a call as Administrator returned `None`.
+ *
+ * So the snapshot was the Administrator's values (empty), the restore wrote
+ * those empties onto the fixture — which cleared it, and was therefore RIGHT BY
+ * ACCIDENT — and the read-back compared the Administrator's values with the
+ * Administrator's values and could never fail. A restore verification that
+ * cannot fail is the "green tests that assert existence, not correctness" trap
+ * wearing a `finally` block. The signature is `(key, user=None)`; naming the
+ * user is the whole fix.
  */
 async function withPersonal(user, values, fn) {
 	const keys = Object.keys(values);
@@ -980,7 +991,7 @@ async function withPersonal(user, values, fn) {
 	const before = JSON.parse(
 		benchPy(
 			`U = ${JSON.stringify(user)}\n` +
-				`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k) or "") for k in ${JSON.stringify(keys)}}))\n`
+				`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
 		).split("BND")[1].trim()
 	);
 	benchPy(py(Object.entries(values)));
@@ -993,7 +1004,7 @@ async function withPersonal(user, values, fn) {
 		const after = JSON.parse(
 			benchPy(
 				`U = ${JSON.stringify(user)}\n` +
-					`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k) or "") for k in ${JSON.stringify(keys)}}))\n`
+					`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
 			).split("BND")[1].trim()
 		);
 		for (const k of keys) {
@@ -16752,6 +16763,17 @@ async function main() {
 			// can actually fail is the no-preference one. The finally restores the
 			// AMBIENT default, never `false`, or every later check runs under a
 			// media state the suite never had.
+			//
+			// AND IT NAVIGATES FIRST, which the first draft did not. The shared
+			// page is wherever the previous check left it, and the checks that run
+			// immediately before this one are `print:` — which leave it on a print
+			// view, where `bunood.css` is not loaded at all and only
+			// `bunood-print.css` is. The tokens then read back as EMPTY STRINGS
+			// rather than durations, and the first arm failed with `(,,,)`. It
+			// passed in isolation and failed in the full run, which is the whole
+			// signature of a check that assumed page state instead of establishing
+			// it.
+			await goDesk("/desk", "#page-desktop", 2000);
 			const durs = () =>
 				page.evaluate(() =>
 					["fast", "base", "slow", "loop"].map((k) =>

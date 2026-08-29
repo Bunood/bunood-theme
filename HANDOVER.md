@@ -45,6 +45,54 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   work that is not on `main`. MINOR = the ROADMAP item number still holds for this
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
+**ITEM 38 (per-user preferences) — DONE 2026-08-29. The last of the 38.** Commits:
+`93f70ec` slice 0 · `18494ee` slice 1 · `37d8ac8` slice 2 · `e00b90c` slices 3–7.
+ROADMAP's item-38 entry and CHANGELOG carry the account; what belongs HERE is what will
+cost time again:
+
+- **`ARCHITECTURE.md` LIED ABOUT `Automatic` FOR A MONTH, AND THE PLAN WAS BUILT ON IT.**
+  §3 claimed `User.desk_theme = "Automatic"` normalises after one load, citing an
+  empirical check, and item 38 was APPROVED with a slice to repair it. It does not
+  reproduce on v16.27.0: `switch_theme` (`user.py:1458`) is the only writer, is
+  click-only, and writes verbatim. Measured over three desk loads — the field stayed
+  `Automatic` and `User.modified` never moved. The likely origin is that two things have
+  almost one name: the FIELD holds the intent, the ATTRIBUTE holds today's answer, and
+  `data-theme` genuinely does read back `light`. **Nothing contradicted it because every
+  account on this site reads `Light`** — the branch had never been exercised. Re-measure
+  a documented claim before building on it; §3 now carries the correction and the reason.
+- **`frappe.db.get_single_value` IS THE WRONG READ FOR A CHECK.** It **raises** for a
+  field the doctype meta does not have yet — every site between deploying code and
+  running `bench migrate` — and it **casts a missing row to 0**, which for a lock means
+  "closed". Use `get_cached_doc(...).get()`, which returns `None` in both states.
+  `setup.py`'s seeder already recorded the cast and reads row-absence in raw SQL.
+- **A ROLE-LESS SYSTEM USER CANNOT EXIST.** `user_type` is derived, not set:
+  `set_system_user` (`user.py:415`) rewrites it from `has_desk_access()`, which is False
+  for an empty role list. The desk fixture grants exactly `Desk User`. Corollary:
+  `bnd-status-probe@example.com`, which `smoke.mjs` calls "a throwaway user with no
+  roles", is a **Website User** — its check never noticed because it only calls
+  `frappe.set_user()` and never loads a desk.
+- **THE KEY LITERAL MUST STAY AT THE `frappe.defaults` CALL SITE.**
+  `build.mjs::assertPersonalAxes` matches it there to check `personal.py` against the
+  code in both directions. A `stored(key)` helper makes every key it reads invisible and
+  the guard then reports them as declared-but-unread. Written down in slice 1 and
+  violated in slice 3; the guard caught it.
+- **`get_cached_doc` HANDS BACK A SHARED OBJECT.** The per-user resolve overlays a
+  `dict(...)` copy. Mutating the doc would leak one person's look into every later
+  consumer in that worker process.
+- **THE PER-USER LAYER IS UNEXERCISED ON THIS SITE.** Zero `bnd_*` rows in
+  `tabDefaultValue`. Any check needing a stored preference must create one, and
+  `node tools/desk-fixture.mjs --audit | --clean` is how residue is found and cleared —
+  `setSettings`' MUTABLE_FIELDS guard is structurally blind to that table and the
+  `site data:` preamble matches branding VALUES.
+- **A GLOBAL DEFAULT IS ONE KEYWORD ARGUMENT AWAY.** `frappe.defaults.set_default(k, v)`
+  without `parent=` writes `parent = "__default"`, which every account inherits including
+  Guest. The build guard refuses that spelling.
+- **NOT DELIVERED:** remembering which side-pane sections a person left open. It needs
+  Frappe's own expanded/collapsed contract measured. `sidebar_remember_sections` remains
+  a field written by all eight sidebar presets and read by nothing, as since v0.6.0.
+- **Item 38 adds 22 fuzzy `ar.po` rows** on top of item 37's 26 — **48 await the user's
+  review**, their own commit as always.
+
 **ITEM 37 (presets) — DONE 2026-08-28, released as `v0.37.0`.** The last piece of the
 settings architecture: one catalogue for the whole desk, twelve looks writing 124 values
 each, and **no preset name stored anywhere** — `sidebar_preset` and `desk_layout` are both
