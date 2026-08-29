@@ -14240,7 +14240,17 @@ async function main() {
 								}
 								return "rgb(255, 255, 255)";
 							};
+							// THE FOURTH COPY OF THIS PARSER, AND IT WAS HARDENED HALFWAY.
+							// It took the "throw rather than guess" half of the lesson and
+							// not the "know how a colour serialises" half: it threw on
+							// `color(srgb 0.102118 0.134274 0.140549)`, which the two full
+							// copies have accepted since item 32. Chrome emits that form
+							// for a `color-mix()` result, and this check's poles darken the
+							// page through exactly such a mix — so the check failed on a
+							// value it was supposed to measure.
 							const tri = (t) => {
+								const m = String(t).match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+								if (m) return [1, 2, 3].map((i) => parseFloat(m[i]) * 255);
 								if (!/^rgba?\(/.test(t)) throw new Error("unrecognised colour form " + t);
 								return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
 							};
