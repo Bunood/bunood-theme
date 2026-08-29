@@ -229,6 +229,13 @@ html[data-bnd-density=compact] {
     --bnd-dur-loop: 0ms;
   }
 }
+html[data-bnd-motion=reduce] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
+}
+
 html[data-theme=light],
 html:not([data-theme]) {
   --bg-color: var(--bnd-page);
@@ -452,6 +459,10 @@ html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[h
 html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item[onclick*=logout],
 html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item:has(use[href*=log-out]),
 html[data-bnd-own~=user] .frappe-menu.context-menu .dropdown-menu-item[onclick*=cycle_density] {
+  display: none;
+}
+
+html[data-bnd-own~=appearance] .frappe-menu.context-menu .dropdown-menu-item:has(use[href="#icon-monitor"]) {
   display: none;
 }
 

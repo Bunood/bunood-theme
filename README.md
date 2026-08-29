@@ -25,6 +25,14 @@ forks, no `@layer`, no `?v=` cache-busters, and (almost) no `!important`.
 - **Density** — site default + per-user override (server-stored,
   boot-applied before first render). Compact shortens rows and controls,
   never text.
+- **Personal preferences** — one **Appearance** dialog, reachable from the
+  profile menu and from Frappe's own settings dropdown so it survives every
+  desk shape. A person picks a whole named look, their own desk shape, light or
+  dark, density and reduced motion, and where the desk opens. Stored per
+  account on the server — never in the browser, so preferences follow people to
+  a new machine. Colours always follow the site. An administrator can hold back
+  the look, the shape or the comfort axes independently; reduced motion is
+  always available and cannot be locked.
 - **Five desk layouts** — chosen visually on Theme Settings:
 
   | Layout | One-liner |

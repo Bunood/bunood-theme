@@ -574,3 +574,24 @@ html[data-bnd-density="compact"] {
     --bnd-dur-loop: 0ms;
   }
 }
+
+// The same zeroing, asked for by the PERSON rather than by their machine
+// (item 38). Until now motion was governed only by the query above, so somebody
+// on a shared or locked-down desktop who cannot change that setting had no way
+// to calm the interface.
+//
+// ADDITIVE, NOT AN OVERRIDE, and that is the whole design: there is no pole that
+// turns motion back ON. Either signal zeroes the tokens and neither can undo the
+// other, so this can never become a control for overriding an operating-system
+// accessibility request. It is also why the selector is separate rather than
+// folded into the block above — a person's Reduced must apply on a machine that
+// asks for no-preference.
+//
+// (0,1,1) beats the (0,1,0) of `:root`, the same specificity argument density
+// already relies on one block up.
+html[data-bnd-motion="reduce"] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
+}

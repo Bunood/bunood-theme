@@ -228,6 +228,13 @@ html[data-bnd-density=compact] {
     --bnd-dur-loop: 0ms;
   }
 }
+html[data-bnd-motion=reduce] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
+}
+
 @media (prefers-color-scheme: dark) {
   body.bnd-auth:not(.bnd-auth-theme-light):not(.bnd-auth-theme-dark) {
     --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);

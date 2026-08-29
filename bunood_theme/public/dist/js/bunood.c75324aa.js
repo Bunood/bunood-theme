@@ -69,15 +69,40 @@
 	}
 
 	/**
+	 * Stamp reduced motion on <html> (item 38).
+	 *
+	 * ONE DIRECTION ONLY. "Reduced" adds the attribute; anything else removes it.
+	 * There is no pole that forces motion back ON, because the OS media query is
+	 * an accessibility request and a control that overrode it would be a control
+	 * for overriding somebody's accessibility settings. The CSS is additive for
+	 * the same reason: `_tokens.scss` zeroes the duration tokens under EITHER the
+	 * media query or this attribute, so they compose rather than compete.
+	 *
+	 * @param {string} motion - "Reduced", or "" to follow the OS.
+	 */
+	function apply_motion(motion) {
+		const html = document.documentElement;
+		if (String(motion).toLowerCase() === "reduced") html.setAttribute("data-bnd-motion", "reduce");
+		else html.removeAttribute("data-bnd-motion");
+	}
+
+	/**
 	 * Persist a density choice and apply it immediately (optimistic, with
 	 * rollback on server failure so the visible state never lies).
 	 *
+	 * `{ save: false }` APPLIES WITHOUT PERSISTING — the Appearance dialog's
+	 * preview, where a click must be visible and abandonable. Writing on every
+	 * click would also be six full user-cache clears for one Save, which is what
+	 * `api.set_personal` exists to avoid.
+	 *
 	 * @param {string} density - one of the CYCLE values.
+	 * @param {{save?: boolean}} [opts]
 	 * @returns {Promise<void>}
 	 */
-	bunood.set_density = function (density) {
+	bunood.set_density = function (density, opts) {
 		const previous = frappe.boot.bnd_density || "";
 		apply_density(density);
+		if (opts && opts.save === false) return Promise.resolve();
 		return frappe
 			.xcall("bunood_theme.api.set_user_density", { density })
 			.then(() => {
@@ -114,6 +139,16 @@
 	// Apply the boot value NOW — before DOMContentLoaded, therefore before
 	// Frappe renders anything density affects. See file header.
 	apply_density((window.frappe && frappe.boot && frappe.boot.bnd_density) || "");
+	apply_motion((window.frappe && frappe.boot && frappe.boot.bnd_motion) || "");
+	bunood.set_motion = function (motion, opts) {
+		apply_motion(motion);
+		if (opts && opts.save === false) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.set_personal", { values: { bnd_motion: motion } })
+			.then(() => {
+				frappe.boot.bnd_motion = motion;
+			});
+	};
 
 	// ── Icon weight (item 23) ─────────────────────────────────────────────────
 	/**
@@ -861,6 +896,9 @@
 		// removed, or absent from the one that has just arrived.
 		sb_mount_utils();
 		defer_bottom_reserve();
+		// A shape change moves which route to Appearance exists, so the claim on
+		// Frappe's Display item is re-measured rather than assumed (item 38).
+		stamp_appearance_route();
 	}
 	bunood.remount_chrome = remount_chrome;
 
@@ -956,6 +994,60 @@
 		if (owned.has(token)) return;
 		owned.add(token);
 		html.setAttribute("data-bnd-own", [...owned].join(" "));
+	}
+
+	/**
+	 * Claim Frappe's Display item — but only once a real route to ours EXISTS.
+	 *
+	 * MEASURED FROM THE DOM, NEVER FROM THE FACT THAT `bunood.appearance` IS
+	 * DEFINED. A defined function is a declaration, and the ownership rule this
+	 * file is built on says a native affordance is hidden only once our
+	 * replacement is stamped PRESENT — the whole point being that a failed mount
+	 * degrades to stock rather than to nothing. The seeder that puts our item in
+	 * Frappe's dropdown swallows its own failures into a log by design, so an
+	 * unconditional stamp plus a failed seed would leave a desk with no theme
+	 * control at all: ours never mounted, Frappe's hidden.
+	 *
+	 * Two routes count, and either is enough: the seeded Navbar Settings item
+	 * (present in every shape, including the ones that mount no avatar) and our
+	 * own avatar menu button. Re-evaluated on every remount, because a shape
+	 * change moves which of the two exists.
+	 */
+	/**
+	 * Open on the workspace this person chose (item 38). Once, and only at the root.
+	 *
+	 * A REQUESTED ROUTE ALWAYS WINS. This fires only when the incoming path is the
+	 * bare desk root with no route, no query and no hash — anything else is a
+	 * deep link, and a landing preference that hijacked one would break every
+	 * bookmark and every notification link in the product. Discourse resolves the
+	 * same preference as a routing CONSTRAINT on `/` for exactly this reason;
+	 * ours is a client redirect because Frappe's desk owns its own router.
+	 *
+	 * The value was validated against the workspaces this person can READ when it
+	 * was stored, and re-validated on every read of the picker — but a permission
+	 * revoked since then is still possible, and sign-in is the one moment somebody
+	 * cannot route around a 403. So a workspace Frappe does not offer is dropped
+	 * rather than attempted.
+	 */
+	let home_routed = false;
+	function apply_home_route() {
+		if (home_routed) return;
+		home_routed = true;
+		const home = (frappe.boot && frappe.boot.bnd_personal && frappe.boot.bnd_personal.home) || "";
+		if (!home) return;
+		if (location.search || location.hash) return;
+		if (!/^\/(app|desk)\/?$/.test(location.pathname)) return;
+		const known = (frappe.boot.allowed_workspaces || []).map((w) => w.name || w);
+		if (known.length && !known.includes(home)) return;
+		frappe.set_route("Workspaces", home);
+	}
+
+	function stamp_appearance_route() {
+		const seeded = [...document.querySelectorAll(".frappe-menu .dropdown-menu-item")].some(
+			(el) => /bunood_theme\.appearance/.test(el.getAttribute("onclick") || "")
+		);
+		if (seeded || document.querySelector(".bnd-avatar-btn")) bnd_own("appearance");
+		else bnd_disown("appearance");
 	}
 
 	/** Release an affordance back to Frappe's own control. */
@@ -1977,10 +2069,16 @@
 		});
 		items.push("divider");
 
+		// ONE ENTRY, NOT THREE (item 38). This used to be "Appearance" (Frappe's
+		// own theme modal), "Sidebar Style" (a menu that applied the side pane
+		// only) and "Toggle Density" (a three-state cycle with a toast) — three
+		// mechanisms for one question. `bunood.appearance` is that question's
+		// single answer, and it still reaches Frappe's field for light/dark
+		// through the endpoint Frappe's own switcher calls.
 		items.push({
 			label: __("Appearance"),
 			icon: "icon-monitor",
-			run: () => new frappe.ui.ThemeSwitcher().show(),
+			run: () => bunood.appearance(),
 		});
 		// Theme Settings is site-wide admin config, so the shortcut only shows
 		// for users who can actually open it — everyone else would get a
@@ -1992,16 +2090,6 @@
 				run: () => frappe.set_route("theme-settings"),
 			});
 		}
-		items.push({
-			label: __("Sidebar Style"),
-			icon: "icon-sliders-horizontal",
-			run: () => sb_personalize_menu(),
-		});
-		items.push({
-			label: __("Toggle Density"),
-			icon: "icon-sliders-horizontal",
-			run: () => bunood.cycle_density(),
-		});
 		items.push({
 			label: __("Session Defaults"),
 			icon: "icon-sliders-horizontal",
@@ -6428,63 +6516,198 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	/**
-	 * The user-facing "personalize" picker: choose a whole look for yourself (or
-	 * follow the site). Users never get option-level knobs — they always land on
-	 * designed combinations. Persisted server-side and applied instantly.
+	 * The Appearance dialog — one place a person sets their own desk (item 38).
 	 *
-	 * RE-POINTED AT THE ONE CATALOGUE (item 37). It used to list the sidebar's own
-	 * eight presets; it lists the shipped THEME looks now, so a person sees the
-	 * same names their administrator does rather than a parallel set that matched
-	 * by coincidence.
+	 * IT REPLACES FIVE SCATTERED ENTRIES. Before this, "Appearance" opened
+	 * Frappe's own theme modal, "Sidebar Style" opened a menu that applied the
+	 * side pane and nothing else, and "Toggle Density" cycled three states with a
+	 * toast. Three mechanisms, nothing that said "these are your preferences",
+	 * and no way to put any of them back.
 	 *
-	 * IT READS `get_theme_sidebar_presets`, NOT `get_theme_presets`, AND THE
-	 * DIFFERENCE IS A 403. The latter is `only_for("System Manager")`, and this
-	 * menu entry is pushed for EVERY desk user — so pointing it there made every
-	 * non-admin's click a permission error swallowed by the `catch` below, with
-	 * the suite unable to see it because the suite is Administrator. The endpoint
-	 * it uses now serves only the eighteen fields `sb_apply` reads, in the same
-	 * shape, so a non-admin is never handed the site's brand seeds either.
+	 * IT READS AN UNGATED ENDPOINT, and that is doctrine now rather than a
+	 * detail. `get_theme_presets` opens `only_for("System Manager")`, and item 37
+	 * pointed the personalize menu at it: every non-admin's click became a 403
+	 * swallowed by an empty catch, invisible to a suite that runs as
+	 * Administrator. An endpoint reachable from a per-user surface may not carry
+	 * a role gate — see `api.get_personal_presets`.
 	 *
-	 * IT APPLIES THE SIDEBAR SLICE AND NOTHING ELSE, and that is a limit rather
-	 * than an omission. The seeds produce ONE content-hashed stylesheet per site,
-	 * so a per-user palette is unbuildable without a second delivery mechanism;
-	 * and per-user containers or placements would let somebody switch their own
-	 * top bar off and file a bug against the desk. The blurb says so.
+	 * A LOCKED AXIS IS SHOWN DISABLED WITH THE REASON, never hidden. Hiding makes
+	 * the dialog's contents vary by tenant, so "open Appearance and change your
+	 * shape" would work for some people and silently do nothing for others. VS
+	 * Code renders policy-managed settings read-only with a lock for the same
+	 * reason.
+	 *
+	 * COLOURS ARE NOT HERE, and the dialog says so rather than staying quiet.
+	 * They are one content-hashed stylesheet per site. That is a mechanism
+	 * constraint and not a claim that colour cannot be personal — Discourse ships
+	 * exactly that, as one variable-only sheet per palette, server-rendered.
 	 */
-	function sb_personalize_menu() {
+	bunood.appearance = function () {
 		frappe
-			.xcall("bunood_theme.api.get_theme_sidebar_presets")
+			.xcall("bunood_theme.api.get_personal_presets")
 			.then((data) => {
-				const current = (sb_state && sb_state.user_preset) || "";
-				const anchor = document.querySelector(".bnd-avatar-btn") || document.body;
-				const pick = (name) => {
-					frappe
-						.xcall("bunood_theme.api.set_user_sidebar_preset", { preset: name })
-						.then(() => {
-							if (name && data.presets[name]) {
-								bunood.sb_apply(data.presets[name]);
-								sb_state.user_preset = name;
-							} else {
-								window.location.reload(); // site values live server-side
-							}
-							frappe.show_alert({
-								message: name ? __("Side pane: {0} — colours and layout still follow the site", [__(name)]) : __("Side pane: following the site"),
-								indicator: "green",
-							});
-						})
-						.catch(() => frappe.show_alert({ message: __("Could not save"), indicator: "red" }));
+				const st = data.state || {};
+				const opened = {
+					bnd_look: st.look || "",
+					bnd_shape: st.shape || "",
+					bnd_density: st.density || "",
+					bnd_motion: st.motion || "",
+					bnd_home: st.home || "",
+					mode: document.documentElement.getAttribute("data-theme-mode") || "light",
 				};
-				const items = [
-					{ label: (current === "" ? "✓ " : "") + __("Site Default"), run: () => pick("") },
-					"divider",
-				];
-				for (const name of Object.keys(data.presets)) {
-					items.push({ label: (current === name ? "✓ " : "") + __(name), run: () => pick(name) });
+				const pick = { ...opened };
+				const esc = (t) => frappe.utils.escape_html(String(t));
+
+				// "Follow the site" is a NAMED row that says what it resolves to,
+				// not a separate reset button — the shape Discourse and Directus
+				// both give inherit. The derived name is "" whenever the site is
+				// on a combination no preset spells, which is a common state and
+				// not an edge case, so the label degrades to the bare phrase.
+				const follow = (named) =>
+					named ? __("Follow the site ({0})", [__(named)]) : __("Follow the site");
+
+				const row = (axis, label, options, locked) =>
+					`<div class="bnd-cbp-group" data-bnd-part="appearance-axis" data-axis="${axis}">` +
+					`<div class="bnd-cbp-title">${esc(label)}</div>` +
+					(locked
+						? `<div class="bnd-cbp-desc">${esc(__("Set by your administrator."))}</div>`
+						: "") +
+					`<div class="bnd-cbp-row">` +
+					options
+						.map(
+							(o) =>
+								`<button type="button" class="bnd-cbp-opt${o.value === pick[axis] ? " bnd-cbp-on" : ""}"` +
+								` data-axis="${axis}" data-value="${esc(o.value)}"` +
+								`${locked ? " disabled" : ""} aria-pressed="${o.value === pick[axis]}">` +
+								`${esc(o.label)}</button>`
+						)
+						.join("") +
+					`</div></div>`;
+
+				const open_for = (axis) => !!(st.open && st.open[axis]);
+				const named = (list, site_name) =>
+					[{ value: "", label: follow(site_name) }].concat(
+						list.map((n) => ({ value: n, label: __(n) }))
+					);
+				const density_values =
+					(data.axes || []).find((a) => a.key === "bnd_density") || { values: [] };
+
+				const body =
+					`<div class="bnd-cbp" data-bnd-part="appearance">` +
+					row("bnd_look", __("Look"), named(Object.keys(data.looks || {}), data.site.look), !open_for("bnd_look")) +
+					row("bnd_shape", __("Desk shape"), named(Object.keys(data.shapes || {}), data.site.shape), !open_for("bnd_shape")) +
+					row("mode", __("Light or dark"), [
+						{ value: "light", label: __("Light") },
+						{ value: "dark", label: __("Dark") },
+						{ value: "automatic", label: __("Automatic") },
+					], !open_for("bnd_density")) +
+					row("bnd_density", __("Density"), named(density_values.values, data.site.density), !open_for("bnd_density")) +
+					// No lock on motion, ever — see personal.UNLOCKABLE. It is an
+					// accessibility floor, not a taste, and the one pole reduces.
+					row("bnd_motion", __("Motion"), [
+						{ value: "", label: __("Follow my system") },
+						{ value: "Reduced", label: __("Reduced") },
+					], false) +
+					row(
+						"bnd_home",
+						__("Where the desk opens"),
+						[{ value: "", label: __("Follow the site") }].concat(
+							((data.axes || []).find((a) => a.key === "bnd_home") || { values: [] }).values.map(
+								(v) => ({ value: v, label: __(v) })
+							)
+						),
+						!open_for("bnd_home")
+					) +
+					`<div class="bnd-cbp-note">${esc(__("Colours follow the site."))}</div></div>`;
+
+				const dialog = new frappe.ui.Dialog({
+					title: __("Appearance"),
+					fields: [{ fieldtype: "HTML", fieldname: "body", options: body }],
+					primary_action_label: __("Save"),
+					primary_action: () => save(),
+				});
+
+				const show_look = (name) => bunood.apply_look(name ? data.looks[name] : data.site_values);
+				const show_shape = (name) =>
+					bunood.shape_apply(name ? data.shapes[name] : data.site_values, name || data.site.shape || "");
+				const show_mode = (m) =>
+					frappe.ui.set_theme(m === "automatic" ? undefined : m);
+
+				const preview = (axis, value) => {
+					if (axis === "bnd_look") show_look(value);
+					else if (axis === "bnd_shape") show_shape(value);
+					else if (axis === "bnd_density") bunood.set_density(value, { save: false });
+					else if (axis === "bnd_motion") bunood.set_motion(value, { save: false });
+					else if (axis === "mode") show_mode(value);
+					// bnd_home has nothing to preview — it decides where the NEXT
+					// sign-in lands, and routing there now would close the dialog.
+				};
+
+				dialog.$wrapper.on("click", ".bnd-cbp-opt", function () {
+					const axis = this.getAttribute("data-axis");
+					const value = this.getAttribute("data-value");
+					for (const b of dialog.$wrapper[0].querySelectorAll(`.bnd-cbp-opt[data-axis="${axis}"]`)) {
+						b.classList.toggle("bnd-cbp-on", b === this);
+						b.setAttribute("aria-pressed", b === this ? "true" : "false");
+					}
+					pick[axis] = value;
+					preview(axis, value);
+				});
+
+				// CANCEL RESTORES. Everything previewed here is a NAMED thing, so
+				// putting it back is re-applying the name the dialog opened on —
+				// there is no snapshot of a hundred values to keep in sync. Without
+				// this, closing without saving leaves somebody wearing a look they
+				// declined, with no stored value anywhere to explain it.
+				let saved = false;
+				dialog.$wrapper.on("hidden.bs.modal", () => {
+					if (saved) return;
+					show_look(opened.bnd_look);
+					show_shape(opened.bnd_shape);
+					bunood.set_density(opened.bnd_density, { save: false });
+					bunood.set_motion(opened.bnd_motion, { save: false });
+					show_mode(opened.mode);
+				});
+
+				function save() {
+					const calls = [
+						frappe.xcall("bunood_theme.api.set_personal", {
+							values: {
+								bnd_look: pick.bnd_look,
+								bnd_shape: pick.bnd_shape,
+								bnd_density: pick.bnd_density,
+								bnd_motion: pick.bnd_motion,
+								bnd_home: pick.bnd_home,
+							},
+						}),
+					];
+					// The mode stays FRAPPE'S. The roadmap line for this item says
+					// so by name ("via User.desk_theme, never a parallel
+					// localStorage"), and calling the endpoint their own switcher
+					// calls is what keeps their modal showing the right selection.
+					if (pick.mode !== opened.mode) {
+						calls.push(
+							frappe.xcall("frappe.core.doctype.user.user.switch_theme", {
+								theme: pick.mode.charAt(0).toUpperCase() + pick.mode.slice(1),
+							})
+						);
+						document.documentElement.setAttribute("data-theme-mode", pick.mode);
+					}
+					Promise.all(calls)
+						.then(() => {
+							saved = true;
+							dialog.hide();
+							frappe.show_alert({ message: __("Appearance saved"), indicator: "green" });
+						})
+						.catch((e) =>
+							frappe.show_alert({ message: (e && e.message) || __("Could not save"), indicator: "red" })
+						);
 				}
-				show_menu(anchor, items);
+
+				dialog.show();
 			})
-			.catch(() => {});
-	}
+			.catch(() => frappe.show_alert({ message: __("Could not open Appearance"), indicator: "red" }));
+	};
 
 	/**
 	 * LIVE PREVIEW / re-application: take a full set of style values (Theme
@@ -6567,6 +6790,61 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 		crumb_teardown();
 		decorate_crumbs();
+	};
+
+	// ── Appearance: one person's own desk (item 38) ─────────────────────────
+
+	/**
+	 * Re-apply a whole LOOK from Theme Settings field values.
+	 *
+	 * One call site for the fifteen `*_apply` functions the settings form drives
+	 * individually. The form has its own `bnd_all_previews` doing exactly this;
+	 * the dialog is the second caller, and a second hand-kept list of fifteen
+	 * names is the same-fact-twice trap — so this is the list, and the form is
+	 * free to keep its own because it also repaints its pickers.
+	 */
+	bunood.apply_look = function (values) {
+		if (!values) return;
+		for (const fn of [
+			"sb_apply", "crumb_apply", "icon_apply", "palette_apply", "inbox_apply",
+			"chart_apply", "list_apply", "form_apply", "workspace_apply", "report_apply",
+			"views_apply", "overlay_apply", "empty_apply", "skeleton_apply", "filters_apply",
+		]) {
+			if (typeof bunood[fn] === "function") bunood[fn](values);
+		}
+	};
+
+	/**
+	 * Re-apply a whole SHAPE: containers, tenant placements, and the derived name.
+	 *
+	 * THE TWO SEAMS THAT DID NOT EXIST. `chrome_apply` moves containers and
+	 * remounts, but `mount_placed_tenants` reads `placement_state` and search
+	 * reads `status_state.search_placement` — neither of which anything updated,
+	 * because until now a placement only ever changed by saving the settings form
+	 * and reloading. Previewing a shape without them moves the BARS and leaves the
+	 * bell, the profile and search pointing at the old ones.
+	 *
+	 * `frappe.boot.bnd_desk_shape` is the third: it is the sole input to
+	 * `search_fallback_order()`, so without it search walks the OLD shape's
+	 * fallback chain and can land in a container this shape does not mount.
+	 */
+	bunood.shape_apply = function (values, shape) {
+		if (!values) return;
+		if (placement_state) {
+			for (const [field, key] of Object.entries({
+				inbox_placement: "inbox",
+				user_placement: "user",
+				home_placement: "home",
+				apps_placement: "apps",
+			})) {
+				if (field in values) placement_state[key] = values[field];
+			}
+		}
+		if (status_state && "search_placement" in values) {
+			status_state.search_placement = values.search_placement;
+		}
+		if (window.frappe && frappe.boot) frappe.boot.bnd_desk_shape = shape || "";
+		bunood.chrome_apply(values);
 	};
 
 	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
@@ -6717,6 +6995,8 @@ function sb_zone_anchor(pane, zone, node) {
 
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
+		stamp_appearance_route();
+		apply_home_route();
 
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
@@ -6730,6 +7010,10 @@ function sb_zone_anchor(pane, zone, node) {
 				// later is invisible to a user and keeps our bookkeeping out
 				// of their critical path.
 				defer_bottom_reserve();
+				// A route change can remount the avatar, which is one of the two
+				// routes to Appearance — so the claim on Frappe's Display item is
+				// re-measured rather than assumed (item 38).
+				stamp_appearance_route();
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads

@@ -1617,6 +1617,50 @@ def layout_of(settings, ignore=SHAPE_IGNORES) -> str:
     return ""
 
 
+def look_of(settings, fields=None) -> str:
+    """Which named look a set of values spells, over the LOOK fields only — item 38.
+
+    The sibling of :func:`layout_of`, and it exists for the same reason: the
+    Appearance dialog has to be able to say *"Follow the site (Focus)"* rather
+    than *"Follow the site"*, and an inherit option that cannot name what it
+    inherits is the state ServiceNow's Next Experience ships — where the default
+    is an absent row with no label, and every community thread about it is
+    somebody asking how to get back.
+
+    IT COMPARES THE LOOK FIELDS AND NOTHING ELSE, which is what makes it usable
+    where the layout identity is not. A desk on the Focus look with its own
+    SHAPE is still on Focus; comparing all 124 axes would answer "" and the
+    dialog would go quiet exactly when a person has personalised something.
+
+    Exact match, unset falls back to the shipped baseline, "" when no preset
+    spells these values — the same three rules :func:`layout_of` follows.
+
+    Args:
+        settings: any mapping of field -> value.
+        fields: the fields to compare. Defaults to the look partition in
+            :mod:`bunood_theme.personal`, which the contrast gate holds to being
+            a partition; passed in only by that gate's own arms.
+    """
+    if fields is None:
+        from bunood_theme.personal import LOOK_FIELDS
+
+        fields = LOOK_FIELDS
+    base = _shipped_baseline()
+    for name in THEME_PRESETS:
+        want = theme_settings(name)
+        for field in fields:
+            if field not in want:
+                continue
+            live = settings.get(field)
+            if live is None or live == "":
+                live = base.get(field)
+            if str(live) != str(want[field]):
+                break
+        else:
+            return name
+    return ""
+
+
 def theme_settings(name: str) -> dict:
     """The Theme Settings values a theme preset writes, keyed by FIELD.
 

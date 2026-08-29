@@ -155,6 +155,39 @@ UNLOCKABLE = ("bnd_motion",)
 #: absence of the row, per the file header.
 AXES = (
     {
+        "key": "bnd_look",
+        "kind": PREFERENCE,
+        "label": "Look",
+        "values": None,
+        "catalogue": "THEME_PRESETS",
+        "lock": "personal_look",
+        "boot": "bnd_personal.look",
+        "empty": "follow the site's look",
+        "since": "item 38",
+        "note": (
+            "A whole named look, applied across every desk surface — the fields "
+            "in LOOK_FIELDS and no others. Wins over the older, narrower "
+            "bnd_sidebar_preset wherever both are set."
+        ),
+    },
+    {
+        "key": "bnd_shape",
+        "kind": PREFERENCE,
+        "label": "Desk shape",
+        "values": None,
+        "catalogue": "LAYOUT_CHROME",
+        "lock": "personal_shape",
+        "boot": "bnd_personal.shape",
+        "empty": "follow the site's shape",
+        "since": "item 38",
+        "note": (
+            "One of the five named layouts. Applies exactly what "
+            "registry.layout_settings writes — containers plus tenant "
+            "placements — and nothing else, because under 'names only' that is "
+            "the whole gesture. Its lock ships CLOSED."
+        ),
+    },
+    {
         "key": "bnd_density",
         "kind": PREFERENCE,
         "label": "Density",
@@ -188,6 +221,65 @@ AXES = (
             "under people who chose an 18-field one."
         ),
     },
+    {
+        "key": "bnd_motion",
+        "kind": PREFERENCE,
+        "label": "Motion",
+        # ONE POLE, DELIBERATELY. A person may always REDUCE motion and may never
+        # force it back on over an operating-system preference. Measured across
+        # Discourse, Directus, frappe-ui and shadcn: none offers a user-level
+        # motion setting at all — motion reduction is driven only by the OS — so
+        # reduce-only is already more generous than the field, and a "Full" pole
+        # would be a control that overrides an accessibility request.
+        "values": ("Reduced",),
+        "lock": None,
+        "boot": "bnd_motion",
+        "empty": "follow the operating system",
+        "since": "item 38",
+        "note": (
+            "Why it exists at all: until now motion was governed ONLY by "
+            "prefers-reduced-motion, so somebody on a shared or locked-down "
+            "machine who cannot change that setting had no way to calm the "
+            "interface. Cheap here because a build guard already forces every "
+            "duration through a --bnd-dur-* token, so one attribute zeroes all "
+            "of them. Stamped after the splash paints, so a personal Reduced "
+            "governs everything after the splash and the splash itself still "
+            "follows the OS."
+        ),
+    },
+    {
+        "key": "bnd_home",
+        "kind": PREFERENCE,
+        "label": "Where the desk opens",
+        # Resolved at read time against the workspaces THIS person can see, so a
+        # revoked permission degrades to the site's landing page rather than to a
+        # route that 403s. A bounded list, never a typed route: both surveyed
+        # products that offer this use an enum, nobody lets a person type a
+        # destination, and this codebase has been bitten three times by trusting
+        # a tenant-typed value that reached a page.
+        "values": None,
+        "catalogue": "WORKSPACES",
+        "lock": "personal_comfort",
+        "boot": "bnd_personal.home",
+        "empty": "follow the site's landing page",
+        "since": "item 38",
+        "note": (
+            "Applied only when the incoming route is the bare desk root. A "
+            "requested route always wins — a landing preference that hijacked a "
+            "deep link would break every bookmark and every notification link."
+        ),
+    },
+    # `bnd_sb_open` — REMEMBERED SIDE-PANE SECTIONS — was specified for this item
+    # and is NOT shipped. Deciding which sections are open means reading Frappe's
+    # own sidebar DOM for its expanded/collapsed contract, and this repo's rule is
+    # that a native contract is measured before it is depended on, never guessed.
+    # That measurement did not happen inside item 38's window, and a guessed
+    # selector here would be the "green tests that assert existence" trap with a
+    # storage key attached.
+    #
+    # Consequence, stated so it is not rediscovered: `sidebar_remember_sections`
+    # remains a field written by all eight sidebar presets and read by nothing,
+    # as it has been since v0.6.0. It is a dead field, not a broken feature.
     {
         "key": "bnd_palette_usage",
         "kind": STATE,
@@ -371,10 +463,20 @@ def values_for(key: str) -> tuple | None:
     row = axis(key)
     if row is None:
         return None
-    if row.get("catalogue") == "THEME_PRESETS":
+    catalogue = row.get("catalogue")
+    if catalogue == "THEME_PRESETS":
         from bunood_theme.presets import THEME_PRESETS
 
         return tuple(THEME_PRESETS)
+    if catalogue == "LAYOUT_CHROME":
+        return tuple(LAYOUT_CHROME)
+    if catalogue == "WORKSPACES":
+        # Resolved per person, per request, so it cannot live here: this module
+        # imports nothing from frappe on purpose. The caller that has a session
+        # supplies it — `api.get_personal_presets` for the picker and
+        # `api.set_personal` for the write, which is the only place it is a
+        # security question rather than a display one.
+        return None
     return row.get("values")
 
 

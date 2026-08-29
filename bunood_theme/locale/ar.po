@@ -5357,3 +5357,78 @@ msgstr "يمكن للأشخاص ضبط إعدادات الراحة الخاصة 
 #, fuzzy
 msgid "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
 msgstr "يمكن لكل شخص ضبط الوضع الفاتح أو الداكن وكثافة الصفوف. أما تقليل الحركة فمتاح للجميع دائمًا ولا يتأثر بهذا الإعداد."
+
+#. src: item38
+#, fuzzy
+msgid "Follow the site ({0})"
+msgstr "اتّبع إعدادات الموقع ({0})"
+
+#. src: item38
+#, fuzzy
+msgid "Follow the site"
+msgstr "اتّبع إعدادات الموقع"
+
+#. src: item38
+#, fuzzy
+msgid "Set by your administrator."
+msgstr "محدَّد من قِبل المسؤول."
+
+#. src: item38
+#, fuzzy
+msgid "Look"
+msgstr "المظهر العام"
+
+#. src: item38
+#, fuzzy
+msgid "Desk shape"
+msgstr "شكل المكتب"
+
+#. src: item38
+#, fuzzy
+msgid "Light or dark"
+msgstr "فاتح أو داكن"
+
+#. src: item38
+#, fuzzy
+msgid "Automatic"
+msgstr "تلقائي"
+
+#. src: item38
+#, fuzzy
+msgid "Colours follow the site."
+msgstr "الألوان تتبع إعدادات الموقع."
+
+#. src: item38
+#, fuzzy
+msgid "Appearance saved"
+msgstr "تم حفظ المظهر"
+
+#. src: item38
+#, fuzzy
+msgid "Could not open Appearance"
+msgstr "تعذّر فتح المظهر"
+
+#. src: item38
+#, fuzzy
+msgid "Save"
+msgstr "حفظ"
+
+#. src: item38
+#, fuzzy
+msgid "Motion"
+msgstr "الحركة"
+
+#. src: item38
+#, fuzzy
+msgid "Follow my system"
+msgstr "اتّبع نظام جهازي"
+
+#. src: item38
+#, fuzzy
+msgid "Reduced"
+msgstr "مُخفَّفة"
+
+#. src: item38
+#, fuzzy
+msgid "Where the desk opens"
+msgstr "نقطة بدء المكتب"

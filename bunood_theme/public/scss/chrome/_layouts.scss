@@ -403,6 +403,26 @@ html[data-bnd-own~="user"] {
   }
 }
 
+// ── The Appearance route, in every shape (item 38) ──────────────────────────
+// The seeded Navbar Settings item is DELIBERATELY NOT hidden by the block above,
+// and that is the whole reachability argument. A person may now choose their own
+// desk shape, and `Classic` mounts no avatar button at all — so a dialog reached
+// only through the avatar strands anyone who picks it. The seed sits in Frappe's
+// own settings dropdown, which every shape renders, and the avatar menu links the
+// same function where it exists.
+//
+// Frappe's Display item is hidden HERE rather than above, keyed on ownership of
+// `appearance` rather than of `user`: our dialog is what replaces it, so the
+// stamp has to follow the dialog's reachability and not the avatar's. Stamped
+// from a DOM query after the seeded item is found — never from the mere fact
+// that `bunood.appearance` was defined, which is a declaration and exactly what
+// the ownership rule forbids.
+html[data-bnd-own~="appearance"] .frappe-menu.context-menu {
+  .dropdown-menu-item:has(use[href="#icon-monitor"]) {
+    display: none;
+  }
+}
+
 // ── Skip link (34a) ─────────────────────────────────────────────────────────
 // Invisible until focused — the standard clip pattern, then a pill above every
 // piece of chrome. Never display:none: a hidden control cannot receive the

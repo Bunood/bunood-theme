@@ -1188,8 +1188,52 @@ entry.
     failures across five unrelated kits were the only signal, and they read like five
     bugs. **A parse check proves syntax, not extent**; a payload bucket that unexpectedly
     shrinks is the other tell, and it had masked the feature's real growth.
-- `[ ]` **38 · Per-user preferences** *(was 31)* — via `User.desk_theme`, never a parallel
-  localStorage
+- `[x]` **38 · Per-user preferences** *(was 31, done 2026-08-29)* — the last of the 38, and
+  **not greenfield**: four per-user stores had accumulated in `frappe.defaults` (density,
+  a side-pane look, palette frecency, dismissed alerts), each added by whichever item
+  needed one, with four ad-hoc validators and no statement anywhere of what may be
+  personal. The user-facing surface was five avatar-menu entries wired to three
+  mechanisms. **Nothing per-user had ever been verified as a second user** — the suite
+  runs as Administrator, which is exactly the vantage point that hid item 37's dead
+  personalize menu for a whole release.
+
+  **The picks** (the user's, 2026-08-28/29): the whole desk is personal but **not
+  colours** · the **desk shape is fully personal** at named-layout grain (an override of
+  the recommendation — no surveyed product does this) · **one Appearance dialog** ·
+  **names only**, never option-level knobs · **per-axis admin locks**, with
+  `personal_shape` shipping CLOSED and reduce-motion never lockable · separate
+  `frappe.defaults` keys · locked axes **shown disabled with the reason**, not hidden ·
+  the existing `bnd_sidebar_preset` **left alone**, with the whole-desk look as a new key
+  beside it.
+
+  **The measurement that overturned a decision.** `ARCHITECTURE.md` §3 had said since
+  2026-07-29 that `User.desk_theme = "Automatic"` normalises after one load, and the plan
+  was approved with a slice to repair it. It does not reproduce: `switch_theme`
+  (`user.py:1458`) is the only writer, is click-only, and writes verbatim. Measured over
+  three desk loads — the field stayed `Automatic` and `User.modified` never moved. The
+  wrong claim almost certainly came from sampling the **attribute** `data-theme`, which
+  correctly does resolve to a concrete value, and reporting it as the **field**. Nothing
+  contradicted it for a month because every account on the dev site reads `Light`: the
+  branch had never been exercised. The repair was dropped, the document corrected, and
+  the mode axis is a pass-through to Frappe's own endpoint — which is what the roadmap
+  line asked for in the first place.
+
+  **What the item leaves.** `bunood_theme/personal.py` is the one table: every
+  `frappe.defaults` key with its lock, its boot key and what empty means, plus the field
+  partition (**look 85 / shape 8 / off-desk 22 / site-only 9 = 124**), derived from the
+  catalogue and never listed. Two guards hold it — `build.mjs::assertPersonalAxes`
+  (bidirectional, and it refuses `set_default` without `parent=`, which writes the global
+  row every account inherits) and `contrast_gate::check_personal_partition`. The boot
+  resolve moved into **fieldname space before composition**, which deleted the
+  eighteen-entry `key_map` and fixed a defect the old shape guaranteed:
+  `_apply_icon_inference` consumes a LOOK field server-side and ran *before* the old
+  post-hoc overlay.
+
+  **Not delivered, and why.** `bnd_sb_open` — remembering which side-pane sections a
+  person left open — is specified and not shipped. It needs Frappe's own expanded/
+  collapsed contract measured, and this repo's rule is that a native contract is measured
+  before it is depended on. `sidebar_remember_sections` therefore remains what it has
+  been since v0.6.0: a field written by all eight sidebar presets and read by nothing.
 
 ---
 

@@ -40,6 +40,18 @@ import { extractCatalogue, readExempt, readInherited, readTranslations } from ".
 // `fixturesReady` is the same predicate the tool's own exit code uses, so the
 // suite and the tool cannot disagree about what "ready" means.
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalFixtureStatus } from "../tools/portal-fixtures.mjs";
+// Item 38's checks need a SECOND desk account, because every per-user preference
+// this theme ships has only ever been observed as Administrator — the vantage
+// point that hid item 37's dead personalize menu for a whole release. Same
+// contract as the portal fixture: the facts about the account live with the tool
+// that makes it, and `fixtureReady` is the predicate its own exit code uses.
+import {
+	FIXTURE as DESK_FIXTURE,
+	clearPersonal,
+	fixtureReady as deskFixtureReady,
+	personalRows,
+	status as deskFixtureStatus,
+} from "../tools/desk-fixture.mjs";
 
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 const SITE = process.env.BND_SITE || "demo.bunood.test";
@@ -840,6 +852,7 @@ async function withGuest(route, waitSel, fn, opts = {}) {
  * run that touches no portal check pays nothing.
  */
 let _portalSid = null;
+let _deskSid = null;
 
 /**
  * Run `fn(portalPage, portalErrors)` against a route as the PORTAL FIXTURE USER,
@@ -881,6 +894,120 @@ let _portalSid = null;
  *   never uses. Turn it on for the checks that follow a settings write, where the
  *   cache would otherwise serve the value from before the write.
  */
+/**
+ * A desk page as a SECOND, ordinary person — item 38.
+ *
+ * The same shape as `withPortalUser` and for the mirror-image reason: that one
+ * mints a Website User because a System User would be redirected away from the
+ * portal; this one mints a System User because a Website User cannot reach the
+ * desk at all. Neither can be substituted for the other.
+ *
+ * WHY THE READINESS SELECTOR IS A PARAMETER WITH NO DEFAULT. `goDesk` waits on
+ * `.body-sidebar-container`, and the Dock shape does not mount one
+ * (`sidepane: 0`). A shape check driven with that default would spend 30s timing
+ * out before asserting anything, and the failure would name the selector rather
+ * than the shape. Callers pass what THEIR shape actually renders.
+ *
+ * The sid is cached at module level like the portal one: minting is a server
+ * round trip and the account does not change between checks.
+ */
+async function withDeskUser(route, waitSel, fn, opts = {}) {
+	const { width = 1440, height = 900, lang = null, colorScheme = null } = opts;
+	if (!_deskSid) _deskSid = mintSid(DESK_FIXTURE.user);
+	const ctx = await browser.newContext({
+		viewport: { width, height },
+		...(colorScheme ? { colorScheme } : {}),
+	});
+	const domain = new URL(URL_BASE).hostname;
+	await ctx.addCookies([
+		{ name: "sid", value: _deskSid, domain, path: "/" },
+		...(lang ? [{ name: "preferred_language", value: lang, domain, path: "/" }] : []),
+	]);
+	const dp = await ctx.newPage();
+	const errs = [];
+	dp.on("console", (m) => {
+		if (m.type() === "error") {
+			const loc = m.location();
+			errs.push(`${m.text()} [${loc && loc.url ? loc.url : "?"}]`);
+		}
+	});
+	dp.on("pageerror", (e) => errs.push("pageerror: " + e.message));
+	try {
+		// The same single retry goDesk, withGuest and withPortalUser carry.
+		try {
+			await dp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+		} catch (first) {
+			await dp.waitForTimeout(4000);
+			await dp.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+		}
+		if (waitSel) await dp.waitForSelector(waitSel, { timeout: 30000 });
+		return await fn(dp, errs);
+	} finally {
+		await ctx.close();
+	}
+}
+
+/**
+ * Write per-user preferences for one account, and put them back afterwards.
+ *
+ * NOTHING ELSE RESTORES THESE. `setSettings` guards on `MUTABLE_FIELDS`, which
+ * is a list of Theme Settings fields and is structurally blind to
+ * `tabDefaultValue`; the `site data:` preamble reads six branding VALUES and can
+ * never match a stored preference either. A check that writes one and dies
+ * before its `finally` leaves that account re-skinned across a hundred style
+ * values for every check that follows, and the failures read as a dozen
+ * unrelated kit bugs.
+ *
+ * THE PARENT IS ALWAYS EXPLICIT. `benchPy` runs as Administrator, so a bare
+ * `set_user_default` would write the wrong person's row — and a bare
+ * `set_default` would write `__default`, which every account inherits including
+ * Guest. Both spellings are refused by `build.mjs`'s personal-axes guard; this
+ * helper is the only writer the suite needs.
+ */
+async function withPersonal(user, values, fn) {
+	const keys = Object.keys(values);
+	const py = (pairs) =>
+		`U = ${JSON.stringify(user)}\n` +
+		pairs
+			.map(([k, v]) =>
+				v
+					? `frappe.defaults.set_default(${JSON.stringify(k)}, ${JSON.stringify(v)}, parent=U)\n`
+					: `frappe.defaults.clear_default(${JSON.stringify(k)}, parent=U)\n`
+			)
+			.join("") +
+		`frappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\nfrappe.db.commit()\n`;
+
+	const before = JSON.parse(
+		benchPy(
+			`U = ${JSON.stringify(user)}\n` +
+				`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k) or "") for k in ${JSON.stringify(keys)}}))\n`
+		).split("BND")[1].trim()
+	);
+	benchPy(py(Object.entries(values)));
+	try {
+		return await fn();
+	} finally {
+		benchPy(py(Object.entries(before)));
+		// READ BACK. A restore that silently failed is worse than none, because
+		// every later check then measures a desk nobody configured.
+		const after = JSON.parse(
+			benchPy(
+				`U = ${JSON.stringify(user)}\n` +
+					`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k) or "") for k in ${JSON.stringify(keys)}}))\n`
+			).split("BND")[1].trim()
+		);
+		for (const k of keys) {
+			if (after[k] !== before[k]) {
+				console.error(
+					`\n!! PERSONAL RESTORE FAILED for ${user}: ${k} is ${JSON.stringify(after[k])} ` +
+						`and should be ${JSON.stringify(before[k])}. ` +
+						"Fix by hand: node tools/desk-fixture.mjs --clean\n"
+				);
+			}
+		}
+	}
+}
+
 async function withPortalUser(route, waitSel, fn, opts = {}) {
 	const { width = 1440, height = 900, lang = null, colorScheme = null, bust = false } = opts;
 	if (!_portalSid) _portalSid = mintSid(PORTAL_FIXTURE.user);
@@ -16389,6 +16516,290 @@ async function main() {
 				const r = ratio(pair.fg, pair.bg);
 				expect(r >= 4.5, `${name}: ${pair.fg} on ${pair.bg} = ${r.toFixed(2)}:1 — below AA on a printed invoice`);
 			}
+		});
+
+		// ── Per-user preferences (item 38) ─────────────────────────────────
+		// The first checks in this suite that drive a SECOND account. Every
+		// per-user preference this theme ships has only ever been observed as
+		// Administrator, which is the vantage point that hid item 37's dead
+		// personalize menu for an entire release — three review dimensions found
+		// it by reasoning, and no test could.
+
+		await test("personal: the desk fixture is present and is an ordinary employee", async () => {
+			// Fails loudly rather than skipping, the contract portal-fixtures set:
+			// a per-user suite that skips on a site with no second user goes green
+			// against exactly the emptiness it exists to end.
+			const state = deskFixtureStatus();
+			expect(
+				deskFixtureReady(state),
+				"desk fixture missing — run `node tools/desk-fixture.mjs --create`. " +
+					`Got ${JSON.stringify(state)}`
+			);
+			// Named separately because the two halves fail differently. A Website
+			// User cannot load the desk at all; a System Manager loads it through
+			// every role-gated branch and would quietly re-measure the
+			// Administrator's view.
+			expectEq(state.user_type, "System User", "the fixture can reach the desk");
+			expectEq(
+				JSON.stringify(state.roles),
+				JSON.stringify([DESK_FIXTURE.role]),
+				"and holds exactly the one desk role, so it stands in for an employee"
+			);
+		});
+
+		await test("personal: no stored preference survives from an earlier run", async () => {
+			// The hygiene arm. `setSettings` guards on MUTABLE_FIELDS and is
+			// structurally blind to tabDefaultValue; the `site data:` preamble
+			// matches branding VALUES and can never match one of these. So a run
+			// that died mid-check leaves an account re-skinned across ~100 style
+			// values, and every later check measures a desk nobody configured.
+			const rows = personalRows();
+			expectEq(
+				rows.length,
+				0,
+				`per-user preferences left over from an earlier run: ${JSON.stringify(rows)} — ` +
+					"clear with `node tools/desk-fixture.mjs --clean`"
+			);
+		});
+
+		await test("personal: Automatic survives a desk load", async () => {
+			// THE BRANCH NOBODY HAD EVER RUN. ARCHITECTURE §3 claimed from
+			// 2026-07-29 that `User.desk_theme = "Automatic"` normalises to Light
+			// or Dark after one load, and cited an empirical check; item 38 was
+			// planned with a slice to repair it. It does not reproduce. Nothing
+			// contradicted the claim for a month because every account on this
+			// site reads "Light", so the branch was never exercised.
+			//
+			// THE FIELD, NOT THE ATTRIBUTE, and the distinction is the whole
+			// point: `data-theme` genuinely does resolve to a concrete value —
+			// that is how "follow the OS" becomes a colour — while
+			// `data-theme-mode` and the stored field stay "automatic". A check
+			// that sampled the attribute would reproduce the original mistake.
+			const U = DESK_FIXTURE.user;
+			const read = () =>
+				benchPy(
+					`print("BND" + json.dumps(frappe.db.get_value("User", ${JSON.stringify(U)}, ` +
+						`["desk_theme", "modified"], as_dict=True), default=str))\n`
+				).split("BND")[1].trim();
+			const original = JSON.parse(read());
+			benchPy(
+				`frappe.db.set_value("User", ${JSON.stringify(U)}, "desk_theme", "Automatic")\n` +
+					`frappe.cache.hdel("bootinfo", ${JSON.stringify(U)})\n` +
+					`frappe.clear_cache(user=${JSON.stringify(U)})\nfrappe.db.commit()\n`
+			);
+			// THE BASELINE IS READ AFTER OUR OWN WRITE, not before it. `set_value`
+			// bumps `modified`, so a baseline taken first would compare the row
+			// against a state this check itself left behind and fail every time —
+			// which is exactly what the first draft did.
+			const before = JSON.parse(read());
+			try {
+				const seen = await withDeskUser("/app", ".body-sidebar-container", async (dp) => {
+					await dp.waitForTimeout(1200);
+					return dp.evaluate(() => ({
+						attr: document.documentElement.getAttribute("data-theme"),
+						mode: document.documentElement.getAttribute("data-theme-mode"),
+					}));
+				});
+				const after = JSON.parse(read());
+				expectEq(after.desk_theme, "Automatic", "the stored intent survives the load");
+				// And the load did not touch the row at all. This is the arm that
+				// would catch a future upstream change re-introducing a
+				// resolve-then-persist: the value could come back "Automatic" by
+				// coincidence on a light OS while the row was still being rewritten
+				// on every single desk load.
+				expectEq(
+					String(after.modified),
+					String(before.modified),
+					"a desk load must not write the User row"
+				);
+				expectEq(seen.mode, "automatic", "and data-theme-mode still says automatic");
+				expect(
+					["light", "dark"].includes(seen.attr),
+					`while data-theme resolves to a concrete value (got ${seen.attr})`
+				);
+			} finally {
+				benchPy(
+					`frappe.db.set_value("User", ${JSON.stringify(U)}, "desk_theme", ` +
+						`${JSON.stringify(original.desk_theme || "Light")})\n` +
+						`frappe.cache.hdel("bootinfo", ${JSON.stringify(U)})\n` +
+						`frappe.clear_cache(user=${JSON.stringify(U)})\nfrappe.db.commit()\n`
+				);
+			}
+		});
+
+		await test("personal: a look applies to this user and not to the Administrator", async () => {
+			// THE CHECK THAT HAS NEVER EXISTED. Every per-user preference here has
+			// only been observed as Administrator, so cross-user leakage — the
+			// failure ARCHITECTURE §4 names by name — had nothing looking for it.
+			//
+			// IT READS APPLIED VALUES, NOT THE STORED NAME. Boot echoes the chosen
+			// name outside the guard that decides whether anything applies, so a
+			// check that read the name would go green over a fully inert overlay,
+			// which is item 37's lesson one layer down.
+			const boot = (user) =>
+				JSON.parse(
+					benchPy(
+						`import frappe.sessions\n` +
+							`U = ${JSON.stringify(user)}\n` +
+							`frappe.set_user(U)\nfrappe.cache.hdel("bootinfo", U)\n` +
+							`frappe.local.request = frappe._dict(path='/app', method='GET', remote_addr='127.0.0.1', ` +
+							`cookies=frappe._dict(), headers=frappe._dict(), environ=frappe._dict())\n` +
+							`b = frappe.sessions.get()\n` +
+							`print("BND" + json.dumps({"list": b["bnd_list"], "form": b["bnd_form"], ` +
+							`"sb": b["bnd_sidebar"]["color"], "shape": b["bnd_desk_shape"]}))\n`
+					).split("BND")[1].trim()
+				);
+			const adminBefore = boot("Administrator");
+			await withPersonal(DESK_FIXTURE.user, { bnd_look: "Canvas" }, async () => {
+				const mine = boot(DESK_FIXTURE.user);
+				const admin = boot("Administrator");
+				// EQUALITY, not "differs": the Administrator must equal the values
+				// recorded before the write, so a check cannot pass because both
+				// sides moved.
+				expectEq(
+					JSON.stringify(admin),
+					JSON.stringify(adminBefore),
+					"the Administrator's desk is untouched by somebody else's choice"
+				);
+				// And the fixture got the whole look, computed server-side rather
+				// than restated here.
+				const want = JSON.parse(
+					benchPy(
+						"from bunood_theme.presets import theme_settings\n" +
+							"c = theme_settings('Canvas')\n" +
+							"print('BND' + json.dumps({'list_style': c['list_style'], 'form_style': c['form_style']}))\n"
+					).split("BND")[1].trim()
+				);
+				expectEq(mine.list.list_style, want.list_style, "the fixture's list style is Canvas's");
+				expectEq(mine.form.form_style, want.form_style, "and so is the form style");
+				expect(
+					mine.list.list_style !== admin.list.list_style,
+					"and the two accounts genuinely differ"
+				);
+			});
+			expectEq(
+				JSON.stringify(boot(DESK_FIXTURE.user)),
+				JSON.stringify(adminBefore),
+				"and clearing the preference puts the fixture back on the site's values"
+			);
+		});
+
+		await test("personal: a locked axis refuses a direct write and stops applying", async () => {
+			// The endpoints are @frappe.whitelist(), so "the control is disabled in
+			// the dialog" was never the mechanism. Driven as the fixture user, over
+			// the wire, which is the only way this is worth asserting.
+			const asFixture = (code) =>
+				benchPy(`frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` + code);
+			await withPersonal(DESK_FIXTURE.user, { bnd_look: "Focus" }, async () => {
+				setSettings({ personal_look: 0 });
+				try {
+					const locked = JSON.parse(
+						asFixture(
+							"from bunood_theme.api import set_personal\n" +
+								"import frappe.sessions\n" +
+								"out = {}\n" +
+								"try:\n" +
+								"    set_personal({'bnd_look': 'Canvas'})\n" +
+								"    out['wrote'] = 1\n" +
+								"except Exception as e:\n" +
+								"    out['refused'] = str(e)[:60]\n" +
+								"frappe.cache.hdel('bootinfo', frappe.session.user)\n" +
+								"frappe.local.request = frappe._dict(path='/app', method='GET', remote_addr='127.0.0.1', " +
+								"cookies=frappe._dict(), headers=frappe._dict(), environ=frappe._dict())\n" +
+								"out['applied'] = frappe.sessions.get()['bnd_list']['list_style']\n" +
+								"out['stored'] = frappe.defaults.get_user_default('bnd_look') or ''\n" +
+								"print('BND' + json.dumps(out))\n"
+						).split("BND")[1].trim()
+					);
+					expect(!locked.wrote, `a locked axis accepted a write: ${JSON.stringify(locked)}`);
+					expect(locked.refused, "and said why");
+					// The stored value is deliberately KEPT, so unlocking restores
+					// what the person had rather than making everyone choose again.
+					expectEq(locked.stored, "Focus", "the stored choice survives the lock");
+					// And it genuinely stopped applying while locked.
+					const site = getSettings(["list_style"]).list_style;
+					expectEq(locked.applied, site, "a locked look stops applying");
+				} finally {
+					setSettings({ personal_look: 1 });
+				}
+			});
+		});
+
+		await test("personal: nothing per-user reaches a cacheable route", async () => {
+			// Constraint 4, asserted rather than asserted-about. Frappe's website
+			// HTML cache is keyed on (path, lang) and nothing else, so a per-user
+			// value that reached one of these would be served to the next visitor.
+			// The bare site root is included because item 32 missed exactly that
+			// address: a guest at "/" is served the sign-in template and the path
+			// is "".
+			await withPersonal(DESK_FIXTURE.user, { bnd_look: "Carbon", bnd_density: "Compact" }, async () => {
+				for (const route of ["/login", "/"]) {
+					const html = await fetchText(route);
+					expect(!/bnd_personal/.test(html), `${route} carries no personal payload`);
+					expect(!/data-bnd-density/.test(html), `${route} carries no personal density`);
+					expect(
+						!new RegExp(DESK_FIXTURE.user.replace(/[.@+]/g, "\\$&")).test(html),
+						`${route} does not name the fixture user`
+					);
+				}
+			});
+		});
+
+		await test("personal: reduce motion zeroes the duration tokens, and only reduces", async () => {
+			// VACUOUS WITHOUT EXPLICIT EMULATION. This browser reports
+			// prefers-reduced-motion: reduce as its ambient default, so every
+			// duration token is already 0s with the feature absent — the arm that
+			// can actually fail is the no-preference one. The finally restores the
+			// AMBIENT default, never `false`, or every later check runs under a
+			// media state the suite never had.
+			const durs = () =>
+				page.evaluate(() =>
+					["fast", "base", "slow", "loop"].map((k) =>
+						getComputedStyle(document.documentElement).getPropertyValue("--bnd-dur-" + k).trim()
+					)
+				);
+			try {
+				await page.emulateMedia({ reducedMotion: "no-preference" });
+				await page.evaluate(() => document.documentElement.removeAttribute("data-bnd-motion"));
+				const free = await durs();
+				expect(free.some((d) => d && !/^0m?s$/.test(d)), `unset under no-preference is animated (${free})`);
+				await page.evaluate(() =>
+					document.documentElement.setAttribute("data-bnd-motion", "reduce")
+				);
+				const reduced = await durs();
+				expect(reduced.every((d) => /^0m?s$/.test(d)), `Reduced zeroes every token (${reduced})`);
+				// And the OS still wins on its own — there is no pole that turns
+				// motion back on over an accessibility request.
+				await page.emulateMedia({ reducedMotion: "reduce" });
+				await page.evaluate(() => document.documentElement.removeAttribute("data-bnd-motion"));
+				const os = await durs();
+				expect(os.every((d) => /^0m?s$/.test(d)), `the OS alone still zeroes them (${os})`);
+			} finally {
+				await page.emulateMedia({ reducedMotion: null });
+				await page.evaluate(() => document.documentElement.removeAttribute("data-bnd-motion"));
+			}
+		});
+
+		await test("personal: the landing route refuses anything off the list", async () => {
+			// The rejection is the check. Reading the offered list would test the
+			// code that is supposed to be doing the validating.
+			const out = JSON.parse(
+				benchPy(
+					`frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` +
+						"from bunood_theme.api import set_personal\n" +
+						"res = {}\n" +
+						"try:\n" +
+						"    set_personal({'bnd_home': '../../etc/passwd'})\n" +
+						"    res['wrote'] = 1\n" +
+						"except Exception as e:\n" +
+						"    res['refused'] = str(e)[:60]\n" +
+						"res['stored'] = frappe.defaults.get_user_default('bnd_home') or ''\n" +
+						"print('BND' + json.dumps(res))\n"
+				).split("BND")[1].trim()
+			);
+			expect(!out.wrote, "an off-list route was accepted");
+			expect(out.refused, "and the refusal says why");
+			expectEq(out.stored, "", "and nothing was stored");
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

@@ -51,6 +51,10 @@ bunood_theme.patches.v0_37_0.migrate_user_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_desk_layout
 
+# Item 38: the Appearance dialog subsumes the density menu row. Must land with
+# the seeder rename, or after_migrate re-creates it.
+bunood_theme.patches.v0_38_0.drop_density_navbar_item
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

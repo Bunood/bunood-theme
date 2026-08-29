@@ -22,9 +22,84 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased]
+## [Unreleased] — Per-user preferences (item 38)
 
-(nothing yet)
+The last of the 38, and the one that was already half-built without anyone
+designing it. Four per-user stores had accumulated in `frappe.defaults` — a
+density override (item 4), a side-pane look (v0.6.0), the palette's ranking
+(item 12), dismissed alerts (item 13) — each with its own validator and its own
+cache drop, and nothing anywhere saying what may be personal. The surface was
+five avatar-menu entries wired to three mechanisms, with no way to put any of
+them back.
+
+### Added
+
+- **`bunood_theme/personal.py` — the one table.** Every `frappe.defaults` key
+  this app writes, with its lock, its boot key and what empty means; the per-user
+  state that is real but is Frappe's (`User.desk_theme`, `__UserSettings`), so
+  the map is complete; and the field partition — **look 85 / shape 8 / off-desk
+  22 / site-only 9 = 124** — derived from the catalogue, never listed.
+- **A whole-desk personal look** (`bnd_look`) and a **personal desk shape**
+  (`bnd_shape`), both stored as NAMES. Storing a name rather than 124 values is
+  what lets a look be improved later without migrating everyone who chose it.
+- **The Appearance dialog**, replacing the five scattered entries. Live preview
+  on click, abandonable — closing without saving puts back exactly what was
+  there — and every axis carries a named "Follow the site (Focus)" row rather
+  than a separate reset button, which is the shape Discourse and Directus both
+  give inherit.
+- **Three administrator locks.** `personal_look` and `personal_comfort` ship
+  OPEN because both already have live users and a locked default would silently
+  withdraw a working feature on upgrade; `personal_shape` ships CLOSED because it
+  is new and is the only axis that invalidates written instructions. A locked
+  axis is shown **disabled with the reason**, never hidden.
+- **Reduced motion** as a per-user axis, with **no lock, ever**. Motion had been
+  governed only by `prefers-reduced-motion`, so somebody on a locked-down desktop
+  had no way to calm the interface. One pole: a person may always reduce and may
+  never force motion back on over an accessibility request.
+- **A personal landing workspace**, chosen from a permission-checked list and
+  applied only at the bare desk root — a requested route always wins.
+- **A second desk account for the suite** (`tools/desk-fixture.mjs`), and the
+  first checks that drive one.
+
+### Fixed
+
+- **`ARCHITECTURE.md` §3 was wrong about "Automatic", and the plan was built on
+  it.** The document claimed since 2026-07-29 that `User.desk_theme = "Automatic"`
+  normalises to Light or Dark after one load, citing an empirical check, and item
+  38 was approved with a slice to repair it. Re-measured on v16.27.0: the field
+  survives three desk loads unchanged and `User.modified` never moves.
+  `switch_theme` is the only writer, is click-only, and writes verbatim. The
+  likely origin is that two things here have almost one name — the FIELD stores
+  the intent, the ATTRIBUTE stores today's answer, and `data-theme` genuinely does
+  read back `light`. Nothing contradicted it for a month because every account on
+  the dev site reads `Light`.
+- **A personal look could never have changed the icons.** `_apply_icon_inference`
+  consumes `icon_source` and bakes glyphs into the boot payload server-side, well
+  before the point the old per-user overlay ran. Moving the resolve into fieldname
+  space *before* composition fixes it by construction.
+
+### Internal
+
+- The boot resolve moved to the top of `extend_bootinfo`, over a **copy** of the
+  cached settings doc — `get_cached_doc` hands back a shared object, and
+  overlaying one person's look onto it would leak into every later consumer in
+  that process. This deleted the eighteen-entry `key_map` the sidebar override
+  needed.
+- `presets.look_of` joins `layout_of`: which named look a set of values spells,
+  over the look fields only, so a desk on Focus with its own shape still reads
+  Focus.
+- `api.get_personal_presets` is **ungated**, and item 38 makes that doctrine: an
+  endpoint reachable from a per-user surface may not carry a role gate, and its
+  check must run as the fixture user.
+- `js_gzip` raised 93,900 → 98,200 for the dialog.
+
+### Not delivered
+
+- **Remembering which side-pane sections a person left open.** It needs Frappe's
+  own expanded/collapsed contract measured, and a guessed selector would be the
+  "green tests that assert existence" trap with a storage key attached.
+  `sidebar_remember_sections` therefore stays what it has been since v0.6.0: a
+  field written by all eight sidebar presets and read by nothing.
 
 ## [0.37.1] — 2026-08-28 — The vendor mark follows the recalibrated seed
 
