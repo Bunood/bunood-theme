@@ -22,6 +22,107 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — The side pane, rebuilt (item 40) · colour phase
+
+**In flight.** The pane's rebuild is thirteen slices; this is the colour one, and it is
+listed now because it changes what a desk paints. The runtime rebuild — ownership, one
+mount lifecycle, the Place row, sections, the list features, drag-to-resize, the account
+band — has not started.
+
+The pane (item 10's sidebar kit) was built before the doctrine that now governs every
+other surface and amended by six later items without ever being re-designed. Its palette
+was 78% hand-authored hex: 77 declarations across six colour-mode blocks, 60 of them
+literal, of which six moved with the seed and two with the ground. **Minimal was 0 of 14
+seed-dependent in both themes** — the same pane on every site in the world.
+
+### Fixed
+
+- **The `automatic` theme was a curated subset, and 30 tokens were missing.**
+  `html[data-theme="automatic"]` hand-listed 25 of the dark set's 55. Measured against the
+  compiled sheet: all seven category hues plus tint and wash, `critical`/`good`/`serious`/
+  `warn`, all twelve status colours, both scrims and all three shadows resolved **light**
+  on a dark OS. `data-theme` is literally `"automatic"` until our JS runs, so this is the
+  whole first-paint window on every page load — the window skeletons paint in. Replaced
+  with `@include dark`, after verifying a pure superset: of the 25 tokens both blocks
+  declared, zero differed.
+- **The side pane had no `automatic` arm at all.** Verified absent in the compiled bundle,
+  not inferred. Minimal rendered a `#fafbfa` pane beside a `#131a1a` page; Match Theme's
+  seven hues measured **1.79–2.79:1** against a 4.5 floor, worst case hue 7 at 1.79.
+- **The guard over that had been inert since item 32.** `assertAutomaticParity` covered
+  chart-series tokens only *and* compared an empty set, because the block it read contains
+  only `@include dark` and the reader never expanded it. Proven by gutting the automatic
+  block and watching the build stay green. Now generalised to every token, accepting
+  parity-by-construction, and joined by `assertAutomaticArms`: every compiled
+  `[data-theme="dark"]` selector must have an `automatic` twin inside a prefers-dark block.
+- **Dark Minimal declared 12 of its 14 tokens.** `--bnd-sb-chip-bg` and `--bnd-sb-chip-ink`
+  fell through to the *light* block — `transparent` and `#6d7570` on a `#15181a` pane,
+  **3.76:1**, on three of the twelve shipped looks. The file's own header said "Each mode
+  sets the full set" two lines above the block that did not.
+- **`contrast.parse_color` could composite `transparent` but not read it**, and guessed at
+  `currentColor`. Both now explicit: `transparent` parses, `currentColor` raises with what
+  to do instead.
+- **`ground_color` was a brand input the brand-input list did not name.** The suite writes
+  settings with `set_single_value`, which does not fire `on_update`, so its restore
+  regenerated the stylesheet only for the fields in `BRAND_INPUTS` — a test's ground would
+  have survived the database restore.
+
+### Changed
+
+- **The pane's palette is derived, not hand-copied.** `tools/contrast_gate.py` held its own
+  copy of fourteen fitted hexes and four pane expressions, with a comment instructing a
+  human to keep them in step and nothing that checked. They now come from
+  `palette.sb_hues()` and `palette.sb_pane_css()`. All fourteen hues return byte-identical
+  and unadjusted, so this is zero pixels and zero bytes.
+- **`SB_PANES` states each colour mode's recipe once**, grouped by **polarity, not desk
+  mode** — Dark Contrast is dark in both themes, and including it in the light walk drags
+  the light binding pane from `#ebebeb` to `#111713` and moves all seven light hues, which
+  `fit_ink` cannot catch because its bisection is only valid on one side of the ink.
+- **Minimal is tinted by the ground, never the brand, at 5% in dark and 0% in light.**
+  `ground or brand` is bit-identical on sixteen of the seventeen shipped palettes; the
+  seventeenth is Bunood, which `presets.py` hands to **Quiet** — the look whose own
+  preamble calls it "the honest stand-down". Light ships at 0% because its muted ink sits
+  at **4.57:1 against a 4.5 floor** and crosses at **1.36%** of the worst shipped ground,
+  and because it would buy nothing: at 3% all six grounds mix to the same hex.
+- **A ground-tinted pane now reaches the site.** No static rule can name the ground — there
+  is no `--bnd-ground` token, because it is an input to `palette.derive` and not an output
+  — so `brand.py` emits it, at matching (0,2,1) specificity with the `automatic` twin, and
+  the bundle's block stays as the fallback floor. A tenant with no ground gets no block and
+  a byte-identical sheet.
+
+### Added
+
+- **Six guards, each watched failing before it was trusted.**
+  `check_sidebar_agrees` (the stylesheet declares what the ramp derives, and the dark arms
+  reduce to their mixins) · `_coverage` (every mode declares the whole working set, nothing
+  stray) · `_binding` (every mode the stylesheet offers is a pane some hue was fitted
+  against, both directions) · `_headroom` (a pane that moves must not take its own ink
+  below the floor) · `_emission` (the per-site block beats the bundle on specificity, has
+  its twin, stands down when there is no ground, and carries the derived value) ·
+  `--check-sidebar` (the pane's own tokens read out of a browser, for **all four** colour
+  modes rather than whichever one the desk happened to be in — 114 tokens, with a floor so
+  it cannot pass by measuring none).
+- **The gate had no chip row and no row for the pane's own text.** Fourteen decorative
+  category marks were gated; the workspace links were not. Both now measured on the pane
+  they are painted on, which is why `Pair` grew `overlay` — `resolve` flattens a
+  translucent colour over `--bnd-surface`, and that is `#ffffff` where the pane is
+  `#15181a`.
+- **`tools/sabotage_sidebar.py`** — the failing-first step, made repeatable. Sixteen cases
+  across two targets, each naming the guard that OWNS it; a mutation that fails to change
+  its file is reported as a MISS, never a pass; it refuses to run over a dirty tree. It has
+  already earned its place three times: it proved `check_sidebar_coverage` could **not**
+  catch the dark-Minimal chip defect it was written believing it caught, it caught a
+  specificity comparison that derived its target from the selector it was judging, and its
+  rot detector fired the moment a new field on `SidebarPane` made a case stop matching.
+
+### Known, and filed rather than fixed
+
+- `a11y: axe over the Desk` records node **counts** for a page whose content tracks
+  Frappe's onboarding completion percentage, so it goes red for reasons that are never
+  ours. Not regenerated — that would launder a real signal.
+- `tools/sweep-settings.mjs` leaves eleven `print_*` fields off their shipped defaults
+  while printing "state restored", which turns four unrelated checks red with no
+  indication of the cause.
+
 ## [Unreleased] — Per-user preferences (item 38)
 
 The last of the 38, and the one that was already half-built without anyone

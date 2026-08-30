@@ -1235,6 +1235,68 @@ entry.
   before it is depended on. `sidebar_remember_sections` therefore remains what it has
   been since v0.6.0: a field written by all eight sidebar presets and read by nothing.
 
+### Beyond the 38 — the numbering gap, and what is in flight
+
+**39 is spent.** `v0.39.0` and `v0.39.1` name the Report Studio and ZATCA Phase-1 work
+preserved on `studio-zatca`, which is not on this line. MINOR = the roadmap item number
+still holds, so the next item is **40**, and the roadmap gains one documented gap rather
+than a version number that would describe two different things.
+
+- `[ ]` **40 · The side pane, rebuilt** *(new, in flight since 2026-08-28)* — the pane
+  (item 10's sidebar kit) was built before the doctrine that now governs every other
+  surface, and amended by six later items without ever being re-designed. It renders our
+  chrome *and* Frappe's underneath it in some configurations; several shipped options
+  render nothing at all; the module row contradicts its own docstring; and a shipped Check
+  has no consumer anywhere in the app. A full redo, not a repair pass.
+
+  **The round, drawn:** [Side Pane Catalogue](https://claude.ai/code/artifact/3fc72a5f-7485-4093-a6d6-4191b11fca52)
+  (nineteen defects with line numbers, today's pane annotated, ten finished panes at true
+  relative widths, the placement system, the account band, and the field survey over 27
+  apps and 10 design systems) · [Tinting Minimal](https://claude.ai/code/artifact/46e3f9d9-efd5-4ec7-825c-e49d56e5c938)
+  (the colour decision, every swatch a real `palette.derive` output).
+
+  **The user's picks:** free-pixel drag-to-resize, as in VS Code, overruling the design
+  round's detented edge · `sidebar_menu_rail` drops to **Expanded / Rail** · the pane's
+  colour is **derived and emitted per site**, not staged · Minimal is tinted by the
+  **ground, never the brand**, at **5% in dark and 0% in light**.
+
+  **The colour phase is done and is what has landed so far.** It found three defects that
+  were already shipping, one of them global:
+
+  - **The `automatic` theme was a curated subset of 25 of the dark set's 55 tokens**, and
+    30 were missing — all seven category hues, all twelve status colours, both scrims, all
+    three shadows. On a dark OS they resolved LIGHT for the whole first-paint window. The
+    side pane had no `automatic` arm at all, so Minimal painted a `#fafbfa` pane beside a
+    `#131a1a` page and Match Theme's seven hues measured 1.79–2.79:1 against a 4.5 floor.
+  - **The guard over it had been inert since item 32.** `assertAutomaticParity` compared
+    an empty set, because the block it read contained only `@include dark`. Proven by
+    gutting the block and watching the build stay green.
+  - **Dark Minimal declared 12 of its 14 tokens**, so the chip's ink fell through to the
+    light block: `#6d7570` on `#15181a`, 3.76:1, on three of the twelve shipped looks.
+
+  **What the colour phase leaves.** The pane's palette is derived rather than
+  hand-authored: `palette.sb_hues` replaces fourteen hexes the gate hand-copied with no
+  drift check, and `SB_PANES` states each mode's recipe once. Five guards hold it —
+  `check_sidebar_agrees`, `_coverage`, `_binding`, `_headroom` and `_emission` — plus
+  `--check-sidebar`, which reads the pane's own tokens out of a browser for **all four**
+  colour modes rather than whichever one the desk happened to be in.
+  `tools/sabotage_sidebar.py` is the failing-first harness: sixteen cases across two
+  targets, each naming the guard that owns it.
+
+  **The measurement that overturned the plan's own premise.** "8% collapses Minimal into
+  Match Theme" was half right and wrongly reasoned. In light the two panes are ALREADY
+  within ΔE 2.3 on sixteen of seventeen shipped palettes; the separation curve is not
+  monotonic (it bottoms near 6% and recovers); and the real objection to 8% is structural,
+  that Minimal becomes the same recipe at the same percentage as Match Theme with a
+  different base. What actually decided the percentage was headroom nobody had measured:
+  the light pane's own muted ink sits at **4.57:1 against a 4.5 floor** and crosses at
+  **1.36%**, so light cannot be tinted at all — and would have bought nothing, because at
+  3% all six shipped grounds mix to one hex.
+
+  **Still to come:** the ownership repair, one mount lifecycle, the deletions, the Place
+  row, sections, the list features, drag-to-resize, the account band, identity and
+  placement, preset integration, and the picked design.
+
 ---
 
 ## Open, unnumbered threads

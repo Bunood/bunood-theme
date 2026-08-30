@@ -129,6 +129,29 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   lines INSIDE the edit script. **And a payload bucket that unexpectedly SHRINKS is the
   tell, not a win** - the truncated bundle came in under `js_gzip` and masked the real
   growth of the feature being added.
+- **A check that derives its expectation from the thing it is judging measures nothing.**
+  Item 40's emission guard read `data-theme` off the selector it was checking and looked up
+  the static block that matched THAT - so an emission downgraded to one attribute simply
+  picked the bundle's one-attribute block as its target and compared equal. It returned a
+  number, which is worse than returning nothing, and it would have let a per-site block
+  lose the cascade on every site that set a ground. The expectation has to come from the
+  SUBJECT (here: the colour mode), never from the artefact under test. Only a deliberate
+  sabotage found it - reading the code did not.
+- **A mutate-and-reimport probe must delete the BYTECODE, not just the module.** CPython
+  validates a `.pyc` on `(mtime, size)`, so a sabotage that swaps `280` for `100` changes
+  neither and the stale bytecode is reused - the NEXT case then reports the previous
+  case's failure, and nothing in the output looks like caching. Same shape one level up:
+  `from package import submodule` resolves as `getattr(package, "submodule")`, so popping
+  `bunood_theme.palette` and leaving `bunood_theme` cached hands back the OLD module and
+  the file on disk is never read. `tools/sabotage_sidebar.py` does both; copy it rather
+  than rediscovering either.
+- **Running a documented gate can damage the site.** `tools/sweep-settings.mjs` leaves
+  eleven `print_*` fields off their shipped defaults while printing "state restored", and
+  four unrelated checks then go red - the picker-drift check, both `shell:` change-dot
+  checks and a print rendering check - none of them naming the cause. Before assuming a red
+  suite is your change, **stash, redeploy and re-run at HEAD**; and after any sweep, diff
+  Theme Settings against `setup.SHIPPED`. The repair is a `doc.save()`, because
+  `set_single_value` does not fire `on_update`.
 - **Deleting a stored name does not delete the need for the identity.** `desk_layout`
   went, and two runtime call sites still had to know the shape - so it is DERIVED by
   comparison (`presets.layout_of`), server-side, against the one catalogue. Two things
@@ -167,7 +190,17 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 Bidi isolation is absent. Item 7 (RTL **and** Arabic) is reopened.
 
 Contrast is **closed** (item 17, was 32, 2026-08-06): WCAG 2.2 AA, enforced by
-`npm run contrast` over 11 seeds x 2 modes.
+`npm run contrast` over **27 seeds x 2 modes** — 11 when the item closed, plus the
+sixteen shipped palettes item 37 added, each also re-derived as the (brand, accent,
+ground) TRIPLE it actually ships.
+
+**Closed is not the same as covered, and item 40 is the proof.** That gate had three live
+defects inside its own subject: the `automatic` theme was 25 of the dark set's 55 tokens
+(30 resolving LIGHT on a dark OS for the whole first-paint window), the side pane had no
+`automatic` arm at all (seven hues at 1.79-2.79:1), and dark Minimal declared 12 of its 14
+tokens so the chip's ink fell through to the light block at 3.76:1. None of the three was
+a wrong RATIO — every one was a pair the gate had no row for, or a mode it never entered.
+When a colour gate is green, ask what it does not ask about.
 
 Accessibility is **closed** (item 22, was 34 + 34a, 2026-08-13): the two things
 contrast handed off are both answered — a control is identifiable at rest by a border

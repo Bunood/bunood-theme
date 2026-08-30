@@ -13,8 +13,9 @@
 **VERSION NUMBERING CHANGED 2026-08-20, AND IT IS A STANDING RULE: MINOR IS THE ROADMAP
 ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
 fixes-on-top. The old increment-by-one scheme had drifted EIGHT behind the roadmap (0.20.0
-was item 28), so a version number carried no information about its contents. **The next
-item, 38, releases as `v0.38.0` — do NOT compute it from the previous tag.** Releases
+was item 28), so a version number carried no information about its contents. **Item 38 is done and
+releases as `v0.38.0`; the item in flight is 40, which releases as `v0.40.0` — do NOT
+compute either from the previous tag, and note that 39 is spent (see below).** Releases
 before 0.29.0 keep their numbers; the 0.20.0 to 0.29.0 jump is the adoption, not lost
 releases. CHANGELOG's policy paragraph is the authority.
 
@@ -44,6 +45,48 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 - **The version numbers on that branch are spent.** Items 39 and the 0.39.x tags name
   work that is not on `main`. MINOR = the ROADMAP item number still holds for this
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
+
+**ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE.**
+Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
+· `373e183` · `a592285` · `9598a12` · `0566c1e`. The plan lives at
+`C:\Users\saltedfish\.claude\plans\lets-go-back-to-quirky-giraffe.md`; ROADMAP's
+item-40 entry and CHANGELOG carry the account. What belongs HERE is what will cost time
+again:
+
+- **THE SUITE IS 417/418, AND THE ONE FAILURE IS NOT YOURS.** `a11y: axe over the Desk`
+  records node COUNTS for `/desk/selling`, whose content includes Frappe's onboarding
+  widget — `.onb-progress-badge` literally reads "17% completed". The count drifts with
+  demo data, never with our chrome. **Before assuming a red suite is your change: stash,
+  redeploy, re-run at HEAD.** That has settled it twice this item. Do NOT regenerate
+  `tests/fixtures/axe-baseline.json` to go green; it launders a real signal.
+- **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
+  off their shipped defaults while printing "state restored", and four unrelated checks
+  then go red — the picker-drift check, both `shell:` change-dot checks and a print
+  rendering check — none of them naming the cause. Repair: load the Theme Settings
+  document, set each drifted `print_*` field to its `setup.SHIPPED` value, and `doc.save()`
+  — `set_single_value` does not fire `on_update`. Both this and the axe drift are filed as
+  their own tasks.
+- **THE DECISIONS ARE MADE; DO NOT RE-OPEN THEM.** Free-pixel drag-to-resize (overruling
+  the design round) · `sidebar_menu_rail` drops to Expanded / Rail · the pane's colour is
+  derived AND emitted per site · Minimal is tinted by the **ground, never the brand**, at
+  **5% in dark and 0% in light**. The last one is drawn at
+  https://claude.ai/code/artifact/46e3f9d9-efd5-4ec7-825c-e49d56e5c938 with every swatch a
+  real `palette.derive` output.
+- **WHY LIGHT SHIPS AT 0%, because it looks like an omission and is not.** Minimal's own
+  `--bnd-sb-ink-muted` is `#6d7570` on `#fafbfa` — **4.57:1 against a 4.5 floor** — and
+  crosses at **1.36%** of the worst shipped ground. Every candidate percentage was a gate
+  failure in light, and would have bought nothing: at 3% all six shipped grounds mix to
+  the same hex. `check_sidebar_headroom` enforces it now.
+- **RUN `python tools/sabotage_sidebar.py` BEFORE TRUSTING ANY NEW PANE GUARD.** Sixteen
+  cases across `_sidebar.scss` and `palette.py`, each naming the guard that OWNS it. It
+  mutates both files, so never beside a build or a suite, and it refuses a dirty tree. It
+  has already caught a guard that could not do its job, a comparison that measured
+  nothing, and its own rot.
+- **THE PANE'S PALETTE IS DERIVED NOW.** `palette.SB_PANES` states each colour mode's
+  recipe once, grouped by **polarity, not desk mode** — Dark Contrast is dark in BOTH desk
+  themes, and putting it in the light walk drags the light binding pane from `#ebebeb` to
+  `#111713` and moves all seven light hues. `fit_ink` cannot catch that; its bisection is
+  only valid with every background on one side of the ink.
 
 **ITEM 38 (per-user preferences) — DONE 2026-08-29. The last of the 38.** Commits:
 `93f70ec` slice 0 · `18494ee` slice 1 · `37d8ac8` slice 2 · `e00b90c` slices 3–7.
