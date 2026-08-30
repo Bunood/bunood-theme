@@ -170,8 +170,8 @@ CASES = [
     # must be reported by check_sidebar_headroom, because no other check can see
     # a ground-tinted pane at all.
     ("j: tint the light pane, which has 0.07:1 of margin", PALETTE,
-     lambda s: s.replace('"minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane"),',
-                         '"minimal": SidebarPane(("ground", 3, "#fafbfa"), "minimal pane"),', 1),
+     lambda s: s.replace('SidebarPane(("literal", "#fafbfa")',
+                         'SidebarPane(("ground", 3, "#fafbfa")', 1),
      "check_sidebar_headroom"),
     ("k: push the dark pane past its own ceiling", PALETTE,
      lambda s: s.replace('SidebarPane(("ground", 5, "#15181a")',
