@@ -56,6 +56,7 @@ bunood_theme.patches.v0_37_0.drop_desk_layout
 # content still matches the JSON its app ships. See workspace/install.py for why
 # this is not an after_migrate sync.
 bunood_theme.patches.v0_38_0.hoist_day_one_cards
+bunood_theme.patches.v0_38_0.hoist_customer_fields
 
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
