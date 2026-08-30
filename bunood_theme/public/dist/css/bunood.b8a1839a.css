@@ -5019,146 +5019,49 @@ html[data-theme] .bnd-home-dashboard {
     grid-template-columns: repeat(6, 54px);
   }
 }
-.desktop-wrapper .desktop-container > .icons-container > .icons {
-  gap: clamp(16px, 2vw, 24px);
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons {
+  gap: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-5));
 }
-
-/* Clean Enterprise Cards */
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon {
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon {
   min-block-size: 138px;
-  padding: 16px;
-  background: var(--card-bg);
+  padding: var(--bnd-sp-4);
+  background: var(--bnd-surface);
   border: 1px solid var(--bnd-border);
   border-block-start: 4px solid var(--bnd-brand-solid);
-  border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  transition: all var(--bnd-dur-fast) ease;
+  border-radius: var(--bnd-radius-xl);
+  box-shadow: var(--bnd-shadow-sm);
+  transition: border-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease), transform var(--bnd-dur-fast) var(--bnd-ease);
 }
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon:is(:hover, :focus-visible) {
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon:is(:hover, :focus-visible) {
   border-color: var(--bnd-brand-solid);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--bnd-shadow-md);
   transform: translateY(-2px);
 }
-
-/* 1. Hide all ugly native Frappe SVGs and Folder Backgrounds */
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container > * {
-  display: none !important;
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container {
+  inline-size: 48px;
+  block-size: 48px;
+  margin-block-end: var(--bnd-sp-4);
+  margin-inline: auto;
 }
-
-/* 2. Create the mask container to fetch and color the online icons */
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container {
-  display: block !important;
-  width: 48px !important;
-  height: 48px !important;
-  margin: 0 auto 16px auto !important;
-  /* This color will automatically fill the fetched SVG shape */
-  background-color: var(--bnd-brand-solid) !important;
-  background-image: none !important; /* Clears native folder backgrounds */
-  -webkit-mask-size: contain;
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-size: contain;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  /* Default Fallback Icon (Lucide Blocks) */
-  -webkit-mask-image: url("https://api.iconify.design/lucide/layout-grid.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/layout-grid.svg?stroke-width=1.5");
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container :is(img, svg) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
 }
-
-/* 3. Map Exact Modules to Online Lucide Icons (Supports Arabic & English IDs) */
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=التصنيع] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Manufacturing] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/factory.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/factory.svg?stroke-width=1.5");
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption {
+  overflow: visible;
+  margin-block-start: var(--bnd-sp-1);
 }
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=المشتريات] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Buying] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/shopping-cart.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/shopping-cart.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=الأصول] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Assets] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/boxes.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/boxes.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=المحاسبة] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Accounting] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/calculator.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/calculator.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=منظمة] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Organization] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/building-2.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/building-2.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id="إطار العمل"] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Framework] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/monitor-dot.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/monitor-dot.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id="إعدادات النظام"] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id="ERPNext Settings"] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/settings.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/settings.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id="التعاقد من الباطن"] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Subcontracting] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/users.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/users.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=المخازن] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Stock] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/package.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/package.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=المبيعات] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Selling] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/trending-up.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/trending-up.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=جودة] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Quality] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/check-circle.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/check-circle.svg?stroke-width=1.5");
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=مشاريع] > .icon-container,
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon[data-id=Projects] > .icon-container {
-  -webkit-mask-image: url("https://api.iconify.design/lucide/briefcase.svg?stroke-width=1.5");
-  mask-image: url("https://api.iconify.design/lucide/briefcase.svg?stroke-width=1.5");
-}
-
-/* Fix Arabic text clipping on dashboard card labels */
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption {
-  overflow: visible !important;
-  margin-top: 4px !important;
-}
-
-.desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption .icon-title {
+html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption .icon-title {
+  display: block;
+  overflow: visible;
+  padding-block: var(--bnd-sp-1) var(--bnd-sp-2);
   color: var(--bnd-ink);
   font-size: var(--bnd-text-sm);
-  font-weight: 600;
-  /* 1. Provide enough breathing room for Arabic descenders and ascenders */
-  line-height: 1.6 !important;
-  padding-top: 4px !important;
-  padding-bottom: 6px !important;
-  /* 2. Prevent the browser from slicing the font rendering */
-  overflow: visible !important;
-  /* 3. Allow wrapping if text is too long, rather than cutting it off */
-  display: block !important;
-  white-space: normal !important;
-  word-break: break-word !important;
+  font-weight: var(--bnd-weight-medium);
+  line-height: var(--bnd-leading-base);
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 html[data-theme] .list-row {
