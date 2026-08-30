@@ -241,12 +241,23 @@ html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="icons_pick
 // receipts), including ones a custom app adds, which is the whole point of
 // keying on what is rendered.
 //
-// THE COST, STATED RATHER THAN DISCOVERED LATER: this column carries
-// Attachments, Assign, Share and Follow, and hiding it takes the visible route
-// to all four with it. That is a real loss on an accounting document — a signed
-// PO or a delivery proof is attached exactly here — and it is why this rule is
-// narrow: only documents with line items, where the grid's legibility is the
-// document's whole purpose.
+// A DEFAULT, NOT A REMOVAL — and that distinction was measured, not hoped for.
+// This column carries Attachments, Assign, Share and Follow, and on an
+// accounting document those matter: a signed PO or a delivery proof is attached
+// exactly here. None of the three appears in the form's ⋯ menu (read from
+// `page.menu`, not guessed), so if this rule were the last word it would remove
+// a feature.
+//
+// It is not the last word. That menu carries Frappe's own **Toggle Sidebar**,
+// whose handler is `sidebar_wrapper.toggle()` — jQuery, which writes an INLINE
+// `display`, and an inline style outranks this rule. So the vendor's own
+// control reveals the column again, on a document where the user wants it.
+// Verified end to end by clicking the real menu item: the pane returns at 277px
+// with Attachments, Assign and Share all present.
+//
+// This rule is therefore `display: none` and NOT `!important` — deliberately.
+// `!important` here would beat the inline style and turn a default into the
+// removal it currently is not.
 html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="items"]) .layout-side-section {
   display: none;
 }
