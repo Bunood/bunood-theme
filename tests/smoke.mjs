@@ -15335,9 +15335,13 @@ async function main() {
 			// `email.py::STATIC_TOKENS` carries the seed-INDEPENDENT values
 			// `palette.derive()` has no business fitting — `--bnd-ink` and the two
 			// borders. It is a CACHE and `_tokens.scss` is the source, so this is
-			// what stops it rotting. `contrast_gate.py`'s SB_FITS_* hand-copy
-			// fourteen hexes out of `_sidebar.scss` with no such check, and
-			// GUIDELINES 2.2 records that as real debt; this one cannot drift.
+			// what stops it rotting. A copy with a drift check is a cache; a copy
+			// without one is the same fact in two places. `contrast_gate.py`'s
+			// SB_FITS_* were the second kind — fourteen hexes hand-copied out of
+			// `_sidebar.scss`, filed as debt in GUIDELINES 2.2 — until item 40
+			// deleted them outright and had the gate derive those fourteen from
+			// `palette.sb_hues()`. Deriving beats checking; this dict is the case
+			// where deriving is not available and checking is.
 			//
 			// Reads the DARK values out of the `@mixin` rather than a block, because
 			// item 32 moved them there and `contrast_gate.read_blocks` had to grow

@@ -274,6 +274,20 @@ function readRuntimeTokens(...sources) {
 		for (const m of src.matchAll(/["'](--bnd-[a-z0-9-]+)["']/g)) names.add(m[1]);
 		for (const m of src.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)) names.add(m[1]);
 	}
+	// THE SIDEBAR'S OWN TOKENS ARE NOT RUNTIME TOKENS, and this line is what
+	// keeps that true while `palette.py` names them. Item 40 moved the pane's
+	// working set into `palette.SB_WORKING_SET` so the gate could stop
+	// hand-copying it — which put nine `--bnd-sb-*` string literals into a file
+	// this extraction reads, and a runtime token is EXEMPT from the phantom
+	// check in every compiled sheet. In `bunood.css` that is harmless: they are
+	// declared there. In the web, email and print sheets it would have made
+	// nine phantoms legal, silently, as a side effect of a refactor in an
+	// unrelated file.
+	//
+	// This becomes wrong the moment slice 3 has `brand.py` emit these per site
+	// — at that point they ARE runtime tokens and the line comes out WITH the
+	// emission, not before it and not after.
+	for (const t of [...names]) if (t.startsWith("--bnd-sb-")) names.delete(t);
 	if (names.size < 10) {
 		throw new Error(
 			`Phantom-token guard: only ${names.size} runtime tokens found in brand.py/palette.py — ` +

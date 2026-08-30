@@ -42,6 +42,8 @@ WHY THE SEED IS NEVER REJECTED
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from bunood_theme.contrast import (
     AA_NON_TEXT,
     AA_TEXT,
@@ -308,6 +310,179 @@ def status_ramp(mode: str) -> dict[str, str]:
         target = STATUS_SIBLING_TARGET if sibling else AA_NON_TEXT
         out[f"--bnd-status-{name}"], _ = fit_ink(hue, [bg], target=target)
     return out
+
+
+#: The side pane's own palette (item 40).
+#:
+#: WHY IT LIVES HERE. `_sidebar.scss` hand-authored 77 declarations across six
+#: colour-mode blocks — 60 of them literal — and `tools/contrast_gate.py` kept a
+#: second hand-copy of eighteen of those constants with no drift check, its own
+#: comment admitting the two had to be edited together. That is the same fact in
+#: three places. It lives here once, and the gate measures what this returns.
+#:
+#: The pane is NOT `derive()`'s business and is deliberately a sibling of it:
+#: `derive` returns one flat map for a mode, and the pane has four independent
+#: colour worlds that a flat map cannot express.
+
+#: The hue floor 34a fitted to. Above `AA_TEXT` on purpose: these are category
+#: marks that must stay identifiable, not merely legible.
+SB_TARGET_HUE = 4.6
+
+#: The designed category hues, before fitting, per POLARITY.
+SB_HUE_SEEDS_LIGHT = ["#2469bc", "#b94112", "#127753", "#8e6000", "#c62360", "#007a00", "#4a3aa7"]
+SB_HUE_SEEDS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00c300", "#a9a0de"]
+
+#: The working set every colour mode must declare in full.
+#:
+#: `_sidebar.scss`'s own header has said "Each mode sets the full set;
+#: components below never look elsewhere" since item 10, and nothing checked
+#: it. Item 40 measured the cost: dark-minimal declared 12 of these 14, so
+#: `--bnd-sb-chip-bg` and `--bnd-sb-chip-ink` fell through to the LIGHT block
+#: and painted #6d7570 on #15181a — 3.76:1 against a 4.5 floor. A sentence in
+#: a comment is not a contract; this tuple is, and `check_sidebar_coverage`
+#: enforces it.
+SB_WORKING_SET = (
+    *[f"--bnd-sb-cat-{n}" for n in range(1, 8)],
+    "--bnd-sb-bg",
+    "--bnd-sb-ink",
+    "--bnd-sb-ink-muted",
+    "--bnd-sb-line",
+    "--bnd-sb-chip-bg",
+    "--bnd-sb-chip-ink",
+    "--bnd-sb-card-base",
+)
+
+#: Tokens one named mode may declare BEYOND the working set, with the reason.
+#: A shrink-enforced allowlist, the same shape as the field-naming exceptions:
+#: an unclassified `--bnd-sb-*` is a coverage failure, not a silent pass.
+SB_EXTRAS = {
+    "brand": {
+        # The gradient pane stands the fitted hues down, so the active pill
+        # needs its own fixed pair — see the block's comment in _sidebar.scss.
+        "--bnd-sb-brand-pill": "the brand pane's stand-down pill fill",
+        "--bnd-sb-brand-pill-ink": "the brand pane's stand-down pill label",
+    },
+}
+
+
+class SidebarPane(NamedTuple):
+    """One colour mode's pane: how it is built, and what to call it in a report."""
+
+    #: ``("alias", token)`` the pane IS a global surface; resolve its recipe.
+    #: ``("mix", pct, base)`` `mix(seed, pct, base)`.
+    #: ``("literal", hex)`` a fixed pane, seed-independent.
+    recipe: tuple
+    label: str
+
+
+#: Every measurable pane, grouped by POLARITY — and that grouping is the trap.
+#:
+#: "Dark Contrast" is dark in BOTH desk themes, so it belongs to the dark group
+#: even when the desk is light. Measured while writing this: including it in
+#: the light walk drags the light binding from #ebebeb to #111713, and all
+#: seven light hues then "fit" against a near-black background and move.
+#: :func:`~bunood_theme.contrast.fit_ink` cannot catch that — its own docstring
+#: says backgrounds straddling the ink return a value on the wrong side of the
+#: dip, silently. `tools/contrast_gate.py` has always grouped the panes this
+#: way; this table is that grouping, written down once instead of twice.
+#:
+#: The keys are the `data-bnd-sb-color` values, so a mode added to the
+#: stylesheet and not to this table is a coverage failure rather than a pane
+#: no hue was ever fitted against.
+SB_PANES = {
+    "light": {
+        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
+        "minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane"),
+    },
+    "dark": {
+        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
+        "minimal": SidebarPane(("literal", "#15181a"), "minimal pane, dark desk"),
+        # Dark in both desk themes, hence its presence only here.
+        "dark": SidebarPane(("mix", 10, "#131a15"), "dark-contrast pane"),
+    },
+}
+
+#: Modes whose pane cannot be measured, with the reason. `check_sidebar_binding`
+#: reads this: a mode is either in :data:`SB_PANES` or here, never neither.
+SB_UNMEASURABLE = {
+    "brand": "a linear-gradient — no fixed hue can be fitted to an arbitrary-seed gradient, "
+             "so the hues stand down on this pane and the gate measures its two stops instead",
+}
+
+#: The brand pane's two gradient stops, as ``(pct, base)`` into the seed.
+SB_STOPS = ((96, "#ffffff"), (72, "#000000"))
+
+
+def _sb_pane_hex(pane: SidebarPane, seed: str, polarity: str) -> str:
+    """One pane recipe to a concrete hex at ``seed``."""
+    kind = pane.recipe[0]
+    if kind == "literal":
+        return pane.recipe[1]
+    if kind == "mix":
+        return mix(seed, pane.recipe[1], pane.recipe[2])
+    if kind == "alias":
+        ramp = SURFACES_LIGHT if polarity == "light" else SURFACES_DARK
+        for tok, pct, base in ramp:
+            if tok == pane.recipe[1]:
+                return mix(seed, pct, base)
+        raise ValueError(f"unknown surface alias {pane.recipe[1]}")
+    raise ValueError(f"unknown pane recipe {pane.recipe!r}")
+
+
+def sb_pane_css(pane: SidebarPane) -> str:
+    """One pane recipe as the CSS expression a stylesheet declares.
+
+    The counterpart of :func:`_sb_pane_hex`: the gate resolves expressions per
+    seed rather than baking a hex, and `brand.py` will emit these verbatim.
+    Both readings come from the one recipe, so the four pane strings the gate
+    used to hand-copy out of `_sidebar.scss` cannot drift from it again.
+    """
+    kind = pane.recipe[0]
+    if kind == "literal":
+        return pane.recipe[1]
+    if kind == "alias":
+        return f"var({pane.recipe[1]})"
+    if kind == "mix":
+        return f"color-mix(in srgb, var(--bnd-brand) {pane.recipe[1]}%, {pane.recipe[2]})"
+    raise ValueError(f"unknown pane recipe {pane.recipe!r}")
+
+
+def _sb_binding_bg(polarity: str) -> str:
+    """The single hardest pane a hue of ``polarity`` must clear, across every seed.
+
+    Same structure as :func:`_chart_binding_bg`, and for the same reason: it is
+    computed from the recipes at the extreme seed so the ramp never recurses
+    into :func:`derive`. A light hue is dark-on-light, so the binding pane is
+    the DARKEST any light pane gets, which is at the darkest seed; a dark hue
+    is the LIGHTEST, at the brightest seed.
+
+    An ``("alias", …)`` entry resolves to the aliased surface's own recipe —
+    NOT to the alias string. Reading it as an opaque literal would compute a
+    binding that cannot see Match Theme's pane at all, and the next re-fit
+    would land hues that fail there. It happens to be invisible today, which is
+    the "a branch whose guard is false on the dev site is UNTESTED" case.
+    """
+    if polarity not in ("light", "dark"):
+        raise ValueError(f"polarity must be light or dark, got {polarity!r}")
+    extreme = "#000000" if polarity == "light" else "#ffffff"
+    cands = [_sb_pane_hex(p, extreme, polarity) for p in SB_PANES[polarity].values()]
+    key = lambda hx: luminance(parse_color(hx))
+    return min(cands, key=key) if polarity == "light" else max(cands, key=key)
+
+
+def sb_hues(polarity: str) -> list[str]:
+    """The seven category hues for one polarity, fitted to the binding pane.
+
+    Every fit takes exactly ONE background, so :func:`fit_ink`'s straddle
+    precondition cannot be violated here by construction.
+
+    At every seed the designed values already clear the floor and come back
+    untouched — verified for all fourteen. That is the point: this replaces a
+    hand-copied table with the derivation that produces it, at no visual cost.
+    """
+    bg = _sb_binding_bg(polarity)
+    seeds = SB_HUE_SEEDS_LIGHT if polarity == "light" else SB_HUE_SEEDS_DARK
+    return [fit_ink(h, [bg], target=SB_TARGET_HUE)[0] for h in seeds]
 
 
 def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:

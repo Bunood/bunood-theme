@@ -69,13 +69,18 @@ from bunood_theme.palette import derive
 #: THIS IS A CACHE, NOT A SOURCE. ``_tokens.scss`` is the source, and the suite's
 #: ``email: the static token cache still matches _tokens.scss`` parses that file
 #: and fails if these drift. That check is the whole reason this dict is allowed
-#: to exist: ``contrast_gate.py``'s ``SB_FITS_*`` hand-copy fourteen hexes out of
-#: ``_sidebar.scss`` with NO such check, and GUIDELINES §2.2 records that
-#: duplication as real debt. This one cannot rot silently.
+#: to exist — a copy with a drift check is a cache; a copy without one is the
+#: same fact in two places, and this repo's first named defect.
 #:
-#: The better answer is codegen — ``build.mjs`` already writes ``assets.py`` from
-#: the build and could write these the same way. Swapping it later changes no
-#: behaviour, because the gate already proves the two agree.
+#: The comparison this used to draw is gone, and that is worth recording rather
+#: than quietly deleting: ``contrast_gate.py``'s ``SB_FITS_LIGHT``/``SB_FITS_DARK``
+#: hand-copied fourteen hexes out of ``_sidebar.scss`` with no such check, and
+#: GUIDELINES §2.2 filed it as real debt. Item 40 did not give them a drift check;
+#: it deleted them, and the gate now DERIVES those fourteen from
+#: ``palette.sb_hues()``. That is the better ending, and the one available here
+#: too — ``build.mjs`` already writes ``assets.py`` from the build and could write
+#: this dict the same way. Swapping it later changes no behaviour, because the
+#: gate already proves the two agree.
 STATIC_TOKENS = {
     "light": {
         "--bnd-ink": "#16181d",
