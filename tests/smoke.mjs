@@ -8174,6 +8174,80 @@ async function main() {
 			expectEq(attrs.join(","), "", "no workspace attribute survives Original");
 		});
 
+		// ONE TILE COLOUR, ON EVERY SURFACE THE GRID STYLE REACHES.
+		//
+		// The "Bold Board" assigned one of seven hues with `:nth-child(7n+$i)` —
+		// a tile's POSITION in the document, not anything about the tile. The
+		// same card changed colour between boards and a *spacer* was painted
+		// orange. It shipped and survived because nothing measured a RENDERED
+		// tile: contrast_gate.py:402-412 emits fourteen chart-series pairs
+		// explicitly anchored on "the tile (--bnd-surface)", and stayed green
+		// throughout, because it reads TOKENS and never rendered CSS. Another
+		// Pair row there would have duplicated that premise, not caught this.
+		//
+		// So this asserts the premise those pairs already assume. It also covers
+		// the dashboard route, because the deleted selector named
+		// `.widget-group-body > :nth-child(7n+$i)` too — this was never only a
+		// workspace rule, and the workspace-only checks above would not have
+		// noticed.
+		await test("workspace: every tile resolves to one surface, on boards and dashboards", async () => {
+			setSettings({ workspace_style: "Hairline Grid" });
+			// A dashboard WITH SOMETHING ON IT. The first Dashboard by name is
+			// `Payments`, which renders zero tiles — asserting against it proved
+			// nothing and failed the empty-page guard below, which is the guard
+			// working. Pick one that actually has charts or cards.
+			//
+			// `.pop()` on the trimmed output is the idiom every other benchPy
+			// caller here uses: bench prints app-load noise before the payload.
+			const dash = JSON.parse(
+				benchPy(
+					`_best, _n = None, 0\n` +
+						`for _d in frappe.get_all("Dashboard", pluck="name"):\n` +
+						`    _doc = frappe.get_doc("Dashboard", _d)\n` +
+						`    _c = len(_doc.get("charts") or []) + len(_doc.get("cards") or [])\n` +
+						`    if _c > _n:\n` +
+						`        _best, _n = _d, _c\n` +
+						`print(json.dumps([_best] if _n else []))\n`
+				)
+					.trim()
+					.split("\n")
+					.pop()
+			);
+			const routes = ["/desk/selling", "/desk/buying", "/desk/stock"]
+				.concat(dash.length ? [`/desk/dashboard-view/${dash[0]}`] : []);
+			for (const route of routes) {
+				await goDesk(route, ".widget", 3000);
+				const seen = await page.evaluate(() => {
+					// MIRROR THE DELETED SELECTOR EXACTLY: `.ce-block:nth-child()`
+					// on a workspace, `.widget-group-body > :nth-child()` on a
+					// dashboard. The dashboard half is a DIRECT child — measured,
+					// after a descendant spelling reported 0 tiles on a page
+					// showing 12. A cross-route probe hid that, because
+					// navigating by `set_route` leaves the previous workspace's
+					// `.ce-block` tiles in the DOM and the descendant selector
+					// counted those instead.
+					const tiles = [
+						...document.querySelectorAll(".ce-block .widget, .widget-group-body > .widget"),
+					];
+					const surface = getComputedStyle(document.documentElement)
+						.getPropertyValue("--bnd-surface").trim();
+					const backgrounds = new Set();
+					const accents = new Set();
+					for (const tile of tiles) {
+						const style = getComputedStyle(tile);
+						backgrounds.add(style.backgroundColor);
+						accents.add(style.getPropertyValue("--ws-accent").trim());
+					}
+					return { tiles: tiles.length, backgrounds: [...backgrounds], accents: [...accents], surface };
+				});
+				// A route that rendered no tile proves nothing either way; say so
+				// rather than passing on an empty page.
+				expect(seen.tiles > 0, `${route}: rendered at least one tile (got ${seen.tiles})`);
+				expectEq(seen.backgrounds.length, 1, `${route}: ONE tile background (got ${seen.backgrounds.join(" | ")})`);
+				expectEq(seen.accents.join(""), "", `${route}: no --ws-accent survives (got ${seen.accents.join(" | ")})`);
+			}
+		});
+
 		const WS_STYLE_SLUG = {
 			"Open Board": "open", "Hairline Grid": "grid", "Soft Tiles": "soft",
 			"Headed Panel": "headed", "Floating Cards": "cards", "Mixed Weights": "mixed",
