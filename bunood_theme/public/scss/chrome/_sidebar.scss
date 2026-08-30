@@ -774,6 +774,34 @@ html[data-bnd-rail] .body-sidebar-container {
     }
   }
 }
+// ── The expanded pane, and the transition that ate it ───────────────────────
+// v16 sizes the inner pane ONLY under `.body-sidebar-container.expanded`, from
+// its own `--sidebar-width` (mapped to `--bnd-sb-w` in _bridge.scss), and
+// `sb_apply_width` adds that class. On the Home workspace that was enough. On
+// every OTHER workspace the pane stayed a 50px rail with its labels clipped to
+// zero, and no amount of specificity moved it:
+//
+//   `.body-sidebar-container.expanded .body-sidebar` is (0,3,0) and matched;
+//   our own rule at (0,5,1) with `inline-size` did not win either; nor did an
+//   inline `width: 240px !important`. The placeholder — governed by the SAME
+//   `.expanded` ancestor and the SAME variable — tracked the value correctly,
+//   which is what made the cascade explanation impossible.
+//
+// `getAnimations()` gave the answer: a **CSSTransition on `width`, playState
+// "running"**, left over from `.body-sidebar`'s `transition-property: all`. A
+// running transition's effect value sits ABOVE the whole cascade, `!important`
+// included, so every rule was correct and none of them could apply. Frappe's
+// own collapsed rule already sets `transition-property: none` for the same
+// reason; this does it for the expanded state we drive.
+//
+// Measured after: pane 50 -> 240px, rows 5 -> 195px, visible labels 0 -> 10.
+html[data-bnd-desk]:not([data-bnd-rail]):not([data-bnd-narrow])
+  .body-sidebar-container.expanded
+  .body-sidebar {
+  inline-size: var(--bnd-sb-w);
+  transition-property: none;
+}
+
 // Floating + rail: the overlay tracks the card's inset.
 html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   inset-block: 0;

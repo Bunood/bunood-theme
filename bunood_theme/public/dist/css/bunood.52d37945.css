@@ -2123,6 +2123,11 @@ html[data-bnd-rail] .body-sidebar-container.bnd-rail-open .body-sidebar .bnd-sb-
   opacity: 1;
 }
 
+html[data-bnd-desk]:not([data-bnd-rail]):not([data-bnd-narrow]) .body-sidebar-container.expanded .body-sidebar {
+  inline-size: var(--bnd-sb-w);
+  transition-property: none;
+}
+
 html[data-bnd-sb-placement=floating][data-bnd-rail] .body-sidebar-container .body-sidebar {
   inset-block: 0;
   inset-inline-start: 0;

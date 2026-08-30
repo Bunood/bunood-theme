@@ -6577,6 +6577,14 @@ function sb_zone_anchor(pane, zone, node) {
 						sb_wrap_sections();
 						sb_fix_icons();
 						sb_mount_badges();
+						// WIDTH BELONGS IN THIS LIST TOO. Frappe re-renders the
+						// pane per workspace and drops both the inline width and
+						// the `.expanded` class it needs; everything else here
+						// was already re-applied, so the pane came back as a
+						// 50px rail with no labels on every workspace except the
+						// one it first mounted on. Measured on /desk/selling:
+						// setting "expanded", container 51px, labels 0.
+						sb_apply_width();
 					}
 				}, 200);
 			}).observe(list, { childList: true, subtree: true });
@@ -7183,6 +7191,12 @@ function sb_zone_anchor(pane, zone, node) {
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
+				// The pane's width does not survive a workspace switch either:
+				// the container can be REPLACED, not just re-rendered, which
+				// leaves `sb_observe`'s node reference stale. A route change is
+				// the one signal that always fires for that, so it re-asserts
+				// here as well as in the observer.
+				sb_apply_width();
 				// The home dashboard mounts per route because Frappe swaps the
 				// workspace element out from under us. The retry covers the
 				// home route only, where the container is built asynchronously
