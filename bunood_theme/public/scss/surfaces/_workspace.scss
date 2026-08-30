@@ -132,33 +132,26 @@ html[data-bnd-ws="grid"] .layout-main-section:not(.edit-mode) .codex-editor__red
   overflow: hidden;
 }
 
-// Bunood Bold Board — the default grid keeps its disciplined shared geometry,
-// but each block now carries a stable, solid categorical surface. No gradients:
-// colour communicates grouping while the 4px top edge keeps adjacent tiles
-// distinct at a glance. The seven-step cycle is presentation-only; it never
-// represents data category or status.
-@for $i from 1 through 7 {
-  html[data-bnd-ws="grid"] :is(
-      .ce-block:nth-child(7n+#{$i}),
-      .widget-group-body > :nth-child(7n+#{$i})
-    ) {
-    --ws-accent: var(--bnd-cat-#{$i});
-  }
-}
-
-html[data-bnd-ws="grid"] #{$ws} {
-  --ws-tile-bg: color-mix(in srgb, var(--ws-accent, var(--bnd-brand-solid)) 15%, var(--bnd-surface));
-  border-block-start: 4px solid var(--ws-accent, var(--bnd-brand-solid));
-}
-
-html[data-bnd-ws="grid"] #{$ws} > .widget-head .widget-title {
-  color: var(--bnd-ink);
-  font-weight: 720;
-}
-
-html[data-bnd-ws="grid"] #{$ws}:hover {
-  --ws-tile-bg: color-mix(in srgb, var(--ws-accent, var(--bnd-brand-solid)) 21%, var(--bnd-surface));
-}
+// THE "BOLD BOARD" COLOUR CYCLE IS GONE, and what it was is the argument for
+// deleting it: `:nth-child(7n+$i)` assigned one of seven hues by a tile's
+// POSITION IN THE DOM. Its own comment conceded the point — "it never
+// represents data category or status" — so the same card changed colour
+// between one board and the next, and a *spacer* was painted orange.
+//
+// Colour that carries no meaning is not decoration, it is noise competing with
+// the colour that does: the brand accent, and the status inks a user has to
+// read. It also contradicted the promise this style's own picker makes —
+// theme_settings.js describes "Hairline Grid" as "a gapless contact sheet —
+// tiles butt together, sharing one hairline".
+//
+// Measured before removal on /app/selling: 11 tiles, SIX distinct backgrounds
+// and six distinct 4px top edges. After: one surface, one hairline.
+//
+// Nothing replaces it. The tile falls through to machinery already here —
+// `--ws-tile-bg` is set for this style at the top of this file and consumed by
+// the shared tile rule, and `--card-bg` already resolves to `--bnd-surface` in
+// _bridge.scss. `--ws-accent` had no other reader in the tree, so both it and
+// its consumers leave together and the phantom-token gate stays green.
 
 // Soft Tiles — invert: the canvas turns white, tiles are a quiet raised fill.
 html[data-bnd-ws="soft"] {

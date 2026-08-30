@@ -1808,6 +1808,25 @@
 	 */
 	function land_on_home() {
 		if (!theme_active()) return;
+
+		// THE URL DECIDES, NOT THE ROUTER'S CURRENT ANSWER.
+		//
+		// `frappe.get_route()` is transiently EMPTY while v16's desk shell does
+		// its own boot routing, so keying on it alone made this steal
+		// navigations meant for other pages: a visit to /desk/todo was bounced
+		// to the home the moment the router had not resolved yet, and the
+		// caller then waited out its full timeout for a selector on a page it
+		// never opened. The suite has a comment about exactly this failure mode
+		// for its own navigations; this added a second source of it, and 21
+		// checks went red in one subset — every `container:` and `invariant:`
+		// case, all of them 30s selector timeouts rather than assertions.
+		//
+		// The pathname is what the USER asked for and does not flicker. Only
+		// the bare desk root lands on the home; any deeper address is left
+		// alone whatever the router happens to be reporting mid-boot.
+		const path = String(location.pathname || "").replace(/\/+$/, "");
+		if (path !== "/desk" && path !== "/app" && path !== "") return;
+
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const empty = !route.length || (route.length === 1 && !route[0]);
 		if (!empty) return;
