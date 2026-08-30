@@ -20,7 +20,6 @@
   "sidebar_rail_button": "None",
   "sidebar_rail_button_shape": "Circle",
   "sidebar_pane_width": "3",
-  "sidebar_apps_rail": 0,
   "sidebar_badges": "Off",
   "sidebar_remember_sections": 0,
   "sidebar_scroll_fades": 0,
@@ -126,7 +125,10 @@
   "mobile_inbox": 1,
   "mobile_user": 1,
   "mobile_apps": 1,
-  "palette_enabled": 1
+  "palette_enabled": 1,
+  "personal_look": 1,
+  "personal_shape": 0,
+  "personal_comfort": 1
  },
  "pickers": {
   "theme_picker": {
@@ -489,9 +491,9 @@
    ]
   },
   "sidebar_picker": {
-   "n": 299,
+   "n": 293,
    "svgs": 0,
-   "text": 1461,
+   "text": 1393,
    "seq": [
     "div.bnd-sbp",
     "div.bnd-sbp-toolbar",
@@ -774,12 +776,6 @@
     "h4.bnd-cbp-zone-title",
     "div.bnd-cbp-group.bnd-sbp-group",
     "div.bnd-cbp-switches",
-    "button.bnd-cbp-toggle.bnd-sbp-toggle",
-    "span.bnd-cbp-knob",
-    "span.",
-    "b.",
-    "br.",
-    "span.bnd-sbp-pblurb",
     "button.bnd-cbp-toggle.bnd-sbp-toggle",
     "span.bnd-cbp-knob",
     "span.",

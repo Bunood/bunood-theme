@@ -55,6 +55,11 @@ bunood_theme.patches.v0_37_0.drop_desk_layout
 # the seeder rename, or after_migrate re-creates it.
 bunood_theme.patches.v0_38_0.drop_density_navbar_item
 
+# Item 40: the apps rail retires and its capability moves to the dock. Must run
+# after the doctype sync (it reads the departed field's row directly, because
+# get_single_value raises for a field the meta has lost).
+bunood_theme.patches.v0_40_0.retire_apps_rail
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

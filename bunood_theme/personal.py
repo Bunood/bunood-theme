@@ -42,7 +42,7 @@ THE RULES THIS TABLE ENCODES
 
     * **A preference is a NAME or an ergonomic value, never a loose style knob.**
       A person picks a whole designed look; option-level freedom is the
-      administrator's. Storing a name rather than 124 values is what lets a look
+      administrator's. Storing a name rather than 123 values is what lets a look
       be improved later without migrating everyone who chose it.
 
     * **Every write names its parent.** ``frappe.defaults.set_default`` without

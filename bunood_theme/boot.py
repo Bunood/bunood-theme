@@ -444,7 +444,6 @@ def extend_bootinfo(bootinfo):
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
-            "apps_rail": settings.get("sidebar_apps_rail") or 0,
             "badges": get("sidebar_badges"),
             "remember": settings.get("sidebar_remember_sections") or 0,
             "scroll_fades": settings.get("sidebar_scroll_fades") or 0,

@@ -42,7 +42,6 @@ SIDEBAR_FIELDS = [
     "sidebar_rail_button",
     "sidebar_rail_button_shape",
     "sidebar_pane_width",
-    "sidebar_apps_rail",
     "sidebar_badges",
     "sidebar_remember_sections",
     "sidebar_scroll_fades",
@@ -78,7 +77,6 @@ SIDEBAR_PRESETS = {
         # rule as the glass fields above.
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "3",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -98,7 +96,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "Edge",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -118,7 +115,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -138,7 +134,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -158,7 +153,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -178,7 +172,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -198,7 +191,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 1,
@@ -226,7 +218,6 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Counts",
         "sidebar_remember_sections": 0,
         "sidebar_scroll_fades": 0,
@@ -1320,7 +1311,7 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 124 of the doctype's 134.
+    """Every field a theme preset writes and compares — 123 of the doctype's 133.
 
     THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
@@ -1367,7 +1358,7 @@ THEME_AXES = _theme_axes()
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~124 values. It also makes the one invariant free: ``Bunood Night`` overrides
+#: all ~123 values. It also makes the one invariant free: ``Bunood Night`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1669,7 +1660,7 @@ def theme_settings(name: str) -> dict:
     settings form composed the containers while ``registry.layout_settings``
     composed containers *and* tenant placements, so the suite drove a state no
     gesture could produce, and picking "Bottom Bar" left the bell pointing at a
-    region that no longer existed. At ~124 values that failure is a certainty
+    region that no longer existed. At ~123 values that failure is a certainty
     unless the product's writer and the suite's writer call the same function.
     This is that function; nothing else may assemble a preset.
 

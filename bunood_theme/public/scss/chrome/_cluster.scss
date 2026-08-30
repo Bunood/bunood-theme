@@ -176,7 +176,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 // One :is() group, not one selector per class — gzip cost matters against a
 // payload ceiling with single-digit-percent headroom.
 html[data-theme] :is(
-  .bnd-apps-rail-item, .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
+  .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
   .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-brand, .bnd-sb-item, .bnd-sb-module,
   .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
   .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,

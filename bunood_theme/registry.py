@@ -309,12 +309,14 @@ COMPONENTS = [
         "part": "apps",
         "label": "All apps link",
         "type": TENANT,
-        # This said `.bnd-apps-rail`, which is a DIFFERENT COMPONENT: the rail
-        # of app icons the sidebar style kit adds under `sidebar_apps_rail`.
+        # This said `.bnd-apps-rail`, which was a DIFFERENT COMPONENT: the
+        # rail of app icons the sidebar kit added under `sidebar_apps_rail`.
         # The All Apps link is what `build_quick_link` renders. Nothing caught
         # it because this row is not `critical`, so the invariant matrix never
         # asks about it — a reminder that "not critical" means unwatched, not
-        # harmless.
+        # harmless. (Item 40 deleted that rail: two components did one job, and
+        # the dock is the one that should carry it. The confusion this comment
+        # records cannot recur, but the lesson about `critical` still can.)
         "selector": '[data-bnd-part="apps"]',
         "native": None,
         "regions": ("topbar", "bottombar", "sidepane", "dock"),

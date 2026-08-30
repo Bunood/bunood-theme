@@ -56,7 +56,6 @@
   "sidebar_rail_button",
   "sidebar_rail_button_shape",
   "sidebar_pane_width",
-  "sidebar_apps_rail",
   "sidebar_badges",
   "sidebar_remember_sections",
   "sidebar_scroll_fades",
@@ -523,12 +522,6 @@
    "options": "1\n2\n3\n4\n5",
    "hidden": 1,
    "description": "Five stops from 200px to 280px; stop 2 is the original 220px."
-  },
-  {
-   "fieldname": "sidebar_apps_rail",
-   "fieldtype": "Check",
-   "label": "Apps Rail",
-   "hidden": 1
   },
   {
    "fieldname": "sidebar_badges",

@@ -24,7 +24,6 @@
 //   data-bnd-rail           (attribute present = rail mode active; the anchor
 //                            for every rail rule — trigger wiring is JS)
 //   data-bnd-sb-iconsrc     smart | original | letters
-//   data-bnd-sb-appsrail    (attribute present = on)
 //   data-bnd-sb-badges      off | dots | counts
 //   data-bnd-sb-fades       (attribute present = on)
 //
@@ -841,83 +840,11 @@ html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
   display: none;
 }
 
-// ── Apps rail ───────────────────────────────────────────────────────────────
-// A fixed strip before the sidebar; the sidebar shifts over by its width.
-html[data-bnd-sb-appsrail] .body-sidebar-container {
-  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-1));
-}
-html[data-bnd-sb-appsrail][data-bnd-sb-placement="floating"] .body-sidebar-container {
-  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-2));
-}
-
-html[data-bnd-sb-appsrail] .bnd-apps-rail {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  inline-size: var(--bnd-apps-rail-w);
-  z-index: var(--bnd-z-bar);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--bnd-sp-1);
-  padding-block: var(--bnd-sp-2);
-  background: var(--bnd-sb-bg);
-  border-inline-end: var(--bnd-line) solid var(--bnd-sb-line);
-
-  .bnd-apps-rail-item {
-    display: grid;
-    place-items: center;
-    inline-size: 32px;
-    block-size: 32px;
-    border: none;
-    border-radius: var(--bnd-radius-lg);
-    background: var(--bnd-sb-chip-bg);
-    color: var(--bnd-sb-chip-ink);
-    cursor: pointer;
-
-    svg {
-      inline-size: 16px;
-      block-size: 16px;
-    }
-
-    &:hover {
-      background: color-mix(in srgb, var(--bnd-sb-ink) 12%, transparent);
-      color: var(--bnd-sb-ink);
-    }
-
-    &.bnd-active {
-      background: color-mix(in srgb, var(--bnd-brand) 20%, transparent);
-      color: var(--bnd-brand-ink);
-      box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bnd-brand) 45%, transparent);
-    }
-  }
-
-  // The brand chip anchors the rail's identity, same as the dock's.
-  .bnd-apps-rail-brand {
-    background: var(--bnd-brand-solid);
-    color: var(--bnd-on-brand);
-    font-weight: var(--bnd-weight-medium);
-    font-size: var(--bnd-text-sm);
-
-    &:hover {
-      background: var(--bnd-brand-solid);
-      color: var(--bnd-on-brand);
-      filter: brightness(1.08);
-    }
-  }
-
-  .bnd-apps-rail-divider {
-    inline-size: 20px;
-    block-size: var(--bnd-line);
-    background: var(--bnd-sb-line);
-    margin-block: var(--bnd-sp-1);
-  }
-}
-
-// Fixed bottom bars must clear the apps rail: the live inset variable is
-// measured by JS at the sidebar's END edge, which already includes the rail
-// and any floating margins — this block only documents that the statusbar
-// consumes it; see observe_sidebar_width() in bunood.js.
+// Fixed bottom bars clear the pane: the live inset variable is measured by JS
+// at the sidebar's END edge, including any floating margins — this block only
+// documents that the statusbar consumes it; see observe_sidebar_width() in
+// bunood.js. It used to say "and the apps rail", which the rail's deletion
+// (item 40) made false.
 
 // ── Rail expand button ──────────────────────────────────────────────────────
 // Mounted by bunood.js when the tenant chooses one (or picks the Button-only
@@ -1052,7 +979,6 @@ html[data-bnd-sb-color] .bnd-sb-letter {
 html[data-bnd-desktop] {
   .bnd-topbar,
   .bnd-statusbar,
-  .bnd-apps-rail,
   .bnd-dock {
     display: none;
   }

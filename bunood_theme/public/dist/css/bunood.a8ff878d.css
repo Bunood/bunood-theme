@@ -74,7 +74,6 @@
   --bnd-tap: 44px;
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
-  --bnd-apps-rail-w: 46px;
   --bnd-sb-radius: 14px;
   --bnd-sb-glass-1: 55%;
   --bnd-sb-glass-2: 65%;
@@ -1004,7 +1003,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
   outline-offset: 1px;
 }
 
-html[data-theme] :is(.bnd-apps-rail-item, .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
+html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
 .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-brand, .bnd-sb-item, .bnd-sb-module,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
 .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
@@ -1930,70 +1929,6 @@ html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
   display: none;
 }
 
-html[data-bnd-sb-appsrail] .body-sidebar-container {
-  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-1));
-}
-
-html[data-bnd-sb-appsrail][data-bnd-sb-placement=floating] .body-sidebar-container {
-  margin-inline-start: calc(var(--bnd-apps-rail-w) + var(--bnd-sp-2));
-}
-
-html[data-bnd-sb-appsrail] .bnd-apps-rail {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  inline-size: var(--bnd-apps-rail-w);
-  z-index: var(--bnd-z-bar);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--bnd-sp-1);
-  padding-block: var(--bnd-sp-2);
-  background: var(--bnd-sb-bg);
-  border-inline-end: var(--bnd-line) solid var(--bnd-sb-line);
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-item {
-  display: grid;
-  place-items: center;
-  inline-size: 32px;
-  block-size: 32px;
-  border: none;
-  border-radius: var(--bnd-radius-lg);
-  background: var(--bnd-sb-chip-bg);
-  color: var(--bnd-sb-chip-ink);
-  cursor: pointer;
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-item svg {
-  inline-size: 16px;
-  block-size: 16px;
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-item:hover {
-  background: color-mix(in srgb, var(--bnd-sb-ink) 12%, transparent);
-  color: var(--bnd-sb-ink);
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-item.bnd-active {
-  background: color-mix(in srgb, var(--bnd-brand) 20%, transparent);
-  color: var(--bnd-brand-ink);
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bnd-brand) 45%, transparent);
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-brand {
-  background: var(--bnd-brand-solid);
-  color: var(--bnd-on-brand);
-  font-weight: var(--bnd-weight-medium);
-  font-size: var(--bnd-text-sm);
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-brand:hover {
-  background: var(--bnd-brand-solid);
-  color: var(--bnd-on-brand);
-  filter: brightness(1.08);
-}
-html[data-bnd-sb-appsrail] .bnd-apps-rail .bnd-apps-rail-divider {
-  inline-size: 20px;
-  block-size: var(--bnd-line);
-  background: var(--bnd-sb-line);
-  margin-block: var(--bnd-sp-1);
-}
-
 html[data-bnd-rail] .bnd-railbtn {
   position: absolute;
   z-index: calc(var(--bnd-z-flyout) + 1);
@@ -2099,7 +2034,6 @@ html[data-bnd-sb-color] .bnd-sb-letter {
 
 html[data-bnd-desktop] .bnd-topbar,
 html[data-bnd-desktop] .bnd-statusbar,
-html[data-bnd-desktop] .bnd-apps-rail,
 html[data-bnd-desktop] .bnd-dock {
   display: none;
 }
@@ -5642,7 +5576,6 @@ html[data-bnd-icon-weight] .bnd-sb-chip svg {
   .bnd-topbar,
   .bnd-statusbar,
   .bnd-dock,
-  .bnd-apps-rail,
   .page-actions,
   .page-form,
   .list-row-checkbox,

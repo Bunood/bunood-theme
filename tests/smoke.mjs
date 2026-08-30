@@ -1231,7 +1231,7 @@ async function layoutFaults(rootSel, opts = {}) {
 			//     buttons sit centred while the bar's controls sit at its
 			//     edges. What collides is the dock's opaque pill covering a
 			//     band of the bar — an occluder with no button in the overlap.
-			const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock", ".bnd-apps-rail"];
+			const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock"];
 			const present = REGIONS.map((s) => [s, document.querySelector(s)])
 				.filter(([, el]) => el && shown(el));
 			for (let i = 0; i < present.length; i++) {
@@ -1247,7 +1247,7 @@ async function layoutFaults(rootSel, opts = {}) {
 				}
 			}
 
-			const OURS = ".bnd-topbar, .bnd-statusbar, .bnd-dock, .bnd-cluster, .bnd-apps-rail";
+			const OURS = ".bnd-topbar, .bnd-statusbar, .bnd-dock, .bnd-cluster";
 			const interactive = [...document.querySelectorAll(OURS)]
 				.flatMap((region) => [
 					...region.querySelectorAll("button, a[href], input, select, [role='button']"),
@@ -1349,7 +1349,7 @@ const MUTABLE_FIELDS = [
 	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_rail_button_shape",
 	"sidebar_pane_width",
-	"sidebar_apps_rail", "sidebar_badges", "sidebar_remember_sections",
+	"sidebar_badges", "sidebar_remember_sections",
 	"sidebar_scroll_fades",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
 	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
@@ -1797,7 +1797,7 @@ async function main() {
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);
 			expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop")), "desktop attr");
-			for (const sel of [".bnd-topbar", ".bnd-statusbar", ".bnd-apps-rail"]) {
+			for (const sel of [".bnd-topbar", ".bnd-statusbar"]) {
 				const vis = await visible(sel);
 				expect(vis === null || vis === false, `${sel} hidden on Desktop`);
 			}
@@ -7434,23 +7434,6 @@ ${gate.stdout}`);
 				"aria-current is removed once the route leaves that workspace"
 			);
 
-			// The apps rail: a different mount, the same mechanism
-			// (sb_update_apps_rail_active mirrors update_dock_active).
-			setSettings({ ...CHROME_DEFAULTS, sidebar_apps_rail: 1 });
-			await goDesk("/desk/item", ".bnd-apps-rail", 3000);
-			const railWs = await page.evaluate(() => {
-				const el = document.querySelector(".bnd-apps-rail-item[data-ws]");
-				return el ? el.getAttribute("data-ws") : null;
-			});
-			expect(railWs, "at least one real workspace is in the apps rail to click");
-			await page.click(`.bnd-apps-rail-item[data-ws="${railWs}"]`);
-			await page.waitForTimeout(1500);
-			const railAfter = await page.evaluate((ws) => {
-				const current = [...document.querySelectorAll(".bnd-apps-rail-item[aria-current]")];
-				return { count: current.length, onRightOne: current.some((el) => el.getAttribute("data-ws") === ws) };
-			}, railWs);
-			expectEq(railAfter.count, 1, `exactly one rail item claims aria-current after opening ${railWs}`);
-			expect(railAfter.onRightOne, "aria-current lands on the workspace that was actually opened");
 		});
 
 		await test("a11y: a trigger that opens a popup says so before it is opened", async () => {
@@ -7543,7 +7526,7 @@ ${gate.stdout}`);
 			// by their own selectors instead.
 			const OURS = [
 				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
-				".bnd-apps-rail", ".bnd-sb-utils", ".bnd-sb-brand",
+				".bnd-sb-utils", ".bnd-sb-brand",
 				".bnd-palette", ".bnd-inbox", ".bnd-menu",
 				".bnd-crumb-chip", ".bnd-crumb-copy",
 			];
@@ -7566,7 +7549,6 @@ ${gate.stdout}`);
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1, icon_crumbs: "Every Crumb",
-				sidebar_apps_rail: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 
@@ -11891,7 +11873,7 @@ ${gate.stdout}`);
 						// matrix has never run at. (main-section's own overflow is
 						// Frappe's wide list content, clipped by its overflow-x:
 						// hidden — not ours, so we check the PAGE, not that box.)
-						const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock", ".bnd-apps-rail"];
+						const REGIONS = [".bnd-topbar", ".bnd-statusbar", ".bnd-dock"];
 						const box = (el) => el.getBoundingClientRect();
 						let overlap = null;
 						const shown = REGIONS.map((s) => [s, document.querySelector(s)]).filter(([, el]) => el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0);

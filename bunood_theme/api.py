@@ -1223,7 +1223,7 @@ def get_theme_presets() -> dict:
     a layout writing HALF of itself for the whole of phase 0 because the form
     composed the containers while ``registry.layout_settings`` composed containers
     *and* tenant placements, so the suite drove a state no gesture could produce.
-    At ~124 values that failure is a certainty unless both writers call the same
+    At ~123 values that failure is a certainty unless both writers call the same
     function. They do; this is it.
 
     ``axes`` rides along so the client derives its label by comparing the same
@@ -1274,7 +1274,7 @@ def get_theme_sidebar_presets() -> dict:
 
     It also over-served. The per-user layer applies the side pane and nothing else
     — colours are one content-hashed stylesheet per SITE, and containers are the
-    site's — so handing a non-admin all 124 values, brand seeds included, was a
+    site's — so handing a non-admin all 123 values, brand seeds included, was a
     payload they could neither use nor be shown. This returns exactly the fields
     ``sb_apply`` reads, in the same shape the retired ``get_sidebar_presets`` used,
     so the client needed no unpacking either way.

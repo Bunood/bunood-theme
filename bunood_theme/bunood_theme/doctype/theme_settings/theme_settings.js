@@ -2425,7 +2425,6 @@ const BND_SB_STEPPERS = [
 
 /** Toggle rows: field + name + one-liner. */
 const BND_SB_TOGGLES = [
-	{ field: "sidebar_apps_rail", name: () => __("Apps rail"), desc: () => __("A separate slim strip of every app for one-click switching.") },
 	{ field: "sidebar_remember_sections", name: () => __("Remember sections"), desc: () => __("Keep each user's opened groups between visits.") },
 	{ field: "sidebar_scroll_fades", name: () => __("Scroll fades"), desc: () => __("Overflowing links fade at the edges instead of clipping.") },
 ];

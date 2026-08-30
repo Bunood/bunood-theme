@@ -1144,7 +1144,6 @@
 		const intensity = parseInt(sb.intensity, 10);
 		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
 		if (sb.blur) html.setAttribute("data-bnd-sb-blur", String(sb.blur).toLowerCase());
-		if (parseInt(sb.apps_rail, 10)) html.setAttribute("data-bnd-sb-appsrail", "");
 		if (parseInt(sb.scroll_fades, 10)) html.setAttribute("data-bnd-sb-fades", "");
 	}
 
@@ -6379,73 +6378,6 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
-	/**
-	 * The Apps Rail: a slim fixed strip of every root workspace, mounted
-	 * before the sidebar. Same data and behaviour as the Dock layout's
-	 * items, stacked vertically; overflow beyond 12 goes to a menu.
-	 */
-	function sb_mount_apps_rail() {
-		if (!document.documentElement.hasAttribute("data-bnd-sb-appsrail")) return;
-		if (document.querySelector(".bnd-apps-rail")) return;
-		const rail = el("div", "bnd-apps-rail", { role: "navigation", "aria-label": __("Apps") });
-
-		// Brand chip first — the rail carries identity like the dock does.
-		const brand = el("button", "bnd-apps-rail-item bnd-apps-rail-brand", {
-			type: "button",
-			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
-			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Home"),
-		});
-		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		brand.addEventListener("click", () => frappe.set_route(""));
-		rail.appendChild(brand);
-		rail.appendChild(el("span", "bnd-apps-rail-divider"));
-
-		const slug = (name) =>
-			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
-		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter((w) => w.public && !w.parent_page);
-
-		for (const ws of roots.slice(0, 12)) {
-			const item = el("button", "bnd-apps-rail-item", { type: "button", title: ws.title, "data-ws": slug(ws.name) });
-			item.appendChild(sprite_icon(ws_symbol(ws.icon)));
-			item.addEventListener("click", () => frappe.set_route(slug(ws.name)));
-			rail.appendChild(item);
-		}
-		const rest = roots.slice(12);
-		if (rest.length) {
-			const more = el("button", "bnd-apps-rail-item", { type: "button", "aria-label": __("More") });
-			more.textContent = "⋯";
-			menu_trigger(more);
-			more.addEventListener("click", () =>
-				show_menu(more, rest.map((ws) => ({
-					label: ws.title,
-					icon: ws_symbol(ws.icon),
-					run: () => frappe.set_route(slug(ws.name)),
-				})))
-			);
-			rail.appendChild(more);
-		}
-		document.body.appendChild(rail);
-		sb_update_apps_rail_active();
-	}
-
-	/** Highlight the apps-rail item for the workspace being viewed. */
-	function sb_update_apps_rail_active() {
-		const rail = document.querySelector(".bnd-apps-rail");
-		if (!rail) return;
-		const route = frappe.get_route() || [];
-		const slug = (name) =>
-			frappe.router && frappe.router.slug ? frappe.router.slug(name) : String(name).toLowerCase().replace(/ /g, "-");
-		const current = route[0] === "Workspaces" && route[1] ? slug(route[1]) : "";
-		for (const item of rail.querySelectorAll("[data-ws]")) {
-			const ws_on = item.getAttribute("data-ws") === current;
-			item.classList.toggle("bnd-active", ws_on);
-			// The highlight, stated: without aria-current the active
-			// workspace is indistinguishable from its neighbours to AT.
-			if (ws_on) item.setAttribute("aria-current", "page");
-			else item.removeAttribute("aria-current");
-		}
-	}
-
 	/** Cache so badge counts are fetched at most once a minute per rebuild. */
 	let sb_badges_at = 0;
 
@@ -6752,7 +6684,6 @@ function sb_zone_anchor(pane, zone, node) {
 			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
-			apps_rail: v("sidebar_apps_rail", "apps_rail"),
 			badges: v("sidebar_badges", "badges"),
 			remember: v("sidebar_remember_sections", "remember"),
 			scroll_fades: v("sidebar_scroll_fades", "scroll_fades"),
@@ -6763,7 +6694,6 @@ function sb_zone_anchor(pane, zone, node) {
 		// Structural pieces are torn down and remounted from the new state.
 		const container = document.querySelector(".body-sidebar-container");
 		if (container) sb_teardown_rail(container);
-		for (const node of document.querySelectorAll(".bnd-apps-rail")) node.remove();
 		if (document.documentElement.getAttribute("data-bnd-sb-sections") === "cards" ||
 			document.documentElement.getAttribute("data-bnd-sb-sections") === "accordion") {
 			sb_wrap_sections();
@@ -6774,7 +6704,6 @@ function sb_zone_anchor(pane, zone, node) {
 		sb_fix_icons();
 		sb_mount_rail();
 		sb_apply_width();
-		sb_mount_apps_rail();
 		// Badges rebuild from scratch so mode switches (counts -> dots -> off)
 		// preview truthfully instead of stacking.
 		for (const badge of document.querySelectorAll(".bnd-sb-badge")) badge.remove();
@@ -6891,7 +6820,6 @@ function sb_zone_anchor(pane, zone, node) {
 		sb_fix_icons();
 		sb_mount_rail();
 		sb_apply_width();
-		sb_mount_apps_rail();
 		sb_mount_badges();
 		sb_observe();
 	}
@@ -7039,7 +6967,6 @@ function sb_zone_anchor(pane, zone, node) {
 				if (container_on("pagehead")) inject_compact_cluster();
 				if (container_on("dock")) update_dock_active();
 				sb_update_module_row();
-				sb_update_apps_rail_active();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration
