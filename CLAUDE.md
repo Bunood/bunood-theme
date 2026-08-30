@@ -47,6 +47,14 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   where the alternative is a measured WCAG failure. That third place exists because a
   website page has no `.bunood` on `<html>` to escalate through. GUIDELINES §1.3 carries
   the test; it is not a general licence.
+- **Pin every upstream fact you build on.** `npm run upstream` fails when a
+  Frappe/ERPNext fact we depend on moves — app versions, forked templates, the
+  shipped `content` of boards we reorder, the shipped field order of DocTypes we
+  reorder. Depend on a new one, add it to `bunood_theme/upstream.py` in the same
+  commit. A red gate is not noise to clear: read what moved, port what it means,
+  re-pin **in the same commit**, and say what you ported. This exists because
+  the failure it catches is silent — a rule that compiles, passes every other
+  gate and matches nothing. GUIDELINES §1.2 has the three that shipped that way.
 - **Never touch Frappe-generated DOM.** Colour it through tokens. The ONE sanctioned
   exception (item 24): `repair_viewport_meta` in `bunood.js` rewrites the `<head>` viewport
   `<meta>` to unlock pinch-zoom — a meta tag is neither layout nor styling, there is no

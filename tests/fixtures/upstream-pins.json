@@ -1,0 +1,21 @@
+{
+	"versions": {
+		"frappe": "16.31.0",
+		"erpnext": "16.33.0",
+		"bunood_setup": "0.7.0"
+	},
+	"files": {
+		"frappe:frappe/templates/emails/standard.html": "fd3e883de26cc12aa10f723e36bdc5ab9ebae160fcaa91fd62913a8c4f0ddf88",
+		"frappe:frappe/templates/emails/email_header.html": "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
+		"frappe:frappe/templates/emails/email_footer.html": "801fd923887b41f710296218688a91f54311fccaf3220519b3c1fe3244982ad0"
+	},
+	"workspaces": {
+		"Selling": "d2028a820cbbdf15ebf384e18531b9e5db1e9c7c04166fd0e4a40923f9e4cd60",
+		"Buying": "f580c559eb524ece7cff4d753a24afce843453d9d315219e8ad494325224fa49",
+		"Stock": "6de11e2ee19d8f3cd7b7397ea14e214b81f3b230723e45120e7966eb04f66d6a"
+	},
+	"field_order": {
+		"Sales Invoice": "1d7c011e097c92a6a27b23e9e073b874bcc9eb7097af519e74d1598feafefa30",
+		"Purchase Invoice": "87211f481cfcfa0e3e2d1934e69c0600329302691d6ff857cce299c7538ae342"
+	}
+}
