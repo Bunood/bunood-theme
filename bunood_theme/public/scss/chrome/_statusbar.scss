@@ -403,17 +403,3 @@ html[data-bnd-touch] .bnd-statusbar a.bnd-status-item,
 html[data-bnd-touch] .bnd-statusbar button.bnd-status-item {
   min-block-size: 24px;
 }
-
-/* 1. Completely hide the bottom status bar to kill duplicates */
-.bnd-statusbar {
-  display: none !important;
-}
-
-/* 2. Reclaim the empty gap it leaves behind at the bottom of the screen */
-:root {
-  --bnd-bottom-reserve: 0px !important;
-}
-.main-section {
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-}

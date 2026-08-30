@@ -1017,6 +1017,21 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   text-transform: uppercase;
 }
 
+// ── The Desktop page: our chrome STAYS, deliberately ────────────────────────
+// A `html[data-bnd-desktop]` block used to stand every bar down on route "",
+// because v16's Desktop "ships its OWN navbar, its own search, and hides the
+// normal sidebar" (measured 2026-07-30). The v16-compatibility work deleted it,
+// and re-adding it was tried here and MEASURED on 16.31: `#page-desktop` now
+// renders an app-icon grid under a plain `.page-head` with ZERO search
+// controls, ZERO user controls and the side pane hidden. Standing our chrome
+// down there leaves that page with no search, no user menu and no logout —
+// which is the one thing "off" is never allowed to mean (see the OFF branch in
+// bunood.js: off must not delete the last route to a thing).
+//
+// So the attribute is still stamped and still available to scope by, but
+// nothing hides the bars on it. If a future Frappe restores the Desktop's own
+// header, re-add the block WITH a check that search stays reachable there.
+//
 // ── Rail rest state: calm, not compressed ───────────────────────────────────
 // A workspace can hold 70+ links; rendering them as micro-rows in a 52px rail
 // is noise (measured on the Stock workspace). At rest the rail shows ONLY the

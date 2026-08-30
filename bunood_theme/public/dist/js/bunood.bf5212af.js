@@ -1762,6 +1762,23 @@
 	}
 
 	/**
+	 * Route "" is v16's Desktop page, which ships its own navbar and search
+	 * and hides the normal sidebar — every piece of Bunood chrome stands down
+	 * there via the data-bnd-desktop attribute (chrome/_sidebar.scss).
+	 *
+	 * RESTORED AFTER A CHERRY-PICK ATE IT. Porting the v16 compatibility commit
+	 * onto this branch deleted this definition while leaving its call in the
+	 * router handler, and `node --check` passed — removing a whole function
+	 * leaves valid JS, exactly as CLAUDE.md warns. The desk threw
+	 * `update_desktop_mode is not defined` on every route change.
+	 */
+	function update_desktop_mode() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const on_desktop = !route.length || (route.length === 1 && !route[0]);
+		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
+	}
+
+	/**
 	 * Route to the first-class Home workspace, not Desk's empty route. Frappe
 	 * v16 keeps it as a standard workspace while /desk itself is only a shell
 	 * that self-redirects forever when a brand chip sends the user there.
@@ -3113,8 +3130,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
-		// Force search to the Top Bar Center since the Bottom Bar is permanently removed
-		return "topcenter";
+		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
 	}
 
 	/**
@@ -6957,6 +6973,12 @@ function sb_zone_anchor(pane, zone, node) {
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
+		// AT MOUNT AS WELL AS ON ROUTE CHANGE. The router handler alone never
+		// fires for the route the desk LOADS on, so a visit that lands on
+		// route "" — v16's Desktop page — left `data-bnd-desktop` unstamped and
+		// our chrome mounted on top of the Desktop's own header. Measured: the
+		// attribute read false on `/desk` until this call came back.
+		update_desktop_mode();
 		decorate_crumbs();
 
 		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
