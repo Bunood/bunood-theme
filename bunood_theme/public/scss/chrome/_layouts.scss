@@ -60,6 +60,39 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
+// ── v16 MOVED THE SEARCH, AND THE ROW ABOVE STOPPED REACHING IT ─────────────
+// The block above names `.body-sidebar .navbar-search-bar`, which is where
+// Frappe kept search when it was written. On 16.31 the desk renders its search
+// as `.search-bar` inside the PAGE HEAD instead —
+//   div.page-head > div.container > div.row > .standard-items-section > .search-bar
+// — so that selector matches nothing and the native survives. Measured on the
+// Home workspace with search placed in the Bottom Bar: Frappe's magnifier at
+// the top-right AND our field in the bar, which is the duplicate search this
+// theme was reported for.
+//
+// Same polarity as the block above, and for the same reason: keyed on
+// `data-bnd-own`, so a search we never mounted leaves Frappe's own in place
+// rather than deleting the only way to search.
+html[data-bnd-own~="search"] .page-head .search-bar {
+  display: none;
+}
+
+// The wrapper, not just the link. `.sidebar-user-button` is an <a> inside
+// `div.nav-item.dropdown.dropdown-navbar-user`; hiding only the <a> left the
+// wrapper laying out at 33x8px — a stray sliver above the side pane's foot,
+// measured. Safe to hide whole because `build_user` builds our avatar and its
+// menu from scratch; nothing proxies into this node.
+//
+// THE BELL IS NOT THE SAME SHAPE, deliberately. Its native row looks
+// equivalent — `.sidebar-notification` beside `.dropdown-notifications` — but
+// our bell PROXIES into it (`proxy_click(".sidebar-notification .item-anchor")`)
+// and the rules further down RELOCATE `.dropdown-notifications` to whichever
+// container the bell sits in. Hiding that wrapper would leave every bell
+// opening a panel nobody can see, so only the trigger is hidden, above.
+html[data-bnd-own~="user"] .body-sidebar .dropdown-navbar-user {
+  display: none;
+}
+
 // ── The side pane, switched off ─────────────────────────────────────────────
 // `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
 // `html[data-bnd-desk="dock"]` hid the pane, so "dock" and "no side pane"

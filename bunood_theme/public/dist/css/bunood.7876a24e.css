@@ -561,6 +561,14 @@ html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
+html[data-bnd-own~=search] .page-head .search-bar {
+  display: none;
+}
+
+html[data-bnd-own~=user] .body-sidebar .dropdown-navbar-user {
+  display: none;
+}
+
 html[data-bnd-chrome-off~=sidepane] .body-sidebar-container {
   display: none !important;
 }
