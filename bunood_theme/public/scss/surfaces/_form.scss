@@ -263,6 +263,27 @@ html[data-bnd-form] .grid-heading-row {
 html[data-bnd-form] .form-grid .grid-row {
   border-block-end-color: var(--bnd-border);
 }
+
+// ── Money reads as a column, not as a sentence ───────────────────────────────
+// The line-items grid is the densest thing on an invoice and the one place a
+// user checks arithmetic by eye. Frappe already right-aligns the numeric
+// columns; what was missing is TABULAR figures, so `1,250.00` and `625.00` put
+// their decimal points on the same pixel down the column instead of drifting
+// with proportional digit widths. Measured on a Sales Invoice before this:
+// `font-variant-numeric: normal` on every cell.
+//
+// Keyed on `data-fieldtype`, which Frappe stamps on both the heading cell and
+// every body cell — an identity attribute, not a layout class, so it survives a
+// column re-order or a `col-xs-*` change. `--bnd-numeric` is the same token the
+// list, report, sidebar and status bar already read; this grid was the outlier.
+html[data-bnd-form] .form-grid :is(.grid-heading-row, .grid-body) .col:is(
+    [data-fieldtype="Currency"],
+    [data-fieldtype="Float"],
+    [data-fieldtype="Int"],
+    [data-fieldtype="Percent"]
+  ) {
+  font-variant-numeric: var(--bnd-numeric);
+}
 html[data-bnd-form] .form-grid .grid-body .grid-row:hover {
   background: var(--bnd-hover);
 }

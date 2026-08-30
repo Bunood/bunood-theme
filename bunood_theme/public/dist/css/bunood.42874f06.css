@@ -5588,6 +5588,13 @@ html[data-bnd-form] .form-grid .grid-row {
   border-block-end-color: var(--bnd-border);
 }
 
+html[data-bnd-form] .form-grid :is(.grid-heading-row, .grid-body) .col:is([data-fieldtype=Currency],
+[data-fieldtype=Float],
+[data-fieldtype=Int],
+[data-fieldtype=Percent]) {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
 html[data-bnd-form] .form-grid .grid-body .grid-row:hover {
   background: var(--bnd-hover);
 }
