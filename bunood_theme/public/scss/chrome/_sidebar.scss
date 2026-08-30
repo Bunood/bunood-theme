@@ -321,12 +321,17 @@ html[data-bnd-sb-color] .bnd-sb-module {
 
 // ── Brand block ─────────────────────────────────────────────────────────────
 // Company logo + name from Theme Settings branding, pinned at the pane top,
-// routing HOME on click. The native header (and with it the old cascade
-// menu) is hidden whenever the kit owns the pane.
-html[data-bnd-sb-color] .body-sidebar .sidebar-header {
-  display: none;
-}
-
+// routing HOME on click.
+//
+// THE RULE THAT HID THE NATIVE HEADER IS NOT HERE ANY MORE (item 40). It read
+// `html[data-bnd-sb-color] .body-sidebar .sidebar-header { display: none }` --
+// keyed on a DECLARATION, which lands at parse time, while `.bnd-sb-brand`
+// mounts up to 4.5s later inside a `try_for`. Attribute present plus a failed
+// mount is a headerless pane; attribute absent plus a successful mount renders
+// BOTH, which is the double render this item was opened for. It now lives in
+// `_layouts.scss` beside search, the bell and the account, keyed on
+// `[data-bnd-own~="panehead"]` and stamped only once our brand is in the
+// document.
 html[data-bnd-sb-color] .bnd-sb-brand {
   display: flex;
   align-items: center;
@@ -684,6 +689,15 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
 // ── Brand header + pane furniture on kit surfaces ───────────────────────────
 // The native header ships light-surface styling (white card look, gray icon
 // tile); on a dark or tinted pane it must read as part of the pane.
+//
+// THIS BLOCK USED TO BE DEAD, and item 40's audit listed it as such: the rule
+// above `display:none`d the very node it styles. Under the ownership repair it
+// is load-bearing, and it is the reason the repair is safe to make: an
+// unclaimed header is a VISIBLE header, and this is what makes it look like it
+// belongs to the pane it is sitting in rather than like a white card dropped on
+// a dark surface. It is what a failed mount looks like -- which is the point of
+// hiding from the outcome, and is worth keeping legible rather than merely
+// present.
 html[data-bnd-sb-color] .body-sidebar .sidebar-header {
   background: transparent;
 

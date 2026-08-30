@@ -3594,6 +3594,83 @@ async function main() {
 			setSettings({ inbox_placement: "Top Bar End" });
 		});
 
+		await test("sidepane: the pane head is hidden by OWNERSHIP, never by the kit's attribute", async () => {
+			// THE DOUBLE RENDER THIS ITEM WAS OPENED FOR. `_sidebar.scss` hid Frappe's
+			// `.sidebar-header` from `html[data-bnd-sb-color]` -- a DECLARATION, which
+			// lands at parse time -- while `.bnd-sb-brand` mounts up to 4.5s later
+			// inside a `try_for`. Attribute present and the mount failed is a pane with
+			// no head at all; attribute absent and the mount succeeded renders BOTH.
+			// The rule now keys on `[data-bnd-own~="panehead"]`, stamped by
+			// `claim_panehead` only once our brand is in the document.
+			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			// READINESS IS `body`, AND THE PREMISE IS WAITED FOR SEPARATELY. Waiting
+			// on `.body-sidebar` means waiting for it to be VISIBLE, and whether the
+			// pane renders depends on the layout the previous check left behind --
+			// this timed out for exactly that reason in full-suite order while
+			// passing in isolation. What this check needs is only that Frappe's
+			// header is in the DOM to be owned or released.
+			await goDesk("/app", "body", 3000);
+			await page.waitForFunction(
+				() => !!document.querySelector(".body-sidebar .sidebar-header"),
+				{ timeout: 20000 }
+			);
+
+			// NEITHER HALF REQUIRES THE PANE TO BE ON SCREEN, and that is deliberate.
+			// Whether `.body-sidebar-container` renders depends on Frappe's own
+			// `desk_settings`, the layout, the rail and the collapse state, and it is
+			// NOT reliably on for this site -- an earlier draft asserted our brand had
+			// mounted and passed, then failed on the next run for that reason alone.
+			// A flaky check is worse than none. What is asserted instead is the
+			// contract itself, which holds in every state.
+			const read = () =>
+				page.evaluate(() => {
+					const h = document.querySelector(".body-sidebar .sidebar-header");
+					return {
+						own: document.documentElement.getAttribute("data-bnd-own") || "",
+						kit: document.documentElement.getAttribute("data-bnd-sb-color") || "",
+						brands: document.querySelectorAll(".body-sidebar .bnd-sb-brand").length,
+						header: !!h,
+						display: h ? getComputedStyle(h).display : "(absent)",
+					};
+				});
+
+			// 1. THE INVARIANT: the token is stamped exactly when our brand is in the
+			// pane. `claim_panehead` measures the DOM rather than trusting that it just
+			// built something, so a stamp-on-intent regression breaks this in either
+			// direction -- token without brand hides Frappe's header behind nothing;
+			// brand without token renders both.
+			const now = await read();
+			expect(now.header, "Frappe's pane header is in the DOM to be owned or released");
+			expectEq(/\bpanehead\b/.test(now.own), now.brands > 0,
+				`the token is stamped exactly when our brand is in the pane ` +
+					`(own=${now.own || "(none)"}, brands=${now.brands})`);
+
+			// 2. THE RULE, BOTH WAYS, with the kit's attribute held ON throughout --
+			// which is the half the old rule got wrong. Keyed on `data-bnd-sb-color`,
+			// the header stayed hidden here no matter what our mount did.
+			expect(!!now.kit, "the colour kit is on, which is what USED to hide the header");
+			// MUTATE AND READ IN SEPARATE EVALUATES: a computed value re-read inside
+			// the mutating evaluate has served a stale answer in this repo.
+			await page.evaluate(() => {
+				const html = document.documentElement;
+				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+				own.add("panehead");
+				html.setAttribute("data-bnd-own", [...own].join(" "));
+			});
+			expectEq((await read()).display, "none", "claimed, Frappe's header is hidden");
+
+			await page.evaluate(() => {
+				const html = document.documentElement;
+				const own = (html.getAttribute("data-bnd-own") || "").split(/\s+/).filter((t) => t && t !== "panehead");
+				if (own.length) html.setAttribute("data-bnd-own", own.join(" "));
+				else html.removeAttribute("data-bnd-own");
+			});
+			const released = (await read()).display;
+			expect(released !== "none" && released !== "(absent)",
+				`released, Frappe's header comes back (display is ${released}) -- a failed ` +
+					`mount degrades to stock rather than leaving the pane without a head`);
+		});
+
 		await test("placement: exactly one of each, wherever it was placed", async () => {
 			// THE BUG THE CONTAINER SPLIT CREATED, measured 2026-08-07 with every
 			// container on: asking for the bell in the Top Bar produced THREE

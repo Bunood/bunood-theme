@@ -1012,27 +1012,105 @@ const FIELD_EXCEPTIONS = new Set([
  *
  * Keyed on `data-bnd-own`, which is stamped after the node is in the document.
  */
-const OWNED_NATIVES = ["navbar-search-bar", "sidebar-notification", "sidebar-user-button", "frappe-menu"];
+/**
+ * Frappe affordances this theme replaces, as the class each one is hidden by.
+ *
+ * DERIVED FROM `registry.py`, and that is half of the fix. The list used to be
+ * hand-kept here, so adding a component with a `native` extended the registry
+ * and NOT the guard — the same fact in two places, living inside the mechanism
+ * that exists to prevent it. A new `native` in the registry now joins this
+ * automatically.
+ *
+ * The last class in a native selector is the affordance itself:
+ * `.body-sidebar .navbar-search-bar` is hidden by `navbar-search-bar`, and
+ * matching on `body-sidebar` too would flag every rule in the pane.
+ */
+function readOwnedNatives(registrySrc) {
+	const out = new Set();
+	for (const m of registrySrc.matchAll(/"native":\s*"([^"]+)"/g)) {
+		const classes = [...m[1].matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
+		if (!classes.length) {
+			throw new Error(`Ownership guard: registry.py native "${m[1]}" names no class`);
+		}
+		out.add(classes[classes.length - 1]);
+	}
+	if (out.size < 3) {
+		throw new Error(
+			`Ownership guard: only ${out.size} natives read out of registry.py — the extraction has ` +
+				"broken, and an empty list would make this guard pass on everything."
+		);
+	}
+	return out;
+}
 
-function assertOwnershipPolarity(css, name) {
+/**
+ * Natives this theme claims that are NOT a registry component's `native`, each
+ * with the reason it is here instead. A shrink-enforced list, like the field
+ * naming exceptions: it should get shorter, never longer by default.
+ */
+const EXTRA_OWNED_NATIVES = {
+	// Frappe's own context menu. We hide two of ITS items (Display, and the
+	// theme row) once ours exist; the menu is not a component we replace, so it
+	// has no registry row and never will.
+	"frappe-menu": "an item inside Frappe's context menu, not a component we replace",
+	// The pane's head. Its replacement is `.bnd-sb-brand`, which has no registry
+	// row yet — giving the pane's head an identity is item 40's slice 9, and a
+	// TENANT row here would mint a `panehead_placement` field the doctype does
+	// not have. Until then the native is declared here so the guard can see it.
+	"sidebar-header": "replaced by .bnd-sb-brand, which has no registry row until item 40 slice 9",
+};
+
+//: Read once, at module scope, like RUNTIME_TOKENS and BASE_TOKENS above.
+const OWNED_NATIVES = new Set([
+	...readOwnedNatives(readFileSync(join(APP, "registry.py"), "utf8")),
+	...Object.keys(EXTRA_OWNED_NATIVES),
+]);
+
+/**
+ * Ownership polarity — a native affordance is hidden from the OUTCOME, never
+ * from a declaration.
+ *
+ * WHY THE POLARITY, in one sentence: a declaration lands at parse time and a
+ * mount can fail, so a rule keyed on "the user asked for our version" deletes
+ * the affordance whenever ours does not arrive. That is how "Off" cost the
+ * Bottom Bar layout its logout, and how a resolved-but-unmounted search
+ * placement hid the sidebar's search row with nothing to replace it.
+ *
+ * INVERTED IN ITEM 40, and the old shape is why it had to be. It fired only
+ * when a rule named an owned native AND matched `/data-bnd-(desk|search)/` — a
+ * DENYLIST of two attributes, where the doctrine is an ALLOWLIST of one. So
+ * `_sidebar.scss`'s `html[data-bnd-sb-color] .body-sidebar .sidebar-header
+ * { display: none }` walked straight through on both tests, and the pane
+ * shipped for six items with its header hidden by a declaration: attribute
+ * present plus a failed mount is a headerless pane, and attribute absent plus a
+ * successful mount renders BOTH. Adding `sidebar-header` to the list would not
+ * have caught it either — the attribute test was the other half.
+ *
+ * Now: any rule that `display:none`s an owned native must contain
+ * `data-bnd-own`. Verified against the compiled bundle before the change — of
+ * the four such rules, three already keyed that way and the fourth was the one
+ * this repair fixes.
+ */
+function assertOwnershipPolarity(css, name, owned) {
 	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const offenders = [];
 	// Each rule: everything up to `{`, then its body up to `}`.
 	for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
 		const [, selector, body] = m;
 		if (!/display\s*:\s*none/.test(body)) continue;
-		if (!OWNED_NATIVES.some((n) => selector.includes(n))) continue;
-		if (/data-bnd-(desk|search)/.test(selector)) {
-			offenders.push(selector.trim().slice(0, 120));
+		if (![...owned].some((n) => selector.includes(n))) continue;
+		if (!/data-bnd-own/.test(selector)) {
+			offenders.push(selector.trim().replace(/\s+/g, " ").slice(0, 140));
 		}
 	}
 	if (offenders.length) {
 		throw new Error(
-			`Ownership guard: ${name} hides a native affordance from a DECLARATION:\n  ` +
+			`Ownership guard: ${name} hides a native affordance from something other than ` +
+				`ownership:\n  ` +
 				offenders.join("\n  ") +
-				"\nKey it on [data-bnd-own~=\"search|bell|user\"] instead — stamped after the " +
-				"replacement is in the DOM, so a failed mount degrades to stock rather than " +
-				"deleting the affordance."
+				'\nKey it on [data-bnd-own~="<token>"] instead — stamped after the replacement is ' +
+				"in the DOM, so a failed mount degrades to stock rather than deleting the " +
+				"affordance. A declaration lands at parse time; a mount can fail."
 		);
 	}
 }
@@ -1527,7 +1605,7 @@ async function buildEntry({ key, src, pyid }) {
 	if (key === "bunood-print") assertPrintSafeCss(result.css, `${key}.css`);
 	else assertLogicalOnly(result.css, `${key}.css`);
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
-	assertOwnershipPolarity(result.css, `${key}.css`);
+	assertOwnershipPolarity(result.css, `${key}.css`, OWNED_NATIVES);
 	assertCursiveSafe(result.css, `${key}.css`);
 	assertAutomaticArms(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);

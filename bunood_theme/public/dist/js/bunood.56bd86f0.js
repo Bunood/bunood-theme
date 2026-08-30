@@ -874,7 +874,8 @@
 		if (!theme_active()) return;
 		apply_chrome_off();
 
-		for (const token of ["search", "bell", "user"]) bnd_disown(token);
+		// `panehead` joins them (item 40); see _layouts.scss.
+		for (const token of ["search", "bell", "user", "panehead"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -5867,21 +5868,34 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sb_mount_brand() {
 		const sidebar = document.querySelector(".body-sidebar");
-		if (!sidebar || sidebar.querySelector(".bnd-sb-brand")) return;
-		const brand = el("button", "bnd-sb-brand", { type: "button", title: __("Home") });
-		if (frappe.boot.bnd_logo) {
-			const img = el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" });
-			brand.appendChild(img);
-		} else {
-			const chip = el("span", "bnd-sb-brand-chip");
-			chip.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-			brand.appendChild(chip);
+		if (!sidebar) return;
+		// Build ONLY if absent, but claim on EVERY call: remount_chrome releases
+		// the token and our node survives it, so an early return would leave the
+		// brand rendered with Frappe's header back under it.
+		if (!sidebar.querySelector(".bnd-sb-brand")) {
+			const brand = el("button", "bnd-sb-brand", { type: "button", title: __("Home") });
+			if (frappe.boot.bnd_logo) {
+				const img = el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" });
+				brand.appendChild(img);
+			} else {
+				const chip = el("span", "bnd-sb-brand-chip");
+				chip.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+				brand.appendChild(chip);
+			}
+			const name = el("span", "bnd-sb-brand-name");
+			name.textContent = frappe.boot.bnd_company || "Home";
+			brand.appendChild(name);
+			brand.addEventListener("click", () => frappe.set_route(""));
+			sidebar.insertBefore(brand, sidebar.firstChild);
 		}
-		const name = el("span", "bnd-sb-brand-name");
-		name.textContent = frappe.boot.bnd_company || "Home";
-		brand.appendChild(name);
-		brand.addEventListener("click", () => frappe.set_route(""));
-		sidebar.insertBefore(brand, sidebar.firstChild);
+		claim_panehead();
+	}
+
+	/** Claim the pane header from the DOM, never from having built it.
+	 *  Disowns on the negative branch. Argument: _layouts.scss. */
+	function claim_panehead() {
+		if (document.querySelector(".body-sidebar .bnd-sb-brand")) bnd_own("panehead");
+		else bnd_disown("panehead");
 	}
 
 	/**

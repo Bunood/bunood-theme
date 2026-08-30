@@ -390,6 +390,10 @@ html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
+html[data-bnd-own~=panehead] .body-sidebar .sidebar-header {
+  display: none;
+}
+
 html[data-bnd-chrome-off~=sidepane] .body-sidebar-container {
   display: none !important;
 }
@@ -1506,10 +1510,6 @@ html[data-bnd-sb-color] .bnd-sb-module {
 html[data-bnd-sb-color] .bnd-sb-module .bnd-sb-module-chev {
   margin-inline-start: auto;
   color: var(--bnd-sb-ink-muted);
-}
-
-html[data-bnd-sb-color] .body-sidebar .sidebar-header {
-  display: none;
 }
 
 html[data-bnd-sb-color] .bnd-sb-brand {

@@ -60,6 +60,45 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
+// ── The pane's head (item 40) ───────────────────────────────────────────────
+// The fourth one, and it arrived last because it was the one doing it wrong.
+// `_sidebar.scss` hid Frappe's `.sidebar-header` from `html[data-bnd-sb-color]`
+// -- a DECLARATION -- while `.bnd-sb-brand` mounts up to 4.5s later inside a
+// `try_for` with a 30-attempt budget. The two failure modes are the two halves
+// of the bug this item was opened for: attribute present and the mount failed
+// leaves a pane with no head at all, and attribute absent with the mount
+// succeeding renders Frappe's header AND ours, one under the other.
+//
+// `panehead` is stamped by `sb_mount_brand` only after `.bnd-sb-brand` is found
+// IN THE DOCUMENT -- the `stamp_appearance_route` rule, and the reason a cluster
+// that was built but never appended owns nothing. `claim_panehead` DISOWNS on
+// the negative branch rather than merely declining to claim, so a pane whose
+// brand was torn out releases the header instead of leaving it hidden by a token
+// nobody cleared.
+//
+// THREE RELEASE PATHS, all of them the same one three affordances already use.
+// `remount_chrome` releases every token before the re-mounts and lets each
+// re-claim only what it really mounts, so a container flip, the kit standing
+// down, and `sidebar_enabled: 0` all end with Frappe's own header back rather
+// than a head-shaped hole. `sb_mount_brand` re-claims on its early-return path
+// too: our node survives a release, and claiming only on the build path would
+// leave the brand rendered with the header un-hidden beneath it.
+//
+// An unclaimed header is a VISIBLE header, styled for the pane it sits in by
+// `_sidebar.scss`'s own header block -- which this repair turns from dead code
+// (it styled a `display:none` node) into what a failed mount looks like.
+//
+// THE ARGUMENT LIVES HERE AND NOT IN `bunood.js` BECAUSE THE RUNTIME PAYS FOR
+// ITS OWN PROSE. `build.mjs` copies that file verbatim -- no bundler, by policy
+// -- so every comment ships to every desk. This repair's first draft put the
+// reasoning at the call sites and cost 449 gzip bytes, over the `js_gzip`
+// ceiling. Sass strips `//` before anything reaches the wire, and this is where
+// the polarity contract already lives, so the constraint moved the prose to the
+// file that should always have held it.
+html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header {
+  display: none;
+}
+
 // ── The side pane, switched off ─────────────────────────────────────────────
 // `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
 // `html[data-bnd-desk="dock"]` hid the pane, so "dock" and "no side pane"

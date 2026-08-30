@@ -25,12 +25,21 @@
 		"web form, for signed-in and signed-out visitors alike. The audience for these",
 		"bytes went from two routes to the whole website, so the ceiling is now the",
 		"tightest one here in practice even though it is the smallest number.",
+		"RAISED 98200 -> 98300 by item 40's ownership repair (2026-08-30). The repair is",
+		"~40 gzip bytes of runtime: `claim_panehead`, one entry in remount_chrome's",
+		"disown list, and a build-only branch in sb_mount_brand. It cost more at first",
+		"draft -- 449 bytes -- because the ARGUMENT was written at the JS call sites,",
+		"and build.mjs copies that file verbatim by policy, so every comment ships. The",
+		"prose moved to _layouts.scss, where Sass strips `//` before the wire and where",
+		"the ownership contract already lived. What is left is the feature. Item 40's",
+		"slice 4 is a deletion slice and is expected to return this and more; if it does",
+		"not, this number should come back down rather than stay as headroom.",
 		"tools/payload.mjs THROWS on any dist file that matches no bucket, so a",
 		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
 	],
 	"ceiling": {
 		"css_gzip": 21500,
-		"js_gzip": 98200,
+		"js_gzip": 98300,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
