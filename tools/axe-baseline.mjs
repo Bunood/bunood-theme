@@ -32,6 +32,9 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const { AxeBuilder } = require("@axe-core/playwright");
+// The routes and the scan configuration live in ONE place, shared with the
+// check that enforces what this tool banks. See tools/axe-routes.mjs.
+import { ROUTES, scanForBaseline } from "./axe-routes.mjs";
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalStatus } from "./portal-fixtures.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -52,55 +55,7 @@ const URL_BASE = "http://localhost:8080";
 // carry `bust: true` where these do not: the scan below runs straight after a
 // `frappe.clear_cache()`, so its pages are fresh by construction. Adding a route
 // here without adding it there is now a build error rather than a silent hole.
-const ROUTES = [
-	["/desk/item", ".page-head"],
-	["/desk/item/BND-TEST-001", ".form-tabs-list"],
-	["/desk/theme-settings?shell=1", ".bnd-shell"],
-	// Item 25: the two surfaces the workspace + chart kits land on.
-	["/desk/selling", ".ce-block .widget"],
-	["/desk/dashboard-view/Selling", ".widget-group-body"],
-	// Item 26: the report view's datatable. The /app/ form on purpose — it is
-	// verified to render and the tool's /desk/->/app/ rewrite is a no-op on it.
-	// The query-report route renders the SAME .datatable DOM, so this covers the
-	// datatable's axe profile; its unique chrome (.report-summary) is filter- and
-	// date-dependent — unsafe for a node-count gate — and gets explicit contrast
-	// pairs in item 26's close instead.
-	["/app/account/view/report", ".dt-scrollable .dt-row"],
-	// Item 27: the four alternate views. Each needs seeded data to render at all
-	// (tools/fixtures-views.mjs) — the demo site ships with zero Kanban Boards,
-	// Tasks or Events, and a baseline over empty chrome banks no honest count.
-	// The board name in the kanban route is the pinned fixture name; a generated
-	// name would break this baseline on the next reseed.
-	["/app/todo/view/kanban/Bunood%20Memos", ".kanban-column"],
-	["/app/todo/view/calendar", ".fc"],
-	["/app/todo/view/gantt", ".gantt .bar"],
-	["/app/item/view/image", ".image-view-container"],
-	// Item 32: the two LOGGED-OUT routes. They are the only entries here that
-	// are not a desk session, so they are scanned in a cookie-less context —
-	// www/login.py redirects an authenticated session to /desk, and a baseline
-	// banked from that redirect would be the desk's, silently.
-	["/login", ".for-login .page-card", { guest: true }],
-	["/update-password", ".for-reset-password .page-card", { guest: true }],
-	// Item 33: the website and portal. FIVE ROUTES FOR FIVE TEMPLATE SHAPES, not
-	// five addresses — `docs/upstream/frappe-website.md` §0 measured that twelve
-	// erpnext portal routes collapse onto ONE template, so scanning more of them
-	// would bank the same DOM repeatedly and still miss the shapes below.
-	// `/support` is erpnext's own `www/*` (navbar + footer, no sidebar),
-	// `/request-data/new` is a Web Form, `/404` has no chrome at all, `/orders`
-	// is `www/portal.html` (navbar + sidebar, no footer) and `/me` is the account
-	// page (no navbar, no sidebar, no footer).
-	["/support", ".navbar", { guest: true }],
-	["/request-data/new", ".navbar", { guest: true }],
-	["/404", "body", { guest: true }],
-	// THE PORTAL PAIR NEEDS THE FIXTURE USER, NOT THE ADMINISTRATOR, and that is
-	// not a preference. `website_list_for_contact.py` renders a populated list to
-	// an Administrator through the PERMISSION branch — every Customer on the site
-	// — and to a Website User through the Portal-User branch. Scanning as
-	// Administrator banks the wrong DOM while looking entirely correct. Slice 0
-	// proved this by sabotage; see the harness check in tests/smoke.mjs.
-	["/orders", ".website-list", { portal: true }],
-	["/me", ".portal-container", { portal: true }],
-];
+
 
 const py = (c) =>
 	execFileSync(
@@ -186,7 +141,7 @@ for (const [route, waitFor, opts] of ROUTES) {
 	});
 	await target.waitForSelector(waitFor, { timeout: 30000 });
 	await target.waitForTimeout(2500);
-	const res = await new AxeBuilder({ page: target }).withTags(["wcag2a", "wcag2aa"]).analyze();
+	const res = await scanForBaseline(AxeBuilder, target);
 	baseline[route] = {};
 	for (const v of res.violations) baseline[route][v.id] = v.nodes.length;
 	console.log(`${route}: ${res.violations.length} standing rules (${res.violations.reduce((a, v) => a + v.nodes.length, 0)} nodes)`);

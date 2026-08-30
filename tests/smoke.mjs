@@ -31,6 +31,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
+// The routes and the scan configuration are shared with the tool that BANKS
+// this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
+import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
 // The i18n gates DERIVE their expectation sets from the same tooling the
 // build's coverage gate uses — restating "which strings are ours" here would
 // be the second copy of the catalogue, and it is the catalogue that moves.
@@ -7917,88 +7920,7 @@ ${gate.stdout}`);
 			// neither of which is a regression. Pinning turns a cascade into a
 			// deterministic scan.
 			setLang("en");
-			for (const [route, waitFor, opts] of [
-				["/desk/item", ".page-head"],
-				["/desk/item/BND-TEST-001", ".form-tabs-list"],
-				["/desk/theme-settings?shell=1", ".bnd-shell"],
-				// Item 25: the workspace and dashboard routes the kits land on.
-				["/desk/selling", ".ce-block .widget"],
-				["/desk/dashboard-view/Selling", ".widget-group-body"],
-				// Item 26: the report view's datatable (captured kit-absent in
-				// slice 0). The /app/ form matches the baseline tool's key.
-				["/app/account/view/report", ".dt-scrollable .dt-row"],
-				// Item 27: the four alternate views, kit ON at SHIPPED here vs the
-				// kit-absent baseline (slice 0) — so a NEW violation means the
-				// views kit made the page worse (a contrast fail on an event chip,
-				// a card, a bar). The pinned fixtures render them.
-				["/app/todo/view/kanban/Bunood%20Memos", ".kanban-column"],
-				["/app/todo/view/calendar", ".fc"],
-				["/app/todo/view/gantt", ".gantt .bar"],
-				["/app/item/view/image", ".image-view-container"],
-				// Item 32: the two LOGGED-OUT routes. Everything above is a desk
-				// session; these two are the only entries that must NOT be, because
-				// www/login.py redirects an authenticated one to /desk and a scan
-				// run through that redirect would be measuring the desk while
-				// claiming to measure the login page. `guest: true` routes them
-				// through withGuest, matching how the baseline was captured.
-				//
-				// AND THESE TWO ARE BANKED KIT-ON, WHICH NO OTHER ENTRY IS. Every
-				// route above holds a KIT-ABSENT count, because a desk kit can be
-				// stood down to "Original" and the baseline has to describe the
-				// state a user could actually be in. **The auth contracts cannot be
-				// stood down** — they are contracts precisely because they survive
-				// "Original" — so a kit-absent number here describes a state that
-				// does not exist, and banking one leaves the gate three
-				// colour-contrast violations of slack on the one page a user cannot
-				// skip. It sat at `{color-contrast: 3}` and `{color-contrast: 4}`
-				// from slice 0's census while the kit delivered ZERO, so all three
-				// could have come back green. Measured kit-on: `{image-alt: 1}` on
-				// both, the single filed-upstream survivor (the logo <img> carries
-				// no alt and the template gives no seam for one).
-				//
-				// `tools/axe-baseline.mjs` regenerates every route from whatever is
-				// deployed, so re-running it wholesale would re-bank the desk routes
-				// at today's numbers and silently accept a regression there. Run it
-				// to READ the diff; edit these two by hand.
-				["/login", ".for-login .page-card", { guest: true }],
-				["/update-password", ".for-reset-password .page-card", { guest: true }],
-				// Item 33: five TEMPLATE SHAPES, not five addresses — twelve erpnext
-				// portal routes render one template, so more addresses would bank the
-				// same DOM and still miss the shapes that differ.
-				//
-				// BANKED KIT-ON, for item 32's reason exactly. `web_style` does have
-				// an `Original`, so a kit-absent count would describe a reachable
-				// state — but the CONTRACTS (the focus ring, the nineteen contrast
-				// repairs) survive `Original` by definition, so a kit-absent number
-				// would leave the gate slack equal to every violation this item was
-				// built to remove. The kit-OFF scan was taken as EVIDENCE of what the
-				// item fixed and recorded in ROADMAP; it is not what gates.
-				//
-				// The portal pair runs as the FIXTURE USER. An Administrator renders
-				// a populated list through a different branch of
-				// `website_list_for_contact.py`, so scanning as one banks a DOM that
-				// looks right and is not — proved by sabotage in slice 0.
-				// `bust` ON ALL FIVE, AND ONLY HERE — `tools/axe-baseline.mjs` has no
-				// equivalent, which is correct rather than drift. `/404` is the one
-				// route on this surface Frappe actually caches, keyed on
-				// `(path, lang)` and nothing else. The TOOL calls
-				// `frappe.clear_cache()` immediately before it scans, so its pages
-				// are fresh by construction; the SUITE runs this check in the middle
-				// of hundreds of others, any of which can have repopulated that cache
-				// since, so it needs the query string instead. `build.mjs`'s
-				// `assertAxeRoutesAgree` compares route, selector and SESSION across
-				// the two lists and deliberately ignores `bust` for this reason.
-				//
-				// (This comment previously claimed the baseline rows "were captured
-				// with a buster". They were not — the tool clears the cache. The
-				// claim was wrong the day it was written and is corrected here rather
-				// than left as a plausible sentence somebody would trust.)
-				["/support", ".navbar", { guest: true, bust: true }],
-				["/request-data/new", ".navbar", { guest: true, bust: true }],
-				["/404", "body", { guest: true, bust: true }],
-				["/orders", ".website-list", { portal: true, bust: true }],
-				["/me", ".portal-container", { portal: true, bust: true }],
-			]) {
+			for (const [route, waitFor, opts] of AXE_ROUTES) {
 				let res;
 				if (opts && opts.portal) {
 					res = await withPortalUser(
@@ -8006,7 +7928,7 @@ ${gate.stdout}`);
 						waitFor,
 						async (pp) => {
 							await pp.waitForTimeout(1500);
-							return new AxeBuilder({ page: pp }).withTags(["wcag2a", "wcag2aa"]).analyze();
+							return scanForBaseline(AxeBuilder, pp);
 						},
 						{ bust: !!opts.bust }
 					);
@@ -8016,13 +7938,13 @@ ${gate.stdout}`);
 						waitFor,
 						async (gp) => {
 							await gp.waitForTimeout(1500);
-							return new AxeBuilder({ page: gp }).withTags(["wcag2a", "wcag2aa"]).analyze();
+							return scanForBaseline(AxeBuilder, gp);
 						},
 						{ bust: !!opts.bust }
 					);
 				} else {
 					await goDesk(route, waitFor, 4000);
-					res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+					res = await scanForBaseline(AxeBuilder, page);
 				}
 				const seen = {};
 				for (const v of res.violations) seen[v.id] = v.nodes.length;

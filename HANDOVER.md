@@ -53,12 +53,47 @@ Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf
 item-40 entry and CHANGELOG carry the account. What belongs HERE is what will cost time
 again:
 
-- **THE SUITE IS 417/418, AND THE ONE FAILURE IS NOT YOURS.** `a11y: axe over the Desk`
-  records node COUNTS for `/desk/selling`, whose content includes Frappe's onboarding
-  widget — `.onb-progress-badge` literally reads "17% completed". The count drifts with
-  demo data, never with our chrome. **Before assuming a red suite is your change: stash,
-  redeploy, re-run at HEAD.** That has settled it twice this item. Do NOT regenerate
-  `tests/fixtures/axe-baseline.json` to go green; it launders a real signal.
+- **THE AXE BASELINE NO LONGER DRIFTS — FIXED 2026-08-30, and here is what it was.**
+  `a11y: axe over the Desk` records node COUNTS, and Frappe's onboarding panel lives
+  inside `.body-sidebar-container`, so it rendered on SIX scanned routes and was a large
+  share of every count. Its content tracks the completion percentage — `.onb-progress-badge`
+  literally renders "17% completed", and a finished step renders `.onb-step-text` with
+  `line-through`, a node that does not exist at 0%. Documents created by the suite's own
+  fixtures advance it, so the gate went red for reasons that were never ours.
+
+  The panel is now excluded from the scan, and the baseline was regenerated once. Every
+  count went DOWN and every decrease is the panel:
+
+  | route | button-name | color-contrast | image-alt |
+  |---|---|---|---|
+  | `/desk/item` | 9 → 7 | 2 → 0 | 1 → 0 |
+  | `/desk/item/BND-TEST-001` | 15 → 13 | 6 → 4 | 1 → 0 |
+  | `/desk/selling` | 8 → 6 | 2 → 1 | 1 → 0 |
+  | `/desk/dashboard-view/Selling` | 10 → 8 | — | 1 → 0 |
+  | `/app/account/view/report` | 8 → 6 | 4 → 0 | 1 → 0 |
+  | `/app/item/view/image` | 9 → 7 | 17 → 15 | 1 → 0 |
+
+  **Why excluding it is not laundering.** This theme emits ZERO rules matching `.onb-*` —
+  grepped across the SCSS and the runtime, and 0 occurrences in the compiled bundle — and
+  the panel paints its own opaque `#ffffff` / `#fdfaed`. Nothing of ours reaches its
+  contrast. **If we ever DO emit a rule for it, revisit this exclusion rather than widen
+  it.**
+
+  **The gate still catches our own regressions, and that was proven rather than assumed.**
+  Setting `--bnd-sb-ink` to the pane's own background produced
+  `/desk/item: NEW rule color-contrast (22 nodes)`. Two earlier sabotage attempts did NOT
+  trip it, and both were the sabotage's fault, not the gate's: 52 of the pane's 62 labels
+  are 0×0 inside collapsed sections (axe correctly skips them), and the visible ones take
+  `color: inherit` rather than a rule appended at the end of the file. **If a contrast
+  sabotage here comes back green, check that it applied before concluding anything.**
+
+  **The route list is no longer duplicated.** `tools/axe-routes.mjs` holds the routes AND
+  the scan, shared by the capture tool and the check. `build.mjs::assertAxeRoutesAgree` is
+  retired with the duplication that needed it — it compared the two texts on route,
+  selector and session, and could not have seen that only one copy had learned to
+  `exclude()`. `assertAxeScanShared` replaces it and holds the five things that can still
+  drift; every arm was watched failing.
+
 - **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
   off their shipped defaults while printing "state restored", and four unrelated checks
   then go red — the picker-drift check, both `shell:` change-dot checks and a print
