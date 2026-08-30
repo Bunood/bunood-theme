@@ -75,7 +75,11 @@ def parse_color(text: str, variables: dict[str, str] | None = None, _depth: int 
     Supported:
         ``#rgb`` · ``#rrggbb`` · ``#rrggbbaa`` · ``rgb(…)`` · ``rgba(…)`` ·
         ``color-mix(in srgb, <colour> <pct>%, <colour>)`` · ``var(--name)`` and
-        ``var(--name, <fallback>)`` resolved against ``variables``.
+        ``var(--name, <fallback>)`` resolved against ``variables`` ·
+        ``transparent``, the only named colour accepted.
+
+    ``currentColor`` is refused with its own message: it is not missing syntax,
+    it is unresolvable without the inherited ``color`` at the point of use.
 
     Args:
         text: the expression.
@@ -95,6 +99,34 @@ def parse_color(text: str, variables: dict[str, str] | None = None, _depth: int 
     if _depth > 24:
         raise ValueError(f"colour reference cycle at: {text[:60]!r}")
     s = text.strip().rstrip(";").strip()
+
+    # `transparent` — the ONE named colour this parser accepts, and it is not a
+    # convenience. The premultiplication in `_mix` below is written for it and
+    # says so, but until item 40 nothing could reach that branch: `transparent`
+    # is a keyword, matched none of the prefixes, and fell through to the
+    # unsupported-expression raise. `_sidebar.scss` declares it 14 times, so the
+    # gate could not read a sidebar block at all.
+    #
+    # (0, 0, 0, 0) is the CSS definition — transparent black. The channels are
+    # meaningless at alpha 0 and `_mix` discards them; what matters is that the
+    # ALPHA is right, so a wash composites over its host instead of being read
+    # as a colour in its own right.
+    if s == "transparent":
+        return (0.0, 0.0, 0.0, 0.0)
+
+    # `currentColor` is refused EXPLICITLY rather than falling through to the
+    # generic raise, because the generic message invites the wrong fix. It is
+    # not an unsupported syntax to be added later — it resolves against the
+    # inherited `color` at the point of use, which a static parser does not
+    # have. Guessing a value here would be the "helper that guesses at an
+    # unrecognised input" defect: it would return a number, and the number would
+    # be for a colour that is not on screen.
+    if s.lower() == "currentcolor":
+        raise ValueError(
+            "currentColor cannot be resolved statically: it depends on the "
+            "inherited `color` where it is used. Resolve it at the call site "
+            "and pass the concrete value."
+        )
 
     if s.startswith("var("):
         inner = _args(s[4:-1])
