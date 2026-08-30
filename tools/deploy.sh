@@ -288,6 +288,52 @@ else
 	say "no asset change — skipping restart"
 fi
 
+# ── Make the SITE NAME resolvable inside the backend, so PDFs print ─────────
+# wkhtmltopdf runs INSIDE this container and fetches the print page's assets
+# over HTTP from `frappe.utils.get_url()` — which, with no `host_name` in
+# site_config, is the SITE NAME and no port: `http://<site>`. That name does
+# not resolve in here at all, so every asset fetch dies at DNS and wkhtmltopdf
+# exits with "network error: ConnectionRefusedError", which frappe surfaces as
+# a bare HTTP 500 on download_pdf. Measured 2026-08-30: 8 of 8 print formats
+# returned a 2 KB error page while printview was 200 for every one.
+#
+# `bench set-config host_name http://<frontend>:8080` also fixes it, and is NOT
+# used: get_url() builds user-facing links too (password resets, portal, email
+# footers), so that value would be wrong for a human clicking one. Making the
+# name resolve keeps the site's own URL correct and confines the fix to here.
+#
+# Re-applied on EVERY deploy because the restart above kills the forwarder.
+# Never fatal: a stack that cannot print is still a stack worth deploying, so
+# every step tolerates failure and the outcome is reported rather than raised.
+ensure_site_resolves() {
+	local shim="$ROOT/tools/site-resolve-shim.py"
+	[[ -f "$shim" ]] || { say "site-resolve shim missing — PDFs may 500"; return 0; }
+
+	docker cp "$shim" "$BACKEND:/tmp/bnd-site-resolve.py" >/dev/null 2>&1 || return 0
+	# /etc/hosts needs root; the container's default user is `frappe`.
+	docker exec --user root "$BACKEND" sh -c \
+		"grep -q '[[:space:]]$SITE\$' /etc/hosts || echo '127.0.0.1 $SITE' >> /etc/hosts" >/dev/null 2>&1 || true
+
+	if docker exec "$BACKEND" sh -c "curl -sf -o /dev/null -m 5 http://$SITE/" >/dev/null 2>&1; then
+		say "site name resolves in $BACKEND"
+		return 0
+	fi
+
+	# Port 80 is what get_url() implies, and binding it needs root. The frontend
+	# serves the desk on 8080 internally — its port 80 answers nothing.
+	docker exec --user root -d "$BACKEND" sh -c \
+		"nohup /home/frappe/frappe-bench/env/bin/python3 /tmp/bnd-site-resolve.py $FRONTEND 80 8080 >/tmp/bnd-site-resolve.log 2>&1 &" \
+		>/dev/null 2>&1 || true
+	sleep 2
+
+	if docker exec "$BACKEND" sh -c "curl -sf -o /dev/null -m 5 http://$SITE/" >/dev/null 2>&1; then
+		say "site name now resolves in $BACKEND — PDFs will render"
+	else
+		say "WARNING: $SITE does not resolve inside $BACKEND — PDF downloads will 500"
+	fi
+}
+ensure_site_resolves
+
 docker exec "$BACKEND" bash -lc "cd /home/frappe/frappe-bench && bench --site $SITE clear-cache" >/dev/null
 say "cache cleared"
 
