@@ -237,3 +237,35 @@ html[data-theme] .bnd-zone[data-zone="end"] {
 // places by DOM position instead: after the header, after the workspace list,
 // or at the foot. The attribute below is kept for styling and for the settings
 // form to read; it does not position anything.
+
+/* 1. Force strict flex-start alignment so icon and text sit together on the right */
+.bnd-menu-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important; /* Packs items to the start (Right edge in RTL) */
+  gap: 12px !important; /* Perfect spacing between icon and text */
+  width: 100% !important;
+  text-align: start !important;
+}
+
+/* 2. Kill the rogue auto-margins or space-between pushing the icons away */
+.bnd-menu-item > svg,
+.bnd-menu-item > .icon {
+  margin: 0 !important;
+  float: none !important;
+  flex-shrink: 0 !important;
+}
+
+/* 3. Ensure the header (Name and Email) perfectly aligns with the items */
+.bnd-menu-header {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: start !important;
+}
+
+/* 4. Flip the 'Logout' icon in RTL so the arrow points 'Out' (Left) */
+html[dir="rtl"] .bnd-menu-item.bnd-danger > svg {
+  transform: scaleX(-1) !important;
+}

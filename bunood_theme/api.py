@@ -30,6 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
+from frappe.utils import add_months, flt, get_first_day, getdate, nowdate
 
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
@@ -42,6 +43,150 @@ CACHE_ICON_MAP = "bnd_doctype_icon_map"
 #: high-traffic doctypes get attributed to "Home" and the sidebar highlights the wrong
 #: module everywhere.
 LANDING_WORKSPACES = {"home", "welcome workspace"}
+
+
+def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, limit=0) -> list:
+    """Read dashboard facts through ``get_list`` so user permissions still apply."""
+    if not frappe.db.exists("DocType", doctype) or not frappe.has_permission(doctype, "read"):
+        return []
+    try:
+        return frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=fields or ["name"],
+            order_by=order_by,
+            limit_page_length=limit,
+        )
+    except Exception:
+        frappe.log_error(title=f"bunood_theme: home dashboard {doctype} query stood down")
+        return []
+
+
+@frappe.whitelist()
+def get_home_dashboard(company: str | None = None) -> dict:
+    """Return a small, permission-filtered financial snapshot for Bunood Home.
+
+    ERPNext is optional for the theme, so every section has a valid empty shape.
+    The client can therefore render the same polished dashboard on a new company,
+    a restricted account, or a Frappe-only installation without a stack trace.
+    """
+    today = getdate(nowdate())
+    month_start = get_first_day(today)
+    six_month_start = get_first_day(add_months(today, -5))
+
+    companies = _dashboard_rows("Company", fields=["name", "default_currency"], limit=0)
+    allowed = {row.name: row for row in companies}
+    preferred = company or frappe.defaults.get_user_default("Company")
+    selected = preferred if preferred in allowed else (companies[0].name if companies else "")
+    currency = (
+        (allowed.get(selected) or {}).get("default_currency")
+        if selected
+        else frappe.defaults.get_global_default("currency")
+    ) or "SAR"
+
+    result = {
+        "company": selected,
+        "currency": currency,
+        "generated_at": frappe.utils.now_datetime().isoformat(),
+        "metrics": {
+            "cash_balance": 0.0,
+            "sales_month": 0.0,
+            "receivables": 0.0,
+            "payables": 0.0,
+        },
+        "invoice_status": {"paid": 0, "open": 0, "overdue": 0},
+        "trend": [],
+        "recent": [],
+    }
+    if not selected:
+        return result
+
+    sales = _dashboard_rows(
+        "Sales Invoice",
+        filters={"company": selected, "docstatus": 1, "posting_date": [">=", six_month_start]},
+        fields=["name", "customer_name", "posting_date", "due_date", "grand_total", "outstanding_amount", "status", "currency"],
+        order_by="posting_date desc, modified desc",
+        limit=0,
+    )
+    purchases = _dashboard_rows(
+        "Purchase Invoice",
+        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
+        fields=["name", "supplier_name", "posting_date", "grand_total", "outstanding_amount", "currency"],
+        order_by="posting_date desc, modified desc",
+        limit=0,
+    )
+    older_receivables = _dashboard_rows(
+        "Sales Invoice",
+        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0], "posting_date": ["<", six_month_start]},
+        fields=["outstanding_amount"],
+        limit=0,
+    )
+
+    month_totals = {}
+    cursor = six_month_start
+    for _ in range(6):
+        key = cursor.strftime("%Y-%m")
+        month_totals[key] = {"label": cursor.strftime("%b"), "value": 0.0}
+        cursor = get_first_day(add_months(cursor, 1))
+
+    for invoice in sales:
+        posting = getdate(invoice.posting_date)
+        key = posting.strftime("%Y-%m")
+        if key in month_totals:
+            month_totals[key]["value"] += flt(invoice.grand_total)
+        if posting >= month_start:
+            result["metrics"]["sales_month"] += flt(invoice.grand_total)
+        outstanding = flt(invoice.outstanding_amount)
+        result["metrics"]["receivables"] += outstanding
+        if outstanding <= 0:
+            result["invoice_status"]["paid"] += 1
+        elif invoice.due_date and getdate(invoice.due_date) < today:
+            result["invoice_status"]["overdue"] += 1
+        else:
+            result["invoice_status"]["open"] += 1
+
+    result["metrics"]["receivables"] += sum(flt(row.outstanding_amount) for row in older_receivables)
+    result["metrics"]["payables"] = sum(flt(row.outstanding_amount) for row in purchases)
+    result["trend"] = list(month_totals.values())
+
+    accounts = _dashboard_rows(
+        "Account",
+        filters={"company": selected, "account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0},
+        fields=["name"],
+        limit=0,
+    )
+    account_names = [row.name for row in accounts]
+    if account_names:
+        ledger = _dashboard_rows(
+            "GL Entry",
+            filters={"company": selected, "docstatus": 1, "account": ["in", account_names]},
+            fields=["debit", "credit"],
+            limit=0,
+        )
+        result["metrics"]["cash_balance"] = sum(flt(row.debit) - flt(row.credit) for row in ledger)
+
+    recent = []
+    for invoice in sales[:5]:
+        recent.append({
+            "doctype": "Sales Invoice",
+            "name": invoice.name,
+            "party": invoice.customer_name or "",
+            "date": str(invoice.posting_date),
+            "amount": flt(invoice.grand_total),
+            "currency": invoice.currency or currency,
+        })
+    for invoice in purchases[:5]:
+        recent.append({
+            "doctype": "Purchase Invoice",
+            "name": invoice.name,
+            "party": invoice.supplier_name or "",
+            "date": str(invoice.posting_date),
+            "amount": -flt(invoice.grand_total),
+            "currency": invoice.currency or currency,
+        })
+    recent.sort(key=lambda row: (row["date"], row["name"]), reverse=True)
+    result["recent"] = recent[:6]
+    return result
 
 
 # ── Version-proof wrappers ──────────────────────────────────────────────────────

@@ -57,6 +57,75 @@ const JS = join(APP, "public", "js");
 const DIST_CSS = join(APP, "public", "dist", "css");
 const DIST_JS = join(APP, "public", "dist", "js");
 
+const FORBIDDEN_ROUTE_SELECTORS = ["data-route=", "data-page-route="];
+
+/**
+ * Route-agnostic styling guard — CSS targets rendered component signatures,
+ * never router metadata.
+ *
+ * Route selectors fail on aliases, standard modules such as `/app/buying`, and
+ * custom apps that render the same Frappe component under a different URL. A
+ * DOM signature such as `.page-container:has(.frappe-list)` follows what is on
+ * screen and therefore applies universally.
+ *
+ * @param {{name: string, source: string}[]} sources - SCSS source files
+ */
+function assertRouteAgnosticScss(sources) {
+	const offenders = [];
+	for (const { name, source } of sources) {
+		const lines = source.split(/\r?\n/);
+		for (let index = 0; index < lines.length; index++) {
+			for (const marker of FORBIDDEN_ROUTE_SELECTORS) {
+				if (lines[index].includes(marker)) offenders.push(`${name}:${index + 1} contains ${marker}`);
+			}
+		}
+	}
+	if (offenders.length) {
+		throw new Error(
+			[
+				"Route-agnostic styling gate failed:",
+				...offenders.map((item) => `  ${item}`),
+				"Route selectors are forbidden in SCSS. Use :has() DOM signatures that target the rendered component instead (for example, .page-container:has(.frappe-list)).",
+			].join("\n")
+		);
+	}
+}
+
+/** Recursively read every SCSS source beneath the canonical source directory. */
+async function readScssSources(dir = SCSS, prefix = "") {
+	const sources = [];
+	const entries = await readdir(dir, { withFileTypes: true });
+	for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+		const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+		const path = join(dir, entry.name);
+		if (entry.isDirectory()) sources.push(...(await readScssSources(path, name)));
+		else if (entry.isFile() && entry.name.endsWith(".scss")) {
+			sources.push({ name, source: await readFile(path, "utf8") });
+		}
+	}
+	return sources;
+}
+
+/**
+ * Negative-test the guard itself on every build. A guard that silently matches
+ * nothing is worse than no guard; both forbidden spellings must be rejected,
+ * while the sanctioned DOM-signature form must pass.
+ */
+function assertRouteAgnosticGateSelfTest() {
+	for (const marker of FORBIDDEN_ROUTE_SELECTORS) {
+		let rejected = false;
+		try {
+			assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${marker}\"List\"] {}` }]);
+		} catch (error) {
+			rejected = String(error.message).includes(marker) && String(error.message).includes(":has()");
+		}
+		if (!rejected) throw new Error(`Route-agnostic styling gate self-test did not reject ${marker}`);
+	}
+	assertRouteAgnosticScss([
+		{ name: "positive-test.scss", source: ".page-container:has(.frappe-list) {}" },
+	]);
+}
+
 /**
  * Custom properties `brand.py` declares at RUNTIME, in the per-site stylesheet.
  * Read out of the Python rather than listed here — a hand-kept second copy of
@@ -284,7 +353,21 @@ function readRuntimeTokens(...sources) {
 }
 
 function assertLogicalOnly(css, name) {
-	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const stripped = css
+		.replace(/\/\*[\s\S]*?\*\//g, "")
+		// Deliberate exception: the Arabic login keeps the surrounding form RTL,
+		// while the email value itself is LTR and visually aligned to the field's
+		// physical right edge. Keep the allowance bound to this exact selector.
+		.replace(
+			/(body\.bnd-auth \.page-card \.page-card-body input\[type=["']?email["']?\],\s*body\.bnd-auth \.page-card \.page-card-body input\[type=["']?text["']?\]\[id=["']?login_email["']?\]\s*\{[^{}]*?)text-align\s*:\s*right(\s*;?[^{}]*\})/g,
+			"$1$2"
+		)
+		// Deliberate exception: this exact topbar search host uses physical 50%
+		// plus translateX(-50%) as a direction-independent centering pair.
+		.replace(
+			/(html\[data-theme\] \.bnd-topbar \.bnd-search-center\s*\{[^{}]*?)left\s*:\s*50%(\s*;?[^{}]*\})/g,
+			"$1$2"
+		);
 	const offenders = [];
 	const patterns = [
 		/(?<!border-top-|border-bottom-)(margin|padding|border|inset)-(left|right)\b/g,
@@ -1424,6 +1507,12 @@ async function writeAssetsPy(entries) {
 }
 
 async function main() {
+	// Reject URL-coupled styling before Sass compilation. The negative self-test
+	// proves both forbidden spellings still trip the gate before the real tree is
+	// scanned recursively.
+	assertRouteAgnosticGateSelfTest();
+	assertRouteAgnosticScss(await readScssSources());
+
 	// Guard before compiling: a naming violation is cheaper to hear about
 	// before the build spends time on Sass than after.
 	assertFieldNaming(

@@ -1,0 +1,55 @@
+// Copyright (c) 2026, Bunood and contributors
+// Universal dropdown/menu appearance. Placement remains owned by Popper and
+// surface composition; this file owns paint, shape and row interaction.
+
+html.bunood[data-theme] .menu-item-shortcut {
+  color: var(--bnd-ink-muted);
+}
+
+html.bunood[data-theme][data-bnd-overlay] :is(.dropdown-menu, .frappe-menu),
+html.bunood[data-theme][data-bnd-overlay] .awesomplete > [role="listbox"] {
+  background-color: var(--bnd-ov-fill);
+  border-style: solid;
+  border-width: var(--bnd-ov-border-w);
+  border-color: var(--bnd-ov-border);
+  border-radius: var(--bnd-ov-radius);
+  box-shadow: var(--bnd-ov-shadow);
+}
+
+html.bunood[data-theme][data-bnd-overlay] .dropdown-item,
+html.bunood[data-theme][data-bnd-overlay] .dropdown-menu-item a,
+html.bunood[data-theme][data-bnd-overlay] .awesomplete > [role="listbox"] > li {
+  border-radius: var(--bnd-ov-radius-row);
+}
+
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] {
+  --dropdown-padding: var(--bnd-sp-1) var(--bnd-sp-1);
+}
+
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] :is(.dropdown-menu, .frappe-menu),
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] {
+  padding-inline: 0;
+}
+
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] .dropdown-item,
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] .dropdown-menu-item a,
+html.bunood[data-theme][data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] > li {
+  border-radius: 0;
+}
+
+html.bunood[data-theme] .saved-filter-item .dropdown-item:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+}
+
+html.bunood[data-theme][data-bnd-filters-saved="listed"] .saved-filter-item .dropdown-item:hover {
+  background-color: var(--bnd-hover);
+}
+
+html.bunood[data-theme][data-bnd-filters-saved="listed"]
+  .saved-filter-item[data-name="create_new"]
+  .dropdown-item {
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+  color: var(--bnd-ink-muted);
+}

@@ -1,0 +1,99 @@
+// Copyright (c) 2026, Bunood and contributors
+// Universal button appearance. Surface partials may place buttons, but they do
+// not own their fill, ink, border, radius, elevation or interaction states.
+
+html.bunood[data-theme] .btn.btn-primary {
+  border-color: var(--btn-primary);
+  color: var(--bnd-on-brand);
+}
+
+// The root scope supplies enough specificity to beat Frappe's base states
+// without escalating the cascade with `!important`.
+html.bunood[data-theme] .btn.btn-primary:is(:hover, :focus, :active) {
+  background-color: var(--bnd-brand-ink);
+  border-color: var(--bnd-brand-ink);
+  color: var(--bnd-on-brand);
+}
+
+html.bunood[data-theme] .btn-primary-light,
+html.bunood[data-theme] .btn-primary-light:disabled,
+html.bunood[data-theme] .btn-primary-light.disabled {
+  background-color: var(--bnd-hover);
+  color: var(--bnd-brand-ink);
+}
+
+html.bunood[data-theme] .btn-primary-light:hover,
+html.bunood[data-theme] .btn-primary-light:focus,
+html.bunood[data-theme] .btn-primary-light.focus,
+html.bunood[data-theme] .btn-primary-light:not(:disabled):not(.disabled):active,
+html.bunood[data-theme] .btn-primary-light:not(:disabled):not(.disabled).active {
+  background-color: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+
+html.bunood[data-theme] .btn-primary-light .filter-icon.active,
+html.bunood[data-theme] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-brand-ink);
+}
+
+html.bunood[data-theme] .page-form .btn-default,
+html.bunood[data-theme] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-rest);
+  transition: background-color var(--bnd-dur-fast) var(--bnd-ease),
+    box-shadow var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html.bunood[data-theme] .page-form .btn-default:hover,
+html.bunood[data-theme] .filter-area .clear-filters:hover {
+  background-color: var(--bnd-active);
+  box-shadow: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
+}
+
+html.bunood[data-theme] .page-form .btn-default:focus-visible,
+html.bunood[data-theme] .filter-area .clear-filters:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+}
+
+html.bunood[data-theme][data-bnd-filters] .page-form .btn-default {
+  background-color: var(--bnd-flt-slot);
+  border-radius: var(--bnd-flt-radius);
+}
+
+html.bunood[data-theme][data-bnd-filters] .page-form .btn-default:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
+}
+
+html.bunood[data-theme][data-bnd-filters] .filter-area .clear-filters {
+  background-color: var(--bnd-flt-slot);
+  border-radius: var(--bnd-flt-radius);
+}
+
+html.bunood[data-theme][data-bnd-filters] .filter-area .clear-filters:not(:focus) {
+  box-shadow: var(--bnd-flt-ring);
+}
+
+html.bunood[data-theme][data-bnd-filters] .btn-primary-light {
+  background-color: var(--bnd-flt-on-fill);
+  color: var(--bnd-flt-on-ink);
+  box-shadow: var(--bnd-flt-on-ring);
+}
+
+html.bunood[data-theme][data-bnd-filters] .btn-primary-light .filter-icon.active,
+html.bunood[data-theme][data-bnd-filters] .btn-primary-light .group-by-icon.active {
+  --icon-stroke: var(--bnd-flt-on-ink);
+}
+
+html.bunood[data-theme][data-bnd-empty-action="primary"] .msg-box.no-border .btn-new-doc {
+  background-color: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+html.bunood[data-theme][data-bnd-list]
+  .frappe-list:has(.list-row-checkbox:checked)
+  .list-row-head
+  .btn {
+  color: var(--bnd-list-head-ink);
+}

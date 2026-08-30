@@ -250,8 +250,3 @@ html[data-bnd-empty-media="none"] .msg-box svg.icon {
 // Scoped to the box, never to `.btn-new-doc` alone — the class appears in the
 // page head too, and the empty box itself renders TWO (a desktop button and a
 // `.visible-xs` mobile one, which Frappe already paints primary).
-html[data-bnd-empty-action="primary"] .msg-box.no-border .btn-new-doc {
-  background-color: var(--bnd-brand-solid);
-  border-color: var(--bnd-brand-solid);
-  color: var(--bnd-on-brand);
-}

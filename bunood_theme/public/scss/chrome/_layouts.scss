@@ -159,7 +159,7 @@ html[data-bnd-desk] .main-section {
 //
 // Frappe sizes the form's sidebar to the viewport and makes it sticky
 // (frappe scss/desk/form_sidebar.scss:273-279):
-//   body[data-route^="Form"] .layout-side-section {
+//   the form route's `.layout-side-section` rule {
 //     height: calc(100vh - var(--page-head-height));
 //     position: sticky; top: var(--page-head-height);
 //   }
@@ -173,21 +173,25 @@ html[data-bnd-desk] .main-section {
 //
 // Specificity is deliberate and load-bearing: Frappe's selector is (0,2,1), so
 // a bare `html[data-bnd-desk] .layout-side-section` would only TIE and be
-// decided by which sheet loads last. Naming body[data-route] too makes it
-// (0,3,2) and settles it on specificity instead of on app order.
+// decided by which sheet loads last. The form DOM signature raises this rule
+// to (0,4,1) and settles it on specificity instead of on app order — ahead of
+// the (0,3,2) the retired `body[data-route^="Form"]` spelling reached.
 // Theme Settings stands its form sidebar down. Assign / Attachments / Share /
 // "last edited by" cost 278px of a 1280px viewport — measured — on a Single
 // that nobody assigns, attaches to or shares, and the component settings need
-// that width for a list beside a detail pane. Scoped to this one route: it is
-// a judgement about this form, not about forms.
-// Prefix, not exact: a Single's route carries the docname too, so this form is
-// `Form/Theme Settings/Theme Settings` (measured, after an exact match matched
-// nothing).
-html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
+// that width for a list beside a detail pane. The unique `icons_picker` field
+// is the form's DOM signature, so this remains a judgement about this form,
+// not about forms and not about the URL used to reach it.
+//
+// SCOPE IS `data-bnd-desk`, NOT `data-bnd-layout`: item 37 stopped storing the
+// layout, and the slug attribute went with it. `data-bnd-desk` is the presence
+// mark bunood.js now stamps unconditionally. A rule scoped to the retired
+// attribute compiles, passes every gate, and matches nothing.
+html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="icons_picker"]) .layout-side-section {
   display: none;
 }
 
-html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
+html[data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 

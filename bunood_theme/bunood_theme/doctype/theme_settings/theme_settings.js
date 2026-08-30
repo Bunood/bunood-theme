@@ -891,23 +891,22 @@ frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
-		// THE LAYOUT IS A PRESET, AND ITS FIELD IS NOW A RECORD OF ONE (item 36).
-		// The "read-only for one release so support can still see what a site
-		// was" that stood here expired many releases ago; the picker's derived
-		// label (`bnd_match_layout`) has said what the desk actually IS since
-		// the last container landed, and the Overview reads it too.
+		// The custom shell exposes Frappe's icon-only section toggle; its SVG is
+		// aria-hidden, so name the native button from the visible section label.
+		document.querySelectorAll(".sidebar-item-control .drop-icon:not([aria-label])").forEach((button) => {
+			const item = button.closest(".standard-sidebar-item");
+			button.setAttribute("aria-label", item ? item.textContent.trim() : document.title);
+		});
+		// THE LAYOUT IS A PRESET, AND THE STORED FIELD IS GONE (item 37).
+		// The picker's derived label (`bnd_match_layout`) has said what the desk
+		// actually IS since the last container landed, and the Overview reads it
+		// too — so there is no name left to render, read back or set by hand.
 		//
-		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
-		// plan had missed: boot still serves this name and `bunood.js` stamps
-		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
-		// position panels by. Deleting the field today would leave a CUSTOM
-		// desk — containers matching no preset — with nothing to stamp, i.e. a
-		// silent rendering change on exactly the sites that diverged. The
-		// honest sequence is to finish phase 0's own direction first (re-key
-		// those rules to container OUTCOMES, as `data-bnd-topbar` already was),
-		// then delete. Filed; this hides the control so nobody sets it by hand
-		// in the meantime, while the stored value keeps the desk rendering and
-		// stays queryable for support.
+		// The V2 UI branch reached here still setting `desk_layout` read-only
+		// with an explanatory description. That field no longer exists on the
+		// doctype, so both `set_df_property` calls were dropped in the rebase
+		// rather than carried: they would have addressed a fieldname that
+		// `v0_37_0/drop_desk_layout` deletes.
 		bnd_render_theme_picker(frm);
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);

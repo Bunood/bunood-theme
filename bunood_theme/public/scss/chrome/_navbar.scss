@@ -92,3 +92,29 @@ html[data-theme] .bnd-search-field {
 html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
 }
+
+/* Fix Frappe/Bunood Double Header Bug */
+html[data-bnd-topbar] .desktop-wrapper > .desktop-navbar {
+  display: none !important;
+}
+
+/* 3. Fix clipping and centering for single-letter avatars */
+.avatar-frame,
+.bnd-sb-letter,
+.bnd-sb-brand-chip,
+.bnd-inbox-avatar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding-bottom: 3px !important; /* Lifts the letter to counteract the Arabic baseline shift */
+}
+
+html[data-theme] .bnd-topbar {
+  position: relative;
+}
+html[data-theme] .bnd-topbar .bnd-search-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* Centers perfectly regardless of LTR/RTL */
+}

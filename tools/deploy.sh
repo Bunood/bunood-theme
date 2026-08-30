@@ -31,9 +31,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 SITE="${BND_SITE:-demo.bunood.test}"
-BACKEND="${BND_BACKEND:-bunood-backend-1}"
-FRONTEND="${BND_FRONTEND:-bunood-frontend-1}"
-APP_CONTAINERS=(bunood-backend-1 bunood-queue-long-1 bunood-queue-short-1 bunood-scheduler-1)
+STACK="${BND_STACK:-bunood}"
+RAW_BACKEND="${BND_BACKEND:-}"
+RAW_FRONTEND="${BND_FRONTEND:-}"
 # Where the app lives inside the frontend image — a different tree from the
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"
@@ -48,6 +48,70 @@ WSL_MIRROR="${BND_WSL_MIRROR:-/home/saltedfish/bunood-theme}"
 URL_BASE="${BND_URL:-http://localhost:8080}"
 
 say() { printf '  %s\n' "$*"; }
+
+container_exists() { docker inspect "$1" >/dev/null 2>&1; }
+
+resolve_container() {
+	local role="$1"
+	local configured="$2"
+	local fallback="$3"
+	local match_count=0
+	local matched_name=""
+
+	if container_exists "$configured"; then
+		echo "$configured"
+		return 0
+	fi
+
+	if [[ -n "$fallback" ]] && container_exists "$fallback"; then
+		say "warning: requested ${role} container '$configured' was not found; using '$fallback'"
+		echo "$fallback"
+		return 0
+	fi
+
+	while IFS= read -r container_name; do
+		[[ "$container_name" == *-${role}-* ]] || continue
+		match_count=$((match_count + 1))
+		matched_name="$container_name"
+	done < <(docker ps --format '{{.Names}}')
+
+	if [[ "$match_count" -eq 1 ]]; then
+		say "warning: requested ${role} container '$configured' was not found; auto-selecting '$matched_name'"
+		echo "$matched_name"
+		return 0
+	fi
+
+	if [[ "$match_count" -gt 1 ]]; then
+		say "ERROR: expected ${role} container '$configured' was not found and multiple candidates exist."
+	else
+		say "ERROR: expected ${role} container '$configured' was not found."
+	fi
+	say "Set BND_${role^^} to one of these running ${role} containers:"
+	while IFS= read -r container_name; do
+		[[ "$container_name" == *-${role}-* ]] || continue
+		say "  - $container_name"
+	done < <(docker ps --format '{{.Names}}')
+	exit 1
+}
+
+BACKEND="$(resolve_container "backend" "${RAW_BACKEND:-${STACK}-backend-1}" "${STACK}-backend-1")"
+FRONTEND="$(resolve_container "frontend" "${RAW_FRONTEND:-${STACK}-frontend-1}" "${STACK}-frontend-1")"
+BASE_PREFIX="${BACKEND%-backend-1}"
+if [[ "$BASE_PREFIX" == "$BACKEND" ]]; then
+	BASE_PREFIX="$STACK"
+fi
+APP_CONTAINERS=(
+	"$BACKEND"
+	"${BASE_PREFIX}-queue-long-1"
+	"${BASE_PREFIX}-queue-short-1"
+	"${BASE_PREFIX}-scheduler-1"
+)
+for c in "${APP_CONTAINERS[@]}"; do
+	container_exists "$c" || {
+		say "ERROR: required container '$c' not found. check docker ps --format '{{.Names}}'"
+		exit 1
+	}
+done
 
 # ── Build ───────────────────────────────────────────────────────────────────
 if [[ "${1:-}" != "--no-build" ]]; then

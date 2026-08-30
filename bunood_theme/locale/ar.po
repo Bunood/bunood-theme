@@ -5322,3 +5322,68 @@ msgstr "اللوحة الجانبية: {0} — الألوان والتخطيط �
 #, fuzzy
 msgid "Side pane: following the site"
 msgstr "اللوحة الجانبية: تتبع إعدادات الموقع"
+#. src: upstream-gap — Frappe v16 auth templates ship these untranslated.
+msgid "Welcome! Please sign in to continue."
+msgstr "مرحبًا! سجّل الدخول للمتابعة."
+
+#. src: upstream-gap
+msgid "Forgot password?"
+msgstr "هل نسيت كلمة المرور؟"
+
+#. src: upstream-gap
+msgid "Please enter your email, we'll send you password reset link"
+msgstr "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور."
+
+#. src: upstream-gap
+msgid "Send Link"
+msgstr "إرسال الرابط"
+
+#. src: upstream-gap
+msgid "Back to sign in"
+msgstr "العودة إلى تسجيل الدخول"
+
+#. src: upstream-gap
+msgid "Sign Up"
+msgstr "إنشاء حساب"
+
+#. src: upstream-gap
+msgid "Let's setup your account."
+msgstr "لنُعِدّ حسابك."
+
+#. src: upstream-gap
+msgid "Please check your email."
+msgstr "يرجى التحقق من بريدك الإلكتروني."
+
+#. src: upstream-gap
+msgid "Resend"
+msgstr "إعادة الإرسال"
+
+#. src: upstream-gap
+msgid "Login with password"
+msgstr "تسجيل الدخول بكلمة المرور"
+
+#. src: bunood_theme/context.py
+msgid "Update Password"
+msgstr "تحديث كلمة المرور"
+
+#. src: upstream-gap
+msgid "Buying"
+msgstr "المشتريات"
+
+#. src: upstream-gap
+msgid "Begin typing for results."
+msgstr "ابدأ الكتابة لعرض النتائج."
+
+#. src: upstream-gap
+msgid "Issue a debit note against an existing Sales Invoice to adjust the rate. The quantity will be retained from the original invoice."
+msgstr "أصدر إشعار مدين مقابل فاتورة مبيعات قائمة لتعديل السعر؛ وستبقى الكمية كما هي في الفاتورة الأصلية."
+
+#. src: upstream-gap
+msgid "Last Edited By You"
+msgstr "آخر تعديل بواسطتك"
+
+#. src: upstream-gap
+msgid "Nos"
+msgstr "وحدة"
+msgid "Reports & Masters"
+msgstr "التقارير والبيانات الرئيسية"

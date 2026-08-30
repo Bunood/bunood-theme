@@ -225,7 +225,6 @@ html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head 
   border-radius: var(--bnd-list-radius);
 }
 html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .checkbox-actions,
-html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .btn,
 html[data-bnd-list] .frappe-list:has(.list-row-checkbox:checked) .list-row-head .list-check-all + span {
   color: var(--bnd-list-head-ink);
 }

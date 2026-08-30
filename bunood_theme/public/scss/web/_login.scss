@@ -695,11 +695,11 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
   // requires of anything that takes a side.
   body.bnd-auth-split .page-content-wrapper > main {
     flex: none;
-    inline-size: min(480px, 52%);
+    inline-size: min(620px, 50%);
     max-inline-size: none;
     margin-inline-start: 0;
     margin-inline-end: auto;
-    padding-inline: var(--bnd-sp-6);
+    padding-inline: clamp(var(--bnd-sp-6), 6vw, 76px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -709,14 +709,32 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
   }
 
   body.bnd-auth-split .page-content-wrapper::after {
-    content: "";
+    content: "أهلاً بك في نظام بنود\Aأدر أعمالك بكفاءة وسهولة"; /* Welcome message */
+    white-space: pre-wrap; /* Allows the \A to act as a line break */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    /* Typography */
+    color: var(--bnd-on-brand); /* White text */
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.6;
+
     flex: 1;
-    background-color: var(--bnd-brand-solid);
-    background-image: radial-gradient(
-      120% 90% at 50% 0%,
-      color-mix(in srgb, var(--bnd-on-brand) 14%, transparent),
-      transparent 70%
-    );
+    margin-block: var(--bnd-sp-2);
+    margin-inline-end: var(--bnd-sp-2);
+    border-start-end-radius: 24px;
+    border-end-end-radius: 24px;
+
+    /* Solid brand green background */
+    background-color: var(--bnd-brand-solid) !important;
+
+    /* Beautiful subtle dot-grid overlay using radial gradients */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px) !important;
+    background-size: 32px 32px !important;
+    background-position: center !important;
   }
 
   body.bnd-auth-split
@@ -724,9 +742,30 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
     .page-card {
     background-color: transparent;
     box-shadow: none;
-    max-inline-size: none;
+    max-inline-size: 430px;
     inline-size: 100%;
+    margin-inline: auto;
     padding-inline: 0;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head {
+    margin-block-end: var(--bnd-sp-6);
+    text-align: start;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head h4 {
+    font-size: 28px;
+    font-weight: 750;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head .page-card-subtitle {
+    margin-block-start: var(--bnd-sp-2);
+  }
+
+  body.bnd-auth-split .page-card .page-card-body .form-control,
+  body.bnd-auth-split .page-card .page-card-actions .btn {
+    min-block-size: 46px;
+    border-radius: var(--bnd-radius-md);
   }
 }
 
@@ -813,4 +852,19 @@ body.bnd-auth-action-branded
   .btn-signup:not(:disabled):is(:hover, :focus, :active) {
   background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
   color: var(--bnd-on-brand);
+}
+
+body.bnd-auth .page-card .page-card-body input[type="email"],
+body.bnd-auth .page-card .page-card-body input[type="text"][id="login_email"] {
+  direction: ltr !important;
+  text-align: right;
+}
+
+/* Fix the default blue focus ring on input fields */
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible,
+body.bnd-auth .form-control:focus {
+  border-color: var(--bnd-brand-solid) !important;
+  outline: 2px solid var(--bnd-brand-solid) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
 }

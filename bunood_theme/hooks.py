@@ -84,6 +84,11 @@ web_include_css = [WEB_CSS]
 # for every website request. See ARCHITECTURE.md section 4.
 update_website_context = "bunood_theme.context.desk_context"
 
+# Frappe lets a guest browser's Accept-Language override System Settings, so a
+# site configured as Arabic can still open its very first screen in English.
+# Bunood treats the configured site language as the tenant's experience.
+before_request = ["bunood_theme.context.prefer_system_language_for_guests"]
+
 # ── Boot payload ────────────────────────────────────────────────────────────────
 # Keep this MINIMAL. Anything that can be expressed as a CSS custom property belongs
 # in the brand stylesheet, not in boot: boot data arrives with the HTML but is only

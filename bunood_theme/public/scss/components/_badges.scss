@@ -1,0 +1,8 @@
+// Copyright (c) 2026, Bunood and contributors
+// Shared badge primitives. Semantic fills remain Frappe-owned through the
+// bridge; this file standardizes shape and typography across every surface.
+
+html.bunood[data-theme] :is(.badge, .indicator-pill) {
+  border-radius: var(--bnd-radius-pill);
+  font-weight: 600;
+}

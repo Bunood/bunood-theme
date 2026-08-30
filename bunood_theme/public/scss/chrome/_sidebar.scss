@@ -1,4 +1,5 @@
 // Copyright (c) 2026, Bunood and contributors
+@use "../breakpoints" as *;
 // ============================================================================
 // SIDEBAR STYLE KIT — checklist item 10 (+ presets, item 30 pulled forward).
 //
@@ -125,7 +126,7 @@ html[data-bnd-sb-color="dark"] {
 }
 
 html[data-bnd-sb-color="brand"] {
-  // No hue can be FITTED to an arbitrary-seed gradient, so on the brand pane
+  // No hue can be FITTED to an arbitrary brand surface, so on the brand pane
   // the hues stand down and section labels take the mode's own ink. A colour
   // that cannot be made legible is not offered — the same honesty rule as
   // every picker.
@@ -136,11 +137,7 @@ html[data-bnd-sb-color="brand"] {
   --bnd-sb-cat-5: var(--bnd-sb-ink);
   --bnd-sb-cat-6: var(--bnd-sb-ink);
   --bnd-sb-cat-7: var(--bnd-sb-ink);
-  --bnd-sb-bg: linear-gradient(
-    170deg,
-    color-mix(in srgb, var(--bnd-brand) 96%, #ffffff),
-    color-mix(in srgb, var(--bnd-brand) 72%, #000000)
-  );
+  --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 22%, #172019);
   --bnd-sb-ink: #ffffff;
   --bnd-sb-ink-muted: rgba(255, 255, 255, 0.75);
   --bnd-sb-line: rgba(255, 255, 255, 0.2);
@@ -232,17 +229,19 @@ html[data-bnd-sb-placement="floating"] .body-sidebar-container {
 
 // ── The injected pieces (bunood.js): utils section + module row ─────────────
 html[data-bnd-sb-color] .bnd-sb-utils {
-  padding: var(--bnd-sp-1);
-  margin-block-end: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-2);
+  padding-block: 0;
+  margin-block-end: var(--bnd-sp-2);
 }
 
 html[data-bnd-sb-color] .bnd-sb-item {
-  display: flex;
-  align-items: center;
-  gap: var(--bnd-sp-2);
-  inline-size: 100%;
-  padding-block: 5px;
-  padding-inline: var(--bnd-sp-2);
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-3);
+	inline-size: 100%;
+	min-block-size: 40px;
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-3);
   border: none;
   border-radius: var(--bnd-radius-md);
   background: transparent;
@@ -261,17 +260,19 @@ html[data-bnd-sb-color] .bnd-sb-item {
 html[data-bnd-sb-color] .bnd-sb-module {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-2);
-  margin: var(--bnd-sp-1);
-  padding-block: 6px;
-  padding-inline: var(--bnd-sp-2);
+	gap: var(--bnd-sp-3);
+	min-block-size: 42px;
+	margin-block: 0 var(--bnd-sp-3);
+	margin-inline: var(--bnd-sp-2);
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-3);
   border: var(--bnd-line) solid var(--bnd-sb-line);
   border-radius: var(--bnd-radius-lg);
   background: var(--bnd-sb-card-bg, var(--bnd-sb-card-base));
   color: var(--bnd-sb-ink);
   font-size: var(--bnd-text-sm);
   font-weight: var(--bnd-weight-medium);
-  inline-size: calc(100% - 2 * var(--bnd-sp-1));
+	inline-size: calc(100% - 2 * var(--bnd-sp-2));
   text-align: start;
   cursor: pointer;
 
@@ -292,27 +293,30 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-header {
 html[data-bnd-sb-color] .bnd-sb-brand {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-2);
-  inline-size: calc(100% - 2 * var(--bnd-sp-1));
-  margin: var(--bnd-sp-1);
-  padding-block: var(--bnd-sp-2);
-  padding-inline: var(--bnd-sp-2);
-  border: none;
-  border-radius: var(--bnd-radius-lg);
-  background: transparent;
-  color: var(--bnd-sb-ink);
+	gap: var(--bnd-sp-3);
+	min-block-size: 52px;
+	inline-size: calc(100% - 2 * var(--bnd-sp-2));
+	margin-block: var(--bnd-sp-2) var(--bnd-sp-3);
+	margin-inline: var(--bnd-sp-2);
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-3);
+	border: none;
+	border-radius: var(--bnd-radius-xl);
+	background: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
   font-size: var(--bnd-text-base);
   font-weight: var(--bnd-weight-medium);
   text-align: start;
   cursor: pointer;
 
-  &:hover {
-    background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
-  }
+	&:hover {
+		background: var(--bnd-brand-solid);
+		filter: brightness(1.04);
+	}
 
   .bnd-sb-brand-logo {
-    inline-size: 24px;
-    block-size: 24px;
+		inline-size: 30px;
+		block-size: 30px;
     border-radius: var(--bnd-radius-md);
     object-fit: contain;
     flex: none;
@@ -321,11 +325,11 @@ html[data-bnd-sb-color] .bnd-sb-brand {
   .bnd-sb-brand-chip {
     display: grid;
     place-items: center;
-    inline-size: 24px;
-    block-size: 24px;
-    border-radius: var(--bnd-radius-md);
-    background: var(--bnd-brand-solid);
-    color: var(--bnd-on-brand);
+		inline-size: 30px;
+		block-size: 30px;
+		border-radius: var(--bnd-radius-lg);
+		background: color-mix(in srgb, var(--bnd-on-brand) 14%, transparent);
+		color: inherit;
     font-size: var(--bnd-text-sm);
     flex: none;
   }
@@ -383,16 +387,16 @@ html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
 html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
   display: inline-grid;
   place-items: center;
-  inline-size: 22px;
-  block-size: 22px;
+	inline-size: 30px;
+	block-size: 30px;
   flex: none;
   padding: 0; // beats Frappe's padding:7px, which is what shrank the box
 }
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;
   place-items: center;
-  inline-size: 22px;
-  block-size: 22px;
+	inline-size: 30px;
+	block-size: 30px;
   flex: none;
 }
 
@@ -404,8 +408,8 @@ html[data-bnd-sb-icons] .bnd-sb-chip {
 // through.
 html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
-  inline-size: 15px;
-  block-size: 15px;
+	inline-size: 17px;
+	block-size: 17px;
   flex: none;
 }
 
@@ -453,13 +457,26 @@ html[data-bnd-sb-icons="mono"] .bnd-sb-chip {
 
 // Sidebar link text picks up the pane ink in every icon mode.
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
-  border-radius: var(--bnd-radius-md);
-  color: var(--bnd-sb-ink-muted);
+	min-block-size: 40px;
+	border-radius: var(--bnd-radius-lg);
+	color: var(--bnd-sb-ink-muted);
 
-  .item-anchor,
-  .sidebar-item-label {
-    color: inherit;
-  }
+	.item-anchor,
+	.sidebar-item-label {
+		color: inherit;
+	}
+
+	.item-anchor {
+		min-block-size: 40px;
+		gap: var(--bnd-sp-3);
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-2);
+	}
+
+	.sidebar-item-label {
+		font-size: var(--bnd-text-sm);
+		line-height: var(--bnd-leading-tight);
+	}
 
   &:hover {
     background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
@@ -561,10 +578,11 @@ html[data-bnd-sb-sections="divided"] .body-sidebar .sidebar-item-container.secti
 }
 
 html[data-bnd-sb-color] .bnd-sb-card {
-  border-radius: var(--bnd-radius-lg);
-  padding: var(--bnd-sp-1);
-  margin-block-end: var(--bnd-sp-2);
-  background: var(--bnd-sb-card-bg);
+	border-radius: var(--bnd-radius-xl);
+	padding: var(--bnd-sp-1);
+	margin-block-end: var(--bnd-sp-3);
+	margin-inline: var(--bnd-sp-2);
+	background: var(--bnd-sb-card-bg);
   border: var(--bnd-line) solid var(--bnd-sb-card-line);
   box-shadow: var(--bnd-sb-card-shadow);
 }
@@ -582,8 +600,8 @@ html[data-bnd-sb-intensity="2"] {
   --bnd-sb-card-shadow: none;
 }
 html[data-bnd-sb-intensity="3"] {
-  --bnd-sb-card-bg: var(--bnd-sb-card-base);
-  --bnd-sb-card-line: var(--bnd-sb-line);
+	--bnd-sb-card-bg: var(--bnd-sb-card-base);
+	--bnd-sb-card-line: transparent;
   --bnd-sb-card-shadow: none;
 }
 html[data-bnd-sb-intensity="4"] {
@@ -616,16 +634,16 @@ html[data-bnd-sb-wash="subtle"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"
   --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 12%, transparent);
 }
 html[data-bnd-sb-wash="rich"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
-  background: color-mix(in srgb, var(--bnd-sb-hue) 10%, var(--bnd-sb-card-bg));
-  border-color: color-mix(in srgb, var(--bnd-sb-hue) 22%, var(--bnd-sb-card-line));
+	background: var(--bnd-sb-card-bg);
+	border-color: var(--bnd-sb-card-line);
 
-  --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, transparent);
+	--bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, var(--bnd-sb-card-base));
 
   // Child path on purpose — only the section's OWN caps label takes the hue,
   // never the nested links (see the nesting note above).
-  .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
-    color: var(--bnd-sb-hue);
-  }
+	.sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
+		color: var(--bnd-brand-ink);
+	}
 }
 
 // Section headers inside the pane: quiet caps in every mode. CHILD combinator
@@ -640,7 +658,15 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
   // included. `text-transform` STAYS — Arabic has no cased characters, so it
   // is a true no-op there and costs nothing to keep for Latin.
   text-transform: uppercase;
-  color: var(--bnd-sb-ink-muted);
+	color: var(--bnd-sb-ink-muted);
+}
+
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item {
+	min-block-size: 34px;
+
+	.item-anchor {
+		min-block-size: 34px;
+	}
 }
 
 // ── Brand header + pane furniture on kit surfaces ───────────────────────────
@@ -1088,4 +1114,43 @@ html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
   inline-size: 0;
   min-inline-size: 0;
   overflow: hidden;
+}
+
+// ── Navigation deduplication ───────────────────────────────────────────────
+// The brand block is the pane's single Home affordance. Keep All Apps and the
+// native workspace list, and stand down the two theme-injected repetitions.
+.body-sidebar .bnd-sb-util[data-bnd-part="home"] {
+  display: none !important;
+}
+
+.body-sidebar .bnd-sb-module {
+  display: none !important;
+}
+
+.body-sidebar .bnd-sb-brand {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+}
+
+.body-sidebar .bnd-sb-brand > * {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+// Mobile off-canvas drawer: an opaque, elevated sheet above dashboard content.
+@include bnd-until(md) {
+  .body-sidebar-container,
+  .offcanvas,
+  .body-sidebar-container.offcanvas {
+    background-color: var(--bnd-surface) !important;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15) !important;
+    z-index: 1050 !important;
+  }
+
+  .body-sidebar {
+    background-color: var(--bnd-surface) !important;
+  }
 }

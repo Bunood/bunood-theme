@@ -125,30 +125,6 @@ html[data-theme] {
 // off `--bnd-raised`, so an applied control stays distinct from a resting one.
 // Only `background-color` and `color` are declared: `:focus`'s box-shadow is
 // item 22's focus ring and must survive untouched.
-html[data-theme] .btn-primary-light,
-html[data-theme] .btn-primary-light:disabled,
-html[data-theme] .btn-primary-light.disabled {
-  background-color: var(--bnd-hover);
-  color: var(--bnd-brand-ink);
-}
-
-html[data-theme] .btn-primary-light:hover,
-html[data-theme] .btn-primary-light:focus,
-html[data-theme] .btn-primary-light.focus,
-html[data-theme] .btn-primary-light:not(:disabled):not(.disabled):active,
-html[data-theme] .btn-primary-light:not(:disabled):not(.disabled).active {
-  background-color: var(--bnd-active);
-  color: var(--bnd-brand-ink);
-}
-
-// The mark fails with the label and is repaired with it: `filters.scss:1-3`
-// sets `--icon-stroke: var(--primary)` on `.filter-icon.active`, measured
-// #44764b / #76a27c on the same failing ground.
-html[data-theme] .btn-primary-light .filter-icon.active,
-html[data-theme] .btn-primary-light .group-by-icon.active {
-  --icon-stroke: var(--bnd-brand-ink);
-}
-
 // ── Contract R2: every control in the strip is identifiable at rest ─────────
 // Twelve controls measured `--control-bg` with a `0px none` border on their
 // host. `.btn-paging` is deliberately EXCLUDED: `.list-paging-area .btn-group`
@@ -159,17 +135,6 @@ html[data-theme] .btn-primary-light .group-by-icon.active {
 // `.btn-primary-light` is not excluded by hand: `update_filter_button()`
 // TOGGLES `.btn-default` off when it toggles `.btn-primary-light` on, so the
 // two selectors never meet on one node.
-html[data-theme] .page-form .btn-default,
-html[data-theme] .page-form .frappe-control input:not([type="checkbox"]),
-html[data-theme] .page-form .frappe-control select,
-html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]),
-html[data-theme] .filter-area .filter-box select.condition,
-html[data-theme] .filter-area .clear-filters {
-  background-color: var(--bnd-flt-rest);
-  transition: background-color var(--bnd-dur-fast) var(--bnd-ease),
-    box-shadow var(--bnd-dur-fast) var(--bnd-ease);
-}
-
 // ── Contract R7: a control says it is interactive before you click it ───────
 // The strip has NO hover state on any filter control today. This is the
 // frappe-ui recipe transposed — `TextInput` `subtle` resolves to
@@ -189,32 +154,6 @@ html[data-theme] .filter-area .clear-filters {
 // filter carries a real `border: 1px solid` in its error colour (measured
 // 2026-08-21), and a shadow ring composes with that where a border would fight
 // it.
-html[data-theme] .page-form .btn-default:hover,
-html[data-theme] .page-form .frappe-control input:not([type="checkbox"]):hover,
-html[data-theme] .page-form .frappe-control select:hover,
-html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):hover,
-html[data-theme] .filter-area .filter-box select.condition:hover,
-html[data-theme] .filter-area .clear-filters:hover {
-  // --bnd-ACTIVE, not --bnd-hover, and the check caught the difference. The
-  // resting fill above is an INK wash at 4%; --bnd-hover is a BRAND wash at 7%,
-  // and the two land at near-identical LUMINANCE in light — measured 3 channels
-  // apart (#f6f6f6 -> #f3f7f3), i.e. a hover state that renders as nothing. The
-  // two-options-one-pixel defect, inside a state rather than an axis. Dark
-  // passed at 8 channels, so only half the surface would have shown it.
-  //
-  // --bnd-active clears it in BOTH modes (16 channels light, 9 dark) and is a
-  // member of contrast_gate.SURFACES, so its inks are already gated. It reads
-  // strong for a hover only because this control does not start transparent —
-  // it starts already raised, so the step has to be longer.
-  //
-  // It does coincide with the APPLIED button hovered (R1 above), and that is
-  // acceptable rather than overlooked: the two are separated by their INK, not
-  // their fill — brand versus body — which is item 22's never-colour-alone rule
-  // working in our favour.
-  background-color: var(--bnd-active);
-  box-shadow: inset 0 0 0 var(--bnd-line) var(--bnd-border-strong);
-}
-
 // ── Contract R3: the count chip has a real delta against its host ───────────
 // Four of four surveyed products give the applied count a fill that separates
 // it from the control it sits inside, and Frappe's OWN newer apps write it as
@@ -227,8 +166,8 @@ html[data-theme] .filter-area .clear-filters:hover {
 // 12/8/12 channels in light and 12/16/13 in dark. The vendor rule is (0,4,0);
 // this is (0,5,1).
 html[data-theme] .page-form .filter-selector .btn-group .filter-label {
-  background-color: var(--bnd-surface);
-  color: var(--bnd-ink);
+  background-color: var(--card-bg);
+  color: var(--text-color);
 }
 
 // ── Contract R4: bidi isolation, item 7's reopened surface ──────────────────
@@ -305,18 +244,6 @@ html[data-theme] .page-form .text-extra-muted {
 // views kits use: `--bnd-accent` carries on a light control and the
 // `--bnd-on-brand` companion carries where the accent cannot, so one of the two
 // always clears 3:1 on every seed and mode.
-html[data-theme] .page-form .btn-default:focus-visible,
-html[data-theme] .page-form .frappe-control input:not([type="checkbox"]):focus-visible,
-html[data-theme] .page-form .frappe-control select:focus-visible,
-html[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):focus-visible,
-html[data-theme] .filter-area .filter-box select.condition:focus-visible,
-html[data-theme] .filter-area .clear-filters:focus-visible,
-html[data-theme] .saved-filter-item .dropdown-item:focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
-  box-shadow: 0 0 0 4px var(--bnd-on-brand);
-}
-
 // ══════════════════════════════════════════════════════════════════════════
 // THE ANCHOR — html[data-bnd-filters]. Everything below is a STYLE: "Original"
 // clears the attribute and every rule here goes with it. The CONTRACTS above
@@ -453,13 +380,6 @@ html[data-bnd-filters] .page-form {
 // the contract deliberately excludes (`.btn-paging`, which has its own box and
 // lives outside `.page-form`; and `.btn-primary-light`, which the vendor
 // toggles `.btn-default` OFF for, so the two never meet).
-html[data-bnd-filters] .page-form .btn-default,
-html[data-bnd-filters] .page-form .frappe-control input:not([type="checkbox"]),
-html[data-bnd-filters] .page-form .frappe-control select {
-  background-color: var(--bnd-flt-slot);
-  border-radius: var(--bnd-flt-radius);
-}
-
 // THE RING IS SCOPED `:not(:focus)`, AND THAT IS NOT A STYLE CHOICE.
 // `box-shadow` is the ONLY thing carrying focus on these controls: Bootstrap's
 // `.form-control:focus` also sets `outline: 0`, and their computed border is
@@ -472,12 +392,6 @@ html[data-bnd-filters] .page-form .frappe-control select {
 // worth writing down: `assertRingCoverage` and the suite's focus-ring walk both
 // key on `bnd-` classes, and these are FRAPPE'S controls. Neither can see them.
 // The item's own checks read these nodes at rest and on `:hover` only.
-html[data-bnd-filters] .page-form .btn-default:not(:focus),
-html[data-bnd-filters] .page-form .frappe-control input:not([type="checkbox"]):not(:focus),
-html[data-bnd-filters] .page-form .frappe-control select:not(:focus) {
-  box-shadow: var(--bnd-flt-ring);
-}
-
 // The popover's well and its condition rows. `.filter-area` takes the well so
 // `Trough` inverts there too; the row takes the box.
 //
@@ -512,22 +426,9 @@ html[data-bnd-filters] .filter-area .filter-box + .filter-box {
 
 // The popover's own controls take the slot treatment, so a condition row reads
 // as the same object as the bar it was opened from.
-html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type="checkbox"]),
-html[data-bnd-filters] .filter-area .filter-box select.condition,
-html[data-bnd-filters] .filter-area .clear-filters {
-  background-color: var(--bnd-flt-slot);
-  border-radius: var(--bnd-flt-radius);
-}
-
 // Same `:not(:focus)` guard, same reason — and it matters more here, because a
 // condition row's value input is the primary KEYBOARD target of the whole
 // filter editor.
-html[data-bnd-filters] .filter-area .filter-box .frappe-control input:not([type="checkbox"]):not(:focus),
-html[data-bnd-filters] .filter-area .filter-box select.condition:not(:focus),
-html[data-bnd-filters] .filter-area .clear-filters:not(:focus) {
-  box-shadow: var(--bnd-flt-ring);
-}
-
 // ══════════════════════════════════════════════════════════════════════════
 // AXIS 1 — filters_applied. How loudly a filtered list says so.
 // ══════════════════════════════════════════════════════════════════════════
@@ -592,17 +493,6 @@ html[data-bnd-filters-applied="accented"] {
 // same specificity, later in the file — which is deliberate: the contract is
 // the floor and the axis is allowed to raise it, but never to remove it. Every
 // pole above still resolves to a fitted ink on a gated ground.
-html[data-bnd-filters] .btn-primary-light {
-  background-color: var(--bnd-flt-on-fill);
-  color: var(--bnd-flt-on-ink);
-  box-shadow: var(--bnd-flt-on-ring);
-}
-
-html[data-bnd-filters] .btn-primary-light .filter-icon.active,
-html[data-bnd-filters] .btn-primary-light .group-by-icon.active {
-  --icon-stroke: var(--bnd-flt-on-ink);
-}
-
 html[data-bnd-filters] .page-form .filter-selector .btn-group .filter-label {
   background-color: var(--bnd-flt-chip-bg);
   color: var(--bnd-flt-chip-ink);
@@ -646,10 +536,6 @@ html[data-bnd-filters-saved="listed"] .saved-filter-item .filter-label {
   white-space: nowrap;
 }
 
-html[data-bnd-filters-saved="listed"] .saved-filter-item .dropdown-item:hover {
-  background-color: var(--bnd-hover);
-}
-
 // Reveal by OPACITY, never display — frappe-ui states the reason in a source
 // comment on ListHeaderCellSort: revealing must not shift the label beside it.
 // And the reveal keys on the ROW, not on the control, or the control could
@@ -682,8 +568,6 @@ html[data-bnd-filters-saved="listed"] .saved-filter-item:focus-within .remove-fi
 // on the synthetic last row (list_filter.js:85-96) — and promoting what already
 // exists is the item-29 move.
 html[data-bnd-filters-saved="listed"] .saved-filter-item[data-name="create_new"] .dropdown-item {
-  border-block-start: var(--bnd-line) solid var(--bnd-border);
   margin-block-start: var(--bnd-sp-1);
   padding-block-start: var(--bnd-sp-2);
-  color: var(--bnd-ink-muted);
 }

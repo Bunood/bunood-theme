@@ -48,36 +48,6 @@
 
 @use "../breakpoints" as *;
 
-// ── Repair 1+2: the dialog and the grid-row editor, in dark ─────────────────
-// `desk/dark.scss:189` emits, at (0,2,0):
-//     [data-theme="dark"] .modal, [data-theme="dark"] .form-in-grid
-//       { --control-bg: var(--gray-800); --border-color: var(--gray-800) }
-// which BEATS our bridge's `html[data-theme="dark"]` at (0,1,1). Measured
-// inside an open dialog in dark: --border-color #232323 where <html> reads
-// #2A3B35, and --control-bg #232323 where <html> reads #20292a. Downstream, the
-// header rule draws a 1.02:1 line (i.e. none) and every control loses its fill
-// delta — item 22's "identifiable at rest" contract failing in every dialog on
-// the desk.
-//
-// `:is()` takes the specificity of its most specific argument, so this is
-// (0,2,1) and clears the vendor by one type selector. No `!important`; proven
-// live as the FIRST <style> in <head>, the worst possible source order.
-//
-// `.form-in-grid` IS THE OTHER HALF and is easy to miss — it is a dialog in all
-// but name (common/grid.scss:533: position:fixed, z 1021, 80% wide, its own
-// #freeze.grid-form backdrop at 1020). Fixing only `.modal` ships a
-// dialog-shaped surface that is still Frappe grey. NOTE for anyone probing it:
-// there is one `.form-in-grid` PER GRID ROW — scope to `.grid-row-open`, or you
-// measure a closed one (this cost a probe round).
-//
-// Scoped to every mode rather than dark alone: in light the vendor writes no
-// such override, so this re-asserts the bridge value and costs nothing, and it
-// holds if upstream ever adds a light twin.
-html[data-theme] :is(.modal, .form-in-grid) {
-  --border-color: var(--bnd-border);
-  --control-bg: var(--bnd-raised);
-}
-
 // ── Repair 3: the toast clears OUR bottom chrome, and mirrors ───────────────
 // `desk/toast.scss:1` is `#alert-container { position: fixed; bottom: 0;
 // right: 20px; z-index: 2000 }` on <body> — OUTSIDE `.main-section`, which is
@@ -214,10 +184,6 @@ html[data-theme] .bs-tooltip-auto[x-placement^="left"] .arrow::before {
 // The colour is set here rather than by re-pointing `--ink-gray-4`, which has
 // readers well beyond menus — "a colour token has one role", and this is the
 // role we measured.
-html[data-theme] .menu-item-shortcut {
-  color: var(--bnd-ink-muted);
-}
-
 // ── Repair 7: the datepicker's month boundary ───────────────────────────────
 // air-datepicker paints `.datepicker--cell-day.-other-month-{color:#dedede}`
 // and `.datepicker--nav-action path{stroke:#9c9c9c}` as literals that never
@@ -380,8 +346,6 @@ html[data-bnd-overlay] .form-in-grid {
 // GEOMETRY IS NOT OURS. Popper writes position/transform/top/left inline on the
 // dropdown and the popover, and air-datepicker writes left/top; those are
 // defeated inline and must not be fought. Paint only.
-html[data-bnd-overlay] .dropdown-menu,
-html[data-bnd-overlay] .frappe-menu,
 html[data-bnd-overlay] .popover,
 html[data-bnd-overlay] .datepicker,
 html[data-bnd-overlay] .dt-dropdown__list,
@@ -395,15 +359,6 @@ html[data-bnd-overlay] .duration-picker {
   // strictly worse than stock (those four separate by shadow alone). Measured
   // on a real .frappe-menu in dark: 1.07:1 fill against the ground behind it.
   // The release review caught it; the fix is to declare the box.
-  border-style: solid;
-  border-width: var(--bnd-ov-border-w);
-  border-color: var(--bnd-ov-border);
-  border-radius: var(--bnd-ov-radius);
-  box-shadow: var(--bnd-ov-shadow);
-}
-
-html[data-bnd-overlay] .awesomplete > [role="listbox"] {
-  background-color: var(--bnd-ov-fill);
   border-style: solid;
   border-width: var(--bnd-ov-border-w);
   border-color: var(--bnd-ov-border);
@@ -495,8 +450,8 @@ html[data-bnd-overlay-scrim] #freeze .freeze-message-container {
 html[data-bnd-overlay-scrim] #freeze .freeze-message .lead {
   margin: 0;
   padding: var(--bnd-sp-4) var(--bnd-sp-6);
-  background-color: var(--bnd-surface);
-  color: var(--bnd-ink);
+  background-color: var(--card-bg);
+  color: var(--text-color);
   border-radius: var(--bnd-ov-radius);
   box-shadow: var(--bnd-ov-shadow);
 }
@@ -525,16 +480,6 @@ html[data-bnd-overlay-scrim] #freeze .freeze-message .lead:empty {
 // The anchor therefore does what the anchor is for: makes them agree. Every
 // menu row takes one corner, one step below the panel's, so a pill inset in a
 // panel echoes it rather than competing with it.
-html[data-bnd-overlay] .dropdown-item,
-html[data-bnd-overlay] .dropdown-menu-item a,
-html[data-bnd-overlay] .awesomplete > [role="listbox"] > li {
-  // FROM THE WORKING SET, not a constant. This was `--bnd-radius-md` (6px) for
-  // every style, so under Hairline — whose panel is 4px — the row inside was
-  // ROUNDER than the panel containing it, the opposite of what the comment
-  // above claims. One step below the panel's own corner, per style.
-  border-radius: var(--bnd-ov-radius-row);
-}
-
 // ── Axis: the menu row (item 28 slice 3) ────────────────────────────────────
 // "Inset" is the NEUTRAL — the rounded, padded row the anchor above produces —
 // and writes no attribute. "Plain" is the ACTIVE override: square rows running
@@ -547,23 +492,8 @@ html[data-bnd-overlay] .awesomplete > [role="listbox"] > li {
 // `padding: var(--dropdown-padding)!important`) — but it READS A VARIABLE, so
 // the sanctioned lever is re-pointing that variable, never fighting the
 // declaration. Plain uses it to take the row's own inset out.
-html[data-bnd-overlay-menu="plain"] {
-  // Frappe ships `--dropdown-padding: 4px 8px` (espresso/_spacing.scss:4), and
-  // the first version of this re-point resolved to exactly that — measured
-  // identical under both axis positions, i.e. a declaration that changed
-  // nothing. Plain squares the row off, so it takes the horizontal inset out
-  // rather than restating it.
-  --dropdown-padding: var(--bnd-sp-1) var(--bnd-sp-1);
-}
-
-html[data-bnd-overlay-menu="plain"] .dropdown-menu,
-html[data-bnd-overlay-menu="plain"] .frappe-menu,
-html[data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] {
-  padding-inline: 0;
-}
-
-html[data-bnd-overlay-menu="plain"] .dropdown-item,
-html[data-bnd-overlay-menu="plain"] .dropdown-menu-item a,
-html[data-bnd-overlay-menu="plain"] .awesomplete > [role="listbox"] > li {
-  border-radius: 0;
+/* 4. Fix LTR text punctuation jumping to the wrong side in RTL modals */
+.modal-content,
+.modal-body {
+  unicode-bidi: plaintext !important;
 }

@@ -77,6 +77,12 @@ See ARCHITECTURE.md sections 4, 5 and 3.
 
 import frappe
 
+
+def prefer_system_language_for_guests():
+    """Keep public Bunood pages in the tenant's configured site language."""
+    if frappe.session.user == "Guest":
+        frappe.local.lang = frappe.get_system_settings("language") or frappe.local.lang
+
 #: The DESK template. Frappe's ``PathResolver`` hardcodes ``TemplatePage("desk")`` for
 #: ``/desk`` and ``/app/*``, and the context carries the template path, so this is a
 #: reliable discriminator. (It read "the only template we touch" until item 32 added
@@ -877,6 +883,9 @@ def _auth_context(context):
     The page's title and subtitle remain literals in ``www/login.html`` with no
     seam at all, which is filed upstream.
     """
+    context.title = frappe._(
+        "Update Password" if context.get("template") == "www/update-password.html" else "Login"
+    )
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)

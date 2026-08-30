@@ -19,9 +19,10 @@
 //     1. tokens   — declare the vocabulary
 //     2. bridge   — map it onto Frappe's names (mode-scoped)
 //     3. base     — element-level resets and typography
-//     4. chrome   — the frame around the app
-//     5. surfaces — the content the frame contains
-//     6. print    — last, so its @media print can null out anything above
+//     4. components — universal control appearance
+//     5. chrome   — the frame around the app
+//     6. surfaces — layout and surface-specific composition
+//     7. print    — last, so its @media print can null out anything above
 //
 // TWO RULES THAT APPLY TO EVERY PARTIAL
 //   * NO `@layer`. Frappe's desk CSS is unlayered, and unlayered beats layered,
@@ -50,6 +51,15 @@
 // something the build guard over our stylesheet structurally cannot see.
 @use "cursive";
 
+// ── Components: universal control appearance ───────────────────────────────
+// These load after the token/bridge core and before every composed surface.
+// Every override is rooted at html.bunood[data-theme], giving one consistent
+// button, input, badge and menu language across workspaces, forms and dialogs.
+@use "components/buttons";
+@use "components/inputs";
+@use "components/badges";
+@use "components/menus";
+
 // ── Chrome: the frame ───────────────────────────────────────────────────────
 // Item 9: the desk-layout system. _layouts.scss is the conditional matrix
 // (what each data-bnd-desk value hides and where panels open); the others
@@ -73,6 +83,8 @@
 
 // ── Surfaces: the content ───────────────────────────────────────────────────
 @use "surfaces/workspace";
+@use "surfaces/home";
+@use "surfaces/desktop";
 @use "surfaces/list";
 @use "surfaces/report";
 @use "surfaces/form";

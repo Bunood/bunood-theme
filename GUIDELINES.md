@@ -35,6 +35,7 @@ costs. Rules are grouped by whether a machine enforces them.
 | Behaviour of every kit | 94-test Playwright suite | `tests/smoke.mjs` |
 | Test signal isn't corrupted by its own tooling | `npm run verify` — one command, the suite's own exit code | `tools/verify.mjs` |
 | A native affordance is hidden only once we replaced it | build **fails** on `display:none` of a native keyed on `data-bnd-layout`/`data-bnd-search` instead of `data-bnd-own` | `build.mjs` |
+| Styling is route-agnostic | build **fails** when any SCSS file contains `data-route=` or `data-page-route=`; an in-memory negative self-test proves both forbidden forms are rejected | `build.mjs` |
 | Every component has an identity, and every identity is real | build **fails** on a registry entry with no `part`, or a `data-bnd-part` the registry never defined | `build.mjs` + `registry.py` |
 | Settings fields are `<component>_<property>` | build **fails**, with a listed and shrinking exceptions set | `build.mjs` |
 | No literal duration reaches compiled CSS — the reduced-motion zero actually zeroes everything | build **fails** on a hardcoded `transition`/`animation` time outside `--bnd-dur-*` | `build.mjs` |
@@ -68,6 +69,12 @@ that cannot change the verdict.
 
 ### 1.2 Before you write the CSS
 
+- **Route-Agnostic Styling:** Never use `data-route` or `data-page-route`. Use
+  `:has()` DOM signatures that identify the component actually rendered so standard
+  modules, route aliases and custom apps inherit the same styling universally.
+- **Universal Theming:** Never colour Frappe classes directly when Frappe exposes a
+  CSS variable for that role. Map Frappe's native semantic variable to the matching
+  `--bnd-*` token in `_bridge.scss`, so one token change repaints every consumer.
 - **Decide whether it's a one-way or two-way door.** Ship the simple version when the
   fix is a rule; think first when the fix is a token rename, a public class name, or
   anything Layer 3/4 consumes. Token names are an API — see 1.4.

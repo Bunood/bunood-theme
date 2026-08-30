@@ -1,0 +1,588 @@
+// Bunood Home — the Arabic-first operational dashboard mounted on /app/home.
+// This surface owns its DOM, while Report Studio remains an independent page.
+
+@use "../breakpoints" as *;
+
+html[data-theme] .bnd-home-host {
+  padding: 0;
+  background: var(--bnd-page);
+}
+
+html[data-theme] .bnd-home-host > :not(.bnd-home-dashboard) {
+  display: none;
+}
+
+html[data-theme] .bnd-home-dashboard {
+  inline-size: 100%;
+  max-inline-size: none;
+  min-block-size: 100%;
+  margin-inline: auto;
+  padding: clamp(var(--bnd-sp-4), 3vw, var(--bnd-sp-7));
+  color: var(--bnd-ink);
+}
+
+.bnd-home-intro,
+.bnd-home-panel-head,
+.bnd-home-metric-top,
+.bnd-home-balance-top,
+.bnd-home-status-line,
+.bnd-home-recent {
+  display: flex;
+  align-items: center;
+}
+
+.bnd-home-intro {
+  justify-content: space-between;
+  gap: var(--bnd-sp-4);
+  margin-block-end: var(--bnd-sp-6);
+}
+
+.bnd-home-eyebrow {
+  display: block;
+  margin-block-end: var(--bnd-sp-1);
+  color: var(--bnd-brand-solid);
+  font-size: var(--bnd-text-xs);
+  font-weight: 750;
+}
+
+.bnd-home-title {
+  margin: 0;
+  color: var(--bnd-ink);
+  font-size: clamp(var(--bnd-text-xl), 2.5vw, var(--bnd-text-2xl));
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.bnd-home-subtitle,
+.bnd-home-panel-subtitle {
+  margin: var(--bnd-sp-1) 0 0;
+  color: var(--bnd-ink-muted);
+}
+
+.bnd-home-intro-actions,
+.bnd-home-quick-grid {
+  display: flex;
+  gap: var(--bnd-sp-2);
+}
+
+.bnd-home-action {
+  display: inline-flex;
+  min-block-size: var(--bnd-control-h);
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-4);
+  color: var(--bnd-ink);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease),
+    transform var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+.bnd-home-action:hover {
+  border-color: var(--bnd-brand-solid);
+  background: var(--bnd-hover);
+  transform: translateY(-1px);
+}
+
+.bnd-home-action.is-primary {
+  color: var(--bnd-on-brand);
+  background: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+}
+
+.bnd-home-action.is-primary:hover {
+  color: var(--bnd-on-brand);
+  background: var(--bnd-brand-ink);
+  border-color: var(--bnd-brand-ink);
+}
+
+.bnd-home-action:focus-visible,
+.bnd-home-recent:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+
+.bnd-home-action-icon,
+.bnd-home-panel-mark {
+  display: grid;
+  inline-size: var(--bnd-sp-5);
+  block-size: var(--bnd-sp-5);
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.bnd-home-action-icon > svg,
+.bnd-home-panel-mark > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.bnd-home-summary {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.55fr) repeat(3, minmax(175px, 1fr));
+  gap: var(--bnd-sp-4);
+  margin-block-end: var(--bnd-sp-4);
+}
+
+.bnd-home-balance,
+.bnd-home-metric,
+.bnd-home-panel {
+  border-radius: var(--bnd-radius-xl);
+  box-shadow: var(--bnd-shadow-sm);
+}
+
+.bnd-home-balance {
+  display: flex;
+  min-block-size: 172px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--bnd-sp-5);
+  color: var(--bnd-on-brand);
+  background: var(--bnd-brand-solid);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+}
+
+.bnd-home-balance-top {
+  gap: var(--bnd-sp-3);
+}
+
+.bnd-home-balance-icon {
+  display: grid;
+  inline-size: 42px;
+  block-size: 42px;
+  place-items: center;
+  background: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
+  border-radius: var(--bnd-radius-md);
+}
+
+.bnd-home-balance-icon > svg {
+  inline-size: var(--bnd-sp-5);
+  block-size: var(--bnd-sp-5);
+}
+
+// Home owns its icon wells rather than using Frappe's native .widget-icon.
+// Paint every sprite from the well's active ink so the balance icon is white
+// on brand green and the metric icons retain their categorical color.
+.bnd-home-dashboard :is(
+    .bnd-home-balance-icon,
+    .bnd-home-icon,
+    .bnd-home-action-icon,
+    .bnd-home-panel-mark
+  ) > svg:not(.es-icon) {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+.bnd-home-dashboard :is(
+    .bnd-home-balance-icon,
+    .bnd-home-icon,
+    .bnd-home-action-icon,
+    .bnd-home-panel-mark
+  ) > svg.es-icon {
+  color: inherit !important;
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+.bnd-home-balance-label {
+  font-weight: 650;
+}
+
+.bnd-home-balance-value {
+  margin-block: var(--bnd-sp-4) var(--bnd-sp-2);
+  font-size: clamp(var(--bnd-text-2xl), 3vw, 2.4rem);
+  font-weight: 780;
+  line-height: 1.2;
+  unicode-bidi: plaintext;
+}
+
+.bnd-home-balance-note {
+  color: color-mix(in srgb, var(--bnd-on-brand) 78%, transparent);
+  font-size: var(--bnd-text-xs);
+}
+
+.bnd-home-metric {
+  --bnd-home-tone: var(--bnd-cat-1);
+  display: flex;
+  min-block-size: 172px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--bnd-sp-5);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-block-start: 4px solid var(--bnd-home-tone);
+}
+
+.bnd-home-metric.is-teal {
+  --bnd-home-tone: var(--bnd-cat-3);
+}
+
+.bnd-home-metric.is-gold {
+  --bnd-home-tone: var(--bnd-cat-4);
+}
+
+.bnd-home-metric-top {
+  gap: var(--bnd-sp-3);
+}
+
+.bnd-home-icon {
+  display: grid;
+  inline-size: 42px;
+  block-size: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--bnd-home-tone);
+  background: color-mix(in srgb, var(--bnd-home-tone) 12%, var(--bnd-surface));
+  border-radius: var(--bnd-radius-md);
+}
+
+.bnd-home-icon > svg {
+  inline-size: var(--bnd-sp-5);
+  block-size: var(--bnd-sp-5);
+}
+
+.bnd-home-metric-label {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+}
+
+.bnd-home-metric-value {
+  display: block;
+  margin-block-start: var(--bnd-sp-4);
+  color: var(--bnd-ink);
+  font-size: clamp(var(--bnd-text-lg), 2vw, var(--bnd-text-2xl));
+  font-weight: 760;
+  line-height: 1.25;
+  unicode-bidi: plaintext;
+}
+
+.bnd-home-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bnd-sp-4);
+}
+
+.bnd-home-panel {
+  overflow: hidden;
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+}
+
+.bnd-home-panel-head {
+  justify-content: space-between;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-5);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+.bnd-home-panel-title {
+  margin: 0;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.bnd-home-panel-subtitle {
+  font-size: var(--bnd-text-xs);
+}
+
+.bnd-home-panel-mark {
+  color: var(--bnd-brand-solid);
+}
+
+.bnd-home-trend {
+  grid-column: span 8;
+}
+
+.bnd-home-status {
+  grid-column: span 4;
+}
+
+.bnd-home-recent-panel {
+  grid-column: span 7;
+}
+
+.bnd-home-quick-panel {
+  grid-column: span 5;
+}
+
+.bnd-home-bars {
+  display: grid;
+  min-block-size: 250px;
+  grid-template-columns: repeat(6, minmax(48px, 1fr));
+  align-items: end;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-6) var(--bnd-sp-5) var(--bnd-sp-5);
+}
+
+.bnd-home-bar-column {
+  display: grid;
+  min-inline-size: 0;
+  grid-template-rows: 24px 150px auto;
+  gap: var(--bnd-sp-2);
+  text-align: center;
+}
+
+.bnd-home-bar-amount {
+  overflow: hidden;
+  color: var(--bnd-ink-subtle);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
+.bnd-home-bar-track {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  background: var(--bnd-raised);
+  border-radius: var(--bnd-radius-md);
+}
+
+.bnd-home-bar-fill {
+  --bnd-home-bar-size: var(--bnd-sp-2);
+  inline-size: min(58%, 42px);
+  block-size: var(--bnd-home-bar-size);
+  min-block-size: var(--bnd-sp-2);
+  background: var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-sm) var(--bnd-radius-sm) 0 0;
+}
+
+.bnd-home-bar-label {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+.bnd-home-status-list {
+  display: grid;
+  gap: var(--bnd-sp-5);
+  padding: var(--bnd-sp-6) var(--bnd-sp-5);
+}
+
+.bnd-home-status-row {
+  --bnd-home-tone: var(--bnd-cat-1);
+}
+
+.bnd-home-status-row.is-teal {
+  --bnd-home-tone: var(--bnd-cat-3);
+}
+
+.bnd-home-status-row.is-coral {
+  --bnd-home-tone: var(--bnd-cat-2);
+}
+
+.bnd-home-status-line {
+  justify-content: space-between;
+  margin-block-end: var(--bnd-sp-2);
+}
+
+.bnd-home-status-label {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+.bnd-home-status-count {
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-md);
+}
+
+.bnd-home-status-track {
+  display: block;
+  block-size: 8px;
+  overflow: hidden;
+  background: var(--bnd-raised);
+  border-radius: 999px;
+}
+
+.bnd-home-status-fill {
+  --bnd-home-status-size: 0%;
+  display: block;
+  inline-size: var(--bnd-home-status-size);
+  block-size: 100%;
+  background: var(--bnd-home-tone);
+  border-radius: inherit;
+}
+
+.bnd-home-recent-list {
+  min-block-size: 222px;
+}
+
+.bnd-home-recent {
+  inline-size: 100%;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-3) var(--bnd-sp-5);
+  color: inherit;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  cursor: pointer;
+}
+
+.bnd-home-recent:last-child {
+  border-block-end: 0;
+}
+
+.bnd-home-recent:hover {
+  background: var(--bnd-hover);
+}
+
+.bnd-home-recent-icon {
+  --bnd-home-tone: var(--bnd-cat-3);
+  inline-size: 36px;
+  block-size: 36px;
+}
+
+.bnd-home-recent-copy {
+  display: grid;
+  min-inline-size: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.bnd-home-recent-party,
+.bnd-home-recent-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bnd-home-recent-party {
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+}
+
+.bnd-home-recent-meta {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+.bnd-home-recent-value {
+  color: var(--bnd-cat-3);
+  font-size: var(--bnd-text-sm);
+  font-weight: 720;
+  unicode-bidi: plaintext;
+}
+
+.bnd-home-recent-value.is-out {
+  color: var(--bnd-cat-2);
+}
+
+.bnd-home-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: var(--bnd-sp-5);
+}
+
+.bnd-home-quick-grid .bnd-home-action {
+  min-block-size: 72px;
+  justify-content: flex-start;
+}
+
+.bnd-home-empty,
+.bnd-home-state {
+  color: var(--bnd-ink-muted);
+  text-align: center;
+}
+
+.bnd-home-empty {
+  margin: 0;
+  padding: var(--bnd-sp-7) var(--bnd-sp-4);
+}
+
+.bnd-home-state {
+  display: grid;
+  min-block-size: 420px;
+  place-content: center;
+  justify-items: center;
+  gap: var(--bnd-sp-3);
+}
+
+.bnd-home-state-icon {
+  --bnd-home-tone: var(--bnd-brand-solid);
+}
+
+.bnd-home-state.is-loading .bnd-home-state-icon {
+  animation: bnd-home-spin var(--bnd-dur-slow) linear infinite;
+}
+
+@keyframes bnd-home-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bnd-home-state.is-loading .bnd-home-state-icon {
+    animation: none;
+  }
+}
+
+@include bnd-until(xl) {
+  .bnd-home-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bnd-home-balance {
+    grid-column: 1 / -1;
+  }
+}
+
+@include bnd-until(lg) {
+  .bnd-home-trend,
+  .bnd-home-status,
+  .bnd-home-recent-panel,
+  .bnd-home-quick-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@include bnd-until(md) {
+  .bnd-home-dashboard {
+    padding: var(--bnd-sp-4);
+  }
+
+  .bnd-home-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .bnd-home-balance,
+  .bnd-home-metric {
+    grid-column: auto;
+    min-block-size: 150px;
+  }
+
+  .bnd-home-bars {
+    overflow-x: auto;
+  }
+}
+
+@include bnd-until(sm) {
+  .bnd-home-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bnd-home-intro-actions .bnd-home-action,
+  .bnd-home-quick-grid .bnd-home-action {
+    inline-size: 100%;
+  }
+
+  .bnd-home-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bnd-home-bars {
+    grid-template-columns: repeat(6, 54px);
+  }
+}

@@ -50,7 +50,7 @@
 // The widget and row SCOPES — no html anchor, so the anchor can be prepended per
 // rule without ever nesting one html inside another. Two grid containers, one
 // kit; `:is()` keeps the pair in one selector at one class of specificity, so a
-// tile rule lands at (0,3,1) — above Frappe's `[data-page-route] .widget` (0,2,1).
+// tile rule lands at (0,3,1) — above Frappe's native workspace widget rule.
 $ws: ":is(.ce-block, .widget-group-body) .widget";
 $row: ":is(.link-item, .quick-list-item)";
 
@@ -89,7 +89,7 @@ html[data-bnd-ws] .widget-group-body {
 
 // ── The tile — consumes the working set ──────────────────────────────────────
 html[data-bnd-ws] #{$ws} {
-  background: var(--ws-tile-bg, var(--bnd-surface));
+  background: var(--ws-tile-bg, var(--card-bg));
   border: var(--bnd-line) solid var(--ws-tile-border, var(--bnd-border));
   border-radius: var(--ws-tile-radius, var(--bnd-radius-lg));
   box-shadow: var(--ws-tile-shadow, none);
@@ -130,6 +130,34 @@ html[data-bnd-ws="grid"] .codex-editor__redactor {
 }
 html[data-bnd-ws="grid"] .layout-main-section:not(.edit-mode) .codex-editor__redactor {
   overflow: hidden;
+}
+
+// Bunood Bold Board — the default grid keeps its disciplined shared geometry,
+// but each block now carries a stable, solid categorical surface. No gradients:
+// colour communicates grouping while the 4px top edge keeps adjacent tiles
+// distinct at a glance. The seven-step cycle is presentation-only; it never
+// represents data category or status.
+@for $i from 1 through 7 {
+  html[data-bnd-ws="grid"] :is(
+      .ce-block:nth-child(7n+#{$i}),
+      .widget-group-body > :nth-child(7n+#{$i})
+    ) {
+    --ws-accent: var(--bnd-cat-#{$i});
+  }
+}
+
+html[data-bnd-ws="grid"] #{$ws} {
+  --ws-tile-bg: color-mix(in srgb, var(--ws-accent, var(--bnd-brand-solid)) 15%, var(--bnd-surface));
+  border-block-start: 4px solid var(--ws-accent, var(--bnd-brand-solid));
+}
+
+html[data-bnd-ws="grid"] #{$ws} > .widget-head .widget-title {
+  color: var(--bnd-ink);
+  font-weight: 720;
+}
+
+html[data-bnd-ws="grid"] #{$ws}:hover {
+  --ws-tile-bg: color-mix(in srgb, var(--ws-accent, var(--bnd-brand-solid)) 21%, var(--bnd-surface));
 }
 
 // Soft Tiles — invert: the canvas turns white, tiles are a quiet raised fill.
@@ -194,6 +222,58 @@ html[data-bnd-ws="mixed"] #{$ws}.number-widget-box {
 html[data-bnd-ws="mixed"] #{$ws}.links-widget-box,
 html[data-bnd-ws="mixed"] #{$ws}.shortcut-widget-box {
   background: transparent;
+}
+
+// Dashboard widget icons inherit the card's active ink. This keeps them bright
+// on solid brand/number-card surfaces and dark on ordinary white widgets.
+.widget .widget-icon {
+  color: inherit !important;
+  background-color: color-mix(in srgb, currentColor 15%, transparent) !important;
+}
+
+.widget .widget-icon svg,
+.widget .widget-icon .icon {
+  stroke: currentColor !important;
+  color: inherit !important;
+}
+
+.widget .widget-icon svg.es-solid,
+.widget .widget-icon svg[fill]:not([fill="none"]) {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+// Full-width enterprise workspace canvas. Bypass Frappe's reading-width
+// containers while retaining responsive edge breathing room.
+.workspace-page .container,
+html[data-bnd-ws] .page-container:has(.ce-block) .container,
+html[data-bnd-ws] .page-container:has(.widget-group-body) .container,
+html[data-bnd-ws] .container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-inline: clamp(24px, 4vw, 64px) !important;
+}
+
+// Frappe v16 applies a separate 900px ceiling to the inner layout after the
+// outer .container has already expanded. Without clearing both, a wide canvas
+// still presents a narrow dashboard column in the middle of it.
+html[data-bnd-ws] .page-container:has(.ce-block) .layout-main,
+html[data-bnd-ws] .page-container:has(.widget-group-body) .layout-main {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.ce-block__content,
+.ce-toolbar__content {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.widget-group,
+.widget-group-body,
+.workspace-page .grid-col {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 // ── Rows inside a links / quick-list tile (workspace_rows) ───────────────────

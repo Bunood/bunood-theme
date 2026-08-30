@@ -40,6 +40,11 @@
 (function () {
 	"use strict";
 
+	// Stable root scope for all Bunood component overrides. Keep this beside the
+	// other synchronous document attributes so shared controls are themed before
+	// Frappe mounts the desk shell.
+	document.documentElement.classList.add("bunood");
+
 	/** Public namespace. Navbar Settings action items call into this. */
 	const bunood = (window.bunood_theme = window.bunood_theme || {});
 
@@ -3091,7 +3096,8 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
-		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
+		// Force search to the Top Bar Center since the Bottom Bar is permanently removed
+		return "topcenter";
 	}
 
 	/**
@@ -5984,7 +5990,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const row = document.querySelector(".bnd-sb-module");
 		if (!row) return;
 		const ws = sb_current_workspace;
-		row.querySelector(".bnd-sb-module-label").textContent = (ws && ws.title) || __("Workspaces");
+		row.querySelector(".bnd-sb-module-label").textContent = __((ws && ws.title) || "Workspaces");
 		const chip = row.querySelector(".bnd-sb-module-chip");
 		chip.innerHTML = "";
 		chip.appendChild(sprite_icon(ws_symbol(ws && ws.icon)));
@@ -6604,6 +6610,284 @@ function sb_zone_anchor(pane, zone, node) {
 		sb_observe();
 	}
 
+	// ── Bunood Home dashboard ──────────────────────────────────────────────
+
+	const HOME_ROUTE = "home";
+	let home_request = 0;
+
+	function home_text(source) {
+		return typeof __ === "function" ? __(source) : source;
+	}
+
+	function on_home_route() {
+		const route = window.frappe && frappe.get_route ? frappe.get_route() : [];
+		// A public workspace URL such as /desk/home is normalised by Frappe's
+		// router to ["Workspaces", "Home"]. Testing route[0] alone therefore
+		// sees "Workspaces", not "home", and the dashboard never mounts.
+		// Keep the direct form for older Frappe builds and derive the workspace
+		// name from the current standard route for v16.
+		const head = String(route[0] || "").toLowerCase();
+		const workspace = head === "workspaces"
+			? route[1] === "private"
+				? route[2]
+				: route[1]
+			: route[0];
+		const slug = window.frappe && frappe.router && frappe.router.slug
+			? frappe.router.slug(String(workspace || ""))
+			: String(workspace || "").trim().toLowerCase().replace(/\s+/g, "-");
+		return slug === HOME_ROUTE;
+	}
+
+	function home_host() {
+		let page = frappe.container && frappe.container.page;
+		if (page && page.jquery) page = page[0];
+		// All workspaces share Frappe's one data-page-route="Workspaces"
+		// container. Use the current container instead of a document query:
+		// cached page containers remain in the DOM and a generic selector can
+		// otherwise mount into a hidden page during router transitions.
+		if (!page || String(page.getAttribute("data-page-route") || "").toLowerCase() !== "workspaces") {
+			return null;
+		}
+		return page.querySelector(".layout-main-section");
+	}
+
+	function home_money(value, currency) {
+		try {
+			const locale = document.documentElement.lang || "ar";
+			return new Intl.NumberFormat(locale, {
+				style: "currency",
+				currency: currency || "SAR",
+				maximumFractionDigits: 0,
+				numberingSystem: BND_NUMERALS,
+			}).format(Number(value) || 0);
+		} catch (e) {
+			return `${Number(value || 0).toLocaleString()} ${currency || ""}`.trim();
+		}
+	}
+
+	function home_icon(symbol, cls) {
+		const wrap = el("span", cls || "bnd-home-icon");
+		wrap.setAttribute("aria-hidden", "true");
+		wrap.appendChild(sprite_icon(symbol));
+		return wrap;
+	}
+
+	function home_action(label, symbol, action, primary) {
+		const button = el("button", `bnd-home-action${primary ? " is-primary" : ""}`, { type: "button" });
+		button.appendChild(home_icon(symbol, "bnd-home-action-icon"));
+		const copy = el("span", "");
+		copy.textContent = home_text(label);
+		button.appendChild(copy);
+		button.addEventListener("click", action);
+		return button;
+	}
+
+	function home_panel(title, subtitle, extra_class) {
+		const panel = el("section", `bnd-home-panel ${extra_class || ""}`.trim());
+		const head = el("header", "bnd-home-panel-head");
+		const copy = el("div", "bnd-home-panel-copy");
+		const heading = el("h2", "bnd-home-panel-title");
+		heading.textContent = home_text(title);
+		copy.appendChild(heading);
+		if (subtitle) {
+			const sub = el("p", "bnd-home-panel-subtitle");
+			sub.textContent = home_text(subtitle);
+			copy.appendChild(sub);
+		}
+		head.appendChild(copy);
+		panel.appendChild(head);
+		return { panel, head };
+	}
+
+	function home_metric(label, value, currency, symbol, tone) {
+		const card = el("article", `bnd-home-metric is-${tone}`);
+		const top = el("div", "bnd-home-metric-top");
+		top.appendChild(home_icon(symbol));
+		const caption = el("span", "bnd-home-metric-label");
+		caption.textContent = home_text(label);
+		top.appendChild(caption);
+		const amount = el("strong", "bnd-home-metric-value");
+		amount.textContent = home_money(value, currency);
+		card.append(top, amount);
+		return card;
+	}
+
+	function home_render_dashboard(root, data) {
+		root.replaceChildren();
+		const metrics = data.metrics || {};
+		const currency = data.currency || "SAR";
+		const hour = new Date().getHours();
+		const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+		const intro = el("header", "bnd-home-intro");
+		const intro_copy = el("div", "bnd-home-intro-copy");
+		const eyebrow = el("span", "bnd-home-eyebrow");
+		eyebrow.textContent = data.company || home_text("Bunood");
+		const title = el("h1", "bnd-home-title");
+		title.textContent = home_text(greeting);
+		const subtitle = el("p", "bnd-home-subtitle");
+		subtitle.textContent = home_text("Your business at a glance");
+		intro_copy.append(eyebrow, title, subtitle);
+		const intro_actions = el("div", "bnd-home-intro-actions");
+		intro_actions.appendChild(home_action("New sales invoice", "icon-plus", () => frappe.new_doc("Sales Invoice"), true));
+		intro.append(intro_copy, intro_actions);
+		root.appendChild(intro);
+
+		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
+		const hero = el("article", "bnd-home-balance");
+		const hero_top = el("div", "bnd-home-balance-top");
+		hero_top.appendChild(home_icon("icon-wallet", "bnd-home-balance-icon"));
+		const hero_label = el("span", "bnd-home-balance-label");
+		hero_label.textContent = home_text("Cash and bank balance");
+		hero_top.appendChild(hero_label);
+		const hero_value = el("strong", "bnd-home-balance-value");
+		hero_value.textContent = home_money(metrics.cash_balance, currency);
+		const hero_note = el("span", "bnd-home-balance-note");
+		hero_note.textContent = home_text("Available across cash and bank accounts");
+		hero.append(hero_top, hero_value, hero_note);
+		summary.append(
+			hero,
+			home_metric("Sales this month", metrics.sales_month, currency, "icon-chart-no-axes-column-increasing", "blue"),
+			home_metric("Outstanding receivables", metrics.receivables, currency, "icon-receipt-text", "teal"),
+			home_metric("Outstanding payables", metrics.payables, currency, "icon-credit-card", "gold")
+		);
+		root.appendChild(summary);
+
+		const grid = el("div", "bnd-home-grid");
+		const trend = home_panel("Sales trend", "Last six months", "bnd-home-trend");
+		trend.head.appendChild(home_icon("icon-chart-column", "bnd-home-panel-mark"));
+		const bars = el("div", "bnd-home-bars");
+		const trend_rows = Array.isArray(data.trend) ? data.trend : [];
+		const max = Math.max(1, ...trend_rows.map((item) => Number(item.value) || 0));
+		for (const item of trend_rows) {
+			const column = el("div", "bnd-home-bar-column");
+			const amount = el("span", "bnd-home-bar-amount");
+			amount.textContent = home_money(item.value, currency);
+			const track = el("span", "bnd-home-bar-track");
+			const fill = el("span", "bnd-home-bar-fill");
+			fill.style.setProperty("--bnd-home-bar-size", `${Math.max(6, Math.round((Number(item.value || 0) / max) * 100))}%`);
+			track.appendChild(fill);
+			const label = el("span", "bnd-home-bar-label");
+			label.textContent = home_text(item.label || "");
+			column.append(amount, track, label);
+			bars.appendChild(column);
+		}
+		trend.panel.appendChild(bars);
+		grid.appendChild(trend.panel);
+
+		const status = home_panel("Invoice status", "Current sales invoices", "bnd-home-status");
+		status.head.appendChild(home_icon("icon-receipt", "bnd-home-panel-mark"));
+		const status_list = el("div", "bnd-home-status-list");
+		const invoice_status = data.invoice_status || {};
+		const total = Math.max(1, Number(invoice_status.paid || 0) + Number(invoice_status.open || 0) + Number(invoice_status.overdue || 0));
+		for (const item of [
+			["Paid", "paid", "teal"],
+			["Open", "open", "blue"],
+			["Overdue", "overdue", "coral"],
+		]) {
+			const row = el("div", `bnd-home-status-row is-${item[2]}`);
+			const line = el("div", "bnd-home-status-line");
+			const label = el("span", "bnd-home-status-label");
+			label.textContent = home_text(item[0]);
+			const count = el("strong", "bnd-home-status-count");
+			count.textContent = String(invoice_status[item[1]] || 0);
+			line.append(label, count);
+			const track = el("span", "bnd-home-status-track");
+			const fill = el("span", "bnd-home-status-fill");
+			fill.style.setProperty("--bnd-home-status-size", `${Math.round((Number(invoice_status[item[1]] || 0) / total) * 100)}%`);
+			track.appendChild(fill);
+			row.append(line, track);
+			status_list.appendChild(row);
+		}
+		status.panel.appendChild(status_list);
+		grid.appendChild(status.panel);
+
+		const recent = home_panel("Recent activity", "Latest invoices", "bnd-home-recent-panel");
+		recent.head.appendChild(home_icon("icon-activity", "bnd-home-panel-mark"));
+		const recent_list = el("div", "bnd-home-recent-list");
+		for (const item of data.recent || []) {
+			const row = el("button", "bnd-home-recent", { type: "button" });
+			row.appendChild(home_icon(item.doctype === "Sales Invoice" ? "icon-arrow-up-right" : "icon-arrow-down-left", "bnd-home-recent-icon"));
+			const copy = el("span", "bnd-home-recent-copy");
+			const party = el("strong", "bnd-home-recent-party");
+			party.textContent = item.party || item.name;
+			const meta = el("span", "bnd-home-recent-meta");
+			meta.textContent = `${home_text(item.doctype)} · ${item.name}`;
+			copy.append(party, meta);
+			const value = el("span", `bnd-home-recent-value${Number(item.amount) < 0 ? " is-out" : ""}`);
+			value.textContent = home_money(Math.abs(Number(item.amount) || 0), item.currency || currency);
+			row.append(copy, value);
+			row.addEventListener("click", () => frappe.set_route("Form", item.doctype, item.name));
+			recent_list.appendChild(row);
+		}
+		if (!recent_list.children.length) {
+			const empty = el("p", "bnd-home-empty");
+			empty.textContent = home_text("No recent activity");
+			recent_list.appendChild(empty);
+		}
+		recent.panel.appendChild(recent_list);
+		grid.appendChild(recent.panel);
+
+		const quick = home_panel("Quick actions", "Common tasks", "bnd-home-quick-panel");
+		quick.head.appendChild(home_icon("icon-bolt", "bnd-home-panel-mark"));
+		const quick_grid = el("div", "bnd-home-quick-grid");
+		for (const item of [
+			["Create invoice", "icon-file-plus", () => frappe.new_doc("Sales Invoice")],
+			["Record payment", "icon-banknote", () => frappe.new_doc("Payment Entry")],
+			["View accounts", "icon-landmark", () => frappe.set_route("List", "Account")],
+			["Open reports", "icon-chart", () => frappe.set_route("query-report", "General Ledger")],
+		]) quick_grid.appendChild(home_action(item[0], item[1], item[2], false));
+		quick.panel.appendChild(quick_grid);
+		grid.appendChild(quick.panel);
+		root.appendChild(grid);
+	}
+
+	function home_render_error(root) {
+		root.replaceChildren();
+		const state = el("div", "bnd-home-state");
+		state.appendChild(home_icon("icon-circle-alert", "bnd-home-state-icon"));
+		const message = el("p", "bnd-home-state-message");
+		message.textContent = home_text("Could not load dashboard data");
+		state.append(message, home_action("Retry", "icon-refresh-cw", () => mount_home_dashboard(true), true));
+		root.appendChild(state);
+	}
+
+	function mount_home_dashboard(force) {
+		if (!on_home_route()) {
+			for (const host of document.querySelectorAll(".bnd-home-host")) host.classList.remove("bnd-home-host");
+			for (const node of document.querySelectorAll(".bnd-home-dashboard")) node.remove();
+			return false;
+		}
+		const host = home_host();
+		if (!host) return false;
+		host.classList.add("bnd-home-host");
+		let root = host.querySelector(":scope > .bnd-home-dashboard");
+		if (root && !force) return true;
+		if (!root) {
+			root = el("main", "bnd-home-dashboard", { "aria-label": home_text("Bunood dashboard") });
+			host.appendChild(root);
+		}
+		root.replaceChildren();
+		const loading = el("div", "bnd-home-state is-loading");
+		loading.appendChild(home_icon("icon-loader-circle", "bnd-home-state-icon"));
+		const loading_copy = el("p", "bnd-home-state-message");
+		loading_copy.textContent = home_text("Loading dashboard");
+		loading.appendChild(loading_copy);
+		root.appendChild(loading);
+		const request = ++home_request;
+		frappe.call({
+			method: "bunood_theme.api.get_home_dashboard",
+			callback: (response) => {
+				if (request !== home_request || !root.isConnected || !on_home_route()) return;
+				home_render_dashboard(root, response.message || {});
+			},
+			error: () => {
+				if (request === home_request && root.isConnected) home_render_error(root);
+			},
+		});
+		return true;
+	}
+
 	// ── Orchestration ───────────────────────────────────────────────────────
 
 	/**
@@ -6718,10 +7002,18 @@ function sb_zone_anchor(pane, zone, node) {
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
 
+		try_for(() => mount_home_dashboard(), 40, 150);
+
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
+				// The home dashboard mounts per route because Frappe swaps the
+				// workspace element out from under us. The retry covers the
+				// home route only, where the container is built asynchronously
+				// and a single synchronous mount lands before it exists.
+				mount_home_dashboard();
+				if (on_home_route()) try_for(() => mount_home_dashboard(), 40, 150);
 				// AFTER update_desktop_mode, because that call is what stands
 				// the chrome down on route "" and brings it back — but on the
 				// NEXT frame, not in this handler. Measuring forces a
