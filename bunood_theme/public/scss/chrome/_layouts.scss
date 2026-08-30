@@ -224,6 +224,33 @@ html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="icons_pick
   display: none;
 }
 
+// A DOCUMENT WITH LINE ITEMS GETS THE SIDEBAR'S WIDTH.
+//
+// Measured on a Sales Invoice at 1280px: the items grid is handed 563px and
+// needs 701, so Rate and Amount sit past the edge and the money on an invoice
+// requires a horizontal scroll to read. Frappe agrees it is short — it stamps
+// its own `column-limit-reached` on the container.
+//
+// The width has to come from somewhere, and on that viewport the split is desk
+// pane 240 + form 651 + this sidebar 277. Nothing else is a donor: the section's
+// 900px max-width never binds at a 595px column, and the paddings are 60px in
+// total. Standing the sidebar down gives the grid ~840px, comfortably past 701.
+//
+// THE SIGNATURE IS THE ITEMS TABLE, not a route and not a doctype list — so
+// every transactional document inherits it (invoices, orders, delivery notes,
+// receipts), including ones a custom app adds, which is the whole point of
+// keying on what is rendered.
+//
+// THE COST, STATED RATHER THAN DISCOVERED LATER: this column carries
+// Attachments, Assign, Share and Follow, and hiding it takes the visible route
+// to all four with it. That is a real loss on an accounting document — a signed
+// PO or a delivery proof is attached exactly here — and it is why this rule is
+// narrow: only documents with line items, where the grid's legibility is the
+// document's whole purpose.
+html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="items"]) .layout-side-section {
+  display: none;
+}
+
 html[data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }

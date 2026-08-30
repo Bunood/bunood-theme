@@ -587,6 +587,10 @@ html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname=icons_picke
   display: none;
 }
 
+html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname=items]) .layout-side-section {
+  display: none;
+}
+
 html[data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
