@@ -6056,6 +6056,118 @@ async function main() {
 			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
+		await test("contrast: the pane's own tokens render, in every colour mode", async () => {
+			// WHAT THIS COVERS THAT THE CHECK ABOVE DOES NOT. That one sets
+			// `data-theme` and reads every `--bnd-*`; it never touches
+			// `data-bnd-sb-color`, so whichever pane colour the desk happened to be
+			// in is the only one it has ever seen. The other three are gated by the
+			// MODEL alone, and the model reads `_sidebar.scss` -- it cannot know
+			// whether a declaration reaches the element. A token shadowed by a
+			// Frappe rule, lost to a typo, or in a block whose selector never
+			// matches is invisible to it. That is the class this catches.
+			await goDesk("/desk/item", ".page-head", 3000);
+
+			// THE SLUGS ARE DERIVED, never listed. `palette.SB_PANES` plus
+			// `SB_UNMEASURABLE` is the same set `check_sidebar_binding` holds the
+			// stylesheet to, so a fifth colour mode cannot be added and silently
+			// go unmeasured here. A hand-kept list in this file is the exact debt
+			// `SLUG`/`ATTR_OF` already carry.
+			const slugs = JSON.parse(
+				benchPy(
+					`from bunood_theme import palette\n` +
+						`print(json.dumps(sorted(set(\n` +
+						`  list(palette.SB_PANES["light"]) + list(palette.SB_PANES["dark"]) +\n` +
+						`  list(palette.SB_UNMEASURABLE)))))\n`
+				).trim().split(/\r?\n/).pop()
+			);
+
+			const names = await page.evaluate(() => {
+				const found = new Set();
+				for (const sheet of Array.from(document.styleSheets)) {
+					let rules;
+					try {
+						rules = sheet.cssRules;
+					} catch {
+						continue; // cross-origin sheet; nothing of ours is there
+					}
+					const walk = (list) => {
+						for (const rule of Array.from(list || [])) {
+							for (const prop of Array.from(rule.style || [])) {
+								if (prop.startsWith("--bnd-")) found.add(prop);
+							}
+							if (rule.cssRules) walk(rule.cssRules); // @media
+						}
+					};
+					walk(rules);
+				}
+				return [...found];
+			});
+			const sbNames = names.filter((n) => n.startsWith("--bnd-sb-"));
+			expect(sbNames.length > 10, `only ${sbNames.length} --bnd-sb-* tokens found in the sheets`);
+
+			// STAMP AND READ IN SEPARATE EVALUATES, every time. `getComputedStyle`
+			// has served this repo a stale value when an attribute was mutated and
+			// re-read inside ONE `page.evaluate`, and the whole point here is to
+			// read four different answers off the same element.
+			const stamp = (mode, slug) =>
+				page.evaluate(([m, sg]) => {
+					const h = document.documentElement;
+					h.setAttribute("data-theme", m);
+					if (sg) h.setAttribute("data-bnd-sb-color", sg);
+				}, [mode, slug]);
+			const read = (ns) =>
+				page.evaluate((wanted) => {
+					const cs = getComputedStyle(document.documentElement);
+					const out = {};
+					for (const n of wanted) out[n] = cs.getPropertyValue(n).trim();
+					return out;
+				}, ns);
+
+			const before = await page.evaluate(() => ({
+				theme: document.documentElement.getAttribute("data-theme"),
+				sb: document.documentElement.getAttribute("data-bnd-sb-color"),
+			}));
+			const payload = { light: {}, dark: {}, sidebar: {} };
+			try {
+				for (const mode of ["light", "dark"]) {
+					await stamp(mode, null);
+					payload[mode] = await read(names);
+				}
+				for (const slug of slugs) {
+					payload.sidebar[slug] = {};
+					for (const mode of ["light", "dark"]) {
+						await stamp(mode, slug);
+						payload.sidebar[slug][mode] = await read(sbNames);
+					}
+				}
+			} finally {
+				await page.evaluate((b) => {
+					const h = document.documentElement;
+					if (b.theme === null) h.removeAttribute("data-theme");
+					else h.setAttribute("data-theme", b.theme);
+					if (b.sb === null) h.removeAttribute("data-bnd-sb-color");
+					else h.setAttribute("data-bnd-sb-color", b.sb);
+				}, before);
+			}
+
+			const gate = spawnSync("node", ["tools/contrast.mjs", "--check-sidebar"], {
+				input: JSON.stringify(payload),
+				encoding: "utf8",
+			});
+			expectEq(gate.status, 0, `rendered sidebar tokens:\n${gate.stdout}${gate.stderr}`);
+
+			// AND IT MUST HAVE MEASURED SOMETHING. A filter bug in the gate -- a
+			// block lookup returning nothing, an `allowed` set that came back empty --
+			// would make it pass by checking ZERO tokens, which is the "green test
+			// with no evidence it can fail" this repo names first. Four modes x two
+			// themes x a fourteen-token working set is ~114; the floor sits well under
+			// that so an honest change to the set does not trip it, and well over zero
+			// so a silent skip does.
+			const measured = Number((gate.stdout.match(/^(\d+) rendered sidebar tokens match/m) || [])[1] || 0);
+			expect(measured >= 80, `the gate only measured ${measured} sidebar tokens:
+${gate.stdout}`);
+		});
+
 		// ── Direction (item 7d/7-followup) ──────────────────────────────────
 		await test("direction: the desk's dir, CSS bundle and JS agree with the language's script", async () => {
 			// The EXPECTATION IS DERIVED, never listed: the browser's own CLDR

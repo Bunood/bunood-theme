@@ -1709,6 +1709,142 @@ def check_computed() -> int:
     return 0
 
 
+def check_sidebar_rendered() -> int:
+    """The pane's OWN tokens, read out of a browser, for every colour mode.
+
+    WHAT THIS CLOSES. `check_computed` sets ``data-theme`` to light and to dark
+    and reads every ``--bnd-*`` off ``<html>``. It never touches
+    ``data-bnd-sb-color`` — so whichever pane colour the desk happened to be in
+    is the only one it has ever seen, and the other three are measured by the
+    model alone. The model reads `_sidebar.scss`; it cannot know whether a
+    declaration reaches the element. A token shadowed by a Frappe rule, lost to a
+    typo, or in a block whose selector does not match is invisible to it, and
+    those are exactly the failures a rendered check exists to catch.
+
+    A SEPARATE MODE, NOT A WIDER ``--check-computed``. `Pair`'s own docstring
+    records why: widening that path's shape is what broke it once already, with
+    a crash that needed a particular stylesheet deployed to appear at all.
+    `check_measured` was added as its own mode for the same reason and says so.
+    This shares only `parse_color` with the rest of the file, so it cannot break
+    `--check-computed` and cannot be broken by a change to `pairs()`.
+
+    WHAT IT ASSERTS, per slug per desk theme:
+
+    * every token in :data:`palette.SB_WORKING_SET` has a value on the element —
+      an empty one means the block never applied;
+    * that value is the colour the derivation says it should be.
+
+    It does NOT re-measure ratios. Those are gated across 27 seeds and both modes
+    by the model sweep, which is far more coverage than one browser can give; the
+    question here is only whether what CI computed is what the element carries.
+
+    Reads on stdin::
+
+        {"light": {token: value, ...},          # globals, to resolve var() refs
+         "dark":  {...},
+         "sidebar": {"<slug>": {"light": {...}, "dark": {...}}}}
+
+    The ``sidebar`` key is REQUIRED. A collector that stops sending it must fail
+    loudly rather than quietly measure less than it claims.
+    """
+    data = json.load(sys.stdin)
+    if "sidebar" not in data:
+        print("check-sidebar: no `sidebar` key on stdin — the collector sent nothing to measure")
+        return 1
+
+    globals_for = {m: data.get(m) or {} for m in ("light", "dark")}
+    for mode, v in globals_for.items():
+        if not v:
+            print(f"check-sidebar: no {mode} globals supplied; var() references cannot resolve")
+            return 1
+
+    # Every slug the stylesheet offers, derived rather than restated — the same
+    # set `check_sidebar_binding` holds `_sidebar.scss` to.
+    known = {m for modes in palette.SB_PANES.values() for m in modes} | set(palette.SB_UNMEASURABLE)
+    missing = sorted(known - set(data["sidebar"]))
+    if missing:
+        print(f"check-sidebar: the collector skipped {', '.join(missing)} — "
+              "every colour mode a tenant can select has to be measured, not whichever one "
+              "the desk happened to be in")
+        return 1
+
+    worlds = sidebar_worlds()
+    failures = []
+    checked = 0
+    for slug in sorted(data["sidebar"]):
+        for mode in ("light", "dark"):
+            seen = data["sidebar"][slug].get(mode) or {}
+            if not seen:
+                failures.append(f"{slug}/{mode}: the collector read no tokens at all")
+                continue
+            # HOW MANY BLOCKS A MODE HAS IS THE FACT, not which polarity key it
+            # sits under. Match Theme and Minimal have two -- a light block and a
+            # dark one -- so the desk theme picks. Dark Contrast and Brand have
+            # ONE that applies in both, and Dark Contrast is filed under the DARK
+            # polarity because its PANE is dark, not because its block is: a
+            # lookup keyed on the desk theme finds nothing for it in light. That
+            # is `SidebarPane.themed` seen from the other side, and getting it
+            # wrong reported "no block in _sidebar.scss" for a mode whose block
+            # is plainly there.
+            candidates = {pol: blk for (pol, name), blk in worlds.items() if name == slug}
+            block = next(iter(candidates.values())) if len(candidates) == 1 else candidates.get(mode)
+            if block is None:
+                failures.append(
+                    f"{slug}/{mode}: no block in _sidebar.scss for this mode "
+                    f"(found {sorted(str(k) for k in candidates)})"
+                )
+                continue
+            allowed = set(palette.SB_WORKING_SET) | set(palette.SB_EXTRAS.get(slug, {}))
+            for token in sorted(allowed):
+                if token not in block:
+                    continue
+                got = (seen.get(token) or "").strip()
+                if not got:
+                    failures.append(
+                        f"{slug}/{mode}: {token} has no value on the element. The block is in "
+                        "the stylesheet, so this is a selector that never matched or a rule "
+                        "that shadowed it — the class the model cannot see."
+                    )
+                    continue
+                # The brand pane is a gradient; no single colour to compare. Its
+                # stand-down is `palette.SB_UNMEASURABLE`'s whole subject.
+                if token == "--bnd-sb-bg" and slug in palette.SB_UNMEASURABLE:
+                    continue
+                try:
+                    # THE WORLD'S OWN DECLARATIONS SHADOW THE GLOBALS. Brand mode
+                    # writes `--bnd-sb-cat-N: var(--bnd-sb-ink)`, and that
+                    # reference means BRAND's ink -- not whichever slug the desk
+                    # happened to be stamped with when the globals were collected.
+                    # Resolving against the globals alone reported seventeen
+                    # disagreements that were entirely this check's own error.
+                    want = parse_color(block[token], {**globals_for[mode], **block})
+                except ValueError as exc:
+                    failures.append(f"{slug}/{mode}: cannot resolve the source value of {token} — {exc}")
+                    continue
+                try:
+                    have = parse_color(got)
+                except ValueError as exc:
+                    failures.append(f"{slug}/{mode}: cannot read the rendered {token} ({got!r}) — {exc}")
+                    continue
+                checked += 1
+                # One unit of tolerance per channel: a browser round-trips through
+                # its own colour type and may land a unit away. Anything larger is
+                # a different colour, not a rounding difference.
+                if any(abs(a - b) > 1.0 for a, b in zip(want[:3], have[:3])) or abs(want[3] - have[3]) > 0.01:
+                    failures.append(
+                        f"{slug}/{mode}: {token} renders {to_hex(have)} (alpha {have[3]:.2f}) but the "
+                        f"derivation says {to_hex(want)} (alpha {want[3]:.2f}) — source {block[token]!r}"
+                    )
+    if failures:
+        print(f"{len(failures)} rendered sidebar tokens disagree with the derivation:")
+        for f in failures:
+            print(f"   {f}")
+        return 1
+    print(f"{checked} rendered sidebar tokens match the derivation, "
+          f"across {len(data['sidebar'])} colour modes x 2 desk themes")
+    return 0
+
+
 def check_measured() -> int:
     """Measure ad-hoc (ink, bg) pairs read from stdin — colours that live on an
     ELEMENT (its computed ``color`` and ``background-color``), not on ``<html>``
@@ -1932,6 +2068,8 @@ def main() -> int:
         return check_computed()
     if "--check-measured" in args:
         return check_measured()
+    if "--check-sidebar" in args:
+        return check_sidebar_rendered()
 
     light, dark = read_blocks(TOKENS_SCSS)
     seeds = [(only_seed, "requested")] if only_seed else SEEDS
