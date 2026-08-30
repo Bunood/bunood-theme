@@ -3463,6 +3463,99 @@ async function main() {
 			setSettings({ sidebar_color: "Dark Contrast" });
 		});
 
+		await test("sidepane: a ground reaches the Minimal pane, and clearing it gives the fallback back", async () => {
+			// THE BRANCH THIS SITE NEVER TAKES. `ground_color` ships empty, so
+			// `palette.sb_blocks` returns "" here and the entire per-site emission
+			// is the trap this repo names by name: a branch whose guard is false on
+			// the dev site is UNTESTED, not working. So the test sets a ground.
+			//
+			// WHY THERE IS A PER-SITE PATH AT ALL. A ground-tinted pane cannot be
+			// written as static CSS -- there is no `--bnd-ground` token, because the
+			// ground is an INPUT to `palette.derive` and not an output of it. Three
+			// of the four pane recipes are expressible in the bundle (a literal, a
+			// `var()` alias, a live `color-mix()` on the brand); this one is not,
+			// and `brand.py` computing it is the only way it reaches a desk.
+			//
+			// The expected values are DERIVED, not copied. A hex in this file would
+			// be a second copy of the recipe, and then the test would agree with
+			// itself while the desk did something else. What is being asserted is
+			// that the BROWSER agrees with the derivation.
+			const want = JSON.parse(
+				benchPy(
+					`from bunood_theme import palette\n` +
+						`p = palette.SB_PANES["dark"]["minimal"]\n` +
+						`print(json.dumps({\n` +
+						`  "tinted": palette.sb_pane_value(p, "#3d8150", "dark", ground="#8e8c99"),\n` +
+						`  "plain": palette.sb_pane_css(p)}))\n`
+				).trim().split(/\r?\n/).pop()
+			);
+
+			// #8e8c99 is GROUNDS.mauve. `setSettings` regenerates the brand sheet
+			// because `ground_color` is in BRAND_INPUTS, and restores it because it
+			// is in MUTABLE_FIELDS -- both added when the ground became a sheet input.
+			setSettings({ ground_color: "#8e8c99", sidebar_color: "Minimal" });
+			await goDesk("/app", "body", 3000);
+
+			const readPane = (p_) =>
+				p_.evaluate(() =>
+					getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-bg").trim()
+				);
+			const stamp = (p_, theme) =>
+				p_.evaluate((t) => {
+					document.documentElement.setAttribute("data-theme", t);
+					document.documentElement.setAttribute("data-bnd-sb-color", "minimal");
+				}, theme);
+
+			// SEPARATE EVALUATES for the stamp and the read: a computed value read
+			// in the same evaluate that set the attribute has served a stale answer
+			// in this repo before.
+			await stamp(page, "dark");
+			expectEq((await readPane(page)).toLowerCase(), want.tinted.toLowerCase(),
+				'the tenant\'s ground reaches the pane under data-theme="dark"');
+
+			// THE `automatic` ARM NEEDS A FRESH CONTEXT, and that is this suite's own
+			// rule, written at `withGuest`: "colorScheme is emulated per CONTEXT, not
+			// on the shared page. Item 30 had to reset emulateMedia in a finally
+			// because the shared page leaks it." The first version of this check used
+			// `page.emulateMedia` and read #fafbfa -- the LIGHT value, i.e. no dark
+			// rule matched at all -- which reads exactly like the emission failing.
+			//
+			// `automatic` is not decoration: `data-theme` is literally that string
+			// until our JS resolves it, and a pane with no arm for it paints the light
+			// fallback on a dark desk for the whole first-paint window. That is defect
+			// 27, and `build.mjs`'s assertAutomaticArms cannot see a runtime string.
+			//
+			// A different USER, too, and that is free coverage: the sheet is
+			// site-wide, so a per-user path would fail here.
+			// Readiness is `body`, not `.body-sidebar-container`: what is being read
+			// is a custom property on `<html>`, so waiting for the pane would make
+			// this check depend on the desk SHAPE -- and `withDeskUser`'s own
+			// docstring says the Dock shape mounts no pane at all. It timed out on
+			// exactly that before this line said what it actually needs.
+			const auto = await withDeskUser("/app", "body", async (dp) => {
+				await stamp(dp, "automatic");
+				return readPane(dp);
+			}, { colorScheme: "dark" });
+			expectEq(auto.toLowerCase(), want.tinted.toLowerCase(),
+				'and under data-theme="automatic" on a dark OS, before JS resolves it');
+
+			// AND THE COMPLEMENT, which is the half that would rot silently: clearing
+			// the ground must give the BUNDLE's fallback back. Not an empty value, and
+			// not the tinted one left behind by a sheet nobody regenerated.
+			setSettings({ ground_color: "" });
+			await goDesk("/app", "body", 3000);
+			await page.evaluate(() => {
+				document.documentElement.setAttribute("data-theme", "dark");
+				document.documentElement.setAttribute("data-bnd-sb-color", "minimal");
+			});
+			const plain = await page.evaluate(() =>
+				getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-bg").trim()
+			);
+			expectEq(plain.toLowerCase(), want.plain.toLowerCase(),
+				"and clearing it returns the bundle's fallback");
+			setSettings({ sidebar_color: "Dark Contrast" });
+		});
+
 		// ── Placement: bell and user menu are their own components ─────────
 		await test("placement: the bell and the avatar can be separated", async () => {
 			// The whole point of splitting build_cluster: these two were one

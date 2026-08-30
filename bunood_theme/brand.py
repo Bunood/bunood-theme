@@ -275,6 +275,27 @@ def render_brand_css(settings=None) -> str:
     tagline = _css_string(s.get("tagline"))
     tagline_decl = f"\n  --bnd-login-tagline: {tagline};" if tagline else ""
 
+    # ── The side pane's ground-tinted panes (item 40, slice 3) ───────────────
+    #
+    # WHY ANY OF THIS IS EMITTED. The pane's colour modes are declared in
+    # `_sidebar.scss` as static blocks, and static CSS can express three of the
+    # four recipes: a literal is fixed, `var(--bnd-pane)` follows this sheet's own
+    # token, and `color-mix(in srgb, var(--bnd-brand) N%, base)` follows the seed
+    # live. The fourth cannot be written at all — there is NO `--bnd-ground`
+    # token, because the ground is an input to `palette.derive` and not an output
+    # of it — so a ground-tinted pane reaches a site only by being computed here.
+    #
+    # `sb_blocks` returns "" for every tenant who has set no ground, which is most
+    # of them and includes the shipped default. That is the correct answer and it
+    # keeps those sheets byte-identical to before this slice.
+    #
+    # THE STATIC BLOCK STAYS, and this one ties it. `_sidebar.scss` declares
+    # (0,2,1) and this sheet loads after the bundle, so an equal-specificity block
+    # wins on source order and a MISSING one degrades to the bundle's fallback
+    # rather than to nothing. That is the same floor-and-override shape the four
+    # blocks above use, one component down.
+    sidebar = palette.sb_blocks(brand, brand_dark, ground)
+
     return f"""@media screen {{
 :root {{
   --bnd-brand:  {brand};
@@ -291,7 +312,7 @@ html[data-theme="dark"], {_dark_cls} {{
 {block(dark, "    ")}
   }}
 }}
-}}
+{sidebar}}}
 """
 
 

@@ -381,6 +381,13 @@ class SidebarPane(NamedTuple):
     #:                              tenant ASKED for and never the brand behind it.
     recipe: tuple
     label: str
+    #: Whether this mode's block is scoped by ``data-theme``. Match Theme and
+    #: Minimal have a light block and a dark one; Dark Contrast and Brand have a
+    #: single block that applies in BOTH desk themes. The emitter needs this to
+    #: build a selector, and inferring it from the polarity key would be wrong
+    #: for exactly the mode filed under "dark" because its PANE is dark — which
+    #: is the trap `SB_PANES`'s own comment already warns about, one level up.
+    themed: bool
 
 
 #: Every measurable pane, grouped by POLARITY — and that grouping is the trap.
@@ -449,16 +456,17 @@ class SidebarPane(NamedTuple):
 #: not open. Recorded so the next reader knows it was seen, not missed.
 SB_PANES = {
     "light": {
-        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
+        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane", themed=True),
         # 0%. See the measurement above: the light ink has 0.07:1 of margin and
         # every candidate would have spent it for a single hex.
-        "minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane"),
+        "minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane", themed=True),
     },
     "dark": {
-        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
-        "minimal": SidebarPane(("ground", 5, "#15181a"), "minimal pane, dark desk"),
-        # Dark in both desk themes, hence its presence only here.
-        "dark": SidebarPane(("brand", 10, "#131a15"), "dark-contrast pane"),
+        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane", themed=True),
+        "minimal": SidebarPane(("ground", 5, "#15181a"), "minimal pane, dark desk", themed=True),
+        # Dark in both desk themes, hence its presence only here — and hence
+        # `themed=False`: it has ONE block, not a light one and a dark one.
+        "dark": SidebarPane(("brand", 10, "#131a15"), "dark-contrast pane", themed=False),
     },
 }
 
@@ -567,6 +575,122 @@ def sb_hues(polarity: str) -> list[str]:
     bg = _sb_binding_bg(polarity)
     seeds = SB_HUE_SEEDS_LIGHT if polarity == "light" else SB_HUE_SEEDS_DARK
     return [fit_ink(h, [bg], target=SB_TARGET_HUE)[0] for h in seeds]
+
+
+#: A hard ceiling on the bytes :func:`sb_blocks` adds to a site's stylesheet.
+#:
+#: The per-site sheet is fetched by EVERY authenticated desk page and is measured
+#: by nothing: `tools/payload.mjs` scans `public/dist` and this file is written to
+#: the site's own `public/files`. That gap is older and wider than this slice, and
+#: closing it properly means `render_brand_css` running without Frappe, which it
+#: cannot — `bunood_theme.context` imports Frappe for the auth and web class maps.
+#:
+#: So this bounds the part item 40 is adding, in the place that CAN measure it:
+#: `sb_blocks` is Frappe-free by construction, and `check_sidebar_emission_size`
+#: in `tools/contrast_gate.py` renders it at the worst case and holds it here.
+#: Raising this number is a decision, in the same commit, with the reason.
+#:
+#: 280 against a measured 213 for the one declaration item 40 emits. Tight
+#: on purpose: a hex is always seven characters, so 213 is not a sample of a
+#: range, it IS the size. The headroom covers a longer mode name and nothing
+#: else — a SECOND emitted pane roughly doubles it and has to raise this
+#: number in its own commit, which is the conversation that should happen.
+SB_EMIT_CEILING = 280
+
+#: Recipe kinds whose STATIC form already follows the site, so a per-site block
+#: would only restate what the bundle can express:
+#:
+#:   ``literal``  a fixed colour; there is nothing site-dependent to say.
+#:   ``alias``    `var(--bnd-pane)` follows whatever `brand.py` emits for that
+#:                token, so pinning a hex here would BREAK the alias.
+#:   ``brand``    `color-mix(in srgb, var(--bnd-brand) N%, base)` is live and
+#:                already follows the seed.
+#:
+#: Only ``ground`` is left, and only because there is no `--bnd-ground` token: the
+#: ground is an input to the derivation, not an output of it, so no static rule
+#: can name it. That is the whole reason this emitter exists.
+SB_SELF_SUFFICIENT = ("literal", "alias", "brand")
+
+
+def sb_blocks(brand: str, brand_dark: str, ground: str | None, indent: str = "") -> str:
+    """The sidebar declarations a SITE needs that the compiled bundle cannot express.
+
+    ``brand`` seeds the light panes and ``brand_dark`` the dark ones, exactly as
+    :func:`derive` is called twice in `brand.py`. No ``ground`` recipe reads a
+    brand today, so the split is currently invisible — which is precisely why it
+    is written down rather than collapsed to one argument that would be wrong the
+    first time a recipe did.
+
+    Returns CSS text, or ``""`` when the site needs nothing — which is the case
+    for every tenant who has set no ground, including the shipped default. An
+    empty return is the correct answer, not a failure, and it keeps the sheet at
+    exactly today's size for those sites.
+
+    SPECIFICITY IS THE WHOLE DESIGN. `_sidebar.scss` declares
+    ``html[data-theme="dark"][data-bnd-sb-color="minimal"]`` at (0,2,1), and this
+    sheet loads AFTER the bundle — so an emitted block must MATCH that
+    specificity to win on source order. A single-attribute selector at (0,1,1)
+    would lose however late it loads, silently, on every site that set a ground.
+    Both attributes, every time.
+
+    AND THE ``automatic`` ARM IS NOT OPTIONAL. `data-theme` is literally
+    "automatic" until our JS resolves it, so a block that only handles
+    ``[data-theme="dark"]`` leaves the first-paint window painting the light
+    fallback on a dark desk. That is defect 27 exactly, and it cost a whole
+    investigation the last time it was missed — `build.mjs`'s `assertAutomaticArms`
+    now refuses a compiled dark selector with no twin, but it cannot see a string
+    this function builds at runtime, so the twin is built here by construction.
+
+    NO WEBSITE SCOPE, deliberately. Items 32 and 33 both had to add
+    ``body.bnd-auth`` / ``body.bnd-web`` arms because a website page carries no
+    ``data-theme``. The side pane does not exist on a website page, so the
+    asymmetry that made those necessary does not arise here.
+    """
+    rows = []
+    for polarity, modes in SB_PANES.items():
+        for name, pane in modes.items():
+            if pane.recipe[0] in SB_SELF_SUFFICIENT:
+                continue
+            if pane.recipe[0] != "ground":
+                # Make the unknown case THROW. A recipe kind this function has
+                # never seen is a pane that would silently fail to reach a site.
+                raise ValueError(
+                    f"sb_blocks cannot emit the {pane.recipe[0]!r} recipe for {name}/{polarity}"
+                )
+            if not pane.themed:
+                raise ValueError(
+                    f"{name} is ground-tinted and unthemed; its selector carries no "
+                    "data-theme and this emitter has never had to build one"
+                )
+            seed = brand if polarity == "light" else brand_dark
+            value = sb_pane_value(pane, seed, polarity, ground=ground)
+            if value == sb_pane_css(pane):
+                continue  # no ground set: the bundle's fallback IS this site's answer
+            rows.append((polarity, name, value))
+
+    if not rows:
+        return ""
+
+    out = []
+    for polarity, name, value in rows:
+        attr = f'[data-bnd-sb-color="{name}"]'
+        if polarity == "light":
+            # Mirrors `render_brand_css`'s own light selector: a desk that has not
+            # yet been stamped carries no `data-theme` at all.
+            sel = f'html[data-theme="light"]{attr}, html:not([data-theme]){attr}'
+        else:
+            sel = f'html[data-theme="dark"]{attr}'
+        out.append(f"{indent}{sel} {{\n{indent}  --bnd-sb-bg: {value};\n{indent}}}")
+
+    dark = [(n, v) for pol, n, v in rows if pol == "dark"]
+    if dark:
+        arms = "\n".join(
+            f'{indent}  html[data-theme="automatic"][data-bnd-sb-color="{n}"] {{\n'
+            f"{indent}    --bnd-sb-bg: {v};\n{indent}  }}"
+            for n, v in dark
+        )
+        out.append(f"{indent}@media (prefers-color-scheme: dark) {{\n{arms}\n{indent}}}")
+    return "\n".join(out) + "\n"
 
 
 def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:

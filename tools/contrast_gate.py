@@ -874,6 +874,184 @@ def check_sidebar_headroom() -> list[str]:
     return problems
 
 
+def _specificity(selector: str) -> tuple:
+    """(ids, classes+attributes+pseudo-classes, elements) for ONE simple selector.
+
+    Deliberately narrow, and it RAISES on anything it has not been taught. A
+    specificity calculator that guesses is worse than none: it would return a
+    number, the comparison below would pass, and the emitted block would lose to
+    the bundle on every site that set a ground — silently, because the fallback
+    it lost to is a plausible colour.
+    """
+    sel = selector.strip()
+    ids = cls = els = 0
+    # `:not(...)` takes the specificity of its argument, so unwrap and recurse.
+    for inner in re.findall(r":not\(([^()]*)\)", sel):
+        a, b, c = _specificity(inner)
+        ids, cls, els = ids + a, cls + b, els + c
+    sel = re.sub(r":not\([^()]*\)", "", sel)
+    cls += len(re.findall(r"\[[^\]]*\]", sel))
+    sel = re.sub(r"\[[^\]]*\]", "", sel)
+    cls += len(re.findall(r"\.[A-Za-z_-][\w-]*", sel))
+    sel = re.sub(r"\.[A-Za-z_-][\w-]*", "", sel)
+    ids += len(re.findall(r"#[A-Za-z_-][\w-]*", sel))
+    sel = re.sub(r"#[A-Za-z_-][\w-]*", "", sel)
+    for tok in re.findall(r"[A-Za-z][\w-]*", sel):
+        els += 1
+        sel = sel.replace(tok, "", 1)
+    leftover = sel.strip()
+    if leftover:
+        raise SystemExit(
+            f"contrast gate: _specificity cannot read {leftover!r} in {selector!r}. "
+            "Teach it or the emission check is measuring a number it invented."
+        )
+    return ids, cls, els
+
+
+def _sb_static_selectors(mode: str) -> list[str]:
+    """Every selector in `_sidebar.scss` that DECLARES the working set for ``mode``.
+
+    Derived from `_SB_WORLDS` and `_SB_DARK_ARMS` rather than restated, so a mode
+    whose blocks move cannot leave this behind. Selectors that merely READ
+    `--bnd-sb-bg` (`html[data-bnd-sb-color] .body-sidebar-container`) are not here
+    and must not be: an emission has to out-specify what DECLARES the token, not
+    what paints with it.
+    """
+    out = []
+    for (polarity, name), (selector, mixin) in _SB_WORLDS.items():
+        if name != mode:
+            continue
+        out.append(selector)
+        if mixin:
+            out.append(_SB_DARK_ARMS[mixin])
+            out.append(_SB_DARK_ARMS[mixin].replace('data-theme="dark"', 'data-theme="automatic"'))
+    return sorted(set(out))
+
+
+def check_sidebar_emission() -> list[str]:
+    """What `brand.py` emits for the pane reaches the site, and beats the bundle.
+
+    Item 40, slice 3. A ground-tinted pane cannot be written as static CSS —
+    there is no `--bnd-ground` token, because the ground is an input to
+    `palette.derive` and not an output — so it reaches a desk only through the
+    per-site sheet. Four things have to hold, and three of them fail SILENTLY:
+
+    * **Specificity.** `_sidebar.scss` declares (0,2,1). The per-site sheet loads
+      after the bundle, so an equal block wins on source order and a LOWER one
+      loses however late it loads. Item 32 lost `:focus`, `:disabled` and a whole
+      strength track to exactly this, sizing a selector against the resting rule.
+      Here the emitted selector is compared to the static one it must beat.
+
+    * **The automatic twin.** `data-theme` is literally "automatic" until our JS
+      resolves it. `build.mjs`'s `assertAutomaticArms` refuses a compiled dark
+      selector with no twin, but it reads compiled CSS and cannot see a string
+      built at runtime — so this is where the runtime half is checked.
+
+    * **Standing down.** A site that set no ground must get NOTHING, not a block
+      restating the fallback. Bytes on every desk page for no change, and a
+      second copy of a literal that the bundle already owns.
+
+    * **The value.** Round-tripped out of the rendered text rather than trusted:
+      a formatting bug produces CSS that parses and paints the wrong colour.
+    """
+    from bunood_theme.presets import GROUNDS
+
+    problems = []
+    src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
+
+    # Every tenant shape that can reach the emitter: no ground (must be silent),
+    # and each shipped ground (must emit, and emit the derivation's own answer).
+    if palette.sb_blocks(SEEDS[0][0], SEEDS[0][0], None) != "":
+        problems.append(
+            "a site with no ground still emits a sidebar block — that is bytes on every "
+            "desk page restating a literal the bundle already declares"
+        )
+
+    for gname, ground in sorted(GROUNDS.items()):
+        text = palette.sb_blocks(SEEDS[0][0], SEEDS[0][0], ground)
+        size = len(text.encode("utf-8"))
+        if size > palette.SB_EMIT_CEILING:
+            problems.append(
+                f"the {gname} ground emits {size} bytes into every desk page's stylesheet, "
+                f"over palette.SB_EMIT_CEILING ({palette.SB_EMIT_CEILING}). Raise it in the "
+                "commit that needs it, with the reason."
+            )
+        if not text:
+            problems.append(f"the {gname} ground emits nothing, but its pane differs from the fallback")
+            continue
+
+        # Every rule in the emitted text, with the media context it sits in.
+        in_media = False
+        for line in text.splitlines():
+            st = line.strip()
+            if st.startswith("@media"):
+                in_media = "prefers-color-scheme: dark" in st
+                continue
+            if not st.endswith("{") or st == "{":
+                continue
+            sel = st[:-1].strip()
+            for one in [x.strip() for x in sel.split(",")]:
+                m = re.search(r'\[data-bnd-sb-color="([a-z-]+)"\]', one)
+                if not m:
+                    problems.append(f"emitted selector {one!r} names no colour mode")
+                    continue
+                mode = m.group(1)
+                # THE TARGET COMES FROM THE MODE, NEVER FROM THE EMITTED SELECTOR.
+                # The first version of this check read `data-theme` off the string
+                # it was judging and looked up the static block that matched IT —
+                # so an emission downgraded to one attribute simply picked the
+                # bundle's one-attribute block as its target and compared equal.
+                # A vacuous comparison that returns a number is worse than none,
+                # and the sabotage that proved it is case (m). What an emission
+                # must beat is the STRONGEST static block naming that mode,
+                # because that is what the cascade will actually put in its way.
+                statics = [
+                    st_sel for st_sel in _sb_static_selectors(mode)
+                    if st_sel in src
+                ]
+                if not statics:
+                    problems.append(
+                        f"emitted {one!r} has no counterpart in _sidebar.scss — it is either "
+                        "unopposed (so the fallback is missing) or aimed at nothing"
+                    )
+                    continue
+                target = max(statics, key=_specificity)
+                if _specificity(one) < _specificity(target):
+                    problems.append(
+                        f"emitted {one!r} is {_specificity(one)} against the bundle's "
+                        f"{target!r} at {_specificity(target)} — it loses however late "
+                        "the sheet loads"
+                    )
+                theme = re.search(r'\[data-theme="([a-z]+)"\]', one)
+                if theme and theme.group(1) == "automatic" and not in_media:
+                    problems.append(f"emitted {one!r} is not inside a prefers-color-scheme block")
+
+        # Round-trip the value out of the text, and check the twin exists.
+        for polarity, modes in palette.SB_PANES.items():
+            for mode, pane in modes.items():
+                if pane.recipe[0] not in ("ground",):
+                    continue
+                want = palette.sb_pane_value(pane, SEEDS[0][0], polarity, ground=ground)
+                got = re.findall(r"--bnd-sb-bg:\s*([^;]+);", text)
+                if not got:
+                    problems.append(f"the {gname} ground emits a block with no --bnd-sb-bg")
+                elif any(v.strip() != want for v in got):
+                    problems.append(
+                        f"the {gname} ground emits {set(v.strip() for v in got)} for {mode}/{polarity}, "
+                        f"but palette.sb_pane_value derives {want}"
+                    )
+                if polarity == "dark":
+                    dark_sel = f'html[data-theme="dark"][data-bnd-sb-color="{mode}"]'
+                    auto_sel = f'html[data-theme="automatic"][data-bnd-sb-color="{mode}"]'
+                    if dark_sel in text and auto_sel not in text:
+                        problems.append(
+                            f"the {gname} ground emits {dark_sel} with no `automatic` twin — an "
+                            "Automatic user on a dark OS gets the light fallback until JS resolves "
+                            "the attribute. That is defect 27, in a string build.mjs cannot read."
+                        )
+    return problems
+
+
 def check_sidebar_binding() -> list[str]:
     """Every colour mode the stylesheet offers is a pane some hue was fitted against.
 
@@ -1822,6 +2000,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    sb_emit = check_sidebar_emission()
+    if sb_emit:
+        print("the per-site sidebar emission does not hold:")
+        for m in sb_emit:
+            print(f"   {m}")
+        print()
+
     sb_head = check_sidebar_headroom()
     if sb_head:
         print("a sidebar pane moves further than its own ink can follow:")
@@ -1899,7 +2084,7 @@ def main() -> int:
         print()
 
     if (failures or drift or sep or ref or inert or lift or cat or theme or shape or split
-            or sb_agree or sb_cover or sb_bind or sb_head):
+            or sb_agree or sb_cover or sb_bind or sb_head or sb_emit):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}

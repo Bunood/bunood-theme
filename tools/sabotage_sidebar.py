@@ -24,6 +24,7 @@ does not change the file is reported as a MISS, never as a pass. Fix the literal
 or delete the case; do not let it no-op.
 """
 import io
+import shutil
 import subprocess
 import sys
 
@@ -70,7 +71,7 @@ def restore() -> None:
 sys.path.insert(0, "tools")
 
 CHECKS = ("check_sidebar_agrees", "check_sidebar_coverage", "check_sidebar_binding",
-          "check_sidebar_headroom")
+          "check_sidebar_headroom", "check_sidebar_emission")
 
 
 def probe():
@@ -83,6 +84,14 @@ def probe():
     `bunood_theme.palette` made three palette-target cases report that nothing
     fired, against a guard that had already been watched failing by hand.
     """
+    # DELETE THE BYTECODE, not just the module. CPython validates a `.pyc` on
+    # (mtime, size), and a sabotage that swaps "280" for "100" changes neither --
+    # so the stale `.pyc` is reused and the NEXT case reports the previous case's
+    # failure. It cost a wrong diagnosis once: the control case came back red and
+    # nothing about the output suggested caching, it looked like shipped code
+    # failing.
+    for d in ("bunood_theme/__pycache__", "tools/__pycache__"):
+        shutil.rmtree(d, ignore_errors=True)
     for m in [k for k in sys.modules if k == "contrast_gate" or k.startswith("bunood_theme")]:
         sys.modules.pop(m, None)
     import contrast_gate as g
@@ -172,6 +181,25 @@ CASES = [
      lambda s: s.replace('SidebarPane(("ground", 5, "#15181a")',
                          'SidebarPane(("ground", 5, "#171a1c")', 1),
      "check_sidebar_agrees"),
+    # m..p are slice 3: the per-site emission. Three of the four fail SILENTLY
+    # in production -- a block that loses on specificity, one with no `automatic`
+    # twin, and one that ships bytes to every site that needed nothing.
+    ("m: emit at one attribute, so the bundle out-specifies it", PALETTE,
+     lambda s: s.replace('            sel = f\'html[data-theme="dark"]{attr}\'',
+                         "            sel = f'html{attr}'", 1),
+     "check_sidebar_emission"),
+    ("n: drop the automatic twin from the emission", PALETTE,
+     lambda s: s.replace('    dark = [(n, v) for pol, n, v in rows if pol == "dark"]',
+                         "    dark = []", 1),
+     "check_sidebar_emission"),
+    ("o: emit even when the site set no ground", PALETTE,
+     lambda s: s.replace("            if value == sb_pane_css(pane):\n"
+                         "                continue  # no ground set: the bundle's fallback IS this site's answer",
+                         "            if False:\n                continue", 1),
+     "check_sidebar_emission"),
+    ("p: blow the emission ceiling", PALETTE,
+     lambda s: s.replace("SB_EMIT_CEILING = 280", "SB_EMIT_CEILING = 100", 1),
+     "check_sidebar_emission"),
     ("h: drop dark minimal's muted-ink override", SCSS,
      lambda s: s.replace("  --bnd-sb-ink-muted: #8b938e;\n  --bnd-sb-line: rgba(255, 255, 255, 0.08);",
                          "  --bnd-sb-line: rgba(255, 255, 255, 0.08);", 1),
