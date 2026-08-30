@@ -5387,3 +5387,882 @@ msgid "Nos"
 msgstr "وحدة"
 msgid "Reports & Masters"
 msgstr "التقارير والبيانات الرئيسية"
+
+#. src: item40 — the task-first landing: the task row
+msgid "Record a purchase"
+msgstr "تسجيل فاتورة شراء"
+
+#. src: item40
+msgid "Receive payment"
+msgstr "استلام دفعة"
+
+#. src: item40
+msgid "Stock entry"
+msgstr "حركة مخزون"
+
+#. src: item40
+msgid "New customer"
+msgstr "عميل جديد"
+
+#. src: item40 — shown when every task is filtered out by permissions
+msgid "No documents you can create yet"
+msgstr "لا توجد مستندات يمكنك إنشاؤها بعد"
+
+#. src: item40 — the task-first landing: "needs your attention"
+msgid "Needs your attention"
+msgstr "بحاجة إلى متابعة"
+
+#. src: item40
+msgid "What to deal with today"
+msgstr "ما يجب إنجازه اليوم"
+
+#. src: item40
+msgid "Overdue invoices"
+msgstr "فواتير متأخرة"
+
+#. src: item40
+msgid "Bills to pay"
+msgstr "فواتير مستحقة الدفع"
+
+#. src: item40
+msgid "Drafts to finish"
+msgstr "مسودات غير مكتملة"
+
+#. src: item40 — the panel's empty state, and a good outcome
+msgid "Nothing needs your attention"
+msgstr "لا شيء يحتاج إلى متابعة"
+
+
+#. ── Restored 2026-08-30 ─────────────────────────────────────────────
+#. These shipped in translations/ar.csv but had never been written into
+#. this PO, so the first emit of the session regenerated the CSV without
+#. them. The CSV is GENERATED; the PO is the source. Restored here so the
+#. next emit keeps them.
+
+#. src: v2-csv-restore
+msgid "Account used by both sides: {0}"
+msgstr "حساب استخدمه الطرفان: {0}"
+
+#. src: v2-csv-restore
+msgid "Accounting"
+msgstr "المحاسبة"
+
+#. src: v2-csv-restore
+msgid "Accounts Payable"
+msgstr "الحسابات الدائنة"
+
+#. src: v2-csv-restore
+msgid "Accounts Receivable"
+msgstr "الحسابات المدينة"
+
+#. src: v2-csv-restore
+msgid "Adjustment"
+msgstr "التعديل"
+
+#. src: v2-csv-restore
+msgid "Ageing buckets"
+msgstr "شرائح الأعمار"
+
+#. src: v2-csv-restore
+msgid "Agrees."
+msgstr "متطابق."
+
+#. src: v2-csv-restore
+msgid "All columns"
+msgstr "كل الأعمدة"
+
+#. src: v2-csv-restore
+msgid "All reports"
+msgstr "كل التقارير"
+
+#. src: v2-csv-restore
+msgid "Any customer, supplier, employee or ledger account — its full statement"
+msgstr "أي عميل أو مورد أو موظف أو حساب في الدليل — كشفه كاملاً"
+
+#. src: v2-csv-restore
+msgid "Are you sure you want to log out?"
+msgstr "هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+
+#. src: v2-csv-restore
+msgid "Are you sure you want to logout?"
+msgstr "هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+
+#. src: v2-csv-restore
+msgid "Available across cash and bank accounts"
+msgstr "المتاح في الحسابات النقدية والبنكية"
+
+#. src: v2-csv-restore
+msgid "Back"
+msgstr "رجوع"
+
+#. src: v2-csv-restore
+msgid "Balance Check"
+msgstr "فحص التوازن"
+
+#. src: v2-csv-restore
+msgid "Balance Sheet"
+msgstr "قائمة المركز المالي"
+
+#. src: v2-csv-restore
+msgid "Balanced"
+msgstr "متوازن"
+
+#. src: v2-csv-restore
+msgid "Bunood dashboard"
+msgstr "لوحة تحكم بنود"
+
+#. src: v2-csv-restore
+msgid "Cash and bank accounts"
+msgstr "الصناديق والبنوك"
+
+#. src: v2-csv-restore
+msgid "Cash and bank balance"
+msgstr "رصيد النقد والبنوك"
+
+#. src: v2-csv-restore
+msgid "Change"
+msgstr "تغيير"
+
+#. src: v2-csv-restore
+msgid "Classic view"
+msgstr "العرض التقليدي"
+
+#. src: v2-csv-restore
+msgid "Closing Balance"
+msgstr "الرصيد الختامي"
+
+#. src: v2-csv-restore
+msgid "Common tasks"
+msgstr "المهام الشائعة"
+
+#. src: v2-csv-restore
+msgid "Company VAT registration"
+msgstr "الرقم الضريبي للمنشأة"
+
+#. src: v2-csv-restore
+msgid "Company, From Date and To Date are required."
+msgstr "حقول الشركة ومن تاريخ وإلى تاريخ مطلوبة كلها."
+
+#. src: v2-csv-restore
+msgid "Computed from submitted invoices only. Imports taxed at customs, reverse-charge purchases, prior-period corrections and any credit carried forward are entered on the ZATCA portal directly — this worksheet does not estimate them."
+msgstr "محسوب من الفواتير المعتمدة فقط. الاستيرادات المسدَّدة ضريبتها في الجمارك، ومشتريات الاحتساب العكسي، وتصحيحات الفترات السابقة، وأي رصيد مرحَّل — تُدخَل في بوابة هيئة الزكاة والضريبة والجمارك مباشرة؛ هذه الورقة لا تقدّرها."
+
+#. src: v2-csv-restore
+msgid "Could not load dashboard data"
+msgstr "تعذر تحميل بيانات لوحة التحكم"
+
+#. src: v2-csv-restore
+msgid "Create invoice"
+msgstr "إنشاء فاتورة"
+
+#. src: v2-csv-restore
+msgid "Credit minus debit — the direction a VAT liability accrues."
+msgstr "دائن ناقص مدين — بالاتجاه الذي يتراكم به التزام الضريبة."
+
+#. src: v2-csv-restore
+msgid "Current sales invoices"
+msgstr "فواتير المبيعات الحالية"
+
+#. src: v2-csv-restore
+msgid "Custom Period"
+msgstr "فترة مخصصة"
+
+#. src: v2-csv-restore
+msgid "Customer"
+msgstr "العميل"
+
+#. src: v2-csv-restore
+msgid "Declaration line"
+msgstr "البند"
+
+#. src: v2-csv-restore
+msgid "Effective rate {0}% differs from the standard 15% — review the box."
+msgstr "النسبة الفعلية {0}% تخالف الأساسية 15% — راجع البند."
+
+#. src: v2-csv-restore
+msgid "Employee"
+msgstr "الموظف"
+
+#. src: v2-csv-restore
+msgid "Every account's opening, movement and closing — and whether the books balance"
+msgstr "افتتاحي كل حساب وحركته وإقفاله — وهل توازنت الدفاتر"
+
+#. src: v2-csv-restore
+msgid "Every posting in the books — debits, credits and the running balance"
+msgstr "كل ترحيلة في الدفاتر — المدين والدائن والرصيد الجاري"
+
+#. src: v2-csv-restore
+msgid "Every submitted purchase invoice with its taxes, supplier and totals"
+msgstr "كل فاتورة مشتريات معتمدة بضرائبها وموردها وإجماليّها"
+
+#. src: v2-csv-restore
+msgid "Every submitted sales invoice with its taxes, party and totals"
+msgstr "كل فاتورة مبيعات معتمدة بضرائبها وطرفها وإجماليّها"
+
+#. src: v2-csv-restore
+msgid "Exempt sales"
+msgstr "المبيعات المعفاة"
+
+#. src: v2-csv-restore
+msgid "Export CSV"
+msgstr "تصدير CSV"
+
+#. src: v2-csv-restore
+msgid "Export Excel"
+msgstr "تصدير Excel"
+
+#. src: v2-csv-restore
+msgid "Filing company"
+msgstr "المنشأة المقدِّمة"
+
+#. src: v2-csv-restore
+msgid "Filing details"
+msgstr "بيانات الإقرار"
+
+#. src: v2-csv-restore
+msgid "Filing period"
+msgstr "الفترة الضريبية"
+
+#. src: v2-csv-restore
+msgid "Filter rows…"
+msgstr "رشّح الصفوف…"
+
+#. src: v2-csv-restore
+msgid "Financial summary"
+msgstr "الملخص المالي"
+
+#. src: v2-csv-restore
+msgid "From Date"
+msgstr "من تاريخ"
+
+#. src: v2-csv-restore
+msgid "From material request to delivery — the whole procurement trail"
+msgstr "من طلب المواد إلى التسليم — أثر التوريد كاملاً"
+
+#. src: v2-csv-restore
+msgid "General Ledger"
+msgstr "الأستاذ العام"
+
+#. src: v2-csv-restore
+msgid "Generated from the Report Studio"
+msgstr "أُنشئ من استوديو التقارير"
+
+#. src: v2-csv-restore
+msgid "Good afternoon"
+msgstr "مساء الخير"
+
+#. src: v2-csv-restore
+msgid "Good evening"
+msgstr "مساء الخير"
+
+#. src: v2-csv-restore
+msgid "Good morning"
+msgstr "صباح الخير"
+
+#. src: v2-csv-restore
+msgid "Gross Profit"
+msgstr "الربح الإجمالي"
+
+#. src: v2-csv-restore
+msgid "Gross Purchases"
+msgstr "إجمالي المشتريات"
+
+#. src: v2-csv-restore
+msgid "Gross Sales"
+msgstr "إجمالي المبيعات"
+
+#. src: v2-csv-restore
+msgid "Income against expenses, and the profit between them"
+msgstr "الإيرادات مقابل المصروفات، والربح بينهما"
+
+#. src: v2-csv-restore
+msgid "Input VAT"
+msgstr "ضريبة المدخلات"
+
+#. src: v2-csv-restore
+msgid "Invoice movement — {0}"
+msgstr "حركة الفواتير — {0}"
+
+#. src: v2-csv-restore
+msgid "Invoice status"
+msgstr "حالة الفواتير"
+
+#. src: v2-csv-restore
+msgid "Item-wise Purchase Register"
+msgstr "سجل المشتريات حسب الصنف"
+
+#. src: v2-csv-restore
+msgid "Item-wise Sales Register"
+msgstr "سجل المبيعات حسب الصنف"
+
+#. src: v2-csv-restore
+msgid "Journal entries (credit) — {0}"
+msgstr "قيود اليومية (دائن) — {0}"
+
+#. src: v2-csv-restore
+msgid "Journal entries (debit) — {0}"
+msgstr "قيود اليومية (مدين) — {0}"
+
+#. src: v2-csv-restore
+msgid "Journal-entry effect on the period"
+msgstr "أثر قيود اليومية على الفترة"
+
+#. src: v2-csv-restore
+msgid "Key columns"
+msgstr "الأعمدة الرئيسة"
+
+#. src: v2-csv-restore
+msgid "Kind"
+msgstr "النوع"
+
+#. src: v2-csv-restore
+msgid "Last six months"
+msgstr "آخر ستة أشهر"
+
+#. src: v2-csv-restore
+msgid "Latest invoices"
+msgstr "آخر الفواتير"
+
+#. src: v2-csv-restore
+msgid "Ledger Account"
+msgstr "حساب من الدليل"
+
+#. src: v2-csv-restore
+msgid "Ledger check — input VAT"
+msgstr "فحص الأستاذ — ضريبة المدخلات"
+
+#. src: v2-csv-restore
+msgid "Ledger check — output VAT"
+msgstr "فحص الأستاذ — ضريبة المخرجات"
+
+#. src: v2-csv-restore
+msgid "Ledger movement minus invoice VAT on the accounts purchases used. Zero means they agree."
+msgstr "حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المشتريات. الصفر يعني التطابق."
+
+#. src: v2-csv-restore
+msgid "Ledger movement minus invoice VAT on the accounts sales used. Zero means they agree."
+msgstr "حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المبيعات. الصفر يعني التطابق."
+
+#. src: v2-csv-restore
+msgid "Loading dashboard"
+msgstr "جارٍ تحميل لوحة التحكم"
+
+#. src: v2-csv-restore
+msgid "Margin %"
+msgstr "نسبة الهامش %"
+
+#. src: v2-csv-restore
+msgid "Missing Filters"
+msgstr "الفلاتر ناقصة"
+
+#. src: v2-csv-restore
+msgid "Negative is a refund position."
+msgstr "القيمة السالبة تعني موقف استرداد."
+
+#. src: v2-csv-restore
+msgid "Net Movement"
+msgstr "صافي الحركة"
+
+#. src: v2-csv-restore
+msgid "Net Purchases"
+msgstr "صافي المشتريات"
+
+#. src: v2-csv-restore
+msgid "Net Sales"
+msgstr "صافي المبيعات"
+
+#. src: v2-csv-restore
+msgid "Net Tax"
+msgstr "صافي الضريبة"
+
+#. src: v2-csv-restore
+msgid "Net Taxable Base"
+msgstr "صافي المبلغ الخاضع للضريبة"
+
+#. src: v2-csv-restore
+msgid "Net VAT"
+msgstr "صافي الضريبة"
+
+#. src: v2-csv-restore
+msgid "Net VAT Due"
+msgstr "صافي الضريبة المستحقة"
+
+#. src: v2-csv-restore
+msgid "Net VAT due (output − input)"
+msgstr "صافي الضريبة المستحقة (المخرجات − المدخلات)"
+
+#. src: v2-csv-restore
+msgid "Net VAT due per ledger"
+msgstr "صافي الضريبة المستحقة وفق الأستاذ"
+
+#. src: v2-csv-restore
+msgid "Net VAT per Ledger"
+msgstr "صافي الضريبة وفق الأستاذ"
+
+#. src: v2-csv-restore
+msgid "Net position"
+msgstr "الموقف الصافي"
+
+#. src: v2-csv-restore
+msgid "New sales invoice"
+msgstr "فاتورة مبيعات جديدة"
+
+#. src: v2-csv-restore
+msgid "No VAT row was recorded: exempt, zero-rated or unregistered suppliers land here."
+msgstr "لم يُسجَّل أي صف ضريبة: هنا تقع المشتريات المعفاة أو الصفرية أو من موردين غير مسجلين."
+
+#. src: v2-csv-restore
+msgid "No invoice in the period touched this Tax account, yet it moved — a Journal Entry or an opening. Include it in the filing by hand."
+msgstr "لم تمسّه أي فاتورة في الفترة ومع ذلك تحرّك — قيد يومية أو قيد افتتاحي. أدخِله في الإقرار يدوياً."
+
+#. src: v2-csv-restore
+msgid "No previous period"
+msgstr "لا فترة سابقة"
+
+#. src: v2-csv-restore
+msgid "No recent activity"
+msgstr "لا توجد حركات حديثة"
+
+#. src: v2-csv-restore
+msgid "Nothing found"
+msgstr "لا نتائج"
+
+#. src: v2-csv-restore
+msgid "Nothing in this period"
+msgstr "لا شيء في هذه الفترة"
+
+#. src: v2-csv-restore
+msgid "Nothing to export yet"
+msgstr "لا بيانات للتصدير بعد"
+
+#. src: v2-csv-restore
+msgid "Nothing to show"
+msgstr "لا شيء يُعرض"
+
+#. src: v2-csv-restore
+msgid "Open orders: what was promised, delivered and billed"
+msgstr "الأوامر المفتوحة: ما وُعد به وما سُلّم وما فُوتر"
+
+#. src: v2-csv-restore
+msgid "Open purchase orders: ordered, received and billed"
+msgstr "أوامر الشراء المفتوحة: ما طُلب وما استُلم وما فُوتر"
+
+#. src: v2-csv-restore
+msgid "Open reports"
+msgstr "فتح التقارير"
+
+#. src: v2-csv-restore
+msgid "Opening Balance"
+msgstr "الرصيد الافتتاحي"
+
+#. src: v2-csv-restore
+msgid "Opportunities, quotations and orders by sales territory"
+msgstr "الفرص وعروض الأسعار والأوامر حسب منطقة المبيعات"
+
+#. src: v2-csv-restore
+msgid "Other vouchers — {0}"
+msgstr "سندات أخرى — {0}"
+
+#. src: v2-csv-restore
+msgid "Out of balance"
+msgstr "غير متوازن"
+
+#. src: v2-csv-restore
+msgid "Out of scope, present in the period"
+msgstr "خارج النطاق وحاضر في الفترة"
+
+#. src: v2-csv-restore
+msgid "Out-of-scope sales"
+msgstr "مبيعات خارج نطاق الضريبة"
+
+#. src: v2-csv-restore
+msgid "Output VAT"
+msgstr "ضريبة المخرجات"
+
+#. src: v2-csv-restore
+msgid "Outstanding payables"
+msgstr "المبالغ المستحقة عليك"
+
+#. src: v2-csv-restore
+msgid "Outstanding receivables"
+msgstr "المبالغ المستحقة لك"
+
+#. src: v2-csv-restore
+msgid "Over the period"
+msgstr "على مدى الفترة"
+
+#. src: v2-csv-restore
+msgid "Overdue"
+msgstr "متأخرة"
+
+#. src: v2-csv-restore
+msgid "Paid"
+msgstr "مدفوعة"
+
+#. src: v2-csv-restore
+msgid "Period movement — {0}"
+msgstr "صافي حركة الفترة — {0}"
+
+#. src: v2-csv-restore
+msgid "Presentation"
+msgstr "وضع العرض"
+
+#. src: v2-csv-restore
+msgid "Printed on"
+msgstr "طُبع في"
+
+#. src: v2-csv-restore
+msgid "Procurement Tracker"
+msgstr "متتبع المشتريات"
+
+#. src: v2-csv-restore
+msgid "Profit and Loss Statement"
+msgstr "قائمة الأرباح والخسائر"
+
+#. src: v2-csv-restore
+msgid "Purchase"
+msgstr "شراء"
+
+#. src: v2-csv-restore
+msgid "Purchase Order Analysis"
+msgstr "تحليل أوامر الشراء"
+
+#. src: v2-csv-restore
+msgid "Purchase Register"
+msgstr "سجل المشتريات"
+
+#. src: v2-csv-restore
+msgid "Purchases & Returns"
+msgstr "المشتريات والمرتجعات"
+
+#. src: v2-csv-restore
+msgid "Purchases (input VAT)"
+msgstr "المشتريات (ضريبة المدخلات)"
+
+#. src: v2-csv-restore
+msgid "Purchases and returns in one place — gross, returned and net"
+msgstr "المشتريات ومرتجعاتها في مكان واحد — الإجمالي والمرتجع والصافي"
+
+#. src: v2-csv-restore
+msgid "Purchases carrying input VAT"
+msgstr "مشتريات تحمل ضريبة مدخلات"
+
+#. src: v2-csv-restore
+msgid "Purchases without VAT — classify by hand"
+msgstr "مشتريات بلا ضريبة — تُصنَّف يدوياً"
+
+#. src: v2-csv-restore
+msgid "Purchases — net of adjustments"
+msgstr "المشتريات — صافيةً من التعديلات"
+
+#. src: v2-csv-restore
+msgid "Quick actions"
+msgstr "إجراءات سريعة"
+
+#. src: v2-csv-restore
+msgid "Recent activity"
+msgstr "أحدث الحركات"
+
+#. src: v2-csv-restore
+msgid "Reconciliation against the ledger"
+msgstr "المطابقة مع الأستاذ العام"
+
+#. src: v2-csv-restore
+msgid "Record payment"
+msgstr "تسجيل دفعة"
+
+#. src: v2-csv-restore
+msgid "Report Studio"
+msgstr "استوديو التقارير"
+
+#. src: v2-csv-restore
+msgid "Report period"
+msgstr "فترة التقرير"
+
+#. src: v2-csv-restore
+msgid "Resolve: map the revenue kind or classify the Tax Category."
+msgstr "سوِّها: اربط نوع الإيراد أو صنّف فئة الضريبة."
+
+#. src: v2-csv-restore
+msgid "Retry"
+msgstr "إعادة المحاولة"
+
+#. src: v2-csv-restore
+msgid "Return"
+msgstr "مرتجع"
+
+#. src: v2-csv-restore
+msgid "Return summary"
+msgstr "خلاصة الإقرار"
+
+#. src: v2-csv-restore
+msgid "Returns"
+msgstr "المرتجعات"
+
+#. src: v2-csv-restore
+msgid "Rows"
+msgstr "الصفوف"
+
+#. src: v2-csv-restore
+msgid "Rows: {0}"
+msgstr "الصفوف: {0}"
+
+#. src: v2-csv-restore
+msgid "Sale"
+msgstr "بيع"
+
+#. src: v2-csv-restore
+msgid "Sales & Returns"
+msgstr "المبيعات والمرتجعات"
+
+#. src: v2-csv-restore
+msgid "Sales (output VAT)"
+msgstr "المبيعات (ضريبة المخرجات)"
+
+#. src: v2-csv-restore
+msgid "Sales Order Analysis"
+msgstr "تحليل أوامر البيع"
+
+#. src: v2-csv-restore
+msgid "Sales Person-wise Transaction Summary"
+msgstr "ملخص المعاملات حسب مندوب المبيعات"
+
+#. src: v2-csv-restore
+msgid "Sales Register"
+msgstr "سجل المبيعات"
+
+#. src: v2-csv-restore
+msgid "Sales and purchases both posted here; the ledger cannot be split by side. Separate the accounts."
+msgstr "قيّدت فيه المبيعات والمشتريات معاً ولا يمكن فصل الأستاذ بحسب الطرف. افصل الحسابين."
+
+#. src: v2-csv-restore
+msgid "Sales and returns in one place — gross, returned and net"
+msgstr "المبيعات ومرتجعاتها في مكان واحد — الإجمالي والمرتجع والصافي"
+
+#. src: v2-csv-restore
+msgid "Sales this month"
+msgstr "مبيعات هذا الشهر"
+
+#. src: v2-csv-restore
+msgid "Sales trend"
+msgstr "اتجاه المبيعات"
+
+#. src: v2-csv-restore
+msgid "Sales — net of adjustments"
+msgstr "المبيعات — صافيةً من التعديلات"
+
+#. src: v2-csv-restore
+msgid "Search…"
+msgstr "ابحث…"
+
+#. src: v2-csv-restore
+msgid "Selling"
+msgstr "المبيعات"
+
+#. src: v2-csv-restore
+msgid "Selling value against buying cost, and the margin between them"
+msgstr "قيمة البيع مقابل كلفة الشراء، والهامش بينهما"
+
+#. src: v2-csv-restore
+msgid "Selling value is net of VAT — the profit is measured before tax, and the margin is profit over net selling."
+msgstr "مبلغ البيع صافٍ من ضريبة القيمة المضافة — فالربح محتسب قبل الضريبة، والنسبة = الربح ÷ صافي البيع."
+
+#. src: v2-csv-restore
+msgid "Set the company's tax ID before filing."
+msgstr "اضبط الرقم الضريبي في بيانات الشركة قبل التقديم."
+
+#. src: v2-csv-restore
+msgid "Soon"
+msgstr "قريباً"
+
+#. src: v2-csv-restore
+msgid "Standard-rated sales (15%)"
+msgstr "المبيعات الخاضعة للنسبة الأساسية (15%)"
+
+#. src: v2-csv-restore
+msgid "Statement of Account"
+msgstr "كشف حساب"
+
+#. src: v2-csv-restore
+msgid "Submitted POS Invoices exist in this period"
+msgstr "توجد فواتير نقاط بيع معتمدة في هذه الفترة"
+
+#. src: v2-csv-restore
+msgid "Supplier"
+msgstr "المورد"
+
+#. src: v2-csv-restore
+msgid "Supplier Ledger Summary"
+msgstr "ملخص دفتر أستاذ الموردين"
+
+#. src: v2-csv-restore
+msgid "Supplier balances over the period — opening, movement and closing"
+msgstr "أرصدة الموردين خلال الفترة — الافتتاحي والحركة والإقفال"
+
+#. src: v2-csv-restore
+msgid "Tax accounts in the ledger"
+msgstr "حسابات الضريبة في الأستاذ"
+
+#. src: v2-csv-restore
+msgid "Territory-wise Sales"
+msgstr "المبيعات حسب منطقة المبيعات"
+
+#. src: v2-csv-restore
+msgid "The Report Studio bundle is not registered. Rebuild the theme's assets."
+msgstr "حزمة استوديو التقارير غير مسجلة. أعد بناء أصول الثيم."
+
+#. src: v2-csv-restore
+msgid "The Report Studio failed to load. Check the browser console."
+msgstr "تعذر تحميل استوديو التقارير. راجع طرفية المتصفح."
+
+#. src: v2-csv-restore
+msgid "The ZATCA declaration, box by box — with the proof it can be filed"
+msgstr "الإقرار كما تطلبه هيئة الزكاة والضريبة والجمارك بنداً بنداً — ومعه برهان صلاحيته للتقديم"
+
+#. src: v2-csv-restore
+msgid "The numbers that run the business — read, not hunted."
+msgstr "أرقام تُدير العمل — تُقرأ لا تُطارَد."
+
+#. src: v2-csv-restore
+msgid "The report could not be run. Open the classic view for details."
+msgstr "تعذر تشغيل التقرير. افتح العرض التقليدي للتفاصيل."
+
+#. src: v2-csv-restore
+msgid "They are not counted above. Consolidate them into Sales Invoices before filing."
+msgstr "لم تُحتسب أعلاه. وحّدها في فواتير مبيعات قبل التقديم."
+
+#. src: v2-csv-restore
+msgid "This Month"
+msgstr "الشهر الجاري"
+
+#. src: v2-csv-restore
+msgid "This Quarter"
+msgstr "ربع السنة الجاري"
+
+#. src: v2-csv-restore
+msgid "This Week"
+msgstr "هذا الأسبوع"
+
+#. src: v2-csv-restore
+msgid "This Year"
+msgstr "هذا العام"
+
+#. src: v2-csv-restore
+msgid "This report is not installed on this site"
+msgstr "هذا التقرير غير مثبت في هذا الموقع"
+
+#. src: v2-csv-restore
+msgid "To Date"
+msgstr "إلى تاريخ"
+
+#. src: v2-csv-restore
+msgid "Today"
+msgstr "اليوم"
+
+#. src: v2-csv-restore
+msgid "Top contributors"
+msgstr "أعلى المساهمين"
+
+#. src: v2-csv-restore
+msgid "Total"
+msgstr "الإجمالي"
+
+#. src: v2-csv-restore
+msgid "Total Credit"
+msgstr "إجمالي الدائن"
+
+#. src: v2-csv-restore
+msgid "Total Debit"
+msgstr "إجمالي المدين"
+
+#. src: v2-csv-restore
+msgid "Total purchases"
+msgstr "إجمالي المشتريات"
+
+#. src: v2-csv-restore
+msgid "Total sales"
+msgstr "إجمالي المبيعات"
+
+#. src: v2-csv-restore
+msgid "Trial Balance"
+msgstr "ميزان المراجعة"
+
+#. src: v2-csv-restore
+msgid "Try a wider period, or another company."
+msgstr "جرّب فترة أوسع أو شركة أخرى."
+
+#. src: v2-csv-restore
+msgid "Unclassified Sales"
+msgstr "مبيعات غير مصنفة"
+
+#. src: v2-csv-restore
+msgid "Unclassified sales — resolve before filing"
+msgstr "مبيعات غير مصنفة — سوِّها قبل التقديم"
+
+#. src: v2-csv-restore
+msgid "VAT Return"
+msgstr "الإقرار الضريبي"
+
+#. src: v2-csv-restore
+msgid "VAT Summary"
+msgstr "ملخص ضريبة القيمة المضافة"
+
+#. src: v2-csv-restore
+msgid "VAT account moved outside invoices: {0}"
+msgstr "حساب ضريبة تحرّك خارج الفواتير: {0}"
+
+#. src: v2-csv-restore
+msgid "VAT on Adjustment"
+msgstr "ضريبة التعديل"
+
+#. src: v2-csv-restore
+msgid "VAT on Amount"
+msgstr "ضريبة المبلغ"
+
+#. src: v2-csv-restore
+msgid "View accounts"
+msgstr "عرض الحسابات"
+
+#. src: v2-csv-restore
+msgid "What the company owns and owes, as of the period end"
+msgstr "ما تملكه الشركة وما عليها، كما في نهاية الفترة"
+
+#. src: v2-csv-restore
+msgid "What was bought, item by item — quantities, rates and amounts"
+msgstr "ما اشتُري صنفاً صنفاً — الكميات والأسعار والمبالغ"
+
+#. src: v2-csv-restore
+msgid "What was sold, item by item — quantities, rates and amounts"
+msgstr "ما بِيع صنفاً صنفاً — الكميات والأسعار والمبالغ"
+
+#. src: v2-csv-restore
+msgid "Who is this statement for?"
+msgstr "لمن هذا الكشف؟"
+
+#. src: v2-csv-restore
+msgid "Who owes you, how much, and for how long — aged as of the period end"
+msgstr "من يدين لك، وكم، ومنذ متى — بأعمارها كما في نهاية الفترة"
+
+#. src: v2-csv-restore
+msgid "Who sold what — contribution by sales person"
+msgstr "من باع ماذا — الإسهام حسب مندوب المبيعات"
+
+#. src: v2-csv-restore
+msgid "Who you owe, how much, and for how long — aged as of the period end"
+msgstr "من تدين له، وكم، ومنذ متى — بأعمارها كما في نهاية الفترة"
+
+#. src: v2-csv-restore
+msgid "Written outside the invoices — journal entries and any non-invoice voucher."
+msgstr "كُتب خارج الفواتير — قيود يومية وأي سند غير فاتورة."
+
+#. src: v2-csv-restore
+msgid "Your business at a glance"
+msgstr "نظرة شاملة على أعمالك"
+
+#. src: v2-csv-restore
+msgid "Zero-rated sales"
+msgstr "المبيعات الخاضعة للنسبة الصفرية"
+
+#. src: v2-csv-restore
+msgid "vs previous period"
+msgstr "مقارنة بالفترة السابقة"

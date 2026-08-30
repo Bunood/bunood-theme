@@ -35,6 +35,15 @@ html[data-theme] .bnd-home-dashboard {
   justify-content: space-between;
   gap: var(--bnd-sp-4);
   margin-block-end: var(--bnd-sp-6);
+  // WRAP, BECAUSE THE ACTION ROW GREW. This was one button and the greeting
+  // had the row to itself; it is five now, and at 1280px the copy was crushed
+  // hard enough to break "Good evening" across two lines and the subtitle
+  // across three. The row drops below the greeting rather than squeezing it.
+  flex-wrap: wrap;
+}
+
+.bnd-home-intro-copy {
+  min-inline-size: min(100%, 18rem);
 }
 
 .bnd-home-eyebrow {
@@ -59,8 +68,7 @@ html[data-theme] .bnd-home-dashboard {
   color: var(--bnd-ink-muted);
 }
 
-.bnd-home-intro-actions,
-.bnd-home-quick-grid {
+.bnd-home-intro-actions {
   display: flex;
   gap: var(--bnd-sp-2);
 }
@@ -310,7 +318,7 @@ html[data-theme] .bnd-home-dashboard {
   grid-column: span 7;
 }
 
-.bnd-home-quick-panel {
+.bnd-home-attn-panel {
   grid-column: span 5;
 }
 
@@ -478,15 +486,67 @@ html[data-theme] .bnd-home-dashboard {
   color: var(--bnd-cat-2);
 }
 
-.bnd-home-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: var(--bnd-sp-5);
+// ── Needs your attention ────────────────────────────────────────────────────
+// A LIST, NOT A BUTTON GRID. What stood here was a 2x2 grid of "quick actions"
+// whose two creation entries duplicated the task row at the top of the page
+// under different words. Its replacement answers a different question — what
+// has to be dealt with today — so it reads as rows of work, each one opening
+// the filtered list it counted, and it renders nothing at all when there is
+// nothing to do.
+.bnd-home-attn-list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--bnd-sp-3);
+  gap: var(--bnd-sp-1);
 }
 
-.bnd-home-quick-grid .bnd-home-action {
-  min-block-size: 72px;
-  justify-content: flex-start;
+.bnd-home-attn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  inline-size: 100%;
+  padding: var(--bnd-sp-3);
+  color: var(--bnd-ink);
+  background: transparent;
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+.bnd-home-attn-row:hover {
+  background: var(--bnd-hover);
+}
+
+.bnd-home-attn-row:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+
+.bnd-home-attn-icon {
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  color: var(--bnd-brand-solid);
+  --icon-stroke: currentColor;
+}
+
+.bnd-home-attn-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.bnd-home-attn-label {
+  font-weight: 650;
+}
+
+.bnd-home-attn-note {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
 }
 
 .bnd-home-empty,
@@ -542,7 +602,7 @@ html[data-theme] .bnd-home-dashboard {
   .bnd-home-trend,
   .bnd-home-status,
   .bnd-home-recent-panel,
-  .bnd-home-quick-panel {
+  .bnd-home-attn-panel {
     grid-column: 1 / -1;
   }
 }
@@ -573,13 +633,8 @@ html[data-theme] .bnd-home-dashboard {
     flex-direction: column;
   }
 
-  .bnd-home-intro-actions .bnd-home-action,
-  .bnd-home-quick-grid .bnd-home-action {
+  .bnd-home-intro-actions .bnd-home-action {
     inline-size: 100%;
-  }
-
-  .bnd-home-quick-grid {
-    grid-template-columns: 1fr;
   }
 
   .bnd-home-bars {

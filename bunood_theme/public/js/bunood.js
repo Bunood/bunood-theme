@@ -1772,9 +1772,51 @@
 	 * leaves valid JS, exactly as CLAUDE.md warns. The desk threw
 	 * `update_desktop_mode is not defined` on every route change.
 	 */
+	/**
+	 * Is this Frappe's Desktop page — the module grid?
+	 *
+	 * TWO ADDRESSES, ONE PAGE. The EMPTY route renders the grid as the desk's
+	 * landing, and `/app/desktop` reaches the same Page explicitly. Only the
+	 * empty spelling was recognised here, which stopped mattering the moment
+	 * `land_on_home` started sending the empty route away: the grid would have
+	 * kept its tiles but lost our styling and sprite icons at the one address
+	 * that still showed it.
+	 *
+	 * @param {string[]} route
+	 * @returns {boolean}
+	 */
+	function on_desktop_route(route) {
+		if (!route.length) return true;
+		if (route.length === 1 && !route[0]) return true;
+		return route.length === 1 && String(route[0]).toLowerCase() === "desktop";
+	}
+
+	/**
+	 * Send the desk's EMPTY route to the Bunood home.
+	 *
+	 * WHY A REDIRECT AND NOT A SETTING. `frappe.boot.home_page` is the
+	 * supported lever, and it cannot reach this: `boot.add_home_page` resolves
+	 * the value through `frappe.desk.desk_page.get()`, so it names a **Page**
+	 * record, while our home is a **Workspace**. Measured on this site — the
+	 * only landing Page that exists is `desktop`, and there is no `Workspaces`
+	 * Page to point at. So the empty route is redirected here instead.
+	 *
+	 * NOTHING LOSES ITS ADDRESS. "All Apps" goes to `/apps`, Frappe's app
+	 * switcher, not to this grid — so it is untouched. The grid itself keeps
+	 * `/app/desktop`, which `on_desktop_route` now recognises, and a user who
+	 * asks for it explicitly is not bounced.
+	 */
+	function land_on_home() {
+		if (!theme_active()) return;
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const empty = !route.length || (route.length === 1 && !route[0]);
+		if (!empty) return;
+		go_home();
+	}
+
 	function update_desktop_mode() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
-		const on_desktop = !route.length || (route.length === 1 && !route[0]);
+		const on_desktop = on_desktop_route(route);
 		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
 		// The grid is built asynchronously and has no "ready" event, so this
 		// polls with a bounded budget like every other mount here. Driven from
@@ -6850,6 +6892,63 @@ function sb_zone_anchor(pane, zone, node) {
 		return wrap;
 	}
 
+	/**
+	 * The work a person actually opens Bunood to do, in the order they do it.
+	 *
+	 * WHY A TASK ROW AT ALL
+	 *   Measured on this desk: the first ACTIONABLE link sits ~580px into an
+	 *   800px viewport on Selling, Buying and Stock alike — above it, charts and
+	 *   number cards. Every door in the product is a NOUN ("Selling", "Buying"),
+	 *   so a person told "invoice this customer" has to already know ERPNext's
+	 *   information model to find the verb. This row is the verbs.
+	 *
+	 *   Capped at five, deliberately. A task row that grows into a menu has
+	 *   become the thing it replaced.
+	 *
+	 * `[doctype, label, symbol candidates]`. Candidates because sprite ids move
+	 * between Frappe versions; the first that exists wins and a miss costs a
+	 * glyph, not the button.
+	 */
+	const HOME_TASKS = [
+		["Sales Invoice", "New sales invoice", ["icon-invoice", "icon-file", "icon-plus"]],
+		["Purchase Invoice", "Record a purchase", ["icon-buying", "icon-shopping-cart", "icon-file"]],
+		["Payment Entry", "Receive payment", ["icon-money", "icon-money-coins-1", "icon-file"]],
+		["Stock Entry", "Stock entry", ["icon-stock", "icon-package", "icon-file"]],
+		["Customer", "New customer", ["icon-users", "icon-user", "icon-organization"]],
+	];
+
+	/**
+	 * Build the task row, filtered to what this user may actually create.
+	 *
+	 * A door nobody can open is worse than no door: it teaches a user that the
+	 * product lies to them. `frappe.boot.user.can_create` is the same list the
+	 * desk's own "+ New" menu is built from, so this cannot drift from what
+	 * Frappe would allow. It also filters by doctype EXISTENCE, so a
+	 * Frappe-only site (no ERPNext) renders the row it can rather than a row of
+	 * dead buttons.
+	 *
+	 * @param {HTMLElement} host - the actions container.
+	 */
+	function home_mount_tasks(host) {
+		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_create || [];
+		let primary = true;
+		for (const [doctype, label, symbols] of HOME_TASKS) {
+			if (can.length && can.indexOf(doctype) === -1) continue;
+			const symbol = sb_existing_symbol(symbols) || symbols[symbols.length - 1];
+			host.appendChild(
+				home_action(label, symbol, () => frappe.new_doc(doctype), primary)
+			);
+			primary = false;
+		}
+		// Every task filtered out (a very restricted account): say so rather
+		// than leaving a bare greeting with an empty strip under it.
+		if (!host.children.length) {
+			const none = el("p", "bnd-home-tasks-empty");
+			none.textContent = home_text("No documents you can create yet");
+			host.appendChild(none);
+		}
+	}
+
 	function home_action(label, symbol, action, primary) {
 		const button = el("button", `bnd-home-action${primary ? " is-primary" : ""}`, { type: "button" });
 		button.appendChild(home_icon(symbol, "bnd-home-action-icon"));
@@ -6890,6 +6989,90 @@ function sb_zone_anchor(pane, zone, node) {
 		return card;
 	}
 
+	/**
+	 * One row of "needs your attention": a label, what it is worth, and the
+	 * list it opens.
+	 *
+	 * A BUTTON, NOT A TILE. Every row here exists because there is something to
+	 * DO about it, so each one goes somewhere — a filtered list of exactly the
+	 * documents it counted. A number a user cannot act on belongs in the
+	 * summary strip above, not here.
+	 */
+	function home_attention_row(label, note, symbol, run) {
+		const row = el("button", "bnd-home-attn-row", { type: "button" });
+		row.appendChild(home_icon(symbol, "bnd-home-attn-icon"));
+		const copy = el("span", "bnd-home-attn-copy");
+		const title = el("span", "bnd-home-attn-label");
+		title.textContent = home_text(label);
+		const sub = el("span", "bnd-home-attn-note");
+		sub.textContent = note;
+		copy.append(title, sub);
+		row.appendChild(copy);
+		row.addEventListener("click", run);
+		return row;
+	}
+
+	/**
+	 * "Needs your attention" — the work, not the score.
+	 *
+	 * The summary strip above answers "how is the business doing". This answers
+	 * "what do I have to deal with", which is the question someone opening an
+	 * ERP at 9am actually has. Rows appear ONLY when they have something in
+	 * them: a panel listing three zeroes teaches a user to stop reading it, so
+	 * an empty one says so in a single line instead.
+	 *
+	 * @param {object} data - the payload from `api.get_home_dashboard`.
+	 */
+	function home_attention_panel(data) {
+		const currency = data.currency;
+		const metrics = data.metrics || {};
+		const status = data.invoice_status || {};
+		const drafts = data.drafts || {};
+		const attn = home_panel("Needs your attention", "What to deal with today", "bnd-home-attn-panel");
+		attn.head.appendChild(home_icon("icon-bell", "bnd-home-panel-mark"));
+		const list = el("div", "bnd-home-attn-list");
+
+		if (status.overdue) {
+			list.appendChild(
+				home_attention_row(
+					"Overdue invoices",
+					`${status.overdue} · ${home_money(metrics.overdue, currency)}`,
+					"icon-alert-triangle",
+					() => frappe.set_route("List", "Sales Invoice", { status: "Overdue" })
+				)
+			);
+		}
+		if (Number(metrics.payables) > 0) {
+			list.appendChild(
+				home_attention_row(
+					"Bills to pay",
+					home_money(metrics.payables, currency),
+					"icon-buying",
+					() => frappe.set_route("List", "Purchase Invoice", { status: "Unpaid" })
+				)
+			);
+		}
+		const draft_total = (Number(drafts.sales) || 0) + (Number(drafts.purchase) || 0);
+		if (draft_total) {
+			list.appendChild(
+				home_attention_row(
+					"Drafts to finish",
+					String(draft_total),
+					"icon-edit",
+					() => frappe.set_route("List", "Sales Invoice", { docstatus: 0 })
+				)
+			);
+		}
+
+		if (!list.children.length) {
+			const clear = el("p", "bnd-home-empty");
+			clear.textContent = home_text("Nothing needs your attention");
+			list.appendChild(clear);
+		}
+		attn.panel.appendChild(list);
+		return attn.panel;
+	}
+
 	function home_render_dashboard(root, data) {
 		root.replaceChildren();
 		const metrics = data.metrics || {};
@@ -6907,7 +7090,7 @@ function sb_zone_anchor(pane, zone, node) {
 		subtitle.textContent = home_text("Your business at a glance");
 		intro_copy.append(eyebrow, title, subtitle);
 		const intro_actions = el("div", "bnd-home-intro-actions");
-		intro_actions.appendChild(home_action("New sales invoice", "icon-plus", () => frappe.new_doc("Sales Invoice"), true));
+		home_mount_tasks(intro_actions);
 		intro.append(intro_copy, intro_actions);
 		root.appendChild(intro);
 
@@ -7006,17 +7189,27 @@ function sb_zone_anchor(pane, zone, node) {
 		recent.panel.appendChild(recent_list);
 		grid.appendChild(recent.panel);
 
-		const quick = home_panel("Quick actions", "Common tasks", "bnd-home-quick-panel");
-		quick.head.appendChild(home_icon("icon-bolt", "bnd-home-panel-mark"));
-		const quick_grid = el("div", "bnd-home-quick-grid");
-		for (const item of [
-			["Create invoice", "icon-file-plus", () => frappe.new_doc("Sales Invoice")],
-			["Record payment", "icon-banknote", () => frappe.new_doc("Payment Entry")],
-			["View accounts", "icon-landmark", () => frappe.set_route("List", "Account")],
-			["Open reports", "icon-chart", () => frappe.set_route("query-report", "General Ledger")],
-		]) quick_grid.appendChild(home_action(item[0], item[1], item[2], false));
-		quick.panel.appendChild(quick_grid);
-		grid.appendChild(quick.panel);
+		// THE "QUICK ACTIONS" PANEL IS GONE, and its two creation entries with
+		// it. It offered "Create invoice" and "Record payment" — the same two
+		// doctypes the task row at the top of this page now offers as "New
+		// sales invoice" and "Receive payment". Two labels for one action is
+		// worse than either alone: a user cannot tell whether they differ, so
+		// they hesitate over both. Nine buttons in two rows was exactly the
+		// "too much, nothing pops" the task row exists to answer.
+		//
+		// Its other two entries were navigation, not creation — the Account
+		// list and the General Ledger — and both are one click away in the side
+		// pane, which now carries its labels on every workspace.
+		// WORK BEFORE REPORTING. The trend and status panels are built above
+		// because their data arrives with everything else, but they must READ
+		// after the two panels someone opens this page to act on: what needs
+		// attention, and what just happened. Moving the nodes rather than
+		// reordering the construction keeps each panel's build next to the data
+		// it reads — and moving them changes the tab order with the visual
+		// order, which a CSS `order` would not have done.
+		const attention = home_attention_panel(data);
+		grid.prepend(attention);
+		attention.after(recent.panel);
 		root.appendChild(grid);
 	}
 
@@ -7100,6 +7293,10 @@ function sb_zone_anchor(pane, zone, node) {
 		// our chrome mounted on top of the Desktop's own header. Measured: the
 		// attribute read false on `/desk` until this call came back.
 		update_desktop_mode();
+		// Same reason: the router handler never fires for the route the desk
+		// LOADS on, and a fresh login lands on exactly the empty route this
+		// sends to the home.
+		land_on_home();
 		decorate_crumbs();
 
 		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
@@ -7191,6 +7388,7 @@ function sb_zone_anchor(pane, zone, node) {
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
+				land_on_home();
 				// The pane's width does not survive a workspace switch either:
 				// the container can be REPLACED, not just re-rendered, which
 				// leaves `sb_observe`'s node reference stale. A route change is

@@ -93,7 +93,16 @@ def get_home_dashboard(company: str | None = None) -> dict:
             "sales_month": 0.0,
             "receivables": 0.0,
             "payables": 0.0,
+            # WHAT IS OVERDUE, IN MONEY. `invoice_status.overdue` counts
+            # documents; a worker deciding whether to chase anyone today needs
+            # the amount. Accumulated in the loop that already classifies each
+            # invoice, so it costs no extra query.
+            "overdue": 0.0,
         },
+        # Documents this user still has to finish. Counted, never listed here:
+        # the panel links into the real filtered list rather than trying to be
+        # one.
+        "drafts": {"sales": 0, "purchase": 0},
         "invoice_status": {"paid": 0, "open": 0, "overdue": 0},
         "trend": [],
         "recent": [],
@@ -142,12 +151,27 @@ def get_home_dashboard(company: str | None = None) -> dict:
             result["invoice_status"]["paid"] += 1
         elif invoice.due_date and getdate(invoice.due_date) < today:
             result["invoice_status"]["overdue"] += 1
+            result["metrics"]["overdue"] += outstanding
         else:
             result["invoice_status"]["open"] += 1
 
     result["metrics"]["receivables"] += sum(flt(row.outstanding_amount) for row in older_receivables)
     result["metrics"]["payables"] = sum(flt(row.outstanding_amount) for row in purchases)
     result["trend"] = list(month_totals.values())
+
+    # Unfinished work. `_dashboard_rows` is the permission-filtered helper every
+    # other section here uses, so a user who cannot read one of these doctypes
+    # gets a zero rather than an error — the same "valid empty shape" contract
+    # the docstring promises for a Frappe-only or restricted site.
+    for doctype, key in (("Sales Invoice", "sales"), ("Purchase Invoice", "purchase")):
+        result["drafts"][key] = len(
+            _dashboard_rows(
+                doctype,
+                filters={"company": selected, "docstatus": 0},
+                fields=["name"],
+                limit=0,
+            )
+        )
 
     accounts = _dashboard_rows(
         "Account",
