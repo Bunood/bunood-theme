@@ -2335,7 +2335,7 @@ const BND_SB_GROUPS = [
 		],
 	},
 	{
-		field: "sidebar_section_layout",
+		field: "sidebar_section_style",
 		zone: "links",
 		title: () => __("Sections"),
 		desc: () => __("How the pane's link groups are presented."),
@@ -2419,7 +2419,7 @@ const BND_SB_GROUPS = [
 /** Stepped 1..5 controls: field + endpoint labels. */
 const BND_SB_STEPPERS = [
 	{ field: "sidebar_glass_opacity", zone: "pane", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
-	{ field: "sidebar_surface_intensity", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
+	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
 	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
 

@@ -1293,7 +1293,7 @@ const SLUG = {
 	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
 	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", "Glow Ring": "glow", Outline: "outline", "Dot Marker": "dot", "Folder Tab": "foldertab" },
-	sidebar_section_layout: { Plain: "plain", Divided: "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
+	sidebar_section_style: { Plain: "plain", Divided: "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
 	sidebar_menu_rail: { "Always Expanded": "expanded", "Manual Collapse": "manual", Rail: "rail" },
 };
@@ -1304,7 +1304,7 @@ const ATTR_OF = {
 	sidebar_color: "data-bnd-sb-color",
 	icon_style: "data-bnd-sb-icons",
 	sidebar_active_style: "data-bnd-sb-active",
-	sidebar_section_layout: "data-bnd-sb-sections",
+	sidebar_section_style: "data-bnd-sb-sections",
 	sidebar_hue_wash: "data-bnd-sb-wash",
 	sidebar_menu_rail: "data-bnd-sb-menurail",
 };
@@ -1348,8 +1348,8 @@ const MUTABLE_FIELDS = [
 	"email_style", "email_header", "email_action", "email_theme",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
-	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
-	"sidebar_surface_intensity", "sidebar_menu_rail", "sidebar_rail_trigger",
+	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
+	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_rail_button_shape",
 	"sidebar_pane_width",
 	"sidebar_badges", "sidebar_remember_sections",
@@ -2967,7 +2967,7 @@ async function main() {
 						52, "resting rail width"
 					);
 				}
-				if (values.sidebar_section_layout === "Mini-Cards") {
+				if (values.sidebar_section_style === "Mini-Cards") {
 					expect((await page.evaluate(() => document.querySelectorAll(".bnd-sb-card").length)) > 0, "section cards");
 				}
 			});
@@ -6023,6 +6023,64 @@ async function main() {
 			expectEq(r.after.density_default, "Compact", "the site's Compact density survived the rename");
 		});
 
+		await test("settings: the side-pane renames carry a site's NON-default choices", async () => {
+			// Same shape as the v0_36_0 check above, and for the same reason: a
+			// Single's values are keyed by FIELDNAME, so renaming a field
+			// orphans the stored row and the site silently loses a setting it
+			// chose. Nothing errors — which is exactly why a rename is easy to
+			// ship broken.
+			//
+			// The values are deliberately NOT the shipped ones. Bunood Night
+			// ships Mini-Cards and depth 3; a fresh site would carry those
+			// whether the patch ran or not, so it would prove nothing.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.patches.v0_40_0.rename_sidebar_fields import execute\n" +
+					// Raw reads on both sides, never get_single_value: it answers
+					// from a per-process value cache that raw-SQL simulation does
+					// not invalidate, so a cached answer measures the cache.
+					"def raw(f):\n" +
+					"    rows = frappe.db.sql(\"select value from tabSingles where doctype='Theme Settings' and field=%s\", (f,))\n" +
+					"    return rows[0][0] if rows else None\n" +
+					"keep = {f: raw(f) for f in ('sidebar_section_style', 'sidebar_card_depth')}\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('sidebar_section_style','sidebar_card_depth','sidebar_section_layout','sidebar_surface_intensity')\")\n" +
+					// INSERT, never UPDATE — the old-name rows are already gone
+					// here (a Single's save rewrites its whole rowset from
+					// current meta, so the first save after the migrate reaped
+					// them), and an UPDATE on an absent row is a silent no-op.
+					"    frappe.db.sql(\"insert into tabSingles (doctype, field, value) values ('Theme Settings','sidebar_section_layout','Divided'), ('Theme Settings','sidebar_surface_intensity','1')\")\n" +
+					"    res['before_rerun'] = {f: raw(f) for f in ('sidebar_section_style', 'sidebar_card_depth')}\n" +
+					"    execute()\n" +
+					"    res['after'] = {f: raw(f) for f in ('sidebar_section_style', 'sidebar_card_depth')}\n" +
+					// The patch must also REAP the old rows: leaving them behind
+					// means the next rename-era reader finds two answers.
+					"    res['old_left'] = {f: raw(f) for f in ('sidebar_section_layout', 'sidebar_surface_intensity')}\n" +
+					"finally:\n" +
+					"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('sidebar_section_style','sidebar_card_depth','sidebar_section_layout','sidebar_surface_intensity')\")\n" +
+					"    for f, v in keep.items():\n" +
+					"        if v is not None:\n" +
+					"            frappe.db.set_single_value('Theme Settings', f, v, update_modified=False)\n" +
+					"    frappe.db.commit()\n" +
+					"    frappe.clear_cache(doctype='Theme Settings')\n" +
+					"print('BND_SBRN' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_SBRN"));
+			if (!line) throw new Error("side-pane rename probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_SBRN".length));
+			expect(
+				!r.before_rerun.sidebar_section_style && !r.before_rerun.sidebar_card_depth,
+				`the simulation holds before the patch re-runs (${JSON.stringify(r.before_rerun)})`
+			);
+			expectEq(r.after.sidebar_section_style, "Divided", "the site's Divided sections survived the rename");
+			expectEq(String(r.after.sidebar_card_depth), "1", "the site's hairline card depth survived the rename");
+			expect(
+				!r.old_left.sidebar_section_layout && !r.old_left.sidebar_surface_intensity,
+				`the old rows are reaped, not left as a second answer (${JSON.stringify(r.old_left)})`
+			);
+		});
+
 		await test("settings: nothing overflows the form horizontally", async () => {
 			const overflow = await page.evaluate(() =>
 				[...document.querySelectorAll('[data-fieldname$="_picker"]')]
@@ -7185,15 +7243,15 @@ ${gate.stdout}`);
 			const configs = [
 				{ label: "Match Theme + Rich wash", settings: {
 					sidebar_color: "Match Theme", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Rich", sidebar_section_layout: "Mini-Cards",
+					sidebar_hue_wash: "Rich", sidebar_section_style: "Mini-Cards",
 				} },
 				{ label: "Dark Contrast + Rich wash", settings: {
 					sidebar_color: "Dark Contrast", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Rich", sidebar_section_layout: "Mini-Cards",
+					sidebar_hue_wash: "Rich", sidebar_section_style: "Mini-Cards",
 				} },
 				{ label: "Brand pane, wash off", settings: {
 					sidebar_color: "Brand", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Off", sidebar_section_layout: "Plain",
+					sidebar_hue_wash: "Off", sidebar_section_style: "Plain",
 				} },
 			];
 			const pairs = [];

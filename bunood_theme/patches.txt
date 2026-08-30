@@ -60,6 +60,12 @@ bunood_theme.patches.v0_38_0.drop_density_navbar_item
 # get_single_value raises for a field the meta has lost).
 bunood_theme.patches.v0_40_0.retire_apps_rail
 
+# Same release, same reason: the two renamed side-pane fields. A Single's
+# values are keyed by FIELDNAME, so a rename orphans the stored row and the
+# site silently loses a setting it chose. Nothing errors, which is why it is
+# easy to skip.
+bunood_theme.patches.v0_40_0.rename_sidebar_fields
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

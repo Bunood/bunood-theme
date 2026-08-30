@@ -433,9 +433,9 @@ def extend_bootinfo(bootinfo):
             # "icon_source"), so bunood.js and the SCSS are untouched.
             "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
-            "sections": get("sidebar_section_layout"),
+            "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
-            "intensity": get("sidebar_surface_intensity"),
+            "intensity": get("sidebar_card_depth"),
             "menurail": get("sidebar_menu_rail"),
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),

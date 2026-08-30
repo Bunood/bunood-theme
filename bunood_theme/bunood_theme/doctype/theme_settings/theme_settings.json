@@ -48,9 +48,9 @@
   "sidebar_blur",
   "sidebar_color",
   "sidebar_active_style",
-  "sidebar_section_layout",
+  "sidebar_section_style",
   "sidebar_hue_wash",
-  "sidebar_surface_intensity",
+  "sidebar_card_depth",
   "sidebar_menu_rail",
   "sidebar_rail_trigger",
   "sidebar_rail_button",
@@ -451,7 +451,7 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_section_layout",
+   "fieldname": "sidebar_section_style",
    "fieldtype": "Select",
    "label": "Section Layout",
    "options": "Plain\nDivided\nMini-Cards\nAccordion Cards",
@@ -465,7 +465,7 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_surface_intensity",
+   "fieldname": "sidebar_card_depth",
    "fieldtype": "Select",
    "label": "Surface Intensity",
    "options": "1\n2\n3\n4\n5",
