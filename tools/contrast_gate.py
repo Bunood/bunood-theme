@@ -1296,7 +1296,17 @@ def check_theme_catalogue() -> list[str]:
         every later save of the whole document (item 36 measured six unrelated
         tests going red from exactly that).
       * PAIRWISE DISTINCT. Two presets with one composition make the derived label
-        ambiguous, and "Custom" would be the only honest answer to both.
+        ambiguous, and "Custom" would be the only honest answer to both. Held for
+        the eight SIDEBAR looks too, since item 40 — nothing checked those, and
+        merging an option that two looks differ at ALONE would have collapsed them
+        with the gate still green.
+      * EVERY AXIS IS A REAL FIELD. `allowed = options.get(field)` returns None
+        for a field the doctype does not have, and the option check then SKIPS it
+        — so a field could sit in `SIDEBAR_FIELDS`, be written by all eight
+        presets, and not exist. At runtime the comparison is `"" vs "Off"`, so all
+        twelve cards read "Custom" on every site forever, with a green suite and a
+        green gate. This is item 37's own trap, and a deletion slice is exactly
+        when it fires.
       * THE DEFAULT PRESET IS THE SHIPPED DEFAULT. If they differ by one value a
         brand-new site reads "Custom" on the day it is installed, which is the
         first thing its owner sees the settings page say.
@@ -1325,9 +1335,21 @@ def check_theme_catalogue() -> list[str]:
         for f in meta["fields"]
         if f.get("fieldname") and f.get("fieldtype") == "Select"
     }
+    # EVERY fieldname, not only the Selects: the option check below cannot see a
+    # field that does not exist, and that is the hole this closes.
+    fieldnames = {f["fieldname"] for f in meta["fields"] if f.get("fieldname")}
 
     bad: list[str] = []
     axes = set(THEME_AXES)
+
+    phantom = sorted(axes - fieldnames)
+    if phantom:
+        bad.append(
+            f"{len(phantom)} theme axes name a field the doctype does not have: "
+            f"{', '.join(phantom[:6])}. Every preset would write them and every card "
+            "would read Custom on every site, with nothing else failing — the option "
+            "check skips a field it cannot find."
+        )
     composed: dict = {}
 
     for name in THEME_PRESETS:
@@ -1351,6 +1373,23 @@ def check_theme_catalogue() -> list[str]:
             if composed[a] == composed[b]:
                 bad.append(f"{a} and {b} compose identically — the derived label "
                            f"cannot name either")
+
+    # THE EIGHT SIDEBAR LOOKS, WHICH NOTHING CHECKED. `THEME_PRESETS` names a
+    # `SIDEBAR_PRESETS` entry by string, so two identical looks make two theme
+    # cards indistinguishable in the pane while the twelve compositions still
+    # differ elsewhere — the distinctness check above would not see it. It bites
+    # the moment an option is merged away: item 40 removes two `sidebar_active_style`
+    # values, and `Daylight` and `Paper` differ at that field ALONE.
+    from bunood_theme.presets import SIDEBAR_PRESETS
+
+    looks = list(SIDEBAR_PRESETS)
+    for i, a in enumerate(looks):
+        for b in looks[i + 1:]:
+            if SIDEBAR_PRESETS[a] == SIDEBAR_PRESETS[b]:
+                bad.append(
+                    f"sidebar looks {a} and {b} are identical — a merge collapsed them, "
+                    "and every theme that names either now shows the same pane"
+                )
 
     base = {f: v for f, v in _shipped_baseline().items() if f in axes}
     drift = {k for k in axes if base.get(k) != composed.get(DEFAULT_THEME_PRESET, {}).get(k)}
