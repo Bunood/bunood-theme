@@ -37,7 +37,24 @@ if subprocess.run(["git", "diff", "--quiet", "--", SCSS]).returncode != 0:
     sys.exit(f"{SCSS} has uncommitted changes. Commit or stash them first: this "
              "script mutates that file and a mid-run kill would strand the edit.")
 
-ORIGINAL = io.open(SCSS, encoding="utf-8").read()
+# BYTES, NOT TEXT. Python's text mode translates newlines on the way in AND on
+# the way out, so a read-mutate-write round trip silently rewrites every line
+# ending to the host's -- which on a Windows checkout of an LF worktree is a
+# 1,129-line diff produced by a script whose whole promise is that it changes
+# nothing. The restore writes RAW back verbatim, so it is byte-identical by
+# construction rather than by hoping the translation is symmetric.
+RAW = io.open(SCSS, "rb").read()
+ORIGINAL = RAW.decode("utf-8")
+NEWLINE = "\r\n" if "\r\n" in ORIGINAL else "\n"
+#: What the mutations below match against: LF, whatever the checkout uses.
+FLAT = ORIGINAL.replace("\r\n", "\n")
+
+
+def write(text: str) -> None:
+    """Write a FLAT string back in the checkout's own line endings."""
+    io.open(SCSS, "wb").write(text.replace("\n", NEWLINE).encode("utf-8"))
+
+
 sys.path.insert(0, "tools")
 
 CHECKS = ("check_sidebar_agrees", "check_sidebar_coverage", "check_sidebar_binding")
@@ -126,12 +143,12 @@ failures = []
 try:
     print("HEAD:", probe()[0] or "every guard quiet", "\n")
     for label, mutate, expect in CASES:
-        broken = mutate(ORIGINAL)
-        if broken == ORIGINAL:
+        broken = mutate(FLAT)
+        if broken == FLAT:
             failures.append(f"{label}: the sabotage did not change the file")
             print(f"MISS  {label}\n        the sabotage did not change the file\n")
             continue
-        io.open(SCSS, "w", encoding="utf-8").write(broken)
+        write(broken)
         fired, detail = probe()
         ok = expect in fired
         print(f"{'PASS' if ok else 'MISS'}  {label}")
@@ -144,9 +161,9 @@ try:
             failures.append(f"{label}: expected {expect}, got {fired or 'nothing'}")
         print()
 finally:
-    io.open(SCSS, "w", encoding="utf-8").write(ORIGINAL)
+    io.open(SCSS, "wb").write(RAW)
 
-print("stylesheet restored byte-identical:", io.open(SCSS, encoding="utf-8").read() == ORIGINAL)
+print("stylesheet restored byte-identical:", io.open(SCSS, "rb").read() == RAW)
 print("git says clean:", subprocess.run(["git", "diff", "--quiet", "--", SCSS]).returncode == 0)
 if failures:
     print("\nSABOTAGE FAILURES:")
