@@ -801,6 +801,79 @@ def check_sidebar_coverage() -> list[str]:
     return problems
 
 
+def check_sidebar_headroom() -> list[str]:
+    """A pane that MOVES must not take its own ink below the floor — item 40.
+
+    THE GAP THIS CLOSES, and it is a structural one. `pairs()` measures each
+    pane through :func:`palette.sb_pane_css`, which is the STATIC fallback: a
+    ``("ground", …)`` recipe declares its base there, because there is no
+    `--bnd-ground` token for a stylesheet to name. So the seed sweep — which
+    has a brand axis and no ground axis — never sees the colour a grounded site
+    actually paints. Every row in it would stay green while the shipped pane
+    moved underneath.
+
+    WHAT IT CAUGHT BEFORE IT GUARDED ANYTHING. Slice 2 asked whether Minimal
+    should be tinted at 3, 5 or 8 percent. In light it can be tinted by
+    **1.36%**: `--bnd-sb-ink-muted` and `--bnd-sb-chip-ink` are #6d7570 on
+    #fafbfa, 4.57:1 against a 4.5 floor, and the three candidates measure
+    4.45 / 4.35 / 4.22 at the worst shipped ground — worse against an
+    unconstrained one. That is a three-for-three failure that no existing check
+    could see, and it is why light ships at 0% and dark at 5%.
+
+    HOW IT MEASURES. Every measurable pane, at every tint a tenant can reach:
+    the extreme (both `brand_color` and `ground_color` are unconstrained Frappe
+    Color fields — `ground_color`'s `validate()` strips and lowercases and
+    throws nothing) plus the six shipped grounds. The block's own inks are
+    resolved against a `derive()` at that same seed, so a mode whose inks are
+    `var(--bnd-ink-muted)` is measured as a site renders it rather than skipped.
+
+    The chip is measured on the chip, composited over the pane — a translucent
+    chip flattened over the wrong host is the defect-25 shape, one layer down.
+    """
+    from bunood_theme.presets import GROUNDS
+
+    light, dark = read_blocks(TOKENS_SCSS)
+    defaults = {"light": light, "dark": dark}
+    inks = ("--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-chip-ink")
+    problems = []
+
+    for (polarity, mode), block in sidebar_worlds().items():
+        recipe = palette.SB_PANES.get(polarity, {}).get(mode)
+        if recipe is None:
+            continue  # the brand gradient: see palette.SB_UNMEASURABLE
+        extreme = "#000000" if polarity == "light" else "#ffffff"
+        tints = [(extreme, "the extreme ground")] + [
+            (g, f"the {name} ground") for name, g in sorted(GROUNDS.items())
+        ]
+        for tint, why in tints:
+            pane = palette.sb_pane_value(recipe, tint, polarity, ground=tint)
+            v = dict(defaults[polarity])
+            v["--bnd-brand"] = tint
+            try:
+                v.update(palette.derive(tint, ACCENT_SEED, polarity, ground=tint))
+            except ValueError as exc:
+                problems.append(f"{mode}/{polarity} at {tint}: derive failed — {exc}")
+                continue
+            pane_c = parse_color(pane)
+            for tok in inks:
+                r = ratio(resolve(block[tok], v, over=pane), pane_c)
+                if r < AA_TEXT:
+                    problems.append(
+                        f"{mode}/{polarity}: {tok} ({block[tok]}) measures {r:.2f} on the pane "
+                        f"{pane} that {why} produces — under {AA_TEXT}. A pane that moves and an "
+                        "ink that does not is half a pair; move both or neither."
+                    )
+            chip_bg = resolve(block["--bnd-sb-chip-bg"], v, over=pane)
+            chip_ink = resolve(block["--bnd-sb-chip-ink"], v, over=to_hex(chip_bg))
+            r = ratio(chip_ink, chip_bg)
+            if r < AA_TEXT:
+                problems.append(
+                    f"{mode}/{polarity}: the chip label measures {r:.2f} on its chip over the pane "
+                    f"{pane} that {why} produces — under {AA_TEXT}."
+                )
+    return problems
+
+
 def check_sidebar_binding() -> list[str]:
     """Every colour mode the stylesheet offers is a pane some hue was fitted against.
 
@@ -1749,6 +1822,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    sb_head = check_sidebar_headroom()
+    if sb_head:
+        print("a sidebar pane moves further than its own ink can follow:")
+        for m in sb_head:
+            print(f"   {m}")
+        print()
+
     sb_bind = check_sidebar_binding()
     if sb_bind:
         print("a sidebar colour mode has no pane the hues were fitted against:")
@@ -1819,7 +1899,7 @@ def main() -> int:
         print()
 
     if (failures or drift or sep or ref or inert or lift or cat or theme or shape or split
-            or sb_agree or sb_cover or sb_bind):
+            or sb_agree or sb_cover or sb_bind or sb_head):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}

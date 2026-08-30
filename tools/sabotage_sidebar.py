@@ -2,8 +2,8 @@
 
     python tools/sabotage_sidebar.py
 
-NOT WIRED INTO ANY GATE, on purpose: it MUTATES the stylesheet, so it must never
-run alongside a build (`build.mjs` reaps older hashes) or a suite. It is the
+NOT WIRED INTO ANY GATE, on purpose: it MUTATES `_sidebar.scss` and `palette.py`,
+so it must never run alongside a build (`build.mjs` reaps older hashes) or a suite. It is the
 "watch it fail for the right reason" step, made repeatable instead of retyped.
 
 WHY IT EXISTS. This repo's first named trap is green tests that assert existence
@@ -27,15 +27,23 @@ import io
 import subprocess
 import sys
 
+#: The two files that define the pane's colour. The stylesheet says what
+#: RENDERS; `palette.py` says what the derivation BELIEVES. Item 40 split them
+#: on purpose, so a harness that could only break one of them could only ever
+#: test half the contract -- and the half it could not reach is where the
+#: slice-2 tint decision lives.
 SCSS = "bunood_theme/public/scss/chrome/_sidebar.scss"
+PALETTE = "bunood_theme/palette.py"
+TARGETS = (SCSS, PALETTE)
 
 # REFUSE TO RUN OVER UNCOMMITTED WORK. The restore is in a `finally`, and this
 # repo has already lost a probe's `finally` to a mid-run kill -- "the worst place
-# to die". With a clean file, recovery from any death is `git checkout -- <path>`;
+# to die". With clean files, recovery from any death is `git checkout -- <path>`;
 # with a dirty one it is somebody's lost afternoon.
-if subprocess.run(["git", "diff", "--quiet", "--", SCSS]).returncode != 0:
-    sys.exit(f"{SCSS} has uncommitted changes. Commit or stash them first: this "
-             "script mutates that file and a mid-run kill would strand the edit.")
+for _t in TARGETS:
+    if subprocess.run(["git", "diff", "--quiet", "--", _t]).returncode != 0:
+        sys.exit(f"{_t} has uncommitted changes. Commit or stash them first: this "
+                 "script mutates that file and a mid-run kill would strand the edit.")
 
 # BYTES, NOT TEXT. Python's text mode translates newlines on the way in AND on
 # the way out, so a read-mutate-write round trip silently rewrites every line
@@ -43,21 +51,26 @@ if subprocess.run(["git", "diff", "--quiet", "--", SCSS]).returncode != 0:
 # 1,129-line diff produced by a script whose whole promise is that it changes
 # nothing. The restore writes RAW back verbatim, so it is byte-identical by
 # construction rather than by hoping the translation is symmetric.
-RAW = io.open(SCSS, "rb").read()
-ORIGINAL = RAW.decode("utf-8")
-NEWLINE = "\r\n" if "\r\n" in ORIGINAL else "\n"
+RAW = {t: io.open(t, "rb").read() for t in TARGETS}
+NEWLINE = {t: ("\r\n" if b"\r\n" in RAW[t] else "\n") for t in TARGETS}
 #: What the mutations below match against: LF, whatever the checkout uses.
-FLAT = ORIGINAL.replace("\r\n", "\n")
+FLAT = {t: RAW[t].decode("utf-8").replace("\r\n", "\n") for t in TARGETS}
 
 
-def write(text: str) -> None:
+def write(target: str, text: str) -> None:
     """Write a FLAT string back in the checkout's own line endings."""
-    io.open(SCSS, "wb").write(text.replace("\n", NEWLINE).encode("utf-8"))
+    io.open(target, "wb").write(text.replace("\n", NEWLINE[target]).encode("utf-8"))
+
+
+def restore() -> None:
+    for t in TARGETS:
+        io.open(t, "wb").write(RAW[t])
 
 
 sys.path.insert(0, "tools")
 
-CHECKS = ("check_sidebar_agrees", "check_sidebar_coverage", "check_sidebar_binding")
+CHECKS = ("check_sidebar_agrees", "check_sidebar_coverage", "check_sidebar_binding",
+          "check_sidebar_headroom")
 
 
 def probe():
@@ -94,34 +107,35 @@ def probe():
     return fired, detail
 
 
+#: ``(label, target, mutate, owning_guard)``.
 CASES = [
-    ("a: re-step one light hue",
+    ("a: re-step one light hue", SCSS,
      lambda s: s.replace("--bnd-sb-cat-1: #2469bc;", "--bnd-sb-cat-1: #2469bd;", 1),
      "check_sidebar_agrees"),
-    ("b: gut the shared dark-hue mixin",
+    ("b: gut the shared dark-hue mixin", SCSS,
      lambda s: s.replace("@mixin sb-dark-hues {\n  --bnd-sb-cat-1: #7aabe5;",
                          "@mixin sb-dark-hues {\n  --bnd-sb-cat-0: #7aabe5;"),
      "check_sidebar_coverage"),
-    ("c: an unclassified --bnd-sb-* token",
+    ("c: an unclassified --bnd-sb-* token", SCSS,
      lambda s: s.replace("  --bnd-sb-card-base: #ffffff;",
                          "  --bnd-sb-card-base: #ffffff;\n  --bnd-sb-halo: #ff0000;", 1),
      "check_sidebar_coverage"),
-    ("d: a declaration on the dark arm instead of the mixin",
+    ("d: a declaration on the dark arm instead of the mixin", SCSS,
      lambda s: s.replace('html[data-theme="dark"][data-bnd-sb-color="minimal"] {\n'
                          "  @include sb-minimal-dark;",
                          'html[data-theme="dark"][data-bnd-sb-color="minimal"] {\n'
                          "  @include sb-minimal-dark;\n  --bnd-sb-ink: #ffffff;"),
      "check_sidebar_agrees"),
-    ("e: a sixth colour mode nothing was fitted against",
+    ("e: a sixth colour mode nothing was fitted against", SCSS,
      lambda s: s + '\nhtml[data-bnd-sb-color="sepia"] {\n  --bnd-sb-bg: #f4ecd8;\n}\n',
      "check_sidebar_binding"),
-    ("f: move the minimal pane and leave the table alone",
+    ("f: move the minimal pane and leave the table alone", SCSS,
      lambda s: s.replace("  --bnd-sb-bg: #fafbfa;", "  --bnd-sb-bg: #f0f0f0;", 1),
      "check_sidebar_agrees"),
     # g and h are defect 25's exact shape, and they are MEASURED, not counted:
     # dropping a dark override leaves a complete map after the cascade, so the
     # key-set check is structurally blind to it. See check_sidebar_coverage.
-    ("g: revert defect 25 -- drop dark minimal's chip ink",
+    ("g: revert defect 25 -- drop dark minimal's chip ink", SCSS,
      lambda s: s.replace("  --bnd-sb-chip-bg: transparent;\n  --bnd-sb-chip-ink: #8b938e;\n}",
                          "}", 1),
      "measured pairs"),
@@ -129,11 +143,28 @@ CASES = [
     # pattern on `html[`, so it saw (e)'s single-attribute block and would have
     # walked straight past this one. A guard's passing test says nothing about
     # the case the test did not cover.
-    ("i: a sixth colour mode declared ONLY on a compound selector",
+    ("i: a sixth colour mode declared ONLY on a compound selector", SCSS,
      lambda s: s + '\nhtml[data-theme="dark"][data-bnd-sb-color="sepia"] {\n'
                    "  --bnd-sb-bg: #2b2418;\n}\n",
      "check_sidebar_binding"),
-    ("h: drop dark minimal's muted-ink override",
+    # j and k are slice 2's decision, and they are the cases the harness could
+    # not reach before: they break the RECIPE, not the stylesheet. (j) is the
+    # option the measurement rejected -- tinting the light pane at all -- and it
+    # must be reported by check_sidebar_headroom, because no other check can see
+    # a ground-tinted pane at all.
+    ("j: tint the light pane, which has 0.07:1 of margin", PALETTE,
+     lambda s: s.replace('"minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane"),',
+                         '"minimal": SidebarPane(("ground", 3, "#fafbfa"), "minimal pane"),', 1),
+     "check_sidebar_headroom"),
+    ("k: push the dark pane past its own ceiling", PALETTE,
+     lambda s: s.replace('SidebarPane(("ground", 5, "#15181a")',
+                         'SidebarPane(("ground", 14, "#15181a")', 1),
+     "check_sidebar_headroom"),
+    ("l: change the recipe and leave the stylesheet's fallback behind", PALETTE,
+     lambda s: s.replace('SidebarPane(("ground", 5, "#15181a")',
+                         'SidebarPane(("ground", 5, "#171a1c")', 1),
+     "check_sidebar_agrees"),
+    ("h: drop dark minimal's muted-ink override", SCSS,
      lambda s: s.replace("  --bnd-sb-ink-muted: #8b938e;\n  --bnd-sb-line: rgba(255, 255, 255, 0.08);",
                          "  --bnd-sb-line: rgba(255, 255, 255, 0.08);", 1),
      "measured pairs"),
@@ -142,13 +173,13 @@ CASES = [
 failures = []
 try:
     print("HEAD:", probe()[0] or "every guard quiet", "\n")
-    for label, mutate, expect in CASES:
-        broken = mutate(FLAT)
-        if broken == FLAT:
+    for label, target, mutate, expect in CASES:
+        broken = mutate(FLAT[target])
+        if broken == FLAT[target]:
             failures.append(f"{label}: the sabotage did not change the file")
-            print(f"MISS  {label}\n        the sabotage did not change the file\n")
+            print(f"MISS  {label}\n        the sabotage did not change {target}\n")
             continue
-        write(broken)
+        write(target, broken)
         fired, detail = probe()
         ok = expect in fired
         print(f"{'PASS' if ok else 'MISS'}  {label}")
@@ -160,11 +191,13 @@ try:
         if not ok:
             failures.append(f"{label}: expected {expect}, got {fired or 'nothing'}")
         print()
+    restore()
 finally:
-    io.open(SCSS, "wb").write(RAW)
+    restore()
 
-print("stylesheet restored byte-identical:", io.open(SCSS, "rb").read() == RAW)
-print("git says clean:", subprocess.run(["git", "diff", "--quiet", "--", SCSS]).returncode == 0)
+print("restored byte-identical:", all(io.open(t, "rb").read() == RAW[t] for t in TARGETS))
+print("git says clean:", all(
+    subprocess.run(["git", "diff", "--quiet", "--", t]).returncode == 0 for t in TARGETS))
 if failures:
     print("\nSABOTAGE FAILURES:")
     for f in failures:

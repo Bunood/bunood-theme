@@ -368,9 +368,17 @@ SB_EXTRAS = {
 class SidebarPane(NamedTuple):
     """One colour mode's pane: how it is built, and what to call it in a report."""
 
-    #: ``("alias", token)`` the pane IS a global surface; resolve its recipe.
-    #: ``("mix", pct, base)`` `mix(seed, pct, base)`.
-    #: ``("literal", hex)`` a fixed pane, seed-independent.
+    #: How the pane is produced. Four kinds, and WHICH SEED a kind names is the
+    #: whole of item 40's slice-2 decision:
+    #:
+    #:   ``("literal", hex)``       a fixed pane. Nothing a tenant sets moves it.
+    #:   ``("alias", token)``       the pane IS a global surface; resolve THAT
+    #:                              recipe, which mixes ``ground or brand``.
+    #:   ``("brand", pct, base)``   ``mix(brand, pct, base)`` — the brand, never
+    #:                              the ground, even when a ground is set.
+    #:   ``("ground", pct, base)``  ``mix(ground, pct, base)``, and plain ``base``
+    #:                              when no ground is set. The pane shows what the
+    #:                              tenant ASKED for and never the brand behind it.
     recipe: tuple
     label: str
 
@@ -389,16 +397,68 @@ class SidebarPane(NamedTuple):
 #: The keys are the `data-bnd-sb-color` values, so a mode added to the
 #: stylesheet and not to this table is a coverage failure rather than a pane
 #: no hue was ever fitted against.
+#:
+#: ── MINIMAL, DECIDED 2026-08-29 (item 40, slice 2) ─────────────────────────
+#:
+#: Minimal was 0 of 14 tokens seed-dependent in both themes: the same pane on
+#: every site in the world. The two open questions were what should tint it and
+#: by how much. Both were measured against the real derivation before either
+#: was answered, and the measurement moved both answers.
+#:
+#: WHAT: the GROUND, never the brand. `ground or brand` — what `derive` does
+#: for every other surface — is bit-identical to this on sixteen of the
+#: seventeen shipped palettes, because all but one name a ground. The
+#: seventeenth is Bunood, and `presets.py` hands Bunood to exactly one theme
+#: that uses Minimal: **Quiet**, whose own preamble calls itself "the honest
+#: stand-down" and names the side pane as a kit that can only "take its
+#: quietest pole". So `ground or brand`'s entire practical effect would have
+#: been to brand-tint the pane of the one look whose promise is that everything
+#: which can stand down does. `ground_color` is a free Color field, so this is
+#: not "always neutral" — a tenant who wants a warm pane sets a warm ground.
+#:
+#: HOW MUCH: 5% in dark, and NOTHING in light. Not a preference — the light
+#: pane has no margin to spend and nothing to buy with it:
+#:
+#:   * Minimal's own `--bnd-sb-ink-muted` / `--bnd-sb-chip-ink` are #6d7570 on
+#:     #fafbfa, measuring 4.57:1 against a 4.5 floor. The worst NAMED ground
+#:     crosses that floor at 1.36%; the three candidates measured 4.45 / 4.35 /
+#:     4.22, and worse against an unconstrained one. Every candidate was a gate
+#:     failure in light. `check_sidebar_headroom` now enforces this.
+#:   * And it would have bought nothing. At 3% in light all six shipped grounds
+#:     mix to the SAME hex, #f7f8f7 — not similar, identical. Match Theme's own
+#:     light pane is four distinct colours across seventeen tenants. The
+#:     surface ramp is not what identifies a site; `--bnd-brand` is.
+#:
+#: Dark has both the room and the gain: every ink clears the floor at every
+#: candidate, and 5% holds the separation from Match Theme at 3.80 worst case
+#: while 8% drops it to 2.84 — under this repo's own 3.0 separation floor, and
+#: seven of seventeen palettes with it.
+#:
+#: WHY NOT 8%, properly. The plan said it "collapses Minimal into Match Theme".
+#: True, but not for the stated reason and not by a threshold: Match Theme's
+#: light pane is `mix(ground, 8%, #ffffff)`, so Minimal at 8% would be the SAME
+#: RECIPE AT THE SAME PERCENTAGE with a different base, and the difference
+#: between them becomes the constant `0.92 x (#fafbfa - #ffffff)` at every
+#: ground. The light separation curve is not even monotonic — it bottoms at ~6%
+#: (ΔE 0.47) and recovers — so "pick a smaller number to be safe" is false
+#: there. 8% also crosses the hue-fit binding at 6.20%.
+#:
+#: DARK CONTRAST KEEPS THE BRAND, deliberately and inconsistently. It is a
+#: statement pane, not a stand-down, so it stays `("brand", …)` — but note that
+#: it therefore ignores the ground entirely, which is a question this slice did
+#: not open. Recorded so the next reader knows it was seen, not missed.
 SB_PANES = {
     "light": {
         "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
+        # 0%. See the measurement above: the light ink has 0.07:1 of margin and
+        # every candidate would have spent it for a single hex.
         "minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane"),
     },
     "dark": {
         "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane"),
-        "minimal": SidebarPane(("literal", "#15181a"), "minimal pane, dark desk"),
+        "minimal": SidebarPane(("ground", 5, "#15181a"), "minimal pane, dark desk"),
         # Dark in both desk themes, hence its presence only here.
-        "dark": SidebarPane(("mix", 10, "#131a15"), "dark-contrast pane"),
+        "dark": SidebarPane(("brand", 10, "#131a15"), "dark-contrast pane"),
     },
 }
 
@@ -413,36 +473,51 @@ SB_UNMEASURABLE = {
 SB_STOPS = ((96, "#ffffff"), (72, "#000000"))
 
 
-def _sb_pane_hex(pane: SidebarPane, seed: str, polarity: str) -> str:
-    """One pane recipe to a concrete hex at ``seed``."""
+def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | None = None) -> str:
+    """One pane as the concrete hex a SITE renders.
+
+    ``ground=None`` means the tenant set none, which is the case a
+    ``("ground", …)`` recipe answers by standing down to its base — the whole
+    of the "what tints Minimal" decision, in one branch.
+    """
     kind = pane.recipe[0]
     if kind == "literal":
         return pane.recipe[1]
-    if kind == "mix":
-        return mix(seed, pane.recipe[1], pane.recipe[2])
+    if kind == "brand":
+        return mix(brand, pane.recipe[1], pane.recipe[2])
+    if kind == "ground":
+        return mix(ground, pane.recipe[1], pane.recipe[2]) if ground else pane.recipe[2]
     if kind == "alias":
         ramp = SURFACES_LIGHT if polarity == "light" else SURFACES_DARK
         for tok, pct, base in ramp:
             if tok == pane.recipe[1]:
-                return mix(seed, pct, base)
+                # The aliased surface mixes `ground or brand`, exactly as
+                # `derive` does. Reading it any other way would model a pane
+                # this app never paints.
+                return mix(ground or brand, pct, base)
         raise ValueError(f"unknown surface alias {pane.recipe[1]}")
     raise ValueError(f"unknown pane recipe {pane.recipe!r}")
 
 
 def sb_pane_css(pane: SidebarPane) -> str:
-    """One pane recipe as the CSS expression a stylesheet declares.
+    """One pane as the CSS expression the STATIC stylesheet declares.
 
-    The counterpart of :func:`_sb_pane_hex`: the gate resolves expressions per
-    seed rather than baking a hex, and `brand.py` will emit these verbatim.
-    Both readings come from the one recipe, so the four pane strings the gate
-    used to hand-copy out of `_sidebar.scss` cannot drift from it again.
+    This is the FALLBACK floor, not the site's answer: it is what renders when
+    the per-site brand sheet is missing, and it is what `check_sidebar_agrees`
+    holds `_sidebar.scss` to. A ``("ground", …)`` pane has no static form at
+    all — there is no `--bnd-ground` token, because the ground is an input to
+    the derivation and not an output of it — so it declares its base, which is
+    also exactly what a site with no ground renders. One value, two correct
+    readings, which is why the recipe can carry both.
     """
     kind = pane.recipe[0]
     if kind == "literal":
         return pane.recipe[1]
+    if kind == "ground":
+        return pane.recipe[2]
     if kind == "alias":
         return f"var({pane.recipe[1]})"
-    if kind == "mix":
+    if kind == "brand":
         return f"color-mix(in srgb, var(--bnd-brand) {pane.recipe[1]}%, {pane.recipe[2]})"
     raise ValueError(f"unknown pane recipe {pane.recipe!r}")
 
@@ -456,6 +531,12 @@ def _sb_binding_bg(polarity: str) -> str:
     the DARKEST any light pane gets, which is at the darkest seed; a dark hue
     is the LIGHTEST, at the brightest seed.
 
+    THE EXTREME IS APPLIED TO BOTH SEEDS, brand and ground, because both are
+    unconstrained Frappe Color fields — `ground_color`'s `validate()` strips and
+    lowercases and throws nothing. A walk that took the extreme brand but a
+    named ground would compute a binding no pathological site reaches, and the
+    next re-fit would land hues that fail on one.
+
     An ``("alias", …)`` entry resolves to the aliased surface's own recipe —
     NOT to the alias string. Reading it as an opaque literal would compute a
     binding that cannot see Match Theme's pane at all, and the next re-fit
@@ -465,7 +546,8 @@ def _sb_binding_bg(polarity: str) -> str:
     if polarity not in ("light", "dark"):
         raise ValueError(f"polarity must be light or dark, got {polarity!r}")
     extreme = "#000000" if polarity == "light" else "#ffffff"
-    cands = [_sb_pane_hex(p, extreme, polarity) for p in SB_PANES[polarity].values()]
+    cands = [sb_pane_value(p, extreme, polarity, ground=extreme)
+             for p in SB_PANES[polarity].values()]
     key = lambda hx: luminance(parse_color(hx))
     return min(cands, key=key) if polarity == "light" else max(cands, key=key)
 
@@ -477,8 +559,10 @@ def sb_hues(polarity: str) -> list[str]:
     precondition cannot be violated here by construction.
 
     At every seed the designed values already clear the floor and come back
-    untouched — verified for all fourteen. That is the point: this replaces a
-    hand-copied table with the derivation that produces it, at no visual cost.
+    untouched — verified for all fourteen, and re-verified after the slice-2
+    tint decision moved the dark Minimal recipe. That is the point: this
+    replaces a hand-copied table with the derivation that produces it, at no
+    visual cost.
     """
     bg = _sb_binding_bg(polarity)
     seeds = SB_HUE_SEEDS_LIGHT if polarity == "light" else SB_HUE_SEEDS_DARK
