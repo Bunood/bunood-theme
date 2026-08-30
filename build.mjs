@@ -57,7 +57,48 @@ const JS = join(APP, "public", "js");
 const DIST_CSS = join(APP, "public", "dist", "css");
 const DIST_JS = join(APP, "public", "dist", "js");
 
-const FORBIDDEN_ROUTE_SELECTORS = ["data-route=", "data-page-route="];
+const FORBIDDEN_ROUTE_ATTRS = ["data-route", "data-page-route"];
+
+/**
+ * Blank SCSS comments, preserving line structure so reported line numbers stay
+ * true.
+ *
+ * THE GATE MEASURES CODE, NOT PROSE. A comment that NAMES a retired route
+ * selector — to record why it was retired — is documentation. A gate that
+ * fails on it teaches the next author to delete the explanation, which is the
+ * opposite of what this repo wants.
+ */
+function stripScssComments(source) {
+	let out = "";
+	let inBlock = false;
+	let inLine = false;
+	let inString = null;
+	for (let i = 0; i < source.length; i++) {
+		const c = source[i];
+		const d = source[i + 1];
+		if (inBlock) {
+			if (c === "*" && d === "/") { inBlock = false; out += "  "; i++; continue; }
+			out += c === "\n" ? "\n" : " ";
+			continue;
+		}
+		if (inLine) {
+			if (c === "\n") { inLine = false; out += "\n"; continue; }
+			out += " ";
+			continue;
+		}
+		if (inString) {
+			out += c;
+			if (c === "\\") { out += d ?? ""; i++; continue; }
+			if (c === inString) inString = null;
+			continue;
+		}
+		if (c === '"' || c === "'") { inString = c; out += c; continue; }
+		if (c === "/" && d === "*") { inBlock = true; out += "  "; i++; continue; }
+		if (c === "/" && d === "/") { inLine = true; out += "  "; i++; continue; }
+		out += c;
+	}
+	return out;
+}
 
 /**
  * Route-agnostic styling guard — CSS targets rendered component signatures,
@@ -68,15 +109,23 @@ const FORBIDDEN_ROUTE_SELECTORS = ["data-route=", "data-page-route="];
  * DOM signature such as `.page-container:has(.frappe-list)` follows what is on
  * screen and therefore applies universally.
  *
+ * MATCH THE BRACKET, NOT `attr=`. This gate first shipped looking for the
+ * literal strings `data-route=` and `data-page-route=`, and the two rules it
+ * was written to prevent — `body[data-route^="Form"]` in `chrome/_layouts.scss`
+ * — walked straight past it, because `^=` is not `=`. Anchoring on `[` catches
+ * every CSS attribute operator (`=`, `^=`, `*=`, `$=`, `~=`, `|=`) and the bare
+ * presence form `[data-route]` with it.
+ *
  * @param {{name: string, source: string}[]} sources - SCSS source files
  */
 function assertRouteAgnosticScss(sources) {
 	const offenders = [];
+	const patterns = FORBIDDEN_ROUTE_ATTRS.map((attr) => [attr, new RegExp("\\[\\s*" + attr + "\\b")]);
 	for (const { name, source } of sources) {
-		const lines = source.split(/\r?\n/);
+		const lines = stripScssComments(source).split(/\r?\n/);
 		for (let index = 0; index < lines.length; index++) {
-			for (const marker of FORBIDDEN_ROUTE_SELECTORS) {
-				if (lines[index].includes(marker)) offenders.push(`${name}:${index + 1} contains ${marker}`);
+			for (const [attr, re] of patterns) {
+				if (re.test(lines[index])) offenders.push(`${name}:${index + 1} contains [${attr}`);
 			}
 		}
 	}
@@ -108,21 +157,44 @@ async function readScssSources(dir = SCSS, prefix = "") {
 
 /**
  * Negative-test the guard itself on every build. A guard that silently matches
- * nothing is worse than no guard; both forbidden spellings must be rejected,
+ * nothing is worse than no guard; every forbidden spelling must be rejected,
  * while the sanctioned DOM-signature form must pass.
+ *
+ * EVERY OPERATOR, NOT JUST `=`. The first version of this self-test probed only
+ * the exact strings the gate searched for, so it agreed with the gate about a
+ * hole they shared: `^=`. `chrome/_layouts.scss` carried
+ * `body[data-route^="Form"]` through this "passing" self-test. A self-test that
+ * reuses the implementation's own assumption measures nothing — so the operator
+ * list here is written out by hand, deliberately independent of the gate.
+ *
+ * The last case is the other half: a route selector NAMED IN A COMMENT is
+ * documentation and must NOT fail, or the next author deletes the explanation.
  */
 function assertRouteAgnosticGateSelfTest() {
-	for (const marker of FORBIDDEN_ROUTE_SELECTORS) {
-		let rejected = false;
-		try {
-			assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${marker}\"List\"] {}` }]);
-		} catch (error) {
-			rejected = String(error.message).includes(marker) && String(error.message).includes(":has()");
+	const OPERATORS = ["=", "^=", "*=", "$=", "~=", "|="];
+	for (const attr of FORBIDDEN_ROUTE_ATTRS) {
+		for (const op of OPERATORS) {
+			let rejected = false;
+			try {
+				assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${attr}${op}"List"] {}` }]);
+			} catch (error) {
+				rejected = String(error.message).includes(attr) && String(error.message).includes(":has()");
+			}
+			if (!rejected) throw new Error(`Route-agnostic gate self-test did not reject ${attr}${op}`);
 		}
-		if (!rejected) throw new Error(`Route-agnostic styling gate self-test did not reject ${marker}`);
+		// the bare presence form, which carries no operator at all
+		let presenceRejected = false;
+		try {
+			assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${attr}] {}` }]);
+		} catch (error) {
+			presenceRejected = String(error.message).includes(attr);
+		}
+		if (!presenceRejected) throw new Error(`Route-agnostic gate self-test did not reject [${attr}]`);
 	}
 	assertRouteAgnosticScss([
 		{ name: "positive-test.scss", source: ".page-container:has(.frappe-list) {}" },
+		{ name: "comment-test.scss", source: `// the retired body[data-route^="Form"] spelling\n.page-container:has(.form-layout) {}` },
+		{ name: "block-comment-test.scss", source: `/* was html[data-page-route="List"] */\n.frappe-list {}` },
 	]);
 }
 
