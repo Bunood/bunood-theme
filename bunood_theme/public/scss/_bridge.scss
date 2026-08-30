@@ -102,6 +102,23 @@
   // VALUES rather than as selector variants.
   --list-row-height: var(--bnd-row-h);
 
+  // THE SIDE PANE'S WIDTH IS FRAPPE'S TO APPLY, AND OURS TO CHOOSE.
+  // v16 sizes the pane from its OWN `--sidebar-width`, and only through the
+  // `.expanded` class on `.body-sidebar-container`:
+  //
+  //   .body-sidebar                        { width: 50px }              // rail
+  //   .body-sidebar-container .body-sidebar { width: 0 }                // shut
+  //   .body-sidebar-container.expanded .body-sidebar { width: var(--sidebar-width) }
+  //
+  // The kit used to set an inline width on the CONTAINER only, so the inner
+  // pane kept Frappe's 50px rail while its container measured 240px — every row
+  // crushed to 6px with its label clipped, which is what "the collapsed menu has
+  // text and icons everywhere" was. Mapping the variable here, and letting
+  // `sb_apply_width` add Frappe's own class, fixes it through the vendor's
+  // published contract instead of out-specifying it — no `!important`, and a
+  // Frappe upgrade that renames this is a one-line fix in this file.
+  --sidebar-width: var(--bnd-sb-w);
+
   // ── Icons ─────────────────────────────────────────────────────────────────
   // Frappe colours EVERY desk icon with `--icon-stroke` (its own `--gray-800`
   // in light, `--gray-300` in dark; `common/icons.scss` keys `.icon` on it) and

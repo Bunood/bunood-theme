@@ -6212,12 +6212,40 @@ function sb_zone_anchor(pane, zone, node) {
 		// mount_sidebar_kit, so widening restores the width.
 		if (is_narrow()) {
 			container.style.width = "";
+			// `.expanded` is FRAPPE'S OWN drawer state on a phone — it is what
+			// opens the off-canvas overlay. Never touch it here, and release
+			// anything we added at desktop width so the drawer behaves.
+			sb_release_expanded(container);
 			return;
 		}
 		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
-		if (mode === "expanded") container.style.width = "var(--bnd-sb-w)";
-		else container.style.width = "";
+		if (mode === "expanded") {
+			container.style.width = "var(--bnd-sb-w)";
+			// THE WIDTH ALONE WAS NEVER ENOUGH. v16 sizes the INNER pane only
+			// under `.body-sidebar-container.expanded` (see the `--sidebar-width`
+			// note in _bridge.scss); without the class the container measured
+			// 240px around a 50px rail and every row was crushed to 6px. Adding
+			// Frappe's own class is the published way to open the pane — no
+			// `!important`, no out-specifying the vendor.
+			if (!container.classList.contains("expanded")) {
+				container.classList.add("expanded");
+				// Marked so we only ever remove what WE added. Frappe toggles
+				// this class too, and reclaiming its state would fight the
+				// user's own collapse.
+				container.dataset.bndExpanded = "1";
+			}
+		} else {
+			container.style.width = "";
+			sb_release_expanded(container);
+		}
+	}
+
+	/** Drop `.expanded` only when this kit is the one that added it. */
+	function sb_release_expanded(container) {
+		if (!container.dataset.bndExpanded) return;
+		delete container.dataset.bndExpanded;
+		container.classList.remove("expanded");
 	}
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
