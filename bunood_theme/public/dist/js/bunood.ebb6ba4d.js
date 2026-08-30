@@ -6620,7 +6620,13 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function on_home_route() {
-		const route = window.frappe && frappe.get_route ? frappe.get_route() : [];
+		// `|| []` GUARDS THE RETURN, not just the function's existence. The
+		// ternary alone asks whether `frappe.get_route` is defined; on Frappe
+		// v16 it is defined and RETURNS NULL while the router is still
+		// resolving — measured on `/app/item`, where `route[0]` then threw
+		// `Cannot read properties of null` out of the boot-time
+		// `mount_chrome` -> `mount_home_dashboard` chain.
+		const route = (window.frappe && frappe.get_route ? frappe.get_route() : null) || [];
 		// A public workspace URL such as /desk/home is normalised by Frappe's
 		// router to ["Workspaces", "Home"]. Testing route[0] alone therefore
 		// sees "Workspaces", not "home", and the dashboard never mounts.
