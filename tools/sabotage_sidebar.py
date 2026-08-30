@@ -74,8 +74,16 @@ CHECKS = ("check_sidebar_agrees", "check_sidebar_coverage", "check_sidebar_bindi
 
 
 def probe():
-    """Every sidebar guard, on a freshly imported gate (sidebar_worlds caches)."""
-    for m in ("contrast_gate", "bunood_theme.palette"):
+    """Every sidebar guard, on a freshly imported gate (sidebar_worlds caches).
+
+    DROP THE PARENT PACKAGE TOO, not just the submodule. `contrast_gate` does
+    `from bunood_theme import palette`, and for a submodule that resolves as
+    `getattr(bunood_theme, "palette")` -- so a cached `bunood_theme` hands back
+    the STALE module object and the re-import never touches disk. Popping only
+    `bunood_theme.palette` made three palette-target cases report that nothing
+    fired, against a guard that had already been watched failing by hand.
+    """
+    for m in [k for k in sys.modules if k == "contrast_gate" or k.startswith("bunood_theme")]:
         sys.modules.pop(m, None)
     import contrast_gate as g
     fired, detail = [], {}
@@ -174,6 +182,12 @@ failures = []
 try:
     print("HEAD:", probe()[0] or "every guard quiet", "\n")
     for label, target, mutate, expect in CASES:
+        # RESTORE EVERY TARGET FIRST. With one target each case simply
+        # overwrote the last; with two, mutating `palette.py` used to leave
+        # `_sidebar.scss` broken from the previous case, and three cases then
+        # reported the WRONG guard firing for the previous case's reason. The
+        # owner column is what caught it -- "something went red" would not have.
+        restore()
         broken = mutate(FLAT[target])
         if broken == FLAT[target]:
             failures.append(f"{label}: the sabotage did not change the file")
