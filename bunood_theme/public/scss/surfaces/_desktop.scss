@@ -39,10 +39,16 @@
 //   for a grid of tiles.
 // ============================================================================
 
-$desktop-item: ".desktop-container > .icons-container > .icons > .desktop-icon";
+// DESCENDANT, NOT A CHAIN OF `>`. The first cut spelled this
+// `.desktop-container > .icons-container > .icons > .desktop-icon`, which is
+// the shape of the OUTERMOST group only: ERPNext nests further groups inside
+// `.icons-container`, so twelve of twenty-one tiles never matched and rendered
+// half-styled — measured as brand colour on some tiles and Frappe's muted ink
+// on the rest, from one stylesheet. A tile is a tile wherever it sits.
+$desktop-item: ".desktop-icon";
 
 html[data-bnd-desk] {
-  .desktop-wrapper .desktop-container > .icons-container > .icons {
+  .desktop-wrapper .icons {
     gap: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-5));
   }
 
@@ -69,15 +75,43 @@ html[data-bnd-desk] {
     transform: translateY(-2px);
   }
 
-  // ── The icon: Frappe's, sized, not replaced ──────────────────────────────
+  // ── The icon ─────────────────────────────────────────────────────────────
+  // A tile's own icon comes from Frappe's sprite, mounted by
+  // `mount_desktop_icons` in bunood.js: a stroke drawing that inherits
+  // `currentColor`, so twelve modules read as ONE set instead of half a dozen
+  // app palettes. The symbol is the icon the SITE chose for that workspace, so
+  // a custom module or a third-party app is covered without a table in here.
   .desktop-wrapper #{$desktop-item} > .icon-container {
+    display: grid;
+    place-items: center;
     inline-size: 48px;
     block-size: 48px;
     margin-block-end: var(--bnd-sp-4);
     margin-inline: auto;
   }
 
-  .desktop-wrapper #{$desktop-item} > .icon-container :is(img, svg) {
+  // HIDDEN FROM THE OUTCOME, NOT THE INTENT. `data-bnd-deskicon` is stamped
+  // only once our icon is in the container, so a mount that never ran leaves
+  // Frappe's own icon on screen. The predecessor hid it unconditionally and
+  // fetched a replacement from a CDN — when that CDN was unreachable the grid
+  // was twelve empty squares.
+  .desktop-wrapper #{$desktop-item} > .icon-container[data-bnd-deskicon] > :not(.bnd-deskicon) {
+    display: none;
+  }
+
+  .desktop-wrapper #{$desktop-item} > .icon-container > .bnd-deskicon {
+    inline-size: 30px;
+    block-size: 30px;
+    color: var(--bnd-brand-solid);
+    // Frappe's `.icon` paints from `--icon-stroke`; ours is a brand accent, so
+    // it is re-pointed here rather than globally — the sidebar and the rest of
+    // the desk keep the muted ink the bridge gives them.
+    --icon-stroke: currentColor;
+  }
+
+  // The native icon, when it is the one on screen (mount failed, or the sprite
+  // has no symbol for this module).
+  .desktop-wrapper #{$desktop-item} > .icon-container :is(img, svg):not(.bnd-deskicon) {
     inline-size: 100%;
     block-size: 100%;
     object-fit: contain;

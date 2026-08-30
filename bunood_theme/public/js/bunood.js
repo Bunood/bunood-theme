@@ -1776,6 +1776,91 @@
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const on_desktop = !route.length || (route.length === 1 && !route[0]);
 		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
+		// The grid is built asynchronously and has no "ready" event, so this
+		// polls with a bounded budget like every other mount here. Driven from
+		// this one function because it already runs at mount AND on every route
+		// change, which is exactly when a tile can appear.
+		if (on_desktop) try_for(mount_desktop_icons, 40, 150);
+	}
+
+	/**
+	 * The sprite symbol for a module tile on the Desktop grid.
+	 *
+	 * A tile's `data-id` is sometimes a workspace name ("Invoicing", "Payments")
+	 * and sometimes a module name ("Accounting", "Framework"), so both are
+	 * asked. `frappe.boot.allowed_workspaces` carries the icon the site itself
+	 * chose for each workspace — the same value the side pane renders — which is
+	 * why this reads per-site data rather than a table in here: a hand-written
+	 * module list cannot cover a custom module, a third-party app or a site
+	 * running in another language, and the version this replaces had exactly
+	 * that problem.
+	 *
+	 * @param {string} id - the tile's `data-id`.
+	 * @returns {string} a sprite id that is safe to render.
+	 */
+	function desktop_symbol(id, label) {
+		const boot = (window.frappe && frappe.boot) || {};
+		const spaces = boot.allowed_workspaces || [];
+		const want = String(id || "");
+
+		let hit = spaces.find((w) => w && w.name === want);
+		if (!hit) {
+			// Module name: take the first workspace the module owns.
+			const owned = (boot.module_wise_workspaces || {})[want];
+			const first = Array.isArray(owned) ? owned[0] : null;
+			if (first) hit = spaces.find((w) => w && w.name === first);
+		}
+		if (hit && hit.icon) return ws_symbol(hit.icon);
+
+		// INFER, rather than settle for a folder. Measured on this stack: nine
+		// of twenty-one tiles name neither a workspace nor a module that owns
+		// one — "Payments", "Taxes", "Accounts Setup" — and a grid where nine
+		// tiles are the same folder glyph is not a set, it is a shrug. This is
+		// the SAME keyword table the sidebar and breadcrumbs already infer
+		// from, so a tile and its side-pane entry agree on the glyph.
+		for (const [re, candidates] of SB_ICON_HINTS) {
+			if (re.test(want) || (label && re.test(label))) {
+				const found = sb_existing_symbol(candidates);
+				if (found) return found;
+			}
+		}
+		return ws_symbol(null);
+	}
+
+	/**
+	 * Give each Desktop tile an icon from Frappe's own sprite.
+	 *
+	 * WHY OURS AND NOT FRAPPE'S OWN `<img>`
+	 *   The stock tile ships a raster-ish per-module SVG in whatever colours its
+	 *   app chose, so a grid mixes half a dozen palettes. A sprite symbol is a
+	 *   stroke drawing that inherits `currentColor`, which is what lets the grid
+	 *   read as one set.
+	 *
+	 * WHY THE NATIVE ICON IS HIDDEN FROM AN OUTCOME, NOT A DECLARATION
+	 *   `data-bnd-deskicon` is stamped on the container AFTER ours is in it, and
+	 *   the stylesheet hides the native sibling only from that mark — the same
+	 *   polarity as `data-bnd-own`. A mount that fails therefore leaves the
+	 *   stock icon on screen rather than an empty tile, which is the failure
+	 *   mode worth having. The version this replaces hid the native icon
+	 *   unconditionally and fetched a replacement from a third-party CDN, so an
+	 *   unreachable CDN meant a grid of empty squares.
+	 *
+	 * @returns {boolean} true once tiles have been seen, for `try_for`.
+	 */
+	function mount_desktop_icons() {
+		const tiles = document.querySelectorAll(".desktop-wrapper .desktop-icon");
+		if (!tiles.length) return false;
+		for (const tile of tiles) {
+			const host = tile.querySelector(".icon-container");
+			if (!host || host.querySelector(".bnd-deskicon")) continue;
+			const caption = tile.querySelector(".icon-title, .icon-caption");
+			const label = caption ? caption.textContent.trim() : "";
+			const svg = sprite_icon(desktop_symbol(tile.getAttribute("data-id"), label));
+			svg.classList.add("bnd-deskicon");
+			host.appendChild(svg);
+			host.setAttribute("data-bnd-deskicon", "");
+		}
+		return true;
 	}
 
 	/**

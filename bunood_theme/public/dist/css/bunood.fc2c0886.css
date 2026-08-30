@@ -5019,10 +5019,10 @@ html[data-theme] .bnd-home-dashboard {
     grid-template-columns: repeat(6, 54px);
   }
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons {
+html[data-bnd-desk] .desktop-wrapper .icons {
   gap: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-5));
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon {
   min-block-size: 138px;
   padding: var(--bnd-sp-4);
   background: var(--bnd-surface);
@@ -5032,27 +5032,38 @@ html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .ic
   box-shadow: var(--bnd-shadow-sm);
   transition: border-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease), transform var(--bnd-dur-fast) var(--bnd-ease);
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon:is(:hover, :focus-visible) {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon:is(:hover, :focus-visible) {
   border-color: var(--bnd-brand-solid);
   box-shadow: var(--bnd-shadow-md);
   transform: translateY(-2px);
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container {
+  display: grid;
+  place-items: center;
   inline-size: 48px;
   block-size: 48px;
   margin-block-end: var(--bnd-sp-4);
   margin-inline: auto;
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-container :is(img, svg) {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container[data-bnd-deskicon] > :not(.bnd-deskicon) {
+  display: none;
+}
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container > .bnd-deskicon {
+  inline-size: 30px;
+  block-size: 30px;
+  color: var(--bnd-brand-solid);
+  --icon-stroke: currentColor;
+}
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container :is(img, svg):not(.bnd-deskicon) {
   inline-size: 100%;
   block-size: 100%;
   object-fit: contain;
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-caption {
   overflow: visible;
   margin-block-start: var(--bnd-sp-1);
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-container > .icons-container > .icons > .desktop-icon > .icon-caption .icon-title {
+html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-caption .icon-title {
   display: block;
   overflow: visible;
   padding-block: var(--bnd-sp-1) var(--bnd-sp-2);
