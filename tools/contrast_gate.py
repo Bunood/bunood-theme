@@ -513,6 +513,72 @@ SEEDS = [
 # ── Reading the tokens ───────────────────────────────────────────────────────
 
 
+def _strip_comments(src: str) -> str:
+    """Drop `//` line comments. Every SCSS reader here starts with this."""
+    return re.sub(r"//[^\n]*", "", src)
+
+
+def body_of(src: str, pattern: str, what: str, path: str) -> str:
+    """The brace-matched body of the first construct matching ``pattern``."""
+    m = re.search(pattern, src, re.M)
+    if not m:
+        raise SystemExit(f"contrast gate: no {what} in {path}")
+    depth, i = 1, m.end()
+    while depth and i < len(src):
+        depth += {"{": 1, "}": -1}.get(src[i], 0)
+        i += 1
+    return src[m.end() : i - 1]
+
+
+def expand_includes(src: str, body: str, path: str, depth: int = 0) -> str:
+    """Substitute ``@include <name>;`` with the body of ``@mixin <name>``.
+
+    WHY THIS EXISTS (item 32). The dark token set became a ``@mixin`` so it
+    could be emitted under a third selector — a website page carries no
+    ``data-theme``, so the login sheet reaches dark through
+    ``prefers-color-scheme`` — and this parser reads the SOURCE, not the
+    compiled CSS. Without expansion, ``html[data-theme="dark"] { @include
+    dark; }`` parses as an EMPTY block, ``dark`` collapses onto ``light``,
+    and the gate reports 150 failures in dark for every seed while the
+    stylesheet is perfectly correct.
+
+    Recorded because of how it was found: the mixin commit proved itself
+    inert with a BYTE-IDENTICAL rebuild, which is real evidence about the
+    compiled sheet and no evidence at all about a tool that parses the
+    source. Two things read ``_tokens.scss`` and only one of them is Sass.
+
+    MODULE-LEVEL SINCE ITEM 40, and that is the point. ``_sidebar.scss`` now
+    uses the same mixin shape for the same reason — its dark hue set is
+    emitted under ``[data-theme="dark"]`` AND the ``automatic`` arm — so a
+    second reader had to expand includes too. Nested inside ``read_blocks``
+    this would have been copied, and a copy of a parser is the same-fact-twice
+    defect wearing a different hat: the item-32 incident above would then be
+    fixable in one reader and still live in the other.
+    """
+    if depth > 4:
+        raise SystemExit("contrast gate: @include nesting too deep in " + path)
+
+    def sub(m):
+        name = m.group(1)
+        inner = body_of(src, r"@mixin\s+" + re.escape(name) + r"\s*\{", f"@mixin {name}", path)
+        return expand_includes(src, inner, path, depth + 1)
+
+    return re.sub(r"@include\s+([\w-]+)\s*;", sub, body)
+
+
+def read_decls(src: str, pattern: str, what: str, path: str) -> dict:
+    """The custom-property declarations of one brace-matched block, includes expanded."""
+    out = {}
+    for decl in _split_decls(expand_includes(src, body_of(src, pattern, what, path), path)):
+        if ":" not in decl:
+            continue
+        name, _, value = decl.partition(":")
+        name = name.strip()
+        if name.startswith("--"):
+            out[name] = value.strip()
+    return out
+
+
 def read_blocks(path: str) -> tuple[dict, dict]:
     """Return ``(light, dark)`` custom-property maps parsed from ``_tokens.scss``.
 
@@ -531,57 +597,10 @@ def read_blocks(path: str) -> tuple[dict, dict]:
     rather than by oversight, which is only a meaningful distinction if it is
     written down.
     """
-    src = open(path, encoding="utf-8").read()
-    src = re.sub(r"//[^\n]*", "", src)
-
-    def body_of(pattern: str, what: str) -> str:
-        """The brace-matched body of the first construct matching ``pattern``."""
-        m = re.search(pattern, src, re.M)
-        if not m:
-            raise SystemExit(f"contrast gate: no {what} in {path}")
-        depth, i = 1, m.end()
-        while depth and i < len(src):
-            depth += {"{": 1, "}": -1}.get(src[i], 0)
-            i += 1
-        return src[m.end() : i - 1]
-
-    def expand_includes(body: str, depth: int = 0) -> str:
-        """Substitute ``@include <name>;`` with the body of ``@mixin <name>``.
-
-        WHY THIS EXISTS (item 32). The dark token set became a ``@mixin`` so it
-        could be emitted under a third selector — a website page carries no
-        ``data-theme``, so the login sheet reaches dark through
-        ``prefers-color-scheme`` — and this parser reads the SOURCE, not the
-        compiled CSS. Without expansion, ``html[data-theme="dark"] { @include
-        dark; }`` parses as an EMPTY block, ``dark`` collapses onto ``light``,
-        and the gate reports 150 failures in dark for every seed while the
-        stylesheet is perfectly correct.
-
-        Recorded because of how it was found: the mixin commit proved itself
-        inert with a BYTE-IDENTICAL rebuild, which is real evidence about the
-        compiled sheet and no evidence at all about a tool that parses the
-        source. Two things read ``_tokens.scss`` and only one of them is Sass.
-        """
-        if depth > 4:
-            raise SystemExit("contrast gate: @include nesting too deep in " + path)
-        def sub(m):
-            name = m.group(1)
-            return expand_includes(body_of(r"@mixin\s+" + re.escape(name) + r"\s*\{", f"@mixin {name}"), depth + 1)
-        return re.sub(r"@include\s+([\w-]+)\s*;", sub, body)
+    src = _strip_comments(open(path, encoding="utf-8").read())
 
     def block(selector: str) -> dict:
-        body = expand_includes(
-            body_of(r"^" + re.escape(selector) + r"\s*\{", f"top-level `{selector}` block")
-        )
-        out = {}
-        for decl in _split_decls(body):
-            if ":" not in decl:
-                continue
-            name, _, value = decl.partition(":")
-            name = name.strip()
-            if name.startswith("--"):
-                out[name] = value.strip()
-        return out
+        return read_decls(src, r"^" + re.escape(selector) + r"\s*\{", f"top-level `{selector}` block", path)
 
     light = block(":root")
     # Dark is an OVERRIDE layer, exactly as the cascade applies it — the dark
