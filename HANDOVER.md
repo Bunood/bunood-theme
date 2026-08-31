@@ -47,7 +47,8 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
-FIELD MODEL DONE (19 style settings → 12); PLACE ROW DONE; ONE LIFECYCLE DONE.**
+FIELD MODEL DONE (19 style settings → 12); PLACE ROW DONE; ONE LIFECYCLE DONE;
+SECTIONS DONE (paint, not surgery — and collapse is Frappe's, measured).**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
@@ -153,6 +154,17 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **THE SPRITE GLYPH PAINTS BY `stroke`, NEVER BY `color` — and Frappe stamps its grey
+  ON THE SVG ITSELF.** `.text-ink-gray-7` sits on the svg element, so a span-level
+  `color` never reaches it (a direct rule beats inheritance), and
+  `.current-color { stroke: currentcolor }` then paints from that grey. Every icon
+  mode had tinted the span for the whole life of the kit and the glyph never followed.
+  The repair is `color: inherit` on the svg at higher specificity, plus
+  `--icon-stroke: currentColor` for our own `sprite_icon()` glyphs (no
+  `.current-color` in their class list). **And measure `stroke` in any check about
+  icon colour** — the first draft of slice 7's check read `color` and would have
+  certified grey pixels.
 
 - **A SETTINGS WRITE CAN REACH THE DESK A PAGE-LOAD LATE, and it looks exactly like a
   broken feature.** Seen repeatedly on 2026-08-31: a check writes value B, reloads,

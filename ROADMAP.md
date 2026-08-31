@@ -1394,8 +1394,19 @@ than a version number that would describe two different things.
   border inside a row that already has one, and the two surfaces had drawn the same
   gesture at 15 and 20px for no stated reason. The workspace hue moves onto the glyph.
 
-  **Still to come:** sections, the list features, drag-to-resize, the account band,
-  identity and placement, preset integration, and the picked design.
+  **Sections are done, and they are paint.** P1 on the live desk confirmed both plan
+  claims: v16 nests a section's items inside its container (nine in the first Selling
+  section), and Frappe's own collapse works (28px ↔ 289px on a header click). So the
+  re-parenting surgery — the app's largest standing violation of "never touch
+  Frappe-generated DOM" — is deleted with its edit-mode observer and re-entrancy guard,
+  the card is a rule on the section container, the hue derives from position in CSS,
+  and `sidebar_section_collapse` is deliberately NOT built. The wash is real under
+  Plain and Divided now, and the deepest find was adjacent: **every icon mode tinted
+  `color`, a property the sprite glyph never reads** — the stroke painted from
+  Frappe's own grey the whole time.
+
+  **Still to come:** the list features, drag-to-resize, the account band, identity and
+  placement, preset integration, and the picked design.
 
 ---
 

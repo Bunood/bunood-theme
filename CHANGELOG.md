@@ -24,12 +24,12 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Four have landed: the COLOUR phase,
-which changes what a desk paints; the FIELD MODEL, which changes what a desk offers —
-nineteen style settings down to twelve, with the two that arrive later taking it to
-fourteen; THE PLACE ROW, which changes what the pane's head IS; and ONE LIFECYCLE, which
-changes how any of it gets there and comes back. Still to come: sections, the list
-features, drag-to-resize, the account band, and the picked design.
+**In flight.** The pane's rebuild is thirteen slices. Five have landed: the COLOUR phase,
+which changes what a desk paints; the FIELD MODEL — nineteen style settings down to
+twelve; THE PLACE ROW, which changes what the pane's head IS; ONE LIFECYCLE, which
+changes how any of it gets there and comes back; and SECTIONS, which stop being surgery.
+Still to come: the list features, drag-to-resize, the account band, and the picked
+design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -358,6 +358,38 @@ background is `rgba(0,0,0,0)`.
 
 Both defaults are THEME AXES, so both moved with a patch that touches only sites still
 holding the old value — the same trap the quick links found, two fields over.
+
+### Fixed — sections are paint
+
+- **The wrapping surgery is deleted**, and with it the app's largest standing violation
+  of "never touch Frappe-generated DOM". Probe P1, run on the live desk: v16 NESTS a
+  section's items inside its container (the first Selling section holds nine), so every
+  `.bnd-sb-card` wrapper held exactly one node — a card drawn around a container that
+  already was the whole group. The card is now a rule on the section container; the hue
+  is derived per section by POSITION (`:nth-child(7n+i of .section-item)`, support
+  measured), so a workspace switch has no stamp to lose. Gone with it:
+  `sb_unwrap_sections`, the edit-mode observer, and the `sb_mutating` re-entrancy guard.
+  The check asserts the DOM under Cards is IDENTICAL to the DOM under Plain while the
+  paint differs — watched failing at HEAD with five wrapper nodes.
+- **`sidebar_section_collapse` is deliberately NOT built.** P1 confirmed Frappe's own
+  collapse working here — drop-icon present, a header click toggling 28px ↔ 289px — so
+  building ours would be the second affordance fighting the first, the defect the rail's
+  own comment already records.
+- **The hue wash is real under Plain and Divided.** It was three options on one pixel
+  outside Cards, because its only consumer was the wrapper Cards alone built. The chip
+  tint and the rich caps label ride the section container in every layout now, and
+  wash=Off finally means OFF — the old loop stamped hues for any value including "off".
+- **Every icon mode was tinting a property the glyph never reads.** The modes set
+  `color` on the icon span; Frappe stamps `.text-ink-gray-7` on the SVG ITSELF (beating
+  inheritance) and paints the stroke from it via `.current-color`. Measured link by
+  link: the span was already the hue while the stroke stayed grey. `color: inherit` at
+  our rule's higher specificity is the fix — and the check's own first draft read
+  `color` too, certifying the wash while the pixels stayed grey, before it was made to
+  read the painted property.
+- **The preset matrix moves to a sectioned workspace.** Its old route resolved a
+  sidebar with no sections, and the wrapper-count assertion only passed there because
+  the wrap built a neutral "card 0" around loose links — certifying Cards on a pane
+  that could not show it.
 
 ### Known, and filed rather than fixed
 
