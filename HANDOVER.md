@@ -46,9 +46,11 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   work that is not on `main`. MINOR = the ROADMAP item number still holds for this
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
-**ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE.**
+**ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
+FIELD MODEL DONE (19 style settings → 12, the two later arrivals taking it to 14).**
 Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
-· `373e183` · `a592285` · `9598a12` · `0566c1e`. The plan lives at
+· `373e183` · `a592285` · `9598a12` · `0566c1e` · `71e73b9` · `d04a780` · `76b2cae`
+· `845eb44` · `40ced44` · `19465ab` · `b17118b`. The plan lives at
 `C:\Users\saltedfish\.claude\plans\lets-go-back-to-quirky-giraffe.md`; ROADMAP's
 item-40 entry and CHANGELOG carry the account. What belongs HERE is what will cost time
 again:
@@ -93,6 +95,61 @@ again:
   selector and session, and could not have seen that only one copy had learned to
   `exclude()`. `assertAxeScanShared` replaces it and holds the five things that can still
   drift; every arm was watched failing.
+
+- **HEADLESS CHROMIUM REPORTS `prefers-reduced-transparency: reduce`, AND NOBODY HAD
+  LOOKED.** Measured 2026-08-30. Every desk this suite has ever driven runs in that
+  branch, which means the glass materials have never been blur-tested and the degradation
+  path was the only one under test — and it was broken. Its selector weighed (0,2,1)
+  against a translucent surface rule carrying `:not([data-bnd-sb-color="brand"])` at
+  (0,3,1), so it LOST the background and won only the blur: a pane left 75% transparent
+  with its frosting removed, which is the one combination the degradation exists to
+  prevent. **Size a selector against the RULE it must beat, not against the element** —
+  this repo already had that lesson from a vendor `:hover` group, and it arrives here from
+  our own file.
+
+  To measure the other regime, emulate it: `page.context().newCDPSession(page)` then
+  `Emulation.setEmulatedMedia({features: [{name: "prefers-reduced-transparency", value:
+  "no-preference"}]})`. Playwright's own `emulateMedia` does not carry this feature. Do it
+  on a FRESH context, never the shared page — emulation leaks, and this suite says so at
+  `withGuest`.
+
+- **`ar.csv` IS GENERATED. THE DECISIONS FILE IS `locale/ar.po`.** Edit the PO, then
+  `npm run i18n:emit`. Slice 4d edited the CSV directly, `i18n:emit` in slice 4e silently
+  reverted every one of those edits, and coverage went red — the banner saying so is in
+  the PO header, not the CSV. New strings need a hand-authored PO entry carrying
+  `#, fuzzy`, which is what marks them for the user's Arabic review; `i18n_po.mjs build`
+  only ingests a provider map, and that key is a user-only errand.
+
+  And **do not bulk-reap "unused" rows.** `node tools/i18n.mjs list` is a STATIC
+  extractor: on 2026-08-30 it called 67 rows dead, and several of them — "Aurora",
+  "Daylight", "Ink", "Paper", "Classic", "Site Default", "Apps", "Tools", "More" — are
+  preset and layout NAMES translated at runtime from data. Deleting those drops Arabic
+  labels with a green `i18n:check`, because that gate measures coverage in one direction
+  only. Fifteen rows were reaped in 4e, each confirmed absent as a literal; the other 52
+  are a filed task.
+
+- **A PATCH THAT HAS ALREADY RUN CANNOT BE EXTENDED.** `bench migrate` records executed
+  patches by module path, so adding a case to a patch file that ran on this site last
+  week executes nothing here — and the next site gets both. Item 40's field model is four
+  patches for that reason, not one. Related, and the reason all four read raw SQL:
+  **`npm run deploy` never migrates.** A doctype change needs
+  `bench --site demo.bunood.test migrate` after the deploy, or the field simply does not
+  exist on the site while the code assumes it does.
+
+- **THE FIXTURE'S THEME CARD DRIFTS WHEN THE SITE IS OFF SHIPPED DEFAULTS**, and a full
+  run can leave it that way: on 2026-08-30 a run ended with `crumb_style: Eyebrow Title`
+  and `crumb_narrow_collapse: 1` still set, so `no unexplained structural drift` reported
+  a theme card that had lost `bnd-cbp-on` — nothing to do with the change under test.
+  Before regenerating the shape fixture, diff the site against `setup.SHIPPED` and put
+  back whatever a check did not; the diff must be `{}`.
+
+- **THE PALETTE'S EMPTY STATE CAN SHOW ONE ROW TWICE, and it is the vendor's label.**
+  `get_frequent_links` returns `route` as a STRING (while `get_recent_pages` returns an
+  ARRAY), carries no `type` field, and labels both `List/ToDo/Calendar/default` and
+  `List/ToDo/List` as "ToDo List" — doctype plus view CLASS, with the view dropped. Two
+  destinations, one name, distinct keys. Now deduped by what the row READS as well; the
+  label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
+  lets a label that never rendered suppress a Recent row that would have.
 
 - **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
   off their shipped defaults while printing "state restored", and four unrelated checks

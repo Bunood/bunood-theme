@@ -1293,9 +1293,42 @@ than a version number that would describe two different things.
   **1.36%**, so light cannot be tinted at all — and would have bought nothing, because at
   3% all six shipped grounds mix to one hex.
 
-  **Still to come:** the ownership repair, one mount lifecycle, the deletions, the Place
-  row, sections, the list features, drag-to-resize, the account band, identity and
-  placement, preset integration, and the picked design.
+  **The field model is done, and it is the second phase to land.** Nineteen style
+  settings became **twelve**, with the two later arrivals taking it to fourteen. Every
+  deletion was measured rather than judged, and each one was a picker offering a choice
+  that landed where another one already did:
+
+  - **material × opacity × blur was thirty combinations**, fifteen of them collapsed onto
+    one pixel by Solid — `presets.py` admitted it in a comment. Five alpha stops were
+    parameterised, not drawn. The axis is now Solid / Glass / Blurred Glass, and the two
+    numbers it keeps are the two the shipped looks used, so **neither glass look moves by
+    a pixel**.
+  - **Dot Marker's `::after` and `.bnd-sb-badge` resolve to the same pixel** —
+    `inset-inline-end: var(--bnd-sp-2)` against `margin-inline-start: auto` — so the
+    picker offered a combination that drew two 6px circles in one place. Glow Ring is
+    Outline plus a blur. Both retired; seven active styles become five.
+  - **`sidebar_remember_sections` had zero consumers since v0.6.0** and Frappe v16
+    persists section state itself, keyed by workspace. `sidebar_rail_button_shape` drew
+    three shapes of one 24px control through a CONCATENATED class the focus-ring guard
+    cannot see, with all eight looks on Circle. `sidebar_scroll_fades` goes as a field and
+    returns as behaviour: whether a list overflows is not a preference.
+  - **The apps rail is retired** and the dock inherits the job — a Check on the SIDEBAR
+    kit that mounted a strip onto `document.body`, outside the pane whose field it was,
+    with no teardown and no registry row.
+
+  **And it found three more shipping defects, none of them in what it set out to change.**
+  The pane's own header was hidden by a DECLARATION rather than by ownership, which is the
+  double-render this item was opened for — and the guard that should have caught it was a
+  denylist of two attributes where the doctrine is an allowlist of one, so adding the class
+  to its list would not have helped. **Headless Chromium reports
+  `prefers-reduced-transparency: reduce`**, so every desk this suite has ever driven was in
+  the degradation branch and nothing had looked: it lost the background and won only the
+  blur, leaving a pane 75% transparent with its frosting removed. And the command palette
+  showed one row twice, because Frappe labels a Calendar route and a List route identically.
+
+  **Still to come:** one mount lifecycle, the Place row, sections, the list features,
+  drag-to-resize, the account band, identity and placement, preset integration, and the
+  picked design.
 
 ---
 

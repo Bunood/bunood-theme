@@ -99,14 +99,22 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   page and the path is `""`. All 22 of its checks passed because all 22 asked for
   `/login` by name. A route is one of many addresses that reach a template; guard on
   `context.template`, and make one check use an address you did not write the rule for.
-- **Sizing a selector against the RESTING rule.** A vendor that groups `:hover`, `:focus`
-  and `:active` into one selector list out-specifies a base rule sized against the base.
+- **Sizing a selector against the ELEMENT instead of the RULE it must beat.** Two shapes,
+  one mistake. (a) A vendor that groups `:hover`, `:focus` and `:active` into one selector
+  list out-specifies a base rule sized against the base.
   Item 32 lost `:focus` (CTA reverted to grey on click, no ring), `:disabled` (1.12:1,
   one gesture away) and a strength track that had NEVER applied — three classes beats
   two classes plus an element. Scan the STATES. And where the competitor is
   `!important`, re-point BOTH halves of its pair or none: changing `--text-color` and
   not `--control-bg` put our flipping ink on Frappe's fixed grey at 1.09:1, where stock
   managed 10.57:1. A repair that moves half a pair is a regression.
+  (b) **Our own file does it too.** Item 40's reduced-transparency block weighed (0,2,1)
+  against a translucent surface rule carrying a `:not()` at (0,3,1), so it lost the
+  background and won only the blur — a pane 75% transparent with its frosting removed,
+  the one combination the degradation exists to prevent. It survived because **headless
+  Chromium reports `prefers-reduced-transparency: reduce`**, so every desk this suite has
+  ever driven was in that branch and nothing looked. Emulate the other pole through CDP
+  (`Emulation.setEmulatedMedia`) on a fresh context — Playwright carries no flag for it.
 - **A helper that guesses at an unrecognised input.** `triple()` knew `rgb()` and
   `color(srgb …)` and read `oklab(…)` — which Chrome also emits for `color-mix()` — as
   near-black, silently. A rule scan that recursed on `r.cssRules` examined NOTHING, because
@@ -118,6 +126,17 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   because `display` was still `flex` and a column container still puts a sized item at the
   inline start in LTR and the inline end in RTL. Only the column's HEIGHT told them apart.
   Assert the thing the sharing could break.
+- **Editing the GENERATED half of a pair.** `translations/ar.csv` is generated FROM
+  `locale/ar.po`, and the banner saying so is in the PO. Item 40 edited the CSV; the next
+  `i18n:emit` silently reverted every edit and turned coverage red. Ask which file is the
+  source before editing either. And do not bulk-reap rows the extractor calls dead: it is
+  STATIC, and preset NAMES reach `__()` as data — deleting those drops Arabic labels with
+  a green gate, because coverage is measured in one direction only.
+- **Extending a patch that has already run.** `bench migrate` records executed patches by
+  module path, so a case added to a patch this site ran last week executes nowhere here
+  and everywhere on the next site. One patch per change. Related: **`npm run deploy` never
+  migrates** — a doctype change needs `bench --site demo.bunood.test migrate` after it, or
+  the field does not exist while the code assumes it does.
 - **Scripted multi-site edits.** End every one with a parse check (`node --check`,
   `ast.parse`). A heredoc with `\n` has mangled a file twice.
 - **A parse check proves SYNTAX, not EXTENT.** Item 37's slice-4 deletion aimed at

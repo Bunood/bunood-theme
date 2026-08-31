@@ -22,12 +22,13 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — The side pane, rebuilt (item 40) · colour phase
+## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices; this is the colour one, and it is
-listed now because it changes what a desk paints. The runtime rebuild — ownership, one
-mount lifecycle, the Place row, sections, the list features, drag-to-resize, the account
-band — has not started.
+**In flight.** The pane's rebuild is thirteen slices. Two have landed: the COLOUR phase,
+which changes what a desk paints, and the FIELD MODEL, which changes what a desk offers —
+nineteen style settings down to twelve, with the two that arrive later taking it to
+fourteen. Still to come: one mount lifecycle, the Place row, sections, the list features,
+drag-to-resize, the account band, and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -114,14 +115,118 @@ seed-dependent in both themes** — the same pane on every site in the world.
   specificity comparison that derived its target from the selector it was judging, and its
   rot detector fired the moment a new field on `SidebarPane` made a case stop matching.
 
+### Changed — the field model
+
+- **Nineteen style settings became twelve.** Every deletion was measured, not judged, and
+  each one is a picker offering a choice that landed where another one already did.
+  `sidebar_glass_opacity` and `sidebar_blur` fold into `sidebar_material`, which becomes
+  **Solid / Glass / Blurred Glass**: the three fields offered THIRTY combinations and Solid
+  collapsed fifteen of them onto one pixel — `presets.py` said so in a comment calling the
+  two "inert while the material is Solid". Of the rest, five alpha stops were parameterised
+  rather than drawn. The two that WERE drawn are the two the shipped looks use, so Glass
+  takes 85% and Blurred Glass 75% and **neither Bunood Light nor Aurora moves by a pixel**.
+- **`sidebar_active_style` loses Glow Ring and Dot Marker.** Glow Ring is Outline plus a
+  blur. Dot Marker is measured: its `::after` sits at `inset-inline-end: var(--bnd-sp-2)`
+  and `.bnd-sb-badge` at `margin-inline-start: auto` — **the same pixel** — so Dot Marker
+  with badges on Dots drew two 6px circles in one place, in two colours, and the picker
+  offered that combination. Carbon moves to Outline; a stored Dot Marker migrates to Accent
+  Rail, the other minimal marker, which marks the leading edge and cannot collide.
+- **Three fields go with nothing behind them.** `sidebar_rail_button_shape` — three shapes
+  of one 24px control, all eight looks shipping Circle, and two of the three rendered
+  through a CONCATENATED class the focus-ring guard structurally cannot see.
+  `sidebar_remember_sections` — a Check with **zero consumers since v0.6.0**: boot emitted
+  it, `sb_apply` copied it forward, nothing read it, and Frappe v16 turns out to persist
+  section state itself, keyed by workspace. `sidebar_scroll_fades` — the field goes and the
+  behaviour returns later as an automatic overflow fade; a mask you switch on is the wrong
+  shape, because whether a list overflows is not a preference.
+- **Two fields say what they are.** `sidebar_section_layout` → `sidebar_section_style`
+  (one of its options was never a layout — "Accordion Cards" is Cards plus a behaviour that
+  does not exist), and `sidebar_surface_intensity` → `sidebar_card_depth` (it only ever
+  reaches card sections, and a name that does not say which surface cannot explain why it
+  looks inert under Plain). Fieldnames only: boot payload keys, `data-bnd-*` attributes and
+  field labels are untouched, which is what kept the diff to 36 symmetric lines and left
+  every stylesheet and both Arabic files out of it.
+- **The apps rail is retired**, and the dock inherits the job in its own slice. It was a
+  Check on the SIDEBAR kit that mounted a fixed strip onto `document.body` — outside the
+  pane whose field it was — with no teardown, no registry row, a 12-workspace cap, and an
+  active-highlight that was a copy of the dock's and said so. All eight shipped looks ship
+  it off, so only a tenant who ticked the box by hand has one; they get `dock_enabled`.
+
+### Fixed — the field model
+
+- **The pane's own header was hidden by a DECLARATION, not by ownership.** `_sidebar.scss`
+  keyed on `html[data-bnd-sb-color]`, which lands at parse time, while the replacement
+  mounts up to 4.5s later inside a `try_for`. Both failure modes are the bug this item was
+  opened for: attribute present with a failed mount is a pane with no head, attribute absent
+  with a successful one renders both. `claim_panehead` now measures the DOM and disowns on
+  the negative branch.
+- **The guard that should have caught it could not, and adding the class to its list would
+  not have helped.** `assertOwnershipPolarity` fired only when a rule named an owned native
+  **and** matched `/data-bnd-(desk|search)/` — a denylist of two attributes where the
+  doctrine is an allowlist of one. The rule failed both tests. Inverted (any `display:none`
+  on an owned native must contain `data-bnd-own`) it goes red on that one rule and nothing
+  else, and `OWNED_NATIVES` is now derived from `registry.py` rather than hand-listed.
+- **Reduced transparency degraded the pane by half, which is worse than not at all.** Found
+  by writing a check that three materials render three panes: HEADLESS CHROMIUM REPORTS
+  `prefers-reduced-transparency: reduce`, so every desk this suite has ever driven was in
+  that branch and nothing had looked. The block weighed (0,2,1) against a translucent
+  surface rule carrying a `:not()` at (0,3,1), so it **lost the background and won only the
+  blur** — a pane left 75% transparent with its frosting removed, the one combination the
+  degradation exists to prevent.
+- **Two sentences in that neighbourhood were false and are now true.** The reduce block
+  credited a "per-user toggle" that sets `blur=off`: there is no such toggle anywhere. And
+  the glass rule said brand+glass "falls back to slight translucency via opacity on a
+  pseudo-layer": no such layer exists, so on the brand pane Glass renders exactly as Solid.
+  That last one is RECORDED rather than repaired — making a gradient translucent means
+  mixing transparency into its stops, which is a derivation change.
+- **`check_theme_catalogue` had two holes that stay green while everything is wrong.** A
+  theme axis could name a field the doctype does not have — the option check skipped when
+  the answer was `None`, which is exactly what a missing field returns — so every card would
+  read "Custom" on every site forever. And only the twelve composed themes were checked for
+  distinctness, not the eight sidebar looks: measured while writing it, **`Daylight` and
+  `Paper` differ at `sidebar_active_style` ALONE**, so removing an option value can collapse
+  two looks with nothing saying so.
+- **The palette showed the same row twice.** `get_frequent_links` labels both
+  `List/ToDo/Calendar/default` and `List/ToDo/List` as "ToDo List" — the vendor builds the
+  label from the doctype and the view CLASS and drops the view, so two destinations arrive
+  under one name and the key dedupe correctly passes both. The empty state now dedupes by
+  what the row READS as well as by where it goes.
+- **The axe baseline stopped drifting.** Frappe's onboarding panel lives inside
+  `.body-sidebar-container`, rendered on six of the scanned routes, and its content tracks
+  the completion percentage — which the suite's own fixtures advance. It is excluded, and
+  that is not laundering: this theme emits **zero** rules matching `.onb-*` and the panel
+  paints its own opaque white. The gate was then proven to still catch our own regressions
+  by breaking one on purpose. The route list also stops existing twice —
+  `tools/axe-routes.mjs` holds the routes AND the scan, so the capture tool and the check
+  cannot disagree about tags, the exclude, or which pages are covered.
+
+### Migrations
+
+Five patches, each reading `tabSingles` directly because patches run after the doctype sync
+and `get_single_value` **raises** for a field the doctype has lost. Every one preserves what
+the site sees: `retire_apps_rail` (rail on → `dock_enabled`), `rename_sidebar_fields`,
+`merge_glass_material` (Glass+Full → Blurred Glass; Glass+Off stays Glass, because the tenant
+asked for glass and turning the blur down is not the same request), and `collapse_pane_options`
+(Glow Ring → Outline, Dot Marker → Accent Rail, three dead rows reaped). A hand-tuned tenant
+on glass opacity 1, 2 or 5 lands on their material's value — a visible change, and the point
+of the merge.
+
+**Every migration arm is simulated in the suite**, because demo ships Solid, Mini-Cards and
+Solid Pill: the interesting branch is false on this site for all of them, and a branch whose
+guard is false on the dev site is UNTESTED, not working.
+
 ### Known, and filed rather than fixed
 
-- `a11y: axe over the Desk` records node **counts** for a page whose content tracks
-  Frappe's onboarding completion percentage, so it goes red for reasons that are never
-  ours. Not regenerated — that would launder a real signal.
 - `tools/sweep-settings.mjs` leaves eleven `print_*` fields off their shipped defaults
   while printing "state restored", which turns four unrelated checks red with no
   indication of the cause.
+- On the **brand** pane, Glass renders exactly as Solid: a gradient cannot go through
+  `color-mix`, and the fallback its comment promised was never built. Two options, one
+  pixel — recorded here rather than repaired, because the fix is a derivation change.
+- `bunood_theme/locale/ar.po` carries roughly 52 entries the extractor no longer emits,
+  left by items 36–38. Not reaped in bulk: several are preset NAMES translated at
+  runtime from data, invisible to a static extractor and very much alive, and
+  `npm run i18n:check` measures coverage in one direction only.
 
 ## [Unreleased] — Per-user preferences (item 38)
 
