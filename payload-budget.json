@@ -29,8 +29,8 @@
 		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
 	],
 	"ceiling": {
-		"css_gzip": 26100,
-		"js_gzip": 108000,
+		"css_gzip": 27500,
+		"js_gzip": 116000,
 		"web_css_gzip": 4500,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

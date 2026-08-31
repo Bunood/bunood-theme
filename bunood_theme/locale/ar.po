@@ -6291,3 +6291,163 @@ msgstr "لا"
 #, fuzzy
 msgid "Not Saved"
 msgstr "غير محفوظ"
+
+#. src: sales-bill
+msgid "Quick bill"
+msgstr "فاتورة سريعة"
+
+#. src: sales-bill
+msgid "Bunood sales"
+msgstr "مبيعات بنود"
+
+#. src: sales-bill
+msgid "From items to invoice. Simply."
+msgstr "من الأصناف إلى الفاتورة، ببساطة."
+
+#. src: sales-bill
+msgid "Choose a customer, add items, then save your draft for review."
+msgstr "اختر العميل وأضف الأصناف، ثم احفظ المسودة للمراجعة."
+
+#. src: sales-bill
+msgid "Changes stay in this invoice when you close this view."
+msgstr "تبقى التغييرات في الفاتورة الحالية عند إغلاق هذه النافذة."
+
+#. src: sales-bill
+msgid "Who are you billing?"
+msgstr "لمن تصدر الفاتورة؟"
+
+#. src: sales-bill
+msgid "What are you selling?"
+msgstr "ما الأصناف التي تبيعها؟"
+
+#. src: sales-bill
+msgid "Find an item"
+msgstr "البحث عن صنف"
+
+#. src: sales-bill
+msgid "Search by item name or code"
+msgstr "ابحث باسم الصنف أو رمزه"
+
+#. src: sales-bill
+msgid "Add item"
+msgstr "إضافة الصنف"
+
+#. src: sales-bill
+msgid "Select an item, then Add item. Ctrl+Enter adds it from search."
+msgstr "اختر الصنف ثم اضغط إضافة الصنف. يمكنك استخدام Ctrl+Enter للإضافة."
+
+#. src: sales-bill
+msgid "Bill total"
+msgstr "إجمالي الفاتورة"
+
+#. src: sales-bill
+msgid "Dates and stock"
+msgstr "الاستحقاق والمخزون"
+
+#. src: sales-bill
+msgid "Full invoice"
+msgstr "الفاتورة الكاملة"
+
+#. src: sales-bill
+msgid "Save draft and review"
+msgstr "حفظ المسودة ومراجعتها"
+
+#. src: sales-bill
+msgid "Saving a draft does not post accounts, take payment, or issue the invoice."
+msgstr "حفظ المسودة لا يرحّل الحسابات ولا يسجّل دفعة ولا يصدر الفاتورة."
+
+#. src: sales-bill
+msgid "Updating invoice…"
+msgstr "جارٍ تحديث الفاتورة…"
+
+#. src: sales-bill
+msgid "This invoice is no longer active. Open it again to continue."
+msgstr "هذه الفاتورة لم تعد مفتوحة. افتحها مجدداً للمتابعة."
+
+#. src: sales-bill
+msgid "The draft was not saved. Review the message or open the full invoice."
+msgstr "لم يتم حفظ المسودة. راجع الرسالة أو افتح الفاتورة الكاملة."
+
+#. src: sales-bill
+msgid "Could not update the invoice. Open the full invoice to review."
+msgstr "تعذر تحديث الفاتورة. افتح الفاتورة الكاملة للمراجعة."
+
+#. src: sales-bill
+msgid "This field is not editable. Use the full invoice."
+msgstr "هذا الحقل غير قابل للتعديل. افتح الفاتورة الكاملة."
+
+#. src: sales-bill
+msgid "This item is no longer on the invoice."
+msgstr "هذا الصنف لم يعد موجوداً في الفاتورة."
+
+#. src: sales-bill
+msgid "Use a quantity above zero and a price of zero or more."
+msgstr "أدخل كمية أكبر من صفر وسعراً لا يقل عن صفر."
+
+#. src: sales-bill
+msgid "Choose a customer before adding items."
+msgstr "اختر العميل قبل إضافة الأصناف."
+
+#. src: sales-bill
+msgid "Choose an item from the search results."
+msgstr "اختر صنفاً من نتائج البحث."
+
+#. src: sales-bill
+msgid "The item could not be added. Review the full invoice."
+msgstr "تعذرت إضافة الصنف. راجع الفاتورة الكاملة."
+
+#. src: sales-bill
+msgid "The item was not removed. Review the full invoice."
+msgstr "لم تتم إزالة الصنف. راجع الفاتورة الكاملة."
+
+#. src: sales-bill
+msgid "Saudi riyal"
+msgstr "ريال سعودي"
+
+#. src: sales-bill
+msgid "Your bill starts here"
+msgstr "ابدأ فاتورتك هنا"
+
+#. src: sales-bill
+msgid "Add your first item. Prices and taxes follow your invoice settings."
+msgstr "أضف أول صنف. تُحسب الأسعار والضرائب وفق إعدادات فاتورتك."
+
+#. src: sales-bill
+msgid "Stock will be updated when the invoice is submitted."
+msgstr "سيتم تحديث المخزون عند اعتماد الفاتورة."
+
+#. src: sales-bill
+msgid "Stock is not updated by this invoice."
+msgstr "هذه الفاتورة لا تحدّث المخزون."
+
+#. src: sales-bill
+msgid "Choose a customer and add at least one item."
+msgstr "اختر العميل وأضف صنفاً واحداً على الأقل."
+
+#. src: sales-bill
+msgid "Draft saved. Review the invoice before submitting or taking payment."
+msgstr "تم حفظ المسودة. راجع الفاتورة قبل اعتمادها أو تسجيل دفعة."
+
+#. src: sales-bill
+msgid "Correct the highlighted value before saving."
+msgstr "صحح القيمة غير الصالحة قبل الحفظ."
+
+#. src: sales-bill
+msgid "Remove"
+msgstr "إزالة"
+
+#. src: sales-bill
+msgid "Amount"
+msgstr "المبلغ"
+
+#. src: sales-bill
+msgid "Quick bill needs an editable items table. Continue in the full invoice."
+msgstr "تحتاج الفاتورة السريعة إلى جدول أصناف قابل للتعديل. تابع في الفاتورة الكاملة."
+
+#. src: sales-bill
+msgid "Use the full invoice for this document type or permission level."
+msgstr "استخدم الفاتورة الكاملة لهذا النوع من المستندات أو مستوى الصلاحيات."
+
+#. src: sales-bill
+msgid "Revert invalid edits"
+msgstr "التراجع عن القيم غير الصالحة"

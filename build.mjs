@@ -1525,6 +1525,12 @@ async function buildEntry({ key, src, pyid }) {
  */
 const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
 
+// Keep the optional invoice controller separate, but cover it with the same
+// identity, focus, translation, immutable hash and payload gates as desk JS.
+async function readDeskJs() {
+	return (await Promise.all(["bunood.js", "sales_bill.js"].map(src => readFile(join(JS, src), "utf8")))).join("\n").replace(/\r\n/g, "\n");
+}
+
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
  * Mirrors buildEntry() for CSS; kept separate because the compile step differs.
@@ -1534,7 +1540,7 @@ async function buildJsEntry({ key, src, pyid }) {
 	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
 	// checkout must produce the SAME content hash, or the dist-drift gate
 	// fails on every push made from Windows (CI run #1 did exactly that).
-	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
+	const source = key === "bunood" ? await readDeskJs() : (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 
@@ -1597,7 +1603,7 @@ async function main() {
 	);
 	assertRegistryIdentity(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
-		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+		await readDeskJs()
 	);
 	assertFieldMirrors(
 		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
@@ -1659,7 +1665,7 @@ async function main() {
 	// guards, which all run BEFORE compilation on source alone.
 	assertRingCoverage(
 		built.map((b) => b.css || "").join("\n"),
-		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
+		await readDeskJs(),
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"

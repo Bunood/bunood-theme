@@ -7013,7 +7013,10 @@ function sb_zone_anchor(pane, zone, node) {
 			if (can.length && can.indexOf(doctype) === -1) continue;
 			const symbol = sb_existing_symbol(symbols) || symbols[symbols.length - 1];
 			host.appendChild(
-				home_action(label, symbol, () => frappe.new_doc(doctype), primary)
+				home_action(label, symbol, () => {
+					if (doctype === "Sales Invoice" && window.bunood_theme.sales_bill) return window.bunood_theme.sales_bill.newInvoice();
+					return frappe.new_doc(doctype);
+				}, primary)
 			);
 			primary = false;
 		}

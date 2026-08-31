@@ -523,6 +523,7 @@ SURFACE = "surface"
 
 # Additive content, not chrome and not a replacement for native form controls.
 CONTENT_COMPONENTS = [
+	{"key": "sales_bill", "part": "sales-bill", "selector": '[data-bnd-part="sales-bill"]'},
     {"key": "form_summary", "part": "form-summary", "selector": '[data-bnd-part="form-summary"]'},
 ]
 

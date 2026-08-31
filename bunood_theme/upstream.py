@@ -57,6 +57,24 @@ PINNED_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 
 #: Upstream files we read or fork, as ``(app, relative path)``.
 PINNED_FILES = (
+    # Quick bill delegates native controls, lifecycle, defaults and amounts.
+    ('frappe', 'frappe/public/js/frappe/form/controls/base_input.js'),
+    ('frappe', 'frappe/public/js/frappe/form/controls/link.js'),
+    ('frappe', 'frappe/public/js/frappe/form/grid.js'),
+    ('frappe', 'frappe/public/js/frappe/form/grid_row.js'),
+    ('frappe', 'frappe/public/js/frappe/form/script_manager.js'),
+    ('frappe', 'frappe/public/js/frappe/form/quick_entry.js'),
+    ('frappe', 'frappe/public/js/frappe/ui/dialog.js'),
+    ('frappe', 'frappe/public/js/frappe/model/model.js'),
+    ('frappe', 'frappe/public/js/frappe/model/meta.js'),
+    ('frappe', 'frappe/public/js/frappe/model/perm.js'),
+    ('frappe', 'frappe/public/js/frappe/model/create_new.js'),
+    ('frappe', 'frappe/public/js/frappe/request.js'),
+    ('frappe', 'frappe/public/js/frappe/utils/number_format.js'),
+    ('erpnext', 'erpnext/accounts/doctype/sales_invoice/sales_invoice.js'),
+    ('erpnext', 'erpnext/public/js/controllers/transaction.js'),
+    ('erpnext', 'erpnext/public/js/controllers/taxes_and_totals.js'),
+    ('erpnext', 'erpnext/public/js/utils/sales_common.js'),
     # Desktop badge padding and fixed tile heights must not clip themed SVGs.
     ("frappe", "frappe/desk/page/desktop/desktop.css"),
     ("erpnext", "erpnext/workspace_sidebar/home.json"),

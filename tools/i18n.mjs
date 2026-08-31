@@ -54,6 +54,7 @@ const APP = join(ROOT, "bunood_theme");
  */
 const JS_SOURCES = [
 	join(APP, "public", "js", "bunood.js"),
+	join(APP, "public", "js", "sales_bill.js"),
 	join(APP, "bunood_theme", "doctype", "theme_settings", "theme_settings.js"),
 	join(APP, "bunood_theme", "page", "bnd_inbox", "bnd_inbox.js"),
 ];
