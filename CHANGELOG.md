@@ -372,7 +372,35 @@ holding the old value — the same trap the quick links found, two fields over.
   runtime from data, invisible to a static extractor and very much alive, and
   `npm run i18n:check` measures coverage in one direction only.
 
-## [Unreleased] — Per-user preferences (item 38)
+## [0.38.0] — 2026-08-29 — Per-user preferences (item 38)
+
+**Tagged at `e19e12f`, not at HEAD, and SHIPPED WITHOUT A GREEN FULL-SUITE RUN.**
+Both are deliberate and both are recorded here rather than left to be found.
+
+*Why the tag is retroactive.* Item 40 was already committed when this tag was
+cut, so a tag at HEAD would have carried item 40's source inside a release named
+for item 38 — the same reasoning, and the same remedy, as `v0.29.0` and
+`v0.34.0`. The version files at `e19e12f` therefore still read `0.37.1`; the
+"`app_version` matches the latest tag" invariant resumes at the next release.
+
+*Why there is no green gate.* Ten full-suite runs were attempted. None was
+usable, and the causes were environmental rather than this item's: `ground_color`
+residue from an earlier session (Teal's sage ground, which made the settings
+form's derived label read "Custom" and broke three unrelated-looking checks);
+stale nginx upstream connections after a forced backend restart, producing
+intermittent `ERR_CONNECTION_RESET`; an emptied asset mount after the frontend
+restart meant to fix that, which 404'd `bunood.js` and failed 43 checks at once;
+and finally a second session committing item 40 *during* the runs, which moved
+both the tree and the settings the checks read. Across all ten, item 38's own
+checks never produced an assertion failure — every `personal:` failure was a
+timeout, a failed fetch, or a baseline that moved underneath it.
+
+*What was verified.* The `personal:` kit passed 8/8 in isolation and 21/21 when
+run after the `print:` checks that had exposed an ordering bug in it. The
+filtered desk-composition run passed 275/275 over every kit the boot restructure
+touches. Contrast passed at 9,520 pairs over 27 seeds. The build guards and the
+payload ceiling passed. The Appearance dialog was driven in a real browser as a
+non-administrator. What is missing is the single green run of all 416 together.
 
 The last of the 38, and the one that was already half-built without anyone
 designing it. Four per-user stores had accumulated in `frappe.defaults` — a

@@ -280,6 +280,21 @@
 			"js_raw": 296356,
 			"js_gzip": 93701,
 			"note": "css -8b, js +214b, web_css +0b, email_css +0b, print_css +0b gzip vs v0.37.0"
+		},
+		{
+			"version": "v0.38.0",
+			"date": "2026-08-29",
+			"web_css_raw": 26544,
+			"web_css_gzip": 3846,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 23754,
+			"print_css_gzip": 6812,
+			"css_raw": 159554,
+			"css_gzip": 21267,
+			"js_raw": 309204,
+			"js_gzip": 98015,
+			"note": "js +4,528b gzip vs v0.37.1 — the Appearance dialog, the two client apply seams and the reduce-motion stamp. Ceiling raised 93,900 -> 98,200 across item 38's slices, each raise measured. MEASURED FROM THE TAGGED TREE e19e12f by the git-cat-file method (the v0.33.0 precedent), because HEAD had already moved on to item 40 when the tag was cut."
 		}
 	]
 }
