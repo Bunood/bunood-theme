@@ -47,7 +47,10 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
-FIELD MODEL DONE (19 style settings → 12); THE PLACE ROW DONE.**
+FIELD MODEL DONE (19 style settings → 12); PLACE ROW DONE; ONE LIFECYCLE DONE.**
+The double render this item was opened for is CLOSED and asserted as a rendered
+outcome — visible header rows counted across four colour modes plus rail and
+floating, not just the ownership token.
 Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
 · `373e183` · `a592285` · `9598a12` · `0566c1e` · `71e73b9` · `d04a780` · `76b2cae`
 · `845eb44` · `40ced44` · `19465ab` · `b17118b`. The plan lives at
@@ -150,6 +153,44 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **A SETTINGS WRITE CAN REACH THE DESK A PAGE-LOAD LATE, and it looks exactly like a
+  broken feature.** Seen repeatedly on 2026-08-31: a check writes value B, reloads,
+  and the desk still renders value A — so a walk over five styles reports styles 1 and
+  2 as identical, a preset matrix reports the previous preset's colour, and an icon
+  check reports the default it just moved away from. The tell is that the WRONG value
+  is always the PREVIOUS case's.
+
+  Two layers. `boot.py` composes from `dict(site.as_dict())` — a CACHED Single, which
+  `frappe.db.set_single_value` does not invalidate; a `doc.save()` does. And the
+  backend's workers hold their own state: **restarting `bunood-backend-1` fixed three
+  of four failing checks in one go**, which is the measurement, not a theory.
+
+  Where a check MEASURES A RENDERING of a state it set, wait for the state first —
+  `page.waitForFunction` on the `data-bnd-*` attribute. That is not laundering: the
+  subject is the rendering, not the plumbing. Do NOT do it inside `withDeskUser`,
+  where it times out rather than settling.
+
+- **A `try_for` RETRY OUTLIVES THE CALL THAT SCHEDULED IT.** The head mounts inside
+  one, so switching the pane off while attempts were pending let a later attempt land
+  AFTER the teardown and put the head back on a closed pane. Any deferred body that can
+  outlive its premise has to re-check it; returning `true` stops the loop rather than
+  burning the budget. This was invisible until item 40 gave the pane a teardown.
+
+- **`set_single_value` DOES NOT REFRESH THE CACHED SINGLE THAT `boot` READS.** `boot.py`
+  composes from `dict(site.as_dict())`, and a site whose cached doc is stale serves the
+  OLD value while `frappe.db.get_single_value` reports the new one — so a probe can
+  show `sidebar_badges: "Counts"` stored and `"Off"` in `frappe.boot`. A `doc.save()`
+  clears it. Symptom to recognise: a setting that measurably wrote, and a desk that
+  behaves as though it did not.
+
+- **THIS SITE DRIFTS OFF SHIPPED DEFAULTS WHENEVER A RUN IS INTERRUPTED**, and the next
+  run then reports failures that belong to the state, not the change — on 2026-08-31 a
+  killed filtered run left `inbox_placement`, `home/apps_placement` and `desk_order`
+  moved, and the following run blamed the bell, the change dot and two presets. **Never
+  run the suite in the foreground with a timeout shorter than it needs**; background it.
+  And when failure sets SHIFT between runs, diff against `setup.SHIPPED` and restore
+  with `doc.save()` before theorising — that is the 2026-08-08 lesson in a new costume.
 
 - **THE LOGIN-ROUTE FAILURE CLUSTER IS ONE CAUSE WITH FOUR NAMES.** Seen in three
   consecutive full runs, 2026-08-30/31, and every one of them passes in isolation on a

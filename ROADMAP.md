@@ -1362,8 +1362,40 @@ than a version number that would describe two different things.
     preset, so **all twelve theme cards would read "Custom", forever** — item 37's own
     trap. The patch moves only rows still holding the old default.
 
-  **Still to come:** one mount lifecycle, sections, the list features, drag-to-resize,
-  the account band, identity and placement, preset integration, and the picked design.
+  **One lifecycle is done, and it closes the item's opening symptom.** The mount ladder
+  was written three times and the three disagreed; it is now one table both directions
+  read. The pane built two MutationObservers per remount and deduped nothing — seven
+  remounts added **fourteen**, each with its own timer re-running the whole chain — and
+  now adds none. `CONTAINER_TEARDOWN.sidepane` was `() => {}`, so switching the pane off
+  left our head in the document while its ownership token had already been released;
+  teardown is now the exact mirror and disconnects the observers with it.
+
+  **The double render is closed and measured as a picture**, not as a token: visible
+  header rows counted in the pane across all four colour modes plus rail and floating,
+  watched failing at `wanted 1, got 2`.
+
+  Two things fell out of giving the pane a teardown for the first time. A `try_for`
+  retry OUTLIVES the call that scheduled it, so a pending attempt landed after the
+  teardown and re-mounted the head; the deferred body re-checks its premise now. And
+  the badge throttle was a bare timestamp asking "how long since I asked" instead of
+  "am I asking about the same links", so a workspace switch showed no badges at all
+  for up to a minute.
+
+  **The option vocabulary is finished too**, and with it the whole field model. Four
+  sets were still carrying retired words: `sidebar_menu_rail` drops *Manual Collapse*
+  (the user's call — it was the one mode where the pane's width had a different owner
+  from every other property, and five of eight looks shipped it),
+  `sidebar_section_style` drops *Accordion Cards* (a style with no rule and no
+  behaviour), `sidebar_rail_trigger` drops *Button Only* (not a trigger, and its
+  implementation overwrote another picker's field), and `sidebar_rail_button` drops
+  *Bottom* (it sat over the foot's own controls) while *Top* becomes *Header*.
+
+  **The pane's icons now match the dock**: 20px, no shape. The chip was a second
+  border inside a row that already has one, and the two surfaces had drawn the same
+  gesture at 15 and 20px for no stated reason. The workspace hue moves onto the glyph.
+
+  **Still to come:** sections, the list features, drag-to-resize, the account band,
+  identity and placement, preset integration, and the picked design.
 
 ---
 

@@ -126,6 +126,22 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   because `display` was still `flex` and a column container still puts a sized item at the
   inline start in LTR and the inline end in RTL. Only the column's HEIGHT told them apart.
   Assert the thing the sharing could break.
+- **Clearing a cache BEFORE committing the write it invalidates.** `setSettings` in
+  both `tests/smoke.mjs` and `tools/session.mjs` ran `frappe.clear_cache()` and THEN
+  `frappe.db.commit()`. Any worker that touched Theme Settings in that window
+  repopulated the cache from the UNCOMMITTED row, the commit landed behind a cache
+  nobody clears again, and every later read served the value from BEFORE the write.
+  **The symptom is always "the previous case's value"** — a five-style walk reporting
+  styles 1 and 2 as identical, a preset matrix showing the preceding preset's colour,
+  an icon check reporting the default it just moved away from. It looks like five
+  unrelated bugs, it gets worse as the machine gets busier, and restarting the backend
+  "fixes" it for a while, which is what makes it so easy to file as environmental.
+  Commit, then clear. Measured after: one page load, every time.
+- **A retry that treats a TRANSIENT as its premise.** `sidepane_sync` mounts the head
+  inside a `try_for`; re-reading `sidebar_is_hidden()` on every attempt made it give up
+  on a pane that was merely mid-layout, and three presets in a row lost their head while
+  each passed when run alone. What is WANTED (a setting) stops a retry; what is not
+  READY yet (the DOM) is the reason the retry exists.
 - **Editing the GENERATED half of a pair.** `translations/ar.csv` is generated FROM
   `locale/ar.po`, and the banner saying so is in the PO. Item 40 edited the CSV; the next
   `i18n:emit` silently reverted every edit and turned coverage red. Ask which file is the

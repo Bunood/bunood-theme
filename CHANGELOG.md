@@ -24,12 +24,12 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Three have landed: the COLOUR phase,
+**In flight.** The pane's rebuild is thirteen slices. Four have landed: the COLOUR phase,
 which changes what a desk paints; the FIELD MODEL, which changes what a desk offers —
 nineteen style settings down to twelve, with the two that arrive later taking it to
-fourteen; and THE PLACE ROW, which changes what the pane's head IS. Still to come: one
-mount lifecycle, sections, the list features, drag-to-resize, the account band, and the
-picked design.
+fourteen; THE PLACE ROW, which changes what the pane's head IS; and ONE LIFECYCLE, which
+changes how any of it gets there and comes back. Still to come: sections, the list
+features, drag-to-resize, the account band, and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -266,6 +266,98 @@ guard is false on the dev site is UNTESTED, not working.
   eighth was the module row. Both now PLACE the quick links deliberately — a control
   that ships Off still has to be scanned and still has to draw a ring in the state where
   somebody turned it on — and the focus floor moves to seven with the reason recorded.
+
+### Fixed — one lifecycle
+
+- **THE DOUBLE RENDER IS CLOSED, and now measured as a picture rather than as a token.**
+  The symptom this item was opened for — our head and Frappe's showing one under the
+  other — is asserted across all four colour modes plus rail and floating, counting
+  VISIBLE header rows in the pane. Frappe's own header stays in the document and is
+  hidden by the ownership rule, so counting nodes would report a double render nobody
+  can see; counting rendered rows is the question the report was about. Watched failing
+  by removing the rule: `wanted 1, got 2`.
+- **The pane built two MutationObservers per remount, forever.** `sb_observe` was reached
+  from both `mount_chrome` and `remount_chrome` and deduped nothing, so five container
+  flips plus two breakpoint crossings added **fourteen** — each with its own undeduped
+  200ms timer, each re-running the whole mount chain. The throttles hid the effects,
+  which is why the check counts constructions. Now one record, deduped on NODE IDENTITY
+  rather than a boolean: Frappe re-creates `.sidebar-items`, and an observer on a
+  detached node never fires again, so an `if (installed) return` guard would have traded
+  the leak for a silence.
+- **Nothing tore the pane down.** `CONTAINER_TEARDOWN.sidepane` was `() => {}`, on the
+  argument that the pane is Frappe's and hiding is the whole mechanism — true of the
+  container, false of everything we put inside it. Switching the side pane off left our
+  head in the document while `remount_chrome` had already released its ownership token:
+  the token and the DOM disagreeing about what was there. Teardown is now the exact
+  mirror of the mount, and it disconnects the observers, so a list mutation after
+  teardown mounts nothing.
+- **A retry outlived its premise.** The head mounts inside a `try_for`, which survives
+  the call that scheduled it — so switching the pane off while attempts were pending let
+  a later one land AFTER the teardown and put the head back on a pane the person had
+  just closed. The deferred body re-checks. Nothing noticed before, because before this
+  slice nothing tore down.
+- **The badge throttle answered the wrong question.** A bare timestamp with a
+  sixty-second window asks "how long since I asked" when the question is "am I asking
+  about the same links". A workspace switch replaces every label, and the observer's
+  re-mount was swallowed: a person moved to a new workspace and saw no badges at all
+  until the minute ran out. The window now applies within one label set.
+
+### Changed — one lifecycle
+
+- **The mount ladder was written three times** — `mount_sidebar_kit`, `bunood.sb_apply`
+  and the observer's timer body — and they disagreed: `sb_apply` re-ran eight of the ten
+  mounts and skipped two. `SB_PARTS` is that order as DATA and both directions read it,
+  so "runs a different subset" is no longer something anyone can write by accident.
+  `volatile` marks the parts that live inside `.sidebar-items`, which Frappe empties on
+  every workspace switch — a list rebuild touches exactly those, and stops re-mounting
+  the head roughly four times per route.
+- **`js_gzip`'s ceiling moves 98,300 → 99,000**, in this commit and with the reason in
+  `payload-budget.json`: the bytes are five unmount functions, the parts table and one
+  deduped observer — a teardown that did not previously exist. The prose that would have
+  cost another 981 went to `_sidebar.scss`, which Sass strips before the wire. Slices 7–8
+  are expected to return it if Frappe's own sections turn out to nest.
+
+### Changed — the option vocabulary, and the icons
+
+Four option sets were still carrying words the field model had retired. They are the
+last of item 40's picker vocabulary, and every one of them was a choice that landed
+where another choice already did.
+
+- **`sidebar_menu_rail` becomes Expanded / Rail.** *Manual Collapse* was the one mode
+  in which the pane's WIDTH had a different owner from every other property —
+  `sb_apply_width` deliberately cleared our inline width and handed the column to
+  Frappe. Five of the eight shipped looks ship it, so a drag-to-resize wired "only in
+  expanded mode" would have been dead on most sites. Frappe's collapse BEHAVIOUR is
+  untouched: the link and the handle still toggle it, and `sb_apply_width` now reads
+  the `expanded` class that toggle flips. **That pairing is load-bearing** — pin the
+  width whenever the SETTING says expanded and a collapsed pane stays our width wide.
+  An observer on the container's class re-runs it, because nothing did.
+- **`sidebar_section_style` becomes Plain / Divided / Cards.** *Accordion Cards* was
+  never a style: no rule keys on `[data-bnd-sb-sections="accordion"]` and
+  `sb_wrap_sections` treated it as a synonym for `cards`. Two options, one pixel — in
+  the picker whose vocabulary exists to prevent exactly that. Collapse arrives as its
+  own field, and it will arrive built.
+- **`sidebar_rail_trigger` loses Button Only.** It was not a trigger, and its
+  implementation read `if (trigger === "button" && !pos) pos = "edge"` — **one picker
+  silently overwriting another picker's field**. A tenant on Button Only with the rail
+  button set to None was shown an edge button anyway. The migration writes what they
+  were looking at: Click, plus the edge button the old code was drawing.
+- **`sidebar_rail_button` becomes None / Edge / Header.** *Bottom* sat at
+  `inset-inline-end: 50%`, over the foot's own controls — Frappe's collapse link and
+  the resize handle both live there. *Top* is renamed for what it is rather than for a
+  compass point; its geometry is unchanged, so nobody's button moves.
+
+**And the pane's icons take the dock's size, without a shape.** The glyph goes 15px →
+**20px**, which is what the dock has drawn since it shipped — the same gesture on two
+surfaces, sized differently for no reason anyone could name. The shipped `icon_style`
+moves from *Colored Chips* to **Filled Color**: a chip is a second border inside a row
+that already has one, and at 15px the glyph read as a decoration beside the label
+rather than as the thing you aim at. The workspace hue the chip was carrying moves onto
+the glyph itself, so nothing loses its colour. Measured after: every resting row's icon
+background is `rgba(0,0,0,0)`.
+
+Both defaults are THEME AXES, so both moved with a patch that touches only sites still
+holding the old value — the same trap the quick links found, two fields over.
 
 ### Known, and filed rather than fixed
 
