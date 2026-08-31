@@ -5,6 +5,7 @@
 		"bunood_setup": "0.7.0"
 	},
 	"files": {
+		"frappe:frappe/desk/page/desktop/desktop.css": "6bfe0c5be5f3eaa9bd0c0578e3ea0e0533d94f46f7431e21f1c6b915dd5b540b",
 		"erpnext:erpnext/workspace_sidebar/home.json": "1cc721ee9079cbc59fa4ef8a1ec2dc5728028c18215c4804ebb83a2c05e966f8",
 		"erpnext:erpnext/accounts/party.py": "4f52e65e77ee22054f54bec34f6f0f42611a77f95017337308d708c4885760ea",
 		"erpnext:erpnext/public/js/utils/party.js": "cb36eb51b45dd11e3c893700c46a9620cc80b9c49b274ed0f72e0c77dcee2643",

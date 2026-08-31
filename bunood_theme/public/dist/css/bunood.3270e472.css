@@ -5037,7 +5037,8 @@ html[data-theme] .bnd-home-dashboard {
 html[data-bnd-desk] .desktop-wrapper .icons {
   gap: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-5));
 }
-html[data-bnd-desk] .desktop-wrapper .desktop-icon {
+html[data-bnd-desk] .desktop-wrapper .icons .desktop-icon {
+  block-size: auto;
   min-block-size: 138px;
   padding: var(--bnd-sp-4);
   background: var(--bnd-surface);
@@ -5055,9 +5056,11 @@ html[data-bnd-desk] .desktop-wrapper .desktop-icon:is(:hover, :focus-visible) {
 html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container {
   display: grid;
   place-items: center;
+  flex: none;
+  padding: 0;
   inline-size: 48px;
   block-size: 48px;
-  margin-block-end: var(--bnd-sp-4);
+  margin-block-end: 0;
   margin-inline: auto;
 }
 html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container[data-bnd-deskicon] > :not(.bnd-deskicon) {
@@ -5075,6 +5078,8 @@ html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-container :is(img, sv
   object-fit: contain;
 }
 html[data-bnd-desk] .desktop-wrapper .desktop-icon > .icon-caption {
+  block-size: auto;
+  flex: none;
   overflow: visible;
   margin-block-start: var(--bnd-sp-1);
 }

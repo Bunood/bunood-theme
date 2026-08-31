@@ -1724,6 +1724,43 @@ async function main() {
 			expectEq(await visible(".bnd-topbar"), true, "topbar remains available after returning");
 		});
 
+		await test("desktop icons: centered and unclipped with wrapped labels", async () => {
+			const viewport = page.viewportSize();
+			try {
+				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
+					for (const width of [1366, 390]) {
+						await page.setViewportSize({ width, height: 900 });
+						await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon");
+						for (const mode of ["light", "dark"]) {
+							await page.evaluate(m => document.documentElement.setAttribute("data-theme", m), mode);
+							const rows = await page.evaluate(() => [...document.querySelectorAll(".desktop-icon")]
+								.filter(tile => tile.getBoundingClientRect().width > 0)
+								.map(tile => {
+									const host = tile.querySelector(":scope > .icon-container");
+									const icon = host?.querySelector(":scope > .bnd-deskicon");
+									const label = tile.querySelector(":scope > .icon-caption .icon-title");
+									if (!icon) return { label: tile.dataset.id, missing: true };
+									const h = host.getBoundingClientRect(), i = icon.getBoundingClientRect();
+									const t = tile.getBoundingClientRect(), l = label?.getBoundingClientRect();
+									return { label: tile.dataset.id,
+										x: Math.abs(i.x + i.width / 2 - h.x - h.width / 2),
+										y: Math.abs(i.y + i.height / 2 - h.y - h.height / 2),
+										clearance: Math.min(i.top - h.top, h.bottom - i.bottom, i.left - h.left, h.right - i.right),
+										labelFits: !l || (l.top >= h.bottom && l.bottom <= t.bottom && l.left >= t.left && l.right <= t.right),
+									};
+								}));
+							expect(rows.length >= 10, `${lang}/${width}/${mode}: visible module grid`);
+							const bad = rows.filter(r => r.missing || r.x > 1 || r.y > 1 || r.clearance < 2 || !r.labelFits);
+							expect(!bad.length, `${lang}/${width}/${mode}: clipped/off-center icons or labels: ${JSON.stringify(bad)}`);
+						}
+					}
+				});
+			} finally {
+				await page.setViewportSize(viewport);
+				await goDesk("/desk/home", ".page-head");
+			}
+		});
+
 		// ── Breadcrumb kit (item 11): styles, Original, icon scope, preview ─
 		// The deepest stock trail (form page: home / workspace / doctype /
 		// doc) exercises every option. Pages are cached, so assertions always

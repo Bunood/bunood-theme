@@ -56,7 +56,10 @@ html[data-bnd-desk] {
   // A brand edge on the block-start rather than a full brand fill: the tile's
   // job is to be scannable, and twelve saturated cards compete with each other
   // rather than with the page.
-  .desktop-wrapper #{$desktop-item} {
+  .desktop-wrapper .icons #{$desktop-item} {
+    // Native desktop.css fixes the tile height (including a narrower-screen
+    // override). Wrapped captions must grow the card, not shrink its icon.
+    block-size: auto;
     min-block-size: 138px;
     padding: var(--bnd-sp-4);
     background: var(--bnd-surface);
@@ -84,9 +87,13 @@ html[data-bnd-desk] {
   .desktop-wrapper #{$desktop-item} > .icon-container {
     display: grid;
     place-items: center;
+    // Native padding plus flex-shrink squeezed the 48px badge to 34px and
+    // clipped the bottom of its 30px SVG. Grid centering owns the inset.
+    flex: none;
+    padding: 0;
     inline-size: 48px;
     block-size: 48px;
-    margin-block-end: var(--bnd-sp-4);
+    margin-block-end: 0; // the tile's native gap already separates the caption
     margin-inline: auto;
   }
 
@@ -122,6 +129,8 @@ html[data-bnd-desk] {
   // sized for, so the stock rule clipped them. Room, and a wrap rather than a
   // slice — a module name is not a place to lose a letter.
   .desktop-wrapper #{$desktop-item} > .icon-caption {
+    block-size: auto;
+    flex: none;
     overflow: visible;
     margin-block-start: var(--bnd-sp-1);
   }

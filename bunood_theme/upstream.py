@@ -57,6 +57,8 @@ PINNED_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 
 #: Upstream files we read or fork, as ``(app, relative path)``.
 PINNED_FILES = (
+    # Desktop badge padding and fixed tile heights must not clip themed SVGs.
+    ("frappe", "frappe/desk/page/desktop/desktop.css"),
     ("erpnext", "erpnext/workspace_sidebar/home.json"),
     # The initial invoice default must yield to native customer payment terms.
     ("erpnext", "erpnext/accounts/party.py"),

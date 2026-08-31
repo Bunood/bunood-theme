@@ -1,5 +1,28 @@
 # Handover — read this first
 
+## Desktop icon clipping fix — 2026-08-31
+
+The All Apps grid's 48px icon badge was shrinking to 34–38px inside Frappe's
+fixed-height tile. Native padding then pushed the 30px SVG below the clipped
+badge. `_desktop.scss` now prevents badge shrink, removes its redundant native
+padding/margin, and lets tile/caption heights grow with wrapped labels. The
+desktop page stylesheet is a new upstream file pin; existing pins are unchanged.
+
+The new browser regression failed on the old build (up to 6px clipped), then
+passed after deployment in English/Arabic, light/dark, at 1366px and 390px.
+Live desktop measurements show centered icons with 9px clearance. The current
+desk stylesheet is `bunood.3270e472.css`; JS remains `bunood.0e11ab3c.js`.
+Build, 9,520 contrast pairs, icons, translations, and five guard unit tests pass.
+The full post-fix run finished **412/415**, with the new icon regression green.
+The failures were the Bunood Light rail width (50px vs 52px), the native Item
+list's axe label count (16 vs a baseline of 14), and the already-recorded native
+chart removeChild exception during workspace testing. No assertion, baseline or
+console allowlist was relaxed. The independent restoration check confirmed all
+snapshotted preferences and both languages were restored. The isolated recheck
+finished **3/5**: icon geometry, workspace tiles and the console budget passed;
+the rail width and Item-list label count failures repeated. Those two issues
+remain outside this icon-grid repair. This is not a fully green release gate.
+
 > **2026-08-31 continuation:** the active worktree is `bunood-theme-ui`, branch
 > `feat/v2-ui-overhaul`, rebased on `origin/main`. Current local stack:
 > `bunoodimg-*`, site `verify.bunood.test`, URL `http://localhost:8080`.
