@@ -1137,6 +1137,7 @@
 		}
 		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
 		set("badges", SB_SLUGS.badges[sb.badges]);
+		if (parseInt(sb.filter, 10)) html.setAttribute("data-bnd-sb-filter", "");
 		const width = parseInt(sb.pane_width, 10);
 		if (width >= 1 && width <= 5) html.setAttribute("data-bnd-sb-width", String(width));
 		const intensity = parseInt(sb.intensity, 10);
@@ -5810,6 +5811,122 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The workspace shown by the crumb decorator; the module row reuses it. */
 	let sb_current_workspace = null;
 
+	/** The filter row. Argument: _sidebar.scss. */
+	function sb_mount_filter() {
+		if (!document.documentElement.hasAttribute("data-bnd-sb-filter")) {
+			sb_teardown_filter();
+			return;
+		}
+		const sidebar = document.querySelector(".body-sidebar");
+		const head = sidebar && sidebar.querySelector(".bnd-sb-head");
+		if (!sidebar || sidebar.querySelector(".bnd-sb-filter")) return;
+		const row = el("div", "bnd-sb-filter");
+		const input = el("input", "bnd-sb-filter-input", {
+			type: "search",
+			placeholder: __("Filter this workspace"),
+			"aria-label": __("Filter this workspace"),
+		});
+		const count = el("span", "bnd-sb-filter-count", { "aria-live": "polite" });
+		row.appendChild(input);
+		row.appendChild(count);
+		let timer = null;
+		input.addEventListener("input", () => {
+			clearTimeout(timer);
+			timer = setTimeout(() => sb_apply_filter(input.value, count), 120);
+		});
+		input.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				e.stopPropagation();
+				input.value = "";
+				sb_apply_filter("", count);
+			} else if (e.key === "ArrowDown") {
+				e.preventDefault();
+				const first = document.querySelector(
+					".body-sidebar-top .sidebar-item-container:not(.bnd-sb-fhide) .item-anchor"
+				);
+				if (first) first.focus();
+			}
+		});
+		if (head) head.insertAdjacentElement("afterend", row);
+		else sidebar.insertBefore(row, sidebar.firstChild);
+	}
+
+	/** Headers follow their items. */
+	function sb_apply_filter(q, count) {
+		q = (q || "").trim().toLowerCase();
+		const list = document.querySelector(".body-sidebar-top .sidebar-items");
+		if (!list) return;
+		// Lets CSS reveal matches inside collapsed sections. _sidebar.scss.
+		document.documentElement.toggleAttribute("data-bnd-sb-filtering", !!q);
+		let shown = 0;
+		const rows = list.querySelectorAll(".sidebar-item-container:not(.section-item)");
+		for (const row of rows) {
+			const label = (row.querySelector(".sidebar-item-label") || {}).textContent || "";
+			const hit = !q || label.toLowerCase().includes(q);
+			row.classList.toggle("bnd-sb-fhide", !hit);
+			if (hit && q) shown++;
+		}
+		for (const section of list.querySelectorAll(".sidebar-item-container.section-item")) {
+			const any = !!section.querySelector(".sidebar-item-container:not(.section-item):not(.bnd-sb-fhide)");
+			section.classList.toggle("bnd-sb-fhide", !!q && !any);
+		}
+		// Label + value, never a bare count (the i18n rule).
+		if (count) count.textContent = q ? __("Matches: {0}", [shown]) : "";
+	}
+
+	/** Remove the row; give every hidden row back. */
+	function sb_teardown_filter() {
+		document.documentElement.removeAttribute("data-bnd-sb-filtering");
+		for (const n of document.querySelectorAll(".bnd-sb-filter")) n.remove();
+		for (const n of document.querySelectorAll(".bnd-sb-fhide")) n.classList.remove("bnd-sb-fhide");
+	}
+
+	/** The automatic overflow fade — stamps which EDGES hide content. SCSS. */
+	function sb_mount_fades() {
+		const top = document.querySelector(".body-sidebar-top");
+		if (!top) return;
+		const update = () => {
+			const over = top.scrollHeight > top.clientHeight + 1;
+			if (!over) {
+				top.removeAttribute("data-bnd-sb-scroll");
+				return;
+			}
+			const atTop = top.scrollTop <= 1;
+			const atEnd = top.scrollTop + top.clientHeight >= top.scrollHeight - 1;
+			top.setAttribute("data-bnd-sb-scroll", atTop ? "bottom" : atEnd ? "top" : "both");
+		};
+		if (!top._bnd_fades) {
+			top._bnd_fades = true;
+			top.addEventListener("scroll", update, { passive: true });
+			if (typeof ResizeObserver !== "undefined") new ResizeObserver(update).observe(top);
+		}
+		update();
+	}
+
+	/** Un-stamp; the listener is inert without it. */
+	function sb_teardown_fades() {
+		const top = document.querySelector(".body-sidebar-top");
+		if (top) top.removeAttribute("data-bnd-sb-scroll");
+	}
+
+	/** aria-current on the pane's active row. */
+	function sb_mark_current() {
+		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+			n.removeAttribute("aria-current");
+		}
+		const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
+		if (!active) return;
+		const holder = active.closest(".item-anchor") || active.querySelector(".item-anchor") || active;
+		holder.setAttribute("aria-current", "page");
+	}
+
+	/** The sweep above is the whole teardown. */
+	function sb_unmark_current() {
+		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+			n.removeAttribute("aria-current");
+		}
+	}
+
 	// SECTIONS ARE PAINT NOW, not surgery — the wrap/unwrap pair, its
 	// re-entrancy guard and its edit-mode observer are gone. _sidebar.scss
 	// carries the whole argument.
@@ -6430,8 +6547,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  `.sidebar-items`, which Frappe rebuilds. Argument: _sidebar.scss. */
 	const SB_PARTS = [
 		{ key: "head", volatile: false, mount: sb_mount_head, unmount: sb_teardown_head },
+		{ key: "filter", volatile: false, mount: sb_mount_filter, unmount: sb_teardown_filter },
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
+		{ key: "current", volatile: true, mount: sb_mark_current, unmount: sb_unmark_current },
+		{ key: "fades", volatile: true, mount: sb_mount_fades, unmount: sb_teardown_fades },
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
 		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
@@ -6752,6 +6872,7 @@ function sb_zone_anchor(pane, zone, node) {
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),
+			filter: v("sidebar_filter", "filter"),
 			user_preset: sb_state ? sb_state.user_preset : "",
 		};
 		apply_sidebar_attrs(next);
@@ -6991,6 +7112,7 @@ function sb_zone_anchor(pane, zone, node) {
 				if (container_on("pagehead")) inject_compact_cluster();
 				if (container_on("dock")) update_dock_active();
 				sb_update_head();
+				sb_mark_current();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration

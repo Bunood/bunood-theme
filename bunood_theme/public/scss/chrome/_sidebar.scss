@@ -26,6 +26,7 @@
 //                            for every rail rule — trigger wiring is JS)
 //   data-bnd-sb-iconsrc     smart | original | letters
 //   data-bnd-sb-badges      off | dots | counts
+//   data-bnd-sb-filter      (attribute present = the filter row mounts)
 //
 // THE WORKING-SET PATTERN (why this file stays sane)
 //   The color-mode blocks define a small working set of custom properties —
@@ -813,6 +814,82 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
   color: var(--bnd-sb-ink-muted);
 }
 
+// ── The filter row (item 40) ────────────────────────────────────────────────
+// The survey's clearest gap: an in-pane filter is common in product tools
+// (6/13) and absent from every ERP surveyed (0/14) — and ERPs are the ones
+// with 70-link workspaces. Always rendered when On: an On that sometimes
+// shows nothing is the dishonest picker. The placeholder says FILTER THIS
+// WORKSPACE, never "Search" — search is the palette's job (WCAG 2.4.5's
+// second way), and two inputs answering one word would compete.
+html[data-bnd-sb-filter] .bnd-sb-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-filter] .bnd-sb-filter-input {
+  flex: 1;
+  min-inline-size: 0;
+  padding-block: 5px;
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-sb-card-base);
+  color: var(--bnd-sb-ink);
+  font-size: var(--bnd-text-sm);
+
+  &::placeholder {
+    color: var(--bnd-sb-ink-muted);
+  }
+}
+
+html[data-bnd-sb-filter] .bnd-sb-filter-count {
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-sb-ink-muted);
+  white-space: nowrap;
+}
+
+// A filtered-out row: plain display none, at a specificity Frappe's row
+// styles do not contest. No !important — the sanctioned places only.
+html[data-bnd-sb-filter] .body-sidebar .bnd-sb-fhide {
+  display: none;
+}
+
+// WHILE A QUERY IS LIVE, matches inside collapsed sections must show —
+// most sections rest collapsed (Frappe's `.hidden` on the nested
+// container, measured), and a filter over only what is open finds six
+// links out of sixty. The override is pure CSS under a transient
+// attribute: Frappe's own class is never touched, so clearing the query
+// restores every section's real state by simply dropping the attribute.
+// `!important`, and it is the sanctioned pattern (GUIDELINES §1.3), not a
+// convenience: Frappe collapses a section with `.hidden { display: none
+// !important }` — a vendor `!important` LITERAL that no specificity beats
+// unescalated. The one alternative is toggling Frappe's own class from JS,
+// which would put our hands on their collapse state machine (their toggle
+// flips the same class, and a user collapsing mid-query would strand our
+// restore map). The rule is scoped to a transient attribute our filter
+// alone stamps, so dropping the attribute IS the total undo.
+html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:not(.bnd-sb-fhide) > .sidebar-child-item.hidden {
+  display: block !important;
+}
+
+// ── The overflow fade (item 40) ─────────────────────────────────────────────
+// AUTOMATIC, replacing the deleted `sidebar_scroll_fades` preference: whether
+// a list overflows is a fact. The JS stamps which EDGES hide content, so the
+// top edge is unmasked while the list sits at the top — the old unconditional
+// mask clipped the focus ring of the very first row.
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll="bottom"] {
+  mask-image: linear-gradient(to bottom, black calc(100% - 18px), transparent);
+}
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll="top"] {
+  mask-image: linear-gradient(to bottom, transparent, black 18px);
+}
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll="both"] {
+  mask-image: linear-gradient(to bottom, transparent, black 18px, black calc(100% - 18px), transparent);
+}
+
 // ── Brand header + pane furniture on kit surfaces ───────────────────────────
 // The native header ships light-surface styling (white card look, gray icon
 // tile); on a dark or tinted pane it must read as part of the pane.
@@ -1100,11 +1177,21 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
   .body-sidebar-cards,
   .body-sidebar-bottom,
   .standard-items-sections,
+  .bnd-sb-filter,
   .sidebar-header .sidebar-item-label,
   .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+    // VISIBILITY, DELAYED — the keyboard repair (item 40). Opacity removes
+    // NOTHING from the tab order, so a resting rail was dozens of invisible
+    // links a keyboard user tabbed straight into, mitigated only by the
+    // focusin handler opening the rail after the fact. `visibility: hidden`
+    // refuses focus outright; the delay lets the fade-out finish first, and
+    // opening the rail drops this whole rule so everything is visible and
+    // focusable again at once.
+    visibility: hidden;
+    transition: opacity var(--bnd-dur-fast) var(--bnd-ease),
+      visibility 0s var(--bnd-dur-fast);
   }
 
   // Labels are text; opacity alone leaves their WIDTH, which pushed the

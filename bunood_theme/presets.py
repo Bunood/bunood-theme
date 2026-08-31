@@ -40,6 +40,7 @@ SIDEBAR_FIELDS = [
     "sidebar_rail_button",
     "sidebar_pane_width",
     "sidebar_badges",
+    "sidebar_filter",
 ]
 
 #: The preset catalogue. "Bunood Night" is the shipped default — the user's
@@ -67,6 +68,7 @@ SIDEBAR_PRESETS = {
         # is None — kept so flipping back restores a tuned look.
         "sidebar_pane_width": "3",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Bunood Light": {
         "sidebar_placement": "Floating",
@@ -81,6 +83,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Daylight": {
         "sidebar_placement": "Attached",
@@ -95,6 +98,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Ink": {
         "sidebar_placement": "Attached",
@@ -109,6 +113,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Carbon": {
         "sidebar_placement": "Attached",
@@ -123,6 +128,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Paper": {
         "sidebar_placement": "Attached",
@@ -137,6 +143,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     "Aurora": {
         "sidebar_placement": "Floating",
@@ -151,6 +158,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
+        "sidebar_filter": 0,
     },
     # Renamed from "Operator" for item 7. ERPNext already translates "Operator"
     # as a MACHINE OPERATOR — a person — in Manufacturing (downtime_entry,
@@ -173,6 +181,7 @@ SIDEBAR_PRESETS = {
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Counts",
+        "sidebar_filter": 0,
     },
 }
 

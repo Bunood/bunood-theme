@@ -18,6 +18,7 @@
   "sidebar_rail_button": "None",
   "sidebar_pane_width": "3",
   "sidebar_badges": "Off",
+  "sidebar_filter": 0,
   "crumb_style": "Quiet Trail",
   "crumb_separator": "Chevron",
   "crumb_hover": "Soft Pill",
@@ -486,9 +487,9 @@
    ]
   },
   "sidebar_picker": {
-   "n": 218,
+   "n": 225,
    "svgs": 0,
-   "text": 1044,
+   "text": 1105,
    "seq": [
     "div.bnd-sbp",
     "div.bnd-sbp-toolbar",
@@ -656,6 +657,13 @@
     "span.bnd-sbp-row",
     "span.",
     "span.bnd-sbp-oname",
+    "div.bnd-cbp-group.bnd-sbp-group",
+    "button.bnd-cbp-toggle.bnd-sbp-toggle",
+    "span.bnd-cbp-knob",
+    "span.",
+    "b.",
+    "br.",
+    "span.bnd-sbp-pblurb",
     "section.bnd-cbp-zone",
     "h4.bnd-cbp-zone-title",
     "div.bnd-cbp-group.bnd-sbp-group",

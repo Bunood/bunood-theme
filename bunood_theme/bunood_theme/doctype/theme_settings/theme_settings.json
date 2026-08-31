@@ -54,6 +54,7 @@
   "sidebar_rail_button",
   "sidebar_pane_width",
   "sidebar_badges",
+  "sidebar_filter",
   "section_crumbs",
   "crumb_style",
   "crumbs_picker",
@@ -503,6 +504,13 @@
    "label": "Count Badges",
    "options": "Off\nDots\nCounts",
    "hidden": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "sidebar_filter",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Workspace Filter"
   },
   {
    "fieldname": "palette_enabled",

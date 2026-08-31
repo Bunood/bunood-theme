@@ -2401,6 +2401,12 @@ const BND_SB_GROUPS = [
 	},
 ];
 
+/** Toggle rows: field + name + one-liner. The table pattern the dead
+ *  toggles used, back for a field that actually has a consumer. */
+const BND_SB_TOGGLES = [
+	{ field: "sidebar_filter", zone: "links", name: () => __("Workspace filter"), desc: () => __("An always-visible filter row above the links.") },
+];
+
 /** Stepped 1..5 controls: field + endpoint labels. */
 const BND_SB_STEPPERS = [
 	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Card depth"), desc: () => __("Applies to card sections."), lo: () => __("Hairline"), hi: () => __("Elevated") },
@@ -2509,6 +2515,17 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	});
 
 
+	BND_SB_TOGGLES.forEach((t) => {
+		const on = !!parseInt(frm.doc[t.field], 10);
+		add(t.zone, (
+			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (t.name() + " " + t.field).toLowerCase() + '">' +
+			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
+			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
+			"</button></div>"
+		));
+	});
+
 	BND_SB_STEPPERS.forEach((s) => {
 		const current = parseInt(frm.doc[s.field], 10) || (s.field === "sidebar_pane_width" ? 2 : 3);
 		const stops = [1, 2, 3, 4, 5]
@@ -2554,7 +2571,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	);
 
 	// One delegated pass wires everything; re-render happens on any change.
-	$host.find(".bnd-sbp-opt, .bnd-sbp-stop").on("click", function () {
+	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});

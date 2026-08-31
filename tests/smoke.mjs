@@ -1366,7 +1366,7 @@ const MUTABLE_FIELDS = [
 	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button",
 	"sidebar_pane_width",
-	"sidebar_badges",
+	"sidebar_badges", "sidebar_filter",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
 	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
 	// Personalization locks (item 38). Here for the ordinary reason and one of
@@ -3899,6 +3899,199 @@ async function main() {
 				const flat = await read("Cards", "1");
 				expectEq(flat.shadow, "none", `depth 1 is a hairline (shadow: ${flat.shadow})`);
 				expect(flat.bg !== deep.bg, `depth 1 and 5 differ at the surface (${flat.bg} vs ${deep.bg})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("rail: a resting rail is unfocusable, not merely invisible", async () => {
+			// THE AUDIT'S KEYBOARD TRAP. The rail's rest state hid the pane's
+			// content with `opacity: 0; pointer-events: none` — and opacity
+			// removes NOTHING from the tab order, so a keyboard user tabbed
+			// through dozens of invisible links. The focusin handler opening the
+			// rail mitigated it by accident, which is why this asserts
+			// FOCUSABILITY rather than walking Tab: with `visibility: hidden` an
+			// element refuses programmatic focus outright, before any focusin
+			// can fire and dress the wound.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			try {
+				setSettings({
+					sidebar_enabled: 1, sidebar_color: "Match Theme",
+					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Hover",
+				});
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => document.documentElement.hasAttribute("data-bnd-rail") &&
+						!!document.querySelector(".body-sidebar-top .item-anchor"),
+					null, { timeout: 20000 }
+				);
+				const r = await page.evaluate(() => {
+					const container = document.querySelector(".body-sidebar-container");
+					const link = document.querySelector(".body-sidebar-top .item-anchor");
+					if (!container || !link) return null;
+					const atRest = !container.classList.contains("bnd-rail-open");
+					document.activeElement && document.activeElement.blur();
+					link.focus();
+					return {
+						atRest,
+						focused: document.activeElement === link,
+						opened: container.classList.contains("bnd-rail-open"),
+						visibility: getComputedStyle(link).visibility,
+					};
+				});
+				expect(r, "the resting rail has a link to try");
+				expect(r.atRest, "the rail is at rest before the attempt");
+				expect(!r.focused,
+					`an invisible link refuses focus (focused=${r.focused}, visibility=${r.visibility})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("a11y: the pane's active row says aria-current", async () => {
+			// Set on the dock and (until it retired) the apps rail — and never on
+			// the pane's own active item, the one place a person actually is. To
+			// AT the highlighted row was indistinguishable from its neighbours.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !!document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar"),
+					null, { timeout: 20000 }
+				);
+				const r = await page.evaluate(() => {
+					const rows = [...document.querySelectorAll(".body-sidebar [aria-current=\"page\"]")];
+					const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
+					const holder = active && (active.closest(".item-anchor") || active.querySelector(".item-anchor") || active);
+					return {
+						marked: rows.length,
+						activeMarked: !!(holder && (holder.getAttribute("aria-current") === "page" ||
+							(holder.closest("[aria-current=\"page\"]") && true))),
+					};
+				});
+				expectEq(r.marked, 1, `exactly one pane row carries aria-current (${r.marked})`);
+				expect(r.activeMarked, "and it is the visually active one");
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the overflow fade exists exactly when there is overflow", async () => {
+			// THE FIELD WENT IN SLICE 4e WITH THIS PROMISE. `sidebar_scroll_fades`
+			// was a preference that masked a short list for no reason when on and
+			// clipped nothing when off — but whether a list overflows is a FACT,
+			// not a preference. Short viewport = overflow = fade; tall viewport =
+			// no overflow = no fade. And the fade must never hide the top edge a
+			// focus ring needs while the list is scrolled to the top.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				const read = async (h) => {
+					await page.setViewportSize({ width: 1440, height: h });
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						() => !!document.querySelector(".body-sidebar-top .item-anchor"),
+						null, { timeout: 20000 }
+					);
+					await page.waitForTimeout(600);
+					return page.evaluate(() => {
+						const top = document.querySelector(".body-sidebar-top");
+						const cs = getComputedStyle(top);
+						return {
+							overflows: top.scrollHeight > top.clientHeight + 1,
+							scrolledToTop: top.scrollTop === 0,
+							mask: (cs.maskImage && cs.maskImage !== "none") ? cs.maskImage : (cs.webkitMaskImage && cs.webkitMaskImage !== "none" ? cs.webkitMaskImage : "none"),
+						};
+					});
+				};
+				const short_ = await read(520);
+				expect(short_.overflows, "a 520px viewport makes the Selling list overflow (premise)");
+				expect(short_.mask !== "none", `an overflowing list gets the fade (mask: ${short_.mask.slice(0, 40)})`);
+				// At the top, the TOP edge is not masked: the first gradient stop
+				// keeps full alpha, so a focus ring on the first row survives.
+				expect(!/transparent/.test(short_.mask.split(",")[1] || "") || !short_.scrolledToTop || /black 0|rgb\(0, 0, 0\) 0/.test(short_.mask),
+					`scrolled to the top, the top edge stays unmasked (${short_.mask.slice(0, 80)})`);
+				const tall = await read(1900);
+				expect(!tall.overflows, "a 1900px viewport fits the whole list (premise)");
+				expectEq(tall.mask, "none", "and a list that fits gets no fade at all");
+			} finally {
+				await page.setViewportSize({ width: 1920, height: 1080 });
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the filter narrows the list, and headers follow their items", async () => {
+			// NEW IN ITEM 40, and the survey's clearest gap: an in-pane filter is
+			// common in product tools (6/13) and absent from every ERP surveyed
+			// (0/14) — while ERPs are the ones with 70-link workspaces. Always
+			// rendered when On (an On that sometimes shows nothing is the
+			// dishonest picker); the placeholder says FILTER, never Search, which
+			// is the palette's job.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_filter"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_filter: 1 });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-filter-input"), null, { timeout: 20000 });
+
+				// SECTIONS REST COLLAPSED on this desk (measured: only six links
+				// are visible unfiltered), so the filter's job is BOTH directions:
+				// hide misses AND reveal matches inside collapsed sections. The
+				// arithmetic below is written for that — visible-after can exceed
+				// visible-before, and the honest comparisons are against totals.
+				const counts = () =>
+					page.evaluate(() => {
+						const vis = (n) => n.offsetParent !== null && getComputedStyle(n).display !== "none";
+						const items = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container:not(.section-item)")];
+						const heads = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container.section-item")];
+						return {
+							total: items.length,
+							items: items.filter(vis).length,
+							inCollapsed: items.filter((n) => vis(n) && n.closest(".sidebar-child-item")).length,
+							heads: heads.filter(vis).length,
+							count: (document.querySelector(".bnd-sb-filter-count") || {}).textContent || "",
+						};
+					});
+
+				const all = await counts();
+				expect(all.total > 10, `the workspace is long enough to prove narrowing (${all.total} links)`);
+				expect(all.heads > 1, `and has sections whose headers can follow (${all.heads})`);
+
+				await page.fill(".bnd-sb-filter-input", "invoice");
+				await page.waitForTimeout(400);
+				const narrowed = await counts();
+				expect(narrowed.items > 0 && narrowed.items < all.total,
+					`typing narrows against the whole list (${all.total} -> ${narrowed.items})`);
+				expect(narrowed.inCollapsed > 0,
+					`a match inside a resting-collapsed section is REVEALED (${narrowed.inCollapsed})`);
+				expect(narrowed.heads < all.heads,
+					`a header hides when all its items do (${all.heads} -> ${narrowed.heads})`);
+				expect(/\d/.test(narrowed.count), `the live region speaks a number (${JSON.stringify(narrowed.count)})`);
+
+				// Escape clears, and everything comes back.
+				await page.press(".bnd-sb-filter-input", "Escape");
+				await page.waitForTimeout(300);
+				const cleared = await counts();
+				expectEq(cleared.items, all.items, "Escape restores exactly the rows that were visible");
+				expectEq(cleared.inCollapsed, all.inCollapsed, "collapsed sections close again");
+				expectEq(cleared.heads, all.heads, "and every header returns");
+
+				// The placeholder is a FILTER's, and the input is labelled.
+				const meta = await page.evaluate(() => {
+					const i = document.querySelector(".bnd-sb-filter-input");
+					return { ph: i.getAttribute("placeholder") || "", label: i.getAttribute("aria-label") || "" };
+				});
+				expect(!/search/i.test(meta.ph), `the placeholder does not say Search (${meta.ph})`);
+				expect(meta.label.length > 0, "the input carries an aria-label");
+
+				// And Off means gone.
+				setSettings({ sidebar_filter: 0 });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar-top .item-anchor"), null, { timeout: 20000 });
+				expectEq(
+					await page.evaluate(() => document.querySelectorAll(".bnd-sb-filter").length),
+					0, "Off mounts no filter row"
+				);
 			} finally {
 				setSettings(before);
 			}

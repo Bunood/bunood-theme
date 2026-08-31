@@ -1003,7 +1003,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 }
 
 html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item,
+.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
 .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
 .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank):focus-visible {
@@ -1781,6 +1781,55 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
   color: var(--bnd-sb-ink-muted);
 }
 
+html[data-bnd-sb-filter] .bnd-sb-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-filter] .bnd-sb-filter-input {
+  flex: 1;
+  min-inline-size: 0;
+  padding-block: 5px;
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-sb-card-base);
+  color: var(--bnd-sb-ink);
+  font-size: var(--bnd-text-sm);
+}
+html[data-bnd-sb-filter] .bnd-sb-filter-input::placeholder {
+  color: var(--bnd-sb-ink-muted);
+}
+
+html[data-bnd-sb-filter] .bnd-sb-filter-count {
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-sb-ink-muted);
+  white-space: nowrap;
+}
+
+html[data-bnd-sb-filter] .body-sidebar .bnd-sb-fhide {
+  display: none;
+}
+
+html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:not(.bnd-sb-fhide) > .sidebar-child-item.hidden {
+  display: block !important;
+}
+
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll=bottom] {
+  mask-image: linear-gradient(to bottom, black calc(100% - 18px), transparent);
+}
+
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll=top] {
+  mask-image: linear-gradient(to bottom, transparent, black 18px);
+}
+
+html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll=both] {
+  mask-image: linear-gradient(to bottom, transparent, black 18px, black calc(100% - 18px), transparent);
+}
+
 html[data-bnd-sb-color] .body-sidebar .sidebar-header {
   background: transparent;
 }
@@ -1976,11 +2025,13 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-to
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections,
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-filter,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header .sidebar-item-label,
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+  visibility: hidden;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease), visibility 0s var(--bnd-dur-fast);
 }
 html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-item .bnd-sb-item-label {
   display: none;

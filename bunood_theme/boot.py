@@ -442,6 +442,7 @@ def extend_bootinfo(bootinfo):
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "badges": get("sidebar_badges"),
+            "filter": settings.get("sidebar_filter") or 0,
         }
 
         # Item 23: give every sidebar link a title-derived icon, on the server,

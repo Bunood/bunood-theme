@@ -5315,3 +5315,33 @@ msgstr "نقطة بدء المكتب"
 #, fuzzy
 msgid "Applies to card sections."
 msgstr "ينطبق على الأقسام البطاقية."
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Filter this workspace"
+msgstr "رشِّح مساحة العمل هذه"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Matches: {0}"
+msgstr "المطابقات: {0}"
+
+#. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "Workspace filter"
+msgstr "مرشِّح مساحة العمل"
+
+#. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "An always-visible filter row above the links."
+msgstr "صف ترشيح ظاهر دائمًا فوق الروابط."
+
+#. Label of a Check field in DocType 'Theme Settings'
+#. src: item40
+#, fuzzy
+msgid "Workspace Filter"
+msgstr "مرشِّح مساحة العمل"

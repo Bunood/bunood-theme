@@ -17,6 +17,12 @@
 		"replacing two-per-remount. The prose that would have cost another 981 went",
 		"to _sidebar.scss, which Sass strips. Slices 7-8 are expected to return it:",
 		"if Frappe v16 nests sections, the wrapping surgery deletes ~45 lines.",
+		"RAISED AGAIN TO 99450 for slice 8: the in-pane filter (the survey's clearest",
+		"gap — 6/13 product tools have one, 0/14 ERPs — and ERPs are the ones with",
+		"70-link workspaces), the automatic overflow fade replacing the deleted",
+		"scroll_fades preference, and aria-current on the pane's active row. ~290",
+		"gzip bytes of designed feature after the prose was already trimmed to",
+		"pointers; the argument lives in _sidebar.scss, which Sass strips.",
 		"98800 was the first number and it was nine bytes too tight: the retry that",
 		"mounts the head has to RE-CHECK ITS OWN PREMISE, because it outlives the",
 		"call that scheduled it and a pending attempt otherwise lands after the",
@@ -52,7 +58,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 21500,
-		"js_gzip": 99000,
+		"js_gzip": 99450,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
