@@ -5,6 +5,8 @@
   --bnd-brand-solid: #3d8150;
   --bnd-on-brand: #ffffff;
   --bnd-brand-ink: #387649;
+  --bnd-desktop-icon-bg: #ffffff;
+  --bnd-desktop-icon-ink: #3d8150;
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
   --bnd-surface: #ffffff;
   --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);

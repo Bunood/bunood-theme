@@ -61,6 +61,11 @@
   --bnd-on-brand: #ffffff;
   --bnd-brand-ink: #387649;
 
+  // Desktop icon plates stay white in both modes. Their stroke is fitted
+  // against that white plate, not against the surrounding dark/light chrome.
+  --bnd-desktop-icon-bg: #ffffff;
+  --bnd-desktop-icon-ink: #3d8150;
+
   // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
   --bnd-surface: #ffffff;

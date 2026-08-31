@@ -1,5 +1,22 @@
 # Handover — read this first
 
+## Desktop icon color clarification — 2026-08-31
+
+The user requested green outlines on white icon backgrounds. Desktop app and
+folder badges now use a white plate in both modes. The outline is fitted from
+the site's brand seed against white, independently of the surrounding chrome;
+on this site that is `#4d8756` on `#ffffff`. All 12 visible tiles were inspected.
+The clipping repair remains intact. No icon artwork was changed.
+
+Serving desk CSS `bunood.c9c91d0a.css`, web CSS `bunood-web.83edd28c.css`, and
+unchanged JS `bunood.0e11ab3c.js`. The generated brand sheet was refreshed without
+changing the site's brand inputs. Build, all 9,576 contrast pairs, icon coverage
+and payload budgets pass. This color-only follow-up uses focused verification;
+the previous full-run failures below remain recorded, not cleared or waived.
+Both focused browser checks passed: desktop icon geometry across languages and
+widths, and rendered color contrast in both modes. Preference restoration was
+independently confirmed after the run.
+
 ## Desktop icon clipping fix — 2026-08-31
 
 The All Apps grid's 48px icon badge was shrinking to 34–38px inside Frappe's

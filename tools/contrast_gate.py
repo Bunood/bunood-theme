@@ -158,6 +158,8 @@ def pairs():
     # declared yet the fallbacks model what ships today, which is the failure this
     # gate exists to catch.
     out += [
+        Pair("var(--bnd-desktop-icon-ink)", "var(--bnd-desktop-icon-bg)",
+             AA_NON_TEXT, "desktop icon outline on its white plate"),
         Pair("var(--bnd-on-brand, var(--bnd-ink-inverse))",
              "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
         Pair("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),

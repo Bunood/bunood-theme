@@ -97,6 +97,13 @@ html[data-bnd-desk] {
     margin-inline: auto;
   }
 
+  &[data-theme] .desktop-wrapper #{$desktop-item} > .icon-container[data-bnd-deskicon] {
+    background-color: var(--bnd-desktop-icon-bg);
+    // Frappe's folder background is !important; redirect its token locally
+    // so folder and app icons share the same plate without another override.
+    --folder-icon-background-color: var(--bnd-desktop-icon-bg);
+  }
+
   // HIDDEN FROM THE OUTCOME, NOT THE INTENT. `data-bnd-deskicon` is stamped
   // only once our icon is in the container, so a mount that never ran leaves
   // Frappe's own icon on screen. The predecessor hid it unconditionally and
@@ -109,7 +116,7 @@ html[data-bnd-desk] {
   .desktop-wrapper #{$desktop-item} > .icon-container > .bnd-deskicon {
     inline-size: 30px;
     block-size: 30px;
-    color: var(--bnd-brand-solid);
+    color: var(--bnd-desktop-icon-ink);
     // Frappe's `.icon` paints from `--icon-stroke`; ours is a brand accent, so
     // it is re-pointed here rather than globally — the sidebar and the rest of
     // the desk keep the muted ink the bridge gives them.
