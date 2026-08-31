@@ -63,7 +63,10 @@
       <tr class="bnd-inv-grand"><th scope="row">{{ label("Grand total", "الإجمالي النهائي") }}</th><td dir="ltr">{{ money(doc.rounded_total if rounded else doc.grand_total, doc.precision("grand_total"), with_currency=true) }}</td></tr>
     </table>
     {% if doc.get("discount_amount") %}<table class="bnd-inv-discount"><tr><th scope="row">{{ label("Additional discount (already included)", "الخصم الإضافي محتسب في الإجماليات") }}</th><td dir="ltr">{{ money(doc.discount_amount, doc.precision("discount_amount"), with_currency=true) }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage | e }}%){% endif %}</td></tr></table>{% endif %}
-    {% if doc.get("in_words") and frappe.db.get_single_value("Theme Settings", "print_words") != "Hide" %}<table class="bnd-inv-words"><tr><th scope="row">{{ label("Amount in words", "المبلغ كتابة") }}</th><td dir="{{ direction }}">{% set payable = doc.rounded_total if rounded else doc.grand_total %}{% if payable < 0 %}{{ label("Negative", "سالب") }} {% endif %}{% set words = frappe.utils.money_in_words(payable | abs, currency) %}{{ (words.replace("SAR", "ريال سعودي" if rtl else "Saudi riyals") if currency == "SAR" else words) | e }}</td></tr></table>{% endif %}
+    {% if doc.get("in_words") and frappe.db.get_single_value("Theme Settings", "print_words") != "Hide" %}
+    {% set words = bunood_amount_in_words(doc.rounded_total if rounded else doc.grand_total, currency, doc.precision("grand_total")) %}
+    {% if words %}<table class="bnd-inv-words"><tr><th scope="row">{{ label("Amount in words", "المبلغ كتابة") }}</th><td dir="{{ direction }}">{{ words | e }}</td></tr></table>{% endif %}
+    {% endif %}
   </div>
   {% if doc.get("terms") %}<div class="bnd-inv-terms">{{ label("Terms and conditions", "الشروط والأحكام") }}<div dir="auto">{{ doc.terms }}</div></div>{% endif %}
   {% if bunood_zatca_qr_src is defined %}{% set qr = bunood_zatca_qr_src(doc) %}{% if qr %}<div class="bnd-inv-qr"><img src="{{ qr | e }}" alt="{{ 'رمز الفاتورة' if rtl else 'Invoice QR' }}" width="100" height="100"></div>{% endif %}{% endif %}

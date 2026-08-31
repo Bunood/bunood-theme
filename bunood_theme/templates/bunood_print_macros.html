@@ -160,7 +160,13 @@
 {%- else -%}
 {{ totals_tbl }}
 {%- endif -%}
-{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}
+{% set words = doc.in_words %}
+{% if doc.doctype in ("Sales Invoice", "Purchase Invoice") and doc.get("currency") == "SAR" and bunood_print_language() == "ar" %}
+{% set words = bunood_amount_in_words(doc.rounded_total if use_rounded else doc.grand_total, "SAR", doc.precision("rounded_total" if use_rounded else "grand_total")) %}
+{% endif %}
+{% if words %}<div class="bnd-p-words">{{ words | e }}</div>{% endif %}
+{% endif %}
 {%- endmacro %}
 
 {#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}

@@ -6451,3 +6451,7 @@ msgstr "استخدم الفاتورة الكاملة لهذا النوع من ا
 #. src: sales-bill
 msgid "Revert invalid edits"
 msgstr "التراجع عن القيم غير الصالحة"
+
+#. src: print amount wording
+msgid "Negative"
+msgstr "سالب"

@@ -57,6 +57,10 @@ PINNED_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 
 #: Upstream files we read or fork, as ``(app, relative path)``.
 PINNED_FILES = (
+    # Arabic print wording extends the already-installed num2words locale.
+    ("num2words", "num2words/lang_AR.py"),
+    ("frappe", "frappe/locale.py"),
+    ("frappe", "frappe/utils/number_format.py"),
     # Native print rendering, language, footer flow and report stylesheet.
     ("frappe", "frappe/utils/print_format.py"),
     ("frappe", "frappe/public/html/print_template.html"),

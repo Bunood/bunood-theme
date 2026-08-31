@@ -5,6 +5,9 @@
 		"bunood_setup": "0.7.1"
 	},
 	"files": {
+		"num2words:num2words/lang_AR.py": "9283992d1c52cbee2c8cf0b7b9d6d5d46c001a31b91b5fc8ea70c43e255985b8",
+		"frappe:frappe/locale.py": "ac46224ff69a095f767674b3daa96ca6d4dd2f7d32d8a885756026dfdc2bc20f",
+		"frappe:frappe/utils/number_format.py": "40371f6ae3e4825a2ee50c37d541db36a2cc56df8e9f862dcf33f9cf70a66cc4",
 		"frappe:frappe/desk/page/desktop/desktop.css": "6bfe0c5be5f3eaa9bd0c0578e3ea0e0533d94f46f7431e21f1c6b915dd5b540b",
 		"erpnext:erpnext/workspace_sidebar/home.json": "1cc721ee9079cbc59fa4ef8a1ec2dc5728028c18215c4804ebb83a2c05e966f8",
 		"erpnext:erpnext/accounts/party.py": "4f52e65e77ee22054f54bec34f6f0f42611a77f95017337308d708c4885760ea",
