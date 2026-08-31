@@ -29,7 +29,7 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 // The i18n gates DERIVE their expectation sets from the same tooling the
@@ -71,6 +71,10 @@ const CONSOLE_ALLOWLIST = [
 	/^Error: <g> attribute transform: Expected number, "translate\(NaN, 0\)"\./,
 	/^Error: <path> attribute d: Unexpected end of attribute\. Expected number, "M"\./,
 	/^Error: <path> attribute d: Expected number, "M[^"]*(?:undefined|NaN)[^"]*"\./,
+	// The same native zero-total pie bug, after Chromium truncates the path.
+	// Reproduced with the unwrapped frappe.Chart.prototype.constructor; keep
+	// this exception restricted to Frappe's desk bundle and NaN arc coordinates.
+	/^Error: <path> attribute d: Expected number, "…A [^"]*NaN[^"]*"\. \[[^\]]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\]]+\.js\]/,
 	// A recovered Single-write conflict.
 	//
 	// Saving Theme Settings writes the WHOLE document (`update_single` deletes
@@ -229,6 +233,9 @@ async function test(name, fn) {
 	} catch (err) {
 		results.push({ name, ok: false, err: String(err.message || err) });
 		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 1200)}\n`);
+		// A dead browser cannot measure another case. Unwind through main's
+		// restore instead of cascading errors until the process is killed.
+		if (/ERR_INSUFFICIENT_RESOURCES|Target.*(?:page|context|browser).*closed|browser has been closed|Accessibility audit timed out/i.test(String(err.message || err))) throw err;
 	}
 }
 
@@ -510,6 +517,15 @@ async function withBranding(values, fn) {
 			);
 		}
 	}
+}
+
+// Tests asserting a shipped identity must establish it, even on a custom site.
+// These fields are deliberately outside the ordinary mutable-settings reset.
+function withIdentityDefaults(state, fn) {
+	return withBranding(Object.fromEntries([
+		"company_name", "logo", "favicon", "brand_color", "accent_color",
+		"brand_color_dark", "accent_color_dark", "ground_color",
+	].map(field => [field, state[field] ?? ""])), fn);
 }
 
 /**
@@ -822,6 +838,9 @@ async function fetchText(route) {
 }
 
 async function withGuest(route, waitSel, fn, opts = {}) {
+	// Public pages deliberately follow the tenant's System Settings language
+	// (context.prefer_system_language_for_guests), not a visitor cookie.
+	if (opts.lang) return withLang(opts.lang, () => withGuest(route, waitSel, fn, { ...opts, lang: null }));
 	// `bust` MIRRORS `withPortalUser`'s, and item 33 slice 6 is why it is here
 	// too. Frappe's website HTML cache is keyed on `(path, lang)` and NOTHING
 	// else, so a guest page fetched right after a settings write can be served
@@ -831,16 +850,11 @@ async function withGuest(route, waitSel, fn, opts = {}) {
 	// deliberately. OFF BY DEFAULT, and that is the honest default: a real
 	// visitor gets the cached render, so a check that always busts is measuring
 	// a branch production never uses.
-	const { width = 1440, height = 900, lang = null, colorScheme = null, bust = false } = opts;
+	const { width = 1440, height = 900, colorScheme = null, bust = false } = opts;
 	const ctx = await browser.newContext({
 		viewport: { width, height },
 		...(colorScheme ? { colorScheme } : {}),
 	});
-	if (lang) {
-		await ctx.addCookies([
-			{ name: "preferred_language", value: lang, domain: new URL(URL_BASE).hostname, path: "/" },
-		]);
-	}
 	const gp = await ctx.newPage();
 	const errs = [];
 	gp.on("console", (m) => {
@@ -1346,6 +1360,10 @@ async function main() {
 	// an aborted `withLang` would fail dozens of unrelated checks and read as a
 	// broken feature. Cheap insurance: two reads and a cache clear.
 	const langSnapshot = getLang();
+	// Optional durable recovery for OS/process termination, where finally
+	// cannot run. This contains theme preferences and language, never a SID.
+	if (process.env.BND_RECOVERY_FILE) writeFileSync(process.env.BND_RECOVERY_FILE,
+		JSON.stringify({ site: SITE, backend: BACKEND, settings: snapshot, language: langSnapshot }, null, 2));
 	setLang(LANG_DEFAULT);
 
 	// RESET BEFORE RUNNING, not just restore after. Restoring protects the
@@ -1388,7 +1406,7 @@ async function main() {
 		}
 	});
 	page.on("pageerror", (err) =>
-		consoleErrors.push("pageerror: " + err.message + " (during: " + currentTest + ")")
+		consoleErrors.push("pageerror: " + err.message + " (during: " + currentTest + ")\n" + (err.stack || ""))
 	);
 
 	// ── Warm the stack before anything is measured ─────────────────────────
@@ -1686,6 +1704,8 @@ async function main() {
 		setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 
 		await test("Home affordance: v16 routes to the Home workspace and returns", async () => {
+			// Enable the affordance under test; the shipped preset sets it Off.
+			setSettings({ home_placement: "Top Bar Start" });
 			// v16's /desk is only a shell and repeatedly reloads through the setup
 			// wizard page; the real first-class surface is /desk/home. Click the
 			// user-facing control so this proves the contract, not only a route API.
@@ -1797,7 +1817,7 @@ async function main() {
 			// Filtered runs skip that predecessor, turning a valid assertion into a
 			// 30-second wait for markup nobody asked to mount. Own the whole state.
 			setSettings({
-				palette_style: "Bunood Palette", enable_command_palette: 1,
+				palette_style: "Bunood Palette", palette_enabled: 1,
 				palette_frecency: 1, palette_footer: 1, palette_newtab: 1,
 				palette_fallbacks: 1, palette_suggest: 1, palette_sigils: 1,
 			});
@@ -1839,6 +1859,11 @@ async function main() {
 		});
 
 		await test("palette: execution routes and records frecency", async () => {
+			setSettings({ palette_style: "Bunood Palette", palette_enabled: 1, palette_frecency: 1 });
+			await goDesk("/desk/sales-invoice", ".page-head", 2500);
+			await page.keyboard.press("Control+k");
+			await page.fill(".bnd-palette-input", "item");
+			await page.waitForSelector('.bnd-palette-row[data-bnd-key="route:List/Item"]');
 			// Clear BEFORE acting, not only after: a leftover blob from an
 			// aborted earlier run would make the server-write assertion pass
 			// even if the endpoint regressed (release review v0.7.0..HEAD).
@@ -1849,13 +1874,7 @@ async function main() {
 			// /Item List/ and dereferenced it unguarded, so on any desk where
 			// that string is translated this THREW — a crash, not a failure,
 			// which reads as a broken suite rather than a broken feature.
-			await page.evaluate(() => {
-				const row = document.querySelector(
-					'.bnd-palette-row[data-bnd-key="route:List/Item"]'
-				);
-				if (!row) throw new Error("no row with data-bnd-key=route:List/Item");
-				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-			});
+			await page.locator('.bnd-palette-row[data-bnd-key="route:List/Item"]').click();
 			await page.waitForTimeout(2500);
 			expect(
 				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
@@ -4765,59 +4784,57 @@ async function main() {
 			// which the four colour seeds and the ground are outside
 			// MUTABLE_FIELDS, so this pin cannot write them.
 			//
-			// The check is still sound HERE, and only here: `npm run verify` drives
-			// the local stack alone, whose ambient seeds are the shipped ones that
-			// `tools/fingerprint.mjs` wrote when it captured the fixture. Every
-			// suite writer of a seed restores it with a verified read-back that
-			// throws. What is no longer true is the REASON, so it is not left
-			// standing as though it were.
-			setSettings(
-				Object.fromEntries(
-					Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
-				)
-			);
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
-			const actual = await page.evaluate((names) => {
-				const out = {};
-				for (const f of names) {
-					const root = document.querySelector(`[data-fieldname="${f}"]`);
-					if (!root) { out[f] = null; continue; }
-					const seq = [];
-					const walk = (el) => {
-						for (const c of el.children) {
-							seq.push(
-								c.tagName.toLowerCase() + "." +
-								(c.getAttribute("class") || "").trim().split(/\s+/).sort().join(".")
-							);
-							walk(c);
-						}
-					};
-					walk(root);
-					out[f] = {
-						n: seq.length,
-						svgs: root.querySelectorAll("svg").length,
-						text: root.textContent.replace(/\s+/g, " ").trim().length,
-						seq,
-					};
-				}
-				return out;
-			}, Object.keys(expected));
+			// Pin the colour axes too, using the existing verified restoration
+			// helper. A customized site's correct "Custom" label is not drift.
+			await withIdentityDefaults(fixture.state, async () => {
+				setSettings(
+					Object.fromEntries(
+						Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
+					)
+				);
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+				const actual = await page.evaluate((names) => {
+					const out = {};
+					for (const f of names) {
+						const root = document.querySelector(`[data-fieldname="${f}"]`);
+						if (!root) { out[f] = null; continue; }
+						const seq = [];
+						const walk = (el) => {
+							for (const c of el.children) {
+								seq.push(
+									c.tagName.toLowerCase() + "." +
+									(c.getAttribute("class") || "").trim().split(/\s+/).sort().join(".")
+								);
+								walk(c);
+							}
+						};
+						walk(root);
+						out[f] = {
+							n: seq.length,
+							svgs: root.querySelectorAll("svg").length,
+							text: root.textContent.replace(/\s+/g, " ").trim().length,
+							seq,
+						};
+					}
+					return out;
+				}, Object.keys(expected));
 
-			const drift = [];
-			for (const [name, want] of Object.entries(expected)) {
-				const got = actual[name];
-				if (!got) { drift.push(`${name}: absent`); continue; }
-				// SVG and text counts are what catch a silently dropped
-				// thumbnail or label — the exact hand-porting failure.
-				if (got.svgs !== want.svgs) drift.push(`${name}: svg ${want.svgs} -> ${got.svgs}`);
-				if (got.text !== want.text) drift.push(`${name}: text ${want.text} -> ${got.text}`);
-				if (got.n !== want.n) drift.push(`${name}: nodes ${want.n} -> ${got.n}`);
-				else if (JSON.stringify(got.seq) !== JSON.stringify(want.seq)) {
-					const at = got.seq.findIndex((s, i) => s !== want.seq[i]);
-					drift.push(`${name}: structure at #${at} "${want.seq[at]}" -> "${got.seq[at]}"`);
+				const drift = [];
+				for (const [name, want] of Object.entries(expected)) {
+					const got = actual[name];
+					if (!got) { drift.push(`${name}: absent`); continue; }
+					// SVG and text counts are what catch a silently dropped
+					// thumbnail or label — the exact hand-porting failure.
+					if (got.svgs !== want.svgs) drift.push(`${name}: svg ${want.svgs} -> ${got.svgs}`);
+					if (got.text !== want.text) drift.push(`${name}: text ${want.text} -> ${got.text}`);
+					if (got.n !== want.n) drift.push(`${name}: nodes ${want.n} -> ${got.n}`);
+					else if (JSON.stringify(got.seq) !== JSON.stringify(want.seq)) {
+						const at = got.seq.findIndex((s, i) => s !== want.seq[i]);
+						drift.push(`${name}: structure at #${at} "${want.seq[at]}" -> "${got.seq[at]}"`);
+					}
 				}
-			}
-			expectEq(drift.length, 0, `structural drift:\n    ${drift.slice(0, 6).join("\n    ")}`);
+				expectEq(drift.length, 0, `structural drift:\n    ${drift.slice(0, 6).join("\n    ")}`);
+			});
 		});
 
 		await test("settings: no ragged rows — cards on a line match heights", async () => {
@@ -5169,30 +5186,30 @@ async function main() {
 			// "no dot at defaults" is a claim about a desk that IS at defaults,
 			// and the hand-picked version was patched twice — first placement
 			// (the E3 tests' leavings), then colors lit in a full run for a
-			// field nobody listed. Fields outside MUTABLE_FIELDS (colours,
-			// branding) are asserted-by-omission: the suite never writes them,
-			// so shipped is what they hold, and if that ever stops being true
-			// this test failing IS the announcement.
-			setSettings(
-				Object.fromEntries(
-					Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
-				)
-			);
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			const entries = await page.evaluate(
-				() => document.querySelectorAll(".bnd-shell-item").length
-			);
-			expect(entries >= 6, `only ${entries} shell entries`);
-			expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
+			// field nobody listed. Identity has its own verified restoration
+			// helper because it is intentionally outside MUTABLE_FIELDS.
+			await withIdentityDefaults(shipped, async () => {
+				setSettings(
+					Object.fromEntries(
+						Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
+					)
+				);
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				const entries = await page.evaluate(
+					() => document.querySelectorAll(".bnd-shell-item").length
+				);
+				expect(entries >= 6, `only ${entries} shell entries`);
+				expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
 
-			const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
-			setSettings({ crumb_hover: other });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
+				const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
+				setSettings({ crumb_hover: other });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
 
-			setSettings({ crumb_hover: shipped.crumb_hover });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
+				setSettings({ crumb_hover: shipped.crumb_hover });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
+			});
 		});
 
 		await test("shell: the dot lights for identity fields the seeder never writes", async () => {
@@ -5233,33 +5250,35 @@ async function main() {
 				);
 				return m.join(",");
 			};
-			setSettings(
-				Object.fromEntries(
-					Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
-				)
-			);
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
-			// One field per blindness class: logo → identity (shipped-empty),
-			// dark seed → identity (shipped-empty), arabic_font → fonts
-			// (served all along, but unowned until item 36; Map 1 moved it to
-			// the Language & fonts entry with its own section).
-			for (const [values, key] of [
-				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
-				[{ brand_color_dark: "#1a2f6e" }, "identity"],
-				[{ arabic_font: "Almarai" }, "fonts"],
-			]) {
-				await withBranding(values, async () => {
-					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-					expectEq(
-						await lit(),
-						key,
-						`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
-					);
-				});
+			await withIdentityDefaults(served, async () => {
+				setSettings(
+					Object.fromEntries(
+						Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
+					)
+				);
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
-			}
+				expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
+				// One field per blindness class: logo → identity (shipped-empty),
+				// dark seed → identity (shipped-empty), arabic_font → fonts
+				// (served all along, but unowned until item 36; Map 1 moved it to
+				// the Language & fonts entry with its own section).
+				for (const [values, key] of [
+					[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
+					[{ brand_color_dark: "#1a2f6e" }, "identity"],
+					[{ arabic_font: "Almarai" }, "fonts"],
+				]) {
+					await withBranding(values, async () => {
+						await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+						expectEq(
+							await lit(),
+							key,
+							`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
+						);
+					});
+					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+					expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
+				}
+			});
 		});
 
 		await test("settings: theme portability reads one list, and the list covers the kits", async () => {
@@ -7420,6 +7439,7 @@ async function main() {
 			const matched = new Set();
 			const bad = [];
 			await walkSettingsPanes(async (key) => {
+				process.stdout.write(`    axe settings pane: ${key}\n`);
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS_SETTINGS) builder = builder.include(root);
 				// THE EMAIL PREVIEW IS EXCLUDED, and it is the sandbox that makes
@@ -7435,8 +7455,20 @@ async function main() {
 				// run. And the frame is not our UI: it is a rendered email, a
 				// separate document, whose own markup is checked where it is
 				// generated rather than through a browser chrome scan.
-				builder = builder.exclude(".bnd-emp-frame");
-				const res = await builder.analyze();
+				// Print has the same no-script boundary (allow-same-origin only
+				// permits its fonts). Audit the picker, not its embedded document;
+				// the print family separately verifies the rendered output.
+				builder = builder.exclude(".bnd-emp-frame").exclude(".bnd-prp-frame");
+				let deadline;
+				let res;
+				try {
+					res = await Promise.race([
+						builder.analyze(),
+						new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error(`Accessibility audit timed out in ${key}`)), 60000); }),
+					]);
+				} finally { clearTimeout(deadline); }
+				// A timeout is fatal to the suite: main's finally closes the browser
+				// and restores preferences, so no pending audit leaks into a test.
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
 				}
@@ -7464,6 +7496,9 @@ async function main() {
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
+				// This walk includes a bottom-bar control. Earlier settings tests
+				// may disable every segment, so establish that control explicitly.
+				status_style: "Always On", status_segments_density: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 			await page.evaluate(() => {
@@ -7489,7 +7524,12 @@ async function main() {
 			// "Moved" is real DOM-node identity, stashed on `window` between
 			// evaluate calls — a content/class key produces false stalls on
 			// Frappe's list rows, several of which render identical text.
-			for (let i = 0; i < 90; i++) {
+			// A fixed 90 stops can end inside a populated Item list, before the
+			// bottom bar. Bound the walk by the DOM instead, including hidden and
+			// disabled candidates as harmless extra headroom.
+			const tabBudget = await page.locator('a[href], button, input, select, textarea, [tabindex]').count() + 1;
+			let reachedEnd = false;
+			for (let i = 0; i < tabBudget; i++) {
 				await page.keyboard.press("Tab");
 				const info = await page.evaluate((suppress) => {
 					const el = document.activeElement;
@@ -7518,7 +7558,7 @@ async function main() {
 					};
 				}, SUPPRESS);
 
-				if (info.atEnd) break;
+				if (info.atEnd) { reachedEnd = true; break; }
 				if (!info.moved) stalls.push(`step ${i}: ${info.label}`);
 
 				if (info.bndClass && !info.suppressed) {
@@ -7529,6 +7569,7 @@ async function main() {
 				}
 			}
 
+			expect(reachedEnd, `the keyboard walk finished within ${tabBudget} DOM tab candidates`);
 			expectEq(stalls.join("\n"), "", "focus moved on every Tab press");
 			expect(
 				seenClasses.size >= 8,
@@ -8432,6 +8473,9 @@ async function main() {
 
 		await test("chart: a theme flip repaints the series in place", async () => {
 			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			// A dark starting preference would make the "flip" a no-op.
+			// Establish the light endpoint before constructing the specimen.
+			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
 			const r = await page.evaluate(async () => {
 				const rgbHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
 					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
@@ -9160,6 +9204,8 @@ async function main() {
 			// #4463f0 -> #516ef1 in dark).
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
 			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+			await page.waitForTimeout(1200); // allow the native event refetch before the baseline
 			const flip = await page.evaluate(async () => {
 				const bg = () => {
 					const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
@@ -11046,6 +11092,8 @@ async function main() {
 				const sel = ".page-form .filter-selector .filter-button";
 				const probe = async () => {
 					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
+					await page.mouse.move(5, 5);
+					await page.waitForTimeout(350);
 					const rest = await page.evaluate((q) => {
 						const c = getComputedStyle(document.querySelector(q));
 						return { bg: c.backgroundColor, shadow: c.boxShadow };
@@ -11899,6 +11947,8 @@ async function main() {
 		});
 
 		await test("login: Frappe flips this page itself, so our rules must not", async () => {
+			// Inspect the native alignment contract; V2 Split intentionally uses
+			// logical text-align:start for its own card head.
 			// GUIDELINES §1.3, pinned where the next person will trip over it.
 			// Frappe is RTL-correct here by a BUILD-TIME rtlcss pass, we are by
 			// logical properties, and the two DO NOT COMPOSE: a logical rule of
@@ -11923,8 +11973,13 @@ async function main() {
 					}),
 					{ lang }
 				);
-			const ltr = await read(null);
-			const rtl = await read("ar");
+			const priorStyle = getSettings(["login_style"]);
+			let ltr, rtl;
+			try {
+				setSettings({ login_style: "Original" });
+				ltr = await read(null);
+				rtl = await read("ar");
+			} finally { setSettings(priorStyle); }
 			expectEq(ltr.dir, "ltr", "the default direction");
 			expectEq(rtl.dir, "rtl", "and Arabic flips the document");
 			expectEq(ltr.rtlSheets, 0, "LTR serves dist/css");
@@ -12833,7 +12888,7 @@ async function main() {
 				expectEq(poleOf(split.body), "bnd-auth-split", "Split sets its own slug");
 				expectEq(split.wrapDisplay, "flex", "Split turns the wrapper into a row");
 				expect(split.art !== "none", `and creates its brand panel (content: ${split.art})`);
-				expect(split.mainW < 600, `the column is bounded (${split.mainW}px)`);
+				expect(split.mainW <= 620, `the V2 column stays within its 620px design bound (${split.mainW}px)`);
 				expectEq(split.ring, "none", "the card carries no ring of its own — the COLUMN is the surface");
 
 				// Decision D, asserted rather than assumed: the contracts survive the
@@ -16525,6 +16580,118 @@ async function main() {
 				const r = ratio(pair.fg, pair.bg);
 				expect(r >= 4.5, `${name}: ${pair.fg} on ${pair.bg} = ${r.toFixed(2)}:1 — below AA on a printed invoice`);
 			}
+		});
+
+		// Read a saved invoice from the verification site's sample data; never
+		// modify it, and never couple assertions to a particular invoice number.
+		let summaryInvoiceName;
+		const summaryInvoiceRoute = () => {
+			if (!summaryInvoiceName) {
+				const names = JSON.parse(benchPy('print(json.dumps(frappe.get_all("Sales Invoice", pluck="name", order_by="creation asc", limit_page_length=1)))\n').trim().split("\n").pop());
+				if (!names.length) throw new Error("Summary checks require a saved Sales Invoice in the verification site's sample data");
+				summaryInvoiceName = names[0];
+			}
+			return `${URL_BASE}/desk/sales-invoice/${encodeURIComponent(summaryInvoiceName)}`;
+		};
+
+		await test("completion: invoice summary uses live values and excludes private fields", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await page.goto(summaryInvoiceRoute());
+			await page.waitForSelector('[data-bnd-part="form-summary"]', { timeout: 15000 });
+			const summary = await page.evaluate(() => {
+				const root = document.querySelector('[data-bnd-part="form-summary"]');
+				const privateNames = cur_frm.fields.filter(f => f.df.fieldtype === "Password" || f.get_status?.() === "None").map(f => f.df.fieldname);
+				return {
+					count: document.querySelectorAll('[data-bnd-part="form-summary"]').length,
+					text: root.textContent,
+					customer: cur_frm.doc.customer,
+					leaked: [...root.querySelectorAll('[data-summary-field]')].some(n => privateNames.includes(n.dataset.summaryField)),
+					total: root.querySelector('[data-summary-field="grand_total"] dd')?.textContent,
+					expectedTotal: new DOMParser().parseFromString(frappe.format(cur_frm.doc.grand_total, cur_frm.fields_dict.grand_total.df, { inline: true }, cur_frm.doc), 'text/html').body.textContent,
+				};
+			});
+			expectEq(summary.count, 1, "exactly one summary belongs to the form");
+			expect(summary.text.includes(summary.customer), "summary must name the invoice's actual customer");
+			expectEq(summary.total, summary.expectedTotal, "summary must display ERPNext's calculated grand total and currency format");
+			expectEq(summary.leaked, false, "hidden and restricted values must not appear in the summary");
+		});
+
+		await test("completion: an unsaved customer summary follows edits and visibility", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/customer");
+			await page.evaluate(() => frappe.new_doc("Customer"));
+			// Customer uses Frappe's Quick Entry dialog before the actual form.
+			await page.getByRole("button", { name: "Edit Full Form", exact: true }).click();
+			await page.waitForSelector('[data-bnd-part="form-summary"]');
+			try {
+				const name = page.locator('.form-layout [data-fieldname="customer_name"] input').filter({ visible: true }).first();
+				await name.fill("Summary preview one");
+				await name.press("Tab");
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview one").catch(() => { throw new Error("summary did not follow the first customer-name edit"); });
+				await name.fill("Summary preview two");
+				await name.press("Tab");
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview two").catch(() => { throw new Error("summary did not follow the second customer-name edit"); });
+				const tabVisible = await page.evaluate(() => !cur_frm.fields_dict.customer_name.tab.is_hidden());
+				expect(tabVisible, 'customer-name tab starts visible');
+				await page.evaluate(() => cur_frm.fields_dict.customer_name.tab.toggle(false));
+				await page.waitForFunction(() => !document.querySelector('[data-summary-field="customer_name"]'), null, { timeout: 3000 }).catch(() => { throw new Error("summary retained a field inside a hidden tab"); });
+				await page.evaluate(() => cur_frm.fields_dict.customer_name.tab.toggle(true));
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview two");
+				await page.evaluate(() => cur_frm.set_df_property("customer_name", "hidden", 1));
+				await page.waitForFunction(() => !document.querySelector('[data-summary-field="customer_name"]')).catch(() => { throw new Error("summary retained a field after it became hidden"); });
+			} finally {
+				// This fixture is an unsaved local document: never create a customer.
+				await page.evaluate(() => { cur_frm.fields_dict.customer_name.tab.toggle(true); cur_frm.set_df_property("customer_name", "hidden", 0); cur_frm.doc.__unsaved = 0; });
+			}
+		});
+
+		await test("completion: search selection navigates once and dashboard glyphs exist", async () => {
+			setSettings({ ...layoutSettings("Top Bar"), palette_style: "Bunood Palette", palette_enabled: 1, search_placement: "Top Bar Center" });
+			await page.goto(`${URL_BASE}/desk/home`);
+			await page.waitForSelector(".bnd-home-attn-row", { timeout: 30000 });
+			const missing = await page.evaluate(() => [...document.querySelectorAll('.bnd-home-dashboard use')].map(n => n.getAttribute('href') || n.getAttribute('xlink:href')).filter(h => !h || !document.getElementById(h.slice(1))));
+			expectEq(missing.length, 0, `dashboard icons must resolve: ${missing.join(',')}`);
+			await page.locator('[data-bnd-part="search"]').filter({ visible: true }).first().click();
+			await page.locator('.bnd-palette-input').fill('Chart of Accounts');
+			await page.getByRole('option', { name: 'Open Chart of Accounts Page', exact: true }).click();
+			await page.waitForSelector('.tree', { timeout: 20000 });
+			await page.waitForTimeout(500);
+			expect((await page.url()).includes('account'), 'mouse-up must not activate a dashboard action under the palette');
+		});
+
+		await test("completion: tree selection has a visible rail and uploader keeps native actions", async () => {
+			setSettings({ views_style: "Floating Cards" });
+			await page.goto(`${URL_BASE}/desk/account/view/tree`);
+			await page.waitForSelector('.tree-link');
+			await page.locator('.tree-link').first().click();
+			const selection = await page.evaluate(() => {
+				const selected = document.querySelector('.tree-link.selected, .tree-link.active');
+				return selected && { bg: getComputedStyle(selected).backgroundColor, rail: getComputedStyle(selected).borderInlineStartColor };
+			});
+			expect(selection && selection.bg !== 'rgba(0, 0, 0, 0)' && selection.rail !== 'rgba(0, 0, 0, 0)', 'selected account needs both wash and rail');
+			await page.evaluate(() => new frappe.ui.FileUploader({}));
+			await page.waitForSelector('.file-upload-area');
+			expect(await page.getByRole('button', { name: 'My Device', exact: true }).isVisible(), 'native device picker remains available');
+			await page.keyboard.press('Escape');
+		});
+
+		await test("completion: summaries work in Arabic and English, both themes, and on mobile", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			for (const language of ['en', 'ar']) await withLang(language, async () => {
+				await page.goto(summaryInvoiceRoute());
+				await page.waitForSelector('[data-bnd-part="form-summary"]');
+				for (const theme of ['light', 'dark']) {
+					await page.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
+					await page.setViewportSize({ width: 390, height: 844 });
+					const state = await page.evaluate(() => {
+						const root = document.querySelector('[data-bnd-part="form-summary"]');
+						return { text: root.textContent, width: root.getBoundingClientRect().width, scroll: root.scrollWidth, cols: getComputedStyle(root.querySelector('dl')).gridTemplateColumns };
+					});
+					expect(state.text.includes(language === 'ar' ? 'ملخص المستند' : 'Document summary'), 'heading must be translated');
+					expect(state.scroll <= state.width + 2, 'summary must not overflow horizontally on mobile');
+				}
+				await page.setViewportSize({ width: 1920, height: 1080 });
+			});
 		});
 
 		await test("payload: the bundle is within its budget", async () => {

@@ -4622,11 +4622,10 @@ function sb_zone_anchor(pane, zone, node) {
 		item.addEventListener("mousemove", () => pal_highlight(flat_index));
 		item.addEventListener("mousedown", (ev) => {
 			ev.preventDefault();
-			pal_execute(row, ev.ctrlKey || ev.metaKey);
 		});
-		// Click too: assistive tech that synthesises activation sends a plain
-		// click, not the mousedown the pointer path uses. Idempotent — the
-		// mousedown's preventDefault means a real pointer never fires both.
+		// Execute only after mouse-up. Removing the palette on mouse-down
+		// exposes the underlying dashboard to the remainder of the click.
+		// This also gives assistive activation the same single action path.
 		item.addEventListener("click", (ev) => {
 			ev.preventDefault();
 			pal_execute(row, ev.ctrlKey || ev.metaKey);
@@ -6015,10 +6014,23 @@ function sb_zone_anchor(pane, zone, node) {
 	function build_quick_link(which, in_bar) {
 		const is_home = which === "home";
 		const title = is_home ? __("Home") : __("All Apps");
+		// "All Apps" goes to the DESKTOP, not to `/apps`.
+		//
+		// `/apps` is Frappe's app SWITCHER, and it only has something to switch
+		// between when a site runs more than one desk app. On this one it
+		// server-redirects straight back to `/desk` — measured: a request to
+		// /apps returns 200 at the URL /desk — so the control looked dead. A
+		// user clicking "All Apps" was returned to the page they were already
+		// on, with no error to explain it.
+		//
+		// `desktop` is the module grid — 41 tiles here, Accounting through
+		// Framework — which is what the label actually promises. It is a normal
+		// route, so it keeps its address and the back button works; and it is
+		// NOT hijacked by `land_on_home`, which only claims an empty path.
 		const run = is_home
 			? go_home
 			: () => {
-					window.location.href = "/apps";
+					frappe.set_route("desktop");
 			  };
 
 		if (in_bar) {
@@ -6890,24 +6902,70 @@ function sb_zone_anchor(pane, zone, node) {
 		return page.querySelector(".layout-main-section");
 	}
 
-	function home_money(value, currency) {
-		try {
-			const locale = document.documentElement.lang || "ar";
-			return new Intl.NumberFormat(locale, {
-				style: "currency",
-				currency: currency || "SAR",
-				maximumFractionDigits: 0,
-				numberingSystem: BND_NUMERALS,
-			}).format(Number(value) || 0);
-		} catch (e) {
-			return `${Number(value || 0).toLocaleString()} ${currency || ""}`.trim();
-		}
+	/**
+	 * The sign this site actually prints, and which side of the amount it goes.
+	 * Filled from `api.get_home_dashboard`; empty until the first payload.
+	 */
+	let home_sign = { code: "", symbol: "", right: false };
+
+	/** Record the site's currency sign from a dashboard payload. */
+	function home_sign_from(data) {
+		home_sign = {
+			code: data.currency || "",
+			symbol: data.currency_symbol || "",
+			right: !!data.currency_symbol_on_right,
+		};
 	}
 
+	/**
+	 * Money, with the site's own sign on the site's own side.
+	 *
+	 * NOT `Intl`'s currency style, which this used to be: that renders from
+	 * CLDR, whose SAR is the letters "SAR". U+20C1 is a 2025 codepoint CLDR
+	 * does not map, so the browser could not produce it at any locale — which
+	 * is why home read "SAR 1,000" while every list, form and printed invoice
+	 * on the same site already read "⃁ 1,000.00". The sign is a fact on the
+	 * `Currency` record, so it is fetched. `Intl` still formats the NUMBER.
+	 */
+	function home_money(value, currency) {
+		const amount = Number(value) || 0;
+		let text;
+		try {
+			text = new Intl.NumberFormat(document.documentElement.lang || "ar", {
+				maximumFractionDigits: 0,
+				numberingSystem: BND_NUMERALS,
+			}).format(amount);
+		} catch (e) {
+			text = amount.toLocaleString();
+		}
+		const code = currency || home_sign.code;
+		if (!code) return text;
+		const known = code === home_sign.code && home_sign.symbol;
+		const sign = known ? home_sign.symbol : code;
+		// The trailing side is a property of THIS site's sign, so a foreign
+		// currency keeps the conventional leading ISO code rather than
+		// inheriting a placement that was never about it.
+		return known && home_sign.right ? `${text} ${sign}` : `${sign} ${text}`;
+	}
+
+	/**
+	 * @param {string|string[]} symbol - one sprite id, or candidates in
+	 *   preference order.
+	 *
+	 * CANDIDATES, FOR THE SAME REASON `HOME_TASKS` TAKES THEM. Sprite ids move
+	 * between upstream versions, and a `<use href>` naming a missing symbol
+	 * renders a SILENT EMPTY BOX — right size, no glyph. That shipped on
+	 * "Overdue invoices": Lucide renamed `alert-triangle` to `triangle-alert`
+	 * and this call site kept the old spelling. Resolving here rather than per
+	 * call site gives every home glyph the fallback.
+	 */
 	function home_icon(symbol, cls) {
 		const wrap = el("span", cls || "bnd-home-icon");
 		wrap.setAttribute("aria-hidden", "true");
-		wrap.appendChild(sprite_icon(symbol));
+		const list = Array.isArray(symbol) ? symbol : [symbol];
+		// A miss costs a glyph, not the row: fall back to the first candidate
+		// so the markup is unchanged from today's behaviour when none exist.
+		wrap.appendChild(sprite_icon(sb_existing_symbol(list) || list[0]));
 		return wrap;
 	}
 
@@ -7056,7 +7114,7 @@ function sb_zone_anchor(pane, zone, node) {
 				home_attention_row(
 					"Overdue invoices",
 					`${status.overdue} · ${home_money(metrics.overdue, currency)}`,
-					"icon-alert-triangle",
+					["icon-triangle-alert", "icon-alert-triangle", "es-line-alert-triangle", "icon-circle-alert"],
 					() => frappe.set_route("List", "Sales Invoice", { status: "Overdue" })
 				)
 			);
@@ -7094,6 +7152,8 @@ function sb_zone_anchor(pane, zone, node) {
 
 	function home_render_dashboard(root, data) {
 		root.replaceChildren();
+		// Before anything formats money: every home_money() below reads this.
+		home_sign_from(data);
 		const metrics = data.metrics || {};
 		const currency = data.currency || "SAR";
 		const hour = new Date().getHours();
@@ -7277,6 +7337,127 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 		return true;
 	}
+
+	// Read-only summaries augment the form; native controls remain untouched.
+	// Permission/dependency visibility comes from each live Frappe control, not
+	// from the document payload (which can contain values the user cannot see).
+	const summary_states = new WeakMap();
+	function summary_node(tag, cls, text) {
+		const node = el(tag, cls);
+		if (text != null) node.textContent = text;
+		return node;
+	}
+	const summary_types = new Set(["Data", "Read Only", "Link", "Dynamic Link", "Select", "Date", "Datetime", "Time", "Currency", "Float", "Int", "Percent", "Check", "Small Text", "Text", "Long Text", "Text Editor"]);
+	const summary_priority = new Set(["customer", "customer_name", "supplier", "supplier_name", "party", "party_name", "company", "posting_date", "transaction_date", "due_date", "currency", "grand_total", "rounded_total", "outstanding_amount", "paid_amount", "received_amount", "total_qty", "total_taxes_and_charges", "discount_amount", "status"]);
+
+	function summary_text(value, df, doc) {
+		if (df.fieldtype === "Check") return Number(value) ? __("Yes") : __("No");
+		// Format with ERPNext's own currency/precision policy, then keep text
+		// only. User HTML can never become executable summary markup.
+		const markup = frappe.format(value, df, { inline: true }, doc);
+		return new DOMParser().parseFromString(markup, "text/html").body.textContent || "";
+	}
+
+	function summary_data(frm) {
+		const fields = [];
+		const tables = [];
+		for (const field of frm.fields || []) {
+			const df = field.df;
+			if (!df || typeof field.get_status !== "function" || df.hidden || df.hidden_due_to_dependency || field.get_status() === "None") continue;
+			if (field.tab?.is_hidden()) continue;
+			if (field.$wrapper?.closest(".hide-control, .hidden-section").length) continue;
+			const value = frm.doc[df.fieldname];
+			if (df.fieldtype === "Table" && Array.isArray(value) && value.length) {
+				// Only columns already exposed by the native grid are repeated.
+				const cols = (field.grid?.visible_columns || []).map(c => c[0]).filter(c =>
+					!c.hidden && !c.depends_on && !c.hidden_due_to_dependency && !Number(c.permlevel) && summary_types.has(c.fieldtype));
+				if (cols.length) tables.push({ name: df.fieldname, label: __(df.label), cols: cols.map(c => __(c.label)), rows: value.map(row => cols.map(c => summary_text(row[c.fieldname], c, row))) });
+				continue;
+			}
+			if (!summary_types.has(df.fieldtype) || value == null || value === "" || (df.fieldtype === "Check" && !Number(value))) continue;
+			fields.push({ name: df.fieldname, label: __(df.label), value: summary_text(value, df, frm.doc), key: summary_priority.has(df.fieldname), total: ["grand_total", "rounded_total", "outstanding_amount", "paid_amount", "received_amount"].includes(df.fieldname) });
+		}
+		return { fields, tables, pending: !!frm.doc.__unsaved };
+	}
+
+	function render_form_summary(frm, state) {
+		if (window.cur_frm !== frm || !document.documentElement.hasAttribute("data-bnd-form")) return;
+		const host = frm.layout?.wrapper?.[0];
+		if (!host?.isConnected) return;
+		const data = summary_data(frm);
+		const signature = JSON.stringify(data);
+		if (signature === state.signature && state.root?.isConnected) return;
+		state.signature = signature;
+		const expanded = !!state.root?.querySelector("details")?.open;
+		const root = state.root || el("section", "bnd-form-summary");
+		state.root = root;
+		root.setAttribute("data-bnd-part", "form-summary");
+		root.setAttribute("aria-label", __("Document summary"));
+		root.replaceChildren();
+		const heading = el("header", "bnd-summary-heading");
+		heading.appendChild(summary_node("h2", "", __("Document summary")));
+		heading.appendChild(summary_node("span", "bnd-summary-state", data.pending ? __("Not Saved") : __(frm.doc.status || frm.doctype)));
+		root.appendChild(heading);
+		const list = (entries) => {
+			const dl = el("dl", "bnd-summary-values");
+			for (const entry of entries) {
+				const pair = el("div", entry.total ? "bnd-summary-value bnd-summary-total" : "bnd-summary-value");
+				pair.setAttribute("data-summary-field", entry.name);
+				pair.appendChild(summary_node("dt", "", entry.label));
+				const dd = summary_node("dd", "", entry.value);
+				dd.setAttribute("dir", "auto");
+				pair.appendChild(dd);
+				dl.appendChild(pair);
+			}
+			return dl;
+		};
+		const key = data.fields.filter(f => f.key);
+		root.appendChild(list(key.length ? key : data.fields.slice(0, 6)));
+		for (const table of data.tables) {
+			const block = el("div", "bnd-summary-table");
+			const grid = el("table");
+			grid.appendChild(summary_node("caption", "", table.label));
+			const head = el("thead"), row = el("tr");
+			for (const title of table.cols) { const th = summary_node("th", "", title); th.scope = "col"; row.appendChild(th); }
+			head.appendChild(row); grid.appendChild(head);
+			const body = el("tbody");
+			for (const values of table.rows) {
+				const tr = el("tr");
+				for (const value of values) { const td = summary_node("td", "", value); td.setAttribute("dir", "auto"); tr.appendChild(td); }
+				body.appendChild(tr);
+			}
+			grid.appendChild(body); block.appendChild(grid); root.appendChild(block);
+		}
+		const remaining = key.length ? data.fields.filter(f => !f.key) : data.fields.slice(6);
+		if (remaining.length) {
+			const details = el("details"); details.open = expanded;
+			details.appendChild(summary_node("summary", "bnd-summary-more", __("All entered details")));
+			details.appendChild(list(remaining)); root.appendChild(details);
+		}
+		if (!root.isConnected) host.appendChild(root);
+	}
+
+	function mount_form_summary(frm) {
+		if (!frm?.wrapper || frm.meta.istable || frm.doctype === "Theme Settings") return;
+		let state = summary_states.get(frm);
+		if (!state) {
+			state = { root: null, signature: "", timer: null };
+			summary_states.set(frm, state);
+			state.queue = () => { clearTimeout(state.timer); state.timer = setTimeout(() => render_form_summary(frm, state), 120); };
+			$(frm.wrapper).on("dirty.bnd-summary refresh-fields.bnd-summary render_complete.bnd-summary change.bnd-summary", state.queue);
+			// Async calculations update native fields after the input event.
+			// Ignore our own mutations and render only when values change.
+			state.observer = new MutationObserver(records => {
+				if (records.some(r => !state.root?.contains(r.target))) state.queue();
+			});
+			// Frappe hides controls by toggling hide-control, without changing
+			// their children. Observe visibility too so stale values disappear.
+			state.observer.observe(frm.wrapper, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class", "hidden"] });
+		}
+		state.queue();
+	}
+
+	$(document).on("form-refresh.bnd-summary", (_event, frm) => mount_form_summary(frm));
 
 	// ── Orchestration ───────────────────────────────────────────────────────
 

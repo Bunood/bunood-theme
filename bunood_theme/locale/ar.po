@@ -6266,3 +6266,28 @@ msgstr "المبيعات الخاضعة للنسبة الصفرية"
 #. src: v2-csv-restore
 msgid "vs previous period"
 msgstr "مقارنة بالفترة السابقة"
+
+#. src: form-summary
+#, fuzzy
+msgid "Document summary"
+msgstr "ملخص المستند"
+
+#. src: form-summary
+#, fuzzy
+msgid "All entered details"
+msgstr "جميع التفاصيل المدخلة"
+
+#. src: form-summary
+#, fuzzy
+msgid "Yes"
+msgstr "نعم"
+
+#. src: form-summary
+#, fuzzy
+msgid "No"
+msgstr "لا"
+
+#. src: form-summary
+#, fuzzy
+msgid "Not Saved"
+msgstr "غير محفوظ"

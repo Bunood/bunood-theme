@@ -104,6 +104,20 @@
   // 0.5px reads as a true hairline on retina and rounds up on 1x, which is the
   // behaviour we want in both cases.
   --bnd-line: 0.5px;
+  // A DEFINITE edge, for controls that must read as controls at rest.
+  // `--bnd-line` is a separator: correct between rows of a table, too faint
+  // for a button whose whole boundary is the affordance. Measured on the home
+  // task row at 1440px: 0.57px of rgba(0,0,0,.09) against white is invisible
+  // at arm's length, and the row reads as floating text rather than as five
+  // buttons. Width only — a line weight is the same in light and dark, which
+  // is why this sits with `--bnd-icon-w-*` and not in the mode blocks.
+  //
+  // This does NOT raise `--bnd-border`/`--bnd-border-strong`: item 22 refused
+  // that because it repaints every stock control on the desk, and
+  // `contrast_gate.py` exempts both on that evidence. Opt in per component.
+  --bnd-line-strong: 1px;
+  // Usable form width before a split login composition adds its padding.
+  --bnd-auth-form-min: 320px;
   --bnd-border: rgba(0, 0, 0, 0.09);
   --bnd-border-strong: rgba(0, 0, 0, 0.16);
 

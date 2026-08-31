@@ -4,7 +4,7 @@
  * WHAT
  *   `bunood_theme/upstream.py` computes a fingerprint of every Frappe/ERPNext
  *   fact this app is built on. This reads it off the live bench and compares it
- *   against `tests/fixtures/upstream-pins.json`.
+ *   against `bunood_theme/data/upstream-pins.json`, also shipped for migrations.
  *
  * WHY A GATE AND NOT A REPORT
  *   The failure mode this defends against is silent. When upstream moves a DOM
@@ -33,7 +33,7 @@ import { fileURLToPath } from "node:url";
 import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PINS = join(ROOT, "tests", "fixtures", "upstream-pins.json");
+const PINS = join(ROOT, "bunood_theme", "data", "upstream-pins.json");
 
 const SITE = process.env.BND_SITE || "demo.bunood.test";
 const BACKEND = process.env.BND_BACKEND || "bunood-backend-1";
@@ -46,7 +46,7 @@ function live() {
 		"import frappe, json",
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")`,
 		"frappe.connect()",
-		"from bunood_theme.upstream import fingerprint",
+		readFileSync(join(ROOT, "bunood_theme", "upstream.py"), "utf8"),
 		"print(json.dumps(fingerprint()))",
 	].join("\n");
 

@@ -165,3 +165,82 @@ def restore_form_order():
                 title=f"bunood_theme: form restore failed for {doctype}"[:140],
                 message=frappe.get_traceback(),
             )
+
+
+#: ``{doctype: {fieldname: default}}`` — defaults for fields that render
+#: REQUIRED AND EMPTY before the user has done anything.
+#:
+#: Sales Invoice ``due_date`` only. Measured on a new invoice: before a customer
+#: is chosen the field is blank; the moment one is, ERPNext's own
+#: ``set_due_date`` fills it (from the customer's payment terms, or the posting
+#: date when there are none) and simultaneously flips it to mandatory. So the
+#: form asks in red for a value it is about to supply itself, and a first-time
+#: user reads that as an error they caused.
+#:
+#: "Today" matches what ERPNext computes for a customer with no payment terms,
+#: which is this site's case, so the default agrees with the engine rather than
+#: competing with it — and any customer WITH terms overwrites it on selection,
+#: because that recalculation runs after this default is applied.
+#:
+#: Nothing else needed one. The other required fields measured on a new invoice
+#: — company, series, posting date, currency, price list, both exchange rates —
+#: already arrive filled; ``customer`` is the question the form exists to ask,
+#: and ``debit_to`` resolves from it.
+DEFAULTS = {
+    "Sales Invoice": {"due_date": "Today"},
+}
+
+
+def sync_form_defaults():
+    """Apply :data:`DEFAULTS` as Property Setters. Idempotent and defensive."""
+    for doctype, fields in DEFAULTS.items():
+        for fieldname, value in fields.items():
+            try:
+                if not frappe.db.exists("DocType", doctype):
+                    continue
+                meta = frappe.get_meta(doctype)
+                field = meta.get_field(fieldname)
+                if not field:
+                    continue
+                # Vacancy: only claim a field nobody has given a default to.
+                if field.default:
+                    continue
+                if frappe.db.exists("Property Setter", {
+                    "doc_type": doctype, "field_name": fieldname, "property": "default"
+                }):
+                    continue  # An explicit empty default is also an admin choice.
+                frappe.make_property_setter(
+                    {
+                        "doctype": doctype,
+                        "fieldname": fieldname,
+                        "property": "default",
+                        "value": value,
+                        "property_type": "Text",
+                    },
+                    is_system_generated=False,
+                )
+                frappe.clear_cache(doctype=doctype)
+            except Exception:
+                frappe.log_error(
+                    title=f"bunood_theme: default not set for {doctype}.{fieldname}"[:140],
+                    message=frappe.get_traceback(),
+                )
+
+
+def restore_form_defaults():
+    """Delete our ``default`` setters — the undo for the above."""
+    for doctype, fields in DEFAULTS.items():
+        for fieldname, value in fields.items():
+            try:
+                for name in frappe.get_all(
+                    "Property Setter",
+                    filters={"doc_type": doctype, "field_name": fieldname, "property": "default", "value": value},
+                    pluck="name",
+                ):
+                    frappe.delete_doc("Property Setter", name, ignore_permissions=True, force=True)
+                frappe.clear_cache(doctype=doctype)
+            except Exception:
+                frappe.log_error(
+                    title=f"bunood_theme: default not restored for {doctype}.{fieldname}"[:140],
+                    message=frappe.get_traceback(),
+                )

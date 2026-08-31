@@ -1,5 +1,57 @@
 # Handover — read this first
 
+> **2026-08-31 continuation:** the active worktree is `bunood-theme-ui`, branch
+> `feat/v2-ui-overhaul`, rebased on `origin/main`. Current local stack:
+> `bunoodimg-*`, site `verify.bunood.test`, URL `http://localhost:8080`.
+> Use `BND_DOCKER="wsl docker"` and `BND_BROWSER_CHANNEL=msedge`.
+> WSL user is now `alignerr`, and the mirror is `/home/alignerr/bunood-theme`.
+> Older constants below describe prior machines. Upgrade policy and enforced
+> preflight/migration guards are in [docs/UPSTREAM-UPGRADES.md](docs/UPSTREAM-UPGRADES.md).
+
+## Imported conversation continuation — 2026-08-31
+
+The pending dashboard/navigation/default changes are deployed, together with a
+read-only summary beneath form tabs. It formats native values, observes edits,
+excludes private controls and hidden tabs/fields, and does not write documents.
+Original form style hides it. See [docs/UI-COMPLETION.md](docs/UI-COMPLETION.md).
+Tree selection, uploader, timeline, POS and onboarding styling are included;
+POS transactions and a fresh onboarding journey remain staging checks.
+
+The broad verification run also found two inherited V2 styling defects: a
+styled filter's resting rule overrode hover, and the Split login column squeezed
+the form below 320px at tablet widths. Both are corrected without changing the
+620px desktop design bound. Test fixtures now establish their intended theme,
+identity, status controls and native login style, use the site's actual guest
+language policy, and walk the full keyboard order rather than 90 stops.
+
+Upgrade pins ship with the app. Deployment and verification preflight the local
+candidate collector; before_migrate rejects drift. Existing upstream versions
+and previous hashes were not advanced. Added dependencies are the native form,
+tab/control, Home sidebar and payment-term contracts used by these changes.
+
+Validation: the final unfiltered `npm run verify` passed **414/414** with exit 0,
+including the console-error budget. The runner independently verified restoration
+of all snapshotted settings and both language preferences. Build, syntax, 9,520
+contrast pairs, icon and translation coverage, and five migration-guard unit
+checks also pass. Earlier red runs exposed the fixes described above; filtered
+reruns were used for diagnosis and were not substituted for the full gate.
+
+Serving JS `bunood.0e11ab3c.js`, desk CSS `bunood.cb964535.css`, and web CSS
+`bunood-web.f8497aa8.css`. All deployed assets returned HTTP 200. The JS gzip
+ceiling was raised from 105,000 to 108,000 bytes for the summary and inherited
+dashboard fixes; actual JS is 106,940 bytes gzip. All payload buckets remain
+within budget.
+
+Native zero-total pie charts emit invalid NaN arc paths even through the
+unwrapped Frappe chart constructor. The console exception is restricted to that
+parser warning from Frappe's desk bundle. An intermittent removeChild exception
+appeared during one workspace rerun and did not recur in the next focused run
+or the final full run; it is not allowlisted. Keep watching chart
+animation/repaint on staging.
+
+No push, tag or PR has been made. The pre-existing design handoff ZIP under
+artifacts is intentionally untouched and must not be swept into the commit.
+
 > Written 2026-08-06. Everything needed to pick this up in a fresh session.
 > `CLAUDE.md` is the working contract, `GUIDELINES.md` the doctrine and audit,
 > `ROADMAP.md` the 38 items. **This file is the state of play**; those three are

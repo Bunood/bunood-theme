@@ -50,6 +50,8 @@
   --modal-bg: var(--bnd-surface);
   --popover-bg: var(--bnd-surface);
   --toast-bg: var(--bnd-surface);
+  --timeline-badge-bg: var(--bnd-pane);
+  --timeline-badge-color: var(--bnd-brand-ink);
   // Item 28. `--surface-modal` is a THIRD modal-surface name Frappe carries,
   // declared in espresso/_colors.scss and left unmapped until now — measured
   // #232323 in dark against our #16241F, a 1.02:1 delta. It has exactly two

@@ -38,6 +38,10 @@ RAW_FRONTEND="${BND_FRONTEND:-}"
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"
 WSL_MIRROR="${BND_WSL_MIRROR:-/home/saltedfish/bunood-theme}"
+# Inside WSL use its current user's home, not another machine's username.
+if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+	WSL_MIRROR="${BND_WSL_MIRROR:-$HOME/bunood-theme}"
+fi
 # The same knob `tools/session.mjs` and `tests/smoke.mjs` read, spelled the same
 # way, so one export moves the whole toolchain. It exists because `localhost` is
 # not a synonym for `127.0.0.1` here: Windows resolves it to `::1` FIRST, and on
@@ -48,6 +52,13 @@ WSL_MIRROR="${BND_WSL_MIRROR:-/home/saltedfish/bunood-theme}"
 URL_BASE="${BND_URL:-http://localhost:8080}"
 
 say() { printf '  %s\n' "$*"; }
+
+# Diagnostics from a function whose STDOUT IS ITS RETURN VALUE.
+# resolve_container() runs inside a command substitution, so anything it
+# prints on stdout is captured as the container NAME: the frontend
+# auto-select warning became part of a docker cp destination and the deploy
+# died on "no such directory" with every asset already shipped.
+warn() { printf '  %s\n' "$*" >&2; }
 
 container_exists() { docker inspect "$1" >/dev/null 2>&1; }
 
@@ -64,7 +75,7 @@ resolve_container() {
 	fi
 
 	if [[ -n "$fallback" ]] && container_exists "$fallback"; then
-		say "warning: requested ${role} container '$configured' was not found; using '$fallback'"
+		warn "warning: requested ${role} container '$configured' was not found; using '$fallback'"
 		echo "$fallback"
 		return 0
 	fi
@@ -76,20 +87,20 @@ resolve_container() {
 	done < <(docker ps --format '{{.Names}}')
 
 	if [[ "$match_count" -eq 1 ]]; then
-		say "warning: requested ${role} container '$configured' was not found; auto-selecting '$matched_name'"
+		warn "warning: requested ${role} container '$configured' was not found; auto-selecting '$matched_name'"
 		echo "$matched_name"
 		return 0
 	fi
 
 	if [[ "$match_count" -gt 1 ]]; then
-		say "ERROR: expected ${role} container '$configured' was not found and multiple candidates exist."
+		warn "ERROR: expected ${role} container '$configured' was not found and multiple candidates exist."
 	else
-		say "ERROR: expected ${role} container '$configured' was not found."
+		warn "ERROR: expected ${role} container '$configured' was not found."
 	fi
-	say "Set BND_${role^^} to one of these running ${role} containers:"
+	warn "Set BND_${role^^} to one of these running ${role} containers:"
 	while IFS= read -r container_name; do
 		[[ "$container_name" == *-${role}-* ]] || continue
-		say "  - $container_name"
+		warn "  - $container_name"
 	done < <(docker ps --format '{{.Names}}')
 	exit 1
 }
@@ -112,6 +123,9 @@ for c in "${APP_CONTAINERS[@]}"; do
 		exit 1
 	}
 done
+
+# Reject incompatible upstream state before any deployment mutation.
+BND_BACKEND="$BACKEND" BND_SITE="$SITE" bash tools/upstream-preflight.sh
 
 # ── Build ───────────────────────────────────────────────────────────────────
 if [[ "${1:-}" != "--no-build" ]]; then
@@ -248,7 +262,18 @@ fi
 #      share must fail closed, not create it and mirror into it.
 WIN_PATH="$(pwd -W 2>/dev/null || pwd)"
 WSL_SRC="$(printf '%s' "$WIN_PATH" | sed -E 's#^([A-Za-z]):#/mnt/\l\1#; s#\\#/#g')"
-if wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
+if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+	MIRROR_TARGET="$(readlink -m "$WSL_MIRROR")"
+	# Fail closed before rsync's deletion pass, including on an unsafe override.
+	if [[ "$MIRROR_TARGET" != "$HOME/bunood-theme" || "$MIRROR_TARGET" == "$ROOT" ]]; then
+		warn "unsafe native WSL mirror target: $MIRROR_TARGET"
+		exit 1
+	fi
+	mkdir -p "$MIRROR_TARGET"
+	rsync -a --delete --exclude .git --exclude node_modules --exclude _reference \
+		"$ROOT/" "$MIRROR_TARGET/"
+	say "mirrored -> WSL $MIRROR_TARGET"
+elif wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
 		--exclude .git --exclude node_modules --exclude _reference \
 		'$WSL_SRC/' '$WSL_MIRROR/'" 2>/dev/null; then
 	say "mirrored -> WSL $WSL_MIRROR"

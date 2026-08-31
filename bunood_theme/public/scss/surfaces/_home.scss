@@ -80,9 +80,15 @@ html[data-theme] .bnd-home-dashboard {
   justify-content: center;
   gap: var(--bnd-sp-2);
   padding-inline: var(--bnd-sp-4);
+  // These are the first five things a person sees, and they are BUTTONS. At
+  // the shared control height with no block padding they measured 30px tall
+  // with 1px above and below the label — dense enough to read as a toolbar,
+  // and under the 44px target size. The block padding is what makes them look
+  // pressable; the stronger line is what makes the boundary visible at all.
+  padding-block: var(--bnd-sp-3);
   color: var(--bnd-ink);
   background: var(--bnd-surface);
-  border: var(--bnd-line) solid var(--bnd-border);
+  border: var(--bnd-line-strong) solid var(--bnd-border-strong);
   border-radius: var(--bnd-radius-md);
   font: inherit;
   font-weight: 650;
@@ -167,6 +173,19 @@ html[data-theme] .bnd-home-dashboard {
   place-items: center;
   background: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
   border-radius: var(--bnd-radius-md);
+  // WHITE GLYPH, GREEN WELL — in BOTH modes.
+  //
+  // The well inherited `--bnd-on-brand`, which is white in light mode but
+  // #16181d in dark (where the card flips to the lighter #68a370 and dark ink
+  // is what clears 4.5:1 for the LABEL). The glyph inherited that ink too, so
+  // the same card showed a white wallet in light and a charcoal one in dark.
+  //
+  // A glyph is a non-text graphic, so its bar is 3:1, not 4.5:1. The well's
+  // 18% ink wash darkens #68a370 to ~#598a61, and white on that is ~3.5:1 —
+  // it clears the graphic bar with room. So the icon is pinned to white here
+  // while the label and value keep `--bnd-on-brand` and their text contrast
+  // untouched. Overriding the card's ink wholesale would have failed the gate.
+  color: var(--bnd-ink-inverse);
 }
 
 .bnd-home-balance-icon > svg {

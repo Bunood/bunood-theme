@@ -84,9 +84,20 @@ def get_home_dashboard(company: str | None = None) -> dict:
         else frappe.defaults.get_global_default("currency")
     ) or "SAR"
 
+    # The SIGN and its SIDE, from the record Frappe itself asks on every other
+    # surface. The dashboard used to hand the ISO code to `Intl.NumberFormat`,
+    # which renders the literal string "SAR" and knows nothing about this site
+    # — so the one screen a user opens first was the one screen not showing the
+    # riyal. Sending both fields means the dashboard follows the Currency
+    # record, including `bunood_theme.currency`'s flip to a trailing sign,
+    # without a second place to keep in step.
+    sign = frappe.db.get_value("Currency", currency, ["symbol", "symbol_on_right"], as_dict=True)
+
     result = {
         "company": selected,
         "currency": currency,
+        "currency_symbol": (sign or {}).get("symbol") or currency,
+        "currency_symbol_on_right": bool((sign or {}).get("symbol_on_right")),
         "generated_at": frappe.utils.now_datetime().isoformat(),
         "metrics": {
             "cash_balance": 0.0,

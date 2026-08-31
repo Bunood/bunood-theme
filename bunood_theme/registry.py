@@ -521,6 +521,11 @@ NARROW_PLACEMENT = {
 #: the form view (item 18) joins it here.
 SURFACE = "surface"
 
+# Additive content, not chrome and not a replacement for native form controls.
+CONTENT_COMPONENTS = [
+    {"key": "form_summary", "part": "form-summary", "selector": '[data-bnd-part="form-summary"]'},
+]
+
 SURFACES = [
     {
         "key": "list",

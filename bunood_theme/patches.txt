@@ -57,6 +57,12 @@ bunood_theme.patches.v0_37_0.drop_desk_layout
 # this is not an after_migrate sync.
 bunood_theme.patches.v0_38_0.hoist_day_one_cards
 bunood_theme.patches.v0_38_0.hoist_customer_fields
+# Item 38 companion: the Home sidebar led with Item, so the link back to the
+# landing page sat second. Same one-time, vacancy-only contract.
+bunood_theme.patches.v0_38_0.hoist_home_sidebar
+# Item 38 companion: Payment Due Date rendered required-and-empty until a
+# customer was picked. Defaults come from vacancy only.
+bunood_theme.patches.v0_38_0.seed_form_defaults
 
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE

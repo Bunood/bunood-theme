@@ -5,6 +5,13 @@
 		"bunood_setup": "0.7.0"
 	},
 	"files": {
+		"erpnext:erpnext/workspace_sidebar/home.json": "1cc721ee9079cbc59fa4ef8a1ec2dc5728028c18215c4804ebb83a2c05e966f8",
+		"erpnext:erpnext/accounts/party.py": "4f52e65e77ee22054f54bec34f6f0f42611a77f95017337308d708c4885760ea",
+		"erpnext:erpnext/public/js/utils/party.js": "cb36eb51b45dd11e3c893700c46a9620cc80b9c49b274ed0f72e0c77dcee2643",
+		"frappe:frappe/public/js/frappe/form/form.js": "15cb6325a2cdca19d25eb4426722ebc7cc07b04f1ff258b3fc455a5ba8802420",
+		"frappe:frappe/public/js/frappe/form/layout.js": "354cc8ffd272d3f1859c89886367ae2e5c55bcb19cc236c291dc4af1d44798f2",
+		"frappe:frappe/public/js/frappe/form/tab.js": "6f5d0932c70dacdaa3183989b95927812476a4dd8e3f9da42dd7af0d8d1494c1",
+		"frappe:frappe/public/js/frappe/form/controls/base_control.js": "29902278e70fc882ea7b43b651ec0069102167e680038309919c47eb2203d726",
 		"frappe:frappe/templates/emails/standard.html": "fd3e883de26cc12aa10f723e36bdc5ab9ebae160fcaa91fd62913a8c4f0ddf88",
 		"frappe:frappe/templates/emails/email_header.html": "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
 		"frappe:frappe/templates/emails/email_footer.html": "801fd923887b41f710296218688a91f54311fccaf3220519b3c1fe3244982ad0"

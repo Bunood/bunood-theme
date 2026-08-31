@@ -110,11 +110,6 @@ html[data-bnd-topbar] .desktop-wrapper > .desktop-navbar {
   padding-bottom: 3px !important; /* Lifts the letter to counteract the Arabic baseline shift */
 }
 
-html[data-theme] .bnd-topbar {
-  position: relative;
-}
-html[data-theme] .bnd-topbar .bnd-search-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%); /* Centers perfectly regardless of LTR/RTL */
-}
+// _statusbar.scss owns the shared centre slot for both bars. Its logical
+// insets and auto margins centre in LTR and RTL; an additional translation
+// here shifts the field by half its own width.

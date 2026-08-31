@@ -696,6 +696,7 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
   body.bnd-auth-split .page-content-wrapper > main {
     flex: none;
     inline-size: min(620px, 50%);
+    min-inline-size: calc(var(--bnd-auth-form-min) + 2 * clamp(var(--bnd-sp-6), 6vw, 76px));
     max-inline-size: none;
     margin-inline-start: 0;
     margin-inline-end: auto;

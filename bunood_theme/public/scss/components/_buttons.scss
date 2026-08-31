@@ -74,6 +74,13 @@ html.bunood[data-theme][data-bnd-filters] .filter-area .clear-filters:not(:focus
   box-shadow: var(--bnd-flt-ring);
 }
 
+// Styled resting fills tie the generic hover selector above and occur later.
+// Keep hover visible under every filter style without replacing its own ring.
+html.bunood[data-theme][data-bnd-filters] .page-form .btn-default:hover,
+html.bunood[data-theme][data-bnd-filters] .filter-area .clear-filters:hover {
+  background-color: var(--bnd-active);
+}
+
 html.bunood[data-theme][data-bnd-filters] .btn-primary-light {
   background-color: var(--bnd-flt-on-fill);
   color: var(--bnd-flt-on-ink);

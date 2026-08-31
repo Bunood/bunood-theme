@@ -206,6 +206,23 @@ html[data-theme] .bnd-cluster {
   flex: 1;
   gap: var(--bnd-sp-2);
   position: relative;
+  // `flex: 1` makes this box as wide as the bar while its zones hold only the
+  // controls at the ends — measured at 1440px: a 1158px cluster whose start and
+  // centre zones are 0px and whose end zone is 66px. That leaves ~1090px of
+  // DEAD SPACE which, being a positioned box later in document order than
+  // `.bnd-search-center` and also at `z-index: auto`, painted OVER the search
+  // field and swallowed every click aimed at it. The field was never broken:
+  // `.click()` bypasses hit-testing, so it answered correctly to script and
+  // not to a mouse.
+  //
+  // Same remedy, same reasoning as `.bnd-search-center` two files over: a
+  // scaffold that stretches must not capture the pointer where it has nothing
+  // to show. Restored on the zones, so every control inside one inherits it.
+  pointer-events: none;
+}
+
+html[data-theme] .bnd-cluster > * {
+  pointer-events: auto;
 }
 
 html[data-theme] .bnd-zone {

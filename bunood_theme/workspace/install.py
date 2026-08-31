@@ -178,3 +178,77 @@ def restore_workspace_order():
                 title=f"bunood_theme: workspace restore failed for {name}"[:140],
                 message=frappe.get_traceback(),
             )
+
+
+#: ``{sidebar: (label, ...)}`` — sidebar entries to lift to the top of a list.
+#:
+#: The Home sidebar ships ``Item, Home, Customer, Supplier, Sales Invoice``, so
+#: the link back to the landing page — the one entry that is not a doctype and
+#: the one a lost user reaches for — sits SECOND, under a master data list.
+#: Measured on the live desk; the highlighted "Home" pill rendered below "Item".
+SIDEBAR_HOIST = {"Home": ("Home",)}
+
+#: The shipped order each sidebar in :data:`SIDEBAR_HOIST` must still be in for
+#: us to touch it. Same contract as ``_is_pristine`` for boards: this is a
+#: record ERPNext owns, so a site that has arranged its own sidebar keeps it.
+#: Verified against ``erpnext/workspace_sidebar/home.json``. The upstream
+#: gate pins that source so a changed shipped arrangement requires review.
+SIDEBAR_SHIPPED = {"Home": ["Item", "Home", "Customer", "Supplier", "Sales Invoice"]}
+
+
+def hoist_sidebar_items(labels, names):
+    """Move ``names`` to the front of ``labels``, preserving all other order.
+
+    Pure, so it is testable on a literal list. A name that is absent is
+    ignored rather than invented.
+    """
+    picked = [n for n in names if n in labels]
+    return picked + [n for n in labels if n not in picked]
+
+
+def sync_sidebar_order():
+    """Apply :data:`SIDEBAR_HOIST`. Idempotent, defensive, never blocks."""
+    for name, wanted in SIDEBAR_HOIST.items():
+        try:
+            if not frappe.db.exists("Workspace Sidebar", name):
+                continue
+            doc = frappe.get_doc("Workspace Sidebar", name)
+            items = doc.get("items") or []
+            labels = [i.label for i in items]
+            if labels != SIDEBAR_SHIPPED.get(name):
+                continue  # not the shipped arrangement — leave it alone
+            order = hoist_sidebar_items(labels, wanted)
+            if order == labels:
+                continue
+            # A reorder may not lose or invent an entry.
+            if sorted(order) != sorted(labels):
+                continue
+            by_label = {i.label: i for i in items}
+            for position, label in enumerate(order, start=1):
+                by_label[label].idx = position
+            doc.save(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(
+                title=f"bunood_theme: sidebar hoist failed for {name}"[:140],
+                message=frappe.get_traceback(),
+            )
+
+
+def restore_sidebar_order():
+    """Put the shipped sidebar order back — the undo for the above."""
+    for name, shipped in SIDEBAR_SHIPPED.items():
+        try:
+            if not frappe.db.exists("Workspace Sidebar", name):
+                continue
+            doc = frappe.get_doc("Workspace Sidebar", name)
+            by_label = {i.label: i for i in (doc.get("items") or [])}
+            if sorted(by_label) != sorted(shipped):
+                continue
+            for position, label in enumerate(shipped, start=1):
+                by_label[label].idx = position
+            doc.save(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(
+                title=f"bunood_theme: sidebar restore failed for {name}"[:140],
+                message=frappe.get_traceback(),
+            )

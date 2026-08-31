@@ -88,6 +88,7 @@
 @use "surfaces/list";
 @use "surfaces/report";
 @use "surfaces/form";
+@use "surfaces/summary";
 @use "surfaces/charts";
 @use "surfaces/views";
 // Item 28: dialogs, dropdowns and toasts — the anchor plus a contract set
@@ -112,6 +113,7 @@
 // records the ONE adjacency that does matter — item 28 owns every panel this
 // kit reaches into, and wins them on specificity already.
 @use "surfaces/filters";
+@use "surfaces/coverage";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

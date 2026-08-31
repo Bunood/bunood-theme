@@ -68,6 +68,9 @@ jobs:
       - name: Python syntax
         run: python3 -m compileall -q bunood_theme/
 
+      - name: Upstream migration rejection contracts
+        run: python3 tests/test_upstream_gate.py
+
       # Recomputes every pair the token contract creates, for eight brand seeds
       # in both modes, plus the no-brand-stylesheet fallback — and asserts that
       # _tokens.scss still agrees with palette.derive. Pure stdlib: no site, no

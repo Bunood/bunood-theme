@@ -26,6 +26,7 @@ WHY after_migrate MATTERS AS MUCH AS after_install
 import frappe
 
 from bunood_theme.brand import write_brand_css
+from bunood_theme.currency import sync_currency_symbol_position
 from bunood_theme.printing.install import sync_print_theme
 from bunood_theme.registry import default_desk_order
 from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
@@ -241,6 +242,9 @@ def after_install() -> None:
     # an install, and defaults are claimed only from vacancy (a stock print
     # style, a site with no default letter head).
     sync_print_theme()
+    # The riyal sign trails the amount (bunood_theme/currency.py). Vacancy-gated
+    # and self-healing, so it belongs on both entry points, like the two above.
+    sync_currency_symbol_position()
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -377,6 +381,7 @@ def after_migrate() -> None:
     # (drift self-heals; local edits to MANAGED records are overwritten by
     # design — duplicate a format to customize, see printing/README.md).
     sync_print_theme()
+    sync_currency_symbol_position()
     # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
     # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
     # .rtl_patch now reaches them at RENDER time (see that module and

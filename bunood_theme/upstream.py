@@ -21,7 +21,7 @@ WHY THIS EXISTS
 
 WHAT IT DOES
     Computes a fingerprint of the upstream facts we depend on. A caller pins it
-    (``tests/fixtures/upstream-pins.json``) and the suite fails when the live
+    (``bunood_theme/data/upstream-pins.json``) and the suite fails when the live
     fingerprint no longer matches. A failure is not a bug to silence: it is
     ERPNext telling us something we build on has changed, BEFORE a user finds it.
 
@@ -57,6 +57,15 @@ PINNED_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 
 #: Upstream files we read or fork, as ``(app, relative path)``.
 PINNED_FILES = (
+    ("erpnext", "erpnext/workspace_sidebar/home.json"),
+    # The initial invoice default must yield to native customer payment terms.
+    ("erpnext", "erpnext/accounts/party.py"),
+    ("erpnext", "erpnext/public/js/utils/party.js"),
+    # Summary subscribes to these native lifecycle and permission contracts.
+    ("frappe", "frappe/public/js/frappe/form/form.js"),
+    ("frappe", "frappe/public/js/frappe/form/layout.js"),
+    ("frappe", "frappe/public/js/frappe/form/tab.js"),
+    ("frappe", "frappe/public/js/frappe/form/controls/base_control.js"),
     ("frappe", "frappe/templates/emails/standard.html"),
     ("frappe", "frappe/templates/emails/email_header.html"),
     ("frappe", "frappe/templates/emails/email_footer.html"),
@@ -148,9 +157,28 @@ def diff(pinned):
     """
     live = fingerprint()
     out = []
-    for section, entries in live.items():
+    for section in sorted(set(live) | set(pinned or {})):
+        entries = live.get(section, {})
         was = (pinned or {}).get(section, {})
         for key in sorted(set(entries) | set(was)):
             if entries.get(key) != was.get(key):
                 out.append((f"{section}.{key}", was.get(key), entries.get(key)))
     return out
+
+
+def assert_compatible():
+    """Reject drift before schema patches. Pins ship inside the application.
+
+    This aborts migration; it cannot roll back an image or checkout somebody
+    already replaced. Test upgrades on a staging bench before promotion.
+    """
+    path = os.path.join(os.path.dirname(__file__), "data", "upstream-pins.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            pinned = json.load(handle)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("Bunood upstream pins are missing or invalid; migration rejected") from exc
+    changes = diff(pinned)
+    if changes:
+        details = "\n".join(f"{key}: {before} -> {after}" for key, before, after in changes)
+        raise RuntimeError("Bunood rejected upstream drift before migration. Integrate and review before re-pinning.\n" + details)

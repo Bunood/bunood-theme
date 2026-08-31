@@ -38,7 +38,7 @@
  *   filtered summary says FILTERED and says what it skipped.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,6 +51,9 @@ const flag = (name, fallback) => {
 const quiet = args.includes("--quiet");
 const only = flag("only", null);
 const logPath = flag("log", join(tmpdir(), `bnd-smoke-${Date.now()}.log`));
+
+const upstream = spawnSync(process.execPath, ["tools/upstream.mjs"], { stdio: "inherit" });
+if (upstream.status !== 0) process.exit(upstream.status || 1);
 
 const out = createWriteStream(logPath);
 const child = spawn("node", ["tests/smoke.mjs", ...(only ? ["--only", only] : [])], {

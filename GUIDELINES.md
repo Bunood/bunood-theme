@@ -36,7 +36,7 @@ costs. Rules are grouped by whether a machine enforces them.
 | Test signal isn't corrupted by its own tooling | `npm run verify` — one command, the suite's own exit code | `tools/verify.mjs` |
 | A native affordance is hidden only once we replaced it | build **fails** on `display:none` of a native keyed on `data-bnd-layout`/`data-bnd-search` instead of `data-bnd-own` | `build.mjs` |
 | Styling is route-agnostic | build **fails** when any SCSS file contains `data-route=` or `data-page-route=`; an in-memory negative self-test proves both forbidden forms are rejected | `build.mjs` |
-| **Upstream has not moved under us** | `npm run upstream` **exits 1** when any pinned Frappe/ERPNext fact changes — app versions, forked templates, the shipped `content` of boards we reorder, the shipped field order of DocTypes we reorder | `tools/upstream.mjs` + `bunood_theme/upstream.py`, pins in `tests/fixtures/upstream-pins.json` |
+| **Upstream has not moved under us** | `npm run upstream` **exits 1** when any pinned Frappe/ERPNext fact changes — app versions, forked templates, the shipped `content` of boards we reorder, the shipped field order of DocTypes we reorder | `tools/upstream.mjs` + `bunood_theme/upstream.py`, pins in `bunood_theme/data/upstream-pins.json` |
 | Every component has an identity, and every identity is real | build **fails** on a registry entry with no `part`, or a `data-bnd-part` the registry never defined | `build.mjs` + `registry.py` |
 | Settings fields are `<component>_<property>` | build **fails**, with a listed and shrinking exceptions set | `build.mjs` |
 | No literal duration reaches compiled CSS — the reduced-motion zero actually zeroes everything | build **fails** on a hardcoded `transition`/`animation` time outside `--bnd-dur-*` | `build.mjs` |
@@ -69,6 +69,12 @@ as failed. Diagnostics bolted on after a signal can invert it. Measure with some
 that cannot change the verdict.
 
 ### 1.2 Before you write the CSS
+
+**Upgrade acceptance is gated at deployment, verification and `before_migrate`.**
+Use the staging procedure in [docs/UPSTREAM-UPGRADES.md](docs/UPSTREAM-UPGRADES.md).
+An external image/git update is not automatically rolled back; incompatible
+candidates must not be promoted. Pins are shipped with the app so migration
+protection does not depend on a developer remembering a host command.
 
 - **Every upstream fact you build on gets PINNED.** This app is a layer over
   software somebody else ships, and its characteristic failure is silent: when
