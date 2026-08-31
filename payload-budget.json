@@ -17,6 +17,12 @@
 		"replacing two-per-remount. The prose that would have cost another 981 went",
 		"to _sidebar.scss, which Sass strips. Slices 7-8 are expected to return it:",
 		"if Frappe v16 nests sections, the wrapping surgery deletes ~45 lines.",
+		"AND TO 100850 for slice 8b, the Shortcuts region — the survey's verdict was",
+		"that people navigate to RECORDS, not pages, and this is 'the single",
+		"highest-value addition' for an ERP: pins + recents merged (Stripe's model),",
+		"server-side caps (25/15, Dynamics' numbers), render-time permission",
+		"re-resolution so a revoked pin vanishes rather than 403ing, and the pin",
+		"gesture in the Place row's menu. ~1240 gzip after prose was trimmed.",
 		"RAISED AGAIN TO 99450 for slice 8: the in-pane filter (the survey's clearest",
 		"gap — 6/13 product tools have one, 0/14 ERPs — and ERPs are the ones with",
 		"70-link workspaces), the automatic overflow fade replacing the deleted",
@@ -58,7 +64,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 21500,
-		"js_gzip": 99450,
+		"js_gzip": 100850,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

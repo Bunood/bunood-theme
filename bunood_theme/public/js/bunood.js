@@ -5811,6 +5811,110 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The workspace shown by the crumb decorator; the module row reuses it. */
 	let sb_current_workspace = null;
 
+	/** Boot's resolved pins, until a toggle replaces them. */
+	let sb_pins = ((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).shortcuts || [];
+
+	/** The route as a pin key. */
+	function sb_route_key() {
+		return (frappe.get_route() || []).join("/").replace(/^[/]+|[/]+$/g, "") &&
+			("app/" + (frappe.get_route() || []).map((x) => (frappe.router && frappe.router.slug ? frappe.router.slug(String(x)) : String(x).toLowerCase())).join("/"))
+				.replace(/\/+$/, "");
+	}
+
+	/** What pinning HERE stores; doctype feeds the per-doctype cap. */
+	function sb_pin_payload() {
+		const route = frappe.get_route() || [];
+		const key = sb_route_key();
+		if (!key) return null;
+		const payload = { route: key, label: document.title.split(" | ")[0].trim().slice(0, 140) || key };
+		if (route[0] === "Form" && route[1]) {
+			payload.doctype = String(route[1]);
+			if (route[2]) payload.name = String(route[2]);
+		} else if (route[0] === "List" && route[1]) {
+			payload.doctype = String(route[1]);
+		}
+		return payload;
+	}
+
+	/** Pins first, then recents; appears only with rows. _sidebar.scss. */
+	function sb_mount_shortcuts() {
+		for (const n of document.querySelectorAll(".bnd-sb-shortcuts")) n.remove();
+		const sidebar = document.querySelector(".body-sidebar");
+		if (!sidebar) return;
+		const pinned = Array.isArray(sb_pins) ? sb_pins : [];
+		const taken = new Set(pinned.map((p) => p.r));
+		const here = sb_route_key();
+		taken.add(here);
+		// Frappe's route history; deduped by route AND label (palette lesson).
+		const seenLabels = new Set(pinned.map((p) => p.l));
+		const recents = [];
+		const hist = ((window.frappe && frappe.route_history) || []).slice(-25).reverse();
+		for (const r of hist) {
+			if (recents.length >= 3) break;
+			if (!Array.isArray(r) || !r.length) continue;
+			const key = "app/" + r.map((x) => (frappe.router && frappe.router.slug ? frappe.router.slug(String(x)) : String(x).toLowerCase())).join("/");
+			if (taken.has(key)) continue;
+			const label = r.length > 2 ? r[1] + " " + r[2] : r.length === 2 ? r[1] + " " + r[0] : String(r[0]);
+			if (seenLabels.has(label)) continue;
+			taken.add(key);
+			seenLabels.add(label);
+			recents.push({ r: key, l: label });
+		}
+		if (!pinned.length && !recents.length) return;
+
+		const region = el("div", "bnd-sb-shortcuts");
+		const title = el("div", "bnd-sb-shortcuts-title");
+		title.textContent = __("Shortcuts");
+		region.appendChild(title);
+		const row_for = (entry, kind) => {
+			const row = el("div", "bnd-sb-shortcut", { "data-bnd-kind": kind });
+			const go = el("button", "bnd-sb-shortcut-go", { type: "button", title: entry.l });
+			go.appendChild(sprite_icon(kind === "pin" ? "icon-pin" : "icon-clock"));
+			const label = el("span", "bnd-sb-shortcut-label");
+			label.textContent = entry.l;
+			go.appendChild(label);
+			go.addEventListener("click", () => {
+				const parts = entry.r.replace(/^app\//, "").split("/");
+				frappe.set_route(parts);
+			});
+			row.appendChild(go);
+			// In the DOM at rest — Fluent's position on row actions.
+			const act = el("button", "bnd-sb-unpin", {
+				type: "button",
+				title: kind === "pin" ? __("Unpin") : __("Pin"),
+				"aria-label": (kind === "pin" ? __("Unpin") : __("Pin")) + " " + entry.l,
+			});
+			act.appendChild(sprite_icon(kind === "pin" ? "icon-x" : "icon-pin"));
+			act.addEventListener("click", (e) => {
+				e.stopPropagation();
+				sb_toggle_pin({ route: entry.r, label: entry.l, doctype: entry.d, name: entry.n });
+			});
+			row.appendChild(act);
+			return row;
+		};
+		for (const pin of pinned) region.appendChild(row_for(pin, "pin"));
+		for (const r of recents) region.appendChild(row_for(r, "recent"));
+
+		const anchor = sidebar.querySelector(".bnd-sb-filter") || sidebar.querySelector(".bnd-sb-head");
+		if (anchor) anchor.insertAdjacentElement("afterend", region);
+		else sidebar.insertBefore(region, sidebar.firstChild);
+	}
+
+	function sb_teardown_shortcuts() {
+		for (const n of document.querySelectorAll(".bnd-sb-shortcuts")) n.remove();
+	}
+
+	/** One round-trip; the region re-renders from the answer. */
+	function sb_toggle_pin(payload) {
+		frappe
+			.xcall("bunood_theme.api.toggle_sb_pin", payload)
+			.then((res) => {
+				sb_pins = (res && res.pins) || [];
+				sb_mount_shortcuts();
+			})
+			.catch(() => {}); // the caps throw their number; Frappe showed it
+	}
+
 	/** The filter row. Argument: _sidebar.scss. */
 	function sb_mount_filter() {
 		if (!document.documentElement.hasAttribute("data-bnd-sb-filter")) {
@@ -5987,7 +6091,19 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
 	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
 	function sb_head_menu() {
+		const payload = sb_pin_payload();
+		const pinnedHere = !!(payload && (sb_pins || []).some((p) => p.r === payload.route));
 		const items = [
+			...(payload
+				? [
+						{
+							label: pinnedHere ? __("Unpin this page") : __("Pin this page"),
+							icon: "icon-pin",
+							run: () => sb_toggle_pin(payload),
+						},
+						"divider",
+				  ]
+				: []),
 			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
 			{
 				label: __("All Apps"),
@@ -6551,6 +6667,7 @@ function sb_zone_anchor(pane, zone, node) {
 	const SB_PARTS = [
 		{ key: "head", volatile: false, mount: sb_mount_head, unmount: sb_teardown_head },
 		{ key: "filter", volatile: false, mount: sb_mount_filter, unmount: sb_teardown_filter },
+		{ key: "shortcuts", volatile: false, mount: sb_mount_shortcuts, unmount: sb_teardown_shortcuts },
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
 		{ key: "current", volatile: true, mount: sb_mark_current, unmount: sb_unmark_current },
@@ -7116,6 +7233,8 @@ function sb_zone_anchor(pane, zone, node) {
 				if (container_on("dock")) update_dock_active();
 				sb_update_head();
 				sb_mark_current();
+				// Recents churn with the route.
+				if (sb_active() && container_on("sidepane")) sb_mount_shortcuts();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration

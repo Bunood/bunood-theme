@@ -5345,3 +5345,33 @@ msgstr "صف ترشيح ظاهر دائمًا فوق الروابط."
 #, fuzzy
 msgid "Workspace Filter"
 msgstr "مرشِّح مساحة العمل"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Shortcuts"
+msgstr "الاختصارات"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Pin this page"
+msgstr "تثبيت هذه الصفحة"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Unpin this page"
+msgstr "إلغاء تثبيت هذه الصفحة"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Pin"
+msgstr "تثبيت"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Unpin"
+msgstr "إلغاء التثبيت"

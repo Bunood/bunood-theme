@@ -298,6 +298,25 @@ AXES = (
         ),
     },
     {
+        "key": "bnd_sb_pins",
+        "kind": STATE,
+        "label": "Side pane shortcuts",
+        "values": None,
+        "lock": None,
+        "boot": "bnd_sidebar.shortcuts",
+        "empty": "nothing pinned",
+        "since": "item 40",
+        "note": (
+            "A list of {r: route, l: label, d?: doctype, n?: docname} pins, "
+            "capped SERVER-SIDE in api.toggle_sb_pin (25 total, 15 per doctype "
+            "— Dynamics' numbers, so one hot doctype cannot flood the region). "
+            "Resolved at RENDER time by api.resolve_sb_pins as the user: a pin "
+            "whose record was deleted or whose doctype the user can no longer "
+            "read VANISHES rather than 403ing, and the store is left alone so a "
+            "restored permission brings it back."
+        ),
+    },
+    {
         "key": "bnd_inbox_done",
         "kind": STATE,
         "label": "Dismissed notifications",

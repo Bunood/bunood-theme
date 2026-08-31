@@ -4012,8 +4012,17 @@ async function main() {
 						};
 					});
 				};
-				const short_ = await read(520);
-				expect(short_.overflows, "a 520px viewport makes the Selling list overflow (premise)");
+				// THE PREMISE HUNTS ITS OWN HEIGHT. A fixed 520px depended on what
+				// neighbouring checks left in the pane (the shortcuts region, the
+				// sections' collapse states) and went false in family order while
+				// holding alone. Overflow-at-SOME-height is the premise; which
+				// height is not the subject.
+				let short_ = null;
+				for (const h of [520, 400, 320]) {
+					short_ = await read(h);
+					if (short_.overflows) break;
+				}
+				expect(short_.overflows, "some short viewport makes the Selling list overflow (premise)");
 				expect(short_.mask !== "none", `an overflowing list gets the fade (mask: ${short_.mask.slice(0, 40)})`);
 				// At the top, the TOP edge is not masked: the first gradient stop
 				// keeps full alpha, so a focus ring on the first row survives.
@@ -4118,6 +4127,172 @@ async function main() {
 					0, "Off mounts no filter row"
 				);
 			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("shortcuts: the caps are the server's, and a non-admin hits them", async () => {
+			// DYNAMICS' NUMBERS, ENFORCED WHERE THEY CANNOT BE DODGED: 25 pinned
+			// total, at most 15 from one doctype — the cap is what makes a
+			// high-volume doctype unable to flood the region. Driven as the desk
+			// FIXTURE, not Administrator, because item 37 nearly shipped the
+			// per-user menu dead for every non-admin and no Administrator-run
+			// check could see it.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme import api\n" +
+					`frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"frappe.defaults.clear_default('bnd_sb_pins', parent=frappe.session.user)\n" +
+					"res = {}\n" +
+					"try:\n" +
+					"    for i in range(15):\n" +
+					"        api.toggle_sb_pin(route='app/todo/T-%02d' % i, label='ToDo %d' % i, doctype='ToDo', name='T-%02d' % i)\n" +
+					"    try:\n" +
+					"        api.toggle_sb_pin(route='app/todo/T-16', label='ToDo 16', doctype='ToDo', name='T-16')\n" +
+					"        res['sixteenth'] = 'ACCEPTED'\n" +
+					"    except Exception as e:\n" +
+					"        res['sixteenth'] = str(e)[:80]\n" +
+					"    for i in range(10):\n" +
+					"        api.toggle_sb_pin(route='app/page-%d' % i, label='Page %d' % i)\n" +
+					"    try:\n" +
+					"        api.toggle_sb_pin(route='app/page-26', label='Page 26')\n" +
+					"        res['twenty_sixth'] = 'ACCEPTED'\n" +
+					"    except Exception as e:\n" +
+					"        res['twenty_sixth'] = str(e)[:80]\n" +
+					"    raw = frappe.parse_json(frappe.defaults.get_user_default('bnd_sb_pins') or '[]')\n" +
+					"    res['stored'] = len(raw)\n" +
+					"    api.toggle_sb_pin(route='app/page-0', label='Page 0')\n" +
+					"    raw = frappe.parse_json(frappe.defaults.get_user_default('bnd_sb_pins') or '[]')\n" +
+					"    res['after_unpin'] = len(raw)\n" +
+					"finally:\n" +
+					"    frappe.set_user('Administrator')\n" +
+					`    frappe.defaults.clear_default('bnd_sb_pins', parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"    frappe.db.commit()\n" +
+					"print('BND_CAP' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_CAP"));
+			if (!line) throw new Error("cap probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_CAP".length));
+			expect(r.sixteenth !== "ACCEPTED", `the 16th pin of one doctype is refused (${r.sixteenth})`);
+			expect(/15/.test(r.sixteenth), `and the refusal NAMES the cap (${r.sixteenth})`);
+			expect(r.twenty_sixth !== "ACCEPTED", `the 26th pin overall is refused (${r.twenty_sixth})`);
+			expect(/25/.test(r.twenty_sixth), `naming its cap too (${r.twenty_sixth})`);
+			expectEq(r.stored, 25, "exactly the cap is stored");
+			expectEq(r.after_unpin, 24, "and toggle unpins — the same gesture both ways");
+		});
+
+		await test("shortcuts: a pin the user cannot read any more VANISHES, never 403s", async () => {
+			// THE SURVEY'S ONE UNANIMOUS HOLE: reconciliation is undefined in
+			// every product surveyed. A pinned record whose permission was
+			// revoked — or which was deleted — must disappear from the region,
+			// because a row that 403s on click is a trap someone else set.
+			// Resolution happens at RENDER TIME, server-side, as the user; the
+			// store itself is left alone, so a restored permission brings the
+			// pin back without anyone re-pinning.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme import api\n" +
+					"todo = frappe.get_doc({'doctype': 'ToDo', 'description': 'bnd shortcut probe'}).insert(ignore_permissions=True)\n" +
+					"frappe.db.commit()\n" +
+					// A REAL Item, so only the PERMISSION arm can drop it. The first
+					// draft used a fake name and the existence arm did the dropping —
+					// the sabotage harness proved the permission filter could be
+					// gutted with this check still green.
+					"item = frappe.get_all('Item', limit=1)[0].name\n" +
+					"pins = [\n" +
+					"    {'r': 'app/item/' + item, 'l': 'Item pin', 'd': 'Item', 'n': item},\n" +
+					"    {'r': 'app/todo/' + todo.name, 'l': 'Live ToDo', 'd': 'ToDo', 'n': todo.name},\n" +
+					"    {'r': 'app/todo/GONE-000', 'l': 'Deleted ToDo', 'd': 'ToDo', 'n': 'GONE-000'},\n" +
+					"    {'r': 'app/selling', 'l': 'Selling'},\n" +
+					"]\n" +
+					`frappe.defaults.set_default('bnd_sb_pins', frappe.as_json(pins, indent=None), parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"frappe.db.commit()\n" +
+					"res = {}\n" +
+					"try:\n" +
+					`    frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"    res['fixture_reads_item'] = bool(frappe.has_permission('Item', 'read'))\n" +
+					"    res['resolved'] = [p['l'] for p in api.resolve_sb_pins()]\n" +
+					"finally:\n" +
+					"    frappe.set_user('Administrator')\n" +
+					`    frappe.defaults.clear_default('bnd_sb_pins', parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"    frappe.delete_doc('ToDo', todo.name, ignore_permissions=True, force=True)\n" +
+					"    frappe.db.commit()\n" +
+					"print('BND_PERM' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PERM"));
+			if (!line) throw new Error("permission probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_PERM".length));
+			// ANTI-VACUITY: if the fixture could read Item, nothing here would
+			// prove filtering — the check would pass by permissiveness.
+			expect(!r.fixture_reads_item, "the fixture genuinely cannot read Item (premise)");
+			expect(r.resolved.includes("Live ToDo"), `a readable, existing record survives (${JSON.stringify(r.resolved)})`);
+			expect(r.resolved.includes("Selling"), "a page pin needs no doctype and survives");
+			expect(!r.resolved.includes("Item pin"), "the unreadable doctype's pin VANISHED");
+			expect(!r.resolved.includes("Deleted ToDo"), "and so did the deleted record's");
+		});
+
+		await test("shortcuts: the region merges pins and recents, from the head's own menu", async () => {
+			// STRIPE'S MODEL, picked by the survey: one region — you visit a
+			// page, it appears as a recent; you pin it to keep it. No empty
+			// second section, no region at all until there is something to show.
+			// The pin gesture lives in the Place row's menu, because a
+			// hover-only row action is refused (Fluent's position) and the menu
+			// already exists.
+			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
+			try {
+				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+
+				// Navigate once so a RECENT exists, then return.
+				await page.evaluate(() => window.frappe.set_route("stock"));
+				await page.waitForTimeout(1500);
+				await page.evaluate(() => window.frappe.set_route("selling"));
+				await page.waitForTimeout(1500);
+
+				const recent = await page.evaluate(() => ({
+					region: !!document.querySelector(".bnd-sb-shortcuts"),
+					recents: document.querySelectorAll(".bnd-sb-shortcuts .bnd-sb-shortcut[data-bnd-kind=\"recent\"]").length,
+				}));
+				expect(recent.region, "visiting pages alone summons the region (Stripe's model)");
+				expect(recent.recents > 0, `and it holds a recent (${recent.recents})`);
+
+				// Pin the current page from the head's menu.
+				await page.click(".bnd-sb-head");
+				await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+				const pinLabel = await page.evaluate(() => {
+					const item = [...document.querySelectorAll(".bnd-menu-item")].find((b) => /pin/i.test(b.textContent));
+					if (!item) return null;
+					const label = item.textContent.trim();
+					item.click();
+					return label;
+				});
+				expect(pinLabel && /pin/i.test(pinLabel), `the menu offers a pin action (${pinLabel})`);
+				await page.waitForFunction(
+					() => document.querySelectorAll('.bnd-sb-shortcuts .bnd-sb-shortcut[data-bnd-kind="pin"]').length > 0,
+					null, { timeout: 8000 }
+				);
+
+				// The pinned row carries an ALWAYS-PRESENT unpin control — no
+				// hover requirement — and using it empties the pin back out.
+				const unpin = await page.evaluate(() => {
+					const row = document.querySelector('.bnd-sb-shortcut[data-bnd-kind="pin"]');
+					const btn = row && row.querySelector("button.bnd-sb-unpin");
+					if (!btn) return { present: false };
+					const cs = getComputedStyle(btn);
+					const visible = cs.display !== "none" && cs.visibility !== "hidden" && parseFloat(cs.opacity) > 0.5;
+					btn.click();
+					return { present: true, visible };
+				});
+				expect(unpin.present, "the pinned row carries its unpin control in the DOM");
+				expect(unpin.visible, "and it is visible at rest, not hover-summoned");
+				await page.waitForFunction(
+					() => document.querySelectorAll('.bnd-sb-shortcut[data-bnd-kind="pin"]').length === 0,
+					null, { timeout: 8000 }
+				);
+			} finally {
+				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
 				setSettings(before);
 			}
 		});

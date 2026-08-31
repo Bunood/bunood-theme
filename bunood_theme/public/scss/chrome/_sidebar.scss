@@ -875,6 +875,102 @@ html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:n
   display: block !important;
 }
 
+// ── Shortcuts (item 40) ─────────────────────────────────────────────────────
+// Stripe's merged model, picked by the survey: ONE region — a page you visit
+// appears as a recent, pinning promotes it to a stable slot. No empty second
+// section; no region at all until there is something to show. People navigate
+// to RECORDS, not pages, and this is the one surveyed feature that treats
+// that as first-class. The unpin/pin control is in the DOM at rest —
+// Fluent's position, and the reason hover-only row actions were refused.
+html[data-bnd-sb-color] .bnd-sb-shortcuts {
+  margin-inline: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+  padding-block-end: var(--bnd-sp-1);
+  border-block-end: var(--bnd-line) solid var(--bnd-sb-line);
+}
+
+html[data-bnd-sb-color] .bnd-sb-shortcuts-title {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  text-transform: uppercase;
+  color: var(--bnd-sb-ink-muted);
+  padding-block: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-2);
+}
+
+html[data-bnd-sb-color] .bnd-sb-shortcut {
+  display: flex;
+  align-items: center;
+
+  .bnd-sb-shortcut-go {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    padding-block: 4px;
+    padding-inline: var(--bnd-sp-2);
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-sb-ink-muted);
+    font-size: var(--bnd-text-sm);
+    text-align: start;
+    cursor: pointer;
+
+    svg {
+      inline-size: 14px;
+      block-size: 14px;
+      flex: none;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
+      color: var(--bnd-sb-ink);
+    }
+  }
+
+  .bnd-sb-shortcut-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .bnd-sb-unpin {
+    display: grid;
+    place-items: center;
+    inline-size: 22px;
+    block-size: 22px;
+    flex: none;
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-sb-ink-muted);
+    cursor: pointer;
+
+    svg {
+      inline-size: 12px;
+      block-size: 12px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--bnd-sb-ink) 10%, transparent);
+      color: var(--bnd-sb-ink);
+    }
+  }
+}
+
+// The rail hides the region with the rest of the pane content (the rest
+// rule lists .body-sidebar-top et al; the region sits beside the filter and
+// takes the same treatment).
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-shortcuts {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease),
+    visibility 0s var(--bnd-dur-fast);
+}
+
 // ── The overflow fade (item 40) ─────────────────────────────────────────────
 // AUTOMATIC, replacing the deleted `sidebar_scroll_fades` preference: whether
 // a list overflows is a fact. The JS stamps which EDGES hide content, so the

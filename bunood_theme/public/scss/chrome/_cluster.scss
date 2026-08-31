@@ -185,7 +185,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 // payload ceiling with single-digit-percent headroom.
 html[data-theme] :is(
   .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input,
+  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-sb-shortcut-go, .bnd-sb-unpin,
   .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
   .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
   .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank

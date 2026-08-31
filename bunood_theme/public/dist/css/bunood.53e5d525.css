@@ -1003,7 +1003,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 }
 
 html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input,
+.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-sb-shortcut-go, .bnd-sb-unpin,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
 .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
 .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank):focus-visible {
@@ -1816,6 +1816,84 @@ html[data-bnd-sb-filter] .body-sidebar .bnd-sb-fhide {
 
 html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:not(.bnd-sb-fhide) > .sidebar-child-item.hidden {
   display: block !important;
+}
+
+html[data-bnd-sb-color] .bnd-sb-shortcuts {
+  margin-inline: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+  padding-block-end: var(--bnd-sp-1);
+  border-block-end: var(--bnd-line) solid var(--bnd-sb-line);
+}
+
+html[data-bnd-sb-color] .bnd-sb-shortcuts-title {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  text-transform: uppercase;
+  color: var(--bnd-sb-ink-muted);
+  padding-block: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-2);
+}
+
+html[data-bnd-sb-color] .bnd-sb-shortcut {
+  display: flex;
+  align-items: center;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-shortcut-go {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding-block: 4px;
+  padding-inline: var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  font-size: var(--bnd-text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-shortcut-go svg {
+  inline-size: 14px;
+  block-size: 14px;
+  flex: none;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-shortcut-go:hover {
+  background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
+  color: var(--bnd-sb-ink);
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-shortcut-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-unpin {
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  cursor: pointer;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-unpin svg {
+  inline-size: 12px;
+  block-size: 12px;
+}
+html[data-bnd-sb-color] .bnd-sb-shortcut .bnd-sb-unpin:hover {
+  background: color-mix(in srgb, var(--bnd-sb-ink) 10%, transparent);
+  color: var(--bnd-sb-ink);
+}
+
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-shortcuts {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease), visibility 0s var(--bnd-dur-fast);
 }
 
 html[data-bnd-sb-color] .body-sidebar-top[data-bnd-sb-scroll=bottom] {
