@@ -75,11 +75,8 @@
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
-  --bnd-sb-glass-1: 55%;
-  --bnd-sb-glass-2: 65%;
-  --bnd-sb-glass-3: 75%;
-  --bnd-sb-glass-4: 85%;
-  --bnd-sb-glass-5: 93%;
+  --bnd-sb-glass-pct: 85%;
+  --bnd-sb-glass-pct-blurred: 75%;
   --bnd-z-bar: 990;
   --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;
@@ -1402,8 +1399,8 @@ html[data-bnd-sb-color] .body-sidebar-container .body-sidebar {
   color: var(--bnd-sb-ink);
 }
 
-html[data-bnd-sb-material=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 
 html[data-bnd-sb-width="1"] {
@@ -1430,27 +1427,11 @@ html[data-bnd-sb-menurail=expanded] .body-sidebar-container {
   flex-shrink: 0;
 }
 
-html[data-bnd-sb-glass="1"] {
-  --bnd-sb-glass-pct: var(--bnd-sb-glass-1);
+html[data-bnd-sb-material=glassblur] {
+  --bnd-sb-glass-pct: var(--bnd-sb-glass-pct-blurred);
 }
 
-html[data-bnd-sb-glass="2"] {
-  --bnd-sb-glass-pct: var(--bnd-sb-glass-2);
-}
-
-html[data-bnd-sb-glass="3"] {
-  --bnd-sb-glass-pct: var(--bnd-sb-glass-3);
-}
-
-html[data-bnd-sb-glass="4"] {
-  --bnd-sb-glass-pct: var(--bnd-sb-glass-4);
-}
-
-html[data-bnd-sb-glass="5"] {
-  --bnd-sb-glass-pct: var(--bnd-sb-glass-5);
-}
-
-html[data-bnd-sb-material=glass][data-bnd-sb-blur=full] .body-sidebar-container {
+html[data-bnd-sb-material=glassblur] .body-sidebar-container {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
@@ -1897,11 +1878,11 @@ html[data-bnd-sb-placement=floating][data-bnd-rail] .body-sidebar-container .bod
   inset-inline-start: 0;
 }
 
-html[data-bnd-sb-material=glass][data-bnd-rail]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+html[data-bnd-sb-material^=glass][data-bnd-rail]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 
-html[data-bnd-sb-material=glass][data-bnd-sb-blur=full][data-bnd-rail] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material=glassblur][data-bnd-rail] .body-sidebar-container .body-sidebar {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
@@ -2072,9 +2053,12 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-utils {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  html[data-bnd-sb-material=glass] .body-sidebar-container,
-  html[data-bnd-sb-material=glass] .body-sidebar-container .body-sidebar {
+  html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container,
+  html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
     background: var(--bnd-sb-bg);
+  }
+  html[data-bnd-sb-material^=glass] .body-sidebar-container,
+  html[data-bnd-sb-material^=glass] .body-sidebar-container .body-sidebar {
     backdrop-filter: none;
   }
 }

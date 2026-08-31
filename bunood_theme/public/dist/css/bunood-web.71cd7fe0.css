@@ -74,11 +74,8 @@
   --bnd-sb-w: 220px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
-  --bnd-sb-glass-1: 55%;
-  --bnd-sb-glass-2: 65%;
-  --bnd-sb-glass-3: 75%;
-  --bnd-sb-glass-4: 85%;
-  --bnd-sb-glass-5: 93%;
+  --bnd-sb-glass-pct: 85%;
+  --bnd-sb-glass-pct-blurred: 75%;
   --bnd-z-bar: 990;
   --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;

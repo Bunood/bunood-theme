@@ -2293,10 +2293,11 @@ const BND_SB_GROUPS = [
 		field: "sidebar_material",
 		zone: "pane",
 		title: () => __("Pane material"),
-		desc: () => __("Glass lets the page glow through; opacity and blur below tune it."),
+		desc: () => __("Glass lets the page glow through; blurred frosts it as well."),
 		options: [
 			{ value: "Solid", name: () => __("Solid"), thumb: bnd_sb_pane("currentColor", "opacity:.3") },
 			{ value: "Glass", name: () => __("Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px") },
+			{ value: "Blurred Glass", name: () => __("Blurred Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px;filter:blur(1px)") },
 		],
 	},
 	{
@@ -2418,7 +2419,6 @@ const BND_SB_GROUPS = [
 
 /** Stepped 1..5 controls: field + endpoint labels. */
 const BND_SB_STEPPERS = [
-	{ field: "sidebar_glass_opacity", zone: "pane", title: () => __("Glass opacity"), lo: () => __("Airy"), hi: () => __("Dense") },
 	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
 	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
@@ -2547,20 +2547,6 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		));
 	});
 
-	const blur_group =
-		'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + __("Glass blur") + "</div>" +
-		'<div class="bnd-cbp-desc">' + __("Full steps down automatically on weak devices and honors the OS reduce-transparency setting.") + "</div>" +
-		'<div class="bnd-sbp-row-wrap">' +
-		["Off", "Soft", "Full"]
-			.map(
-				(v) =>
-					'<button type="button" class="bnd-sbp-opt' + (frm.doc.sidebar_blur === v ? " bnd-sbp-on" : "") +
-					'" data-field="sidebar_blur" data-value="' + v + '" style="inline-size:70px">' +
-					'<span class="bnd-sbp-oname">' + __(v) + "</span></button>"
-			)
-			.join("") +
-		"</div></div>";
-
 	const toggles = BND_SB_TOGGLES.map((t) => {
 		const on = !!parseInt(frm.doc[t.field], 10);
 		return (
@@ -2593,7 +2579,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 				{ zone: "placement", html: by_zone.placement },
 				// The blur control is authored inline rather than in a table, so
 				// its band is stated here. It belongs with the surface it blurs.
-				{ zone: "pane", html: (by_zone.pane || "") + blur_group },
+				{ zone: "pane", html: by_zone.pane || "" },
 				{ zone: "links", html: by_zone.links },
 				{ zone: "rail", html: by_zone.rail },
 				// The literal `__("Extras")` group this replaces was the same idea

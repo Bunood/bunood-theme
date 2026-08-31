@@ -1289,7 +1289,7 @@ async function layoutFaults(rootSel, opts = {}) {
 
 const SLUG = {
 	sidebar_placement: { Attached: "attached", Floating: "floating" },
-	sidebar_material: { Solid: "solid", Glass: "glass" },
+	sidebar_material: { Solid: "solid", Glass: "glass", "Blurred Glass": "glassblur" },
 	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
 	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", "Glow Ring": "glow", Outline: "outline", "Dot Marker": "dot", "Folder Tab": "foldertab" },
@@ -1347,7 +1347,7 @@ const MUTABLE_FIELDS = [
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
 	"sidebar_placement", "sidebar_material",
-	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
+	"sidebar_color",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_rail_button_shape",
@@ -3672,6 +3672,119 @@ async function main() {
 			expect(released !== "none" && released !== "(absent)",
 				`released, Frappe's header comes back (display is ${released}) -- a failed ` +
 					`mount degrades to stock rather than leaving the pane without a head`);
+		});
+
+		await test("sidepane: the three pane materials render three different panes", async () => {
+			// THE DEFECT THIS AXIS HAD. material x opacity x blur was thirty
+			// combinations and Solid collapsed fifteen of them onto one pixel --
+			// `presets.py` said so in a comment. The merge is only honest if what
+			// SURVIVES is three visibly different panes, so this measures the
+			// RENDERED surface: an attribute assertion would pass just as happily
+			// for three identical panes, which is the two-options-one-pixel trap
+			// the picker vocabulary exists to prevent.
+			//
+			// AND IT MEASURES BOTH TRANSPARENCY REGIMES, because writing the first
+			// version found that HEADLESS CHROMIUM REPORTS `prefers-reduced-
+			// transparency: reduce`. So every desk this suite has ever driven was
+			// in the degraded branch, nothing had ever looked at it, and it was
+			// broken: the reduce block weighed (0,2,1) against a translucent
+			// surface rule carrying a `:not()` at (0,3,1), so it lost the
+			// background and won only the blur -- a pane left 75% transparent with
+			// its frosting removed, which is the single combination the
+			// degradation exists to prevent.
+			//
+			// Read `.body-sidebar-container` by COMPUTED STYLE rather than a rect:
+			// that is what the rules target, the container is not reliably laid out
+			// on this site, and nothing here needs it to be.
+			const before = getSettings(["sidebar_material", "sidebar_color"]);
+			try {
+				const alpha = (bg) => {
+					const m = /rgba?\(([^)]+)\)/.exec(bg || "");
+					if (m) {
+						const parts = m[1].split(/[,/]+/).map((x) => parseFloat(x.trim()));
+						return parts.length >= 4 ? parts[3] : 1;
+					}
+					// Chrome serialises a color-mix() result as color(srgb r g b / a).
+					const c = /color\(srgb\s+([^)]+)\)/.exec(bg || "");
+					if (c) {
+						const parts = c[1].split("/").map((x) => x.trim());
+						return parts.length > 1 ? parseFloat(parts[1]) : 1;
+					}
+					// A gradient (brand mode) or a keyword: not a colour, so refuse
+					// rather than guess. A helper that guesses at an unrecognised
+					// input is how `triple()` read oklab() as near-black.
+					throw new Error("cannot read an alpha from " + JSON.stringify(bg));
+				};
+
+				const surfaces = {};
+				for (const material of ["Solid", "Glass", "Blurred Glass"]) {
+					setSettings({ sidebar_material: material, sidebar_color: "Match Theme" });
+					// A FRESH CONTEXT, not the shared page: this emulates a media
+					// feature, and this suite's own rule at `withGuest` is that
+					// emulation leaks off the shared page.
+					surfaces[material] = await withDeskUser("/app", "body", async (dp) => {
+						// Poll until three consecutive frames agree: the pane carries
+						// a transition, and a value read mid-fade has reported a
+						// settled pair as failing in this repo -- and, worse, the
+						// other way round.
+						const settle = () =>
+							dp.evaluate(() =>
+								new Promise((done) => {
+									const el = document.querySelector(".body-sidebar-container");
+									if (!el) return done(null);
+									const seen = [];
+									let frames = 0;
+									const tick = () => {
+										const cs = getComputedStyle(el);
+										seen.push(cs.backgroundColor + "|" + (cs.backdropFilter || "none"));
+										const n = seen.length;
+										if (n >= 3 && seen[n - 1] === seen[n - 2] && seen[n - 2] === seen[n - 3]) {
+											const [bg, filter] = seen[n - 1].split("|");
+											return done({ bg, filter });
+										}
+										if (++frames > 90) return done({ bg: "(unsettled)", filter: "(unsettled)" });
+										requestAnimationFrame(tick);
+									};
+									requestAnimationFrame(tick);
+								})
+							);
+						const degraded = await settle();
+						const cdp = await dp.context().newCDPSession(dp);
+						await cdp.send("Emulation.setEmulatedMedia", {
+							features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
+						});
+						const full = await settle();
+						return { degraded, full };
+					});
+					expect(surfaces[material].full, `the pane container is in the document under ${material}`);
+				}
+
+				const solid = surfaces["Solid"].full;
+				const glass = surfaces["Glass"].full;
+				const blurred = surfaces["Blurred Glass"].full;
+
+				// Given transparency, three materials are three different panes.
+				expectEq(alpha(solid.bg), 1, `Solid is opaque (${solid.bg})`);
+				expectEq(solid.filter, "none", `Solid asks the compositor for nothing (${solid.filter})`);
+				expect(alpha(glass.bg) < 1, `Glass lets the page through (${glass.bg})`);
+				expect(alpha(blurred.bg) < 1, `Blurred glass lets the page through (${blurred.bg})`);
+				expect(/blur\(/.test(blurred.filter), `Blurred glass frosts what shows through (${blurred.filter})`);
+				expectEq(glass.filter, "none", `plain Glass does not (${glass.filter})`);
+				expect(alpha(blurred.bg) < alpha(glass.bg),
+					`blurred sits lighter than plain glass (${alpha(blurred.bg)} vs ${alpha(glass.bg)})`);
+
+				// And asked for less transparency, BOTH glasses become the designed
+				// solid -- opaque and unfrosted, not one without the other.
+				for (const material of ["Glass", "Blurred Glass"]) {
+					const d = surfaces[material].degraded;
+					expectEq(alpha(d.bg), 1,
+						`${material} degrades to the designed solid under reduced transparency (${d.bg})`);
+					expectEq(d.filter, "none",
+						`${material} drops its frosting with its translucency, not instead of it (${d.filter})`);
+				}
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		await test("placement: exactly one of each, wherever it was placed", async () => {
@@ -6079,6 +6192,64 @@ async function main() {
 				!r.old_left.sidebar_section_layout && !r.old_left.sidebar_surface_intensity,
 				`the old rows are reaped, not left as a second answer (${JSON.stringify(r.old_left)})`
 			);
+		});
+
+		await test("settings: the glass merge maps every material a site could be in", async () => {
+			// THE BRANCH THIS SITE NEVER TAKES. demo ships Solid, so the only
+			// interesting arm -- Glass with a full blur becoming its own material
+			// -- is false here, and a branch whose guard is false on the dev site
+			// is UNTESTED, not working. So all three tenant states are simulated,
+			// the way `retire_apps_rail` was exercised before it was trusted.
+			//
+			// Solid is in the list on purpose: it is the state where the two
+			// departed fields were "inert", and inert has to mean the patch reaps
+			// them and changes nothing, not that it is never asked.
+			const CASES = [
+				{ label: "Glass + Full blur becomes Blurred Glass", material: "Glass", blur: "Full", want: "Blurred Glass" },
+				{ label: "Glass + Soft blur stays Glass", material: "Glass", blur: "Soft", want: "Glass" },
+				// Off is NOT Solid: the tenant asked for glass, and taking the
+				// translucency away because they turned the blur down would answer
+				// a question they did not ask.
+				{ label: "Glass + no blur stays Glass", material: "Glass", blur: "Off", want: "Glass" },
+				{ label: "Solid absorbs both departed fields", material: "Solid", blur: "Soft", want: "Solid" },
+			];
+			const before = getSettings(["sidebar_material"]);
+			try {
+				for (const c of CASES) {
+					const out = benchPy(
+						"import json\n" +
+							"from bunood_theme.patches.v0_40_0.merge_glass_material import execute\n" +
+							"def raw(f):\n" +
+							"    rows = frappe.db.sql(\"select value from tabSingles where doctype='Theme Settings' and field=%s\", (f,))\n" +
+							"    return rows[0][0] if rows else None\n" +
+							"res = {}\n" +
+							"try:\n" +
+							"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('sidebar_glass_opacity','sidebar_blur')\")\n" +
+							// INSERT, not UPDATE: the departed rows are already gone
+							// here, and an UPDATE on an absent row is a silent no-op.
+							"    frappe.db.sql(\"insert into tabSingles (doctype, field, value) values " +
+							"('Theme Settings','sidebar_glass_opacity','2'), ('Theme Settings','sidebar_blur'," +
+							`'${c.blur}'` + ")\")\n" +
+							`    frappe.db.set_single_value('Theme Settings', 'sidebar_material', '${c.material}')\n` +
+							"    execute()\n" +
+							"    res['material'] = raw('sidebar_material')\n" +
+							"    res['left'] = {f: raw(f) for f in ('sidebar_glass_opacity', 'sidebar_blur')}\n" +
+							"finally:\n" +
+							"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in ('sidebar_glass_opacity','sidebar_blur')\")\n" +
+							"    frappe.db.commit()\n" +
+							"    frappe.clear_cache(doctype='Theme Settings')\n" +
+							"print('BND_GM' + json.dumps(res))\n"
+					);
+					const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_GM"));
+					if (!line) throw new Error("glass-merge probe produced no JSON: " + String(out).slice(-300));
+					const r = JSON.parse(line.slice("BND_GM".length));
+					expectEq(r.material, c.want, c.label);
+					expect(!r.left.sidebar_glass_opacity && !r.left.sidebar_blur,
+						`${c.label}: both departed fields are reaped (${JSON.stringify(r.left)})`);
+				}
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		await test("settings: nothing overflows the form horizontally", async () => {

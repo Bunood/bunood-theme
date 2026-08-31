@@ -424,8 +424,6 @@ def extend_bootinfo(bootinfo):
         bootinfo.bnd_sidebar = {
             "placement": get("sidebar_placement"),
             "material": get("sidebar_material"),
-            "glass_opacity": get("sidebar_glass_opacity"),
-            "blur": get("sidebar_blur"),
             "color": get("sidebar_color"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset

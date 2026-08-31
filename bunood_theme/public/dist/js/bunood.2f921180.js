@@ -1071,7 +1071,7 @@
 	 */
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
-		material: { "Solid": "solid", "Glass": "glass" },
+		material: { "Solid": "solid", "Glass": "glass", "Blurred Glass": "glassblur" },
 		color: { "Match Theme": "theme", "Minimal": "minimal", "Dark Contrast": "dark", "Brand": "brand" },
 		icons: {
 			"Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled",
@@ -1137,13 +1137,10 @@
 		}
 		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
 		set("badges", SB_SLUGS.badges[sb.badges]);
-		const glass = parseInt(sb.glass_opacity, 10);
-		if (glass >= 1 && glass <= 5) html.setAttribute("data-bnd-sb-glass", String(glass));
 		const width = parseInt(sb.pane_width, 10);
 		if (width >= 1 && width <= 5) html.setAttribute("data-bnd-sb-width", String(width));
 		const intensity = parseInt(sb.intensity, 10);
 		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
-		if (sb.blur) html.setAttribute("data-bnd-sb-blur", String(sb.blur).toLowerCase());
 		if (parseInt(sb.scroll_fades, 10)) html.setAttribute("data-bnd-sb-fades", "");
 	}
 
@@ -6669,8 +6666,6 @@ function sb_zone_anchor(pane, zone, node) {
 		const next = {
 			placement: v("sidebar_placement", "placement"),
 			material: v("sidebar_material", "material"),
-			glass_opacity: v("sidebar_glass_opacity", "glass_opacity"),
-			blur: v("sidebar_blur", "blur"),
 			color: v("sidebar_color", "color"),
 			icons: v("icon_style", "icons"),
 			active: v("sidebar_active_style", "active"),

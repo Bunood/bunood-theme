@@ -11,9 +11,10 @@
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
 //   data-bnd-sb-placement   attached | floating
-//   data-bnd-sb-material    solid | glass
-//   data-bnd-sb-glass       1..5           (opacity stop, glass only)
-//   data-bnd-sb-blur        off | soft | full
+//   data-bnd-sb-material    solid | glass | glassblur
+//                            ^="glass" is BOTH glass materials - they share
+//                            every surface rule and differ only in the blur
+//                            and one opacity step.
 //   data-bnd-sb-color       theme | minimal | dark | brand
 //   data-bnd-sb-icons       chips | dots | filled | duotone | brandlines | mono
 //   data-bnd-sb-active      pill | softpill | rail | glow | outline | dot | foldertab
@@ -217,11 +218,16 @@ html[data-bnd-sb-color] .body-sidebar-container {
 }
 
 // Glass: keep N% of the pane color, let the page bleed through the rest.
-// A gradient bg (brand mode) cannot go through color-mix, so brand+glass
-// falls back to slight translucency via opacity on a pseudo-layer — the
-// simple, honest approximation.
-html[data-bnd-sb-material="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+// A gradient bg (brand mode) cannot go through color-mix, so brand is
+// excluded — and there IS NO FALLBACK. The sentence that stood here until
+// item 40 promised "slight translucency via opacity on a pseudo-layer";
+// no such layer exists anywhere in this file, and grepping for one is how
+// that was found. So on the brand pane, Glass renders exactly as Solid.
+// That is a live two-options-one-pixel case and it is RECORDED rather than
+// repaired here: making a gradient translucent means mixing transparency
+// into its stops, which is a derivation change, not a material change.
+html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 // Pane width stops. Stop 2 is v16's original 220px — the former default;
 // stop 3 ships since the 2026-08-08 re-choice.
@@ -246,13 +252,9 @@ html[data-bnd-sb-menurail="expanded"] .body-sidebar-container {
   flex-shrink: 0;
 }
 
-html[data-bnd-sb-glass="1"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-1); }
-html[data-bnd-sb-glass="2"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-2); }
-html[data-bnd-sb-glass="3"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-3); }
-html[data-bnd-sb-glass="4"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-4); }
-html[data-bnd-sb-glass="5"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-5); }
+html[data-bnd-sb-material="glassblur"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-pct-blurred); }
 
-html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"] .body-sidebar-container {
+html[data-bnd-sb-material="glassblur"] .body-sidebar-container {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
@@ -806,10 +808,10 @@ html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .b
 }
 
 // Glass applies to the overlay surface in rail modes.
-html[data-bnd-sb-material="glass"][data-bnd-rail]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
+html[data-bnd-sb-material^="glass"][data-bnd-rail]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
+  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
-html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material="glassblur"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
@@ -1039,13 +1041,31 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
 }
 
 // ── Reduce transparency (OS-level) ──────────────────────────────────────────
-// Glass degrades to the designed solid, never to a glitch. The per-user
-// toggle sets data-bnd-sb-blur="off" + material solid from JS; this covers
-// the OS preference with zero settings.
+// Glass degrades to the designed solid, never to a glitch, and this is the
+// ONLY thing that does it - there is no per-user transparency toggle, and the
+// sentence claiming one stood here unchecked from item 10 until item 40.
+// Both glass materials, hence the prefix: an OS that asks for less
+// transparency is not asking for less blur.
+//
+// AND THE SELECTOR IS SIZED AGAINST THE RULE IT MUST BEAT, not against the
+// element. The translucent surface above carries a :not([...="brand"]) and so
+// weighs (0,3,1); the two-attribute form this block used until item 40 weighed
+// (0,2,1) and therefore LOST the background while still winning the blur --
+// leaving a pane that stayed 75% transparent and dropped the frosting, which
+// is the one combination the degradation exists to prevent. Measured, not
+// reasoned: headless Chromium reports `reduce`, so every desk this suite has
+// ever driven was in this branch and nothing looked.
+//
+// Ties are enough, because this block is later in the file. Brand is left to
+// the base (0,2,1) surface rule, which already paints its gradient opaque --
+// brand has no translucency to stand down FROM (see above).
 @media (prefers-reduced-transparency: reduce) {
-  html[data-bnd-sb-material="glass"] .body-sidebar-container,
-  html[data-bnd-sb-material="glass"] .body-sidebar-container .body-sidebar {
+  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container,
+  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
     background: var(--bnd-sb-bg);
+  }
+  html[data-bnd-sb-material^="glass"] .body-sidebar-container,
+  html[data-bnd-sb-material^="glass"] .body-sidebar-container .body-sidebar {
     backdrop-filter: none;
   }
 }

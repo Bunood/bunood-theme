@@ -66,6 +66,12 @@ bunood_theme.patches.v0_40_0.retire_apps_rail
 # easy to skip.
 bunood_theme.patches.v0_40_0.rename_sidebar_fields
 
+# And the glass merge, same release. Reads both departed fields' rows
+# directly for the same reason, and only ever writes when the tenant chose
+# Glass with a full blur - every other combination is already expressed by
+# the material it keeps.
+bunood_theme.patches.v0_40_0.merge_glass_material
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

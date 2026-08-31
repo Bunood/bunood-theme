@@ -44,8 +44,6 @@
   "sidebar_picker",
   "sidebar_placement",
   "sidebar_material",
-  "sidebar_glass_opacity",
-  "sidebar_blur",
   "sidebar_color",
   "sidebar_active_style",
   "sidebar_section_style",
@@ -412,21 +410,7 @@
    "fieldname": "sidebar_material",
    "fieldtype": "Select",
    "label": "Pane Material",
-   "options": "Solid\nGlass",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_glass_opacity",
-   "fieldtype": "Select",
-   "label": "Glass Opacity",
-   "options": "1\n2\n3\n4\n5",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_blur",
-   "fieldtype": "Select",
-   "label": "Glass Blur",
-   "options": "Off\nSoft\nFull",
+   "options": "Solid\nGlass\nBlurred Glass",
    "hidden": 1
   },
   {

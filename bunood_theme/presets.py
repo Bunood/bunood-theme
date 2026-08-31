@@ -30,8 +30,6 @@ from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, TENANTS, layout_set
 SIDEBAR_FIELDS = [
     "sidebar_placement",
     "sidebar_material",
-    "sidebar_glass_opacity",
-    "sidebar_blur",
     "sidebar_color",
     "sidebar_active_style",
     "sidebar_section_style",
@@ -57,10 +55,6 @@ SIDEBAR_PRESETS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        # Inert while the material is Solid, kept so flipping back to Glass
-        # restores the look that was tuned, not a default.
-        "sidebar_glass_opacity": "4",
-        "sidebar_blur": "Soft",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Mini-Cards",
@@ -84,8 +78,6 @@ SIDEBAR_PRESETS = {
     "Bunood Light": {
         "sidebar_placement": "Floating",
         "sidebar_material": "Glass",
-        "sidebar_glass_opacity": "4",
-        "sidebar_blur": "Soft",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Mini-Cards",
@@ -103,8 +95,6 @@ SIDEBAR_PRESETS = {
     "Daylight": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Divided",
@@ -122,8 +112,6 @@ SIDEBAR_PRESETS = {
     "Ink": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
         "sidebar_color": "Minimal",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Divided",
@@ -141,8 +129,6 @@ SIDEBAR_PRESETS = {
     "Carbon": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
         "sidebar_color": "Dark Contrast",
         "sidebar_active_style": "Glow Ring",
         "sidebar_section_style": "Plain",
@@ -160,8 +146,6 @@ SIDEBAR_PRESETS = {
     "Paper": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Divided",
@@ -178,9 +162,7 @@ SIDEBAR_PRESETS = {
     },
     "Aurora": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Glass",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Full",
+        "sidebar_material": "Blurred Glass",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Mini-Cards",
@@ -206,8 +188,6 @@ SIDEBAR_PRESETS = {
     "Workbench": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
         "sidebar_color": "Minimal",
         "sidebar_active_style": "Accent Rail",
         "sidebar_section_style": "Divided",
