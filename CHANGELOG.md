@@ -24,11 +24,12 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Two have landed: the COLOUR phase,
-which changes what a desk paints, and the FIELD MODEL, which changes what a desk offers —
+**In flight.** The pane's rebuild is thirteen slices. Three have landed: the COLOUR phase,
+which changes what a desk paints; the FIELD MODEL, which changes what a desk offers —
 nineteen style settings down to twelve, with the two that arrive later taking it to
-fourteen. Still to come: one mount lifecycle, the Place row, sections, the list features,
-drag-to-resize, the account band, and the picked design.
+fourteen; and THE PLACE ROW, which changes what the pane's head IS. Still to come: one
+mount lifecycle, sections, the list features, drag-to-resize, the account band, and the
+picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -214,6 +215,57 @@ of the merge.
 **Every migration arm is simulated in the suite**, because demo ships Solid, Mini-Cards and
 Solid Pill: the interesting branch is false on this site for all of them, and a branch whose
 guard is false on the dev site is UNTESTED, not working.
+
+### Changed — the Place row
+
+- **Four rows of pane furniture became one.** A default pane spent four rows before the
+  first workspace link: the brand (routed home), the Home quick link (routed home too),
+  All Apps (which the dock already offers), and the module row — which re-rendered a
+  workspace name the breadcrumbs already carry and then routed to the page you were
+  already on. Three of the four were navigation AWAY and two went to the same place.
+  `.bnd-sb-head` carries the brand mark, the place you are in, and a chevron.
+- **The chevron is now constructed.** `.bnd-sb-module-chev` was styled in four CSS rules
+  and built by no JavaScript at all — a popup trigger with no affordance. The head is
+  `aria-haspopup="menu"` and its chevron rotates on `aria-expanded`.
+- **The switcher carries the workspace cascade**, which the posture decision makes an
+  obligation rather than a nicety: hiding Frappe's own `.sidebar-header` takes its
+  Desktop/Workspaces list with it, and the old module row dropped it entirely — its
+  docstring claimed to open "the native brand menu", and the code beneath said "No menu
+  here by design". Every root workspace, no cap; the menu scrolls instead, capped at
+  `min(70vh, 560px)` so nineteen rows cannot run off a short viewport.
+- **The two quick links stand down by default.** Nothing became unreachable — the
+  switcher reaches Home and All Apps — and the picker still offers all five slots.
+  `v0_40_0/quick_links_stand_down` moves only sites still holding the old default,
+  because both fields are THEME AXES and leaving them would make every existing site
+  read "Custom" on all twelve theme cards.
+- **The place name has two states, both facts:** the workspace you are in, or whose desk
+  this is. The module row read the literal string "Workspaces" when nothing resolved — a
+  doctype's name, not a place.
+
+### Fixed — the Place row
+
+- **The place indicator rendered BELOW the workspace list**, whenever the quick links
+  were placed at Side Pane End. `sb_mount_module_row` anchored to `.bnd-sb-utils`, so
+  its position was an accident of how many times `sb_mount_utils` had run after it. The
+  plan predicted the opposite failure — stranding at the top — and the measurement is
+  what settled it. One node at one position replaces the anchor ladder.
+- **The mount ladder existed twice**, in `mount_sidebar_kit` and again inside
+  `sb_observe`'s timer: one mount order written in two places, free to disagree.
+- **The switcher's own menu repeated itself.** Frappe ships a workspace called "Home",
+  and `""` and `"home"` are different routes — `/desk` and `/desk/home`, measured —
+  rendering the same page. A cascade row whose title already reads as one of the actions
+  is dropped, the same rule the command palette's empty state follows.
+- **The picker kept its own copy of the default**, and the suite caught it rather than a
+  build guard: `BND_LINKS_DEFAULTS` is a hand-kept mirror of `presets.LINKS_DEFAULTS`
+  carrying a "keep in sync" comment, so the per-option reset chip went on writing "Side
+  Pane Start" — the honest-picker check reported the chip writing something other than
+  the shipped default, which is exactly what it is for.
+- **Two a11y checks had counted what happened to be reachable.** The axe scan required
+  every selector in its OURS list to match in some state and `.bnd-sb-utils` no longer
+  renders by default; the focus walk required eight distinct `bnd-` classes and the
+  eighth was the module row. Both now PLACE the quick links deliberately — a control
+  that ships Off still has to be scanned and still has to draw a ring in the state where
+  somebody turned it on — and the focus floor moves to seven with the reason recorded.
 
 ### Known, and filed rather than fixed
 

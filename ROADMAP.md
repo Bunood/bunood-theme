@@ -1344,9 +1344,26 @@ than a version number that would describe two different things.
   blur, leaving a pane 75% transparent with its frosting removed. And the command palette
   showed one row twice, because Frappe labels a Calendar route and a List route identically.
 
-  **Still to come:** one mount lifecycle, the Place row, sections, the list features,
-  drag-to-resize, the account band, identity and placement, preset integration, and the
-  picked design.
+  **The Place row is done, and it is the third phase.** Four rows of pane furniture
+  became one node: the brand mark, the place you are in, and a chevron that is finally
+  CONSTRUCTED — `.bnd-sb-module-chev` was styled in four rules and built by no
+  JavaScript at all. Its menu carries Home, All Apps and the workspace cascade, which
+  the posture pick makes an obligation: hiding Frappe's header takes its own list with
+  it, and the old module row dropped that list while its docstring claimed to reuse it.
+
+  Two measurements changed the work:
+
+  - **The module row stranded DOWNWARD.** With the quick links at Side Pane End it
+    rendered below the whole workspace list, because it anchored to them. The plan
+    predicted stranding at the top; the probe said otherwise, and the repair — one node
+    at one position — is the same either way.
+  - **`home_placement` and `apps_placement` are THEME AXES.** Moving their default
+    without moving existing rows would leave every site mismatched against every
+    preset, so **all twelve theme cards would read "Custom", forever** — item 37's own
+    trap. The patch moves only rows still holding the old default.
+
+  **Still to come:** one mount lifecycle, sections, the list features, drag-to-resize,
+  the account band, identity and placement, preset integration, and the picked design.
 
 ---
 

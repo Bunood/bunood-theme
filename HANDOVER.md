@@ -47,7 +47,7 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
-FIELD MODEL DONE (19 style settings → 12, the two later arrivals taking it to 14).**
+FIELD MODEL DONE (19 style settings → 12); THE PLACE ROW DONE.**
 Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
 · `373e183` · `a592285` · `9598a12` · `0566c1e` · `71e73b9` · `d04a780` · `76b2cae`
 · `845eb44` · `40ced44` · `19465ab` · `b17118b`. The plan lives at
@@ -150,6 +150,62 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **THE LOGIN-ROUTE FAILURE CLUSTER IS ONE CAUSE WITH FOUR NAMES.** Seen in three
+  consecutive full runs, 2026-08-30/31, and every one of them passes in isolation on a
+  freshly restarted stack. The signature: `ERR_CONNECTION_RESET` on Frappe's OWN static
+  assets (`frappe-web.bundle.*.js`, `login.bundle.*.css`, and our `bunood-*.css`) deep
+  into a 45-minute run on this 6GB host. What it surfaces as:
+
+  | check | how it reads |
+  |---|---|
+  | `login: the guest harness` | a console that is not clean, naming the reset |
+  | `login: the card's text clears AA` | our sheet never arrived, so nothing is dressed |
+  | `a11y: axe over the Desk` | `/login: NEW color-contrast (3)` + `image-alt 1 -> 4` |
+  | `web: both sheets arrive` | `--bnd-page` resolves to nothing |
+
+  **The axe one is the trap**, because it names a rule and a count and reads like a real
+  regression on a page somebody just changed. It is not: our CSS failing to load is what
+  puts Frappe's own undressed controls in front of axe. Before hunting it, check whether
+  a `login:` check failed in the same run — they travel together — and re-run the pair
+  after `BND_FORCE_RESTART=1 npm run deploy`.
+
+- **CHANGING A DEFAULT MOVES WHAT "Default" MEANS, AND THE PLACEMENTS ARE THEME AXES.**
+  `home_placement` and `apps_placement` are in `THEME_AXES`, and `bnd_theme_match`
+  compares EVERY axis against each preset's composed values. Those values come from
+  `presets._shipped_baseline()`, whose only source for these two fields is
+  `LINKS_DEFAULTS` — grep it, one occurrence each. So moving the default and leaving
+  existing rows alone (which is what the plan said to do) would leave every site
+  storing "Side Pane Start" against a baseline reading "Off": no preset matches, and
+  **all twelve theme cards read "Custom" on every site, forever.** That is item 37's
+  own trap, and it was found by simulating the change rather than by reading the code.
+
+  `v0_40_0/quick_links_stand_down` moves ONLY a row still holding the old default. A
+  site that chose something keeps it. The honest limit, since Frappe stores no
+  "explicitly set" bit: a tenant who deliberately picked the old default is
+  indistinguishable from one who never opened the picker, and both move.
+
+- **THE MODULE ROW STRANDED DOWNWARD, NOT UPWARD — measure before believing a plan.**
+  The plan predicted it would strand at the TOP when the quick links moved to the
+  foot. It anchored to `.bnd-sb-utils`, so with the links at Side Pane End the row
+  saying WHERE YOU ARE rendered below the entire workspace list. Its position was an
+  accident of how many times `sb_mount_utils` had run after it. The Place row is one
+  node at one position, which is the repair.
+
+- **THE LADDER WAS WRITTEN TWICE.** `mount_sidebar_kit` climbs it and `sb_observe`'s
+  timer body climbs it again — the same mount order, free to disagree, which is
+  exactly the plan's defect 5. Both lost their rung together; if you touch one, look
+  for the other.
+
+- **`withDeskUser` IS FOR A DIFFERENT USER OR AN EMULATED MEDIUM, NOT FOR A VIEWPORT.**
+  The switcher's short-viewport arm used it and timed out waiting for `.bnd-sb-head`:
+  the pane kit does not necessarily mount for that fixture. Every other
+  short-viewport check here uses `page.setViewportSize` on the shared page with a
+  restore in a `finally`, and so does this one now.
+
+- **STATE THE PREMISE; DO NOT INHERIT IT.** The same check's first draft only
+  navigated, and failed on a desk whose pane an earlier check had switched off — a
+  timeout that reads exactly like the feature being missing.
 
 - **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
   off their shipped defaults while printing "state restored", and four unrelated checks
