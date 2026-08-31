@@ -1572,10 +1572,12 @@ html[data-bnd-sb-icons] .bnd-sb-chip {
   flex: none;
 }
 
-html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
+html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
   inline-size: 20px;
   block-size: 20px;
+  color: inherit;
+  --icon-stroke: currentColor;
   flex: none;
 }
 
@@ -1683,7 +1685,7 @@ html[data-bnd-sb-sections=divided] .body-sidebar .sidebar-item-container.section
   padding-block-start: var(--bnd-sp-1);
 }
 
-html[data-bnd-sb-color] .bnd-sb-card {
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
   border-radius: var(--bnd-radius-lg);
   padding: var(--bnd-sp-1);
   margin-block-end: var(--bnd-sp-2);
@@ -1722,47 +1724,54 @@ html[data-bnd-sb-intensity="5"] {
   --bnd-sb-card-shadow: var(--bnd-shadow-md);
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="1"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+1 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-1, var(--bnd-cat-1));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="2"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+2 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-2, var(--bnd-cat-2));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="3"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+3 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-3, var(--bnd-cat-3));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="4"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+4 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-4, var(--bnd-cat-4));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="5"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+5 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-5, var(--bnd-cat-5));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="6"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+6 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-6, var(--bnd-cat-6));
 }
 
-html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="7"] {
+html[data-bnd-sb-wash]:not([data-bnd-sb-wash=off]) .body-sidebar-top .sidebar-items > :nth-child(7n+7 of .sidebar-item-container.section-item) {
   --bnd-sb-hue: var(--bnd-sb-cat-7, var(--bnd-cat-7));
 }
 
-html[data-bnd-sb-wash=subtle] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
-  background: color-mix(in srgb, var(--bnd-sb-hue) 5%, var(--bnd-sb-card-bg));
-  border-color: color-mix(in srgb, var(--bnd-sb-hue) 14%, var(--bnd-sb-card-line));
+html[data-bnd-sb-wash=subtle] .body-sidebar .sidebar-item-container.section-item {
   --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 12%, transparent);
 }
 
-html[data-bnd-sb-wash=rich] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
-  background: color-mix(in srgb, var(--bnd-sb-hue) 10%, var(--bnd-sb-card-bg));
-  border-color: color-mix(in srgb, var(--bnd-sb-hue) 22%, var(--bnd-sb-card-line));
+html[data-bnd-sb-wash=rich] .body-sidebar .sidebar-item-container.section-item {
   --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, transparent);
 }
-html[data-bnd-sb-wash=rich] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
+
+html[data-bnd-sb-wash=rich] .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
   color: var(--bnd-sb-hue);
+}
+
+html[data-bnd-sb-wash=subtle][data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
+  background: color-mix(in srgb, var(--bnd-sb-hue) 5%, var(--bnd-sb-card-bg));
+  border-color: color-mix(in srgb, var(--bnd-sb-hue) 14%, var(--bnd-sb-card-line));
+}
+
+html[data-bnd-sb-wash=rich][data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
+  background: color-mix(in srgb, var(--bnd-sb-hue) 10%, var(--bnd-sb-card-bg));
+  border-color: color-mix(in srgb, var(--bnd-sb-hue) 22%, var(--bnd-sb-card-line));
 }
 
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {

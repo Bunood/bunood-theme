@@ -2403,7 +2403,7 @@ const BND_SB_GROUPS = [
 
 /** Stepped 1..5 controls: field + endpoint labels. */
 const BND_SB_STEPPERS = [
-	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
+	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Card depth"), desc: () => __("Applies to card sections."), lo: () => __("Hairline"), hi: () => __("Elevated") },
 	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
 
@@ -2520,6 +2520,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			.join("");
 		add(s.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-title">' + s.title() + "</div>" +
+			(s.desc ? '<div class="bnd-cbp-desc">' + s.desc() + "</div>" : "") +
 			'<div class="bnd-sbp-steps"><span class="bnd-sbp-slab">' + s.lo() + "</span>" + stops +
 			'<span class="bnd-sbp-slab">' + s.hi() + "</span></div></div>"
 		));

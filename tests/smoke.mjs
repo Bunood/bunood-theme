@@ -2962,7 +2962,13 @@ async function main() {
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
 				setSettings(values);
-				await goDesk("/desk/sales-invoice", ".page-head", 3000);
+				// A WORKSPACE PAGE, because the Cards arm below needs real sections
+				// to measure. The old route's resolved sidebar has none, and the
+				// old wrapper-count assertion only ever passed there because the
+				// wrap built a neutral "card 0" around loose links — a card with
+				// no section inside, certifying the feature on a pane that could
+				// not show it. The attribute assertions are route-agnostic.
+				await goDesk("/app/selling", "body", 3000);
 				for (const [field, attrName] of Object.entries(ATTR_OF)) {
 					// A preset only drives the fields it sets. icon_style left the
 					// preset dicts for the Icons axis (item 23), so it is no longer
@@ -2985,7 +2991,13 @@ async function main() {
 					);
 				}
 				if (values.sidebar_section_style === "Cards") {
-					expect((await page.evaluate(() => document.querySelectorAll(".bnd-sb-card").length)) > 0, "section cards");
+					// Paint on the section container, not a wrapper count: the wrap
+					// retired in item 40, and a border-radius is what Cards IS.
+					const r = await page.evaluate(() => {
+						const n = document.querySelector(".body-sidebar-top .sidebar-items > .sidebar-item-container.section-item");
+						return n ? getComputedStyle(n).borderStartStartRadius : null;
+					});
+					expect(r && r !== "0px", `section cards render on the container (radius ${r})`);
 				}
 			});
 		}
@@ -3760,6 +3772,138 @@ async function main() {
 			}
 		});
 
+		await test("sections: the hue wash renders under Plain, not only under Cards", async () => {
+			// THE AUDIT'S "TWO OPTIONS, ONE PIXEL", three wide. `--bnd-sb-hue` was
+			// stamped only on `.bnd-sb-card[data-bnd-hue]`, a node that exists only
+			// in the cards mode — so under Plain and Divided, Off, Subtle and Rich
+			// rendered identically and the picker offered three options that landed
+			// on one pixel. The hue now rides the SECTION CONTAINER, which exists in
+			// every mode.
+			//
+			// Measured through Filled Color icons (the shipped default): the glyph
+			// takes `var(--bnd-sb-hue, chip-ink)` directly, so Off vs Subtle is the
+			// glyph's colour, and Subtle vs Rich is the section LABEL's.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_section_style", "sidebar_hue_wash", "icon_style"]);
+			try {
+				const read = async (wash) => {
+					setSettings({
+						sidebar_enabled: 1, sidebar_color: "Match Theme",
+						sidebar_section_style: "Plain", sidebar_hue_wash: wash,
+						icon_style: "Filled Color",
+					});
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						(w) => document.documentElement.getAttribute("data-bnd-sb-wash") === w,
+						SLUG.sidebar_hue_wash[wash],
+						{ timeout: 20000 }
+					);
+					await page.waitForFunction(
+						() => !!document.querySelector(".body-sidebar-top .sidebar-item-container.section-item"),
+						null, { timeout: 15000 }
+					);
+					return page.evaluate(() => {
+						const section = document.querySelector(".body-sidebar-top .sidebar-item-container.section-item");
+						const label = section.querySelector(":scope > .standard-sidebar-item .sidebar-item-label");
+						const glyph = section.querySelector(".sidebar-item-icon svg");
+						return {
+							cards: document.querySelectorAll(".bnd-sb-card").length,
+							label: label ? getComputedStyle(label).color : null,
+							// STROKE, not color — the glyph paints by stroke, and the
+							// first draft of this check made the exact mistake it was
+							// hunting: every icon mode tinted `color`, a property the
+							// sprite never reads, and reading `color` here would have
+							// certified the wash while the pixels stayed grey.
+							glyph: glyph ? getComputedStyle(glyph).stroke : null,
+						};
+					});
+				};
+				const off = await read("Off");
+				const subtle = await read("Subtle");
+				const rich = await read("Rich");
+				// ANTI-VACUITY: all three reads found real nodes.
+				for (const [name, r] of [["Off", off], ["Subtle", subtle], ["Rich", rich]]) {
+					expect(r.label && r.glyph, `${name}: a section label and a glyph rendered (${JSON.stringify(r)})`);
+					expectEq(r.cards, 0, `${name}: Plain builds no card wrappers`);
+				}
+				expect(off.glyph !== subtle.glyph,
+					`Off and Subtle differ at the glyph under Plain (${off.glyph} vs ${subtle.glyph})`);
+				expect(subtle.label !== rich.label,
+					`Subtle and Rich differ at the section label under Plain (${subtle.label} vs ${rich.label})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sections: Cards is paint on Frappe's own container, never a re-parent", async () => {
+			// THE APP'S LARGEST STANDING VIOLATION of "never touch Frappe-generated
+			// DOM" was `sb_wrap_sections`: it RE-PARENTED Frappe's rows into
+			// `.bnd-sb-card` wrappers, needed `sb_unwrap_sections` to stand down for
+			// edit mode, an observer to notice edit mode, and a re-entrancy guard so
+			// its own surgery did not retrigger the rebuild observer. v16 NESTS a
+			// section's items INSIDE the section container (the stylesheet's own
+			// measured note), so every wrapper held exactly one node — a card drawn
+			// around a container that already was the whole group.
+			//
+			// The card is now the section container itself, so the DOM under Cards
+			// must be IDENTICAL to the DOM under Plain — same children, no wrapper —
+			// while the PAINT differs.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_section_style", "sidebar_card_depth"]);
+			try {
+				const read = async (style, depth) => {
+					setSettings({
+						sidebar_enabled: 1, sidebar_color: "Match Theme",
+						sidebar_section_style: style, sidebar_card_depth: depth,
+					});
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						(w) => document.documentElement.getAttribute("data-bnd-sb-sections") === w,
+						SLUG.sidebar_section_style[style],
+						{ timeout: 20000 }
+					);
+					await page.waitForFunction(
+						() => !!document.querySelector(".body-sidebar-top .sidebar-item-container.section-item"),
+						null, { timeout: 15000 }
+					);
+					return page.evaluate(() => {
+						const list = document.querySelector(".body-sidebar-top .sidebar-items");
+						const section = list.querySelector(":scope > .sidebar-item-container.section-item") ||
+							list.querySelector(".sidebar-item-container.section-item");
+						const cs = getComputedStyle(section);
+						return {
+							children: [...list.children].map((n) => (n.className || "").trim()),
+							bg: cs.backgroundColor,
+							radius: cs.borderStartStartRadius,
+							shadow: cs.boxShadow,
+							wrappers: document.querySelectorAll(".bnd-sb-card").length,
+						};
+					});
+				};
+				const plain = await read("Plain", "3");
+				const cards = await read("Cards", "3");
+				expectEq(cards.wrappers, 0, "Cards builds no wrapper nodes");
+				expectEq(
+					JSON.stringify(cards.children), JSON.stringify(plain.children),
+					"the list's children are IDENTICAL under Cards and Plain — paint, not surgery"
+				);
+				expect(
+					cards.bg !== plain.bg || cards.radius !== plain.radius,
+					`Cards and Plain render differently on the section itself (bg ${plain.bg} -> ${cards.bg}, radius ${plain.radius} -> ${cards.radius})`
+				);
+				// And the depth axis moves something, now that it has a real subject:
+				// stop 1 is a hairline (transparent bg, no shadow), stop 5 is lifted.
+				const deep = await read("Cards", "5");
+				expect(
+					deep.shadow !== cards.bg && deep.shadow !== "none",
+					`depth 5 lifts the card (shadow: ${deep.shadow})`
+				);
+				const flat = await read("Cards", "1");
+				expectEq(flat.shadow, "none", `depth 1 is a hairline (shadow: ${flat.shadow})`);
+				expect(flat.bg !== deep.bg, `depth 1 and 5 differ at the surface (${flat.bg} vs ${deep.bg})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the
@@ -3976,7 +4120,6 @@ async function main() {
 					page.evaluate(() => ({
 						head: document.querySelectorAll(".bnd-sb-head").length,
 						utils: document.querySelectorAll(".body-sidebar .bnd-sb-utils").length,
-						cards: document.querySelectorAll(".bnd-sb-card").length,
 						badges: document.querySelectorAll(".bnd-sb-badge").length,
 						railbtn: document.querySelectorAll(".bnd-railbtn").length,
 						iconized: document.querySelectorAll("[data-bnd-iconized]").length,
@@ -3991,7 +4134,6 @@ async function main() {
 				const off = await ours();
 				expectEq(off.head, 0, "the head is gone");
 				expectEq(off.utils, 0, "the pane's link rows are gone");
-				expectEq(off.cards, 0, "the section cards are gone");
 				expectEq(off.badges, 0, "the badges are gone");
 				expectEq(off.railbtn, 0, "the rail button is gone");
 				expectEq(off.iconized, 0, "Frappe's own rows have their icons back");
@@ -4008,7 +4150,6 @@ async function main() {
 				await page.waitForTimeout(700);
 				const after = await ours();
 				expectEq(after.head, 0, "a list mutation after teardown mounts nothing");
-				expectEq(after.cards, 0, "and wraps nothing");
 
 				await page.evaluate(() => window.bunood_theme.chrome_apply({ sidebar_enabled: 1 }));
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });

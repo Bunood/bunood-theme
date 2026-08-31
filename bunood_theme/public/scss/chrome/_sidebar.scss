@@ -32,8 +32,8 @@
 //   --bnd-sb-bg, --bnd-sb-ink, --bnd-sb-chip-bg, --bnd-sb-card-bg... — and
 //   every component rule below consumes ONLY those. Adding a color mode is
 //   one block of variable assignments, never new component rules. Hue-washed
-//   sections work the same way: bunood.js stamps data-bnd-hue="1..7" on each
-//   section wrapper, a tiny block maps that to --bnd-sb-hue, and chips,
+//   sections work the same way: CSS derives --bnd-sb-hue per section by
+//   position (:nth-child ... of .section-item — no JS at all), and chips,
 //   washes and actives all derive from it.
 //
 // WHAT IS DELIBERATELY *NOT* HERE
@@ -543,10 +543,24 @@ html[data-bnd-sb-icons] .bnd-sb-chip {
 // invariant that survives a future upstream `display: flex` on the parent —
 // under grid it costs nothing, and it is the line whose absence let the squash
 // through.
-html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
+// No `.item-anchor` in the path (item 40): a section HEADER's icon sits
+// outside one, so the size and the tint reached row glyphs and skipped the
+// header's — measured, stroke stayed grey while the span was already hued.
+html[data-bnd-sb-icons] .body-sidebar .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
   inline-size: 20px;
   block-size: 20px;
+  // EVERY ICON MODE WAS TINTING A PROPERTY THE GLYPH NEVER READS (item 40,
+  // measured link by link). The modes set `color` on the SPAN; but Frappe
+  // stamps `.text-ink-gray-7` on the SVG ITSELF, and a direct rule beats
+  // inheritance — so the svg's own color stayed grey, and its
+  // `.current-color { stroke: currentcolor }` painted the stroke from that
+  // grey. `color: inherit` at this rule's higher specificity hands the
+  // svg back its span's colour, and Frappe's own stroke plumbing does the
+  // rest. The variable covers OUR sprite_icon() glyphs, whose class list
+  // carries no `.current-color` and paints `stroke: var(--icon-stroke)`.
+  color: inherit;
+  --icon-stroke: currentColor;
   flex: none;
 }
 
@@ -670,10 +684,29 @@ html[data-bnd-sb-active="foldertab"][data-bnd-sb-placement="attached"]
   box-shadow: var(--bnd-shadow-sm);
 }
 
-// ── Sections: layout, wash, intensity ───────────────────────────────────────
-// bunood.js wraps each section (header + its items) in .bnd-sb-card and
-// stamps data-bnd-hue="0..7" (0 = the pre-section neutral group). "plain"
-// and "divided" skip the wrapping entirely.
+// ── Sections: layout, wash, depth ───────────────────────────────────────────
+// PAINT ON FRAPPE'S OWN CONTAINER, since item 40. The old engine re-parented
+// every section into a `.bnd-sb-card` wrapper — the app's largest standing
+// violation of "never touch Frappe-generated DOM" — and it existed because
+// nobody had measured the vendor's template: v16 NESTS a section's items
+// INSIDE `.sidebar-item-container.section-item` (the child-combinator note
+// below is that measurement), so every wrapper held exactly ONE node. A card
+// drawn around a container that already was the whole group.
+//
+// Deleting the surgery deleted its whole tail: `sb_unwrap_sections` (the
+// edit-mode stand-down — styling does not fight drag-reorder, so nothing
+// stands down), the edit-mode observer that invoked it, and `sb_mutating`,
+// the re-entrancy guard that kept the surgery from retriggering the rebuild
+// observer. The hue is derived per section by POSITION, in CSS:
+// `:nth-child(7n+i of .section-item)` — the modern `of` form, supported by
+// every browser this desk runs in — so there is no stamp to re-apply when
+// Frappe rebuilds the list, and nothing for a workspace switch to lose.
+//
+// TWO VISIBLE CHANGES, both deliberate. Pre-section loose links no longer
+// get a neutral "card 0" under Cards — they render as plain rows, which is
+// what they are. And wash=Off now means OFF: the old loop stamped the hue
+// for ANY wash value including "off", so Filled Color glyphs took section
+// hues with the wash switched off.
 
 html[data-bnd-sb-sections="divided"] .body-sidebar .sidebar-item-container.section-item {
   border-block-start: var(--bnd-line) solid var(--bnd-sb-line);
@@ -681,7 +714,7 @@ html[data-bnd-sb-sections="divided"] .body-sidebar .sidebar-item-container.secti
   padding-block-start: var(--bnd-sp-1);
 }
 
-html[data-bnd-sb-color] .bnd-sb-card {
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
   border-radius: var(--bnd-radius-lg);
   padding: var(--bnd-sp-1);
   margin-block-end: var(--bnd-sp-2);
@@ -718,35 +751,51 @@ html[data-bnd-sb-intensity="5"] {
   --bnd-sb-card-shadow: var(--bnd-shadow-md);
 }
 
-// Hue wash: map the stamped hue index to the categorical tokens. The wash
-// level decides how strongly the card and chips take the hue.
+// Hue wash: the hue index is the section's POSITION among sections, cycling
+// 1..7 — the same assignment the JS stamp produced, minus the stamp. Custom
+// properties inherit, so everything nested inside the section (chips, glyphs,
+// the active pill's accent) sees its section's hue for free.
 @for $i from 1 through 7 {
-  html[data-bnd-sb-wash] .bnd-sb-card[data-bnd-hue="#{$i}"] {
+  html[data-bnd-sb-wash]:not([data-bnd-sb-wash="off"])
+    .body-sidebar-top .sidebar-items > :nth-child(7n + #{$i} of .sidebar-item-container.section-item) {
     // The MODE's fitted hue, never the global token: the global is one hex
     // for four panes and failed AA on at least one of them for every hue.
-    // Falls back to the global where a mode block has not defined the fit,
-    // which is the pre-34a rendering, not a blank.
     --bnd-sb-hue: var(--bnd-sb-cat-#{$i}, var(--bnd-cat-#{$i}));
   }
 }
 
-html[data-bnd-sb-wash="subtle"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
-  background: color-mix(in srgb, var(--bnd-sb-hue) 5%, var(--bnd-sb-card-bg));
-  border-color: color-mix(in srgb, var(--bnd-sb-hue) 14%, var(--bnd-sb-card-line));
-
+// The chip tint rides the section in EVERY layout — this is what makes the
+// wash real under Plain and Divided, where it used to be three options on
+// one pixel because the only consumer was a wrapper that cards alone built.
+html[data-bnd-sb-wash="subtle"] .body-sidebar .sidebar-item-container.section-item {
   --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 12%, transparent);
 }
-html[data-bnd-sb-wash="rich"] .bnd-sb-card[data-bnd-hue]:not([data-bnd-hue="0"]) {
+html[data-bnd-sb-wash="rich"] .body-sidebar .sidebar-item-container.section-item {
+  --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, transparent);
+}
+
+// The hued caps label, SIZED AGAINST THE RULE IT MUST BEAT — the quiet-caps
+// rule below declares `color` at (0,6,1) and sits later in the file, so an
+// equal-weight selector here loses on order. The first draft of this rewrite
+// did exactly that: the old wrapper's extra classes had been winning the tie,
+// and dropping them dropped the win. Routed through the list, (0,7,1).
+// Child path on purpose — only the section's OWN caps label takes the hue,
+// never the nested links (see the nesting note below).
+html[data-bnd-sb-wash="rich"]
+  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
+  color: var(--bnd-sb-hue);
+}
+
+// The card surface tint needs a card to tint.
+html[data-bnd-sb-wash="subtle"][data-bnd-sb-sections="cards"]
+  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
+  background: color-mix(in srgb, var(--bnd-sb-hue) 5%, var(--bnd-sb-card-bg));
+  border-color: color-mix(in srgb, var(--bnd-sb-hue) 14%, var(--bnd-sb-card-line));
+}
+html[data-bnd-sb-wash="rich"][data-bnd-sb-sections="cards"]
+  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
   background: color-mix(in srgb, var(--bnd-sb-hue) 10%, var(--bnd-sb-card-bg));
   border-color: color-mix(in srgb, var(--bnd-sb-hue) 22%, var(--bnd-sb-card-line));
-
-  --bnd-sb-hue-chip: color-mix(in srgb, var(--bnd-sb-hue) 16%, transparent);
-
-  // Child path on purpose — only the section's OWN caps label takes the hue,
-  // never the nested links (see the nesting note above).
-  .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label {
-    color: var(--bnd-sb-hue);
-  }
 }
 
 // Section headers inside the pane: quiet caps in every mode. CHILD combinator

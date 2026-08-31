@@ -439,6 +439,12 @@ msgid "Carbon"
 msgstr "كربون"
 
 #. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "Card depth"
+msgstr "عمق البطاقة"
+
+#. In theme_settings.js
 #. src: ai
 msgid "Center"
 msgstr "الوسط"
@@ -2322,11 +2328,6 @@ msgstr "خفيفة"
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Surface Intensity"
-msgstr "حضور السطح"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Surface intensity"
 msgstr "حضور السطح"
 
 #. Label of a Data field in DocType 'Theme Settings'
@@ -5307,3 +5308,10 @@ msgstr "مُخفَّفة"
 #, fuzzy
 msgid "Where the desk opens"
 msgstr "نقطة بدء المكتب"
+
+
+#. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "Applies to card sections."
+msgstr "ينطبق على الأقسام البطاقية."

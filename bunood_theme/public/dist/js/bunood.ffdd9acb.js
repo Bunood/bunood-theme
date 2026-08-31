@@ -5810,65 +5810,9 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The workspace shown by the crumb decorator; the module row reuses it. */
 	let sb_current_workspace = null;
 
-	/** Guard so our own DOM surgery does not retrigger the rebuild observer. */
-	let sb_mutating = false;
-
-	/**
-	 * Wrap each sidebar section (its header + following items) in a
-	 * .bnd-sb-card stamped with data-bnd-hue, for the cards/accordion section
-	 * layouts. Items BEFORE the first section header form the neutral card 0.
-	 *
-	 * The wrapping is fully reversible (sb_unwrap_sections) and is undone the
-	 * moment Frappe's sidebar EDIT MODE starts, because drag-reorder expects
-	 * the original flat list. Hue indices are assigned per section order
-	 * (1..7 cycling) — stable across reloads because section order is what
-	 * the tenant authored.
-	 */
-	function sb_wrap_sections() {
-		const kind = document.documentElement.getAttribute("data-bnd-sb-sections");
-		if (kind !== "cards") return;
-		const list = document.querySelector(".body-sidebar-top .sidebar-items");
-		if (!list || list.querySelector(".bnd-sb-card")) return;
-		try {
-			sb_mutating = true;
-			const groups = [];
-			let current = { hue: 0, nodes: [] };
-			for (const node of [...list.children]) {
-				if (node.classList.contains("bnd-sb-card")) continue;
-				if (node.querySelector(":scope > .standard-sidebar-item") || node.classList.contains("sidebar-item-container")) {
-					if (node.classList.contains("section-item")) {
-						if (current.nodes.length) groups.push(current);
-						current = { hue: (groups.filter((g) => g.hue > 0).length % 7) + 1, nodes: [node] };
-						continue;
-					}
-				}
-				current.nodes.push(node);
-			}
-			if (current.nodes.length) groups.push(current);
-			for (const group of groups) {
-				const card = el("div", "bnd-sb-card", { "data-bnd-hue": String(group.hue) });
-				list.insertBefore(card, group.nodes[0]);
-				for (const node of group.nodes) card.appendChild(node);
-			}
-		} catch (e) {
-			console.error("bunood_theme: section wrap failed, leaving stock sidebar", e); // eslint-disable-line no-console
-			sb_unwrap_sections();
-		} finally {
-			sb_mutating = false;
-		}
-	}
-
-	/** Undo sb_wrap_sections, restoring the flat native list. Always safe. */
-	function sb_unwrap_sections() {
-		const list = document.querySelector(".body-sidebar-top .sidebar-items");
-		if (!list) return;
-		sb_mutating = true;
-		for (const card of [...list.querySelectorAll(":scope > .bnd-sb-card")]) {
-			while (card.firstChild) list.insertBefore(card.firstChild, card);
-			card.remove();
-		}
-		sb_mutating = false;
-	}
+	// SECTIONS ARE PAINT NOW, not surgery — the wrap/unwrap pair, its
+	// re-entrancy guard and its edit-mode observer are gone. _sidebar.scss
+	// carries the whole argument.
 
 	/** The Place row: one node, one position, and the whole pane head.
 	 *  Why it replaced four rows, and what its position fixes: _sidebar.scss. */
@@ -6487,7 +6431,6 @@ function sb_zone_anchor(pane, zone, node) {
 	const SB_PARTS = [
 		{ key: "head", volatile: false, mount: sb_mount_head, unmount: sb_teardown_head },
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
-		{ key: "sections", volatile: true, mount: sb_wrap_sections, unmount: sb_unwrap_sections },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
@@ -6503,30 +6446,20 @@ function sb_zone_anchor(pane, zone, node) {
 	function sidepane_observe() {
 		if (typeof MutationObserver === "undefined") return;
 		const list = document.querySelector(".body-sidebar-top .sidebar-items");
-		const edit = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
-		if (!list && !edit) return;
+		if (!list) return;
 		const box0 = document.querySelector(".body-sidebar-container");
-		if (sb_watch && sb_watch.list === list && sb_watch.edit === edit && sb_watch.box === box0) return;
+		if (sb_watch && sb_watch.list === list && sb_watch.box === box0) return;
 		sidepane_unobserve();
-		const watch = { list, edit, box: null, obs: [], timer: null };
+		const watch = { list, box: null, obs: [], timer: null };
 		sb_watch = watch;
 		if (list) {
 			const o = new MutationObserver(() => {
-				if (sb_mutating) return;
 				clearTimeout(watch.timer);
 				watch.timer = setTimeout(() => {
 					if (!sb_edit_active()) sidepane_sync("list");
 				}, 200);
 			});
 			o.observe(list, { childList: true, subtree: true });
-			watch.obs.push(o);
-		}
-		if (edit) {
-			const o = new MutationObserver(() => {
-				if (sb_edit_active()) sb_unwrap_sections();
-				else setTimeout(sb_wrap_sections, 250);
-			});
-			o.observe(edit, { attributes: true, attributeFilter: ["class"] });
 			watch.obs.push(o);
 		}
 		// The collapse gesture is a class flip; the width has to follow it.
