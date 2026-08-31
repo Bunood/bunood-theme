@@ -2,7 +2,7 @@
 	"versions": {
 		"frappe": "16.31.0",
 		"erpnext": "16.33.0",
-		"bunood_setup": "0.7.0"
+		"bunood_setup": "0.7.1"
 	},
 	"files": {
 		"frappe:frappe/desk/page/desktop/desktop.css": "6bfe0c5be5f3eaa9bd0c0578e3ea0e0533d94f46f7431e21f1c6b915dd5b540b",
