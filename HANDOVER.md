@@ -164,6 +164,22 @@ again:
   **5% in dark and 0% in light**. The last one is drawn at
   https://claude.ai/code/artifact/46e3f9d9-efd5-4ec7-825c-e49d56e5c938 with every swatch a
   real `palette.derive` output.
+
+  **And the two that gated slice 5, settled 2026-08-30.** POSTURE: **keep replacing, done
+  correctly** — the pane's head stays ours; the recommendation to theme Frappe's own
+  `.sidebar-header` instead was put and overruled. Read it narrowly: it is a decision
+  about the HEAD. Nothing in it reopens the refusal to rebuild the workspace list, the
+  frame or the drawer, which stands on five measured consequences. What it BUYS US AS
+  WORK, and this is the part to not forget: the switcher menu must carry the **Workspaces
+  cascade** Frappe's own header offers and ours currently drops, and the collapse memory
+  and edit-mode stand-down stay ours. DEFAULT LOOK: **may change**, with today's exact
+  configuration added to the theme catalogue by name so any site returns to it in one
+  click.
+
+  One thing the posture pick does NOT change: `guard_critical_reach` must never treat
+  Frappe's header dropdown as a route to Log Out. That entry is pushed inside
+  `if (frappe.boot.desk_settings.notifications)` — a per-user Check the user can switch
+  off — so a user who unchecks Notifications loses Logout from that menu.
 - **WHY LIGHT SHIPS AT 0%, because it looks like an omission and is not.** Minimal's own
   `--bnd-sb-ink-muted` is `#6d7570` on `#fafbfa` — **4.57:1 against a 4.5 floor** — and
   crosses at **1.36%** of the worst shipped ground. Every candidate percentage was a gate

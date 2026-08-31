@@ -1260,6 +1260,24 @@ than a version number that would describe two different things.
   colour is **derived and emitted per site**, not staged · Minimal is tinted by the
   **ground, never the brand**, at **5% in dark and 0% in light**.
 
+  **And the two that were held open until slice 5, settled 2026-08-30:**
+
+  - **Posture: KEEP REPLACING, but do it correctly** — the second option, overruling the
+    recommendation to theme Frappe's own `.sidebar-header` and build only the gaps. The
+    pane's head stays OURS. That is a decision about the head, not the list: nothing here
+    reopens the architecture section's refusal to rebuild the workspace list, the frame or
+    the drawer, which is argued from five measured consequences. What it OBLIGES, and
+    these are now requirements rather than nice-to-haves: the switcher menu must carry the
+    **Workspaces cascade** we currently drop on the floor, and the collapse memory and
+    edit-mode stand-down stay our problem. One caution that survives the pick —
+    `guard_critical_reach` must not treat Frappe's own header dropdown as a route to Log
+    Out: that entry is pushed inside `if (frappe.boot.desk_settings.notifications)`, a
+    per-user Check the user can switch off.
+  - **The shipped default MAY change, and today's exact configuration joins the theme
+    catalogue by name** so any site returns to it in one click. Costs one catalogue entry
+    and one CHANGELOG line, and it makes the slice-13 pick about which pane is best
+    rather than which is safest.
+
   **The colour phase is done and is what has landed so far.** It found three defects that
   were already shipping, one of them global:
 
