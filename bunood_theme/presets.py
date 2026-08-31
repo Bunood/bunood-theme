@@ -332,9 +332,15 @@ PLACEMENTS = ("Off", "Top Bar", "Bottom Bar", "Page Header", "Side Pane", "Dock"
 #: which meant a preset chose where they lived and the two could never be
 #: separated. `registry.py` has always called them two components; these are
 #: their settings, and a sidebar preset no longer writes them.
+#: Both stand down by default since item 40: the Place row's menu reaches
+#: Home and All Apps, and a default pane that renders the brand, a Home row
+#: routing to the same place, All Apps and the module row spends four rows
+#: on navigation furniture before the first workspace link. Legal under the
+#: removal rule because nothing becomes unreachable, and the picker still
+#: offers all five slots to anyone who wants a row of their own.
 LINKS_DEFAULTS = {
-    "home_placement": "Side Pane Start",
-    "apps_placement": "Side Pane Start",
+    "home_placement": "Off",
+    "apps_placement": "Off",
 }
 
 USER_DEFAULTS = {"user_placement": "Top Bar End"}

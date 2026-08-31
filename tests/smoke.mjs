@@ -2956,9 +2956,13 @@ async function main() {
 					if (values[field] === undefined) continue;
 					expectEq(await attr(attrName), SLUG[field][values[field]], `${attrName}`);
 				}
-				expect(await q(".bnd-sb-brand .bnd-sb-brand-name"), "brand block");
-				expect(await q(".bnd-sb-module"), "module row");
-				expect(await q(".bnd-sb-utils"), "quick links mounted");
+				// ONE head, not three rows. This asserted brand + module row +
+				// quick links, which is exactly the stack item 40 collapsed --
+				// and the links assertion was unconditional while their
+				// placement is a setting, so it pinned a default rather than a
+				// preset's own claim.
+				expect(await q(".bnd-sb-head .bnd-sb-head-name"), "the place row");
+				expect(await q(".bnd-sb-head .bnd-sb-head-chev"), "a chevron that is actually built");
 				if (values.sidebar_menu_rail === "Rail") {
 					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
 					expectEq(
@@ -3599,11 +3603,11 @@ async function main() {
 		await test("sidepane: the pane head is hidden by OWNERSHIP, never by the kit's attribute", async () => {
 			// THE DOUBLE RENDER THIS ITEM WAS OPENED FOR. `_sidebar.scss` hid Frappe's
 			// `.sidebar-header` from `html[data-bnd-sb-color]` -- a DECLARATION, which
-			// lands at parse time -- while `.bnd-sb-brand` mounts up to 4.5s later
+			// lands at parse time -- while our own head mounts up to 4.5s later
 			// inside a `try_for`. Attribute present and the mount failed is a pane with
 			// no head at all; attribute absent and the mount succeeded renders BOTH.
 			// The rule now keys on `[data-bnd-own~="panehead"]`, stamped by
-			// `claim_panehead` only once our brand is in the document.
+			// `claim_panehead` only once our head is in the document.
 			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
 			// READINESS IS `body`, AND THE PREMISE IS WAITED FOR SEPARATELY. Waiting
 			// on `.body-sidebar` means waiting for it to be VISIBLE, and whether the
@@ -3630,22 +3634,22 @@ async function main() {
 					return {
 						own: document.documentElement.getAttribute("data-bnd-own") || "",
 						kit: document.documentElement.getAttribute("data-bnd-sb-color") || "",
-						brands: document.querySelectorAll(".body-sidebar .bnd-sb-brand").length,
+						heads: document.querySelectorAll(".body-sidebar .bnd-sb-head").length,
 						header: !!h,
 						display: h ? getComputedStyle(h).display : "(absent)",
 					};
 				});
 
-			// 1. THE INVARIANT: the token is stamped exactly when our brand is in the
+			// 1. THE INVARIANT: the token is stamped exactly when our head is in the
 			// pane. `claim_panehead` measures the DOM rather than trusting that it just
 			// built something, so a stamp-on-intent regression breaks this in either
-			// direction -- token without brand hides Frappe's header behind nothing;
-			// brand without token renders both.
+			// direction -- token without head hides Frappe's header behind nothing;
+			// head without token renders both.
 			const now = await read();
 			expect(now.header, "Frappe's pane header is in the DOM to be owned or released");
-			expectEq(/\bpanehead\b/.test(now.own), now.brands > 0,
-				`the token is stamped exactly when our brand is in the pane ` +
-					`(own=${now.own || "(none)"}, brands=${now.brands})`);
+			expectEq(/\bpanehead\b/.test(now.own), now.heads > 0,
+				`the token is stamped exactly when our head is in the pane ` +
+					`(own=${now.own || "(none)"}, heads=${now.heads})`);
 
 			// 2. THE RULE, BOTH WAYS, with the kit's attribute held ON throughout --
 			// which is the half the old rule got wrong. Keyed on `data-bnd-sb-color`,
@@ -3671,6 +3675,155 @@ async function main() {
 			expect(released !== "none" && released !== "(absent)",
 				`released, Frappe's header comes back (display is ${released}) -- a failed ` +
 					`mount degrades to stock rather than leaving the pane without a head`);
+		});
+
+		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
+			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
+			// module row to strand at the TOP when the quick links moved to the
+			// foot. It does the opposite: `sb_mount_module_row` anchors to
+			// `.bnd-sb-utils`, so with the links at Side Pane End the row that
+			// says WHERE YOU ARE renders at the bottom of the pane, below the
+			// whole workspace list. Its position is an accident of how many
+			// times `sb_mount_utils` happened to run after it.
+			//
+			// What the head IS is the invariant: a place indicator belongs above
+			// the thing it indexes, in every placement, including when the links
+			// are Off entirely. That is one rule instead of an anchor ladder.
+			const before = getSettings(["home_placement", "apps_placement"]);
+			try {
+				for (const where of ["Side Pane Start", "Side Pane End", "Off"]) {
+					setSettings({ home_placement: where, apps_placement: where });
+					await goDesk("/app/selling", "body", 3000);
+					const seen = await page.evaluate(() => {
+						const pane = document.querySelector(".body-sidebar");
+						if (!pane) return null;
+						const kids = [...pane.children];
+						const list = kids.findIndex((n) => n.classList.contains("body-sidebar-top"));
+						const ours = (n) => /(^|\s)bnd-sb-/.test(n.className || "");
+						return {
+							list,
+							above: kids.map((n, i) => ({ n, i })).filter((x) => ours(x.n) && x.i < list)
+								.map((x) => (x.n.className || "").trim()),
+							below: kids.map((n, i) => ({ n, i })).filter((x) => ours(x.n) && x.i > list)
+								.map((x) => (x.n.className || "").trim()),
+						};
+					});
+					expect(seen, `the pane is in the document with the links ${where}`);
+					// ANTI-VACUITY: without the list there is no above and below,
+					// and every filter below would be trivially satisfied.
+					expect(seen.list >= 0, `the workspace list is in the pane (${where})`);
+
+					// The head is above the list, always, and it is the ONLY
+					// navigation furniture there once the links are elsewhere.
+					const head = seen.above.filter((c) => /bnd-sb-head/.test(c));
+					expectEq(head.length, 1, `exactly one place row above the list with the links ${where} (above: ${JSON.stringify(seen.above)}, below: ${JSON.stringify(seen.below)})`);
+					expectEq(
+						seen.below.filter((c) => /bnd-sb-head/.test(c)).length, 0,
+						`no place row below the list with the links ${where}`
+					);
+
+					// And the links themselves land where the setting says.
+					const utilsAbove = seen.above.filter((c) => /bnd-sb-utils/.test(c)).length;
+					const utilsBelow = seen.below.filter((c) => /bnd-sb-utils/.test(c)).length;
+					if (where === "Side Pane Start") {
+						expectEq(utilsAbove, 1, `the links are above the list at Start (below: ${utilsBelow})`);
+					} else if (where === "Side Pane End") {
+						expectEq(utilsBelow, 1, `the links are below the list at End (above: ${utilsAbove})`);
+					} else {
+						expectEq(utilsAbove + utilsBelow, 0, "Off puts no link row in the pane at all");
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the place row's switcher carries the cascade Frappe's own header offers", async () => {
+			// THE OBLIGATION THE POSTURE PICK CARRIES. Hiding Frappe's
+			// `.sidebar-header` takes its Desktop/Workspaces list with it, and
+			// the old head dropped that list on the floor: the module row's own
+			// docstring claimed it opened "the native brand menu", and the code
+			// beneath it said "No menu here by design".
+			//
+			// The expected count is DERIVED from boot, never a number written
+			// here — eighteen is what this stack ships and a literal would pass
+			// on a site with two.
+			// STATE THE PREMISE, never inherit it. The first draft only navigated,
+			// and timed out waiting for a head on a desk whose pane the previous
+			// check had left switched off — which reads as the feature missing.
+			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
+			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+			await page.click(".bnd-sb-head");
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+
+			const m = await page.evaluate(() => {
+				const menu = document.querySelector(".bnd-menu");
+				const labels = [...menu.querySelectorAll(".bnd-menu-item")].map((b) => b.textContent.trim());
+				const roots = ((window.frappe.boot || {}).allowed_workspaces || []).filter((w) => !w.parent_page);
+				const r = menu.getBoundingClientRect();
+				return {
+					labels,
+					roots: roots.map((w) => w.title || w.name),
+					expanded: document.querySelector(".bnd-sb-head").getAttribute("aria-expanded"),
+					insideViewport: r.top >= 0 && r.bottom <= window.innerHeight,
+					scrolls: menu.scrollHeight > menu.clientHeight + 1,
+					role: (menu.querySelector("[role=menu]") || {}).getAttribute
+						? menu.querySelector("[role=menu]").getAttribute("role") : null,
+				};
+			});
+
+			expectEq(m.expanded, "true", "the trigger says it opened something");
+			expectEq(m.role, "menu", "the popup it promised is a menu");
+			expect(m.labels.includes("Home"), `Home is in the switcher (${JSON.stringify(m.labels.slice(0, 4))})`);
+			expect(m.labels.includes("All Apps"), "All Apps is in the switcher");
+
+			// Every root workspace, minus any whose title already reads as one of
+			// the two actions — "" and "home" are different routes rendering the
+			// same page, and two rows nobody can tell apart are not two choices.
+			const actions = ["Home", "All Apps"];
+			const wanted = m.roots.filter((t) => !actions.includes(t));
+			expect(wanted.length > 0, `boot offers root workspaces to switch between (${m.roots.length})`);
+			const missing = wanted.filter((t) => !m.labels.includes(t));
+			expectEq(missing.length, 0, `every root workspace is in the cascade (missing: ${JSON.stringify(missing)})`);
+			expectEq(m.labels.length, new Set(m.labels).size, `no two rows read the same (${JSON.stringify(m.labels)})`);
+
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(250);
+
+			// AND IT MUST NOT RUN OFF THE SCREEN. Nineteen rows measured 693px;
+			// a 600px viewport is where that stops fitting, and the upward-flip
+			// branch only moves the overflow to the other edge.
+			// The shared page with a restored viewport, which is what every other
+			// short-viewport check here does. A fresh context was the first draft and
+			// it timed out: `withDeskUser` is for a different USER or an emulated
+			// medium, and the pane kit does not necessarily mount for that fixture.
+			await page.setViewportSize({ width: 1440, height: 600 });
+			try {
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+				await page.click(".bnd-sb-head");
+				await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+				const box = await page.evaluate(() => {
+					const menu = document.querySelector(".bnd-menu");
+					const r = menu.getBoundingClientRect();
+					return {
+						inside: r.top >= 0 && r.bottom <= window.innerHeight,
+						scrolls: menu.scrollHeight > menu.clientHeight + 1,
+						rows: menu.querySelectorAll(".bnd-menu-item").length,
+						h: Math.round(r.height),
+						vh: window.innerHeight,
+					};
+				});
+				expect(box.rows > 10, `the short viewport still gets the whole cascade (${box.rows} rows)`);
+				expect(box.inside, `the switcher stays on screen at ${box.vh}px (menu ${box.h}px)`);
+				expect(box.scrolls, "and it scrolls, rather than clipping rows away");
+				await page.keyboard.press("Escape");
+			} finally {
+				await page.setViewportSize({ width: 1920, height: 1080 });
+				setSettings(before);
+			}
 		});
 
 		await test("sidepane: the three pane materials render three different panes", async () => {
@@ -7892,7 +8045,7 @@ ${gate.stdout}`);
 			// by their own selectors instead.
 			const OURS = [
 				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
-				".bnd-sb-utils", ".bnd-sb-brand",
+				".bnd-sb-utils", ".bnd-sb-head",
 				".bnd-palette", ".bnd-inbox", ".bnd-menu",
 				".bnd-crumb-chip", ".bnd-crumb-copy",
 			];
@@ -7915,6 +8068,12 @@ ${gate.stdout}`);
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1, icon_crumbs: "Every Crumb",
+				// THE QUICK LINKS ARE PLACED ON PURPOSE. They stand down by default
+				// since item 40, so `.bnd-sb-utils` would never render and the
+				// never-matched guard below would report it as a dead selector --
+				// which is the guard working. A control that ships Off still has to
+				// be scanned in the state where somebody turned it on.
+				home_placement: "Side Pane Start", apps_placement: "Side Pane Start",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 
@@ -8170,6 +8329,10 @@ ${gate.stdout}`);
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
+				// PLACED ON PURPOSE, like the axe scan above: the quick links stand
+				// down by default since item 40, and a control that ships Off still
+				// has to draw a ring in the state where somebody turned it on.
+				home_placement: "Side Pane Start", apps_placement: "Side Pane Start",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 			await page.evaluate(() => {
@@ -8236,8 +8399,13 @@ ${gate.stdout}`);
 			}
 
 			expectEq(stalls.join("\n"), "", "focus moved on every Tab press");
+			// SEVEN SINCE ITEM 40, not eight. The eighth was `.bnd-sb-module`, and
+			// the Place row folded it into `.bnd-sb-head` along with the brand — so
+			// the count fell because four rows became one, not because the walk
+			// stopped reaching anything. The floor is anti-vacuity, and it moves
+			// with the deletion rather than being dropped.
 			expect(
-				seenClasses.size >= 8,
+				seenClasses.size >= 7,
 				`the walk reached our controls (saw ${seenClasses.size} distinct bnd- classes: ${[...seenClasses].sort().join(", ")})`
 			);
 			expectEq(ringFailures.join("\n"), "", "every reached, unsuppressed control shows a real ring");

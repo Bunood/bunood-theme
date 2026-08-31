@@ -79,6 +79,12 @@ bunood_theme.patches.v0_40_0.merge_glass_material
 # save of every other setting.
 bunood_theme.patches.v0_40_0.collapse_pane_options
 
+# The Place row replaces four rows of pane furniture with one, so the two
+# quick links stand down by default. Only a row still holding the OLD default
+# moves: both fields are THEME AXES, and leaving them would make every site
+# read Custom on all twelve theme cards against a baseline that had moved.
+bunood_theme.patches.v0_40_0.quick_links_stand_down
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

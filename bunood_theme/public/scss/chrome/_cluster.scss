@@ -90,6 +90,14 @@ html[data-theme] .bnd-menu {
   position: fixed;
   z-index: var(--bnd-z-panel);
   min-inline-size: 220px;
+  // A LONG LIST SCROLLS RATHER THAN RUNNING OFF THE VIEWPORT (item 40).
+  // The Place row's switcher carries every root workspace -- eighteen on
+  // this stack, measured at 693px -- and the upward-flip branch only moves
+  // the overflow to the other edge. Capped on the MENU, not the list, so
+  // the identity header (a sibling of the list, never its child) counts
+  // toward the height it is capped against.
+  max-block-size: min(70vh, 560px);
+  overflow-y: auto;
   padding: var(--bnd-sp-1);
   background: var(--bnd-surface);
   border: var(--bnd-line) solid var(--bnd-border);
@@ -177,7 +185,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 // payload ceiling with single-digit-percent headroom.
 html[data-theme] :is(
   .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-brand, .bnd-sb-item, .bnd-sb-module,
+  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item,
   .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
   .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
   .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank

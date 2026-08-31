@@ -2399,7 +2399,7 @@
  */
 function sb_zone_anchor(pane, zone, node) {
 	const bottom = pane.querySelector(".body-sidebar-bottom");
-	const header = pane.querySelector(".bnd-sb-brand") || pane.querySelector(".sidebar-header");
+	const header = pane.querySelector(".bnd-sb-head") || pane.querySelector(".sidebar-header");
 
 	if (zone === "start") {
 		if (header) return header.insertAdjacentElement("afterend", node);
@@ -3715,7 +3715,7 @@ function sb_zone_anchor(pane, zone, node) {
 					ws_link = link;
 					ws = hit;
 					sb_current_workspace = ws;
-					sb_update_module_row();
+					sb_update_head();
 					resolved = true;
 					break;
 				}
@@ -5869,42 +5869,93 @@ function sb_zone_anchor(pane, zone, node) {
 		sb_mutating = false;
 	}
 
-	/**
-	 * The brand block: company logo + name from Theme Settings branding,
-	 * pinned at the pane's top and routing HOME on click — never a menu.
-	 * Replaces the native header visually (CSS hides it), which also retires
-	 * the old Desktop/Workspaces cascade: place-switching now lives in Home,
-	 * All Apps, the module row and the avatar menu.
-	 */
-	function sb_mount_brand() {
+	/** The Place row: one node, one position, and the whole pane head.
+	 *  Why it replaced four rows, and what its position fixes: _sidebar.scss. */
+	function sb_mount_head() {
 		const sidebar = document.querySelector(".body-sidebar");
 		if (!sidebar) return;
-		// Build ONLY if absent, but claim on EVERY call: remount_chrome releases
-		// the token and our node survives it, so an early return would leave the
-		// brand rendered with Frappe's header back under it.
-		if (!sidebar.querySelector(".bnd-sb-brand")) {
-			const brand = el("button", "bnd-sb-brand", { type: "button", title: __("Home") });
+		// Build if absent, claim on EVERY call — see claim_panehead.
+		if (!sidebar.querySelector(".bnd-sb-head")) {
+			const head = el("button", "bnd-sb-head", {
+				type: "button",
+				"aria-haspopup": "menu",
+				"aria-expanded": "false",
+			});
+			const mark = el("span", "bnd-sb-head-mark");
 			if (frappe.boot.bnd_logo) {
-				const img = el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" });
-				brand.appendChild(img);
+				mark.appendChild(el("img", "bnd-sb-head-logo", { src: frappe.boot.bnd_logo, alt: "" }));
 			} else {
-				const chip = el("span", "bnd-sb-brand-chip");
-				chip.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-				brand.appendChild(chip);
+				mark.classList.add("bnd-sb-head-initial");
+				mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
 			}
-			const name = el("span", "bnd-sb-brand-name");
-			name.textContent = frappe.boot.bnd_company || "Home";
-			brand.appendChild(name);
-			brand.addEventListener("click", () => frappe.set_route(""));
-			sidebar.insertBefore(brand, sidebar.firstChild);
+			head.appendChild(mark);
+			head.appendChild(el("span", "bnd-sb-head-name"));
+			const chev = el("span", "bnd-sb-head-chev");
+			chev.appendChild(sprite_icon("icon-chevron-down"));
+			head.appendChild(chev);
+			head.addEventListener("click", (e) => {
+				e.stopPropagation();
+				show_menu(head, sb_head_menu());
+			});
+			sidebar.insertBefore(head, sidebar.firstChild);
 		}
+		sb_update_head();
 		claim_panehead();
+	}
+
+	/** Where you are, or whose desk this is. Two states, both facts. */
+	function sb_update_head() {
+		const name = document.querySelector(".bnd-sb-head .bnd-sb-head-name");
+		if (!name) return;
+		const ws = sb_current_workspace;
+		name.textContent = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+	}
+
+	/** A workspace's desk route, through Frappe's own slugger where it exists. */
+	function ws_route(name) {
+		return frappe.router && frappe.router.slug
+			? frappe.router.slug(name)
+			: String(name).toLowerCase().split(" ").join("-");
+	}
+
+	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
+	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
+	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
+	function sb_head_menu() {
+		const items = [
+			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
+			{
+				label: __("All Apps"),
+				icon: "icon-grid-2x2",
+				run: () => {
+					window.location.href = "/apps";
+				},
+			},
+		];
+		// A workspace whose title already reads as one of the actions above is
+		// dropped: Frappe ships a workspace called "Home", and "" and "home" are
+		// DIFFERENT routes (/desk and /desk/home, measured) that render the same
+		// page. Two rows a person cannot tell apart are not two choices -- the
+		// rule the command palette's empty state follows one component over.
+		const taken = new Set(items.map((i) => i.label));
+		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
+			(w) => !w.parent_page && !taken.has(w.title || w.name)
+		);
+		if (roots.length) items.push("divider");
+		for (const w of roots) {
+			items.push({
+				label: w.title || w.name,
+				icon: ws_symbol(w.icon),
+				run: () => frappe.set_route(ws_route(w.name)),
+			});
+		}
+		return items;
 	}
 
 	/** Claim the pane header from the DOM, never from having built it.
 	 *  Disowns on the negative branch. Argument: _layouts.scss. */
 	function claim_panehead() {
-		if (document.querySelector(".body-sidebar .bnd-sb-brand")) bnd_own("panehead");
+		if (document.querySelector(".body-sidebar .bnd-sb-head")) bnd_own("panehead");
 		else bnd_disown("panehead");
 	}
 
@@ -6014,9 +6065,11 @@ function sb_zone_anchor(pane, zone, node) {
 
 			const sidebar = document.querySelector(".body-sidebar");
 			if (!sidebar) continue;
-			const header =
-				sidebar.querySelector(".bnd-sb-brand") || sidebar.querySelector(".sidebar-header");
-			if (!header) continue;
+			// ONE anchor, not a ladder. The head is always above the list, so
+			// "under the head" is a position rather than a race.
+			const head =
+				sidebar.querySelector(".bnd-sb-head") || sidebar.querySelector(".sidebar-header");
+			if (!head) continue;
 
 			const utils = el("div", "bnd-sb-utils");
 			utils.setAttribute("data-bnd-zone", zone || "start");
@@ -6029,7 +6082,7 @@ function sb_zone_anchor(pane, zone, node) {
 				if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
 				else sidebar.appendChild(utils);
 			} else {
-				header.insertAdjacentElement("afterend", utils);
+				head.insertAdjacentElement("afterend", utils);
 			}
 		}
 		enforce_desk_order();
@@ -6041,40 +6094,6 @@ function sb_zone_anchor(pane, zone, node) {
 		'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
 		'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
 
-	/**
-	 * The module row: the current workspace's icon and name, pinned under the
-	 * utility section. Clicking it opens the native brand menu (which holds
-	 * the Workspaces cascade) — reuse, not reimplementation. Label refreshes
-	 * on every route change from the workspace the crumb decorator resolved.
-	 */
-	function sb_mount_module_row() {
-		const sidebar = document.querySelector(".body-sidebar");
-		if (!sidebar || sidebar.querySelector(".bnd-sb-module")) return;
-		const anchor =
-			sidebar.querySelector(".bnd-sb-utils:not(.bnd-sb-utils-bar)") ||
-			sidebar.querySelector(".bnd-sb-brand") ||
-			sidebar.querySelector(".sidebar-header");
-		if (!anchor) return;
-
-		const row = el("button", "bnd-sb-module", { type: "button" });
-		row.appendChild(el("span", "bnd-sb-chip bnd-sb-module-chip"));
-		const label = el("span", "bnd-sb-module-label");
-		row.appendChild(label);
-		// No menu here by design — the old workspace cascade is retired.
-		// Clicking goes to the module's own landing page.
-		row.addEventListener("click", (e) => {
-			e.stopPropagation();
-			if (sb_current_workspace) {
-				const slug =
-					frappe.router && frappe.router.slug
-						? frappe.router.slug(sb_current_workspace.name)
-						: String(sb_current_workspace.name).toLowerCase().replace(/ /g, "-");
-				frappe.set_route(slug);
-			}
-		});
-		anchor.insertAdjacentElement("afterend", row);
-		sb_update_module_row();
-	}
 
 	/**
 	 * Resolve the current workspace from the route when it names one
@@ -6091,16 +6110,6 @@ function sb_zone_anchor(pane, zone, node) {
 		if (hit) sb_current_workspace = hit;
 	}
 
-	/** Refresh the module row's icon + label from the resolved workspace. */
-	function sb_update_module_row() {
-		const row = document.querySelector(".bnd-sb-module");
-		if (!row) return;
-		const ws = sb_current_workspace;
-		row.querySelector(".bnd-sb-module-label").textContent = (ws && ws.title) || __("Workspaces");
-		const chip = row.querySelector(".bnd-sb-module-chip");
-		chip.innerHTML = "";
-		chip.appendChild(sprite_icon(ws_symbol(ws && ws.icon)));
-	}
 
 	/**
 	 * The menu rail. Active only in "Rail" mode; the container is narrowed by
@@ -6209,7 +6218,7 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 
 		if (trigger === "hoverpin") {
-			const header = container.querySelector(".bnd-sb-brand") || container.querySelector(".sidebar-header");
+			const header = container.querySelector(".bnd-sb-head") || container.querySelector(".sidebar-header");
 			if (header) {
 				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
 				pin.textContent = "⌖";
@@ -6445,9 +6454,8 @@ function sb_zone_anchor(pane, zone, node) {
 				clearTimeout(timer);
 				timer = setTimeout(() => {
 					if (!sb_edit_active()) {
-						sb_mount_brand();
+						sb_mount_head();
 						sb_mount_utils();
-						sb_mount_module_row();
 						sb_wrap_sections();
 						sb_fix_icons();
 						sb_mount_badges();
@@ -6809,7 +6817,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// (measured: a single attempt raced and silently mounted nothing).
 		try_for(() => {
 			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
-			sb_mount_brand();
+			sb_mount_head();
 			// Home and All Apps are NOT mounted here any more. They are their
 			// own components with their own placements (slice 2), and reaching
 			// them only through this function meant a link placed in the top
@@ -6818,7 +6826,6 @@ function sb_zone_anchor(pane, zone, node) {
 			// sb_mount_utils directly; this retry still gets them into the pane
 			// when that is where they belong, because the call is idempotent.
 			sb_mount_utils();
-			sb_mount_module_row();
 			return true;
 		}, 30);
 		sb_wrap_sections();
@@ -6971,7 +6978,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// the user switched it off.
 				if (container_on("pagehead")) inject_compact_cluster();
 				if (container_on("dock")) update_dock_active();
-				sb_update_module_row();
+				sb_update_head();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration

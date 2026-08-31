@@ -3952,8 +3952,8 @@ const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
  * mirror was the mistake.
  */
 const BND_LINKS_DEFAULTS = {
-	home_placement: "Side Pane Start",
-	apps_placement: "Side Pane Start",
+	home_placement: "Off",
+	apps_placement: "Off",
 };
 
 /** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
@@ -7282,7 +7282,7 @@ function bnd_identity_specimen(data) {
 	// it is rendering in, the way every other kit reads `data-theme`.
 	//
 	// `mark` follows the SIDEBAR's own resolved logo, not the raster rule: the
-	// desk sidebar renders an SVG perfectly well (`sb_mount_brand` sets an
+	// desk sidebar renders an SVG perfectly well (`sb_mount_head` sets an
 	// <img> from boot), and captioning it "first letter — no logo" told an
 	// admin their SVG was unused on the one surface where it is used. The
 	// raster rule belongs to email and paper, and those cells carry it already.

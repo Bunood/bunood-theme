@@ -268,7 +268,7 @@ html[data-bnd-sb-placement="floating"] .body-sidebar-container {
   overflow: hidden;
 }
 
-// ── The injected pieces (bunood.js): utils section + module row ─────────────
+// ── The injected pieces (bunood.js): the utils section ─────────────────────
 html[data-bnd-sb-color] .bnd-sb-utils {
   padding: var(--bnd-sp-1);
   margin-block-end: var(--bnd-sp-1);
@@ -296,38 +296,48 @@ html[data-bnd-sb-color] .bnd-sb-item {
   }
 }
 
-html[data-bnd-sb-color] .bnd-sb-module {
-  display: flex;
-  align-items: center;
-  gap: var(--bnd-sp-2);
-  margin: var(--bnd-sp-1);
-  padding-block: 6px;
-  padding-inline: var(--bnd-sp-2);
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  border-radius: var(--bnd-radius-lg);
-  background: var(--bnd-sb-card-bg, var(--bnd-sb-card-base));
-  color: var(--bnd-sb-ink);
-  font-size: var(--bnd-text-sm);
-  font-weight: var(--bnd-weight-medium);
-  inline-size: calc(100% - 2 * var(--bnd-sp-1));
-  text-align: start;
-  cursor: pointer;
-}
 
-// ── Brand block ─────────────────────────────────────────────────────────────
-// Company logo + name from Theme Settings branding, pinned at the pane top,
-// routing HOME on click.
+// ── The Place row ───────────────────────────────────────────────────────────
+// One node and the whole of the pane head: the brand mark, the place you are
+// in, and a chevron onto the switcher.
+//
+// IT REPLACED FOUR ROWS WITH ONE, and the arithmetic is why. A default pane
+// spent four rows before the first workspace link: the brand (routed home),
+// the Home quick link (routed home too), All Apps (which the dock already
+// offers), and the module row — which re-rendered a workspace name the
+// breadcrumbs already carry and then routed to the page you were already on.
+// Three of the four were navigation AWAY; two of them went to the same place.
+// Identity is the mark, place is the name, and Home, All Apps and the
+// workspace cascade moved into the menu, so nothing became unreachable.
+//
+// THE CHEVRON IS CONSTRUCTED. The module row styled `.bnd-sb-module-chev` in
+// four rules and built it in no JavaScript at all — a popup trigger that had
+// no affordance, which is the honest-picker rule one component over.
+//
+// ONE NODE, ONE POSITION, and that is the repair rather than a tidy-up. The
+// old head was three nodes anchored to each other, so where the place
+// indicator rendered depended on how many times `sb_mount_utils` had run:
+// with the quick links at Side Pane End it rendered BELOW the entire
+// workspace list. Measured, not predicted — the plan expected it to strand at
+// the TOP, and it does the opposite.
+//
+// THE MENU CARRIES THE WORKSPACE CASCADE because it has to. Hiding Frappe's
+// own `.sidebar-header` takes its Desktop/Workspaces list with it, and that is
+// the obligation the "keep replacing" posture accepted. Roots only, matching
+// what the vendor's cascade opens with, and no cap — eighteen roots is what
+// this stack ships and a silent truncation would be the retired apps rail's
+// 12-workspace limit again. The menu list scrolls instead.
 //
 // THE RULE THAT HID THE NATIVE HEADER IS NOT HERE ANY MORE (item 40). It read
 // `html[data-bnd-sb-color] .body-sidebar .sidebar-header { display: none }` --
-// keyed on a DECLARATION, which lands at parse time, while `.bnd-sb-brand`
+// keyed on a DECLARATION, which lands at parse time, while `.bnd-sb-head`
 // mounts up to 4.5s later inside a `try_for`. Attribute present plus a failed
 // mount is a headerless pane; attribute absent plus a successful mount renders
 // BOTH, which is the double render this item was opened for. It now lives in
 // `_layouts.scss` beside search, the bell and the account, keyed on
-// `[data-bnd-own~="panehead"]` and stamped only once our brand is in the
+// `[data-bnd-own~="panehead"]` and stamped only once our head is in the
 // document.
-html[data-bnd-sb-color] .bnd-sb-brand {
+html[data-bnd-sb-color] .bnd-sb-head {
   display: flex;
   align-items: center;
   gap: var(--bnd-sp-2);
@@ -348,7 +358,7 @@ html[data-bnd-sb-color] .bnd-sb-brand {
     background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
   }
 
-  .bnd-sb-brand-logo {
+  .bnd-sb-head-logo {
     inline-size: 24px;
     block-size: 24px;
     border-radius: var(--bnd-radius-md);
@@ -356,7 +366,7 @@ html[data-bnd-sb-color] .bnd-sb-brand {
     flex: none;
   }
 
-  .bnd-sb-brand-chip {
+  .bnd-sb-head-initial {
     display: grid;
     place-items: center;
     inline-size: 24px;
@@ -368,19 +378,42 @@ html[data-bnd-sb-color] .bnd-sb-brand {
     flex: none;
   }
 
-  .bnd-sb-brand-name {
+  .bnd-sb-head-name {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
+  // The chevron the module row styled in four rules and built in none. It
+  // sits at the inline end and says the row opens something — the row is
+  // `aria-haspopup="menu"`, and a popup trigger that looks like a label is
+  // the honest-affordance rule one component over.
+  .bnd-sb-head-chev {
+    display: grid;
+    place-items: center;
+    margin-inline-start: auto;
+    color: var(--bnd-sb-ink-muted);
+    flex: none;
+
+    svg {
+      inline-size: 14px;
+      block-size: 14px;
+    }
+  }
+
+  &[aria-expanded="true"] .bnd-sb-head-chev {
+    rotate: 180deg;
+  }
 }
 
-// Rail rest: the brand shrinks to its mark, centred.
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand {
+// Rail rest: the head shrinks to its mark, centred. The name and the chevron
+// both go — a chevron with nothing beside it points at nothing.
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-head {
   justify-content: center;
   padding-inline: 0;
 
-  .bnd-sb-brand-name {
+  .bnd-sb-head-name,
+  .bnd-sb-head-chev {
     display: none;
   }
 }
@@ -746,8 +779,7 @@ html[data-bnd-rail] .body-sidebar-container {
     z-index: var(--bnd-z-flyout);
 
     // At rest, labels and wide-only pieces vanish; icons stay centered.
-    .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label {
+    .sidebar-item-label {
       opacity: 0;
       transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
     }
@@ -757,8 +789,7 @@ html[data-bnd-rail] .body-sidebar-container {
     inline-size: var(--bnd-sb-w);
     box-shadow: var(--bnd-shadow-lg);
 
-    .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label {
+    .sidebar-item-label {
       opacity: 1;
     }
   }
@@ -968,13 +999,11 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
   // Labels are text; opacity alone leaves their WIDTH, which pushed the
   // chips past the 52px rail edge (measured). At rest the injected rows
   // become icon-only and centered.
-  .bnd-sb-item .bnd-sb-item-label,
-  .bnd-sb-module .bnd-sb-module-label {
+  .bnd-sb-item .bnd-sb-item-label {
     display: none;
   }
 
-  .bnd-sb-item,
-  .bnd-sb-module {
+  .bnd-sb-item {
     justify-content: center;
     padding-inline: 0;
   }
