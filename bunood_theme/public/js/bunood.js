@@ -4243,13 +4243,29 @@ function sb_zone_anchor(pane, zone, node) {
 				const seen = new Set();
 				return rows.filter((r) => !seen.has(r.key) && seen.add(r.key));
 			};
+			// Dedupe by what the row READS too, not only by where it goes:
+			// get_frequent_links labels both List/ToDo/Calendar/default and
+			// List/ToDo/List "ToDo List" (measured), so distinct keys render
+			// identical words and the pick is a coin toss. Higher count wins; the
+			// other route is still reachable by typing. Naming the view instead
+			// would need a vocabulary these options do not carry. HANDOVER §4 has
+			// the measurement. Words come from the capped SURVIVORS, never the
+			// pre-cap list — the key trap above, one field over.
+			const reads = (r) => String(r.plain || "").replace(/<[^>]*>/g, "").trim();
+			const unseen = (words) => (r) => {
+				const t = reads(r);
+				return !t || (!words.has(t) && words.add(t));
+			};
 			const frequents = uniq(pal_source("get_frequent_links", "").map((o) => pal_row(o, "frequent", "")))
 				.sort((a, b) => b.index - a.index)
+				.filter(unseen(new Set()))
 				.slice(0, 5);
 			const kept = new Set(frequents.map((r) => r.key));
+			const shown = new Set(frequents.map(reads));
 			const recents = uniq(pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", "")))
 				.filter((r) => !kept.has(r.key))
 				.sort((a, b) => b.index - a.index)
+				.filter(unseen(shown))
 				.slice(0, 7);
 			if (frequents.length) groups.push({ species: "frequent", rows: frequents });
 			if (recents.length) groups.push({ species: "recent", rows: recents });
