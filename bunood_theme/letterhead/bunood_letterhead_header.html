@@ -56,22 +56,26 @@
 {%- set logo = theme_logo or (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
 {%- set vat = ((_c.get("tax_id") if _c else "") or "") -%}
 {%- set cr = ((_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") or "") -%}
+{%- set _rtl = bunood_print_language() == "ar" -%}
+{%- set _dir = "rtl" if _rtl else "ltr" -%}
+{%- set _start = "right" if _rtl else "left" -%}
+{%- set _end = "left" if _rtl else "right" -%}
+{%- set display_name = (name_ar or name_en) if _rtl else (name_en or name_ar) -%}
+{% macro identity_numbers(compact=False) -%}
+{% if vat or cr %}<table dir="{{ _dir }}" style="direction:{{ _dir }}; width:auto; margin-top:{{ '0' if compact else '4px' }}; border-collapse:collapse; font-size:10px; line-height:1.4; color:var(--bnd-ink-muted);">
+  {% if vat %}<tr><td style="text-align:{{ _start }}; padding:2px 6px;">{{ "الرقم الضريبي" if _rtl else "VAT number" }}</td><td dir="ltr" style="text-align:{{ _end }}; padding:2px 0; vertical-align:middle; white-space:nowrap;">{{ vat | e }}</td></tr>{% endif %}
+  {% if cr %}<tr><td style="text-align:{{ _start }}; padding:2px 6px;">{{ "السجل التجاري" if _rtl else "Commercial registration" }}</td><td dir="ltr" style="text-align:{{ _end }}; padding:2px 0; vertical-align:middle; white-space:nowrap;">{{ cr | e }}</td></tr>{% endif %}
+</table>{% endif %}
+{%- endmacro %}
 <!--BND lh=split-->
-<div dir="rtl" class="bnd-lh-split" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
+<div dir="{{ _dir }}" class="bnd-lh-split" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
   <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
-      <td style="width:72%; text-align:right; vertical-align:middle; line-height:1.45;">
-        {% if name_ar %}<div style="font-size:15px; font-weight:700;">{{ name_ar | e }}</div>{% endif %}
-        {% if name_en %}<div style="font-size:12px; font-weight:600; color:var(--bnd-ink-muted); direction:ltr; text-align:right;">{{ name_en | e }}</div>{% endif %}
-        {% if vat or cr %}
-        <div style="font-size:10px; color:var(--bnd-ink-muted); margin-top:2px;">
-          {% if vat %}<span>الرقم الضريبي: <span dir="ltr">{{ vat | e }}</span></span>{% endif %}
-          {% if vat and cr %}<span> &middot; </span>{% endif %}
-          {% if cr %}<span>السجل التجاري: <span dir="ltr">{{ cr | e }}</span></span>{% endif %}
-        </div>
-        {% endif %}
+      <td style="width:72%; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
+        {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700;">{{ display_name | e }}</div>{% endif %}
+        {{ identity_numbers() }}
       </td>
-      <td style="width:28%; text-align:left; vertical-align:middle;">
+      <td style="width:28%; text-align:{{ _end }}; vertical-align:middle;">
         {% if logo %}<img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">{% endif %}
       </td>
     </tr>
@@ -82,32 +86,34 @@
 </div>
 <!--BND-END-->
 <!--BND lh=center-->
-<div dir="rtl" class="bnd-lh-center" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
+<div dir="{{ _dir }}" class="bnd-lh-center" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
   {% if logo %}<div><img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-height:44px;"></div>{% endif %}
-  {% if name_ar %}<div style="font-size:15px; font-weight:700; line-height:1.4;">{{ name_ar | e }}</div>{% endif %}
-  {% if name_en %}<div dir="ltr" style="font-size:12px; font-weight:600; color:var(--bnd-ink-muted); line-height:1.4;">{{ name_en | e }}</div>{% endif %}
-  {% if vat or cr %}
-  <div style="font-size:10px; color:var(--bnd-ink-muted); margin-top:2px;">
-    {% if vat %}<span>الرقم الضريبي: <span dir="ltr">{{ vat | e }}</span></span>{% endif %}
-    {% if vat and cr %}<span> &middot; </span>{% endif %}
-    {% if cr %}<span>السجل التجاري: <span dir="ltr">{{ cr | e }}</span></span>{% endif %}
-  </div>
-  {% endif %}
+  {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700; line-height:1.4;">{{ display_name | e }}</div>{% endif %}
+  {{ identity_numbers() }}
   <div style="border-top:2px solid var(--bnd-brand-solid); margin-top:8px; width:46%; margin-left:auto; margin-right:auto;"></div>
 </div>
 <!--BND-END-->
 <!--BND lh=minimal-->
-<div dir="rtl" class="bnd-lh-minimal" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:2px 6px 0;">
-  <table style="width:100%; border-collapse:collapse;">
+{# One identity row: company, VAT and CR. Explicit table cells mirror in Arabic
+   and survive wkhtmltopdf's isolated header. Long real names may wrap within
+   their cell rather than getting clipped or shrinking the whole document. #}
+{% if display_name or logo or vat or cr %}
+<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" class="bnd-lh-minimal" style="font-family:'Noto Naskh Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink); padding:4px 0 0;">
+  <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; table-layout:fixed; border-collapse:collapse; margin:0;">
     <tr>
-      <td style="text-align:right; vertical-align:middle; font-size:12px; font-weight:700;">
-        {% if logo %}<img src="{{ logo | e }}" alt="" style="max-height:22px; vertical-align:middle;"> {% endif %}{{ name_ar | e }}{% if name_ar and name_en %} <span style="color:var(--bnd-ink-muted); font-weight:400;">&middot;</span> {% endif %}<span dir="ltr" style="font-weight:600; color:var(--bnd-ink-muted); font-size:11px;">{{ name_en | e }}</span>
+      <td class="bnd-lh-identity" style="width:{{ '30%' if vat and cr else ('60%' if vat or cr else '100%') }}; text-align:{{ _start }}; vertical-align:middle; padding:0;">
+        {% if logo %}<div style="display:inline-block; width:40px; vertical-align:middle; margin-{{ _end }}:6px;"><img class="bnd-lh-logo" src="{{ logo | e }}" alt="" style="display:block; width:auto !important; height:auto; max-width:100%; max-height:30px;"></div>{% endif %}
+        {% if display_name %}<span class="bnd-lh-name" dir="auto" style="font-size:17px; line-height:1.4; font-weight:700; color:var(--bnd-ink); word-wrap:break-word;">{{ display_name | e }}</span>{% endif %}
       </td>
-      <td style="text-align:left; vertical-align:middle; font-size:9px; color:var(--bnd-ink-muted);">
-        {% if vat %}<span>الرقم الضريبي: <span dir="ltr">{{ vat | e }}</span></span>{% endif %}{% if vat and cr %} &middot; {% endif %}{% if cr %}<span>السجل التجاري: <span dir="ltr">{{ cr | e }}</span></span>{% endif %}
-      </td>
+      {% for value, en, ar, width in [(vat, 'VAT number', 'الرقم الضريبي', '34%'), (cr, 'Commercial registration', 'السجل التجاري', '36%')] %}
+      {% if value %}<td class="bnd-lh-registration" style="width:{{ width if vat and cr else '40%' }}; text-align:{{ _end }}; vertical-align:middle; padding:0 {{ '10px' if _rtl else '0' }} 0 {{ '0' if _rtl else '10px' }}; line-height:1.6;">
+        <span style="font-size:{{ '12' if _rtl else '10' }}px; color:var(--bnd-ink-muted); white-space:nowrap;">{{ ar if _rtl else en }}</span>
+        <span class="bnd-lh-reg-value" dir="ltr" style="display:inline-block; font-size:11px; color:var(--bnd-ink); margin-{{ _start }}:6px; word-wrap:break-word; max-width:100%;">{{ value | e }}</span>
+      </td>{% endif %}
+      {% endfor %}
     </tr>
   </table>
-  <div style="border-top:1px solid var(--bnd-border); margin-top:6px;"></div>
+  <div class="bnd-lh-rule" style="border-top:1px solid var(--bnd-brand-solid); margin-top:8px;"></div>
 </div>
+{% endif %}
 <!--BND-END-->

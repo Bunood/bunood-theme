@@ -31,9 +31,9 @@
 //   wkhtmltopdf 0.12.6 (Qt-WebKit 534, the shipped default): TABLES never flex,
 //   TTF never woff2, no logical properties, no gradients, `@page` ignored;
 //   headless-chrome and the browser print dialog: modern CSS. So:
-//     - layout is tables; `display: flex`/`grid` are refused by the build guard
+//     - paper layout is tables; `display: flex`/`grid` are refused by the build guard
 //       (`assertPrintSafeCss`), the way `assertEmailSafeCss` refuses them for
-//       Outlook;
+//       Outlook; explicit screen-only preview layout is excluded from that scan;
 //     - every keep-together rule carries BOTH spellings — legacy `page-break-*`
 //       for wkhtml, modern `break-*` for the other two. The guard enforces the
 //       pairing mechanically; one spelling alone silently skips an engine.
@@ -83,10 +83,13 @@
 // family by `palette.derive`, so both halves of the pair (white ground AND the
 // #f8f8f8 header fill, which sits inside that family) pass from one token.
 .print-format .text-muted {
-	color: var(--bnd-ink-muted);
+	// Current vendor invoice templates lock this label to #7c7c7c !important.
+	color: var(--bnd-ink-muted) !important;
 }
-.print-format thead.table-header td {
-	color: var(--bnd-ink-muted);
+.print-format thead.table-header td,
+.print-format .items-table thead td,
+.print-format .tax-table thead td {
+	color: var(--bnd-ink-muted) !important;
 }
 /* The release review found the OTHER two #7c7c7c surfaces the first cut
    missed on the same vendor block: the terms block, beatable at (0,2,0)... */
@@ -144,6 +147,37 @@
 // 1.5px of tracking; slice 3's typography treatments revisit deliberately.
 // ══════════════════════════════════════════════════════════════════════════
 
+// Native report templates share these wrappers. Compact, wrapping filter rows
+// keep report criteria visible without consuming half a page. This does not
+// target invoice letterheads, tables or document metadata.
+.print-format .report-subtitle,
+.print-format .filter-row {
+	font-size: 10px;
+	line-height: 1.5;
+}
+.print-format .filter-row {
+	display: inline-block;
+	vertical-align: top;
+	width: 32%;
+	padding: 4px 8px 4px 0;
+	word-wrap: break-word;
+}
+html[dir="rtl"] .print-format .filter-row {
+	padding: 4px 0 4px 8px;
+}
+.print-format .report-table th,
+.print-format .report-table td {
+	font-size: 11px;
+	line-height: 1.5;
+	padding: 5px 8px;
+	font-variant-numeric: tabular-nums;
+}
+.print-format .report-table thead th {
+	color: var(--bnd-brand-ink);
+	background: var(--bnd-hover);
+	font-weight: 600;
+}
+
 /* Brand fonts, self-hosted TTF (wkhtmltopdf's WebKit cannot read woff2).
    Fetched over HTTP by the PDF engine; fontconfig on the PDF host is the
    safety net the legacy README documents. */
@@ -164,6 +198,15 @@
 	src: url("/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf") format("truetype");
 	font-weight: 700;
 	font-display: swap;
+}
+// Static hinted faces also registered with fontconfig for isolated PDF headers.
+@each $weight, $face in (400: Regular, 700: Bold) {
+	@font-face {
+		font-family: "Noto Naskh Arabic";
+		src: url("/assets/bunood_theme/fonts/noto-naskh/NotoNaskhArabic-#{$face}.ttf") format("truetype");
+		font-weight: $weight;
+		font-display: swap;
+	}
 }
 
 /* Riyal U+20C1 — obeys this sheet's engine rules, and deviates in exactly one way.
@@ -708,6 +751,9 @@
 /*BND-END*/
 
 /*BND tb=washed*/
+.print-format .report-table .financial-statements-important:not(.financial-statements-blank-row) td {
+	background: var(--bnd-raised);
+}
 .print-format table.table-bordered,
 .print-format .items-table,
 .print-format .bnd-p-items {
@@ -890,11 +936,13 @@
 /* The strongest brand presence: filled table heads carrying the jointly
    fitted pair (3:1 as a fill, 4.5:1 under its label -- one gate row since
    item 17), and the amount box washed to match. */
+.print-format .report-table thead th,
 .print-format table.table-bordered th,
 .print-format .items-table thead td,
 .print-format .bnd-p-items th {
 	background: var(--bnd-brand-solid);
-	color: var(--bnd-on-brand);
+	// Beat the vendor's BODY `.items-table thead td` !important gray.
+	color: var(--bnd-on-brand) !important;
 	border-color: var(--bnd-brand-solid);
 	-webkit-print-color-adjust: exact;
 	color-adjust: exact;
@@ -906,6 +954,7 @@
 /* The fill must survive print media (Bootstrap's white-cell reset — see the
    Washed pole's note; same sanction, same collision). */
 @media print {
+	.print-format .report-table thead th,
 	.print-format table.table-bordered th,
 	.print-format .items-table thead td {
 		background-color: var(--bnd-brand-solid) !important;
@@ -919,3 +968,151 @@
 	print-color-adjust: exact;
 }
 /*BND-END*/
+
+// Language-specific commercial A4 invoices. These use their own table vocabulary:
+// no Bootstrap floats, item thumbnails, or cross-column label/value blocks.
+.print-format .bnd-invoice {
+	direction: ltr;
+	text-align: left;
+	font-family: "Noto Naskh Arabic", "DejaVu Sans", sans-serif;
+	font-size: 12px;
+	line-height: 1.6;
+	color: var(--bnd-ink);
+}
+.bnd-invoice table {
+	width: 100%;
+	table-layout: fixed;
+	border-collapse: collapse;
+	direction: inherit;
+}
+.bnd-invoice td,
+.bnd-invoice th {
+	vertical-align: top;
+	text-align: left;
+	padding: 7px 9px;
+}
+.bnd-invoice .bnd-inv-en,
+.bnd-invoice .bnd-inv-ar {
+	display: block;
+}
+.bnd-invoice .bnd-inv-en { direction: ltr; }
+.bnd-invoice .bnd-inv-ar { direction: rtl; font-size: 10px; }
+.bnd-invoice .bnd-inv-title { margin: 0 0 12px; }
+.bnd-invoice .bnd-inv-title td { padding: 0 0 10px; border-bottom: 2px solid var(--bnd-brand-ink); }
+.bnd-invoice h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--bnd-brand-ink); }
+.bnd-invoice .bnd-inv-reference { font-size: 12px; }
+.bnd-invoice .bnd-inv-meta { margin: 0 0 12px; }
+.bnd-invoice .bnd-inv-meta td { border: 1px solid var(--bnd-border); background: var(--bnd-pane); }
+.bnd-invoice .bnd-inv-meta strong { display: block; margin-top: 5px; }
+.bnd-invoice .bnd-inv-parties { margin: 0 0 14px; }
+.bnd-invoice .bnd-inv-parties td { border: 1px solid var(--bnd-border); width: 50%; }
+.bnd-invoice .bnd-inv-party-heading { color: var(--bnd-brand-ink); font-weight: 700; margin-bottom: 7px; }
+.bnd-invoice .bnd-inv-party-name { font-size: 13px; font-weight: 700; }
+.bnd-invoice .bnd-inv-address { margin-top: 5px; }
+.bnd-invoice .bnd-inv-missing { color: var(--bnd-ink-muted); margin-top: 6px; font-size: 10px; }
+.bnd-invoice .bnd-inv-id { margin-top: 6px; font-size: 10px; }
+.bnd-invoice .bnd-inv-id > span[dir="ltr"] { display: block; }
+.bnd-invoice .bnd-inv-items { margin: 0 0 14px; }
+.bnd-invoice .bnd-inv-items thead { display: table-header-group; }
+.bnd-invoice .bnd-inv-items th {
+	background: var(--bnd-brand-ink);
+	color: var(--bnd-surface);
+	font-weight: 700;
+	border: 1px solid var(--bnd-brand-ink);
+}
+.bnd-invoice .bnd-inv-items td { border: 1px solid var(--bnd-border); }
+.bnd-invoice .bnd-inv-items tbody tr:nth-child(even) td { background: var(--bnd-pane); }
+.bnd-invoice .bnd-inv-items th:nth-child(n+3) { text-align: right; }
+.bnd-invoice .bnd-inv-num,
+.bnd-invoice .bnd-inv-number { direction: ltr; text-align: right; white-space: nowrap; }
+.bnd-invoice .bnd-inv-item-name { font-weight: 600; }
+.bnd-invoice .bnd-inv-item-code,
+.bnd-invoice .bnd-inv-description { color: var(--bnd-ink-muted); font-size: 10px; word-wrap: break-word; }
+.bnd-invoice .bnd-inv-totals { width: 56%; margin-left: auto; margin-right: 0; }
+.bnd-invoice .bnd-inv-totals th { width: 65%; font-weight: 400; }
+.bnd-invoice .bnd-inv-totals td { width: 35%; text-align: right; white-space: nowrap; vertical-align: middle; }
+.bnd-invoice .bnd-inv-totals th,
+.bnd-invoice .bnd-inv-totals td { border-bottom: 1px solid var(--bnd-border); padding: 5px 9px; }
+.bnd-invoice .bnd-inv-grand th,
+.bnd-invoice .bnd-inv-grand td { background: var(--bnd-pane); font-weight: 700; border-top: 2px solid var(--bnd-brand-ink); }
+.bnd-invoice .bnd-inv-grand td { font-size: 15px; }
+.bnd-invoice .bnd-inv-currency { font-size: 11px; }
+// The official SVG is packaged as a vector font and embedded in PDFs.
+// Keep the sign and its number in one LTR inline box even inside RTL cells.
+.bnd-invoice .bnd-inv-money { display: inline-block; direction: ltr; white-space: nowrap; }
+.bnd-invoice .bnd-inv-riyal { font-family: "Bunood Riyal"; font-size: 1em; font-weight: 400; font-style: normal; }
+.bnd-invoice .bnd-inv-words,
+.bnd-invoice .bnd-inv-discount,
+.bnd-invoice .bnd-inv-extra { padding: 8px 9px; border-bottom: 1px solid var(--bnd-border); margin-bottom: 10px; }
+.bnd-invoice .bnd-inv-words { margin-top: 6px; }
+.bnd-invoice .bnd-inv-words th { width: 35%; font-weight: 400; }
+.bnd-invoice .bnd-inv-words td { width: 65%; vertical-align: middle; }
+.bnd-invoice .bnd-inv-discount th { width: 70%; font-weight: 400; font-size: 10px; }
+.bnd-invoice .bnd-inv-discount td { width: 30%; text-align: right; vertical-align: middle; white-space: nowrap; }
+.bnd-invoice .bnd-inv-summary { page-break-inside: avoid; break-inside: avoid; }
+.bnd-invoice .bnd-inv-status { color: var(--bnd-critical); font-weight: 700; margin: 10px 0; }
+.bnd-invoice .bnd-inv-tax-note { margin-top: 4px; font-size: 9px; color: var(--bnd-ink-muted); }
+.bnd-invoice .bnd-inv-terms { margin-top: 14px; }
+.bnd-invoice .bnd-inv-qr { margin-top: 10px; }
+.bnd-invoice .bnd-inv-page { text-align: center; font-size: 9px; color: var(--bnd-ink-muted); }
+
+// A PDF extracts #footer-html into its own page-bottom band. In the browser,
+// Frappe puts it back into normal flow with an inline 20px top margin. Grow the
+// preview footer into the unused paper space instead of absolutely positioning
+// it over content. No fixed height: long content/footers extend the preview.
+// The gutter excludes detached PDF header/footer documents; thermal rolls and
+// pages without a native footer keep their existing layout. All PDF CSS above
+// remains table based. Screen-only modern layout never reaches either engine.
+@media screen {
+	.print-format-gutter > .print-format:has(#footer-html):not(:has(.bnd-p--thermal)) {
+		display: flex;
+		flex-direction: column;
+	}
+	.print-format-gutter > .print-format:has(#footer-html):not(:has(.bnd-p--thermal)) > .bnd-invoice,
+	.print-format-gutter > .print-format:has(#footer-html):not(:has(.bnd-p--thermal)) > .bnd-p,
+	.print-format-gutter > .print-format:has(#footer-html):not(:has(.bnd-p--thermal)) > .page-break {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+	}
+	.print-format-gutter > .print-format:not(:has(.bnd-p--thermal)) #footer-html {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+		justify-content: flex-end;
+	}
+	.print-format-gutter > .print-format:not(:has(.bnd-p--thermal)) #footer-html > * {
+		flex-shrink: 0;
+	}
+}
+.bnd-invoice .bnd-inv-items th,
+.bnd-invoice .bnd-inv-meta td,
+.bnd-invoice .bnd-inv-grand td,
+.bnd-invoice .bnd-inv-grand th {
+	-webkit-print-color-adjust: exact;
+	color-adjust: exact;
+	print-color-adjust: exact;
+}
+@media print {
+	// Bootstrap's print reset sets * { color: #000 !important }. Setting
+	// only the th leaves its bilingual spans black in the real PDF.
+	.bnd-invoice .bnd-inv-items th,
+	.bnd-invoice .bnd-inv-items th span {
+		color: var(--bnd-surface) !important;
+	}
+	.bnd-invoice .bnd-inv-items th {
+		background-color: var(--bnd-brand-ink) !important;
+	}
+}
+
+// Actual table direction mirrors column order; IDs and numeric cells remain LTR.
+.bnd-invoice[dir="rtl"] { direction: rtl; text-align: right; }
+.bnd-invoice[dir="rtl"] td,
+.bnd-invoice[dir="rtl"] th,
+.bnd-invoice[dir="rtl"] .bnd-inv-reference { text-align: right; }
+.bnd-invoice[dir="rtl"] .bnd-inv-num,
+.bnd-invoice[dir="rtl"] .bnd-inv-items th:nth-child(n+3),
+.bnd-invoice[dir="rtl"] .bnd-inv-totals td,
+.bnd-invoice[dir="rtl"] .bnd-inv-discount td { text-align: left; }
+.bnd-invoice[dir="rtl"] .bnd-inv-totals { margin-left: 0; margin-right: auto; }
+.bnd-invoice .bnd-inv-label { display: block; }

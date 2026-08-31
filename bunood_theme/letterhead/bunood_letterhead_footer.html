@@ -29,6 +29,8 @@
     text) and a crashed print is worse than an empty identity — found by the
     print suite's dangling-company specimen after the merge. -#}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
+{%- set _rtl = bunood_print_language() == "ar" -%}
+{%- set _dir = "rtl" if _rtl else "ltr" -%}
 {%- set phone = (_c.get("phone_no") if _c else "") -%}
 {%- set email = (_c.get("email") if _c else "") -%}
 {%- set website = (_c.get("website") if _c else "") -%}
@@ -46,19 +48,17 @@
     {%- if v -%}{%- set _ = _parts.append(v) -%}{%- endif -%}
   {%- endfor -%}
 {%- endif -%}
-{%- set address = _parts | join("، ") -%}
+{%- set address = _parts | join("، " if _rtl else ", ") -%}
 {%- if address or phone or email or website or privacy -%}
-<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
-  {% if address %}<div>{{ address | e }}</div>{% endif %}
+<div dir="{{ _dir }}" style="font-family:'Noto Naskh Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink-muted); font-size:11px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
+  {% if address %}<div dir="auto">{{ address | e }}</div>{% endif %}
   {% if phone or email or website %}
-  <div>
-    {% if phone %}<span>هاتف: <span dir="ltr">{{ phone | e }}</span></span>{% endif %}
-    {% if phone and (email or website) %}<span> &middot; </span>{% endif %}
-    {% if email %}<span>البريد: <span dir="ltr">{{ email | e }}</span></span>{% endif %}
-    {% if email and website %}<span> &middot; </span>{% endif %}
-    {% if website %}<span dir="ltr">{{ website | e }}</span>{% endif %}
-  </div>
+  <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; table-layout:fixed; border-collapse:collapse; margin-top:4px;"><tr>
+    {% if phone %}<td style="text-align:center; vertical-align:top; padding:2px 6px;"><div>{{ "هاتف" if _rtl else "Phone" }}</div><div dir="ltr">{{ phone | e }}</div></td>{% endif %}
+    {% if email %}<td style="text-align:center; vertical-align:top; padding:2px 6px;"><div>{{ "البريد" if _rtl else "Email" }}</div><div dir="ltr" style="word-wrap:break-word;">{{ email | e }}</div></td>{% endif %}
+    {% if website %}<td style="text-align:center; vertical-align:top; padding:2px 6px;"><div>{{ "الموقع" if _rtl else "Website" }}</div><div dir="ltr" style="word-wrap:break-word;">{{ website | e }}</div></td>{% endif %}
+  </tr></table>
   {% endif %}
-  {% if privacy %}<div style="margin-top:3px;">سياسة الخصوصية: <span dir="ltr">{{ privacy | e }}</span></div>{% endif %}
+  {% if privacy %}<div style="margin-top:3px;">{{ "سياسة الخصوصية" if _rtl else "Privacy policy" }}: <span dir="ltr">{{ privacy | e }}</span></div>{% endif %}
 </div>
 {%- endif -%}

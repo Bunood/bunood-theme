@@ -89,6 +89,12 @@ update_website_context = "bunood_theme.context.desk_context"
 # Bunood treats the configured site language as the tenant's experience.
 before_request = ["bunood_theme.context.prefer_system_language_for_guests"]
 
+# Native report PDFs retain Frappe's restrictive fetch proxy. Only the installed
+# print stylesheet is canonicalized when a user browses an alternate origin.
+override_whitelisted_methods = {
+    "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
+}
+
 # ── Boot payload ────────────────────────────────────────────────────────────────
 # Keep this MINIMAL. Anything that can be expressed as a CSS custom property belongs
 # in the brand stylesheet, not in boot: boot data arrives with the HTML but is only
@@ -160,6 +166,7 @@ doc_events = {
 # /rtl_patch.py for the full picture and why one hook alone isn't enough.
 jinja = {
     "methods": [
+        "bunood_theme.printing.jinja.bunood_print_language",
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",

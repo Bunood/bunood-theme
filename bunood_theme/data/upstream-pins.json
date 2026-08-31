@@ -32,7 +32,17 @@
 		"erpnext:erpnext/accounts/doctype/sales_invoice/sales_invoice.js": "9d56f15d5f088fc0552fd7a9f3c1c06cbde95b3e6a158feb12314c4d553c239d",
 		"erpnext:erpnext/public/js/controllers/transaction.js": "5ae25c6cb32b4502e00514fe561400bd17b47787a9bd45943ccc5128530977ff",
 		"erpnext:erpnext/public/js/controllers/taxes_and_totals.js": "f96970f1e47a8334233a13cf48a1182b841fd4c62818911a09c5ef40e299407f",
-		"erpnext:erpnext/public/js/utils/sales_common.js": "3be13eda334dc528c16eabe7a12a2390c62190c10fdaf0933d5ef9ce5fb2048a"
+		"erpnext:erpnext/public/js/utils/sales_common.js": "3be13eda334dc528c16eabe7a12a2390c62190c10fdaf0933d5ef9ce5fb2048a",
+		"frappe:frappe/utils/print_format.py": "e02ff15354fd542adf8cba75271be399e28afe680e654675b4b2eabbf45f1ca4",
+		"frappe:frappe/public/html/print_template.html": "7e7478d01b51d013c31d2a9c6c60a29ff70440346bca9dd108173fa0ee65841c",
+		"frappe:frappe/utils/pdf.py": "fa23befffe5c1b9d21df15299fd3d888f39b6acbd7f0caae97888517bcb745d0",
+		"frappe:frappe/www/printview.html": "a89325904cba0181d03e38a850e46c3fe5409c99f01604b8250b40778ac9a4de",
+		"frappe:frappe/www/printview.py": "828adbcc25adf4644707665d3d1766861d9afda9879adb3fd6a25808773b53e4",
+		"frappe:frappe/utils/print_utils.py": "3b29bbc3f17cd4ba7ee4276f1d793ca629e28810145994b00b2b19cc3c1e9381",
+		"frappe:frappe/utils/jinja.py": "2bc9d6a106d7a43f63162983c9a58740b07732df766dce10a5787c6be508926d",
+		"frappe:frappe/translate.py": "2a92dbb6d2d0d6358af24b1905be275fe273efeb177903b70346f034641250ec",
+		"frappe:frappe/templates/styles/standard.css": "a31528865329fa041b077f480106f6b38bf2de65e55b4563bfa0051f50a041e3",
+		"frappe:frappe/utils/data.py": "48f6f0e0526bfe6eddb6eb4445813d0a9aadad283c854a5f130228dc9da42d33"
 	},
 	"workspaces": {
 		"Selling": "d2028a820cbbdf15ebf384e18531b9e5db1e9c7c04166fd0e4a40923f9e4cd60",

@@ -8,6 +8,12 @@ import json
 import frappe
 
 
+def bunood_print_language():
+    """Read language at render time, not from a cached Jinja globals snapshot."""
+    language = getattr(frappe.local, "lang", None) or "en"
+    return "ar" if language.startswith("ar") else "en"
+
+
 def bunood_zatca_qr_src(doc):
     """Resolve a printable ZATCA QR image src for an invoice.
 

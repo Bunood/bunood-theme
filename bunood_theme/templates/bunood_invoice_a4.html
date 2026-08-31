@@ -1,0 +1,71 @@
+{# The native Print Language selects one complete layout. Numeric runs and
+   document identifiers remain LTR inside the mirrored Arabic tables.
+   Translate presentation only; never save changes to invoice data. #}
+{% set rtl = (bnd_print_language or "en").startswith("ar") %}
+{% set lang = "ar" if rtl else "en" %}
+{% set direction = "rtl" if rtl else "ltr" %}
+{% set currency = doc.get("currency") or "" %}
+{% macro label(en, ar) -%}
+<span class="bnd-inv-label" dir="{{ direction }}" lang="{{ lang }}">{{ (ar if rtl else en) | e }}</span>
+{%- endmacro %}
+{% macro currency_mark() -%}
+{% if currency == "SAR" %}<span class="bnd-inv-currency bnd-inv-riyal" dir="ltr" role="img" aria-label="{{ 'ريال سعودي' if rtl else 'Saudi riyal' }}">&#x20C1;</span>{% else %}<span class="bnd-inv-currency" dir="ltr">{{ currency | e }}</span>{% endif %}
+{%- endmacro %}
+{% macro money(value, precision=2, with_currency=false) -%}
+<span class="bnd-inv-money" dir="ltr">{% if with_currency and currency == "SAR" %}{{ currency_mark() }}&#160;{% endif %}<span class="bnd-inv-number" dir="ltr">{{ frappe.utils.fmt_money(value or 0, precision=precision) | e }}</span>{% if with_currency and currency != "SAR" %}&#160;{{ currency_mark() }}{% endif %}</span>
+{%- endmacro %}
+{% macro party(en, ar, name, address, vat) -%}
+<div class="bnd-inv-party-heading">{{ label(en, ar) }}</div>
+<div class="bnd-inv-party-name" dir="auto">{{ (name or "") | e }}</div>
+{% if vat %}<div class="bnd-inv-id">{{ label("Tax ID", "الرقم الضريبي") }}<span dir="ltr">{{ vat | e }}</span></div>{% endif %}
+{% if address %}<div class="bnd-inv-address" dir="auto">{{ address }}</div>
+{% else %}<div class="bnd-inv-missing">{{ label("Address not recorded on invoice", "العنوان غير مسجل في الفاتورة") }}</div>{% endif %}
+{%- endmacro %}
+{% set purchase = doc.doctype == "Purchase Invoice" %}
+{% set rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") %}
+{% set title_en = ("Purchase Return" if purchase else "Sales Return") if doc.get("is_return") else ("Purchase Invoice" if purchase else "Sales Invoice") %}
+{% set title_ar = ("مرتجع مشتريات" if purchase else "مرتجع مبيعات") if doc.get("is_return") else ("فاتورة مشتريات" if purchase else "فاتورة مبيعات") %}
+<div class="bnd-invoice" dir="{{ direction }}" lang="{{ lang }}">
+  {% if not no_letterhead and letter_head %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}><div class="letter-head">{{ letter_head }}</div></div>
+  {% endif %}
+  <table class="bnd-inv-title"><tr>
+    <td><h1>{{ (title_ar if rtl else title_en) | e }}</h1><div class="bnd-inv-reference" dir="ltr">{{ doc.name | e }}</div></td>
+  </tr></table>
+  {% if doc.docstatus == 0 %}<div class="bnd-inv-status">{{ label("DRAFT", "مسودة") }}</div>{% elif doc.docstatus == 2 %}<div class="bnd-inv-status">{{ label("CANCELLED", "ملغاة") }}</div>{% endif %}
+  <table class="bnd-inv-meta"><tr>
+    <td>{{ label("Posting date", "تاريخ الفاتورة") }}<strong dir="ltr">{{ doc.get_formatted("posting_date") }}</strong></td>
+    <td>{{ label("Due date", "تاريخ الاستحقاق") }}<strong dir="ltr">{{ doc.get_formatted("due_date") if doc.get("due_date") else "—" }}</strong></td>
+  </tr></table>
+  {% if doc.get("return_against") %}<div class="bnd-inv-extra">{{ label("Original invoice", "الفاتورة الأصلية") }}<span dir="ltr">{{ doc.return_against | e }}</span></div>{% endif %}
+  {% if purchase and doc.get("bill_no") %}<div class="bnd-inv-extra">{{ label("Supplier invoice number", "رقم فاتورة المورد") }}<span dir="ltr">{{ doc.bill_no | e }}</span>{% if doc.get("bill_date") %} · <span dir="ltr">{{ doc.get_formatted("bill_date") }}</span>{% endif %}</div>{% endif %}
+  <table class="bnd-inv-parties"><tr>
+    <td>{% if purchase %}{{ party("Supplier / Seller", "المورد / البائع", doc.get("supplier_name") or doc.get("supplier"), doc.get("address_display"), doc.get("tax_id")) }}{% else %}{{ party("Company / Seller", "الشركة / البائع", doc.get("company"), doc.get("company_address_display"), doc.get("company_tax_id")) }}{% endif %}</td>
+    <td>{% if purchase %}{{ party("Company / Buyer", "الشركة / المشتري", doc.get("company"), doc.get("company_address_display"), doc.get("company_tax_id")) }}{% else %}{{ party("Customer / Buyer", "العميل / المشتري", doc.get("customer_name") or doc.get("customer"), doc.get("address_display"), doc.get("tax_id")) }}{% endif %}</td>
+  </tr></table>
+  <table class="bnd-inv-items">
+    <colgroup><col style="width:5%"><col style="width:37%"><col style="width:10%"><col style="width:12%"><col style="width:18%"><col style="width:18%"></colgroup>
+    <thead><tr><th scope="col">{{ label("No.", "م") }}</th><th scope="col">{{ label("Item / Description", "الصنف / الوصف") }}</th><th scope="col">{{ label("Qty", "الكمية") }}</th><th scope="col">{{ label("Unit", "الوحدة") }}</th><th scope="col">{{ label("Unit price", "سعر الوحدة") }}{{ currency_mark() }}</th><th scope="col">{{ label("Amount", "المبلغ") }}{{ currency_mark() }}</th></tr></thead>
+    <tbody>{% for row in doc.items %}<tr>
+      <td class="bnd-inv-num" dir="ltr">{{ loop.index }}</td>
+      <td><div class="bnd-inv-item-name" dir="auto">{{ row.item_name | e }}</div>{% if row.get("item_code") and row.item_code != row.item_name %}<div class="bnd-inv-item-code" dir="ltr">{{ row.item_code | e }}</div>{% endif %}{% if row.get("description") and (row.description | striptags | trim) != row.item_name %}<div class="bnd-inv-description" dir="auto">{{ row.description | striptags | e }}</div>{% endif %}</td>
+      <td class="bnd-inv-num" dir="ltr">{{ row.get_formatted("qty") }}</td><td dir="auto">{{ (("ياردة" if rtl else "Yard") if row.get("uom") == "Yard" else _(row.get("uom") or "")) | e }}</td>
+      <td class="bnd-inv-num" dir="ltr">{{ money(row.rate, row.precision("rate")) }}</td><td class="bnd-inv-num" dir="ltr">{{ money(row.amount, row.precision("amount")) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  <div class="bnd-inv-summary">
+    <table class="bnd-inv-totals">
+      <tr><th scope="row">{{ label("Net subtotal", "الصافي قبل الضرائب") }}</th><td dir="ltr">{{ money(doc.net_total, doc.precision("net_total")) }}</td></tr>
+      <tr><th scope="row">{{ label("Taxes and charges", "الضرائب والرسوم") }}
+        {% for tax in doc.get("taxes") or [] %}{% if tax.get("category") != "Valuation" %}<div class="bnd-inv-tax-note"><span dir="auto">{{ (tax.get("description") or tax.get("account_head") or "") | striptags | e }}</span><br><span dir="ltr">{% if tax.get("add_deduct_tax") == "Deduct" %}{{ label("Deduct", "خصم") }} {% endif %}{{ money(tax.get("tax_amount_after_discount_amount") if tax.get("tax_amount_after_discount_amount") is not none else tax.tax_amount, tax.precision("tax_amount"), with_currency=true) }}</span></div>{% endif %}{% endfor %}
+      </th><td dir="ltr">{{ money(doc.total_taxes_and_charges, doc.precision("total_taxes_and_charges")) }}</td></tr>
+      {% if rounded and doc.get("rounding_adjustment") %}<tr><th scope="row">{{ label("Rounding adjustment", "تسوية التقريب") }}</th><td dir="ltr">{{ money(doc.rounding_adjustment, doc.precision("rounding_adjustment")) }}</td></tr>{% endif %}
+      <tr class="bnd-inv-grand"><th scope="row">{{ label("Grand total", "الإجمالي النهائي") }}</th><td dir="ltr">{{ money(doc.rounded_total if rounded else doc.grand_total, doc.precision("grand_total"), with_currency=true) }}</td></tr>
+    </table>
+    {% if doc.get("discount_amount") %}<table class="bnd-inv-discount"><tr><th scope="row">{{ label("Additional discount (already included)", "الخصم الإضافي محتسب في الإجماليات") }}</th><td dir="ltr">{{ money(doc.discount_amount, doc.precision("discount_amount"), with_currency=true) }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage | e }}%){% endif %}</td></tr></table>{% endif %}
+    {% if doc.get("in_words") and frappe.db.get_single_value("Theme Settings", "print_words") != "Hide" %}<table class="bnd-inv-words"><tr><th scope="row">{{ label("Amount in words", "المبلغ كتابة") }}</th><td dir="{{ direction }}">{% set payable = doc.rounded_total if rounded else doc.grand_total %}{% if payable < 0 %}{{ label("Negative", "سالب") }} {% endif %}{% set words = frappe.utils.money_in_words(payable | abs, currency) %}{{ (words.replace("SAR", "ريال سعودي" if rtl else "Saudi riyals") if currency == "SAR" else words) | e }}</td></tr></table>{% endif %}
+  </div>
+  {% if doc.get("terms") %}<div class="bnd-inv-terms">{{ label("Terms and conditions", "الشروط والأحكام") }}<div dir="auto">{{ doc.terms }}</div></div>{% endif %}
+  {% if bunood_zatca_qr_src is defined %}{% set qr = bunood_zatca_qr_src(doc) %}{% if qr %}<div class="bnd-inv-qr"><img src="{{ qr | e }}" alt="{{ 'رمز الفاتورة' if rtl else 'Invoice QR' }}" width="100" height="100"></div>{% endif %}{% endif %}
+  {% if not no_letterhead and footer %}<div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}><div class="letter-head-footer">{{ footer }}</div><div class="bnd-inv-page" dir="{{ direction }}" style="font-family:'Noto Naskh Arabic','DejaVu Sans',sans-serif;">{{ "صفحة" if rtl else "Page" }} <span dir="ltr"><span class="page"></span> / <span class="topage"></span></span></div></div>{% endif %}
+</div>

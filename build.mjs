@@ -35,11 +35,13 @@
  */
 
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as sass from "sass";
+import { pdfMediaCss } from "./tools/print-media.mjs";
 
 // The translation catalogue and its guards. Derived, never listed — see
 // tools/i18n.mjs for why the string inventory is recomputed on every build.
@@ -56,6 +58,12 @@ const SCSS = join(APP, "public", "scss");
 const JS = join(APP, "public", "js");
 const DIST_CSS = join(APP, "public", "dist", "css");
 const DIST_JS = join(APP, "public", "dist", "js");
+
+// This parser defines the legacy PDF guard's boundary. Its adversarial cases
+// run on every build (including CI), not only when somebody remembers to test.
+execFileSync(process.execPath, ["--test", join(ROOT, "tests", "print-media.test.mjs")], {
+	stdio: "pipe",
+});
 
 const FORBIDDEN_ROUTE_ATTRS = ["data-route", "data-page-route"];
 
@@ -868,7 +876,9 @@ const PRINT_SAFE_PROPS = new Set([
 	"color", "font", "font-family", "font-size", "font-style", "font-weight",
 	"font-variant-numeric", "font-display", "line-height", "text-align",
 	"text-decoration", "text-transform", "white-space", "word-break",
-	"overflow-wrap", "direction", "unicode-range", "src",
+	// Legacy spelling of overflow-wrap for Qt WebKit. Exercised by the PDF
+	// invoice regression's long item code/description on the actual engine.
+	"word-wrap", "overflow-wrap", "direction", "unicode-range", "src",
 	// Paint. Backgrounds need the color-adjust triple to survive the browsers'
 	// default "no background graphics" print setting.
 	"background", "background-color",
@@ -888,7 +898,9 @@ const PRINT_SAFE_DISPLAY = new Set([
 ]);
 
 function assertPrintSafeCss(css, name) {
-	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	// Preview layout is screen-only. The guard still checks every declaration
+	// that can reach paper, including mixed media queries and bare rules.
+	const stripped = pdfMediaCss(css);
 	const bad = new Set();
 
 	for (const m of stripped.matchAll(/(?:^|[{;])\s*display\s*:\s*([^;}!]+)/g)) {
