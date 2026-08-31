@@ -17,7 +17,7 @@
 //                            and one opacity step.
 //   data-bnd-sb-color       theme | minimal | dark | brand
 //   data-bnd-sb-icons       chips | dots | filled | duotone | brandlines | mono
-//   data-bnd-sb-active      pill | softpill | rail | glow | outline | dot | foldertab
+//   data-bnd-sb-active      pill | softpill | rail | outline | foldertab
 //   data-bnd-sb-sections    plain | divided | cards | accordion
 //   data-bnd-sb-wash        off | subtle | rich
 //   data-bnd-sb-intensity   1..5           (card surface presence)
@@ -26,7 +26,6 @@
 //                            for every rail rule — trigger wiring is JS)
 //   data-bnd-sb-iconsrc     smart | original | letters
 //   data-bnd-sb-badges      off | dots | counts
-//   data-bnd-sb-fades       (attribute present = on)
 //
 // THE WORKING-SET PATTERN (why this file stays sane)
 //   The color-mode blocks define a small working set of custom properties —
@@ -313,11 +312,6 @@ html[data-bnd-sb-color] .bnd-sb-module {
   inline-size: calc(100% - 2 * var(--bnd-sp-1));
   text-align: start;
   cursor: pointer;
-
-  .bnd-sb-module-chev {
-    margin-inline-start: auto;
-    color: var(--bnd-sb-ink-muted);
-  }
 }
 
 // ── Brand block ─────────────────────────────────────────────────────────────
@@ -554,31 +548,11 @@ html[data-bnd-sb-active="rail"] .body-sidebar .standard-sidebar-item.active-side
   background: color-mix(in srgb, var(--bnd-sb-accent) 9%, transparent);
 }
 
-html[data-bnd-sb-active="glow"] .body-sidebar .standard-sidebar-item.active-sidebar {
-  background: color-mix(in srgb, var(--bnd-sb-accent) 12%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bnd-sb-accent) 55%, transparent),
-    0 0 12px color-mix(in srgb, var(--bnd-sb-accent) 35%, transparent);
-}
 
 html[data-bnd-sb-active="outline"] .body-sidebar .standard-sidebar-item.active-sidebar {
   box-shadow: inset 0 0 0 1.5px var(--bnd-sb-accent);
 }
 
-html[data-bnd-sb-active="dot"] .body-sidebar .standard-sidebar-item.active-sidebar {
-  position: relative;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset-inline-end: var(--bnd-sp-2);
-    inset-block-start: 50%;
-    translate: 0 -50%;
-    inline-size: 6px;
-    block-size: 6px;
-    border-radius: var(--bnd-radius-pill);
-    background: var(--bnd-sb-accent);
-  }
-}
 
 // Folder tab: the active link takes the PAGE surface and merges into it.
 // Only offered on attached panes (the picker enforces it) because a floating
@@ -741,16 +715,6 @@ html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
   background: var(--bnd-serious);
 }
 
-// ── Scroll fades ────────────────────────────────────────────────────────────
-html[data-bnd-sb-fades] .body-sidebar-top {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black 14px,
-    black calc(100% - 14px),
-    transparent
-  );
-}
 
 // ── Menu rail: hover-expand ─────────────────────────────────────────────────
 // The container narrows to the rail width (its inline width is set by
@@ -783,8 +747,7 @@ html[data-bnd-rail] .body-sidebar-container {
 
     // At rest, labels and wide-only pieces vanish; icons stay centered.
     .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label,
-    .bnd-sb-module .bnd-sb-module-chev {
+    .bnd-sb-module .bnd-sb-module-label {
       opacity: 0;
       transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
     }
@@ -795,8 +758,7 @@ html[data-bnd-rail] .body-sidebar-container {
     box-shadow: var(--bnd-shadow-lg);
 
     .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label,
-    .bnd-sb-module .bnd-sb-module-chev {
+    .bnd-sb-module .bnd-sb-module-label {
       opacity: 1;
     }
   }
@@ -864,6 +826,10 @@ html[data-bnd-rail] .bnd-railbtn {
   color: var(--bnd-sb-ink-muted);
   cursor: pointer;
   box-shadow: var(--bnd-shadow-sm);
+  // One shape since item 40: all eight shipped looks chose Circle, and the
+  // other two rendered through a CONCATENATED class the focus-ring guard
+  // cannot see. The radius lives on the identity class instead.
+  border-radius: var(--bnd-radius-pill);
 
   svg {
     inline-size: 13px;
@@ -922,27 +888,6 @@ html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-bottom {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) / 2);
 }
 
-// Shapes.
-html[data-bnd-rail] .bnd-railbtn-circle {
-  border-radius: var(--bnd-radius-pill);
-}
-html[data-bnd-rail] .bnd-railbtn-square {
-  border-radius: var(--bnd-radius-md);
-}
-html[data-bnd-rail] .bnd-railbtn-tab {
-  border-radius: 0 var(--bnd-radius-md) var(--bnd-radius-md) 0;
-  inline-size: 16px;
-  block-size: 44px;
-  inset-inline-end: -16px;
-  box-shadow: none;
-  border-inline-start: none;
-}
-// The tab protrudes fully (16px, not the circle's half-and-half straddle), so
-// its open offset differs from the edge circle's by its own width.
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-tab,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-tab {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 16px);
-}
 
 // Open state: the chevron/arrow glyphs flip to point back.
 .bnd-rail-open .bnd-railbtn svg {
@@ -1024,8 +969,7 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
   // chips past the 52px rail edge (measured). At rest the injected rows
   // become icon-only and centered.
   .bnd-sb-item .bnd-sb-item-label,
-  .bnd-sb-module .bnd-sb-module-label,
-  .bnd-sb-module .bnd-sb-module-chev {
+  .bnd-sb-module .bnd-sb-module-label {
     display: none;
   }
 

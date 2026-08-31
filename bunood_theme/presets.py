@@ -38,11 +38,8 @@ SIDEBAR_FIELDS = [
     "sidebar_menu_rail",
     "sidebar_rail_trigger",
     "sidebar_rail_button",
-    "sidebar_rail_button_shape",
     "sidebar_pane_width",
     "sidebar_badges",
-    "sidebar_remember_sections",
-    "sidebar_scroll_fades",
 ]
 
 #: The preset catalogue. "Bunood Night" is the shipped default — the user's
@@ -66,14 +63,10 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        # Trigger, shape and icon are inert while the mode has no rail and the
-        # button is None — kept so flipping back restores a tuned look, same
-        # rule as the glass fields above.
-        "sidebar_rail_button_shape": "Circle",
+        # Trigger and icon are inert while the mode has no rail and the button
+        # is None — kept so flipping back restores a tuned look.
         "sidebar_pane_width": "3",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Bunood Light": {
         "sidebar_placement": "Floating",
@@ -86,11 +79,8 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Daylight": {
         "sidebar_placement": "Attached",
@@ -103,11 +93,8 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Manual Collapse",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Ink": {
         "sidebar_placement": "Attached",
@@ -120,28 +107,22 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Manual Collapse",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Carbon": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
         "sidebar_color": "Dark Contrast",
-        "sidebar_active_style": "Glow Ring",
+        "sidebar_active_style": "Outline",
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_menu_rail": "Manual Collapse",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Paper": {
         "sidebar_placement": "Attached",
@@ -154,11 +135,8 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Manual Collapse",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
     "Aurora": {
         "sidebar_placement": "Floating",
@@ -171,11 +149,8 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 1,
     },
     # Renamed from "Operator" for item 7. ERPNext already translates "Operator"
     # as a MACHINE OPERATOR — a person — in Manufacturing (downtime_entry,
@@ -196,11 +171,8 @@ SIDEBAR_PRESETS = {
         "sidebar_menu_rail": "Manual Collapse",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Counts",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
     },
 }
 

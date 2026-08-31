@@ -1079,7 +1079,7 @@
 		},
 		active: {
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
-			"Glow Ring": "glow", "Outline": "outline", "Dot Marker": "dot", "Folder Tab": "foldertab",
+			"Outline": "outline", "Folder Tab": "foldertab",
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
@@ -1089,7 +1089,6 @@
 		menurail: { "Always Expanded": "expanded", "Manual Collapse": "manual", "Rail": "rail", "Hover-Expand": "rail", "Hover + Pin": "rail" },
 		railtrigger: { "Hover": "hover", "Click": "click", "Button Only": "button", "Hover + Pin": "hoverpin" },
 		railbtn: { "None": "", "Edge": "edge", "Top": "top", "Bottom": "bottom" },
-		railbtnshape: { "Circle": "circle", "Square": "square", "Tab": "tab" },
 		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
 		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
@@ -1141,7 +1140,6 @@
 		if (width >= 1 && width <= 5) html.setAttribute("data-bnd-sb-width", String(width));
 		const intensity = parseInt(sb.intensity, 10);
 		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
-		if (parseInt(sb.scroll_fades, 10)) html.setAttribute("data-bnd-sb-fades", "");
 	}
 
 	// Apply boot's values NOW — same timing rule as layout/density: the CSS
@@ -6229,9 +6227,8 @@ function sb_zone_anchor(pane, zone, node) {
 		let pos = SB_SLUGS.railbtn[sb.rail_button] || "";
 		if (trigger === "button" && !pos) pos = "edge";
 		if (pos) {
-			const shape = SB_SLUGS.railbtnshape[sb.rail_button_shape] || "circle";
 			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
-			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos + " bnd-railbtn-" + shape, {
+			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
 				type: "button",
 				"aria-label": __("Expand sidebar"),
 				"aria-expanded": "false",
@@ -6691,13 +6688,10 @@ function sb_zone_anchor(pane, zone, node) {
 			menurail: v("sidebar_menu_rail", "menurail"),
 			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
 			rail_button: v("sidebar_rail_button", "rail_button"),
-			rail_button_shape: v("sidebar_rail_button_shape", "rail_button_shape"),
 			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),
-			remember: v("sidebar_remember_sections", "remember"),
-			scroll_fades: v("sidebar_scroll_fades", "scroll_fades"),
 			user_preset: sb_state ? sb_state.user_preset : "",
 		};
 		apply_sidebar_attrs(next);

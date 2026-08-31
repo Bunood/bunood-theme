@@ -437,14 +437,11 @@ def extend_bootinfo(bootinfo):
             "menurail": get("sidebar_menu_rail"),
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
-            "rail_button_shape": get("sidebar_rail_button_shape"),
             "rail_button_icon": icon("icon_rail_button"),
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "badges": get("sidebar_badges"),
-            "remember": settings.get("sidebar_remember_sections") or 0,
-            "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
         }
 
         # Item 23: give every sidebar link a title-derived icon, on the server,

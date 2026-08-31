@@ -277,9 +277,11 @@ AXES = (
     # selector here would be the "green tests that assert existence" trap with a
     # storage key attached.
     #
-    # Consequence, stated so it is not rediscovered: `sidebar_remember_sections`
-    # remains a field written by all eight sidebar presets and read by nothing,
-    # as it has been since v0.6.0. It is a dead field, not a broken feature.
+    # Consequence, followed through in item 40: `sidebar_remember_sections` was
+    # a field written by all eight sidebar presets and read by NOTHING since
+    # v0.6.0, and it is now deleted rather than left waiting. Frappe v16 turns
+    # out to persist section state itself, keyed by workspace, so the reason
+    # above stands and the switch had nothing left to connect to.
     {
         "key": "bnd_palette_usage",
         "kind": STATE,

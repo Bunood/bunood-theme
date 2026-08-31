@@ -503,11 +503,6 @@ msgstr "سهم زاوي"
 msgid "Chevron and arrow mirror automatically in right-to-left languages."
 msgstr "السهم الزاوي والسهم ينعكسان تلقائيًا في اللغات التي تُكتب من اليمين إلى اليسار."
 
-#. Option for 'Rail Button Shape' in DocType 'Theme Settings'
-#. src: ai
-msgid "Circle"
-msgstr "دائرة"
-
 #. Option for 'Desk Layout' in DocType 'Theme Settings'
 #. src: ai
 msgid "Classic"
@@ -827,16 +822,6 @@ msgstr "المستندات"
 #. src: ai
 msgid "Dot"
 msgstr "نقطة"
-
-#. Option for 'Active Link Style' in DocType 'Theme Settings'
-#. src: ai
-msgid "Dot Marker"
-msgstr "علامة نقطية"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Dot marker"
-msgstr "علامة نقطية"
 
 #. Option for 'Count Badges' in DocType 'Theme Settings'
 #. src: ai
@@ -1158,55 +1143,21 @@ msgstr "مؤشر الحداثة"
 msgid "Full"
 msgstr "كامل"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Full steps down automatically on weak devices and honors the OS reduce-transparency setting."
-msgstr "«كامل» ينخفض تلقائيًا على الأجهزة الضعيفة ويحترم إعداد تقليل الشفافية في نظام التشغيل."
-
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
 msgid "Glass"
 msgstr "زجاجية"
 
-#. Label of a Select field in DocType 'Theme Settings'
-#. src: ai
-msgid "Glass Blur"
-msgstr "تمويه الزجاج"
-
-#. Label of a Select field in DocType 'Theme Settings'
-#. src: ai
-msgid "Glass Opacity"
-msgstr "عتامة الزجاج"
-
 #. In theme_settings.js
-#. src: ai
-msgid "Glass blur"
-msgstr "تمويه الزجاج"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Glass lets the page glow through; opacity and blur below tune it."
-msgstr "الزجاج يدع الصفحة تشعّ من خلفه؛ العتامة والتمويه أدناه يضبطانه."
-
-#. In theme_settings.js
-#. src: ai
-msgid "Glass opacity"
-msgstr "عتامة الزجاج"
+#. src: item40
+#, fuzzy
+msgid "Glass lets the page glow through; blurred frosts it as well."
+msgstr "الزجاج يدع الصفحة تشعّ من خلفه؛ والمموّهة تضبّبها أيضًا."
 
 #. In theme_settings.js
 #. src: ai
 msgid "Global search, notifications and profile in a bar along the bottom edge."
 msgstr "البحث العام والإخطارات والملف الشخصي في شريط على الحافة السفلية."
-
-#. Option for 'Active Link Style' in DocType 'Theme Settings'
-#. src: ai
-msgid "Glow Ring"
-msgstr "حلقة متوهجة"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Glow ring"
-msgstr "حلقة متوهجة"
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
@@ -1412,11 +1363,6 @@ msgstr "المهام سليمة"
 #. src: ai
 msgid "Jobs Segment"
 msgstr "مقطع المهام"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Keep each user's opened groups between visits."
-msgstr "الاحتفاظ بالمجموعات التي فتحها كل مستخدم بين الزيارات."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
@@ -1835,11 +1781,6 @@ msgstr "إطار"
 
 #. In theme_settings.js
 #. src: ai
-msgid "Overflowing links fade at the edges instead of clipping."
-msgstr "الروابط الفائضة تتلاشى عند الحواف بدلًا من أن تُقتطع."
-
-#. In theme_settings.js
-#. src: ai
 msgid "Overview"
 msgstr "نظرة عامة"
 
@@ -2020,11 +1961,6 @@ msgstr "أيقونة زر السكة"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
-msgid "Rail Button Shape"
-msgstr "شكل زر السكة"
-
-#. Label of a Select field in DocType 'Theme Settings'
-#. src: ai
 msgid "Rail Expand Button"
 msgstr "زر توسيع السكة"
 
@@ -2037,11 +1973,6 @@ msgstr "مشغّل توسيع السكة"
 #. src: ai
 msgid "Rail button icon"
 msgstr "أيقونة زر السكة"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Rail button shape"
-msgstr "شكل زر السكة"
 
 #. In theme_settings.js
 #. src: ai
@@ -2097,16 +2028,6 @@ msgstr "فاصل التحديث"
 #. src: ai
 msgid "Refresh now"
 msgstr "حدّث الآن"
-
-#. Label of a Check field in DocType 'Theme Settings'
-#. src: ai
-msgid "Remember Sections"
-msgstr "تذكّر الأقسام"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Remember sections"
-msgstr "تذكّر الأقسام"
 
 #. In theme_settings.js
 #. src: ai
@@ -2182,16 +2103,6 @@ msgstr "المجدول يعمل"
 #. src: ai
 msgid "Scheduler paused"
 msgstr "المجدول متوقف"
-
-#. Label of a Check field in DocType 'Theme Settings'
-#. src: ai
-msgid "Scroll Fades"
-msgstr "تلاشي التمرير"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Scroll fades"
-msgstr "تلاشي التمرير"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
@@ -2418,11 +2329,6 @@ msgstr "كبسولة معتمة"
 msgid "Solid pill"
 msgstr "كبسولة معتمة"
 
-#. Option for 'Rail Button Shape' in DocType 'Theme Settings'
-#. src: ai
-msgid "Square"
-msgstr "مربع"
-
 #. In theme_settings.js
 #. src: ai
 msgid "Start"
@@ -2462,11 +2368,6 @@ msgstr "حضور السطح"
 #. src: ai
 msgid "Surface intensity"
 msgstr "حضور السطح"
-
-#. Option for 'Rail Button Shape' in DocType 'Theme Settings'
-#. src: ai
-msgid "Tab"
-msgstr "لسان"
 
 #. Label of a Data field in DocType 'Theme Settings'
 #. src: ai
@@ -3885,6 +3786,13 @@ msgstr "تعتيم"
 #. src: item28
 msgid "Blurred"
 msgstr "ضبابي"
+
+#. Option for 'Pane Material' in DocType 'Theme Settings'
+#. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "Blurred Glass"
+msgstr "زجاجية مموّهة"
 
 #. src: item28
 msgid "Menu Row"

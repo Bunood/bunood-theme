@@ -72,6 +72,13 @@ bunood_theme.patches.v0_40_0.rename_sidebar_fields
 # the material it keeps.
 bunood_theme.patches.v0_40_0.merge_glass_material
 
+# And the last of the side-pane field model: two active-link styles that
+# rendered as another one, and three fields with nothing behind them. The
+# style rewrite matters most - an out-of-range Select on a Single fails
+# validation for the WHOLE document, so one stale value breaks every later
+# save of every other setting.
+bunood_theme.patches.v0_40_0.collapse_pane_options
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

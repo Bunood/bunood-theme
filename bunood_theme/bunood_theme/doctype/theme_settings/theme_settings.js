@@ -2323,9 +2323,7 @@ const BND_SB_GROUPS = [
 			{ value: "Solid Pill", name: () => __("Solid pill"), thumb: '<span class="bnd-sbp-row" style="background:var(--primary,#3d8150);color:#fff"></span>' },
 			{ value: "Soft Pill", name: () => __("Soft pill"), thumb: '<span class="bnd-sbp-row" style="background:color-mix(in srgb, var(--primary,#3d8150) 18%, transparent)"></span>' },
 			{ value: "Accent Rail", name: () => __("Accent rail"), thumb: '<span class="bnd-sbp-row" style="border-inline-start:3px solid var(--primary,#3d8150);border-radius:0;background:color-mix(in srgb, var(--primary,#3d8150) 8%, transparent)"></span>' },
-			{ value: "Glow Ring", name: () => __("Glow ring"), thumb: '<span class="bnd-sbp-row" style="outline:2px solid color-mix(in srgb, var(--primary,#3d8150) 55%, transparent);outline-offset:1px"></span>' },
 			{ value: "Outline", name: () => __("Outline"), thumb: '<span class="bnd-sbp-row" style="box-shadow:inset 0 0 0 1.5px var(--primary,#3d8150)"></span>' },
-			{ value: "Dot Marker", name: () => __("Dot marker"), thumb: '<span class="bnd-sbp-row" style="background:var(--control-bg)"></span><span style="position:absolute;inset-inline-end:14px;inset-block-start:50%;translate:0 -50%;inline-size:6px;block-size:6px;border-radius:50%;background:var(--primary,#3d8150)"></span>' },
 			{
 				value: "Folder Tab",
 				name: () => __("Folder tab"),
@@ -2393,16 +2391,6 @@ const BND_SB_GROUPS = [
 			{ value: "Bottom", name: () => __("Bottom"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:12px"></span>' },
 		],
 	},
-	{
-		field: "sidebar_rail_button_shape",
-		zone: "rail",
-		title: () => __("Rail button shape"),
-		options: [
-			{ value: "Circle", name: () => __("Circle"), thumb: '<span class="bnd-sbp-shape" style="border-radius:50%"></span>' },
-			{ value: "Square", name: () => __("Square"), thumb: '<span class="bnd-sbp-shape" style="border-radius:4px"></span>' },
-			{ value: "Tab", name: () => __("Tab"), thumb: '<span class="bnd-sbp-shape" style="inline-size:9px;block-size:26px;border-radius:0 5px 5px 0;border-inline-start:none"></span>' },
-		],
-	},
 	// Rail button icon moved to the Icons axis (item 23).
 	{
 		field: "sidebar_badges",
@@ -2421,12 +2409,6 @@ const BND_SB_GROUPS = [
 const BND_SB_STEPPERS = [
 	{ field: "sidebar_card_depth", zone: "pane", title: () => __("Surface intensity"), lo: () => __("Hairline"), hi: () => __("Elevated") },
 	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
-];
-
-/** Toggle rows: field + name + one-liner. */
-const BND_SB_TOGGLES = [
-	{ field: "sidebar_remember_sections", name: () => __("Remember sections"), desc: () => __("Keep each user's opened groups between visits.") },
-	{ field: "sidebar_scroll_fades", name: () => __("Scroll fades"), desc: () => __("Overflowing links fade at the edges instead of clipping.") },
 ];
 
 /** Fetch the preset catalogue once, then render. */
@@ -2547,16 +2529,6 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		));
 	});
 
-	const toggles = BND_SB_TOGGLES.map((t) => {
-		const on = !!parseInt(frm.doc[t.field], 10);
-		return (
-			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
-			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
-			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
-			"</button>"
-		);
-	}).join("");
-
 	const toolbar =
 		'<div class="bnd-sbp-toolbar">' +
 		'<input type="search" class="bnd-sbp-search" aria-label="' + __("Search settings") + '" placeholder="' + __("Search settings…") + '">' +
@@ -2577,21 +2549,15 @@ function bnd_render_sidebar_picker_now(frm, host) {
 				// composition this is.
 				{ zone: "style", html: (kit_off ? P.note(kit_off) : "") },
 				{ zone: "placement", html: by_zone.placement },
-				// The blur control is authored inline rather than in a table, so
-				// its band is stated here. It belongs with the surface it blurs.
 				{ zone: "pane", html: by_zone.pane || "" },
 				{ zone: "links", html: by_zone.links },
 				{ zone: "rail", html: by_zone.rail },
-				// The literal `__("Extras")` group this replaces was the same idea
-				// hand-rolled, in the second of two pickers that each had their own
-				// copy. Both are gone.
-				{ zone: "extras", html: '<div class="bnd-cbp-group bnd-sbp-group"><div class="bnd-cbp-switches">' + toggles + "</div></div>" },
 			]) +
 			"</div>"
 	);
 
 	// One delegated pass wires everything; re-render happens on any change.
-	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
+	$host.find(".bnd-sbp-opt, .bnd-sbp-stop").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_sb_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
 	});

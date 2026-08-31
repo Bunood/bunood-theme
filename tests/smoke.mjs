@@ -1292,7 +1292,7 @@ const SLUG = {
 	sidebar_material: { Solid: "solid", Glass: "glass", "Blurred Glass": "glassblur" },
 	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
 	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
-	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", "Glow Ring": "glow", Outline: "outline", "Dot Marker": "dot", "Folder Tab": "foldertab" },
+	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
 	sidebar_menu_rail: { "Always Expanded": "expanded", "Manual Collapse": "manual", Rail: "rail" },
@@ -1350,10 +1350,9 @@ const MUTABLE_FIELDS = [
 	"sidebar_color",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
-	"sidebar_rail_button", "sidebar_rail_button_shape",
+	"sidebar_rail_button",
 	"sidebar_pane_width",
-	"sidebar_badges", "sidebar_remember_sections",
-	"sidebar_scroll_fades",
+	"sidebar_badges",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
 	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
 	// Personalization locks (item 38). Here for the ordinary reason and one of
@@ -3787,6 +3786,75 @@ async function main() {
 			}
 		});
 
+		await test("sidepane: the five active-link styles mark the row five different ways", async () => {
+			// SEVEN BECAME FIVE, and the two that went were measured rather than
+			// judged. Glow Ring is Outline plus a blur. Dot Marker's `::after`
+			// sits at `inset-inline-end: var(--bnd-sp-2)` and `.bnd-sb-badge` at
+			// `margin-inline-start: auto` -- THE SAME PIXEL -- so Dot Marker with
+			// badges on Dots drew two 6px circles in one place, in two colours,
+			// and the picker offered it.
+			//
+			// What survives has to earn it. This renders each style and compares
+			// the SIGNATURE the rules actually write, not the attribute: an
+			// attribute assertion passes just as happily for five identical rows.
+			const before = getSettings(["sidebar_active_style", "sidebar_placement"]);
+			try {
+				const STYLES = ["Solid Pill", "Soft Pill", "Accent Rail", "Outline", "Folder Tab"];
+				const seen = {};
+				for (const style of STYLES) {
+					// Folder Tab refuses a floating pane (the picker says so), so
+					// pin the placement rather than inherit whatever ran last.
+					setSettings({ sidebar_active_style: style, sidebar_placement: "Attached" });
+					await goDesk("/app/selling", "body", 3000);
+					seen[style] = await page.evaluate(
+						() =>
+							new Promise((done) => {
+								const el = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
+								if (!el) return done(null);
+								// Three consecutive agreeing frames: the pill
+								// transitions, and this repo has both cried wolf and
+								// certified a live defect by reading mid-fade.
+								const seenF = [];
+								let frames = 0;
+								const tick = () => {
+									const cs = getComputedStyle(el);
+									seenF.push([
+										cs.backgroundColor,
+										cs.boxShadow,
+										cs.borderInlineStartWidth + " " + cs.borderInlineStartColor,
+										cs.borderStartStartRadius,
+										getComputedStyle(el, "::after").content,
+									].join(" / "));
+									const n = seenF.length;
+									if (n >= 3 && seenF[n - 1] === seenF[n - 2] && seenF[n - 2] === seenF[n - 3]) {
+										return done(seenF[n - 1]);
+									}
+									if (++frames > 90) return done("(unsettled)");
+									requestAnimationFrame(tick);
+								};
+								requestAnimationFrame(tick);
+							})
+					);
+					// ANTI-VACUITY. If Frappe marks no row active on this route the
+					// whole comparison is five nulls, which are trivially equal and
+					// would read as five identical styles -- the exact failure this
+					// check exists to catch, reported as its own opposite.
+					expect(seen[style], `an active pane row exists to mark under ${style}`);
+					expect(seen[style] !== "(unsettled)", `${style} settles within the frame cap`);
+				}
+				for (let i = 0; i < STYLES.length; i++) {
+					for (let j = i + 1; j < STYLES.length; j++) {
+						expect(
+							seen[STYLES[i]] !== seen[STYLES[j]],
+							`${STYLES[i]} and ${STYLES[j]} are not the same pixel (${seen[STYLES[i]]})`
+						);
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("placement: exactly one of each, wherever it was placed", async () => {
 			// THE BUG THE CONTAINER SPLIT CREATED, measured 2026-08-07 with every
 			// container on: asking for the bell in the Top Bar produced THREE
@@ -5445,7 +5513,12 @@ async function main() {
 			}
 			// And the two that must stay unbanded, because they have one zone.
 			expectEq(report.search_picker.zones, 0, "search grew bands; it is placement-only");
-			expect(report.sidebar_picker.zones >= 5, `side pane has only ${report.sidebar_picker.zones} bands`);
+			// FOUR since item 40, not five: the "extras" band held exactly two toggles,
+			// `sidebar_remember_sections` (zero consumers since v0.6.0) and
+			// `sidebar_scroll_fades` (a preference about whether a list overflows), and
+			// both fields are gone. The floor moves with the deletion rather than being
+			// dropped: what it catches is a band vanishing by accident.
+			expect(report.sidebar_picker.zones >= 4, `side pane has only ${report.sidebar_picker.zones} bands`);
 		});
 
 		await test("bands: the side pane filter hides a band once it empties", async () => {
@@ -6246,6 +6319,67 @@ async function main() {
 					expectEq(r.material, c.want, c.label);
 					expect(!r.left.sidebar_glass_opacity && !r.left.sidebar_blur,
 						`${c.label}: both departed fields are reaped (${JSON.stringify(r.left)})`);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("settings: the retired active styles land somewhere real", async () => {
+			// Both retired values, plus one survivor as the control: a patch that
+			// rewrote EVERY style would pass a test that only tried the two.
+			//
+			// This one matters more than the usual migration check, because
+			// `sidebar_active_style` is a Select on a Single and an out-of-range
+			// value there fails validation for the WHOLE document -- one stale
+			// style silently breaks every later save of every other setting.
+			// Measured 2026-08-08, six unrelated checks red.
+			const CASES = [
+				{ from: "Glow Ring", to: "Outline" },
+				{ from: "Dot Marker", to: "Accent Rail" },
+				{ from: "Soft Pill", to: "Soft Pill" },
+			];
+			const before = getSettings(["sidebar_active_style"]);
+			try {
+				for (const c of CASES) {
+					const out = benchPy(
+						"import json\n" +
+							"from bunood_theme.patches.v0_40_0.collapse_pane_options import execute\n" +
+							"def raw(f):\n" +
+							"    rows = frappe.db.sql(\"select value from tabSingles where doctype='Theme Settings' and field=%s\", (f,))\n" +
+							"    return rows[0][0] if rows else None\n" +
+							"res = {}\n" +
+							"try:\n" +
+							"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in " +
+							"('sidebar_rail_button_shape','sidebar_remember_sections','sidebar_scroll_fades')\")\n" +
+							// INSERT, not UPDATE: these rows are already gone here,
+							// and an UPDATE on an absent row is a silent no-op.
+							"    frappe.db.sql(\"insert into tabSingles (doctype, field, value) values " +
+							"('Theme Settings','sidebar_rail_button_shape','Tab'), " +
+							"('Theme Settings','sidebar_remember_sections','1'), " +
+							"('Theme Settings','sidebar_scroll_fades','1')\")\n" +
+							"    frappe.db.sql(\"update tabSingles set value=%s where doctype='Theme Settings' and " +
+							`field='sidebar_active_style'", ('${c.from}',))\n` +
+							"    frappe.clear_cache(doctype='Theme Settings')\n" +
+							"    execute()\n" +
+							"    res['style'] = raw('sidebar_active_style')\n" +
+							"    res['left'] = {f: raw(f) for f in " +
+							"('sidebar_rail_button_shape','sidebar_remember_sections','sidebar_scroll_fades')}\n" +
+							"finally:\n" +
+							"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field in " +
+							"('sidebar_rail_button_shape','sidebar_remember_sections','sidebar_scroll_fades')\")\n" +
+							"    frappe.db.commit()\n" +
+							"    frappe.clear_cache(doctype='Theme Settings')\n" +
+							"print('BND_CP' + json.dumps(res))\n"
+					);
+					const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_CP"));
+					if (!line) throw new Error("collapse probe produced no JSON: " + String(out).slice(-300));
+					const r = JSON.parse(line.slice("BND_CP".length));
+					expectEq(r.style, c.to, `${c.from} lands on ${c.to}`);
+					expect(
+						!r.left.sidebar_rail_button_shape && !r.left.sidebar_remember_sections && !r.left.sidebar_scroll_fades,
+						`all three departed fields are reaped (${JSON.stringify(r.left)})`
+					);
 				}
 			} finally {
 				setSettings(before);

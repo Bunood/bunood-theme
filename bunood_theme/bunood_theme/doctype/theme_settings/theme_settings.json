@@ -52,11 +52,8 @@
   "sidebar_menu_rail",
   "sidebar_rail_trigger",
   "sidebar_rail_button",
-  "sidebar_rail_button_shape",
   "sidebar_pane_width",
   "sidebar_badges",
-  "sidebar_remember_sections",
-  "sidebar_scroll_fades",
   "section_crumbs",
   "crumb_style",
   "crumbs_picker",
@@ -431,7 +428,7 @@
    "fieldname": "sidebar_active_style",
    "fieldtype": "Select",
    "label": "Active Link Style",
-   "options": "Solid Pill\nSoft Pill\nAccent Rail\nGlow Ring\nOutline\nDot Marker\nFolder Tab",
+   "options": "Solid Pill\nSoft Pill\nAccent Rail\nOutline\nFolder Tab",
    "hidden": 1
   },
   {
@@ -478,13 +475,6 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_rail_button_shape",
-   "fieldtype": "Select",
-   "label": "Rail Button Shape",
-   "options": "Circle\nSquare\nTab",
-   "hidden": 1
-  },
-  {
    "fieldname": "icon_rail_button",
    "fieldtype": "Select",
    "label": "Rail Button Icon",
@@ -512,18 +502,6 @@
    "fieldtype": "Select",
    "label": "Count Badges",
    "options": "Off\nDots\nCounts",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_remember_sections",
-   "fieldtype": "Check",
-   "label": "Remember Sections",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_scroll_fades",
-   "fieldtype": "Check",
-   "label": "Scroll Fades",
    "hidden": 1
   },
   {
