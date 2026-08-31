@@ -1405,7 +1405,18 @@ than a version number that would describe two different things.
   `color`, a property the sprite glyph never reads** — the stroke painted from
   Frappe's own grey the whole time.
 
-  **Still to come:** the list features, drag-to-resize, the account band, identity and
+  **The list features are done.** The in-pane filter — the survey's clearest gap —
+  always renders when On, says *Filter this workspace* rather than Search, hides
+  headers with their items, and REVEALS matches inside collapsed sections: its own
+  premise check measured that sections rest collapsed here, leaving six visible links
+  of sixty, which would have made a surface-only filter worthless. The overflow fade
+  became the fact it always was (edges stamped by JS, the focus ring on the first row
+  no longer clipped), the resting rail now REFUSES focus instead of merely hiding its
+  links from sight, and the pane's active row finally says `aria-current`. Badge
+  roll-up and collapse-all wait for the design slice — the first needs an observer on
+  Frappe's collapse toggle, the second a drawn home.
+
+  **Still to come:** shortcuts, drag-to-resize, the account band, identity and
   placement, preset integration, and the picked design.
 
 ---

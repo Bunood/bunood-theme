@@ -47,8 +47,9 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
-FIELD MODEL DONE (19 style settings → 12); PLACE ROW DONE; ONE LIFECYCLE DONE;
-SECTIONS DONE (paint, not surgery — and collapse is Frappe's, measured).**
+FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE; ONE
+LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE (filter with
+collapsed-section reveal, automatic fades, rail inert repair, aria-current).**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
@@ -154,6 +155,14 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **SECTIONS REST COLLAPSED, AND FRAPPE'S `.hidden` IS `display: none !important`.**
+  Two facts a pane feature will trip over: only ~6 of 60 links are visible at rest on
+  this desk, and nothing beats that vendor literal unescalated. The filter's reveal is
+  the sanctioned `!important` pattern's newest site (scoped to `data-bnd-sb-filtering`,
+  which the filter alone stamps); anything else that needs to see inside a collapsed
+  section goes the same way or re-aggregates on the toggle, never by flipping Frappe's
+  own class — their collapse state machine owns it.
 
 - **THE SPRITE GLYPH PAINTS BY `stroke`, NEVER BY `color` — and Frappe stamps its grey
   ON THE SVG ITSELF.** `.text-ink-gray-7` sits on the svg element, so a span-level

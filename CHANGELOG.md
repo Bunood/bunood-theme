@@ -24,12 +24,10 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Five have landed: the COLOUR phase,
-which changes what a desk paints; the FIELD MODEL — nineteen style settings down to
-twelve; THE PLACE ROW, which changes what the pane's head IS; ONE LIFECYCLE, which
-changes how any of it gets there and comes back; and SECTIONS, which stop being surgery.
-Still to come: the list features, drag-to-resize, the account band, and the picked
-design.
+**In flight.** The pane's rebuild is thirteen slices. Six have landed: the COLOUR phase;
+the FIELD MODEL — nineteen style settings down to twelve, thirteen with the filter; THE
+PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; and THE LIST FEATURES.
+Still to come: shortcuts, drag-to-resize, the account band, and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -390,6 +388,41 @@ holding the old value — the same trap the quick links found, two fields over.
   sidebar with no sections, and the wrapper-count assertion only passed there because
   the wrap built a neutral "card 0" around loose links — certifying Cards on a pane
   that could not show it.
+
+### Added — the list features
+
+- **An in-pane filter (`sidebar_filter`)** — the survey's clearest gap: common in
+  product tools (6/13), absent from every ERP surveyed (0/14), while ERPs are the ones
+  with 70-link workspaces. Always rendered when On; the placeholder says "Filter this
+  workspace", never Search, which is the palette's job; headers follow their items; the
+  live region speaks *Matches: N* as label + value, never a bare count; Escape restores
+  everything and ArrowDown enters the list.
+- **The filter REVEALS matches inside collapsed sections** — its own premise check
+  found that sections rest collapsed here, leaving six visible links of sixty, so a
+  filter over only what is open finds almost nothing. Frappe collapses with
+  `.hidden { display: none !important }`, a vendor `!important` literal, so the reveal
+  is the sanctioned pattern's newest site (GUIDELINES §1.3): one escalation, scoped to
+  a transient attribute the filter alone stamps — dropping it is the total undo, and
+  the check proves collapsed sections close again on Escape.
+- **The overflow fade is automatic**, replacing the deleted `sidebar_scroll_fades`
+  preference with the fact it always was: JS stamps which EDGES hide content, so the
+  fade exists exactly when there is overflow, and the top edge stays unmasked at the
+  top — the old unconditional mask clipped the first row's focus ring.
+
+### Fixed — the list features
+
+- **A resting rail refuses focus instead of merely hiding.** `opacity: 0` removes
+  nothing from the tab order, so the collapsed rail was dozens of invisible links a
+  keyboard user tabbed straight into, mitigated only by focusin opening the rail after
+  the fact. `visibility: hidden` with a delayed transition keeps the fade and removes
+  the trap; the check asserts focusability itself, because walking Tab would have been
+  dressed by the very mitigation.
+- **The pane's active row says `aria-current="page"`** — set on the dock since item 13
+  and never on the one place a person actually is. Exactly one row carries it,
+  refreshed on route change.
+- Badge roll-up and collapse-all are deferred to the design slice, stated rather than
+  shrunk: roll-up needs re-aggregation on Frappe's collapse toggle, and collapse-all
+  needs a drawn home, which is the user's pick.
 
 ### Known, and filed rather than fixed
 
