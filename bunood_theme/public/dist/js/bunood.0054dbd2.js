@@ -805,9 +805,10 @@
 	 * Take a container back off the desk.
 	 *
 	 * The mirror of each mount, and the reason `chrome_apply` can exist at all.
-	 * The side pane has no entry because it is Frappe's: nothing of ours built
-	 * it, so nothing of ours removes it — hiding is the whole mechanism, and
-	 * `data-bnd-chrome-off` is what does it.
+	 * The side pane's entry removes what WE put in it, never the pane: nothing
+	 * of ours built the container, so `data-bnd-chrome-off` still hides that.
+	 * The entry was `() => {}` until item 40, on the argument that hiding is the
+	 * whole mechanism — true of the container and false of its contents.
 	 */
 	const CONTAINER_TEARDOWN = {
 		topbar: () => {
@@ -828,7 +829,7 @@
 		dock: () => {
 			for (const n of document.querySelectorAll(".bnd-dock")) n.remove();
 		},
-		sidepane: () => {},
+		sidepane: sidepane_teardown,
 	};
 
 	/**
@@ -891,7 +892,7 @@
 		mount_search();
 		mount_placed_tenants();
 		if (guard_critical_reach()) mount_placed_tenants();
-		mount_sidebar_kit();
+		if (container_on("sidepane")) mount_sidebar_kit();
 		// The links live in containers too: without this, switching the bar
 		// that held them leaves them behind in a node that has just been
 		// removed, or absent from the one that has just arrived.
@@ -1081,14 +1082,14 @@
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
 			"Outline": "outline", "Folder Tab": "foldertab",
 		},
-		sections: { "Plain": "plain", "Divided": "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
+		sections: { "Plain": "plain", "Divided": "divided", "Cards": "cards" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
 		// Legacy labels ("Hover-Expand", "Hover + Pin") predate the split into
 		// mode + trigger; they still resolve so an already-configured site
 		// keeps its rail across the upgrade.
-		menurail: { "Always Expanded": "expanded", "Manual Collapse": "manual", "Rail": "rail", "Hover-Expand": "rail", "Hover + Pin": "rail" },
-		railtrigger: { "Hover": "hover", "Click": "click", "Button Only": "button", "Hover + Pin": "hoverpin" },
-		railbtn: { "None": "", "Edge": "edge", "Top": "top", "Bottom": "bottom" },
+		menurail: { "Always Expanded": "expanded", "Rail": "rail", "Hover-Expand": "rail", "Hover + Pin": "rail" },
+		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
+		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
 		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
 		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
@@ -5825,7 +5826,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sb_wrap_sections() {
 		const kind = document.documentElement.getAttribute("data-bnd-sb-sections");
-		if (kind !== "cards" && kind !== "accordion") return;
+		if (kind !== "cards") return;
 		const list = document.querySelector(".body-sidebar-top .sidebar-items");
 		if (!list || list.querySelector(".bnd-sb-card")) return;
 		try {
@@ -6233,8 +6234,8 @@ function sb_zone_anchor(pane, zone, node) {
 		// The expand button. Its click PINS the pane (open until clicked
 		// again) so it works alone and alongside the hover trigger.
 		const sb = sb_state || {};
-		let pos = SB_SLUGS.railbtn[sb.rail_button] || "";
-		if (trigger === "button" && !pos) pos = "edge";
+		// No "Button Only": it forced pos="edge", overwriting another picker.
+		const pos = SB_SLUGS.railbtn[sb.rail_button] || "";
 		if (pos) {
 			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
 			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
@@ -6277,9 +6278,10 @@ function sb_zone_anchor(pane, zone, node) {
 			container.style.width = "";
 			return;
 		}
-		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
-		if (mode === "expanded") container.style.width = "var(--bnd-sb-w)";
+		// Frappe's collapse is the `expanded` CLASS, and since item 40 it is the
+		// only collapse there is. _sidebar.scss carries the pairing.
+		if (container.classList.contains("expanded")) container.style.width = "var(--bnd-sb-w)";
 		else container.style.width = "";
 	}
 
@@ -6349,25 +6351,27 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The icon mode last applied — a change forces reprocessing. */
 	let sb_icon_mode_applied = null;
 
+	/** Give Frappe's own rows their icons back. The inverse of sb_fix_icons,
+	 *  and the third writing of this loop — two of them were inside it. */
+	function sb_restore_icons() {
+		for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
+			const span = item.querySelector(".sidebar-item-icon");
+			if (span && sb_icon_originals.has(span)) span.innerHTML = sb_icon_originals.get(span);
+			item.removeAttribute("data-bnd-iconized");
+		}
+		sb_icon_mode_applied = null;
+	}
+
 	function sb_fix_icons() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-iconsrc") || "smart";
 		if (sb_icon_mode_applied && sb_icon_mode_applied !== mode) {
 			// Restore before reapplying, or already-processed items would be
 			// skipped and a smart->letters preview would change nothing.
-			for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
-				const span = item.querySelector(".sidebar-item-icon");
-				if (span && sb_icon_originals.has(span)) span.innerHTML = sb_icon_originals.get(span);
-				item.removeAttribute("data-bnd-iconized");
-			}
+			sb_restore_icons();
 		}
 		sb_icon_mode_applied = mode;
 		if (mode === "original") {
-			// Restore anything a previous mode replaced.
-			for (const item of document.querySelectorAll("[data-bnd-iconized]")) {
-				const span = item.querySelector(".sidebar-item-icon");
-				if (span && sb_icon_originals.has(span)) span.innerHTML = sb_icon_originals.get(span);
-				item.removeAttribute("data-bnd-iconized");
-			}
+			sb_restore_icons(); // restore anything a previous mode replaced
 			return;
 		}
 		for (const item of document.querySelectorAll(
@@ -6397,8 +6401,10 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
-	/** Cache so badge counts are fetched at most once a minute per rebuild. */
+	/** The last label set we fetched counts for, and when. Keyed on the SET,
+	 *  not on the clock alone — see sb_mount_badges. */
 	let sb_badges_at = 0;
+	let sb_badges_key = "";
 
 	/**
 	 * Live badges on sidebar links. One batched server call
@@ -6409,14 +6415,19 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_badges() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-badges");
 		if (mode !== "dots" && mode !== "counts") return;
-		if (Date.now() - sb_badges_at < 60000) return;
 
 		const items = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]:not(.section-item)")];
 		const labels = items.map((i) => i.getAttribute("item-name")).filter(Boolean);
 		if (!labels.length) return;
-		// Stamp the throttle only once there is actually something to fetch —
-		// at first mount the item list is often not built yet, and stamping on
-		// the empty attempt throttled away the observer's retry (measured).
+
+		// The window applies WITHIN one label set, never across two: a workspace
+		// switch replaces every label and must refetch. _sidebar.scss has why.
+		const key = labels.join("|");
+		if (key === sb_badges_key && Date.now() - sb_badges_at < 60000) return;
+		// Stamp only once there is something to fetch — at first mount the item
+		// list is often not built yet, and stamping on the empty attempt
+		// throttled away the observer's retry (measured).
+		sb_badges_key = key;
 		sb_badges_at = Date.now();
 
 		frappe
@@ -6439,38 +6450,146 @@ function sb_zone_anchor(pane, zone, node) {
 			.catch(() => {}); // badges are decoration; never surface a failure
 	}
 
-	/**
-	 * Watch the sidebar for the two events that must undo/redo our surgery:
-	 * Frappe rebuilding the item list (workspace switch) and edit mode
-	 * starting/ending. Both are observed rather than hooked — Frappe exposes
-	 * no events here — with our own mutations guarded out via sb_mutating.
-	 */
-	function sb_observe() {
-		const list = document.querySelector(".body-sidebar-top .sidebar-items");
-		if (list && typeof MutationObserver !== "undefined") {
-			let timer = null;
-			new MutationObserver(() => {
-				if (sb_mutating) return;
-				clearTimeout(timer);
-				timer = setTimeout(() => {
-					if (!sb_edit_active()) {
-						sb_mount_head();
-						sb_mount_utils();
-						sb_wrap_sections();
-						sb_fix_icons();
-						sb_mount_badges();
-					}
-				}, 200);
-			}).observe(list, { childList: true, subtree: true });
-		}
+	// ── The pane's lifecycle (item 40) — argument in _sidebar.scss ─────────
 
-		const bottom = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
-		if (bottom && typeof MutationObserver !== "undefined") {
-			new MutationObserver(() => {
+	/** Remove the head. */
+	function sb_teardown_head() {
+		for (const n of document.querySelectorAll(".bnd-sb-head")) n.remove();
+		claim_panehead();
+	}
+
+	/** The link rows the PANE holds. A bar-placed pair outlives it. */
+	function sb_teardown_pane_utils() {
+		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-utils")) n.remove();
+	}
+
+	/** Remove the badges and forget the throttle, so a remount refetches. */
+	function sb_teardown_badges() {
+		for (const n of document.querySelectorAll(".bnd-sb-badge")) n.remove();
+		sb_badges_at = 0;
+		sb_badges_key = "";
+	}
+
+	/** Hand the container's width back to the stylesheet. */
+	function sb_clear_width() {
+		const container = document.querySelector(".body-sidebar-container");
+		if (container) container.style.width = "";
+	}
+
+	/** The rail, without the caller having to find the container first. */
+	function sb_teardown_rail_here() {
+		const container = document.querySelector(".body-sidebar-container");
+		if (container) sb_teardown_rail(container);
+	}
+
+	/** The ladder as DATA — both directions read it. `volatile` = lives inside
+	 *  `.sidebar-items`, which Frappe rebuilds. Argument: _sidebar.scss. */
+	const SB_PARTS = [
+		{ key: "head", volatile: false, mount: sb_mount_head, unmount: sb_teardown_head },
+		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
+		{ key: "sections", volatile: true, mount: sb_wrap_sections, unmount: sb_unwrap_sections },
+		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
+		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
+		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
+		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
+	];
+
+	/** The watch record: the NODES being observed, their observers, and the one
+	 *  timer they share. Null when nothing is being watched. */
+	let sb_watch = null;
+
+	/** Install the pane's observers once, deduped on NODE IDENTITY — a boolean
+	 *  would turn the leak into a silence. Argument: _sidebar.scss. */
+	function sidepane_observe() {
+		if (typeof MutationObserver === "undefined") return;
+		const list = document.querySelector(".body-sidebar-top .sidebar-items");
+		const edit = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
+		if (!list && !edit) return;
+		const box0 = document.querySelector(".body-sidebar-container");
+		if (sb_watch && sb_watch.list === list && sb_watch.edit === edit && sb_watch.box === box0) return;
+		sidepane_unobserve();
+		const watch = { list, edit, box: null, obs: [], timer: null };
+		sb_watch = watch;
+		if (list) {
+			const o = new MutationObserver(() => {
+				if (sb_mutating) return;
+				clearTimeout(watch.timer);
+				watch.timer = setTimeout(() => {
+					if (!sb_edit_active()) sidepane_sync("list");
+				}, 200);
+			});
+			o.observe(list, { childList: true, subtree: true });
+			watch.obs.push(o);
+		}
+		if (edit) {
+			const o = new MutationObserver(() => {
 				if (sb_edit_active()) sb_unwrap_sections();
 				else setTimeout(sb_wrap_sections, 250);
-			}).observe(bottom, { attributes: true, attributeFilter: ["class"] });
+			});
+			o.observe(edit, { attributes: true, attributeFilter: ["class"] });
+			watch.obs.push(o);
 		}
+		// The collapse gesture is a class flip; the width has to follow it.
+		const box = document.querySelector(".body-sidebar-container");
+		if (box) {
+			const o = new MutationObserver(() => sb_apply_width());
+			o.observe(box, { attributes: true, attributeFilter: ["class"] });
+			watch.obs.push(o);
+			watch.box = box;
+		}
+	}
+
+	/** Stop watching. Called by teardown, so an observer cannot outlive the
+	 *  parts it exists to rebuild. */
+	function sidepane_unobserve() {
+		if (!sb_watch) return;
+		for (const o of sb_watch.obs) o.disconnect();
+		clearTimeout(sb_watch.timer);
+		sb_watch = null;
+	}
+
+	/** Put our parts in the pane. `only_volatile` is the route contract: a list
+	 *  rebuild touches what lived inside the list and nothing else. */
+	function sidepane_mount(only_volatile) {
+		for (const part of SB_PARTS) {
+			if (only_volatile && !part.volatile) continue;
+			part.mount();
+		}
+	}
+
+	/** Take every part back out, and stop watching. The exact mirror, total. */
+	function sidepane_teardown() {
+		sidepane_unobserve();
+		for (let i = SB_PARTS.length - 1; i >= 0; i--) SB_PARTS[i].unmount();
+	}
+
+	/**
+	 * The single entry. Every caller that used to climb a ladder calls this.
+	 * @param {string} reason - "mount" | "settings" | "list"
+	 */
+	function sidepane_sync(reason) {
+		// `container_on` as well as the DOM, which answers stale mid-apply.
+		if (!sb_active() || sidebar_is_hidden() || !container_on("sidepane")) {
+			sidepane_teardown();
+			return;
+		}
+		sb_resolve_workspace_from_route();
+		if (reason === "list") {
+			sidepane_mount(true);
+			sidepane_observe();
+			return;
+		}
+		// A retry budget for the head, and it RE-CHECKS ITS OWN PREMISE: it
+		// outlives the call that scheduled it, so a pending attempt would land
+		// after a teardown. _sidebar.scss carries it.
+		try_for(() => {
+			// Not WANTED stops the loop; not READY yet does not. _sidebar.scss.
+			if (!sb_active() || !container_on("sidepane")) return true;
+			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
+			sidepane_mount(false);
+			sidepane_observe();
+			return true;
+		}, 30);
 	}
 
 	/** True while Frappe's sidebar edit mode is active (save/discard shown). */
@@ -6704,24 +6823,10 @@ function sb_zone_anchor(pane, zone, node) {
 		};
 		apply_sidebar_attrs(next);
 
-		// Structural pieces are torn down and remounted from the new state.
-		const container = document.querySelector(".body-sidebar-container");
-		if (container) sb_teardown_rail(container);
-		if (document.documentElement.getAttribute("data-bnd-sb-sections") === "cards" ||
-			document.documentElement.getAttribute("data-bnd-sb-sections") === "accordion") {
-			sb_wrap_sections();
-		} else {
-			sb_unwrap_sections();
-		}
-		sb_mount_utils();
-		sb_fix_icons();
-		sb_mount_rail();
-		sb_apply_width();
-		// Badges rebuild from scratch so mode switches (counts -> dots -> off)
-		// preview truthfully instead of stacking.
-		for (const badge of document.querySelectorAll(".bnd-sb-badge")) badge.remove();
-		sb_badges_at = 0;
-		sb_mount_badges();
+		// The same teardown every other caller uses. This block used to re-run
+		// eight of the ten mounts by hand and skip the other two.
+		sidepane_teardown();
+		sidepane_sync("settings");
 	};
 
 	/**
@@ -6805,35 +6910,9 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Mount every active piece of the sidebar kit. Skipped in Dock layout. */
 	function mount_sidebar_kit() {
-		// Asks whether the side pane is actually usable, not which layout this
-		// is. A dock can now sit beside a side pane (Top Bar + dock), and it
-		// can be absent from the Dock layout — both states in which the old
-		// `layout() === "dock"` test gave the wrong answer, one by decorating
-		// nothing and one by leaving a real side pane undecorated.
-		if (!sb_active() || sidebar_is_hidden()) return;
-		sb_resolve_workspace_from_route();
-		// The header renders a beat after the shell exists; utils and the
-		// module row anchor to it, so they get their own retry budget
-		// (measured: a single attempt raced and silently mounted nothing).
-		try_for(() => {
-			if (!document.querySelector(".body-sidebar .sidebar-header")) return false;
-			sb_mount_head();
-			// Home and All Apps are NOT mounted here any more. They are their
-			// own components with their own placements (slice 2), and reaching
-			// them only through this function meant a link placed in the top
-			// bar never mounted at all when the side pane was switched off —
-			// one setting silently requiring another. mount_chrome calls
-			// sb_mount_utils directly; this retry still gets them into the pane
-			// when that is where they belong, because the call is idempotent.
-			sb_mount_utils();
-			return true;
-		}, 30);
-		sb_wrap_sections();
-		sb_fix_icons();
-		sb_mount_rail();
-		sb_apply_width();
-		sb_mount_badges();
-		sb_observe();
+		// `sidepane_sync` owns the is-there-a-pane question, and tears down when
+		// the answer is no.
+		sidepane_sync("mount");
 	}
 
 	// ── Orchestration ───────────────────────────────────────────────────────

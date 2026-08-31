@@ -85,6 +85,18 @@ bunood_theme.patches.v0_40_0.collapse_pane_options
 # read Custom on all twelve theme cards against a baseline that had moved.
 bunood_theme.patches.v0_40_0.quick_links_stand_down
 
+# The option vocabulary the plan retired, in one pass: Accordion Cards and
+# Mini-Cards become Cards, Button Only stops being a trigger (and gives back
+# the edge button its implementation was drawing anyway), Top becomes Header
+# and Bottom moves off the foot's own controls.
+bunood_theme.patches.v0_40_0.retune_pane_vocabulary
+
+# And the two whose DEFAULT moved rather than whose options did: the rail mode
+# loses Manual Collapse (the user's call), and the pane's icons lose their chip
+# for the dock's size. Both are theme axes, so both move only where the site
+# still holds the value that is going away.
+bunood_theme.patches.v0_40_0.retire_manual_collapse
+
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE
 # document, so one stale placement silently breaks every later save of every

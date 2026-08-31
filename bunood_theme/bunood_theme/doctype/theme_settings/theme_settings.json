@@ -435,7 +435,7 @@
    "fieldname": "sidebar_section_style",
    "fieldtype": "Select",
    "label": "Section Layout",
-   "options": "Plain\nDivided\nMini-Cards\nAccordion Cards",
+   "options": "Plain\nDivided\nCards",
    "hidden": 1
   },
   {
@@ -456,7 +456,7 @@
    "fieldname": "sidebar_menu_rail",
    "fieldtype": "Select",
    "label": "Menu Rail",
-   "options": "Always Expanded\nManual Collapse\nRail",
+   "options": "Always Expanded\nRail",
    "hidden": 1,
    "description": "Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side."
   },
@@ -464,14 +464,14 @@
    "fieldname": "sidebar_rail_trigger",
    "fieldtype": "Select",
    "label": "Rail Expand Trigger",
-   "options": "Hover\nClick\nButton Only\nHover + Pin",
+   "options": "Hover\nClick\nHover + Pin",
    "hidden": 1
   },
   {
    "fieldname": "sidebar_rail_button",
    "fieldtype": "Select",
    "label": "Rail Expand Button",
-   "options": "None\nEdge\nTop\nBottom",
+   "options": "None\nEdge\nHeader",
    "hidden": 1
   },
   {

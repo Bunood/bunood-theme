@@ -2341,8 +2341,7 @@ const BND_SB_GROUPS = [
 		options: [
 			{ value: "Plain", name: () => __("Plain"), thumb: '<span class="bnd-sbp-lines"></span>' },
 			{ value: "Divided", name: () => __("Divided"), thumb: '<span class="bnd-sbp-lines" style="border-block-start:1px solid currentColor;opacity:.6"></span>' },
-			{ value: "Mini-Cards", name: () => __("Mini-cards"), thumb: '<span class="bnd-sbp-card"></span>' },
-			{ value: "Accordion Cards", name: () => __("Accordion cards"), thumb: '<span class="bnd-sbp-card" style="block-size:12px"></span><span class="bnd-sbp-card" style="block-size:12px;inset-block-start:26px;opacity:.55"></span>' },
+			{ value: "Cards", name: () => __("Cards"), thumb: '<span class="bnd-sbp-card"></span>' },
 		],
 	},
 	{
@@ -2363,7 +2362,6 @@ const BND_SB_GROUPS = [
 		desc: () => __("How your sidebar rests. Separate from the apps rail below."),
 		options: [
 			{ value: "Always Expanded", name: () => __("Always expanded"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
-			{ value: "Manual Collapse", name: () => __("Manual collapse"), thumb: bnd_sb_pane("currentColor", "opacity:.18") + '<span style="position:absolute;inset-block-start:18px;inset-inline-start:32px;font-size:10px;opacity:.5">⟨</span>' },
 			{ value: "Rail", name: () => __("Rail"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
 		],
 	},
@@ -2375,7 +2373,6 @@ const BND_SB_GROUPS = [
 		options: [
 			{ value: "Hover", name: () => __("Hover"), thumb: '<span class="bnd-sbp-glyph">⇢</span>' },
 			{ value: "Click", name: () => __("Click"), thumb: '<span class="bnd-sbp-glyph">☉</span>' },
-			{ value: "Button Only", name: () => __("Button only"), thumb: '<span class="bnd-sbp-glyph">◎</span>' },
 			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span class="bnd-sbp-glyph">⌖</span>' },
 		],
 	},
@@ -2387,8 +2384,7 @@ const BND_SB_GROUPS = [
 		options: [
 			{ value: "None", name: () => __("None"), thumb: bnd_sb_pane("currentColor", "opacity:.14") },
 			{ value: "Edge", name: () => __("Edge"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:50%;inset-inline-start:24px;translate:0 -50%"></span>' },
-			{ value: "Top", name: () => __("Top"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
-			{ value: "Bottom", name: () => __("Bottom"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-end:6px;inset-inline-start:12px"></span>' },
+			{ value: "Header", name: () => __("Header"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
 		],
 	},
 	// Rail button icon moved to the Icons axis (item 23).

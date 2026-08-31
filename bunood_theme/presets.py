@@ -54,7 +54,7 @@ SIDEBAR_PRESETS = {
         "sidebar_material": "Solid",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
-        "sidebar_section_style": "Mini-Cards",
+        "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
         # Always expanded, because the re-chosen look is "attached, solid, a
@@ -73,7 +73,7 @@ SIDEBAR_PRESETS = {
         "sidebar_material": "Glass",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
-        "sidebar_section_style": "Mini-Cards",
+        "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
         "sidebar_menu_rail": "Rail",
@@ -90,7 +90,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -104,7 +104,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -118,7 +118,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -132,7 +132,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -143,7 +143,7 @@ SIDEBAR_PRESETS = {
         "sidebar_material": "Blurred Glass",
         "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
-        "sidebar_section_style": "Mini-Cards",
+        "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_menu_rail": "Always Expanded",
@@ -168,7 +168,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -227,7 +227,12 @@ ICON_FIELDS = [
 ]
 
 ICON_DEFAULTS = {
-    "icon_style": "Colored Chips",
+    # No shape around the glyph, and the glyph at the dock's size (item 40):
+    # a chip is a second border inside a row that already has one, and at
+    # 15px the icon read as a decoration rather than as the thing you aim
+    # at. "Filled Color" keeps the workspace hue, which is what the chip was
+    # carrying; the hue moves onto the glyph itself.
+    "icon_style": "Filled Color",
     # New axis (Phase 3): the glyph stroke, normalised across the sprite grids so
     # this is the weight you actually get. 1.5 is Frappe's own declared value,
     # made true everywhere for the first time.

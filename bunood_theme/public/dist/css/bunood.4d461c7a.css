@@ -1567,15 +1567,15 @@ html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;
   place-items: center;
-  inline-size: 22px;
-  block-size: 22px;
+  inline-size: 26px;
+  block-size: 26px;
   flex: none;
 }
 
 html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
-  inline-size: 15px;
-  block-size: 15px;
+  inline-size: 20px;
+  block-size: 20px;
   flex: none;
 }
 
@@ -1915,25 +1915,14 @@ html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-edge {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
 }
 
-html[data-bnd-rail] .bnd-railbtn-top {
+html[data-bnd-rail] .bnd-railbtn-header {
   inset-inline-end: var(--bnd-sp-1);
   inset-block-start: var(--bnd-sp-2);
 }
 
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-top,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-top {
+html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-header,
+html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-header {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-
-html[data-bnd-rail] .bnd-railbtn-bottom {
-  inset-inline-end: 50%;
-  translate: 50% 0;
-  inset-block-end: var(--bnd-sp-2);
-}
-
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-bottom,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-bottom {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) / 2);
 }
 
 .bnd-rail-open .bnd-railbtn svg {

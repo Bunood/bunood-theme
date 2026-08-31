@@ -133,16 +133,6 @@ msgstr "الخط المميز"
 msgid "Accent rail"
 msgstr "الخط المميز"
 
-#. Option for 'Section Layout' in DocType 'Theme Settings'
-#. src: ai
-msgid "Accordion Cards"
-msgstr "بطاقات قابلة للطي"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Accordion cards"
-msgstr "بطاقات قابلة للطي"
-
 #. Option for 'Bell Badge' in DocType 'Theme Settings'
 #. src: ai
 msgid "Action Count"
@@ -442,16 +432,6 @@ msgstr "بنود ليلي"
 #. src: ai
 msgid "Bunood Palette"
 msgstr "لوحة بنود"
-
-#. Option for 'Rail Expand Trigger' in DocType 'Theme Settings'
-#. src: ai
-msgid "Button Only"
-msgstr "الزر فقط"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Button only"
-msgstr "الزر فقط"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
@@ -1449,16 +1429,6 @@ msgstr "تسجيل الخروج"
 msgid "Luminous light glass."
 msgstr "زجاج فاتح مضيء."
 
-#. Option for 'Menu Rail' in DocType 'Theme Settings'
-#. src: ai
-msgid "Manual Collapse"
-msgstr "طي يدوي"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Manual collapse"
-msgstr "طي يدوي"
-
 #. In theme_settings.js
 #. src: ai
 msgid "Manual only"
@@ -1513,16 +1483,6 @@ msgstr "سكة القائمة"
 #. src: ai
 msgid "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
 msgstr "يدمج عناصر التحكم العامة في صف عنوان كل صفحة بدلًا من منحها شريطًا خاصًا بها. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي."
-
-#. Option for 'Section Layout' in DocType 'Theme Settings'
-#. src: ai
-msgid "Mini-Cards"
-msgstr "بطاقات مصغرة"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Mini-cards"
-msgstr "بطاقات مصغرة"
 
 #. Option for 'Pane Color' in DocType 'Theme Settings'
 #. src: ai
@@ -4317,6 +4277,13 @@ msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل 
 #. src: item34
 msgid "Card"
 msgstr "بطاقة"
+
+#. Option for 'Section Style' in DocType 'Theme Settings'
+#. In theme_settings.js
+#. src: item40
+#, fuzzy
+msgid "Cards"
+msgstr "بطاقات"
 
 #. src: item34
 msgid "Letter"

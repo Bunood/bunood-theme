@@ -199,8 +199,14 @@ export function setSettings(values) {
 		`vals = json.loads(${JSON.stringify(JSON.stringify(values))})\n` +
 			"for f, v in vals.items():\n" +
 			'    frappe.db.set_single_value("Theme Settings", f, v)\n' +
-			"frappe.clear_cache()\n" +
+			// COMMIT, THEN CLEAR — see the note at the same lines in tests/smoke.mjs.
+			// Clearing an uncommitted write lets a worker cache the OLD row, and
+			// every read afterwards is one write behind.
 			"frappe.db.commit()\n" +
+			"frappe.clear_cache()\n" +
+			// Repopulate at once — turns an in-flight worker's cache miss into a
+			// hit on the COMMITTED row. tests/smoke.mjs carries the full note.
+			'frappe.get_cached_doc("Theme Settings")\n' +
 			'print("ok")\n'
 	);
 }

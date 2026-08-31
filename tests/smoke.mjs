@@ -615,8 +615,22 @@ function setSettings(values) {
 		`from bunood_theme.brand import BRAND_INPUTS, write_brand_css\n` +
 		`if set(vals) & set(BRAND_INPUTS):\n` +
 		`    write_brand_css()\n` +
-		`frappe.clear_cache()\n` +
+		// COMMIT, THEN CLEAR — these were the other way round, and that race is
+		// what an afternoon of "the setting did not take effect" turned out to be.
+		// Clearing first opens a window in which any worker that touches Theme
+		// Settings repopulates the cache from the UNCOMMITTED row; the commit then
+		// lands behind a cache nobody clears again, and every later read serves the
+		// value from BEFORE this write. That is why the symptom is always "the
+		// PREVIOUS case's value", why it looked like five different bugs, and why
+		// it got worse as the machine got busier.
 		`frappe.db.commit()\n` +
+		`frappe.clear_cache()\n` +
+		// And REPOPULATE at once. A request already in flight when the commit
+		// landed still reads its own older transaction; on a cache MISS it would
+		// write that stale row back. Filling the cache with the committed doc
+		// right here turns its miss into a hit, which shrinks the race from
+		// "until the next write" to the microseconds between these two lines.
+		`frappe.get_cached_doc("Theme Settings")\n` +
 		`print("BND_UNRESTORABLE=" + json.dumps(unrestorable))\n`
 	);
 	const skipped = JSON.parse((out.match(/BND_UNRESTORABLE=(\[.*\])/) || [, "[]"])[1]);
@@ -1293,9 +1307,9 @@ const SLUG = {
 	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
 	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
-	sidebar_section_style: { Plain: "plain", Divided: "divided", "Mini-Cards": "cards", "Accordion Cards": "accordion" },
+	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
-	sidebar_menu_rail: { "Always Expanded": "expanded", "Manual Collapse": "manual", Rail: "rail" },
+	sidebar_menu_rail: { "Always Expanded": "expanded", Rail: "rail" },
 };
 
 const ATTR_OF = {
@@ -2970,7 +2984,7 @@ async function main() {
 						52, "resting rail width"
 					);
 				}
-				if (values.sidebar_section_style === "Mini-Cards") {
+				if (values.sidebar_section_style === "Cards") {
 					expect((await page.evaluate(() => document.querySelectorAll(".bnd-sb-card").length)) > 0, "section cards");
 				}
 			});
@@ -3677,6 +3691,75 @@ async function main() {
 					`mount degrades to stock rather than leaving the pane without a head`);
 		});
 
+		await test("sidepane: exactly one head renders, in every colour mode", async () => {
+			// THE SYMPTOM ITEM 40 WAS OPENED FOR, asserted as a rendered outcome
+			// rather than as a token. The pane showed OUR head and Frappe's
+			// underneath it in some configurations, and the invariant check next
+			// door proves the ownership token agrees with the DOM — which is the
+			// mechanism, not the picture. This counts what a person would see.
+			//
+			// Across the colour modes on purpose: the old rule keyed on
+			// `data-bnd-sb-color`, so "which mode" was exactly the axis that
+			// decided whether the native header was hidden, and a repair that
+			// only ever ran in Match Theme would look complete.
+			const FIELDS = ["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_placement"];
+			const before = getSettings(FIELDS);
+			try {
+				const CASES = [
+					{ label: "Match Theme", sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
+					{ label: "Minimal", sidebar_color: "Minimal", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
+					{ label: "Dark Contrast, floating", sidebar_color: "Dark Contrast", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Floating" },
+					{ label: "Brand", sidebar_color: "Brand", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
+					{ label: "Rail", sidebar_color: "Match Theme", sidebar_menu_rail: "Rail", sidebar_placement: "Attached" },
+				];
+				for (const c of CASES) {
+					setSettings({
+						sidebar_enabled: 1,
+						sidebar_color: c.sidebar_color,
+						sidebar_menu_rail: c.sidebar_menu_rail,
+						sidebar_placement: c.sidebar_placement,
+					});
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+					const r = await page.evaluate(() => {
+						const pane = document.querySelector(".body-sidebar");
+						if (!pane) return null;
+						// VISIBLE, not merely present: Frappe's header stays in the
+						// document and is hidden by our ownership rule, so counting
+						// nodes would report a double render that nobody can see.
+						const visible = (n) => {
+							if (!n) return false;
+							const cs = getComputedStyle(n);
+							const b = n.getBoundingClientRect();
+							return (
+								cs.display !== "none" &&
+								cs.visibility !== "hidden" &&
+								parseFloat(cs.opacity) > 0.01 &&
+								b.height > 0
+							);
+						};
+						const native = pane.querySelector(".sidebar-header");
+						const ours = pane.querySelector(".bnd-sb-head");
+						return {
+							mode: document.documentElement.getAttribute("data-bnd-sb-color"),
+							nativeInDom: !!native,
+							rows: [native, ours].filter(visible).length,
+							oursVisible: visible(ours),
+						};
+					});
+					expect(r, `the pane is in the document under ${c.label}`);
+					// ANTI-VACUITY: if Frappe's header were absent entirely there
+					// would be nothing to double-render and one row would prove
+					// nothing about the repair.
+					expect(r.nativeInDom, `${c.label}: Frappe's own header is present to be hidden`);
+					expectEq(r.rows, 1, `${c.label} (${r.mode}): exactly one head is visible`);
+					expect(r.oursVisible, `${c.label}: and the one that renders is ours`);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the
@@ -3826,6 +3909,166 @@ async function main() {
 			}
 		});
 
+		await test("lifecycle: the pane observes once, however many times the chrome remounts", async () => {
+			// COUNT CONSTRUCTIONS, NOT EFFECTS. `sb_observe` built two fresh
+			// MutationObservers on every call and was reached from both
+			// `mount_chrome` and `remount_chrome` — so every container flip and
+			// every 768px crossing added two more, each with its own undeduped
+			// 200ms timer, each re-running the whole mount chain. Nothing looked
+			// wrong: the throttles hid it, which is exactly why the assertion has
+			// to be on the constructions.
+			//
+			// Scoped to observations of a node INSIDE the pane, because
+			// `remount_chrome` legitimately builds observers for other chrome and
+			// a bare count would measure those too.
+			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+
+			const n = await page.evaluate(async () => {
+				const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+				const Real = window.MutationObserver;
+				let count = 0;
+				window.MutationObserver = class extends Real {
+					observe(target, opts) {
+						try {
+							if (target && target.closest && target.closest(".body-sidebar")) count++;
+						} catch (e) {
+							/* a detached node cannot be inside the pane */
+						}
+						return super.observe(target, opts);
+					}
+				};
+				try {
+					// Five container flips and two breakpoint crossings, through
+					// the entries a person's clicks actually reach.
+					for (let i = 0; i < 5; i++) {
+						window.bunood_theme.chrome_apply({ topbar_enabled: 1, sidebar_enabled: 1 });
+						await wait(60);
+					}
+					window.bunood_theme.remount_chrome();
+					await wait(60);
+					window.bunood_theme.remount_chrome();
+					await wait(200);
+				} finally {
+					window.MutationObserver = Real;
+				}
+				return count;
+			});
+			expectEq(n, 0, `seven remounts add no pane observers after the first mount (added ${n})`);
+		});
+
+		await test("lifecycle: switching the pane off leaves nothing of ours behind", async () => {
+			// THE MISSING TEARDOWN, generalised. `CONTAINER_TEARDOWN.sidepane` was
+			// `() => {}` on the argument that the pane is Frappe's and hiding is
+			// the whole mechanism — true of the CONTAINER and false of everything
+			// we put inside it. The ownership repair made the consequence legible:
+			// `remount_chrome` releases the `panehead` token while our head stays
+			// in the DOM, so the token and the document disagree about what is
+			// there.
+			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+
+				const ours = () =>
+					page.evaluate(() => ({
+						head: document.querySelectorAll(".bnd-sb-head").length,
+						utils: document.querySelectorAll(".body-sidebar .bnd-sb-utils").length,
+						cards: document.querySelectorAll(".bnd-sb-card").length,
+						badges: document.querySelectorAll(".bnd-sb-badge").length,
+						railbtn: document.querySelectorAll(".bnd-railbtn").length,
+						iconized: document.querySelectorAll("[data-bnd-iconized]").length,
+						own: document.documentElement.getAttribute("data-bnd-own") || "",
+					}));
+
+				const on = await ours();
+				expect(on.head === 1, `the head is mounted to begin with (${JSON.stringify(on)})`);
+
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ sidebar_enabled: 0 }));
+				await page.waitForTimeout(600);
+				const off = await ours();
+				expectEq(off.head, 0, "the head is gone");
+				expectEq(off.utils, 0, "the pane's link rows are gone");
+				expectEq(off.cards, 0, "the section cards are gone");
+				expectEq(off.badges, 0, "the badges are gone");
+				expectEq(off.railbtn, 0, "the rail button is gone");
+				expectEq(off.iconized, 0, "Frappe's own rows have their icons back");
+				expect(!/\bpanehead\b/.test(off.own),
+					`and the token agrees with the document (own=${off.own || "(none)"})`);
+
+				// AND A LIST MUTATION AFTER TEARDOWN MOUNTS NOTHING. The observer
+				// outlived the parts it existed to rebuild, so Frappe touching its
+				// own list would re-mount ours onto a pane the user switched off.
+				await page.evaluate(() => {
+					const list = document.querySelector(".body-sidebar-top .sidebar-items");
+					if (list) list.appendChild(document.createElement("div"));
+				});
+				await page.waitForTimeout(700);
+				const after = await ours();
+				expectEq(after.head, 0, "a list mutation after teardown mounts nothing");
+				expectEq(after.cards, 0, "and wraps nothing");
+
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ sidebar_enabled: 1 }));
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+				const back = await ours();
+				expectEq(back.head, 1, "and switching it back on brings the head back");
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("lifecycle: a workspace switch refetches badges instead of waiting out the throttle", async () => {
+			// THE CLOCK ANSWERED THE WRONG QUESTION. `sb_badges_at` is a
+			// timestamp and the window is 60 SECONDS, so the observer's re-mount
+			// after a workspace switch was swallowed: a person moved to a
+			// workspace with entirely different links and saw no badges at all
+			// until the minute was up. "How long since I asked" is not the
+			// question; "am I asking about the same links" is.
+			//
+			// The window IS the assertion — on anything a later refresh also
+			// fixes, a generous timeout passes for the wrong reason.
+			const before = getSettings(["sidebar_enabled", "sidebar_badges", "sidebar_color"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_badges: "Counts", sidebar_color: "Match Theme" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+				// Let the first fetch land and stamp the throttle.
+				await page.waitForTimeout(2500);
+
+				const labelsOf = () =>
+					page.evaluate(() =>
+						[...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]")]
+							.map((n) => n.getAttribute("item-name"))
+					);
+				const first = await labelsOf();
+				expect(first.length > 0, "the first workspace has links to badge");
+
+				// Switch to a workspace with a different link set, then give it
+				// the window a person would actually wait.
+				await page.evaluate(() => window.frappe.set_route("stock"));
+				await page.waitForFunction(
+					(prev) => {
+						const now = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]")]
+							.map((n) => n.getAttribute("item-name"));
+						return now.length > 0 && now.join("|") !== prev;
+					},
+					first.join("|"),
+					{ timeout: 15000 }
+				);
+
+				const painted = await page
+					.waitForFunction(() => document.querySelectorAll(".bnd-sb-badge").length > 0, null, { timeout: 2500 })
+					.then(() => true)
+					.catch(() => false);
+				const seen = await page.evaluate(() => document.querySelectorAll(".bnd-sb-badge").length);
+				expect(painted, `a badge paints within 2.5s of the workspace switch (saw ${seen})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the three pane materials render three different panes", async () => {
 			// THE DEFECT THIS AXIS HAD. material x opacity x blur was thirty
 			// combinations and Solid collapsed fifteen of them onto one pixel --
@@ -3871,6 +4114,11 @@ async function main() {
 				const surfaces = {};
 				for (const material of ["Solid", "Glass", "Blurred Glass"]) {
 					setSettings({ sidebar_material: material, sidebar_color: "Match Theme" });
+					// NO attribute wait here, deliberately, and the active-style walk
+					// below explains why one is needed there: this walk runs in a FRESH
+					// CONTEXT as another user, where a `waitForFunction` on the
+					// attribute times out rather than settling. Its own three-frame
+					// settle plus the alpha assertions are what guard it.
 					// A FRESH CONTEXT, not the shared page: this emulates a media
 					// feature, and this suite's own rule at `withGuest` is that
 					// emulation leaks off the shared page.
@@ -3959,6 +4207,17 @@ async function main() {
 					// pin the placement rather than inherit whatever ran last.
 					setSettings({ sidebar_active_style: style, sidebar_placement: "Attached" });
 					await goDesk("/app/selling", "body", 3000);
+					// WAIT FOR THE STATE YOU SET TO BE IN EFFECT before measuring what
+					// it renders. A settings write can reach the desk a page-load late
+					// -- boot composes from a CACHED Single -- and the symptom is this
+					// check reporting two styles as identical when the second one is
+					// simply still showing the first. Asserting the attribute is not
+					// laundering: the subject here is the RENDERING of a known state.
+					await page.waitForFunction(
+						(w) => document.documentElement.getAttribute("data-bnd-sb-active") === w,
+						SLUG.sidebar_active_style[style],
+						{ timeout: 20000 }
+					);
 					seen[style] = await page.evaluate(
 						() =>
 							new Promise((done) => {
@@ -6370,7 +6629,7 @@ async function main() {
 			// ship broken.
 			//
 			// The values are deliberately NOT the shipped ones. Bunood Night
-			// ships Mini-Cards and depth 3; a fresh site would carry those
+			// ships Cards and depth 3; a fresh site would carry those
 			// whether the patch ran or not, so it would prove nothing.
 			const out = benchPy(
 				"import json\n" +
@@ -7701,11 +7960,11 @@ ${gate.stdout}`);
 			const configs = [
 				{ label: "Match Theme + Rich wash", settings: {
 					sidebar_color: "Match Theme", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Rich", sidebar_section_style: "Mini-Cards",
+					sidebar_hue_wash: "Rich", sidebar_section_style: "Cards",
 				} },
 				{ label: "Dark Contrast + Rich wash", settings: {
 					sidebar_color: "Dark Contrast", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Rich", sidebar_section_style: "Mini-Cards",
+					sidebar_hue_wash: "Rich", sidebar_section_style: "Cards",
 				} },
 				{ label: "Brand pane, wash off", settings: {
 					sidebar_color: "Brand", sidebar_active_style: "Solid Pill",

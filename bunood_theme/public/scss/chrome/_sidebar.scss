@@ -268,6 +268,72 @@ html[data-bnd-sb-placement="floating"] .body-sidebar-container {
   overflow: hidden;
 }
 
+// ── THE PANE'S LIFECYCLE (item 40) ──────────────────────────────────────────
+// No rules here. This is where `bunood.js`'s lifecycle comments point, because
+// `build.mjs` copies that file verbatim and Sass strips these before the wire.
+//
+// THE LADDER WAS WRITTEN THREE TIMES: `mount_sidebar_kit`, `bunood.sb_apply`
+// and the observer's timer body. They disagreed — sb_apply re-ran eight of the
+// ten mounts and skipped `sb_mount_brand` and `sb_mount_module_row`, which is
+// what stranded the module row whenever a placement moved. `SB_PARTS` is that
+// order as DATA and both directions read it, so "runs a different subset" is
+// no longer a thing anyone can write by accident.
+//
+// `volatile` MEANS "LIVES INSIDE `.sidebar-items`", which Frappe empties and
+// rebuilds on every workspace switch. A list rebuild re-mounts exactly those;
+// the head, the rail and the width are siblings of that list and survive it, so
+// re-mounting them roughly four times per route was pure waste.
+//
+// THE OBSERVER IS DEDUPED ON NODE IDENTITY, NEVER ON A BOOLEAN, and that is the
+// whole point rather than a style preference. Frappe RE-CREATES
+// `.sidebar-items`; an observer on a detached node never fires again. So an
+// `if (installed) return` guard would trade a leak for a SILENCE — the pane
+// would quietly stop rebuilding itself, which is worse than rebuilding twice.
+// Re-install only when the watched node actually changed.
+//
+// Measured before the repair: `sb_observe` built two fresh observers per call
+// and was reached from both `mount_chrome` and `remount_chrome`, so five
+// container flips plus two breakpoint crossings added FOURTEEN — each with its
+// own 200ms timer, each re-running the whole chain. The throttles hid it, which
+// is why the check counts CONSTRUCTIONS rather than effects.
+//
+// TEARDOWN IS TOTAL, AND IT DID NOT EXIST. `CONTAINER_TEARDOWN.sidepane` was
+// `() => {}`, on the argument that the pane is Frappe's and hiding is the whole
+// mechanism. True of the CONTAINER; false of everything we put inside it.
+// Switching the pane off left our head in the document while `remount_chrome`
+// had already released the `panehead` token — the token and the DOM disagreeing
+// about what was there, which is the exact shape of the bug the ownership
+// repair was written to make impossible.
+//
+// AND THE BADGE THROTTLE ANSWERED THE WRONG QUESTION. It was a bare timestamp
+// with a sixty-second window, so it asked "how long since I asked" when the
+// question is "am I asking about the same links". A workspace switch replaces
+// every label, and the observer's re-mount was swallowed: a person moved to a
+// new workspace and saw no badges at all until the minute ran out. The window
+// now applies WITHIN one label set, so a switch refetches immediately and a
+// mutation storm on an unchanged list still coalesces.
+
+// MANUAL COLLAPSE WENT AS A MODE (the user's call, 2026-08-29), and that makes
+// one pairing load-bearing: `sb_apply_width` now reads the `expanded` CLASS
+// Frappe's own collapse link flips, instead of pinning the width whenever the
+// SETTING said expanded. Pin it unconditionally and a collapsed pane stays our
+// width wide. The two move together or neither moves — the 2026-08-08 defect
+// verbatim. An observer on the container's class is what re-runs it, because
+// nothing did: harmless while Manual Collapse cleared the width for us.
+//
+// The premise it re-checks is the SETTING, never the DOM. The first draft
+// re-read `sidebar_is_hidden()` on every attempt and gave up on a pane that
+// was merely mid-layout: three presets in a row lost their head, and every
+// one of them passed when run alone. Not WANTED stops the loop; not READY
+// YET is what a retry budget is for.
+//
+// AND THE RETRY RE-CHECKS ITS OWN PREMISE. `sidepane_sync` mounts the head
+// inside a `try_for` because Frappe renders `.sidebar-header` a beat after the
+// shell — but that loop OUTLIVES the call that scheduled it. Switch the pane
+// off while attempts are pending and a later one lands after the teardown,
+// putting our head back on a pane the person just closed. Nothing noticed
+// before item 40, because before item 40 nothing tore down.
+
 // ── The injected pieces (bunood.js): the utils section ─────────────────────
 html[data-bnd-sb-color] .bnd-sb-utils {
   padding: var(--bnd-sp-1);
@@ -459,11 +525,15 @@ html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
   flex: none;
   padding: 0; // beats Frappe's padding:7px, which is what shrank the box
 }
+// THE GLYPH IS THE TARGET, not a decoration beside the label (item 40).
+// It takes the DOCK'S size — 20px — because the two are the same gesture on
+// two surfaces and they were 15px and 20px for no reason anyone could name.
+// The box grows with it so a chip mode still has padding to be a chip with.
 html[data-bnd-sb-icons] .bnd-sb-chip {
   display: inline-grid;
   place-items: center;
-  inline-size: 22px;
-  block-size: 22px;
+  inline-size: 26px;
+  block-size: 26px;
   flex: none;
 }
 
@@ -475,8 +545,8 @@ html[data-bnd-sb-icons] .bnd-sb-chip {
 // through.
 html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon svg,
 html[data-bnd-sb-icons] .bnd-sb-chip svg {
-  inline-size: 15px;
-  block-size: 15px;
+  inline-size: 20px;
+  block-size: 20px;
   flex: none;
 }
 
@@ -898,25 +968,17 @@ html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-edge,
 html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-edge {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
 }
-html[data-bnd-rail] .bnd-railbtn-top {
+// The head placement, named for where it sits rather than for a compass
+// point (item 40). BOTTOM IS GONE, and it was measured out rather than
+// dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
+// controls — Frappe's collapse link and resize handle both live there.
+html[data-bnd-rail] .bnd-railbtn-header {
   inset-inline-end: var(--bnd-sp-1);
   inset-block-start: var(--bnd-sp-2);
 }
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-top,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-top {
+html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-header,
+html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-header {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-html[data-bnd-rail] .bnd-railbtn-bottom {
-  inset-inline-end: 50%;
-  translate: 50% 0;
-  inset-block-end: var(--bnd-sp-2);
-}
-// Centre of the OPEN pane: the button's end edge X from the container's end
-// puts its centre (after the +50% translate) at rail-w − X from the pane's
-// start, so X = rail-w − sb-w/2 lands it on sb-w/2 exactly.
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-bottom,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-bottom {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) / 2);
 }
 
 

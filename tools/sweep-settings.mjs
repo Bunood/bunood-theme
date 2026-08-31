@@ -74,7 +74,7 @@ const snapshot = JSON.parse(
 
 const restore = () =>
 	py(
-		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\nfor f, v in vals.items():\n    if f in ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus"):\n        continue\n    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\nfrappe.clear_cache()\nfrappe.db.commit()\nprint("restored")\n`
+		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\nfor f, v in vals.items():\n    if f in ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus"):\n        continue\n    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\nfrappe.db.commit()\nfrappe.clear_cache()\nfrappe.get_cached_doc("Theme Settings")\nprint("restored")\n`
 	);
 
 const b = await chromium.launch();
