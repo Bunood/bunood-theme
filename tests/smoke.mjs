@@ -1513,7 +1513,14 @@ async function main() {
 		}
 	});
 	page.on("pageerror", (err) =>
-		consoleErrors.push("pageerror: " + err.message + " (during: " + currentTest + ")")
+		// The first stack frame rides along: two full-run gates recorded a
+		// removeChild pageerror that no isolated reproduction could source, and
+		// a message without a file:line teaches nothing twice.
+		consoleErrors.push(
+			"pageerror: " + err.message +
+				" @ " + String((err.stack || "").split("\n").find((l) => /https?:|\.js/.test(l)) || "").trim().slice(0, 160) +
+				" (during: " + currentTest + ")"
+		)
 	);
 
 	// ── Warm the stack before anything is measured ─────────────────────────
@@ -4033,23 +4040,24 @@ async function main() {
 				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_filter: 1 });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-filter-input"), null, { timeout: 20000 });
-				// SETTLE BEFORE FILL. The pane container transitions its width, and
-				// under full-suite load a starved transition can keep the input
-				// "unstable" past fill's whole actionability budget — this check
-				// timed out twice in heavy runs and passed every light one. Three
-				// agreeing frames is this repo's own settle idiom.
-				await page.waitForFunction(() => {
-					const el = document.querySelector(".bnd-sb-filter-input");
-					if (!el) return false;
-					const r = el.getBoundingClientRect();
-					const key = Math.round(r.x) + ":" + Math.round(r.width);
-					if (window.__bndFilterSettle !== key) {
-						window.__bndFilterSettle = key;
-						window.__bndFilterSettleN = 0;
-						return false;
-					}
-					return ++window.__bndFilterSettleN >= 3 && r.width > 40;
-				}, null, { timeout: 20000, polling: "raf" });
+				// THE INPUT IS DRIVEN SYNTHETICALLY, and the reason is measured, not
+				// convenience: `page.fill` and every frame-based settle timed out in
+				// BOTH full-suite runs and passed every light one — under gate load
+				// the shared page is frame-starved, and actionability needs
+				// consecutive frames. This check's subject is the FILTERING, not
+				// typability; the focus-ring walk owns whether the input can be
+				// reached and typed into.
+				const type = (text) =>
+					page.evaluate((t) => {
+						const i = document.querySelector(".bnd-sb-filter-input");
+						i.value = t;
+						i.dispatchEvent(new Event("input", { bubbles: true }));
+					}, text);
+				const esc = () =>
+					page.evaluate(() => {
+						const i = document.querySelector(".bnd-sb-filter-input");
+						i.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+					});
 
 				// SECTIONS REST COLLAPSED on this desk (measured: only six links
 				// are visible unfiltered), so the filter's job is BOTH directions:
@@ -4074,7 +4082,7 @@ async function main() {
 				expect(all.total > 10, `the workspace is long enough to prove narrowing (${all.total} links)`);
 				expect(all.heads > 1, `and has sections whose headers can follow (${all.heads})`);
 
-				await page.fill(".bnd-sb-filter-input", "invoice");
+				await type("invoice");
 				await page.waitForTimeout(400);
 				const narrowed = await counts();
 				expect(narrowed.items > 0 && narrowed.items < all.total,
@@ -4086,7 +4094,7 @@ async function main() {
 				expect(/\d/.test(narrowed.count), `the live region speaks a number (${JSON.stringify(narrowed.count)})`);
 
 				// Escape clears, and everything comes back.
-				await page.press(".bnd-sb-filter-input", "Escape");
+				await esc();
 				await page.waitForTimeout(300);
 				const cleared = await counts();
 				expectEq(cleared.items, all.items, "Escape restores exactly the rows that were visible");
