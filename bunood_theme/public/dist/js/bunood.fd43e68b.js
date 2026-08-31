@@ -5909,11 +5909,14 @@ function sb_zone_anchor(pane, zone, node) {
 		if (top) top.removeAttribute("data-bnd-sb-scroll");
 	}
 
-	/** aria-current on the pane's active row. */
+	/** aria-current on the pane's active row. SELF-GUARDING like
+	 *  claim_panehead: the router hook calls it on every route, and a pane
+	 *  the layout has hidden must not claim the current page from nowhere. */
 	function sb_mark_current() {
 		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
 			n.removeAttribute("aria-current");
 		}
+		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
 		const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
 		if (!active) return;
 		const holder = active.closest(".item-anchor") || active.querySelector(".item-anchor") || active;

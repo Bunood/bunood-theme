@@ -4033,6 +4033,23 @@ async function main() {
 				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_filter: 1 });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-filter-input"), null, { timeout: 20000 });
+				// SETTLE BEFORE FILL. The pane container transitions its width, and
+				// under full-suite load a starved transition can keep the input
+				// "unstable" past fill's whole actionability budget — this check
+				// timed out twice in heavy runs and passed every light one. Three
+				// agreeing frames is this repo's own settle idiom.
+				await page.waitForFunction(() => {
+					const el = document.querySelector(".bnd-sb-filter-input");
+					if (!el) return false;
+					const r = el.getBoundingClientRect();
+					const key = Math.round(r.x) + ":" + Math.round(r.width);
+					if (window.__bndFilterSettle !== key) {
+						window.__bndFilterSettle = key;
+						window.__bndFilterSettleN = 0;
+						return false;
+					}
+					return ++window.__bndFilterSettleN >= 3 && r.width > 40;
+				}, null, { timeout: 20000, polling: "raf" });
 
 				// SECTIONS REST COLLAPSED on this desk (measured: only six links
 				// are visible unfiltered), so the filter's job is BOTH directions:
@@ -8520,9 +8537,14 @@ ${gate.stdout}`);
 			await goDesk("/desk/item", ".bnd-dock", 3000);
 			// The negative half is the point: update_dock_active REMOVES the
 			// attribute, and a positive-only test would pass on a build that
-			// never removes it.
+			// never removes it. SCOPED TO THE DOCK since item 40: the spread
+			// above makes `sidebar_enabled: 1` explicit, which beats the Dock
+			// layout's sidepane: 0 — so the pane is legitimately on this desk,
+			// and its Item List row correctly claims the page we are on. A
+			// document-wide zero was only ever true while the pane neglected
+			// aria-current entirely, which was the defect.
 			expectEq(
-				await page.evaluate(() => document.querySelectorAll("[aria-current]").length),
+				await page.evaluate(() => document.querySelectorAll(".bnd-dock [aria-current]").length),
 				0,
 				"no dock item claims aria-current on a non-workspace route"
 			);
@@ -8533,15 +8555,17 @@ ${gate.stdout}`);
 			expect(dockWs, "at least one real workspace is in the dock to click");
 			await page.click(`.bnd-dock-item[data-ws="${dockWs}"]`);
 			await page.waitForTimeout(1500);
+			// Dock-scoped like the arm above: on a workspace page the PANE's own
+			// active row also claims the page, correctly, under its own check.
 			const dockAfter = await page.evaluate((ws) => {
-				const current = [...document.querySelectorAll("[aria-current]")];
+				const current = [...document.querySelectorAll(".bnd-dock [aria-current]")];
 				return { count: current.length, onRightOne: current.some((el) => el.getAttribute("data-ws") === ws) };
 			}, dockWs);
 			expectEq(dockAfter.count, 1, `exactly one dock item claims aria-current after opening ${dockWs}`);
 			expect(dockAfter.onRightOne, "aria-current lands on the workspace that was actually opened");
 			await goDesk("/desk/item", ".page-head", 2000);
 			expectEq(
-				await page.evaluate(() => document.querySelectorAll("[aria-current]").length),
+				await page.evaluate(() => document.querySelectorAll(".bnd-dock [aria-current]").length),
 				0,
 				"aria-current is removed once the route leaves that workspace"
 			);
