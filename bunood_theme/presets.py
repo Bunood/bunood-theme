@@ -9,7 +9,7 @@ WHAT
     * ``setup.py``  seeds a fresh site with the default preset's values.
     * ``boot.py``   falls back to the default preset for any empty field, so a
                     half-seeded site still renders a coherent design.
-    * ``api.get_sidebar_presets``  hands the dict to the Theme Settings picker,
+    * ``theme_settings()``         composes ``_SIDEBAR_LOOKS`` into the themes,
                     which applies a preset client-side by setting the fields.
 
 WHY VALUES ARE THE CANON AND PRESETS ARE SUGAR
@@ -52,13 +52,19 @@ SIDEBAR_FIELDS = [
     "sidebar_filter",
 ]
 
-#: The preset catalogue. "Bunood Night" is the shipped default — the user's
+#: The sidebar LOOKS — private on purpose (item 40, slice 10). Not a
+#: catalogue: nothing picks from it any more (item 37 deleted the preset
+#: cards; the picker's note is Default/Changed like every other kit). It is
+#: an authoring input to ``theme_settings()`` — how twelve themes share six
+#: pane designs without restating the values — the exact role
+#: ``palette_seeds`` already plays.
+#: "Bunood Night" is the shipped default — the user's
 #: chosen combination, re-chosen on 2026-08-08: attached and solid rather than
 #: floating glass, a step wider, the pane following the theme colour, and no
 #: rail button (its rendering was broken; the rail still opens on hover).
 #: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
 #: appearance remains one click away rather than gone.
-SIDEBAR_PRESETS = {
+_SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
@@ -195,7 +201,7 @@ SIDEBAR_PRESETS = {
 }
 
 #: The default preset name — the user's chosen combination.
-DEFAULT_SIDEBAR_PRESET = "Bunood Night"
+_DEFAULT_SIDEBAR_LOOK = "Bunood Night"
 
 
 #: Breadcrumb kit fields (item 11), matching theme_settings.json. Unlike the
@@ -1334,7 +1340,7 @@ THEME_AXES = _theme_axes()
 #: The shipped looks. A preset NAMES its inputs rather than restating them — the
 #: layout composes containers and tenant placements through
 #: ``registry.layout_settings``, the palette composes the colour fields through
-#: :func:`palette_seeds`, and the sidebar names a :data:`SIDEBAR_PRESETS` entry —
+#: :func:`palette_seeds`, and the sidebar names a :data:`_SIDEBAR_LOOKS` entry —
 #: then ``values`` overrides individual fields on top of the shipped defaults.
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
@@ -1533,7 +1539,7 @@ def _shipped_baseline() -> dict:
               SKELETON_DEFAULTS, FILTERS_DEFAULTS, LOGIN_DEFAULTS, WEB_DEFAULTS,
               EMAIL_DEFAULTS, PRINT_DEFAULTS):
         out.update(d)
-    out.update(SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET])
+    out.update(_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK])
     return out
 
 
@@ -1657,7 +1663,7 @@ def theme_settings(name: str) -> dict:
     out = {f: v for f, v in _shipped_baseline().items() if f in axes}
     out.update(layout_settings(spec["layout"]))
     out.update(palette_seeds(spec["palette"]))
-    out.update(SIDEBAR_PRESETS.get(spec["sidebar"], {}))
+    out.update(_SIDEBAR_LOOKS.get(spec["sidebar"], {}))
     out.update(spec["values"])
     # Never write outside the declared axes, whatever a table says.
     return {f: v for f, v in out.items() if f in axes}

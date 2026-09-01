@@ -48,11 +48,11 @@ from bunood_theme.presets import (
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
-    DEFAULT_SIDEBAR_PRESET,
+    _DEFAULT_SIDEBAR_LOOK,
     INBOX_DEFAULTS,
     MOBILE_DEFAULTS,
     PALETTE_DEFAULTS,
-    SIDEBAR_PRESETS,
+    _SIDEBAR_LOOKS,
     LINKS_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
@@ -146,7 +146,7 @@ DEFAULTS = {
     # default and the table cannot drift. The suite pins the doctype's literal
     # default to the same function.
     "desk_order": default_desk_order(),
-    **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
+    **_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK],
     # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.

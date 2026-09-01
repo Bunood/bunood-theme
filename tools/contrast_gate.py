@@ -1380,7 +1380,7 @@ def check_theme_catalogue() -> list[str]:
     # differ elsewhere — the distinctness check above would not see it. It bites
     # the moment an option is merged away: item 40 removes two `sidebar_active_style`
     # values, and `Daylight` and `Paper` differ at that field ALONE.
-    from bunood_theme.presets import SIDEBAR_PRESETS
+    from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS
 
     looks = list(SIDEBAR_PRESETS)
     for i, a in enumerate(looks):

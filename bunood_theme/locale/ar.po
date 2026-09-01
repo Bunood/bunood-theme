@@ -571,11 +571,6 @@ msgstr "تعذر النسخ"
 
 #. In theme_settings.js
 #. src: ai
-msgid "Could not load sidebar presets."
-msgstr "تعذر تحميل الأنماط الجاهزة للشريط الجانبي."
-
-#. In theme_settings.js
-#. src: ai
 msgid "Could not reset ranking"
 msgstr "تعذر إعادة تعيين الترتيب"
 

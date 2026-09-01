@@ -19,12 +19,10 @@
  *   `<style>` strings in this file, where no build guard could see it).
  *
  * THE CONTRACT WITH THE SERVER
- *   The hidden fields are the canon; presets are labels. Clicking a preset
- *   writes all of its values into the fields (from the catalogue served by
- *   bunood_theme.api.get_sidebar_presets — one source of truth in Python).
- *   Changing any single option recomputes the label: exact match -> that
- *   preset's name, anything else -> "Custom". No "preset + overrides" state
- *   exists anywhere.
+ *   The hidden fields are the canon. The preset cards went in item 37 and
+ *   the catalogue fetch went in item 40 slice 10 — the pane's note is
+ *   Default/Changed against the shipped defaults, the reset returns to
+ *   SHIPPED, and no "preset + overrides" state exists anywhere.
  *
  * CONSTRAINTS ARE ENFORCED HERE, VISIBLY
  *   Impossible combinations grey out with a one-line reason (e.g. Folder Tab
@@ -1234,7 +1232,7 @@ let bnd_container_toggles = null;
  *
  * The alternative is a sixth hand-written list of fieldnames — there are already
  * five (`BND_CRUMB_FIELDS`, `BND_PALETTE_FIELDS`, `BND_INBOX_FIELDS`,
- * `BND_STATUS_FIELDS`, `bnd_sb_catalogue.fields`) and adding one more that must
+ * `BND_STATUS_FIELDS`, `BND_SIDEBAR_FIELDS`) and adding one more that must
  * be kept in step with the doctype is the defect this repo keeps paying for. The
  * prefix IS the naming rule `build.mjs` already enforces, so this reads the
  * convention instead of restating its contents.
@@ -1383,16 +1381,14 @@ function bnd_shell_note(key, frm) {
 	// down the "no state to report" path and print nothing under the one control
 	// with the largest catalogue on the page. What it can honestly report is
 	// which shipped look the desk currently IS, which is a comparison rather than
-	// a field it holds. Falls through while the catalogue is still in flight, and
-	// the fetch repaints the marks when it lands — the side pane's note learned
-	// that race the hard way (it read "Default" intermittently on the one entry
-	// with a real preset to name, which is the worst kind of wrong).
+	// a field it holds. (The side pane used to answer with a look's NAME from a
+	// second fetch that raced this one — slice 10 deleted both, and the pane
+	// takes the generic two-state below.)
 	if (key === "theme" && bnd_theme_cache) return bnd_tr_layout(bnd_theme_match(frm));
 	// An entry that owns no fields has no state to report. The Overview READS
 	// settings; saying "Default" under it claims it has some, and would go on
 	// saying it while every component it shows had been changed.
 	if (!BND_SHELL_OWNS[key]) return "";
-	if (key === "sidepane" && bnd_sb_catalogue) return bnd_sb_match_preset(frm);
 	// Translated HERE, not in the matcher: this is a display string, while the
 	// picker compares the same answer against untranslated card values.
 	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
@@ -2261,8 +2257,9 @@ function bnd_render_layout_picker(frm, host) {
 // Sidebar Style picker (item 10)
 // ════════════════════════════════════════════════════════════════════════════
 
-/** The preset catalogue, fetched once per form session from the server. */
-let bnd_sb_catalogue = null;
+// `bnd_sb_catalogue` lived here and is DELETED (slice 10): the fetch it fed
+// raced the shipped-defaults request, and everything it carried is either
+// BND_SIDEBAR_FIELDS (the mirror above the icon fields) or `bnd_shipped`.
 
 /** Mini pane-glyph helper: a rounded block, used across many thumbnails. */
 function bnd_sb_pane(bg, extra) {
@@ -2413,44 +2410,17 @@ const BND_SB_STEPPERS = [
 	{ field: "sidebar_pane_width", zone: "pane", title: () => __("Pane width"), lo: () => __("200px"), hi: () => __("280px") },
 ];
 
-/** Fetch the preset catalogue once, then render. */
+/** Render directly — no catalogue fetch, no race (slice 10). */
 function bnd_render_sidebar_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "sidebar_picker", host);
 	if (!$host) return;
-	if (bnd_sb_catalogue) {
-		bnd_render_sidebar_picker_now(frm, host);
-		return;
-	}
-	frappe
-		.xcall("bunood_theme.api.get_sidebar_presets")
-		.then((data) => {
-			bnd_sb_catalogue = data;
-			bnd_render_sidebar_picker_now(frm, host);
-			// The side pane's note is its PRESET NAME, and deriving that needs
-			// this catalogue. Two independent fetches race — the shipped defaults
-			// and this one — and whichever lands second leaves the other's work
-			// stale. Painting again here is the cheap half of the fix; the marks
-			// are idempotent, so the redundant repaint when this wins costs
-			// nothing. Without it the note read "Default" on the one entry that
-			// has a real preset to name, intermittently, which is the worst kind.
-			bnd_shell_marks(frm);
-		})
-		.catch(() => {
-			$host.html('<div class="text-muted">' + __("Could not load sidebar presets.") + "</div>");
-		});
+	bnd_render_sidebar_picker_now(frm, host);
 }
 
-/** Which preset (if any) exactly matches the form's current field values? */
-function bnd_sb_match_preset(frm) {
-	const { presets, fields } = bnd_sb_catalogue;
-	for (const [name, values] of Object.entries(presets)) {
-		const hit = fields.every(
-			(f) => bnd_sb_norm(f, frm.doc[f]) === bnd_sb_norm(f, values[f])
-		);
-		if (hit) return name;
-	}
-	return "Custom";
-}
+// `bnd_sb_match_preset` is DELETED with the catalogue: Focus and Quiet both
+// compose the Ink pane, so a look's name was never an identity the pane
+// could claim — the place a look is NAMED is the theme card (item 37). The
+// note takes the same Changed/Default path as every other kit.
 
 /**
  * Normalise legacy stored values so old sites keep matching presets and the
@@ -2558,9 +2528,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 				// palette no sidebar preset carried — Carbon a teal, Paper a violet,
 				// while all eight rendered in whatever seed the site was on. The looks
 				// are ONE catalogue now, under Appearance > Theme, and this pane is
-				// the options a look composes from. `bnd_sb_match_preset` stays: the
-				// shell's note and the per-option reset both still ask which
-				// composition this is.
+				// the options a look composes from. The matcher went with slice 10:
+				// the note is Changed/Default and the reset returns to shipped.
 				{ zone: "style", html: (kit_off ? P.note(kit_off) : "") },
 				{ zone: "placement", html: by_zone.placement },
 				{ zone: "pane", html: by_zone.pane || "" },
@@ -2579,10 +2548,14 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	$host.find(".bnd-sbp-import").on("click", () => bnd_sb_import(frm));
 	$host.find(".bnd-sbp-reset").on("click", function (e) {
 		e.stopPropagation();
+		// SHIPPED, wherever you start. The old target was the currently
+		// MATCHED look, so resetting one field pulled it toward a composition
+		// the admin never picked and the result depended on where you stood
+		// (measured: on Ink, reset was a no-op). Falls through silently only
+		// while the shipped defaults are still in flight.
 		const f = this.getAttribute("data-field");
-		const base = bnd_sb_match_preset(frm);
-		const source = bnd_sb_catalogue.presets[base] || bnd_sb_catalogue.presets[bnd_sb_catalogue.default];
-		bnd_sb_set(frm, f, source[f]);
+		if (!bnd_shipped) return;
+		bnd_sb_set(frm, f, bnd_shipped[f]);
 	});
 	$host.find(".bnd-sbp-search").on("input", function () {
 		const q = this.value.trim().toLowerCase();
@@ -2608,9 +2581,9 @@ function bnd_render_sidebar_picker_now(frm, host) {
  * permanent for everyone the moment it is clicked — this form autosaves.
  */
 function bnd_sb_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.sb_apply || !bnd_sb_catalogue) return;
+	if (!window.bunood_theme || !window.bunood_theme.sb_apply) return;
 	const values = {};
-	for (const f of bnd_sb_catalogue.fields) values[f] = frm.doc[f];
+	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
 	values.sidebar_menu_rail = bnd_sb_norm("sidebar_menu_rail", values.sidebar_menu_rail);
 	window.bunood_theme.sb_apply(values);
 }
@@ -2866,6 +2839,17 @@ function bnd_render_theme_picker(frm, host) {
  * sync with theme_settings.json and bunood_theme/presets.py. Drives the picker
  * below, the change dots, and the theme export/import.
  */
+// The sidebar joins the mirror guard (item 40, slice 10): this list was the
+// one field set fetched from the server (`bnd_sb_catalogue.fields`), which
+// cost the shell a second request and a documented race. build.mjs holds it
+// to presets.SIDEBAR_FIELDS like every other kit's mirror.
+const BND_SIDEBAR_FIELDS = [
+	"sidebar_placement", "sidebar_material", "sidebar_color",
+	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
+	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
+	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
+	"sidebar_filter",
+];
 const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs"];
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
@@ -7468,7 +7452,7 @@ function bnd_render_identity_picker(frm, host) {
  * `desk_order` and four of the five placements were in neither until item 36.
  * Two copies cannot drift apart when there is one copy.
  *
- * A function, not a const: `bnd_sb_catalogue.fields` is fetched lazily and
+ * A function, not a const: it predates BND_SIDEBAR_FIELDS being a const and
  * must be read at call time, exactly as both call sites always did.
  *
  * WHAT TRAVELS (the user's pick, 2026-08-26): full reproduction including
@@ -7492,7 +7476,7 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(bnd_sb_catalogue.fields, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
 /**

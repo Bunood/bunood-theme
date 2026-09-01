@@ -436,26 +436,11 @@ def set_user_density(density: str = "") -> dict:
     return {"density": density}
 
 
-@frappe.whitelist()
-def get_sidebar_presets() -> dict:
-    """Hand the sidebar preset catalogue to the Theme Settings picker.
-
-    The picker applies a preset by writing its values into the (hidden) style
-    fields — the values are the canon, the preset name is a label; see
-    :mod:`bunood_theme.presets`.
-
-    Returns:
-        ``{"presets": {...}, "fields": [...], "default": str}``.
-    """
-    from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_FIELDS, SIDEBAR_PRESETS
-
-    return {
-        "presets": SIDEBAR_PRESETS,
-        "fields": SIDEBAR_FIELDS,
-        "default": DEFAULT_SIDEBAR_PRESET,
-    }
-
-
+# `get_sidebar_presets` lived here and is DELETED (item 40, slice 10): its
+# only caller was the picker's second fetch, everything it served is in
+# `get_shipped_defaults`, and deleting it deletes the documented two-fetch
+# race by construction — the note read "Default" on the one entry with a
+# real name, intermittently, which is the worst kind.
 @frappe.whitelist()
 def set_user_sidebar_preset(preset: str = "") -> dict:
     """Persist the current user's sidebar preset override.

@@ -430,12 +430,12 @@ def extend_bootinfo(bootinfo):
         # per-user look is resolved in fieldname space before composition now,
         # so nothing down here needs the catalogue.
         from bunood_theme.presets import (
-            DEFAULT_SIDEBAR_PRESET,
             ICON_DEFAULTS,
-            SIDEBAR_PRESETS,
+            _DEFAULT_SIDEBAR_LOOK,
+            _SIDEBAR_LOOKS,
         )
 
-        preset = SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET]
+        preset = _SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK]
         get = lambda f: settings.get(f) or preset.get(f)  # noqa: E731
         # Icon fields are an axis now, not sidebar-preset fields, so they fall
         # back to ICON_DEFAULTS. Their VALUES feed the sidebar/crumb payload keys

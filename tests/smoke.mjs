@@ -1494,7 +1494,7 @@ async function main() {
 		Object.entries(shipped).filter(([field]) => MUTABLE_FIELDS.includes(field))
 	));
 	const presets = JSON.parse(
-		benchPy(`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
+		benchPy(`from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
 	browser = await chromium.launch();
@@ -5124,6 +5124,122 @@ print("ok")
 			}
 		});
 
+		await test("settings: the pane's note is the honest two-state, with no catalogue fetch", async () => {
+			// Item 40 slice 10. Focus and Quiet both compose the Ink pane, so a
+			// look name is not an identity the pane can claim — the place a look
+			// is NAMED is the theme card, where item 37 put it. The pane joins
+			// every other kit: Default / Changed, derived from the SHIPPED
+			// defaults the shell already fetches — which also deletes the
+			// documented two-fetch race by construction, so the second half
+			// asserts the catalogue endpoint is never called at all.
+			// STATE THE PREMISE: "Default" is only the right answer on a doc
+			// whose sidebar fields ARE at shipped — inherited from a preset
+			// family upstream, one leftover makes Changed the honest reading
+			// and this check the liar (measured, mid-sweep).
+			const shippedSb = JSON.parse(
+				benchPy(
+					`from bunood_theme.setup import SHIPPED
+` +
+						`from bunood_theme.presets import SIDEBAR_FIELDS
+` +
+						`import json
+` +
+						`print("BND" + json.dumps({f: SHIPPED[f] for f in SIDEBAR_FIELDS}))
+`
+				).split("BND")[1].trim()
+			);
+			const before = getSettings(Object.keys(shippedSb));
+			try {
+				setSettings(shippedSb);
+				const calls = [];
+				const listener = (req) => {
+					if (req.url().includes("get_sidebar_presets")) calls.push(req.url());
+				};
+				page.on("request", listener);
+				try {
+					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+					await page.waitForFunction(
+						() => {
+							const n = document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note');
+							return n && n.textContent.trim();
+						},
+						null, { timeout: 15000 }
+					);
+					const note = await page.evaluate(() =>
+						document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note').textContent.trim()
+					);
+					expectEq(note, "Default", `at shipped the pane's note is Default, never a look's name (${note})`);
+					expectEq(calls.length, 0, `no catalogue fetch — the race is deleted by construction (${calls.join(", ")})`);
+
+					setSettings({ sidebar_hue_wash: "Off" });
+					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+					await page.waitForFunction(
+						() => {
+							const n = document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note');
+							return n && n.textContent.trim() && n.textContent.trim() !== "Default";
+						},
+						null, { timeout: 15000 }
+					).catch(() => {});
+					const changed = await page.evaluate(() =>
+						document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note').textContent.trim()
+					);
+					expectEq(changed, "Changed", `and Changed the moment a field moves (${changed})`);
+				} finally {
+					page.off("request", listener);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("settings: a sidebar option's reset returns the SHIPPED value, wherever you start", async () => {
+			// The old reset resolved against the CURRENTLY MATCHED look, so
+			// resetting one field pulled it toward a composition the admin never
+			// picked and the result depended on where you started. The sharp
+			// case: put the doc exactly on a NON-default look — the old code's
+			// reset is then a NO-OP (the matched look's value IS the current
+			// value), while the honest reset moves the field back to shipped.
+			const looks = JSON.parse(
+				benchPy(
+					`try:\n` +
+					`    from bunood_theme.presets import _SIDEBAR_LOOKS as L\n` +
+					`except ImportError:\n` +
+					`    from bunood_theme.presets import SIDEBAR_PRESETS as L\n` +
+					`from bunood_theme.setup import SHIPPED\n` +
+					`import json\n` +
+					`ink = dict(L["Ink"])\n` +
+					`print("BND" + json.dumps({"ink": ink, "shipped": {f: SHIPPED.get(f) for f in ink}}))\n`
+				).split("BND")[1].trim()
+			);
+			const probe = Object.keys(looks.ink).find(
+				(f) => String(looks.ink[f]) !== String(looks.shipped[f])
+			);
+			expect(probe, "a field where Ink and the shipped look disagree exists (premise)");
+			const before = getSettings(Object.keys(looks.ink));
+			try {
+				setSettings(looks.ink);
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.evaluate(() => document.querySelector('.bnd-shell-item[data-key="sidepane"]').click());
+				await page.waitForSelector(".bnd-sbp", { timeout: 15000 });
+				const clicked = await page.evaluate((f) => {
+					const chip = document.querySelector(`.bnd-sbp-reset[data-field="${f}"]`);
+					if (!chip) return false;
+					chip.click();
+					return true;
+				}, probe);
+				expect(clicked, `the reset chip for ${probe} is rendered and clickable`);
+				await page.waitForFunction(
+					([f, want]) => window.cur_frm && String(window.cur_frm.doc[f]) === String(want),
+					[probe, looks.shipped[probe]], { timeout: 8000 }
+				).catch(() => {});
+				const landed = await page.evaluate((f) => window.cur_frm.doc[f], probe);
+				expectEq(String(landed), String(looks.shipped[probe]),
+					`reset lands on the SHIPPED value, not the matched look's (${probe}: ${landed}, Ink holds ${looks.ink[probe]})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the
@@ -7528,8 +7644,10 @@ print("ok")
 				expect(!body.includes(`"${f}"`), `${f} must NOT travel`);
 			}
 			// One list means ONE: neither call site may grow its own concat back.
+			// (Slice 10 renamed the subject — the catalogue died and the concat
+			// rides the BND_SIDEBAR_FIELDS mirror now; the tripwire follows.)
 			expect(
-				(src.match(/\.concat\(bnd_sb_catalogue\.fields/g) || []).length === 1,
+				(src.match(/\.concat\(BND_SIDEBAR_FIELDS/g) || []).length === 1,
 				"a second private key concat grew back beside bnd_theme_keys"
 			);
 		});
@@ -7599,14 +7717,13 @@ print("ok")
 					])
 				)
 			);
-			const presets = JSON.parse(
-				benchPy(
-					`from bunood_theme.presets import SIDEBAR_PRESETS\nprint(json.dumps(list(SIDEBAR_PRESETS)))\n`
-				).trim().split("\n").pop()
-			);
+			// SLICE 10: the pane's catalogue went private and its note joined
+			// every other kit — the two-state, never a look's name. A look's
+			// name here would be the exact invention this check exists to
+			// refuse, because Focus and Quiet both compose the Ink pane.
 			expect(
-				presets.includes(notes.sidepane) || notes.sidepane === "Custom",
-				`side pane note "${notes.sidepane}" is neither a real preset name nor "Custom"`
+				notes.sidepane === "Default" || notes.sidepane === "Changed",
+				`side pane note "${notes.sidepane}" is not the honest two-state`
 			);
 
 			const layouts = Object.keys(
