@@ -48,8 +48,9 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
 FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE; ONE
-LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE (filter with
-collapsed-section reveal, automatic fades, rail inert repair, aria-current).**
+LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE; SHORTCUTS
+DONE (pins+recents, server caps 25/15, render-time permission re-resolution). The
+8b gate was 439/439 — the item's second perfect full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
@@ -155,6 +156,20 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **A SABOTAGE THAT PASSES IS A CHECK THAT LIES, and slice 8b has the cleanest
+  specimen yet.** The permission-vanish check pinned a FAKE docname, so the existence
+  arm dropped the row and the check stayed green with the permission filter gutted.
+  When a check has two arms that can each produce the same outcome, the probe must
+  pin down which arm fired — here, by pinning a REAL record the fixture cannot read,
+  with the fixture's lack of permission asserted as the premise. Clean passes /
+  gutted fails / restored passes, all three watched.
+
+- **`assertPersonalAxes` MATCHES TO THE FIRST CLOSING PAREN**, so a nested call
+  (`frappe.as_json(x, indent=None)`) inside `set_default(...)` cuts its capture
+  short of the `parent=` it exists to demand, and the build fails on a call that is
+  actually correct. Hoist the nested expression into a variable — the guard's own
+  comment says single-line calls only, and now there is a second reason.
 
 - **SECTIONS REST COLLAPSED, AND FRAPPE'S `.hidden` IS `display: none !important`.**
   Two facts a pane feature will trip over: only ~6 of 60 links are visible at rest on

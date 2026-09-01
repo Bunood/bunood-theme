@@ -24,10 +24,11 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Six have landed: the COLOUR phase;
-the FIELD MODEL — nineteen style settings down to twelve, thirteen with the filter; THE
-PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; and THE LIST FEATURES.
-Still to come: shortcuts, drag-to-resize, the account band, and the picked design.
+**In flight.** The pane's rebuild is thirteen slices. Seven have landed: the COLOUR
+phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen with the
+filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; THE LIST
+FEATURES; and SHORTCUTS. Still to come: drag-to-resize, the account band, and the
+picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -423,6 +424,31 @@ holding the old value — the same trap the quick links found, two fields over.
 - Badge roll-up and collapse-all are deferred to the design slice, stated rather than
   shrunk: roll-up needs re-aggregation on Frappe's collapse toggle, and collapse-all
   needs a drawn home, which is the user's pick.
+
+### Added — Shortcuts
+
+- **Pins and recents in one region** — Stripe's model, the survey's verdict made
+  flesh: people navigate to RECORDS, not pages, and only one surveyed ERP treated
+  that as first-class. A page you visit appears as a recent; pinning promotes it to a
+  stable slot; no region at all until there is something to show. The pin gesture
+  lives in the Place row's menu (hover-only row actions are refused), and every row's
+  unpin control is in the DOM at rest — Fluent's position, asserted visible.
+- **The caps are the server's**: 25 pinned total, at most 15 from one doctype —
+  Dynamics' numbers — enforced in `api.toggle_sb_pin` so they cannot be dodged by
+  calling the endpoint directly, with refusals that NAME their cap. Proven as the
+  non-admin desk fixture, never Administrator.
+- **A pin the user cannot read any more VANISHES, never 403s** — the one behaviour
+  the survey found undefined in every product it examined. `resolve_sb_pins`
+  re-resolves at render time, as the user; the store is never rewritten, so a
+  restored permission restores the pin. The check earned that sentence the hard way:
+  its first draft pinned a fake docname, the EXISTENCE arm did the dropping, and the
+  sabotage harness gutted the permission filter with the check still green. It pins a
+  real Item now, and the same sabotage fails it naming the arm.
+- `bnd_sb_pins` joins `personal.AXES`; the axes guard caught a nested `as_json()`
+  hiding `parent=` from its capture on the way in. Boot publishes through a defensive
+  wrapper — a decoration must never take the boot payload down.
+- `js_gzip` ceiling 99,450 → 100,850, reason in the budget file: ~1,240 gzip bytes of
+  designed feature after prose was trimmed to pointers.
 
 ### Known, and filed rather than fixed
 

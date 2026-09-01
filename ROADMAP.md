@@ -1416,8 +1416,17 @@ than a version number that would describe two different things.
   roll-up and collapse-all wait for the design slice — the first needs an observer on
   Frappe's collapse toggle, the second a drawn home.
 
-  **Still to come:** shortcuts, drag-to-resize, the account band, identity and
-  placement, preset integration, and the picked design.
+  **Shortcuts are done** — pins and recents merged in one region (Stripe's model),
+  server-side caps that name their numbers (25/15, Dynamics'), and render-time
+  permission re-resolution so a revoked pin vanishes rather than 403ing — the one
+  behaviour the survey found undefined everywhere. Proven as the non-admin fixture,
+  and the permission arm survived a deliberate gutting only after its premise was
+  strengthened to pin a REAL record: the first draft's fake docname let the
+  existence arm do the dropping, and the sabotage harness caught the check being
+  weaker than it read.
+
+  **Still to come:** drag-to-resize, the account band, identity and placement,
+  preset integration, and the picked design.
 
 ---
 
