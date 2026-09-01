@@ -1946,19 +1946,8 @@
 				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
 				continue;
 			}
-			if (item.header) {
-				const head = el("div", "bnd-menu-header");
-				const name = el("div", "bnd-menu-name");
-				name.textContent = item.header.name;
-				head.appendChild(name);
-				if (item.header.email) {
-					const mail = el("div", "bnd-menu-email");
-					mail.textContent = item.header.email;
-					head.appendChild(mail);
-				}
-				menu.appendChild(head); // sibling of the list, never its child
-				continue;
-			}
+			// The identity header moved into the account panel (8c) — no caller
+			// passes `header` any more, and the panel labels itself by the name.
 			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
 				type: "button",
 				role: "menuitem",
@@ -2011,7 +2000,10 @@
 		const r = trigger.getBoundingClientRect();
 		const mw = menu.offsetWidth;
 		const mh = menu.offsetHeight;
-		const opens_up = r.top > window.innerHeight / 2;
+		// DOES IT FIT — never "is the trigger below mid-screen" (defect 22:
+		// an eleven-item menu from a trigger just above the midpoint opened
+		// downward and overflowed the bottom edge).
+		const opens_up = r.bottom + mh + 6 > window.innerHeight;
 		let left = Math.min(Math.max(8, r.right - mw), window.innerWidth - mw - 8);
 		menu.style.left = left + "px";
 		menu.style.top = opens_up ? Math.max(8, r.top - mh - 6) + "px" : r.bottom + 6 + "px";
@@ -2039,15 +2031,6 @@
 	 */
 	function avatar_menu_items() {
 		const items = [];
-		items.push({
-			header: {
-				name: (frappe.session && frappe.session.user_fullname) || frappe.session.user,
-				email:
-					(frappe.boot.user && frappe.boot.user.email) ||
-					(frappe.session && frappe.session.user_email) ||
-					"",
-			},
-		});
 
 		// Place-switching that has no other home now that the old brand menu
 		// is retired: Website for everyone, Desktop where the sidebar is gone.
@@ -2098,14 +2081,18 @@
 			run: () => frappe.ui.toolbar.toggle_full_width(),
 		});
 		items.push("divider");
+		// The trailing hints the vendor shows and item 40's audit called an
+		// information regression to drop. Unit strings, not sentences.
 		items.push({
 			label: __("Keyboard Shortcuts"),
 			icon: "icon-keyboard",
+			kbd: "Shift+/",
 			run: () => frappe.ui.toolbar.show_shortcuts(),
 		});
 		items.push({
 			label: __("Reload"),
 			icon: "icon-rotate-ccw",
+			kbd: "Shift+Ctrl+R",
 			run: () => frappe.ui.toolbar.clear_cache(),
 		});
 		items.push("divider");
@@ -2399,7 +2386,34 @@
  * strip still gets the node, at the nearest honest place, rather than not at
  * all.
  */
+/** The account band (8c): one toolbar shell at the foot. _sidebar.scss. */
+function sb_band(pane) {
+	let band = pane.querySelector(".bnd-sb-band");
+	if (!band) {
+		band = el("div", "bnd-sb-band", {
+			role: "toolbar",
+			"aria-label": __("Quick actions"),
+			"data-bnd-zone": "end",
+		});
+		pane.appendChild(band);
+	}
+	return band;
+}
+
+function sb_band_prune() {
+	for (const band of document.querySelectorAll(".bnd-sb-band")) {
+		if (!band.childElementCount) band.remove();
+	}
+}
+
 function sb_zone_anchor(pane, zone, node) {
+	// Our end tenants become band cells.
+	if (zone === "end" && node.getAttribute) {
+		const part = node.getAttribute("data-bnd-part");
+		if (part === "bell" || part === "user" || part === "home" || part === "apps") {
+			return sb_band(pane).appendChild(node);
+		}
+	}
 	const bottom = pane.querySelector(".body-sidebar-bottom");
 	const header = pane.querySelector(".bnd-sb-head") || pane.querySelector(".sidebar-header");
 
@@ -2658,6 +2672,7 @@ function sb_zone_anchor(pane, zone, node) {
 			bnd_own(token);
 			stamp(region);
 		}
+		sb_band_prune();
 		enforce_desk_order();
 		ensure_skip_link();
 	}
@@ -2704,8 +2719,250 @@ function sb_zone_anchor(pane, zone, node) {
 		return bell;
 	}
 
+	let open_acct = null;
+
+	function close_acct(refocus) {
+		if (!open_acct) return;
+		const { panel, trigger, on_doc } = open_acct;
+		open_acct = null;
+		document.removeEventListener("pointerdown", on_doc, true);
+		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "false");
+		panel.classList.remove("bnd-acct-open");
+		const gone = () => panel.remove();
+		const dur = parseFloat(getComputedStyle(panel).transitionDuration) || 0;
+		if (dur) setTimeout(gone, dur * 1000 + 30);
+		else gone();
+		if (refocus && trigger && trigger.focus) trigger.focus();
+	}
+
+	/** The account panel (8c): dialog, never menu. _cluster.scss argues it. */
+	function bunood_acct_panel(trigger) {
+		if (open_acct && open_acct.trigger === trigger) {
+			close_acct(true);
+			return;
+		}
+		close_acct(false);
+
+		const panel = el("div", "bnd-acct-panel", {
+			role: "dialog",
+			"aria-modal": "false",
+			"aria-labelledby": "bnd-acct-name",
+			tabindex: "-1",
+		});
+
+		// <bdi> on every free-text line — item 7's isolation gap.
+		const head = el("div", "bnd-acct-head");
+		const av = el("span", "bnd-acct-avatar");
+		av.innerHTML = user_avatar_html();
+		head.appendChild(av);
+		const id = el("div", "bnd-acct-id");
+		const name = el("div", "bnd-acct-name", { id: "bnd-acct-name" });
+		const nbdi = el("bdi", "");
+		nbdi.textContent = (frappe.session && frappe.session.user_fullname) || frappe.session.user;
+		name.appendChild(nbdi);
+		id.appendChild(name);
+		const mail = el("div", "bnd-acct-email");
+		const mbdi = el("bdi", "");
+		mbdi.textContent =
+			(frappe.boot.user && frappe.boot.user.email) ||
+			(frappe.session && frappe.session.user_email) ||
+			"";
+		mail.appendChild(mbdi);
+		id.appendChild(mail);
+		const company = (frappe.boot.sysdefaults && frappe.boot.sysdefaults.company) || "";
+		if (company) {
+			const line = el("div", "bnd-acct-company-line");
+			const cbdi = el("bdi", "");
+			cbdi.textContent = company;
+			line.appendChild(cbdi);
+			id.appendChild(line);
+		}
+		head.appendChild(id);
+		panel.appendChild(head);
+
+		// Light or dark, through Frappe's own switch_theme endpoint.
+		const modes = [
+			{ value: "light", label: __("Light") },
+			{ value: "dark", label: __("Dark") },
+			{ value: "automatic", label: __("Automatic") },
+		];
+		const group = el("div", "bnd-acct-appearance", {
+			role: "radiogroup",
+			"aria-label": __("Light or dark"),
+		});
+		const mode_now = () => document.documentElement.getAttribute("data-theme-mode") || "light";
+		const radios = modes.map((m) => {
+			const b = el("button", "bnd-acct-radio", {
+				type: "button",
+				role: "radio",
+				"aria-checked": mode_now() === m.value ? "true" : "false",
+				tabindex: mode_now() === m.value ? "0" : "-1",
+			});
+			b.textContent = m.label;
+			b.addEventListener("click", () => set_mode(m.value));
+			group.appendChild(b);
+			return b;
+		});
+		function set_mode(value) {
+			frappe.ui.set_theme(value === "automatic" ? undefined : value);
+			document.documentElement.setAttribute("data-theme-mode", value);
+			frappe
+				.xcall("frappe.core.doctype.user.user.switch_theme", {
+					theme: value.charAt(0).toUpperCase() + value.slice(1),
+				})
+				.catch(() => {});
+			radios.forEach((b, i) => {
+				b.setAttribute("aria-checked", modes[i].value === value ? "true" : "false");
+				b.tabIndex = modes[i].value === value ? 0 : -1;
+			});
+		}
+		group.addEventListener("keydown", (e) => {
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+			e.preventDefault();
+			const at = radios.indexOf(document.activeElement);
+			const fwd = e.key === "ArrowRight" || e.key === "ArrowDown";
+			const next = radios[(at + (fwd ? 1 : radios.length - 1)) % radios.length];
+			next.focus();
+			next.click();
+		});
+		panel.appendChild(group);
+
+		// Company: the vendor's own session-defaults write.
+		if (company) {
+			const disc = el("button", "bnd-acct-company", {
+				type: "button",
+				"aria-expanded": "false",
+			});
+			const dlabel = el("span", "bnd-acct-company-label");
+			dlabel.textContent = __("Company");
+			disc.appendChild(dlabel);
+			const dval = el("bdi", "bnd-acct-company-value");
+			dval.textContent = company;
+			disc.appendChild(dval);
+			const list = el("div", "bnd-acct-companies", { hidden: "" });
+			let loaded = false;
+			disc.addEventListener("click", () => {
+				const opening = disc.getAttribute("aria-expanded") !== "true";
+				disc.setAttribute("aria-expanded", opening ? "true" : "false");
+				list.hidden = !opening;
+				if (!opening || loaded) return;
+				loaded = true;
+				frappe
+					.xcall("frappe.client.get_list", {
+						doctype: "Company",
+						fields: ["name"],
+						limit_page_length: 20,
+					})
+					.then((rows) => {
+						for (const row of rows || []) {
+							const opt = el("button", "bnd-acct-company-opt", {
+								type: "button",
+								"aria-checked": row.name === dval.textContent ? "true" : "false",
+							});
+							const obdi = el("bdi", "");
+							obdi.textContent = row.name;
+							opt.appendChild(obdi);
+							opt.addEventListener("click", () => {
+								frappe
+									.xcall(
+										"frappe.core.doctype.session_default_settings.session_default_settings.set_session_default_values",
+										{ default_values: JSON.stringify({ company: row.name }) }
+									)
+									.then(() => {
+										dval.textContent = row.name;
+										for (const o of list.children) {
+											o.setAttribute("aria-checked", o === opt ? "true" : "false");
+										}
+									})
+									.catch(() => {});
+							});
+							list.appendChild(opt);
+						}
+					})
+					.catch(() => {});
+			});
+			panel.appendChild(disc);
+			panel.appendChild(list);
+		}
+
+		// The session actions.
+		const items = el("div", "bnd-acct-items");
+		for (const item of avatar_menu_items()) {
+			if (item === "divider") {
+				items.appendChild(el("div", "bnd-acct-divider", { role: "separator" }));
+				continue;
+			}
+			const row = el("button", item.danger ? "bnd-acct-item bnd-acct-signout" : "bnd-acct-item", {
+				type: "button",
+			});
+			if (item.icon) row.appendChild(sprite_icon(item.icon));
+			const lbl = el("span", "bnd-acct-item-label");
+			lbl.textContent = item.label;
+			row.appendChild(lbl);
+			if (item.kbd) {
+				const hint = el("kbd", "bnd-acct-kbd");
+				hint.textContent = item.kbd;
+				row.appendChild(hint);
+			}
+			row.addEventListener("click", () => {
+				close_acct(false);
+				try {
+					item.run && item.run();
+				} catch (e) {
+					console.error("bunood_theme account action failed", e); // eslint-disable-line no-console
+				}
+			});
+			items.appendChild(row);
+		}
+		panel.appendChild(items);
+
+		const caption = el("div", "bnd-acct-caption");
+		const sbdi = el("bdi", "");
+		sbdi.textContent = (frappe.boot && frappe.boot.sitename) || "";
+		caption.appendChild(sbdi);
+		panel.appendChild(caption);
+
+		panel.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				close_acct(true);
+			}
+		});
+
+		document.body.appendChild(panel);
+
+		// Viewport geometry, no side names.
+		const r = trigger.getBoundingClientRect();
+		const pw = panel.offsetWidth;
+		const ph = panel.offsetHeight;
+		const opens_up = r.bottom + ph + 6 > window.innerHeight;
+		const top = opens_up ? Math.max(8, r.top - ph - 6) : r.bottom + 6;
+		const left = Math.min(Math.max(8, r.right - pw), window.innerWidth - pw - 8);
+		panel.style.top = top + "px";
+		panel.style.left = left + "px";
+		// Origin at the trigger's corner, numerically.
+		const ox = Math.min(Math.max(0, r.left + r.width / 2 - left), pw);
+		const oy = opens_up ? ph : 0;
+		panel.style.transformOrigin = ox + "px " + oy + "px";
+
+		const on_doc = (e) => {
+			if (panel.contains(e.target) || trigger.contains(e.target)) return;
+			close_acct(false);
+		};
+		document.addEventListener("pointerdown", on_doc, true);
+		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "true");
+		open_acct = { panel, trigger, on_doc };
+
+		requestAnimationFrame(() => {
+			panel.classList.add("bnd-acct-open");
+			panel.focus();
+		});
+	}
+	bunood.acct_panel = bunood_acct_panel;
+
 	/**
-	 * The avatar and its menu — the only route to Log Out once a layout hides
+	 * The avatar and its panel — the only route to Log Out once a layout hides
 	 * Frappe's own, which is why `user` is the sharpest ownership token.
 	 * @returns {HTMLElement}
 	 */
@@ -2716,8 +2973,12 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": __("User menu"),
 		});
 		avatar.innerHTML = user_avatar_html();
-		menu_trigger(avatar);
-		avatar.addEventListener("click", () => show_menu(avatar, avatar_menu_items()));
+		avatar.setAttribute("aria-haspopup", "dialog");
+		avatar.setAttribute("aria-expanded", "false");
+		avatar.addEventListener("click", (e) => {
+			e.stopPropagation();
+			bunood_acct_panel(avatar);
+		});
 		return avatar;
 	}
 
@@ -6205,6 +6466,14 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sb_mount_utils() {
 		for (const old_mount of document.querySelectorAll(".bnd-sb-utils")) old_mount.remove();
+		// The links' BAND CELLS are not .bnd-sb-utils — sweep them too, or
+		// every re-run appends a fresh pair (measured: six cells, w=200,
+		// the avatar shoved under the resize handle).
+		for (const old_cell of document.querySelectorAll(
+			'.bnd-sb-band > [data-bnd-part="home"], .bnd-sb-band > [data-bnd-part="apps"]'
+		)) {
+			old_cell.remove();
+		}
 
 		// No fallback to the old shared key: boot stopped emitting it in slice 2,
 		// so reading it would be a branch that can never be taken pretending to
@@ -6252,20 +6521,19 @@ function sb_zone_anchor(pane, zone, node) {
 				sidebar.querySelector(".bnd-sb-head") || sidebar.querySelector(".sidebar-header");
 			if (!head) continue;
 
+			// Foot links are band cells (8c); the bar variant is the cell.
+			if (zone === "end") {
+				for (const which of members) {
+					sb_zone_anchor(sidebar, "end", build_quick_link(which, true));
+				}
+				continue;
+			}
 			const utils = el("div", "bnd-sb-utils");
 			utils.setAttribute("data-bnd-zone", zone || "start");
 			for (const which of members) utils.appendChild(build_quick_link(which, false));
-
-			// The pane's two zones, by the same rule as every other tenant:
-			// "end" is the foot, anything else is under the header.
-			if (zone === "end") {
-				const bottom = document.querySelector(".body-sidebar-bottom");
-				if (bottom) bottom.insertAdjacentElement("beforebegin", utils);
-				else sidebar.appendChild(utils);
-			} else {
-				head.insertAdjacentElement("afterend", utils);
-			}
+			head.insertAdjacentElement("afterend", utils);
 		}
+		sb_band_prune();
 		enforce_desk_order();
 	}
 
@@ -6836,6 +7104,7 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The link rows the PANE holds. A bar-placed pair outlives it. */
 	function sb_teardown_pane_utils() {
 		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-utils")) n.remove();
+		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-band")) n.remove();
 	}
 
 	/** Remove the badges and forget the throttle, so a remount refetches. */

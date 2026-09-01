@@ -246,6 +246,19 @@
   // the --bnd-sb-* working set (bg, ink, chip, card); these are the shared
   // geometry/stop values every mode agrees on.
   --bnd-sb-w: 220px;
+  // The account band (item 40, 8c): cell box and the band's OWN inline
+  // padding. The band escapes the vendor's pane padding and re-applies
+  // this, so its usable width is W minus 2*pad by OUR numbers - a fact
+  // Frappe cannot move under us. --bnd-sb-pane-pad mirrors the vendor's
+  // 8px pane padding for exactly that escape; if their number moves, the
+  // band check fails NAMING it rather than the desk quietly shifting.
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  --bnd-sb-pane-pad: 8px;
+  // The account panel's fixed inline size (8c): identity text CLAMPS to
+  // it rather than stretching it - the check pins the panel at this width
+  // with a 40-char Arabic name and a 45-char address.
+  --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
   // Pane translucency: the OPAQUE percentage of the pane color kept in the
@@ -537,11 +550,18 @@ html[data-bnd-density="comfortable"] {
   --bnd-row-h: 32px;
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
 }
 html[data-bnd-density="compact"] {
   --bnd-row-h: 24px;
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
+  // 32px, NOT below it: the band's count badge degrades to a dot only
+  // under 32, so both shipped densities keep the count. The degradation
+  // rule itself is deliberately unbuilt - no shipped preset can trigger
+  // it, and a branch whose guard is false on every desk is untested code
+  // pretending to be a safety net (the ledger records this call).
+  --bnd-sb-cell: 32px;
 }
 
 // ── Reduced motion ──────────────────────────────────────────────────────────

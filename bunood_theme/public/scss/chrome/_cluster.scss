@@ -104,23 +104,8 @@ html[data-theme] .bnd-menu {
   border-radius: var(--bnd-radius-lg);
   box-shadow: var(--bnd-shadow-lg);
 
-  // Identity header: who this menu belongs to. Data from frappe.session.
-  .bnd-menu-header {
-    padding-block: var(--bnd-sp-2);
-    padding-inline: var(--bnd-sp-3);
-    border-block-end: var(--bnd-line) solid var(--bnd-border);
-    margin-block-end: var(--bnd-sp-1);
-
-    .bnd-menu-name {
-      font-size: var(--bnd-text-sm);
-      font-weight: var(--bnd-weight-medium);
-      color: var(--bnd-ink);
-    }
-    .bnd-menu-email {
-      font-size: var(--bnd-text-xs);
-      color: var(--bnd-ink-subtle);
-    }
-  }
+  // The identity header moved into the account panel (8c); no menu
+  // builds one any more, so its styles went with the branch.
 
   .bnd-menu-item {
     display: flex;
@@ -166,11 +151,191 @@ html[data-theme] .bnd-menu {
   }
 }
 
+// ── The account panel (item 40, 8c) ─────────────────────────────────────
+// role=dialog, labelled by the name. The clamp is ONE rule with three
+// consumers (name, email, company line): text never grows the panel, the
+// check pins both dimensions with a long Arabic identity. Internal scroll
+// is what keeps Sign Out reachable at a 600px viewport with the company
+// list open. And the panel is a DIALOG, never role=menu: it holds an inert
+// identity block, a radiogroup, a disclosure sub-list and a caption, and
+// ARIA permits a menu to own only menuitems. It is labelled by the NAME
+// element, announcing as the identity the icon-only band gave up; focus
+// lands on the PANEL, never the radiogroup — radios select on arrow, and
+// landing there would change the person's theme before they read a word.
+// The mode radios post through Frappe's OWN switch_theme endpoint (the
+// appearance dialog's exact path) and the company rows through the
+// vendor's session-defaults write: one mechanism per question.
+html[data-theme] .bnd-acct-panel {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  inline-size: var(--bnd-acct-w);
+  max-block-size: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-lg);
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity var(--bnd-dur-fast) var(--bnd-ease),
+    transform var(--bnd-dur-fast) var(--bnd-ease);
+
+  &.bnd-acct-open {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .bnd-acct-head {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+    margin-block-end: var(--bnd-sp-1);
+  }
+  .bnd-acct-avatar .avatar {
+    inline-size: 36px;
+    block-size: 36px;
+  }
+  // Ellipsis inside flex needs the implicit min-size floor opted out.
+  .bnd-acct-id {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  .bnd-acct-name {
+    font-size: var(--bnd-text-sm);
+    font-weight: var(--bnd-weight-medium);
+    color: var(--bnd-ink);
+  }
+  .bnd-acct-email,
+  .bnd-acct-company-line {
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+  }
+  // THE CLAMP — one rule, three consumers.
+  .bnd-acct-name,
+  .bnd-acct-email,
+  .bnd-acct-company-line {
+    max-inline-size: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bnd-acct-appearance {
+    display: flex;
+    gap: var(--bnd-sp-1);
+    padding: var(--bnd-sp-1);
+    margin-block-end: var(--bnd-sp-1);
+    background: var(--bnd-hover);
+    border-radius: var(--bnd-radius-md);
+  }
+  .bnd-acct-radio {
+    flex: 1;
+    padding-block: var(--bnd-sp-1);
+    border: var(--bnd-line) solid transparent;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+    cursor: pointer;
+
+    &[aria-checked="true"] {
+      background: var(--bnd-surface);
+      border-color: var(--bnd-border);
+      color: var(--bnd-ink);
+      font-weight: var(--bnd-weight-medium);
+    }
+  }
+
+  .bnd-acct-item,
+  .bnd-acct-company,
+  .bnd-acct-company-opt {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    inline-size: 100%;
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink);
+    font-size: var(--bnd-text-sm);
+    text-align: start;
+    cursor: pointer;
+
+    svg {
+      inline-size: 15px;
+      block-size: 15px;
+      flex: none;
+      color: var(--bnd-ink-muted);
+    }
+    &:hover {
+      background: var(--bnd-hover);
+      color: var(--bnd-ink);
+    }
+  }
+  .bnd-acct-kbd {
+    margin-inline-start: auto;
+    font-size: var(--bnd-text-xs);
+    font-family: inherit;
+    color: var(--bnd-ink-subtle);
+  }
+  .bnd-acct-signout {
+    color: var(--bnd-critical);
+    svg {
+      color: var(--bnd-critical);
+    }
+  }
+  .bnd-acct-company-label {
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+  }
+  .bnd-acct-company-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bnd-acct-company[aria-expanded="true"] .bnd-acct-company-label {
+    color: var(--bnd-ink);
+  }
+  .bnd-acct-companies {
+    padding-inline-start: var(--bnd-sp-3);
+  }
+  .bnd-acct-company-opt[aria-checked="true"] {
+    font-weight: var(--bnd-weight-medium);
+  }
+  .bnd-acct-divider {
+    block-size: var(--bnd-line);
+    background: var(--bnd-border);
+    margin-block: var(--bnd-sp-1);
+    margin-inline: var(--bnd-sp-2);
+  }
+  .bnd-acct-caption {
+    padding-block: var(--bnd-sp-1);
+    padding-inline: var(--bnd-sp-3);
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+  }
+}
+
+// Zeroed durations collapse the open transition to a state change; the
+// panel still appears, because the tokens are the ONLY duration source.
+
 // Focus ring for keyboard users — accent token, visible in both modes.
 html[data-theme] .bnd-icon-btn:focus-visible,
 html[data-theme] .bnd-avatar-btn:focus-visible,
 html[data-theme] .bnd-search-field:focus-visible,
 html[data-theme] .bnd-menu-item:focus-visible,
+html[data-theme] .bnd-acct-item:focus-visible,
+html[data-theme] .bnd-acct-radio:focus-visible,
+html[data-theme] .bnd-acct-company:focus-visible,
+html[data-theme] .bnd-acct-company-opt:focus-visible,
+html[data-theme] .bnd-acct-panel:focus-visible,
 html[data-theme] .bnd-dock-item:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 1px;

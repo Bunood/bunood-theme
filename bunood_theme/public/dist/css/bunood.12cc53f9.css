@@ -73,6 +73,10 @@
   --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
   --bnd-tap: 44px;
   --bnd-sb-w: 220px;
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  --bnd-sb-pane-pad: 8px;
+  --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
   --bnd-sb-glass-pct: 85%;
@@ -239,12 +243,14 @@ html[data-bnd-density=comfortable] {
   --bnd-row-h: 32px;
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
 }
 
 html[data-bnd-density=compact] {
   --bnd-row-h: 24px;
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
+  --bnd-sb-cell: 32px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -939,21 +945,6 @@ html[data-theme] .bnd-menu {
   border-radius: var(--bnd-radius-lg);
   box-shadow: var(--bnd-shadow-lg);
 }
-html[data-theme] .bnd-menu .bnd-menu-header {
-  padding-block: var(--bnd-sp-2);
-  padding-inline: var(--bnd-sp-3);
-  border-block-end: var(--bnd-line) solid var(--bnd-border);
-  margin-block-end: var(--bnd-sp-1);
-}
-html[data-theme] .bnd-menu .bnd-menu-header .bnd-menu-name {
-  font-size: var(--bnd-text-sm);
-  font-weight: var(--bnd-weight-medium);
-  color: var(--bnd-ink);
-}
-html[data-theme] .bnd-menu .bnd-menu-header .bnd-menu-email {
-  font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
-}
 html[data-theme] .bnd-menu .bnd-menu-item {
   display: flex;
   align-items: center;
@@ -993,10 +984,167 @@ html[data-theme] .bnd-menu .bnd-menu-divider {
   margin-inline: var(--bnd-sp-2);
 }
 
+html[data-theme] .bnd-acct-panel {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  inline-size: var(--bnd-acct-w);
+  max-block-size: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-lg);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease), transform var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-theme] .bnd-acct-panel.bnd-acct-open {
+  opacity: 1;
+  transform: scale(1);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-head {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  margin-block-end: var(--bnd-sp-1);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-avatar .avatar {
+  inline-size: 36px;
+  block-size: 36px;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-id {
+  flex: 1;
+  min-inline-size: 0;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-name {
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-ink);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-email,
+html[data-theme] .bnd-acct-panel .bnd-acct-company-line {
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-subtle);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-name,
+html[data-theme] .bnd-acct-panel .bnd-acct-email,
+html[data-theme] .bnd-acct-panel .bnd-acct-company-line {
+  max-inline-size: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-appearance {
+  display: flex;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-1);
+  background: var(--bnd-hover);
+  border-radius: var(--bnd-radius-md);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-radio {
+  flex: 1;
+  padding-block: var(--bnd-sp-1);
+  border: var(--bnd-line) solid transparent;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+  cursor: pointer;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-radio[aria-checked=true] {
+  background: var(--bnd-surface);
+  border-color: var(--bnd-border);
+  color: var(--bnd-ink);
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item,
+html[data-theme] .bnd-acct-panel .bnd-acct-company,
+html[data-theme] .bnd-acct-panel .bnd-acct-company-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: 100%;
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item svg,
+html[data-theme] .bnd-acct-panel .bnd-acct-company svg,
+html[data-theme] .bnd-acct-panel .bnd-acct-company-opt svg {
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+  color: var(--bnd-ink-muted);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item:hover,
+html[data-theme] .bnd-acct-panel .bnd-acct-company:hover,
+html[data-theme] .bnd-acct-panel .bnd-acct-company-opt:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-kbd {
+  margin-inline-start: auto;
+  font-size: var(--bnd-text-xs);
+  font-family: inherit;
+  color: var(--bnd-ink-subtle);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-signout {
+  color: var(--bnd-critical);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-signout svg {
+  color: var(--bnd-critical);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-company-label {
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-company-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-company[aria-expanded=true] .bnd-acct-company-label {
+  color: var(--bnd-ink);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-companies {
+  padding-inline-start: var(--bnd-sp-3);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-company-opt[aria-checked=true] {
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-divider {
+  block-size: var(--bnd-line);
+  background: var(--bnd-border);
+  margin-block: var(--bnd-sp-1);
+  margin-inline: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-caption {
+  padding-block: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-3);
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-subtle);
+}
+
 html[data-theme] .bnd-icon-btn:focus-visible,
 html[data-theme] .bnd-avatar-btn:focus-visible,
 html[data-theme] .bnd-search-field:focus-visible,
 html[data-theme] .bnd-menu-item:focus-visible,
+html[data-theme] .bnd-acct-item:focus-visible,
+html[data-theme] .bnd-acct-radio:focus-visible,
+html[data-theme] .bnd-acct-company:focus-visible,
+html[data-theme] .bnd-acct-company-opt:focus-visible,
+html[data-theme] .bnd-acct-panel:focus-visible,
 html[data-theme] .bnd-dock-item:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 1px;
@@ -1423,6 +1571,48 @@ html[data-bnd-sb-width="4"] {
 
 html[data-bnd-sb-width="5"] {
   --bnd-sb-w: 280px;
+}
+
+html[data-bnd-sb-color] .bnd-sb-band {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  padding: var(--bnd-sb-band-pad);
+  border-block-start: 1px solid var(--bnd-sb-line);
+  background: var(--bnd-sb-card-base);
+}
+html[data-bnd-sb-color] .bnd-sb-band > button {
+  flex: 0 0 auto;
+  inline-size: var(--bnd-sb-cell);
+  block-size: var(--bnd-sb-cell);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=bell] {
+  order: 1;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=home] {
+  order: 2;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=apps] {
+  order: 3;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=user] {
+  order: 9;
+  margin-inline-start: auto;
+}
+
+html[data-bnd-rail] .body-sidebar .bnd-sb-band {
+  flex-direction: column;
+  justify-content: flex-end;
+}
+html[data-bnd-rail] .body-sidebar .bnd-sb-band > button[data-bnd-part=user] {
+  margin-inline-start: 0;
+  margin-block-start: auto;
 }
 
 html[data-bnd-sb-menurail=expanded] .body-sidebar-container {

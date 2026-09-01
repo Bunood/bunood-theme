@@ -5355,6 +5355,14 @@ msgstr "الاختصارات"
 #. In bunood.js
 #. src: item40
 #, fuzzy
+msgid "Company"
+msgstr "الشركة"
+
+#, fuzzy
+msgid "Quick actions"
+msgstr "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø³Ø±ÙØ¹Ø©"
+
+#, fuzzy
 msgid "Pin this page"
 msgstr "تثبيت هذه الصفحة"
 

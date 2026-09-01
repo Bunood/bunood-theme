@@ -72,6 +72,10 @@
   --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
   --bnd-tap: 44px;
   --bnd-sb-w: 220px;
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  --bnd-sb-pane-pad: 8px;
+  --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
   --bnd-sb-glass-pct: 85%;
@@ -238,12 +242,14 @@ html[data-bnd-density=comfortable] {
   --bnd-row-h: 32px;
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
 }
 
 html[data-bnd-density=compact] {
   --bnd-row-h: 24px;
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
+  --bnd-sb-cell: 32px;
 }
 
 @media (prefers-reduced-motion: reduce) {

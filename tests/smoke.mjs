@@ -4359,6 +4359,15 @@ async function main() {
 			// the latch a press is Frappe's collapse, untouched; over it the
 			// pane tracks the pointer and the collapse must NOT fire.
 			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			// A real drag PERSISTS the admin's personal pixel; state the premise
+			// (site width governs) and clear the leftover on the way out, or every
+			// later run starts from this run's last pixel — 280 is the clamp, and
+			// a drag from the clamp cannot move (measured in the 8c family run).
+			benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
 					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
@@ -4417,6 +4426,11 @@ async function main() {
 						`and the pane tracked the pointer (${c.w} -> ${d.w}, wanted ~${c.w + 15})`);
 				});
 			} finally {
+				benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 				setSettings(before);
 			}
 		});
@@ -4428,6 +4442,15 @@ async function main() {
 			// shrinking, and the CSS logical-property gate gives zero protection
 			// here because this is JavaScript.
 			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			// A real drag PERSISTS the admin's personal pixel; state the premise
+			// (site width governs) and clear the leftover on the way out, or every
+			// later run starts from this run's last pixel — 280 is the clamp, and
+			// a drag from the clamp cannot move (measured in the 8c family run).
+			benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
@@ -4456,6 +4479,11 @@ async function main() {
 					expect(w1 > w0, `dragging toward the inline end makes the pane STRICTLY wider (${w0} -> ${w1})`);
 				});
 			} finally {
+				benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 				benchPy(`frappe.db.set_value("User", "Administrator", "language", "en")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
 				setSettings(before);
 			}
@@ -4534,6 +4562,15 @@ async function main() {
 			// cancelled drag must restore the pre-drag width exactly, leaving
 			// Frappe's click-to-collapse working on the very next press.
 			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			// A real drag PERSISTS the admin's personal pixel; state the premise
+			// (site width governs) and clear the leftover on the way out, or every
+			// later run starts from this run's last pixel — 280 is the clamp, and
+			// a drag from the clamp cannot move (measured in the 8c family run).
+			benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
 					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
@@ -4588,6 +4625,11 @@ async function main() {
 					expect(collapsed, "a plain click after the cancelled drag still collapses");
 				});
 			} finally {
+				benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` + `frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`);
 				setSettings(before);
 			}
 		});
@@ -4622,12 +4664,18 @@ async function main() {
 				await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 				const menu = await page.evaluate((n0) => {
 					const labels = [...document.querySelectorAll(".bnd-menu-item")].map((b) => b.textContent.trim());
+					// ATTRIBUTE the delta, never just count it: Frappe's own
+					// background polls drift into a raw global count (measured:
+					// five vendor entries in the window under 8c's longer setup,
+					// none of them ours). The conformance claim is that OUR menu
+					// needs no round trip — so the assertion names the endpoints.
+					const fresh = performance.getEntriesByType("resource").slice(n0).map((e) => e.name);
 					return {
 						labels,
-						network: performance.getEntriesByType("resource").length - n0,
+						ours: fresh.filter((u) => /\/api\/method\/bunood_theme/.test(u)),
 					};
 				}, requestsBefore);
-				expectEq(menu.network, 0, "the menu opened with ZERO network");
+				expectEq(menu.ours.length, 0, `the menu opened with ZERO calls to our endpoints (${JSON.stringify(menu.ours)})`);
 				for (const px of ["200px", "220px", "240px", "260px", "280px"]) {
 					expect(menu.labels.some((l) => l.includes(px)), `the ${px} stop is offered (${JSON.stringify(menu.labels)})`);
 				}
@@ -4650,6 +4698,316 @@ async function main() {
 					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
 						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.db.commit()\nprint("ok")\n`
 				);
+				setSettings(before);
+			}
+		});
+
+		// ── The account band (item 40, 8c) ─────────────────────────────────
+		const BAND_PLACE = {
+			sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded",
+			inbox_placement: "Side Pane End", user_placement: "Side Pane End",
+			home_placement: "Side Pane End", apps_placement: "Side Pane End",
+		};
+		const BAND_FIELDS = Object.keys(BAND_PLACE).concat(["sidebar_pane_width"]);
+
+		await test("band: it owns its inline padding and the cluster fits at every density", async () => {
+			// Check (a). Usable width is W-12 BY OUR OWN NUMBERS — the band
+			// escapes the vendor's pane padding and re-applies its own, so the
+			// margin is a fact we control rather than one Frappe can move under
+			// us. And "the four-tenant cluster fits" is measured at BOTH width
+			// bounds and EVERY density, because a 3.8% margin nobody has
+			// measured is not a margin.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				for (const w of ["1", "5"]) {
+					setSettings(Object.assign({}, BAND_PLACE, { sidebar_pane_width: w }));
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+					await sbEnsureExpanded();
+					for (const density of [null, "comfortable", "compact"]) {
+						// Mutate in one evaluate, MEASURE in another — the stale
+						// getComputedStyle trap, on the record since item 17.
+						await page.evaluate((d) => {
+							if (d) document.documentElement.setAttribute("data-bnd-density", d);
+							else document.documentElement.removeAttribute("data-bnd-density");
+						}, density);
+						const m = await page.evaluate(() => {
+							const pane = document.querySelector(".body-sidebar");
+							const band = document.querySelector(".body-sidebar .bnd-sb-band");
+							if (!band) return null;
+							const br = band.getBoundingClientRect();
+							const pr = pane.getBoundingClientRect();
+							const cs = getComputedStyle(band);
+							const cells = [...band.querySelectorAll(":scope > button")];
+							const rects = cells.map((c) => c.getBoundingClientRect());
+							return {
+								role: band.getAttribute("role"),
+								bandW: Math.round(br.width), paneW: Math.round(pr.width),
+								padI: cs.paddingInlineStart + " " + cs.paddingInlineEnd,
+								// VISUAL order — the canonical order is CSS `order`,
+								// so DOM order is mount order and proves nothing.
+								parts: cells
+									.map((c) => ({ p: c.getAttribute("data-bnd-part"), x: c.getBoundingClientRect().left }))
+									.sort((a, b) => a.x - b.x)
+									.map((c) => c.p),
+								cellHs: rects.map((r) => Math.round(r.height)),
+								cellWs: rects.map((r) => Math.round(r.width)),
+								lastEnd: Math.round(Math.max(...rects.map((r) => r.right))),
+								firstStart: Math.round(Math.min(...rects.map((r) => r.left))),
+								bandContentEnd: Math.round(br.right - parseFloat(cs.paddingInlineEnd)),
+								bandContentStart: Math.round(br.left + parseFloat(cs.paddingInlineStart)),
+							};
+						});
+						const tag = `w=${w} density=${density || "default"}`;
+						expect(m, `the band mounts in the pane (${tag})`);
+						expectEq(m.role, "toolbar", `the band is a toolbar, not more nav rows (${tag})`);
+						// Full bleed: the band spans the PANE, and its own 6px does
+						// the inset — usable width is exactly paneW - 12.
+						expect(Math.abs(m.bandW - m.paneW) <= 1, `the band escapes the vendor padding and spans the pane (band ${m.bandW}, pane ${m.paneW}, ${tag})`);
+						expectEq(m.padI, "6px 6px", `the band re-applies its OWN inline padding (${m.padI}, ${tag})`);
+						expectEq(m.parts.length, 4, `four tenants render as four cells (${JSON.stringify(m.parts)}, ${tag})`);
+						// Canonical order from the registry, account pinned to the
+						// inline-end corner — never the admin's placement order.
+						expectEq(m.parts.join(","), "bell,home,apps,user", `registry order with the account pinned last (${JSON.stringify(m.parts)}, ${tag})`);
+						const want = density === "compact" ? 32 : 36;
+						for (const h of m.cellHs) expectEq(h, want, `cells are ${want}px at ${tag} (got ${JSON.stringify(m.cellHs)})`);
+						for (const cw of m.cellWs) expect(cw >= want, `cells are at least square at ${tag} (${JSON.stringify(m.cellWs)})`);
+						// The cluster FITS inside the usable width, both edges.
+						expect(m.lastEnd <= m.bandContentEnd + 1 && m.firstStart >= m.bandContentStart - 1,
+							`the cluster fits inside W-12 (${m.firstStart}..${m.lastEnd} vs ${m.bandContentStart}..${m.bandContentEnd}, ${tag})`);
+					}
+					await page.evaluate(() => document.documentElement.removeAttribute("data-bnd-density"));
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("band: at the rail every cell has a rect and the badge still counts", async () => {
+			// Check (b). shadcn's collapsible=icon hides both badge and action —
+			// a collapsed user gets no signal that something is waiting and
+			// nothing says information was withheld. Our rail is the SAME cells
+			// flipped to a column: nothing hides, and the count stays a count.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				clearNotifications();
+				seedNotifications();
+				setSettings(Object.assign({}, BAND_PLACE, { sidebar_menu_rail: "Rail" }));
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !!document.querySelector(".body-sidebar .bnd-sb-band"),
+					null, { timeout: 20000 }
+				);
+				// The badge fills from boot; poll rather than trust one tick.
+				await page.waitForFunction(() => {
+					const b = document.querySelector(".bnd-sb-band .bnd-inbox-badge");
+					return b && !b.hidden && /2/.test(b.textContent || "");
+				}, null, { timeout: 10000 }).catch(() => {});
+				const m = await page.evaluate(() => {
+					const band = document.querySelector(".body-sidebar .bnd-sb-band");
+					const cells = [...band.querySelectorAll(":scope > button")];
+					const badge = band.querySelector(".bnd-inbox-badge");
+					const bs = badge && getComputedStyle(badge);
+					return {
+						flow: getComputedStyle(band).flexDirection,
+						cells: cells.map((c) => {
+							const r = c.getBoundingClientRect();
+							const cs = getComputedStyle(c);
+							return { part: c.getAttribute("data-bnd-part"), w: Math.round(r.width), h: Math.round(r.height), vis: cs.visibility, disp: cs.display };
+						}),
+						badge: badge ? { text: (badge.textContent || "").trim(), hidden: badge.hidden, disp: bs.display, vis: bs.visibility } : null,
+					};
+				});
+				expectEq(m.flow, "column", `the rail flips the toolbar's axis (${m.flow})`);
+				expectEq(m.cells.length, 4, `all four cells are in the rail (${JSON.stringify(m.cells.map((c) => c.part))})`);
+				for (const c of m.cells) {
+					expect(c.w > 0 && c.h > 0 && c.vis !== "hidden" && c.disp !== "none",
+						`${c.part} has a real rect at the rail (${JSON.stringify(c)})`);
+				}
+				expect(m.badge && !m.badge.hidden && m.badge.disp !== "none" && m.badge.vis !== "hidden",
+					`the badge is not withheld at the rail (${JSON.stringify(m.badge)})`);
+				expectEq(m.badge.text, "2", `and it is still a COUNT, not a dot (${JSON.stringify(m.badge)})`);
+			} finally {
+				clearNotifications();
+				setSettings(before);
+			}
+		});
+
+		await test("band: a cell's hit area IS its box", async () => {
+			// Check (c). shadcn's equivalent differs by 16px in both directions,
+			// so a visual audit clears a failing control. Sample a grid across
+			// each cell's rect: every point must resolve to the cell itself.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				setSettings(BAND_PLACE);
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+				await sbEnsureExpanded();
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-band"), null, { timeout: 20000 });
+				const misses = await page.evaluate(() => {
+					const out = [];
+					for (const cell of document.querySelectorAll(".bnd-sb-band > button")) {
+						const r = cell.getBoundingClientRect();
+						for (const fx of [0.1, 0.5, 0.9]) {
+							for (const fy of [0.1, 0.5, 0.9]) {
+								const el = document.elementFromPoint(r.left + r.width * fx, r.top + r.height * fy);
+								if (!el || !cell.contains(el)) {
+									out.push(`${cell.getAttribute("data-bnd-part")}@${fx},${fy} -> ${el ? (String(el.className).split(" ")[0] || el.tagName) : "null"}`);
+								}
+							}
+						}
+					}
+					return out;
+				});
+				expectEq(misses.length, 0, `every sampled point hits its cell — the hit rect IS the box (${misses.join("; ")})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("panel: a long Arabic identity clamps to exact geometry", async () => {
+			// Check (d). "An ellipsis exists" is not the assertion — the failure
+			// this targets is long text GROWING the panel. So: measure with the
+			// short name, measure with a 40-char Arabic name and a 45-char
+			// email, and assert the panel's inline-size and the header's
+			// block-size are IDENTICAL. The company line rides the same clamp
+			// rule (one rule, three consumers).
+			const before = getSettings(BAND_FIELDS);
+			const idBefore = benchPy(
+				`import json\n` +
+				`u = frappe.get_doc("User", "Administrator")\n` +
+				`print("BND" + json.dumps({"first_name": u.first_name, "last_name": u.last_name or "", "email": u.email}))\n`
+			).split("BND")[1].trim();
+			const openPanel = async () => {
+				await page.waitForFunction(() => !!document.querySelector('.bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 20000 });
+				await page.evaluate(() => document.querySelector('.bnd-sb-band [data-bnd-part="user"]').click());
+				await page.waitForSelector(".bnd-acct-panel", { timeout: 8000 });
+				return page.evaluate(() => {
+					const pnl = document.querySelector(".bnd-acct-panel");
+					const head = pnl.querySelector(".bnd-acct-head");
+					const name = pnl.querySelector(".bnd-acct-name");
+					return {
+						role: pnl.getAttribute("role"), modal: pnl.getAttribute("aria-modal"),
+						labelledby: pnl.getAttribute("aria-labelledby"), nameId: name && name.id,
+						panelW: Math.round(pnl.getBoundingClientRect().width),
+						headH: Math.round(head.getBoundingClientRect().height),
+						avatar: !!pnl.querySelector(".bnd-acct-head .avatar, .bnd-acct-head .bnd-acct-avatar"),
+						focusIn: pnl.contains(document.activeElement),
+						activeIsRadio: document.activeElement && document.activeElement.getAttribute("role") === "radio",
+					};
+				});
+			};
+			try {
+				setSettings(BAND_PLACE);
+				await goDesk("/app/selling", "body", 3000);
+				await sbEnsureExpanded();
+				const short = await openPanel();
+				expectEq(short.role, "dialog", `the panel is a dialog, not a menu (${short.role})`);
+				expectEq(short.modal, "false", `and it is non-modal (${short.modal})`);
+				expect(short.labelledby && short.labelledby === short.nameId,
+					`it announces as the person's name (labelledby=${short.labelledby}, name id=${short.nameId})`);
+				expect(short.avatar, "the identity block carries the avatar");
+				expect(short.focusIn, "opening moves focus INTO the panel");
+				expect(!short.activeIsRadio,
+					"but never onto the radiogroup — radios select on arrow, and landing there would change the theme unasked");
+				await page.keyboard.press("Escape");
+				// full_name is DERIVED from first/last on save — set the parts.
+				benchPy(
+					`u = frappe.get_doc("User", "Administrator")\n` +
+					`u.first_name = "\u0639\u0628\u062f \u0627\u0644\u0631\u062d\u0645\u0646 \u0628\u0646 \u0645\u062d\u0645\u062f \u0628\u0646 \u062e\u0644\u062f\u0648\u0646 \u0627\u0644\u062d\u0636\u0631\u0645\u064a \u0627\u0644\u0625\u0634\u0628\u064a\u0644\u064a"\n` +
+					`u.last_name = ""\n` +
+					`u.email = "a.very.long.address.for.the.clamp@subdomain.example-company.com"\n` +
+					`u.save(ignore_permissions=True)\nfrappe.db.commit()\nfrappe.clear_cache(user="Administrator")\nprint("set")\n`
+				);
+				await goDesk("/app/selling", "body", 3000);
+				await sbEnsureExpanded();
+				const long = await openPanel();
+				expectEq(long.panelW, short.panelW,
+					`a 40-char Arabic name does not grow the panel (${short.panelW} -> ${long.panelW})`);
+				expectEq(long.headH, short.headH,
+					`or the identity header (${short.headH} -> ${long.headH})`);
+				await page.keyboard.press("Escape");
+			} finally {
+				benchPy(
+					`import json\n` +
+					`prev = json.loads(${JSON.stringify(idBefore)})\n` +
+					`u = frappe.get_doc("User", "Administrator")\n` +
+					`u.first_name = prev["first_name"]\n` +
+					`u.last_name = prev["last_name"]\n` +
+					`u.email = prev["email"]\n` +
+					`u.save(ignore_permissions=True)\nfrappe.db.commit()\nfrappe.clear_cache(user="Administrator")\nprint("restored")\n`
+				);
+				setSettings(before);
+			}
+		});
+
+		await test("panel: under RTL the panel's box stays inside the viewport", async () => {
+			// Check (e). Directus filed "tooltips appear outside the viewport"
+			// for exactly this class. A real Arabic desk, not an emulated dir.
+			const before = getSettings(BAND_FIELDS);
+			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
+			try {
+				setSettings(BAND_PLACE);
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => (document.documentElement.getAttribute("dir") || document.dir) === "rtl" &&
+						!!document.querySelector('.bnd-sb-band [data-bnd-part="user"]'),
+					null, { timeout: 25000 }
+				);
+				await sbEnsureExpanded();
+				await page.evaluate(() => document.querySelector('.bnd-sb-band [data-bnd-part="user"]').click());
+				await page.waitForSelector(".bnd-acct-panel", { timeout: 8000 });
+				const m = await page.evaluate(() => {
+					const r = document.querySelector(".bnd-acct-panel").getBoundingClientRect();
+					return { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), vw: window.innerWidth, vh: window.innerHeight };
+				});
+				expect(m.l >= 0 && m.r <= m.vw && m.t >= 0 && m.b <= m.vh,
+					`the panel's resolved box is inside the viewport (${JSON.stringify(m)})`);
+				await page.keyboard.press("Escape");
+			} finally {
+				benchPy(`frappe.db.set_value("User", "Administrator", "language", "en")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
+				setSettings(before);
+			}
+		});
+
+		await test("panel: at a 600px viewport with the company list open, Sign Out is reachable", async () => {
+			// Check (f). The one thing a session panel must never lose is the
+			// way out. Short viewport + expanded sub-list is the squeeze; the
+			// panel scrolls INTERNALLY rather than pushing Sign Out off-screen.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				await page.setViewportSize({ width: 1440, height: 600 });
+				setSettings(BAND_PLACE);
+				await goDesk("/app/selling", "body", 3000);
+				await sbEnsureExpanded();
+				await page.waitForFunction(() => !!document.querySelector('.bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 20000 });
+				await page.evaluate(() => document.querySelector('.bnd-sb-band [data-bnd-part="user"]').click());
+				await page.waitForSelector(".bnd-acct-panel", { timeout: 8000 });
+				const disclosed = await page.evaluate(() => {
+					const d = document.querySelector(".bnd-acct-company");
+					if (!d) return false;
+					d.click();
+					return true;
+				});
+				expect(disclosed, "the company disclosure exists and opens");
+				await page.waitForFunction(() => {
+					const d = document.querySelector(".bnd-acct-company");
+					return d && d.getAttribute("aria-expanded") === "true";
+				}, null, { timeout: 8000 });
+				const m = await page.evaluate(() => {
+					const out = document.querySelector(".bnd-acct-signout");
+					if (!out) return null;
+					out.scrollIntoView({ block: "nearest" });
+					const r = out.getBoundingClientRect();
+					const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+					return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: window.innerHeight, hitOk: !!(hit && (out === hit || out.contains(hit))) };
+				});
+				expect(m, "the Sign Out row exists");
+				expect(m.bottom <= m.vh && m.top >= 0 && m.hitOk,
+					`Sign Out is on-screen and hittable at 600px with the sub-list open (${JSON.stringify(m)})`);
+				await page.keyboard.press("Escape");
+			} finally {
+				await page.setViewportSize({ width: 1440, height: 900 });
 				setSettings(before);
 			}
 		});
@@ -4699,15 +5057,22 @@ async function main() {
 						`no place row below the list with the links ${where}`
 					);
 
-					// And the links themselves land where the setting says.
+					// And the links themselves land where the setting says. At
+					// the END they are band CELLS (8c), not util rows — the foot
+					// is one toolbar, and the row form would be the old contract.
 					const utilsAbove = seen.above.filter((c) => /bnd-sb-utils/.test(c)).length;
 					const utilsBelow = seen.below.filter((c) => /bnd-sb-utils/.test(c)).length;
+					const bandCells = await page.evaluate(() =>
+						[...document.querySelectorAll('.bnd-sb-band > [data-bnd-part="home"], .bnd-sb-band > [data-bnd-part="apps"]')].length
+					);
 					if (where === "Side Pane Start") {
 						expectEq(utilsAbove, 1, `the links are above the list at Start (below: ${utilsBelow})`);
 					} else if (where === "Side Pane End") {
-						expectEq(utilsBelow, 1, `the links are below the list at End (above: ${utilsAbove})`);
+						expectEq(utilsBelow + utilsAbove, 0, `no util ROWS anywhere at End (above ${utilsAbove}, below ${utilsBelow})`);
+						expectEq(bandCells, 2, `both links are band cells at End (${bandCells})`);
+						expectEq(seen.below.filter((c) => /bnd-sb-band/.test(c)).length, 1, `and the band is below the list (${JSON.stringify(seen.below)})`);
 					} else {
-						expectEq(utilsAbove + utilsBelow, 0, "Off puts no link row in the pane at all");
+						expectEq(utilsAbove + utilsBelow + bandCells, 0, "Off puts no link anywhere in the pane");
 					}
 				}
 			} finally {
@@ -8915,21 +9280,24 @@ ${gate.stdout}`);
 		// .bnd-menu is body-appended, outside every axe root, and until now had
 		// no focus contract, no keyboard path and no test — despite carrying
 		// Log Out, the critical-reach function HANDOVER §7 exists to protect.
-		// The avatar's own menu is scanned/driven here because it carries the
-		// identity header, the one content-model risk none of the other three
-		// show_menu() callers has.
+		// The Place row's switcher is the scanned menu since 8c — the avatar
+		// opens the account PANEL (role=dialog, its own family), and no menu
+		// carries an identity header any more.
 
 		await test("a11y: the menu takes focus when it opens, and gives it back", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
-			await goDesk("/desk/item", ".page-head", 3000);
-			await page.click('[data-bnd-part="user"]');
+			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
+			// contract is proven on the Place row's switcher.
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
 			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 			const opened = await page.evaluate(() => {
 				const active = document.activeElement;
 				return {
 					insideMenu: !!(active && active.closest(".bnd-menu")),
 					isFirstItem: !!(active && active === document.querySelector(".bnd-menu .bnd-menu-item")),
-					expanded: document.querySelector('[data-bnd-part="user"]').getAttribute("aria-expanded"),
+					expanded: document.querySelector(".bnd-sb-head").getAttribute("aria-expanded"),
 				};
 			});
 			expect(opened.insideMenu, "focus moved inside the menu on open");
@@ -8944,9 +9312,9 @@ ${gate.stdout}`);
 			await page.waitForTimeout(300);
 			const closed = await page.evaluate(() => ({
 				gone: !document.querySelector(".bnd-menu"),
-				onTrigger: document.activeElement === document.querySelector('[data-bnd-part="user"]'),
+				onTrigger: document.activeElement === document.querySelector(".bnd-sb-head"),
 				at: (document.activeElement.className || document.activeElement.tagName || "").toString().slice(0, 60),
-				expanded: document.querySelector('[data-bnd-part="user"]').getAttribute("aria-expanded"),
+				expanded: document.querySelector(".bnd-sb-head").getAttribute("aria-expanded"),
 			}));
 			expect(closed.gone, "Escape removed the menu");
 			expect(closed.onTrigger, `focus returned to the trigger (landed on: ${closed.at})`);
@@ -8954,9 +9322,12 @@ ${gate.stdout}`);
 		});
 
 		await test("a11y: the menu moves on arrows, wraps, and Home/End jump", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
-			await goDesk("/desk/item", ".page-head", 3000);
-			await page.click('[data-bnd-part="user"]');
+			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
+			// contract is proven on the Place row's switcher.
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
 			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 
 			const label = () =>
@@ -8996,9 +9367,12 @@ ${gate.stdout}`);
 			// Two overlays, two different correct answers: a dialog earns a
 			// trap, a menu anchored to a trigger in the middle of the page
 			// does not.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
-			await goDesk("/desk/item", ".page-head", 3000);
-			await page.click('[data-bnd-part="user"]');
+			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
+			// contract is proven on the Place row's switcher.
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
 			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 			await page.keyboard.press("Tab");
 			await page.waitForTimeout(300);
@@ -9012,18 +9386,22 @@ ${gate.stdout}`);
 		});
 
 		await test("a11y: role=menu owns only menuitems and separators", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
-			await goDesk("/desk/item", ".page-head", 3000);
-			await page.click('[data-bnd-part="user"]');
+			// Re-pointed in 8c: the avatar opens the account PANEL now (a
+			// dialog, checked by its own family), so the menu contract is
+			// proven on the Place row's switcher — same component, same rules.
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			await goDesk("/app/selling", "body", 3000);
+			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
 			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 			const model = await page.evaluate(() => {
 				const list = document.querySelector(".bnd-menu-list");
 				const items = [...document.querySelectorAll(".bnd-menu .bnd-menu-item")];
-				const header = document.querySelector(".bnd-menu .bnd-menu-header");
+
 				return {
 					listRole: list && list.getAttribute("role"),
 					menuOwnRole: document.querySelector(".bnd-menu").getAttribute("role"),
-					headerOutsideList: !!(header && list && !list.contains(header)),
+
 					childRoles: list ? [...list.children].map((c) => c.getAttribute("role")) : [],
 					itemsAreButtons: items.every((n) => n.tagName === "BUTTON"),
 					itemsTabindex: items.map((n) => n.getAttribute("tabindex")),
@@ -9031,7 +9409,7 @@ ${gate.stdout}`);
 			});
 			expectEq(model.listRole, "menu", "the item list carries role=menu");
 			expect(!model.menuOwnRole, "the outer popup surface carries no role of its own");
-			expect(model.headerOutsideList, "the identity header sits outside role=menu, as its sibling");
+			// The identity header arm died with the header: the account panel owns identity now.
 			expect(
 				model.childRoles.every((r) => r === "menuitem" || r === "separator"),
 				`every role=menu child is menuitem or separator (got: ${model.childRoles.join(", ")})`
@@ -9124,7 +9502,7 @@ ${gate.stdout}`);
 				return el ? { haspopup: el.getAttribute("aria-haspopup"), expanded: el.getAttribute("aria-expanded") } : null;
 			});
 			expect(avatar, "the avatar trigger is mounted");
-			expectEq(avatar.haspopup, "menu", "the avatar says it opens a menu before it is ever clicked");
+			expectEq(avatar.haspopup, "dialog", "the avatar says it opens a DIALOG before it is ever clicked (8c: the account panel)");
 			expectEq(avatar.expanded, "false", "and says it starts collapsed");
 		});
 
@@ -9202,7 +9580,7 @@ ${gate.stdout}`);
 			// by their own selectors instead.
 			const OURS = [
 				".bnd-skip-link", ".bnd-topbar", ".bnd-statusbar", ".bnd-dock",
-				".bnd-sb-utils", ".bnd-sb-head",
+				".bnd-sb-utils", ".bnd-sb-head", ".bnd-sb-band", ".bnd-acct-panel",
 				".bnd-palette", ".bnd-inbox", ".bnd-menu",
 				".bnd-crumb-chip", ".bnd-crumb-copy",
 			];

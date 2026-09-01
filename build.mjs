@@ -1389,6 +1389,77 @@ function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
  *
  * @param {string} jsSrc - theme_settings.js text
  */
+/**
+ * Logical-placement guard (item 40, 8c) — the CSS gate cannot see JavaScript,
+ * and a `"left"` that means inline-start never fails on a dev site loaded in
+ * English: Directus filed "tooltips appear outside the viewport" for exactly
+ * this, and shadcn names Sidebar as one of three components its RTL codemod
+ * cannot migrate. So bunood.js may not contain the WORD literals "left" or
+ * "right" (or any corner pair) as strings at all — placement math is either
+ * pure viewport geometry (getBoundingClientRect + clamps, which never names
+ * a side) or goes through `physical_inline()`, the one function that maps
+ * inlineStart/inlineEnd to a physical side and is marked `bnd:physical-map`.
+ * "top"/"bottom" alone are permitted: the block axis does not mirror in
+ * horizontal writing modes, and the scroll-fade attribute uses them as
+ * edge names our own CSS consumes.
+ */
+/**
+ * Band-order guard (item 40, 8c) — the band's CSS `order` values are the
+ * registry's tenant order with the account moved last (the corner pin is a
+ * design decision, recorded here as the ONE allowed transform). Without
+ * this the SCSS is a second copy of the registry sequence, which is the
+ * same-fact-twice trap wearing a stylesheet.
+ */
+function assertBandOrder(registrySrc, sidebarScss) {
+	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	const members = ["bell", "user", "home", "apps"];
+	const expected = regParts.filter((t) => members.includes(t) && t !== "user").concat(["user"]);
+	const got = [];
+	for (const m of sidebarScss.matchAll(/&\[data-bnd-part="([a-z]+)"\]\s*\{[^}]*?order:\s*(\d+)/g)) {
+		got.push([m[1], Number(m[2])]);
+	}
+	const inBand = got.filter(([t]) => members.includes(t));
+	const sorted = inBand.slice().sort((a, b) => a[1] - b[1]).map(([t]) => t);
+	if (sorted.join(",") !== expected.join(",")) {
+		throw new Error(
+			`Band-order guard: the band CSS orders tenants as [${sorted.join(", ")}] but the ` +
+				`registry (with the account pinned last) says [${expected.join(", ")}]. The SCSS ` +
+				"order values are derived, not chosen — fix the stylesheet or the registry, not both."
+		);
+	}
+}
+
+function assertLogicalPlacementArgs(jsSrc) {
+	const lines = jsSrc.split("\n");
+	const offenders = [];
+	let marked = 0;
+	let mapFnAt = -1;
+	lines.forEach((line, i) => {
+		if (/function physical_inline\b/.test(line)) mapFnAt = i;
+		const isMarked = line.includes("bnd:physical-map");
+		if (isMarked) {
+			marked += 1;
+			if (mapFnAt === -1 || i - mapFnAt > 12) {
+				offenders.push(`${i + 1}: bnd:physical-map marker outside physical_inline()`);
+			}
+			return;
+		}
+		if (/["'](?:left|right|(?:top|bottom) (?:left|right)|(?:left|right) (?:top|bottom))["']/.test(line)) {
+			offenders.push(`${i + 1}: ${line.trim().slice(0, 90)}`);
+		}
+	});
+	if (marked > 2) {
+		offenders.push(`bnd:physical-map appears ${marked} times — the mapping lives in ONE function`);
+	}
+	if (offenders.length) {
+		throw new Error(
+			"Logical-placement guard: bunood.js names a physical side as a string:\n  " +
+				offenders.join("\n  ") +
+				"\nRoute it through physical_inline(inlineStart|inlineEnd) or express it as viewport math."
+		);
+	}
+}
+
 function assertResetChipsBound(jsSrc) {
 	const problems = [];
 	// Slice on `function bnd_render_*_picker(`, keeping each body up to the next
@@ -1762,6 +1833,13 @@ async function main() {
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
 		)
+	);
+	assertLogicalPlacementArgs(
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+	);
+	assertBandOrder(
+		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/scss/chrome/_sidebar.scss", import.meta.url), "utf8")
 	);
 	assertResetChipsBound(
 		await readFile(

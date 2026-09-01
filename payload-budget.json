@@ -23,6 +23,15 @@
 		"server-side caps (25/15, Dynamics' numbers), render-time permission",
 		"re-resolution so a revoked pin vanishes rather than 403ing, and the pin",
 		"gesture in the Place row's menu. ~1240 gzip after prose was trimmed.",
+		"AND css 21500 -> 22100 / js (after 8d's 102600) -> 105600 for slice 8c,",
+		"the account band and panel: the pane's foot becomes ONE toolbar of",
+		"cells (canonical order guarded against the registry, corner-pinned",
+		"account, rail column flip, density-coupled 36/32px cells), and the",
+		"avatar's menu becomes a role=dialog panel — identity with bdi",
+		"isolation, instant light/dark/auto through Frappe's own endpoint, the",
+		"company sub-list through the vendor's session-defaults write, shortcut",
+		"hints, motion on tokens. The dead menu-header branch and styles came",
+		"out with it; prose lives in the stylesheets, which Sass strips.",
 		"AND TO 102600 for slice 8d, drag-to-resize — the survey's clearest",
 		"differentiator (every product tool has it, no ERP surveyed does, and",
 		"Frappe's own .sidebar-resize-handle never resized anything): the pointer",
@@ -70,8 +79,8 @@
 		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
 	],
 	"ceiling": {
-		"css_gzip": 21500,
-		"js_gzip": 102600,
+		"css_gzip": 22100,
+		"js_gzip": 105600,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

@@ -237,6 +237,62 @@ html[data-bnd-sb-width="3"] { --bnd-sb-w: 240px; }
 html[data-bnd-sb-width="4"] { --bnd-sb-w: 260px; }
 html[data-bnd-sb-width="5"] { --bnd-sb-w: 280px; }
 
+// ── The account band (item 40, 8c) ──────────────────────────────────────
+// The pane's foot is ONE toolbar of square cells, not a stack of rows.
+// Canonical order comes from the registry via data-bnd-part - never the
+// admin's placement order - so two desks with the same tenants look
+// identical; the account is pinned to the inline-end corner and is the
+// only FILLED mark in a run of strokes (item 22's identifiable-at-rest
+// rule, answered by form rather than size). Sticky at the block end so
+// the foot never scrolls away with a 70-link workspace; the surface is
+// the card base - one step raised, and a token the gate already fits.
+html[data-bnd-sb-color] .bnd-sb-band {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  // Full bleed past the vendor's pane padding, then our own 6px: usable
+  // width is W - 12 by OUR numbers. The check measures both bounds.
+  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  padding: var(--bnd-sb-band-pad);
+  border-block-start: 1px solid var(--bnd-sb-line);
+  background: var(--bnd-sb-card-base);
+
+  > button {
+    flex: 0 0 auto;
+    inline-size: var(--bnd-sb-cell);
+    block-size: var(--bnd-sb-cell);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    // Canonical order (registry: inbox, home, apps; account pinned last).
+    &[data-bnd-part="bell"] { order: 1; }
+    &[data-bnd-part="home"] { order: 2; }
+    &[data-bnd-part="apps"] { order: 3; }
+    &[data-bnd-part="user"] {
+      order: 9;
+      margin-inline-start: auto;
+    }
+  }
+}
+
+// The rail is NOT a second design: the same cells flip to a column, the
+// account pins to the block-end corner, and nothing hides - the badge
+// stays a COUNT (shadcn hides both badge and action at icon-collapse,
+// which tells a collapsed user nothing was withheld when it was).
+html[data-bnd-rail] .body-sidebar .bnd-sb-band {
+  flex-direction: column;
+  justify-content: flex-end;
+
+  > button {
+    &[data-bnd-part="user"] {
+      margin-inline-start: 0;
+      margin-block-start: auto;
+    }
+  }
+}
+
 // The width stop must actually WIN. The container is a flex child with
 // Frappe's `flex: 0 1 auto`, so its width is only a basis and flex-shrink
 // quietly hands back whatever the row is short — measured 2026-08-08: the
