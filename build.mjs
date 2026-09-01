@@ -1096,7 +1096,14 @@ function assertOwnershipPolarity(css, name, owned) {
 		const [, selector, body] = m;
 		if (!/display\s*:\s*none/.test(body)) continue;
 		if (![...owned].some((n) => selector.includes(n))) continue;
-		if (!/data-bnd-own/.test(selector)) {
+		// TWO legal keys, not one. `data-bnd-own` is the replacement claim.
+		// `data-bnd-chrome-off` is the OTHER outcome-backed state: the whole
+		// container is off, so its affordances toggle nothing — and unlike
+		// the desk/search declarations this guard exists to refuse, chrome-off
+		// has a release path (guard_critical_reach refuses to strand anyone,
+		// and container_on re-answers per viewport). _layouts.scss carries the
+		// argument at length beside the one rule that uses it.
+		if (!/data-bnd-own/.test(selector) && !/data-bnd-chrome-off/.test(selector)) {
 			offenders.push(selector.trim().replace(/\s+/g, " ").slice(0, 140));
 		}
 	}

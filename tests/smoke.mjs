@@ -5240,6 +5240,98 @@ print("ok")
 			}
 		});
 
+		await test("rail: the native toggle is claimed exactly while the rail's wiring is live", async () => {
+			// Item 40 slice 11 (audit defect 3). Rail mode used to leave two
+			// collapse affordances live: ours and Frappe's page-title hamburger.
+			// The repair is a CLAIM, not a hide — bnd_own("panetoggle") stamped
+			// by the rail wiring, so a rail whose JS failed to wire leaves the
+			// native visible and working (the polarity the whole ownership
+			// doctrine exists for). Both directions, then the fail-open arm:
+			// with the claim withdrawn, the native must be reachable AND must
+			// still open the pane.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			try {
+				setSettings({
+					sidebar_enabled: 1, sidebar_color: "Match Theme",
+					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Click",
+				});
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => document.documentElement.hasAttribute("data-bnd-rail"),
+					null, { timeout: 20000 }
+				);
+				const on = await page.evaluate(() => {
+					const own = document.documentElement.getAttribute("data-bnd-own") || "";
+					const btn = document.querySelector(".page-title .sidebar-toggle-btn");
+					return {
+						owned: own.split(/\s+/).includes("panetoggle"),
+						toggleShown: !!(btn && getComputedStyle(btn).display !== "none"),
+					};
+				});
+				expect(on.owned, "the rail's wiring claims the native toggle");
+				expect(!on.toggleShown, "and only then is the hamburger hidden — one affordance, not two");
+
+				// FAIL-OPEN, measured where it matters. On a DESKTOP viewport
+				// Frappe media-hides the hamburger itself (probed: display none
+				// in both pane states with our token withdrawn), so "withdraw
+				// and it shows" cannot be exercised here. The stranding risk
+				// lives at NARROW width, where the pane is Frappe's drawer and
+				// the hamburger is its ONLY opener: the rail must stand down,
+				// release the claim, and leave the drawer's control working.
+				await page.setViewportSize({ width: 390, height: 844 });
+				try {
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						() => {
+							const btn = document.querySelector(".page-title .sidebar-toggle-btn");
+							return btn && getComputedStyle(btn).display !== "none";
+						},
+						null, { timeout: 15000 }
+					);
+					const narrow = await page.evaluate(() => ({
+						owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panetoggle"),
+					}));
+					expect(!narrow.owned,
+						"at drawer width the rail stands down and RELEASES the claim — hiding the drawer's only opener would strand the phone");
+					await page.evaluate(() => document.querySelector(".page-title .sidebar-toggle-btn").click());
+					// The drawer slides the PANE in as an overlay; the container's
+					// rect stays ~1px (measured), so the pane's own on-screen rect
+					// is the fact.
+					await page.waitForFunction(
+						() => {
+							const pane = document.querySelector(".body-sidebar");
+							if (!pane) return false;
+							const r = pane.getBoundingClientRect();
+							return r.width > 100 && r.right > 50;
+						},
+						null, { timeout: 8000 }
+					).catch(() => {});
+					const drawer = await page.evaluate(() => {
+						const r = document.querySelector(".body-sidebar").getBoundingClientRect();
+						return { w: Math.round(r.width), right: Math.round(r.right) };
+					});
+					expect(drawer.w > 100 && drawer.right > 50,
+						`and the hamburger still opens Frappe's drawer (${JSON.stringify(drawer)})`);
+				} finally {
+					await page.setViewportSize({ width: 1440, height: 900 });
+				}
+
+				// The other direction: Always Expanded wires no rail, claims nothing.
+				setSettings({ sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !document.documentElement.hasAttribute("data-bnd-rail"),
+					null, { timeout: 20000 }
+				);
+				const off = await page.evaluate(() =>
+					(document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panetoggle")
+				);
+				expect(!off, "no rail, no claim — the token is never a declaration");
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the

@@ -557,7 +557,13 @@ MARKS = [
         "label": "Rail button",
         "type": MARK,
         "selector": ".bnd-railbtn",
-        "native": None,
+        # The native this row's MODE owns (item 40, slice 11 - audit defect
+        # 3): rail mode used to leave two collapse affordances live, ours
+        # and Frappe's page-title hamburger. Hiding it is legal ONLY from
+        # data-bnd-own~="panetoggle", stamped by sb_mount_rail after the
+        # trigger wiring is actually live - a rail whose JS failed to wire
+        # leaves the native visible and working.
+        "native": ".page-title .sidebar-toggle-btn",
         "regions": (),
         "toggle": None,
         "critical": False,

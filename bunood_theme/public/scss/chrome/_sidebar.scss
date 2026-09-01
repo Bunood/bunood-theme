@@ -281,7 +281,7 @@ html[data-bnd-sb-color] .bnd-sb-band {
 // account pins to the block-end corner, and nothing hides - the badge
 // stays a COUNT (shadcn hides both badge and action at icon-collapse,
 // which tells a collapsed user nothing was withheld when it was).
-html[data-bnd-rail] .body-sidebar .bnd-sb-band {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
 
@@ -596,7 +596,7 @@ html[data-bnd-sb-color] .bnd-sb-head {
 
 // Rail rest: the head shrinks to its mark, centred. The name and the chevron
 // both go — a chevron with nothing beside it points at nothing.
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-head {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-head {
   justify-content: center;
   padding-inline: 0;
 
@@ -1084,7 +1084,7 @@ html[data-bnd-sb-color] .bnd-sb-shortcut {
 // The rail hides the region with the rest of the pane content (the rest
 // rule lists .body-sidebar-top et al; the region sits beside the filter and
 // takes the same treatment).
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-shortcuts {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-shortcuts {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -1169,7 +1169,7 @@ html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
 // bunood.js toggles from hover AND focus-within — so keyboard users get the
 // expansion too. Content never reflows: the fixed bars read the container
 // width (52px) via the existing ResizeObserver.
-html[data-bnd-rail] .body-sidebar-container {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container {
   overflow: visible;
   // The overlay positions against the CONTAINER, not the viewport — without
   // this, inset-block:0 resolves against the initial containing block and
@@ -1222,7 +1222,7 @@ html[data-bnd-sb-material="glassblur"][data-bnd-rail] .body-sidebar-container .b
 }
 
 // The pin control (hoverpin only; bunood.js mounts it).
-html[data-bnd-rail] .bnd-sb-pin {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-sb-pin {
   display: grid;
   place-items: center;
   inline-size: 24px;
@@ -1237,14 +1237,14 @@ html[data-bnd-rail] .bnd-sb-pin {
     background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
   }
 }
-html[data-bnd-rail] .bnd-rail-pinned .bnd-sb-pin {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-sb-pin {
   color: var(--bnd-brand-ink);
 }
 
 // Hide Frappe's own collapse toggle in rail modes — the rail IS the
 // collapsed state, and two collapse affordances would fight.
-html[data-bnd-rail] .body-sidebar .collapse-sidebar-link,
-html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .collapse-sidebar-link,
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .sidebar-resize-handle {
   display: none;
 }
 
@@ -1258,7 +1258,7 @@ html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
 // Mounted by bunood.js when the tenant chooses one (or picks the Button-only
 // trigger). Placement, shape and glyph are all Theme Settings options; the
 // element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail] .bnd-railbtn {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
   position: absolute;
   z-index: calc(var(--bnd-z-flyout) + 1);
   display: grid;
@@ -1299,28 +1299,28 @@ html[data-bnd-rail] .bnd-railbtn {
 // (against the rail) and where it sits OPEN (against the pane's real edge,
 // derived from the same two widths the pane itself uses), with the same
 // duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail] .bnd-railbtn {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
   transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
 }
-html[data-bnd-rail] .bnd-railbtn-edge {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-edge {
   inset-inline-end: -12px;
   inset-block-start: 50%;
   translate: 0 -50%;
 }
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-edge {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-edge,
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-edge {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
 }
 // The head placement, named for where it sits rather than for a compass
 // point (item 40). BOTTOM IS GONE, and it was measured out rather than
 // dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
 // controls — Frappe's collapse link and resize handle both live there.
-html[data-bnd-rail] .bnd-railbtn-header {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-header {
   inset-inline-end: var(--bnd-sp-1);
   inset-block-start: var(--bnd-sp-2);
 }
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-header,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-header {
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-header,
+html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-header {
   inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
 }
 
@@ -1389,7 +1389,7 @@ html[data-bnd-desktop] {
 // is noise (measured on the Stock workspace). At rest the rail shows ONLY the
 // brand mark, the utility chips and the module chip; the link list fades in
 // with the expansion. Opacity (not display) so the expansion animates.
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) {
   .body-sidebar-top,
   .body-sidebar-cards,
   .body-sidebar-bottom,
@@ -1458,6 +1458,12 @@ html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
   }
 }
 
+// Every `html[data-bnd-rail]` rule above carries `:not([data-bnd-narrow])`
+// (slice 11): below 768 the pane is Frappe's drawer, the page-title
+// hamburger is its only opener, and the rail's 52px sizing was what the
+// drawer opened INTO (measured: a 52px-wide 'open' drawer at 390px). The
+// JS wiring stands down at narrow for the same reason; attribute and
+// stylesheet now agree on whose viewport it is.
 // ── Mobile: the sidebar is Frappe's drawer, not a column (item 24) ───────────
 // Below 768 Frappe collapses its inner .body-sidebar to ~0 and opens it on
 // demand as an ABSOLUTE overlay with a scrim. Our kit kept the CONTAINER at

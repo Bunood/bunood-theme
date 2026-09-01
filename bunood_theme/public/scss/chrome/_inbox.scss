@@ -104,7 +104,10 @@ html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) 
 // notification style including Original: position: fixed escapes the clip,
 // pinned beside the rail. Item 9 already relocates this same element per
 // layout the same way, so the pattern (and its z-index slot) is established.
-html[data-bnd-rail] .body-sidebar-container .dropdown-notifications {
+// :not(narrow) with the rest of the rail rules (slice 11): at drawer width
+// the rail is stood down, and pinning the panel beside a 52px strip that
+// is not there put it under the drawer.
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container .dropdown-notifications {
   position: fixed;
   inset-block-start: var(--bnd-sp-4);
   inset-inline-start: calc(var(--bnd-sb-rail-w) + var(--bnd-sp-2));

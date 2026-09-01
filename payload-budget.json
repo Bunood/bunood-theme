@@ -36,6 +36,10 @@
 		"of last-child (defect 20), data-bnd-sidepane gains its setter, and the",
 		"place row and rail button carry their parts. ~46 gzip of identity and",
 		"repair.",
+		"AND -> 105760 for slice 11: the rail claims the page-title hamburger",
+		"(bnd_own panetoggle, stamped only after the trigger wiring is live).",
+		"Plus the narrow stand-down the drawer-safety arm forced: at phone width",
+		"the hamburger is the drawer's only opener, and the claim was hiding it.",
 		"AND TO 102600 for slice 8d, drag-to-resize — the survey's clearest",
 		"differentiator (every product tool has it, no ERP surveyed does, and",
 		"Frappe's own .sidebar-resize-handle never resized anything): the pointer",
@@ -84,7 +88,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 22100,
-		"js_gzip": 105700,
+		"js_gzip": 105790,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

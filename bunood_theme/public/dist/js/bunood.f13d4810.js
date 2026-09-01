@@ -876,7 +876,7 @@
 		apply_chrome_off();
 
 		// `panehead` joins them (item 40); see _layouts.scss.
-		for (const token of ["search", "bell", "user", "panehead"]) bnd_disown(token);
+		for (const token of ["search", "bell", "user", "panehead", "panetoggle"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -6588,11 +6588,16 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_rail() {
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container) return;
-		if (!document.documentElement.hasAttribute("data-bnd-rail")) {
+		// Narrow = the drawer's turf: stand down, or the claim strands the phone.
+		if (!document.documentElement.hasAttribute("data-bnd-rail") || is_narrow()) {
 			sb_teardown_rail(container);
 			return;
 		}
-		if (container.dataset.bndRail) return;
+		if (container.dataset.bndRail) {
+			// Already wired; remount released the token — re-claim.
+			bnd_own("panetoggle");
+			return;
+		}
 		container.dataset.bndRail = "1";
 		container.style.width = "var(--bnd-sb-rail-w)";
 		container._bnd_rail_teardown = [];
@@ -6714,6 +6719,9 @@ function sb_zone_anchor(pane, zone, node) {
 			});
 			container.appendChild(btn);
 		}
+
+		// Wiring live — claim the hamburger. Never before it. _layouts.scss.
+		bnd_own("panetoggle");
 	}
 
 	/**
@@ -6753,6 +6761,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
 	function sb_teardown_rail(container) {
+		bnd_disown("panetoggle");
 		if (!container.dataset.bndRail) return;
 		delete container.dataset.bndRail;
 		container.style.width = "";
