@@ -184,6 +184,15 @@ def resolve_for_user(site) -> tuple:
     }
 
 
+from bunood_theme.presets import SB_PANE_STOPS as _SB_PANE_STOPS
+
+# Module-level ON PURPOSE: `pane_px` reads it inside extend_bootinfo, whose
+# whole-function `try` SWALLOWS a NameError - the kit goes quietly dark on
+# every desk instead of failing one line. resolve_for_user's local import
+# of the same module is untouched (it shadows this one harmlessly).
+from bunood_theme import personal as personal_axes
+
+
 def _sb_shortcuts() -> list:
     """The session user's pins, resolved by api.resolve_sb_pins — wrapped so a
     defect in a decoration can never take the boot payload down with it."""
@@ -457,6 +466,15 @@ def extend_bootinfo(bootinfo):
             # Per-user shortcuts, resolved for THIS user right now — the
             # permission filter is the point, so it cannot be client-side.
             "shortcuts": _sb_shortcuts(),
+            # The free-drag pixel (item 40). Lock-aware like density: a locked
+            # comfort axis STOPS APPLYING, not merely stops being offered.
+            "pane_px": (
+                (frappe.defaults.get_user_default("bnd_sb_width") or "")
+                if personal_axes.lock_open("personal_comfort", settings.get("personal_comfort"))
+                else ""
+            ),
+            # The stop table, for the zero-network context menu.
+            "pane_stops": [list(t) for t in _SB_PANE_STOPS],
         }
 
         # Item 23: give every sidebar link a title-derived icon, on the server,

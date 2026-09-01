@@ -298,6 +298,25 @@ AXES = (
         ),
     },
     {
+        "key": "bnd_sb_width",
+        "kind": PREFERENCE,
+        "label": "Side pane width",
+        "values": None,
+        "range": "SB_PANE_RANGE",
+        "lock": "personal_comfort",
+        "boot": "bnd_sidebar.pane_px",
+        "empty": "follow the site's width",
+        "since": "item 40",
+        "note": (
+            "A PIXEL, not a stop — the user's explicit free-drag call, as in VS "
+            "Code. Ergonomic in exactly the sense bnd_density is (comfort, not "
+            "style), which is why it rides personal_comfort. Validated by "
+            "api.set_personal's RANGE branch against presets.SB_PANE_RANGE; a "
+            "values tuple here would reject every width, which is why range "
+            "rows exist at all. Empty means follow the site's stop."
+        ),
+    },
+    {
         "key": "bnd_sb_pins",
         "kind": STATE,
         "label": "Side pane shortcuts",
@@ -471,6 +490,23 @@ def axis(key: str) -> dict | None:
 def keys(kind: str | None = None) -> tuple:
     """Every key this app writes, optionally of one :data:`PREFERENCE`/:data:`STATE`."""
     return tuple(r["key"] for r in AXES if kind is None or r["kind"] == kind)
+
+
+def range_for(key: str) -> tuple | None:
+    """The (lo, hi) bounds for a free-range axis, or None for a value-set one.
+
+    The third kind of validation (item 40): a values tuple lists members, a
+    range names bounds. `set_personal` dispatches on which one a row carries,
+    because `values_for(key) or ()` on a range row would reject EVERY value.
+    """
+    row = axis(key)
+    if row is None or not row.get("range"):
+        return None
+    if row["range"] == "SB_PANE_RANGE":
+        from bunood_theme.presets import SB_PANE_RANGE
+
+        return SB_PANE_RANGE
+    return None
 
 
 def values_for(key: str) -> tuple | None:

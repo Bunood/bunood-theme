@@ -6444,6 +6444,9 @@ function sb_zone_anchor(pane, zone, node) {
 	 * collapse animation owns the width there, and an inline width from us
 	 * would pin it open.
 	 */
+	/** The free-drag pixel; "" follows the site. Defect 23: _sidebar.scss. */
+	let sb_pane_px = String(((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).pane_px || "");
+
 	function sb_apply_width() {
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container) return;
@@ -6459,6 +6462,10 @@ function sb_zone_anchor(pane, zone, node) {
 			return;
 		}
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
+		// The pixel rides an inline custom property; clearing is one remove.
+		const px = parseInt(sb_pane_px, 10);
+		if (px >= 200 && px <= 280) container.style.setProperty("--bnd-sb-w", px + "px");
+		else container.style.removeProperty("--bnd-sb-w");
 		// Frappe's collapse is the `expanded` CLASS, and since item 40 it is the
 		// only collapse there is. _sidebar.scss carries the pairing.
 		if (container.classList.contains("expanded")) container.style.width = "var(--bnd-sb-w)";
@@ -6630,6 +6637,194 @@ function sb_zone_anchor(pane, zone, node) {
 			.catch(() => {}); // badges are decoration; never surface a failure
 	}
 
+	/** Free-pixel drag on Frappe's own handle. Argument: _sidebar.scss. */
+	function sb_mount_resize() {
+		const handle = document.querySelector(".body-sidebar .sidebar-resize-handle");
+		const container = document.querySelector(".body-sidebar-container");
+		if (!handle || !container || handle._bnd_resize) return;
+		handle._bnd_resize = true;
+
+		// APG splitter: focusable separator, pixel scale.
+		const aria = () => {
+			const w = Math.round(container.getBoundingClientRect().width) || 240;
+			handle.setAttribute("aria-valuenow", String(w));
+			// "240px": a unit symbol, not a noun for a placeholder to govern.
+			handle.setAttribute("aria-valuetext", w + "px");
+		};
+		handle.setAttribute("role", "separator");
+		handle.setAttribute("tabindex", "0");
+		handle.setAttribute("aria-orientation", "vertical");
+		handle.setAttribute("aria-valuemin", "200");
+		handle.setAttribute("aria-valuemax", "280");
+		handle.setAttribute("aria-label", __("Side pane width"));
+		aria();
+
+		const rtl = () => getComputedStyle(container).direction === "rtl";
+		const clamp = (n) => Math.min(280, Math.max(200, n));
+		const persist = (px) => {
+			sb_pane_px = px === "" ? "" : String(px);
+			frappe
+				.xcall("bunood_theme.api.set_personal", { values: { bnd_sb_width: sb_pane_px } })
+				.catch(() => {});
+		};
+
+		let drag = null;
+		handle.addEventListener("pointerdown", (e) => {
+			if (e.button !== 0) return;
+			if (!container.classList.contains("expanded")) return;
+			if (document.documentElement.hasAttribute("data-bnd-rail")) return;
+			drag = {
+				x0: e.clientX,
+				w0: Math.round(container.getBoundingClientRect().width),
+				latched: false,
+				cancelled: false,
+			};
+			handle.setPointerCapture(e.pointerId);
+		});
+		handle.addEventListener("pointermove", (e) => {
+			if (!drag || drag.cancelled) return;
+			const raw = e.clientX - drag.x0;
+			// The 4px latch: movement, never time. _sidebar.scss.
+			if (!drag.latched && Math.abs(raw) < 4) return;
+			drag.latched = true;
+			// clientX never mirrors — RTL widens leftward.
+			const w = clamp(drag.w0 + (rtl() ? -raw : raw));
+			container.style.setProperty("--bnd-sb-w", w + "px");
+			sb_wchip(w);
+			aria();
+		});
+		const finish = (e) => {
+			if (!drag) return;
+			const d = drag;
+			drag = null;
+			sb_wchip(null);
+			try {
+				handle.releasePointerCapture(e.pointerId);
+			} catch (err) {
+				/* capture may already be gone */
+			}
+			if (d.cancelled) return;
+			if (!d.latched) return; // a click — Frappe's toggle owns it
+			// Swallow this gesture's click.
+			handle.addEventListener(
+				"click",
+				(c) => {
+					c.stopImmediatePropagation();
+					c.preventDefault();
+				},
+				{ capture: true, once: true }
+			);
+			const w = clamp(d.w0 + (rtl() ? -(e.clientX - d.x0) : e.clientX - d.x0));
+			persist(w);
+			aria();
+		};
+		handle.addEventListener("pointerup", finish);
+		handle.addEventListener("pointercancel", (e) => {
+			if (drag) drag.cancelled = true;
+			sb_wchip(null);
+			sb_apply_width();
+			finish(e);
+		});
+		document.addEventListener("keydown", (e) => {
+			if (e.key !== "Escape" || !drag || drag.cancelled) return;
+			// Cancel: pre-drag width, nothing persisted.
+			drag.cancelled = true;
+			const latched = drag.latched;
+			sb_wchip(null);
+			sb_apply_width();
+			aria();
+			if (latched) {
+				handle.addEventListener(
+					"click",
+					(c) => {
+						c.stopImmediatePropagation();
+						c.preventDefault();
+					},
+					{ capture: true, once: true }
+				);
+			}
+		});
+
+		// Physical arrows, derived direction; Up/Down NOT consumed. SCSS.
+		handle.addEventListener("keydown", (e) => {
+			const w0 = Math.round(container.getBoundingClientRect().width) || 240;
+			let w = null;
+			if (e.key === "ArrowRight") w = clamp(w0 + (rtl() ? -10 : 10));
+			else if (e.key === "ArrowLeft") w = clamp(w0 + (rtl() ? 10 : -10));
+			else if (e.key === "Home") w = 200;
+			else if (e.key === "End") w = 280;
+			else if (e.key === "Enter") {
+				e.preventDefault();
+				handle.click();
+				return;
+			} else return;
+			e.preventDefault();
+			container.style.setProperty("--bnd-sb-w", w + "px");
+			persist(w);
+			aria();
+		});
+
+		// WCAG 2.5.7's pointer alternative, from boot data, zero network.
+		const stop_menu = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const stops = (((frappe.boot || {}).bnd_sidebar || {}).pane_stops || []).map(([, px]) => ({
+				label: px + "px",
+				icon: "icon-chevron-right",
+				run: () => {
+					container.style.setProperty("--bnd-sb-w", px + "px");
+					persist(px);
+					aria();
+				},
+			}));
+			stops.push("divider");
+			stops.push({
+				label: __("Use the site's width"),
+				icon: "icon-history",
+				run: () => {
+					persist("");
+					sb_apply_width();
+					aria();
+				},
+			});
+			show_menu(handle, stops);
+		};
+		handle.addEventListener("contextmenu", stop_menu);
+		handle.addEventListener("keydown", (e) => {
+			if (e.key === "F10" && e.shiftKey) stop_menu(e);
+		});
+	}
+
+	/** The drag readout; null hides it. */
+	function sb_wchip(w) {
+		let chip = document.querySelector(".bnd-sb-wchip");
+		if (w == null) {
+			if (chip) chip.remove();
+			return;
+		}
+		if (!chip) {
+			chip = el("div", "bnd-sb-wchip");
+			document.body.appendChild(chip);
+		}
+		const c = document.querySelector(".body-sidebar-container");
+		const r = c.getBoundingClientRect();
+		const rtl = getComputedStyle(c).direction === "rtl";
+		chip.style.insetBlockStart = Math.round(r.y + 8) + "px";
+		chip.style.insetInlineStart = Math.round(rtl ? window.innerWidth - r.x + 8 : r.right + 8) + "px";
+		chip.textContent = w + "px";
+	}
+
+	function sb_teardown_resize() {
+		sb_wchip(null);
+		const handle = document.querySelector(".body-sidebar .sidebar-resize-handle");
+		if (!handle || !handle._bnd_resize) return;
+		// Frappe's node: give back every stamped attribute.
+		for (const a of ["role", "tabindex", "aria-orientation", "aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-valuetext", "aria-label"]) {
+			handle.removeAttribute(a);
+		}
+		delete handle._bnd_resize;
+	}
+
 	// ── The pane's lifecycle (item 40) — argument in _sidebar.scss ─────────
 
 	/** Remove the head. */
@@ -6675,6 +6870,7 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
 		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
+		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 	];
 
 	/** The watch record: the NODES being observed, their observers, and the one

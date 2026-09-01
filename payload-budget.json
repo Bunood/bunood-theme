@@ -23,6 +23,13 @@
 		"server-side caps (25/15, Dynamics' numbers), render-time permission",
 		"re-resolution so a revoked pin vanishes rather than 403ing, and the pin",
 		"gesture in the Place row's menu. ~1240 gzip after prose was trimmed.",
+		"AND TO 102600 for slice 8d, drag-to-resize — the survey's clearest",
+		"differentiator (every product tool has it, no ERP surveyed does, and",
+		"Frappe's own .sidebar-resize-handle never resized anything): the pointer",
+		"engine with its 4px latch, the APG splitter keyboard contract, the",
+		"zero-network stop menu that WCAG 2.5.7 conformance DEPENDS on, and the",
+		"readout chip. ~1660 gzip of designed feature; the argument lives in",
+		"_sidebar.scss, the JS carries pointers.",
 		"RAISED AGAIN TO 99450 for slice 8: the in-pane filter (the survey's clearest",
 		"gap — 6/13 product tools have one, 0/14 ERPs — and ERPs are the ones with",
 		"70-link workspaces), the automatic overflow fade replacing the deleted",
@@ -64,7 +71,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 21500,
-		"js_gzip": 100850,
+		"js_gzip": 102600,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

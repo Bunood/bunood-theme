@@ -1592,6 +1592,39 @@ async function main() {
 			);
 		});
 
+		await test("site data: no personal-width leftovers on the suite's own users", async () => {
+			// Item 40 (g). `bnd_sb_width` is a frappe.defaults row, OUTSIDE the
+			// settings snapshot — so a run that dies between a resize check's
+			// write and its `finally` leaves a personal width that every later
+			// width assertion then measures as a phantom failure (the pane
+			// renders the person's pixel, not the site's stop). Both writers
+			// clear in `finally`; this preamble makes the crash path the FIRST
+			// failure of the run, naming the one-line repair — the branding
+			// preamble's shape, for the personal layer.
+			// NOT auto-cleared: on this dev site Administrator is also a human,
+			// and deleting a person's preference silently is worse than a red
+			// check that says exactly what to run.
+			const rows = JSON.parse(
+				benchPy(
+					`import json
+` +
+						`users = ["Administrator", ${JSON.stringify(DESK_FIXTURE.user)}]
+` +
+						`print("BND" + json.dumps({u: (frappe.defaults.get_user_default("bnd_sb_width", u) or "") for u in users}))
+`
+				).split("BND")[1].trim()
+			);
+			const dirty = Object.entries(rows).filter(([, v]) => v !== "");
+			expect(
+				!dirty.length,
+				"personal width leftovers — a prior run died mid-check. Repair: " +
+					dirty
+						.map(([u, v]) => `bnd_sb_width=${v} for ${u}`)
+						.join(", ") +
+					" — clear with: bench --site demo.bunood.test execute frappe.defaults.clear_default --kwargs \"{'key':'bnd_sb_width','parent':'<user>'}\""
+			);
+		});
+
 		// ── Boot & assets ──────────────────────────────────────────────────
 		const assetsPy = readFileSync(new URL("../bunood_theme/assets.py", import.meta.url), "utf8");
 		const cssPath = assetsPy.match(/THEME_CSS = "([^"]+)"/)[1];
@@ -4293,6 +4326,315 @@ async function main() {
 				);
 			} finally {
 				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
+				setSettings(before);
+			}
+		});
+
+		// STATE THE PREMISE, NEVER INHERIT IT. Frappe persists collapse in
+		// localStorage["sidebar-expanded"], so one check failing mid-gesture
+		// hands every later check a 51px pane and five failures read as five
+		// bugs (measured: exactly that, 2026-08-31). Each resize check that
+		// needs an expanded pane forces it first through Frappe's own toggle.
+		const sbEnsureExpanded = async () => {
+			await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+			const already = await page.evaluate(() => {
+				const c = document.querySelector(".body-sidebar-container");
+				if (c.classList.contains("expanded")) return true;
+				document.querySelector(".sidebar-resize-handle").click();
+				return false;
+			});
+			if (!already) {
+				await page.waitForFunction(
+					() => document.querySelector(".body-sidebar-container").classList.contains("expanded"),
+					null, { timeout: 8000 }
+				);
+				await page.waitForTimeout(400);
+			}
+		};
+
+		await test("resize: 3px is a click, 5px is a drag — the latch, both directions", async () => {
+			// THE DISCRIMINATOR IS MOVEMENT, NEVER TIME. Frappe's own
+			// `.sidebar-resize-handle` is click-to-toggle; our drag rides the
+			// same strip, so a 4px latch decides which gesture happened. Under
+			// the latch a press is Frappe's collapse, untouched; over it the
+			// pane tracks the pointer and the collapse must NOT fire.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
+					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+					await sbEnsureExpanded();
+
+					const state = () =>
+						page.evaluate(() => {
+							const c = document.querySelector(".body-sidebar-container");
+							return {
+								w: Math.round(c.getBoundingClientRect().width),
+								expanded: c.classList.contains("expanded"),
+							};
+						});
+					const drag = async (dx) => {
+						const h = await page.evaluate(() => {
+							const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+							return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+						});
+						await page.mouse.move(h.x, h.y);
+						await page.mouse.down();
+						await page.mouse.move(h.x + dx, h.y, { steps: 4 });
+						await page.mouse.up();
+						await page.waitForTimeout(600);
+					};
+
+					const a = await state();
+					expect(a.expanded, "the pane starts expanded (premise)");
+					await drag(3);
+					const b = await state();
+					expect(!b.expanded, `3px of travel is a CLICK — Frappe's collapse fired (expanded=${b.expanded})`);
+					await drag(3); // toggle back open, same path
+					const c = await state();
+					expect(c.expanded, "and a second 3px press opens it again");
+
+					await drag(15);
+					const d = await state();
+					expect(d.expanded, "15px of travel is a DRAG — the collapse must not fire");
+					expect(Math.abs(d.w - (c.w + 15)) <= 3,
+						`and the pane tracked the pointer (${c.w} -> ${d.w}, wanted ~${c.w + 15})`);
+				});
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("resize: in a real Arabic desk, dragging toward the inline end WIDENS", async () => {
+			// clientX NEVER MIRRORS. In RTL the pane sits at the viewport's
+			// inline start (the right), and widening means the handle travels
+			// LEFT — decreasing clientX. Math that adds raw deltas reads that as
+			// shrinking, and the CSS logical-property gate gives zero protection
+			// here because this is JavaScript.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
+			try {
+				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
+					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						() => (document.documentElement.getAttribute("dir") || document.dir) === "rtl" &&
+							!!document.querySelector(".sidebar-resize-handle"),
+						null, { timeout: 25000 }
+					);
+					await sbEnsureExpanded();
+					const w0 = await page.evaluate(() =>
+						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+					const h = await page.evaluate(() => {
+						const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+						return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+					});
+					await page.mouse.move(h.x, h.y);
+					await page.mouse.down();
+					// Toward the viewport's inline END in RTL = leftward = -clientX.
+					await page.mouse.move(h.x - 20, h.y, { steps: 4 });
+					await page.mouse.up();
+					await page.waitForTimeout(600);
+					const w1 = await page.evaluate(() =>
+						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+					expect(w1 > w0, `dragging toward the inline end makes the pane STRICTLY wider (${w0} -> ${w1})`);
+				});
+			} finally {
+				benchPy(`frappe.db.set_value("User", "Administrator", "language", "en")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
+				setSettings(before);
+			}
+		});
+
+		await test("resize: an admin's settings click does not silently revert a person's width", async () => {
+			// DEFECT 23, named by the plan before the feature existed:
+			// apply_sidebar_attrs strips every data-bnd-sb-* and re-derives the
+			// width from the SITE's stop, and sb_apply runs it on every settings
+			// picker click — so unless the personal pixel survives the re-apply,
+			// any admin sidebar click reverts a person's width until reload.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				benchPy(
+					`frappe.defaults.set_default("bnd_sb_width", "266", parent="Administrator")\n` +
+						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.clear_cache(user="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+				);
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar-container"), null, { timeout: 20000 });
+				await sbEnsureExpanded();
+				const w0 = await page.evaluate(() =>
+					Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+				expectEq(w0, 266, "the personal pixel is what renders (premise)");
+				// The admin clicks a sidebar option — any option; hue wash repaints
+				// through the same sb_apply path that used to strip the width.
+				await page.evaluate(() => window.bunood_theme.sb_apply({ sidebar_hue_wash: "Subtle" }));
+				await page.waitForTimeout(800);
+				const w1 = await page.evaluate(() =>
+					Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+				expectEq(w1, 266, "and it survives the admin's preview click");
+			} finally {
+				benchPy(
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
+						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.clear_cache(user="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+				);
+				setSettings(before);
+			}
+		});
+
+		await test("resize: an admin clears someone ELSE'S width while holding none of their own", async () => {
+			// DEFECT 24, pre-existing in item 38's clear_personal and named by
+			// the plan: it read get_user_default(key) — the SESSION user — then
+			// cleared parent=target, so an admin rescuing a stranded user got
+			// {"cleared": []} and no error. The obvious test (clearing your own)
+			// passes against the broken code; THIS shape is the one that fails.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme import api\n" +
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
+					`frappe.defaults.set_default("bnd_sb_width", "252", parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"frappe.db.commit()\n" +
+					"res = {}\n" +
+					"try:\n" +
+					`    res["admin_own"] = frappe.defaults.get_user_default("bnd_sb_width") or ""\n` +
+					`    res["cleared"] = api.clear_personal(axis="bnd_sb_width", user=${JSON.stringify(DESK_FIXTURE.user)})["cleared"]\n` +
+					`    res["after"] = frappe.defaults.get_user_default("bnd_sb_width", ${JSON.stringify(DESK_FIXTURE.user)}) or ""\n` +
+					"finally:\n" +
+					`    frappe.defaults.clear_default("bnd_sb_width", parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
+					"    frappe.db.commit()\n" +
+					"print('BND_CLR' + json.dumps(res))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_CLR"));
+			if (!line) throw new Error("clear probe produced no JSON: " + String(out).slice(-300));
+			const r = JSON.parse(line.slice("BND_CLR".length));
+			expectEq(r.admin_own, "", "the admin holds NO width of their own (the premise that exposes the bug)");
+			expect(r.cleared.includes("bnd_sb_width"), `the clear reports what it cleared (${JSON.stringify(r.cleared)})`);
+			expectEq(r.after, "", "and the stranded user's row is actually gone");
+		});
+
+		await test("resize: the floor is reachable, and a cancelled drag leaves no residue", async () => {
+			// TWO PREREQUISITES THE PLAN NAMES. The expanded container had
+			// neither min-inline-size: 0 nor overflow: clip, so flex's implicit
+			// min-width let Frappe's widest child clamp the used width UPWARD —
+			// the drag would stop moving while the pointer kept going. And a
+			// cancelled drag must restore the pre-drag width exactly, leaving
+			// Frappe's click-to-collapse working on the very next press.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
+					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+					await sbEnsureExpanded();
+
+					const geom = await page.evaluate(() => {
+						const c = document.querySelector(".body-sidebar-container");
+						const cs = getComputedStyle(c);
+						return { min: cs.minInlineSize, overflow: cs.overflow };
+					});
+					expectEq(geom.min, "0px", `the expanded container opts out of flex's implicit floor (${geom.min})`);
+					expect(/clip|hidden/.test(geom.overflow), `and clips instead of growing (${geom.overflow})`);
+
+					const h = await page.evaluate(() => {
+						const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+						return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+					});
+					// Drag all the way to (and past) the floor.
+					await page.mouse.move(h.x, h.y);
+					await page.mouse.down();
+					await page.mouse.move(h.x - 200, h.y, { steps: 6 });
+					const atFloor = await page.evaluate(() =>
+						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+					await page.mouse.up();
+					await page.waitForTimeout(400);
+					expectEq(atFloor, 200, `the drag reaches the 200px floor and pins there (${atFloor})`);
+
+					// Restore, then CANCEL a drag mid-flight.
+					const w0 = await page.evaluate(() => {
+						const c = document.querySelector(".body-sidebar-container");
+						return Math.round(c.getBoundingClientRect().width);
+					});
+					await page.mouse.move(h.x, h.y);
+					await page.mouse.down();
+					await page.mouse.move(h.x + 30, h.y, { steps: 4 });
+					await page.keyboard.press("Escape");
+					await page.mouse.up();
+					await page.waitForTimeout(400);
+					const w1 = await page.evaluate(() =>
+						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+					expectEq(w1, w0, `Escape mid-drag restores the pre-drag width (${w0} -> ${w1})`);
+
+					// And the very next plain click still collapses.
+					await page.mouse.move(h.x, h.y);
+					await page.mouse.down();
+					await page.mouse.up();
+					await page.waitForTimeout(600);
+					const collapsed = await page.evaluate(() =>
+						!document.querySelector(".body-sidebar-container").classList.contains("expanded"));
+					expect(collapsed, "a plain click after the cancelled drag still collapses");
+				});
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("resize: the strip offers the five stops with zero network, and the site's width back", async () => {
+			// WCAG 2.5.7's pointer alternative, and it is a conformance
+			// DEPENDENCY, not a nicety: keyboard equivalence does not discharge
+			// the criterion, and a free-pixel drag cannot itself be offered as a
+			// click target. The menu renders entirely from boot data — a
+			// conformance claim behind a round trip is not "a different control
+			// on the same page". "Use the site's width" posts "" and the person
+			// inherits again: the escape hatch that makes personalization safe.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				benchPy(
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
+						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+				);
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+				await sbEnsureExpanded();
+
+				const requestsBefore = await page.evaluate(() => performance.getEntriesByType("resource").length);
+				await page.evaluate(() => {
+					const h = document.querySelector(".sidebar-resize-handle");
+					const r = h.getBoundingClientRect();
+					h.dispatchEvent(new MouseEvent("contextmenu", {
+						bubbles: true, cancelable: true, clientX: r.x + 2, clientY: r.y + 40,
+					}));
+				});
+				await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+				const menu = await page.evaluate((n0) => {
+					const labels = [...document.querySelectorAll(".bnd-menu-item")].map((b) => b.textContent.trim());
+					return {
+						labels,
+						network: performance.getEntriesByType("resource").length - n0,
+					};
+				}, requestsBefore);
+				expectEq(menu.network, 0, "the menu opened with ZERO network");
+				for (const px of ["200px", "220px", "240px", "260px", "280px"]) {
+					expect(menu.labels.some((l) => l.includes(px)), `the ${px} stop is offered (${JSON.stringify(menu.labels)})`);
+				}
+				expect(menu.labels.some((l) => /site/i.test(l)), "and the way back to the site's width");
+
+				// Pick a stop; the pane moves and the row persists.
+				await page.evaluate(() => {
+					[...document.querySelectorAll(".bnd-menu-item")].find((b) => b.textContent.includes("260px")).click();
+				});
+				await page.waitForFunction(
+					() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width) === 260,
+					null, { timeout: 8000 }
+				);
+				const stored = benchPy(
+					`print("BND_W=" + (frappe.defaults.get_user_default("bnd_sb_width", "Administrator") or ""))\n`
+				);
+				expect(/BND_W=260/.test(stored), `the pick persisted server-side (${stored.trim().slice(-20)})`);
+			} finally {
+				benchPy(
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
+						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.db.commit()\nprint("ok")\n`
+				);
 				setSettings(before);
 			}
 		});

@@ -27,6 +27,15 @@ from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, TENANTS, layout_set
 
 #: Ordered field names, matching theme_settings.json. Order matters only for
 #: the picker's "does the current state match a preset?" comparison.
+#: The pane's width stops — THE table, stated once (item 40). The five
+#: `[data-bnd-sb-width]` rules in _sidebar.scss, the doctype Select's five
+#: options, the picker's endpoint labels and boot's stop array must all agree
+#: with this tuple, and build.mjs::assertPaneStops holds them to it. Stop 2 is
+#: v16's original 220px; stop 3 ships. The RANGE is what free drag clamps to
+#: and what api.set_personal's range branch validates against.
+SB_PANE_STOPS = ((1, 200), (2, 220), (3, 240), (4, 260), (5, 280))
+SB_PANE_RANGE = (200, 280)
+
 SIDEBAR_FIELDS = [
     "sidebar_placement",
     "sidebar_material",

@@ -1510,9 +1510,25 @@ def set_personal(values=None) -> dict:
         # can THIS person open", which changes per session and is a permission
         # question rather than a display one. Checked HERE and not only in the
         # picker: the picker is a courtesy, this endpoint is whitelisted.
-        allowed = _home_choices() if key == "bnd_home" else (personal.values_for(key) or ())
-        if value and value not in allowed:
-            frappe.throw(f"Invalid {row['label']}: {value!r}")
+        # THE THIRD DISPATCH BRANCH (item 40): a free-range axis names bounds,
+        # not members — `values_for(key) or ()` on one would reject every
+        # width the drag can produce.
+        bounds = personal.range_for(key)
+        if bounds is not None:
+            if value:
+                try:
+                    n = int(value)
+                except Exception:
+                    frappe.throw(f"Invalid {row['label']}: {value!r}")
+                if not (bounds[0] <= n <= bounds[1]):
+                    frappe.throw(
+                        f"{row['label']} must be between {bounds[0]} and {bounds[1]} pixels"
+                    )
+                value = str(n)
+        else:
+            allowed = _home_choices() if key == "bnd_home" else (personal.values_for(key) or ())
+            if value and value not in allowed:
+                frappe.throw(f"Invalid {row['label']}: {value!r}")
         # Only what actually moved — an unchanged axis is not a write.
         if value != (frappe.defaults.get_user_default(key) or ""):
             writes[key] = value
@@ -1553,7 +1569,13 @@ def clear_personal(axis: str = "", user: str = "") -> dict:
     for key in keys:
         if personal.axis(key) is None:
             frappe.throw(f"Not a personal preference: {key!r}")
-        if frappe.defaults.get_user_default(key):
+        # THE TARGET'S row, never the session's — defect 24, pre-existing
+        # from item 38 and named by the item-40 plan before this fix: the
+        # bare read consulted the ADMIN's own defaults, so rescuing a
+        # stranded user returned {"cleared": []} with no error whenever the
+        # admin had no row of their own — which is exactly when they are
+        # doing the rescuing.
+        if frappe.defaults.get_user_default(key, target):
             frappe.defaults.clear_default(key, parent=target)
             cleared.append(key)
     if cleared:

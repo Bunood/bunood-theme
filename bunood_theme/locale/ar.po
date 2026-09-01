@@ -5375,3 +5375,15 @@ msgstr "تثبيت"
 #, fuzzy
 msgid "Unpin"
 msgstr "إلغاء التثبيت"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Side pane width"
+msgstr "عرض اللوحة الجانبية"
+
+#. In bunood.js
+#. src: item40
+#, fuzzy
+msgid "Use the site's width"
+msgstr "استخدام عرض الموقع"

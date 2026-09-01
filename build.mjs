@@ -1174,6 +1174,62 @@ function assertRegistryIdentity(registrySrc, deskJs) {
  * @param {string} presetsSrc - presets.py text
  * @param {string} jsSrc - theme_settings.js text
  */
+/**
+ * Pane-stops guard (item 40) — presets.SB_PANE_STOPS is THE width table, and
+ * this holds its four consumers to it: the five `[data-bnd-sb-width]` rules,
+ * the doctype Select's options, the picker stepper's endpoint labels, and the
+ * SB_PANE_RANGE bounds the free drag clamps to. The table moved to Python so
+ * that adding a sixth stop costs one tuple entry; this is what makes that
+ * sentence true rather than aspirational.
+ */
+function assertPaneStops(presetsSrc, sidebarScss, doctypeJson, pickerSrc) {
+	const stops = [...presetsSrc.matchAll(/\((\d+),\s*(\d+)\)/g)]
+		.map((m) => [Number(m[1]), Number(m[2])])
+		.filter(([i, px]) => i >= 1 && i <= 9 && px >= 100 && px <= 400);
+	const table = stops.slice(0, 5);
+	const problems = [];
+	if (table.length !== 5) {
+		problems.push(`SB_PANE_STOPS parsed to ${table.length} rows, expected 5`);
+	}
+	const range = presetsSrc.match(/SB_PANE_RANGE\s*=\s*\((\d+),\s*(\d+)\)/);
+	if (!range) problems.push("SB_PANE_RANGE not found in presets.py");
+	else {
+		if (Number(range[1]) !== table[0][1] || Number(range[2]) !== table[table.length - 1][1]) {
+			problems.push(
+				`SB_PANE_RANGE (${range[1]}, ${range[2]}) is not the stop table's ends ` +
+					`(${table[0][1]}, ${table[table.length - 1][1]})`
+			);
+		}
+	}
+	for (const [i, px] of table) {
+		const rule = new RegExp(
+			`\\[data-bnd-sb-width="${i}"\\]\\s*\\{\\s*--bnd-sb-w:\\s*${px}px`
+		);
+		if (!rule.test(sidebarScss)) {
+			problems.push(`_sidebar.scss has no rule mapping width stop ${i} to ${px}px`);
+		}
+	}
+	const field = (doctypeJson.fields || []).find((f) => f.fieldname === "sidebar_pane_width");
+	const options = field ? String(field.options || "").split("\n").filter(Boolean) : [];
+	if (options.join(",") !== table.map(([i]) => String(i)).join(",")) {
+		problems.push(
+			`sidebar_pane_width options (${options.join(",")}) disagree with the stop ` +
+				`table's indices (${table.map(([i]) => i).join(",")})`
+		);
+	}
+	const lo = `${table[0][1]}px`;
+	const hi = `${table[table.length - 1][1]}px`;
+	if (!pickerSrc.includes(`__("${lo}")`) || !pickerSrc.includes(`__("${hi}")`)) {
+		problems.push(
+			`the picker's pane-width endpoint labels are not ${lo}/${hi} — the stepper ` +
+				"is lying about the range the stops span"
+		);
+	}
+	if (problems.length) {
+		throw new Error("Pane-stops guard:\n  " + problems.join("\n  "));
+	}
+}
+
 function assertFieldMirrors(presetsSrc, jsSrc) {
 	const families = (src, re) => {
 		const out = {};
@@ -1688,6 +1744,20 @@ async function main() {
 	);
 	assertFieldMirrors(
 		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		)
+	);
+	assertPaneStops(
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/scss/chrome/_sidebar.scss", import.meta.url), "utf8"),
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
