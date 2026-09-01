@@ -628,15 +628,21 @@ holding the old value — the same trap the quick links found, two fields over.
 
 ### Known, and filed rather than fixed
 
-- On the **brand** pane, Glass renders exactly as Solid: a gradient cannot go through
-  `color-mix`, and the fallback its comment promised was never built. Two options, one
-  pixel — recorded here rather than repaired, because the fix is a derivation change.
+**Nothing.** All three entries this item filed are now fixed, the last two after a
+human looked at the desk and saw what the suite could not:
 
-  *(The two entries that stood beside this one are FIXED, not filed: the sweep's
-  print-field damage — the restore now deletes rows the sweep created, fires
-  `on_update`, and refuses to say "restored" over a non-empty diff — and the dead
-  `ar.po` rows, 39 of which were reaped with a per-row decision while the ten that
-  reach `__()` as runtime data were deliberately kept.)*
+- The pane rendered **220px inside its container at every width stop** — Frappe
+  sizes the inner pane from their own `--sidebar-width` while our control sized
+  the container — so the wash stopped short and the container's paint showed past
+  it as a second layer, and a drag widened the *gap*. Six checks measured the
+  container and all six were right about it.
+- On the **brand** pane, Glass and Blurred Glass rendered exactly as Solid. The
+  transparency goes into the gradient's own stops now, with the stop numbers held
+  to `palette.SB_STOPS` in both places they appear.
+- The sweep's **print-field damage** — the restore now deletes rows the sweep
+  created, fires `on_update`, and refuses to say "restored" over a non-empty diff
+  — and the dead **`ar.po` rows**, 39 reaped with a per-row decision while the ten
+  reaching `__()` as runtime data were deliberately kept.
 
 ## [0.38.0] — 2026-08-29 — Per-user preferences (item 38)
 
