@@ -40,6 +40,9 @@
 		"(bnd_own panetoggle, stamped only after the trigger wiring is live).",
 		"Plus the narrow stand-down the drawer-safety arm forced: at phone width",
 		"the hamburger is the drawer's only opener, and the claim was hiding it.",
+		"AND -> 105980 for slice 12: the pane becomes a navigation landmark named",
+		"by the place (one writer with the head label), and the vendor's section",
+		"disclosure state is mirrored into aria-expanded.",
 		"AND TO 102600 for slice 8d, drag-to-resize — the survey's clearest",
 		"differentiator (every product tool has it, no ERP surveyed does, and",
 		"Frappe's own .sidebar-resize-handle never resized anything): the pointer",
@@ -88,7 +91,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 22100,
-		"js_gzip": 105790,
+		"js_gzip": 106150,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

@@ -5332,6 +5332,83 @@ print("ok")
 			}
 		});
 
+		await test("a11y: the pane is a navigation landmark named by the place, never a literal", async () => {
+			// Item 40 slice 12. The pane had no role at all, so a screen reader
+			// walked an anonymous region of seventy links. role=navigation with
+			// the PLACE'S name — the same resolved workspace the head shows —
+			// and never the literal "Workspaces", which names the class of thing
+			// rather than the place you are.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
+				const m = await page.evaluate(() => {
+					const pane = document.querySelector(".body-sidebar");
+					const headLabel = (document.querySelector(".bnd-sb-head-name") || {}).textContent || "";
+					return {
+						role: pane.getAttribute("role"),
+						label: pane.getAttribute("aria-label"),
+						head: headLabel.trim(),
+					};
+				});
+				expectEq(m.role, "navigation", `the pane is a navigation landmark (${m.role})`);
+				expect(m.label && m.label === m.head,
+					`named by the place the head shows (label ${JSON.stringify(m.label)}, head ${JSON.stringify(m.head)})`);
+				expect(m.label !== "Workspaces", "and never the literal class-name");
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("a11y: a section's disclosure state is spoken, and follows the toggle", async () => {
+			// Slice 12. Frappe's own collapse keeps its state in a data-state
+			// attribute ARIA cannot hear; the kit mirrors it into aria-expanded
+			// on the vendor's own drop-icon button — attributes are the one
+			// sanctioned mutation surface on Frappe's DOM. Toggling must move
+			// BOTH, or the mirror is a snapshot pretending to be a binding.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !!document.querySelector(".sidebar-item-container.section-item .drop-icon"),
+					null, { timeout: 20000 }
+				);
+				const first = await page.evaluate(() => {
+					const d = document.querySelector(".sidebar-item-container.section-item .drop-icon");
+					return { aria: d.getAttribute("aria-expanded"), state: d.getAttribute("data-state") };
+				});
+				expect(first.aria !== null, `the disclosure speaks (aria-expanded=${first.aria}, data-state=${first.state})`);
+				expectEq(String(first.aria), String(first.state === "opened"),
+					`and agrees with the vendor's own state (${first.aria} vs ${first.state})`);
+
+				await page.evaluate(() => {
+					document.querySelector(".sidebar-item-container.section-item .standard-sidebar-item").click();
+				});
+				await page.waitForFunction(
+					(was) => {
+						const d = document.querySelector(".sidebar-item-container.section-item .drop-icon");
+						return d && d.getAttribute("aria-expanded") !== was;
+					},
+					first.aria, { timeout: 8000 }
+				).catch(() => {});
+				const after = await page.evaluate(() => {
+					const d = document.querySelector(".sidebar-item-container.section-item .drop-icon");
+					return { aria: d.getAttribute("aria-expanded"), state: d.getAttribute("data-state") };
+				});
+				expect(after.aria !== first.aria, `the toggle moves the spoken state (${first.aria} -> ${after.aria})`);
+				expectEq(String(after.aria), String(after.state === "opened"),
+					`and the mirror still agrees after it (${after.aria} vs ${after.state})`);
+				// put the section back
+				await page.evaluate(() => {
+					document.querySelector(".sidebar-item-container.section-item .standard-sidebar-item").click();
+				});
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the

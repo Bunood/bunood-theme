@@ -758,8 +758,39 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     fill_seed = brand
     if mode != "light":
         fill_seed = to_hex(lift_lightness(parse_color(brand), DARK_FILL_TARGET_L))
+    # THE SIDEBAR'S OWN PANES JOIN THE CONSTRAINT SET (item 40, slice 12).
+    # The six global surfaces never included the pane a Minimal or
+    # Dark Contrast sidebar actually renders, so the pill's fill could sit
+    # at 1.06:1 against the one surface it lives on - the gate carried the
+    # number as measured-not-enforced until this line. Resolved FROM
+    # SB_PANES (never restated): literals verbatim, mixes through mix(),
+    # aliases skipped because --bnd-pane is already in `surfaces`. Both
+    # desk themes constrain against the dark-contrast pane, because that
+    # pane is dark on a LIGHT desk too - a real, reachable combination.
+    # PER MODE, never both polarities at once: a dark desk never renders
+    # the light-minimal pane, and feeding #fafbfa into the dark fit made
+    # the joint band EMPTY for mid seeds (fill_pair raised at #60a471).
+    # Light additionally constrains against the dark-contrast pane, which
+    # is dark on a light desk too - the reachable combination the 1.06:1
+    # measurement came from.
+    fit_panes = list(SB_PANES["dark" if mode != "light" else "light"].values())
+    if mode == "light":
+        fit_panes.append(SB_PANES["dark"]["dark"])
+    pane_constraints = []
+    if True:
+        for pane in fit_panes:
+            kind = pane.recipe[0]
+            if kind == "alias":
+                continue
+            if kind == "literal":
+                pane_constraints.append(pane.recipe[1])
+            elif kind == "ground":
+                pane_base = pane.recipe[2]
+                pane_constraints.append(mix(ground, pane.recipe[1], pane_base) if ground else pane_base)
+            elif kind == "brand":
+                pane_constraints.append(mix(brand, pane.recipe[1], pane.recipe[2]))
     out["--bnd-brand-solid"], out["--bnd-on-brand"], _ = fill_pair(
-        fill_seed, surfaces=surfaces
+        fill_seed, surfaces=surfaces + pane_constraints
     )
 
     # `--bnd-brand-ink` is the third role, and it is NOT the same value as either

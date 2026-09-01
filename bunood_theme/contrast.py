@@ -662,16 +662,25 @@ def fill_pair(
         return all(ratio(c, bg) >= graphic_target for bg in bgs)
 
     best = None  # (steps_moved, solid, ink)
-    for ink, direction in ((INK_LIGHT, "#000000"), (INK_DARK, "#ffffff")):
-        ink_c = parse_color(ink)
-        end = parse_color(direction)
-        for step in range(0, 257):
-            t = step / 256
-            c = quantise(tuple(start[i] * (1 - t) + end[i] * t for i in range(3)))
-            if ok(c, ink_c):
-                if best is None or step < best[0]:
-                    best = (step, to_hex(c), ink)
-                break
+    # ALL FOUR ink x direction pairs, not two welded ones. The original
+    # pairing (light ink darkens, dark ink lightens) assumed one-sided
+    # surface sets; the sidebar panes STRADDLE (item 40, slice 12), and at
+    # seed #000000 the only feasible band - fill Y in [0.123, 0.183], both
+    # panes and the label cleared - is reached by LIGHTENING under the
+    # LIGHT ink, a combination the two axes never tried. "Smallest move
+    # wins" still decides across all four, so every previously reachable
+    # answer stays reachable at the same rank.
+    for ink in (INK_LIGHT, INK_DARK):
+        for direction in ("#000000", "#ffffff"):
+            ink_c = parse_color(ink)
+            end = parse_color(direction)
+            for step in range(0, 257):
+                t = step / 256
+                c = quantise(tuple(start[i] * (1 - t) + end[i] * t for i in range(3)))
+                if ok(c, ink_c):
+                    if best is None or step < best[0]:
+                        best = (step, to_hex(c), ink)
+                    break
 
     if best is None:
         # Nothing on either axis satisfies both. Reachable only if the surfaces

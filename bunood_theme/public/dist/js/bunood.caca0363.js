@@ -6348,7 +6348,14 @@ function sb_zone_anchor(pane, zone, node) {
 		const name = document.querySelector(".bnd-sb-head .bnd-sb-head-name");
 		if (!name) return;
 		const ws = sb_current_workspace;
-		name.textContent = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+		const label = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+		name.textContent = label;
+		// The landmark shares this label: one writer, no drift.
+		const pane = document.querySelector(".body-sidebar");
+		if (pane) {
+			pane.setAttribute("role", "navigation");
+			pane.setAttribute("aria-label", label);
+		}
 	}
 
 	/** A workspace's desk route, through Frappe's own slugger where it exists. */
@@ -7158,6 +7165,7 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "fades", volatile: true, mount: sb_mount_fades, unmount: sb_teardown_fades },
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
+		{ key: "aria", volatile: true, mount: sb_mount_aria, unmount: sb_teardown_aria },
 		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 	];
@@ -7208,6 +7216,34 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Put our parts in the pane. `only_volatile` is the route contract: a list
 	 *  rebuild touches what lived inside the list and nothing else. */
+	/** data-state (vendor truth) -> aria-expanded (what AT hears). */
+	function sb_mirror_disclosure() {
+		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
+			d.setAttribute("aria-expanded", d.getAttribute("data-state") === "opened" ? "true" : "false");
+		}
+	}
+
+	function sb_mount_aria() {
+		sb_mirror_disclosure();
+		const list = document.querySelector(".body-sidebar .sidebar-items");
+		if (!list || list.dataset.bndAria) return;
+		list.dataset.bndAria = "1";
+		list.addEventListener(
+			"click",
+			(e) => {
+				if (!e.target.closest || !e.target.closest(".section-item .standard-sidebar-item")) return;
+				requestAnimationFrame(sb_mirror_disclosure);
+			},
+			true
+		);
+	}
+
+	function sb_teardown_aria() {
+		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
+			d.removeAttribute("aria-expanded");
+		}
+	}
+
 	function sidepane_mount(only_volatile) {
 		for (const part of SB_PARTS) {
 			if (only_volatile && !part.volatile) continue;
@@ -7222,6 +7258,11 @@ function sb_zone_anchor(pane, zone, node) {
 		sidepane_unobserve();
 		for (let i = SB_PARTS.length - 1; i >= 0; i--) SB_PARTS[i].unmount();
 		document.documentElement.removeAttribute("data-bnd-sidepane");
+		const pane = document.querySelector(".body-sidebar");
+		if (pane) {
+			pane.removeAttribute("role");
+			pane.removeAttribute("aria-label");
+		}
 	}
 
 	/**

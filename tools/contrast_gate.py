@@ -380,7 +380,7 @@ def pairs():
             if pane.recipe[0] == "alias":
                 continue
             out.append(Pair(
-                PILL, palette.sb_pane_css(pane), None,
+                PILL, palette.sb_pane_css(pane), AA_NON_TEXT,
                 f"sidebar active pill fill against its own {pane.label}", polarity,
             ))
     # Dark Contrast's own pane is dark in BOTH desk themes (see the hue-fit
@@ -388,7 +388,7 @@ def pairs():
     # brand-solid too — a light desk with Dark Contrast sidebar mode is a
     # real, reachable combination.
     out.append(Pair(
-        PILL, palette.sb_pane_css(palette.SB_PANES["dark"]["dark"]), None,
+        PILL, palette.sb_pane_css(palette.SB_PANES["dark"]["dark"]), AA_NON_TEXT,
         "sidebar active pill fill against its own dark-contrast pane, light desk", "light",
     ))
 
