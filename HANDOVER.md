@@ -49,8 +49,10 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
 FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE; ONE
 LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE; SHORTCUTS
-DONE (pins+recents, server caps 25/15, render-time permission re-resolution). The
-8b gate was 439/439 — the item's second perfect full run.**
+DONE (pins+recents, server caps 25/15, render-time permission re-resolution);
+DRAG-TO-RESIZE DONE (free-pixel, 4px latch, SB_PANE_STOPS one table, bnd_sb_width
+range axis, defects 23+24 fixed). The 8b gate was 439/439 — the item's second
+perfect full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
@@ -156,6 +158,26 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **A WHOLE-FUNCTION `try` TURNS A HARD ERROR INTO A QUIET STAND-DOWN.**
+  `extend_bootinfo` swallows everything so a theme can never block boot — the
+  right call — but that meant a NameError in one new boot key killed the ENTIRE
+  `bnd_sidebar` payload and everything assembled after it, and the desk simply
+  rendered stock: no error, no console line, a green build, five suite failures
+  that read like five bugs. The import was module-level in one function and
+  local in another. When a kit is inexplicably OFF, check `frappe.boot.bnd_*`
+  BEFORE reading the mount chain — and any new key added to a swallowed
+  assembly gets its imports checked at module scope.
+
+- **`overflow: clip` ON A CONTAINER AMPUTATES A CHILD'S HIT AREA PAST THE EDGE,
+  and Frappe's resize handle LIVES past the edge.** The drag floor needs
+  `min-inline-size: 0` + `overflow: clip` on the expanded container; applied to
+  the collapsed one it cut the handle's 4px overhang, the re-open click landed
+  on `.page-content`, and the pane stuck at 51px — which then poisoned every
+  later resize check, because Frappe persists collapse in localStorage. Two
+  rules: scope geometry helpers to the STATE they serve (`.expanded`, the class
+  Frappe flips), and a check that needs an expanded pane FORCES it first —
+  state the premise, never inherit it.
 
 - **A SABOTAGE THAT PASSES IS A CHECK THAT LIES, and slice 8b has the cleanest
   specimen yet.** The permission-vanish check pinned a FAKE docname, so the existence

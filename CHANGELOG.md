@@ -24,10 +24,10 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Seven have landed: the COLOUR
+**In flight.** The pane's rebuild is thirteen slices. Eight have landed: the COLOUR
 phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen with the
 filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; THE LIST
-FEATURES; and SHORTCUTS. Still to come: drag-to-resize, the account band, and the
+FEATURES; SHORTCUTS; and DRAG-TO-RESIZE. Still to come: the account band, and the
 picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
@@ -449,6 +449,45 @@ holding the old value — the same trap the quick links found, two fields over.
   wrapper — a decoration must never take the boot payload down.
 - `js_gzip` ceiling 99,450 → 100,850, reason in the budget file: ~1,240 gzip bytes of
   designed feature after prose was trimmed to pointers.
+
+### Added — Drag-to-resize
+
+- **Free-pixel drag on Frappe's own `.sidebar-resize-handle`** — the survey's
+  clearest differentiator: every product tool has one, no ERP surveyed does, and
+  the vendor's handle never resized anything. Any pixel from 200 to 280, as in VS
+  Code — the user's call over the recommended detent. A **4px movement latch**
+  discriminates drag from Frappe's click-to-collapse: under it the press is the
+  vendor's collapse untouched, over it the collapse is swallowed for that gesture
+  only. Escape cancels with nothing persisted; the readout chip is the only thing
+  that says WHY the pane stopped at a bound.
+- **The stop table moved to Python** (`presets.SB_PANE_STOPS`), and `assertPaneStops`
+  holds its four consumers to it — the five SCSS width rules, the doctype Select's
+  options, the picker's endpoint labels, and the `SB_PANE_RANGE` bounds the drag
+  clamps to. No JS file contains a stops literal; a sixth stop costs one tuple row.
+- **`bnd_sb_width` joins `personal.AXES` as the first RANGE axis** — `range_for()`
+  beside `values_for()`, a third dispatch branch in `api.set_personal` that
+  validates bounds instead of membership. Lock `personal_comfort`, same family as
+  density; empty means *follow the site's width*, and the stop menu's "Use the
+  site's width" posts exactly that — the escape hatch that makes supersession
+  safe.
+- **Keyboard is the APG splitter over pixels**: `role="separator"`, physical
+  arrows with direction derived from the container (in RTL, Right narrows),
+  Home/End to the bounds, Enter delegates to Frappe's toggle, Up/Down deliberately
+  unconsumed. `clientX` never mirrors, so the drag math derives direction the same
+  way — asserted in a real Arabic desk, not an emulated one.
+- **WCAG 2.5.7's pointer alternative is a conformance dependency, not a nicety**:
+  the context menu on the strip renders the five stops as named presets plus the
+  way back, entirely from boot data — zero network, because a conformance claim
+  behind a round trip is not a control on the page. Asserted by resource-count
+  delta, not by faith.
+- **Two shipped defects fixed on the way** (both named at plan time): an admin's
+  settings click no longer silently reverts a person's width until reload
+  (defect 23 — `sb_apply_width` re-applies the personal pixel on every re-derive),
+  and `clear_personal` now reads the TARGET user's row rather than the session
+  user's, so an admin rescuing a stranded user gets a real answer (defect 24).
+- `js_gzip` ceiling 100,850 → 102,600, reason in the budget file: ~1,660 gzip
+  bytes of pointer engine, splitter contract and stop menu after prose was
+  trimmed to pointers.
 
 ### Known, and filed rather than fixed
 

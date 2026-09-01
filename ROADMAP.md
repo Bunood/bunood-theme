@@ -1425,8 +1425,18 @@ than a version number that would describe two different things.
   existence arm do the dropping, and the sabotage harness caught the check being
   weaker than it read.
 
-  **Still to come:** drag-to-resize, the account band, identity and placement,
-  preset integration, and the picked design.
+  **Drag-to-resize is done** — free-pixel, the user's call over the detent, on
+  the vendor's own handle with a 4px movement latch deciding which gesture
+  happened. The stop table lives once in Python with a build guard holding its
+  four consumers to it; `bnd_sb_width` is the personal layer's first RANGE axis;
+  the APG splitter contract rides pixels; and the zero-network stop menu is the
+  WCAG 2.5.7 conformance dependency. Plan defects 23 and 24 fixed and asserted
+  the hard way (admin holding none of their own). The slice also caught
+  `extend_bootinfo`'s whole-function `try` swallowing a NameError — the kit went
+  quietly dark on every desk while the build stayed green.
+
+  **Still to come:** the account band, identity and placement, preset
+  integration, and the picked design.
 
 ---
 
