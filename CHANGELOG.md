@@ -24,11 +24,11 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Eight have landed: the COLOUR
+**In flight.** The pane's rebuild is thirteen slices. Nine have landed: the COLOUR
 phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen with the
 filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; THE LIST
-FEATURES; SHORTCUTS; and DRAG-TO-RESIZE. Still to come: the account band, and the
-picked design.
+FEATURES; SHORTCUTS; DRAG-TO-RESIZE; and THE ACCOUNT BAND AND PANEL. Still to
+come: identity and placement, preset integration, and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -488,6 +488,42 @@ holding the old value — the same trap the quick links found, two fields over.
 - `js_gzip` ceiling 100,850 → 102,600, reason in the budget file: ~1,660 gzip
   bytes of pointer engine, splitter contract and stop menu after prose was
   trimmed to pointers.
+
+### Added — The account band and panel
+
+- **The pane's foot is ONE `role="toolbar"` of square cells**, not a stack of
+  unrelated nav rows: bell, Home, All Apps and the account as 36px cells (32px
+  compact), canonical order guarded against the registry (`assertBandOrder` — the
+  CSS `order` values are derived, not chosen), the account pinned to the
+  inline-end corner as the only filled mark in a run of strokes. The band escapes
+  the vendor's pane padding and re-applies its own 6px, so usable width is W−12
+  by our numbers — measured at both width bounds and every density. The rail is
+  the same cells flipped to a column; nothing hides, and the unread badge stays a
+  **count** (shadcn's icon-collapse hides both badge and action, which tells a
+  collapsed user nothing was withheld when it was).
+- **The avatar opens a `role="dialog"` panel, never a menu** — identity block
+  with `<bdi>` on every free-text line, an instant light/dark/automatic
+  radiogroup through Frappe's own `switch_theme` endpoint, the company sub-list
+  through the vendor's session-defaults write, the session actions with the
+  vendor's shortcut hints restored, and a caption. Focus lands on the panel,
+  never the radiogroup. One clamp rule, three consumers: a 40-char Arabic name
+  grows nothing, asserted by two-measurement equality. Sign Out stays reachable
+  at a 600px viewport with the sub-list open; the RTL box is asserted inside the
+  viewport on a real Arabic desk.
+- **Every menu flips honestly now** (plan defect 22): `show_menu` asks *does it
+  fit*, not *is the trigger below mid-screen* — an eleven-item menu from a
+  trigger just above the midpoint used to overflow the bottom edge.
+- **Two guards landed before the feature**, both watched firing: no
+  `"left"`/`"right"` word-literals in `bunood.js` (the CSS logical-properties
+  gate cannot see JavaScript, and the failure never shows on an English dev
+  site), and the band-order derivation above.
+- The badge-to-dot degradation below 32px cells is deliberately **unbuilt**: no
+  shipped density crosses 32, and a branch whose guard is false on every desk is
+  untested code pretending to be a safety net. The panel's close rides the fast
+  motion token (the drawn 90ms close would need a literal the motion primitive
+  refuses).
+- Ceilings css 21,500 → 22,100 and js → 105,600, reasons in the budget file; the
+  dead menu-header branch and styles funded part of it.
 
 ### Known, and filed rather than fixed
 

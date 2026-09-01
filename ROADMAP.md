@@ -1435,8 +1435,18 @@ than a version number that would describe two different things.
   `extend_bootinfo`'s whole-function `try` swallowing a NameError — the kit went
   quietly dark on every desk while the build stayed green.
 
-  **Still to come:** the account band, identity and placement, preset
-  integration, and the picked design.
+  **The account band and panel are done** — the foot as one toolbar (canonical
+  order derived from the registry and guarded; W−12 by our numbers at every
+  density; the rail flips the same cells and withholds nothing) and the avatar's
+  dialog (bdi-isolated identity, instant mode radios through the vendor's own
+  endpoint, the exact clamp proven with a 40-char Arabic name, Sign Out
+  reachable at 600px). Defect 22 fixed for every menu. The collateral was the
+  richer half: the checks caught the sweep duplicating cells, the premise
+  leaking a persisted drag pixel between runs, and a zero-network arm counting
+  the world instead of attributing its delta.
+
+  **Still to come:** identity and placement, preset integration, and the
+  picked design.
 
 ---
 

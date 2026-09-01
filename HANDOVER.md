@@ -51,8 +51,10 @@ FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE;
 LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE; SHORTCUTS
 DONE (pins+recents, server caps 25/15, render-time permission re-resolution);
 DRAG-TO-RESIZE DONE (free-pixel, 4px latch, SB_PANE_STOPS one table, bnd_sb_width
-range axis, defects 23+24 fixed). The 8b gate was 439/439 — the item's second
-perfect full run.**
+range axis, defects 23+24 fixed); ACCOUNT BAND + PANEL DONE (one toolbar at the
+foot, W−12 owned, registry-derived order guarded; the avatar's role=dialog with
+bdi identity, mode radios on Frappe's endpoint, the exact clamp; defect 22 fixed
+for every menu). The 8b gate was 439/439 — the item's second perfect full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
@@ -158,6 +160,19 @@ again:
   destinations, one name, distinct keys. Now deduped by what the row READS as well; the
   label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
   lets a label that never rendered suppress a Recent row that would have.
+
+- **A CHECK THAT DRIVES A GESTURE WHICH PERSISTS STATE MUST CLEAR THAT STATE,
+  or every later run starts from this run's leftovers.** The resize drags
+  persist the admin's personal pixel by design; three checks dragged and never
+  cleared, so a family run inherited 280 — the clamp, where a +15px drag cannot
+  move — and two checks failed with the engine entirely correct. The premise is
+  now stated (clear before) and the leftover swept (clear in finally), the same
+  discipline `withPersonal` already codifies for values it can snapshot.
+
+- **A ZERO-NETWORK CLAIM COUNTS ITS OWN REQUESTS, never the world's.** The
+  stop-menu check diffed the global resource count and five of Frappe's
+  background polls drifted into the window; the arm now filters the delta to
+  our own endpoints, which is the actual conformance claim.
 
 - **A WHOLE-FUNCTION `try` TURNS A HARD ERROR INTO A QUIET STAND-DOWN.**
   `extend_bootinfo` swallows everything so a theme can never block boot — the
