@@ -1445,8 +1445,15 @@ than a version number that would describe two different things.
   leaking a persisted drag pixel between runs, and a zero-network arm counting
   the world instead of attributing its delta.
 
-  **Still to come:** identity and placement, preset integration, and the
-  picked design.
+  **Identity and placement are done** — the sidepane registry row tells the
+  truth (container selector + host), the MARKS list gives the place row and
+  rail button findable identity without minting fields, `data-bnd-sidepane`
+  finally has a setter, and the end anchor's dead guard (defect 20) asks *last
+  in flow* — the failing-first check measured the band at index 8 against the
+  bottom block at 5 before the repair, and its loud half will name any new
+  in-flow sibling rather than absorb it.
+
+  **Still to come:** preset integration and the picked design.
 
 ---
 

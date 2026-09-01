@@ -24,11 +24,11 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Nine have landed: the COLOUR
+**In flight.** The pane's rebuild is thirteen slices. Ten have landed: the COLOUR
 phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen with the
 filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; THE LIST
-FEATURES; SHORTCUTS; DRAG-TO-RESIZE; and THE ACCOUNT BAND AND PANEL. Still to
-come: identity and placement, preset integration, and the picked design.
+FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL; and IDENTITY
+AND PLACEMENT. Still to come: preset integration and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -524,6 +524,28 @@ holding the old value — the same trap the quick links found, two fields over.
   refuses).
 - Ceilings css 21,500 → 22,100 and js → 105,600, reasons in the budget file; the
   dead menu-header branch and styles funded part of it.
+
+### Fixed — Identity and placement
+
+- **The registry tells the truth about the pane.** The `sidepane` row's selector
+  is `.body-sidebar-container` — the thing whose visibility answers *is this
+  container on the desk* — with a `host` key for the pane inside it, because this
+  is the one container whose host is not its own selector: this theme built
+  neither. A new **MARKS** list carries identity-only rows: `panehead` on the
+  place row (carrying the one native its node owns, so `OWNED_NATIVES` derives it
+  and the hand-kept exception list SHRINKS) and `railbtn` on the rail button.
+  Both nodes stamp `data-bnd-part`, so the placement board, desk order and the
+  invariant matrix stop being blind to the pane's own chrome.
+- **`data-bnd-sidepane` gains its setter** — it was a removal with no setter, a
+  dead branch since the container split. Mount stamps it, teardown releases it,
+  and the check asserts both directions.
+- **The foot goes where we chose** (plan defect 20): the end anchor asked *is
+  Frappe's bottom block the last child*, which is permanently false — the
+  collapse link and resize handle trail it, both absolute — so every End tenant
+  fell through to `appendChild` and sat BELOW the bottom block (measured: band at
+  index 8, bottom at 5). It asks *last in flow* now; the band routes through the
+  same repaired door; and the check's loud half names any new in-flow sibling
+  that ever appears after the bottom block.
 
 ### Known, and filed rather than fixed
 

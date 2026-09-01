@@ -54,7 +54,10 @@ DRAG-TO-RESIZE DONE (free-pixel, 4px latch, SB_PANE_STOPS one table, bnd_sb_widt
 range axis, defects 23+24 fixed); ACCOUNT BAND + PANEL DONE (one toolbar at the
 foot, W−12 owned, registry-derived order guarded; the avatar's role=dialog with
 bdi identity, mode radios on Frappe's endpoint, the exact clamp; defect 22 fixed
-for every menu). The 8b gate was 439/439 — the item's second perfect full run.**
+for every menu); IDENTITY + PLACEMENT DONE (sidepane selector truth + host key,
+MARKS rows for panehead/railbtn, data-bnd-sidepane setter, the end anchor asks
+last-IN-FLOW — defect 20). The 8b gate was 439/439 — the item's second perfect
+full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.
