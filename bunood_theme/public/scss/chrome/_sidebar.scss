@@ -51,6 +51,18 @@
 // Each mode sets the full set; components below never look elsewhere.
 
 html[data-bnd-sb-color="theme"] {
+  // THESE ARE ALIASES ON PURPOSE, and this block carries NO `data-theme`:
+  // it serves both polarities, and an alias is what lets it. Replacing
+  // them with the light literals they resolve to today was tried on
+  // 2026-09-01 and painted #16181d ink on the dark pane at 1.16:1 -- the
+  // gate named it in one run. An alias that self-adapts is not the same
+  // fact as a literal that happens to equal it in one mode.
+  //
+  // `--bnd-sb-card-base` is the exception, and it was the defect: it read
+  // `var(--bnd-surface)`, which mixes the seed at ZERO percent and is
+  // therefore pure white on every site in the world. A section card is a
+  // step up from ITS OWN pane, which follows the theme in both modes.
+
   // The category hues, FITTED to this mode's pane (34a): every global
   // --bnd-cat-N failed AA somewhere across the four panes — hue 4 read
   // 1.97:1 here — so each colour mode carries its own fits, produced by
@@ -71,7 +83,7 @@ html[data-bnd-sb-color="theme"] {
   --bnd-sb-line: var(--bnd-border);
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
-  --bnd-sb-card-base: var(--bnd-surface);
+  --bnd-sb-card-base: color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg));
 }
 
 html[data-bnd-sb-color="minimal"] {
@@ -83,12 +95,12 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-cat-6: #007a00;
   --bnd-sb-cat-7: #4a3aa7;
   --bnd-sb-bg: #fafbfa;
-  --bnd-sb-ink: #2c2f2d;
-  --bnd-sb-ink-muted: #6d7570;
-  --bnd-sb-line: rgba(0, 0, 0, 0.07);
-  --bnd-sb-chip-bg: transparent;
-  --bnd-sb-chip-ink: #6d7570;
-  --bnd-sb-card-base: #ffffff;
+  --bnd-sb-ink: #16181d;
+  --bnd-sb-ink-muted: #646a78;
+  --bnd-sb-line: color-mix(in srgb, #16181d 9%, var(--bnd-sb-bg));
+  --bnd-sb-chip-bg: color-mix(in srgb, #16181d 7%, var(--bnd-sb-bg));
+  --bnd-sb-chip-ink: #646a78;
+  --bnd-sb-card-base: color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg));
 }
 // The seven category hues, DARK fit. One set, three consumers — minimal-dark,
 // theme-dark and dark-contrast all carried byte-identical copies of these
@@ -123,21 +135,28 @@ html[data-bnd-sb-color="minimal"] {
 @mixin sb-minimal-dark {
   @include sb-dark-hues;
   --bnd-sb-bg: #15181a;
-  --bnd-sb-ink: #d7dad8;
-  --bnd-sb-ink-muted: #8b938e;
-  --bnd-sb-line: rgba(255, 255, 255, 0.08);
-  --bnd-sb-card-base: #1b1f21;
+  --bnd-sb-ink: #ffffff;
+  --bnd-sb-ink-muted: #9aa1ab;
+  --bnd-sb-line: color-mix(in srgb, #ffffff 16%, var(--bnd-sb-bg));
+  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
 
   // Item 40: these two were MISSING from this block, so both fell through to the
   // light minimal set — `transparent` and #6d7570, which measures 3.76:1 on this
   // pane against a 4.5 floor. The mode's own pattern is what light minimal does:
   // a transparent chip, and chip ink that IS the mode's muted ink. #8b938e -> 5.66:1.
-  --bnd-sb-chip-bg: transparent;
-  --bnd-sb-chip-ink: #8b938e;
+  --bnd-sb-chip-bg: color-mix(in srgb, #ffffff 6%, var(--bnd-sb-bg));
+  --bnd-sb-chip-ink: #9aa1ab;
 }
 
 @mixin sb-theme-dark {
   @include sb-dark-hues;
+  // THE CARD LIFT IS THE ONE POLARITY-SPECIFIC NUMBER in Match Theme.
+  // Everything else in that block is an alias and self-adapts, but a
+  // percentage cannot: 55% of white over the light pane is the card, and
+  // 55% of white over the DARK pane is a light card carrying dark-mode ink
+  // at 1.44:1 (measured, the run this override exists because of). The
+  // percentages are palette.SB_LIFTS; this is the dark one.
+  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
 }
 
 html[data-theme="dark"][data-bnd-sb-color="minimal"] {
@@ -147,14 +166,27 @@ html[data-theme="dark"][data-bnd-sb-color="minimal"] {
 // Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
 // from the brand seed so tenants get a tinted ink, not generic charcoal.
 html[data-bnd-sb-color="dark"] {
+  // THE INKS ARE FITTED AGAINST THE BINDING SEED, not the shipped one.
+  // This pane is `mix(brand 10%, #131a15)`, so it moves with the tenant's
+  // seed even in the STATIC sheet -- and an ink fitted at #3d8150 fell to
+  // 4.12:1 on its own card at brighter seeds. The binding surface is the
+  // lightest this pane ever becomes, which is a white seed; clear it there
+  // and every darker seed passes with room. Same reasoning, and the same
+  // extreme-seed construction, as `_chart_binding_bg` and
+  // `_status_binding_bg` in palette.py. Fitted at 4.62 rather than 4.5,
+  // for the reason SB_TARGET_HUE carries: a fit that lands exactly on the
+  // floor rounds under it somewhere -- this one measured 4.49 against a
+  // 4.50 requirement, which is a pass that reads as a failure and a
+  // failure nobody can act on.
+
   @include sb-dark-hues;
   --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 10%, #131a15);
-  --bnd-sb-ink: #eef3ef;
-  --bnd-sb-ink-muted: #b7c2ba;
-  --bnd-sb-line: rgba(255, 255, 255, 0.09);
-  --bnd-sb-chip-bg: rgba(255, 255, 255, 0.08);
-  --bnd-sb-chip-ink: #a9b6ac;
-  --bnd-sb-card-base: rgba(255, 255, 255, 0.05);
+  --bnd-sb-ink: #ffffff;
+  --bnd-sb-ink-muted: #a7aeb6;
+  --bnd-sb-line: color-mix(in srgb, #ffffff 16%, var(--bnd-sb-bg));
+  --bnd-sb-chip-bg: color-mix(in srgb, #ffffff 6%, var(--bnd-sb-bg));
+  --bnd-sb-chip-ink: #a7aeb6;
+  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
 }
 
 html[data-bnd-sb-color="brand"] {

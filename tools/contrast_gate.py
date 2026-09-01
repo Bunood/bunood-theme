@@ -305,21 +305,31 @@ def pairs():
         if pane is None:
             continue  # the brand gradient: see palette.SB_UNMEASURABLE
         where = f"{mode_name} {polarity or 'both'}"
+        # A WORLD'S OWN DECLARATIONS SHADOW THE GLOBALS, and since 2026-09-01
+        # they need to: the pane's surfaces are written as offsets FROM the
+        # pane -- `color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg))` -- which
+        # is what makes them follow a tenant's theme. `parse_color` resolves
+        # var() against the map it is handed, and the global map has no
+        # --bnd-sb-bg in it, so every one of these rows raised "unknown custom
+        # property". This is the same shadowing rule the hue rows already
+        # learned, one token further in: substitute the world's own pane
+        # before the value is ever measured.
+        sb = lambda v: v.replace("var(--bnd-sb-bg)", pane)
         # The chip background is TRANSLUCENT in three of the four modes, which
         # is why `Pair.overlay` had to exist: `resolve` flattens a translucent
         # colour over --bnd-surface by default, and --bnd-surface is #ffffff in
         # light. A chip measured against that would read "fine" for exactly the
         # dark pane where it was not.
         out.append(Pair(
-            block["--bnd-sb-chip-ink"], block["--bnd-sb-chip-bg"], AA_TEXT,
+            sb(block["--bnd-sb-chip-ink"]), sb(block["--bnd-sb-chip-bg"]), AA_TEXT,
             f"sidebar chip label on its chip, {where}", polarity, overlay=pane,
         ))
         for ink, what in (("--bnd-sb-ink", "link text"), ("--bnd-sb-ink-muted", "muted text")):
-            out.append(Pair(block[ink], pane, AA_TEXT, f"sidebar {what} on the pane, {where}", polarity))
+            out.append(Pair(sb(block[ink]), pane, AA_TEXT, f"sidebar {what} on the pane, {where}", polarity))
             # The card surface is translucent in Dark Contrast, so it needs the
             # pane as its own host before anything is measured against it.
             out.append(Pair(
-                block[ink], block["--bnd-sb-card-base"], AA_TEXT,
+                sb(block[ink]), sb(block["--bnd-sb-card-base"]), AA_TEXT,
                 f"sidebar {what} on a section card, {where}", polarity, overlay=pane,
             ))
         # Measured, not enforced — the same standing as --bnd-border on
@@ -328,7 +338,7 @@ def pairs():
         # once and the sidebar's line is the same thing under another name.
         # Published so the gap has a number: 1.17-1.30 across the five panes.
         out.append(Pair(
-            block["--bnd-sb-line"], pane, None,
+            sb(block["--bnd-sb-line"]), pane, None,
             f"sidebar separator on the pane, {where}; see item 22", polarity, overlay=pane,
         ))
 
@@ -883,6 +893,12 @@ def check_sidebar_headroom() -> list[str]:
             except ValueError as exc:
                 problems.append(f"{mode}/{polarity} at {tint}: derive failed — {exc}")
                 continue
+            # THE WORLD'S OWN PANE SHADOWS THE GLOBALS here as well. Since
+            # the pane's surfaces are written as offsets FROM the pane, every
+            # one of these values can contain `var(--bnd-sb-bg)`, and the map
+            # `derive` returns has no such key -- so this raised rather than
+            # measured. Same rule, third call site.
+            v["--bnd-sb-bg"] = pane
             pane_c = parse_color(pane)
             for tok in inks:
                 r = ratio(resolve(block[tok], v, over=pane), pane_c)
