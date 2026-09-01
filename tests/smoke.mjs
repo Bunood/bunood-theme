@@ -4892,6 +4892,22 @@ print("ok")
 				await page.waitForFunction(() => !!document.querySelector('.bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 20000 });
 				await page.evaluate(() => document.querySelector('.bnd-sb-band [data-bnd-part="user"]').click());
 				await page.waitForSelector(".bnd-acct-panel", { timeout: 8000 });
+				// The panel OPENS through a scale transition; a rect read mid-fade
+				// is the scaled box (280 x 0.96 = 269, measured under full-gate
+				// load). Poll until three consecutive frames agree, frame cap 60
+				// - the repo's own transitioning-read rule, verbatim.
+				await page.evaluate(() => new Promise((done) => {
+					const pnl = document.querySelector(".bnd-acct-panel");
+					let last = -1, agree = 0, frames = 0;
+					const tick = () => {
+						const w = pnl.getBoundingClientRect().width;
+						agree = w === last ? agree + 1 : 0;
+						last = w;
+						if (agree >= 3 || ++frames > 60) return done();
+						requestAnimationFrame(tick);
+					};
+					requestAnimationFrame(tick);
+				}));
 				return page.evaluate(() => {
 					const pnl = document.querySelector(".bnd-acct-panel");
 					const head = pnl.querySelector(".bnd-acct-head");
@@ -11763,6 +11779,25 @@ ${gate.stdout}`);
 			// item 25's chart problem. The wrap re-hues a DEFAULT event (stock
 			// "blue") to our --bnd-accent and KEEPS a category or admin colour.
 			// Fails against stock: every default event is #edf6fd-ish blue.
+			// SEED THE PREMISE (2026-09-01): this check used to inherit the
+			// site's calendar and assert that THIS month happens to show both
+			// a default and an admin-coloured event — which held right up
+			// until the month turned and September's view had no coloured row.
+			// Two ToDos dated today, one of each kind, deleted in finally.
+			benchPy(
+				`import frappe.utils
+` +
+					`for color in ("", "#b3551d"):
+` +
+					`    frappe.get_doc({"doctype": "ToDo", "description": "BND-CAL-" + (color or "default"),
+` +
+					`                    "date": frappe.utils.nowdate(), "color": color}).insert(ignore_permissions=True)
+` +
+					`frappe.db.commit()
+print("seeded")
+`
+			);
+			try {
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
 			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const g = await page.evaluate(() => {
@@ -11782,6 +11817,15 @@ ${gate.stdout}`);
 			expect(g.count > 0, "the calendar rendered events");
 			expect(g.anyAccent, `a default event took the accent wash (${g.rgb})`);
 			expect(g.anyOther, "an admin-coloured event kept its own colour (not re-hued to accent)");
+			} finally {
+				benchPy(
+					`frappe.db.delete("ToDo", {"description": ("like", "BND-CAL-%")})
+` +
+						`frappe.db.commit()
+print("cleared")
+`
+				);
+			}
 		});
 
 		await test("views: the mark reshapes the calendar event", async () => {
