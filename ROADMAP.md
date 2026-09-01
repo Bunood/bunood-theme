@@ -1459,8 +1459,14 @@ than a version number that would describe two different things.
   two-state, the reset returns to shipped wherever you start, and the sidebar
   finally has a real `BND_SIDEBAR_FIELDS` mirror under the guard.
 
-  **Still to come:** the rail's panetoggle claim, the accessibility gate arm,
-  and the picked design.
+  **The panetoggle claim is done** — one affordance in rail mode, claim
+  stamped only after the wiring is live, the guard's chrome-off key argued in
+  place, and the drawer-safety arm's real find: the rail now stands down at
+  narrow in BOTH halves (JS wiring and all seventeen CSS rules), because the
+  claim was hiding the drawer's only opener and the drawer was opening into
+  a 52px rail.
+
+  **Still to come:** the accessibility gate arm and the picked design.
 
 ---
 

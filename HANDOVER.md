@@ -58,8 +58,10 @@ for every menu); IDENTITY + PLACEMENT DONE (sidepane selector truth + host key,
 MARKS rows for panehead/railbtn, data-bnd-sidepane setter, the end anchor asks
 last-IN-FLOW — defect 20); PRESET INTEGRATION DONE (_SIDEBAR_LOOKS private, the
 two-fetch race deleted with its endpoint, note = Default/Changed, reset returns
-to SHIPPED, BND_SIDEBAR_FIELDS mirror under the guard). The 8b gate was 439/439
-— the item's second perfect full run.**
+to SHIPPED, BND_SIDEBAR_FIELDS mirror under the guard); PANETOGGLE CLAIM DONE
+(one affordance in rail mode; the rail stands down at narrow in JS AND all 17
+CSS rules — the claim was hiding the drawer's only opener at 390px). The 8b
+gate was 439/439 — the item's second perfect full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.

@@ -28,8 +28,8 @@ an "item N" cited below against today's numbering.
 COLOUR phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen
 with the filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery;
 THE LIST FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL;
-IDENTITY AND PLACEMENT; and PRESET INTEGRATION. Still to come: the rail's
-panetoggle claim, the gate arm, and the picked design.
+IDENTITY AND PLACEMENT; PRESET INTEGRATION; and THE RAIL'S PANETOGGLE CLAIM.
+Still to come: the accessibility gate arm and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -568,6 +568,25 @@ holding the old value — the same trap the quick links found, two fields over.
 - **The `↺` reset returns to SHIPPED, wherever you start.** The old target was
   the currently matched look, so resetting one field pulled it toward a
   composition the admin never picked — measured: on Ink, reset was a no-op.
+
+### Fixed — The rail claims the hamburger
+
+- **Rail mode shows ONE collapse affordance** (audit defect 3): Frappe's
+  page-title hamburger joins the registry as the rail button's native, and
+  `bnd_own("panetoggle")` is stamped by the rail wiring only after the trigger
+  is actually live — a rail whose JS died leaves the native visible and
+  working. The inverted ownership guard went red on the chrome-off rule the
+  moment the native landed (the ideal failing-first) and learned its second
+  legal key with the reasoning written in: chrome-off is outcome-backed, with
+  `guard_critical_reach` as its release path.
+- **The drawer-safety arm found a real stranding bug**: at phone width the
+  rail attribute persisted, the claim stamped, and the drawer's ONLY opener
+  was hidden — a Rail-mode phone could not open the pane at all. Two
+  stand-downs fix it and agree: the wiring tears down at narrow, and all
+  seventeen `html[data-bnd-rail]` rules carry `:not([data-bnd-narrow])` —
+  with only the JS half, the drawer "opened" into the rail's 52px sizing
+  (measured: a 52px-wide open drawer at 390px). The inbox's rail-pinned
+  panel rule follows.
 
 ### Known, and filed rather than fixed
 
