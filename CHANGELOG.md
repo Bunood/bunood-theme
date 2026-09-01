@@ -28,8 +28,8 @@ an "item N" cited below against today's numbering.
 COLOUR phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen
 with the filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery;
 THE LIST FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL;
-IDENTITY AND PLACEMENT; PRESET INTEGRATION; and THE RAIL'S PANETOGGLE CLAIM.
-Still to come: the accessibility gate arm and the picked design.
+IDENTITY AND PLACEMENT; PRESET INTEGRATION; THE RAIL'S PANETOGGLE CLAIM; and
+THE ACCESSIBILITY AND CONTRAST ARM. Still to come: the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -587,6 +587,28 @@ holding the old value — the same trap the quick links found, two fields over.
   with only the JS half, the drawer "opened" into the rail's 52px sizing
   (measured: a 52px-wide open drawer at 390px). The inbox's rail-pinned
   panel rule follows.
+
+### Fixed — Accessibility and contrast, enforced
+
+- **The five measured-not-enforced pill rows are LAW.** Flipped first and
+  watched red — the gate failed at exactly the pathological pair its own
+  comment had published (1.06:1, dark-contrast pane on a light desk) — then
+  the fit: the sidebar's own panes join `--bnd-brand-solid`'s constraint set
+  in `palette.derive`, resolved FROM `SB_PANES`, per mode (a dark desk never
+  renders the light-minimal pane, and feeding both polarities made the joint
+  band empty). The fit exposed a limitation in `fill_pair` itself: its two
+  scan axes welded each ink to one direction, and from a `#000000` seed the
+  only feasible band is reached by LIGHTENING under the LIGHT ink — all four
+  ink × direction pairs run now, smallest-move-wins deciding across them.
+  All 10,556 pairs pass enforced, and the shipped seed's value did not move.
+- **The pane is a labelled navigation landmark** — `role="navigation"` named
+  by the place, written by the same function that writes the head's label:
+  one writer, no drift, never the literal "Workspaces".
+- **The sections' disclosure state is spoken**: Frappe keeps its truth in
+  `data-state`, which AT cannot hear; the kit mirrors it into `aria-expanded`
+  on the vendor's own drop-icon — attributes, the one sanctioned mutation
+  surface — re-mirrored after a header click and on every list rebuild. The
+  check toggles a section and demands both attributes move together.
 
 ### Known, and filed rather than fixed
 

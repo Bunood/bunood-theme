@@ -1466,7 +1466,13 @@ than a version number that would describe two different things.
   claim was hiding the drawer's only opener and the drawer was opening into
   a 52px rail.
 
-  **Still to come:** the accessibility gate arm and the picked design.
+  **The accessibility and contrast arm is done** — the pill rows enforced
+  (watched red at the published 1.06:1 before the fit), the pane fit inside
+  `derive` per mode, `fill_pair` grown to all four ink × direction axes, the
+  landmark named by the place with one writer, and the vendor's disclosure
+  state mirrored into ARIA with a toggle-follows check.
+
+  **Still to come:** the picked design.
 
 ---
 
