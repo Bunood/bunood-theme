@@ -218,16 +218,41 @@ html[data-bnd-sb-color] .body-sidebar-container {
 }
 
 // Glass: keep N% of the pane color, let the page bleed through the rest.
-// A gradient bg (brand mode) cannot go through color-mix, so brand is
-// excluded — and there IS NO FALLBACK. The sentence that stood here until
-// item 40 promised "slight translucency via opacity on a pseudo-layer";
-// no such layer exists anywhere in this file, and grepping for one is how
-// that was found. So on the brand pane, Glass renders exactly as Solid.
-// That is a live two-options-one-pixel case and it is RECORDED rather than
-// repaired here: making a gradient translucent means mixing transparency
-// into its stops, which is a derivation change, not a material change.
+// A gradient bg (brand mode) cannot go through color-mix — you cannot mix a
+// gradient with transparent — so brand takes the rule below instead, where
+// the transparency goes into the STOPS. Until item 40 closed it, brand had
+// no rule at all and no fallback either (the sentence here promised
+// "translucency via opacity on a pseudo-layer"; no such layer was ever
+// built, which grepping for it is how the lie was found), so Glass and
+// Blurred Glass rendered exactly as Solid there: two picker options, one
+// pixel, on the one pane where the seed is most visible.
 html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
+}
+
+// THE BRAND PANE'S GLASS. The stops are restated here rather than derived,
+// and that is deliberate: `--bnd-sb-bg` is the whole gradient, so there is
+// nothing to mix without rebuilding it, and factoring the stops into their
+// own tokens would break TWO gate checks that hold this block's exact shape
+// (`check_sidebar_agrees` asserts --bnd-sb-bg literally carries each stop;
+// `check_sidebar_coverage` forbids stray keys in a colour world). So it is
+// the SLUG/ATTR_OF bargain instead — two copies, and a guard that makes
+// disagreement loud: contrast_gate holds BOTH this rule and the brand block
+// to `palette.SB_STOPS`, which is the one place the numbers live.
+html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"] .body-sidebar-container {
+  background: linear-gradient(
+    170deg,
+    color-mix(
+      in srgb,
+      color-mix(in srgb, var(--bnd-brand) 96%, #ffffff) var(--bnd-sb-glass-pct),
+      transparent
+    ),
+    color-mix(
+      in srgb,
+      color-mix(in srgb, var(--bnd-brand) 72%, #000000) var(--bnd-sb-glass-pct),
+      transparent
+    )
+  );
 }
 // Pane width stops. Stop 2 is v16's original 220px — the former default;
 // stop 3 ships since the 2026-08-08 re-choice.
@@ -1455,12 +1480,33 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 // reasoned: headless Chromium reports `reduce`, so every desk this suite has
 // ever driven was in this branch and nothing looked.
 //
-// Ties are enough, because this block is later in the file. Brand is left to
-// the base (0,2,1) surface rule, which already paints its gradient opaque --
-// brand has no translucency to stand down FROM (see above).
+// Ties are enough, because this block is later in the file. BRAND IS NO
+// LONGER EXEMPT: it has real translucency to stand down from since item 40
+// gave its gradient alpha stops, and the sentence that used to sit here --
+// "brand has no translucency to stand down FROM" -- became false the moment
+// that rule landed. Its degradation is the same one every other pane gets:
+// back to the opaque `--bnd-sb-bg`, with the frosting removed by the block
+// below rather than left behind (the half-degradation this file already
+// measured once, and the reason both halves are asserted together).
+//
+// AND THE BRAND ARM IS SIZED AGAINST THE RULE IT MUST BEAT, not against
+// the element -- this file's own recorded trap, walked into again while
+// closing the defect and caught by the check rather than by reading. The
+// brand Glass rule carries TWO attributes plus the colour one, (0,4,1);
+// the general degradation selector is (0,3,1) and simply lost, leaving a
+// pane 15% transparent with its frosting removed -- the one combination
+// this degradation exists to prevent. The brand arm ties at (0,4,1) and
+// wins on order, which is what 'ties are enough' actually requires.
 @media (prefers-reduced-transparency: reduce) {
+  // THE `:not()` STAYS ON THE GENERAL ARMS -- it is not decoration, it is
+  // SPECIFICITY. Dropping it (which reads like a simplification, now that
+  // brand is no longer exempt) takes these from (0,3,1) to (0,2,1) and
+  // they lose to the translucency rule, whose own `:not()` keeps it at
+  // (0,3,1). Measured within minutes of making that exact edit: a
+  // non-brand Glass pane stayed 0.85 transparent with its blur removed.
   html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container,
-  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
+  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar,
+  html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"] .body-sidebar-container {
     background: var(--bnd-sb-bg);
   }
   html[data-bnd-sb-material^="glass"] .body-sidebar-container,

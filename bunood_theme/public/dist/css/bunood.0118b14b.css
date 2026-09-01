@@ -1561,6 +1561,10 @@ html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-c
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 
+html[data-bnd-sb-material^=glass][data-bnd-sb-color=brand] .body-sidebar-container {
+  background: linear-gradient(170deg, color-mix(in srgb, color-mix(in srgb, var(--bnd-brand) 96%, #ffffff) var(--bnd-sb-glass-pct), transparent), color-mix(in srgb, color-mix(in srgb, var(--bnd-brand) 72%, #000000) var(--bnd-sb-glass-pct), transparent));
+}
+
 html[data-bnd-sb-width="1"] {
   --bnd-sb-w: 200px;
 }
@@ -2352,7 +2356,8 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 
 @media (prefers-reduced-transparency: reduce) {
   html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container,
-  html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar {
+  html[data-bnd-sb-material^=glass]:not([data-bnd-sb-color=brand]) .body-sidebar-container .body-sidebar,
+  html[data-bnd-sb-material^=glass][data-bnd-sb-color=brand] .body-sidebar-container {
     background: var(--bnd-sb-bg);
   }
   html[data-bnd-sb-material^=glass] .body-sidebar-container,

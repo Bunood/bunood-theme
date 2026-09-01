@@ -753,6 +753,35 @@ def check_sidebar_agrees() -> list[str]:
         stop = f"color-mix(in srgb, var(--bnd-brand) {pct}%, {base})"
         if stop not in brand_bg:
             problems.append(f"brand: --bnd-sb-bg does not carry the gradient stop {stop}")
+
+    # THE SECOND COPY, GUARDED (item 40, the brand-glass repair). A gradient
+    # cannot go through color-mix(), so the brand pane's Glass rule rebuilds
+    # the gradient with the transparency mixed into each stop -- the numbers
+    # therefore appear twice in _sidebar.scss, and SB_STOPS is the one place
+    # they are decided. Two copies is the bargain SLUG/ATTR_OF already makes;
+    # this is the half that makes disagreement loud instead of silent.
+    scss = " ".join(open(SIDEBAR_SCSS, encoding="utf-8").read().split())
+    marker = 'html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"]'
+    at = scss.find(marker)
+    if at == -1:
+        problems.append(
+            "brand: no Glass rule for the brand pane -- Glass and Solid would render "
+            "the same gradient, which is the two-options-one-pixel defect"
+        )
+    else:
+        rule = scss[at : scss.find("}", at) + 1]
+        for pct, base in palette.SB_STOPS:
+            stop = f"color-mix(in srgb, var(--bnd-brand) {pct}%, {base})"
+            if stop not in rule:
+                problems.append(
+                    f"brand: the Glass rule does not carry the gradient stop {stop} -- "
+                    "its copy has drifted from palette.SB_STOPS"
+                )
+        if "var(--bnd-sb-glass-pct)" not in rule:
+            problems.append(
+                "brand: the Glass rule does not use --bnd-sb-glass-pct, so Blurred Glass "
+                "cannot differ from Glass on this pane"
+            )
     return problems
 
 

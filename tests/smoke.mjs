@@ -4352,6 +4352,76 @@ async function main() {
 			}
 		};
 
+		await test("sidepane: on the brand pane, Glass is not Solid wearing its name", async () => {
+			// The last of item 40's filed defects. The brand pane paints a
+			// linear-gradient, and a gradient cannot go through color-mix(), so
+			// the translucency rule EXCLUDED brand outright: Glass and Blurred
+			// Glass rendered exactly as Solid there — two picker options, one
+			// pixel, the defect this repo's vocabulary exists to prevent.
+			//
+			// STRINGS, NEVER PARSED COLOURS: Chrome computes color-mix() to
+			// oklab(), which this repo has already been bitten by reading as
+			// near-black. Identity and difference of the computed background-image
+			// answer the question without a parser that could guess.
+			//
+			// HEADLESS CHROMIUM REPORTS prefers-reduced-transparency: reduce, so
+			// the degraded pole is the DEFAULT here and the translucent one has to
+			// be emulated — the trap that hid this kit's degradation for an entire
+			// item.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_material", "sidebar_menu_rail"]);
+			try {
+				const paint = async (material) => {
+					setSettings({
+						sidebar_enabled: 1, sidebar_color: "Brand",
+						sidebar_menu_rail: "Always Expanded", sidebar_material: material,
+					});
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(
+						() => document.documentElement.getAttribute("data-bnd-sb-color") === "brand",
+						null, { timeout: 20000 }
+					);
+					const read = () => page.evaluate(() => {
+						const cs = getComputedStyle(document.querySelector(".body-sidebar-container"));
+						return { img: cs.backgroundImage, filter: cs.backdropFilter || "none" };
+					});
+					const degraded = await read();
+					const cdp = await page.context().newCDPSession(page);
+					await cdp.send("Emulation.setEmulatedMedia", {
+						features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
+					});
+					const full = await read();
+					await cdp.send("Emulation.setEmulatedMedia", { features: [] });
+					return { degraded, full };
+				};
+				const solid = await paint("Solid");
+				const glass = await paint("Glass");
+				const blurred = await paint("Blurred Glass");
+
+				expect(/gradient/.test(solid.full.img),
+					`premise: the brand pane paints a gradient (${solid.full.img.slice(0, 60)})`);
+				expect(glass.full.img !== solid.full.img,
+					"Glass differs from Solid on the brand pane — not two options and one pixel");
+				expect(blurred.full.img !== solid.full.img,
+					"and so does Blurred Glass");
+				expect(blurred.full.img !== glass.full.img,
+					"and the two glasses differ from each other, as they do on every other pane");
+				expect(/blur\(/.test(blurred.full.filter),
+					`Blurred Glass frosts what shows through (${blurred.full.filter})`);
+
+				// The degradation: asked for less transparency, both glasses become
+				// the designed solid — opaque AND unfrosted, not one without the
+				// other (item 40 measured exactly that half-degradation once).
+				expectEq(glass.degraded.img, solid.degraded.img,
+					"reduced transparency returns Glass to the solid gradient");
+				expectEq(blurred.degraded.img, solid.degraded.img,
+					"and Blurred Glass with it");
+				expectEq(blurred.degraded.filter, "none",
+					`with the frosting gone too (${blurred.degraded.filter})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("resize: the PANE fills its container — not just the container", async () => {
 			// THE DEFECT THE USER SAW AND EVERY CHECK MISSED (2026-09-01).
 			// Frappe sizes the inner pane from ITS OWN variable —
