@@ -105,11 +105,6 @@ msgstr "بدء السطر بـ > أو # أو / يحصر النتائج في ال
 
 #. In theme_settings.js
 #. src: ai
-msgid "A separate slim strip of every app for one-click switching."
-msgstr "شريط رفيع منفصل يعرض كل تطبيق للتبديل بنقرة واحدة."
-
-#. In theme_settings.js
-#. src: ai
 msgid "A slim keycap legend along the palette's bottom edge."
 msgstr "دليل مفاتيح رفيع على الحافة السفلية للوحة."
 
@@ -162,11 +157,6 @@ msgstr "عُدّل من أجل المقروئية"
 #. src: ai
 msgid "Adjusted for readability: {details}"
 msgstr "عُدّل من أجل المقروئية: {details}"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Airy"
-msgstr "هوائي"
 
 #. In bunood.js
 #. src: ai
@@ -243,16 +233,6 @@ msgstr "الموافقات فقط"
 msgid "Approvals only"
 msgstr "الموافقات فقط"
 
-#. Label of a Check field in DocType 'Theme Settings'
-#. src: ai
-msgid "Apps Rail"
-msgstr "شريط التطبيقات"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Apps rail"
-msgstr "شريط التطبيقات"
-
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Arrival Behaviour"
@@ -287,11 +267,6 @@ msgstr "في بداية الشريط العلوي، إلى جوار الصفحة
 #. src: ai
 msgid "Attached"
 msgstr "ملتصقة"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Attached tinted pane, chips, solid pill. The safe beauty."
-msgstr "لوحة ملتصقة مصبوغة وشرائح وكبسولة معتمة. الجمال الآمن."
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
@@ -397,11 +372,6 @@ msgstr "تعبئات الهوية تستخدم {used} بدلًا من {chosen}،
 #. src: ai
 msgid "Brand lines"
 msgstr "خطوط الهوية"
-
-#. Label of a Section Break field in DocType 'Theme Settings'
-#. src: ai
-msgid "Branding"
-msgstr "الهوية"
 
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
@@ -549,11 +519,6 @@ msgstr "نقاط ملونة"
 msgid "Colors"
 msgstr "الألوان"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Colours"
-msgstr "الألوان"
-
 #. Option for 'Default Density' in DocType 'Theme Settings'
 #. src: ai
 msgid "Comfortable"
@@ -674,11 +639,6 @@ msgstr "Ctrl+Enter يفتح تبويبًا جديدًا"
 msgid "Ctrl+Enter opens a new tab"
 msgstr "Ctrl+Enter يفتح تبويبًا جديدًا"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Custom — your own combination."
-msgstr "مخصص — تركيبتك الخاصة."
-
 #. Option for 'Pane Color' in DocType 'Theme Settings'
 #. src: ai
 msgid "Dark Contrast"
@@ -688,11 +648,6 @@ msgstr "داكن متباين"
 #. src: ai
 msgid "Dark contrast"
 msgstr "داكن متباين"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Dark glass float, hue-washed cards, hover rail. The default."
-msgstr "زجاج داكن عائم وبطاقات مصبوغة وسكة تنفتح بالتحويم. النمط الافتراضي."
 
 #. Option for 'Crumb Hover' in DocType 'Theme Settings'
 #. src: ai
@@ -704,25 +659,10 @@ msgstr "تعتيم"
 msgid "Daylight"
 msgstr "ضوء النهار"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Deep dark, glow actives."
-msgstr "داكن عميق بعناصر نشطة متوهجة."
-
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Default Density"
 msgstr "الكثافة الافتراضية"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Dense"
-msgstr "كثيف"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Dense rows, live counts, hairline actives."
-msgstr "صفوف كثيفة وأعداد حية وعلامات شعرية."
 
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
@@ -1074,11 +1014,6 @@ msgstr "شريط تلميحات سفلي"
 msgid "Footer hint bar"
 msgstr "شريط تلميحات سفلي"
 
-#. Description of a Attach Image field in DocType 'Theme Settings'
-#. src: ai
-msgid "Frappe also reads Website Settings and Navbar Settings for a logo; set it there to have it appear before this app's JS runs."
-msgstr "يقرأ Frappe الشعار أيضًا من إعدادات الموقع وإعدادات شريط التنقل؛ عيّنه هناك ليظهر قبل تشغيل JavaScript الخاص بهذا التطبيق."
-
 #. In theme_settings.js
 #. src: ai
 msgid "Frappe emits no live event for background jobs, so counts are polled. Longer is cheaper."
@@ -1123,11 +1058,6 @@ msgstr "مؤشر الحداثة"
 #. src: ai
 msgid "Freshness stamp"
 msgstr "مؤشر الحداثة"
-
-#. Option for 'Glass Blur' in DocType 'Theme Settings'
-#. src: ai
-msgid "Full"
-msgstr "كامل"
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
@@ -1202,11 +1132,6 @@ msgstr "كيف تتجاوب عناصر المسار السالفة مع المؤ
 
 #. In theme_settings.js
 #. src: ai
-msgid "How link icons are drawn."
-msgstr "كيف تُرسم أيقونات الروابط."
-
-#. In theme_settings.js
-#. src: ai
 msgid "How old the counts are, and a button to refresh them now."
 msgstr "كم عمر الأعداد، وزر لتحديثها الآن."
 
@@ -1253,16 +1178,6 @@ msgstr "مصدر الأيقونات"
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Icon Style"
-msgstr "نمط الأيقونات"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Icon source"
-msgstr "مصدر الأيقونات"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Icon style"
 msgstr "نمط الأيقونات"
 
 #. Label of the "section_icons" section in DocType 'Theme Settings'
@@ -1432,11 +1347,6 @@ msgstr "تسجيل الخروج"
 
 #. In theme_settings.js
 #. src: ai
-msgid "Luminous light glass."
-msgstr "زجاج فاتح مضيء."
-
-#. In theme_settings.js
-#. src: ai
 msgid "Manual only"
 msgstr "يدوي فقط"
 
@@ -1505,11 +1415,6 @@ msgstr "«بسيط» لا يستطلع شيئًا"
 msgid "Minimal shows no live signals"
 msgstr "«بسيط» لا يعرض إشارات حية"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Minimal: mono icons, soft pill, no decoration."
-msgstr "بسيط: أيقونات أحادية وكبسولة ناعمة وبلا زخرفة."
-
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
 msgid "Mode Sigils (Pro)"
@@ -1519,11 +1424,6 @@ msgstr "رموز الأنماط (الاحترافية)"
 #. src: ai
 msgid "Mode sigils"
 msgstr "رموز الأنماط"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Module icons"
-msgstr "أيقونات الوحدات"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
@@ -1659,11 +1559,6 @@ msgstr "موضع الإخطارات"
 #. src: ai
 msgid "Off — not shown"
 msgstr "إيقاف — لا يُعرض"
-
-#. In theme_settings.js
-#. src: ai
-msgid "Off — not shown. Drop here to hide."
-msgstr "إيقاف — لا يُعرض. أفلت هنا للإخفاء."
 
 #. In theme_settings.js
 #. src: ai
@@ -1995,11 +1890,6 @@ msgstr "فاصل التحديث"
 msgid "Refresh now"
 msgstr "حدّث الآن"
 
-#. In theme_settings.js
-#. src: ai
-msgid "Replaced by the component settings below. Kept visible for reference; it no longer decides anything on its own."
-msgstr "حلّت محله إعدادات المكونات أدناه. أُبقي ظاهرًا للمرجعية؛ لم يعد يقرر شيئًا بنفسه."
-
 #. In bunood.js
 #. src: ai
 msgid "Report"
@@ -2140,11 +2030,6 @@ msgstr "يضبطه المنتقي أدناه. «الأصلي» يترك لوحة
 msgid "Set by the picker below. Original leaves ERPNext's stock trail untouched."
 msgstr "يضبطه المنتقي أدناه. «الأصلي» يترك مسار ERPNext كما هو."
 
-#. Description of a Select field in DocType 'Theme Settings'
-#. src: ai
-msgid "Set by the picker below. Values live in the individual style fields; the preset is a label."
-msgstr "يضبطه المنتقي أدناه. القيم تقيم في حقول النمط المفردة؛ النمط الجاهز مجرد تسمية."
-
 #. In theme_settings.js
 #. src: item36
 msgid "Settings applied: {0} — saved automatically"
@@ -2169,11 +2054,6 @@ msgstr "إظهار اللوحة الجانبية"
 #. src: ai
 msgid "Show the top bar"
 msgstr "إظهار الشريط العلوي"
-
-#. Description of a Data field in DocType 'Theme Settings'
-#. src: ai
-msgid "Shown in the sidebar and the browser tab."
-msgstr "يظهر في الشريط الجانبي وفي تبويب المتصفح."
 
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: ai
@@ -2205,11 +2085,6 @@ msgstr "اللوحة الجانبية"
 msgid "Side-by-side documents without losing the one you came from."
 msgstr "مستندات جنبًا إلى جنب من غير أن تفقد المستند الذي جئت منه."
 
-#. Label of a Select field in DocType 'Theme Settings'
-#. src: ai
-msgid "Sidebar Preset"
-msgstr "النمط الجاهز"
-
 #. Label of a Section Break field in DocType 'Theme Settings'
 #. src: ai
 msgid "Sidebar Style"
@@ -2219,16 +2094,6 @@ msgstr "نمط الشريط الجانبي"
 #. src: ai
 msgid "Sidebar Style Picker"
 msgstr "منتقي نمط الشريط الجانبي"
-
-#. In bunood.js
-#. src: ai
-msgid "Sidebar: following the site"
-msgstr "الشريط الجانبي: بحسب الموقع"
-
-#. In bunood.js
-#. src: ai
-msgid "Sidebar: {0}"
-msgstr "الشريط الجانبي: {0}"
 
 #. In bunood.js
 #. src: ai
@@ -2387,11 +2252,6 @@ msgstr "اللوحة مع سطح فرز بصفحة كاملة: قائمة إلى
 
 #. In theme_settings.js
 #. src: ai
-msgid "The same design in daylight: white glass, soft hue cards."
-msgstr "التصميم نفسه في وضح النهار: زجاج أبيض وبطاقات بصبغة ناعمة."
-
-#. In theme_settings.js
-#. src: ai
 msgid "The same row, pinned to the sidebar's foot."
 msgstr "الصف نفسه مثبتًا في قدم الشريط الجانبي."
 
@@ -2517,11 +2377,6 @@ msgstr "قائمة المستخدم"
 
 #. In theme_settings.js
 #. src: ai
-msgid "Warm and editorial."
-msgstr "دافئ بطابع تحريري."
-
-#. In theme_settings.js
-#. src: ai
 msgid "Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only."
 msgstr "ينبه عندما يتوقف المجدول — العطل الصامت وراء معظم تذاكر «لماذا لم يعمل شيء». لمديري النظام فقط."
 
@@ -2529,16 +2384,6 @@ msgstr "ينبه عندما يتوقف المجدول — العطل الصام�
 #. src: ai
 msgid "When something arrives"
 msgstr "عندما يصل شيء"
-
-#. Description of a Select field in DocType 'Theme Settings'
-#. src: ai
-msgid "Where global search, notifications and your profile live. Applies site-wide on the next page load; pick visually below."
-msgstr "أين يقيم البحث العام والإخطارات وملفك الشخصي. يسري على الموقع كله عند تحميل الصفحة التالي؛ اختر بصريًا أدناه."
-
-#. In theme_settings.js
-#. src: ai
-msgid "Where link glyphs come from - most workspace links ship no icon of their own."
-msgstr "من أين تأتي رموز الروابط — معظم روابط مساحات العمل لا تشحن أيقونة خاصة بها."
 
 #. In theme_settings.js
 #. src: ai
@@ -2664,11 +2509,6 @@ msgstr "الشريط العلوي موقوف"
 #. src: ai
 msgid "{0} — not available: {1}. Falls back to the nearest slot."
 msgstr "{0} — غير متاح: {1}. يرجع إلى أقرب موضع."
-
-#. In theme_settings.js
-#. src: ai
-msgid "{0}, {1} — drop here"
-msgstr "{0}، {1} — أفلت هنا"
 
 #. In theme_settings.js
 #. src: ai
@@ -3132,10 +2972,6 @@ msgstr "الصفوف المحددة ورأس الإجراءات الجماعية
 #. src: ai
 msgid "Reveal checkboxes on hover"
 msgstr "إظهار مربعات الاختيار عند التحويم"
-
-#. src: ai
-msgid "Rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch screens."
-msgstr "الصفوف تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس."
 
 #. src: ai
 msgid "Original leaves the stock list untouched — nothing below applies."
@@ -3626,7 +3462,6 @@ msgstr "يضبطه المنتقي أعلاه. ما إذا كان عمود كان
 #. src: item27
 msgid "Tinted"
 msgstr "مُلوَّن"
-
 
 #. src: item27
 msgid "Set by the picker above. The shape of a calendar event."
@@ -4200,10 +4035,6 @@ msgid "A brand wash across the page, with the content plate floating on it."
 msgstr "طبقة من لون علامتك التجارية تغطي الصفحة، ولوح المحتوى يطفو فوقها."
 
 #. src: item33
-msgid "A website visitor has no stored preference, so the default follows their device."
-msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه."
-
-#. src: item33
 msgid "A website visitor has no stored preference, so the default follows their device. Needs a page style other than Original — a dark page needs a ground the theme paints."
 msgstr "زائر الموقع ليس لديه تفضيل مُخزَّن، لذا يتبع الوضع الافتراضي جهازه. يتطلب نمط صفحة غير «الأصلي» — فالصفحة الداكنة تحتاج أرضية يرسمها القالب."
 
@@ -4226,10 +4057,6 @@ msgstr "يُضبط من المُنتقي أعلاه. كيفية تكوين كل 
 #. src: item33
 msgid "Set by the picker above. Whether the site header carries your brand colour. Composes with any style, including Original."
 msgstr "يُضبط من المُنتقي أعلاه. ما إذا كانت ترويسة الموقع تحمل لون علامتك التجارية. يتوافق مع أي نمط، بما في ذلك الأصلي."
-
-#. src: item33
-msgid "Stock: Frappe's own white page, with the accessibility repairs still applied."
-msgstr "الوضع الأصلي: صفحة فرابيه البيضاء نفسها، مع الإبقاء على إصلاحات إمكانية الوصول."
 
 #. src: item33
 msgid "Stock: Frappe's own white page, with the accessibility repairs still applied. Always light."
@@ -4900,18 +4727,6 @@ msgstr "في السندات والفواتير. النموذج الذي يمرّ
 msgid "Tools"
 msgstr "الأدوات"
 
-#. src: upstream-gap
-#. Frappe ships this msgid with an EMPTY msgstr. Same reasoning as "Tools".
-msgid "What's New"
-msgstr "ما الجديد"
-
-#. src: upstream-gap
-#. Absent from frappe's ar.po entirely, so there is nothing to inherit. Verified
-#. on a live v16 desk: with this row the list-view filter action renders
-#. حفظ التصفية الحالية. Drop it the moment upstream ships its own.
-msgid "Save Current Filter"
-msgstr "حفظ التصفية الحالية"
-
 #. Description of a Data field in DocType 'Theme Settings'
 #. src: item36
 msgid "Shown in the sidebar, the browser tab, the sign-in page, the website navbar and email headers. Printed documents use the Company record's name instead."
@@ -5189,16 +5004,6 @@ msgstr "مخصّص — تركيبتك أنت. اختيار مظهر يستبدل
 msgid "Every setting this look names is applied. Change any one of them and this reads Custom."
 msgstr "كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص»."
 
-#. src: item37
-#, fuzzy
-msgid "Side pane: {0} — colours and layout still follow the site"
-msgstr "اللوحة الجانبية: {0} — الألوان والتخطيط لا تزال تتبع إعدادات الموقع"
-
-#. src: item37
-#, fuzzy
-msgid "Side pane: following the site"
-msgstr "اللوحة الجانبية: تتبع إعدادات الموقع"
-
 #. src: item38
 #, fuzzy
 msgid "Personalization"
@@ -5308,7 +5113,6 @@ msgstr "مُخفَّفة"
 #, fuzzy
 msgid "Where the desk opens"
 msgstr "نقطة بدء المكتب"
-
 
 #. In theme_settings.js
 #. src: item40
