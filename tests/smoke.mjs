@@ -4415,7 +4415,12 @@ print("ok")
 					await drag(3, false);
 					const b = await state();
 					expect(!b.expanded, `3px of travel is a CLICK — Frappe's collapse fired (expanded=${b.expanded})`);
-					await drag(3, true); // toggle back open, same path
+					// A 0px press, ON PURPOSE: collapsed, the handle's hit area is
+					// a 5px sliver (45-49 of a 45-53 rect) and a +3px drift from a
+					// 2px-inset aim ends on the boundary pixel — a coin toss under
+					// load, twice. Press 1 already proves 3px-is-a-click on the
+					// full-width handle; this press proves only the RE-OPEN.
+					await drag(0, true); // toggle back open, same path
 					const c = await state();
 					expect(c.expanded, "and a second 3px press opens it again");
 
@@ -9608,7 +9613,10 @@ ${gate.stdout}`);
 				// never-matched guard below would report it as a dead selector --
 				// which is the guard working. A control that ships Off still has to
 				// be scanned in the state where somebody turned it on.
-				home_placement: "Side Pane Start", apps_placement: "Side Pane Start",
+				// SPLIT on purpose (8c): Start renders the util ROW, End renders the
+				// BAND cell — one link each, so .bnd-sb-utils AND .bnd-sb-band are
+				// both exercised and the never-matched guard stays honest.
+				home_placement: "Side Pane Start", apps_placement: "Side Pane End",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
 
@@ -9655,11 +9663,17 @@ ${gate.stdout}`);
 			bad = bad.concat(await scan("inbox open"));
 			await page.keyboard.press("Escape");
 
-			// The avatar's own menu: body-appended (outside every root above
-			// until .bnd-menu joined OURS), never open at rest, and the
-			// instance carrying the identity header — the one content-model
-			// risk none of the other three show_menu() callers has.
+			// The account PANEL (8c): body-appended dialog, never open at
+			// rest, and the surface carrying the identity block, radiogroup
+			// and disclosure — the richest content model in the chrome.
 			await page.click('[data-bnd-part="user"]');
+			await page.waitForSelector(".bnd-acct-panel", { timeout: 5000 });
+			bad = bad.concat(await scan("account panel open"));
+			await page.keyboard.press("Escape");
+
+			// A role=menu still ships — the Place row's switcher opens one,
+			// which is also what keeps .bnd-menu earning its OURS row.
+			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
 			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
 			bad = bad.concat(await scan("menu open"));
 			await page.keyboard.press("Escape");

@@ -1935,7 +1935,8 @@
 		}
 		close_menu();
 
-		const menu = el("div", "bnd-menu");
+		// tabindex=0: the menu scrolls, so it must be tab-reachable. _cluster.scss.
+		const menu = el("div", "bnd-menu", { tabindex: "0" });
 		menu._trigger = trigger;
 		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "true");
 

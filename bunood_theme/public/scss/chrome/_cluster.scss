@@ -96,6 +96,12 @@ html[data-theme] .bnd-menu {
   // the overflow to the other edge. Capped on the MENU, not the list, so
   // the identity header (a sibling of the list, never its child) counts
   // toward the height it is capped against.
+  // ...and a region that scrolls must be TAB-REACHABLE (axe's
+  // scrollable-region-focusable): show_menu stamps tabindex=0 on the
+  // menu itself, because roving tabindex=-1 items do not count and the
+  // focus contract is untouched — Tab already closes the popup. Found
+  // the day the head switcher (18 roots, genuinely scrollable) joined
+  // the axe scan; the shorter avatar menu could never trip it.
   max-block-size: min(70vh, 560px);
   overflow-y: auto;
   padding: var(--bnd-sp-1);
