@@ -4851,14 +4851,19 @@ print("ok")
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-band"), null, { timeout: 20000 });
 				const misses = await page.evaluate(() => {
 					const out = [];
+					// THE PLUS-PATTERN, not the corners: the avatar is a circle
+					// ON PURPOSE (item 22, identity by form), and a circle has no
+					// corners — border-radius clips hit-testing, so a corner
+					// sample fails GEOMETRY, not the target. shadcn's defect is a
+					// hit target SMALLER than the box on both axes; centre plus
+					// the four edge midpoints catches exactly that, for square
+					// and round cells alike.
 					for (const cell of document.querySelectorAll(".bnd-sb-band > button")) {
 						const r = cell.getBoundingClientRect();
-						for (const fx of [0.1, 0.5, 0.9]) {
-							for (const fy of [0.1, 0.5, 0.9]) {
-								const el = document.elementFromPoint(r.left + r.width * fx, r.top + r.height * fy);
-								if (!el || !cell.contains(el)) {
-									out.push(`${cell.getAttribute("data-bnd-part")}@${fx},${fy} -> ${el ? (String(el.className).split(" ")[0] || el.tagName) : "null"}`);
-								}
+						for (const [fx, fy] of [[0.5, 0.5], [0.1, 0.5], [0.9, 0.5], [0.5, 0.1], [0.5, 0.9]]) {
+							const el = document.elementFromPoint(r.left + r.width * fx, r.top + r.height * fy);
+							if (!el || !cell.contains(el)) {
+								out.push(`${cell.getAttribute("data-bnd-part")}@${fx},${fy} -> ${el ? (String(el.className).split(" ")[0] || el.tagName) : "null"}`);
 							}
 						}
 					}
@@ -5013,6 +5018,108 @@ print("ok")
 				await page.keyboard.press("Escape");
 			} finally {
 				await page.setViewportSize({ width: 1440, height: 900 });
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the container attribute exists exactly while our decoration is on", async () => {
+			// Item 40 slice 9. The side pane is the one container this theme does
+			// not build, so data-bnd-sidepane means OUR DECORATION IS ON THIS
+			// PANE — and until now it was a removal with no setter: remount
+			// released an attribute nothing ever stamped, a dead branch the plan
+			// audit named. Both directions, because "exists when on" alone would
+			// pass an attribute stamped once and never released.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
+				const on = await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-sidepane"));
+				expect(on, "the pane carries the container attribute while decorated");
+				setSettings({ sidebar_enabled: 0 });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !document.querySelector(".body-sidebar .bnd-sb-head"),
+					null, { timeout: 20000 }
+				);
+				const off = await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-sidepane"));
+				expect(!off, "and releases it when the pane is off");
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the place row and the rail button announce their identity", async () => {
+			// Slice 9: parts, not classes — the placement board, desk order and
+			// the invariant matrix find components by data-bnd-part, and the
+			// audit found the pane's own nodes invisible to all three.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_button"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
+				const head = await page.evaluate(() =>
+					document.querySelector(".bnd-sb-head").getAttribute("data-bnd-part")
+				);
+				expectEq(head, "panehead", `the place row is findable by part (${head})`);
+
+				setSettings({ sidebar_menu_rail: "Rail", sidebar_rail_button: "Edge" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-railbtn"), null, { timeout: 20000 });
+				const btn = await page.evaluate(() =>
+					document.querySelector(".bnd-railbtn").getAttribute("data-bnd-part")
+				);
+				expectEq(btn, "railbtn", `and so is the rail button (${btn})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the end zone sits between the list and Frappe's bottom block, in flow", async () => {
+			// Plan defect 20, repaired at last. The old guard asked "is
+			// .body-sidebar-bottom the LAST child" — permanently false, because
+			// the collapse link and the resize handle follow it, both
+			// position:absolute. Every End tenant fell through to appendChild
+			// and landed BELOW Frappe's bottom block in the DOM. The question
+			// is "is it the last IN-FLOW child", and this check asks it of the
+			// outcome: with tenants at Side Pane End, the band precedes the
+			// bottom block, follows the list, and nothing in-flow trails the
+			// bottom block that is not the bottom block's own successor set.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "home_placement", "apps_placement"]);
+			try {
+				setSettings({
+					sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded",
+					home_placement: "Side Pane End", apps_placement: "Side Pane End",
+				});
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-band"), null, { timeout: 20000 });
+				const m = await page.evaluate(() => {
+					const pane = document.querySelector(".body-sidebar");
+					const kids = [...pane.children];
+					const idx = (sel) => kids.findIndex((n) => n.matches && n.matches(sel));
+					const inFlow = (n) => {
+						const pos = getComputedStyle(n).position;
+						return pos !== "absolute" && pos !== "fixed";
+					};
+					const bottomAt = idx(".body-sidebar-bottom");
+					return {
+						band: idx(".bnd-sb-band"),
+						list: idx(".body-sidebar-top"),
+						bottom: bottomAt,
+						trailingInFlow: bottomAt === -1 ? [] : kids.slice(bottomAt + 1).filter(inFlow)
+							.map((n) => (n.className || n.tagName).toString().trim().slice(0, 40)),
+					};
+				});
+				expect(m.band !== -1 && m.list !== -1 && m.bottom !== -1,
+					`band, list and bottom are all pane children (${JSON.stringify(m)})`);
+				expect(m.band > m.list, `the end zone follows the list (${m.band} vs ${m.list})`);
+				expect(m.band < m.bottom,
+					`and precedes Frappe's bottom block in the DOM (band ${m.band}, bottom ${m.bottom})`);
+				// The loud half: a NEW in-flow sibling after the bottom block is
+				// the anchor's premise changing under it — name it, never absorb.
+				expectEq(m.trailingInFlow.join(", "), "",
+					`nothing in flow trails the bottom block (${m.trailingInFlow.join(", ")})`);
+			} finally {
 				setSettings(before);
 			}
 		});

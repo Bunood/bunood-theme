@@ -195,7 +195,13 @@ COMPONENTS = [
         "part": "sidepane",
         "label": "Side pane",
         "type": CONTAINER,
-        "selector": ".body-sidebar",
+        # The thing whose VISIBILITY answers "is this container on the desk"
+        # - the runtime hides and measures the container, never the pane
+        # inside it (item 40 slice 9; the old value was the audit's defect
+        # 13). The one container whose host is not its own selector, because
+        # this theme built neither: the pane is Frappe's, we decorate it.
+        "selector": ".body-sidebar-container",
+        "host": ".body-sidebar",
         "native": None,
         "regions": (),
         "toggle": "sidebar_enabled",
@@ -521,6 +527,43 @@ NARROW_PLACEMENT = {
 #: own DOM, so it has no selector to stand down and no native to release —
 #: absent attributes ARE the stand-down. Item 16's list view is the first;
 #: the form view (item 18) joins it here.
+#: Identity-only rows (item 40, slice 9): nodes a consumer must FIND - the
+#: placement board, desk order, the invariant matrix - that are neither
+#: containers (no toggle of their own) nor tenants (a TENANT row would mint
+#: a placement field the doctype does not have). The registry stays the one
+#: table that answers "how do I find this component", which is what the
+#: identity guard holds bunood.js to; `panehead` also carries the ONE native
+#: its node owns, so OWNED_NATIVES derives it and the ownership guard sees it
+#: without a hand-kept exception.
+MARK = "mark"
+
+MARKS = [
+    {
+        "key": "panehead",
+        "part": "panehead",
+        "label": "Place row",
+        "type": MARK,
+        "selector": ".bnd-sb-head",
+        # Hiding this native is legal ONLY from data-bnd-own~="panehead",
+        # stamped after the head is in the pane (claim_panehead measures).
+        "native": ".body-sidebar .sidebar-header",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "railbtn",
+        "part": "railbtn",
+        "label": "Rail button",
+        "type": MARK,
+        "selector": ".bnd-railbtn",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+]
+
 SURFACE = "surface"
 
 SURFACES = [

@@ -1053,11 +1053,8 @@ const EXTRA_OWNED_NATIVES = {
 	// theme row) once ours exist; the menu is not a component we replace, so it
 	// has no registry row and never will.
 	"frappe-menu": "an item inside Frappe's context menu, not a component we replace",
-	// The pane's head. Its replacement is `.bnd-sb-head`, which has no registry
-	// row yet — giving the pane's head an identity is item 40's slice 9, and a
-	// TENANT row here would mint a `panehead_placement` field the doctype does
-	// not have. Until then the native is declared here so the guard can see it.
-	"sidebar-header": "replaced by .bnd-sb-head, which has no registry row until item 40 slice 9",
+	// (slice 9 moved `sidebar-header` to the `panehead` MARK row in registry.py
+	// — the list shrank, which is the direction it is allowed to move.)
 };
 
 //: Read once, at module scope, like RUNTIME_TOKENS and BASE_TOKENS above.

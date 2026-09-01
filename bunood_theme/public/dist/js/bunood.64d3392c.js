@@ -2396,7 +2396,8 @@ function sb_band(pane) {
 			"aria-label": __("Quick actions"),
 			"data-bnd-zone": "end",
 		});
-		pane.appendChild(band);
+		// Through the anchor: no part, so the cell branch passes it by.
+		sb_zone_anchor(pane, "end", band);
 	}
 	return band;
 }
@@ -2426,12 +2427,19 @@ function sb_zone_anchor(pane, zone, node) {
 	// made to differ from the second (see registry.ZONES_BY_REGION). A value
 	// from a site that stored one before this settled falls through to the foot,
 	// which is where it rendered anyway.
-	// "end" means the FOOT of the pane, and `.body-sidebar-bottom` is only that
-	// when it is genuinely last. Inserting before it unconditionally put the end
-	// zone ABOVE the centre one (measured: y 1009 against 1064), because the
-	// strip is pinned while the workspace list keeps going below it.
-	if (bottom && bottom === pane.lastElementChild) {
-		return bottom.insertAdjacentElement("beforebegin", node);
+	// "end" = the foot: before `.body-sidebar-bottom` when it is the last
+	// IN-FLOW child. "Last CHILD" was permanently false — the collapse link
+	// and handle trail it, both absolute (defect 20; band 8 vs bottom 5).
+	if (bottom) {
+		let lastInFlow = null;
+		for (const kid of pane.children) {
+			const cs = getComputedStyle(kid);
+			if (cs.position === "absolute" || cs.position === "fixed") continue;
+			lastInFlow = kid;
+		}
+		if (lastInFlow === bottom) {
+			return bottom.insertAdjacentElement("beforebegin", node);
+		}
 	}
 	return pane.appendChild(node);
 }
@@ -6309,6 +6317,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
 				type: "button",
+				"data-bnd-part": "panehead",
 				"aria-haspopup": "menu",
 				"aria-expanded": "false",
 			});
@@ -6689,6 +6698,7 @@ function sb_zone_anchor(pane, zone, node) {
 			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
 			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
 				type: "button",
+				"data-bnd-part": "railbtn",
 				"aria-label": __("Expand sidebar"),
 				"aria-expanded": "false",
 				title: __("Expand sidebar"),
@@ -7194,12 +7204,15 @@ function sb_zone_anchor(pane, zone, node) {
 			if (only_volatile && !part.volatile) continue;
 			part.mount();
 		}
+		// data-bnd-sidepane = our decoration is ON (a removal with no setter before).
+		container_mounted("sidepane");
 	}
 
 	/** Take every part back out, and stop watching. The exact mirror, total. */
 	function sidepane_teardown() {
 		sidepane_unobserve();
 		for (let i = SB_PARTS.length - 1; i >= 0; i--) SB_PARTS[i].unmount();
+		document.documentElement.removeAttribute("data-bnd-sidepane");
 	}
 
 	/**
