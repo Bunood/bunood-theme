@@ -1061,9 +1061,25 @@ def check_sidebar_emission() -> list[str]:
                 if pane.recipe[0] not in ("ground",):
                     continue
                 want = palette.sb_pane_value(pane, SEEDS[0][0], polarity, ground=ground)
-                got = re.findall(r"--bnd-sb-bg:\s*([^;]+);", text)
+                # SCOPED TO THIS MODE'S OWN BLOCK. This searched the whole
+                # emitted text and demanded every --bnd-sb-bg equal THIS
+                # mode's value -- correct only while exactly one mode ever
+                # emitted. Since the emission carries the full working set for
+                # every mode, a global search reads three modes' backgrounds
+                # as one mode's drift (measured: it reported a light hex as a
+                # minimal/dark failure). The block is the unit, not the file.
+                sel = (
+                    f'html[data-theme="dark"][data-bnd-sb-color="{mode}"]'
+                    if polarity == "dark"
+                    else f'html[data-theme="light"][data-bnd-sb-color="{mode}"]'
+                )
+                at = text.find(sel)
+                block = text[at : text.find("}", at)] if at != -1 else ""
+                got = re.findall(r"--bnd-sb-bg:\s*([^;]+);", block)
                 if not got:
-                    problems.append(f"the {gname} ground emits a block with no --bnd-sb-bg")
+                    problems.append(
+                        f"the {gname} ground emits no --bnd-sb-bg for {mode}/{polarity}"
+                    )
                 elif any(v.strip() != want for v in got):
                     problems.append(
                         f"the {gname} ground emits {set(v.strip() for v in got)} for {mode}/{polarity}, "

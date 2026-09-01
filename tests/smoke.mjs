@@ -4352,6 +4352,196 @@ async function main() {
 			}
 		};
 
+		await test("sidepane: the theme's colours reach the pane in every colour mode", async () => {
+			// THE USER'S REPORT, 2026-09-01: "remove the pane colours and apply the
+			// theme preset colours — they do not apply right to the pane".
+			// Measured before this check existed: 42 hex literals in _sidebar.scss
+			// against 0-3 in every other chrome kit, and 66% of the pane's colour
+			// declarations hand-authored. Match Theme moved its BACKGROUND with the
+			// theme and nothing else; Minimal moved nothing at all (14 of 14
+			// literal); --bnd-sb-card-base was #ffffff and --bnd-sb-ink #16181d on
+			// every theme, on every site in the world.
+			//
+			// The assertion is DIFFERENCE ACROSS THEMES, not any particular hex: a
+			// pane that follows the theme paints two different palettes for two
+			// different seeds, and one that does not paints the same one twice.
+			// Values are compared as computed STRINGS — Chrome resolves color-mix()
+			// to oklab()/color(srgb …) and this repo has been bitten reading those.
+			// SEEDS GO THROUGH withBranding: they sit outside MUTABLE_FIELDS
+			// because a failed restore is permanent damage to the operator's
+			// site, and the write must be a real doc.save() so the per-site
+			// brand sheet regenerates — which is exactly the sheet under test.
+			const before = getSettings(["sidebar_color", "sidebar_enabled", "sidebar_menu_rail"]);
+			const WORKING = [
+				"--bnd-sb-bg", "--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-line",
+				"--bnd-sb-chip-bg", "--bnd-sb-chip-ink", "--bnd-sb-card-base",
+			];
+			try {
+				const palettes = {};
+				// Two seeds far apart in hue AND in ground, so a pane that follows
+				// either one cannot land on the same values twice by luck.
+				for (const [label, seed] of [
+					["forest", { brand_color: "#3d8150", ground_color: "#4d5a52" }],
+					["plum", { brand_color: "#7b3d81", ground_color: "#6d5a72" }],
+				]) {
+					palettes[label] = {};
+					await withBranding(seed, async () => {
+						for (const mode of ["Match Theme", "Minimal", "Dark Contrast", "Brand"]) {
+							setSettings({
+								sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
+								sidebar_color: mode,
+							});
+							await goDesk("/app/selling", "body", 3000);
+							await page.waitForFunction(() => !!document.querySelector(".body-sidebar-container"), null, { timeout: 20000 });
+							// RENDERED COLOUR, NOT TOKEN TEXT. getPropertyValue hands
+							// back a custom property's SOURCE — so
+							// `color-mix(in srgb, var(--bnd-brand) 10%, #131a15)` reads
+							// as the same string on every seed while painting a
+							// different colour, and an rgba() over the pane reads as
+							// static while following whatever it sits on. Both would
+							// have been reported as "does not follow the theme" when
+							// they do. The browser resolves it all on a real element.
+							palettes[label][mode] = await page.evaluate(() => {
+								const probe = (decl, value) => {
+									const el = document.createElement("div");
+									el.style.cssText = `position:absolute;left:-9999px;${decl}:${value}`;
+									document.querySelector(".body-sidebar-container").appendChild(el);
+									const out = getComputedStyle(el)[decl === "color" ? "color" : "backgroundColor"];
+									el.remove();
+									return out;
+								};
+								return {
+									"--bnd-sb-bg": probe("background-color", "var(--bnd-sb-bg)"),
+									// The brand pane is a GRADIENT, so background-color reads
+									// as the initial rgb(0,0,0) there and says nothing. Its
+									// image is the thing that follows the seed.
+									"--bnd-sb-bg-image": (() => {
+										const el = document.createElement("div");
+										el.style.cssText = "position:absolute;left:-9999px;background-image:var(--bnd-sb-bg)";
+										document.querySelector(".body-sidebar-container").appendChild(el);
+										const v = getComputedStyle(el).backgroundImage;
+										el.remove();
+										return v;
+									})(),
+									"--bnd-sb-line": probe("background-color", "var(--bnd-sb-line)"),
+									"--bnd-sb-chip-bg": probe("background-color", "var(--bnd-sb-chip-bg)"),
+									"--bnd-sb-card-base": probe("background-color", "var(--bnd-sb-card-base)"),
+									"--bnd-sb-ink": probe("color", "var(--bnd-sb-ink)"),
+									"--bnd-sb-ink-muted": probe("color", "var(--bnd-sb-ink-muted)"),
+									"--bnd-sb-chip-ink": probe("color", "var(--bnd-sb-chip-ink)"),
+								};
+							});
+						}
+					});
+				}
+
+				// THE SURFACES FOLLOW; THE INKS STAY LEGIBLE ON THEM. Those are
+				// two different contracts and demanding the first of both is how
+				// this check was wrong on its first draft: --bnd-sb-ink clears
+				// 15-18:1 on every pane, so the fit correctly leaves it exactly
+				// where it is, and asserting it "moves" would have demanded
+				// tinted ink for its own sake. What a reader actually needs is
+				// that the pane looks like their theme AND stays readable.
+				const SURFACES = ["--bnd-sb-bg", "--bnd-sb-line", "--bnd-sb-chip-bg", "--bnd-sb-card-base"];
+				const INKS = ["--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-chip-ink"];
+				// Hex only, and anything else THROWS rather than being guessed at:
+				// Chrome hands custom properties back as their token text, so a
+				// non-hex here means the derivation stopped emitting concrete
+				// values and the ratio below would be fiction.
+				// TWO well-defined forms, and everything else THROWS rather than
+				// being guessed at. Chrome emits rgb()/rgba() for plain colours and
+				// color(srgb r g b / a) — 0..1 channels — for a resolved
+				// color-mix(), which is what the Dark Contrast pane is. It also
+				// emits oklab() in other places, and this repo has already read one
+				// of those as near-black and believed it; hence the throw.
+				const bndRgb = (css) => {
+					const t = css.trim();
+					const legacy = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(t);
+					if (legacy) {
+						return [Number(legacy[1]), Number(legacy[2]), Number(legacy[3]),
+							legacy[4] === undefined ? 1 : Number(legacy[4])];
+					}
+					const srgb = /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)/.exec(t);
+					if (srgb) {
+						return [1, 2, 3].map((i) => Math.round(Number(srgb[i]) * 255))
+							.concat([srgb[4] === undefined ? 1 : Number(srgb[4])]);
+					}
+					throw new Error(`pane colour is neither rgb() nor color(srgb …): ${JSON.stringify(css)}`);
+				};
+				const lum = (css) => {
+					const ch = bndRgb(css).slice(0, 3).map((v) => v / 255)
+						.map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+					return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+				};
+				const ratio = (x, y) => {
+					const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p);
+					return (hi + 0.05) / (lo + 0.05);
+				};
+				for (const mode of ["Match Theme", "Minimal", "Dark Contrast", "Brand"]) {
+					// COMPOSITE THE ALPHAS OVER THE PANE, because that is what the
+					// screen does. A hairline written as rgba(255,255,255,.09) reads
+					// as the same string on every seed and takes the pane's hue in
+					// every pixel it actually paints — read uncomposited, a mode that
+					// follows the theme perfectly well reports as frozen.
+					const over = (pal) => {
+						const rgb = (css) => bndRgb(css);
+						const base = rgb(pal["--bnd-sb-bg"]);
+						const out = {};
+						for (const [k, v] of Object.entries(pal)) {
+							if (k.endsWith("-image")) { out[k] = v; continue; }
+							const c = rgb(v);
+							const mixed = [0, 1, 2].map((i) => Math.round(c[i] * c[3] + base[i] * (1 - c[3])));
+							out[k] = `rgb(${mixed.join(", ")})`;
+						}
+						return out;
+					};
+					const a = over(palettes.forest[mode]);
+					const b = over(palettes.plum[mode]);
+					expect(a["--bnd-sb-bg"], `premise: ${mode} declares a working set`);
+					if (mode === "Brand") {
+						// The brand pane IS the seed, as a gradient: its surfaces are
+						// white-alpha over it, so they read identically while the
+						// gradient underneath does all the moving.
+						const ga = palettes.forest[mode]["--bnd-sb-bg-image"];
+						const gb = palettes.plum[mode]["--bnd-sb-bg-image"];
+						expect(/gradient/.test(ga), `premise: Brand paints a gradient (${ga.slice(0, 50)})`);
+						expect(ga !== gb, `Brand: the pane itself follows the seed (${ga.slice(0, 80)})`);
+						continue;
+					}
+					const stuck = SURFACES.filter((n) => a[n] === b[n]);
+					if (mode === "Minimal") {
+						// MINIMAL IS THE MODE THAT DOES NOT TAKE THE TINT, and this
+						// arm pins that as a decision rather than leaving it to look
+						// like the bug next door. Tried at 5% on 2026-09-01: it lands
+						// 1.005:1 from Match Theme's pane — the same pixel under a
+						// second name, which is the defect the picker vocabulary
+						// exists to prevent. "Match Theme" is the option that
+						// follows; offering two of those and none that stands down
+						// would be strictly worse. What DID have to change is that
+						// its ink, line, chip and card now derive from its own pane.
+						expectEq(stuck.sort().join(", "), SURFACES.slice().sort().join(", "),
+							"Minimal stays neutral on purpose — if a surface here started " +
+								"following the seed, it has become Match Theme under another name");
+					} else {
+						expectEq(stuck.join(", "), "",
+							`${mode}: every SURFACE follows the theme — these did not move ` +
+								`between a forest seed and a plum one: ${stuck.map((n) => `${n}=${a[n]}`).join("; ")}`);
+					}
+					for (const seedName of ["forest", "plum"]) {
+						const pal = palettes[seedName][mode];
+						for (const ink of INKS) {
+							const r = ratio(pal[ink], pal["--bnd-sb-bg"]);
+							expect(r >= 4.5,
+								`${mode}/${seedName}: ${ink} stays readable on the pane it moved to ` +
+									`(${r.toFixed(2)}:1, ${pal[ink]} on ${pal["--bnd-sb-bg"]})`);
+						}
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: on the brand pane, Glass is not Solid wearing its name", async () => {
 			// The last of item 40's filed defects. The brand pane paints a
 			// linear-gradient, and a gradient cannot go through color-mix(), so
