@@ -6365,6 +6365,18 @@ function sb_zone_anchor(pane, zone, node) {
 			: String(name).toLowerCase().split(" ").join("-");
 	}
 
+	/** Fold every open section through Frappe's OWN toggle (2a). */
+	function sb_collapse_all() {
+		for (const d of document.querySelectorAll('.body-sidebar-top .section-item .drop-icon[data-state="opened"]')) {
+			const header = d.closest(".standard-sidebar-item");
+			if (header) header.click();
+		}
+		requestAnimationFrame(() => {
+			sb_mirror_disclosure();
+			sb_update_rollups();
+		});
+	}
+
 	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
 	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
 	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
@@ -6406,6 +6418,15 @@ function sb_zone_anchor(pane, zone, node) {
 				label: w.title || w.name,
 				icon: ws_symbol(w.icon),
 				run: () => frappe.set_route(ws_route(w.name)),
+			});
+		}
+		// Collapse-all (2a), only when something is foldable.
+		if (document.querySelector('.body-sidebar-top .section-item .drop-icon[data-state="opened"]')) {
+			items.push("divider");
+			items.push({
+				label: __("Collapse all sections"),
+				icon: "icon-list-tree",
+				run: sb_collapse_all,
 			});
 		}
 		return items;
@@ -6928,6 +6949,7 @@ function sb_zone_anchor(pane, zone, node) {
 					if (mode === "counts") badge.textContent = count > 99 ? "99+" : String(count);
 					anchor.appendChild(badge);
 				}
+				sb_update_rollups();
 			})
 			.catch(() => {}); // badges are decoration; never surface a failure
 	}
@@ -7225,6 +7247,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	function sb_mount_aria() {
 		sb_mirror_disclosure();
+		sb_update_rollups();
 		const list = document.querySelector(".body-sidebar .sidebar-items");
 		if (!list || list.dataset.bndAria) return;
 		list.dataset.bndAria = "1";
@@ -7232,10 +7255,46 @@ function sb_zone_anchor(pane, zone, node) {
 			"click",
 			(e) => {
 				if (!e.target.closest || !e.target.closest(".section-item .standard-sidebar-item")) return;
-				requestAnimationFrame(sb_mirror_disclosure);
+				requestAnimationFrame(() => {
+					sb_mirror_disclosure();
+					sb_update_rollups();
+				});
 			},
 			true
 		);
+	}
+
+	/** Hidden badges sum into one header chip (1a). _sidebar.scss. */
+	function sb_update_rollups() {
+		const mode = document.documentElement.getAttribute("data-bnd-sb-badges");
+		const live = mode === "dots" || mode === "counts";
+		for (const sec of document.querySelectorAll(".body-sidebar-top .sidebar-item-container.section-item")) {
+			const header = sec.querySelector(".standard-sidebar-item");
+			if (!header) continue;
+			let chip = header.querySelector(".bnd-sb-rollup");
+			const drop = sec.querySelector(".drop-icon");
+			const closed = drop && drop.getAttribute("data-state") !== "opened";
+			let total = 0;
+			let any = false;
+			if (live && closed) {
+				for (const b of sec.querySelectorAll(".sidebar-child-item .bnd-sb-badge")) {
+					any = true;
+					const t = b.textContent.trim();
+					total += t === "99+" ? 99 : parseInt(t, 10) || 0;
+				}
+			}
+			if (!live || !closed || !any) {
+				if (chip) chip.remove();
+				continue;
+			}
+			if (!chip) {
+				chip = el("span", "bnd-sb-badge bnd-sb-rollup");
+				// The chevron's REAL parent — wrong-parent insertBefore threw silently.
+				if (drop) drop.parentNode.insertBefore(chip, drop);
+				else header.appendChild(chip);
+			}
+			chip.textContent = mode === "counts" && total ? (total > 99 ? "99+" : String(total)) : "";
+		}
 	}
 
 	function sb_teardown_aria() {

@@ -1577,6 +1577,12 @@ html[data-bnd-sb-width="5"] {
   --bnd-sb-w: 280px;
 }
 
+html[data-bnd-sb-color] .section-item .standard-sidebar-item .bnd-sb-rollup {
+  margin-inline-start: auto;
+  margin-inline-end: var(--bnd-sp-1);
+  flex: 0 0 auto;
+}
+
 html[data-bnd-sb-color] .bnd-sb-band {
   position: sticky;
   inset-block-end: 0;

@@ -5425,6 +5425,173 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: a collapsed section rolls its badges up, and expansion dissolves it", async () => {
+			// Item 40 slice 13, pick 1a. Collapse a busy section and its urgency
+			// used to vanish with it — the survey's named blindness. The header
+			// gains ONE summed chip in the same badge form the rows use, derived
+			// from the rows' own badges (no second fetch), and expansion
+			// dissolves it back into them.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_badges"]);
+			let toggled = null;
+			try {
+				setSettings({
+					sidebar_enabled: 1, sidebar_color: "Match Theme",
+					sidebar_menu_rail: "Always Expanded", sidebar_badges: "Counts",
+				});
+				// Badges land async and the aged shared browser can lose the
+				// fetch; STATE the premise by re-navigating once if it does —
+				// a fresh load re-mounts and refetches (measured: a fresh
+				// context always shows them).
+				for (let nav = 0; nav < 2; nav++) {
+					await goDesk("/app/stock", "body", 3000);
+					const got = await page.waitForFunction(
+						() => !!document.querySelector(".body-sidebar-top .section-item .sidebar-child-item .bnd-sb-badge"),
+						null, { timeout: 20000 }
+					).then(() => true).catch(() => false);
+					if (got) break;
+				}
+				const prem = await page.evaluate(() => {
+					const b = document.querySelector(".body-sidebar-top .section-item .sidebar-child-item .bnd-sb-badge");
+					if (!b) return null;
+					const sec = b.closest(".section-item");
+					sec.setAttribute("data-bnd-probe", "1");
+					let total = 0;
+					for (const x of sec.querySelectorAll(".sidebar-child-item .bnd-sb-badge")) {
+						const t = x.textContent.trim();
+						total += t === "99+" ? 99 : parseInt(t, 10) || 0;
+					}
+					const d = sec.querySelector(".drop-icon");
+					return { total, open: d && d.getAttribute("data-state") === "opened" };
+				});
+				expect(prem, "premise: a section on this desk holds a badged row");
+				expect(prem.total > 0, `premise: its badges sum to something (${prem && prem.total})`);
+
+				// Collapse THAT section through Frappe's own toggle.
+				if (prem.open) {
+					toggled = true;
+					await page.evaluate(() => {
+						document.querySelector('[data-bnd-probe] .standard-sidebar-item').click();
+					});
+				}
+				await page.waitForFunction(() => {
+					const chip = document.querySelector('[data-bnd-probe] .bnd-sb-rollup');
+					return chip && chip.textContent.trim();
+				}, null, { timeout: 8000 }).catch(() => {});
+				const rolled = await page.evaluate(() => {
+					const chip = document.querySelector('[data-bnd-probe] .bnd-sb-rollup');
+					return chip ? chip.textContent.trim() : null;
+				});
+				const want = prem.total > 99 ? "99+" : String(prem.total);
+				expectEq(rolled, want, `the collapsed header carries the SUM (${rolled}, rows held ${prem.total})`);
+
+				// Expansion dissolves it.
+				await page.evaluate(() => {
+					document.querySelector('[data-bnd-probe] .standard-sidebar-item').click();
+				});
+				toggled = false;
+				await page.waitForFunction(
+					() => !document.querySelector('[data-bnd-probe] .bnd-sb-rollup'),
+					null, { timeout: 8000 }
+				).catch(() => {});
+				const gone = await page.evaluate(() => !document.querySelector('[data-bnd-probe] .bnd-sb-rollup'));
+				expect(gone, "expanding dissolves the chip back into the rows");
+			} finally {
+				if (toggled) {
+					await page.evaluate(() => {
+						const h = document.querySelector('[data-bnd-probe] .standard-sidebar-item');
+						if (h) h.click();
+					}).catch(() => {});
+				}
+				await page.evaluate(() => {
+					const s2 = document.querySelector("[data-bnd-probe]");
+					if (s2) s2.removeAttribute("data-bnd-probe");
+				}).catch(() => {});
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: collapse-all folds every section in one click, through the vendor's own toggle", async () => {
+			// Slice 13, pick 2a: an item in the Place row's switcher — zero new
+			// chrome. Each fold delegates to Frappe's own per-section toggle, so
+			// per-workspace persistence rides the vendor's existing state and no
+			// second collapse mechanism is born (the exact defect the rail's two
+			// affordances just paid for).
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			let foldedNames = [];
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !!document.querySelector(".bnd-sb-head") && !!document.querySelector(".section-item .drop-icon"),
+					null, { timeout: 20000 }
+				);
+				// Sections REST COLLAPSED on this site (slice 7's measured fact),
+				// so the premise is STATED, never inherited: open the first two
+				// through the vendor's own toggle, and the finally puts every
+				// touched section back to closed.
+				foldedNames = await page.evaluate(() => {
+					const closed = [...document.querySelectorAll(".section-item")].filter(
+						(s2) => (s2.querySelector(".drop-icon") || {}).getAttribute &&
+							s2.querySelector(".drop-icon").getAttribute("data-state") !== "opened"
+					).slice(0, 2);
+					for (const s2 of closed) s2.querySelector(".standard-sidebar-item").click();
+					return closed.map((s2) => s2.getAttribute("item-name") || "");
+				});
+				await page.waitForFunction(
+					() => [...document.querySelectorAll(".section-item .drop-icon")].some(
+						(d) => d.getAttribute("data-state") === "opened"
+					),
+					null, { timeout: 8000 }
+				);
+				expect(foldedNames.length > 0, `premise stated: ${foldedNames.length} sections opened for the fold`);
+
+				await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
+				await page.waitForSelector(".bnd-menu", { timeout: 8000 });
+				const clicked = await page.evaluate(() => {
+					const item = [...document.querySelectorAll(".bnd-menu-item")].find((b) =>
+						/collapse all/i.test(b.textContent)
+					);
+					if (!item) return false;
+					item.click();
+					return true;
+				});
+				expect(clicked, "the switcher offers Collapse all sections");
+				await page.waitForFunction(
+					() => [...document.querySelectorAll(".section-item .drop-icon")].every(
+						(d) => d.getAttribute("data-state") !== "opened"
+					),
+					null, { timeout: 8000 }
+				).catch(() => {});
+				const state = await page.evaluate(() => ({
+					open: [...document.querySelectorAll(".section-item .drop-icon")].filter(
+						(d) => d.getAttribute("data-state") === "opened"
+					).length,
+					ariaWrong: [...document.querySelectorAll(".section-item .drop-icon")].filter(
+						(d) => d.getAttribute("aria-expanded") === "true"
+					).length,
+				}));
+				expectEq(state.open, 0, `one click folded every section (${state.open} still open)`);
+				expectEq(state.ariaWrong, 0, `and the spoken state followed (${state.ariaWrong} still say expanded)`);
+			} finally {
+				// The touched sections were CLOSED before the check; fold-all
+				// already returned them there, but a mid-check crash may not
+				// have — close any still open.
+				await page.evaluate((names) => {
+					for (const n of names) {
+						const sec = [...document.querySelectorAll(".section-item")].find(
+							(s2) => (s2.getAttribute("item-name") || "") === n
+						);
+						const d = sec && sec.querySelector(".drop-icon");
+						if (d && d.getAttribute("data-state") === "opened") {
+							const h = sec.querySelector(".standard-sidebar-item");
+							if (h) h.click();
+						}
+					}
+				}, foldedNames).catch(() => {});
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the place row is the pane's head, wherever the links are placed", async () => {
 			// THE DEFECT, MEASURED RATHER THAN PREDICTED. The plan expected the
 			// module row to strand at the TOP when the quick links moved to the

@@ -237,6 +237,17 @@ html[data-bnd-sb-width="3"] { --bnd-sb-w: 240px; }
 html[data-bnd-sb-width="4"] { --bnd-sb-w: 260px; }
 html[data-bnd-sb-width="5"] { --bnd-sb-w: 280px; }
 
+// ── The badge roll-up (item 40, slice 13 — the user's pick 1a) ──────────
+// A collapsed section's hidden badges sum into ONE chip on its header, in
+// the row badge's own form and tokens — no new colour pair for the gate.
+// It sits before the vendor's chevron; margin auto walks it to the end of
+// the header's run, and expansion removes the node rather than hiding it.
+html[data-bnd-sb-color] .section-item .standard-sidebar-item .bnd-sb-rollup {
+  margin-inline-start: auto;
+  margin-inline-end: var(--bnd-sp-1);
+  flex: 0 0 auto;
+}
+
 // ── The account band (item 40, 8c) ──────────────────────────────────────
 // The pane's foot is ONE toolbar of square cells, not a stack of rows.
 // Canonical order comes from the registry via data-bnd-part - never the

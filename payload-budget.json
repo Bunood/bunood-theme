@@ -43,6 +43,10 @@
 		"AND -> 105980 for slice 12: the pane becomes a navigation landmark named",
 		"by the place (one writer with the head label), and the vendor's section",
 		"disclosure state is mirrored into aria-expanded.",
+		"AND -> 106500 for slice 13, the user's two picks: the badge roll-up (a",
+		"collapsed section's hidden counts sum into one chip on its header,",
+		"derived from the rows - no second fetch) and collapse-all in the Place",
+		"row's switcher, every fold through the vendor's own toggle.",
 		"AND TO 102600 for slice 8d, drag-to-resize — the survey's clearest",
 		"differentiator (every product tool has it, no ERP surveyed does, and",
 		"Frappe's own .sidebar-resize-handle never resized anything): the pointer",
@@ -91,7 +95,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 22100,
-		"js_gzip": 106150,
+		"js_gzip": 106700,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

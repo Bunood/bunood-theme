@@ -5158,6 +5158,10 @@ msgid "Company"
 msgstr "الشركة"
 
 #, fuzzy
+msgid "Collapse all sections"
+msgstr "طيّ كل الأقسام"
+
+#, fuzzy
 msgid "Quick actions"
 msgstr "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø³Ø±ÙØ¹Ø©"
 
