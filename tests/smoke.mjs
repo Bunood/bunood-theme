@@ -4374,28 +4374,43 @@ async function main() {
 								expanded: c.classList.contains("expanded"),
 							};
 						});
-					const drag = async (dx) => {
+					// AIM AT THE PANE-SIDE THIRD, not the center: collapsed, the
+					// handle's outer half sits under .page-content (measured:
+					// hit area 45-49 of a 45-53 rect), and a center press whose
+					// +3px drift ends 1px from the edge is a coin toss under
+					// full-gate load. And POLL the class flip instead of trusting
+					// one 600ms tick — Frappe's toggle can land late on a busy
+					// machine, and a fixed sleep then reads the PREVIOUS state.
+					const drag = async (dx, expectFlip) => {
 						const h = await page.evaluate(() => {
 							const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
-							return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+							return { x: r.x + 2, y: r.y + r.height / 2 };
 						});
 						await page.mouse.move(h.x, h.y);
 						await page.mouse.down();
 						await page.mouse.move(h.x + dx, h.y, { steps: 4 });
 						await page.mouse.up();
-						await page.waitForTimeout(600);
+						if (expectFlip !== undefined) {
+							await page
+								.waitForFunction(
+									(want) => document.querySelector(".body-sidebar-container").classList.contains("expanded") === want,
+									expectFlip, { timeout: 5000 }
+								)
+								.catch(() => {}); // the expect() below carries the verdict
+						}
+						await page.waitForTimeout(400);
 					};
 
 					const a = await state();
 					expect(a.expanded, "the pane starts expanded (premise)");
-					await drag(3);
+					await drag(3, false);
 					const b = await state();
 					expect(!b.expanded, `3px of travel is a CLICK — Frappe's collapse fired (expanded=${b.expanded})`);
-					await drag(3); // toggle back open, same path
+					await drag(3, true); // toggle back open, same path
 					const c = await state();
 					expect(c.expanded, "and a second 3px press opens it again");
 
-					await drag(15);
+					await drag(15, undefined);
 					const d = await state();
 					expect(d.expanded, "15px of travel is a DRAG — the collapse must not fire");
 					expect(Math.abs(d.w - (c.w + 15)) <= 3,
