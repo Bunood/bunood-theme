@@ -180,13 +180,18 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   `bunood_theme.palette` and leaving `bunood_theme` cached hands back the OLD module and
   the file on disk is never read. `tools/sabotage_sidebar.py` does both; copy it rather
   than rediscovering either.
-- **Running a documented gate can damage the site.** `tools/sweep-settings.mjs` leaves
-  eleven `print_*` fields off their shipped defaults while printing "state restored", and
-  four unrelated checks then go red - the picker-drift check, both `shell:` change-dot
-  checks and a print rendering check - none of them naming the cause. Before assuming a red
-  suite is your change, **stash, redeploy and re-run at HEAD**; and after any sweep, diff
-  Theme Settings against `setup.SHIPPED`. The repair is a `doc.save()`, because
-  `set_single_value` does not fire `on_update`.
+- **Running a documented gate can damage the site — and the damage class is a ROW THAT
+  DID NOT EXIST.** `tools/sweep-settings.mjs` once left eleven `print_*` fields off
+  their shipped defaults while printing "state restored": a Single field never yet
+  written has NO tabSingles row, the snapshot cannot carry it, the sweep's click
+  CREATES the row, and a restore that loops snapshot keys leaves the click behind.
+  Four unrelated checks then went red with none naming the cause. FIXED 2026-08-31:
+  the restore deletes sweep-created rows, fires `on_update` once, and diffs itself
+  against the snapshot - it refuses to say "restored" over a non-empty diff, and
+  prints the doc.save() repair recipe instead (`set_single_value` fires no hooks).
+  The standing advice survives the fix: before assuming a red suite is your change,
+  **stash, redeploy and re-run at HEAD**; after any sweep, diff Theme Settings
+  against `setup.SHIPPED`.
 - **Deleting a stored name does not delete the need for the identity.** `desk_layout`
   went, and two runtime call sites still had to know the shape - so it is DERIVED by
   comparison (`presets.layout_of`), server-side, against the one catalogue. Two things
