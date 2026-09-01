@@ -65,6 +65,21 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   on/off vs placement, declared reserve vs measured chrome, preset name vs values.
   Fix: make the second copy impossible, or derive it. The sidebar picker's label is
   derived by comparing 23 values — pinning the *name* pins nothing.
+- **Sizing the CONTAINER while the vendor sizes the CONTENT.** Item 40's width
+  control set `--bnd-sb-w` on `.body-sidebar-container`; Frappe sizes the pane
+  inside it from `--sidebar-width` (their variable, default 220px) in their own
+  rule. Every stop but 220 therefore rendered TWO boxes with different widths —
+  at 240 the pane's wash stopped 20px short and the container's paint showed
+  past it as a second layer; at 200 the pane OVERFLOWED its container; and a
+  drag widened the GAP, not the pane. Six checks measured the container and all
+  six were right about it. **A user's eyes found this, not the suite**, which is
+  the tell: when a control governs a box, assert the CHILD it is supposed to
+  move, not only the box you set. The fix is to feed the vendor's variable
+  (`_bridge.scss` is where their names live), never to fight it with a second
+  width — and it must be declared on the element where the runtime's inline
+  custom property is in scope, because substitution happens where a property is
+  DECLARED: on `html` it would freeze at the stop and the drag would move
+  nothing.
 - **Selecting by class measures the wrong element.** The badge is not the bell; the
   field is not search-in-any-form; the first `.bnd-cbp-opt` on the page is not the one
   in your group. Query by `data-bnd-part`, and scope to a root.

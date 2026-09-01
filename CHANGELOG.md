@@ -628,16 +628,15 @@ holding the old value — the same trap the quick links found, two fields over.
 
 ### Known, and filed rather than fixed
 
-- `tools/sweep-settings.mjs` leaves eleven `print_*` fields off their shipped defaults
-  while printing "state restored", which turns four unrelated checks red with no
-  indication of the cause.
 - On the **brand** pane, Glass renders exactly as Solid: a gradient cannot go through
   `color-mix`, and the fallback its comment promised was never built. Two options, one
   pixel — recorded here rather than repaired, because the fix is a derivation change.
-- `bunood_theme/locale/ar.po` carries roughly 52 entries the extractor no longer emits,
-  left by items 36–38. Not reaped in bulk: several are preset NAMES translated at
-  runtime from data, invisible to a static extractor and very much alive, and
-  `npm run i18n:check` measures coverage in one direction only.
+
+  *(The two entries that stood beside this one are FIXED, not filed: the sweep's
+  print-field damage — the restore now deletes rows the sweep created, fires
+  `on_update`, and refuses to say "restored" over a non-empty diff — and the dead
+  `ar.po` rows, 39 of which were reaped with a per-row decision while the ten that
+  reach `__()` as runtime data were deliberately kept.)*
 
 ## [0.38.0] — 2026-08-29 — Per-user preferences (item 38)
 

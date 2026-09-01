@@ -4352,6 +4352,77 @@ async function main() {
 			}
 		};
 
+		await test("resize: the PANE fills its container — not just the container", async () => {
+			// THE DEFECT THE USER SAW AND EVERY CHECK MISSED (2026-09-01).
+			// Frappe sizes the inner pane from ITS OWN variable —
+			// `.body-sidebar-container.expanded .body-sidebar { width:
+			// var(--sidebar-width) }`, default 220px — while our width control
+			// sizes the CONTAINER through --bnd-sb-w. At any stop but 220 the two
+			// disagree: the container paints the pane wash at its width, the pane
+			// paints at 220, and the difference shows as a second layer along the
+			// inline end. A drag made it worse, widening the GAP rather than the
+			// pane (measured: container 240 -> 280, pane 220 throughout).
+			//
+			// Every earlier width check read `.body-sidebar-container`, which was
+			// always right — this repo's own "selecting by class measures the
+			// wrong element" trap, from the inside. Measure BOTH, always.
+			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_pane_width"]);
+			try {
+				benchPy(
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` +
+						`frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`
+				);
+				for (const [stop, px] of [["1", 200], ["5", 280]]) {
+					setSettings({
+						sidebar_enabled: 1, sidebar_color: "Match Theme",
+						sidebar_menu_rail: "Always Expanded", sidebar_pane_width: stop,
+					});
+					await goDesk("/app/selling", "body", 3000);
+					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+					await sbEnsureExpanded();
+					const m = await page.evaluate(() => ({
+						container: Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width),
+						pane: Math.round(document.querySelector(".body-sidebar").getBoundingClientRect().width),
+					}));
+					expectEq(m.container, px, `stop ${stop} sizes the container (${m.container})`);
+					expect(Math.abs(m.pane - m.container) <= 1,
+						`and the PANE fills it — no second layer along the edge (pane ${m.pane}, container ${m.container})`);
+				}
+
+				// And a drag moves both edges together, not just the outer one.
+				const h = await page.evaluate(() => {
+					const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+					return { x: r.x + 2, y: r.y + r.height / 2 };
+				});
+				await page.mouse.move(h.x, h.y);
+				await page.mouse.down();
+				await page.mouse.move(h.x - 40, h.y, { steps: 6 });
+				await page.mouse.up();
+				await page.waitForTimeout(700);
+				const after = await page.evaluate(() => ({
+					container: Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width),
+					pane: Math.round(document.querySelector(".body-sidebar").getBoundingClientRect().width),
+				}));
+				expect(after.container < 280, `the drag narrowed the container (${after.container})`);
+				expect(Math.abs(after.pane - after.container) <= 1,
+					`and the pane came with it (pane ${after.pane}, container ${after.container})`);
+			} finally {
+				benchPy(
+					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
+` +
+						`frappe.cache.hdel("bootinfo", "Administrator")
+frappe.db.commit()
+print("ok")
+`
+				);
+				setSettings(before);
+			}
+		});
+
 		await test("resize: 3px is a click, 5px is a drag — the latch, both directions", async () => {
 			// THE DISCRIMINATOR IS MOVEMENT, NEVER TIME. Frappe's own
 			// `.sidebar-resize-handle` is click-to-toggle; our drag rides the
@@ -4620,8 +4691,23 @@ print("ok")
 						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
 					expectEq(w1, w0, `Escape mid-drag restores the pre-drag width (${w0} -> ${w1})`);
 
-					// And the very next plain click still collapses.
-					await page.mouse.move(h.x, h.y);
+					// And the very next plain click still collapses. RE-LOCATE the
+					// handle: it rides the pane's inline end, and since the pane
+					// actually follows the container's width (the 2026-09-01
+					// repair) it MOVES with every drag. The cached `h` above was
+					// only ever valid because the pane used to be stuck at 220
+					// whatever the container did — a stale coordinate that hit by
+					// accident, and stopped hitting the moment the bug was fixed.
+					const h2 = await page.evaluate(() => {
+						const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+						return { x: r.x + 2, y: r.y + r.height / 2 };
+					});
+					const onHandle = await page.evaluate(({ x, y }) => {
+						const el = document.elementFromPoint(x, y);
+						return !!(el && el.closest(".sidebar-resize-handle"));
+					}, h2);
+					expect(onHandle, `the click lands ON the handle (${JSON.stringify(h2)})`);
+					await page.mouse.move(h2.x, h2.y);
 					await page.mouse.down();
 					await page.mouse.up();
 					await page.waitForTimeout(600);

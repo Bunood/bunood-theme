@@ -360,6 +360,10 @@ html[data-theme=dark] {
     --icon-fill: transparent;
   }
 }
+html[data-bnd-sb-menurail=expanded]:not([data-bnd-narrow]) .body-sidebar-container {
+  --sidebar-width: var(--bnd-sb-w);
+}
+
 html:lang(ar) body,
 html:lang(fa) body,
 html:lang(ps) body,
