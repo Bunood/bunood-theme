@@ -1475,7 +1475,21 @@ than a version number that would describe two different things.
   **The picked design's last two features are in** — the badge roll-up (1a)
   and collapse-all in the switcher (2a), both placed by the user from drawn
   options, both riding machinery earlier slices built. The thirteen slices
-  are all landed; the release gauntlet and the v0.40.0 tag are what remain.
+  are all landed.
+
+  **And the colour phase was then REMOVED, at the user's direction
+  (2026-09-01).** After two rounds of visual repair the instruction was
+  plain: *"just remove it and have colors only come from the presets."* So
+  `sidebar_color`'s four worlds are gone and the pane aliases the global
+  palette, which makes it follow a tenant's brand, accent and ground in
+  light, dark and automatic by construction rather than by a second
+  derivation kept in step. The item's own colour slices (1b, 2, 3, 4) are
+  superseded; what survives of them is `palette.sb_hues()`, because the
+  pane's category hues are INK and the global `--bnd-cat-*` are FILLS, and
+  aliasing across that role measures 1.82:1. The gate is 9,184 pairs, down
+  from 10,556, and not weaker: the pane's tokens ARE the global tokens the
+  sweep already walks. The release gauntlet and the v0.40.0 tag are what
+  remain.
 
 ---
 

@@ -444,7 +444,6 @@ def extend_bootinfo(bootinfo):
         bootinfo.bnd_sidebar = {
             "placement": get("sidebar_placement"),
             "material": get("sidebar_material"),
-            "color": get("sidebar_color"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset
             # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",

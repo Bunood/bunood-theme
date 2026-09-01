@@ -67,8 +67,35 @@ the vendor's disclosure state mirrored into aria-expanded); SLICE 13 DONE —
 badge roll-up (1a) + collapse-all in the switcher (2a), the user's picks.
 ALL THIRTEEN SLICES BUILT; the release gauntlet + v0.40.0 tag remain.**
 The double render this item was opened for is CLOSED and asserted as a rendered
-outcome — visible header rows counted across four colour modes plus rail and
-floating, not just the ownership token.
+outcome — visible header rows counted across placement and rail, not just the
+ownership token.
+
+**AND THEN THE COLOUR PHASE WAS REMOVED, 2026-09-01, BY THE USER.** After two
+rounds of repair they said it plainly: *"just remove it and have colors only come
+from the presets."* So `sidebar_color`'s four worlds are gone and the pane aliases
+the global palette — `--bnd-sb-bg: var(--bnd-pane)` and six siblings — which means
+it follows a tenant's brand, accent and ground in all three colour modes by
+construction. **Do not rebuild a pane palette.** What that cost and taught:
+
+- **One token could not alias, and finding out took a measurement.** `--bnd-sb-hue`
+  is read as `color:`, so the pane's category hues are INK; the global `--bnd-cat-*`
+  are FILLS. Aliasing them measures 1.82:1 for amber text on a light pane, 282 of 378
+  pairs failing. They stay derived by `palette.sb_hues()`, declared per polarity plus
+  the automatic arm, and `check_sidebar_hues` is the drift check.
+- **Removing the `:not()` guards broke the reduced-transparency degradation**, and
+  the check that made it look safe (both sides of the pair dropped together) was true
+  and insufficient — the competitor is the RAIL arm at (0,4,1), 250 lines away. See
+  CLAUDE.md trap (c). The expanded case passes either way.
+- **`--bnd-brand-solid` moved on five of 54 palettes**, all pathological seeds, four
+  of them repairs (a black seed derived `#646464`, now `#111111`). The shipped seed
+  is not among them, so `_tokens.scss` did not need regenerating — but check that
+  before touching `SB_PANES` again.
+- **The gate lost 647 lines and 1,372 pairs and is not weaker**: the pane's tokens
+  ARE global tokens now, already swept at 27 seeds x 2 modes. Only the chip is
+  genuinely new coverage, because the pane derives it rather than aliasing it.
+- `palette.sidebar_ramp`, `sb_blocks`, `SB_WORKING_SET`, `SB_STOPS`, `SB_LIFTS`,
+  `sb_pane_css`, the emission ceiling and `tools/sabotage_sidebar.py` are deleted.
+  `brand.py` no longer emits a sidebar block.
 Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
 · `373e183` · `a592285` · `9598a12` · `0566c1e` · `71e73b9` · `d04a780` · `76b2cae`
 · `845eb44` · `40ced44` · `19465ab` · `b17118b`. The plan lives at
@@ -2223,6 +2250,47 @@ docker exec bunood-backend-1 bash -lc 'cd /home/frappe/frappe-bench && bench --s
 Get the authoritative order from the database, never from memory —
 `frappe.get_installed_apps()` is the list, and we sit 3rd of ten (which the
 translation merge order depends on).
+
+**The third sharp edge — `localhost` is IPv6, and its relay dies** (hit
+2026-09-01). A full run died from check ~140 onward with
+`net::ERR_CONNECTION_RESET` while `docker ps` showed every container healthy
+and the backend at 25% of its memory cap. It was neither the app, nor memory,
+nor the empty mount above. Measured:
+
+| address | result |
+|---|---|
+| `http://127.0.0.1:8080/login` | **200** |
+| `http://[::1]:8080/login` | 000 |
+| `http://localhost:8080/login` | 000 |
+| `http://frontend:8080/login` (inside the docker network) | **200** |
+
+`netstat -ano | grep :8080` names the culprit — **two different PIDs**:
+`com.docker.backend.exe` holds `0.0.0.0:8080` and `[::]:8080` and works, while
+`C:\Program Files\WSL\wslrelay.exe` holds `[::1]:8080` in `CLOSE_WAIT`.
+Windows resolves `localhost` to `::1` first, so every request reaches the dead
+relay. **Restarting the frontend container does not fix it** — the relay is
+above the container.
+
+The fix touches no file, because `tools/session.mjs:37` already reads the
+override:
+
+```bash
+BND_URL=http://127.0.0.1:8080 npm run deploy && BND_URL=http://127.0.0.1:8080 npm run verify
+```
+
+**`npm run deploy` prints the tell BEFORE the suite ever fails**: `wsl.exe exec
+is down` with `Error code: Wsl/Service/0x8007274c`. When that line appears,
+expect the relay to be dead too. Do NOT reach for a Docker Desktop or
+`wsl --shutdown` restart to chase it — both are disruptive, and a second
+assistant session may be mid-run on this same stack.
+
+**And a killed run leaves the site mid-walk, which reads as a code regression.**
+Aborting that run stranded `tagline`, a violet `brand_color`, a set
+`ground_color` and four layout fields off `setup.SHIPPED` — so the restarted
+gate failed the branding-hygiene check and would have failed a dozen more for
+reasons that were never the code. After any aborted run, restore before
+re-running, and clear `ground_color` EXPLICITLY: `setup.SHIPPED` has no key for
+it, so a loop over that dict never clears one.
 
 **Diagnostic worth keeping: a `tools/fingerprint.mjs` timeout on
 `.bnd-dgm-slot` can mean "the settings page did not render AT ALL", not the

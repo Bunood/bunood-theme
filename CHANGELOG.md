@@ -626,6 +626,93 @@ holding the old value — the same trap the quick links found, two fields over.
   per-section toggle — persistence rides the vendor's state and no second
   collapse mechanism is born.
 
+### Removed — the pane's colour system, at the user's direction
+
+**The `sidebar_color` picker is gone, and the pane takes the theme's palette.**
+This reverses the colour work earlier in this item, and it is the user's call after
+watching two attempts to make four hand-authored colour worlds follow a tenant's
+seed: *"just remove it and have colors only come from the presets."*
+
+- **Four worlds became one alias block.** Match Theme, Minimal, Dark Contrast and
+  Brand each declared the pane's whole working set. They are replaced by
+  `--bnd-sb-bg: var(--bnd-pane)` and its six siblings, so the pane follows a site's
+  brand, accent and ground in light, dark and automatic *by construction* — there is
+  no second derivation left to drift. **210 lines out of `_sidebar.scss`, 85 in.**
+- **Three of the eight looks change on screen, and this is the upgrade note.**
+  Five already used Match Theme, so their panes are unaffected. `Ink` and
+  `Workbench` used Minimal, and **`Carbon` used Dark Contrast — a dark pane on a
+  light desk** — and all three now take the theme's pane like everything else. The
+  eight looks remain pairwise distinct (they differ on other axes), so no two
+  collapse into one, but a site on those three will see a different sidebar.
+- **The one thing that could not alias, and why.** `--bnd-sb-hue` is read as `color:`
+  in six rules, so the pane's category hues are INK; the global `--bnd-cat-*` are
+  FILLS. Pointing one at the other measured **1.82:1** for amber text on a light pane,
+  with 282 of 378 pairs failing. They stay derived by `palette.sb_hues()` and are
+  declared per polarity plus the automatic arm, pinned by a new drift check.
+- **The per-site emission went with them.** `brand.py` computed a sidebar block
+  because a ground-tinted pane had no static form — there is no `--bnd-ground` token.
+  The pane now reads `--bnd-pane`, which that sheet has always emitted, so the tint
+  arrives by the path that was always there. `palette.sidebar_ramp`, `sb_blocks`,
+  `SB_WORKING_SET`, `SB_STOPS` and the emission ceiling are deleted with it.
+- **`--bnd-brand-solid` gets its seed back on five palettes.** The sidebar's
+  non-global panes were constraints on the brand fill; with them gone the constraint
+  is satisfied by `--bnd-pane` already being a surface. Five of 54 values move, all at
+  pathological seeds, all still above 3:1 — and four are repairs: a black seed derived
+  `#646464` because the fill was lifted to clear a pane nobody renders, and now
+  derives `#111111` (5.01:1 → 15.98:1). The shipped seed is not among them, so
+  `_tokens.scss` is unchanged.
+
+### Fixed — two defects the removal created, both measured
+
+- **A dropped `:not()` was carrying specificity, not meaning.** With the brand pane
+  gone, `:not([data-bnd-sb-color="brand"])` on the reduced-transparency arms read as
+  dead weight — and both sides of the pair were dropped together, which is the check
+  that makes it look safe. The rule they must actually beat is a third one 250 lines
+  away: the rail's translucency arm at (0,4,1), against arms that had just fallen to
+  (0,3,1). That loses the background and wins only the blur: a pane translucent at alpha 0.85
+  with its frosting removed, the one combination the degradation exists to prevent.
+  Re-weighted with `[data-bnd-sb-color]`, which is always present and is there purely
+  as weight. **The rail case is what catches it; expanded passes either way** — so the
+  glass test now walks both.
+- **The console-error allowlist was coupled to one spelling of the base URL.** It
+  carried a literal `localhost` for an error its own comment already calls
+  environmental — Frappe absolutises the email preview's asset URL and drops a
+  non-default port. Run the suite through the `BND_URL` override that
+  `tools/session.mjs` has always supported and the same known non-defect reports
+  as an unexpected console error. The pattern now matches a *port-less host*,
+  which is what the comment always meant.
+- **A drift check that read the first of two identical selectors.** Two blocks carry
+  `html[data-bnd-sb-color]`; `re.search` found the alias block, which declares no
+  hues, and reported seven false drifts against correct code. It merges every matching
+  block now, because that is what the cascade does.
+
+### Changed — the gate and the suite stop measuring four panes
+
+- `tools/contrast_gate.py` loses **647 lines**: six sidebar arms become one
+  `check_sidebar_hues`, because the rest of the pane's tokens are global tokens the
+  sweep already walks at every seed. What is genuinely uncovered is the chip — the
+  pane *derives* it rather than aliasing it — so that pair gets rows of its own.
+  Watched failing both ways: a re-stepped hue names the token and both values.
+- The pill's fill on its pane **becomes enforced**. It was measured-not-enforced
+  because two panes read ~1.06:1 and 1.00:1 at pathological seeds; both were
+  properties of panes that no longer exist. Worst of 54 against the real pane: 3.04:1.
+- **9,184 pairs**, down from 10,556, and every one passes.
+- The suite drops `sidebar_color` entirely (32 writes that set a colour that no longer
+  exists, plus the stale `SLUG`/`ATTR_OF` mirror rows). Three tests that walked the
+  four modes now walk an axis that still varies; `tools/sabotage_sidebar.py` is
+  deleted with the five checks it existed to prove.
+- **The live-preview test found a restore it never had.** It ended by setting
+  `sidebar_color`, which put back nothing it had changed. Its new subject is
+  `sidebar_placement` — deliberately not `sidebar_material`, because headless Chromium
+  reports `prefers-reduced-transparency: reduce` and Glass therefore *correctly*
+  renders as Solid.
+
+**`sidebar_color` survives as a doctype field and as the attribute the kit stamps to
+say "our decoration is on this pane"** — 76 rules and `sb_active()` key on its
+presence, which is a different question from what colour it carries. Its value is now
+a constant. The field is left in the doctype deliberately: deleting a Select from a
+Single is the change that made six unrelated saves fail validation once.
+
 ### Known, and filed rather than fixed
 
 **Nothing.** All three entries this item filed are now fixed, the last two after a

@@ -341,30 +341,6 @@ SB_HUE_SEEDS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00
 #: and painted #6d7570 on #15181a — 3.76:1 against a 4.5 floor. A sentence in
 #: a comment is not a contract; this tuple is, and `check_sidebar_coverage`
 #: enforces it.
-SB_WORKING_SET = (
-    *[f"--bnd-sb-cat-{n}" for n in range(1, 8)],
-    "--bnd-sb-bg",
-    "--bnd-sb-ink",
-    "--bnd-sb-ink-muted",
-    "--bnd-sb-line",
-    "--bnd-sb-chip-bg",
-    "--bnd-sb-chip-ink",
-    "--bnd-sb-card-base",
-)
-
-#: Tokens one named mode may declare BEYOND the working set, with the reason.
-#: A shrink-enforced allowlist, the same shape as the field-naming exceptions:
-#: an unclassified `--bnd-sb-*` is a coverage failure, not a silent pass.
-SB_EXTRAS = {
-    "brand": {
-        # The gradient pane stands the fitted hues down, so the active pill
-        # needs its own fixed pair — see the block's comment in _sidebar.scss.
-        "--bnd-sb-brand-pill": "the brand pane's stand-down pill fill",
-        "--bnd-sb-brand-pill-ink": "the brand pane's stand-down pill label",
-    },
-}
-
-
 class SidebarPane(NamedTuple):
     """One colour mode's pane: how it is built, and what to call it in a report."""
 
@@ -454,44 +430,23 @@ class SidebarPane(NamedTuple):
 #: statement pane, not a stand-down, so it stays `("brand", …)` — but note that
 #: it therefore ignores the ground entirely, which is a question this slice did
 #: not open. Recorded so the next reader knows it was seen, not missed.
+#: The pane a sidebar hue has to be legible on.
+#:
+#: WAS FOUR PANES PER POLARITY, and the shrink is the whole of item 40's colour
+#: decision: the kit used to carry Match Theme, Minimal, Dark Contrast and Brand
+#: as separate colour worlds, each with its own hand-authored working set. They
+#: are gone -- the pane takes the theme's palette now -- and what is left is the
+#: one they all should have been: `--bnd-pane`, which `derive` already produces
+#: per site and per polarity.
+#:
+#: IT IS STILL A MAP RATHER THAN A CONSTANT because two fits read it and both
+#: need the polarity split: `_sb_binding_bg` walks it for the hardest pane a hue
+#: must clear, and it is the shape `fit_ink`'s straddle precondition is
+#: satisfied by -- light panes and dark panes must never be fitted together.
 SB_PANES = {
-    "light": {
-        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane", themed=True),
-        # 0%, AND THE REASON IS NOW THE STRONGER ONE. Slice 2 refused a tint
-        # here because the light ink had 0.07:1 of margin -- an objection that
-        # `sidebar_ramp` dissolved, since fitting the ink against the tinted
-        # pane measures 5.2:1. So it was tried, at 5%, on 2026-09-01. It fails
-        # for a better reason: Match Theme's light pane is the ground at 8%
-        # into #ffffff, and Minimal at 5% into #fafbfa lands 1.005:1 from it --
-        # visually the same pane. Two picker options, one pixel.
-        #
-        # WHAT MINIMAL IS FOR. It is the mode that does NOT take the site's
-        # tint; "Match Theme" is the one that does, and they are offered side
-        # by side. A Minimal that follows the ground is not a Minimal that
-        # works better -- it is Match Theme under a second name. So the pane
-        # stays neutral and its ink, line, chip and card still derive FROM it,
-        # which is the part that was genuinely broken.
-        "minimal": SidebarPane(("literal", "#fafbfa"), "minimal pane", themed=True),
-    },
-    "dark": {
-        "theme": SidebarPane(("alias", "--bnd-pane"), "match-theme pane", themed=True),
-        "minimal": SidebarPane(("ground", 5, "#15181a"), "minimal pane, dark desk", themed=True),
-        # Dark in both desk themes, hence its presence only here — and hence
-        # `themed=False`: it has ONE block, not a light one and a dark one.
-        "dark": SidebarPane(("brand", 10, "#131a15"), "dark-contrast pane", themed=False),
-    },
+    "light": {"theme": SidebarPane(("alias", "--bnd-pane"), "pane", themed=True)},
+    "dark": {"theme": SidebarPane(("alias", "--bnd-pane"), "pane, dark desk", themed=True)},
 }
-
-#: Modes whose pane cannot be measured, with the reason. `check_sidebar_binding`
-#: reads this: a mode is either in :data:`SB_PANES` or here, never neither.
-SB_UNMEASURABLE = {
-    "brand": "a linear-gradient — no fixed hue can be fitted to an arbitrary-seed gradient, "
-             "so the hues stand down on this pane and the gate measures its two stops instead",
-}
-
-#: The brand pane's two gradient stops, as ``(pct, base)`` into the seed.
-SB_STOPS = ((96, "#ffffff"), (72, "#000000"))
-
 
 def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | None = None) -> str:
     """One pane as the concrete hex a SITE renders.
@@ -516,29 +471,6 @@ def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | No
                 # this app never paints.
                 return mix(ground or brand, pct, base)
         raise ValueError(f"unknown surface alias {pane.recipe[1]}")
-    raise ValueError(f"unknown pane recipe {pane.recipe!r}")
-
-
-def sb_pane_css(pane: SidebarPane) -> str:
-    """One pane as the CSS expression the STATIC stylesheet declares.
-
-    This is the FALLBACK floor, not the site's answer: it is what renders when
-    the per-site brand sheet is missing, and it is what `check_sidebar_agrees`
-    holds `_sidebar.scss` to. A ``("ground", …)`` pane has no static form at
-    all — there is no `--bnd-ground` token, because the ground is an input to
-    the derivation and not an output of it — so it declares its base, which is
-    also exactly what a site with no ground renders. One value, two correct
-    readings, which is why the recipe can carry both.
-    """
-    kind = pane.recipe[0]
-    if kind == "literal":
-        return pane.recipe[1]
-    if kind == "ground":
-        return pane.recipe[2]
-    if kind == "alias":
-        return f"var({pane.recipe[1]})"
-    if kind == "brand":
-        return f"color-mix(in srgb, var(--bnd-brand) {pane.recipe[1]}%, {pane.recipe[2]})"
     raise ValueError(f"unknown pane recipe {pane.recipe!r}")
 
 
@@ -589,243 +521,6 @@ def sb_hues(polarity: str) -> list[str]:
     return [fit_ink(h, [bg], target=SB_TARGET_HUE)[0] for h in seeds]
 
 
-#: A hard ceiling on the bytes :func:`sb_blocks` adds to a site's stylesheet.
-#:
-#: The per-site sheet is fetched by EVERY authenticated desk page and is measured
-#: by nothing: `tools/payload.mjs` scans `public/dist` and this file is written to
-#: the site's own `public/files`. That gap is older and wider than this slice, and
-#: closing it properly means `render_brand_css` running without Frappe, which it
-#: cannot — `bunood_theme.context` imports Frappe for the auth and web class maps.
-#:
-#: So this bounds the part item 40 is adding, in the place that CAN measure it:
-#: `sb_blocks` is Frappe-free by construction, and `check_sidebar_emission_size`
-#: in `tools/contrast_gate.py` renders it at the worst case and holds it here.
-#: Raising this number is a decision, in the same commit, with the reason.
-#:
-#: 280 against a measured 213 for the one declaration item 40 emits. Tight
-#: on purpose: a hex is always seven characters, so 213 is not a sample of a
-#: range, it IS the size. The headroom covers a longer mode name and nothing
-#: else — a SECOND emitted pane roughly doubles it and has to raise this
-#: number in its own commit, which is the conversation that should happen.
-#: RAISED 280 -> 1600 on 2026-09-01, and the reason is the whole point of
-#: the ceiling. At 280 this emitted ONE token (`--bnd-sb-bg`) for the one
-#: recipe kind that could move, which is why a tenant's seed reached their
-#: pane background and nothing else -- their cards stayed #ffffff and their
-#: inks stayed the shipped literals. `sidebar_ramp` derives the whole
-#: working set, so a tinted site now emits ~1.1-1.4KB: five panes x the
-#: tokens that actually moved, plus the automatic twins. A site on the
-#: shipped seed still emits NOTHING, which is the property worth keeping.
-SB_EMIT_CEILING = 1600
-
-#: Recipe kinds whose STATIC form already follows the site, so a per-site block
-#: would only restate what the bundle can express:
-#:
-#:   ``literal``  a fixed colour; there is nothing site-dependent to say.
-#:   ``alias``    `var(--bnd-pane)` follows whatever `brand.py` emits for that
-#:                token, so pinning a hex here would BREAK the alias.
-#:   ``brand``    `color-mix(in srgb, var(--bnd-brand) N%, base)` is live and
-#:                already follows the seed.
-#:
-#: Only ``ground`` is left, and only because there is no `--bnd-ground` token: the
-#: ground is an input to the derivation, not an output of it, so no static rule
-#: can name it. That is the whole reason this emitter exists.
-SB_SELF_SUFFICIENT = ("literal", "alias", "brand")
-
-
-#: How each derived surface stands off the pane it sits on, per polarity.
-#:
-#: These are written as PERCENTAGES INTO THE PANE rather than as hexes because
-#: that is what makes the pane follow a tenant's theme: change the ground and
-#: every surface moves with it, keeping the same relationships. The card lifts
-#: toward white in BOTH polarities -- a raised surface is lighter than its
-#: ground either way -- which is why there is one lift colour and two
-#: percentages rather than two colours. 55% in light is what keeps a section
-#: card reading as a card against an 8%-tinted pane; 8% in dark is the same
-#: step in a range with far less room above it.
-SB_LIFTS = {
-    "light": {"card": 55, "chip": 7, "line": 9},
-    # LINE > CARD in dark, and the gap is the point: at 8/8 the hairline and
-    # the card surface resolved to the SAME hex, so a card had a border
-    # nobody could see. A line must stand off the surface it separates.
-    "dark": {"card": 8, "chip": 6, "line": 16},
-}
-
-#: The ink each polarity's surfaces are read with, before fitting.
-#: The seed the SHIPPED stylesheet was generated at.
-#:
-#: A second copy of `setup.SHIPPED["brand_color"]`, and it is here rather
-#: than imported because this module is deliberately Frappe-free -- the gate
-#: runs it with no site. `check_shipped_seed_agrees` holds the two together,
-#: which is the same bargain SLUG/ATTR_OF makes: two copies, one guard, and
-#: disagreement is loud rather than silent.
-#:
-#: What it is FOR: `sb_blocks` emits only what a site's derivation moves
-#: AWAY from this, so a tenant on the shipped seed needs nothing emitted and
-#: their brand sheet stays exactly the size it is today.
-SHIPPED_SEED = "#3d8150"
-
-SB_INK_SEED = {"light": "#16181d", "dark": "#ffffff"}
-SB_MUTED_SEED = {"light": "#6b7280", "dark": "#9aa1ab"}
-
-
-def sidebar_ramp(
-    mode: str, polarity: str, brand: str, ground: str | None = None
-) -> dict[str, str]:
-    """One colour mode's COMPLETE working set, derived rather than authored.
-
-    This is the function item 40 planned and only half-built: slices 1b-4 moved
-    ``--bnd-sb-bg`` into the derivation and left the rest as literals in
-    ``_sidebar.scss``, so a tenant who set a violet seed got a violet desk and
-    the shipped demo's pane. Measured 2026-09-01, after a user reported it from
-    the desk: 42 hex literals in that stylesheet against 0-3 in every other
-    chrome kit, and 66% of the pane's colour declarations hand-authored.
-
-    WHY THE SURFACES DERIVE FROM THE PANE AND THE INKS FROM THE SURFACES, in
-    that order. The pane is the only thing a mode really chooses (:data:`SB_PANES`);
-    everything else is a RELATIONSHIP to it, so expressing those as offsets is
-    what lets one recipe serve every seed. And the inks are FITTED against the
-    surfaces they land on rather than authored beside them, which is not
-    tidiness -- it is what makes tinting possible at all. Light Minimal could
-    not be tinted while its muted ink was the literal ``#6d7570``, because that
-    pairing measures 4.57:1 against a 4.5 floor and the worst named ground
-    crossed it at 1.36% (slice 2 measured exactly this and correctly refused).
-    Fitted, the same pane yields 5.2:1 and the constraint is simply not there.
-
-    THE CATEGORY HUES DO NOT MOVE WITH THE SEED, deliberately, and they are the
-    one part of this set that stays authored: :func:`sb_hues` fits them against
-    the polarity's panes for the same reason :data:`SERIES_HUES` and
-    :data:`STATUS_HUES` are brand-independent -- a module keeps its hue on every
-    site, so screenshots and muscle memory transfer. Following the seed would
-    also break the assign-once-per-entity contract ``_tokens.scss`` carries.
-
-    Args:
-        mode: an :data:`SB_PANES` key -- ``theme``, ``minimal`` or ``dark``.
-        polarity: the PANE's polarity, not the desk's.
-        brand: the seed this site paints with.
-        ground: the tenant's ground, or ``None`` when they set none.
-
-    Returns:
-        Every name in :data:`SB_WORKING_SET`, as concrete values.
-    """
-    pane = SB_PANES[polarity][mode]
-    bg = sb_pane_value(pane, brand, polarity, ground=ground)
-    lift = SB_LIFTS[polarity]
-    ink_seed = SB_INK_SEED[polarity]
-
-    card = mix("#ffffff", lift["card"], bg)
-    chip = mix(ink_seed, lift["chip"], bg)
-    line = mix(ink_seed, lift["line"], bg)
-
-    # The inks clear their floor on EVERY surface they are read on, not just
-    # the pane: a muted label sits on the pane, inside a chip and on a card, and
-    # fitting against one of the three is how a pane passes its own gate and
-    # fails in a card. `fit_ink`'s docstring warns that backgrounds must not
-    # STRADDLE the ink; these three never do, because all three are the same
-    # pane displaced by a few percent.
-    reads_on = [bg, card, chip]
-    ink, _ = fit_ink(ink_seed, reads_on, target=AA_TEXT)
-    muted, _ = fit_ink(SB_MUTED_SEED[polarity], reads_on, target=AA_TEXT)
-
-    out = {
-        "--bnd-sb-bg": bg,
-        "--bnd-sb-ink": ink,
-        "--bnd-sb-ink-muted": muted,
-        "--bnd-sb-line": line,
-        "--bnd-sb-chip-bg": chip,
-        "--bnd-sb-chip-ink": muted,
-        "--bnd-sb-card-base": card,
-    }
-    for i, hue in enumerate(sb_hues(polarity), 1):
-        out[f"--bnd-sb-cat-{i}"] = hue
-    missing = [t for t in SB_WORKING_SET if t not in out]
-    if missing:
-        raise ValueError(f"sidebar_ramp does not derive {missing}")
-    return out
-
-
-def sb_blocks(brand: str, brand_dark: str, ground: str | None, indent: str = "") -> str:
-    """The sidebar declarations a SITE needs that the compiled bundle cannot express.
-
-    ``brand`` seeds the light panes and ``brand_dark`` the dark ones, exactly as
-    :func:`derive` is called twice in `brand.py`. No ``ground`` recipe reads a
-    brand today, so the split is currently invisible — which is precisely why it
-    is written down rather than collapsed to one argument that would be wrong the
-    first time a recipe did.
-
-    Returns CSS text, or ``""`` when the site needs nothing — which is the case
-    for every tenant who has set no ground, including the shipped default. An
-    empty return is the correct answer, not a failure, and it keeps the sheet at
-    exactly today's size for those sites.
-
-    SPECIFICITY IS THE WHOLE DESIGN. `_sidebar.scss` declares
-    ``html[data-theme="dark"][data-bnd-sb-color="minimal"]`` at (0,2,1), and this
-    sheet loads AFTER the bundle — so an emitted block must MATCH that
-    specificity to win on source order. A single-attribute selector at (0,1,1)
-    would lose however late it loads, silently, on every site that set a ground.
-    Both attributes, every time.
-
-    AND THE ``automatic`` ARM IS NOT OPTIONAL. `data-theme` is literally
-    "automatic" until our JS resolves it, so a block that only handles
-    ``[data-theme="dark"]`` leaves the first-paint window painting the light
-    fallback on a dark desk. That is defect 27 exactly, and it cost a whole
-    investigation the last time it was missed — `build.mjs`'s `assertAutomaticArms`
-    now refuses a compiled dark selector with no twin, but it cannot see a string
-    this function builds at runtime, so the twin is built here by construction.
-
-    NO WEBSITE SCOPE, deliberately. Items 32 and 33 both had to add
-    ``body.bnd-auth`` / ``body.bnd-web`` arms because a website page carries no
-    ``data-theme``. The side pane does not exist on a website page, so the
-    asymmetry that made those necessary does not arise here.
-    """
-    # THE WHOLE WORKING SET, NOT JUST THE BACKGROUND (2026-09-01). Until a
-    # user reported it from the desk, this emitted one token for one recipe
-    # kind: a tenant's seed reached `--bnd-sb-bg` on ground-tinted panes and
-    # nothing else, so their card surface stayed #ffffff and their inks stayed
-    # the shipped literals on every site in the world. `sidebar_ramp` derives
-    # all fourteen from the pane; this emits whatever differs from what the
-    # bundle already carries.
-    #
-    # THE COMPARISON IS AGAINST THE SHIPPED DERIVATION, never against the
-    # stylesheet text: `_sidebar.scss`'s static blocks ARE
-    # `sidebar_ramp(..., SHIPPED_SEED, ground=None)`, so a site that matches
-    # the shipped seed needs nothing emitted and its sheet stays exactly the
-    # size it is today -- the property the empty return has always had.
-    rows = []
-    for polarity, modes in SB_PANES.items():
-        for name in modes:
-            seed = brand if polarity == "light" else brand_dark
-            site = sidebar_ramp(name, polarity, seed, ground=ground)
-            base = sidebar_ramp(name, polarity, SHIPPED_SEED, ground=None)
-            moved = {t: v for t, v in site.items() if base.get(t) != v}
-            if moved:
-                rows.append((polarity, name, moved))
-
-    if not rows:
-        return ""
-
-    def decls(moved, pad):
-        return "\n".join(f"{pad}{t}: {v};" for t, v in sorted(moved.items()))
-
-    out = []
-    for polarity, name, moved in rows:
-        attr = f'[data-bnd-sb-color="{name}"]'
-        if polarity == "light":
-            # Mirrors `render_brand_css`'s own light selector: a desk that has not
-            # yet been stamped carries no `data-theme` at all.
-            sel = f'html[data-theme="light"]{attr}, html:not([data-theme]){attr}'
-        else:
-            sel = f'html[data-theme="dark"]{attr}'
-        out.append(f"{indent}{sel} {{\n{decls(moved, indent + '  ')}\n{indent}}}")
-
-    dark = [(n, m) for pol, n, m in rows if pol == "dark"]
-    if dark:
-        arms = "\n".join(
-            f'{indent}  html[data-theme="automatic"][data-bnd-sb-color="{n}"] {{\n'
-            f"{decls(m, indent + '    ')}\n{indent}  }}"
-            for n, m in dark
-        )
-        out.append(f"{indent}@media (prefers-color-scheme: dark) {{\n{arms}\n{indent}}}")
-    return "\n".join(out) + "\n"
 
 
 def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:
@@ -893,39 +588,22 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     fill_seed = brand
     if mode != "light":
         fill_seed = to_hex(lift_lightness(parse_color(brand), DARK_FILL_TARGET_L))
-    # THE SIDEBAR'S OWN PANES JOIN THE CONSTRAINT SET (item 40, slice 12).
-    # The six global surfaces never included the pane a Minimal or
-    # Dark Contrast sidebar actually renders, so the pill's fill could sit
-    # at 1.06:1 against the one surface it lives on - the gate carried the
-    # number as measured-not-enforced until this line. Resolved FROM
-    # SB_PANES (never restated): literals verbatim, mixes through mix(),
-    # aliases skipped because --bnd-pane is already in `surfaces`. Both
-    # desk themes constrain against the dark-contrast pane, because that
-    # pane is dark on a LIGHT desk too - a real, reachable combination.
-    # PER MODE, never both polarities at once: a dark desk never renders
-    # the light-minimal pane, and feeding #fafbfa into the dark fit made
-    # the joint band EMPTY for mid seeds (fill_pair raised at #60a471).
-    # Light additionally constrains against the dark-contrast pane, which
-    # is dark on a light desk too - the reachable combination the 1.06:1
-    # measurement came from.
-    fit_panes = list(SB_PANES["dark" if mode != "light" else "light"].values())
-    if mode == "light":
-        fit_panes.append(SB_PANES["dark"]["dark"])
-    pane_constraints = []
-    if True:
-        for pane in fit_panes:
-            kind = pane.recipe[0]
-            if kind == "alias":
-                continue
-            if kind == "literal":
-                pane_constraints.append(pane.recipe[1])
-            elif kind == "ground":
-                pane_base = pane.recipe[2]
-                pane_constraints.append(mix(ground, pane.recipe[1], pane_base) if ground else pane_base)
-            elif kind == "brand":
-                pane_constraints.append(mix(brand, pane.recipe[1], pane.recipe[2]))
+    # THE SIDEBAR'S PANES USED TO JOIN THE CONSTRAINT SET, and this is what
+    # removing them costs and buys. Slice 12 added the Minimal and Dark Contrast
+    # panes here because neither was a global surface, so the active pill's fill
+    # could sit at 1.06:1 against the one surface it lived on. Those panes are
+    # gone; the pane is `--bnd-pane`, which is already in `surfaces`, so the
+    # constraint is now satisfied by construction rather than by a second list.
+    #
+    # MEASURED before removing it (2026-09-01, 27 seeds x 2 modes): five of
+    # fifty-four brand-solid values move, all light, all at pathological seeds,
+    # and every one still clears 3:1 on its pane -- worst 3.03:1. Four of the
+    # five are a REPAIR: a black seed derived #646464 because the fill was being
+    # lifted to clear a dark pane nobody renders, and now derives #111111, which
+    # is 5.01:1 -> 15.98:1 and the colour the tenant actually chose. The shipped
+    # seed is not among the five, so `_tokens.scss` needs no regeneration.
     out["--bnd-brand-solid"], out["--bnd-on-brand"], _ = fill_pair(
-        fill_seed, surfaces=surfaces + pane_constraints
+        fill_seed, surfaces=surfaces
     )
 
     # `--bnd-brand-ink` is the third role, and it is NOT the same value as either

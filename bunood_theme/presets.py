@@ -39,7 +39,6 @@ SB_PANE_RANGE = (200, 280)
 SIDEBAR_FIELDS = [
     "sidebar_placement",
     "sidebar_material",
-    "sidebar_color",
     "sidebar_active_style",
     "sidebar_section_style",
     "sidebar_hue_wash",
@@ -68,7 +67,6 @@ _SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
@@ -88,7 +86,6 @@ _SIDEBAR_LOOKS = {
     "Bunood Light": {
         "sidebar_placement": "Floating",
         "sidebar_material": "Glass",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
@@ -103,7 +100,6 @@ _SIDEBAR_LOOKS = {
     "Daylight": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
@@ -118,7 +114,6 @@ _SIDEBAR_LOOKS = {
     "Ink": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Minimal",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
@@ -133,7 +128,6 @@ _SIDEBAR_LOOKS = {
     "Carbon": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Dark Contrast",
         "sidebar_active_style": "Outline",
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
@@ -148,7 +142,6 @@ _SIDEBAR_LOOKS = {
     "Paper": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
@@ -163,7 +156,6 @@ _SIDEBAR_LOOKS = {
     "Aurora": {
         "sidebar_placement": "Floating",
         "sidebar_material": "Blurred Glass",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
@@ -186,7 +178,6 @@ _SIDEBAR_LOOKS = {
     "Workbench": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_color": "Minimal",
         "sidebar_active_style": "Accent Rail",
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",

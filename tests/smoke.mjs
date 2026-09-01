@@ -138,9 +138,17 @@ const CONSOLE_ALLOWLIST = [
 	// Surfaced only once item 36's specimen check began setting a logo with the
 	// settings page open — every picker renders on refresh, including email's.
 	// Narrow on purpose: the suite's own navigation always carries `:8080`, so
-	// a port-less `localhost` asset URL cannot come from anything but an
-	// absolutised document rendered into a frame.
-	/net::ERR_CONNECTION_REFUSED[\s\S]*http:\/\/localhost\/assets\//,
+	// a PORT-LESS asset URL cannot come from anything but an absolutised
+	// document rendered into a frame. `[^/:]+` is what carries that — a host
+	// with no colon, therefore no port.
+	//
+	// IT USED TO SAY `localhost` LITERALLY, and that coupled the allowlist to
+	// one spelling of a base URL the repo lets you override. Running with
+	// `BND_URL=http://127.0.0.1:8080` (which `tools/session.mjs` has always
+	// supported, and which is the remedy when WSL's port relay dies) made this
+	// known-environmental error report as an unexpected one -- a red suite for
+	// a reason the comment above already says is not a defect.
+	/net::ERR_CONNECTION_REFUSED[\s\S]*http:\/\/[^/:\s]+\/assets\//,
 ];
 
 // ── Tiny sequential test runner ─────────────────────────────────────────────
@@ -1304,7 +1312,6 @@ async function layoutFaults(rootSel, opts = {}) {
 const SLUG = {
 	sidebar_placement: { Attached: "attached", Floating: "floating" },
 	sidebar_material: { Solid: "solid", Glass: "glass", "Blurred Glass": "glassblur" },
-	sidebar_color: { "Match Theme": "theme", Minimal: "minimal", "Dark Contrast": "dark", Brand: "brand" },
 	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
@@ -1315,7 +1322,6 @@ const SLUG = {
 const ATTR_OF = {
 	sidebar_placement: "data-bnd-sb-placement",
 	sidebar_material: "data-bnd-sb-material",
-	sidebar_color: "data-bnd-sb-color",
 	icon_style: "data-bnd-sb-icons",
 	sidebar_active_style: "data-bnd-sb-active",
 	sidebar_section_style: "data-bnd-sb-sections",
@@ -1361,7 +1367,6 @@ const MUTABLE_FIELDS = [
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
 	"sidebar_placement", "sidebar_material",
-	"sidebar_color",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button",
@@ -3498,7 +3503,7 @@ async function main() {
 		});
 
 		// ── Live preview ───────────────────────────────────────────────────
-		await test("live preview: pane color flips instantly, and stays", async () => {
+		await test("live preview: a pane option flips instantly, and stays", async () => {
 			// NAVIGATES EXPLICITLY. It used to inherit whatever page the test
 			// before it had left open, which happened to be `?shell=0` — so the
 			// sidebar picker was on screen and clickable by luck of ordering.
@@ -3507,126 +3512,66 @@ async function main() {
 			// waited 30s for something it could never click. A test that depends
 			// on its predecessor's navigation is a landmine for whoever adds the
 			// next one, so this states what it needs.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
-			const before = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
-			await page.click('.bnd-sbp-opt[data-field="sidebar_color"][data-value="Minimal"]');
-			await page.waitForTimeout(700);
-			const after = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
-			expect(before !== after, "background changed live");
-
-			// THE SECOND HALF USED TO BE "discard reverts the desk", and that
-			// premise is gone on purpose: since autosave, a click IS the change,
-			// so there is nothing to discard and reload_doc() reloads the value
-			// that was already stored. Asserting the old behaviour would be
-			// asserting that autosave does not work.
+			// THE SUBJECT, AND WHY IT IS NOT THE OBVIOUS ONE. This was
+			// `sidebar_color` until its four options became one pane under four
+			// names. The natural replacement is `sidebar_material` -- Solid to Glass
+			// visibly repaints the pane -- and it FAILS here, correctly: headless
+			// Chromium reports `prefers-reduced-transparency: reduce`, so Glass
+			// degrades to the solid pane by design and the background never moves.
+			// Asserting it would mean either a red suite or emulating the media
+			// feature, and this test is about the PREVIEW PATH, not about glass.
 			//
-			// What survives is the half that still means something, and it is
-			// the stronger claim anyway: reload from the SERVER and the desk
-			// still shows it. Preview and persistence are the same act now.
-			// WAIT FOR THE SAVE, THEN RELOAD. Autosave is debounced and can
-			// retry, so a fixed pause can reload BEFORE the click has landed —
-			// and the reload then reverts the very preview just asserted, which
-			// reads as "the preview did not stick". Ask the form instead.
-			await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
-			await page.evaluate(() => window.cur_frm.reload_doc());
-			await page.waitForTimeout(2500);
-			const reloaded = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).backgroundColor);
-			expectEq(reloaded, after, "and a reload from the server shows the same desk");
-			setSettings({ sidebar_color: "Dark Contrast" });
+			// `sidebar_placement` is the honest subject: Floating detaches the pane
+			// into a rounded card, so `border-radius` moves, and nothing about it is
+			// conditional on a media feature the harness overrides.
+			const restore = getSettings(["sidebar_enabled", "sidebar_placement"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_placement: "Attached" });
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
+				const radius = () => page.evaluate(
+					() => getComputedStyle(document.querySelector(".body-sidebar-container")).borderRadius);
+				const before = await radius();
+				await page.click('.bnd-sbp-opt[data-field="sidebar_placement"][data-value="Floating"]');
+				await page.waitForTimeout(700);
+				const after = await radius();
+				expect(before !== after, `the pane changed live (${before} -> ${after})`);
+
+				// THE SECOND HALF USED TO BE "discard reverts the desk", and that
+				// premise is gone on purpose: since autosave, a click IS the change,
+				// so there is nothing to discard and reload_doc() reloads the value
+				// that was already stored. Asserting the old behaviour would be
+				// asserting that autosave does not work.
+				//
+				// What survives is the half that still means something, and it is
+				// the stronger claim anyway: reload from the SERVER and the desk
+				// still shows it. Preview and persistence are the same act now.
+				// WAIT FOR THE SAVE, THEN RELOAD. Autosave is debounced and can
+				// retry, so a fixed pause can reload BEFORE the click has landed —
+				// and the reload then reverts the very preview just asserted, which
+				// reads as "the preview did not stick". Ask the form instead.
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+				await page.evaluate(() => window.cur_frm.reload_doc());
+				await page.waitForTimeout(2500);
+				const reloaded = await radius();
+				expectEq(reloaded, after, "and a reload from the server shows the same desk");
+			} finally {
+				// THIS RESTORE IS NEW, and its absence was invisible: the test used to
+				// end by setting `sidebar_color`, which restored nothing it had changed
+				// and merely happened to leave a valid value behind. A test that clicks
+				// a picker option and does not put it back leaves the site configured
+				// by whichever test ran last -- the class `sweep-settings` is filed
+				// under, arriving from inside the suite.
+				setSettings(restore);
+			}
 		});
 
-		await test("sidepane: a ground reaches the Minimal pane, and clearing it gives the fallback back", async () => {
-			// THE BRANCH THIS SITE NEVER TAKES. `ground_color` ships empty, so
-			// `palette.sb_blocks` returns "" here and the entire per-site emission
-			// is the trap this repo names by name: a branch whose guard is false on
-			// the dev site is UNTESTED, not working. So the test sets a ground.
-			//
-			// WHY THERE IS A PER-SITE PATH AT ALL. A ground-tinted pane cannot be
-			// written as static CSS -- there is no `--bnd-ground` token, because the
-			// ground is an INPUT to `palette.derive` and not an output of it. Three
-			// of the four pane recipes are expressible in the bundle (a literal, a
-			// `var()` alias, a live `color-mix()` on the brand); this one is not,
-			// and `brand.py` computing it is the only way it reaches a desk.
-			//
-			// The expected values are DERIVED, not copied. A hex in this file would
-			// be a second copy of the recipe, and then the test would agree with
-			// itself while the desk did something else. What is being asserted is
-			// that the BROWSER agrees with the derivation.
-			const want = JSON.parse(
-				benchPy(
-					`from bunood_theme import palette\n` +
-						`p = palette.SB_PANES["dark"]["minimal"]\n` +
-						`print(json.dumps({\n` +
-						`  "tinted": palette.sb_pane_value(p, "#3d8150", "dark", ground="#8e8c99"),\n` +
-						`  "plain": palette.sb_pane_css(p)}))\n`
-				).trim().split(/\r?\n/).pop()
-			);
-
-			// #8e8c99 is GROUNDS.mauve. `setSettings` regenerates the brand sheet
-			// because `ground_color` is in BRAND_INPUTS, and restores it because it
-			// is in MUTABLE_FIELDS -- both added when the ground became a sheet input.
-			setSettings({ ground_color: "#8e8c99", sidebar_color: "Minimal" });
-			await goDesk("/app", "body", 3000);
-
-			const readPane = (p_) =>
-				p_.evaluate(() =>
-					getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-bg").trim()
-				);
-			const stamp = (p_, theme) =>
-				p_.evaluate((t) => {
-					document.documentElement.setAttribute("data-theme", t);
-					document.documentElement.setAttribute("data-bnd-sb-color", "minimal");
-				}, theme);
-
-			// SEPARATE EVALUATES for the stamp and the read: a computed value read
-			// in the same evaluate that set the attribute has served a stale answer
-			// in this repo before.
-			await stamp(page, "dark");
-			expectEq((await readPane(page)).toLowerCase(), want.tinted.toLowerCase(),
-				'the tenant\'s ground reaches the pane under data-theme="dark"');
-
-			// THE `automatic` ARM NEEDS A FRESH CONTEXT, and that is this suite's own
-			// rule, written at `withGuest`: "colorScheme is emulated per CONTEXT, not
-			// on the shared page. Item 30 had to reset emulateMedia in a finally
-			// because the shared page leaks it." The first version of this check used
-			// `page.emulateMedia` and read #fafbfa -- the LIGHT value, i.e. no dark
-			// rule matched at all -- which reads exactly like the emission failing.
-			//
-			// `automatic` is not decoration: `data-theme` is literally that string
-			// until our JS resolves it, and a pane with no arm for it paints the light
-			// fallback on a dark desk for the whole first-paint window. That is defect
-			// 27, and `build.mjs`'s assertAutomaticArms cannot see a runtime string.
-			//
-			// A different USER, too, and that is free coverage: the sheet is
-			// site-wide, so a per-user path would fail here.
-			// Readiness is `body`, not `.body-sidebar-container`: what is being read
-			// is a custom property on `<html>`, so waiting for the pane would make
-			// this check depend on the desk SHAPE -- and `withDeskUser`'s own
-			// docstring says the Dock shape mounts no pane at all. It timed out on
-			// exactly that before this line said what it actually needs.
-			const auto = await withDeskUser("/app", "body", async (dp) => {
-				await stamp(dp, "automatic");
-				return readPane(dp);
-			}, { colorScheme: "dark" });
-			expectEq(auto.toLowerCase(), want.tinted.toLowerCase(),
-				'and under data-theme="automatic" on a dark OS, before JS resolves it');
-
-			// AND THE COMPLEMENT, which is the half that would rot silently: clearing
-			// the ground must give the BUNDLE's fallback back. Not an empty value, and
-			// not the tinted one left behind by a sheet nobody regenerated.
-			setSettings({ ground_color: "" });
-			await goDesk("/app", "body", 3000);
-			await page.evaluate(() => {
-				document.documentElement.setAttribute("data-theme", "dark");
-				document.documentElement.setAttribute("data-bnd-sb-color", "minimal");
-			});
-			const plain = await page.evaluate(() =>
-				getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-bg").trim()
-			);
-			expectEq(plain.toLowerCase(), want.plain.toLowerCase(),
-				"and clearing it returns the bundle's fallback");
-			setSettings({ sidebar_color: "Dark Contrast" });
-		});
+		// THE PER-SITE EMISSION TEST WENT WITH THE EMISSION (2026-09-01). It
+		// asserted that a ground reached the Minimal pane through a block
+		// `brand.py` computed, because that pane's recipe could not be written
+		// in the bundle. There is one pane now and it is `var(--bnd-pane)`,
+		// which this sheet has always emitted -- so the property that test
+		// protected is now carried by the token sweep, and re-asserting it here
+		// would be the same fact in two places.
 
 		// ── Placement: bell and user menu are their own components ─────────
 		await test("placement: the bell and the avatar can be separated", async () => {
@@ -3674,7 +3619,7 @@ async function main() {
 			// no head at all; attribute absent and the mount succeeded renders BOTH.
 			// The rule now keys on `[data-bnd-own~="panehead"]`, stamped by
 			// `claim_panehead` only once our head is in the document.
-			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ sidebar_enabled: 1 });
 			// READINESS IS `body`, AND THE PREMISE IS WAITED FOR SEPARATELY. Waiting
 			// on `.body-sidebar` means waiting for it to be VISIBLE, and whether the
 			// pane renders depends on the layout the previous check left behind --
@@ -3743,31 +3688,32 @@ async function main() {
 					`mount degrades to stock rather than leaving the pane without a head`);
 		});
 
-		await test("sidepane: exactly one head renders, in every colour mode", async () => {
+		await test("sidepane: exactly one head renders, wherever the pane sits", async () => {
 			// THE SYMPTOM ITEM 40 WAS OPENED FOR, asserted as a rendered outcome
 			// rather than as a token. The pane showed OUR head and Frappe's
 			// underneath it in some configurations, and the invariant check next
 			// door proves the ownership token agrees with the DOM — which is the
 			// mechanism, not the picture. This counts what a person would see.
 			//
-			// Across the colour modes on purpose: the old rule keyed on
-			// `data-bnd-sb-color`, so "which mode" was exactly the axis that
-			// decided whether the native header was hidden, and a repair that
-			// only ever ran in Match Theme would look complete.
-			const FIELDS = ["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_placement"];
+			// ACROSS PLACEMENT AND RAIL, not across colour. This used to walk the
+			// four colour modes, because the old rule keyed on `data-bnd-sb-color`
+			// and a repair that only ran in Match Theme would have looked complete.
+			// The modes are gone; the attribute is now a constant, so walking its
+			// values would be four runs of one case wearing four labels -- exactly
+			// the dishonest-picker defect, arriving in a test. What still varies
+			// the head's neighbourhood is where the pane sits and whether it is a
+			// rail, so those are the axes.
+			const FIELDS = ["sidebar_enabled", "sidebar_menu_rail", "sidebar_placement"];
 			const before = getSettings(FIELDS);
 			try {
 				const CASES = [
-					{ label: "Match Theme", sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
-					{ label: "Minimal", sidebar_color: "Minimal", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
-					{ label: "Dark Contrast, floating", sidebar_color: "Dark Contrast", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Floating" },
-					{ label: "Brand", sidebar_color: "Brand", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
-					{ label: "Rail", sidebar_color: "Match Theme", sidebar_menu_rail: "Rail", sidebar_placement: "Attached" },
+					{ label: "attached", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
+					{ label: "floating", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Floating" },
+					{ label: "rail", sidebar_menu_rail: "Rail", sidebar_placement: "Attached" },
 				];
 				for (const c of CASES) {
 					setSettings({
 						sidebar_enabled: 1,
-						sidebar_color: c.sidebar_color,
 						sidebar_menu_rail: c.sidebar_menu_rail,
 						sidebar_placement: c.sidebar_placement,
 					});
@@ -3823,12 +3769,11 @@ async function main() {
 			// Measured through Filled Color icons (the shipped default): the glyph
 			// takes `var(--bnd-sb-hue, chip-ink)` directly, so Off vs Subtle is the
 			// glyph's colour, and Subtle vs Rich is the section LABEL's.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_section_style", "sidebar_hue_wash", "icon_style"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_section_style", "sidebar_hue_wash", "icon_style"]);
 			try {
 				const read = async (wash) => {
 					setSettings({
-						sidebar_enabled: 1, sidebar_color: "Match Theme",
-						sidebar_section_style: "Plain", sidebar_hue_wash: wash,
+						sidebar_enabled: 1,						sidebar_section_style: "Plain", sidebar_hue_wash: wash,
 						icon_style: "Filled Color",
 					});
 					await goDesk("/app/selling", "body", 3000);
@@ -3887,12 +3832,11 @@ async function main() {
 			// The card is now the section container itself, so the DOM under Cards
 			// must be IDENTICAL to the DOM under Plain — same children, no wrapper —
 			// while the PAINT differs.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_section_style", "sidebar_card_depth"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_section_style", "sidebar_card_depth"]);
 			try {
 				const read = async (style, depth) => {
 					setSettings({
-						sidebar_enabled: 1, sidebar_color: "Match Theme",
-						sidebar_section_style: style, sidebar_card_depth: depth,
+						sidebar_enabled: 1,						sidebar_section_style: style, sidebar_card_depth: depth,
 					});
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(
@@ -3953,11 +3897,10 @@ async function main() {
 			// FOCUSABILITY rather than walking Tab: with `visibility: hidden` an
 			// element refuses programmatic focus outright, before any focusin
 			// can fire and dress the wound.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_trigger"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_color: "Match Theme",
-					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Hover",
+					sidebar_enabled: 1,					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Hover",
 				});
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
@@ -3992,9 +3935,9 @@ async function main() {
 			// Set on the dock and (until it retired) the apps rail — and never on
 			// the pane's own active item, the one place a person actually is. To
 			// AT the highlighted row was indistinguishable from its neighbours.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar"),
@@ -4024,9 +3967,9 @@ async function main() {
 			// not a preference. Short viewport = overflow = fade; tall viewport =
 			// no overflow = no fade. And the fade must never hide the top edge a
 			// focus ring needs while the list is scrolled to the top.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				const read = async (h) => {
 					await page.setViewportSize({ width: 1440, height: h });
 					await goDesk("/app/selling", "body", 3000);
@@ -4077,9 +4020,9 @@ async function main() {
 			// rendered when On (an On that sometimes shows nothing is the
 			// dishonest picker); the placeholder says FILTER, never Search, which
 			// is the palette's job.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_filter"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_filter"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_filter: 1 });
+				setSettings({ sidebar_enabled: 1, sidebar_filter: 1 });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-filter-input"), null, { timeout: 20000 });
 				// THE INPUT IS DRIVEN SYNTHETICALLY, and the reason is measured, not
@@ -4271,10 +4214,10 @@ async function main() {
 			// The pin gesture lives in the Place row's menu, because a
 			// hover-only row action is refused (Fluent's position) and the menu
 			// already exists.
-			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
+			const before = getSettings(["sidebar_enabled"]);
 			try {
 				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+				setSettings({ sidebar_enabled: 1 });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -4352,7 +4295,7 @@ async function main() {
 			}
 		};
 
-		await test("sidepane: the theme's colours reach the pane in every colour mode", async () => {
+		await test("sidepane: the theme's colours reach the pane", async () => {
 			// THE USER'S REPORT, 2026-09-01: "remove the pane colours and apply the
 			// theme preset colours — they do not apply right to the pane".
 			// Measured before this check existed: 42 hex literals in _sidebar.scss
@@ -4371,7 +4314,7 @@ async function main() {
 			// because a failed restore is permanent damage to the operator's
 			// site, and the write must be a real doc.save() so the per-site
 			// brand sheet regenerates — which is exactly the sheet under test.
-			const before = getSettings(["sidebar_color", "sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			const WORKING = [
 				"--bnd-sb-bg", "--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-line",
 				"--bnd-sb-chip-bg", "--bnd-sb-chip-ink", "--bnd-sb-card-base",
@@ -4384,13 +4327,9 @@ async function main() {
 					["forest", { brand_color: "#3d8150", ground_color: "#4d5a52" }],
 					["plum", { brand_color: "#7b3d81", ground_color: "#6d5a72" }],
 				]) {
-					palettes[label] = {};
 					await withBranding(seed, async () => {
-						for (const mode of ["Match Theme", "Minimal", "Dark Contrast", "Brand"]) {
-							setSettings({
-								sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
-								sidebar_color: mode,
-							});
+						{
+							setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 							await goDesk("/app/selling", "body", 3000);
 							await page.waitForFunction(() => !!document.querySelector(".body-sidebar-container"), null, { timeout: 20000 });
 							// RENDERED COLOUR, NOT TOKEN TEXT. getPropertyValue hands
@@ -4401,7 +4340,7 @@ async function main() {
 							// static while following whatever it sits on. Both would
 							// have been reported as "does not follow the theme" when
 							// they do. The browser resolves it all on a real element.
-							palettes[label][mode] = await page.evaluate(() => {
+							palettes[label] = await page.evaluate(() => {
 								const probe = (decl, value) => {
 									const el = document.createElement("div");
 									el.style.cssText = `position:absolute;left:-9999px;${decl}:${value}`;
@@ -4412,17 +4351,6 @@ async function main() {
 								};
 								return {
 									"--bnd-sb-bg": probe("background-color", "var(--bnd-sb-bg)"),
-									// The brand pane is a GRADIENT, so background-color reads
-									// as the initial rgb(0,0,0) there and says nothing. Its
-									// image is the thing that follows the seed.
-									"--bnd-sb-bg-image": (() => {
-										const el = document.createElement("div");
-										el.style.cssText = "position:absolute;left:-9999px;background-image:var(--bnd-sb-bg)";
-										document.querySelector(".body-sidebar-container").appendChild(el);
-										const v = getComputedStyle(el).backgroundImage;
-										el.remove();
-										return v;
-									})(),
 									"--bnd-sb-line": probe("background-color", "var(--bnd-sb-line)"),
 									"--bnd-sb-chip-bg": probe("background-color", "var(--bnd-sb-chip-bg)"),
 									"--bnd-sb-card-base": probe("background-color", "var(--bnd-sb-card-base)"),
@@ -4477,64 +4405,49 @@ async function main() {
 					const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p);
 					return (hi + 0.05) / (lo + 0.05);
 				};
-				for (const mode of ["Match Theme", "Minimal", "Dark Contrast", "Brand"]) {
-					// COMPOSITE THE ALPHAS OVER THE PANE, because that is what the
-					// screen does. A hairline written as rgba(255,255,255,.09) reads
-					// as the same string on every seed and takes the pane's hue in
-					// every pixel it actually paints — read uncomposited, a mode that
-					// follows the theme perfectly well reports as frozen.
-					const over = (pal) => {
-						const rgb = (css) => bndRgb(css);
-						const base = rgb(pal["--bnd-sb-bg"]);
-						const out = {};
-						for (const [k, v] of Object.entries(pal)) {
-							if (k.endsWith("-image")) { out[k] = v; continue; }
-							const c = rgb(v);
-							const mixed = [0, 1, 2].map((i) => Math.round(c[i] * c[3] + base[i] * (1 - c[3])));
-							out[k] = `rgb(${mixed.join(", ")})`;
-						}
-						return out;
-					};
-					const a = over(palettes.forest[mode]);
-					const b = over(palettes.plum[mode]);
-					expect(a["--bnd-sb-bg"], `premise: ${mode} declares a working set`);
-					if (mode === "Brand") {
-						// The brand pane IS the seed, as a gradient: its surfaces are
-						// white-alpha over it, so they read identically while the
-						// gradient underneath does all the moving.
-						const ga = palettes.forest[mode]["--bnd-sb-bg-image"];
-						const gb = palettes.plum[mode]["--bnd-sb-bg-image"];
-						expect(/gradient/.test(ga), `premise: Brand paints a gradient (${ga.slice(0, 50)})`);
-						expect(ga !== gb, `Brand: the pane itself follows the seed (${ga.slice(0, 80)})`);
-						continue;
+				// COMPOSITE THE ALPHAS OVER THE PANE, because that is what the screen
+				// does. A hairline written as rgba(255,255,255,.09) reads as the same
+				// string on every seed and takes the pane's hue in every pixel it
+				// actually paints -- read uncomposited, a pane that follows the theme
+				// perfectly well reports as frozen.
+				const over = (pal) => {
+					const base = bndRgb(pal["--bnd-sb-bg"]);
+					const out = {};
+					for (const [k, v] of Object.entries(pal)) {
+						const c = bndRgb(v);
+						const mixed = [0, 1, 2].map((i) => Math.round(c[i] * c[3] + base[i] * (1 - c[3])));
+						out[k] = `rgb(${mixed.join(", ")})`;
 					}
-					const stuck = SURFACES.filter((n) => a[n] === b[n]);
-					if (mode === "Minimal") {
-						// MINIMAL IS THE MODE THAT DOES NOT TAKE THE TINT, and this
-						// arm pins that as a decision rather than leaving it to look
-						// like the bug next door. Tried at 5% on 2026-09-01: it lands
-						// 1.005:1 from Match Theme's pane — the same pixel under a
-						// second name, which is the defect the picker vocabulary
-						// exists to prevent. "Match Theme" is the option that
-						// follows; offering two of those and none that stands down
-						// would be strictly worse. What DID have to change is that
-						// its ink, line, chip and card now derive from its own pane.
-						expectEq(stuck.sort().join(", "), SURFACES.slice().sort().join(", "),
-							"Minimal stays neutral on purpose — if a surface here started " +
-								"following the seed, it has become Match Theme under another name");
-					} else {
-						expectEq(stuck.join(", "), "",
-							`${mode}: every SURFACE follows the theme — these did not move ` +
-								`between a forest seed and a plum one: ${stuck.map((n) => `${n}=${a[n]}`).join("; ")}`);
-					}
-					for (const seedName of ["forest", "plum"]) {
-						const pal = palettes[seedName][mode];
-						for (const ink of INKS) {
-							const r = ratio(pal[ink], pal["--bnd-sb-bg"]);
-							expect(r >= 4.5,
-								`${mode}/${seedName}: ${ink} stays readable on the pane it moved to ` +
-									`(${r.toFixed(2)}:1, ${pal[ink]} on ${pal["--bnd-sb-bg"]})`);
-						}
+					return out;
+				};
+				const a = over(palettes.forest);
+				const b = over(palettes.plum);
+				expect(a["--bnd-sb-bg"], "premise: the pane declares a working set");
+
+				// THE WHOLE OF WHAT THIS ITEM CHANGED, in one assertion. There used to
+				// be a per-mode arm here excusing Minimal for standing still, because
+				// Minimal genuinely did not take the tint. There is no Minimal now, and
+				// so there is nothing left that is allowed not to follow: every surface
+				// in the pane's working set is an alias of a global token this sheet
+				// already emits per site, so a stuck one means an alias was replaced by
+				// a literal -- which is exactly the edit that painted #16181d on the
+				// dark pane at 1.16:1 while the block around it looked right.
+				const stuck = SURFACES.filter((n) => a[n] === b[n]);
+				expectEq(stuck.join(", "), "",
+					`every pane SURFACE follows the theme -- these did not move between ` +
+						`a forest seed and a plum one: ${stuck.map((n) => `${n}=${a[n]}`).join("; ")}`);
+
+				// AND THE INKS STAY LEGIBLE ON WHAT THEY MOVED TO. Two different
+				// contracts: demanding the surfaces move AND the inks move is how the
+				// first draft of this was wrong -- --bnd-sb-ink clears 15-18:1 on every
+				// pane, so the fit correctly leaves it where it is.
+				for (const seedName of ["forest", "plum"]) {
+					const pal = palettes[seedName];
+					for (const ink of INKS) {
+						const r = ratio(pal[ink], pal["--bnd-sb-bg"]);
+						expect(r >= 4.5,
+							`${seedName}: ${ink} stays readable on the pane it moved to ` +
+								`(${r.toFixed(2)}:1, ${pal[ink]} on ${pal["--bnd-sb-bg"]})`);
 					}
 				}
 			} finally {
@@ -4542,71 +4455,85 @@ async function main() {
 			}
 		});
 
-		await test("sidepane: on the brand pane, Glass is not Solid wearing its name", async () => {
-			// The last of item 40's filed defects. The brand pane paints a
-			// linear-gradient, and a gradient cannot go through color-mix(), so
-			// the translucency rule EXCLUDED brand outright: Glass and Blurred
-			// Glass rendered exactly as Solid there — two picker options, one
-			// pixel, the defect this repo's vocabulary exists to prevent.
+		await test("sidepane: Glass is not Solid wearing its name, expanded AND railed", async () => {
+			// TWO DEFECTS, ONE TEST, and the second one is why this survived item 40's
+			// colour deletion. The first was the brand pane: it painted a gradient,
+			// a gradient cannot go through color-mix(), so the translucency rule
+			// excluded it outright and Glass rendered exactly as Solid there. That
+			// pane is gone, and with it the exclusion.
 			//
-			// STRINGS, NEVER PARSED COLOURS: Chrome computes color-mix() to
-			// oklab(), which this repo has already been bitten by reading as
-			// near-black. Identity and difference of the computed background-image
-			// answer the question without a parser that could guess.
+			// THE SECOND IS SPECIFICITY, AND IT IS LIVE. The exclusion was written as
+			// `:not([data-bnd-sb-color="brand"])` on the reduced-transparency arms,
+			// and removing it when the brand pane went read like a simplification. It
+			// is not: the `:not()` was carrying WEIGHT. The rail translucency rule is
+			// `[material][data-bnd-rail] .container .body-sidebar` -- (0,4,1) -- so
+			// arms at (0,3,1) lose the background and win only the blur, leaving a
+			// pane translucent at alpha 0.85 with its frosting removed: the one combination the
+			// degradation exists to prevent. THE RAIL CASE IS THE ONE THAT CATCHES
+			// IT; the expanded case passes either way.
 			//
-			// HEADLESS CHROMIUM REPORTS prefers-reduced-transparency: reduce, so
-			// the degraded pole is the DEFAULT here and the translucent one has to
-			// be emulated — the trap that hid this kit's degradation for an entire
-			// item.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_material", "sidebar_menu_rail"]);
+			// HEADLESS CHROMIUM REPORTS prefers-reduced-transparency: reduce, so the
+			// degraded pole is the DEFAULT here and the translucent one has to be
+			// emulated through CDP -- the trap that hid this kit's degradation for an
+			// entire item. Playwright carries no flag for this media feature.
+			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_menu_rail"]);
 			try {
-				const paint = async (material) => {
-					setSettings({
-						sidebar_enabled: 1, sidebar_color: "Brand",
-						sidebar_menu_rail: "Always Expanded", sidebar_material: material,
-					});
-					await goDesk("/app/selling", "body", 3000);
-					await page.waitForFunction(
-						() => document.documentElement.getAttribute("data-bnd-sb-color") === "brand",
-						null, { timeout: 20000 }
-					);
-					const read = () => page.evaluate(() => {
-						const cs = getComputedStyle(document.querySelector(".body-sidebar-container"));
-						return { img: cs.backgroundImage, filter: cs.backdropFilter || "none" };
-					});
-					const degraded = await read();
-					const cdp = await page.context().newCDPSession(page);
-					await cdp.send("Emulation.setEmulatedMedia", {
-						features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
-					});
-					const full = await read();
-					await cdp.send("Emulation.setEmulatedMedia", { features: [] });
-					return { degraded, full };
-				};
-				const solid = await paint("Solid");
-				const glass = await paint("Glass");
-				const blurred = await paint("Blurred Glass");
+				for (const rail of ["Always Expanded", "Rail"]) {
+					// The rail paints on `.body-sidebar`; expanded paints on the
+					// container. Reading the wrong node is this repo's oldest trap, and
+					// here it would report the rail case as passing every time.
+					const sel = rail === "Rail" ? ".body-sidebar-container .body-sidebar"
+						: ".body-sidebar-container";
+					const paint = async (material) => {
+						setSettings({
+							sidebar_enabled: 1, sidebar_menu_rail: rail, sidebar_material: material,
+						});
+						await goDesk("/app/selling", "body", 3000);
+						await page.waitForFunction(
+							(q) => !!document.querySelector(q),
+							sel, { timeout: 20000 }
+						);
+						const read = () => page.evaluate((q) => {
+							const cs = getComputedStyle(document.querySelector(q));
+							return { bg: cs.backgroundColor, filter: cs.backdropFilter || "none" };
+						}, sel);
+						const degraded = await read();
+						const cdp = await page.context().newCDPSession(page);
+						await cdp.send("Emulation.setEmulatedMedia", {
+							features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
+						});
+						const full = await read();
+						await cdp.send("Emulation.setEmulatedMedia", { features: [] });
+						return { degraded, full };
+					};
+					const solid = await paint("Solid");
+					const glass = await paint("Glass");
+					const blurred = await paint("Blurred Glass");
 
-				expect(/gradient/.test(solid.full.img),
-					`premise: the brand pane paints a gradient (${solid.full.img.slice(0, 60)})`);
-				expect(glass.full.img !== solid.full.img,
-					"Glass differs from Solid on the brand pane — not two options and one pixel");
-				expect(blurred.full.img !== solid.full.img,
-					"and so does Blurred Glass");
-				expect(blurred.full.img !== glass.full.img,
-					"and the two glasses differ from each other, as they do on every other pane");
-				expect(/blur\(/.test(blurred.full.filter),
-					`Blurred Glass frosts what shows through (${blurred.full.filter})`);
+					// STRINGS, NEVER PARSED COLOURS: Chrome computes color-mix() to
+					// oklab(), which this repo has already been bitten by reading as
+					// near-black. Identity and difference answer this without a parser
+					// that could guess.
+					expect(solid.full.bg && solid.full.bg !== "rgba(0, 0, 0, 0)",
+						`premise (${rail}): the pane paints a background (${solid.full.bg})`);
+					expect(glass.full.bg !== solid.full.bg,
+						`${rail}: Glass differs from Solid -- not two options and one pixel`);
+					expect(blurred.full.bg !== solid.full.bg,
+						`${rail}: and so does Blurred Glass`);
+					expect(/blur\(/.test(blurred.full.filter),
+						`${rail}: Blurred Glass frosts what shows through (${blurred.full.filter})`);
 
-				// The degradation: asked for less transparency, both glasses become
-				// the designed solid — opaque AND unfrosted, not one without the
-				// other (item 40 measured exactly that half-degradation once).
-				expectEq(glass.degraded.img, solid.degraded.img,
-					"reduced transparency returns Glass to the solid gradient");
-				expectEq(blurred.degraded.img, solid.degraded.img,
-					"and Blurred Glass with it");
-				expectEq(blurred.degraded.filter, "none",
-					`with the frosting gone too (${blurred.degraded.filter})`);
+					// THE DEGRADATION, BOTH HALVES OR NEITHER. Asked for less
+					// transparency, both glasses become the designed solid: opaque AND
+					// unfrosted. Half a degradation is worse than none -- it removes the
+					// frosting that made the transparency tolerable.
+					expectEq(glass.degraded.bg, solid.degraded.bg,
+						`${rail}: reduced transparency returns Glass to the solid pane`);
+					expectEq(blurred.degraded.bg, solid.degraded.bg,
+						`${rail}: and Blurred Glass with it`);
+					expectEq(blurred.degraded.filter, "none",
+						`${rail}: with the frosting gone too (${blurred.degraded.filter})`);
+				}
 			} finally {
 				setSettings(before);
 			}
@@ -4626,7 +4553,7 @@ async function main() {
 			// Every earlier width check read `.body-sidebar-container`, which was
 			// always right — this repo's own "selecting by class measures the
 			// wrong element" trap, from the inside. Measure BOTH, always.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_pane_width"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_pane_width"]);
 			try {
 				benchPy(
 					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
@@ -4638,8 +4565,7 @@ print("ok")
 				);
 				for (const [stop, px] of [["1", 200], ["5", 280]]) {
 					setSettings({
-						sidebar_enabled: 1, sidebar_color: "Match Theme",
-						sidebar_menu_rail: "Always Expanded", sidebar_pane_width: stop,
+						sidebar_enabled: 1,						sidebar_menu_rail: "Always Expanded", sidebar_pane_width: stop,
 					});
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
@@ -4689,7 +4615,7 @@ print("ok")
 			// same strip, so a 4px latch decides which gesture happened. Under
 			// the latch a press is Frappe's collapse, untouched; over it the
 			// pane tracks the pointer and the collapse must NOT fire.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4701,7 +4627,7 @@ print("ok")
 `);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
 					await sbEnsureExpanded();
@@ -4777,7 +4703,7 @@ print("ok")
 			// LEFT — decreasing clientX. Math that adds raw deltas reads that as
 			// shrinking, and the CSS logical-property gate gives zero protection
 			// here because this is JavaScript.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4790,7 +4716,7 @@ print("ok")
 			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(
 						() => (document.documentElement.getAttribute("dir") || document.dir) === "rtl" &&
@@ -4831,9 +4757,9 @@ print("ok")
 			// width from the SITE's stop, and sb_apply runs it on every settings
 			// picker click — so unless the personal pixel survives the re-apply,
 			// any admin sidebar click reverts a person's width until reload.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				benchPy(
 					`frappe.defaults.set_default("bnd_sb_width", "266", parent="Administrator")\n` +
 						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.clear_cache(user="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
@@ -4897,7 +4823,7 @@ print("ok")
 			// the drag would stop moving while the pointer kept going. And a
 			// cancelled drag must restore the pre-drag width exactly, leaving
 			// Frappe's click-to-collapse working on the very next press.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4909,7 +4835,7 @@ print("ok")
 `);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
 					await sbEnsureExpanded();
@@ -4993,9 +4919,9 @@ print("ok")
 			// conformance claim behind a round trip is not "a different control
 			// on the same page". "Use the site's width" posts "" and the person
 			// inherits again: the escape hatch that makes personalization safe.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				benchPy(
 					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
 						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.db.commit()\nprint("ok")\n`
@@ -5055,7 +4981,7 @@ print("ok")
 
 		// ── The account band (item 40, 8c) ─────────────────────────────────
 		const BAND_PLACE = {
-			sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded",
+			sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
 			inbox_placement: "Side Pane End", user_placement: "Side Pane End",
 			home_placement: "Side Pane End", apps_placement: "Side Pane End",
 		};
@@ -5391,9 +5317,9 @@ print("ok")
 			// released an attribute nothing ever stamped, a dead branch the plan
 			// audit named. Both directions, because "exists when on" alone would
 			// pass an attribute stamped once and never released.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const on = await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-sidepane"));
@@ -5415,9 +5341,9 @@ print("ok")
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
 			// audit found the pane's own nodes invisible to all three.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_button"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_button"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const head = await page.evaluate(() =>
@@ -5447,10 +5373,10 @@ print("ok")
 			// outcome: with tenants at Side Pane End, the band precedes the
 			// bottom block, follows the list, and nothing in-flow trails the
 			// bottom block that is not the bottom block's own successor set.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "home_placement", "apps_placement"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "home_placement", "apps_placement"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded",
+					sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
 					home_placement: "Side Pane End", apps_placement: "Side Pane End",
 				});
 				await goDesk("/app/selling", "body", 3000);
@@ -5611,11 +5537,10 @@ print("ok")
 			// doctrine exists for). Both directions, then the fail-open arm:
 			// with the claim withdrawn, the native must be reachable AND must
 			// still open the pane.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_trigger"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_color: "Match Theme",
-					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Click",
+					sidebar_enabled: 1,					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Click",
 				});
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
@@ -5700,9 +5625,9 @@ print("ok")
 			// the PLACE'S name — the same resolved workspace the head shows —
 			// and never the literal "Workspaces", which names the class of thing
 			// rather than the place you are.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const m = await page.evaluate(() => {
@@ -5729,9 +5654,9 @@ print("ok")
 			// on the vendor's own drop-icon button — attributes are the one
 			// sanctioned mutation surface on Frappe's DOM. Toggling must move
 			// BOTH, or the mirror is a snapshot pretending to be a binding.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".sidebar-item-container.section-item .drop-icon"),
@@ -5777,12 +5702,11 @@ print("ok")
 			// gains ONE summed chip in the same badge form the rows use, derived
 			// from the rows' own badges (no second fetch), and expansion
 			// dissolves it back into them.
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail", "sidebar_badges"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_badges"]);
 			let toggled = null;
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_color: "Match Theme",
-					sidebar_menu_rail: "Always Expanded", sidebar_badges: "Counts",
+					sidebar_enabled: 1,					sidebar_menu_rail: "Always Expanded", sidebar_badges: "Counts",
 				});
 				// Badges land async and the aged shared browser can lose the
 				// fetch; STATE the premise by re-navigating once if it does —
@@ -5862,10 +5786,10 @@ print("ok")
 			// per-workspace persistence rides the vendor's existing state and no
 			// second collapse mechanism is born (the exact defect the rail's two
 			// affordances just paid for).
-			const before = getSettings(["sidebar_enabled", "sidebar_color", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
 			let foldedNames = [];
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme", sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".bnd-sb-head") && !!document.querySelector(".section-item .drop-icon"),
@@ -6019,8 +5943,8 @@ print("ok")
 			// STATE THE PREMISE, never inherit it. The first draft only navigated,
 			// and timed out waiting for a head on a desk whose pane the previous
 			// check had left switched off — which reads as the feature missing.
-			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
-			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			const before = getSettings(["sidebar_enabled"]);
+			setSettings({ sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.click(".bnd-sb-head");
@@ -6106,7 +6030,7 @@ print("ok")
 			// Scoped to observations of a node INSIDE the pane, because
 			// `remount_chrome` legitimately builds observers for other chrome and
 			// a bare count would measure those too.
-			setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -6151,9 +6075,9 @@ print("ok")
 			// `remount_chrome` releases the `panehead` token while our head stays
 			// in the DOM, so the token and the document disagree about what is
 			// there.
-			const before = getSettings(["sidebar_enabled", "sidebar_color"]);
+			const before = getSettings(["sidebar_enabled"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_color: "Match Theme" });
+				setSettings({ sidebar_enabled: 1 });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -6211,9 +6135,9 @@ print("ok")
 			//
 			// The window IS the assertion — on anything a later refresh also
 			// fixes, a generous timeout passes for the wrong reason.
-			const before = getSettings(["sidebar_enabled", "sidebar_badges", "sidebar_color"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_badges"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_badges: "Counts", sidebar_color: "Match Theme" });
+				setSettings({ sidebar_enabled: 1, sidebar_badges: "Counts" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 				// Let the first fetch land and stamp the throttle.
@@ -6273,7 +6197,7 @@ print("ok")
 			// Read `.body-sidebar-container` by COMPUTED STYLE rather than a rect:
 			// that is what the rules target, the container is not reliably laid out
 			// on this site, and nothing here needs it to be.
-			const before = getSettings(["sidebar_material", "sidebar_color"]);
+			const before = getSettings(["sidebar_material"]);
 			try {
 				const alpha = (bg) => {
 					const m = /rgba?\(([^)]+)\)/.exec(bg || "");
@@ -6295,7 +6219,7 @@ print("ok")
 
 				const surfaces = {};
 				for (const material of ["Solid", "Glass", "Blurred Glass"]) {
-					setSettings({ sidebar_material: material, sidebar_color: "Match Theme" });
+					setSettings({ sidebar_material: material });
 					// NO attribute wait here, deliberately, and the active-style walk
 					// below explains why one is needed there: this walk runs in a FRESH
 					// CONTEXT as another user, where a `waitForFunction` on the
@@ -9094,33 +9018,28 @@ print("ok")
 			expectEq(gate.status, 0, `contrast on rendered tokens:\n${gate.stdout}${gate.stderr}`);
 		});
 
-		await test("contrast: the pane's own tokens render, in every colour mode", async () => {
-			// WHAT THIS COVERS THAT THE CHECK ABOVE DOES NOT. That one sets
-			// `data-theme` and reads every `--bnd-*`; it never touches
-			// `data-bnd-sb-color`, so whichever pane colour the desk happened to be
-			// in is the only one it has ever seen. The other three are gated by the
-			// MODEL alone, and the model reads `_sidebar.scss` -- it cannot know
-			// whether a declaration reaches the element. A token shadowed by a
-			// Frappe rule, lost to a typo, or in a block whose selector never
-			// matches is invisible to it. That is the class this catches.
+		await test("contrast: the pane's tokens ARE the theme's, on the element", async () => {
+			// WHAT THIS COVERS THAT THE MODEL CANNOT. `npm run contrast` reads
+			// `_sidebar.scss` as text. It cannot know whether a declaration reaches
+			// the element -- a token shadowed by a Frappe rule, lost to a typo, or in
+			// a block whose selector never matches is invisible to it. That is the
+			// class this catches, and it is why a rendered check earns its cost.
+			//
+			// IT USED TO WALK FOUR COLOUR MODES. Item 40 deleted them: the pane takes
+			// the theme's palette, so what has to be true is no longer 'each mode
+			// declares its own set' but 'each pane token RESOLVES TO the global token
+			// it aliases'. That is a stronger claim and a cheaper one -- and it is the
+			// claim the whole change rests on.
+			//
+			// THE PAIRS ARE READ OUT OF THE STYLESHEET, never listed here. A hand-kept
+			// map would be the second copy this repo's first named trap is about; the
+			// CSSOM hands back the declaration TEXT (`var(--bnd-pane)`) while
+			// getComputedStyle hands back the resolved value, so both halves of the
+			// comparison come from the browser.
 			await goDesk("/desk/item", ".page-head", 3000);
 
-			// THE SLUGS ARE DERIVED, never listed. `palette.SB_PANES` plus
-			// `SB_UNMEASURABLE` is the same set `check_sidebar_binding` holds the
-			// stylesheet to, so a fifth colour mode cannot be added and silently
-			// go unmeasured here. A hand-kept list in this file is the exact debt
-			// `SLUG`/`ATTR_OF` already carry.
-			const slugs = JSON.parse(
-				benchPy(
-					`from bunood_theme import palette\n` +
-						`print(json.dumps(sorted(set(\n` +
-						`  list(palette.SB_PANES["light"]) + list(palette.SB_PANES["dark"]) +\n` +
-						`  list(palette.SB_UNMEASURABLE)))))\n`
-				).trim().split(/\r?\n/).pop()
-			);
-
-			const names = await page.evaluate(() => {
-				const found = new Set();
+			const decls = await page.evaluate(() => {
+				const out = {};
 				for (const sheet of Array.from(document.styleSheets)) {
 					let rules;
 					try {
@@ -9130,80 +9049,92 @@ print("ok")
 					}
 					const walk = (list) => {
 						for (const rule of Array.from(list || [])) {
-							for (const prop of Array.from(rule.style || [])) {
-								if (prop.startsWith("--bnd-")) found.add(prop);
+							// EVERY matching block, merged in source order -- the cascade
+							// does exactly this, and two blocks share this selector (the
+							// aliases and the category hues). Reading the first found no
+							// hues at all when the gate's own check made that mistake.
+							if (rule.selectorText === "html[data-bnd-sb-color]") {
+								for (const prop of Array.from(rule.style || [])) {
+									if (prop.startsWith("--bnd-sb-")) {
+										out[prop] = rule.style.getPropertyValue(prop).trim();
+									}
+								}
 							}
 							if (rule.cssRules) walk(rule.cssRules); // @media
 						}
 					};
 					walk(rules);
 				}
-				return [...found];
+				return out;
 			});
-			const sbNames = names.filter((n) => n.startsWith("--bnd-sb-"));
-			expect(sbNames.length > 10, `only ${sbNames.length} --bnd-sb-* tokens found in the sheets`);
 
-			// STAMP AND READ IN SEPARATE EVALUATES, every time. `getComputedStyle`
-			// has served this repo a stale value when an attribute was mutated and
-			// re-read inside ONE `page.evaluate`, and the whole point here is to
-			// read four different answers off the same element.
-			const stamp = (mode, slug) =>
-				page.evaluate(([m, sg]) => {
-					const h = document.documentElement;
-					h.setAttribute("data-theme", m);
-					if (sg) h.setAttribute("data-bnd-sb-color", sg);
-				}, [mode, slug]);
-			const read = (ns) =>
-				page.evaluate((wanted) => {
-					const cs = getComputedStyle(document.documentElement);
-					const out = {};
-					for (const n of wanted) out[n] = cs.getPropertyValue(n).trim();
-					return out;
-				}, ns);
+			// ANTI-VACUITY. A selector typo or a CSSOM quirk would hand back an empty
+			// map and every assertion below would pass by checking nothing, which is
+			// the green-test-with-no-evidence this repo names first.
+			const names = Object.keys(decls);
+			expect(names.length >= 12,
+				`only ${names.length} --bnd-sb-* declarations found on html[data-bnd-sb-color]: ` +
+					JSON.stringify(decls));
 
-			const before = await page.evaluate(() => ({
-				theme: document.documentElement.getAttribute("data-theme"),
-				sb: document.documentElement.getAttribute("data-bnd-sb-color"),
-			}));
-			const payload = { light: {}, dark: {}, sidebar: {} };
+			// THE ROLE SPLIT, ASSERTED. The surfaces MUST be aliases -- that is what
+			// makes the pane follow a tenant's theme, and replacing one with the hex
+			// it resolves to today is the exact edit that painted #16181d on the dark
+			// pane at 1.16:1. The category hues MUST NOT be: they are INK fits, and
+			// the global --bnd-cat-* they would alias are FILLS (measured: 1.82:1).
+			const aliases = names.filter((n) => !/^--bnd-sb-cat-\d+$/.test(n));
+			const hues = names.filter((n) => /^--bnd-sb-cat-\d+$/.test(n));
+			const notVar = aliases.filter((n) => !/^var\(--bnd-[a-z0-9-]+\)$/.test(decls[n]) &&
+				!decls[n].includes("var(--bnd-"));
+			expectEq(notVar.join(", "), "",
+				`a pane surface stopped following the theme — these carry no var(): ` +
+					notVar.map((n) => `${n}=${decls[n]}`).join("; "));
+			expect(hues.length === 7, `expected 7 pane category hues, found ${hues.length}`);
+			const huesAliased = hues.filter((n) => decls[n].includes("var("));
+			expectEq(huesAliased.join(", "), "",
+				`a pane hue was aliased instead of fitted — it is INK and --bnd-cat-* are ` +
+					`FILLS: ${huesAliased.map((n) => `${n}=${decls[n]}`).join("; ")}`);
+
+			// STAMP AND READ IN SEPARATE EVALUATES, every time. `getComputedStyle` has
+			// served this repo a stale value when an attribute was mutated and re-read
+			// inside ONE `page.evaluate`.
+			const simple = aliases.filter((n) => /^var\(--bnd-[a-z0-9-]+\)$/.test(decls[n]));
+			expect(simple.length >= 4,
+				`only ${simple.length} pane tokens are plain aliases; the comparison below ` +
+					`can only be made for those`);
+
+			const before = await page.evaluate(
+				() => document.documentElement.getAttribute("data-theme"));
 			try {
 				for (const mode of ["light", "dark"]) {
-					await stamp(mode, null);
-					payload[mode] = await read(names);
-				}
-				for (const slug of slugs) {
-					payload.sidebar[slug] = {};
-					for (const mode of ["light", "dark"]) {
-						await stamp(mode, slug);
-						payload.sidebar[slug][mode] = await read(sbNames);
+					await page.evaluate(
+						(m) => document.documentElement.setAttribute("data-theme", m), mode);
+					const got = await page.evaluate((pairs) => {
+						const cs = getComputedStyle(document.documentElement);
+						return pairs.map(([sb, target]) => [
+							sb, target,
+							cs.getPropertyValue(sb).trim(),
+							cs.getPropertyValue(target).trim(),
+						]);
+					}, simple.map((n) => [n, /^var\((--bnd-[a-z0-9-]+)\)$/.exec(decls[n])[1]]));
+
+					for (const [sb, target, sbVal, targetVal] of got) {
+						// An EMPTY value is the failure this check exists for: the block
+						// never matched, or the target does not exist. It is not equal to
+						// anything, so assert presence before equality or an empty pair
+						// would compare equal to an empty pair and pass.
+						expect(sbVal !== "", `${mode}: ${sb} resolves to nothing on the element`);
+						expect(targetVal !== "", `${mode}: ${sb} aliases ${target}, which resolves to nothing`);
+						expectEq(sbVal, targetVal,
+							`${mode}: ${sb} should render as ${target}`);
 					}
 				}
 			} finally {
 				await page.evaluate((b) => {
 					const h = document.documentElement;
-					if (b.theme === null) h.removeAttribute("data-theme");
-					else h.setAttribute("data-theme", b.theme);
-					if (b.sb === null) h.removeAttribute("data-bnd-sb-color");
-					else h.setAttribute("data-bnd-sb-color", b.sb);
+					if (b === null) h.removeAttribute("data-theme");
+					else h.setAttribute("data-theme", b);
 				}, before);
 			}
-
-			const gate = spawnSync("node", ["tools/contrast.mjs", "--check-sidebar"], {
-				input: JSON.stringify(payload),
-				encoding: "utf8",
-			});
-			expectEq(gate.status, 0, `rendered sidebar tokens:\n${gate.stdout}${gate.stderr}`);
-
-			// AND IT MUST HAVE MEASURED SOMETHING. A filter bug in the gate -- a
-			// block lookup returning nothing, an `allowed` set that came back empty --
-			// would make it pass by checking ZERO tokens, which is the "green test
-			// with no evidence it can fail" this repo names first. Four modes x two
-			// themes x a fourteen-token working set is ~114; the floor sits well under
-			// that so an honest change to the set does not trip it, and well over zero
-			// so a silent skip does.
-			const measured = Number((gate.stdout.match(/^(\d+) rendered sidebar tokens match/m) || [])[1] || 0);
-			expect(measured >= 80, `the gate only measured ${measured} sidebar tokens:
-${gate.stdout}`);
 		});
 
 		// ── Direction (item 7d/7-followup) ──────────────────────────────────
@@ -10140,17 +10071,19 @@ ${gate.stdout}`);
 			// failed at every hue regardless of seed (measured live before the
 			// fix: 2.40:1); the brand pane failed with the wash OFF, the raw
 			// seed under its own brand-solid fill (measured live: 1.07:1).
+			// THE THREE CONFIGURATIONS WERE THREE COLOUR MODES, and the modes are
+			// gone -- so the axis that still varies the pill is the WASH, which is
+			// what decided the fill in all three of those failures anyway. Off is
+			// the raw brand-solid under the label; Rich is the category hue. Both
+			// are kept, because they failed for different reasons and a single
+			// config would only ever prove one of them.
 			const configs = [
-				{ label: "Match Theme + Rich wash", settings: {
-					sidebar_color: "Match Theme", sidebar_active_style: "Solid Pill",
+				{ label: "Rich wash, cards", settings: {
+					sidebar_active_style: "Solid Pill",
 					sidebar_hue_wash: "Rich", sidebar_section_style: "Cards",
 				} },
-				{ label: "Dark Contrast + Rich wash", settings: {
-					sidebar_color: "Dark Contrast", sidebar_active_style: "Solid Pill",
-					sidebar_hue_wash: "Rich", sidebar_section_style: "Cards",
-				} },
-				{ label: "Brand pane, wash off", settings: {
-					sidebar_color: "Brand", sidebar_active_style: "Solid Pill",
+				{ label: "wash off, plain", settings: {
+					sidebar_active_style: "Solid Pill",
 					sidebar_hue_wash: "Off", sidebar_section_style: "Plain",
 				} },
 			];
@@ -10214,7 +10147,7 @@ ${gate.stdout}`);
 		await test("a11y: the menu takes focus when it opens, and gives it back", async () => {
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10251,7 +10184,7 @@ ${gate.stdout}`);
 		await test("a11y: the menu moves on arrows, wraps, and Home/End jump", async () => {
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10296,7 +10229,7 @@ ${gate.stdout}`);
 			// does not.
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10316,7 +10249,7 @@ ${gate.stdout}`);
 			// Re-pointed in 8c: the avatar opens the account PANEL now (a
 			// dialog, checked by its own family), so the menu contract is
 			// proven on the Place row's switcher — same component, same rules.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_color: "Match Theme" });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -19890,7 +19823,10 @@ print("cleared")
 							`cookies=frappe._dict(), headers=frappe._dict(), environ=frappe._dict())\n` +
 							`b = frappe.sessions.get()\n` +
 							`print("BND" + json.dumps({"list": b["bnd_list"], "form": b["bnd_form"], ` +
-							`"sb": b["bnd_sidebar"]["color"], "shape": b["bnd_desk_shape"]}))\n`
+							// `color` was this payload's sidebar witness until item 40 made it
+							// a constant; `active` is a field a LOOK still decides, which is
+							// what this check needs a sidebar key FOR.
+							`"sb": b["bnd_sidebar"]["active"], "shape": b["bnd_desk_shape"]}))\n`
 					).split("BND")[1].trim()
 				);
 			const adminBefore = boot("Administrator");

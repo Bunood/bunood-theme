@@ -1073,7 +1073,7 @@
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
 		material: { "Solid": "solid", "Glass": "glass", "Blurred Glass": "glassblur" },
-		color: { "Match Theme": "theme", "Minimal": "minimal", "Dark Contrast": "dark", "Brand": "brand" },
+		// `color` is gone; see _sidebar.scss's head for why.
 		icons: {
 			"Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled",
 			"Duotone": "duotone", "Brand Lines": "brandlines", "Monochrome": "mono",
@@ -1120,7 +1120,7 @@
 		const set = (name, value) => value && html.setAttribute("data-bnd-sb-" + name, value);
 		set("placement", SB_SLUGS.placement[sb.placement]);
 		set("material", SB_SLUGS.material[sb.material]);
-		set("color", SB_SLUGS.color[sb.color]);
+		set("color", "on"); // the kit's on/off marker, not a colour
 		set("icons", SB_SLUGS.icons[sb.icons]);
 		set("active", SB_SLUGS.active[sb.active]);
 		set("sections", SB_SLUGS.sections[sb.sections]);
@@ -7567,7 +7567,6 @@ function sb_zone_anchor(pane, zone, node) {
 		const next = {
 			placement: v("sidebar_placement", "placement"),
 			material: v("sidebar_material", "material"),
-			color: v("sidebar_color", "color"),
 			icons: v("icon_style", "icons"),
 			active: v("sidebar_active_style", "active"),
 			sections: v("sidebar_section_style", "sections"),

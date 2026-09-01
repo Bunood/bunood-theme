@@ -274,19 +274,17 @@ function readRuntimeTokens(...sources) {
 		for (const m of src.matchAll(/["'](--bnd-[a-z0-9-]+)["']/g)) names.add(m[1]);
 		for (const m of src.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)) names.add(m[1]);
 	}
-	// THE SIDEBAR'S OWN TOKENS ARE NOT RUNTIME TOKENS, and this line is what
-	// keeps that true while `palette.py` names them. Item 40 moved the pane's
-	// working set into `palette.SB_WORKING_SET` so the gate could stop
-	// hand-copying it — which put nine `--bnd-sb-*` string literals into a file
-	// this extraction reads, and a runtime token is EXEMPT from the phantom
-	// check in every compiled sheet. In `bunood.css` that is harmless: they are
-	// declared there. In the web, email and print sheets it would have made
-	// nine phantoms legal, silently, as a side effect of a refactor in an
-	// unrelated file.
+	// THE SIDEBAR'S OWN TOKENS ARE NOT RUNTIME TOKENS. A runtime token is
+	// EXEMPT from the phantom check in every compiled sheet, so any `--bnd-sb-*`
+	// string literal reaching this extraction would make a phantom legal in the
+	// web, email and print sheets — silently, as a side effect of an edit in an
+	// unrelated file. It happened once: the gate's working-set tuple put nine of
+	// them in `palette.py`.
 	//
-	// This becomes wrong the moment slice 3 has `brand.py` emit these per site
-	// — at that point they ARE runtime tokens and the line comes out WITH the
-	// emission, not before it and not after.
+	// This line was written with an expiry — `brand.py` was going to emit these
+	// per site, at which point they WOULD be runtime tokens. That emission was
+	// removed instead (item 40, 2026-09-01: the pane takes `--bnd-pane`), so the
+	// line is now unconditionally right and has no expiry left.
 	for (const t of [...names]) if (t.startsWith("--bnd-sb-")) names.delete(t);
 	if (names.size < 10) {
 		throw new Error(

@@ -151,6 +151,30 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   Chromium reports `prefers-reduced-transparency: reduce`**, so every desk this suite has
   ever driven was in that branch and nothing looked. Emulate the other pole through CDP
   (`Emulation.setEmulatedMedia`) on a fresh context — Playwright carries no flag for it.
+  (c) **And removing that `:not()` is how it came back.** When the brand pane was
+  deleted the guard read like dead weight, and it was checked — both sides of the pair
+  dropped together, relative order unchanged, which is true and insufficient. The rule
+  the degradation actually has to beat was a THIRD one 250 lines away:
+  `[material][data-bnd-rail] .container .body-sidebar` at (0,4,1), against arms that had
+  just fallen to (0,3,1). **Re-weigh against every rule that sets the same property on
+  the same element, never only the one the comment names.** The repair is an attribute
+  that is always present (`[data-bnd-sb-color]`) used purely as weight — say so at the
+  site, or the next reader deletes it as a redundant condition and this recurs a third
+  time. The expanded case passes either way; only the RAIL case catches it.
+- **Aliasing a token onto one whose ROLE differs.** Collapsing the pane's palette onto
+  the theme's, `--bnd-sb-cat-*` were pointed at the global `--bnd-cat-*`. The names match,
+  the polarity handling is better, and it is wrong: `--bnd-sb-hue` is read as `color:` in
+  six rules, so it is INK, while `--bnd-cat-*` are FILLS — the dot on a row, the bar on a
+  chart. Measured: `#eda100` amber as text on a light pane is **1.82:1**, and 282 of 378
+  pairs fail. When you collapse a component's palette onto a shared one, check each
+  token's role AT ITS CONSUMERS, not by its name — and expect the survivors: a fit the
+  global palette has no token for is exactly what must stay derived.
+- **A source-parsing check that reads the FIRST of two identical selectors.** The new hue
+  drift check found `html[data-bnd-sb-color]` with `re.search` — but two blocks carry that
+  selector, and it read the alias block, which declares no hues. Seven false drifts, on
+  correct code. This is `selecting by class measures the wrong element` arriving one level
+  up, in a file parser rather than the DOM: the cascade merges every matching block, so a
+  check that models the cascade must `finditer` and merge too.
 - **A helper that guesses at an unrecognised input.** `triple()` knew `rgb()` and
   `color(srgb …)` and read `oklab(…)` — which Chrome also emits for `color-mix()` — as
   near-black, silently. A rule scan that recursed on `r.cssRules` examined NOTHING, because

@@ -2297,18 +2297,13 @@ const BND_SB_GROUPS = [
 			{ value: "Blurred Glass", name: () => __("Blurred Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px;filter:blur(1px)") },
 		],
 	},
-	{
-		field: "sidebar_color",
-		zone: "pane",
-		title: () => __("Pane color"),
-		desc: () => __("The sidebar's own color world — independent of light or dark mode."),
-		options: [
-			{ value: "Match Theme", name: () => __("Match theme"), thumb: bnd_sb_pane("#dfeae1") },
-			{ value: "Minimal", name: () => __("Minimal"), thumb: bnd_sb_pane("#f2f2f0", "outline:1px solid rgba(0,0,0,.08);outline-offset:-1px") },
-			{ value: "Dark Contrast", name: () => __("Dark contrast"), thumb: bnd_sb_pane("#16211b") },
-			{ value: "Brand", name: () => __("Brand"), thumb: bnd_sb_pane("var(--primary, #3d8150)") },
-		],
-	},
+	// THE PANE COLOUR PICKER IS GONE (2026-09-01, the user's call after two
+	// attempts to make its four worlds follow a tenant's palette). The pane
+	// takes its colours from the theme now — one derivation, no second
+	// colour system to drift — so the four options would render one pane
+	// under four names, which is the defect this vocabulary exists to
+	// prevent. `sidebar_color` survives in the doctype as the kit's on/off
+	// marker (see apply_sidebar_attrs); its VALUE no longer decides colour.
 	// Icon style and Icon source moved to the Icons axis (item 23). The sidebar
 	// picker no longer draws them; they live in section_icons.
 	{
@@ -2651,8 +2646,8 @@ const BND_THEME_ART = {
  *
  * Drawn in LIGHT for every card on purpose: light or dark is the viewer's choice
  * (or their OS's), never the preset's, so a card that picked one would be
- * answering a question it was not asked. The PANE may still be dark — that is
- * `sidebar_color`, which a preset does decide.
+ * answering a question it was not asked. The pane follows that same choice
+ * now — its colours are the theme's, so there is no third answer to draw.
  *
  * Every colour is the server's `palette.derive` output for that palette, handed
  * over by `api.get_palettes`. Nothing is computed here: a JS reimplementation of
@@ -2844,7 +2839,7 @@ function bnd_render_theme_picker(frm, host) {
 // cost the shell a second request and a documented race. build.mjs holds it
 // to presets.SIDEBAR_FIELDS like every other kit's mirror.
 const BND_SIDEBAR_FIELDS = [
-	"sidebar_placement", "sidebar_material", "sidebar_color",
+	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",

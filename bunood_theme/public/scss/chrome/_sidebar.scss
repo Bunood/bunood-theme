@@ -47,46 +47,61 @@
 // Logical properties only. One !important in this file, documented at site.
 // ============================================================================
 
-// ── Color modes: define the working set ─────────────────────────────────────
-// Each mode sets the full set; components below never look elsewhere.
-
-html[data-bnd-sb-color="theme"] {
-  // THESE ARE ALIASES ON PURPOSE, and this block carries NO `data-theme`:
-  // it serves both polarities, and an alias is what lets it. Replacing
-  // them with the light literals they resolve to today was tried on
-  // 2026-09-01 and painted #16181d ink on the dark pane at 1.16:1 -- the
-  // gate named it in one run. An alias that self-adapts is not the same
-  // fact as a literal that happens to equal it in one mode.
-  //
-  // `--bnd-sb-card-base` is the exception, and it was the defect: it read
-  // `var(--bnd-surface)`, which mixes the seed at ZERO percent and is
-  // therefore pure white on every site in the world. A section card is a
-  // step up from ITS OWN pane, which follows the theme in both modes.
-
-  // The category hues, FITTED to this mode's pane (34a): every global
-  // --bnd-cat-N failed AA somewhere across the four panes — hue 4 read
-  // 1.97:1 here — so each colour mode carries its own fits, produced by
-  // holding hue and saturation and searching lightness until the WORST
-  // ratio across every gate seed's pane clears 4.6:1. Same working-set
-  // pattern as every variable below; the global tokens are untouched for
-  // their other consumers.
-  --bnd-sb-cat-1: #2469bc;
-  --bnd-sb-cat-2: #b94112;
-  --bnd-sb-cat-3: #127753;
-  --bnd-sb-cat-4: #8e6000;
-  --bnd-sb-cat-5: #c62360;
-  --bnd-sb-cat-6: #007a00;
-  --bnd-sb-cat-7: #4a3aa7;
+// ── The pane's colours ARE the theme's (item 40, 2026-09-01) ────────────────
+//
+// There used to be four colour worlds here — Match Theme, Minimal, Dark
+// Contrast and Brand — each declaring the whole working set, 42 hex literals
+// between them against 0-3 in every other chrome kit. The user's verdict after
+// watching two attempts to make them follow a tenant's palette: remove them,
+// and have the colours come from the presets. That is what this is.
+//
+// WHY ALIASES RATHER THAN A DELETION OF THE NAMES. Seventy-six rules below
+// read `--bnd-sb-*`, and they are the right names for what they mean: THE
+// PANE'S ink, THE PANE'S line. Pointing them at the global palette keeps every
+// one of those rules honest and costs one block, where renaming them would be
+// a 76-site edit that changes no pixel. The global tokens are already
+// polarity-aware and already per-site (brand.py emits them), so the pane now
+// follows a tenant's theme in light, dark and automatic by construction —
+// there is no second derivation left to drift.
+//
+// WHAT THIS DELETES ON PURPOSE: the `sidebar_color` field's four options, the
+// per-mode blocks and their dark/automatic arms, `palette.sidebar_ramp` and
+// `sb_blocks` with `brand.py`'s emission of them, and the gate's six-arm
+// sidebar sweep. (`palette.SB_PANES` survives, reduced to the one alias pane
+// per polarity, because two fits still read it.) The attribute itself
+// STAYS as the kit's on/off marker — `sb_active()` and every rule below key on
+// its presence, which is a different question from which colours it carries.
+html[data-bnd-sb-color] {
   --bnd-sb-bg: var(--bnd-pane);
   --bnd-sb-ink: var(--bnd-ink);
   --bnd-sb-ink-muted: var(--bnd-ink-muted);
   --bnd-sb-line: var(--bnd-border);
+  // A chip is a wash of the ink over whatever the pane is; a card is a step
+  // up from it. Both are relationships, so both follow the theme without a
+  // second value to keep in step.
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
-  --bnd-sb-card-base: color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg));
+  --bnd-sb-card-base: var(--bnd-raised);
 }
 
-html[data-bnd-sb-color="minimal"] {
+// ── The category hues are the ONE thing that does not alias ────────────────
+//
+// `--bnd-sb-hue` is read as `color:` in six rules below, so these are INK.
+// The global `--bnd-cat-*` are FILLS — the dot on a list row, the bar on a
+// chart — and this repo's standing rule is that a colour token has ONE role.
+// Measured 2026-09-01 across 27 seeds x 2 modes: aliasing the fills here puts
+// `#eda100` amber text on a light pane at **1.82:1**, and 282 of 378 pairs
+// fail. The same seven hues fitted as ink clear every one, worst 4.60:1.
+//
+// So they are DERIVED, by `palette.sb_hues()`, and pinned to it by
+// `contrast_gate.check_sidebar_hues` — the same one-derivation-two-consumers
+// shape `check_defaults_agree` gives `_tokens.scss`. That check reads ALL
+// three blocks and merges them, because two of them share a selector with the
+// alias block above and reading the first found no hues at all.
+// They do not follow the seed, deliberately: a
+// module keeps its hue across sites, which is the assign-once-per-entity
+// contract `_tokens.scss` carries and the reason screenshots transfer.
+html[data-bnd-sb-color] {
   --bnd-sb-cat-1: #2469bc;
   --bnd-sb-cat-2: #b94112;
   --bnd-sb-cat-3: #127753;
@@ -94,25 +109,9 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-cat-5: #c62360;
   --bnd-sb-cat-6: #007a00;
   --bnd-sb-cat-7: #4a3aa7;
-  --bnd-sb-bg: #fafbfa;
-  --bnd-sb-ink: #16181d;
-  --bnd-sb-ink-muted: #646a78;
-  --bnd-sb-line: color-mix(in srgb, #16181d 9%, var(--bnd-sb-bg));
-  --bnd-sb-chip-bg: color-mix(in srgb, #16181d 7%, var(--bnd-sb-bg));
-  --bnd-sb-chip-ink: #646a78;
-  --bnd-sb-card-base: color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg));
 }
-// The seven category hues, DARK fit. One set, three consumers — minimal-dark,
-// theme-dark and dark-contrast all carried byte-identical copies of these
-// seven lines. Twenty-one declarations expressing seven facts is the defect
-// this repo names first, so they live here once. A re-fit is now one edit,
-// not three that can drift apart silently.
-//
-// Fitted against the DARK panes only. `fit_ink` bisects and its own docstring
-// warns that backgrounds straddling the ink return a value on the wrong side
-// of the dip — the four panes straddle, so the light and dark sets are fitted
-// separately and must stay that way.
-@mixin sb-dark-hues {
+
+html[data-theme="dark"][data-bnd-sb-color] {
   --bnd-sb-cat-1: #7aabe5;
   --bnd-sb-cat-2: #f08e66;
   --bnd-sb-cat-3: #1dbe84;
@@ -122,119 +121,18 @@ html[data-bnd-sb-color="minimal"] {
   --bnd-sb-cat-7: #a9a0de;
 }
 
-// ── Dark arms of the two modes that have one ────────────────────────────────
-// MIXINS, for the reason _tokens.scss gives at its own `dark` mixin: each set
-// must be emitted under BOTH `[data-theme="dark"]` and the `automatic` + OS-dark
-// arm, and every extra emission point is another copy of the same fact.
-//
-// ITEM 40, measured 2026-08-29: there WAS no automatic arm. `data-theme` is
-// literally "automatic" until JS resolves it, so on a dark OS neither block
-// below matched and the pane painted its LIGHT set on a dark desk — the seven
-// Match Theme hues at 1.79-2.79:1 against a 4.5 floor, and Minimal as a #fafbfa
-// pane beside a #131a1a page. Verified absent in the compiled sheet, not inferred.
-@mixin sb-minimal-dark {
-  @include sb-dark-hues;
-  --bnd-sb-bg: #15181a;
-  --bnd-sb-ink: #ffffff;
-  --bnd-sb-ink-muted: #9aa1ab;
-  --bnd-sb-line: color-mix(in srgb, #ffffff 16%, var(--bnd-sb-bg));
-  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
-
-  // Item 40: these two were MISSING from this block, so both fell through to the
-  // light minimal set — `transparent` and #6d7570, which measures 3.76:1 on this
-  // pane against a 4.5 floor. The mode's own pattern is what light minimal does:
-  // a transparent chip, and chip ink that IS the mode's muted ink. #8b938e -> 5.66:1.
-  --bnd-sb-chip-bg: color-mix(in srgb, #ffffff 6%, var(--bnd-sb-bg));
-  --bnd-sb-chip-ink: #9aa1ab;
-}
-
-@mixin sb-theme-dark {
-  @include sb-dark-hues;
-  // THE CARD LIFT IS THE ONE POLARITY-SPECIFIC NUMBER in Match Theme.
-  // Everything else in that block is an alias and self-adapts, but a
-  // percentage cannot: 55% of white over the light pane is the card, and
-  // 55% of white over the DARK pane is a light card carrying dark-mode ink
-  // at 1.44:1 (measured, the run this override exists because of). The
-  // percentages are palette.SB_LIFTS; this is the dark one.
-  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
-}
-
-html[data-theme="dark"][data-bnd-sb-color="minimal"] {
-  @include sb-minimal-dark;
-}
-
-// Dark contrast: the pane is ALWAYS dark, whatever the desk theme. Mixed
-// from the brand seed so tenants get a tinted ink, not generic charcoal.
-html[data-bnd-sb-color="dark"] {
-  // THE INKS ARE FITTED AGAINST THE BINDING SEED, not the shipped one.
-  // This pane is `mix(brand 10%, #131a15)`, so it moves with the tenant's
-  // seed even in the STATIC sheet -- and an ink fitted at #3d8150 fell to
-  // 4.12:1 on its own card at brighter seeds. The binding surface is the
-  // lightest this pane ever becomes, which is a white seed; clear it there
-  // and every darker seed passes with room. Same reasoning, and the same
-  // extreme-seed construction, as `_chart_binding_bg` and
-  // `_status_binding_bg` in palette.py. Fitted at 4.62 rather than 4.5,
-  // for the reason SB_TARGET_HUE carries: a fit that lands exactly on the
-  // floor rounds under it somewhere -- this one measured 4.49 against a
-  // 4.50 requirement, which is a pass that reads as a failure and a
-  // failure nobody can act on.
-
-  @include sb-dark-hues;
-  --bnd-sb-bg: color-mix(in srgb, var(--bnd-brand) 10%, #131a15);
-  --bnd-sb-ink: #ffffff;
-  --bnd-sb-ink-muted: #a7aeb6;
-  --bnd-sb-line: color-mix(in srgb, #ffffff 16%, var(--bnd-sb-bg));
-  --bnd-sb-chip-bg: color-mix(in srgb, #ffffff 6%, var(--bnd-sb-bg));
-  --bnd-sb-chip-ink: #a7aeb6;
-  --bnd-sb-card-base: color-mix(in srgb, #ffffff 8%, var(--bnd-sb-bg));
-}
-
-html[data-bnd-sb-color="brand"] {
-  // No hue can be FITTED to an arbitrary-seed gradient, so on the brand pane
-  // the hues stand down and section labels take the mode's own ink. A colour
-  // that cannot be made legible is not offered — the same honesty rule as
-  // every picker.
-  --bnd-sb-cat-1: var(--bnd-sb-ink);
-  --bnd-sb-cat-2: var(--bnd-sb-ink);
-  --bnd-sb-cat-3: var(--bnd-sb-ink);
-  --bnd-sb-cat-4: var(--bnd-sb-ink);
-  --bnd-sb-cat-5: var(--bnd-sb-ink);
-  --bnd-sb-cat-6: var(--bnd-sb-ink);
-  --bnd-sb-cat-7: var(--bnd-sb-ink);
-  --bnd-sb-bg: linear-gradient(
-    170deg,
-    color-mix(in srgb, var(--bnd-brand) 96%, #ffffff),
-    color-mix(in srgb, var(--bnd-brand) 72%, #000000)
-  );
-  --bnd-sb-ink: #ffffff;
-  --bnd-sb-ink-muted: rgba(255, 255, 255, 0.75);
-  --bnd-sb-line: rgba(255, 255, 255, 0.2);
-  --bnd-sb-chip-bg: rgba(255, 255, 255, 0.16);
-  --bnd-sb-chip-ink: #ffffff;
-  --bnd-sb-card-base: rgba(255, 255, 255, 0.1);
-  // The active pill's fill/ink pair (item 22): no fixed hue survives an
-  // arbitrary-seed gradient, and neither does the brand itself — brand-solid
-  // on a brand gradient is brand on brand (measured 1.00:1 at several seeds,
-  // the raw --bnd-brand label this block used to set was the SAME colour as
-  // the brand-solid fill .active-sidebar falls back to). Same stand-down the
-  // hues already take four lines up: the pill goes white, the label goes
-  // near-black. 16.4:1, fixed on both sides, so no seed can break it.
-  --bnd-sb-brand-pill: var(--bnd-sb-ink);
-  --bnd-sb-brand-pill-ink: #16181d;
-}
-
-html[data-theme="dark"][data-bnd-sb-color="theme"] {
-  @include sb-theme-dark;
-}
-
-// The automatic arm. Specificity (0,2,1) — it must match the `[data-theme="dark"]`
-// blocks above and beat the single-attribute light blocks, which it does.
+// The automatic arm, because an Automatic user on a dark OS paints from CSS
+// until JS resolves the attribute — the first-paint window defect 27 was
+// opened for. Matching (0,2,1) specificity, as its dark twin above.
 @media (prefers-color-scheme: dark) {
-  html[data-theme="automatic"][data-bnd-sb-color="minimal"] {
-    @include sb-minimal-dark;
-  }
-  html[data-theme="automatic"][data-bnd-sb-color="theme"] {
-    @include sb-theme-dark;
+  html[data-theme="automatic"][data-bnd-sb-color] {
+    --bnd-sb-cat-1: #7aabe5;
+    --bnd-sb-cat-2: #f08e66;
+    --bnd-sb-cat-3: #1dbe84;
+    --bnd-sb-cat-4: #eda100;
+    --bnd-sb-cat-5: #eb8aae;
+    --bnd-sb-cat-6: #00c300;
+    --bnd-sb-cat-7: #a9a0de;
   }
 }
 
@@ -250,42 +148,13 @@ html[data-bnd-sb-color] .body-sidebar-container {
 }
 
 // Glass: keep N% of the pane color, let the page bleed through the rest.
-// A gradient bg (brand mode) cannot go through color-mix — you cannot mix a
-// gradient with transparent — so brand takes the rule below instead, where
-// the transparency goes into the STOPS. Until item 40 closed it, brand had
-// no rule at all and no fallback either (the sentence here promised
-// "translucency via opacity on a pseudo-layer"; no such layer was ever
-// built, which grepping for it is how the lie was found), so Glass and
-// Blurred Glass rendered exactly as Solid there: two picker options, one
-// pixel, on the one pane where the seed is most visible.
-html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container {
+// ONE rule now, for one pane. This used to carry a `:not(brand)` guard
+// because the brand pane was a GRADIENT and a gradient cannot go through
+// color-mix(); that pane went with the colour modes, and the guard with it.
+html[data-bnd-sb-material^="glass"] .body-sidebar-container {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 
-// THE BRAND PANE'S GLASS. The stops are restated here rather than derived,
-// and that is deliberate: `--bnd-sb-bg` is the whole gradient, so there is
-// nothing to mix without rebuilding it, and factoring the stops into their
-// own tokens would break TWO gate checks that hold this block's exact shape
-// (`check_sidebar_agrees` asserts --bnd-sb-bg literally carries each stop;
-// `check_sidebar_coverage` forbids stray keys in a colour world). So it is
-// the SLUG/ATTR_OF bargain instead — two copies, and a guard that makes
-// disagreement loud: contrast_gate holds BOTH this rule and the brand block
-// to `palette.SB_STOPS`, which is the one place the numbers live.
-html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"] .body-sidebar-container {
-  background: linear-gradient(
-    170deg,
-    color-mix(
-      in srgb,
-      color-mix(in srgb, var(--bnd-brand) 96%, #ffffff) var(--bnd-sb-glass-pct),
-      transparent
-    ),
-    color-mix(
-      in srgb,
-      color-mix(in srgb, var(--bnd-brand) 72%, #000000) var(--bnd-sb-glass-pct),
-      transparent
-    )
-  );
-}
 // Pane width stops. Stop 2 is v16's original 220px — the former default;
 // stop 3 ships since the 2026-08-08 re-choice.
 html[data-bnd-sb-width="1"] { --bnd-sb-w: 200px; }
@@ -828,8 +697,11 @@ html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
 // together only where that pair does not survive — the brand pane, above.
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item.active-sidebar {
   --bnd-sb-accent: var(--bnd-sb-hue, var(--bnd-brand-solid));
-  --bnd-sb-fill: var(--bnd-sb-brand-pill, var(--bnd-brand-solid));
-  --bnd-sb-active-ink: var(--bnd-sb-brand-pill-ink, var(--bnd-on-brand));
+  // The brand pane declared an override pair here and it went with the
+  // colour modes; these were already written as fallbacks to the global
+  // pair, so this is the value they render — now said once, plainly.
+  --bnd-sb-fill: var(--bnd-brand-solid);
+  --bnd-sb-active-ink: var(--bnd-on-brand);
   color: var(--bnd-sb-ink);
   font-weight: var(--bnd-weight-medium);
 }
@@ -1282,7 +1154,7 @@ html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .b
 }
 
 // Glass applies to the overlay surface in rail modes.
-html[data-bnd-sb-material^="glass"][data-bnd-rail]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
+html[data-bnd-sb-material^="glass"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
 }
 html[data-bnd-sb-material="glassblur"][data-bnd-rail] .body-sidebar-container .body-sidebar {
@@ -1530,19 +1402,27 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 // this degradation exists to prevent. The brand arm ties at (0,4,1) and
 // wins on order, which is what 'ties are enough' actually requires.
 @media (prefers-reduced-transparency: reduce) {
-  // THE `:not()` STAYS ON THE GENERAL ARMS -- it is not decoration, it is
-  // SPECIFICITY. Dropping it (which reads like a simplification, now that
-  // brand is no longer exempt) takes these from (0,3,1) to (0,2,1) and
-  // they lose to the translucency rule, whose own `:not()` keeps it at
-  // (0,3,1). Measured within minutes of making that exact edit: a
-  // non-brand Glass pane stayed 0.85 transparent with its blur removed.
-  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container,
-  html[data-bnd-sb-material^="glass"]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar,
-  html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"] .body-sidebar-container {
+  // THE SECOND ATTRIBUTE IS SPECIFICITY, NOT A CONDITION. `[data-bnd-sb-color]`
+  // is present whenever the kit is on, so it selects nothing extra and nothing
+  // less -- it is here to carry WEIGHT. These arms used to earn that weight
+  // from a `:not([data-bnd-sb-color="brand"])` guard; when the brand pane went,
+  // dropping the guard read like a simplification and silently took them from
+  // (0,4,1) to (0,3,1).
+  //
+  // What they must beat is NOT the rule they look like they are beating. The
+  // base translucency rule is (0,2,1) and would lose to anything. The RAIL
+  // arms 250 lines up are `[material][data-bnd-rail] .container .body-sidebar`
+  // -- (0,4,1) -- so a (0,3,1) degradation loses the background and wins only
+  // the blur, leaving a pane translucent at alpha 0.85 with its frosting removed: the one
+  // combination this block exists to prevent. Size against the RULE, not the
+  // element. And headless Chromium reports `reduce`, so every desk this suite
+  // has ever driven is inside this branch -- it would have shipped looking fine.
+  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container,
+  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container .body-sidebar {
     background: var(--bnd-sb-bg);
   }
-  html[data-bnd-sb-material^="glass"] .body-sidebar-container,
-  html[data-bnd-sb-material^="glass"] .body-sidebar-container .body-sidebar {
+  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container,
+  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container .body-sidebar {
     backdrop-filter: none;
   }
 }

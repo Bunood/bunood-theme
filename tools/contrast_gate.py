@@ -240,167 +240,97 @@ def pairs():
              "hover accent alongside a background change; see item 22"),
     ]
 
-    # ── The sidebar kit's own palette (34a) ──────────────────────────────────
+    # ── The sidebar kit's category hues (item 22, rewritten item 40) ─────────
     #
-    # ENFORCED NOW, and per pane FAMILY, because the measurement round proved
-    # no single hex can serve four panes: every one of the seven global
-    # --bnd-cat-N hues failed AA on at least one pane (hue 4 read 1.97:1 on
-    # the light pair, hue 7 read 1.86:1 on the dark pair). Each colour mode
-    # therefore declares its own fits in _sidebar.scss — light modes darken,
-    # dark modes lighten, hue and saturation held, lightness searched until
-    # the worst ratio across every seed here cleared 4.6:1. These rows hold
-    # the gate to exactly those declared values; edit the fits in
-    # _sidebar.scss and these hexes together or the gate says so.
+    # ONE PANE NOW, AND THESE ROWS ARE WHY THE HUES DID NOT FOLLOW IT. The kit
+    # used to carry four colour worlds and this block swept the seven hues
+    # across all of them. The panes went; the hues did not, and must not:
+    # `--bnd-sb-hue` is read as `color:` in six rules, so it is INK, while the
+    # global `--bnd-cat-*` are FILLS. Aliasing one to the other is a role
+    # change, which this repo forbids, and it measures: #eda100 amber as text
+    # on a light pane is 1.82:1, and 282 of 378 pairs fail.
     #
-    # The brand pane has no rows: no fixed hue can be fitted to an
-    # arbitrary-seed gradient, so the hues stand down there and section
-    # labels take the mode's own white ink — checked below as a MEASURED row
-    # against the gradient's lightest stop, not enforced, because a
-    # near-white seed makes white-on-brand illegible by construction and
-    # that is the brand mode's own pre-existing design question, not this
-    # palette's.
-    SB_HUES = {p: palette.sb_hues(p) for p in ("light", "dark")}
-    for polarity, panes in palette.SB_PANES.items():
-        for n in range(7):
-            for pane in panes.values():
-                # The dark-contrast pane is dark in BOTH desk themes, but its
-                # hues come from the mode block that also serves dark desks, so
-                # the dark fit is what renders on it always — checked in dark
-                # mode, where --bnd-pane agrees with it.
-                out.append(Pair(
-                    SB_HUES[polarity][n], palette.sb_pane_css(pane), AA_TEXT,
-                    f"sidebar hue {n + 1} ({polarity} fit) on the {pane.label}", polarity,
-                ))
-    for pct, base in palette.SB_STOPS:
-        out.append(Pair(
-            "#ffffff", f"color-mix(in srgb, var(--bnd-brand) {pct}%, {base})", None,
-            f"brand-pane ink at the gradient's {base} stop; see the brand-mode note",
-        ))
+    # Fitted as ink by `palette.sb_hues()` they clear every pane at every seed,
+    # worst 4.60:1 -- measured 2026-09-01 across 27 seeds x 2 modes. The fit
+    # binds against the worst pane, so holding it here against `--bnd-pane`
+    # (which MOVES with the seed) is the row that keeps that true.
+    for polarity in ("light", "dark"):
+        for n, hue in enumerate(palette.sb_hues(polarity), 1):
+            out.append(Pair(
+                hue, "var(--bnd-pane)", AA_TEXT,
+                f"sidebar hue {n} ({polarity} fit) on the pane", polarity,
+            ))
 
-    # ── The chip, measured on the pane it is actually painted on (item 40) ───
+    # ── The pane's own surfaces, measured on the pane (item 40) ─────────────
     #
     # THE GATE HAD NO CHIP ROW AT ALL, and that is how defect 25 lived: dark
     # minimal declared 12 of the 14 working-set tokens, so --bnd-sb-chip-ink
     # fell through to the LIGHT block and painted #6d7570 on a #15181a pane.
-    # 3.76:1, shipped, with a green gate — because nothing here ever asked.
+    # 3.76:1, shipped, with a green gate -- because nothing here ever asked.
     #
-    # The values come from the stylesheet rather than a derivation because the
-    # chip HAS no derivation yet — the ramp so far derives the hues, and what
-    # tints Minimal is still an open design decision. Read, do not re-copy.
+    # These rows used to walk six colour worlds and read each one's own
+    # declarations out of the stylesheet. There is one pane now and it is the
+    # theme's, so the values are the GLOBAL tokens and the sweep is the one
+    # already running: `--bnd-ink` on `--bnd-pane` is a row above, at every
+    # seed, in both modes. What is NOT already covered is the chip, because
+    # the pane derives it rather than aliasing it --
+    # `color-mix(--bnd-ink 7%, transparent)` over the pane -- and a derived
+    # pair is a pair no global row has. That is the whole of what is left, and
+    # it is the shape of `closed is not covered`: the ratios were never wrong,
+    # there was simply no row.
     #
-    # THE PANE'S OWN TEXT HAD NO ROW EITHER, which is the larger half of the
-    # same hole: every enforced sidebar row before item 40 measured a CATEGORY
-    # HUE, and the workspace links are painted in --bnd-sb-ink and
-    # --bnd-sb-ink-muted. Fourteen decorative marks were gated and the words
-    # were not. Both are declared per mode, both are wrong on the other mode's
-    # pane, and neither the hue rows nor `check_sidebar_coverage` can see it —
-    # a dark arm that simply omits an override leaves a COMPLETE map after the
-    # cascade, carrying the light value. Only measuring says so.
-    #
-    # Worst across the 27 gate seeds when these landed: ink 9.00 everywhere,
-    # muted 4.57 (minimal light) to 7.95. That 4.57 is a 0.07 margin — exactly
-    # the kind of figure that should be enforced rather than admired once.
-    for (polarity, mode_name), block in sidebar_worlds().items():
-        pane = _sb_pane_expr(polarity, mode_name)
-        if pane is None:
-            continue  # the brand gradient: see palette.SB_UNMEASURABLE
-        where = f"{mode_name} {polarity or 'both'}"
-        # A WORLD'S OWN DECLARATIONS SHADOW THE GLOBALS, and since 2026-09-01
-        # they need to: the pane's surfaces are written as offsets FROM the
-        # pane -- `color-mix(in srgb, #ffffff 55%, var(--bnd-sb-bg))` -- which
-        # is what makes them follow a tenant's theme. `parse_color` resolves
-        # var() against the map it is handed, and the global map has no
-        # --bnd-sb-bg in it, so every one of these rows raised "unknown custom
-        # property". This is the same shadowing rule the hue rows already
-        # learned, one token further in: substitute the world's own pane
-        # before the value is ever measured.
-        sb = lambda v: v.replace("var(--bnd-sb-bg)", pane)
-        # The chip background is TRANSLUCENT in three of the four modes, which
-        # is why `Pair.overlay` had to exist: `resolve` flattens a translucent
-        # colour over --bnd-surface by default, and --bnd-surface is #ffffff in
-        # light. A chip measured against that would read "fine" for exactly the
-        # dark pane where it was not.
-        out.append(Pair(
-            sb(block["--bnd-sb-chip-ink"]), sb(block["--bnd-sb-chip-bg"]), AA_TEXT,
-            f"sidebar chip label on its chip, {where}", polarity, overlay=pane,
-        ))
-        for ink, what in (("--bnd-sb-ink", "link text"), ("--bnd-sb-ink-muted", "muted text")):
-            out.append(Pair(sb(block[ink]), pane, AA_TEXT, f"sidebar {what} on the pane, {where}", polarity))
-            # The card surface is translucent in Dark Contrast, so it needs the
-            # pane as its own host before anything is measured against it.
+    # Measured 2026-09-01 across 27 seeds x 2 modes: 324 pairs, worst 6.11:1.
+    CHIP = "color-mix(in srgb, var(--bnd-ink) 7%, transparent)"
+    for polarity in ("light", "dark"):
+        for ink, what in (("var(--bnd-ink)", "link text"),
+                          ("var(--bnd-ink-muted)", "muted text")):
+            # The chip is TRANSLUCENT, which is why `Pair.overlay` exists:
+            # `resolve` flattens a translucent colour over --bnd-surface by
+            # default, and --bnd-surface is #ffffff in light. A chip measured
+            # against that reads 'fine' for exactly the dark pane where it is
+            # not.
             out.append(Pair(
-                sb(block[ink]), sb(block["--bnd-sb-card-base"]), AA_TEXT,
-                f"sidebar {what} on a section card, {where}", polarity, overlay=pane,
+                ink, CHIP, AA_TEXT,
+                f"sidebar {what} on its chip", polarity,
+                overlay="var(--bnd-pane)",
             ))
-        # Measured, not enforced — the same standing as --bnd-border on
-        # --bnd-surface above. A hairline separator is a boundary between two
-        # regions of the same surface, not a control edge; item 22 argued this
-        # once and the sidebar's line is the same thing under another name.
-        # Published so the gap has a number: 1.17-1.30 across the five panes.
-        out.append(Pair(
-            sb(block["--bnd-sb-line"]), pane, None,
-            f"sidebar separator on the pane, {where}; see item 22", polarity, overlay=pane,
-        ))
-
-    # ── The active pill's fill and its label are one derivation (item 22) ────
-    #
-    # 34a fitted the categorical hues to be INK on a pane (AA_TEXT), never a
-    # FILL under a label — Solid Pill used the wash hue as its fill whenever
-    # a wash was on, with the label set independently per colour mode, and
-    # the two drifted: Match Theme + Solid Pill measured 2.08:1 at seed
-    # #7f7f7f (already a gate seed above), Dark Contrast + Solid Pill
-    # measured 2.17-2.40:1 at every hue. The fix routes the pill through the
-    # brand's own gated pair instead (the "label on a brand fill" row above)
-    # in every colour mode except brand, which stands the pair down the same
-    # way its hues already do four lines up — no fixed pair survives an
-    # arbitrary-seed gradient. This row enforces that stand-down; the
-    # general-mode pair is the existing row above, now what actually renders.
+            out.append(Pair(
+                ink, "var(--bnd-raised)", AA_TEXT,
+                f"sidebar {what} on a section card", polarity,
+            ))
+    # Measured, not enforced -- the same standing as --bnd-border on
+    # --bnd-surface above. A hairline separator is a boundary between two
+    # regions of the same surface, not a control edge; item 22 argued this
+    # once and the pane's line is the same thing under another name.
     out.append(Pair(
-        "#16181d", "#ffffff", AA_TEXT,
-        "sidebar active pill label on the brand pane's stand-down fill",
+        "var(--bnd-border)", "var(--bnd-pane)", None,
+        "sidebar separator on the pane; see item 22",
     ))
-
-    # ── Measured, deliberately not enforced: the fill's own visibility ───────
+    # ── The active pill's fill against the pane it sits on ──────────────────
     #
-    # The fix above makes the pill's fill legible UNDER its label at every
-    # seed. Whether the fill stays identifiable AS A CONTROL against its own
-    # pane is a different, 1.4.11 boundary question — and this fix exposes it
-    # more often rather than creating it: --bnd-brand-solid already fell back
-    # to this same fill whenever a wash was off, in all four non-theme colour
-    # modes, so wash-on joins wash-off in the exposure rather than being new.
-    # At the seed matrix's pathological ends it fails outright — the
-    # dark-contrast pane at a near-black seed on a LIGHT desk measures
-    # ~1.06:1 (the light-derived fill and the pane are both near-black), and
-    # the brand pane's own lightest gradient stop measures 1.00:1 at a
-    # near-white seed (two rows up). Fixing it needs --bnd-brand-solid fitted
-    # against the sidebar's OWN panes, not just the six global SURFACES — a
-    # palette.derive() change whose blast radius is every brand-solid
-    # consumer site-wide, not just the sidebar. Out of scope for this fix;
-    # measured and published so the gap has a number, not silence, and
-    # recorded as an open thread rather than lost.
+    # Was a sweep over four panes, of which the two ALIAS ones duplicated a
+    # global surface row. One pane, one row per polarity -- and it is the
+    # 1.4.11 question (is the control identifiable against its own ground),
+    # so the floor is the non-text 3.0.
+    #
+    # THE BRAND-PANE STAND-DOWN ROW WENT WITH THE PANE. The pill used to route
+    # through the brand's gated label pair in every mode EXCEPT brand, where no
+    # fixed pair survives an arbitrary-seed gradient; that exception had one
+    # row here asserting the stand-down. There is nothing left to stand down
+    # from, so the general pair above is simply what renders, everywhere.
+    #
+    # AND THIS USED TO BE MEASURED-BUT-NOT-ENFORCED, and it is enforced now: the
+    # two pathological readings that forced that (a near-black seed's
+    # dark-contrast pane at ~1.06:1, a near-white seed's brand gradient at
+    # 1.00:1) were both properties of panes that no longer exist. Measured
+    # against the real pane the worst of 54 is 3.04:1, so the exemption has
+    # nothing left to excuse.
     PILL = "var(--bnd-brand-solid, var(--bnd-brand))"
-    for polarity, panes in palette.SB_PANES.items():
-        for pane in panes.values():
-            # An ALIAS pane is a global surface under another name, and that
-            # surface already has its own --bnd-brand-solid row above. Adding
-            # it here would measure the same pair twice and report it as two
-            # findings. (Before item 40 this read `LIGHT_PANES[1:]` — index
-            # arithmetic that happened to skip the right entry, and would have
-            # skipped the wrong one the day a pane was inserted before it.)
-            if pane.recipe[0] == "alias":
-                continue
-            out.append(Pair(
-                PILL, palette.sb_pane_css(pane), AA_NON_TEXT,
-                f"sidebar active pill fill against its own {pane.label}", polarity,
-            ))
-    # Dark Contrast's own pane is dark in BOTH desk themes (see the hue-fit
-    # loop above), so its fill needs checking against a LIGHT-derived
-    # brand-solid too — a light desk with Dark Contrast sidebar mode is a
-    # real, reachable combination.
-    out.append(Pair(
-        PILL, palette.sb_pane_css(palette.SB_PANES["dark"]["dark"]), AA_NON_TEXT,
-        "sidebar active pill fill against its own dark-contrast pane, light desk", "light",
-    ))
+    for polarity in ("light", "dark"):
+        out.append(Pair(
+            PILL, "var(--bnd-pane)", AA_NON_TEXT,
+            "sidebar active pill fill against the pane", polarity,
+        ))
 
     # ── List view kit (item 15, was 16) ───────────────────────────────────────
     # The selection wash and its inks, plus the rail against the wash. The
@@ -652,500 +582,94 @@ def read_decls(src: str, pattern: str, what: str, path: str) -> dict:
     return out
 
 
-#: How each of the six colour worlds is composed, as ``(selector, mixin|None)``.
-#:
-#: This is a MODEL of the cascade, so `check_sidebar_agrees` pins it to the
-#: file: the `[data-theme="dark"]` blocks must declare exactly the mixin named
-#: here and nothing else. Without that, a declaration added straight to the
-#: dark selector would be invisible to every check below while rendering
-#: perfectly on a desk — the shape of defect 25, one layer up.
-_SB_WORLDS = {
-    ("light", "theme"):   ('html[data-bnd-sb-color="theme"]', None),
-    ("light", "minimal"): ('html[data-bnd-sb-color="minimal"]', None),
-    ("dark", "theme"):    ('html[data-bnd-sb-color="theme"]', "sb-theme-dark"),
-    ("dark", "minimal"):  ('html[data-bnd-sb-color="minimal"]', "sb-minimal-dark"),
-    # Dark Contrast declares its own full set and applies in BOTH desk themes;
-    # it is filed under "dark" because its PANE is dark either way, which is
-    # the grouping palette.SB_PANES uses and the reason it must not join the
-    # light hue walk.
-    ("dark", "dark"):     ('html[data-bnd-sb-color="dark"]', None),
-    (None, "brand"):      ('html[data-bnd-sb-color="brand"]', None),
-}
+def check_sidebar_hues() -> list[str]:
+    """The pane's category hues in `_sidebar.scss` are `palette.sb_hues()`.
 
-#: The `[data-theme="dark"]` selector each dark override is emitted under.
-_SB_DARK_ARMS = {
-    "sb-theme-dark": 'html[data-theme="dark"][data-bnd-sb-color="theme"]',
-    "sb-minimal-dark": 'html[data-theme="dark"][data-bnd-sb-color="minimal"]',
-}
+    ALL THAT SURVIVES OF A SIX-ARM SWEEP, and the reason it survives is that it
+    is the only sidebar colour fact the global palette does not already carry.
+    Item 40 collapsed the pane's four colour worlds onto the theme, so
+    `--bnd-sb-bg`, `-ink`, `-line` and the rest are aliases of `--bnd-pane`,
+    `--bnd-ink`, `--bnd-border` -- already swept, at every seed, in both modes.
+    Re-measuring them here would measure the same pair twice and report one
+    finding as two.
 
-_sb_cache: dict | None = None
+    The hues are different: they are INK fits against the pane, and no global
+    token plays that role (`--bnd-cat-*` are fills). So they are declared in
+    the stylesheet, and this is the drift check that pins those declarations to
+    the derivation that produced them -- `check_defaults_agree`'s shape, for
+    the same reason: a copy with a drift check is a cache, a copy without one
+    is the same fact in two places.
 
-
-def sidebar_worlds() -> dict:
-    """``{(polarity, mode): {token: value}}`` for every sidebar colour world.
-
-    Parsed from ``_sidebar.scss`` with the same reader ``_tokens.scss`` uses —
-    including ``@include`` expansion, which this file needs for the same reason
-    that one does. Cached: ``pairs()`` runs 54 times a gate run and the file
-    does not change under it.
+    Both polarity blocks are read, AND the `automatic` arm, because an
+    Automatic user on a dark OS paints from CSS for the whole first-paint
+    window -- defect 27's lesson, and the arm a mode-keyed block is likeliest
+    to be missing.
     """
-    global _sb_cache
-    if _sb_cache is None:
-        src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
-        worlds = {}
-        for key, (selector, mixin) in _SB_WORLDS.items():
-            base = read_decls(src, r"^" + re.escape(selector) + r"\s*\{",
-                              f"`{selector}` block", SIDEBAR_SCSS)
-            if mixin:
-                base = {**base, **read_decls(src, r"@mixin\s+" + re.escape(mixin) + r"\s*\{",
-                                             f"@mixin {mixin}", SIDEBAR_SCSS)}
-            worlds[key] = base
-        _sb_cache = worlds
-    return _sb_cache
-
-
-def _sb_pane_expr(polarity, mode: str):
-    """The CSS expression for one world's pane, or None if it is unmeasurable."""
-    pane = palette.SB_PANES.get(polarity, {}).get(mode)
-    return palette.sb_pane_css(pane) if pane else None
-
-
-def check_sidebar_agrees() -> list[str]:
-    """`_sidebar.scss` declares exactly what the ramp derives — item 40.
-
-    THE DUPLICATION THIS DELETES. Until this landed, `pairs()` carried its own
-    copy of the fourteen fitted hues and the four pane expressions, and its own
-    comment admitted the arrangement: "edit the fits in _sidebar.scss and these
-    hexes together or the gate says so." It did not say so. Nothing compared
-    them; the sentence was an instruction to a human, which is the failure mode
-    this repo names first. Now the hues come from `palette.sb_hues` and the
-    panes from `palette.sb_pane_css`, and this function is the only place the
-    stylesheet and the derivation meet.
-
-    It also pins the cascade model in `_SB_WORLDS`: a dark arm that declares
-    anything of its own, rather than including the mixin, would otherwise be
-    read by nothing here.
-    """
+    problems: list[str] = []
     src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
-    problems = []
-
-    for mixin, selector in _SB_DARK_ARMS.items():
-        arm = read_decls(src, r"^" + re.escape(selector) + r"\s*\{",
-                         f"`{selector}` block", SIDEBAR_SCSS)
-        body = read_decls(src, r"@mixin\s+" + re.escape(mixin) + r"\s*\{",
-                          f"@mixin {mixin}", SIDEBAR_SCSS)
-        if arm != body:
-            differs = sorted({k for k in set(arm) | set(body) if arm.get(k) != body.get(k)})
+    blocks = {
+        "light": r"html\[data-bnd-sb-color\]\s*\{",
+        "dark": r"html\[data-theme=\"dark\"\]\[data-bnd-sb-color\]\s*\{",
+        "automatic": r"html\[data-theme=\"automatic\"\]\[data-bnd-sb-color\]\s*\{",
+    }
+    for name, pattern in blocks.items():
+        # `automatic` must carry the DARK fits: it is the dark-OS first paint.
+        want = palette.sb_hues("light" if name == "light" else "dark")
+        # EVERY block with this selector, merged in source order -- which is
+        # what the cascade does. The alias block and the hue block share
+        # `html[data-bnd-sb-color]`, so reading only the first found an
+        # alias block with no hues in it and reported seven false
+        # drifts. A check that looks at one of two identical selectors is
+        # measuring the wrong element, one level up from the DOM.
+        found = list(re.finditer(pattern, src))
+        if not found:
             problems.append(
-                f"{selector} does not reduce to @include {mixin}; it differs at {differs} — "
-                "_SB_WORLDS models it as the mixin, so those declarations are invisible to this gate"
+                f"_sidebar.scss has no {name} category-hue block -- "
+                f"a pane in that mode falls through to the global FILL hues"
             )
-
-    for (polarity, mode), block in sidebar_worlds().items():
-        if polarity:
-            want = palette.sb_hues(polarity)
-            for n in range(7):
-                token = f"--bnd-sb-cat-{n + 1}"
-                got = block.get(token)
-                if got != want[n]:
-                    problems.append(
-                        f"{mode}/{polarity}: {token} is {got}, the ramp derives {want[n]}"
-                    )
-        pane = _sb_pane_expr(polarity, mode)
-        if pane is not None and block.get("--bnd-sb-bg") != pane:
-            problems.append(
-                f"{mode}/{polarity}: --bnd-sb-bg is {block.get('--bnd-sb-bg')}, "
-                f"palette.SB_PANES derives {pane}"
-            )
-
-    brand_bg = " ".join(sidebar_worlds()[(None, "brand")].get("--bnd-sb-bg", "").split())
-    for pct, base in palette.SB_STOPS:
-        stop = f"color-mix(in srgb, var(--bnd-brand) {pct}%, {base})"
-        if stop not in brand_bg:
-            problems.append(f"brand: --bnd-sb-bg does not carry the gradient stop {stop}")
-
-    # THE SECOND COPY, GUARDED (item 40, the brand-glass repair). A gradient
-    # cannot go through color-mix(), so the brand pane's Glass rule rebuilds
-    # the gradient with the transparency mixed into each stop -- the numbers
-    # therefore appear twice in _sidebar.scss, and SB_STOPS is the one place
-    # they are decided. Two copies is the bargain SLUG/ATTR_OF already makes;
-    # this is the half that makes disagreement loud instead of silent.
-    scss = " ".join(open(SIDEBAR_SCSS, encoding="utf-8").read().split())
-    marker = 'html[data-bnd-sb-material^="glass"][data-bnd-sb-color="brand"]'
-    at = scss.find(marker)
-    if at == -1:
-        problems.append(
-            "brand: no Glass rule for the brand pane -- Glass and Solid would render "
-            "the same gradient, which is the two-options-one-pixel defect"
-        )
-    else:
-        rule = scss[at : scss.find("}", at) + 1]
-        for pct, base in palette.SB_STOPS:
-            stop = f"color-mix(in srgb, var(--bnd-brand) {pct}%, {base})"
-            if stop not in rule:
-                problems.append(
-                    f"brand: the Glass rule does not carry the gradient stop {stop} -- "
-                    "its copy has drifted from palette.SB_STOPS"
-                )
-        if "var(--bnd-sb-glass-pct)" not in rule:
-            problems.append(
-                "brand: the Glass rule does not use --bnd-sb-glass-pct, so Blurred Glass "
-                "cannot differ from Glass on this pane"
-            )
-    return problems
-
-
-def check_sidebar_coverage() -> list[str]:
-    """Every colour world declares the whole working set, and nothing stray.
-
-    WHAT THIS CATCHES, STATED NARROWLY, because the first draft of this
-    docstring claimed defect 25 and that claim was false — caught by running
-    the sabotage rather than by reading the code. Deleting dark minimal's two
-    chip declarations, which is defect 25 exactly, leaves this check SILENT:
-    `_SB_WORLDS` models the cascade correctly, so the dark map is the light
-    map plus an override, and dropping the override leaves fourteen keys
-    present. Complete, and carrying the light block's #6d7570 onto a #15181a
-    pane. The guard for that is a MEASURED ROW — the chip pair in `pairs()`,
-    which reports 3.76:1 at all 27 seeds when the fix is reverted.
-
-    So this one owns the two things measurement cannot reach:
-
-    * A token missing from a mode with no base layer to inherit from. Dark
-      Contrast and Brand declare standalone full sets; a gap there resolves to
-      nothing at all rather than to the wrong colour, which no ratio can see.
-    * A stray unclassified ``--bnd-sb-*``. One block declaring a token the
-      other five do not is the *next* fall-through, waiting for the day a
-      component starts reading it — the shape of defect 25 before it was one.
-
-    The file's own header has said "Each mode sets the full set; components
-    below never look elsewhere" since item 10, two lines above a block that did
-    not. A sentence in a comment is not a contract; this is.
-    """
-    problems = []
-    for (polarity, mode), block in sidebar_worlds().items():
-        where = f"{mode}/{polarity or 'both'}"
-        for token in palette.SB_WORKING_SET:
-            if token not in block:
-                problems.append(
-                    f"{where} does not declare {token} — it will fall through to another block"
-                )
-        allowed = set(palette.SB_WORKING_SET) | set(palette.SB_EXTRAS.get(mode, {}))
-        for token in block:
-            if token.startswith("--bnd-sb-") and token not in allowed:
-                problems.append(
-                    f"{where} declares {token}, which is in neither palette.SB_WORKING_SET "
-                    f"nor palette.SB_EXTRAS[{mode!r}] — classify it or the other five modes "
-                    "silently lack it"
-                )
-    return problems
-
-
-def check_sidebar_headroom() -> list[str]:
-    """A pane that MOVES must not take its own ink below the floor — item 40.
-
-    THE GAP THIS CLOSES, and it is a structural one. `pairs()` measures each
-    pane through :func:`palette.sb_pane_css`, which is the STATIC fallback: a
-    ``("ground", …)`` recipe declares its base there, because there is no
-    `--bnd-ground` token for a stylesheet to name. So the seed sweep — which
-    has a brand axis and no ground axis — never sees the colour a grounded site
-    actually paints. Every row in it would stay green while the shipped pane
-    moved underneath.
-
-    WHAT IT CAUGHT BEFORE IT GUARDED ANYTHING. Slice 2 asked whether Minimal
-    should be tinted at 3, 5 or 8 percent. In light it can be tinted by
-    **1.36%**: `--bnd-sb-ink-muted` and `--bnd-sb-chip-ink` are #6d7570 on
-    #fafbfa, 4.57:1 against a 4.5 floor, and the three candidates measure
-    4.45 / 4.35 / 4.22 at the worst shipped ground — worse against an
-    unconstrained one. That is a three-for-three failure that no existing check
-    could see, and it is why light ships at 0% and dark at 5%.
-
-    HOW IT MEASURES. Every measurable pane, at every tint a tenant can reach:
-    the extreme (both `brand_color` and `ground_color` are unconstrained Frappe
-    Color fields — `ground_color`'s `validate()` strips and lowercases and
-    throws nothing) plus the six shipped grounds. The block's own inks are
-    resolved against a `derive()` at that same seed, so a mode whose inks are
-    `var(--bnd-ink-muted)` is measured as a site renders it rather than skipped.
-
-    The chip is measured on the chip, composited over the pane — a translucent
-    chip flattened over the wrong host is the defect-25 shape, one layer down.
-    """
-    from bunood_theme.presets import GROUNDS
-
-    light, dark = read_blocks(TOKENS_SCSS)
-    defaults = {"light": light, "dark": dark}
-    inks = ("--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-chip-ink")
-    problems = []
-
-    for (polarity, mode), block in sidebar_worlds().items():
-        recipe = palette.SB_PANES.get(polarity, {}).get(mode)
-        if recipe is None:
-            continue  # the brand gradient: see palette.SB_UNMEASURABLE
-        extreme = "#000000" if polarity == "light" else "#ffffff"
-        tints = [(extreme, "the extreme ground")] + [
-            (g, f"the {name} ground") for name, g in sorted(GROUNDS.items())
-        ]
-        for tint, why in tints:
-            pane = palette.sb_pane_value(recipe, tint, polarity, ground=tint)
-            v = dict(defaults[polarity])
-            v["--bnd-brand"] = tint
-            try:
-                v.update(palette.derive(tint, ACCENT_SEED, polarity, ground=tint))
-            except ValueError as exc:
-                problems.append(f"{mode}/{polarity} at {tint}: derive failed — {exc}")
-                continue
-            # THE WORLD'S OWN PANE SHADOWS THE GLOBALS here as well. Since
-            # the pane's surfaces are written as offsets FROM the pane, every
-            # one of these values can contain `var(--bnd-sb-bg)`, and the map
-            # `derive` returns has no such key -- so this raised rather than
-            # measured. Same rule, third call site.
-            v["--bnd-sb-bg"] = pane
-            pane_c = parse_color(pane)
-            for tok in inks:
-                r = ratio(resolve(block[tok], v, over=pane), pane_c)
-                if r < AA_TEXT:
-                    problems.append(
-                        f"{mode}/{polarity}: {tok} ({block[tok]}) measures {r:.2f} on the pane "
-                        f"{pane} that {why} produces — under {AA_TEXT}. A pane that moves and an "
-                        "ink that does not is half a pair; move both or neither."
-                    )
-            chip_bg = resolve(block["--bnd-sb-chip-bg"], v, over=pane)
-            chip_ink = resolve(block["--bnd-sb-chip-ink"], v, over=to_hex(chip_bg))
-            r = ratio(chip_ink, chip_bg)
-            if r < AA_TEXT:
-                problems.append(
-                    f"{mode}/{polarity}: the chip label measures {r:.2f} on its chip over the pane "
-                    f"{pane} that {why} produces — under {AA_TEXT}."
-                )
-    return problems
-
-
-def _specificity(selector: str) -> tuple:
-    """(ids, classes+attributes+pseudo-classes, elements) for ONE simple selector.
-
-    Deliberately narrow, and it RAISES on anything it has not been taught. A
-    specificity calculator that guesses is worse than none: it would return a
-    number, the comparison below would pass, and the emitted block would lose to
-    the bundle on every site that set a ground — silently, because the fallback
-    it lost to is a plausible colour.
-    """
-    sel = selector.strip()
-    ids = cls = els = 0
-    # `:not(...)` takes the specificity of its argument, so unwrap and recurse.
-    for inner in re.findall(r":not\(([^()]*)\)", sel):
-        a, b, c = _specificity(inner)
-        ids, cls, els = ids + a, cls + b, els + c
-    sel = re.sub(r":not\([^()]*\)", "", sel)
-    cls += len(re.findall(r"\[[^\]]*\]", sel))
-    sel = re.sub(r"\[[^\]]*\]", "", sel)
-    cls += len(re.findall(r"\.[A-Za-z_-][\w-]*", sel))
-    sel = re.sub(r"\.[A-Za-z_-][\w-]*", "", sel)
-    ids += len(re.findall(r"#[A-Za-z_-][\w-]*", sel))
-    sel = re.sub(r"#[A-Za-z_-][\w-]*", "", sel)
-    for tok in re.findall(r"[A-Za-z][\w-]*", sel):
-        els += 1
-        sel = sel.replace(tok, "", 1)
-    leftover = sel.strip()
-    if leftover:
-        raise SystemExit(
-            f"contrast gate: _specificity cannot read {leftover!r} in {selector!r}. "
-            "Teach it or the emission check is measuring a number it invented."
-        )
-    return ids, cls, els
-
-
-def _sb_static_selectors(mode: str) -> list[str]:
-    """Every selector in `_sidebar.scss` that DECLARES the working set for ``mode``.
-
-    Derived from `_SB_WORLDS` and `_SB_DARK_ARMS` rather than restated, so a mode
-    whose blocks move cannot leave this behind. Selectors that merely READ
-    `--bnd-sb-bg` (`html[data-bnd-sb-color] .body-sidebar-container`) are not here
-    and must not be: an emission has to out-specify what DECLARES the token, not
-    what paints with it.
-    """
-    out = []
-    for (polarity, name), (selector, mixin) in _SB_WORLDS.items():
-        if name != mode:
             continue
-        out.append(selector)
-        if mixin:
-            out.append(_SB_DARK_ARMS[mixin])
-            out.append(_SB_DARK_ARMS[mixin].replace('data-theme="dark"', 'data-theme="automatic"'))
-    return sorted(set(out))
-
-
-def check_sidebar_emission() -> list[str]:
-    """What `brand.py` emits for the pane reaches the site, and beats the bundle.
-
-    Item 40, slice 3. A ground-tinted pane cannot be written as static CSS —
-    there is no `--bnd-ground` token, because the ground is an input to
-    `palette.derive` and not an output — so it reaches a desk only through the
-    per-site sheet. Four things have to hold, and three of them fail SILENTLY:
-
-    * **Specificity.** `_sidebar.scss` declares (0,2,1). The per-site sheet loads
-      after the bundle, so an equal block wins on source order and a LOWER one
-      loses however late it loads. Item 32 lost `:focus`, `:disabled` and a whole
-      strength track to exactly this, sizing a selector against the resting rule.
-      Here the emitted selector is compared to the static one it must beat.
-
-    * **The automatic twin.** `data-theme` is literally "automatic" until our JS
-      resolves it. `build.mjs`'s `assertAutomaticArms` refuses a compiled dark
-      selector with no twin, but it reads compiled CSS and cannot see a string
-      built at runtime — so this is where the runtime half is checked.
-
-    * **Standing down.** A site that set no ground must get NOTHING, not a block
-      restating the fallback. Bytes on every desk page for no change, and a
-      second copy of a literal that the bundle already owns.
-
-    * **The value.** Round-tripped out of the rendered text rather than trusted:
-      a formatting bug produces CSS that parses and paints the wrong colour.
-    """
-    from bunood_theme.presets import GROUNDS
-
-    problems = []
-    src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
-
-    # Every tenant shape that can reach the emitter: no ground (must be silent),
-    # and each shipped ground (must emit, and emit the derivation's own answer).
-    if palette.sb_blocks(SEEDS[0][0], SEEDS[0][0], None) != "":
-        problems.append(
-            "a site with no ground still emits a sidebar block — that is bytes on every "
-            "desk page restating a literal the bundle already declares"
-        )
-
-    for gname, ground in sorted(GROUNDS.items()):
-        text = palette.sb_blocks(SEEDS[0][0], SEEDS[0][0], ground)
-        size = len(text.encode("utf-8"))
-        if size > palette.SB_EMIT_CEILING:
-            problems.append(
-                f"the {gname} ground emits {size} bytes into every desk page's stylesheet, "
-                f"over palette.SB_EMIT_CEILING ({palette.SB_EMIT_CEILING}). Raise it in the "
-                "commit that needs it, with the reason."
-            )
-        if not text:
-            problems.append(f"the {gname} ground emits nothing, but its pane differs from the fallback")
-            continue
-
-        # Every rule in the emitted text, with the media context it sits in.
-        in_media = False
-        for line in text.splitlines():
-            st = line.strip()
-            if st.startswith("@media"):
-                in_media = "prefers-color-scheme: dark" in st
-                continue
-            if not st.endswith("{") or st == "{":
-                continue
-            sel = st[:-1].strip()
-            for one in [x.strip() for x in sel.split(",")]:
-                m = re.search(r'\[data-bnd-sb-color="([a-z-]+)"\]', one)
-                if not m:
-                    problems.append(f"emitted selector {one!r} names no colour mode")
-                    continue
-                mode = m.group(1)
-                # THE TARGET COMES FROM THE MODE, NEVER FROM THE EMITTED SELECTOR.
-                # The first version of this check read `data-theme` off the string
-                # it was judging and looked up the static block that matched IT —
-                # so an emission downgraded to one attribute simply picked the
-                # bundle's one-attribute block as its target and compared equal.
-                # A vacuous comparison that returns a number is worse than none,
-                # and the sabotage that proved it is case (m). What an emission
-                # must beat is the STRONGEST static block naming that mode,
-                # because that is what the cascade will actually put in its way.
-                statics = [
-                    st_sel for st_sel in _sb_static_selectors(mode)
-                    if st_sel in src
-                ]
-                if not statics:
-                    problems.append(
-                        f"emitted {one!r} has no counterpart in _sidebar.scss — it is either "
-                        "unopposed (so the fallback is missing) or aimed at nothing"
-                    )
-                    continue
-                target = max(statics, key=_specificity)
-                if _specificity(one) < _specificity(target):
-                    problems.append(
-                        f"emitted {one!r} is {_specificity(one)} against the bundle's "
-                        f"{target!r} at {_specificity(target)} — it loses however late "
-                        "the sheet loads"
-                    )
-                theme = re.search(r'\[data-theme="([a-z]+)"\]', one)
-                if theme and theme.group(1) == "automatic" and not in_media:
-                    problems.append(f"emitted {one!r} is not inside a prefers-color-scheme block")
-
-        # Round-trip the value out of the text, and check the twin exists.
-        for polarity, modes in palette.SB_PANES.items():
-            for mode, pane in modes.items():
-                if pane.recipe[0] not in ("ground",):
-                    continue
-                want = palette.sb_pane_value(pane, SEEDS[0][0], polarity, ground=ground)
-                # SCOPED TO THIS MODE'S OWN BLOCK. This searched the whole
-                # emitted text and demanded every --bnd-sb-bg equal THIS
-                # mode's value -- correct only while exactly one mode ever
-                # emitted. Since the emission carries the full working set for
-                # every mode, a global search reads three modes' backgrounds
-                # as one mode's drift (measured: it reported a light hex as a
-                # minimal/dark failure). The block is the unit, not the file.
-                sel = (
-                    f'html[data-theme="dark"][data-bnd-sb-color="{mode}"]'
-                    if polarity == "dark"
-                    else f'html[data-theme="light"][data-bnd-sb-color="{mode}"]'
+        got: dict = {}
+        for m in found:
+            got.update(read_decls_from(_balanced(src, m.end() - 1)))
+        for i, hue in enumerate(want, 1):
+            tok = f"--bnd-sb-cat-{i}"
+            have = got.get(tok)
+            if have is None:
+                problems.append(
+                    f"{name}: {tok} is not declared, so it falls through to "
+                    f"var(--bnd-cat-{i}) -- a FILL hue used as ink"
                 )
-                at = text.find(sel)
-                block = text[at : text.find("}", at)] if at != -1 else ""
-                got = re.findall(r"--bnd-sb-bg:\s*([^;]+);", block)
-                if not got:
-                    problems.append(
-                        f"the {gname} ground emits no --bnd-sb-bg for {mode}/{polarity}"
-                    )
-                elif any(v.strip() != want for v in got):
-                    problems.append(
-                        f"the {gname} ground emits {set(v.strip() for v in got)} for {mode}/{polarity}, "
-                        f"but palette.sb_pane_value derives {want}"
-                    )
-                if polarity == "dark":
-                    dark_sel = f'html[data-theme="dark"][data-bnd-sb-color="{mode}"]'
-                    auto_sel = f'html[data-theme="automatic"][data-bnd-sb-color="{mode}"]'
-                    if dark_sel in text and auto_sel not in text:
-                        problems.append(
-                            f"the {gname} ground emits {dark_sel} with no `automatic` twin — an "
-                            "Automatic user on a dark OS gets the light fallback until JS resolves "
-                            "the attribute. That is defect 27, in a string build.mjs cannot read."
-                        )
+            elif have.lower() != hue.lower():
+                problems.append(
+                    f"{name}: {tok} is {have} but palette.sb_hues() derives {hue}"
+                )
     return problems
 
 
-def check_sidebar_binding() -> list[str]:
-    """Every colour mode the stylesheet offers is a pane some hue was fitted against.
+def _balanced(src: str, open_brace: int) -> str:
+    """The text between `src[open_brace]` and its matching `}`."""
+    depth = 0
+    for i in range(open_brace, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[open_brace + 1:i]
+    raise ValueError("unbalanced block in _sidebar.scss")
 
-    The hues are fitted to a BINDING pane — the hardest one across every seed —
-    so a colour mode that reaches neither `palette.SB_PANES` nor
-    `palette.SB_UNMEASURABLE` is a pane no fit has ever seen. It would render,
-    and the gate would report nothing, which is how a sixth mode would arrive
-    at the contrast of whatever it happened to be given.
 
-    Checked in both directions: a table entry with no block in the stylesheet
-    is a pane being fitted against that nobody can select.
-    """
-    src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
-    # NOT anchored on `html[` — a mode declared only on a COMPOUND selector,
-    # `html[data-theme="dark"][data-bnd-sb-color="sepia"]`, is still a mode
-    # somebody can select, and an anchored pattern would walk straight past it.
-    # Found by re-reading this line, not by the sabotage below: case (e) added
-    # its fake mode as a single-attribute block, which the anchored version did
-    # catch. A guard's test passing says nothing about the case the test did not
-    # write — so the compound form is now case (i).
-    declared = set(re.findall(r'\[data-bnd-sb-color="([a-z-]+)"\]', src))
-    known = {m for modes in palette.SB_PANES.values() for m in modes} | set(palette.SB_UNMEASURABLE)
-    problems = []
-    for mode in sorted(declared - known):
-        problems.append(
-            f'_sidebar.scss offers data-bnd-sb-color="{mode}" and neither palette.SB_PANES nor '
-            "palette.SB_UNMEASURABLE names it — no hue has ever been fitted against that pane"
-        )
-    for mode in sorted(known - declared):
-        problems.append(
-            f"palette names the {mode!r} pane but _sidebar.scss declares no block for it"
-        )
-    return problems
+def read_decls_from(body: str) -> dict:
+    """`--prop: value;` pairs at any depth of one block body."""
+    out = {}
+    for decl in _split_decls(body):
+        if ":" not in decl:
+            continue
+        name, _, value = decl.partition(":")
+        name = name.strip()
+        if name.startswith("--"):
+            out[name] = value.strip().rstrip(";").strip()
+    return out
 
 
 def read_blocks(path: str) -> tuple[dict, dict]:
@@ -1809,140 +1333,6 @@ def check_computed() -> int:
     return 0
 
 
-def check_sidebar_rendered() -> int:
-    """The pane's OWN tokens, read out of a browser, for every colour mode.
-
-    WHAT THIS CLOSES. `check_computed` sets ``data-theme`` to light and to dark
-    and reads every ``--bnd-*`` off ``<html>``. It never touches
-    ``data-bnd-sb-color`` — so whichever pane colour the desk happened to be in
-    is the only one it has ever seen, and the other three are measured by the
-    model alone. The model reads `_sidebar.scss`; it cannot know whether a
-    declaration reaches the element. A token shadowed by a Frappe rule, lost to a
-    typo, or in a block whose selector does not match is invisible to it, and
-    those are exactly the failures a rendered check exists to catch.
-
-    A SEPARATE MODE, NOT A WIDER ``--check-computed``. `Pair`'s own docstring
-    records why: widening that path's shape is what broke it once already, with
-    a crash that needed a particular stylesheet deployed to appear at all.
-    `check_measured` was added as its own mode for the same reason and says so.
-    This shares only `parse_color` with the rest of the file, so it cannot break
-    `--check-computed` and cannot be broken by a change to `pairs()`.
-
-    WHAT IT ASSERTS, per slug per desk theme:
-
-    * every token in :data:`palette.SB_WORKING_SET` has a value on the element —
-      an empty one means the block never applied;
-    * that value is the colour the derivation says it should be.
-
-    It does NOT re-measure ratios. Those are gated across 27 seeds and both modes
-    by the model sweep, which is far more coverage than one browser can give; the
-    question here is only whether what CI computed is what the element carries.
-
-    Reads on stdin::
-
-        {"light": {token: value, ...},          # globals, to resolve var() refs
-         "dark":  {...},
-         "sidebar": {"<slug>": {"light": {...}, "dark": {...}}}}
-
-    The ``sidebar`` key is REQUIRED. A collector that stops sending it must fail
-    loudly rather than quietly measure less than it claims.
-    """
-    data = json.load(sys.stdin)
-    if "sidebar" not in data:
-        print("check-sidebar: no `sidebar` key on stdin — the collector sent nothing to measure")
-        return 1
-
-    globals_for = {m: data.get(m) or {} for m in ("light", "dark")}
-    for mode, v in globals_for.items():
-        if not v:
-            print(f"check-sidebar: no {mode} globals supplied; var() references cannot resolve")
-            return 1
-
-    # Every slug the stylesheet offers, derived rather than restated — the same
-    # set `check_sidebar_binding` holds `_sidebar.scss` to.
-    known = {m for modes in palette.SB_PANES.values() for m in modes} | set(palette.SB_UNMEASURABLE)
-    missing = sorted(known - set(data["sidebar"]))
-    if missing:
-        print(f"check-sidebar: the collector skipped {', '.join(missing)} — "
-              "every colour mode a tenant can select has to be measured, not whichever one "
-              "the desk happened to be in")
-        return 1
-
-    worlds = sidebar_worlds()
-    failures = []
-    checked = 0
-    for slug in sorted(data["sidebar"]):
-        for mode in ("light", "dark"):
-            seen = data["sidebar"][slug].get(mode) or {}
-            if not seen:
-                failures.append(f"{slug}/{mode}: the collector read no tokens at all")
-                continue
-            # HOW MANY BLOCKS A MODE HAS IS THE FACT, not which polarity key it
-            # sits under. Match Theme and Minimal have two -- a light block and a
-            # dark one -- so the desk theme picks. Dark Contrast and Brand have
-            # ONE that applies in both, and Dark Contrast is filed under the DARK
-            # polarity because its PANE is dark, not because its block is: a
-            # lookup keyed on the desk theme finds nothing for it in light. That
-            # is `SidebarPane.themed` seen from the other side, and getting it
-            # wrong reported "no block in _sidebar.scss" for a mode whose block
-            # is plainly there.
-            candidates = {pol: blk for (pol, name), blk in worlds.items() if name == slug}
-            block = next(iter(candidates.values())) if len(candidates) == 1 else candidates.get(mode)
-            if block is None:
-                failures.append(
-                    f"{slug}/{mode}: no block in _sidebar.scss for this mode "
-                    f"(found {sorted(str(k) for k in candidates)})"
-                )
-                continue
-            allowed = set(palette.SB_WORKING_SET) | set(palette.SB_EXTRAS.get(slug, {}))
-            for token in sorted(allowed):
-                if token not in block:
-                    continue
-                got = (seen.get(token) or "").strip()
-                if not got:
-                    failures.append(
-                        f"{slug}/{mode}: {token} has no value on the element. The block is in "
-                        "the stylesheet, so this is a selector that never matched or a rule "
-                        "that shadowed it — the class the model cannot see."
-                    )
-                    continue
-                # The brand pane is a gradient; no single colour to compare. Its
-                # stand-down is `palette.SB_UNMEASURABLE`'s whole subject.
-                if token == "--bnd-sb-bg" and slug in palette.SB_UNMEASURABLE:
-                    continue
-                try:
-                    # THE WORLD'S OWN DECLARATIONS SHADOW THE GLOBALS. Brand mode
-                    # writes `--bnd-sb-cat-N: var(--bnd-sb-ink)`, and that
-                    # reference means BRAND's ink -- not whichever slug the desk
-                    # happened to be stamped with when the globals were collected.
-                    # Resolving against the globals alone reported seventeen
-                    # disagreements that were entirely this check's own error.
-                    want = parse_color(block[token], {**globals_for[mode], **block})
-                except ValueError as exc:
-                    failures.append(f"{slug}/{mode}: cannot resolve the source value of {token} — {exc}")
-                    continue
-                try:
-                    have = parse_color(got)
-                except ValueError as exc:
-                    failures.append(f"{slug}/{mode}: cannot read the rendered {token} ({got!r}) — {exc}")
-                    continue
-                checked += 1
-                # One unit of tolerance per channel: a browser round-trips through
-                # its own colour type and may land a unit away. Anything larger is
-                # a different colour, not a rounding difference.
-                if any(abs(a - b) > 1.0 for a, b in zip(want[:3], have[:3])) or abs(want[3] - have[3]) > 0.01:
-                    failures.append(
-                        f"{slug}/{mode}: {token} renders {to_hex(have)} (alpha {have[3]:.2f}) but the "
-                        f"derivation says {to_hex(want)} (alpha {want[3]:.2f}) — source {block[token]!r}"
-                    )
-    if failures:
-        print(f"{len(failures)} rendered sidebar tokens disagree with the derivation:")
-        for f in failures:
-            print(f"   {f}")
-        return 1
-    print(f"{checked} rendered sidebar tokens match the derivation, "
-          f"across {len(data['sidebar'])} colour modes x 2 desk themes")
-    return 0
 
 
 def check_measured() -> int:
@@ -2168,8 +1558,6 @@ def main() -> int:
         return check_computed()
     if "--check-measured" in args:
         return check_measured()
-    if "--check-sidebar" in args:
-        return check_sidebar_rendered()
 
     light, dark = read_blocks(TOKENS_SCSS)
     seeds = [(only_seed, "requested")] if only_seed else SEEDS
@@ -2224,38 +1612,10 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
-    sb_agree = check_sidebar_agrees()
-    if sb_agree:
-        print("_sidebar.scss and the sidebar ramp disagree:")
-        for m in sb_agree:
-            print(f"   {m}")
-        print()
-
-    sb_cover = check_sidebar_coverage()
-    if sb_cover:
-        print("a sidebar colour mode does not declare its whole working set:")
-        for m in sb_cover:
-            print(f"   {m}")
-        print()
-
-    sb_emit = check_sidebar_emission()
-    if sb_emit:
-        print("the per-site sidebar emission does not hold:")
-        for m in sb_emit:
-            print(f"   {m}")
-        print()
-
-    sb_head = check_sidebar_headroom()
-    if sb_head:
-        print("a sidebar pane moves further than its own ink can follow:")
-        for m in sb_head:
-            print(f"   {m}")
-        print()
-
-    sb_bind = check_sidebar_binding()
-    if sb_bind:
-        print("a sidebar colour mode has no pane the hues were fitted against:")
-        for m in sb_bind:
+    sb_hues = check_sidebar_hues()
+    if sb_hues:
+        print("the pane's category hues have drifted from palette.sb_hues():")
+        for m in sb_hues:
             print(f"   {m}")
         print()
 
@@ -2321,8 +1681,8 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if (failures or drift or sep or ref or inert or lift or cat or theme or shape or split
-            or sb_agree or sb_cover or sb_bind or sb_head or sb_emit):
+    if (failures or drift or sep or ref or inert or lift or cat or theme or shape
+            or split or sb_hues):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
@@ -2336,7 +1696,8 @@ def main() -> int:
 
     print(f"All {total} measured pairs pass: {len(seeds)} seeds plus the no-brand-sheet "
           "fallback, both modes. _tokens.scss agrees with palette.derive, _sidebar.scss "
-          "agrees with the sidebar ramp, and the chart series clears its separation floor.")
+          "carries the pane hues palette.sb_hues() derives, and the chart series "
+          "clears its separation floor.")
     return 0
 
 
