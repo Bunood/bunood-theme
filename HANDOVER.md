@@ -56,8 +56,10 @@ foot, W−12 owned, registry-derived order guarded; the avatar's role=dialog wit
 bdi identity, mode radios on Frappe's endpoint, the exact clamp; defect 22 fixed
 for every menu); IDENTITY + PLACEMENT DONE (sidepane selector truth + host key,
 MARKS rows for panehead/railbtn, data-bnd-sidepane setter, the end anchor asks
-last-IN-FLOW — defect 20). The 8b gate was 439/439 — the item's second perfect
-full run.**
+last-IN-FLOW — defect 20); PRESET INTEGRATION DONE (_SIDEBAR_LOOKS private, the
+two-fetch race deleted with its endpoint, note = Default/Changed, reset returns
+to SHIPPED, BND_SIDEBAR_FIELDS mirror under the guard). The 8b gate was 439/439
+— the item's second perfect full run.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.

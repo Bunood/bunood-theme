@@ -24,11 +24,12 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Ten have landed: the COLOUR
-phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen with the
-filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery; THE LIST
-FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL; and IDENTITY
-AND PLACEMENT. Still to come: preset integration and the picked design.
+**In flight.** The pane's rebuild is thirteen slices. Eleven have landed: the
+COLOUR phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen
+with the filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery;
+THE LIST FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL;
+IDENTITY AND PLACEMENT; and PRESET INTEGRATION. Still to come: the rail's
+panetoggle claim, the gate arm, and the picked design.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -546,6 +547,27 @@ holding the old value — the same trap the quick links found, two fields over.
   index 8, bottom at 5). It asks *last in flow* now; the band routes through the
   same repaired door; and the check's loud half names any new in-flow sibling
   that ever appears after the bottom block.
+
+### Changed — Preset integration
+
+- **The sidebar catalogue is private.** A catalogue is public when a picker picks
+  from it, and nothing has since item 37 deleted the preset cards — all eight
+  entries exist to be named by the theme table. `SIDEBAR_PRESETS` is
+  `_SIDEBAR_LOOKS` now: an authoring input to `theme_settings()`, the role
+  `palette_seeds` already plays. All twelve themes re-proved matching themselves
+  after the rename (10,556 pairs, 27 seeds).
+- **`api.get_sidebar_presets` is deleted, and the two-fetch race with it** — the
+  shipped-defaults request and the catalogue request landed in either order, and
+  the pane's note read "Default" on the one entry with a real name,
+  intermittently. The picker renders from `BND_SIDEBAR_FIELDS`, a real mirror at
+  last (the sidebar was the one kit whose field list came from a fetch, dodging
+  the mirror guard); the check asserts ZERO calls to the endpoint.
+- **The pane's note is Default / Changed**, like every other kit — Focus and
+  Quiet both compose the Ink pane, so a look's name was never an identity the
+  pane could claim.
+- **The `↺` reset returns to SHIPPED, wherever you start.** The old target was
+  the currently matched look, so resetting one field pulled it toward a
+  composition the admin never picked — measured: on Ink, reset was a no-op.
 
 ### Known, and filed rather than fixed
 

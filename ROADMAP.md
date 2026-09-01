@@ -1453,7 +1453,14 @@ than a version number that would describe two different things.
   bottom block at 5 before the repair, and its loud half will name any new
   in-flow sibling rather than absorb it.
 
-  **Still to come:** preset integration and the picked design.
+  **Preset integration is done** — the catalogue is `_SIDEBAR_LOOKS` (private,
+  an authoring input like `palette_seeds`), the endpoint and its documented
+  two-fetch race are deleted by construction, the pane's note is the honest
+  two-state, the reset returns to shipped wherever you start, and the sidebar
+  finally has a real `BND_SIDEBAR_FIELDS` mirror under the guard.
+
+  **Still to come:** the rail's panetoggle claim, the accessibility gate arm,
+  and the picked design.
 
 ---
 
