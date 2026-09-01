@@ -80,6 +80,27 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   custom property is in scope, because substitution happens where a property is
   DECLARED: on `html` it would freeze at the stop and the drag would move
   nothing.
+- **An ALIAS that self-adapts is not the same fact as the literal it resolves to
+  today — and a PERCENTAGE cannot self-adapt at all.** `html[data-bnd-sb-color=
+  "theme"]` carries no `data-theme`, so it serves both polarities, and its values
+  were `var(--bnd-ink)` / `var(--bnd-border)` precisely because an alias follows
+  the mode. Replacing them with the light hexes they resolve to painted #16181d
+  ink on the dark pane at 1.16:1. The repair then hit the mirror image: a card
+  written as 55% white over the pane is right in light and, in dark, a light card
+  under dark ink at 1.44:1 — so a percentage in a shared block needs a
+  polarity-specific override where an alias needs none. Before rewriting a
+  declaration, check whether its SELECTOR is polarity-scoped.
+- **A colour fitted at the SHIPPED seed is not fitted for the fallback sheet.**
+  Dark Contrast's pane is `mix(brand 10%, #131a15)`, so it moves with the tenant
+  even with no brand sheet loaded; inks fitted at #3d8150 fell to 4.12:1 at
+  brighter seeds. Static values on a seed-dependent surface must be fitted at the
+  BINDING seed — the extreme the surface ever reaches — exactly as
+  `_chart_binding_bg` and `_status_binding_bg` already do. Fit a hair above the
+  floor (4.62, not 4.50): a fit that lands exactly on it rounds under somewhere.
+- **`setup.SHIPPED` has no `ground_color` key**, so a restore loop written as
+  `for f, v in SHIPPED.items()` never clears a ground somebody set — the site
+  looks theme-derived when it is only still tinted, which is how a probe can
+  "prove" a fix that has not shipped. Clear it explicitly.
 - **Selecting by class measures the wrong element.** The badge is not the bell; the
   field is not search-in-any-form; the first `.bnd-cbp-opt` on the page is not the one
   in your group. Query by `data-bnd-part`, and scope to a root.
