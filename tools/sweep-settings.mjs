@@ -72,6 +72,24 @@ const snapshot = JSON.parse(
 		.pop()
 );
 
+// THE SECOND TABLE. Theme Settings is not the only state a walk through the
+// pickers can move: the desk chrome carries PERSONAL controls (the density
+// cycle, the drag, the panel's mode radios), and anything that persists
+// through frappe.defaults lands in tabDefaultValue — a table the tabSingles
+// snapshot cannot see. Found the hard way: a full gate's personal-hygiene
+// preamble red with bnd_density=Compact for Administrator after a day of
+// sweeps, writer unattributable. So the sweep snapshots the admin's bnd_*
+// rows too, and the restore reconciles them the same way: set what drifted,
+// clear what appeared, count both tables in the self-check.
+const personalSnapshot = JSON.parse(
+	py(
+		`rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\nprint(json.dumps({r.defkey: r.defvalue for r in rows}))\n`
+	)
+		.trim()
+		.split(/\r?\n/)
+		.pop()
+);
+
 // THE RESTORE MUST ALSO DELETE. A Single field that has never been written
 // has NO tabSingles row — the snapshot cannot carry it, the sweep's click
 // CREATES the row, and a restore that only loops snapshot keys leaves the
@@ -101,8 +119,25 @@ const restore = () => {
 			`doc = frappe.get_cached_doc("Theme Settings")\n` +
 			`doc.run_method("on_update")\n` +
 			`frappe.db.commit()\n` +
+			`want_p = json.loads(${JSON.stringify(JSON.stringify(personalSnapshot))})\n` +
+			`have_rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\n` +
+			`have_p = {r.defkey: r.defvalue for r in have_rows}\n` +
+			`for k in set(list(want_p) + list(have_p)):\n` +
+			`    if want_p.get(k) == have_p.get(k):\n` +
+			`        continue\n` +
+			`    if k in want_p:\n` +
+			`        frappe.defaults.set_default(k, want_p[k], parent="Administrator")\n` +
+			`    else:\n` +
+			`        frappe.defaults.clear_default(k, parent="Administrator")\n` +
+			`frappe.cache.hdel("bootinfo", "Administrator")\n` +
+			`frappe.db.commit()\n` +
 			`after = {r.field: r.value for r in frappe.db.sql("select field, value from tabSingles where doctype='Theme Settings'", as_dict=True)}\n` +
+			`after_rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\n` +
+			`after_p = {r.defkey: r.defvalue for r in after_rows}\n` +
 			`drift = {}\n` +
+			`for k in set(list(want_p) + list(after_p)):\n` +
+			`    if want_p.get(k) != after_p.get(k):\n` +
+			`        drift["personal:" + k] = {"snapshot": want_p.get(k), "now": after_p.get(k)}\n` +
 			`for f in set(list(vals) + list(after)):\n` +
 			`    if f in skip:\n` +
 			`        continue\n` +
