@@ -63,8 +63,9 @@ to SHIPPED, BND_SIDEBAR_FIELDS mirror under the guard); PANETOGGLE CLAIM DONE
 CSS rules — the claim was hiding the drawer's only opener at 390px); THE A11Y
 + CONTRAST ARM DONE (pill rows enforced with the pane fit in derive and a
 four-axis fill_pair; the pane is a navigation landmark named by the place;
-the vendor's disclosure state mirrored into aria-expanded). The 8b gate was
-439/439 — the item's second perfect full run.**
+the vendor's disclosure state mirrored into aria-expanded); SLICE 13 DONE —
+badge roll-up (1a) + collapse-all in the switcher (2a), the user's picks.
+ALL THIRTEEN SLICES BUILT; the release gauntlet + v0.40.0 tag remain.**
 The double render this item was opened for is CLOSED and asserted as a rendered
 outcome — visible header rows counted across four colour modes plus rail and
 floating, not just the ownership token.

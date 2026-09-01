@@ -24,12 +24,13 @@ an "item N" cited below against today's numbering.
 
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
-**In flight.** The pane's rebuild is thirteen slices. Eleven have landed: the
-COLOUR phase; the FIELD MODEL — nineteen style settings down to twelve, thirteen
-with the filter; THE PLACE ROW; ONE LIFECYCLE; SECTIONS, which stop being surgery;
-THE LIST FEATURES; SHORTCUTS; DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL;
-IDENTITY AND PLACEMENT; PRESET INTEGRATION; THE RAIL'S PANETOGGLE CLAIM; and
-THE ACCESSIBILITY AND CONTRAST ARM. Still to come: the picked design.
+**BUILT, thirteen for thirteen.** The COLOUR phase; the FIELD MODEL — nineteen
+style settings down to twelve, thirteen with the filter; THE PLACE ROW; ONE
+LIFECYCLE; SECTIONS, which stop being surgery; THE LIST FEATURES; SHORTCUTS;
+DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL; IDENTITY AND PLACEMENT; PRESET
+INTEGRATION; THE RAIL'S PANETOGGLE CLAIM; THE ACCESSIBILITY AND CONTRAST ARM;
+and THE PICKED DESIGN's last two features, placed by the user from drawn
+options. The release gauntlet is what stands between this and the v0.40.0 tag.
 
 The pane (item 10's sidebar kit) was built before the doctrine that now governs every
 other surface and amended by six later items without ever being re-designed. Its palette
@@ -609,6 +610,21 @@ holding the old value — the same trap the quick links found, two fields over.
   on the vendor's own drop-icon — attributes, the one sanctioned mutation
   surface — re-mirrored after a header click and on every list rebuild. The
   check toggles a section and demands both attributes move together.
+
+### Added — The picked design's last two features
+
+- **Badge roll-up (the user's pick 1a)**: a collapsed section's hidden badges
+  sum into ONE chip on its header, in the row badge's own form and tokens —
+  derived from the rows, no second fetch, re-derived after the badge fetch,
+  after any disclosure toggle, and on every list rebuild. Expansion removes
+  the node. The build's one defect was invisible by construction: a
+  wrong-parent `insertBefore` threw into the badge engine's own silent catch
+  — five badges, no chip, no error anywhere — because `closest()` proves
+  descent, not parentage.
+- **Collapse-all (pick 2a)**: one item in the Place row's switcher, rendered
+  only when something is actually foldable, each fold through Frappe's OWN
+  per-section toggle — persistence rides the vendor's state and no second
+  collapse mechanism is born.
 
 ### Known, and filed rather than fixed
 

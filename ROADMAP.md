@@ -1472,7 +1472,10 @@ than a version number that would describe two different things.
   landmark named by the place with one writer, and the vendor's disclosure
   state mirrored into ARIA with a toggle-follows check.
 
-  **Still to come:** the picked design.
+  **The picked design's last two features are in** — the badge roll-up (1a)
+  and collapse-all in the switcher (2a), both placed by the user from drawn
+  options, both riding machinery earlier slices built. The thirteen slices
+  are all landed; the release gauntlet and the v0.40.0 tag are what remain.
 
 ---
 
