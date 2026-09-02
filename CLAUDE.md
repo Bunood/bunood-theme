@@ -266,6 +266,9 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 
 - `registry.py` — the components, their identity, what each replaces, which are
   critical. One table, several consumers.
+- `zatca/` — Saudi e-invoicing as far as the theme carries it: the Phase-1 receipt, the
+  print-time QR helper, its own `FORMATS` list. `printing/` is the generic funnel and
+  reads from it, never the reverse (item 41).
 - `tools/verify.mjs` · `tools/fingerprint.mjs` — the suite runner and the shape
   capture. Regenerate the fixture *deliberately* after an intended change.
 - `tools/session.mjs` — the stack's constants and an authenticated browser

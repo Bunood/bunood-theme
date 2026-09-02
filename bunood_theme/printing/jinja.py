@@ -21,7 +21,8 @@ def bunood_zatca_qr_src(doc):
          the QR (TLV: seller, VAT no., timestamp, totals) is computed at print
          time from "ZATCA Phase 1 Business Settings". Inert unless an Active
          settings row covers the invoice's company, which is also what makes
-         the order safe: phase 1 and phase 2 cannot both be Active.
+         the order safe: phase 1 and phase 2 cannot both be Active. The code
+         lives in bunood_theme/zatca/qr.py — the compliance package.
     Returns "" when no QR image exists (formats decide how to degrade).
     """
     try:
@@ -54,14 +55,13 @@ def bunood_zatca_qr_src(doc):
                         ):
                             return value
 
-        if doc.get("name") and doc.get("doctype") in (
-            "Sales Invoice", "POS Invoice"
-        ) and frappe.db.exists("DocType", "ZATCA Phase 1 Business Settings"):
-            from ksa_compliance.jinja import get_zatca_phase_1_qr_for_invoice
+        # 3. Phase 1 — computed at print time. Lives in bunood_theme/zatca, the
+        #    compliance package, with its ksa_compliance dependency.
+        from bunood_theme.zatca.qr import phase1_qr_src
 
-            value = get_zatca_phase_1_qr_for_invoice(doc.name)
-            if value:
-                return "data:image/png;base64," + value
+        value = phase1_qr_src(doc)
+        if value:
+            return value
     except Exception:
         frappe.log_error(title="bunood_theme: zatca_qr_src failed"[:140])
     return ""

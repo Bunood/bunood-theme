@@ -1914,14 +1914,19 @@ async function main() {
 	assertNoCountGoverned();
 	// Item 41. A thermal format is sized by what the PDF engines READ, which is
 	// the `.print-format` rule and nothing else — see the guard.
+	// Two format directories: printing's own, and the ZATCA package's (item 41
+	// moved the receipt there). Both are read, or the guard silently stops
+	// covering the one file it was written for.
 	{
-		const dir = new URL("./bunood_theme/printing/formats/", import.meta.url);
-		const thermal = (await readdir(dir)).filter((f) => /thermal/.test(f) && f.endsWith(".html"));
-		assertThermalPageSize(
-			await Promise.all(
-				thermal.map(async (f) => ({ name: f, src: await readFile(new URL(f, dir), "utf8") }))
-			)
-		);
+		const thermal = [];
+		for (const rel of ["printing/formats/", "zatca/formats/"]) {
+			const dir = new URL(`./bunood_theme/${rel}`, import.meta.url);
+			for (const f of await readdir(dir)) {
+				if (!/thermal/.test(f) || !f.endsWith(".html")) continue;
+				thermal.push({ name: rel + f, src: await readFile(new URL(f, dir), "utf8") });
+			}
+		}
+		assertThermalPageSize(thermal);
 	}
 	// Item 7(d). Held out of the build while it was red — a red build blocks
 	// every deploy — and wired in the moment translations/ar.csv shipped. From

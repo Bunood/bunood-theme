@@ -68,6 +68,16 @@ Disabled settings row returns the helper to inert, and a site without
 ksa_compliance never reaches the import. Phase 1 and Phase 2 cannot both be
 Active (their app validates that), so the source order cannot double-serve.
 
+### Changed
+
+- **ZATCA has its own directory.** `bunood_theme/zatca/` holds the receipt
+  (`formats/`), the Phase-1 QR helper (`qr.py`, which `printing/jinja.py` calls
+  after the stored Phase-2 sources) and its own `FORMATS` list, which
+  `printing/install.py` syncs alongside its own. `printing/` stays the generic
+  funnel and reads from the package, never the reverse. A move, not a change:
+  the format record, the helper's answers and the page options are identical,
+  and the thermal page-size guard reads both directories.
+
 ### Fixed
 
 - **The receipt printed at A4 from the PDF button.** It declared no page size on

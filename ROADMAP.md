@@ -1508,6 +1508,10 @@ only its Arabic strings crossed.
   80×297mm for the siblings), fixed, and `build.mjs` now refuses a thermal format without
   the rule; the guard failed naming this file before the fix.
 
+  **Then ZATCA moved into its own directory**, at the user's direction: `bunood_theme/zatca/`
+  holds the receipt, the Phase-1 QR helper and its own format list; `printing/` reads
+  from it, never the reverse. A move, verified identical on the bench.
+
   **At the user's direction the Report Studio stays on the branch; its 176 Arabic strings
   crossed** into `locale/ar.po` as one attributed block, so the studio lands with its
   Arabic decided. **Untested here:** the dev site has no `ksa_compliance`, so the Phase-1
