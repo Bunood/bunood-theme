@@ -2251,6 +2251,28 @@ Get the authoritative order from the database, never from memory —
 `frappe.get_installed_apps()` is the list, and we sit 3rd of ten (which the
 translation merge order depends on).
 
+**The empty mount, reproduced cleanly (2026-09-02) — and the recovery order.** A
+full `wsl --shutdown` followed by Docker Desktop restarting its containers put
+BOTH binds up empty: the backend's `apps/bunood_theme` had 0 entries (owned by
+root, timestamped at the restart) so every request was a 500 with `No module named
+'bunood_theme'`, and the frontend's `assets/bunood_theme` had 0 entries so every
+asset 404'd. The WSL source was fine throughout (`presets.py` md5 identical to the
+Windows repo). The same `docker restart` re-attaches a POPULATED mount once Ubuntu
+is genuinely up — measured 0 → 28 and 0 → 5 entries — so the fix is timing, not
+relinking. And note that an unforced `npm run deploy` restarts the BACKEND and
+then correctly reports the frontend's assets as 404: right diagnosis, no repair.
+
+Order, after any full stop:
+
+1. `wsl -l -v` shows Ubuntu **Running** and `wsl -d Ubuntu -- true` answers.
+2. `docker start` the six containers — **never `docker compose up`**, which can
+   recreate the backend and delete the apps living in its writable layer.
+3. `/login` 500 with `No module named 'bunood_theme'` → `docker restart
+   bunood-backend-1`.
+4. Assets 404 → `docker restart bunood-frontend-1`.
+5. Trust `page.evaluate(() => !!window.bunood_theme)` (the suite's `desk boots
+   authenticated with theme assets` check), not an HTTP 200.
+
 **The third sharp edge — `localhost` is IPv6, and its relay dies** (hit
 2026-09-01). A full run died from check ~140 onward with
 `net::ERR_CONNECTION_RESET` while `docker ps` showed every container healthy
