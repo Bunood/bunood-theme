@@ -5198,3 +5198,1066 @@ msgstr "عرض اللوحة الجانبية"
 #, fuzzy
 msgid "Use the site's width"
 msgstr "استخدام عرض الموقع"
+
+# ── Report Studio strings (item 41, 2026-09-02) ──────────────────────────
+# Carried over from studio-zatca dd7f787, authored by Hesham for the Report
+# Studio, which is NOT on this line. Nothing here emits these msgids yet, so
+# `npm run i18n:check` counts them in neither direction; they exist so the
+# studio lands with its Arabic already decided. A dead-row reap will list
+# them — this banner is the reason to keep them.
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Account used by both sides: {0}"
+msgstr "حساب استخدمه الطرفان: {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Accounting"
+msgstr "المحاسبة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Accounts Payable"
+msgstr "الحسابات الدائنة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Accounts Receivable"
+msgstr "الحسابات المدينة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Adjustment"
+msgstr "التعديل"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ageing buckets"
+msgstr "شرائح الأعمار"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Agrees."
+msgstr "متطابق."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "All columns"
+msgstr "كل الأعمدة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "All reports"
+msgstr "كل التقارير"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Any customer, supplier, employee or ledger account — its full statement"
+msgstr "أي عميل أو مورد أو موظف أو حساب في الدليل — كشفه كاملاً"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Back"
+msgstr "رجوع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Balance Check"
+msgstr "فحص التوازن"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Balance Sheet"
+msgstr "قائمة المركز المالي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Balanced"
+msgstr "متوازن"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Buying"
+msgstr "المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Cash and bank accounts"
+msgstr "الصناديق والبنوك"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Change"
+msgstr "تغيير"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Classic view"
+msgstr "العرض التقليدي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Closing Balance"
+msgstr "الرصيد الختامي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Company VAT registration"
+msgstr "الرقم الضريبي للمنشأة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Company, From Date and To Date are required."
+msgstr "حقول الشركة ومن تاريخ وإلى تاريخ مطلوبة كلها."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Computed from submitted invoices only. Imports taxed at customs, reverse-charge purchases, prior-period corrections and any credit carried forward are entered on the ZATCA portal directly — this worksheet does not estimate them."
+msgstr "محسوب من الفواتير المعتمدة فقط. الاستيرادات المسدَّدة ضريبتها في الجمارك، ومشتريات الاحتساب العكسي، وتصحيحات الفترات السابقة، وأي رصيد مرحَّل — تُدخَل في بوابة هيئة الزكاة والضريبة والجمارك مباشرة؛ هذه الورقة لا تقدّرها."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Credit minus debit — the direction a VAT liability accrues."
+msgstr "دائن ناقص مدين — بالاتجاه الذي يتراكم به التزام الضريبة."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Custom Period"
+msgstr "فترة مخصصة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Customer"
+msgstr "العميل"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Declaration line"
+msgstr "البند"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Effective rate {0}% differs from the standard 15% — review the box."
+msgstr "النسبة الفعلية {0}% تخالف الأساسية 15% — راجع البند."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Employee"
+msgstr "الموظف"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Every account's opening, movement and closing — and whether the books balance"
+msgstr "افتتاحي كل حساب وحركته وإقفاله — وهل توازنت الدفاتر"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Every posting in the books — debits, credits and the running balance"
+msgstr "كل ترحيلة في الدفاتر — المدين والدائن والرصيد الجاري"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Every submitted purchase invoice with its taxes, supplier and totals"
+msgstr "كل فاتورة مشتريات معتمدة بضرائبها وموردها وإجماليّها"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Every submitted sales invoice with its taxes, party and totals"
+msgstr "كل فاتورة مبيعات معتمدة بضرائبها وطرفها وإجماليّها"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Exempt sales"
+msgstr "المبيعات المعفاة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Export CSV"
+msgstr "تصدير CSV"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Export Excel"
+msgstr "تصدير Excel"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Filing company"
+msgstr "المنشأة المقدِّمة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Filing details"
+msgstr "بيانات الإقرار"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Filing period"
+msgstr "الفترة الضريبية"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Filter rows…"
+msgstr "رشّح الصفوف…"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "From Date"
+msgstr "من تاريخ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "From material request to delivery — the whole procurement trail"
+msgstr "من طلب المواد إلى التسليم — أثر التوريد كاملاً"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "General Ledger"
+msgstr "الأستاذ العام"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Generated from the Report Studio"
+msgstr "أُنشئ من استوديو التقارير"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Gross Profit"
+msgstr "الربح الإجمالي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Gross Purchases"
+msgstr "إجمالي المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Gross Sales"
+msgstr "إجمالي المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Income against expenses, and the profit between them"
+msgstr "الإيرادات مقابل المصروفات، والربح بينهما"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Input VAT"
+msgstr "ضريبة المدخلات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Invoice movement — {0}"
+msgstr "حركة الفواتير — {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Item-wise Purchase Register"
+msgstr "سجل المشتريات حسب الصنف"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Item-wise Sales Register"
+msgstr "سجل المبيعات حسب الصنف"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Journal entries (credit) — {0}"
+msgstr "قيود اليومية (دائن) — {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Journal entries (debit) — {0}"
+msgstr "قيود اليومية (مدين) — {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Journal-entry effect on the period"
+msgstr "أثر قيود اليومية على الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Key columns"
+msgstr "الأعمدة الرئيسة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Kind"
+msgstr "النوع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ledger Account"
+msgstr "حساب من الدليل"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ledger check — input VAT"
+msgstr "فحص الأستاذ — ضريبة المدخلات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ledger check — output VAT"
+msgstr "فحص الأستاذ — ضريبة المخرجات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ledger movement minus invoice VAT on the accounts purchases used. Zero means they agree."
+msgstr "حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المشتريات. الصفر يعني التطابق."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Ledger movement minus invoice VAT on the accounts sales used. Zero means they agree."
+msgstr "حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المبيعات. الصفر يعني التطابق."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Margin %"
+msgstr "نسبة الهامش %"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Missing Filters"
+msgstr "الفلاتر ناقصة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Negative is a refund position."
+msgstr "القيمة السالبة تعني موقف استرداد."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net Movement"
+msgstr "صافي الحركة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net Purchases"
+msgstr "صافي المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net Sales"
+msgstr "صافي المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net Tax"
+msgstr "صافي الضريبة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net Taxable Base"
+msgstr "صافي المبلغ الخاضع للضريبة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net VAT"
+msgstr "صافي الضريبة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net VAT Due"
+msgstr "صافي الضريبة المستحقة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net VAT due (output − input)"
+msgstr "صافي الضريبة المستحقة (المخرجات − المدخلات)"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net VAT due per ledger"
+msgstr "صافي الضريبة المستحقة وفق الأستاذ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net VAT per Ledger"
+msgstr "صافي الضريبة وفق الأستاذ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Net position"
+msgstr "الموقف الصافي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "No VAT row was recorded: exempt, zero-rated or unregistered suppliers land here."
+msgstr "لم يُسجَّل أي صف ضريبة: هنا تقع المشتريات المعفاة أو الصفرية أو من موردين غير مسجلين."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "No invoice in the period touched this Tax account, yet it moved — a Journal Entry or an opening. Include it in the filing by hand."
+msgstr "لم تمسّه أي فاتورة في الفترة ومع ذلك تحرّك — قيد يومية أو قيد افتتاحي. أدخِله في الإقرار يدوياً."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "No previous period"
+msgstr "لا فترة سابقة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Nothing found"
+msgstr "لا نتائج"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Nothing in this period"
+msgstr "لا شيء في هذه الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Nothing to export yet"
+msgstr "لا بيانات للتصدير بعد"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Nothing to show"
+msgstr "لا شيء يُعرض"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Open orders: what was promised, delivered and billed"
+msgstr "الأوامر المفتوحة: ما وُعد به وما سُلّم وما فُوتر"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Open purchase orders: ordered, received and billed"
+msgstr "أوامر الشراء المفتوحة: ما طُلب وما استُلم وما فُوتر"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Opening Balance"
+msgstr "الرصيد الافتتاحي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Opportunities, quotations and orders by sales territory"
+msgstr "الفرص وعروض الأسعار والأوامر حسب منطقة المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Other vouchers — {0}"
+msgstr "سندات أخرى — {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Out of balance"
+msgstr "غير متوازن"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Out of scope, present in the period"
+msgstr "خارج النطاق وحاضر في الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Out-of-scope sales"
+msgstr "مبيعات خارج نطاق الضريبة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Output VAT"
+msgstr "ضريبة المخرجات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Over the period"
+msgstr "على مدى الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Period movement — {0}"
+msgstr "صافي حركة الفترة — {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Presentation"
+msgstr "وضع العرض"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Printed on"
+msgstr "طُبع في"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Procurement Tracker"
+msgstr "متتبع المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Profit and Loss Statement"
+msgstr "قائمة الأرباح والخسائر"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchase"
+msgstr "شراء"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchase Order Analysis"
+msgstr "تحليل أوامر الشراء"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchase Register"
+msgstr "سجل المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases & Returns"
+msgstr "المشتريات والمرتجعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases (input VAT)"
+msgstr "المشتريات (ضريبة المدخلات)"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases and returns in one place — gross, returned and net"
+msgstr "المشتريات ومرتجعاتها في مكان واحد — الإجمالي والمرتجع والصافي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases carrying input VAT"
+msgstr "مشتريات تحمل ضريبة مدخلات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases without VAT — classify by hand"
+msgstr "مشتريات بلا ضريبة — تُصنَّف يدوياً"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Purchases — net of adjustments"
+msgstr "المشتريات — صافيةً من التعديلات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Reconciliation against the ledger"
+msgstr "المطابقة مع الأستاذ العام"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Report Studio"
+msgstr "استوديو التقارير"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Report period"
+msgstr "فترة التقرير"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Resolve: map the revenue kind or classify the Tax Category."
+msgstr "سوِّها: اربط نوع الإيراد أو صنّف فئة الضريبة."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Return"
+msgstr "مرتجع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Return summary"
+msgstr "خلاصة الإقرار"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Returns"
+msgstr "المرتجعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Rows"
+msgstr "الصفوف"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Rows: {0}"
+msgstr "الصفوف: {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sale"
+msgstr "بيع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales & Returns"
+msgstr "المبيعات والمرتجعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales (output VAT)"
+msgstr "المبيعات (ضريبة المخرجات)"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales Order Analysis"
+msgstr "تحليل أوامر البيع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales Person-wise Transaction Summary"
+msgstr "ملخص المعاملات حسب مندوب المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales Register"
+msgstr "سجل المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales and purchases both posted here; the ledger cannot be split by side. Separate the accounts."
+msgstr "قيّدت فيه المبيعات والمشتريات معاً ولا يمكن فصل الأستاذ بحسب الطرف. افصل الحسابين."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales and returns in one place — gross, returned and net"
+msgstr "المبيعات ومرتجعاتها في مكان واحد — الإجمالي والمرتجع والصافي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Sales — net of adjustments"
+msgstr "المبيعات — صافيةً من التعديلات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Search…"
+msgstr "ابحث…"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Selling"
+msgstr "المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Selling value against buying cost, and the margin between them"
+msgstr "قيمة البيع مقابل كلفة الشراء، والهامش بينهما"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Selling value is net of VAT — the profit is measured before tax, and the margin is profit over net selling."
+msgstr "مبلغ البيع صافٍ من ضريبة القيمة المضافة — فالربح محتسب قبل الضريبة، والنسبة = الربح ÷ صافي البيع."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Set the company's tax ID before filing."
+msgstr "اضبط الرقم الضريبي في بيانات الشركة قبل التقديم."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Soon"
+msgstr "قريباً"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Standard-rated sales (15%)"
+msgstr "المبيعات الخاضعة للنسبة الأساسية (15%)"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Statement of Account"
+msgstr "كشف حساب"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Submitted POS Invoices exist in this period"
+msgstr "توجد فواتير نقاط بيع معتمدة في هذه الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Supplier"
+msgstr "المورد"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Supplier Ledger Summary"
+msgstr "ملخص دفتر أستاذ الموردين"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Supplier balances over the period — opening, movement and closing"
+msgstr "أرصدة الموردين خلال الفترة — الافتتاحي والحركة والإقفال"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Tax accounts in the ledger"
+msgstr "حسابات الضريبة في الأستاذ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Territory-wise Sales"
+msgstr "المبيعات حسب منطقة المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "The Report Studio bundle is not registered. Rebuild the theme's assets."
+msgstr "حزمة استوديو التقارير غير مسجلة. أعد بناء أصول الثيم."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "The Report Studio failed to load. Check the browser console."
+msgstr "تعذر تحميل استوديو التقارير. راجع طرفية المتصفح."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "The ZATCA declaration, box by box — with the proof it can be filed"
+msgstr "الإقرار كما تطلبه هيئة الزكاة والضريبة والجمارك بنداً بنداً — ومعه برهان صلاحيته للتقديم"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "The numbers that run the business — read, not hunted."
+msgstr "أرقام تُدير العمل — تُقرأ لا تُطارَد."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "The report could not be run. Open the classic view for details."
+msgstr "تعذر تشغيل التقرير. افتح العرض التقليدي للتفاصيل."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "They are not counted above. Consolidate them into Sales Invoices before filing."
+msgstr "لم تُحتسب أعلاه. وحّدها في فواتير مبيعات قبل التقديم."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "This Month"
+msgstr "الشهر الجاري"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "This Quarter"
+msgstr "ربع السنة الجاري"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "This Week"
+msgstr "هذا الأسبوع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "This Year"
+msgstr "هذا العام"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "This report is not installed on this site"
+msgstr "هذا التقرير غير مثبت في هذا الموقع"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "To Date"
+msgstr "إلى تاريخ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Today"
+msgstr "اليوم"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Top contributors"
+msgstr "أعلى المساهمين"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Total"
+msgstr "الإجمالي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Total Credit"
+msgstr "إجمالي الدائن"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Total Debit"
+msgstr "إجمالي المدين"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Total purchases"
+msgstr "إجمالي المشتريات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Total sales"
+msgstr "إجمالي المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Trial Balance"
+msgstr "ميزان المراجعة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Try a wider period, or another company."
+msgstr "جرّب فترة أوسع أو شركة أخرى."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Unclassified Sales"
+msgstr "مبيعات غير مصنفة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Unclassified sales — resolve before filing"
+msgstr "مبيعات غير مصنفة — سوِّها قبل التقديم"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "VAT Return"
+msgstr "الإقرار الضريبي"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "VAT Summary"
+msgstr "ملخص ضريبة القيمة المضافة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "VAT account moved outside invoices: {0}"
+msgstr "حساب ضريبة تحرّك خارج الفواتير: {0}"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "VAT on Adjustment"
+msgstr "ضريبة التعديل"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "VAT on Amount"
+msgstr "ضريبة المبلغ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "What the company owns and owes, as of the period end"
+msgstr "ما تملكه الشركة وما عليها، كما في نهاية الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "What was bought, item by item — quantities, rates and amounts"
+msgstr "ما اشتُري صنفاً صنفاً — الكميات والأسعار والمبالغ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "What was sold, item by item — quantities, rates and amounts"
+msgstr "ما بِيع صنفاً صنفاً — الكميات والأسعار والمبالغ"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Who is this statement for?"
+msgstr "لمن هذا الكشف؟"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Who owes you, how much, and for how long — aged as of the period end"
+msgstr "من يدين لك، وكم، ومنذ متى — بأعمارها كما في نهاية الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Who sold what — contribution by sales person"
+msgstr "من باع ماذا — الإسهام حسب مندوب المبيعات"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Who you owe, how much, and for how long — aged as of the period end"
+msgstr "من تدين له، وكم، ومنذ متى — بأعمارها كما في نهاية الفترة"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Written outside the invoices — journal entries and any non-invoice voucher."
+msgstr "كُتب خارج الفواتير — قيود يومية وأي سند غير فاتورة."
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "Zero-rated sales"
+msgstr "المبيعات الخاضعة للنسبة الصفرية"
+
+#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
+#. the studio is not on this line, so nothing here emits it yet
+#. src: hesham
+msgid "vs previous period"
+msgstr "مقارنة بالفترة السابقة"

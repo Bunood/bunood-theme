@@ -30,6 +30,18 @@ own item number — 39 stays spent on that branch, and the Report Studio stays t
 Releases as `v0.41.0` **after** item 40's `v0.40.0`: a tag cut here would carry
 item 40's unreleased source, which is the `v0.29.0` lesson above.
 
+**The Report Studio's Arabic came across without the studio.** Its 176 strings,
+Hesham's, appended to `locale/ar.po` as one attributed block and emitted (1,122 →
+1,298 rows, the added rows byte-identical to the branch's). Nothing on this line
+emits those msgids yet — the block's banner says why they survive a dead-row
+reap — so the studio lands with its Arabic already decided. The user's call,
+made knowing they are consumer-less until then.
+
+**Untested on this stack, and said so:** the dev site has no `ksa_compliance`
+installed, so the Phase-1 QR path below is Hesham's bench verification, not
+ours. What IS measured here is the degradation — no doctype → the receipt's
+stated warning and the macro's QR-missing box, never a crash.
+
 **A ZATCA-style 80mm receipt ksa_compliance never shipped.** «زاتكا - فاتورة
 مبسطة (حراري 80مم)» — the same content rules as their Phase-1 A4 format
 (seller block from ZATCA Phase 1 Business Settings, Standard-vs-Simplified
