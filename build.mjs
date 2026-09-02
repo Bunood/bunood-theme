@@ -1462,6 +1462,42 @@ function assertLogicalPlacementArgs(jsSrc) {
 	}
 }
 
+/**
+ * Item 41. A thermal print format must declare its page size on a rule whose
+ * selector is PURELY `.print-format`. That is the only channel either PDF
+ * engine reads: `frappe.utils.pdf.read_options_from_html` collects
+ * page-width/page-height/margin-* from exactly that selector, wkhtmltopdf
+ * ignores `@page`, and Frappe's chrome path hardcodes preferCSSPageSize=False
+ * (the sibling formats carry the full argument in their own <style>). The
+ * ZATCA receipt arrived from `studio-zatca` without one — measured 2026-09-02:
+ * read_options_from_html returned only the default 15mm margins for it and
+ * 80x297mm for its siblings, so its PDF button produced A4. The desk preview
+ * never consults the option, which is why a verification of the RENDERED
+ * receipt could not see it: the check has to read what the engine reads.
+ */
+function assertThermalPageSize(formats) {
+	if (!formats.length) {
+		throw new Error("Thermal page-size guard: found no thermal formats — it would pass by measuring nothing");
+	}
+	const rule = /^\s*\.print-format\s*\{([^}]*)\}/gm;
+	const problems = [];
+	for (const { name, src } of formats) {
+		const bodies = [...src.matchAll(rule)].map((m) => m[1]);
+		const sized = bodies.some(
+			(b) => /\bpage-width:\s*80mm\b/.test(b) && /\bpage-height:\s*\d+mm\b/.test(b)
+		);
+		if (!sized) problems.push(name);
+	}
+	if (problems.length) {
+		throw new Error(
+			"Thermal page-size guard: no `.print-format { page-width: 80mm; page-height: …mm }` rule, " +
+				"so both PDF engines print A4:\n  " +
+				problems.join("\n  ") +
+				"\nDeclare it on a rule whose selector is purely `.print-format` — @page reaches neither engine."
+		);
+	}
+}
+
 function assertResetChipsBound(jsSrc) {
 	const problems = [];
 	// Slice on `function bnd_render_*_picker(`, keeping each body up to the next
@@ -1876,6 +1912,17 @@ async function main() {
 		)
 	);
 	assertNoCountGoverned();
+	// Item 41. A thermal format is sized by what the PDF engines READ, which is
+	// the `.print-format` rule and nothing else — see the guard.
+	{
+		const dir = new URL("./bunood_theme/printing/formats/", import.meta.url);
+		const thermal = (await readdir(dir)).filter((f) => /thermal/.test(f) && f.endsWith(".html"));
+		assertThermalPageSize(
+			await Promise.all(
+				thermal.map(async (f) => ({ name: f, src: await readFile(new URL(f, dir), "utf8") }))
+			)
+		);
+	}
 	// Item 7(d). Held out of the build while it was red — a red build blocks
 	// every deploy — and wired in the moment translations/ar.csv shipped. From
 	// here a NEW `__()` string fails the build until someone decides what it

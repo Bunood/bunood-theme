@@ -18,6 +18,13 @@
 {%- set kind = "Standard" if (p1 and p1.type_of_transaction == "Standard Tax Invoice")
       or (p1 and p1.type_of_transaction == "Both" and buyer_vat) else "Simplified" -%}
 <style>
+/* Page size MUST be declared on `.print-format` — the only channel either pdf
+   engine reads (read_options_from_html); @page reaches neither. The sibling
+   thermal formats carry the full argument. Without this rule the PDF button
+   produced A4 (measured 2026-09-02: options came back with 15mm margins and no
+   size, against 80x297mm for the siblings); the desk preview never showed it. */
+.print-format { page-width: 80mm; page-height: 297mm; margin-top: 4mm; margin-bottom: 4mm; margin-left: 4mm; margin-right: 4mm; }
+@media print { @page { size: 80mm 297mm; margin: 4mm; } }
   .zt { width: 72mm; margin: 0 auto; font-size: 11px; line-height: 1.45; color: #000; }
   .zt * { font-family: inherit; }
   .zt-c { text-align: center; }

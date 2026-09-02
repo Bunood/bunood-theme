@@ -56,6 +56,16 @@ Disabled settings row returns the helper to inert, and a site without
 ksa_compliance never reaches the import. Phase 1 and Phase 2 cannot both be
 Active (their app validates that), so the source order cannot double-serve.
 
+### Fixed
+
+- **The receipt printed at A4 from the PDF button.** It declared no page size on
+  `.print-format`, the only rule `read_options_from_html` reads — measured: the
+  engine got 15mm margins and no size, against 80×297mm for the two sibling
+  thermal formats. The desk preview never consults that option, which is why a
+  verification of the rendered receipt could not see it. Declared now, and
+  `build.mjs` refuses any thermal format without it — the guard failed on this
+  file before the fix and names it.
+
 ## [Unreleased] — The side pane, rebuilt (item 40)
 
 **BUILT, thirteen for thirteen.** The COLOUR phase; the FIELD MODEL — nineteen
