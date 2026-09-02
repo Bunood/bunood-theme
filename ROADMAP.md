@@ -1240,7 +1240,9 @@ entry.
 **39 is spent.** `v0.39.0` and `v0.39.1` name the Report Studio and ZATCA Phase-1 work
 preserved on `studio-zatca`, which is not on this line. MINOR = the roadmap item number
 still holds, so the next item is **40**, and the roadmap gains one documented gap rather
-than a version number that would describe two different things.
+than a version number that would describe two different things. **The ZATCA half came
+back as item 41** (2026-09-02, below); the Report Studio itself stays on the branch, and
+only its Arabic strings crossed.
 
 - `[ ]` **40 · The side pane, rebuilt** *(new, in flight since 2026-08-28)* — the pane
   (item 10's sidebar kit) was built before the doctrine that now governs every other
@@ -1490,6 +1492,29 @@ than a version number that would describe two different things.
   from 10,556, and not weaker: the pane's tokens ARE the global tokens the
   sweep already walks. The release gauntlet and the v0.40.0 tag are what
   remain.
+
+- `[x]` **41 · ZATCA Phase-1 printing** *(re-merged 2026-09-02 from `studio-zatca`,
+  where it shipped inside v0.39.0)* — Hesham's two commits, merged with `--no-ff` rather
+  than cherry-picked so their SHAs are in this history: `bunood_zatca_qr_src` falls back
+  to ksa_compliance's print-time Phase-1 generator, so a company on Phase 1 (every company
+  before its integration wave) prints a QR from the themed formats at all; and «زاتكا -
+  فاتورة مبسطة (حراري 80مم)», the 80mm receipt ksa_compliance never shipped — seller block
+  from ZATCA Phase 1 Business Settings, Standard-vs-Simplified auto-detected, payment
+  rows, change and the deferred remainder.
+
+  **What the re-merge found.** The receipt declared no page size on `.print-format`, the
+  only rule either PDF engine reads, so its PDF button produced A4 — invisible in the desk
+  preview, which never consults that option. Measured (15mm margins and no size, against
+  80×297mm for the siblings), fixed, and `build.mjs` now refuses a thermal format without
+  the rule; the guard failed naming this file before the fix.
+
+  **At the user's direction the Report Studio stays on the branch; its 176 Arabic strings
+  crossed** into `locale/ar.po` as one attributed block, so the studio lands with its
+  Arabic decided. **Untested here:** the dev site has no `ksa_compliance`, so the Phase-1
+  QR path is Hesham's bench verification, not this stack's — only the degradation (no
+  doctype → the stated warning, never a crash) is measured. Releases as `v0.41.0`
+  **after** `v0.40.0`: a tag cut on top of item 40's unreleased source is the v0.29.0
+  trap.
 
 ---
 

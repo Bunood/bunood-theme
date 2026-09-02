@@ -45,6 +45,14 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 - **The version numbers on that branch are spent.** Items 39 and the 0.39.x tags name
   work that is not on `main`. MINOR = the ROADMAP item number still holds for this
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
+- **The ZATCA half is back on this line as item 41 (2026-09-02).** Merged from
+  `origin/feat/zatca-phase1-qr` with `--no-ff`, so Hesham's SHAs are in `main`'s history
+  and a later merge of `studio-zatca` will not re-apply them. The Report Studio stays on
+  the branch; its 176 Arabic strings crossed into `locale/ar.po` as one attributed block.
+  Item 41 releases as `v0.41.0` AFTER item 40's `v0.40.0` — a tag cut now would carry
+  item 40's unreleased source. The dev site has no `ksa_compliance` installed, so the
+  Phase-1 QR path is untested here; the receipt's A4 page-size defect was found and fixed
+  by reading what the PDF engine reads (`read_options_from_html`), not the preview.
 
 **ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
 FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE; ONE
