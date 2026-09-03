@@ -7032,6 +7032,101 @@ print("ok")
 			expect(await visible(".bnd-topbar .bnd-avatar-btn"), "the top bar still carries Log Out");
 		});
 
+		await test("container: every switch and every placement, through the shell, in every layout", async () => {
+			// ITEM 42, SLICE 1(b). The catalogue is replaced in slice 6, and the
+			// harness that holds its rows to account is written FIRST, against the
+			// rows that exist today, so the five new ones inherit it on their first
+			// commit rather than being checked by whichever cells somebody thought
+			// of. Slice 1(a) (`check_layout_catalogue`) asks whether a row is
+			// consistent with ITSELF; this asks what the desk does when a person
+			// flips every switch the row leaves them.
+			//
+			// Every cell goes through the seams the settings form uses --
+			// `chrome_apply` for a container switch, `shape_apply` for a placement --
+			// never a reload per cell: the matrix is ~150 cells and a reload each
+			// would cost ten minutes. Per cell, three claims:
+			//   * a route to identity survives (the question guard_critical_reach
+			//     exists to answer -- ours, or the stock pane's user button);
+			//   * the layout invariants hold (no two interactive things of ours
+			//     on one pixel, nothing off-screen);
+			//   * zero console or page errors, counted, not sampled.
+			// The catalogue, the toggles and the slot vocabularies are READ from
+			// `registry`, never restated here -- one table, several consumers.
+			const raw = benchPy(
+				"from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS, slots_for\n" +
+				"from bunood_theme.presets import DEFAULT_DESK_LAYOUT\n" +
+				"print(json.dumps({\n" +
+				"  'chrome': LAYOUT_CHROME,\n" +
+				"  'tenants': LAYOUT_TENANTS,\n" +
+				"  'toggles': [[c['key'], c['toggle']] for c in CONTAINERS if c.get('toggle')],\n" +
+				"  'slots': {f: list(slots_for(f)) for f in ('inbox_placement', 'user_placement', 'search_placement')},\n" +
+				"  'default': DEFAULT_DESK_LAYOUT,\n" +
+				"}))\n"
+			);
+			const cat = JSON.parse(raw.split("\n").reverse().find((l) => l.trim().startsWith("{")));
+			expect(Object.keys(cat.chrome).length >= 5, `the catalogue has rows (${Object.keys(cat.chrome).length})`);
+
+			const stranded = () =>
+				page.evaluate(() => {
+					const vis = (sel) => {
+						const el = document.querySelector(sel);
+						return !!el && getComputedStyle(el).display !== "none" && el.getClientRects().length > 0;
+					};
+					const pane = document.querySelector(".body-sidebar-container");
+					const paneOn = !!pane && getComputedStyle(pane).display !== "none";
+					return !(vis(".bnd-avatar-btn") || (paneOn && vis(".body-sidebar .sidebar-user-button")));
+				});
+			// COLLECT, never stop at the first cell: a matrix that aborts on its first
+			// finding hides every other one, and the point of a matrix is the whole.
+			const found = [];
+			const cell = async (label) => {
+				await page.waitForTimeout(250);
+				if (await stranded()) found.push(`${label}: no route to identity`);
+				const faults = await layoutFaults(".main-section", {
+					allowOverlap: [".page-head", ".frappe-list", ".layout-side-section", ".dropdown-menu"],
+				});
+				if (faults.length) found.push(`${label}: ${faults.slice(0, 2).join(" | ")}`);
+			};
+
+			try {
+				for (const layout of Object.keys(cat.chrome)) {
+					setSettings({ ...CHROME_DEFAULTS, desk_layout: layout });
+					await goDesk("/desk/item", ".page-head", 4500);
+					const row = cat.chrome[layout];
+					const home = cat.tenants[layout] || {};
+					const errs0 = consoleErrors.length;
+					// (a) every container switch: flipped, then back to the row's value.
+					for (const [key, toggle] of cat.toggles) {
+						for (const v of [row[key] ? 0 : 1, row[key] ? 1 : 0]) {
+							await page.evaluate(([t, val]) => window.bunood_theme.chrome_apply({ [t]: val }), [toggle, v]);
+							await cell(`${layout}: ${toggle}=${v}`);
+						}
+					}
+					// (b) every tenant, through every slot its field offers, ending at
+					// the row's own placement so the next tenant starts from the row.
+					for (const [field, slots] of Object.entries(cat.slots)) {
+						const back = home[field];
+						const walk = slots.filter((x) => x !== back);
+						if (back !== undefined) walk.push(back);
+						for (const slot of walk) {
+							await page.evaluate(
+								([f, x, shape]) => window.bunood_theme.shape_apply({ [f]: x }, shape),
+								[field, slot, layout]
+							);
+							await cell(`${layout}: ${field}=${slot}`);
+						}
+					}
+					const fresh = consoleErrors.slice(errs0);
+					if (fresh.length) found.push(`${layout}: ${fresh.length} console/page error(s) -- ${fresh[0]}`);
+				}
+				console.log(`      matrix: ${found.length} finding(s)`);
+				for (const f of found) console.log(`        - ${f}`);
+				expectEq(found.length, 0, `${found.length} finding(s); first: ${found[0] || ""}`);
+			} finally {
+				setSettings({ ...CHROME_DEFAULTS, desk_layout: cat.default });
+			}
+		});
+
 		await test("container: EVERY container off is refused at the last one", async () => {
 			// The configuration the split makes reachable and nothing before it
 			// could express. Every container this slice has split out is off,

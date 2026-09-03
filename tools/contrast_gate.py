@@ -1445,6 +1445,75 @@ def check_layout_identity() -> list[str]:
     return bad
 
 
+def check_layout_catalogue() -> list[str]:
+    """Every layout row is internally consistent: its tenants land in containers it turns on.
+
+    ITEM 42'S FIRST GUARD, written before the catalogue is replaced so the five new rows
+    are held to it from their first commit. Item 36's sharpest finding was a layout that
+    wrote HALF of itself — containers here, placements there — and the shape the suite
+    drove was one no gesture could produce; item 37 answered it with one composer
+    (`registry.layout_settings`). This is the check that composer never had: a row can
+    still say `topbar: 0` and `inbox_placement: "Top Bar End"` in the same breath, and
+    the bell then points at a region that does not exist on the day the layout is
+    picked — `mount_placed_tenants` falls through its fallback order and the label
+    derived by comparison reads a shape nobody drew.
+
+    Three claims per row, each one a way the catalogue has actually been wrong:
+      * a `LAYOUT_CHROME` row has a `LAYOUT_TENANTS` row (a layout without placements
+        writes containers only — the half-written shape);
+      * every placement value is one the doctype's Select offers (a value nothing can
+        store is a value the picker cannot show);
+      * the region a placement names is ON in that row's chrome (a tenant placed in a
+        container the row switches off).
+    Plus: the default layout is in the catalogue at all.
+
+    Frappe-free: the options come from the doctype JSON on disk, the rows from
+    `registry`, and nothing here needs a site.
+    """
+    import json
+
+    from bunood_theme import registry
+    from bunood_theme.presets import DEFAULT_DESK_LAYOUT
+
+    problems: list[str] = []
+    doctype = os.path.join(
+        os.path.dirname(__file__), "..", "bunood_theme", "bunood_theme", "doctype",
+        "theme_settings", "theme_settings.json",
+    )
+    with open(doctype, encoding="utf-8") as f:
+        fields = {r.get("fieldname"): r for r in json.load(f)["fields"]}
+    options = {
+        name: [o for o in (row.get("options") or "").split("\n") if o]
+        for name, row in fields.items()
+        if row.get("fieldtype") == "Select"
+    }
+    # "Top Bar Center" -> topbar: the region is the label's prefix, and REGION_LABELS is
+    # the one place the label is decided, so the map is derived rather than restated.
+    by_label = {label: key for key, label in registry.REGION_LABELS.items()}
+
+    if DEFAULT_DESK_LAYOUT not in registry.LAYOUT_CHROME:
+        problems.append(f"DEFAULT_DESK_LAYOUT {DEFAULT_DESK_LAYOUT!r} is not a LAYOUT_CHROME row")
+    for name, chrome in registry.LAYOUT_CHROME.items():
+        tenants = registry.LAYOUT_TENANTS.get(name)
+        if not tenants:
+            problems.append(f"{name}: has a LAYOUT_CHROME row but no LAYOUT_TENANTS row -- a half-written layout")
+            continue
+        for field, value in tenants.items():
+            if field in options and value not in options[field]:
+                problems.append(f"{name}: {field} = {value!r} is not an option the doctype offers")
+            if value == "Off":
+                continue
+            region = next((by_label[label] for label in by_label if value.startswith(label + " ")), None)
+            if region is None:
+                problems.append(f"{name}: {field} = {value!r} names no region REGION_LABELS knows")
+                continue
+            if not chrome.get(region, 0):
+                problems.append(
+                    f"{name}: {field} = {value!r} places a tenant in {region!r}, which this row switches OFF"
+                )
+    return problems
+
+
 def check_personal_partition() -> list[str]:
     """Every theme axis is filed as exactly one kind of thing — item 38.
 
@@ -1619,6 +1688,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    layouts = check_layout_catalogue()
+    if layouts:
+        print("the layout catalogue is inconsistent with itself:")
+        for m in layouts:
+            print(f"   {m}")
+        print()
+
     theme = check_theme_catalogue()
     if theme:
         print("the theme catalogue does not hold:")
@@ -1681,7 +1757,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if (failures or drift or sep or ref or inert or lift or cat or theme or shape
+    if (failures or drift or sep or ref or inert or lift or cat or theme or shape or layouts
             or split or sb_hues):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
