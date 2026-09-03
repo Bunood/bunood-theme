@@ -405,6 +405,38 @@ html[data-theme] .bnd-zone[data-zone="center"] {
   justify-content: center;
 }
 
+// ONE CENTRE PER BAR (item 42, slice 1b — the switch matrix's first finding).
+// A bar used to carry TWO centred boxes: search's own `.bnd-search-center`
+// slot and this zone, both absolute and both centred on the bar's axis, so a
+// bell placed at "Top Bar Center" rendered under the search field. Search
+// placed at a bar's centre now mounts INTO this zone (mount_search_at), and
+// the zone centres against the BAR rather than the cluster: the two bars'
+// clusters give up their positioning context (the top bar is `relative`, the
+// status bar is `fixed`, so the bar is the containing block either way). The
+// page-head and dock clusters keep theirs — their centre means the cluster's
+// centre, and a bell centred over a page title is a different decision.
+html[data-theme] .bnd-topbar .bnd-cluster,
+html[data-theme] .bnd-statusbar .bnd-cluster {
+  position: static;
+}
+
+// The field keeps the slot's width inside the zone; the zone is fit-content,
+// so the width has to be the field's own.
+html[data-theme] .bnd-zone[data-zone="center"] > .bnd-search-field {
+  inline-size: min(420px, 46vw);
+}
+
+// THE DOCK IS A PILL, NOT A BAR (the matrix's other two findings): a centre
+// zone floated over a ~70px cluster lands on the end zone, so a bell placed at
+// "Dock Center" sat under the avatar. In the pill the centre zone flows in
+// line — start · centre · end — which is what "centre" means in a box that
+// is only as wide as its contents.
+html[data-theme] .bnd-dock .bnd-zone[data-zone="center"] {
+  position: static;
+  inset-inline: auto;
+  margin-inline: 0;
+}
+
 html[data-theme] .bnd-zone[data-zone="end"] {
   margin-inline-start: auto;
 }

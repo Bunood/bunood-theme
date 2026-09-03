@@ -3556,15 +3556,21 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
 			field = build_search_field();
 			if (slot === "topcenter" || slot === "botcenter") {
-				// Both bars reserve this slot at mount. Falling back to a
-				// fresh wrapper keeps the placement working if a bar ever
-				// forgets to — search appearing off-centre beats no search.
-				let centre = host.querySelector(".bnd-search-center");
-				if (!centre) {
-					centre = el("div", "bnd-search-center");
-					host.appendChild(centre);
+				// ONE centre (item 42, slice 1b): the cluster's centre zone, so a
+				// tenant placed there sits beside the field — argument in _cluster.scss.
+				// The bar's own slot is the fallback for a bar with no cluster yet.
+				// zone_in reserves the cluster's zones: search mounts before the tenants do.
+				const zone = zone_in(host, "center");
+				if (zone) {
+					zone.insertBefore(field, zone.firstChild);
+				} else {
+					let centre = host.querySelector(".bnd-search-center");
+					if (!centre) {
+						centre = el("div", "bnd-search-center");
+						host.appendChild(centre);
+					}
+					centre.appendChild(field);
 				}
-				centre.appendChild(field);
 			} else {
 				host.insertBefore(field, host.firstChild);
 			}
