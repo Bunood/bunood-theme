@@ -3722,7 +3722,7 @@ async function main() {
 						sidebar_placement: c.sidebar_placement,
 					});
 					await goDesk("/app/selling", "body", 3000);
-					await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
+					await page.waitForFunction(() => !!document.querySelector(".bnd-sb-brand"), null, { timeout: 20000 });
 					const r = await page.evaluate(() => {
 						const pane = document.querySelector(".body-sidebar");
 						if (!pane) return null;
@@ -3741,12 +3741,17 @@ async function main() {
 							);
 						};
 						const native = pane.querySelector(".sidebar-header");
-						const ours = pane.querySelector(".bnd-sb-head");
+						// Item 42 split the head: the BRAND row is what stands in for Frappe's
+						// header (it is the pane's first row and survives the rail); the place
+						// row under search hides at rail rest by design.
+						const ours = pane.querySelector(".bnd-sb-brand");
+						const place = pane.querySelector(".bnd-sb-head");
 						return {
 							mode: document.documentElement.getAttribute("data-bnd-sb-color"),
 							nativeInDom: !!native,
 							rows: [native, ours].filter(visible).length,
 							oursVisible: visible(ours),
+							placeVisible: visible(place),
 						};
 					});
 					expect(r, `the pane is in the document under ${c.label}`);
@@ -3755,6 +3760,7 @@ async function main() {
 					// nothing about the repair.
 					expect(r.nativeInDom, `${c.label}: Frappe's own header is present to be hidden`);
 					expectEq(r.rows, 1, `${c.label} (${r.mode}): exactly one head is visible`);
+					expectEq(r.placeVisible, c.label !== "rail", `${c.label}: the place row shows when expanded and hides at rail rest`);
 					expect(r.oursVisible, `${c.label}: and the one that renders is ours`);
 				}
 			} finally {
@@ -5862,6 +5868,61 @@ print("ok")
 						}
 					}
 				}, foldedNames).catch(() => {});
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: brand row, then search, then the place row — in that order, at two widths", async () => {
+			// ITEM 42, SLICE 2. Item 40 collapsed brand, quick links and module row into
+			// ONE place row; the user's brief separated the company (logo + name, on
+			// top) from the workspace (name + switcher, under search). The order is
+			// the whole claim, and it must hold whichever mounts first — the head or
+			// the search row — so this reads the DOM order AND the rects, at the
+			// widest and the narrowest stop, with search placed in the pane.
+			//
+			// Watched failing before the split: no `.bnd-sb-brand` at all, search
+			// directly under a head that carried the company's initial.
+			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "search_placement", "sidebar_pane_width"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded", search_placement: "Side Pane Start" });
+				await goDesk("/app/selling", ".body-sidebar", 3000);
+				for (const stop of ["5", "1"]) {
+					// Page-local, like the picker's preview; the stop is not saved.
+					await page.evaluate((v) => window.bunood_theme.sb_apply({ sidebar_pane_width: v }), stop);
+					await page.waitForTimeout(600);
+					const r = await page.evaluate(() => {
+						const pane = document.querySelector(".body-sidebar");
+						const kids = [...pane.children];
+						const brand = pane.querySelector(".bnd-sb-brand");
+						const search = pane.querySelector(".navbar-search-bar, [data-bnd-part=search]");
+						const head = pane.querySelector(".bnd-sb-head");
+						const list = pane.querySelector(".body-sidebar-top");
+						const rect = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, w: b.width, h: b.height }; };
+						const idx = (el) => (el ? kids.indexOf(el) : -1);
+						return {
+							order: { brand: idx(brand), search: idx(search), head: idx(head), list: idx(list) },
+							rects: { brand: rect(brand), search: rect(search), head: rect(head), list: rect(list) },
+							tile: rect(pane.querySelector(".bnd-sb-brand-mark")),
+							company: (brand && brand.textContent.trim()) || "",
+							owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panehead"),
+							nativeHidden: (() => { const n = pane.querySelector(".sidebar-header"); return !n || getComputedStyle(n).display === "none"; })(),
+							paneW: pane.getBoundingClientRect().width,
+						};
+					});
+					const w = Math.round(r.paneW);
+					expect(r.order.brand === 0, `stop ${stop} (${w}px): the brand row is the pane's first child (index ${r.order.brand})`);
+					expect(r.order.search > r.order.brand && r.order.search < r.order.head,
+						`stop ${stop}: search sits between brand (${r.order.brand}) and the place row (${r.order.head}); search at ${r.order.search}`);
+					expect(r.order.head < r.order.list, `stop ${stop}: the place row precedes the list`);
+					// The rects say the same thing the DOM does — a stacked column, no overlap.
+					expect(r.rects.brand && r.rects.search && r.rects.head, `stop ${stop}: all three rows have boxes`);
+					expect(r.rects.brand.bottom <= r.rects.search.top + 1, `stop ${stop}: brand (${Math.round(r.rects.brand.bottom)}) ends above search (${Math.round(r.rects.search.top)})`);
+					expect(r.rects.search.bottom <= r.rects.head.top + 1, `stop ${stop}: search (${Math.round(r.rects.search.bottom)}) ends above the place row (${Math.round(r.rects.head.top)})`);
+					expectEq(Math.round(r.tile.w) + "x" + Math.round(r.tile.h), "40x40", `stop ${stop}: the brand tile is the 40px tile`);
+					expect(r.company.length > 0, `stop ${stop}: the brand row names the company`);
+					expect(r.owned && r.nativeHidden, `stop ${stop}: both rows present, so panehead is owned and Frappe's header hidden`);
+				}
+			} finally {
 				setSettings(before);
 			}
 		});

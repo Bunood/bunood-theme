@@ -76,6 +76,9 @@ html[data-bnd-sb-color] {
   --bnd-sb-ink: var(--bnd-ink);
   --bnd-sb-ink-muted: var(--bnd-ink-muted);
   --bnd-sb-line: var(--bnd-border);
+  // The brand tile (slice 2) and, from slice 3, the foot's avatar tile: one
+  // size, so the pane's top and bottom rhyme.
+  --bnd-sb-tile: 40px;
   // A chip is a wash of the ink over whatever the pane is; a card is a step
   // up from it. Both are relationships, so both follow the theme without a
   // second value to keep in step.
@@ -483,26 +486,6 @@ html[data-bnd-sb-color] .bnd-sb-head {
     background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
   }
 
-  .bnd-sb-head-logo {
-    inline-size: 24px;
-    block-size: 24px;
-    border-radius: var(--bnd-radius-md);
-    object-fit: contain;
-    flex: none;
-  }
-
-  .bnd-sb-head-initial {
-    display: grid;
-    place-items: center;
-    inline-size: 24px;
-    block-size: 24px;
-    border-radius: var(--bnd-radius-md);
-    background: var(--bnd-brand-solid);
-    color: var(--bnd-on-brand);
-    font-size: var(--bnd-text-sm);
-    flex: none;
-  }
-
   .bnd-sb-head-name {
     overflow: hidden;
     white-space: nowrap;
@@ -531,14 +514,80 @@ html[data-bnd-sb-color] .bnd-sb-head {
   }
 }
 
-// Rail rest: the head shrinks to its mark, centred. The name and the chevron
-// both go — a chevron with nothing beside it points at nothing.
+// Rail rest: the head goes. It has no mark any more (the brand row carries
+// it), and a name with a chevron does not fit a rail — the brand tile below
+// is what the rail shows.
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-head {
+  display: none;
+}
+
+// ── The brand row (item 42, slice 2) ────────────────────────────────────────
+// The company's mark and name, the pane's FIRST row, over a hairline. It is a
+// label, not a control — the place row carries the menu — so it is a div with
+// no hover, no cursor and no ring. Item 40 had folded the mark INTO the place
+// row; the user's brief separates whose desk this is (top) from where you are
+// (under search), and the Start zone anchors between the two.
+//
+// THE ORDER IS THE CLAIM, and it must hold whichever mounts first (the
+// reasoning lives here because bunood.js ships its comments verbatim and the
+// payload gate counts them). `sb_mount_head` builds the brand row as the
+// pane's first child and places the head with `sb_place_head`, which anchors
+// directly BEFORE `.body-sidebar-top` — so everything the Start zone holds
+// (Frappe's own search row inside `.standard-items-sections`, our quick links)
+// stays above the place row. `sb_zone_anchor`'s start branch anchors on the
+// same thing: before our head, else before the list, else under whichever top
+// row exists. Mount order cannot change the result. `claim_panehead` owns the
+// vendor's header only when BOTH rows are in the pane: a brand row with no
+// place row would hide the workspace cascade and put nothing in its place.
+// Frappe re-prepends its (owned, hidden) `.sidebar-header` on every workspace
+// switch, so "first" means first VISIBLE child, and the check reads it so.
+html[data-bnd-sb-color] .bnd-sb-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  padding-block: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-3);
+  border-block-end: var(--bnd-line) solid var(--bnd-sb-line);
+  color: var(--bnd-sb-ink);
+  font-size: var(--bnd-text-base);
+  font-weight: var(--bnd-weight-medium);
+
+  .bnd-sb-brand-mark {
+    display: grid;
+    place-items: center;
+    inline-size: var(--bnd-sb-tile);
+    block-size: var(--bnd-sb-tile);
+    border-radius: var(--bnd-radius-lg);
+    overflow: hidden;
+    flex: none;
+  }
+
+  .bnd-sb-brand-logo {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+  }
+
+  .bnd-sb-brand-initial {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+    font-size: var(--bnd-text-lg);
+  }
+
+  .bnd-sb-brand-name {
+    min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+// Rail rest: the tile alone, centred.
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand {
   justify-content: center;
   padding-inline: 0;
 
-  .bnd-sb-head-name,
-  .bnd-sb-head-chev {
+  .bnd-sb-brand-name {
     display: none;
   }
 }

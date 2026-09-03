@@ -2417,10 +2417,13 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 	const bottom = pane.querySelector(".body-sidebar-bottom");
-	const header = pane.querySelector(".bnd-sb-head") || pane.querySelector(".sidebar-header");
 
 	if (zone === "start") {
-		if (header) return header.insertAdjacentElement("afterend", node);
+		// Between the brand row and the place row, whichever mounted first.
+		const head = pane.querySelector(":scope > .bnd-sb-head") || pane.querySelector(":scope > .body-sidebar-top");
+		if (head) return head.insertAdjacentElement("beforebegin", node);
+		const top = pane.querySelector(":scope > .bnd-sb-brand") || pane.querySelector(":scope > .sidebar-header");
+		if (top) return top.insertAdjacentElement("afterend", node);
 		return pane.insertBefore(node, pane.firstChild);
 	}
 	// No "center" branch: the pane has two zones, because a third could not be
@@ -3556,15 +3559,21 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const stray of document.querySelectorAll(".bnd-search-field")) stray.remove();
 			field = build_search_field();
 			if (slot === "topcenter" || slot === "botcenter") {
-				// Both bars reserve this slot at mount. Falling back to a
-				// fresh wrapper keeps the placement working if a bar ever
-				// forgets to — search appearing off-centre beats no search.
-				let centre = host.querySelector(".bnd-search-center");
-				if (!centre) {
-					centre = el("div", "bnd-search-center");
-					host.appendChild(centre);
+				// ONE centre (item 42, slice 1b): the cluster's centre zone, so a
+				// tenant placed there sits beside the field — argument in _cluster.scss.
+				// The bar's own slot is the fallback for a bar with no cluster yet.
+				// zone_in reserves the cluster's zones: search mounts before the tenants do.
+				const zone = zone_in(host, "center");
+				if (zone) {
+					zone.insertBefore(field, zone.firstChild);
+				} else {
+					let centre = host.querySelector(".bnd-search-center");
+					if (!centre) {
+						centre = el("div", "bnd-search-center");
+						host.appendChild(centre);
+					}
+					centre.appendChild(field);
 				}
-				centre.appendChild(field);
 			} else {
 				host.insertBefore(field, host.firstChild);
 			}
@@ -6313,7 +6322,22 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_head() {
 		const sidebar = document.querySelector(".body-sidebar");
 		if (!sidebar) return;
-		// Build if absent, claim on EVERY call — see claim_panehead.
+		// Brand row, then place row (item 42) — argument in _sidebar.scss.
+		if (!sidebar.querySelector(".bnd-sb-brand")) {
+			const brand = el("div", "bnd-sb-brand");
+			const mark = el("span", "bnd-sb-brand-mark");
+			if (frappe.boot.bnd_logo) {
+				mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
+			} else {
+				mark.classList.add("bnd-sb-brand-initial");
+				mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+			}
+			brand.appendChild(mark);
+			const company = el("span", "bnd-sb-brand-name");
+			company.textContent = frappe.boot.bnd_company || __("Home");
+			brand.appendChild(company);
+			sidebar.insertBefore(brand, sidebar.firstChild);
+		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
 				type: "button",
@@ -6321,14 +6345,6 @@ function sb_zone_anchor(pane, zone, node) {
 				"aria-haspopup": "menu",
 				"aria-expanded": "false",
 			});
-			const mark = el("span", "bnd-sb-head-mark");
-			if (frappe.boot.bnd_logo) {
-				mark.appendChild(el("img", "bnd-sb-head-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-			} else {
-				mark.classList.add("bnd-sb-head-initial");
-				mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-			}
-			head.appendChild(mark);
 			head.appendChild(el("span", "bnd-sb-head-name"));
 			const chev = el("span", "bnd-sb-head-chev");
 			chev.appendChild(sprite_icon("icon-chevron-down"));
@@ -6337,10 +6353,19 @@ function sb_zone_anchor(pane, zone, node) {
 				e.stopPropagation();
 				show_menu(head, sb_head_menu());
 			});
-			sidebar.insertBefore(head, sidebar.firstChild);
+			sb_place_head(sidebar, head);
 		}
 		sb_update_head();
 		claim_panehead();
+	}
+
+	/** Above the list; same anchor as sb_zone_anchor's start branch. */
+	function sb_place_head(sidebar, head) {
+		const list = sidebar.querySelector(":scope > .body-sidebar-top");
+		if (list) return list.insertAdjacentElement("beforebegin", head);
+		const brand = sidebar.querySelector(":scope > .bnd-sb-brand");
+		if (brand) return brand.insertAdjacentElement("afterend", head);
+		return sidebar.insertBefore(head, sidebar.firstChild);
 	}
 
 	/** Where you are, or whose desk this is. Two states, both facts. */
@@ -6435,7 +6460,10 @@ function sb_zone_anchor(pane, zone, node) {
 	/** Claim the pane header from the DOM, never from having built it.
 	 *  Disowns on the negative branch. Argument: _layouts.scss. */
 	function claim_panehead() {
-		if (document.querySelector(".body-sidebar .bnd-sb-head")) bnd_own("panehead");
+		// Both rows, or the vendor's header comes back.
+		const both =
+			document.querySelector(".body-sidebar .bnd-sb-brand") && document.querySelector(".body-sidebar .bnd-sb-head");
+		if (both) bnd_own("panehead");
 		else bnd_disown("panehead");
 	}
 
@@ -7146,7 +7174,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Remove the head. */
 	function sb_teardown_head() {
-		for (const n of document.querySelectorAll(".bnd-sb-head")) n.remove();
+		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand")) n.remove();
 		claim_panehead();
 	}
 
