@@ -1520,6 +1520,28 @@ only its Arabic strings crossed.
   **after** `v0.40.0`: a tag cut on top of item 40's unreleased source is the v0.29.0
   trap.
 
+- `[ ]` **42 · The desk shapes, rebuilt** *(opened 2026-09-02; plan at
+  `~/.claude/plans/desk-shapes-rebuilt.md`; releases as v0.42.0)*. Decided with the user
+  through five drawn rounds — the pane foot
+  ([Pane Foot Round](https://claude.ai/code/artifact/3d9c07d3-498d-4d94-b0d7-bacae2e54b7a)),
+  the layout catalogue
+  ([Desk Layout Round](https://claude.ai/code/artifact/fa4cf5ee-b752-42ab-afd1-241dd21fc3d7)),
+  every side-pane option rendered
+  ([Pane Defaults Round](https://claude.ai/code/artifact/6f4aadb2-f8bf-454e-835c-aae779cc4db2)),
+  icon styles ([Icon Style Round](https://claude.ai/code/artifact/55ce7122-96a6-4724-a79f-def8f4acc2a6)),
+  the three-state pane ([Three-State Pane](https://claude.ai/code/artifact/870cadaa-3168-4268-997f-3de717506227))
+  and surfaces ([Pane Surfaces Round](https://claude.ai/code/artifact/f569cb16-0300-4dc6-9aca-9c53b30878ee)).
+  **The shipped desk becomes "Unified Side Pane"**: no top bar or page header; the pane
+  carries brand row → search → workspace row → list → a floating foot card (avatar tile at
+  the start, bell at the end); one toggle moves the pane between Open, Rail and Hidden
+  (a floating brand pill), remembered per user. The five catalogue layouts are retired for
+  Unified Side Pane · Taskbar · Top Taskbar · Rail + Flyout · Floating Bar; every part is
+  switchable from one settings page and the switch matrix is tested. New catalogues for
+  surfaces (Solid + Tinted, Bordered, Elevated, Gradient, Textured) and icon styles
+  (Filled Color + Fill on Active, Solid Tile, Circle Badge, Monogram); Getting Started
+  moves into the profile menu by ownership; the menu becomes a grid; the status bar loses
+  its clock. Slices in the plan; the account in CHANGELOG.
+
 ---
 
 ## Open, unnumbered threads

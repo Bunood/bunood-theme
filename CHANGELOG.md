@@ -22,6 +22,46 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — The desk shapes, rebuilt (item 42)
+
+The plan lives at `~/.claude/plans/desk-shapes-rebuilt.md`; ROADMAP carries the entry.
+Decided with the user through five drawn rounds on 2026-09-02/03 and built slice by slice.
+
+### Changed — the shipped defaults, chosen one by one
+
+Every option of the side-pane and icon fields was rendered on the live desk, measured, and
+described (an adversarial pass checked each description against its screenshot); the
+user chose field by field. The defaults that move, in `setup.SHIPPED`, the "Bunood Night"
+look and the doctype JSON together, so the "default preset IS the shipped default" gate
+stays true:
+
+| field | was | now |
+|---|---|---|
+| `arabic_font` | IBM Plex Sans Arabic | **Noto Sans Arabic** |
+| `crumb_style` | Quiet Trail | **Crumb Pills** |
+| `workspace_style` | Hairline Grid | **Soft Tiles** |
+| `status_clock` | 24 Hour | **Off** |
+| `sidebar_hue_wash` | Rich | **Subtle** |
+| `sidebar_active_style` | Solid Pill | **Accent Rail** |
+| `sidebar_card_depth` | 3 | **4** |
+| `sidebar_pane_width` | 3 (240px) | **5 (280px)** |
+
+Kept, deliberately: company name, the Bunood green triple, Comfortable density, the
+quick links Off, Cards sections, Attached, Solid, Filled Color, Smart icons, weight 1.5,
+filter off. `sidebar_badges` stays Off until the Counts pill is refitted and gated (it
+measures 3.56:1 today) — that pick lands with its own slice.
+
+**The baseline is shared, so this reaches other presets.** A theme preset with
+`values: {}` means "the shipped default", by construction — so `status_clock` Off reaches
+all twelve, Crumb Pills reaches the eight that did not name a crumb style, Soft Tiles the
+two that did not name a workspace style. Measured before landing, preset by preset; the
+four sidebar values reach Bunood Night alone. Focus, Canvas, Contrast, Workbench and
+Quiet keep their own crumbs; Focus, Canvas, Elevated and Studio keep their own workspace.
+
+Also: the width stepper's fallback read a literal stop 2 while the shipped stop was 3
+(now 5) — it reads `bnd_shipped` now, the same object the picker's Default/Changed note
+already trusts.
+
 ## [Unreleased] — ZATCA Phase-1 printing (item 41)
 
 **Re-merged from `studio-zatca` on 2026-09-02, where it had shipped inside
@@ -88,7 +128,14 @@ Active (their app validates that), so the source order cannot double-serve.
   `build.mjs` refuses any thermal format without it — the guard failed on this
   file before the fix and names it.
 
-## [Unreleased] — The side pane, rebuilt (item 40)
+## [0.40.0] — 2026-09-03 — The side pane, rebuilt (item 40)
+
+**TAGGED AT `ff6dd9d`, NOT AT HEAD — the v0.29.0 precedent, for the same reason.** Item
+41 (ZATCA Phase-1 printing, the other session's re-merge) was committed on top of item
+40's close before this tag was cut, so a tag at HEAD would carry item 41's source inside
+a release named for item 40. The version files at `ff6dd9d` still read `0.37.1`; the
+"`app_version` matches the latest tag" invariant resumes at item 42's release. Recorded
+here rather than left to be rediscovered as a bug.
 
 **BUILT, thirteen for thirteen.** The COLOUR phase; the FIELD MODEL — nineteen
 style settings down to twelve, thirteen with the filter; THE PLACE ROW; ONE
