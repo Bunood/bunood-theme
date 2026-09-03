@@ -121,4 +121,4 @@ FACES = {
 #: What a fresh install selects. A self-hosted face and not System, because
 #: defaulting to System ships the per-platform inconsistency 7(b) exists to
 #: remove. ``setup.SHIPPED`` reads this so the two cannot disagree.
-DEFAULT_FACE = "IBM Plex Sans Arabic"
+DEFAULT_FACE = "Noto Sans Arabic"  # was IBM Plex Sans Arabic until 2026-09-02, the user's call

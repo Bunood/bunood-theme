@@ -67,10 +67,10 @@ _SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_active_style": "Solid Pill",
+        "sidebar_active_style": "Accent Rail",
         "sidebar_section_style": "Cards",
-        "sidebar_hue_wash": "Rich",
-        "sidebar_card_depth": "3",
+        "sidebar_hue_wash": "Subtle",
+        "sidebar_card_depth": "4",
         # Always expanded, because the re-chosen look is "attached, solid, a
         # step wider" — a pane that collapses to a 52px rail shows none of
         # those. The rail lives on in Bunood Light and the picker.
@@ -79,7 +79,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
         # is None — kept so flipping back restores a tuned look.
-        "sidebar_pane_width": "3",
+        "sidebar_pane_width": "5",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
     },
@@ -213,7 +213,7 @@ CRUMB_FIELDS = [
 #: trail untouched, the same escape hatch the desk-layout picker offers with
 #: "Classic". Values are Select LABELS; bunood.js owns label -> css-slug.
 CRUMB_DEFAULTS = {
-    "crumb_style": "Quiet Trail",
+    "crumb_style": "Crumb Pills",
     "crumb_separator": "Chevron",
     "crumb_hover": "Soft Pill",
     # Checks: 1/0, not labels. Copy-link defaults ON (hover-only affordance,
@@ -298,7 +298,7 @@ STATUS_FIELDS = [
 STATUS_DEFAULTS = {
     "search_placement": "Top Bar Center",
     "status_style": "Quiet",
-    "status_clock": "24 Hour",
+    "status_clock": "Off",
     "status_interval": "60s",
     # Checks: segments a user is allowed to see. Permission is decided
     # elsewhere and always wins, so these mean "show if permitted", never
@@ -435,7 +435,7 @@ WORKSPACE_FIELDS = [
 WORKSPACE_DEFAULTS = {
     # One statement over canvas, tile and gutter — a gapless style requires zero
     # gutter, so they cannot be separate fields without composing a non-style.
-    "workspace_style": "Hairline Grid",
+    "workspace_style": "Soft Tiles",
     # The number card's interior (axis 2). Display: an eyebrow label over a value
     # that steps up with the card's own width.
     "workspace_metric": "Display",

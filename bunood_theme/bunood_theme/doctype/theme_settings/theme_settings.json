@@ -321,7 +321,7 @@
    "fieldtype": "Select",
    "label": "Arabic Font",
    "options": "System\nIBM Plex Sans Arabic\nNoto Sans Arabic\nAlmarai\nCairo",
-   "default": "IBM Plex Sans Arabic",
+   "default": "Noto Sans Arabic",
    "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
   },
   {
@@ -919,7 +919,7 @@
    "fieldtype": "Select",
    "label": "Breadcrumb Style",
    "options": "Original\nQuiet Trail\nTitle Fusion\nEyebrow Title\nCrumb Pills",
-   "default": "Quiet Trail",
+   "default": "Crumb Pills",
    "hidden": 1,
    "description": "Set by the picker below. Original leaves ERPNext's stock trail untouched."
   },
@@ -1150,7 +1150,7 @@
    "fieldtype": "Select",
    "label": "Clock",
    "options": "Off\n12 Hour\n24 Hour",
-   "default": "24 Hour",
+   "default": "Off",
    "hidden": 1
   },
   {
@@ -1369,7 +1369,7 @@
    "label": "Workspace Picker"
   },
   {
-   "default": "Hairline Grid",
+   "default": "Soft Tiles",
    "description": "Set by the picker above. How the tiles on a workspace sit together.",
    "fieldname": "workspace_style",
    "fieldtype": "Select",

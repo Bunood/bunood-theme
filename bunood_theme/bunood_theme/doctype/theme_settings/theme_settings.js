@@ -2492,7 +2492,11 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	});
 
 	BND_SB_STEPPERS.forEach((s) => {
-		const current = parseInt(frm.doc[s.field], 10) || (s.field === "sidebar_pane_width" ? 2 : 3);
+		// The fallback is the SHIPPED value, never a literal: this line once said
+		// `? 2 : 3` while the shipped width was stop 3 and is now stop 5 — a second
+		// copy of a fact `bnd_shipped` already carries. The middle stop stands in
+		// only until the shipped defaults arrive.
+		const current = parseInt(frm.doc[s.field], 10) || parseInt((bnd_shipped || {})[s.field], 10) || 3;
 		const stops = [1, 2, 3, 4, 5]
 			.map(
 				(n) =>

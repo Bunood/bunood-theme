@@ -2654,7 +2654,10 @@ async function main() {
 			// query cannot see that: drag the sidebar out on a wide screen and
 			// the bar is cramped while `max-width: 991px` has never fired.
 			// Container queries ask the bar itself.
-			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center" });
+			// Pinned to the scenario the ranks were modelled on: item 42 shipped the
+			// clock Off and a 280px pane, which changes which ranks exist and how wide
+			// the bar is at 1200px -- this check is about collapse, not defaults.
+			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3" });
 			await page.setViewportSize({ width: 1200, height: 900 });
 			await goDesk("/desk/item", ".page-head", 4500);
 
@@ -2757,7 +2760,8 @@ async function main() {
 		});
 
 		await test("status: collapses by rank on narrow viewports", async () => {
-			setSettings({ status_style: "Always On", search_placement: "Bottom Bar Center" });
+			// Pinned as the check above: the clock is rank 3, and item 42 ships it Off.
+			setSettings({ status_style: "Always On", search_placement: "Bottom Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const visiblePrios = async () =>
 				page.evaluate(() =>
