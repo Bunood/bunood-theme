@@ -62,6 +62,79 @@ Also: the width stepper's fallback read a literal stop 2 while the shipped stop 
 (now 5) — it reads `bnd_shipped` now, the same object the picker's Default/Changed note
 already trusts.
 
+### Changed — the desk shapes
+
+**The catalogue is four rows, and the shipped desk is Unified Side Pane.** The five
+layouts item 11 shipped are retired; the new ones are the user's pick from the drawn
+round: **Unified Side Pane** (default) · Taskbar · Top Taskbar · Floating Bar. Rail +
+Flyout joins in a later slice — it is Unified with the pane in its Rail state, and until
+the field that says so exists its row would be byte-identical to Unified's, which
+`check_layout_identity` refuses and is right to.
+
+Three old rows survive under new names because their VALUES survived — Top Bar → Top
+Taskbar, Bottom Bar → Taskbar, Dock → Floating Bar. **Compact and Classic are shapes no
+card offers any more**: they derive to `""`, the picker reads "Custom", and every switch
+that composed them is still there. Nothing stops working; it stops being named.
+
+**The pane's head is two rows now.** A brand row (the company's mark as a 40px filled
+tile, and its name) is the pane's first child; Frappe's own search row sits under it;
+the place row — workspace name and switcher — sits under that, directly above the list.
+Item 40 had collapsed all of this into one row deliberately; the user's brief separated
+*whose desk this is* from *where you are*, and the order holds whichever mounts first.
+
+**The foot is a floating tile card** (the user's option 14): the account avatar fills a
+40px rounded square at the card's start, the bell is pinned to its end, and the rail
+flips it to a column reading bell over avatar. The account menu's rows align on a
+`20px | label | hint` grid. **Getting Started** moves into that menu — Frappe's
+pane-foot link is hidden by ownership, and the row is offered only where the pane can
+actually show the widget.
+
+**The status bar's density segment is an icon** at the trailing edge; its value lives in
+the accessible name and the tooltip rather than a text run.
+
+### Fixed — four reset chips wrote values the site does not ship
+
+`theme_settings.js` carries a `BND_*_DEFAULTS` literal per kit, mirroring `presets.py`.
+Four had drifted — `icon_style` since before this item, and `crumb_style`,
+`workspace_style`, `status_clock` when the defaults above were chosen — so the per-option
+`↺` wrote a value the site does not ship, on the one control whose whole promise is
+putting a field back. Resets now read the served shipped map first, and a new build
+guard compares all twenty maps against `presets.py`.
+
+Also fixed, all found by the review pass rather than by a test: a bar carried **two
+absolutely-centred boxes**, so a bell placed at a bar's centre rendered underneath the
+search field; **"Side Pane Start" meant two different positions** once the head split,
+with placed tenants above the place row and the quick links below it; the foot card
+**overflowed itself by one pixel at the 200px stop**; the icon-only density segment
+**missed WCAG 2.5.8 on the inline axis**, because the coarse-pointer floor only ever
+grew the block one; `--bnd-sb-tile` **did not step back up** in the comfortable block;
+and `tools/fingerprint.mjs` still **cleared the cache before committing** — the named
+trap, 26 windows per capture.
+
+### Added — three guards, and a matrix
+
+- **The switch matrix**: every layout × every container switch × every placement slot,
+  driven through the settings form's own seams, asserting per cell that a route to
+  identity survives, that the layout invariants hold, and that no console error fired.
+  Written before the catalogue it holds to account. Its first draft walked **nothing** —
+  `slots_for` takes a component key and was handed field names, so 165 of 180 tenant
+  cells silently stopped running while it printed `0 finding(s)` and passed; an
+  anti-vacuity assertion now refuses an empty vocabulary.
+- **`check_layout_catalogue`**: every row's tenants land in containers it switches on;
+  an unrecognised field is the loudest case, not a skip; and `"Off"` is checked against
+  the pane, because every native it releases to lives there — a row with no pane
+  promising the stock account row is a desk with no route to Log Out.
+- **`check_layout_lineage`**: nothing migrates a site, so every retired row must derive
+  its successor or `""` — never a stranger.
+- **`assertDefaultMirrors`**: the twenty client default maps against `presets.py`. It
+  shipped with the bug it exists to prevent — a one-line map made its regex swallow the
+  next map whole — found by sabotage, not by reading.
+
+**A cost worth naming:** the new Arabic default is **166 KB** against IBM Plex's 87,
+fetched on every desk (Arabic or not — measured in item 7 and still true). One variable
+file covers 100–900, so the static pair's two round trips become one. No payload bucket
+measures fonts; the number is now written beside the faces, and a tenant who wants the
+old cost picks IBM Plex in Theme Settings.
 ## [Unreleased] — ZATCA Phase-1 printing (item 41)
 
 **Re-merged from `studio-zatca` on 2026-09-02, where it had shipped inside
