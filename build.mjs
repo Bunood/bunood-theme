@@ -1406,26 +1406,135 @@ function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
  * edge names our own CSS consumes.
  */
 /**
- * Band-order guard (item 40, 8c) — the band's CSS `order` values are the
- * registry's tenant order with the account moved last (the corner pin is a
- * design decision, recorded here as the ONE allowed transform). Without
+ * Band-order guard (item 40, 8c; re-pinned in item 42, slice 3) — the band's
+ * CSS `order` values are the registry's tenant order with TWO pins, both
+ * design decisions recorded here as the only allowed transforms: the account
+ * leads (it is the tile) and the bell is pinned to the inline end. Without
  * this the SCSS is a second copy of the registry sequence, which is the
- * same-fact-twice trap wearing a stylesheet.
+ * same-fact-twice trap wearing a stylesheet. Read from the EXPANDED band rule
+ * only: the rail rule after it re-orders the same two cells on purpose (bell
+ * above, avatar below), and folding both blocks into one sort reads a column
+ * as a contradiction.
  */
+/**
+ * Default mirrors (item 42) — `theme_settings.js`'s twenty `BND_*_DEFAULTS` maps are
+ * hand copies of `presets.py`'s, and a copy nothing checks is a copy that drifts.
+ *
+ * IT HAD ALREADY DRIFTED THREE WAYS when this was written: `icon_style` read
+ * "Colored Chips" against a shipped "Filled Color" (from before this item), and
+ * `crumb_style` / `workspace_style` moved when the defaults were re-chosen. Every one
+ * of them made a per-option reset chip write a value the site does not ship — the
+ * `↺` control whose whole promise is putting a field back where it started.
+ *
+ * Compares by FIELDNAME across both files rather than map to map: the JS groups its
+ * fields by picker and Python groups them by kit, and the two groupings are free to
+ * disagree without either being wrong. A field the JS carries and Python does not is
+ * reported too — that is a field with no shipped value at all.
+ *
+ * @param {string} jsSrc - theme_settings.js text
+ * @param {string} presetsSrc - presets.py text
+ */
+function assertDefaultMirrors(jsSrc, presetsSrc) {
+	const py = new Map();
+	for (const m of presetsSrc.matchAll(/^ {4}"([a-z_0-9]+)":\s*("[^"]*"|\d+),/gm)) {
+		if (!py.has(m[1])) py.set(m[1], m[2]);
+	}
+	const offenders = [];
+	let read = 0;
+	// EVERY DECLARED MAP IS READ, and the count is checked rather than assumed. The
+	// first draft matched bodies with a non-greedy `[\s\S]*?` up to a `};` on its own
+	// line -- and `BND_CHART_DEFAULTS` is written on ONE line, so its match ran on and
+	// swallowed BND_REPORT_DEFAULTS whole: nineteen of twenty maps compared, the chart
+	// map's own field never read at all, and the guard said nothing. Worse, a drift in
+	// the swallowed map was reported against the WRONG map. That is this repo's "a
+	// helper that guesses at an unrecognised input" trap, inside the guard written to
+	// stop a different one. So: slice each body from its own brace to the first `};`,
+	// refuse to cross the next declaration, and throw when a body cannot be found.
+	const declared = [...jsSrc.matchAll(/const (BND_[A-Z_]+_DEFAULTS) = \{/g)];
+	for (let i = 0; i < declared.length; i += 1) {
+		const name = declared[i][1];
+		const from = declared[i].index + declared[i][0].length;
+		const limit = i + 1 < declared.length ? declared[i + 1].index : jsSrc.length;
+		const close = jsSrc.indexOf("};", from);
+		if (close === -1 || close >= limit) {
+			throw new Error(
+				`Default-mirror guard: cannot find the end of ${name}. Fix the parser rather than ` +
+					"working around it -- an unread map is an unchecked copy."
+			);
+		}
+		read += 1;
+		for (const row of jsSrc.slice(from, close).matchAll(/([a-z_0-9]+):\s*("[^"]*"|\d+)/g)) {
+			const want = py.get(row[1]);
+			if (want === undefined) continue;
+			if (want !== row[2]) offenders.push(`${name}.${row[1]}: js ${row[2]} vs presets.py ${want}`);
+		}
+	}
+	// A guard that reads no maps passes everything.
+	if (read < 15) {
+		throw new Error(
+			`Default-mirror guard: only ${read} maps read -- the declaration pattern has stopped ` +
+				"matching. Fix the parser, not the count."
+		);
+	}
+	// AND EVERY KIT THAT HAS ONE HALF HAS THE OTHER. A floor cannot notice one map of
+	// twenty going missing -- renaming BND_CRUMB_DEFAULTS leaves nineteen, which clears
+	// any floor worth setting. The pairing does notice: a kit with a BND_<X>_FIELDS
+	// mirror and no BND_<X>_DEFAULTS has reset chips with nothing to reset to.
+	//
+	// The two standing exceptions are real and named rather than tolerated: SIDEBAR's
+	// defaults are the server's `_SIDEBAR_LOOKS` catalogue (there is no client literal
+	// to drift), and MOBILE's three fields are Checks whose reset is the toggle itself.
+	const PAIRLESS = new Set(["SIDEBAR", "MOBILE"]);
+	const haveDefaults = new Set(declared.map((d) => d[1].slice(4, -9)));
+	const unpaired = [...jsSrc.matchAll(/const BND_([A-Z_]+)_FIELDS = /g)]
+		.map((m) => m[1])
+		.filter((kit) => !PAIRLESS.has(kit) && !haveDefaults.has(kit));
+	if (unpaired.length) {
+		throw new Error(
+			"Default-mirror guard: these kits have a BND_<X>_FIELDS mirror and no readable\n" +
+				`BND_<X>_DEFAULTS map, so their reset chips have nothing to reset to: ${unpaired.join(", ")}.\n` +
+				"Either the map was renamed (fix the name) or the kit genuinely has none (add it\n" +
+				"to PAIRLESS with the reason, the way SIDEBAR and MOBILE are)."
+		);
+	}
+	if (offenders.length) {
+		throw new Error(
+			"Default-mirror guard: theme_settings.js disagrees with presets.py about the shipped\n" +
+				"default, so a reset chip writes a value the site does not ship:\n  " +
+				offenders.join("\n  ") +
+				"\n\nThe Python side is the canon. Fix the JS literal."
+		);
+	}
+}
+
 function assertBandOrder(registrySrc, sidebarScss) {
 	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
 	const members = ["bell", "user", "home", "apps"];
-	const expected = regParts.filter((t) => members.includes(t) && t !== "user").concat(["user"]);
+	const expected = ["user"].concat(regParts.filter((t) => members.includes(t) && t !== "user" && t !== "bell"), ["bell"]);
+	const railAt = sidebarScss.indexOf("[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band");
+	const expanded = railAt === -1 ? sidebarScss : sidebarScss.slice(0, railAt);
 	const got = [];
-	for (const m of sidebarScss.matchAll(/&\[data-bnd-part="([a-z]+)"\]\s*\{[^}]*?order:\s*(\d+)/g)) {
+	for (const m of expanded.matchAll(/&\[data-bnd-part="([a-z]+)"\]\s*\{[^}]*?order:\s*(\d+)/g)) {
 		got.push([m[1], Number(m[2])]);
 	}
 	const inBand = got.filter(([t]) => members.includes(t));
+	// TWO CELLS CANNOT SHARE AN ORDER VALUE. The sort below is stable, so a
+	// stylesheet that gave two parts the same `order` would land them in source
+	// order and could compare equal to the registry by luck -- the arrangement
+	// would then be decided by DOM order, which is mount order, which is the
+	// thing this guard exists to stop deciding anything.
+	const dupes = inBand.map(([, o]) => o).filter((o, i, a) => a.indexOf(o) !== i);
+	if (dupes.length) {
+		throw new Error(
+			`Band-order guard: order value ${dupes[0]} is used by more than one cell ` +
+				"— the band's arrangement would fall back to DOM order."
+		);
+	}
 	const sorted = inBand.slice().sort((a, b) => a[1] - b[1]).map(([t]) => t);
 	if (sorted.join(",") !== expected.join(",")) {
 		throw new Error(
 			`Band-order guard: the band CSS orders tenants as [${sorted.join(", ")}] but the ` +
-				`registry (with the account pinned last) says [${expected.join(", ")}]. The SCSS ` +
+				`registry (account first, bell last) says [${expected.join(", ")}]. The SCSS ` +
 				"order values are derived, not chosen — fix the stylesheet or the registry, not both."
 		);
 	}
@@ -1874,6 +1983,13 @@ async function main() {
 	);
 	assertLogicalPlacementArgs(
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+	);
+	assertDefaultMirrors(
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		),
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8")
 	);
 	assertBandOrder(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),

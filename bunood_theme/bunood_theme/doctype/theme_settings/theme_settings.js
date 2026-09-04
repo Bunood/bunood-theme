@@ -1214,6 +1214,25 @@ const BND_SHELL_GROUPS = [
 let bnd_shipped = null;
 
 /**
+ * A field's SHIPPED default: the served fact first, the kit's literal only until it
+ * arrives.
+ *
+ * The `BND_*_DEFAULTS` maps below are twenty hand copies of `presets.py`, and three of
+ * them had drifted by the time anybody looked — `icon_style` said "Colored Chips" while
+ * the site shipped "Filled Color", and two more moved when this item re-chose the
+ * defaults. Each one made a reset chip write a value the site does not ship, silently,
+ * on a control whose entire promise is "put this back".
+ *
+ * The literals stay because a reset can be clicked before the xcall resolves and a chip
+ * that does nothing is worse than one that is briefly a version behind; `build.mjs`'s
+ * assertDefaultMirrors is what stops them drifting again.
+ */
+function bnd_default_of(field, fallback) {
+	const served = bnd_shipped && bnd_shipped[field];
+	return served === undefined || served === null || served === "" ? fallback : served;
+}
+
+/**
  * The layout catalogue and the container-key -> fieldname map, from the same
  * request as `bnd_shipped`. `null` until it arrives and `null` forever if the
  * call fails, in which case picking a layout writes no container values —
@@ -2853,7 +2872,7 @@ const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
 const BND_ICON_DEFAULTS = {
-	icon_style: "Colored Chips",
+	icon_style: "Filled Color",
 	icon_weight: "1.5",
 	icon_source: "Smart",
 	icon_rail_button: "Chevron",
@@ -3004,7 +3023,7 @@ function bnd_render_icons_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_icon_set(frm, f, BND_ICON_DEFAULTS[f]);
+		bnd_icon_set(frm, f, bnd_default_of(f, BND_ICON_DEFAULTS[f]));
 	});
 }
 
@@ -3049,7 +3068,7 @@ const BND_CRUMB_FIELDS = [
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.CRUMB_DEFAULTS. */
 const BND_CRUMB_DEFAULTS = {
-	crumb_style: "Quiet Trail",
+	crumb_style: "Crumb Pills",
 	crumb_separator: "Chevron",
 	crumb_hover: "Soft Pill",
 	crumb_copy_link: 1,
@@ -3251,7 +3270,7 @@ function bnd_render_crumbs_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_crumb_set(frm, f, BND_CRUMB_DEFAULTS[f]);
+		bnd_crumb_set(frm, f, bnd_default_of(f, BND_CRUMB_DEFAULTS[f]));
 	});
 }
 
@@ -3681,14 +3700,14 @@ function bnd_render_inbox_picker(frm, host) {
 	});
 	$host.find(".bnd-ibp-reset-all").on("click", function (e) {
 		e.stopPropagation();
-		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, BND_INBOX_DEFAULTS[t.field]);
+		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, bnd_default_of(t.field, BND_INBOX_DEFAULTS[t.field]));
 		bnd_inbox_preview(frm);
 		bnd_render_inbox_picker(frm);
 	});
 	$host.find(".bnd-ibp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_inbox_set(frm, f, BND_INBOX_DEFAULTS[f]);
+		bnd_inbox_set(frm, f, bnd_default_of(f, BND_INBOX_DEFAULTS[f]));
 	});
 }
 
@@ -3865,7 +3884,7 @@ function bnd_render_list_picker(frm, host) {
 			field: g.field,
 			body: P.options(
 				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: g.field, value: frm.doc[g.field] || BND_LIST_DEFAULTS[g.field] }
+				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_LIST_DEFAULTS[g.field]) }
 			),
 		})
 	).join("");
@@ -3904,7 +3923,7 @@ function bnd_render_list_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_list_set(frm, f, BND_LIST_DEFAULTS[f]);
+		bnd_list_set(frm, f, bnd_default_of(f, BND_LIST_DEFAULTS[f]));
 	});
 }
 
@@ -4087,7 +4106,7 @@ function bnd_render_form_picker(frm, host) {
 			field: g.field,
 			body: P.options(
 				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: g.field, value: frm.doc[g.field] || BND_FORM_DEFAULTS[g.field] }
+				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_FORM_DEFAULTS[g.field]) }
 			),
 		})
 	).join("");
@@ -4126,7 +4145,7 @@ function bnd_render_form_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_form_set(frm, f, BND_FORM_DEFAULTS[f]);
+		bnd_form_set(frm, f, bnd_default_of(f, BND_FORM_DEFAULTS[f]));
 	});
 }
 
@@ -4151,7 +4170,7 @@ const BND_WORKSPACE_FIELDS = ["workspace_style", "workspace_metric", "workspace_
 
 /** Client mirror of presets.WORKSPACE_DEFAULTS — keep in sync. */
 const BND_WORKSPACE_DEFAULTS = {
-	workspace_style: "Hairline Grid",
+	workspace_style: "Soft Tiles",
 	workspace_metric: "Display",
 	workspace_rows: "Edge Rail",
 	workspace_menu_reveal: 1,
@@ -4301,7 +4320,7 @@ function bnd_render_workspace_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_WORKSPACE_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_WORKSPACE_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -4333,7 +4352,7 @@ function bnd_render_workspace_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_workspace_set(frm, f, BND_WORKSPACE_DEFAULTS[f]);
+		bnd_workspace_set(frm, f, bnd_default_of(f, BND_WORKSPACE_DEFAULTS[f]));
 	});
 }
 
@@ -4576,7 +4595,7 @@ function bnd_render_report_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_REPORT_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_REPORT_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -4608,7 +4627,7 @@ function bnd_render_report_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_report_set(frm, f, BND_REPORT_DEFAULTS[f]);
+		bnd_report_set(frm, f, bnd_default_of(f, BND_REPORT_DEFAULTS[f]));
 	});
 }
 
@@ -4747,7 +4766,7 @@ function bnd_render_views_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_VIEWS_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_VIEWS_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -4779,7 +4798,7 @@ function bnd_render_views_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_views_set(frm, f, BND_VIEWS_DEFAULTS[f]);
+		bnd_views_set(frm, f, bnd_default_of(f, BND_VIEWS_DEFAULTS[f]));
 	});
 }
 
@@ -4998,7 +5017,7 @@ function bnd_render_overlay_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_OVERLAY_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_OVERLAY_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -5023,7 +5042,7 @@ function bnd_render_overlay_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_overlay_set(frm, f, BND_OVERLAY_DEFAULTS[f]);
+		bnd_overlay_set(frm, f, bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]));
 	});
 }
 
@@ -5035,7 +5054,7 @@ function bnd_overlay_preview(frm) {
 	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
 	// had just set — opening the settings form would strip the style. The two
 	// call sites in the renderer above already fall back; this one did not.
-	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || BND_OVERLAY_DEFAULTS[f];
+	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]);
 	window.bunood_theme.overlay_apply(values);
 }
 
@@ -5146,7 +5165,7 @@ function bnd_render_empty_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_EMPTY_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_EMPTY_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -5171,7 +5190,7 @@ function bnd_render_empty_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_empty_set(frm, f, BND_EMPTY_DEFAULTS[f]);
+		bnd_empty_set(frm, f, bnd_default_of(f, BND_EMPTY_DEFAULTS[f]));
 	});
 }
 
@@ -5183,7 +5202,7 @@ function bnd_empty_preview(frm) {
 	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
 	// the anchor the boot payload had just set — opening the settings form would
 	// strip the style.
-	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || BND_EMPTY_DEFAULTS[f];
+	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_EMPTY_DEFAULTS[f]);
 	window.bunood_theme.empty_apply(values);
 }
 
@@ -5268,7 +5287,7 @@ function bnd_skeleton_preview(frm) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || BND_SKELETON_DEFAULTS[f];
+	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_SKELETON_DEFAULTS[f]);
 	window.bunood_theme.skeleton_apply(values);
 }
 
@@ -5374,7 +5393,7 @@ function bnd_render_filters_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_FILTERS_DEFAULTS[grp.field] }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_FILTERS_DEFAULTS[grp.field]) }),
 		})
 	).join("");
 
@@ -5399,7 +5418,7 @@ function bnd_render_filters_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_filters_set(frm, f, BND_FILTERS_DEFAULTS[f]);
+		bnd_filters_set(frm, f, bnd_default_of(f, BND_FILTERS_DEFAULTS[f]));
 	});
 }
 
@@ -5410,7 +5429,7 @@ function bnd_filters_preview(frm) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || BND_FILTERS_DEFAULTS[f];
+	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_FILTERS_DEFAULTS[f]);
 	window.bunood_theme.filters_apply(values);
 }
 
@@ -5547,7 +5566,7 @@ function bnd_render_login_picker(frm, host) {
 							? __("Original leaves the sign-in page stock — this does not apply.")
 							: "",
 				})),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_LOGIN_DEFAULTS[grp.field] }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_LOGIN_DEFAULTS[grp.field]) }
 			),
 		})
 	).join("");
@@ -5578,7 +5597,7 @@ function bnd_render_login_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_login_set(frm, f, BND_LOGIN_DEFAULTS[f]);
+		bnd_login_set(frm, f, bnd_default_of(f, BND_LOGIN_DEFAULTS[f]));
 	});
 }
 
@@ -5718,7 +5737,7 @@ function bnd_render_web_picker(frm, host) {
 			field: grp.field,
 			body: P.options(
 				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_WEB_DEFAULTS[grp.field] }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_WEB_DEFAULTS[grp.field]) }
 			),
 		})
 	).join("");
@@ -5762,7 +5781,7 @@ function bnd_render_web_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_web_set(frm, f, BND_WEB_DEFAULTS[f]);
+		bnd_web_set(frm, f, bnd_default_of(f, BND_WEB_DEFAULTS[f]));
 	});
 }
 
@@ -5909,7 +5928,7 @@ function bnd_render_email_picker(frm, host) {
 			field: grp.field,
 			body: P.options(
 				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_EMAIL_DEFAULTS[grp.field] }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_EMAIL_DEFAULTS[grp.field]) }
 			),
 		})
 	).join("");
@@ -5966,7 +5985,7 @@ function bnd_render_email_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_email_set(frm, f, BND_EMAIL_DEFAULTS[f]);
+		bnd_email_set(frm, f, bnd_default_of(f, BND_EMAIL_DEFAULTS[f]));
 	});
 
 	bnd_email_preview(frm, $host);
@@ -6195,7 +6214,7 @@ function bnd_print_match_preset(frm) {
 	if (!bnd_print_presets_cache) return null;
 	const { axes, presets } = bnd_print_presets_cache;
 	for (const [name, comp] of Object.entries(presets)) {
-		if (axes.every((f) => (frm.doc[f] || BND_PRINT_DEFAULTS[f]) === comp[f])) return name;
+		if (axes.every((f) => (frm.doc[f] || bnd_default_of(f, BND_PRINT_DEFAULTS[f])) === comp[f])) return name;
 	}
 	return "Custom";
 }
@@ -6262,7 +6281,7 @@ function bnd_render_print_picker(frm, host) {
 					name: v === "Open" ? __("Open rows") : __(v),
 					reason: "",
 				})),
-				{ field: grp.field, value: frm.doc[grp.field] || BND_PRINT_DEFAULTS[grp.field] }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_PRINT_DEFAULTS[grp.field]) }
 			),
 		})
 	).join("");
@@ -6338,7 +6357,7 @@ function bnd_render_print_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_print_set(frm, f, BND_PRINT_DEFAULTS[f]);
+		bnd_print_set(frm, f, bnd_default_of(f, BND_PRINT_DEFAULTS[f]));
 	});
 	$host.find(".bnd-prp-chip").on("click", function () {
 		const k = this.getAttribute("data-k");
@@ -6415,7 +6434,7 @@ const BND_STATUS_FIELDS = [
 
 /** Shipped defaults, for the reset chips. */
 const BND_STATUS_DEFAULTS = {
-	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "24 Hour",
+	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "Off",
 	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
 	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
 	status_freshness: 1, status_escalate: 0,
@@ -7221,7 +7240,7 @@ function bnd_render_status_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_status_set(frm, f, BND_STATUS_DEFAULTS[f]);
+		bnd_status_set(frm, f, bnd_default_of(f, BND_STATUS_DEFAULTS[f]));
 	});
 }
 
