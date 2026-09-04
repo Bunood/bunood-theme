@@ -362,7 +362,16 @@ function bnd_region_blocker(frm, region) {
 	// side pane coexist and the only thing that removes the pane is its own
 	// setting.
 	if (region === "sidepane") {
-		return parseInt(frm.doc.sidebar_enabled ?? 1, 10) ? "" : __("the side pane is switched off");
+		if (!parseInt(frm.doc.sidebar_enabled ?? 1, 10)) return __("the side pane is switched off");
+		// ...AND THE PANE'S OWN STATE (item 42). Hidden removes the pane without
+		// switching the container off, so a slot inside it is offered on a desk
+		// that shows no pane — the runtime falls back and the picture lies. Rail
+		// is NOT a blocker: the pane is still there, still expands, and a tenant
+		// in it is reachable the moment it does.
+		if (bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden") {
+			return __("the side pane is hidden");
+		}
+		return "";
 	}
 	if (region === "bottombar") {
 		// Was: "Bottom Bar layout always has one, otherwise ask status_style".
@@ -2285,6 +2294,11 @@ function bnd_sb_pane(bg, extra) {
 const BND_SB_GROUPS = [
 	{
 		field: "sidebar_placement",
+		// Nothing to attach or float when there is no pane (item 42).
+		disabled: (frm) =>
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+				? __("The pane is hidden")
+				: "",
 		zone: "placement",
 		title: () => __("Pane placement"),
 		desc: () => __("How the sidebar sits against the page."),
@@ -2355,13 +2369,34 @@ const BND_SB_GROUPS = [
 		],
 	},
 	{
-		field: "sidebar_menu_rail",
+		field: "sidebar_pane_state",
 		zone: "rail",
-		title: () => __("Menu rail"),
-		desc: () => __("How your sidebar rests. Separate from the apps rail below."),
+		title: () => __("Side pane"),
+		desc: () => __("How much of the pane you keep. Hidden leaves the brand pill and the start button."),
 		options: [
-			{ value: "Always Expanded", name: () => __("Always expanded"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
+			{ value: "Open", name: () => __("Open"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
 			{ value: "Rail", name: () => __("Rail"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
+			{
+				value: "Hidden",
+				name: () => __("Hidden"),
+				thumb: '<span style="position:absolute;inset-block-start:5px;inset-inline-start:5px;inline-size:22px;block-size:8px;border-radius:4px;background:currentColor;opacity:.22"></span>',
+				// THE ONE OPTION THAT DEPENDS ON ANOTHER PICKER. Hiding the pane takes
+				// every stock affordance with it, so a desk whose bell and profile live
+				// IN the pane has no route to notifications or Log Out the moment this
+				// is chosen — and `guard_critical_reach` gives the pane straight back,
+				// which reads to a person as a control that does nothing. Saying why is
+				// the honest version, and it names the fix rather than the rule.
+				disabled: (frm) => {
+					const inPane = (f) => /^Side Pane/.test(String(frm.doc[f] || ""));
+					const stuck = ["inbox_placement", "user_placement"].filter(inPane);
+					if (!stuck.length) return "";
+					return stuck.length === 2
+						? __("Notifications and your profile are in the pane — place them in a bar first")
+						: stuck[0] === "inbox_placement"
+							? __("Notifications are in the pane — place them in a bar first")
+							: __("Your profile is in the pane — place it in a bar first");
+				},
+			},
 		],
 	},
 	{
@@ -2430,9 +2465,11 @@ function bnd_render_sidebar_picker(frm, host) {
  * "Rail" now.
  */
 function bnd_sb_norm(field, value) {
-	if (field === "sidebar_menu_rail" && (value === "Hover-Expand" || value === "Hover + Pin")) {
-		return "Rail";
-	}
+	if (field !== "sidebar_pane_state") return String(value ?? "");
+	// The pre-split rail labels and the pre-item-42 mode name. A site whose boot
+	// was cached before the migration ran still highlights the right card.
+	if (value === "Hover-Expand" || value === "Hover + Pin") return "Rail";
+	if (value === "Always Expanded") return "Open";
 	return String(value ?? "");
 }
 
@@ -2590,7 +2627,7 @@ function bnd_sb_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.sb_apply) return;
 	const values = {};
 	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
-	values.sidebar_menu_rail = bnd_sb_norm("sidebar_menu_rail", values.sidebar_menu_rail);
+	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 	window.bunood_theme.sb_apply(values);
 }
 
@@ -2852,7 +2889,7 @@ function bnd_render_theme_picker(frm, host) {
 const BND_SIDEBAR_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
-	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
+	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
 	"sidebar_filter",
 ];

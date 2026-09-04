@@ -454,12 +454,13 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_menu_rail",
+   "fieldname": "sidebar_pane_state",
    "fieldtype": "Select",
-   "label": "Menu Rail",
-   "options": "Always Expanded\nRail",
+   "label": "Side Pane State",
+   "options": "Open\nRail\nHidden",
+   "default": "Open",
    "hidden": 1,
-   "description": "Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side."
+   "description": "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
   },
   {
    "fieldname": "sidebar_rail_trigger",

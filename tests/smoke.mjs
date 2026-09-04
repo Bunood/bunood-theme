@@ -1340,7 +1340,7 @@ const SLUG = {
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
-	sidebar_menu_rail: { "Always Expanded": "expanded", Rail: "rail" },
+	sidebar_pane_state: { "Open": "open", Rail: "rail", Hidden: "hidden" },
 };
 
 const ATTR_OF = {
@@ -1350,7 +1350,7 @@ const ATTR_OF = {
 	sidebar_active_style: "data-bnd-sb-active",
 	sidebar_section_style: "data-bnd-sb-sections",
 	sidebar_hue_wash: "data-bnd-sb-wash",
-	sidebar_menu_rail: "data-bnd-sb-menurail",
+	sidebar_pane_state: "data-bnd-sb-panestate",
 };
 
 // All Theme Settings fields the suite may mutate — snapshotted for restore.
@@ -1392,7 +1392,7 @@ const MUTABLE_FIELDS = [
 	"email_style", "email_header", "email_action", "email_theme",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
-	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
+	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
 	"sidebar_rail_button",
 	"sidebar_pane_width",
 	"sidebar_badges", "sidebar_filter",
@@ -1449,8 +1449,23 @@ const MUTABLE_FIELDS = [
  *   agree by good intentions: the container test below asserts these values
  *   against SHIPPED and fails the moment they diverge.
  */
+//
+// FOR STATES THAT NAME NO LAYOUT, and only those. Spreading this beside a
+// `desk_layout` was safe while the shipped row was Top Bar's and became a
+// contradiction the moment item 42 made it Unified Side Pane's: `setSettings`
+// applies the layout preset FIRST and explicit values second, so the spread
+// silently switched the top bar off on forty-three desks that had just named a
+// layout which mounts one. Two checks failed and the rest quietly drove a shape
+// their own titles denied -- "a state no gesture could produce", forty-three
+// times. The preset writes all five containers, so beside a layout this spread
+// was never adding anything; it is gone from those sites.
 const CHROME_DEFAULTS = {
-	topbar_enabled: 1,
+	// The SHIPPED layout's row (item 42: Unified Side Pane), not Top Bar's. The
+	// check "the layout preset writes the containers" compares these against
+	// setup.SHIPPED for exactly this reason -- module scope has no server to ask,
+	// so this hand copy is the one that has to be corrected by hand when the
+	// shipped layout moves.
+	topbar_enabled: 0,
 	pagehead_enabled: 0,
 	dock_enabled: 0,
 	sidebar_enabled: 1,
@@ -2450,7 +2465,6 @@ async function main() {
 				// never what is being measured here — the tests either side of
 				// this loop are the ones that measure fallback.
 				setSettings({
-					...CHROME_DEFAULTS,
 					desk_layout: "Top Taskbar",
 					topbar_enabled: 1,
 					bottombar_enabled: 1,
@@ -2581,7 +2595,7 @@ async function main() {
 			// longer "the chrome survives" but the rule that replaced it: a
 			// control may be removed only while something else can still reach
 			// the same function.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Taskbar", bottombar_enabled: 0 });
+			setSettings({ desk_layout: "Taskbar", bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expectEq(await q(".bnd-statusbar"), false, "the bar is really gone");
 			const reachable = await page.evaluate(() => {
@@ -2610,7 +2624,7 @@ async function main() {
 			// Watched failing before: a text run reading "Density: Auto", second
 			// from the leading edge.
 			await withPersonal("Administrator", { bnd_density: "" }, async () => {
-				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", status_style: "Always On", status_segments_density: 1 });
+				setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", status_segments_density: 1 });
 				await goDesk("/desk/item", ".bnd-statusbar", 3000);
 				const m = await page.evaluate(() => {
 					const bar = document.querySelector(".bnd-statusbar");
@@ -2656,7 +2670,6 @@ async function main() {
 			// and what lands there is inbox_placement / user_placement — which
 			// this test inherited from whatever ran before it.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				search_placement: "Top Bar Center",
@@ -3105,7 +3118,7 @@ async function main() {
 				// preset's own claim.
 				expect(await q(".bnd-sb-head .bnd-sb-head-name"), "the place row");
 				expect(await q(".bnd-sb-head .bnd-sb-head-chev"), "a chevron that is actually built");
-				if (values.sidebar_menu_rail === "Rail") {
+				if (values.sidebar_pane_state === "Rail") {
 					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
 					expectEq(
 						await page.evaluate(() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width)),
@@ -3454,7 +3467,7 @@ async function main() {
 			// Driven from the CONTROL, not from `setSettings`: the whole failure
 			// lives between the click and the desk, which a server-side write
 			// jumps straight over. That is why the suite was green throughout.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar" });
+			setSettings({ desk_layout: "Top Taskbar" });
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
 			expect(await q(".bnd-topbar"), "precondition: the desk has a top bar");
 
@@ -3789,18 +3802,18 @@ async function main() {
 			// the dishonest-picker defect, arriving in a test. What still varies
 			// the head's neighbourhood is where the pane sits and whether it is a
 			// rail, so those are the axes.
-			const FIELDS = ["sidebar_enabled", "sidebar_menu_rail", "sidebar_placement"];
+			const FIELDS = ["sidebar_enabled", "sidebar_pane_state", "sidebar_placement"];
 			const before = getSettings(FIELDS);
 			try {
 				const CASES = [
-					{ label: "attached", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Attached" },
-					{ label: "floating", sidebar_menu_rail: "Always Expanded", sidebar_placement: "Floating" },
-					{ label: "rail", sidebar_menu_rail: "Rail", sidebar_placement: "Attached" },
+					{ label: "attached", sidebar_pane_state: "Open", sidebar_placement: "Attached" },
+					{ label: "floating", sidebar_pane_state: "Open", sidebar_placement: "Floating" },
+					{ label: "rail", sidebar_pane_state: "Rail", sidebar_placement: "Attached" },
 				];
 				for (const c of CASES) {
 					setSettings({
 						sidebar_enabled: 1,
-						sidebar_menu_rail: c.sidebar_menu_rail,
+						sidebar_pane_state: c.sidebar_pane_state,
 						sidebar_placement: c.sidebar_placement,
 					});
 					await goDesk("/app/selling", "body", 3000);
@@ -3842,7 +3855,10 @@ async function main() {
 					// nothing about the repair.
 					expect(r.nativeInDom, `${c.label}: Frappe's own header is present to be hidden`);
 					expectEq(r.rows, 1, `${c.label} (${r.mode}): exactly one head is visible`);
-					expectEq(r.placeVisible, c.label !== "rail", `${c.label}: the place row shows when expanded and hides at rail rest`);
+					// The place row survives the rail: it carries the workspace cascade,
+					// the pins and collapse-all, and the first cut of the rail hid it and
+					// took all three away. Only its NAME goes.
+					expectEq(r.placeVisible, true, `${c.label}: the place row (and its menu) is reachable`);
 					expect(r.oursVisible, `${c.label}: and the one that renders is ours`);
 				}
 			} finally {
@@ -3989,10 +4005,10 @@ async function main() {
 			// FOCUSABILITY rather than walking Tab: with `visibility: hidden` an
 			// element refuses programmatic focus outright, before any focusin
 			// can fire and dress the wound.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1,					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Hover",
+					sidebar_enabled: 1,					sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover",
 				});
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
@@ -4027,9 +4043,9 @@ async function main() {
 			// Set on the dock and (until it retired) the apps rail — and never on
 			// the pane's own active item, the one place a person actually is. To
 			// AT the highlighted row was indistinguishable from its neighbours.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar"),
@@ -4059,9 +4075,9 @@ async function main() {
 			// not a preference. Short viewport = overflow = fade; tall viewport =
 			// no overflow = no fade. And the fade must never hide the top edge a
 			// focus ring needs while the list is scrolled to the top.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				const read = async (h) => {
 					await page.setViewportSize({ width: 1440, height: h });
 					await goDesk("/app/selling", "body", 3000);
@@ -4406,7 +4422,7 @@ async function main() {
 			// because a failed restore is permanent damage to the operator's
 			// site, and the write must be a real doc.save() so the per-site
 			// brand sheet regenerates — which is exactly the sheet under test.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			const WORKING = [
 				"--bnd-sb-bg", "--bnd-sb-ink", "--bnd-sb-ink-muted", "--bnd-sb-line",
 				"--bnd-sb-chip-bg", "--bnd-sb-chip-ink", "--bnd-sb-card-base",
@@ -4421,7 +4437,7 @@ async function main() {
 				]) {
 					await withBranding(seed, async () => {
 						{
-							setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+							setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 							await goDesk("/app/selling", "body", 3000);
 							await page.waitForFunction(() => !!document.querySelector(".body-sidebar-container"), null, { timeout: 20000 });
 							// RENDERED COLOUR, NOT TOKEN TEXT. getPropertyValue hands
@@ -4568,7 +4584,7 @@ async function main() {
 			// degraded pole is the DEFAULT here and the translucent one has to be
 			// emulated through CDP -- the trap that hid this kit's degradation for an
 			// entire item. Playwright carries no flag for this media feature.
-			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_pane_state"]);
 			try {
 				for (const rail of ["Always Expanded", "Rail"]) {
 					// The rail paints on `.body-sidebar`; expanded paints on the
@@ -4578,7 +4594,7 @@ async function main() {
 						: ".body-sidebar-container";
 					const paint = async (material) => {
 						setSettings({
-							sidebar_enabled: 1, sidebar_menu_rail: rail, sidebar_material: material,
+							sidebar_enabled: 1, sidebar_pane_state: rail, sidebar_material: material,
 						});
 						await goDesk("/app/selling", "body", 3000);
 						await page.waitForFunction(
@@ -4645,7 +4661,7 @@ async function main() {
 			// Every earlier width check read `.body-sidebar-container`, which was
 			// always right — this repo's own "selecting by class measures the
 			// wrong element" trap, from the inside. Measure BOTH, always.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_pane_width"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_pane_width"]);
 			try {
 				benchPy(
 					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
@@ -4657,7 +4673,7 @@ print("ok")
 				);
 				for (const [stop, px] of [["1", 200], ["5", 280]]) {
 					setSettings({
-						sidebar_enabled: 1,						sidebar_menu_rail: "Always Expanded", sidebar_pane_width: stop,
+						sidebar_enabled: 1,						sidebar_pane_state: "Open", sidebar_pane_width: stop,
 					});
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
@@ -4707,7 +4723,7 @@ print("ok")
 			// same strip, so a 4px latch decides which gesture happened. Under
 			// the latch a press is Frappe's collapse, untouched; over it the
 			// pane tracks the pointer and the collapse must NOT fire.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4719,7 +4735,7 @@ print("ok")
 `);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
 					await sbEnsureExpanded();
@@ -4795,7 +4811,7 @@ print("ok")
 			// LEFT — decreasing clientX. Math that adds raw deltas reads that as
 			// shrinking, and the CSS logical-property gate gives zero protection
 			// here because this is JavaScript.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4808,7 +4824,7 @@ print("ok")
 			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(
 						() => (document.documentElement.getAttribute("dir") || document.dir) === "rtl" &&
@@ -4849,9 +4865,9 @@ print("ok")
 			// width from the SITE's stop, and sb_apply runs it on every settings
 			// picker click — so unless the personal pixel survives the re-apply,
 			// any admin sidebar click reverts a person's width until reload.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				benchPy(
 					`frappe.defaults.set_default("bnd_sb_width", "266", parent="Administrator")\n` +
 						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.clear_cache(user="Administrator")\nfrappe.db.commit()\nprint("ok")\n`
@@ -4915,7 +4931,7 @@ print("ok")
 			// the drag would stop moving while the pointer kept going. And a
 			// cancelled drag must restore the pre-drag width exactly, leaving
 			// Frappe's click-to-collapse working on the very next press.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4927,7 +4943,7 @@ print("ok")
 `);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
 					await sbEnsureExpanded();
@@ -5011,9 +5027,9 @@ print("ok")
 			// conformance claim behind a round trip is not "a different control
 			// on the same page". "Use the site's width" posts "" and the person
 			// inherits again: the escape hatch that makes personalization safe.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				benchPy(
 					`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")\n` +
 						`frappe.cache.hdel("bootinfo", "Administrator")\nfrappe.db.commit()\nprint("ok")\n`
@@ -5073,7 +5089,7 @@ print("ok")
 
 		// ── The account band (item 40, 8c) ─────────────────────────────────
 		const BAND_PLACE = {
-			sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
+			sidebar_enabled: 1, sidebar_pane_state: "Open",
 			inbox_placement: "Side Pane End", user_placement: "Side Pane End",
 			home_placement: "Side Pane End", apps_placement: "Side Pane End",
 		};
@@ -5172,7 +5188,7 @@ print("ok")
 			try {
 				clearNotifications();
 				seedNotifications();
-				setSettings(Object.assign({}, BAND_PLACE, { sidebar_menu_rail: "Rail" }));
+				setSettings(Object.assign({}, BAND_PLACE, { sidebar_pane_state: "Rail" }));
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".body-sidebar .bnd-sb-band"),
@@ -5483,9 +5499,9 @@ print("ok")
 			// released an attribute nothing ever stamped, a dead branch the plan
 			// audit named. Both directions, because "exists when on" alone would
 			// pass an attribute stamped once and never released.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const on = await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-sidepane"));
@@ -5507,9 +5523,9 @@ print("ok")
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
 			// audit found the pane's own nodes invisible to all three.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_button"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_button"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const head = await page.evaluate(() =>
@@ -5517,7 +5533,7 @@ print("ok")
 				);
 				expectEq(head, "panehead", `the place row is findable by part (${head})`);
 
-				setSettings({ sidebar_menu_rail: "Rail", sidebar_rail_button: "Edge" });
+				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_button: "Edge" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-railbtn"), null, { timeout: 20000 });
 				const btn = await page.evaluate(() =>
@@ -5539,10 +5555,10 @@ print("ok")
 			// outcome: with tenants at Side Pane End, the band precedes the
 			// bottom block, follows the list, and nothing in-flow trails the
 			// bottom block that is not the bottom block's own successor set.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "home_placement", "apps_placement"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "home_placement", "apps_placement"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded",
+					sidebar_enabled: 1, sidebar_pane_state: "Open",
 					home_placement: "Side Pane End", apps_placement: "Side Pane End",
 				});
 				await goDesk("/app/selling", "body", 3000);
@@ -5703,10 +5719,10 @@ print("ok")
 			// doctrine exists for). Both directions, then the fail-open arm:
 			// with the claim withdrawn, the native must be reachable AND must
 			// still open the pane.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_rail_trigger"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1,					sidebar_menu_rail: "Rail", sidebar_rail_trigger: "Click",
+					sidebar_enabled: 1,					sidebar_pane_state: "Rail", sidebar_rail_trigger: "Click",
 				});
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
@@ -5770,7 +5786,7 @@ print("ok")
 				}
 
 				// The other direction: Always Expanded wires no rail, claims nothing.
-				setSettings({ sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !document.documentElement.hasAttribute("data-bnd-rail"),
@@ -5791,9 +5807,9 @@ print("ok")
 			// the PLACE'S name — the same resolved workspace the head shows —
 			// and never the literal "Workspaces", which names the class of thing
 			// rather than the place you are.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-head"), null, { timeout: 20000 });
 				const m = await page.evaluate(() => {
@@ -5820,9 +5836,9 @@ print("ok")
 			// on the vendor's own drop-icon button — attributes are the one
 			// sanctioned mutation surface on Frappe's DOM. Toggling must move
 			// BOTH, or the mirror is a snapshot pretending to be a binding.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".sidebar-item-container.section-item .drop-icon"),
@@ -5868,11 +5884,11 @@ print("ok")
 			// gains ONE summed chip in the same badge form the rows use, derived
 			// from the rows' own badges (no second fetch), and expansion
 			// dissolves it back into them.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "sidebar_badges"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_badges"]);
 			let toggled = null;
 			try {
 				setSettings({
-					sidebar_enabled: 1,					sidebar_menu_rail: "Always Expanded", sidebar_badges: "Counts",
+					sidebar_enabled: 1,					sidebar_pane_state: "Open", sidebar_badges: "Counts",
 				});
 				// Badges land async and the aged shared browser can lose the
 				// fetch; STATE the premise by re-navigating once if it does —
@@ -5952,10 +5968,10 @@ print("ok")
 			// per-workspace persistence rides the vendor's existing state and no
 			// second collapse mechanism is born (the exact defect the rail's two
 			// affordances just paid for).
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
 			let foldedNames = [];
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !!document.querySelector(".bnd-sb-head") && !!document.querySelector(".section-item .drop-icon"),
@@ -6039,7 +6055,7 @@ print("ok")
 			// every other row in _layouts.scss's own-then-hide block.
 			//
 			// Watched failing before: the link visible at the foot, no token, no item.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", user_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", user_placement: "Top Bar End" });
 			await goDesk("/app/selling", ".body-sidebar", 3000);
 			await sbEnsureExpanded();
 			const m = await page.evaluate(() => {
@@ -6117,6 +6133,117 @@ print("ok")
 			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
 		});
 
+		await test("sidepane: three states — Open, Rail, Hidden — and what each keeps", async () => {
+			// ITEM 42, SLICE 8. The third state is the one the user asked for: the pane
+			// GONE, with the company's mark and name surviving as a floating pill and one
+			// button back. The claim is not just that Hidden hides -- it is that each
+			// state keeps the things that state is supposed to keep, which is where the
+			// first cut of the rail was wrong (it hid the place row and took the
+			// workspace menu with it).
+			const before = getSettings(["sidebar_pane_state", "sidebar_enabled", "inbox_placement", "user_placement"]);
+			try {
+				// HIDDEN NEEDS SOMEWHERE ELSE FOR IDENTITY TO LIVE, and that is the design
+				// rather than a quirk of this test. The shipped desk puts the bell and the
+				// account IN the pane, so hiding the pane strands them and
+				// `guard_critical_reach` correctly gives it back. Hidden is a
+				// taskbar-shaped choice, and the picker greys it with that reason when the
+				// placements make it impossible — so this drives the desk it belongs on.
+				setSettings({ desk_layout: "Top Taskbar" });
+				const want = {
+					Open:   { pane: true,  pill: false, place: true },
+					// The rail keeps the place row's CHEVRON: that row carries the workspace
+					// cascade, the pins and collapse-all, and hiding it takes all three away
+					// from anybody working in a rail.
+					Rail:   { pane: true,  pill: false, place: true },
+					Hidden: { pane: false, pill: true,  place: false },
+				};
+				for (const [state, expect_] of Object.entries(want)) {
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: state });
+					await goDesk("/app/selling", "body", 3500);
+					const r = await page.evaluate(() => {
+						const container = document.querySelector(".body-sidebar-container");
+						const vis = (sel) => {
+							const el = document.querySelector(sel);
+							if (!el) return false;
+							const cs = getComputedStyle(el);
+							return cs.display !== "none" && cs.visibility !== "hidden" && el.getClientRects().length > 0;
+						};
+						return {
+							attr: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+							pane: !!container && getComputedStyle(container).display !== "none",
+							pill: vis(".bnd-sb-pill"),
+							place: vis(".bnd-sb-head"),
+							pillName: ((document.querySelector(".bnd-sb-pill-name") || {}).textContent || "").trim(),
+							pillTile: !!document.querySelector(".bnd-sb-pill .bnd-sb-brand-mark"),
+							pillBack: !!document.querySelector(".bnd-sb-pill-open"),
+						};
+					});
+					expectEq(r.attr, state.toLowerCase(), `${state}: the attribute says so`);
+					expectEq(r.pane, expect_.pane, `${state}: the pane is ${expect_.pane ? "there" : "gone"}`);
+					expectEq(r.pill, expect_.pill, `${state}: the pill is ${expect_.pill ? "shown" : "not shown"}`);
+					expectEq(r.place, expect_.place, `${state}: the place row (and its menu) is ${expect_.place ? "reachable" : "gone"}`);
+					if (state === "Hidden") {
+						expect(r.pillTile && r.pillBack, `Hidden: the pill carries the tile and the way back (${JSON.stringify(r)})`);
+						expect(r.pillName.length > 0, "Hidden: and names the company");
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: Hidden never strands identity — the guard sees the second way to hide a pane", async () => {
+			// THE SHARPEST INVARIANT IN THE APP, and Hidden opened a hole in it: the pane
+			// is where every stock affordance lives, and `guard_critical_reach` only knew
+			// the container being switched OFF. A desk with the bell and the account
+			// placed at Side Pane End and the pane Hidden had no route to Log Out and no
+			// recovery. Two arms, because a guard that always fires is not a guard.
+			//
+			// Watched failing before the fix: `fired` false, pane still hidden.
+			const before = getSettings(["sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({
+					desk_layout: "Unified Side Pane",
+					sidebar_pane_state: "Hidden",
+					inbox_placement: "Side Pane End",
+					user_placement: "Side Pane End",
+				});
+				await goDesk("/app/selling", "body", 4000);
+				// ASSERT THE OUTCOME, not the return of a second call. `mount_chrome`
+				// already runs this guard, so by the time a test calls it again the
+				// remedy has been applied and it correctly answers false -- the first
+				// draft read that as the guard failing. What a person experiences is
+				// the state, so that is what this reads.
+				const r = await page.evaluate(() => ({
+					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					pane: (() => { const c = document.querySelector(".body-sidebar-container"); return !!c && getComputedStyle(c).display !== "none"; })(),
+				}));
+				expectEq(r.state, "open", "the guard gave the pane back rather than strand identity in it");
+				expect(r.pane, "and the pane really renders");
+
+				// The other direction: with our own chrome carrying identity, Hidden is a
+				// legitimate choice and the guard must leave it alone.
+				// NO CHROME_DEFAULTS SPREAD HERE. An explicit value beats the preset, and
+				// CHROME_DEFAULTS is the SHIPPED layout's row -- which switches the top bar
+				// off. Spreading it would take away the very bar this arm needs to be
+				// carrying identity, and the guard would fire for the right reason on a
+				// desk the test did not mean to build.
+				setSettings({
+					desk_layout: "Top Taskbar",
+					sidebar_pane_state: "Hidden",
+				});
+				await goDesk("/app/selling", "body", 4000);
+				const held = await page.evaluate(() => ({
+					fired: window.bunood_theme.guard_critical_reach(),
+					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+				}));
+				expectEq(held.fired, false, "the guard does NOT fire while a bar carries the bell and the account");
+				expectEq(held.state, "hidden", "so Hidden stays hidden — a guard that always fires is not a guard");
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: brand row, then search, then the place row — in that order, at two widths", async () => {
 			// ITEM 42, SLICE 2. Item 40 collapsed brand, quick links and module row into
 			// ONE place row; the user's brief separated the company (logo + name, on
@@ -6127,9 +6254,9 @@ print("ok")
 			//
 			// Watched failing before the split: no `.bnd-sb-brand` at all, search
 			// directly under a head that carried the company's initial.
-			const before = getSettings(["sidebar_enabled", "sidebar_menu_rail", "search_placement", "sidebar_pane_width"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "search_placement", "sidebar_pane_width"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded", search_placement: "Side Pane Start" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", search_placement: "Side Pane Start" });
 				await goDesk("/app/selling", ".body-sidebar", 3000);
 				// The two stops are measured and COMPARED: without that both passes could
 				// have read one pane (a stop that never applied), and the order claim would
@@ -6720,7 +6847,6 @@ print("ok")
 			// So the claim is not "it is in the top bar" — that passed while
 			// three existed. It is EXACTLY ONE, and in the right place.
 			const ALL_ON = {
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, pagehead_enabled: 1, bottombar_enabled: 1,
 				sidebar_enabled: 1, dock_enabled: 1,
@@ -6828,7 +6954,6 @@ print("ok")
 			// the next test — both end in the same drop_on, but each half's
 			// EVENTS can break independently, so each is exercised.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				bottombar_enabled: 1,
@@ -6953,7 +7078,7 @@ print("ok")
 			// test follows: a single static pass cannot tell "ordered" from
 			// "happened to mount that way".
 			const ALL_ON = {
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			};
 			const at = (part) =>
@@ -6983,7 +7108,7 @@ print("ok")
 			// unifies the links into the zone, so this asserts all three
 			// tenants in ONE zone holding a chosen order across a flip.
 			const state = {
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar Start", home_placement: "Top Bar Start",
 				apps_placement: "Top Bar Start", user_placement: "Top Bar End",
 			};
@@ -7015,7 +7140,7 @@ print("ok")
 			// is synthetic: the handlers are ours, the browser's gesture
 			// recognition is not.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
@@ -7119,7 +7244,7 @@ print("ok")
 			// same pixel, which is how the sidebar pair went unnoticed —
 			// measured 2026-08-07, y 228 for both.
 			const ALL_ON = {
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				pagehead_enabled: 0, dock_enabled: 0,
 			};
@@ -7178,7 +7303,6 @@ print("ok")
 				["Dock Start", ".bnd-dock"],
 			]) {
 				setSettings({
-					...CHROME_DEFAULTS,
 					desk_layout: "Top Taskbar",
 					topbar_enabled: 1,
 					bottombar_enabled: 1,
@@ -7205,7 +7329,6 @@ print("ok")
 			// own switch, and exactly the shape of coupling the split exists to
 			// remove: one setting silently requiring another.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				sidebar_enabled: 0,
@@ -7259,7 +7382,6 @@ print("ok")
 			// alone is Frappe's own affordance, unclaimed and visible. Same
 			// protection, one fewer place for it to live.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Taskbar",
 				topbar_enabled: 0,
 				inbox_placement: "Top Bar End",
@@ -7298,19 +7420,19 @@ print("ok")
 		// these configurations is the invariant matrix's job, and the two
 		// states below are added to it for exactly that reason.
 		await test("container: the top bar mounts in a layout that never had one", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Classic", topbar_enabled: 1 });
+			setSettings({ desk_layout: "Classic", topbar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".bnd-topbar"), "a top bar on a Classic desk");
 		});
 
 		await test("container: the Top Bar layout with the top bar switched off has none", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 0 });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expectEq(await q(".bnd-topbar"), false, "no top bar once it is switched off");
 		});
 
 		await test("container: the page-head cluster mounts in a layout that never had one", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", pagehead_enabled: 1 });
+			setSettings({ desk_layout: "Top Taskbar", pagehead_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".page-head .bnd-cluster"), "a page-head cluster on a Top Bar desk");
 		});
@@ -7321,7 +7443,7 @@ print("ok")
 			// again on every route change. Both directions have to hold across a
 			// navigation, not just on first paint: an "off" that only takes
 			// effect until you click something is not off.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Compact", pagehead_enabled: 0 });
+			setSettings({ desk_layout: "Compact", pagehead_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expectEq(await q(".page-head .bnd-cluster"), false, "no cluster once it is switched off");
 			await page.evaluate(() => window.frappe.set_route("List", "Sales Invoice"));
@@ -7335,7 +7457,6 @@ print("ok")
 			// layout, two facts, no way to take them apart. Ask for both and you
 			// get both, exactly like any other pair.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				dock_enabled: 1,
 				sidebar_enabled: 1,
@@ -7351,7 +7472,6 @@ print("ok")
 			// setting — so the guard has to be what keeps this desk usable, and
 			// the invariant matrix walks that state.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				dock_enabled: 0,
 				sidebar_enabled: 0,
@@ -7394,7 +7514,10 @@ print("ok")
 				"}))\n"
 			);
 			const cat = JSON.parse(raw.split("\n").reverse().find((l) => l.trim().startsWith("{")));
-			expect(Object.keys(cat.chrome).length >= 5, `the catalogue has rows (${Object.keys(cat.chrome).length})`);
+			// FOUR since item 42 (Rail + Flyout joins when the pane state can tell it
+			// from Unified). A floor, not a count -- the count is asserted by name in
+			// "the layout preset writes the containers", which is where that belongs.
+			expect(Object.keys(cat.chrome).length >= 4, `the catalogue has rows (${Object.keys(cat.chrome).length})`);
 			// AND THE VOCABULARY IS NOT EMPTY. `slots_for` takes a component KEY and returns
 			// [] for anything else, so handing it a FIELD name -- which the first draft of
 			// this check did -- makes every walk below exactly one element long (the
@@ -7429,7 +7552,7 @@ print("ok")
 
 			try {
 				for (const layout of Object.keys(cat.chrome)) {
-					setSettings({ ...CHROME_DEFAULTS, desk_layout: layout });
+					setSettings({ desk_layout: layout });
 					await goDesk("/desk/item", ".page-head", 4500);
 					const row = cat.chrome[layout];
 					const home = cat.tenants[layout] || {};
@@ -7462,7 +7585,7 @@ print("ok")
 				for (const f of found) console.log(`        - ${f}`);
 				expectEq(found.length, 0, `${found.length} finding(s); first: ${found[0] || ""}`);
 			} finally {
-				setSettings({ ...CHROME_DEFAULTS, desk_layout: cat.default });
+				setSettings({ desk_layout: cat.default });
 			}
 		});
 
@@ -7478,7 +7601,6 @@ print("ok")
 			// not fire — a test that would have passed while asserting nothing
 			// about the state it was named for.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Floating Bar",
 				topbar_enabled: 0,
 				pagehead_enabled: 0,
@@ -7507,7 +7629,6 @@ print("ok")
 			// state it defends against is a mount FAILURE that no setting can
 			// produce.
 			setSettings({
-				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
 				sidebar_enabled: 0,
 				topbar_enabled: 1,
@@ -7533,7 +7654,7 @@ print("ok")
 		await test("container: the bottom bar mounts in a layout that writes none", async () => {
 			// Classic's catalogue row says no bottom bar, so this contradicts its
 			// own preset — the same shape as every other container's first check.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Classic", bottombar_enabled: 1 });
+			setSettings({ desk_layout: "Classic", bottombar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".bnd-statusbar"), "a bottom bar on a Classic desk");
 		});
@@ -7555,7 +7676,7 @@ print("ok")
 			// And every surviving style still leaves a bar, because existence is
 			// not its job any more.
 			for (const style of opts) {
-				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", status_style: style, bottombar_enabled: 1 });
+				setSettings({ desk_layout: "Top Taskbar", status_style: style, bottombar_enabled: 1 });
 				await goDesk("/desk/item", ".page-head", 4500);
 				expect(await visible(".bnd-statusbar"), `style ${style} still has a bar`);
 			}
@@ -7684,7 +7805,7 @@ print("ok")
 			}
 		});
 
-		setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar" });
+		setSettings({ desk_layout: "Top Taskbar" });
 
 		// ── Invariant matrix ───────────────────────────────────────────────
 		//
@@ -7883,7 +8004,6 @@ print("ok")
 		}
 
 		setSettings({
-			...CHROME_DEFAULTS,
 			desk_layout: "Top Taskbar",
 			status_style: "Quiet",
 			search_placement: "Top Bar Center",
@@ -8001,9 +8121,17 @@ print("ok")
 					`from bunood_theme.presets import THEME_PRESETS\nprint(json.dumps(len(THEME_PRESETS)))\n`
 				).trim().split("\n").pop()
 			);
+			// DERIVED, like the theme count above it. This was a literal 5 and item 42
+			// cut the catalogue to four -- a number typed here is the second copy of a
+			// table, which is the thing this repo keeps paying for.
+			const layoutCount = JSON.parse(
+				benchPy(
+					`from bunood_theme.registry import LAYOUT_CHROME\nprint(json.dumps(len(LAYOUT_CHROME)))\n`
+				).trim().split("\n").pop()
+			);
 			const EXPECTED = {
 				theme_picker: { cards: themeCount },
-				layout_picker: { cards: 5 },
+				layout_picker: { cards: layoutCount },
 				// ZERO SINCE ITEM 37, and that is the point rather than a regression.
 				// This said eight, matching SIDEBAR_PRESETS — cards that painted four
 				// hand-authored swatches per preset for a colour no preset carried.
@@ -9111,14 +9239,23 @@ print("ok")
 			// left Layout claiming "Default" over a desk that had changed.
 			const before = getSettings(["dock_enabled"]);
 			try {
-				setSettings({ desk_layout: "Top Taskbar" });
+				// THE SHIPPED LAYOUT, derived. "At rest" means the desk equals the shipped
+				// defaults, so this has to be whichever row ships -- naming one made the
+				// check pass only while that row happened to be the default, and item 42
+				// moved it.
+				const shippedLayout = JSON.parse(
+					benchPy(
+						`from bunood_theme.presets import DEFAULT_DESK_LAYOUT\nprint(json.dumps(DEFAULT_DESK_LAYOUT))\n`
+					).trim().split("\n").pop()
+				);
+				setSettings({ desk_layout: shippedLayout });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				const atRest = await page.evaluate(() =>
 					document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden")
 				);
 				expect(atRest, "the Layout dot is lit on a desk that matches its preset");
 				// Dock on WITH topbar on matches no layout — a genuine Custom.
-				setSettings({ desk_layout: "Top Taskbar", dock_enabled: 1 });
+				setSettings({ desk_layout: shippedLayout, dock_enabled: 1 });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				const changed = await page.evaluate(() => ({
 					lit: !document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden"),
@@ -10353,7 +10490,7 @@ print("ok")
 			// the armed chip's own "Move to…" menu (the next test), never
 			// the zone itself.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
@@ -10404,7 +10541,7 @@ print("ok")
 			// list used to create (search has no Off, no page header, no `*`
 			// End) simply cannot happen when the menu never lists them.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				search_placement: "Top Bar Center",
 			});
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
@@ -10495,7 +10632,7 @@ print("ok")
 				});
 
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			});
@@ -10582,7 +10719,7 @@ print("ok")
 		});
 
 		await test("a11y: the skip link is the first Tab and it skips", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, sidebar_enabled: 1 });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, sidebar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 3000);
 			await page.evaluate(() => document.activeElement && document.activeElement.blur());
 			await page.keyboard.press("Tab");
@@ -10757,7 +10894,7 @@ print("ok")
 
 		await test("a11y: every container is a named landmark, and no two share a name", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, dock_enabled: 1, bottombar_enabled: 1, pagehead_enabled: 0,
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10782,7 +10919,7 @@ print("ok")
 		});
 
 		await test("a11y: the open workspace says so, in the dock and in the rail", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Floating Bar", dock_enabled: 1 });
+			setSettings({ desk_layout: "Floating Bar", dock_enabled: 1 });
 			await goDesk("/desk/item", ".bnd-dock", 3000);
 			// The negative half is the point: update_dock_active REMOVES the
 			// attribute, and a positive-only test would pass on a build that
@@ -10826,7 +10963,7 @@ print("ok")
 			// fails without menu_trigger(), correctly: aria-haspopup used to
 			// be stamped inside show_menu() itself, only after a menu had
 			// already been opened once.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			const avatar = await page.evaluate(() => {
 				const el = document.querySelector('[data-bnd-part="user"]');
@@ -10844,7 +10981,7 @@ print("ok")
 
 		await test("a11y: decorating a crumb does not rename it", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1,
 				crumb_style: "Quiet Trail", icon_crumbs: "Off",
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10871,7 +11008,7 @@ print("ok")
 
 		await test("a11y: the copy-link button shows itself when focus arrives", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1,
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10929,7 +11066,7 @@ print("ok")
 			const PAGE_RULES = ["region", "page-has-heading-one", "landmark-one-main", "bypass"];
 
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
@@ -11200,7 +11337,7 @@ print("ok")
 			// :focus-visible is a Chromium heuristic a programmatic focus can
 			// fail to match) and reads the rendered outline at each stop.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,

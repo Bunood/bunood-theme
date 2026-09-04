@@ -6315,3 +6315,57 @@ msgstr "شريط المهام في الأعلى: زر ابدأ، وبحث في �
 #, fuzzy
 msgid "No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."
 msgstr "بدون لوحة جانبية — مساحات العمل والبحث والإشعارات والملف الشخصي تطفو في كبسولة سفلية. صفحات بعرض كامل."
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: item42
+#, fuzzy
+msgid "Side Pane State"
+msgstr "حالة اللوحة الجانبية"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: item42
+#, fuzzy
+msgid "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
+msgstr "«مفتوح» يظهر اللوحة؛ «شريط» يظهر أيقونات تتوسع عند المرور أو النقر؛ «مخفي» يزيلها ويبقي كبسولة العلامة وزر البدء."
+
+#. Option for 'Side Pane State' in DocType 'Theme Settings'
+#. src: item42
+#, fuzzy
+msgid "Hidden"
+msgstr "مخفي"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "the side pane is hidden"
+msgstr "اللوحة الجانبية مخفية"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "The pane is hidden"
+msgstr "اللوحة مخفية"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "How much of the pane you keep. Hidden leaves the brand pill and the start button."
+msgstr "مقدار ما تبقيه من اللوحة. «مخفي» يبقي كبسولة العلامة وزر البدء."
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Notifications and your profile are in the pane — place them in a bar first"
+msgstr "الإشعارات وملفك الشخصي داخل اللوحة — ضعهما في شريط أولًا"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Notifications are in the pane — place them in a bar first"
+msgstr "الإشعارات داخل اللوحة — ضعها في شريط أولًا"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Your profile is in the pane — place it in a bar first"
+msgstr "ملفك الشخصي داخل اللوحة — ضعه في شريط أولًا"

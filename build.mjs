@@ -1510,6 +1510,48 @@ function assertDefaultMirrors(jsSrc, presetsSrc) {
 	}
 }
 
+/**
+ * Layout-slug guard (item 42) — `bunood.js` keys two tables on the catalogue's layout
+ * NAMES, slugified, and nothing checked that they are the catalogue's.
+ *
+ * `SEARCH_FALLBACKS` decides where search goes when the slot it asked for is not on
+ * this desk; `LAYOUT_CONTAINERS` is the pre-boot floor for "is this container on".
+ * Item 42 renamed every layout and neither table moved, so every desk fell through to
+ * a row for a layout that no longer exists: on the shipped pane-first desk, search
+ * asked for a top bar that is not there and landed in the STATUS STRIP rather than the
+ * pane. Two suite checks found it; nothing offline did, and the `|| default` that makes
+ * the tables fail soft is exactly what made it silent.
+ *
+ * The comparison is by SLUG because that is what `layout()` produces — lowercase, no
+ * spaces — so this guard also refuses a key that is spelled right but cased wrong.
+ *
+ * @param {string} registrySrc - registry.py text
+ * @param {string} jsSrc - bunood.js text
+ */
+function assertLayoutSlugs(registrySrc, jsSrc) {
+	const chrome = registrySrc.match(/LAYOUT_CHROME = \{([\s\S]*?)\n\}/);
+	if (!chrome) throw new Error("Layout-slug guard: LAYOUT_CHROME not found in registry.py");
+	const want = [...chrome[1].matchAll(/^\s*"([^"]+)":\s*\{/gm)]
+		.map((m) => m[1].toLowerCase().replace(/\s+/g, ""))
+		.sort();
+	if (want.length < 2) {
+		throw new Error(`Layout-slug guard: only ${want.length} layouts parsed from LAYOUT_CHROME — fix the parser.`);
+	}
+	for (const table of ["SEARCH_FALLBACKS", "LAYOUT_CONTAINERS"]) {
+		const blk = jsSrc.match(new RegExp(`const ${table} = \\{([\\s\\S]*?)\\n\\t\\};`));
+		if (!blk) throw new Error(`Layout-slug guard: ${table} not found in bunood.js`);
+		const got = [...blk[1].matchAll(/^\t\t([a-z0-9]+):/gm)].map((m) => m[1]).sort();
+		if (got.join(",") !== want.join(",")) {
+			throw new Error(
+				`Layout-slug guard: ${table} is keyed on [${got.join(", ")}] but the catalogue\n` +
+					`(registry.LAYOUT_CHROME, slugified) says [${want.join(", ")}].\n\n` +
+					"A key nothing matches is not an error at runtime — the table falls through to\n" +
+					"its default and search lands somewhere plausible and wrong. Rename the keys."
+			);
+		}
+	}
+}
+
 function assertBandOrder(registrySrc, sidebarScss) {
 	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
 	const members = ["bell", "user", "home", "apps"];
@@ -1993,6 +2035,10 @@ async function main() {
 			"utf8"
 		),
 		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8")
+	);
+	assertLayoutSlugs(
+		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
 	);
 	assertBandOrder(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),

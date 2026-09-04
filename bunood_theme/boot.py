@@ -134,6 +134,7 @@ def resolve_for_user(site) -> tuple:
     shape = frappe.defaults.get_user_default("bnd_shape") or ""
     sidebar_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
     density = frappe.defaults.get_user_default("bnd_density") or ""
+    pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
     home = frappe.defaults.get_user_default("bnd_home") or ""
 
@@ -162,6 +163,14 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_shape") and shape in LAYOUT_CHROME:
         resolved.update(layout_settings(shape))
 
+    # THE PANE STATE. Last, and deliberately so: a look must not be able to take
+    # somebody's pane away, and a shape names the containers rather than how much
+    # of the pane is on screen. This is one field, it is the person's own comfort
+    # (the same family as density), and it wins over both because it is the
+    # narrowest and most recent statement about the same desk.
+    if is_open("bnd_pane_state") and pane_state in ("Open", "Rail", "Hidden"):
+        resolved["sidebar_pane_state"] = pane_state
+
     return resolved, {
         "look": look,
         "shape": shape,
@@ -169,6 +178,7 @@ def resolve_for_user(site) -> tuple:
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
         "density": density,
+        "pane_state": pane_state,
         "motion": motion,
         "home": home,
         "locks": {
@@ -453,7 +463,7 @@ def extend_bootinfo(bootinfo):
             "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
             "intensity": get("sidebar_card_depth"),
-            "menurail": get("sidebar_menu_rail"),
+            "panestate": get("sidebar_pane_state"),
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
             "rail_button_icon": icon("icon_rail_button"),
