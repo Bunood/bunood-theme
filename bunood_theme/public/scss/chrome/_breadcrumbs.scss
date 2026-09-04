@@ -57,6 +57,37 @@ html[data-bnd-crumbs] .navbar-breadcrumbs {
   }
 }
 
+// Home is the one page whose trail is a single location label rather than a
+// navigational hierarchy. At desktop widths it behaves as the bar title, so
+// centre that title against the full page-head content instead of leaving it
+// in the leading breadcrumb slot. Frappe's adjacent indicator remains beside
+// the title but is taken out of flow, so its width cannot pull the visible
+// Home label off-centre.
+@include bnd-from(lg) {
+  html[data-bnd-desk] .page-container:has(.bnd-home-dashboard) .page-head .page-head-content {
+    position: relative;
+  }
+
+  html[data-bnd-desk] .page-container:has(.bnd-home-dashboard) .page-head .title-area {
+    position: absolute;
+    inset-block: 0;
+    inset-inline: 0;
+    inline-size: max-content;
+    block-size: max-content;
+    max-inline-size: calc(100% - var(--bnd-sp-7) * 2);
+    margin: auto;
+  }
+
+  html[data-bnd-desk] .page-container:has(.bnd-home-dashboard) .page-head .title-area > .page-indicator-pill {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: calc(100% + var(--bnd-sp-2));
+    inset-inline-end: auto;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+}
+
 // The module chip (mounted by JS per the icon-scope option): a small
 // brand-tinted square holding a workspace/inferred sprite icon, sitting as
 // the anchor's first child. Same design as 0.4.0, now conditional.

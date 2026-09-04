@@ -116,7 +116,11 @@ html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-bt
   font-size: var(--bnd-text-sm);
 
   .bnd-search-field {
-    inline-size: min(280px, 32vw);
+    // Bottom chrome also carries live status at both edges. Keep a stable
+    // centre corridor instead of letting an absolutely centred field intrude
+    // into those controls (the former 280px field overlapped the third status
+    // item by 3px at the standard desktop viewport).
+    inline-size: min(260px, 28vw);
     block-size: calc(var(--bnd-bottombar-h) - 12px);
   }
 }
@@ -225,6 +229,27 @@ html[data-bnd-search="botedge"] .bnd-statusbar .bnd-search-field {
 // to search — a field wants a little air that a clock does not.
 html[data-theme] .bnd-statusbar:has(.bnd-search-field) {
   padding-block: var(--bnd-sp-1);
+}
+
+// When the Bottom Bar is the All Apps page's global shell, its reciprocal
+// dashboard route stays labelled at desktop widths too. Ordinary Home/Apps
+// shortcuts remain compact icons; this exception is the route out of a page
+// whose own side pane is absent.
+html.bunood[data-theme][data-bnd-desktop]:not([data-bnd-narrow]) .bnd-statusbar .bnd-dashboard-return {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: auto;
+  padding-inline: var(--bnd-sp-3);
+  color: var(--bnd-brand-ink);
+  background: var(--bnd-active);
+  border: var(--bnd-line) solid color-mix(in srgb, var(--bnd-brand-ink) 32%, transparent);
+}
+
+html.bunood[data-theme][data-bnd-desktop]:not([data-bnd-narrow]) .bnd-statusbar .bnd-dashboard-return-label {
+  display: block;
+  font-weight: var(--bnd-weight-medium);
+  white-space: nowrap;
 }
 
 // ── Live segments ───────────────────────────────────────────────────────────
@@ -353,43 +378,129 @@ html[data-theme] .bnd-topbar {
 // styling must apply exactly when the runtime made this the mobile nav — the
 // bar itself is JS-mounted, so both the node and the attribute arrive together.
 //
-// The phone bar is NAVIGATION, not telemetry. The ranked status signals stand
-// down wholesale (the user's pick: search / apps / alerts / you, nothing else),
-// and the tenants are sized for a finger.
-html[data-bnd-narrow] .bnd-statusbar {
+// The phone bar is NAVIGATION, not telemetry. It is one evenly-spaced row with
+// a stable information architecture: Home, Apps, Search, Notifications,
+// Profile. Optional tenants close their column cleanly; `grid-auto-columns`
+// redistributes the available width instead of leaving a visual hole.
+html[data-bnd-narrow][data-theme] .bnd-statusbar {
   // The sidebar is a drawer OVERLAY at this width, not an inline column, so the
   // bar spans the whole viewport instead of starting where a 220px+ column
   // would — the measured `--bnd-sidebar-live-w` describes the desktop pane and
   // is wrong for a drawer, leaving the bar a ~150px stub on the right (measured
   // 2026-08-15 at 390px).
   inset-inline-start: 0;
-  min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-2));
-  gap: var(--bnd-sp-3);
-  padding-inline: var(--bnd-sp-3);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  block-size: auto;
+  min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-4));
+  gap: 0;
+  padding-block-start: var(--bnd-sp-1);
+  padding-block-end: max(var(--bnd-sp-1), env(safe-area-inset-bottom));
+  padding-inline: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  box-shadow: var(--bnd-shadow-sm);
 }
-html[data-bnd-narrow] .bnd-statusbar [data-bnd-prio] {
+
+// Every status item is a direct child; none belongs in primary navigation.
+// The old `[data-bnd-prio]` rule missed connection state because it has no
+// priority, leaving "No live updates" as a stray sixth item on phones.
+html[data-bnd-narrow][data-theme] .bnd-statusbar > .bnd-status-item,
+html[data-bnd-narrow][data-theme] .bnd-statusbar > .bnd-status-spacer {
   display: none;
 }
-// Every tenant control is a finger-sized square (44, comfortably over the 24
-// the a11y gate enforces). The search "field" becomes an icon button — its
-// label and shortcut are already hidden below md, and its click opens the
-// palette either way (build_search_field/-icon both call pal_invoke).
-html[data-bnd-narrow] .bnd-statusbar .bnd-icon-btn,
-html[data-bnd-narrow] .bnd-statusbar .bnd-avatar-btn,
-html[data-bnd-narrow] .bnd-statusbar .bnd-search-icon,
-html[data-bnd-narrow] .bnd-statusbar .bnd-search-field,
-html[data-bnd-narrow] .bnd-statusbar .bnd-sb-util {
-  min-inline-size: var(--bnd-tap);
-  min-block-size: var(--bnd-tap);
-  justify-content: center;
+
+// Flatten the desktop placement scaffolds into the one mobile grid. The nodes
+// and their event handlers stay the same; only their phone layout changes.
+html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
+  .bnd-search-center, .bnd-cluster, .bnd-zone, .bnd-sb-utils-bar
+) {
+  display: contents;
 }
-html[data-bnd-narrow] .bnd-statusbar .bnd-search-field {
-  // flex, not just inline-size: the center zone stretches the field to fill
-  // otherwise (measured 125px at 390), and the user's pick is an icon, not a
-  // pill. flex:none pins it to a square regardless of the zone's width.
-  flex: 0 0 var(--bnd-tap);
-  inline-size: var(--bnd-tap);
-  padding-inline: 0;
+
+// Every destination has the same hit area and an icon-over-label rhythm. This
+// is a navigation bar, not a collection of desktop icon buttons squeezed into
+// the foot of the screen.
+html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
+  .bnd-icon-btn, .bnd-avatar-btn, .bnd-search-icon, .bnd-search-field, .bnd-sb-util
+) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: calc(var(--bnd-tap) + var(--bnd-sp-2));
+  min-block-size: var(--bnd-tap);
+  margin: 0;
+  padding: var(--bnd-sp-1);
+  border: 0;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  line-height: 1;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
+  .bnd-icon-btn, .bnd-search-field, .bnd-sb-util
+) svg {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-avatar-btn .avatar {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field {
+  flex: none;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field .bnd-search-label {
+  display: block;
+  flex: none;
+  inline-size: 100%;
+  text-align: center;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field kbd {
+  display: none;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
+  [data-bnd-part="home"], [data-bnd-part="apps"], [data-bnd-part="search"],
+  [data-bnd-part="bell"], [data-bnd-part="user"]
+):hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar [aria-current="page"] {
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+
+// Stable order independent of desktop placement zones and RTL direction.
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="home"] { order: 10; }
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="apps"] { order: 20; }
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="search"] { order: 30; }
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="bell"] { order: 40; }
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="user"] { order: 50; }
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
+  .bnd-mobile-nav-label, .bnd-search-label
+) {
+  overflow: hidden;
+  max-inline-size: 100%;
+  color: inherit;
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // ── Touch: the status segments clear the 24px target floor (item 24) ─────────

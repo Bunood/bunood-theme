@@ -67,10 +67,8 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_surface_intensity": "3",
-        # Always expanded, because the re-chosen look is "attached, solid, a
-        # step wider" — a pane that collapses to a 52px rail shows none of
-        # those. The rail lives on in Bunood Light and the picker.
-        "sidebar_menu_rail": "Always Expanded",
+        # One independent top-bar control owns the sidebar in every preset.
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         # Trigger, shape and icon are inert while the mode has no rail and the
@@ -113,7 +111,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -133,7 +131,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_surface_intensity": "1",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -153,7 +151,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -173,7 +171,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -193,7 +191,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Mini-Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -221,7 +219,7 @@ SIDEBAR_PRESETS = {
         "sidebar_section_layout": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_surface_intensity": "1",
-        "sidebar_menu_rail": "Manual Collapse",
+        "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_rail_button_shape": "Circle",
@@ -1138,7 +1136,7 @@ CHROME_DEFAULTS = {
 #: bar below 768px. Search has no toggle — it is the only search on a phone
 #: (Frappe drops its own and Ctrl+K is unreachable on touch), so it is always
 #: there; these three choose what joins it. All on by default: the shipped bar
-#: is search / apps / alerts / you.
+#: is Home / Apps / Search / Alerts / You.
 MOBILE_DEFAULTS = {
     "mobile_inbox": 1,
     "mobile_user": 1,

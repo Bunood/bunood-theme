@@ -468,60 +468,11 @@ html[data-theme] {
     }
   }
 
-  .bnd-sbp-presets {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-  }
-
-  .bnd-sbp-preset {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 9px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--control-bg);
-    cursor: pointer;
-    text-align: start;
-
-    &:hover {
-      border-color: var(--primary);
-    }
-  }
-
-  .bnd-sbp-pname {
-    font-weight: 600;
-    font-size: var(--text-sm);
-  }
-
   .bnd-sbp-pblurb {
     font-size: var(--text-xs);
     color: var(--text-muted);
     line-height: 1.4;
   }
-
-  .bnd-sbp-dots {
-    display: flex;
-    gap: 3px;
-    margin-block-start: 2px;
-  }
-
-  .bnd-sbp-dot {
-    inline-size: 9px;
-    block-size: 9px;
-    border-radius: 50%;
-    outline: 1px solid var(--border-color);
-    outline-offset: -1px;
-  }
-
-  .bnd-sbp-custom {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
-
-
-
 
   .bnd-sbp-row-wrap {
     display: flex;

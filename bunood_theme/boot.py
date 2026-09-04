@@ -97,6 +97,17 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_rtl_langs = sorted(RTL_LANGS)
 
+        # Native sidebar rows are normally translated server-side before the
+        # boot payload is rendered. Two rows need the same source of truth at
+        # runtime: Frappe appends "Add Sidebar Item" later in the browser, and
+        # Bunood intentionally uses the inventory noun for the Stock workspace
+        # rather than the core warehouse plural. Send only those corrections;
+        # the client reads values generated from the canonical translation
+        # catalogue, so no Arabic spelling is duplicated in JavaScript.
+        bootinfo.bnd_sidebar_labels = {
+            source: frappe._(source) for source in ("Add Sidebar Item", "Stock")
+        }
+
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

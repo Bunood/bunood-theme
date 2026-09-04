@@ -266,6 +266,15 @@ html[data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
+// The top bar is in the main section's flow, so a sticky form sidebar begins
+// one bar lower than Frappe's viewport-only formula assumes. Subtract that
+// real occupied row as well; otherwise the last 45px sit behind bottom chrome.
+html[data-bnd-topbar][data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
+  block-size: calc(
+    100vh - var(--bnd-bottom-reserve) - var(--page-head-height) - var(--bnd-topbar-h) - var(--bnd-sp-1)
+  );
+}
+
 // ── The report view's own 100vh arithmetic needs the reserve too ────────────
 // report.scss sizes `.report-view .layout-main-section` and frappe_datatable
 // sizes `.dt-scrollable` from RAW 100vh — the whole viewport — not from
@@ -357,8 +366,10 @@ html[data-bnd-topbar][data-bnd-desk] .kanban-column {
 
 // ── Top bar: the native <header> becomes the bar's home ─────────────────────
 // v16 renders an EMPTY <header> as .main-section's first child — a native
-// mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section
-// flow and starts after the sidebar with no width bookkeeping.
+// mount point, no DOM surgery. Keep it in normal flow: global navigation must
+// scroll with the desk instead of pinning a second layer above Frappe's own
+// page head. A sticky bar made dashboard cards travel underneath permanent
+// chrome and left two stacked headers competing for the same viewport edge.
 //
 // KEYED ON `data-bnd-topbar`, THE OUTCOME — NOT ON THE LAYOUT.
 //   The top bar is a container with its own setting since slice 2c, so "the
@@ -381,15 +392,16 @@ html[data-bnd-topbar][data-bnd-desk] .kanban-column {
 // Same contract as `data-bnd-statusbar`, which has worked this way since
 // item 14 for exactly the same reason.
 html[data-bnd-topbar] .main-section > header {
-  position: sticky;
-  inset-block-start: 0;
+  position: relative;
+  inset-block-start: auto;
   z-index: var(--bnd-z-bar);
   display: block;
 }
-// Frappe's .page-head is sticky at block-start 0; under a topbar it must
-// stick BELOW the bar instead of sliding beneath it.
+// The top bar now leaves the viewport with the document, so the page head no
+// longer needs a permanent one-bar offset. Routes where Frappe keeps the page
+// head in normal flow now let both strips leave together.
 html[data-bnd-topbar] .page-head {
-  inset-block-start: var(--bnd-topbar-h);
+  inset-block-start: 0;
 }
 
 // ── Notifications panel relocation ──────────────────────────────────────────

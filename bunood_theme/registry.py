@@ -499,7 +499,7 @@ NARROW_CHROME = {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "doc
 #: it walks a fallback chain (`SEARCH_FALLBACKS`), so tearing the top bar down and
 #: losing Frappe's sidebar search row (dropped on mobile) lands it in the bottom
 #: bar on its own. The tenants that do NOT walk a chain — the bell, the user menu
-#: and the All Apps link — are the ones that must be placed explicitly here, or
+#: the Home / All Apps links — are the ones that must be placed explicitly here, or
 #: `placement_for` returns "absent" and they vanish. Every value is a slot in
 #: `slots_for` for that tenant (apps offers only "Start" on a bar); the suite
 #: asserts it, the same guard `LAYOUT_TENANTS` gets.
@@ -507,9 +507,12 @@ NARROW_PLACEMENT = {
     "inbox": "Bottom Bar End",
     "user": "Bottom Bar End",
     "apps": "Bottom Bar Start",
-    # Home stands down on a phone: the mobile bar is search / alerts / you / apps
-    # (the user's chosen four), and Frappe's own drawer carries the rest.
-    "home": "Off",
+    # A primary mobile navigation row needs a stable route to the dashboard.
+    # Relying on Frappe's drawer made All Apps a dead end because that page has
+    # no side pane at all. Home and Apps are reciprocal: on the All Apps route
+    # the runtime suppresses Apps (the current destination) and relabels Home
+    # as Dashboard; everywhere else both remain available.
+    "home": "Bottom Bar Start",
 }
 
 
@@ -520,6 +523,11 @@ NARROW_PLACEMENT = {
 #: absent attributes ARE the stand-down. Item 16's list view is the first;
 #: the form view (item 18) joins it here.
 SURFACE = "surface"
+
+# Fixed controls owned by their host, without independent placement settings.
+CHROME_ACTIONS = [
+    {"key": "language", "part": "language", "selector": '[data-bnd-part="language"]'},
+]
 
 # Additive content, not chrome and not a replacement for native form controls.
 CONTENT_COMPONENTS = [
@@ -931,6 +939,7 @@ def as_dict() -> dict:
         "containers": [c["key"] for c in CONTAINERS],
         "tenants": [c["key"] for c in TENANTS],
         "critical": [c["key"] for c in CRITICAL],
+        "actions": CHROME_ACTIONS,
         # The catalogue rides along so a consumer asking "what does this layout
         # mean" gets the answer in the same round trip as "what components are
         # there" — the whole reason this returns a table rather than exposing

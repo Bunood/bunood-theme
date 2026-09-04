@@ -1540,7 +1540,7 @@ const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
 // Keep the optional invoice controller separate, but cover it with the same
 // identity, focus, translation, immutable hash and payload gates as desk JS.
 async function readDeskJs() {
-	return (await Promise.all(["bunood.js", "sales_bill.js"].map(src => readFile(join(JS, src), "utf8")))).join("\n").replace(/\r\n/g, "\n");
+	return (await Promise.all(["bunood.js", "sales_bill.js", "simple_forms.js"].map(src => readFile(join(JS, src), "utf8")))).join("\n").replace(/\r\n/g, "\n");
 }
 
 /**

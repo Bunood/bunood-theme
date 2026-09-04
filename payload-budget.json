@@ -26,11 +26,24 @@
 		"bytes went from two routes to the whole website, so the ceiling is now the",
 		"tightest one here in practice even though it is the smallest number.",
 		"tools/payload.mjs THROWS on any dist file that matches no bucket, so a",
-		"third entry cannot repeat item 32's near-miss of shipping unmeasured."
+		"third entry cannot repeat item 32's near-miss of shipping unmeasured.",
+		"2026-09-01 DECISION: the desk JS ceiling rises from 116,000 to 120,000 gzip bytes for the native full-page Sales/Purchase workbench and schema-based Simple/Advanced controllers across business forms. No UI framework, calculation engine, or posting API was added.",
+		"2026-09-02 DECISION: the desk JS ceiling rises from 120,000 to 122,000 gzip bytes for the credential-free ZATCA sandbox readiness, invoice status, validation-record and explicit submission workflow in the Simple Sales Invoice form. Signing, UBL generation and transport remain in ksa_compliance; no duplicate compliance engine or dependency was bundled.",
+		"2026-09-02 DECISION: the desk ceilings rise from 27,500 to 28,000 CSS gzip bytes and 122,000 to 123,000 JS gzip bytes so Simple Sales/Purchase bills always expose native VAT, apply the configured default tax template, and keep destructive row actions out of the data grid. No UI framework or duplicate tax calculator was added.",
+		"2026-09-02 DECISION: the desk JS ceiling rises from 123,000 to 124,000 gzip bytes for a permission-filtered Home module navigator. It removes the All Apps detour from daily navigation while preserving contextual module sidebars; no dependency or duplicate router was added.",
+		"2026-09-02 DECISION: the desk JS ceiling rises from 124,000 to 124,500 gzip bytes so every Simple/Advanced form keeps a visible two-way mode switch and explicit task profiles reject specialist add-on fields unless they are mandatory. No duplicate controls, workflow engine, or dependency was added.",
+		"2026-09-02 DECISION: the desk JS ceiling rises from 124,500 to 125,500 gzip bytes for system-wide keyboard navigation and accessible selection announcements, plus real interactive Frappe Charts on Home with invoice drill-downs. The existing zero-dependency chart engine is reused; no chart library or duplicate renderer was added.",
+		"2026-09-02 DECISION: the desk ceilings rise from 28,000 to 28,250 CSS gzip bytes and 125,500 to 128,000 JS gzip bytes for a task-focused Stock Entry workflow and a two-way form-mode switch that remounts after native ERPNext layout refreshes. The workbench reuses native controls, validation and document actions; no form model, API, or dependency was duplicated.",
+		"2026-09-04 DECISION: the desk ceilings rise from 28,250 to 28,500 CSS gzip bytes and 128,000 to 129,000 JS gzip bytes for a native-control Delivery Note workbench, localized sidebar toggle, and shared keycap/icon/line-item alignment repairs. No form model, posting logic, framework, or dependency was added.",
+		"2026-09-04 DECISION: the desk CSS ceiling rises from 28,500 to 29,000 gzip bytes for the purpose-built compact sidebar rail: consistent icon targets, responsive rail-to-drawer behavior, focus states and RTL-safe active indication. No framework, font, image or dependency was added.",
+		"2026-09-04 DECISION: the desk ceilings rise from 29,000 to 29,100 CSS gzip bytes and 129,000 to 129,600 JS gzip bytes for an always-visible, labelled and bilingual Dashboard route from the sidebar-free All Apps screen, including deterministic mounting during direct-load route races. No router, framework, image or dependency was added.",
+		"2026-09-04 DECISION: the desk ceilings rise from 29,100 to 29,500 CSS gzip bytes and 129,600 to 131,500 JS gzip bytes for one outcome-owned All Apps shell across Top Bar, Bottom Bar and phone modes, a five-destination labelled mobile navigation grid, and release of Frappe's overflowing inline three-column phone grid. No router, UI framework, image or dependency was added.",
+		"2026-09-04 DECISION: the desk ceilings rise from 29,500 to 29,600 CSS gzip bytes and 131,500 to 132,000 JS gzip bytes so Home status drill-downs use the same date-and-balance facts as their counts, the donut total follows the rendered ring exactly, and Frappe's hover pop-out cannot displace it. No chart engine, router, query, framework or dependency was added.",
+		"2026-09-04 DECISION: the desk JS ceiling rises from 132,000 to 133,000 gzip bytes so compact-rail sections are keyboard-operable, placement fallback verifies the real native control before releasing the last critical route, and asynchronously appended native sidebar labels follow the active language. No framework, dependency, router or duplicate control was added."
 	],
 	"ceiling": {
-		"css_gzip": 27500,
-		"js_gzip": 116000,
+		"css_gzip": 29600,
+		"js_gzip": 133000,
 		"web_css_gzip": 4500,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

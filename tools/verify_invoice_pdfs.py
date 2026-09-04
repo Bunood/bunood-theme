@@ -20,6 +20,9 @@ for lang in ('en', 'ar'):
         assert invoice.get('dir') == ('rtl' if rtl else 'ltr') and invoice.get('lang') == lang, (name, 'wrong layout language')
         labels = [x.text_content().strip() for x in select(invoice, 'bnd-inv-label')]
         assert labels and all(bool(re.search('[\u0600-\u06ff]', x)) == rtl for x in labels), (name, 'mixed label languages')
+        if rtl:
+            for expected in ('الإجمالي قبل الضريبة', 'إجمالي الضرائب والرسوم', 'الإجمالي شامل الضريبة'):
+                assert expected in labels, (name, 'non-standard Arabic total label', expected, labels)
         assert len(invoice.xpath('.//h1')) == 1, (name, 'duplicated title')
         assert len(select(invoice, 'bnd-inv-meta')[0].xpath('.//td')) == 2, (name, 'standalone currency box remains')
         assert 'SAR' not in select(invoice, 'bnd-inv-title')[0].text_content(), (name, 'redundant currency beside title')
@@ -47,7 +50,9 @@ for lang in ('en', 'ar'):
                              and c['text'] in '-0123456789']
             assert beside_symbol, (name, 'grand-total symbol is not immediately left of the number')
             arabic = [c for p in pdf.pages for c in p.chars if re.search('[\u0600-\u06ff\ufb50-\ufeff]', c['text'])]
-            assert arabic and all('NotoNaskhArabic' in c['fontname'] for c in arabic), (name, 'Arabic font fallback', sorted(set(c['fontname'] for c in arabic)))
+            assert arabic and all(any(face in c['fontname'] for face in ('Cairo', 'NotoNaskhArabic')) for c in arabic), (name, 'Arabic font fallback', sorted(set(c['fontname'] for c in arabic)))
+            if rtl:
+                assert any('Cairo' in c['fontname'] for c in arabic), (name, 'clear Arabic display face missing')
             assert all(abs(p.width - 595) < 2 and abs(p.height - 842) < 2 for p in pdf.pages), name
             assert all('Bunood Demo' in t and 'info@bunood.test' in t for t in texts), (name, 'missing repeated header/footer')
             for p in pdf.pages:

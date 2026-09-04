@@ -68,46 +68,13 @@ html[data-bnd-inbox] .bnd-inbox-badge {
   }
 }
 
-// ── The bell must survive the rail's rest state ─────────────────────────────
-// In Classic the ONLY bell is Frappe's sidebar row, and that row lives inside
-// `.standard-items-sections`, which the menu rail fades to opacity 0 with
-// pointer-events: none at rest (_sidebar.scss "Rail rest state"). Result with
-// the shipped defaults (Classic + the Rail preset): no reachable bell and an
-// invisible badge — the click was measurably unhittable.
-//
-// A child cannot escape an opacity-0 ancestor, so the container is restored
-// and its OTHER children are faded individually instead. Same rest-state look,
-// one essential affordance kept — exactly how the brand and utility chips are
-// already treated.
-html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections {
-  opacity: 1;
-  pointer-events: auto;
-
-  // The bell AND the panel it opens: Frappe renders `.dropdown-notifications`
-  // as a SIBLING inside this same container, so fading it left the opened
-  // panel collapsing the moment the pointer left the rail (measured: 262px
-  // -> 34px, opacity 0). Under Refined that made the newly-working skin
-  // unusable with the shipped Classic + Rail defaults.
-  > *:not(.sidebar-notification):not(.dropdown-notifications) {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-// The rail CLIPS the native panel out of existence, whatever its opacity:
-// `_sidebar.scss` gives `.body-sidebar` `position: absolute; inline-size:
-// 52px; overflow: hidden`, and Frappe renders `.dropdown-notifications`
-// inside it as a 360px absolutely-positioned box at x=60 — entirely outside
-// the clip rectangle, hit-testing through to the list rows underneath.
-//
-// This is the RAIL breaking ERPNext's own panel, so it is fixed for every
-// notification style including Original: position: fixed escapes the clip,
-// pinned beside the rail. Item 9 already relocates this same element per
-// layout the same way, so the pattern (and its z-index slot) is established.
+// Frappe renders the notification panel inside the sidebar. In collapsible
+// mode it must escape the pane's overflow and sit beside the full open column,
+// not beside the obsolete compact-rail width.
 html[data-bnd-rail] .body-sidebar-container .dropdown-notifications {
   position: fixed;
   inset-block-start: var(--bnd-sp-4);
-  inset-inline-start: calc(var(--bnd-sb-rail-w) + var(--bnd-sp-2));
+  inset-inline-start: calc(var(--bnd-sb-w) + var(--bnd-sp-2));
   inset-block-end: var(--bnd-sp-4);
   z-index: var(--bnd-z-panel);
 

@@ -199,8 +199,8 @@ html[data-bnd-sb-width="5"] { --bnd-sb-w: 280px; }
 // same pane, which is the two-options-one-pixel defect again, one CSS
 // property further down. Shrink-0 pins the pane; the main section is
 // `flex: 1` with its own overflow and absorbs the difference, which is what
-// a flexible main pane is FOR. Scoped to the expanded mode: rail mode sizes
-// the container itself (52px) and manual collapse belongs to Frappe's own
+// a flexible main pane is FOR. Scoped to the expanded mode: collapsible mode
+// sizes the container itself and manual collapse belongs to Frappe's own
 // animation, exactly as sb_apply_width already divides them.
 html[data-bnd-sb-menurail="expanded"] .body-sidebar-container {
   flex-shrink: 0;
@@ -328,8 +328,8 @@ html[data-bnd-sb-color] .bnd-sb-brand {
 		inline-size: 30px;
 		block-size: 30px;
 		border-radius: var(--bnd-radius-lg);
-		background: color-mix(in srgb, var(--bnd-on-brand) 14%, transparent);
-		color: inherit;
+		background: var(--bnd-surface);
+		color: var(--bnd-brand-ink);
     font-size: var(--bnd-text-sm);
     flex: none;
   }
@@ -341,24 +341,16 @@ html[data-bnd-sb-color] .bnd-sb-brand {
   }
 }
 
-// Rail rest: the brand shrinks to its mark, centred.
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand {
-  justify-content: center;
-  padding-inline: 0;
-
-  .bnd-sb-brand-name {
-    display: none;
-  }
-}
-
-// Quick links living in a bar: a tight icon pair at the bar's start.
+// Quick links living in a DESKTOP bar: a tight icon pair at the bar's start.
+// Narrow mode promotes these same controls into equal navigation columns, so
+// its grid owns their width and glyph size without a specificity fight.
 html[data-bnd-sb-color] .bnd-sb-utils-bar {
   display: inline-flex;
   align-items: center;
   gap: var(--bnd-sp-1);
   margin-inline-end: var(--bnd-sp-2);
 }
-html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
+html[data-theme]:not([data-bnd-narrow]) .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
   inline-size: 22px;
   block-size: 22px;
 
@@ -467,15 +459,25 @@ html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
 	}
 
 	.item-anchor {
+		// Native links have a fixed height; let the selection grow with its label.
+		block-size: auto;
 		min-block-size: 40px;
 		gap: var(--bnd-sp-3);
 		padding-block: var(--bnd-sp-1);
 		padding-inline: var(--bnd-sp-2);
 	}
 
-	.sidebar-item-label {
+	.item-anchor .sidebar-item-label {
+		// Keep complete menu names readable in both RTL and LTR, including
+		// nested links and section headings. Do not clamp to a line count.
+		min-inline-size: 0;
+		white-space: normal;
+		overflow: visible;
+		text-overflow: clip;
+		overflow-wrap: anywhere;
+		word-break: normal;
 		font-size: var(--bnd-text-sm);
-		line-height: var(--bnd-leading-tight);
+		line-height: var(--bnd-leading-base);
 	}
 
   &:hover {
@@ -658,6 +660,9 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
   // included. `text-transform` STAYS — Arabic has no cased characters, so it
   // is a true no-op there and costs nothing to keep for Latin.
   text-transform: uppercase;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 	color: var(--bnd-sb-ink-muted);
 }
 
@@ -725,55 +730,379 @@ html[data-bnd-sb-fades] .body-sidebar-top {
   );
 }
 
-// ── Menu rail: hover-expand ─────────────────────────────────────────────────
-// The container narrows to the rail width (its inline width is set by
-// bunood.js because Frappe writes inline widths of its own); the INNER
-// sidebar becomes an overlay that grows on the .bnd-rail-open class, which
-// bunood.js toggles from hover AND focus-within — so keyboard users get the
-// expansion too. Content never reflows: the fixed bars read the container
-// width (52px) via the existing ResizeObserver.
+// ── Collapsible sidebar: one top-bar toggle ─────────────────────────────────
+// Closed is a real, deliberately composed 52px navigation rail: one brand
+// mark, one app switcher, then one icon per top-level section. Open is the full
+// configured-width pane beside the workspace. The container remains the sole
+// width owner, preventing the split 52px/220px geometry that previously
+// squeezed labels and scrollbars into vertical strips.
 html[data-bnd-rail] .body-sidebar-container {
-  overflow: visible;
-  // The overlay positions against the CONTAINER, not the viewport — without
+  box-sizing: border-box;
+  border-width: 0 var(--bnd-line) 0 0;
+  border-style: solid;
+  border-color: var(--bnd-sb-line);
+  overflow: hidden;
+  pointer-events: auto;
+  flex: 0 0 var(--bnd-sb-rail-w);
+  min-inline-size: var(--bnd-sb-rail-w);
+  max-inline-size: var(--bnd-sb-rail-w);
+  // Frappe normally stretches this flex item from the main section. A route
+  // that replaces the Desktop workspace immediately after mobile mode can
+  // briefly leave the flex parent's cross-size indefinite; without an owned
+  // floor the rail resolves to 52x0 and every later route inherits an
+  // invisible navigation column. Keep the rail at least as tall as the live
+  // desk box, while still allowing a long page to stretch it further.
+  min-block-size: calc(100vh - var(--bnd-bottom-reserve));
+  align-self: stretch;
+  transition: flex-basis var(--bnd-dur-base) var(--bnd-ease),
+    min-inline-size var(--bnd-dur-base) var(--bnd-ease),
+    max-inline-size var(--bnd-dur-base) var(--bnd-ease);
+  // The pane positions against the CONTAINER, not the viewport — without
   // this, inset-block:0 resolves against the initial containing block and
   // the pane paints from the window corner (measured before the fix).
   position: relative;
+  // The main section is the following flex sibling and can otherwise win the
+  // root paint order even while the rail remains visible through transparent
+  // areas. Own one explicit layer so the 40px navigation targets, not the page
+  // body underneath them, receive hit-testing. The pane begins below the top
+  // bar, so the two layers never compete for the same pixel.
+  z-index: var(--bnd-z-flyout);
 
   .body-sidebar {
+    display: flex;
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
-    inline-size: var(--bnd-sb-rail-w);
+    inline-size: 100%;
+    box-sizing: border-box;
     overflow: hidden;
     background: var(--bnd-sb-bg);
     border-radius: inherit;
     border: inherit;
-    transition: inline-size var(--bnd-dur-base) var(--bnd-ease);
-    // ABOVE the top/status bars it slides across, below panels/menus.
-    // Measured: at z-bar the expanded pane layered UNDER the page's sticky
-    // chrome and the bottom bars.
+    // Frappe declares `transition: all` on this pane. Its transition value can
+    // outrank even the correct cascade and strand the pane at its old compact
+    // width, so width is intentionally not animated here. The container alone
+    // animates the column and the pane tracks it continuously.
+    transition-property: none;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    // Above the column's background, below panels/menus. The container reserves
+    // the same inline size, so this layer never covers the workspace.
     z-index: var(--bnd-z-flyout);
-
-    // At rest, labels and wide-only pieces vanish; icons stay centered.
-    .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label,
-    .bnd-sb-module .bnd-sb-module-chev {
-      opacity: 0;
-      transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
-    }
   }
 
-  &.bnd-rail-open .body-sidebar {
-    inline-size: var(--bnd-sb-w);
-    box-shadow: var(--bnd-shadow-lg);
+  &.bnd-rail-open {
+    overflow: visible;
+    flex-basis: var(--bnd-sb-w);
+    min-inline-size: var(--bnd-sb-w);
+    max-inline-size: var(--bnd-sb-w);
 
-    .sidebar-item-label,
-    .bnd-sb-module .bnd-sb-module-label,
-    .bnd-sb-module .bnd-sb-module-chev {
+    .body-sidebar {
+      display: flex;
+      inline-size: 100%;
+      visibility: visible;
       opacity: 1;
+      pointer-events: auto;
+      box-shadow: var(--bnd-shadow-lg);
     }
   }
 }
+
+// ── Compact rail composition ───────────────────────────────────────────────
+// The compact state is not the expanded sidebar squeezed smaller. It is a
+// separate information hierarchy: stable 40px targets, no labels, no nested
+// rows, no categorical colour confetti. The green brand mark and the active
+// ledger-spine marker are the only accents.
+html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
+  .body-sidebar {
+    padding-inline: 0;
+    overflow: hidden;
+    box-shadow: none;
+  }
+
+  .body-sidebar-top {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .bnd-sb-brand {
+    justify-content: center;
+    inline-size: 40px;
+    min-block-size: 40px;
+    block-size: 40px;
+    margin-block: var(--bnd-sp-2) var(--bnd-sp-3);
+    margin-inline: 6px;
+    padding: 4px;
+    border-radius: var(--bnd-radius-lg);
+    background: transparent;
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in srgb, var(--bnd-brand-solid) 10%, transparent);
+      filter: none;
+    }
+
+    .bnd-sb-brand-chip {
+      inline-size: 32px;
+      block-size: 32px;
+      border-radius: var(--bnd-radius-md);
+      background: var(--bnd-brand-solid);
+      color: var(--bnd-on-brand);
+    }
+
+    .bnd-sb-brand-logo {
+      inline-size: 32px;
+      block-size: 32px;
+    }
+
+    .bnd-sb-brand-name {
+      display: none;
+    }
+  }
+
+  .bnd-sb-utils {
+    inline-size: 40px;
+    margin-block-end: var(--bnd-sp-3);
+    margin-inline: 6px;
+    padding: 0 0 var(--bnd-sp-3);
+    border-block-end: var(--bnd-line) solid var(--bnd-sb-line);
+  }
+
+  .bnd-sb-item {
+    justify-content: center;
+    inline-size: 40px;
+    min-block-size: 40px;
+    block-size: 40px;
+    gap: 0;
+    padding: 5px;
+    border-radius: var(--bnd-radius-lg);
+
+    .bnd-sb-chip {
+      background: transparent;
+      color: var(--bnd-sb-ink-muted);
+    }
+
+    &:hover .bnd-sb-chip,
+    &:focus-visible .bnd-sb-chip {
+      color: var(--bnd-sb-ink);
+    }
+
+    .bnd-sb-item-label {
+      display: none;
+    }
+  }
+
+  .sidebar-items {
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  // Home is already the brand mark; repeating it wastes the most valuable
+  // rail slot. Neutral pre-section links and nested rows stay in the full pane.
+  .bnd-sb-card[data-bnd-hue="0"],
+  .bnd-sb-card > :not(.section-item),
+  .bnd-sb-card > .section-item > :not(.standard-sidebar-item) {
+    display: none;
+  }
+
+  // This native zero-height spacer sits between utilities and the link list.
+  // In a flex column it still creates two gaps, so remove it in the rail.
+  .standard-items-sections {
+    display: none;
+  }
+
+  .bnd-sb-card {
+    position: relative;
+    inline-size: 40px;
+    min-block-size: 40px;
+    block-size: 40px;
+    margin-block: 0 var(--bnd-sp-2);
+    margin-inline: 6px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--bnd-radius-lg);
+    background: transparent;
+    box-shadow: none;
+
+    &:hover {
+      background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
+    }
+
+    &:has(.active-sidebar) {
+      background: color-mix(in srgb, var(--bnd-brand-solid) 12%, transparent);
+    }
+
+    &:has(.active-sidebar)::after {
+      content: "";
+      position: absolute;
+      inset-block: 9px;
+      inset-inline-start: 0;
+      inline-size: 3px;
+      border-radius: var(--bnd-radius-pill);
+      background: var(--bnd-brand-solid);
+    }
+  }
+
+  .bnd-sb-card > .section-item,
+  .bnd-sb-card > .section-item > .standard-sidebar-item,
+  .bnd-sb-card > .section-item > .standard-sidebar-item > .item-anchor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 40px;
+    min-block-size: 40px;
+    block-size: 40px;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    border: 0;
+    border-radius: var(--bnd-radius-lg);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .bnd-sb-card .sidebar-item-icon {
+    inline-size: 30px;
+    block-size: 30px;
+    background: transparent;
+    color: var(--bnd-sb-ink-muted);
+  }
+
+  .bnd-sb-card:hover .sidebar-item-icon,
+  .bnd-sb-card:has(.active-sidebar) .sidebar-item-icon {
+    color: var(--bnd-brand-ink);
+  }
+
+  .bnd-sb-card .sidebar-item-label,
+  .bnd-sb-card .drop-icon,
+  .bnd-sb-card .sidebar-child-item,
+  .body-sidebar-bottom,
+  .sidebar-resize-handle {
+    display: none;
+  }
+
+  :is(.bnd-sb-brand, .bnd-sb-item, .standard-sidebar-item):focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: -2px;
+  }
+}
+
+// Keep full top-level names readable in the expanded 220px pane. Native
+// spacing assumes much shorter English labels and was clipping Transactions.
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open
+  .sidebar-item-container.section-item
+  > .standard-sidebar-item
+  .item-anchor {
+  gap: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-2);
+}
+
+html[data-bnd-rail] .body-sidebar-container.bnd-rail-open
+  .sidebar-item-container.section-item
+  > .standard-sidebar-item
+  .sidebar-item-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: 11px;
+}
+
+// Floating placement normally leaves an 8px gutter for its visible card.
+// A hidden sidebar must not leave that orphaned gap; restore it only while the
+// pane exists. Attached placement has no margin to override.
+html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container {
+  margin-inline-start: 0;
+
+  &.bnd-rail-open {
+    margin-inline-start: var(--bnd-sp-2);
+    border: var(--bnd-line) solid var(--bnd-sb-line);
+  }
+}
+
+// In rail mode the top bar still owns the one sidebar toggle, but remains in
+// normal document flow. Do not promote it to a viewport-fixed overlay: that
+// caused dashboard content to scroll behind a permanently pinned global bar.
+html[data-bnd-rail][data-bnd-topbar] {
+  .main-section {
+    position: relative;
+    box-sizing: border-box;
+    padding-block-start: var(--bnd-topbar-h);
+    // The header spans back across the rail column. Frappe's overflow clips
+    // both paint and hit-testing outside .main-section, leaving a visible but
+    // unclickable toggle; page-level scrolling is the correct owner here.
+    overflow: visible;
+  }
+
+  .main-section > header {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: calc(-1 * var(--bnd-sb-rail-w));
+    // `.main-section` still occupies the full viewport beside the rail. Pulling
+    // the start edge back without shortening the opposite edge therefore made
+    // the header wider than the viewport by exactly the rail width; at 800px
+    // the avatar ended at x=836. Balance both logical edges so every control
+    // remains inside the viewport in LTR and RTL.
+    inset-inline-end: var(--bnd-sb-rail-w);
+    // The header is the sole owner of the top row and must sit over the rail
+    // column there. Below this 44px row the rail owns its own hit targets.
+    // This is deterministic paint ownership; it replaces parent-level
+    // pointer-events tunnelling, whose hit-test result changed after a route
+    // transition even though the child was explicitly interactive.
+    z-index: calc(var(--bnd-z-flyout) + 1);
+    inline-size: auto;
+    margin-inline-start: 0;
+  }
+
+  // Frappe's placeholder occupies the old sidebar column solely for layout.
+  // It must not win hit-testing over the independent top-bar toggle.
+  .body-sidebar-placeholder {
+    pointer-events: none;
+  }
+
+  // The flex column owns its real navigation targets. The header's higher
+  // layer owns the only overlapping strip, so no click-through exception is
+  // needed on the parent.
+  .body-sidebar-container {
+    pointer-events: auto;
+  }
+
+  .body-sidebar-container .body-sidebar {
+    inset-block-start: var(--bnd-topbar-h);
+    pointer-events: auto;
+  }
+}
+
+// Opening the rail changes the width of the preceding flex column. Extend the
+// absolutely positioned header by that same live width so its toggle remains
+// at one viewport inset instead of jumping to the new sidebar edge.
+html[data-bnd-rail][data-bnd-topbar]
+  .body-sidebar-container.bnd-rail-open
+  ~ .main-section
+  > header {
+  inset-inline-start: calc(-1 * var(--bnd-sb-w));
+  inset-inline-end: var(--bnd-sb-w);
+}
+
+// Floating placement adds its card gutter to the open sidebar's flex footprint.
+// Include that gutter in the header reach so opening the pane does not move the
+// independent toggle by exactly one spacing token.
+html[data-bnd-sb-placement="floating"][data-bnd-rail][data-bnd-topbar]
+  .body-sidebar-container.bnd-rail-open
+  ~ .main-section
+  > header {
+  inset-inline-start: calc(-1 * (var(--bnd-sb-w) + var(--bnd-sp-2)));
+  inset-inline-end: calc(var(--bnd-sb-w) + var(--bnd-sp-2));
+}
+
 // ── The expanded pane, and the transition that ate it ───────────────────────
 // v16 sizes the inner pane ONLY under `.body-sidebar-container.expanded`, from
 // its own `--sidebar-width` (mapped to `--bnd-sb-w` in _bridge.scss), and
@@ -802,45 +1131,32 @@ html[data-bnd-desk]:not([data-bnd-rail]):not([data-bnd-narrow])
   transition-property: none;
 }
 
-// Floating + rail: the overlay tracks the card's inset.
+// Floating + rail: the pane tracks the card's inset.
 html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .body-sidebar {
   inset-block: 0;
   inset-inline-start: 0;
 }
 
-// Glass applies to the overlay surface in rail modes.
-html[data-bnd-sb-material="glass"][data-bnd-rail]:not([data-bnd-sb-color="brand"]) .body-sidebar-container .body-sidebar {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct, 85%), transparent);
-}
-html[data-bnd-sb-material="glass"][data-bnd-sb-blur="full"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  backdrop-filter: blur(14px) saturate(1.15);
-}
-
-// The pin control (hoverpin only; bunood.js mounts it).
-html[data-bnd-rail] .bnd-sb-pin {
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: none;
-  border-radius: var(--bnd-radius-md);
-  background: transparent;
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-
-  &:hover {
-    background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
-  }
-}
-html[data-bnd-rail] .bnd-rail-pinned .bnd-sb-pin {
-  color: var(--bnd-brand-ink);
+// The floating reset above intentionally writes both block insets. Preserve
+// the top-bar row in rail mode so the pane never sits beneath its own toggle.
+html[data-bnd-sb-placement="floating"][data-bnd-rail][data-bnd-topbar]
+  .body-sidebar-container
+  .body-sidebar {
+  inset-block-start: var(--bnd-topbar-h);
 }
 
-// Hide Frappe's own collapse toggle in rail modes — the rail IS the
-// collapsed state, and two collapse affordances would fight.
+// Keep the navigation surface opaque so dashboard cards never bleed through
+// its labels. Collapsible mode intentionally does not use backdrop blur.
+html[data-bnd-sb-material="glass"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+  background: var(--bnd-sb-bg);
+  backdrop-filter: none;
+}
+
+// Hide Frappe's own collapse and resize affordances in rail mode. The one
+// top-bar control owns this interaction.
 html[data-bnd-rail] .body-sidebar .collapse-sidebar-link,
 html[data-bnd-rail] .body-sidebar .sidebar-resize-handle {
-  display: none;
+  display: none !important; // Frappe writes display:flex inline on collapse
 }
 
 // ── Apps rail ───────────────────────────────────────────────────────────────
@@ -921,107 +1237,6 @@ html[data-bnd-sb-appsrail] .bnd-apps-rail {
 // and any floating margins — this block only documents that the statusbar
 // consumes it; see observe_sidebar_width() in bunood.js.
 
-// ── Rail expand button ──────────────────────────────────────────────────────
-// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
-// trigger). Placement, shape and glyph are all Theme Settings options; the
-// element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail] .bnd-railbtn {
-  position: absolute;
-  z-index: calc(var(--bnd-z-flyout) + 1);
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  background: var(--bnd-sb-card-base);
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-  box-shadow: var(--bnd-shadow-sm);
-
-  svg {
-    inline-size: 13px;
-    block-size: 13px;
-    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
-  }
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-}
-
-// Placements. Edge rides the pane's end border, vertically centred; top sits
-// in the header row; bottom is pinned above the pane's end.
-//
-// TWO POSITIONS EACH, because the pane and the button have different parents.
-// The button is absolute against the CONTAINER, which stays at the rail's
-// 52px; the open pane is an overlay that grows to --bnd-sb-w PAST it. With
-// only the at-rest offset, opening slid the pane out from under the button
-// and left it floating over the workspace list, 40px from the left edge — a
-// chevron on top of "Material Request", measured 2026-08-08, and the broken
-// render reported that day. So each placement states where it sits at REST
-// (against the rail) and where it sits OPEN (against the pane's real edge,
-// derived from the same two widths the pane itself uses), with the same
-// duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail] .bnd-railbtn {
-  transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
-}
-html[data-bnd-rail] .bnd-railbtn-edge {
-  inset-inline-end: -12px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-}
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-edge {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
-}
-html[data-bnd-rail] .bnd-railbtn-top {
-  inset-inline-end: var(--bnd-sp-1);
-  inset-block-start: var(--bnd-sp-2);
-}
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-top,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-top {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-html[data-bnd-rail] .bnd-railbtn-bottom {
-  inset-inline-end: 50%;
-  translate: 50% 0;
-  inset-block-end: var(--bnd-sp-2);
-}
-// Centre of the OPEN pane: the button's end edge X from the container's end
-// puts its centre (after the +50% translate) at rail-w − X from the pane's
-// start, so X = rail-w − sb-w/2 lands it on sb-w/2 exactly.
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-bottom,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-bottom {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) / 2);
-}
-
-// Shapes.
-html[data-bnd-rail] .bnd-railbtn-circle {
-  border-radius: var(--bnd-radius-pill);
-}
-html[data-bnd-rail] .bnd-railbtn-square {
-  border-radius: var(--bnd-radius-md);
-}
-html[data-bnd-rail] .bnd-railbtn-tab {
-  border-radius: 0 var(--bnd-radius-md) var(--bnd-radius-md) 0;
-  inline-size: 16px;
-  block-size: 44px;
-  inset-inline-end: -16px;
-  box-shadow: none;
-  border-inline-start: none;
-}
-// The tab protrudes fully (16px, not the circle's half-and-half straddle), so
-// its open offset differs from the edge circle's by its own width.
-html[data-bnd-rail] .bnd-rail-open .bnd-railbtn-tab,
-html[data-bnd-rail] .bnd-rail-pinned .bnd-railbtn-tab {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 16px);
-}
-
-// Open state: the chevron/arrow glyphs flip to point back.
-.bnd-rail-open .bnd-railbtn svg {
-  rotate: 180deg;
-}
-
 // ── Icon source overrides ───────────────────────────────────────────────────
 // "Original" hands the icon area back to Frappe untouched — every chip rule
 // above is reverted. Letter chips are the Smart mode's fallback and the
@@ -1060,43 +1275,6 @@ html[data-bnd-sb-color] .bnd-sb-letter {
 // nothing hides the bars on it. If a future Frappe restores the Desktop's own
 // header, re-add the block WITH a check that search stays reachable there.
 //
-// ── Rail rest state: calm, not compressed ───────────────────────────────────
-// A workspace can hold 70+ links; rendering them as micro-rows in a 52px rail
-// is noise (measured on the Stock workspace). At rest the rail shows ONLY the
-// brand mark, the utility chips and the module chip; the link list fades in
-// with the expansion. Opacity (not display) so the expansion animates.
-html[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
-  .body-sidebar-top,
-  .body-sidebar-cards,
-  .body-sidebar-bottom,
-  .standard-items-sections,
-  .sidebar-header .sidebar-item-label,
-  .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
-  }
-
-  // Labels are text; opacity alone leaves their WIDTH, which pushed the
-  // chips past the 52px rail edge (measured). At rest the injected rows
-  // become icon-only and centered.
-  .bnd-sb-item .bnd-sb-item-label,
-  .bnd-sb-module .bnd-sb-module-label,
-  .bnd-sb-module .bnd-sb-module-chev {
-    display: none;
-  }
-
-  .bnd-sb-item,
-  .bnd-sb-module {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  .bnd-sb-utils {
-    padding-inline: 0;
-  }
-}
-
 // ── Reduce transparency (OS-level) ──────────────────────────────────────────
 // Glass degrades to the designed solid, never to a glitch. The per-user
 // toggle sets data-bnd-sb-blur="off" + material solid from JS; this covers
@@ -1124,6 +1302,8 @@ html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
   position: absolute;
   inline-size: 0;
   min-inline-size: 0;
+  margin: 0;
+  border: 0;
   overflow: hidden;
 }
 

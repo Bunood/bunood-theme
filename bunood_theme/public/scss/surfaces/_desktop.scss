@@ -154,3 +154,34 @@ html[data-bnd-desk] {
     overflow-wrap: break-word;
   }
 }
+
+// Frappe fixes the narrow Desktop grid at three 117px columns. With its own
+// padding and gaps that row is wider than a 390px viewport; LTR loses the
+// trailing edge and RTL loses the leading card (measured at x=-20) while the
+// page's overflow clipping hides the scrollbar. `sync_desktop_grid` releases
+// that one inline declaration once the grid exists; this rule then provides
+// two readable columns for the whole narrow regime. Wider viewports leave
+// Frappe's native desktop count untouched. Every nested app group inherits the
+// same bound.
+html[data-bnd-desktop][data-bnd-narrow] .desktop-wrapper {
+  .desktop-container {
+    inline-size: 100%;
+  }
+
+  .icons-container {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    padding-inline: var(--bnd-sp-3);
+  }
+
+  .desktop-container > .icons-container > .icons {
+    inline-size: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bnd-sp-3);
+  }
+
+  .icons #{$desktop-item} {
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+}

@@ -93,6 +93,17 @@ before_request = ["bunood_theme.context.prefer_system_language_for_guests"]
 # print stylesheet is canonicalized when a user browses an alternate origin.
 override_whitelisted_methods = {
     "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
+    "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
+    "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
+}
+
+# Frappe v16's XLSX exporter asks every standard Query Report for an optional
+# Python style hook. SQL-only reports legitimately have no controller module,
+# but core currently treats that absence as fatal. Extend the native Report
+# class in every web/worker process so foreground and background exports share
+# the same narrow fallback. See report_compat.ReportXlsxStyleCompatibility.
+extend_doctype_class = {
+    "Report": ["bunood_theme.report_compat.ReportXlsxStyleCompatibility"],
 }
 
 # ── Boot payload ────────────────────────────────────────────────────────────────
@@ -143,6 +154,12 @@ doc_events = {
     "Workspace": {
         "on_update": "bunood_theme.api.clear_workspace_cache",
         "after_delete": "bunood_theme.api.clear_workspace_cache",
+    },
+    "Sales Invoice": {
+        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+    },
+    "Purchase Invoice": {
+        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
     },
 }
 

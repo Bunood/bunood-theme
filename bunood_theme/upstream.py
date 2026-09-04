@@ -1,18 +1,18 @@
 # Copyright (c) 2026, Bunood and contributors
 # For license information, please see license.txt
-"""The upstream fingerprint â€” every Frappe/ERPNext fact this app is built on.
+"""The upstream fingerprint — every Frappe/ERPNext fact this app is built on.
 
 WHY THIS EXISTS
     This theme is a layer over software somebody else ships. Every rule in it
     rests on an upstream fact: a DOM shape, a workspace's block order, a
     DocType's field order, a template we read. When Frappe or ERPNext updates,
-    any of those can move silently â€” and the failure is not a crash. It is a
+    any of those can move silently — and the failure is not a crash. It is a
     rule that still compiles, still passes every gate, and quietly matches
     nothing. This session alone produced three of those:
 
       * a hiding rule naming `.body-sidebar .navbar-search-bar`, after v16 moved
-        search into `.page-head` â€” so the native search survived beside ours;
-      * `data-bnd-layout` scoping, after item 37 stopped stamping it â€” rules that
+        search into `.page-head` — so the native search survived beside ours;
+      * `data-bnd-layout` scoping, after item 37 stopped stamping it — rules that
         compiled and matched nothing;
       * `frappe.get_route()` returning null mid-boot, which threw out of a chain
         that had worked for a year.
@@ -61,17 +61,6 @@ PINNED_FILES = (
     ("num2words", "num2words/lang_AR.py"),
     ("frappe", "frappe/locale.py"),
     ("frappe", "frappe/utils/number_format.py"),
-    # Native print rendering, language, footer flow and report stylesheet.
-    ("frappe", "frappe/utils/print_format.py"),
-    ("frappe", "frappe/public/html/print_template.html"),
-    ("frappe", "frappe/utils/pdf.py"),
-    ("frappe", "frappe/www/printview.html"),
-    ("frappe", "frappe/www/printview.py"),
-    ("frappe", "frappe/utils/print_utils.py"),
-    ("frappe", "frappe/utils/jinja.py"),
-    ("frappe", "frappe/translate.py"),
-    ("frappe", "frappe/templates/styles/standard.css"),
-    ("frappe", "frappe/utils/data.py"),
     # Quick bill delegates native controls, lifecycle, defaults and amounts.
     ('frappe', 'frappe/public/js/frappe/form/controls/base_input.js'),
     ('frappe', 'frappe/public/js/frappe/form/controls/link.js'),
@@ -90,6 +79,34 @@ PINNED_FILES = (
     ('erpnext', 'erpnext/public/js/controllers/transaction.js'),
     ('erpnext', 'erpnext/public/js/controllers/taxes_and_totals.js'),
     ('erpnext', 'erpnext/public/js/utils/sales_common.js'),
+    # Report panel structure and native summary/filter sizing.
+    ("frappe", "frappe/public/js/frappe/views/reports/query_report.js"),
+    ("frappe", "frappe/public/scss/desk/report.scss"),
+    # Delegated report PDF export and its canonical-origin fetch restrictions.
+    ("frappe", "frappe/utils/print_format.py"),
+    ("frappe", "frappe/public/html/print_template.html"),
+    # Account language persistence, permission checks and locale/cache updates.
+    ("frappe", "frappe/client.py"),
+    ("frappe", "frappe/core/doctype/user/user.py"),
+    # Native localized amount-in-words and print padding/RTL cascade.
+    ("frappe", "frappe/utils/data.py"),
+    ("frappe", "frappe/templates/styles/standard.css"),
+    # Isolated header/footer rendering adds the native print bundle's image rules.
+    ("frappe", "frappe/utils/pdf.py"),
+    # Native pane construction and data-mode edit state for sidebar re-decoration.
+    ("frappe", "frappe/public/js/frappe/ui/sidebar/sidebar.js"),
+    ("frappe", "frappe/public/js/frappe/ui/sidebar/sidebar_editor.js"),
+    # Jinja language snapshots and print_language context restoration.
+    ("frappe", "frappe/utils/jinja.py"),
+    ("frappe", "frappe/translate.py"),
+    # PDF format selection, language, repeated header/footer and vendor !important ink.
+    ("frappe", "frappe/www/printview.py"),
+    # Preview footer re-enters normal flow; PDF export still extracts it.
+    ("frappe", "frappe/www/printview.html"),
+    ("frappe", "frappe/utils/print_utils.py"),
+    ("frappe", "frappe/printing/page/print/print.js"),
+    ("erpnext", "erpnext/accounts/print_format/purchase_invoice_with_item_image/purchase_invoice_with_item_image.json"),
+    ("erpnext", "erpnext/accounts/print_format/sales_invoice_with_item_image/sales_invoice_with_item_image.json"),
     # Desktop badge padding and fixed tile heights must not clip themed SVGs.
     ("frappe", "frappe/desk/page/desktop/desktop.css"),
     ("erpnext", "erpnext/workspace_sidebar/home.json"),
@@ -114,7 +131,7 @@ def _sha(text):
 def _file_hash(app, relative):
     """sha256 of an upstream file, or a marker naming why it could not be read.
 
-    A missing file is itself drift â€” louder than a hash change, not quieter â€” so
+    A missing file is itself drift — louder than a hash change, not quieter — so
     it returns a value that cannot match any pin rather than raising.
     """
     try:

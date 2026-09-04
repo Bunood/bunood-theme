@@ -201,6 +201,15 @@ else
 		docker cp "$f" "$FRONTEND:$FRONTEND_ASSETS/$sub/" >/dev/null
 	done
 	say "shipped -> $FRONTEND (dist, ${#ASSETS[@]} files)"
+	# Print previews fetch self-hosted faces, while the shell favicon/splash
+	# fetches the vendor mark from images/. The backend source archive is not
+	# visible to nginx on stacks without a shared app mount, so both public
+	# directories must travel with the hashed bundles.
+	for public_dir in fonts images; do
+		docker exec "$FRONTEND" mkdir -p "${FRONTEND_ASSETS%/dist}/$public_dir"
+		docker cp "bunood_theme/public/$public_dir/." "$FRONTEND:${FRONTEND_ASSETS%/dist}/$public_dir/" >/dev/null
+		say "shipped -> $FRONTEND ($public_dir)"
+	done
 fi
 
 # ── Mirror into WSL ─────────────────────────────────────────────────────────
@@ -304,6 +313,16 @@ else
 	fi
 fi
 
+# ── Synchronise the site schema ────────────────────────────────────────────
+# Shipping Python/JSON source without `bench migrate` leaves the running site
+# on the previous DocType contract. That exact split made the new Theme
+# Settings shell appear partially blank: the browser loaded current JS while
+# the database still lacked the current email, print and palette fields. A
+# successful deploy must therefore include the schema and after_migrate hooks,
+# not only files and asset hashes.
+say "migrating $SITE"
+docker exec "$BACKEND" bash -lc "cd /home/frappe/frappe-bench && bench --site '$SITE' migrate" >/dev/null
+
 # ── Restart and clear cache ─────────────────────────────────────────────────
 if [[ "$NEED_RESTART" == "1" || "${BND_FORCE_RESTART:-0}" == "1" ]]; then
 	say "restarting $BACKEND (assets changed)"
@@ -388,6 +407,13 @@ for f in "${ASSETS[@]}"; do
 		BAD=1
 	fi
 done
+MARK_CODE="$(curl -s -o "$CURL_SINK" -w '%{http_code}' "$URL_BASE/assets/bunood_theme/images/bunood-mark.svg" || true)"
+if [[ "$MARK_CODE" == "200" ]]; then
+	say "serving bunood-mark.svg (200)"
+else
+	say "WARNING: bunood-mark.svg returns $MARK_CODE — branding assets are incomplete"
+	BAD=1
+fi
 if [[ "$BAD" == "1" ]]; then
 	exit 1
 fi

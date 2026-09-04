@@ -1,5 +1,249 @@
 # Handover — read this first
 
+## One-line invoice header and Arabic document font — 2026-08-31
+
+Removed the redundant currency beside the A4 purchase/sales invoice title in
+both languages; metadata, item amount headings and totals still show currency.
+Hairline Minimal now places company, VAT and CR in one mirrored table row.
+Optional logos sit beside the name; exceptionally long names wrap within their
+own cell rather than clipping or shrinking the whole page.
+
+Bundled Noto Naskh Arabic 2.021 Regular/Bold under its OFL. Static hinted Arabic
+subsets keep Latin labels, IDs, numbers and URLs entirely in DejaVu Sans: the
+unmodified font's ASCII metrics otherwise split these runs during PDF extraction.
+`tools/prepare_naskh_fonts.py` reproduces the subset from the verified upstream
+archive. `_sync_style` registers both faces in shared fontconfig; deployment now
+copies public font assets to the separate frontend as well. The Minimal header,
+footer and native repeated page label use the same Arabic face. PDF fontconfig
+previously only offered DejaVu for Arabic; the intended fonts were not installed.
+
+Verified 10 invoice PDFs (18 pages including two five-page specimens), eight
+repeated native language switches, 10 logo/long-name/missing-registration PDFs,
+and both browser print previews. Actual Arabic glyphs use Noto Naskh; title
+currency is absent; all repeated headers fit one row; numeric values, invoice
+IDs and table columns pass existing checks. Settings, source invoices, company
+records and account language are unchanged. Build, payload, contrast and deploy
+upstream gates pass. Evidence: current task `outputs/invoice-header-update`.
+Print CSS `bunood-print.092af6d3.css`; desk CSS/JS unchanged. Locally deployed;
+full release suite not run. No commit or push.
+
+## Report library and consistent presentation — 2026-08-31
+
+Captured all 192 active report screens and catalogued the disabled report too.
+Local gallery: `http://127.0.0.1:8766/`; screenshots, PDF examples and scripts live
+in the current task's `outputs/reports` and `work`. Shared report panels, summary
+cards, native table headings and paper layouts now use the Bunood theme.
+Eight PDF examples include separate English/Arabic statements; register samples
+select key columns for readable paper output without changing live columns.
+
+Fixed native report PDF HTTP 500 by canonicalizing only installed print-bundle
+stylesheet links. Native proxy/allowed-domain restrictions are unchanged. See
+`docs/REPORT-LIBRARY.md` for implementation, reproduction and limitations.
+17/17 targeted report checks and 4/4 canonicalization unit checks pass; build,
+payload, contrast and upstream gates pass. Full release suite not rerun.
+Review and Available Serial No have existing native errors marked in the gallery.
+Desk CSS `bunood.f506be76.css`, print `bunood-print.d84aeed1.css`; JS unchanged.
+No business data changes, commit or push.
+
+## Sidebar brand badge contrast — 2026-08-31
+
+The Bunood monogram now uses the surface/brand-ink token pair: white with a
+green letter in light mode and a contrasting dark plate in dark mode. The
+green brand pill, dimensions and uploaded-logo styling are unchanged.
+Built and deployed CSS `bunood.e1998740.css` locally. Contrast (9,576 pairs),
+payload and the existing English/Arabic light/dark sidebar check pass; sidebar
+captures were inspected under current-task `outputs/brand-badge`. This was a
+filtered visual check, not the full release suite. No commit/push.
+
+## Keep the colored sidebar — 2026-08-31
+
+The site already selected Mini-Cards, Colored Chips and Rich section colors;
+Administrator had no personal override. Native pane replacement left the old
+one-time observer watching a detached list, losing the brand, colored wrappers
+and grouped formatting. The new regression reproduced that failure (brand
+count zero after native constructor/setup instead of one).
+
+The kit now follows the current pane, using a shallow body observer to detect
+replacement and one rebindable pane observer. It coalesces native changes before
+paint and disconnects during its own writes, avoiding idle rebuild loops.
+Replaced rail listeners are released. Navigation restores the entire decoration;
+late rows join existing groups. Native edit mode gets its flat sortable list,
+and deliberate alternative style selections are still respected. No theme
+settings or personal style choices were changed. See `docs/SIDEBAR-CONSISTENCY.md`.
+
+Final verification: 5 focused lifecycle/theme/mobile checks plus all 8 preset
+and 2 rail checks passed (15 total). English/Arabic light/dark sidebar captures
+were inspected; the light version matches the user's preferred screenshot.
+Evidence: current task `outputs/sidebar-consistency`, including the failing
+baseline, final logs and independent settings/preference/language snapshot check.
+Build, payload and upstream gates pass; two inspected sidebar contracts were
+added without changing old pins. Serving JS `bunood.4f98b21b.js`; CSS/print assets
+unchanged. Existing browser tabs need a reload. Full release suite not rerun;
+earlier unrelated failures remain. No commit/push.
+
+## Balanced invoice header — 2026-08-31
+
+Hairline Minimal now uses two aligned blocks: a prominent company name at the
+reading-start edge and compact VAT/CR rows opposite, with one thin green rule.
+English is LTR and Arabic mirrors the blocks. Names wrap within their column;
+absent registration gives the name full width. An optional logo above the name
+stays within 120×36px with its aspect ratio preserved. No missing-logo space is
+reserved. Other compositions, footer, business data and theme options are
+unchanged. See `bunood_theme/letterhead/README.md` for the researched references,
+source/sync model, native image-rule constraints and reproduction commands.
+
+The old header failed the new hierarchy check (company 8.25pt versus ID 7.5pt).
+The deployed version is 15pt versus 8.25pt. All 10 final invoice cases pass the
+existing PDF checks; header geometry passes on all 18 pages. Another 10 PDFs
+cover long names, absent registration and 1:1/4:1/10:1 logos in both languages.
+A real logo fixture exposed native print image overrides; a bounded wrapper
+outside table cells fixes them without global CSS or new `!important` rules.
+Final PDF crops and representative whole pages were visually inspected.
+
+Evidence: `outputs/header-redesign/{before,after,fixtures}` in the current task.
+Independent snapshots match all Theme Settings, company/invoice names and
+timestamps, and footer content. Account language changed separately from en to
+ar during the task; version history and a read-only repeated-print audit are
+recorded in `language-audit.json`. The current account preference was preserved,
+not reset to the earlier snapshot. PDF contexts do not save the account language.
+
+Deployed via `tools/deploy.sh --no-build` and resynchronized the managed Letter
+Head. Build and deploy checks passed; desk CSS `bunood.edbe7062.css`, JS
+`bunood.e86c61c4.js` and print CSS `bunood-print.51bf7134.css` are unchanged.
+Added the inspected native `frappe/utils/pdf.py` pin without changing old pins.
+Full release suite not rerun; prior unrelated failures remain. No commit/push.
+
+## Top-bar Home and language shortcuts — 2026-08-31
+
+The local site's existing `home_placement` is now `Top Bar Start`; it uses the
+same Home workspace route and does not duplicate the existing component. The
+top bar also has an Arabic/English language action, with the same action in the
+profile menu for mobile/layouts without a top bar. It saves only the signed-in
+User through native permission-checked `frappe.client.set_value`, then reloads
+the current page for its translations and direction. Dirty documents, including
+cached forms, block switching. Failures preserve the page and permit retry.
+See `docs/TOPBAR-SHORTCUTS.md` for placement and safety details.
+
+The missing-button check failed before implementation. Five focused browser
+checks then passed (real account persistence, native Home navigation, unsaved
+edits, failure recovery and responsive language/theme coverage). Screenshots
+caught a shared icon-button rule squeezing the autonym into a square; a new
+label-containment check failed against that build. Scoped sizing and green
+icon/focus colours fixed it, with centred-search clearance at tablet widths.
+The strengthened visual check now passes at 800/1024/1440 in both languages and
+themes, plus the mobile menu fallback. Focus colour is measured after the
+existing colour transition settles. Home navigation passed again after the CSS
+repair. Final screenshots were inspected in `outputs/topbar` of this task.
+
+A rolled-back non-admin probe verified self-language updates and rejection of
+updates to Administrator. Independent snapshots confirm only the requested
+Home placement changed; language, locale defaults, other settings and tracked
+business-record names/timestamps were restored. Evidence: `outputs/topbar-*.log`
+and `outputs/topbar-site-restoration.json` in the current task directory.
+
+Serving desk CSS `bunood.edbe7062.css` and JS `bunood.e86c61c4.js`; print/web/email
+assets unchanged. Build, translation coverage, payload and all 9,576 contrast
+pairs pass. Two inspected upstream contracts were added without changing any
+existing pin. JS gzip ceiling increased 108,000 -> 109,000 bytes for the new
+action/error/draft handling; measured 108,336 bytes, no dependency added.
+Full release suite not rerun; prior unrelated failures remain. No commit/push.
+
+## Document summary placement — 2026-08-31
+
+Document summary now opts in only the 16 reviewed transaction types listed in
+`docs/DOCUMENT-SUMMARIES.md`. It remains after the native fields on sales,
+purchasing, accounting, inventory and manufacturing transactions, including
+unsaved drafts. User, roles, settings, master records, tracking forms and
+unknown/custom types retain only their native form. Excluded forms do not
+install summary observers/listeners; queued renders recheck eligibility and
+clean up obsolete state. No field, permission or accounting behavior changed.
+
+The new exclusion regression failed against the previous build on User
+(one duplicate summary instead of zero). After deployment, all five focused
+summary checks passed across two filtered runs: exclusions, placement and
+cached-form navigation, live invoice values/private fields, unsaved edits and
+visibility, and English/Arabic in both themes on mobile. Theme/language settings
+were restored and business-record names/timestamps independently matched the
+before-test snapshot. Evidence is in this task's `outputs/summary-placement-*`.
+
+Build and local asset checks passed. Serving JS `bunood.87cdb260.js`; CSS hashes
+are unchanged. Full release suite not rerun; previous unrelated failures remain.
+No commit, push or release.
+
+## Separate Arabic / English invoice versions — 2026-08-31
+
+The two managed commercial A4 formats now follow the native Print Language:
+English (`en`) is LTR; Arabic (`ar`) mirrors title, metadata, parties, item
+columns and totals. Each prints one set of labels. The managed letterhead and
+footer follow the language, keep the compact Hairline Minimal composition,
+white background and green rule. IDs and numeric values stay LTR. Stored
+names/descriptions/addresses are preserved; company Arabic name is used where
+configured. Native money_in_words renders the displayed payable amount in the
+selected language, with an explicit negative prefix for returns.
+
+Ten actual wkhtmltopdf cases passed: purchase and sales in both languages,
+44 rows over five pages in each language, discount/tax and negative return.
+Checks inspect label language, white PDF header glyphs, physical item-column
+order, long-code cell containment, totals, repeated header/footer and page
+numbering. Source invoices remain unchanged. Evidence and PDFs are under the
+current task's `outputs/pdf-languages`; the prior compact bilingual PDFs are
+preserved under `outputs/pdf-compact`. The old Arabic HTML fails the new
+direction/language assertion as expected.
+
+Print CSS is `bunood-print.51bf7134.css`; other asset hashes are unchanged.
+Four newly inspected upstream files (native money wording, standard print
+CSS, Jinja environment and print-language context) were added to pins without changing any existing pin. Full release suite
+not rerun; prior unrelated failures below remain. No commit, push or release.
+The in-app browser session was signed out, so manual Language-selector browser
+verification was unavailable; actual PDFs were generated through native Frappe
+printing in each print_language context.
+
+The native preview API exposed a stale `frappe.lang` Jinja snapshot when
+switching en -> ar -> en in one process. A read-only Jinja helper,
+`bunood_print_language()`, reads the active request language at render time;
+wrappers pass it explicitly through the shared include, and letterhead/footer
+use the same helper. Eight sequential native-preview switches now pass.
+The PDF generator runs this regression before its ten PDF cases. Backend and
+background workers were restarted to load the new hook. Three focused existing
+print checks passed before this cache repair; print CSS is unchanged by it.
+
+## Invoice PDF repair — 2026-08-31
+
+The supplied Purchase Invoice PDF exposed defects that the earlier browser-only
+print checks missed: stock image-invoice floats separated labels from values in
+Arabic, gray `!important` text overrode brand header colors, and print media forced
+bilingual child spans black. The stock defaults also printed empty address labels
+and decorative item thumbnails.
+
+Two managed formats now share `templates/bunood_invoice_a4.html`: `Bunood Purchase
+Invoice (A4)` and `Bunood Sales Invoice (A4)`. They use table geometry, separate
+Arabic/English runs, explicit currency codes, six item columns and missing-address
+messages. VAT/CR and footer contacts are separated in all managed letterhead
+compositions. Source invoice data is unchanged. The local site selected both
+formats with native Property Setters; installation elsewhere only makes them
+available and respects existing defaults.
+
+Actual wkhtmltopdf checks passed for both real invoices, English/Arabic printing,
+44 rows over six pages (including a long unbroken item code), discount/tax and a
+negative return. `tools/invoice-pdf-regression.mjs` generates unsaved specimens;
+`tools/verify_invoice_pdfs.py` checks real white glyphs, extracted item columns,
+financial values, page bounds and repeated headers/footers. Both real invoices,
+the discount/tax case and the return fit one A4 sheet. Browser Print selected
+the new purchase default with language `ar` and letterhead `Bunood`.
+
+Build and all 9,576 palette pairs pass. Three existing focused print checks pass
+(letterhead composition/stand-down, print fills, muted/table-head contrast).
+The full suite was not rerun; its prior unrelated failures below remain recorded.
+Five newly inspected print files were added to upstream pins; prior pins and
+upstream source files are unchanged. Print asset: `bunood-print.b956f76e.css`;
+desk/web/email/JS assets are unchanged. No push or release was made.
+
+Evidence and corrected PDFs are under the current task's `outputs/pdf-review`.
+Before-change print style, letterhead and defaults are in `work/invoice-print-before.json`.
+PDFs remain visual documents: shaped Arabic extraction varies by reader. Use
+native record export/API for automated accounting interchange; no claim of tagged
+PDF accessibility or tax certification is made.
+
 ## Desktop icon color clarification — 2026-08-31
 
 The user requested green outlines on white icon backgrounds. Desktop app and

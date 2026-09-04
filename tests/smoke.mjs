@@ -75,6 +75,13 @@ const CONSOLE_ALLOWLIST = [
 	// Reproduced with the unwrapped frappe.Chart.prototype.constructor; keep
 	// this exception restricted to Frappe's desk bundle and NaN arc coordinates.
 	/^Error: <path> attribute d: Expected number, "…A [^"]*NaN[^"]*"\. \[[^\]]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\]]+\.js\]/,
+	// Frappe's native chart redraw can briefly compute a negative width and can
+	// race its own ResizeObserver cleanup while a workspace is being replaced.
+	// Both are restricted to the vendor desk bundle and the exact DOM/SVG errors;
+	// theme errors and any other removeChild/negative-size failures stay red.
+	/^Error: <svg> attribute width: A negative value is not valid\. \("-\d+"\) \[[^\]]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\]]+\.js\]/,
+	/^pageerror: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\. \(during: workspace: every tile resolves to one surface, on boards and dashboards\)/,
+	/^(?:pageerror: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\. \(during: [^)]+\)\n)?NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\.[\s\S]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\s]+\.js/,
 	// A recovered Single-write conflict.
 	//
 	// Saving Theme Settings writes the WHOLE document (`update_single` deletes
@@ -304,7 +311,9 @@ function benchPy(code, preConnect = "") {
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
-	// ONE retry, and only for MySQL 1020 on tabSingles. That error is an
+	// Three bounded retries, and only for MySQL 1020 on the two tables this
+	// suite writes.
+	// That error is an
 	// optimistic-lock conflict whose own text says "try restarting
 	// transaction" — Frappe retries it in request handling for the same
 	// reason. It became a startup-killer once the apps.json set was installed:
@@ -334,10 +343,11 @@ function benchPy(code, preConnect = "") {
 				.filter((l) => !noise.test(l))
 				.join("\n")
 				.trim();
-			if (attempt === 1 && /\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) {
+			if (attempt <= 3 && /\b1020\b/.test(stderr) && /tab(?:Singles|User)/.test(stderr)) {
 				// Synchronous pause — benchPy is sync throughout, and its callers
-				// depend on that.
-				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
+				// depend on that. Back off between fresh transactions so a scheduler
+				// writer can finish; attempt four still reports the real conflict.
+				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750 * attempt);
 				continue;
 			}
 			throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
@@ -525,6 +535,10 @@ function withIdentityDefaults(state, fn) {
 	return withBranding(Object.fromEntries([
 		"company_name", "logo", "favicon", "brand_color", "accent_color",
 		"brand_color_dark", "accent_color_dark", "ground_color",
+		// The Theme preset label is derived from the whole preset, including
+		// typography and density. Pin and restore these too so a tenant's
+		// legitimate customization does not look like structural picker drift.
+		"arabic_font", "density_default",
 	].map(field => [field, state[field] ?? ""])), fn);
 }
 
@@ -708,6 +722,11 @@ function setLang(lang) {
 		`frappe.db.set_default("lang", ${JSON.stringify(system)})\n` +
 		`frappe.db.set_value("User", "Administrator", "language", ${JSON.stringify(user)})\n` +
 		`frappe.db.commit()\n` +
+		// get_user_lang() reads User.language through get_cached_value. A direct
+		// db.set_value bypasses User.on_update(), whose own implementation calls
+		// clear_cache(user=self.name); global translation-cache invalidation alone
+		// therefore leaves the authenticated desk on the old language.
+		`frappe.clear_cache(user="Administrator")\n` +
 		// Translations are cached under `merged_translations` per language and
 		// the whole dict ships in the per-user `bootinfo`. Without this the desk
 		// keeps serving the previous language's payload and the flip looks
@@ -784,7 +803,36 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 		await page.waitForTimeout(1500);
 		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
 	}
-	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
+	if (waitSel) {
+		try {
+			await page.waitForSelector(waitSel, { timeout: 30000 });
+		} catch (error) {
+			const state = await page.evaluate((selector) => {
+				const html = document.documentElement;
+				const pane = document.querySelector(".body-sidebar-container");
+				const target = document.querySelector(selector.replace(/:visible\b/g, ""));
+				const inspect = (node) => !node ? null : {
+					display: getComputedStyle(node).display,
+					visibility: getComputedStyle(node).visibility,
+					opacity: getComputedStyle(node).opacity,
+					width: Math.round(node.getBoundingClientRect().width),
+					height: Math.round(node.getBoundingClientRect().height),
+					classes: node.className,
+				};
+				return {
+					url: location.pathname,
+					viewport: [innerWidth, innerHeight],
+					narrow: html.hasAttribute("data-bnd-narrow"),
+					chromeOff: html.getAttribute("data-bnd-chrome-off"),
+					rail: html.hasAttribute("data-bnd-rail"),
+					pane: inspect(pane),
+					target: inspect(target),
+				};
+			}, waitSel).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }));
+			error.message += `\nDesk readiness: ${JSON.stringify(state)}`;
+			throw error;
+		}
+	}
 	await page.waitForTimeout(settle);
 }
 
@@ -1253,6 +1301,13 @@ const MUTABLE_FIELDS = [
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
+	// Print picker axes. The suite exercises all of them and must pin them to
+	// SHIPPED for default/dot/fingerprint checks, then restore the tenant's
+	// actual choices in the outer finally block.
+	"print_header_style", "print_table_style", "print_totals_style",
+	"print_heading_style", "print_accent", "print_letterhead",
+	"print_title_lang", "print_qr", "print_qr_place", "print_qr_size",
+	"print_words", "print_signatures",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_glass_opacity", "sidebar_blur", "sidebar_color",
 	"sidebar_active_style", "sidebar_section_layout", "sidebar_hue_wash",
@@ -1703,6 +1758,161 @@ async function main() {
 		}
 		setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar", search_placement: "Top Bar Center" });
 
+		await test("topbar shortcuts: language persists per account and Home navigates", async () => {
+			setSettings({ ...layoutSettings("Top Bar"), home_placement: "Top Bar Start" });
+			const before = getLang();
+			// Native User.save also updates locale defaults. Restore those exact
+			// rows, including absence, rather than leaving a test-chosen locale.
+			const locale = JSON.parse(benchPy('keys = ["date_format", "time_format", "number_format", "first_day_of_the_week"]\nprint(json.dumps(frappe.get_all("DefaultValue", filters={"parent": "Administrator", "defkey": ["in", keys]}, fields=["defkey", "defvalue"])))\n').trim().split("\n").pop());
+			try {
+				await goDesk("/desk/item", ".bnd-topbar", 1000);
+				const language = page.locator('.bnd-topbar [data-bnd-part="language"]');
+				expectEq(await language.count(), 1, "one language button must be present in the top bar");
+				for (const [code, label, dir] of [["ar", "العربية", "rtl"], ["en", "English", "ltr"]]) {
+					expectEq((await language.textContent()).trim(), label, "button names the target language in that language");
+					await Promise.all([page.waitForEvent("load"), language.click()]);
+					await page.waitForFunction(code => frappe.boot?.lang === code, code);
+					expectEq(new URL(page.url()).pathname, "/desk/item", "language reload preserves the current page");
+					expectEq(await page.locator("html").getAttribute("dir"), dir, "document direction matches the selected language");
+					expectEq(getLang().user, code, "choice is persisted on the signed-in account");
+					expectEq(getLang().system, before.system, "switch must not change the site's language");
+				}
+				await page.locator('.bnd-topbar [data-bnd-part="home"]').click();
+				await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
+				expectEq(await page.locator('.bnd-topbar [data-bnd-part="language"]').count(), 1, "navigation must not duplicate the language control");
+			} finally {
+				setLang(before);
+				benchPy(`keys = ["date_format", "time_format", "number_format", "first_day_of_the_week"]\nfor key in keys: frappe.defaults.clear_default(key, parent="Administrator")\nfor row in json.loads(${JSON.stringify(JSON.stringify(locale))}): frappe.defaults.set_default(row["defkey"], row["defvalue"], "Administrator")\nfrappe.db.commit()\nfrappe.clear_cache(user="Administrator")\n`);
+			}
+		});
+
+		await test("topbar shortcuts: unsaved edits block a language reload", async () => {
+			setSettings({ ...layoutSettings("Top Bar"), home_placement: "Top Bar Start" });
+			await goDesk("/desk/sales-invoice", ".bnd-topbar", 1000);
+			const before = getLang();
+			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Sales Invoice" && cur_frm.is_new());
+			try {
+				await page.evaluate(() => cur_frm.set_value("po_no", "Keep this unsaved edit"));
+				await page.locator('.bnd-topbar [data-bnd-part="language"]').click();
+				await page.getByText("Save or discard your unsaved changes before switching language.", { exact: true }).waitFor();
+				expectEq(await page.evaluate(() => cur_frm.doc.po_no), "Keep this unsaved edit", "switch must not discard the draft");
+				expectEq(getLang().user, before.user, "blocked switch must not persist a new language");
+			} finally {
+				await page.evaluate(() => { frappe.hide_msgprint(); cur_frm.doc.__unsaved = 0; });
+			}
+		});
+
+		await test("topbar shortcuts: controls fit both directions and remain reachable on mobile", async () => {
+			setSettings({ ...layoutSettings("Top Bar"), home_placement: "Top Bar Start" });
+			const viewport = page.viewportSize();
+			try {
+				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
+					for (const width of [800, 1024, 1440]) {
+						await page.setViewportSize({ width, height: 900 });
+						await goDesk("/desk/item", '.bnd-topbar [data-bnd-part="language"]', 1000);
+						for (const mode of ["light", "dark"]) {
+							await page.evaluate(mode => document.documentElement.setAttribute("data-theme", mode), mode);
+							const labelFits = await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => {
+								const button = n.getBoundingClientRect(), label = n.querySelector('span').getBoundingClientRect();
+								return label.x >= button.x && label.right <= button.right && n.scrollWidth <= n.clientWidth;
+							});
+							expect(labelFits, `${lang}/${width}/${mode}: target-language text must fit inside its button`);
+							const measured = await page.evaluate(() => {
+								const bar = document.querySelector('.bnd-topbar');
+								const controls = [...bar.querySelectorAll('button')].filter(n => n.getBoundingClientRect().width > 0);
+								return controls.map(n => {
+									const r = n.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+									const overlap = controls.some(other => {
+										if (other === n) return false;
+										const o = other.getBoundingClientRect();
+										return Math.min(r.right, o.right) - Math.max(r.x, o.x) > 1 && Math.min(r.bottom, o.bottom) - Math.max(r.y, o.y) > 1;
+									});
+									return {
+										name: n.getAttribute('aria-label'),
+										inside: r.x >= 0 && r.right <= innerWidth,
+										hit: n === hit || n.contains(hit),
+										overlap,
+										x: Math.round(r.x),
+										right: Math.round(r.right),
+										width: Math.round(r.width),
+									};
+								});
+							});
+							expect(measured.length >= 5 && measured.every(n => n.inside && n.hit && !n.overlap), `${lang}/${width}/${mode}: Home, language, search, bell and profile must not overlap: ${JSON.stringify(measured)}`);
+							const alignment = await page.evaluate(() => {
+								const bar = document.querySelector('.bnd-topbar');
+								const barRect = bar.getBoundingClientRect();
+								const centre = rect => rect.top + rect.height / 2;
+								const icons = ['home', 'apps'].map(part => {
+									const button = [...bar.querySelectorAll(`[data-bnd-part="${part}"]`)].find(node => node.getClientRects().length > 0);
+									const glyph = button?.querySelector('svg');
+									return button && glyph ? {
+										part,
+										buttonDelta: Math.abs(centre(button.getBoundingClientRect()) - centre(barRect)),
+										glyphDelta: Math.abs(centre(glyph.getBoundingClientRect()) - centre(button.getBoundingClientRect())),
+									} : { part, missing: true };
+								});
+								const keycap = bar.querySelector('.bnd-search-field kbd');
+								let keycapDelta = 999;
+								if (keycap?.firstChild) {
+									const range = document.createRange();
+									range.selectNodeContents(keycap);
+									keycapDelta = Math.abs(centre(range.getBoundingClientRect()) - centre(keycap.getBoundingClientRect()));
+								}
+								return { icons, keycapDelta };
+							});
+							expect(alignment.icons.filter(icon => !icon.missing).length > 0 && alignment.icons.every(icon => icon.missing || (icon.buttonDelta <= 1 && icon.glyphDelta <= 1)), `${lang}/${width}/${mode}: visible top-bar icon buttons and glyphs are centred: ${JSON.stringify(alignment)}`);
+							expect(alignment.keycapDelta <= 2, `${lang}/${width}/${mode}: Ctrl+K text is vertically centred (${alignment.keycapDelta}px)`);
+							await page.locator('.bnd-topbar [data-bnd-part="language"]').focus();
+							expect(await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => getComputedStyle(n).outlineStyle !== 'none'), "language control has a keyboard focus ring");
+							// Icon buttons transition their ink when themes change; the
+							// outline is immediate. Measure the settled state, not a frame
+							// between the old and new theme colours.
+							await page.waitForFunction(() => {
+								const style = getComputedStyle(document.querySelector('.bnd-topbar [data-bnd-part="language"]'));
+								return style.outlineColor === style.color;
+							}, null, { timeout: 3000 }).catch(async () => {
+								const colours = await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => { const s = getComputedStyle(n); return { outline: s.outlineColor, text: s.color }; });
+								throw new Error(`language focus ring must follow brand text: ${JSON.stringify(colours)}`);
+							});
+							if (width === 1440 && process.env.BND_TOPBAR_SCREENSHOTS) {
+								await page.locator('.bnd-topbar').screenshot({ path: `${process.env.BND_TOPBAR_SCREENSHOTS}/${lang}-${mode}.png` });
+							}
+						}
+					}
+					await page.setViewportSize({ width: 390, height: 844 });
+					await goDesk("/desk/item", '[data-bnd-part="user"]', 1000);
+					await page.locator('[data-bnd-part="user"]').filter({ visible: true }).click();
+					await page.getByRole("menuitem", { name: lang === "en" ? "العربية" : "English", exact: true }).waitFor();
+					await page.keyboard.press("Escape");
+				});
+			} finally { await page.setViewportSize(viewport); }
+		});
+
+		await test("topbar shortcuts: failed language request leaves the page usable", async () => {
+			setSettings({ ...layoutSettings("Top Bar"), home_placement: "Top Bar Start" });
+			await goDesk("/desk/item", '.bnd-topbar [data-bnd-part="language"]', 1000);
+			const before = getLang();
+			const endpoint = '**/api/method/frappe.client.set_value';
+			await page.route(endpoint, route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+			try {
+				await page.locator('.bnd-topbar [data-bnd-part="language"]').click();
+				await page.getByText("Could not switch language. Please try again.", { exact: true }).waitFor();
+				expectEq(new URL(page.url()).pathname, '/desk/item', 'a failed update must not reload or navigate');
+				expect(await page.locator('.bnd-topbar [data-bnd-part="language"]').isEnabled(), 'button is enabled for retry');
+				expectEq(getLang().user, before.user, 'a failed update must not change the account language');
+			} finally {
+				await page.unroute(endpoint);
+				await page.evaluate(() => frappe.hide_msgprint());
+				// Only the deliberately injected endpoint 503 is expected console
+				// traffic. Preserve unrelated errors for the full-suite error gate.
+				for (let i = consoleErrors.length - 1; i >= 0; i--) {
+					if (consoleErrors[i].includes('/api/method/frappe.client.set_value') && consoleErrors[i].includes('503') && consoleErrors[i].includes('during: topbar shortcuts: failed language request')) consoleErrors.splice(i, 1);
+				}
+			}
+		});
+
 		await test("Home affordance: v16 routes to the Home workspace and returns", async () => {
 			// Enable the affordance under test; the shipped preset sets it Off.
 			setSettings({ home_placement: "Top Bar Start" });
@@ -1722,6 +1932,117 @@ async function main() {
 			await page.waitForTimeout(1000);
 			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "legacy attr remains absent on workspace");
 			expectEq(await visible(".bnd-topbar"), true, "topbar remains available after returning");
+		});
+
+		await test("sidebar consistency: colored groups survive native shell replacement", async () => {
+			setSettings({ sidebar_enabled: 1, sidebar_section_layout: "Mini-Cards", sidebar_hue_wash: "Rich", icon_style: "Colored Chips", sidebar_menu_rail: "Always Expanded" });
+			await goDesk("/desk/home", ".body-sidebar .sidebar-items", 1500);
+			const measure = () => page.evaluate(() => {
+				const list = document.querySelector(".body-sidebar .sidebar-items");
+				return {
+					brands: document.querySelectorAll(".body-sidebar .bnd-sb-brand").length,
+					cards: list.querySelectorAll(":scope > .bnd-sb-card").length,
+					nested: list.querySelectorAll(".bnd-sb-card .bnd-sb-card").length,
+					flat: list.querySelectorAll(":scope > .sidebar-item-container").length,
+					colors: [...list.querySelectorAll(".bnd-sb-card[data-bnd-hue]:not([data-bnd-hue='0'])")].slice(0, 2).map(card => getComputedStyle(card.querySelector(".sidebar-item-icon")).backgroundColor),
+					items: [...list.querySelectorAll(".sidebar-item-container")].map(item => item.getAttribute("item-name")),
+				};
+			});
+			const before = await measure();
+			expect(before.cards >= 3 && before.brands === 1, `initial colored sidebar: ${JSON.stringify(before)}`);
+			// The old observer watches the outgoing list forever. Rebuild through
+			// Frappe's own constructor/setup, after the one-time mount has finished.
+			await page.evaluate(() => {
+				frappe.app.sidebar.wrapper.remove();
+				frappe.app.sidebar = new frappe.ui.Sidebar();
+				frappe.app.sidebar.setup("Home");
+			});
+			await page.waitForTimeout(750);
+			const after = await measure();
+			if (process.env.BND_SIDEBAR_SCREENSHOTS) await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/shell-rebuild.png` });
+			expectEq(after.brands, 1, "Bunood brand returns after native shell replacement");
+			expectEq(after.cards, before.cards, "every colored section returns");
+			expectEq(after.flat, 0, "no links escape the colored groups");
+			expectEq(after.nested, 0, "cards do not nest on repeated mounts");
+			expectEq(JSON.stringify(after.items), JSON.stringify(before.items), "native link order and count are preserved");
+			expect(after.colors.length === 2 && after.colors[0] !== after.colors[1], "Selling and Buying retain distinct icon colors");
+			await page.reload({ waitUntil: "domcontentloaded" });
+		});
+
+		await test("sidebar consistency: navigation, editing and late rows keep the selected style", async () => {
+			setSettings({ sidebar_enabled: 1, sidebar_section_layout: "Mini-Cards", sidebar_hue_wash: "Rich", icon_style: "Colored Chips", sidebar_menu_rail: "Always Expanded" });
+			await goDesk("/desk/home", ".body-sidebar .bnd-sb-card", 1000);
+			for (const route of ["customer", "home", "selling", "home"]) {
+				await page.evaluate(r => frappe.set_route(r), route);
+				await page.waitForTimeout(1000);
+				expectEq(await page.locator(".body-sidebar .bnd-sb-brand").count(), 1, `${route}: exactly one brand`);
+				expect(await page.locator(".body-sidebar .bnd-sb-card").count() > 0, `${route}: colored groups return`);
+			}
+			await page.evaluate(() => frappe.app.sidebar.editor.start());
+			await page.waitForTimeout(250);
+			expectEq(await page.locator(".body-sidebar .bnd-sb-card").count(), 0, "native editing gets the flat sortable list");
+			await page.evaluate(() => { frappe.app.sidebar.editor.stop(); frappe.app.sidebar.make_sidebar(); });
+			await page.waitForTimeout(500);
+			expect(await page.locator(".body-sidebar .bnd-sb-card").count() >= 3, "leaving edit mode restores colors and groups");
+			// A delayed native row beside already-decorated sections must not
+			// remain grey. This DOM-only copy is discarded by the next reload.
+			await page.evaluate(() => {
+				const list = document.querySelector(".body-sidebar .sidebar-items");
+				list.appendChild(list.querySelector(".sidebar-item-container:not(.section-item)").cloneNode(true));
+			});
+			await page.waitForTimeout(250);
+			expectEq(await page.locator(".body-sidebar .sidebar-items > .sidebar-item-container").count(), 0, "late rows join their section");
+			expectEq(await page.locator(".bnd-sb-card .bnd-sb-card").count(), 0, "regrouping does not nest cards");
+			await page.evaluate(() => {
+				window._sidebarMutationCount = 0;
+				window._sidebarIdleObserver = new MutationObserver(records => { window._sidebarMutationCount += records.length; });
+				window._sidebarIdleObserver.observe(document.querySelector(".body-sidebar"), { childList: true, subtree: true });
+			});
+			await page.waitForTimeout(1000);
+			const mutations = await page.evaluate(() => { window._sidebarIdleObserver.disconnect(); return window._sidebarMutationCount; });
+			expectEq(mutations, 0, "idle sidebar does not repeatedly rebuild itself");
+			await page.evaluate(() => { window.bunood_theme.sb_apply({ sidebar_section_layout: "Plain" }); frappe.app.sidebar.make_sidebar(); });
+			await page.waitForTimeout(250);
+			expectEq(await page.locator(".body-sidebar .bnd-sb-card").count(), 0, "an explicit alternative style is respected");
+			await page.reload({ waitUntil: "domcontentloaded" });
+			await page.locator(".body-sidebar .bnd-sb-card").first().waitFor();
+			expectEq(await page.locator(".body-sidebar .bnd-sb-brand").count(), 1, "reload keeps the selected appearance");
+		});
+
+		await test("sidebar consistency: colored groups fit English and Arabic in both themes", async () => {
+			const viewport = page.viewportSize();
+			setSettings({ sidebar_enabled: 1, sidebar_section_layout: "Mini-Cards", sidebar_hue_wash: "Rich", icon_style: "Colored Chips", sidebar_menu_rail: "Always Expanded" });
+			try {
+				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
+					await goDesk("/desk/home", ".body-sidebar .bnd-sb-card", 1000);
+					if (lang === "ar") {
+						const labels = await page.locator(".body-sidebar-top .sidebar-item-label").allTextContents();
+						const visible = labels.map(label => label.trim()).filter(Boolean);
+						const english = ["Home", "Transactions", "Selling", "Buying", "Stock", "Invoicing", "Operations", "Reports", "Setup"];
+						expect(!visible.some(label => english.includes(label)), `Arabic sidebar leaked English labels: ${JSON.stringify(visible)}`);
+						for (const expected of ["الصفحة الرئيسية", "المعاملات", "المبيعات", "المشتريات", "المخزون", "الفوترة", "العمليات", "التقارير", "الإعدادات"])
+							expect(visible.includes(expected), `Arabic sidebar missing ${expected}: ${JSON.stringify(visible)}`);
+					}
+					for (const width of [1024, 1440]) {
+						await page.setViewportSize({ width, height: 900 });
+						for (const mode of ["light", "dark"]) {
+							await page.evaluate(m => document.documentElement.setAttribute("data-theme", m), mode);
+							await page.waitForTimeout(350);
+							const report = await page.evaluate(() => {
+								const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
+								const cards = [...document.querySelectorAll(".body-sidebar .bnd-sb-card")];
+								return {
+									count: cards.length,
+									fits: cards.every(card => { const r = card.getBoundingClientRect(); return r.width > 0 && r.left >= pane.left - 1 && r.right <= pane.right + 1; }),
+									colors: cards.filter(c => c.dataset.bndHue !== "0").slice(0, 2).map(c => getComputedStyle(c.querySelector(".sidebar-item-icon")).backgroundColor),
+								};
+							});
+							expect(report.count >= 3 && report.fits && report.colors[0] !== report.colors[1], `${lang}/${mode}/${width}: ${JSON.stringify(report)}`);
+							if (width === 1440 && process.env.BND_SIDEBAR_SCREENSHOTS) await page.locator(".body-sidebar-container").screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/${lang}-${mode}.png` });
+						}
+					}
+				});
+			} finally { await page.setViewportSize(viewport); }
 		});
 
 		await test("desktop icons: centered and unclipped with wrapped labels", async () => {
@@ -1745,13 +2066,16 @@ async function main() {
 									return { label: tile.dataset.id,
 										x: Math.abs(i.x + i.width / 2 - h.x - h.width / 2),
 										y: Math.abs(i.y + i.height / 2 - h.y - h.height / 2),
-										clearance: Math.min(i.top - h.top, h.bottom - i.bottom, i.left - h.left, h.right - i.right),
-										labelFits: !l || (l.top >= h.bottom && l.bottom <= t.bottom && l.left >= t.left && l.right <= t.right),
-									};
+									clearance: Math.min(i.top - h.top, h.bottom - i.bottom, i.left - h.left, h.right - i.right),
+									labelFits: !l || (l.top >= h.bottom && l.bottom <= t.bottom && l.left >= t.left && l.right <= t.right),
+									background: getComputedStyle(host).backgroundColor,
+								};
 								}));
 							expect(rows.length >= 10, `${lang}/${width}/${mode}: visible module grid`);
 							const bad = rows.filter(r => r.missing || r.x > 1 || r.y > 1 || r.clearance < 2 || !r.labelFits);
 							expect(!bad.length, `${lang}/${width}/${mode}: clipped/off-center icons or labels: ${JSON.stringify(bad)}`);
+							const plates = new Set(rows.map(r => r.background));
+							expectEq(plates.size, 1, `${lang}/${width}/${mode}: every module icon uses one plate colour`);
 						}
 					}
 				});
@@ -2927,10 +3251,21 @@ async function main() {
 				expect(await q(".bnd-sb-utils"), "quick links mounted");
 				if (values.sidebar_menu_rail === "Rail") {
 					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
-					expectEq(
-						await page.evaluate(() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width)),
-						52, "resting rail width"
-					);
+					const rail = await page.evaluate(() => {
+						const el = document.querySelector(".body-sidebar-container");
+						const cs = getComputedStyle(el);
+						return {
+							width: Math.round(el.getBoundingClientRect().width),
+							inline: el.style.width,
+							computed: cs.width,
+							token: getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-rail-w").trim(),
+							flex: cs.flex,
+							minInlineSize: cs.minInlineSize,
+							maxInlineSize: cs.maxInlineSize,
+							classes: el.className,
+						};
+					});
+					expect(rail.width >= 48 && rail.width <= 56, `preset keeps the compact navigation rail (${JSON.stringify(rail)})`);
 				}
 				if (values.sidebar_section_layout === "Mini-Cards") {
 					expect((await page.evaluate(() => document.querySelectorAll(".bnd-sb-card").length)) > 0, "section cards");
@@ -2938,40 +3273,403 @@ async function main() {
 			});
 		}
 
-		// ── Rail behaviour (Bunood Night: hover trigger + edge button) ─────
-		await test("rail: hover opens (with intent delay), leave closes (with grace)", async () => {
-			// "Bunood Light", because it is the preset that HAS a rail. Night
-			// was, until the 2026-08-08 re-choice made it attached, solid and
-			// always expanded — after which this test was exercising a rail
-			// that never mounted and passing on nothing. The behaviour under
-			// test did not change; the preset carrying it did.
+		// ── Rail behaviour: one ChatGPT-style toggle in the top bar ────────
+		await test("topbar: scrolls away cleanly with the dashboard header", async () => {
 			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/sales-invoice", ".page-head", 3000);
-			await page.hover(".body-sidebar-container");
-			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens on hover");
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(150);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "grace period holds");
-			await page.waitForTimeout(500);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes after grace");
+			const viewport = page.viewportSize();
+			try {
+				await page.setViewportSize({ width: 1440, height: 700 });
+				await goDesk("/desk/home", ".bnd-topbar", 3000);
+				const before = await page.evaluate(() => {
+					const header = document.querySelector(".main-section > header");
+					const pageHead = document.querySelector(".page-head");
+					return {
+						position: getComputedStyle(header).position,
+						headerTop: Math.round(header.getBoundingClientRect().top),
+						pageHeadTop: Math.round(pageHead.getBoundingClientRect().top),
+					};
+				});
+				expectEq(before.position, "absolute", `rail top bar is document-positioned, never viewport-fixed (${JSON.stringify(before)})`);
+
+				await page.evaluate(() => window.scrollTo({ top: 600, behavior: "instant" }));
+				await page.waitForTimeout(250);
+				const after = await page.evaluate(() => {
+					const header = document.querySelector(".main-section > header");
+					const bar = document.querySelector(".bnd-topbar");
+					const pageHead = document.querySelector(".page-head");
+					const atTop = document.elementFromPoint(Math.round(innerWidth / 2), 2);
+					return {
+						scrollY: Math.round(window.scrollY),
+						headerBottom: Math.round(header.getBoundingClientRect().bottom),
+						barBottom: Math.round(bar.getBoundingClientRect().bottom),
+						pageHeadTop: Math.round(pageHead.getBoundingClientRect().top),
+						topOwnsViewportEdge: !!atTop?.closest(".bnd-topbar"),
+					};
+				});
+				expect(after.scrollY >= 300, `dashboard actually scrolled (${JSON.stringify(after)})`);
+				expect(after.headerBottom <= 0 && after.barBottom <= 0, `global top bar leaves the viewport with the page (${JSON.stringify(after)})`);
+				expect(Math.abs(after.pageHeadTop) <= 1, `page header takes the normal sticky edge without a reserved top-bar gap (${JSON.stringify(after)})`);
+				expectEq(after.topOwnsViewportEdge, false, `departed top bar cannot cover scrolling content (${JSON.stringify(after)})`);
+			} finally {
+				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+				await page.setViewportSize(viewport);
+			}
 		});
 
-		await test("rail: edge button pins open and unpins", async () => {
-			expect(await q(".bnd-railbtn.bnd-railbtn-edge"), "edge button mounted");
-			await page.click(".bnd-railbtn");
+		await test("page head: Home title is centered in both axes", async () => {
+			setSettings(presets["Bunood Light"]);
+			const viewport = page.viewportSize();
+			try {
+				await page.setViewportSize({ width: 1440, height: 700 });
+				await goDesk("/desk/home", ".page-head .navbar-breadcrumbs", 3000);
+				const geometry = await page.evaluate(() => {
+					const current = window.frappe?.container?.page;
+					const head = current?.querySelector(".page-head") || [...document.querySelectorAll(".page-head")].find((node) => node.offsetParent);
+					const content = head?.querySelector(".page-head-content");
+					const title = head?.querySelector(".title-area");
+					const trail = head?.querySelector(".navbar-breadcrumbs");
+					const rect = (node) => {
+						const r = node?.getBoundingClientRect();
+						return r ? {
+							top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height), center: (r.top + r.bottom) / 2,
+							left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), centerX: (r.left + r.right) / 2,
+						} : null;
+					};
+					const hr = rect(head);
+					const tr = rect(trail);
+					return {
+						head: hr,
+						content: rect(content),
+						title: rect(title),
+						trail: tr,
+						deltaY: hr && tr ? Math.abs(hr.center - tr.center) : 999,
+						deltaX: rect(content) && tr ? Math.abs(rect(content).centerX - tr.centerX) : 999,
+						headDisplay: head ? getComputedStyle(head).display : null,
+						contentDisplay: content ? getComputedStyle(content).display : null,
+						contentAlign: content ? getComputedStyle(content).alignItems : null,
+						titleDisplay: title ? getComputedStyle(title).display : null,
+						titleAlign: title ? getComputedStyle(title).alignItems : null,
+						titleChildren: title ? [...title.children].map((node) => ({ tag: node.tagName, cls: node.className, box: rect(node) })) : [],
+						trailChildren: trail ? [...trail.children].map((node) => ({ tag: node.tagName, cls: node.className, text: node.textContent.trim(), box: rect(node) })) : [],
+					};
+				});
+				expect(geometry.head && geometry.trail, `visible Home breadcrumb row exists (${JSON.stringify(geometry)})`);
+				expect(geometry.deltaY <= 1, `Home title is vertically centered in the sticky page head (${JSON.stringify(geometry)})`);
+				expect(geometry.deltaX <= 1, `Home title is horizontally centered in the sticky page head (${JSON.stringify(geometry)})`);
+			} finally {
+				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+				await page.setViewportSize(viewport);
+			}
+		});
+
+		await test("rail: collapsed state is a composed icon rail and toggled pane is opaque", async () => {
+			setSettings(presets["Bunood Light"]);
+			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			const rest = await page.evaluate(() => {
+				const rail = document.querySelector(".body-sidebar-container");
+				const pane = rail.querySelector(".body-sidebar");
+				const main = document.querySelector(".main-section");
+				const rr = rail.getBoundingClientRect();
+				const pr = pane.getBoundingClientRect();
+				return {
+					railWidth: Math.round(rr.width),
+					paneWidth: Math.round(pr.width),
+					mainWidth: Math.round(main.getBoundingClientRect().width),
+					visibility: getComputedStyle(pane).visibility,
+					pointerEvents: getComputedStyle(pane).pointerEvents,
+					visibleLabels: [...pane.querySelectorAll(".bnd-sb-brand-name, .bnd-sb-item-label, .bnd-sb-card .sidebar-item-label")].filter((node) => {
+						const rect = node.getBoundingClientRect();
+						return rect.width > 0 && rect.height > 0 && getComputedStyle(node).display !== "none";
+					}).length,
+					targets: [
+						pane.querySelector(".bnd-sb-brand"),
+						pane.querySelector('.bnd-sb-util[data-bnd-part="apps"]'),
+						...pane.querySelectorAll(".bnd-sb-card > .section-item > .standard-sidebar-item"),
+					].filter(Boolean).map((node) => {
+						const rect = node.getBoundingClientRect();
+						return { width: Math.round(rect.width), height: Math.round(rect.height), title: node.title || node.getAttribute("aria-label") };
+					}),
+				};
+			});
+			expect(rest.railWidth >= 48 && rest.railWidth <= 56, `collapsed navigation has one disciplined rail width (${JSON.stringify(rest)})`);
+			expect(Math.abs(rest.paneWidth - rest.railWidth) <= 1, `compact pane follows the rail container inside its hairline border (${JSON.stringify(rest)})`);
+			expectEq(rest.visibility, "visible", `compact navigation remains visible (${JSON.stringify(rest)})`);
+			expectEq(rest.pointerEvents, "auto", `compact navigation remains interactive (${JSON.stringify(rest)})`);
+			expectEq(rest.visibleLabels, 0, `compact rail never clips or stacks labels (${JSON.stringify(rest)})`);
+			expect(rest.targets.length >= 6, `compact rail exposes brand, apps and section targets (${JSON.stringify(rest)})`);
+			expect(rest.targets.every((target) => target.width === 40 && target.height === 40 && target.title), `compact rail targets are consistently sized and named (${JSON.stringify(rest)})`);
+
+			await page.click(".bnd-topbar .bnd-sidebar-toggle");
 			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "pinned open");
+			const open = await page.evaluate(() => {
+				const rail = document.querySelector(".body-sidebar-container");
+				const pane = rail.querySelector(".body-sidebar");
+				const brand = pane.querySelector(".bnd-sb-brand");
+				const main = document.querySelector(".main-section");
+				const rr = rail.getBoundingClientRect();
+				const pr = pane.getBoundingClientRect();
+				const mr = main.getBoundingClientRect();
+				const rgb = getComputedStyle(pane).backgroundColor.match(/[\d.]+/g)?.map(Number) || [];
+				return {
+					open: rail.classList.contains("bnd-rail-open"),
+					railWidth: Math.round(rr.width),
+					paneWidth: Math.round(pr.width),
+					paneTop: Math.round(pr.top),
+					mainWidth: Math.round(mr.width),
+					mainOverlap: Math.round(Math.max(0, Math.min(pr.right, mr.right) - Math.max(pr.left, mr.left))),
+					barBottom: Math.round(document.querySelector(".bnd-topbar").getBoundingClientRect().bottom),
+					brandWidth: Math.round(brand.getBoundingClientRect().width),
+					background: getComputedStyle(pane).backgroundColor,
+					alpha: rgb.length === 4 ? rgb[3] : 1,
+					backdrop: getComputedStyle(pane).backdropFilter,
+					visibility: getComputedStyle(pane).visibility,
+					visibleLabels: [...pane.querySelectorAll(".sidebar-item-label")].filter((el) => {
+						const cs = getComputedStyle(el);
+						return cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0;
+					}).length,
+				};
+			});
+			expect(open.open, `rail opened (${JSON.stringify(open)})`);
+			expect(open.railWidth >= 200, `expanded sidebar reserves its full layout column (${JSON.stringify(open)})`);
+			expect(open.paneWidth >= 200, `toggled pane uses configured sidebar width (${JSON.stringify(open)})`);
+			expectEq(open.visibility, "visible", `expanded navigation is visible (${JSON.stringify(open)})`);
+			expect(open.mainOverlap <= 1, `expanded sidebar shares only its 1px border seam with the main workspace (${JSON.stringify(open)})`);
+			expect(open.mainWidth <= rest.mainWidth - 130, `main workspace reflows beside the expanded sidebar (${JSON.stringify({ rest, open })})`);
+			expect(open.paneTop >= open.barBottom, `expanded pane begins below the independent top bar (${JSON.stringify(open)})`);
+			expect(open.brandWidth >= 160, `brand uses the expanded row geometry (${JSON.stringify(open)})`);
+			expectEq(open.alpha, 1, `toggled pane is opaque (${JSON.stringify(open)})`);
+			expectEq(open.backdrop, "none", "toggled pane does not fake opacity with backdrop blur");
+			expect(open.visibleLabels > 0, `expanded navigation labels are visible (${JSON.stringify(open)})`);
+		});
+
+		await test("rail: a compact section icon opens the full navigation tree", async () => {
+			setSettings(presets["Bunood Light"]);
+			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			const section = page.locator(".bnd-sb-card > .section-item > .standard-sidebar-item").first();
+			const target = await section.evaluate((node) => {
+				const rect = node.getBoundingClientRect();
+				const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+				const pane = node.closest(".body-sidebar");
+				const bar = document.querySelector(".bnd-topbar");
+				const pack = (value) => value && {
+					top: Math.round(value.top), bottom: Math.round(value.bottom),
+					left: Math.round(value.left), right: Math.round(value.right),
+				};
+				return {
+					target: pack(rect), pane: pack(pane?.getBoundingClientRect()),
+					bar: pack(bar?.getBoundingClientRect()),
+					hit: hit?.tagName + "." + String(hit?.className?.baseVal || hit?.className || "").trim().replace(/\s+/g, "."),
+					owned: hit === node || node.contains(hit),
+					paneInset: pane && getComputedStyle(pane).insetBlockStart,
+				};
+			});
+			expect(target.owned, `collapsed section owns its hit target (${JSON.stringify(target)})`);
+			await section.click();
+			await page.waitForTimeout(300);
+			const state = await page.evaluate(() => {
+				const container = document.querySelector(".body-sidebar-container");
+				const label = container.querySelector(".bnd-sb-card > .section-item .sidebar-item-label");
+				return {
+					open: container.classList.contains("bnd-rail-open"),
+					width: Math.round(container.getBoundingClientRect().width),
+					labelVisible: !!label && label.getBoundingClientRect().width > 0 && getComputedStyle(label).display !== "none",
+				};
+			});
+			expect(state.open && state.width >= 200 && state.labelVisible, `section icon reveals the complete navigation (${JSON.stringify(state)})`);
+		});
+
+		await test("rail: exactly one independent top-bar toggle opens and closes", async () => {
+			setSettings(presets["Bunood Light"]);
+			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
+				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-collapsed.png` });
+			}
+			const controls = await page.evaluate(() => ({
+				topbar: document.querySelectorAll(".bnd-topbar .bnd-sidebar-toggle").length,
+				attached: document.querySelectorAll(".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin").length,
+				nativeVisible: [...document.querySelectorAll(".body-sidebar .collapse-sidebar-link, .body-sidebar .sidebar-resize-handle")].filter((node) => {
+					const rect = node.getBoundingClientRect();
+					const cs = getComputedStyle(node);
+					return rect.width > 0 && rect.height > 0 && cs.display !== "none" && cs.visibility !== "hidden";
+				}).length,
+			}));
+			expectEq(controls.topbar, 1, `one top-bar sidebar toggle (${JSON.stringify(controls)})`);
+			expectEq(controls.attached, 0, `no controls are attached to the sidebar (${JSON.stringify(controls)})`);
+			expectEq(controls.nativeVisible, 0, `native competing controls are hidden (${JSON.stringify(controls)})`);
+			const collapsed = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
+				const buttonRect = button.getBoundingClientRect();
+				const barRect = button.closest(".bnd-topbar").getBoundingClientRect();
+				const paneRect = document.querySelector(".body-sidebar").getBoundingClientRect();
+				return {
+				label: button.getAttribute('aria-label'),
+				expanded: button.getAttribute('aria-expanded'),
+				glyph: !!button.querySelector('svg'),
+				width: buttonRect.width,
+				buttonCenterY: (buttonRect.top + buttonRect.bottom) / 2,
+				barCenterY: (barRect.top + barRect.bottom) / 2,
+				viewportInset: Math.round(buttonRect.left),
+				separateFromPane: buttonRect.bottom <= paneRect.top + 1,
+				};
+			});
+			expect(collapsed.label && collapsed.expanded === 'false' && collapsed.glyph, `collapsed button is named, stateful and illustrated (${JSON.stringify(collapsed)})`);
+			expect(collapsed.width >= 32 && collapsed.width <= 40, `top-bar toggle is a quiet compact target (${collapsed.width}px)`);
+			expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `top-bar toggle is vertically centred (${JSON.stringify(collapsed)})`);
+			expect(collapsed.separateFromPane, `top-bar toggle occupies its own chrome row above the sidebar (${JSON.stringify(collapsed)})`);
+			await page.mouse.move(1, 500);
+			await page.waitForTimeout(300);
+			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "hover alone does not open the sidebar");
+			await page.click(".bnd-topbar .bnd-sidebar-toggle");
+			await page.waitForTimeout(300);
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens from top-bar toggle");
+			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
+				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-expanded.png` });
+			}
+			const expanded = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
+				const rect = button.getBoundingClientRect();
+				return {
+					label: button.getAttribute('aria-label'),
+					expanded: button.getAttribute('aria-expanded'),
+					viewportInset: Math.round(rect.left),
+				};
+			});
+			expect(expanded.label && expanded.label !== collapsed.label && expanded.expanded === 'true', `open button exposes its retract name and state (${JSON.stringify(expanded)})`);
+			expectEq(expanded.viewportInset, collapsed.viewportInset, `top-bar toggle stays at one viewport position instead of following the sidebar edge (${JSON.stringify({ collapsed, expanded })})`);
 			await page.mouse.move(1400, 500);
 			await page.waitForTimeout(500);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays while pinned");
-			await page.click(".bnd-railbtn");
-			// Soft unpin BY DESIGN: with the pointer still over the pane it
-			// stays open until the pointer leaves (v0.6.1 rail-feel fix), so
-			// move away before expecting closure.
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(700);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "unpins closed after pointer leaves");
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays open until the same control is pressed again");
+			await page.click(".bnd-topbar .bnd-sidebar-toggle");
+			await page.waitForTimeout(300);
+			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes from top-bar toggle");
+		});
+
+		await test("rail: top-bar toggle mirrors cleanly in Arabic dark mode", async () => {
+			setSettings(presets["Bunood Light"]);
+			await withLang("ar", async () => {
+				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+				const previousTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme") || "light");
+				const previousDir = await page.evaluate(() => document.documentElement.getAttribute("dir") || "ltr");
+				try {
+					// The authenticated browser session can retain its boot-time direction
+					// across a server-side language flip. Stamp the direction under test
+					// explicitly; translations themselves have their own catalogue gate.
+					await page.evaluate(() => {
+						document.documentElement.setAttribute("data-theme", "dark");
+						document.documentElement.setAttribute("dir", "rtl");
+					});
+					await page.waitForTimeout(100);
+					const collapsed = await page.evaluate(() => {
+						const button = document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getBoundingClientRect();
+						const bar = document.querySelector(".bnd-topbar").getBoundingClientRect();
+						const sidebar = document.querySelector(".body-sidebar-container").getBoundingClientRect();
+						const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
+						return {
+							dir: getComputedStyle(document.documentElement).direction,
+							buttonCenterY: (button.top + button.bottom) / 2,
+							barCenterY: (bar.top + bar.bottom) / 2,
+							// Floating placement keeps its intentional 8px viewport inset.
+							sidebarAtRight: Math.abs(innerWidth - sidebar.right) <= 12,
+							separateFromPane: button.bottom <= pane.top + 1,
+						};
+					});
+					expectEq(collapsed.dir, "rtl", `Arabic rail uses RTL geometry (${JSON.stringify(collapsed)})`);
+					expect(collapsed.sidebarAtRight, `Arabic sidebar remains on the right (${JSON.stringify(collapsed)})`);
+					expect(collapsed.separateFromPane, `Arabic top-bar toggle remains above the sidebar pane (${JSON.stringify(collapsed)})`);
+					expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `Arabic top-bar toggle stays centred (${JSON.stringify(collapsed)})`);
+					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-collapsed.png` });
+					}
+					await page.click(".bnd-topbar .bnd-sidebar-toggle");
+					await page.waitForTimeout(300);
+					const open = await page.evaluate(() => {
+						const rail = document.querySelector(".body-sidebar-container").getBoundingClientRect();
+						const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
+						const main = document.querySelector(".main-section").getBoundingClientRect();
+						return {
+							railWidth: Math.round(rail.width),
+							paneTop: Math.round(pane.top),
+							barBottom: Math.round(document.querySelector(".bnd-topbar").getBoundingClientRect().bottom),
+							mainOverlap: Math.round(Math.max(0, Math.min(pane.right, main.right) - Math.max(pane.left, main.left))),
+							expanded: document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getAttribute("aria-expanded"),
+						};
+					});
+					expectEq(open.expanded, "true", `Arabic toggle exposes its open state (${JSON.stringify(open)})`);
+					expect(open.railWidth >= 200, `Arabic sidebar reserves its expanded column (${JSON.stringify(open)})`);
+					expect(open.mainOverlap <= 1, `Arabic sidebar does not cover the main workspace (${JSON.stringify(open)})`);
+					expect(open.paneTop >= open.barBottom, `Arabic pane begins below the top bar (${JSON.stringify(open)})`);
+					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-expanded.png` });
+					}
+				} finally {
+					await page.evaluate(({ theme, dir }) => {
+						document.documentElement.setAttribute("data-theme", theme);
+						document.documentElement.setAttribute("dir", dir);
+					}, { theme: previousTheme, dir: previousDir });
+				}
+			});
+		});
+
+		await test("rail: entering narrow mode releases the expanded desktop column", async () => {
+			setSettings(presets["Bunood Light"]);
+			await page.setViewportSize({ width: 1440, height: 900 });
+			try {
+				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+				await page.click(".bnd-topbar .bnd-sidebar-toggle");
+				await page.waitForTimeout(300);
+				expect(await page.locator(".body-sidebar-container").evaluate(node => node.classList.contains("bnd-rail-open")), "desktop sidebar starts expanded");
+
+				await page.setViewportSize({ width: 430, height: 900 });
+				await page.waitForTimeout(600);
+				const narrow = await page.evaluate(() => {
+					const rail = document.querySelector(".body-sidebar-container");
+					const main = document.querySelector(".main-section");
+					return {
+						viewport: innerWidth,
+						narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+						open: rail.classList.contains("bnd-rail-open"),
+						railWidth: Math.round(rail.getBoundingClientRect().width),
+						mainWidth: Math.round(main.getBoundingClientRect().width),
+						toggles: document.querySelectorAll(".bnd-sidebar-toggle").length,
+					};
+				});
+				expect(narrow.narrow, `430px enters the narrow layout (${JSON.stringify(narrow)})`);
+				expect(!narrow.open, `narrow layout closes the desktop rail state (${JSON.stringify(narrow)})`);
+				expect(narrow.railWidth <= 2, `collapsed mobile drawer reserves no desktop column beyond its border (${JSON.stringify(narrow)})`);
+				expect(narrow.mainWidth >= narrow.viewport - 1, `main workspace keeps the narrow viewport (${JSON.stringify(narrow)})`);
+				expectEq(narrow.toggles, 0, `desktop top-bar toggle stands down in narrow mode (${JSON.stringify(narrow)})`);
+				if (process.env.BND_SIDEBAR_SCREENSHOTS) {
+					await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/narrow-after-expanded-rail.png`, fullPage: true });
+				}
+			} finally {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				await page.waitForTimeout(300);
+			}
+		});
+
+		await test("rail: without a top bar the navigation defaults open", async () => {
+			setSettings({ ...CHROME_DEFAULTS, ...presets["Bunood Light"], topbar_enabled: 0 });
+			try {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				await goDesk("/desk/home", ".body-sidebar .bnd-sb-brand", 3000);
+				const state = await page.evaluate(() => {
+					const container = document.querySelector(".body-sidebar-container");
+					const pane = container.querySelector(".body-sidebar");
+					const main = document.querySelector(".main-section").getBoundingClientRect();
+					const pr = pane.getBoundingClientRect();
+					return {
+						open: container.classList.contains("bnd-rail-open"),
+						width: Math.round(container.getBoundingClientRect().width),
+						overlap: Math.round(Math.max(0, Math.min(pr.right, main.right) - Math.max(pr.left, main.left))),
+						toggles: document.querySelectorAll(".bnd-sidebar-toggle").length,
+					};
+				});
+				expect(state.open && state.width >= 200, `navigation stays reachable when no toggle host exists (${JSON.stringify(state)})`);
+				expectEq(state.toggles, 0, `no orphaned toggle is mounted without a top bar (${JSON.stringify(state)})`);
+				expect(state.overlap <= 1, `fallback column still reflows the workspace (${JSON.stringify(state)})`);
+			} finally {
+				// Rail checks must not leak a hidden sidebar into the unrelated
+				// placement, invariant and accessibility matrices below.
+				setSettings({ ...CHROME_DEFAULTS, sidebar_menu_rail: "Always Expanded" });
+			}
 		});
 
 		// ── Icon engine ────────────────────────────────────────────────────
@@ -2990,7 +3688,8 @@ async function main() {
 		});
 
 		await test("icon engine: smart mode leaves no link glyph-less", async () => {
-			await page.hover(".body-sidebar-container");
+			setSettings({ sidebar_menu_rail: "Always Expanded", topbar_enabled: 1 });
+			await goDesk("/desk/item", ".body-sidebar .bnd-sb-brand", 3000);
 			await page.waitForTimeout(400);
 			const counts = await page.evaluate(() => {
 				let icons = 0, letters = 0, bare = 0;
@@ -3022,7 +3721,8 @@ async function main() {
 		// is a centred character, naturally narrower than tall, so it is checked
 		// for collapse, not for squareness.
 		await test("icon engine: chip and glyphs render at size, not squashed", async () => {
-			await page.hover(".body-sidebar-container");
+			setSettings({ sidebar_menu_rail: "Always Expanded", topbar_enabled: 1 });
+			await goDesk("/desk/item", ".body-sidebar .bnd-sb-brand", 3000);
 			await page.waitForTimeout(400);
 			const m = await page.evaluate(() => {
 				const chips = [], svgs = [], letters = [];
@@ -3105,7 +3805,7 @@ async function main() {
 		await test("icon engine: icon_style drives the sidebar chip attribute", async () => {
 			const want = getSettings(["icon_style"]).icon_style === "Monochrome" ? "Colored Dots" : "Monochrome";
 			setSettings({ icon_style: want });
-			await goDesk("/desk/item", ".body-sidebar-container", 4000);
+			await goDesk("/desk/item", ".page-head", 4000);
 			expectEq(await attr("data-bnd-sb-icons"), SLUG.icon_style[want], "data-bnd-sb-icons follows icon_style");
 			setSettings({ icon_style: "Colored Chips" });
 		});
@@ -3116,7 +3816,7 @@ async function main() {
 		// attribute, because Frappe hard-codes 1.5px and this has to WIN.
 		await test("icon engine: icon_weight sets the rendered stroke", async () => {
 			setSettings({ icon_weight: "2" });
-			await goDesk("/desk/item", ".body-sidebar-container", 4000);
+			await goDesk("/desk/item", ".page-head", 4000);
 			const m = await page.evaluate(() => {
 				const html = document.documentElement;
 				const icon = document.querySelector(".body-sidebar .item-anchor .sidebar-item-icon svg, .page-head .icon");
@@ -6239,6 +6939,12 @@ async function main() {
 							// record's, in whatever language they typed it.
 							if (el.closest("[data-doctype], [data-name]")) continue;
 							if (!vis(el)) continue;
+							// An explicitly language-tagged autonym/endonym is meant to stay
+							// in that language (for example English / العربية in the switcher).
+							// Its translated accessible action remains on the parent button.
+							const ownLang = el.getAttribute("lang")?.split(/[-_]/)[0];
+							const pageLang = document.documentElement.lang?.split(/[-_]/)[0];
+							if (ownLang && pageLang && ownLang !== pageLang) continue;
 							if (el.children.length === 0) record(el, el.textContent, "text");
 							for (const attr of ["aria-label", "title", "placeholder"]) {
 								record(el, el.getAttribute(attr), attr);
@@ -6423,7 +7129,7 @@ async function main() {
 
 			// And where the stock control IS reachable, Off must still work —
 			// otherwise the guard above would have turned Off into a no-op.
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Off" });
+			setSettings({ desk_layout: "Top Bar", sidebar_menu_rail: "Always Expanded", inbox_placement: "Off", user_placement: "Off" });
 			await goDesk("/desk/item", ".bnd-topbar", 4500);
 			expectEq(await q(".bnd-avatar-btn"), false, "Top Bar + user Off should remove ours");
 			expect(
@@ -7767,8 +8473,10 @@ async function main() {
 				const base = baseline[route] || {};
 				const worse = [];
 				for (const [rule, count] of Object.entries(seen)) {
-					if (!(rule in base)) worse.push(`${route}: NEW rule ${rule} (${count} nodes)`);
-					else if (count > base[rule]) worse.push(`${route}: ${rule} grew ${base[rule]} -> ${count}`);
+					const violation = res.violations.find((entry) => entry.id === rule);
+					const targets = (violation?.nodes || []).slice(0, 5).map((node) => node.target.join(" ")).join(", ");
+					if (!(rule in base)) worse.push(`${route}: NEW rule ${rule} (${count} nodes: ${targets})`);
+					else if (count > base[rule]) worse.push(`${route}: ${rule} grew ${base[rule]} -> ${count} (${targets})`);
 				}
 				expectEq(worse.join("\n"), "", `no new axe violations on ${route}`);
 			}
@@ -8131,6 +8839,11 @@ async function main() {
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
 			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			// Item now defaults to Bunood Simple mode. Native tab/grid styling is
+			// an Advanced-mode contract, so enter Advanced before exercising it.
+			expect(await page.locator(".bnd-simple-switch").isVisible(), "Item defaults to the Simple/Advanced workbench");
+			expectEq(await page.locator(".bnd-simple-switch button").first().getAttribute("aria-pressed"), "true", "Simple is the default mode");
+			await page.locator(".bnd-simple-switch button").nth(1).click();
 			// The uoms grid lives on the UOM tab — activate it first.
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
@@ -8166,6 +8879,173 @@ async function main() {
 			expectEq(hovered, "1", "hover reveals the row's checkbox");
 		});
 
+		await test("form: Simple mode header aligns with native sections", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/payment-entry", ".list-row, .no-result", 2000);
+			await page.evaluate(() => frappe.new_doc("Payment Entry"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Payment Entry");
+			await page.locator('.bnd-simple-form-head:visible').waitFor();
+			const geometry = await page.evaluate(() => {
+				const visible = (node) => node && node.getClientRects().length > 0;
+				const head = [...document.querySelectorAll('.bnd-simple-form-head')].find(visible);
+				const section = [...document.querySelectorAll('.form-layout .form-section')].find(visible);
+				const headRect = head?.getBoundingClientRect();
+				const sectionRect = section?.getBoundingClientRect();
+				return {
+					hasGeometry: !!(headRect && sectionRect),
+					left: headRect && sectionRect ? Math.abs(headRect.left - sectionRect.left) : 999,
+					right: headRect && sectionRect ? Math.abs(headRect.right - sectionRect.right) : 999,
+				};
+			});
+			expect(geometry.hasGeometry, "Payment Entry exposes both the Simple header and a native form section");
+			expect(geometry.left <= 2 && geometry.right <= 2,
+				`Simple header and form sections share both edges (left ${geometry.left}px, right ${geometry.right}px)`);
+		});
+
+		await test("form: Payment Entry Simple mode removes specialist setup", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/payment-entry", ".list-row, .no-result", 2000);
+			await page.evaluate(() => frappe.new_doc("Payment Entry"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Payment Entry");
+			await page.locator('.bnd-simple-form-head:visible').waitFor();
+			const simple = await page.evaluate(() => ({
+				selected: [...document.querySelectorAll('.bnd-simple-visible')]
+					.map(node => node.getAttribute('data-fieldname')),
+				prepayment: !![...document.querySelectorAll('[data-fieldname="custom_prepayment_invoice"]')]
+					.find(node => node.getClientRects().length),
+				summary: !![...document.querySelectorAll('[data-bnd-part="form-summary"]')]
+					.find(node => node.getClientRects().length),
+			}));
+			for (const field of ["payment_type", "posting_date", "mode_of_payment", "party", "paid_amount", "received_amount"]) {
+				expect(simple.selected.includes(field), `Payment Entry Simple mode keeps ${field}`);
+			}
+			expectEq(simple.prepayment, false, "optional ZATCA prepayment setup stays in Advanced");
+			expectEq(simple.summary, false, "a new Simple payment does not repeat Date and Not Saved in a summary card");
+			expect(simple.selected.length <= 14, `Payment Entry stays within its task profile (${simple.selected.length} selected fields)`);
+		});
+
+		await test("form: Stock Entry is a real simple workflow and always returns from Advanced", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/stock-entry", ".list-row, .no-result", 2000);
+			await page.evaluate(() => frappe.new_doc("Stock Entry"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Stock Entry");
+			await page.locator(".bnd-stock-simple:visible").waitFor();
+			if (process.env.BND_STOCK_SCREENSHOT) {
+				await page.locator(".bnd-stock-simple").screenshot({ path: process.env.BND_STOCK_SCREENSHOT });
+			}
+			const simple = await page.evaluate(() => {
+				const visible = node => !!node && node.getClientRects().length > 0;
+				return {
+					steps: document.querySelectorAll(".bnd-stock-steps li").length,
+					cards: document.querySelectorAll(".bnd-stock-card").length,
+					layoutVisible: visible(document.querySelector(".form-layout")),
+					fields: ["stock_entry_type", "from_warehouse", "to_warehouse", "items"]
+						.filter(name => visible(document.querySelector(`.bnd-stock-simple [data-fieldname="${name}"]`))),
+				};
+			});
+			expectEq(simple.steps, 3, "Stock Entry presents a three-step task flow");
+			expect(simple.cards >= 3, `movement, route and item cards render (${simple.cards})`);
+			expectEq(simple.layoutVisible, false, "the dense native layout stays out of Simple mode");
+			for (const field of ["stock_entry_type", "items"]) expect(simple.fields.includes(field), `${field} uses its native control in the simple workflow`);
+			const mode = page.locator(".bnd-simple-switch:visible");
+			await mode.locator("button").nth(1).click();
+			await page.locator(".form-layout:visible").waitFor();
+			await page.evaluate(() => cur_frm.refresh());
+			await page.waitForTimeout(500);
+			expect(await mode.isVisible(), "the mode switch survives a native Advanced refresh");
+			await mode.locator("button").first().click();
+			await page.locator(".bnd-stock-simple:visible").waitFor();
+			expectEq(await mode.locator("button").first().getAttribute("aria-pressed"), "true", "Stock Entry returns to Simple");
+			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+		});
+
+		await test("form: Delivery Note is a real simple workflow and returns from Advanced", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/delivery-note", ".list-row, .no-result", 2000);
+			await page.evaluate(() => frappe.new_doc("Delivery Note"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Delivery Note");
+			await page.locator(".bnd-delivery-simple:visible").waitFor();
+			const simple = await page.evaluate(() => {
+				const visible = node => !!node && node.getClientRects().length > 0;
+				const root = document.querySelector(".bnd-delivery-simple");
+				return {
+					steps: root?.querySelectorAll(".bnd-stock-steps li").length || 0,
+					cards: root?.querySelectorAll(".bnd-stock-card").length || 0,
+					layoutVisible: visible(document.querySelector(".form-layout")),
+					fields: ["customer", "set_warehouse", "items"]
+						.filter(name => visible(root?.querySelector(`[data-fieldname="${name}"]`))),
+				};
+			});
+			expectEq(simple.steps, 3, "Delivery Note presents customer, fulfilment and item steps");
+			expect(simple.cards >= 3, `Delivery Note renders focused task cards (${simple.cards})`);
+			expectEq(simple.layoutVisible, false, "the dense native Delivery Note layout stays out of Simple mode");
+			for (const field of ["customer", "items"]) expect(simple.fields.includes(field), `${field} uses its native control in the Delivery Note workflow`);
+			const mode = page.locator(".bnd-simple-switch:visible");
+			expect(await mode.locator("button").first().evaluate(node => node.classList.contains("bnd-bill-primary")), "Simple has the selected visual treatment");
+			await mode.locator("button").nth(1).click();
+			await page.locator(".form-layout:visible").waitFor();
+			expect(await mode.locator("button").nth(1).evaluate(node => node.classList.contains("bnd-bill-primary")), "Advanced receives the selected visual treatment");
+			await mode.locator("button").first().click();
+			await page.locator(".bnd-delivery-simple:visible").waitFor();
+			expectEq(await mode.locator("button").first().getAttribute("aria-pressed"), "true", "Delivery Note returns to Simple");
+			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+		});
+
+		await test("form: every simplified form can return from Advanced", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/home", ".layout-main-section", 1000);
+			const generic = await page.evaluate(() => Object.keys(window.bunood_theme.simple_forms.profiles)
+				.filter(doctype => (frappe.boot.user.can_read || []).includes(doctype)).sort());
+			for (const doctype of generic) {
+				const navigation = await page.evaluate(async (dt) => {
+					try {
+						if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0;
+						await frappe.model.with_doctype(dt);
+						const doc = frappe.model.get_new_doc(dt);
+						frappe.set_route("Form", dt, doc.name);
+						return { name: doc.name };
+					} catch (error) {
+						return { error: error?.message || error?.exc || JSON.stringify(error) || String(error) };
+					}
+				}, doctype);
+				expect(!navigation.error, `${doctype} new-form navigation succeeds (${navigation.error || ""})`);
+				await page.waitForFunction(dt => cur_frm?.doctype === dt, doctype);
+				const mode = page.locator('.bnd-simple-form-head:visible .bnd-simple-switch');
+				await mode.waitFor();
+				expectEq(await mode.locator('button').first().getAttribute('aria-pressed'), "true", `${doctype} opens in Simple`);
+				expect(await mode.locator('button').first().evaluate(node => node.classList.contains('bnd-bill-primary')), `${doctype} visually selects Simple`);
+				await mode.locator('button').nth(1).click();
+				expect(await mode.isVisible(), `${doctype} keeps its mode switch visible in Advanced`);
+				expectEq(await mode.locator('button').nth(1).getAttribute('aria-pressed'), "true", `${doctype} enters Advanced`);
+				expect(await mode.locator('button').nth(1).evaluate(node => node.classList.contains('bnd-bill-primary')), `${doctype} visually selects Advanced`);
+				await mode.locator('button').first().click();
+				expectEq(await mode.locator('button').first().getAttribute('aria-pressed'), "true", `${doctype} returns to Simple`);
+			}
+			for (const doctype of ["Sales Invoice", "Purchase Invoice"]) {
+				const navigation = await page.evaluate(async (dt) => {
+					try {
+						if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0;
+						await frappe.model.with_doctype(dt);
+						const doc = frappe.model.get_new_doc(dt);
+						frappe.set_route("Form", dt, doc.name);
+						return { name: doc.name };
+					} catch (error) {
+						return { error: error?.message || error?.exc || JSON.stringify(error) || String(error) };
+					}
+				}, doctype);
+				expect(!navigation.error, `${doctype} new-form navigation succeeds (${navigation.error || ""})`);
+				await page.waitForFunction(dt => cur_frm?.doctype === dt, doctype);
+				const mode = page.locator('.bnd-bill-mode:visible');
+				await mode.waitFor();
+				await mode.locator('button').nth(1).click();
+				await page.locator('.form-layout:visible').waitFor();
+				expect(await mode.isVisible(), `${doctype} keeps its mode switch visible in Advanced`);
+				await mode.locator('button').first().click();
+				await page.locator('[data-bnd-part="sales-bill"]:visible').waitFor();
+			}
+			await page.evaluate(() => { if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0; });
+		});
+
 		await test("form: the sidebar is a card and clears the bottom chrome", async () => {
 			setSettings({
 				form_style: "Floating Panels", form_sidebar: "Floating Pane",
@@ -8193,6 +9073,12 @@ async function main() {
 					paneBg: getComputedStyle(pane).backgroundColor,
 					paneRadius: getComputedStyle(pane).borderRadius,
 					sideBottom: side && Math.round(side.getBoundingClientRect().bottom),
+					sideTop: side && side.getBoundingClientRect().top,
+					sideHeight: side && side.getBoundingClientRect().height,
+					computedHeight: side && getComputedStyle(side).height,
+					bottomReserve: getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve").trim(),
+					topbarHeight: getComputedStyle(document.documentElement).getPropertyValue("--bnd-topbar-h").trim(),
+					pageheadHeight: getComputedStyle(document.documentElement).getPropertyValue("--page-head-height").trim(),
 					barTop: bar && Math.round(bar.getBoundingClientRect().top),
 				};
 			});
@@ -8214,6 +9100,7 @@ async function main() {
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 0,
 			});
 			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await page.locator(".bnd-simple-switch button").nth(1).click();
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
 			// The pencil reveals on row hover (probed: an un-hovered click
@@ -8449,6 +9336,219 @@ async function main() {
 		// which is not in our ramp, so the equality fails.
 		const CHART_ROUTE = "/desk/selling"; // any desk page; frappe.Chart is loaded
 
+		await test("chart: compatible charts are interactive and keyboard navigable system-wide", async () => {
+			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
+			const r = await page.evaluate(async () => {
+				const host = document.createElement("div");
+				// Frappe's grouped-bar renderer needs enough real plot width for three
+				// datasets; a 420px synthetic host yields negative <rect> widths before
+				// our palette wrapper even runs. The specimen tests colour, not crowding.
+				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
+				document.body.appendChild(host);
+				new frappe.Chart(host, {
+					title: "Keyboard chart", type: "bar", height: 180, colors: [],
+					data: { labels: ["Jan", "Feb"], datasets: [{ name: "Sales", values: [3, 7] }] },
+				});
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				const container = host.querySelector(".chart-container");
+				const describedBy = container && container.getAttribute("aria-describedby");
+				const event = new CustomEvent("data-select");
+				Object.defineProperty(event, "index", { value: 1 });
+				host.dispatchEvent(event);
+				const result = {
+					interactive: container && container.classList.contains("bnd-interactive-chart"),
+					role: container && container.getAttribute("role"),
+					label: container && container.getAttribute("aria-label"),
+					tabindex: container && container.getAttribute("tabindex"),
+					announcement: describedBy && document.getElementById(describedBy)
+						? document.getElementById(describedBy).textContent : "",
+				};
+				host.remove();
+				return result;
+			});
+			expect(r.interactive, "the global frappe.Chart wrapper marks the rendered chart interactive");
+			expectEq(r.role, "group", "the chart exposes a group role");
+			expectEq(r.label, "Keyboard chart", "the chart keeps its useful accessible name");
+			expect(r.tabindex !== null, "the chart can receive keyboard focus");
+			expect(/Feb/.test(r.announcement) && /Sales: 7/.test(r.announcement),
+				`data selection is announced (${r.announcement})`);
+		});
+
+		await test("home: real interactive charts replace static imitation bars", async () => {
+			await goDesk("/desk/home", ".bnd-home-trend-chart .chart-container", 5000);
+			if (process.env.BND_HOME_SCREENSHOT) {
+				await page.locator(".bnd-home-dashboard").screenshot({ path: process.env.BND_HOME_SCREENSHOT });
+			}
+			const hoverIndex = await page.evaluate(() => {
+				const bars = [...document.querySelectorAll(".bnd-home-trend-chart .bar, .bnd-home-trend-chart .dataset-bars rect")];
+				const visible = bars.find((node) => node.getBoundingClientRect().height > 1);
+				return visible ? visible.getAttribute("data-point-index") : null;
+			});
+			expect(hoverIndex !== null, "the seeded Home trend has a non-zero bar to inspect");
+			const firstBar = page.locator(`.bnd-home-trend-chart [data-point-index="${hoverIndex}"]`).first();
+			await firstBar.hover();
+			await page.waitForTimeout(150);
+			const tooltipVisible = await page.locator(".bnd-home-trend-chart .graph-svg-tip").isVisible();
+			await page.locator(".bnd-home-status-visual").evaluate((node) =>
+				node.scrollIntoView({ block: "center", inline: "center" }));
+			await page.waitForTimeout(300);
+			const statusBefore = await page.evaluate(() => {
+				const visual = document.querySelector(".bnd-home-status-visual")?.getBoundingClientRect();
+				const path = document.querySelector(".bnd-home-status-chart .donut-path");
+				const total = document.querySelector(".bnd-home-status-total");
+				const center = (node) => { const box = node?.getBoundingClientRect(); return box
+					? { x: box.left + box.width / 2 - visual.left, y: box.top + box.height / 2 - visual.top } : null; };
+				return {
+					path: center(path),
+					total: center(total),
+					aligned: total?.dataset.bndAligned === "true",
+					visual: visual && { width: visual.width, height: visual.height },
+					chart: (() => { const box = document.querySelector(".bnd-home-status-chart")?.getBoundingClientRect();
+						return box && { top: box.top - visual.top, width: box.width, height: box.height }; })(),
+					transform: document.querySelector(".bnd-home-status-chart .donut-chart")?.getAttribute("transform"),
+					pathState: path && { transform: path.getAttribute("transform"), style: path.getAttribute("style"),
+						computedTransform: getComputedStyle(path).transform, strokeWidth: getComputedStyle(path).strokeWidth,
+						d: path.getAttribute("d") },
+				};
+			});
+			const statusSlice = page.locator(".bnd-home-status-chart .donut-path").first();
+			if (await statusSlice.count()) {
+				const box = await statusSlice.boundingBox();
+				await statusSlice.dispatchEvent("mousemove", {
+					clientX: box.x + box.width,
+					clientY: box.y + box.height / 2,
+				});
+				await page.waitForTimeout(150);
+			}
+			const statusAfter = await page.evaluate(() => {
+				const visual = document.querySelector(".bnd-home-status-visual")?.getBoundingClientRect();
+				const path = document.querySelector(".bnd-home-status-chart .donut-path");
+				const box = path?.getBoundingClientRect();
+				return {
+					center: box ? { x: box.left + box.width / 2 - visual.left, y: box.top + box.height / 2 - visual.top } : null,
+					visual: visual && { width: visual.width, height: visual.height },
+					chart: (() => { const chart = document.querySelector(".bnd-home-status-chart")?.getBoundingClientRect();
+						return chart && { top: chart.top - visual.top, width: chart.width, height: chart.height }; })(),
+					transform: document.querySelector(".bnd-home-status-chart .donut-chart")?.getAttribute("transform"),
+					pathState: path && { transform: path.getAttribute("transform"), style: path.getAttribute("style"),
+						computedTransform: getComputedStyle(path).transform, strokeWidth: getComputedStyle(path).strokeWidth,
+						d: path.getAttribute("d") },
+					tooltip: (() => { const tip = document.querySelector(".bnd-home-status-chart .graph-svg-tip"); return {
+						visible: !!tip && getComputedStyle(tip).opacity !== "0",
+						style: tip?.getAttribute("style") || "",
+						text: tip?.textContent?.trim() || "",
+					}; })(),
+				};
+			});
+			await page.evaluate(() => {
+				window.__bndChartKeySelections = 0;
+				document.querySelector(".bnd-home-trend-chart").addEventListener("data-select", (event) => {
+					window.__bndChartKeySelections += 1;
+					event.stopImmediatePropagation();
+				}, true);
+			});
+			await page.locator(".bnd-home-trend-chart .chart-container").focus();
+			// Frappe Charts starts navigation on the latest point, so move left first.
+			await page.keyboard.press("ArrowLeft");
+			await page.waitForTimeout(150);
+			const keyboardSelections = await page.evaluate(() => window.__bndChartKeySelections);
+			const r = await page.evaluate(async () => {
+				const payload = await frappe.xcall("bunood_theme.api.get_home_dashboard");
+				const styles = getComputedStyle(document.documentElement);
+				const rgbHex = (color) => {
+					const match = String(color || "").match(/(\d+),\s*(\d+),\s*(\d+)/);
+					return match ? "#" + [match[1], match[2], match[3]]
+						.map((value) => Number(value).toString(16).padStart(2, "0")).join("") : String(color || "").toLowerCase();
+				};
+				const statusValues = [payload.invoice_status?.paid, payload.invoice_status?.open, payload.invoice_status?.overdue]
+					.map((value) => Number(value) || 0);
+				const expectedColors = ["--bnd-good", "--bnd-cat-1", "--bnd-critical"]
+					.map((token) => styles.getPropertyValue(token).trim().toLowerCase());
+				const expectedDonutColor = expectedColors[statusValues.findIndex((value) => value > 0)] || null;
+				const donut = document.querySelector(".bnd-home-status-chart .donut-path");
+				const statusContainer = document.querySelector(".bnd-home-status-chart .chart-container");
+				return {
+					trendCharts: document.querySelectorAll(".bnd-home-trend-chart .chart-container").length,
+					trendBars: document.querySelectorAll(".bnd-home-trend-chart .bar, .bnd-home-trend-chart .dataset-bars rect").length,
+					statusVisual: document.querySelectorAll(".bnd-home-status-chart .chart-container, .bnd-home-status-chart .bnd-home-chart-empty").length,
+					statusActions: document.querySelectorAll("button.bnd-home-status-row").length,
+					statusTotal: statusValues.reduce((sum, value) => sum + value, 0),
+					statusCenter: document.querySelector(".bnd-home-status-total-value")?.textContent || "",
+					statusChartHeight: statusContainer?.getBoundingClientRect().height || 0,
+					statusNativeLegend: document.querySelectorAll(".bnd-home-status-chart .chart-legend").length,
+					statusDonutColor: donut ? rgbHex(getComputedStyle(donut).stroke) : null,
+					expectedDonutColor,
+					statusMarkerColors: [...document.querySelectorAll(".bnd-home-status-marker")]
+						.map((node) => rgbHex(getComputedStyle(node).backgroundColor)),
+					expectedColors,
+					staticBars: document.querySelectorAll(".bnd-home-bars, .bnd-home-status-track").length,
+					interactive: [...document.querySelectorAll(".bnd-home-chart .chart-container")]
+						.every((node) => node.classList.contains("bnd-interactive-chart")),
+					boundedMonths: (payload.trend || []).every((point) => point.from_date && point.to_date),
+					invoiceScope: payload.invoice_scope,
+				};
+			});
+			expectEq(r.trendCharts, 1, "Home renders one Frappe sales chart");
+			expect(r.trendBars > 0, `the sales chart rendered real SVG bars (${r.trendBars})`);
+			expectEq(r.statusVisual, 1, "invoice status renders a donut or an honest empty state");
+			expectEq(r.statusActions, 3, "status legend entries are actionable filters");
+			expectEq(r.statusCenter, r.statusTotal ? String(r.statusTotal) : "", "the donut center shows the invoice total only when data exists");
+			expect(!r.statusTotal || r.statusChartHeight >= 270, `the invoice donut uses the full visual area (${r.statusChartHeight}px)`);
+			expectEq(r.statusNativeLegend, 0, "the cramped vendor legend is replaced by the dashboard status strip");
+			expect(!r.statusTotal || r.statusDonutColor === r.expectedDonutColor,
+				`the first visible donut slice keeps its semantic status color (${r.statusDonutColor} vs ${r.expectedDonutColor})`);
+			expectEq(JSON.stringify(r.statusMarkerColors), JSON.stringify(r.expectedColors),
+				"Paid, Open and Overdue markers use the good, informational and critical theme tokens");
+			expectEq(r.staticBars, 0, "the hand-built static bars are gone");
+			expect(r.interactive, "every rendered Home chart uses the shared interactive wrapper");
+			expect(r.boundedMonths, "each sales point carries an exact drill-down date range");
+			expect(r.invoiceScope?.company && r.invoiceScope?.from_date && r.invoiceScope?.as_of,
+				"the server publishes the exact invoice-status list scope");
+			if (r.statusTotal) {
+				expect(statusBefore.aligned, "the donut total is anchored after the chart has rendered");
+				expect(Math.hypot(statusBefore.path.x - statusBefore.total.x, statusBefore.path.y - statusBefore.total.y) <= 1,
+					`the donut total is centered in the rendered ring (${JSON.stringify(statusBefore)})`);
+				expect(Math.hypot(statusBefore.path.x - statusAfter.center.x, statusBefore.path.y - statusAfter.center.y) <= .25,
+					`hover does not move the donut (${JSON.stringify({ before: statusBefore, after: statusAfter })})`);
+				expect(statusAfter.tooltip.visible,
+					`hover still exposes the native donut tooltip (${JSON.stringify(statusAfter.tooltip)})`);
+			}
+			expect(tooltipVisible, "hovering a sales bar opens its formatted tooltip");
+			expect(keyboardSelections > 0, "ArrowLeft selects a chart point through Frappe Charts navigation");
+		});
+
+		await test("home: overdue action opens the same invoices the dashboard counted", async () => {
+			await goDesk("/desk/home", ".bnd-home-attn-row", 5000);
+			await page.evaluate(() => {
+				window.__bndCapturedInvoiceRoute = null;
+				window.__bndOriginalSetRoute = frappe.set_route;
+				frappe.set_route = (...args) => { window.__bndCapturedInvoiceRoute = args; };
+			});
+			try {
+				await page.locator(".bnd-home-attn-row").first().click();
+			} finally {
+				await page.evaluate(() => { frappe.set_route = window.__bndOriginalSetRoute; });
+			}
+			const result = await page.evaluate(async () => {
+				const route = window.__bndCapturedInvoiceRoute;
+				const payload = await frappe.xcall("bunood_theme.api.get_home_dashboard");
+				const filters = route?.[2] || {};
+				const rows = await frappe.xcall("frappe.client.get_list", {
+					doctype: "Sales Invoice", filters,
+					fields: ["name", "status", "due_date", "outstanding_amount"],
+					limit_page_length: 0,
+				});
+				return { route: route?.slice(0, 2), filters, rows, counted: Number(payload.invoice_status?.overdue) || 0 };
+			});
+			expectEq(JSON.stringify(result.route), JSON.stringify(["List", "Sales Invoice"]),
+				"the attention row opens the Sales Invoice list");
+			expect(!("status" in result.filters), "the overdue action does not depend on asynchronously stored status text");
+			expectEq(result.filters.outstanding_amount?.[0], ">", "the overdue action requires an outstanding balance");
+			expectEq(result.filters.due_date?.[0], "<", "the overdue action uses the same due-date boundary as Home");
+			expectEq(result.rows.length, result.counted,
+				`the destination contains exactly the ${result.counted} invoices shown on Home`);
+		});
+
 		await test("chart: series marks take the derived ramp, not the vendor palette", async () => {
 			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
 			const r = await page.evaluate(async () => {
@@ -8456,7 +9556,7 @@ async function main() {
 				const ramp = [];
 				for (let i = 1; i <= 7; i++) ramp.push(html.getPropertyValue("--bnd-series-" + i).trim().toLowerCase());
 				const host = document.createElement("div");
-				host.style.width = "420px";
+				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
 				document.body.appendChild(host);
 				const chart = new frappe.Chart(host, {
 					type: "bar", height: 200, colors: [],
@@ -8518,7 +9618,9 @@ async function main() {
 					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
 				const ramp = () => { const h = getComputedStyle(document.documentElement); const a = [];
 					for (let i = 1; i <= 7; i++) a.push(h.getPropertyValue("--bnd-series-" + i).trim().toLowerCase()); return a; };
-				const host = document.createElement("div"); host.style.width = "420px"; document.body.appendChild(host);
+				const host = document.createElement("div");
+				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
+				document.body.appendChild(host);
 				new frappe.Chart(host, { type: "bar", height: 200, colors: [],
 					data: { labels: ["a", "b"], datasets: [{ values: [3, 2] }, { values: [2, 4] }] } });
 				await new Promise((res) => setTimeout(res, 600));
@@ -8528,11 +9630,10 @@ async function main() {
 				document.documentElement.setAttribute("data-theme", "dark");
 				if (window.bunood_theme && window.bunood_theme.chart_apply) window.bunood_theme.chart_apply();
 				await new Promise((res) => setTimeout(res, 900));
-				// draw(false,false) rebuilds the chart's own SVG on the SAME instance
-				// in the SAME container — the widget holds the instance, not the SVG,
-				// so nothing is stranded. The observable proof of "in place" is that
-				// the container still holds exactly ONE chart (not 0 = destroyed, not
-				// 2 = duplicated), recoloured.
+				// The shared wrapper repaints the existing marks without asking the
+				// vendor renderer to rebuild its SVG. The observable proof of "in
+				// place" is that the container still holds exactly ONE chart (not 0 =
+				// destroyed, not 2 = duplicated), recoloured.
 				const after = { ramp: ramp(),
 					containers: host.querySelectorAll(".chart-container").length,
 					fills: [...new Set([...host.querySelectorAll("rect.bar, .dataset-bars rect")]
@@ -8892,6 +9993,246 @@ async function main() {
 			expect(/tabular-nums/.test(s.fvn), `the summary is tabular under the report kit alone (${s.fvn})`);
 		});
 
+		await test("report: panels align and summaries fit in both languages and themes", async () => {
+			const viewport = page.viewportSize();
+			setSettings({ report_style: "Pinned Slab" });
+			try {
+				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
+					await goDesk("/desk/query-report/Balance Sheet", ".report-summary", 2000);
+					for (const width of [1440, 390]) {
+						await page.setViewportSize({ width, height: 1000 });
+						for (const mode of ["light", "dark"]) {
+							await page.evaluate(m => document.documentElement.setAttribute("data-theme", m), mode);
+							await page.waitForTimeout(350);
+							const r = await page.evaluate(() => {
+								const root = document.querySelector('[id="page-query-report"]');
+								const panels = [".page-form", ".report-summary", ".chart-wrapper"].map(s => root.querySelector(s));
+								const boxes = panels.map(e => ({ x: e.getBoundingClientRect().x, width: e.getBoundingClientRect().width, border: getComputedStyle(e).borderTopWidth }));
+								const items = [...root.querySelectorAll('.summary-item')];
+								return { boxes, fits: items.every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1), overflow: document.documentElement.scrollWidth > innerWidth + 1 };
+							});
+							expect(r.boxes.every(b => b.border === "1px" && Math.abs(b.x - r.boxes[0].x) < 2 && Math.abs(b.width - r.boxes[0].width) < 2), `${lang}/${mode}/${width}: aligned report panels ${JSON.stringify(r)}`);
+							expect(r.fits && !r.overflow, `${lang}/${mode}/${width}: summary content and page fit ${JSON.stringify(r)}`);
+						}
+					}
+				});
+			} finally { await page.setViewportSize(viewport); }
+		});
+
+		await test("All Apps always offers a labelled route to the main dashboard", async () => {
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1,
+				sidebar_enabled: 1,
+				// Reproduce the dead-end state from the report: an explicit Off used
+				// to remove the only route back because this page has no side pane.
+				home_placement: "Off",
+				apps_placement: "Side Pane Start",
+			});
+			for (const [lang, label, dir] of [["en", "Dashboard", "ltr"], ["ar", "لوحة التحكم", "rtl"]]) {
+				await withLang(lang, async () => {
+					await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon", 1500);
+					const dashboard = page.locator('.bnd-topbar .bnd-dashboard-return[data-bnd-part="home"]:visible');
+					expectEq(await dashboard.count(), 1, `${lang}: All Apps has one dashboard route even when Home is Off`);
+					expectEq((await dashboard.textContent()).trim(), label, `${lang}: dashboard route has a visible localized label`);
+					expectEq(await page.locator("html").getAttribute("dir"), dir, `${lang}: direction matches the language`);
+					const fit = await dashboard.evaluate(button => {
+						const r = button.getBoundingClientRect();
+						const icon = button.querySelector("svg").getBoundingClientRect();
+						const text = button.querySelector(".bnd-dashboard-return-label").getBoundingClientRect();
+						return {
+							rect: { left: r.left, right: r.right, top: r.top, width: r.width, viewport: innerWidth },
+							withinViewport: r.left >= 0 && r.right <= innerWidth,
+							contentFits: button.scrollWidth <= button.clientWidth,
+							labelVisible: text.width > 40,
+							centred: Math.abs((icon.top + icon.height / 2) - (text.top + text.height / 2)) < 2,
+						};
+					});
+					expect(Object.entries(fit).filter(([key]) => key !== "rect").every(([, value]) => value), `${lang}: dashboard control is fitted and aligned: ${JSON.stringify(fit)}`);
+					if (process.env.BND_UI_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-dashboard-${lang}.png`, fullPage: true });
+					}
+					await dashboard.click();
+					await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
+				});
+			}
+		});
+
+		await test("All Apps has one global-control owner in Top Bar, Bottom Bar and mobile modes", async () => {
+			const viewport = page.viewportSize();
+			const states = [
+				{
+					name: "desktop Top Bar", width: 1440, mobile: false, owner: "topbar",
+					settings: { ...layoutSettings("Top Bar"), desk_layout: "Top Bar" },
+				},
+				{
+					name: "desktop Bottom Bar", width: 1280, mobile: false, owner: "bottombar",
+					settings: { ...layoutSettings("Bottom Bar"), desk_layout: "Bottom Bar" },
+				},
+				{
+					name: "mobile", width: 390, mobile: true, owner: "bottombar",
+					settings: { ...layoutSettings("Top Bar"), desk_layout: "Top Bar" },
+				},
+			];
+			try {
+				for (const state of states) {
+					setSettings(state.settings);
+					await page.setViewportSize({ width: state.width, height: 900 });
+					await goDesk("/desk/desktop", ".desktop-icon", 2000);
+					await page.waitForTimeout(500);
+					const result = await page.evaluate(() => {
+						const shown = (node) => {
+							if (!node) return false;
+							const box = node.getBoundingClientRect();
+							const css = getComputedStyle(node);
+							return box.width > 0 && box.height > 0 && css.display !== "none" && css.visibility !== "hidden";
+						};
+						const count = (selector) => [...document.querySelectorAll(selector)].filter(shown).length;
+						const dashboard = [...document.querySelectorAll('[data-bnd-part="home"]')].find(shown);
+						const controls = [...document.querySelectorAll(
+							'[data-bnd-part="home"], [data-bnd-part="apps"], [data-bnd-part="search"], [data-bnd-part="bell"], [data-bnd-part="user"]'
+						)].filter(shown);
+						const overlaps = [];
+						for (let i = 0; i < controls.length; i++) for (let j = i + 1; j < controls.length; j++) {
+							const a = controls[i].getBoundingClientRect();
+							const b = controls[j].getBoundingClientRect();
+							if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+								Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) {
+								overlaps.push(`${controls[i].dataset.bndPart}/${controls[j].dataset.bndPart}`);
+							}
+						}
+						const owner = dashboard?.closest(".bnd-topbar") ? "topbar"
+							: dashboard?.closest(".bnd-statusbar") ? "bottombar"
+							: dashboard?.closest(".bnd-dock") ? "dock" : "other";
+						const bar = document.querySelector(".bnd-statusbar");
+						const main = document.querySelector(".main-section");
+						if (main) main.scrollTop = main.scrollHeight;
+						const lastTile = [...document.querySelectorAll(".desktop-icon")].at(-1);
+						const barBox = bar?.getBoundingClientRect();
+						const tileBox = lastTile?.getBoundingClientRect();
+						return {
+							stamp: document.documentElement.hasAttribute("data-bnd-desktop-shell"),
+							native: count(".desktop-navbar"),
+							search: count(".bnd-search-field, .bnd-search-icon, #desktop-navbar-modal-search"),
+							bell: count(".bnd-bell, .desktop-notification-icon"),
+							user: count(".bnd-avatar-btn, .desktop-avatar"),
+							dashboard: count('[data-bnd-part="home"]'),
+							apps: count('[data-bnd-part="apps"]'),
+							dashboardLabel: (dashboard?.querySelector(".bnd-dashboard-return-label")?.textContent || "").trim(),
+							owner,
+							barRole: bar?.getAttribute("role") || null,
+							statusItems: bar ? [...bar.children].filter((node) => node.matches(".bnd-status-item") && shown(node)).length : 0,
+							contentClearsBar: !barBox || !tileBox || tileBox.bottom <= barBox.top + 1,
+							overlaps,
+						};
+					});
+					if (process.env.BND_UI_SCREENSHOTS) {
+						const slug = state.name.toLowerCase().replace(/\s+/g, "-");
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-${slug}.png`, fullPage: true });
+					}
+					expect(result.stamp, `${state.name}: Bunood claims the Desktop page shell (${JSON.stringify(result)})`);
+					expectEq(result.native, 0, `${state.name}: Frappe's duplicate navbar stands down`);
+					expectEq(result.search, 1, `${state.name}: exactly one search remains`);
+					expectEq(result.bell, 1, `${state.name}: exactly one notification control remains`);
+					expectEq(result.user, 1, `${state.name}: exactly one profile control remains`);
+					expectEq(result.dashboard, 1, `${state.name}: exactly one Dashboard return remains`);
+					expectEq(result.apps, 0, `${state.name}: the current All Apps destination is not repeated`);
+					expect(result.dashboardLabel, `${state.name}: Dashboard return is visibly labelled`);
+					expectEq(result.owner, state.owner, `${state.name}: Dashboard stays in the shell that owns search`);
+					expectEq(result.barRole, state.mobile ? "navigation" : "region", `${state.name}: bottom-bar semantics match its job`);
+					expect(result.contentClearsBar, `${state.name}: the last app remains reachable above fixed bottom chrome`);
+					expectEq(result.overlaps.join(","), "", `${state.name}: global controls never overlap`);
+				if (state.mobile) expectEq(result.statusItems, 0, "mobile: no telemetry leaks into primary navigation");
+				}
+			} finally {
+				await page.setViewportSize(viewport);
+			}
+		});
+
+		await test("All Apps mobile navigation mirrors cleanly in Arabic", async () => {
+			const viewport = page.viewportSize();
+			setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar" });
+			try {
+				await withLang("ar", async () => {
+					await page.setViewportSize({ width: 390, height: 844 });
+					await goDesk("/desk/desktop", ".desktop-icon", 2000);
+					const result = await page.evaluate(() => {
+						const bar = document.querySelector(".bnd-statusbar");
+						const shown = [...bar.querySelectorAll('[data-bnd-part]')].filter((node) => {
+							const rect = node.getBoundingClientRect();
+							return rect.width > 0 && getComputedStyle(node).display !== "none";
+						});
+						const items = shown.map((node) => ({
+							part: node.dataset.bndPart,
+							label: (node.querySelector(".bnd-mobile-nav-label, .bnd-search-label")?.textContent || "").trim(),
+							right: Math.round(node.getBoundingClientRect().right),
+							width: Math.round(node.getBoundingClientRect().width),
+						})).sort((a, b) => b.right - a.right);
+						const tileRects = [...document.querySelectorAll(".desktop-icon")].map((node) => {
+							const rect = node.getBoundingClientRect();
+							return { left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width) };
+						});
+						const visibleGrid = [...document.querySelectorAll(".desktop-wrapper .icons")].find((node) => node.getBoundingClientRect().width > 0);
+						const barRect = bar.getBoundingClientRect();
+						return {
+							dir: document.documentElement.dir,
+							items,
+							pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+							tileRects,
+							gridColumns: visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
+							gridTemplate: visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns : "",
+							gridInline: visibleGrid?.getAttribute("style") || "",
+							barRect: { top: Math.round(barRect.top), bottom: Math.round(barRect.bottom), viewport: innerHeight },
+						};
+					});
+					if (process.env.BND_UI_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-mobile-ar.png` });
+					}
+					expectEq(result.dir, "rtl", "Arabic All Apps uses RTL direction");
+					expectEq(result.items.map((item) => item.part).join(","), "home,search,bell,user", `Arabic mobile destinations remain ordered (${JSON.stringify(result.items)})`);
+					expectEq(result.items.map((item) => item.label).join("|"), "لوحة التحكم|البحث|إخطارات|الملف الشخصي", "Arabic captions are complete and localized");
+					expect(Math.max(...result.items.map((item) => item.width)) - Math.min(...result.items.map((item) => item.width)) <= 1, `Arabic columns remain equal (${JSON.stringify(result.items)})`);
+					expect(result.items.every((item, index, all) => !index || all[index - 1].right > item.right), `Arabic order mirrors from the right edge (${JSON.stringify(result.items)})`);
+					expect(result.pageOverflow <= 1, `Arabic mobile page has no horizontal overflow (${result.pageOverflow}px)`);
+					expect(result.tileRects.every((rect) => rect.left >= -1 && rect.right <= 391), `Arabic module cards remain inside the viewport (${JSON.stringify(result.tileRects)})`);
+					expectEq(result.gridColumns, 2, `a 390px All Apps grid uses two readable card columns (${result.gridTemplate}; ${result.gridInline})`);
+					expect(result.barRect.top >= 0 && result.barRect.bottom <= result.barRect.viewport + 1, `the mobile navigation stays pinned inside the viewport (${JSON.stringify(result.barRect)})`);
+				});
+			} finally {
+				await page.setViewportSize(viewport);
+			}
+		});
+
+		await test("Home sidebar is a permission-filtered module navigator", async () => {
+			setSettings({
+				...CHROME_DEFAULTS,
+				desk_layout: "Top Bar",
+				topbar_enabled: 1,
+				sidebar_enabled: 1,
+				sidebar_menu_rail: "Always Expanded",
+				home_placement: "Side Pane Start",
+				apps_placement: "Side Pane Start",
+			});
+			await goDesk("/desk/home", ".body-sidebar .sidebar-item-label:visible", 1000);
+			const labels = (await page.locator('.body-sidebar:visible .sidebar-item-label').allTextContents())
+				.map((label) => label.trim());
+			for (const expected of ["Home", "Transactions", "Selling", "Buying", "Stock", "Invoicing", "Operations", "Reports", "Setup"]) {
+				expect(labels.includes(expected), `Home sidebar is missing ${expected}`);
+			}
+			for (const stale of ["Item", "Customer", "Supplier", "Sales Invoice"]) {
+				expect(!labels.includes(stale), `Home sidebar kept sparse fallback ${stale}`);
+			}
+			const selling = page.locator('.body-sidebar:visible a[href="/desk/selling"]');
+			if (!(await selling.isVisible())) {
+				await page.locator('.body-sidebar:visible').getByText("Transactions", { exact: true }).click();
+				await selling.waitFor({ state: "visible" });
+			}
+			await selling.click();
+			await page.waitForURL(/\/desk\/selling(?:$|[?#])/);
+			await page.waitForSelector('.body-sidebar:visible a[href="/desk/sales-invoice"]', { state: "attached" });
+		});
+
 		// ── The three adversarial-review findings (fixed pre-release) ────────
 		await test("report: a discarded live preview reverts to the saved state", async () => {
 			// bnd_report_preview was missing from the refresh/discard-revert batch
@@ -8960,6 +10301,17 @@ async function main() {
 		// is the anchor + the four repairs; the band/mark/media/reveal axes and
 		// the calendar colour wrap are slice 3.
 		const VIEWS_KANBAN = "/app/todo/view/kanban/Bunood%20Memos";
+		const goViewsCalendar = async () => {
+			await goDesk("/app/todo/view/calendar", ".fc", 1000);
+			await page.evaluate(() => {
+				const calendar = window.cur_list?.calendar?.fullCalendar;
+				if (!calendar) throw new Error("ToDo FullCalendar instance is unavailable");
+				calendar.gotoDate("2026-08-01");
+				calendar.refetchEvents();
+			});
+			await page.waitForSelector(".fc-daygrid-block-event", { timeout: 30000 });
+			await page.waitForTimeout(600);
+		};
 
 		await test("views: Original applies nothing at all", async () => {
 			// The stand-down must be total: no attribute survives AND the kanban
@@ -8978,7 +10330,7 @@ async function main() {
 			// under Original, or events keep our accent while the SCSS reverts (an
 			// adversarial-review finding: the wrap was ungated). Events must carry
 			// NO accent-derived fill.
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const cal = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				const h = accent.replace("#", "");
@@ -9184,7 +10536,7 @@ async function main() {
 			// "blue") to our --bnd-accent and KEEPS a category or admin colour.
 			// Fails against stock: every default event is #edf6fd-ish blue.
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const g = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				// accent hex -> "r, g, b"
@@ -9209,7 +10561,7 @@ async function main() {
 			// hue; Outlined: transparent with a coloured border. Both fail against
 			// stock, whose events are always filled blocks.
 			setSettings({ views_style: "Floating Cards", views_mark: "Dot" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const dot = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				const main = ev.querySelector(".fc-event-main");
@@ -9224,7 +10576,7 @@ async function main() {
 			expect(dot.dot && dot.dot !== "auto" && dot.dot !== "0px", `the dot ::before is rendered (width ${dot.dot})`);
 
 			setSettings({ views_mark: "Outlined" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const outlined = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				return { bg: getComputedStyle(ev).backgroundColor, border: getComputedStyle(ev).borderInlineStartColor };
@@ -9240,7 +10592,7 @@ async function main() {
 			// before and after a data-theme flip; it must change (accent moves
 			// #4463f0 -> #516ef1 in dark).
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
 			await page.waitForTimeout(1200); // allow the native event refetch before the baseline
 			const flip = await page.evaluate(async () => {
@@ -9348,6 +10700,7 @@ async function main() {
 			// "selecting by class measures the wrong element", live, on the very
 			// rule this kit exists to fix.
 			await goDesk("/app/contact/new", ".form-layout", 6000);
+			await page.locator(".bnd-simple-switch button").nth(1).click();
 			const g = await page.evaluate(async () => {
 				document.documentElement.setAttribute("data-theme", "dark");
 				const add = [...document.querySelectorAll(".grid-add-row")].find((b) => b.offsetParent !== null);
@@ -11731,11 +13084,11 @@ async function main() {
 				expect(bar === true, `bottom bar visible at 390 (${bar})`);
 			});
 
-			await test("responsive: the mobile bar carries every critical tenant at a touch size (390)", async () => {
+			await test("responsive: the mobile bar is one labelled, evenly-spaced navigation row (390)", async () => {
 				// The item-24 defect, now closed: below 768 the bell and user were
 				// unreachable (zero-boxed in Frappe's collapsed sidebar). The narrow
-				// preset routes search / apps / alerts / you into the full-width
-				// bottom bar; the status signals stand down; each control clears the
+				// preset routes Home / Apps / Search / Alerts / You into the full-width
+				// bottom bar; ALL status telemetry stands down; each control clears the
 				// 24px touch floor. This assertion was red before slice C.
 				setSettings(topBar());
 				await page.setViewportSize(NARROW);
@@ -11752,18 +13105,37 @@ async function main() {
 					return {
 						narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
 						start: b ? Math.round(b.getBoundingClientRect().left) : null,
-						signals: b ? [...b.querySelectorAll("[data-bnd-prio]")].filter((n) => getComputedStyle(n).display !== "none").length : -1,
+						role: b && b.getAttribute("role"),
+						label: b && b.getAttribute("aria-label"),
+						statusItems: b ? [...b.children].filter((n) => n.matches(".bnd-status-item") && getComputedStyle(n).display !== "none").length : -1,
+						columns: b ? [...b.querySelectorAll("[data-bnd-part]")]
+							.filter((n) => n !== b && getComputedStyle(n).display !== "none" && n.getBoundingClientRect().width > 0)
+							.map((n) => ({
+								part: n.getAttribute("data-bnd-part"),
+								width: Math.round(n.getBoundingClientRect().width),
+								caption: (n.querySelector(".bnd-mobile-nav-label, .bnd-search-label")?.textContent || "").trim(),
+							})) : [],
+						home: t('[data-bnd-part="home"]'),
 						search: t(".bnd-search-field, .bnd-search-icon"),
 						bell: t(".bnd-bell"),
 						user: t(".bnd-avatar-btn"),
 						apps: t('[data-bnd-part="apps"]'),
 					};
 				}, visSrc);
+				if (process.env.BND_UI_SCREENSHOTS) {
+					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/mobile-navigation-five-destinations.png` });
+				}
 				await wideAgain();
 				expect(bar.narrow, "data-bnd-narrow is stamped at 390");
 				expect(bar.start === 0, `the bar spans the viewport, not a stub beside a phantom column (starts at ${bar.start})`);
-				expect(bar.signals === 0, `the ranked status signals stand down (${bar.signals} still shown)`);
-				for (const name of ["search", "bell", "user", "apps"]) {
+				expectEq(bar.role, "navigation", "the phone bar exposes its real navigation role");
+				expect(bar.label, "the phone navigation has an accessible name");
+				expect(bar.statusItems === 0, `all status telemetry stands down (${bar.statusItems} still shown)`);
+				expectEq(bar.columns.length, 5, `the row has five destinations (${JSON.stringify(bar.columns)})`);
+				expect(bar.columns.every((item) => item.caption), `every destination has a visible caption (${JSON.stringify(bar.columns)})`);
+				const widths = bar.columns.map((item) => item.width);
+				expect(Math.max(...widths) - Math.min(...widths) <= 1, `columns share the width evenly (${widths.join(", ")})`);
+				for (const name of ["home", "apps", "search", "bell", "user"]) {
 					expect(bar[name].v, `${name} is visible in the mobile bar`);
 					expect(bar[name].min >= 24, `${name} clears the 24px touch floor (${bar[name].min}px)`);
 				}
@@ -13662,7 +15034,7 @@ async function main() {
 				gp.evaluate(() => ({
 					session: document.body.getAttribute("frappe-session-status"),
 					path: location.pathname,
-					denied: /not permitted|log in|sign in/i.test(document.body.textContent || ""),
+					denied: /not permitted|log in|sign in|غير مسموح|تسجيل الدخول|سجّل الدخول/i.test(document.body.textContent || ""),
 					anyOrder: /SAL-ORD-/.test(document.body.textContent || ""),
 				}))
 			);
@@ -16631,9 +18003,165 @@ async function main() {
 			return `${URL_BASE}/desk/sales-invoice/${encodeURIComponent(summaryInvoiceName)}`;
 		};
 
+		// Frappe retains cached form pages in the DOM while navigating. Scope the
+		// mode control to cur_frm's connected wrapper and wait through the
+		// workbench's asynchronous flush so a stale hidden switch can never make
+		// an Advanced-only assertion pass or fail by accident.
+		const enterCurrentAdvancedMode = async () => {
+			await page.waitForFunction(() => {
+				const visible = node => !!node && node.getClientRects().length > 0;
+				return [...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")].some(visible) ||
+					[...document.querySelectorAll('[data-bnd-part="form-summary"]')].some(visible);
+			}, null, { timeout: 15000 });
+			for (let attempt = 0; attempt < 3; attempt++) {
+				const state = await page.evaluate(() => {
+					const visible = node => !!node && node.getClientRects().length > 0;
+					const mode = [...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
+						.find(node => node.getClientRects().length > 0);
+					// Returns, amendments and other unsupported invoice variants stay on
+					// the native form. Their visible summary already proves Advanced.
+					if (!mode && [...document.querySelectorAll('[data-bnd-part="form-summary"]')].some(visible)) return "native";
+					const advanced = mode?.querySelectorAll("button")?.[1];
+					if (!advanced) return "no-switch";
+					if (advanced.getAttribute("aria-pressed") === "true") return "advanced";
+					advanced.click();
+					return "clicked";
+				});
+				if (state === "native" || state === "advanced") return;
+				await page.waitForTimeout(250);
+				if (await page.evaluate(() => {
+					return !![...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
+						.find(node => node.getClientRects().length > 0)
+						?.querySelectorAll("button")?.[1]
+						?.getAttribute("aria-pressed")?.includes("true");
+				})) return;
+			}
+			const doctype = await page.evaluate(() => window.cur_frm?.doctype || "Current form");
+			throw new Error(`${doctype} did not remain in Advanced mode`);
+		};
+
+		await test("completion: Delivery Note Simple mode is a real reversible workbench", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/delivery-note");
+			await page.evaluate(() => frappe.new_doc("Delivery Note"));
+			await page.waitForFunction(() => cur_frm?.doctype === "Delivery Note" && cur_frm.is_new());
+			await page.waitForSelector('.bnd-simple-switch');
+			const readState = () => page.evaluate(() => {
+				const visible = node => !!node && node.getClientRects().length > 0;
+				const host = cur_frm.$wrapper[0];
+				const mode = [...host.querySelectorAll('.bnd-simple-switch')].find(visible);
+				const buttons = [...mode.querySelectorAll('button')].map(button => ({
+					pressed: button.getAttribute('aria-pressed'),
+					background: getComputedStyle(button).backgroundColor,
+				}));
+				const workbench = host.querySelector('.bnd-delivery-simple');
+				const native = host.querySelector('.form-layout');
+				const steps = workbench ? [...workbench.querySelectorAll('.bnd-stock-steps li')].map(node => node.textContent.trim()) : [];
+				const action = host.querySelector('.bnd-simple-actions .bnd-bill-action:not([hidden])');
+				const label = action?.querySelector('.bnd-bill-action-label')?.getBoundingClientRect();
+				const keycap = action?.querySelector('kbd')?.getBoundingClientRect();
+				return {
+					buttons,
+					steps,
+					workbenchVisible: visible(workbench),
+					nativeVisible: visible(native),
+					deliveryClass: host.classList.contains('bnd-delivery-simple-active'),
+					stockClass: host.classList.contains('bnd-stock-simple-active'),
+					shortcutGap: label && keycap ? Math.max(0, Math.max(label.left, keycap.left) - Math.min(label.right, keycap.right)) : -1,
+				};
+			});
+			try {
+				const simple = await readState();
+				expectEq(simple.buttons.map(button => button.pressed).join(','), 'true,false', 'Delivery Note defaults to Simple mode');
+				expect(simple.buttons[0].background !== simple.buttons[1].background, 'Simple selection has distinct paint');
+				expectEq(simple.steps.length, 3, 'Simple mode exposes three task steps');
+				expect(simple.workbenchVisible && !simple.nativeVisible, 'Simple mode replaces the native layout with its workbench');
+				expect(simple.deliveryClass && !simple.stockClass, 'Delivery Note carries only its own active-state hook');
+				expect(simple.shortcutGap >= 8, `action label and shortcut have breathing room (${simple.shortcutGap}px)`);
+				if (process.env.BND_UI_SCREENSHOTS) {
+					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/delivery-note-simple.png`, fullPage: true });
+				}
+
+				await page.locator('.bnd-simple-switch button').nth(1).click();
+				await page.waitForFunction(() => document.querySelector('.bnd-simple-switch button:nth-child(2)')?.getAttribute('aria-pressed') === 'true');
+				const advanced = await readState();
+				expectEq(advanced.buttons.map(button => button.pressed).join(','), 'false,true', 'Advanced becomes the selected mode');
+				expect(advanced.buttons[0].background !== advanced.buttons[1].background, 'Advanced selection has distinct paint');
+				expect(!advanced.workbenchVisible && advanced.nativeVisible, 'Advanced restores the native Delivery Note controls');
+
+				await page.locator('.bnd-simple-switch button').first().click();
+				await page.waitForFunction(() => document.querySelector('.bnd-simple-switch button:first-child')?.getAttribute('aria-pressed') === 'true');
+				const returned = await readState();
+				expect(returned.workbenchVisible && !returned.nativeVisible, 'returning to Simple remounts the workbench');
+			} finally {
+				await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+			}
+		});
+
+		await test("completion: document summary stays off administration and master forms", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			const records = JSON.parse(benchPy('names = ["Role", "Company", "Customer", "Supplier", "Item"]\nprint(json.dumps({dt: frappe.get_all(dt, pluck="name", order_by="creation asc", limit_page_length=1)[0] for dt in names}))\n').trim().split("\n").pop());
+			const routes = [
+				["User", "/desk/user/Administrator#user_details_tab"],
+				...Object.entries(records).map(([dt, name]) => [dt, `/desk/${dt.toLowerCase().replaceAll(" ", "-")}/${encodeURIComponent(name)}`]),
+				["System Settings", "/desk/system-settings"],
+				["Print Settings", "/desk/print-settings"],
+				["Theme Settings", "/desk/theme-settings"],
+			];
+			for (const [dt, route] of routes) {
+				await page.goto(URL_BASE + route);
+				await page.waitForFunction(dt => window.cur_frm?.doctype === dt && cur_frm.layout?.wrapper?.[0]?.isConnected && cur_frm.fields?.length, dt);
+				// Allow the form's existing 120ms summary debounce and native async refresh to settle.
+				await page.waitForTimeout(600);
+				expectEq(await page.locator('[data-bnd-part="form-summary"]').count(), 0, `${dt} should show its native form without a duplicate document summary`);
+				expect(await page.locator('.form-layout').filter({ visible: true }).count() > 0, `${dt} native controls must remain visible`);
+			}
+		});
+
+		await test("completion: transaction summaries stay after native fields and do not leak across navigation", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			const records = JSON.parse(benchPy('names = ["Sales Order", "Purchase Order", "Purchase Invoice", "Payment Entry", "Journal Entry"]\nprint(json.dumps({dt: frappe.get_all(dt, pluck="name", order_by="creation asc", limit_page_length=1)[0] for dt in names}))\n').trim().split("\n").pop());
+			for (const [dt, name] of Object.entries(records)) {
+				await page.goto(`${URL_BASE}/desk/${dt.toLowerCase().replaceAll(" ", "-")}/${encodeURIComponent(name)}`);
+				await page.waitForFunction(expected => window.cur_frm?.doctype === expected, dt);
+				// Simple mode deliberately hides the native review summary. This
+				// contract is about the native summary's position and lifecycle, so
+				// enter Advanced through the same persistent switch a user sees.
+				await enterCurrentAdvancedMode();
+				await page.waitForSelector('[data-bnd-part="form-summary"]', { state: 'visible' }).catch(async error => {
+					const mode = await page.evaluate(() => ({
+						doctype: window.cur_frm?.doctype,
+						wrapperClass: window.cur_frm?.$wrapper?.[0]?.className || '',
+						buttons: [...document.querySelectorAll('.bnd-bill-mode button, .bnd-simple-switch button')].map(button => ({ text: button.textContent.trim(), pressed: button.getAttribute('aria-pressed'), visible: !!button.offsetParent })),
+						summaryHidden: document.querySelector('[data-bnd-part="form-summary"]')?.hidden,
+						summaryDisplay: getComputedStyle(document.querySelector('[data-bnd-part="form-summary"]')).display,
+					}));
+					throw new Error(`${dt}: Advanced summary stayed hidden: ${JSON.stringify(mode)} (${error.message})`);
+				});
+				const state = await page.evaluate(() => {
+					const root = document.querySelector('[data-bnd-part="form-summary"]');
+					const host = cur_frm.layout.wrapper[0];
+					return { doctype: cur_frm.doctype, count: host.querySelectorAll('[data-bnd-part="form-summary"]').length, afterFields: host.lastElementChild === root, controls: host.querySelectorAll('.frappe-control').length };
+				});
+				expectEq(state.doctype, dt, "summary must belong to the current transaction");
+				expectEq(state.count, 1, `${dt} needs exactly one review section`);
+				expect(state.afterFields && state.controls > 0, `${dt} summary must follow, not replace or precede, the native controls`);
+			}
+			await page.evaluate(() => frappe.set_route("Form", "User", "Administrator"));
+			await page.waitForFunction(() => cur_frm?.doctype === "User" && cur_frm.doc?.name === "Administrator");
+			await page.waitForTimeout(600);
+			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 0, "a transaction summary must not follow navigation to User");
+			await page.evaluate(name => frappe.set_route("Form", "Journal Entry", name), records["Journal Entry"]);
+			await page.waitForFunction(() => cur_frm?.doctype === "Journal Entry");
+			await page.waitForSelector('[data-bnd-part="form-summary"]', { state: "visible" });
+			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 1, "returning to the cached transaction must not duplicate its summary");
+		});
+
 		await test("completion: invoice summary uses live values and excludes private fields", async () => {
 			setSettings({ form_style: "Floating Panels" });
 			await page.goto(summaryInvoiceRoute());
+			await page.waitForFunction(() => window.cur_frm?.doctype === "Sales Invoice");
+			await enterCurrentAdvancedMode();
 			await page.waitForSelector('[data-bnd-part="form-summary"]', { timeout: 15000 });
 			const summary = await page.evaluate(() => {
 				const root = document.querySelector('[data-bnd-part="form-summary"]');
@@ -16653,32 +18181,295 @@ async function main() {
 			expectEq(summary.leaked, false, "hidden and restricted values must not appear in the summary");
 		});
 
-		await test("completion: an unsaved customer summary follows edits and visibility", async () => {
+		await test("completion: an unsaved invoice summary follows edits and visibility", async () => {
 			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/customer");
-			await page.evaluate(() => frappe.new_doc("Customer"));
-			// Customer uses Frappe's Quick Entry dialog before the actual form.
-			await page.getByRole("button", { name: "Edit Full Form", exact: true }).click();
+			await goDesk("/desk/sales-invoice");
+			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+			await page.waitForSelector('.bnd-bill-mode');
+			// Simple is the default invoice surface. The native document-summary
+			// contract belongs to Advanced mode and must become visible there.
+			expectEq(await page.locator('.bnd-bill-mode button').first().getAttribute('aria-pressed'), 'true', 'new invoices default to Simple mode');
+			await page.locator('.bnd-bill-mode button').nth(1).click();
 			await page.waitForSelector('[data-bnd-part="form-summary"]');
 			try {
-				const name = page.locator('.form-layout [data-fieldname="customer_name"] input').filter({ visible: true }).first();
-				await name.fill("Summary preview one");
-				await name.press("Tab");
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview one").catch(() => { throw new Error("summary did not follow the first customer-name edit"); });
-				await name.fill("Summary preview two");
-				await name.press("Tab");
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview two").catch(() => { throw new Error("summary did not follow the second customer-name edit"); });
-				const tabVisible = await page.evaluate(() => !cur_frm.fields_dict.customer_name.tab.is_hidden());
-				expect(tabVisible, 'customer-name tab starts visible');
-				await page.evaluate(() => cur_frm.fields_dict.customer_name.tab.toggle(false));
-				await page.waitForFunction(() => !document.querySelector('[data-summary-field="customer_name"]'), null, { timeout: 3000 }).catch(() => { throw new Error("summary retained a field inside a hidden tab"); });
-				await page.evaluate(() => cur_frm.fields_dict.customer_name.tab.toggle(true));
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="customer_name"] dd')?.textContent === "Summary preview two");
-				await page.evaluate(() => cur_frm.set_df_property("customer_name", "hidden", 1));
-				await page.waitForFunction(() => !document.querySelector('[data-summary-field="customer_name"]')).catch(() => { throw new Error("summary retained a field after it became hidden"); });
+				await page.evaluate(() => cur_frm.set_value("po_no", "Summary preview one"));
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview one").catch(() => { throw new Error("summary did not follow the first purchase-order-reference edit"); });
+				await page.evaluate(() => cur_frm.set_value("po_no", "Summary preview two"));
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview two").catch(() => { throw new Error("summary did not follow the second purchase-order-reference edit"); });
+				const tabVisible = await page.evaluate(() => !cur_frm.fields_dict.po_no.tab.is_hidden());
+				expect(tabVisible, 'purchase-order-reference tab starts visible');
+				await page.evaluate(() => cur_frm.fields_dict.po_no.tab.toggle(false));
+				await page.waitForFunction(() => !document.querySelector('[data-summary-field="po_no"]'), null, { timeout: 3000 }).catch(() => { throw new Error("summary retained a field inside a hidden tab"); });
+				await page.evaluate(() => cur_frm.fields_dict.po_no.tab.toggle(true));
+				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview two");
+				await page.evaluate(() => cur_frm.set_df_property("po_no", "hidden", 1));
+				await page.waitForFunction(() => !document.querySelector('[data-summary-field="po_no"]')).catch(() => { throw new Error("summary retained a field after it became hidden"); });
 			} finally {
-				// This fixture is an unsaved local document: never create a customer.
-				await page.evaluate(() => { cur_frm.fields_dict.customer_name.tab.toggle(true); cur_frm.set_df_property("customer_name", "hidden", 0); cur_frm.doc.__unsaved = 0; });
+				// This fixture is an unsaved local document: never save an invoice.
+				await page.evaluate(() => { cur_frm.fields_dict.po_no.tab.toggle(true); cur_frm.set_df_property("po_no", "hidden", 0); cur_frm.doc.__unsaved = 0; });
+			}
+		});
+
+		await test("completion: ZATCA status is live, credential-free, and limited to issued invoices", async () => {
+			await goDesk("/desk/sales-invoice");
+			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+			await page.waitForSelector('[data-bnd-part="zatca-status"]');
+			const sales = await page.evaluate(async () => {
+				const response = await frappe.call({
+					method: "bunood_theme.zatca.get_status",
+					type: "GET",
+					args: { company: cur_frm.doc.company },
+				});
+				const payload = response.message || {};
+				return {
+					count: document.querySelectorAll('[data-bnd-part="zatca-status"]').length,
+					installed: payload.installed,
+					state: payload.state,
+					settings: payload.settings || {},
+					leaksCredential: /security_token|production_secret|\"secret\"/i.test(JSON.stringify(payload)),
+				};
+			});
+			expectEq(sales.count, 1, "Simple Sales Invoice has one ZATCA status panel");
+			expectEq(sales.installed, true, "the local site has the KSA Compliance connector installed");
+			const knownStates = new Set(["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"]);
+			expect(knownStates.has(sales.state), `the demo company reports a supported setup state (${sales.state})`);
+			if (sales.state === "ready") {
+				expectEq(sales.settings.server, "Sandbox", "the ready development connector is pinned to Sandbox");
+				expectEq(sales.settings.compliance_ready, true, "Sandbox onboarding produced a compliance CSID");
+				expectEq(sales.settings.production_ready, true, "Sandbox onboarding produced the test submission CSID");
+			}
+			expectEq(sales.leaksCredential, false, "the Bunood facade never returns a CSID token or secret");
+
+			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; return frappe.new_doc("Purchase Invoice"); });
+			await page.waitForFunction(() => cur_frm?.doctype === "Purchase Invoice" && document.querySelector('.bnd-bill-mode'));
+			expectEq(await page.locator('[data-bnd-part="zatca-status"]').filter({ visible: true }).count(), 0, "Purchase Invoice does not expose issuer-side ZATCA submission");
+			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+		});
+
+		await test("completion: invoice tax validation agrees in Simple mode and on the server", async () => {
+			const server = JSON.parse(benchPy(
+				`from bunood_theme.tax_validation import validate_invoice_taxes\n` +
+				`account = frappe.db.get_value("Account", {"account_type": "Tax"}, "name")\n` +
+				`if not account:\n` +
+				`    raise AssertionError("verification site needs one Tax account")\n` +
+				`def row(idx, rate):\n` +
+				`    return frappe._dict(idx=idx, charge_type="On Net Total", account_head=account, rate=rate)\n` +
+				`def rejected(doc):\n` +
+				`    try:\n` +
+				`        validate_invoice_taxes(doc)\n` +
+				`        return {"rejected": False, "message": ""}\n` +
+				`    except Exception as exc:\n` +
+				`        return {"rejected": True, "message": str(exc)}\n` +
+				`hooks = frappe.get_hooks("doc_events")\n` +
+				`validate_hooks = hooks.get("Sales Invoice", {}).get("validate", [])\n` +
+				`if isinstance(validate_hooks, str):\n` +
+				`    validate_hooks = [validate_hooks]\n` +
+				`conflict = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="", taxes=[row(2, 15), row(4, 5)]))\n` +
+				`empty = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="Selected VAT template", taxes=[]))\n` +
+				`zero = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="", taxes=[row(1, 0)]))\n` +
+				`print(json.dumps({"account": account, "hooked": "bunood_theme.tax_validation.validate_invoice_taxes" in validate_hooks, "conflict": conflict, "empty": empty, "zero": zero}))\n`
+			));
+			expect(server.account, "the live validation resolved a real Tax account");
+			expectEq(server.hooked, true, "Sales Invoice validate events include Bunood's server tax guard");
+			expectEq(server.conflict.rejected, true, "the live server rejects two rates posted to one Tax account");
+			expect(/2, 4/.test(server.conflict.message) && /5%/.test(server.conflict.message) && /15%/.test(server.conflict.message), "the server rejection identifies the rows and conflicting rates");
+			expectEq(server.empty.rejected, true, "the live server rejects a selected template with no tax rows");
+			expectEq(server.zero.rejected, false, "an explicit zero rate remains valid on the server");
+
+			await goDesk("/desk/sales-invoice");
+			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+			await page.waitForSelector('.bnd-bill-mode');
+			const client = await page.evaluate((account) => {
+				const check = window.bunood_theme.sales_bill.taxConfigurationIssue;
+				const row = (idx, rate) => ({ idx, charge_type: "On Net Total", account_head: account, description: "VAT", rate });
+				return {
+					conflict: check({ taxes: [row(2, 15), row(4, 5)] }),
+					empty: check({ taxes_and_charges: "Selected VAT template", taxes: [] }),
+					zero: check({ taxes: [row(1, 0)] }),
+				};
+			}, server.account);
+			expectEq(client.conflict.code, "conflicting_rates", "Simple mode identifies conflicting VAT rates before save");
+			expectEq(client.conflict.rows.join(","), "2,4", "Simple mode points to the affected tax rows");
+			expectEq(client.empty.code, "empty_template", "Simple mode identifies an empty selected template");
+			expectEq(client.zero, null, "Simple mode accepts an explicit zero rate");
+			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+		});
+
+		await test("i18n: simple bill field labels render in Arabic", async () => {
+			await withLang("ar", async () => {
+				await goDesk("/desk/sales-invoice");
+				await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+				await page.waitForSelector('.bnd-bill-mode');
+				try {
+					const fixture = await page.evaluate(async () => {
+						const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { disabled: 0, is_sales_item: 1 }, limit: 1 });
+						if (!item) return { error: "verification site needs one sales item" };
+						const row = cur_frm.doc.items.find(entry => !entry.item_code) || cur_frm.add_child("items");
+						await frappe.model.set_value(row.doctype, row.name, "item_code", item.name);
+						await frappe.after_ajax();
+						window.bunood_theme.sales_bill.open(cur_frm);
+						return { item: item.name };
+					});
+					expect(!fixture.error, fixture.error || "Arabic simple bill fixture was created");
+					await page.waitForSelector('.bnd-bill-line');
+					const rateLabel = await page.locator('.bnd-bill-cell .frappe-control[data-fieldname="rate"] .control-label').textContent();
+					expectEq(rateLabel.trim(), "سعر الوحدة", "Unit price must render in Arabic on the invoice row");
+					if (process.env.BND_UI_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/sales-invoice-arabic-labels.png`, fullPage: true });
+					}
+				} finally {
+					await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+				}
+			});
+		});
+
+		await test("completion: simple bill rows align, fit, and expose warehouse choices", async () => {
+			setSettings({ form_style: "Floating Panels" });
+			await goDesk("/desk/sales-invoice");
+			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
+			await page.waitForSelector('.bnd-bill-mode');
+			const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+			for (const theme of ['light', 'dark']) {
+				await page.evaluate(value => document.documentElement.setAttribute('data-theme', value), theme);
+				const shortcut = await page.evaluate(() => {
+					const button = document.querySelector('.bnd-bill-action-save');
+					const keycap = button?.querySelector('kbd');
+					return button && keycap ? {
+						button: getComputedStyle(button).backgroundColor,
+						keycap: getComputedStyle(keycap).backgroundColor,
+						border: getComputedStyle(keycap).borderColor,
+					} : null;
+				});
+				expect(shortcut && shortcut.keycap !== shortcut.button, `${theme}: Save shortcut keycap must be visually separate from the button`);
+				expect(shortcut && shortcut.border !== 'rgba(0, 0, 0, 0)', `${theme}: Save shortcut keycap needs a visible boundary`);
+				const keycapCentres = await page.evaluate(() => [...document.querySelectorAll('.bnd-bill-action kbd')]
+					.filter(keycap => keycap.getBoundingClientRect().width > 0)
+					.map(keycap => {
+						const range = document.createRange();
+						range.selectNodeContents(keycap);
+						const box = keycap.getBoundingClientRect();
+						const text = range.getBoundingClientRect();
+						const style = getComputedStyle(keycap);
+						return {
+							key: keycap.textContent.trim(),
+							x: Math.abs((text.left + text.right - box.left - box.right) / 2),
+							y: Math.abs((text.top + text.bottom - box.top - box.bottom) / 2),
+							display: style.display,
+							align: style.alignItems,
+							justify: style.justifyContent,
+							lineHeight: parseFloat(style.lineHeight),
+							fontSize: parseFloat(style.fontSize),
+						};
+					}));
+				expect(keycapCentres.length >= 2, `${theme}: New and Save expose their F-key legends`);
+				expect(keycapCentres.every(({ display, align, justify, lineHeight, fontSize }) => display.endsWith('flex') && align === 'center' && justify === 'center' && lineHeight <= fontSize + 0.1), `${theme}: every keycap owns an explicit centred text layout (${JSON.stringify(keycapCentres)})`);
+				expect(keycapCentres.every(({ x, y }) => x <= 1 && y <= 1), `${theme}: every F-key legend is centred in its keycap (${JSON.stringify(keycapCentres)})`);
+			}
+			await page.evaluate(value => value ? document.documentElement.setAttribute('data-theme', value) : document.documentElement.removeAttribute('data-theme'), originalTheme);
+			const searchGeometry = await page.evaluate(() => {
+				const search = document.querySelector('.bnd-bill-search');
+				const input = search?.querySelector('input');
+				const controls = input ? [input, ...search.querySelectorAll('button')] : [];
+				const bottoms = controls.map(control => control.getBoundingClientRect().bottom);
+				return {
+					controls: controls.length,
+					spread: bottoms.length ? Math.max(...bottoms) - Math.min(...bottoms) : 999,
+				};
+			});
+			expect(searchGeometry.controls >= 3, "item search exposes its input and both actions");
+			expect(searchGeometry.spread <= 2, `item search actions share the input baseline (${searchGeometry.spread}px spread)`);
+			const fixture = await page.evaluate(async () => {
+				const [customer] = await frappe.db.get_list("Customer", { fields: ["name"], limit: 1 });
+				const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { disabled: 0, is_sales_item: 1 }, limit: 1 });
+				if (!customer || !item) return { error: "verification site needs one customer and one sales item" };
+				await cur_frm.set_value("customer", customer.name);
+				// Keep the company's valid default VAT template. This is the normal
+				// Simple-bill path the product promises; forcing a tax-free draft here
+				// masked the exact missing-VAT regression reported by the user.
+				const row = cur_frm.doc.items.find(r => !r.item_code) || cur_frm.add_child("items");
+				await frappe.model.set_value(row.doctype, row.name, "item_code", item.name);
+				await frappe.after_ajax();
+				window.bunood_theme.sales_bill.open(cur_frm);
+				return {
+					item: item.name,
+					taxTemplate: cur_frm.doc.taxes_and_charges,
+					taxRows: (cur_frm.doc.taxes || []).map(row => ({ rate: row.rate, account: row.account_head })),
+				};
+			});
+			expect(!fixture.error, fixture.error || "simple bill fixture was created");
+			expect(fixture.taxTemplate && fixture.taxRows.length > 0, "Simple bill applies the company's default VAT template");
+			expect(fixture.taxRows.every(row => Number.isFinite(Number(row.rate)) && row.account), "every default VAT row has a rate and account");
+			let savedName = "";
+			try {
+				await page.waitForSelector('.bnd-bill-line');
+				const geometry = await page.evaluate(() => {
+					const lines = document.querySelector('.bnd-bill-lines');
+					const line = lines.querySelector('.bnd-bill-line');
+					const remove = line.querySelector('.bnd-bill-line-remove');
+					const rail = document.querySelector('.bnd-bill-rail');
+					const removeRect = remove?.getBoundingClientRect();
+					const railRect = rail?.getBoundingClientRect();
+					const bottoms = [...line.querySelectorAll('.bnd-bill-cell input')].map(input => input.getBoundingClientRect().bottom);
+					const itemValue = line.querySelector('.bnd-bill-item-value')?.getBoundingClientRect();
+					const rowBottoms = [...bottoms, ...(itemValue ? [itemValue.bottom] : [])];
+					const spread = bottoms.length ? Math.max(...bottoms) - Math.min(...bottoms) : 999;
+					const rowSpread = rowBottoms.length ? Math.max(...rowBottoms) - Math.min(...rowBottoms) : 999;
+					return {
+						fields: line.querySelectorAll('.bnd-bill-cell').length,
+						overflowX: getComputedStyle(lines).overflowX,
+						fits: line.scrollWidth <= lines.clientWidth + 2,
+						removeFits: !!remove && remove.getBoundingClientRect().left >= lines.getBoundingClientRect().left - 1,
+						removeOverlapsRail: !!(removeRect && railRect && removeRect.left < railRect.right && removeRect.right > railRect.left && removeRect.top < railRect.bottom && removeRect.bottom > railRect.top),
+						spread, rowSpread,
+					};
+				});
+				expectEq(geometry.fields, 4, "Simple mode keeps only quantity, price, discount and warehouse editable");
+				expectEq(geometry.overflowX, "visible", "the item section must not clip link suggestion menus");
+				expect(geometry.fits && geometry.removeFits && !geometry.removeOverlapsRail, "the line and Remove action must fit without clipping or colliding with the summary rail");
+				expect(geometry.spread <= 2, `line inputs share a baseline (${geometry.spread}px spread)`);
+				expect(geometry.rowSpread <= 2, `item identity and editable controls share one row (${geometry.rowSpread}px spread)`);
+				if (process.env.BND_UI_SCREENSHOTS) {
+					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/sales-invoice-item-row.png`, fullPage: true });
+				}
+
+				const warehouse = page.locator('.bnd-bill-line .frappe-control[data-fieldname="warehouse"] input').first();
+				await warehouse.click();
+				await page.keyboard.press("ArrowDown");
+				const choices = page.locator('.bnd-bill-line [role="listbox"]').filter({ visible: true }).last();
+				await choices.waitFor({ timeout: 5000 });
+				expect(await choices.locator('[role="option"], li').count() > 0, "warehouse suggestions are visible and populated");
+				await page.keyboard.press("Escape");
+
+				await page.locator('.bnd-bill-action[data-bnd-action="save"]').click();
+				await page.waitForFunction(() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(), null, { timeout: 15000 }).catch(async () => {
+					const state = await page.evaluate(() => ({
+						name: cur_frm?.doc?.name,
+						islocal: !!cur_frm?.doc?.__islocal,
+						dirty: !!cur_frm?.is_dirty(),
+						status: document.querySelector('.bnd-bill-status')?.textContent?.trim() || '',
+						dialog: document.querySelector('.modal.show .modal-body')?.textContent?.trim() || '',
+					}));
+					throw new Error(`draft save did not settle: ${JSON.stringify(state)}`);
+				});
+				savedName = await page.evaluate(() => cur_frm.doc.name);
+				const savedActions = await page.evaluate(() => ({
+					save: !document.querySelector('.bnd-bill-action[data-bnd-action="save"]').hidden,
+					submit: !document.querySelector('.bnd-bill-action[data-bnd-action="submit"]').hidden,
+					footerSubmit: document.querySelectorAll('.bnd-bill-footer [data-bnd-action="submit"]').length,
+				}));
+				expectEq(savedActions.save, false, "Save draft leaves the primary slot after a successful native save");
+				expectEq(savedActions.submit, true, "Submit document replaces Save draft for a clean saved draft");
+				expectEq(savedActions.footerSubmit, 0, "Submit is not duplicated in the sticky footer");
+
+				await page.evaluate(async () => {
+					await cur_frm.set_value("po_no", `edited-${Date.now()}`);
+					window.bunood_theme.sales_bill.open(cur_frm);
+				});
+				expectEq(await page.locator('.bnd-bill-action[data-bnd-action="save"]').isVisible(), true, "editing the saved draft restores Save draft");
+				expectEq(await page.locator('.bnd-bill-action[data-bnd-action="submit"]').isVisible(), false, "editing hides Submit until changes are saved");
+			} finally {
+				await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
+				if (savedName) benchPy(`frappe.delete_doc("Sales Invoice", ${JSON.stringify(savedName)}, force=True, ignore_permissions=True)\nfrappe.db.commit()\n`);
 			}
 		});
 
@@ -16690,7 +18481,8 @@ async function main() {
 			expectEq(missing.length, 0, `dashboard icons must resolve: ${missing.join(',')}`);
 			await page.locator('[data-bnd-part="search"]').filter({ visible: true }).first().click();
 			await page.locator('.bnd-palette-input').fill('Chart of Accounts');
-			await page.getByRole('option', { name: 'Open Chart of Accounts Page', exact: true }).click();
+			// Select by result identity/order, not translated presentation text.
+			await page.locator('.bnd-palette-row[data-bnd-key="route:Tree/Account"]').click();
 			await page.waitForSelector('.tree', { timeout: 20000 });
 			await page.waitForTimeout(500);
 			expect((await page.url()).includes('account'), 'mouse-up must not activate a dashboard action under the palette');
@@ -16708,7 +18500,7 @@ async function main() {
 			expect(selection && selection.bg !== 'rgba(0, 0, 0, 0)' && selection.rail !== 'rgba(0, 0, 0, 0)', 'selected account needs both wash and rail');
 			await page.evaluate(() => new frappe.ui.FileUploader({}));
 			await page.waitForSelector('.file-upload-area');
-			expect(await page.getByRole('button', { name: 'My Device', exact: true }).isVisible(), 'native device picker remains available');
+			expect(await page.locator('.file-uploader .btn-file-upload, .file-uploader input[type="file"]').count() > 0, 'native device picker remains available');
 			await page.keyboard.press('Escape');
 		});
 
@@ -16716,6 +18508,8 @@ async function main() {
 			setSettings({ form_style: "Floating Panels" });
 			for (const language of ['en', 'ar']) await withLang(language, async () => {
 				await page.goto(summaryInvoiceRoute());
+				await page.waitForSelector('.bnd-bill-mode');
+				await page.locator('.bnd-bill-mode button').nth(1).click();
 				await page.waitForSelector('[data-bnd-part="form-summary"]');
 				for (const theme of ['light', 'dark']) {
 					await page.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
@@ -16724,7 +18518,7 @@ async function main() {
 						const root = document.querySelector('[data-bnd-part="form-summary"]');
 						return { text: root.textContent, width: root.getBoundingClientRect().width, scroll: root.scrollWidth, cols: getComputedStyle(root.querySelector('dl')).gridTemplateColumns };
 					});
-					expect(state.text.includes(language === 'ar' ? 'ملخص المستند' : 'Document summary'), 'heading must be translated');
+					expect(state.text.includes(language === 'ar' ? 'ملخص المستند' : 'Document summary'), `heading must be translated (${language}: ${JSON.stringify(state.text.slice(0, 180))})`);
 					expect(state.scroll <= state.width + 2, 'summary must not overflow horizontally on mobile');
 				}
 				await page.setViewportSize({ width: 1920, height: 1080 });

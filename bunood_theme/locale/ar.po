@@ -3962,6 +3962,11 @@ msgstr "اسم الشركة"
 msgid "Default"
 msgstr "الافتراضي"
 
+#. In bunood.js
+#. src: ai
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
 #. src: apps-trim
 msgid "Desk"
 msgstr "مكتب"
@@ -3981,6 +3986,14 @@ msgstr "استيراد"
 #. src: apps-trim
 msgid "Notification"
 msgstr "إعلام"
+
+#. In bunood.js
+msgid "Primary navigation"
+msgstr "التنقل الرئيسي"
+
+#. In bunood.js
+msgid "Profile"
+msgstr "الملف الشخصي"
 
 #. src: apps-trim
 msgid "Open"
@@ -6292,6 +6305,26 @@ msgstr "لا"
 msgid "Not Saved"
 msgstr "غير محفوظ"
 
+#. src: topbar-language
+msgid "Switch to Arabic"
+msgstr "التبديل إلى العربية"
+
+#. src: topbar-language
+msgid "Switch to English"
+msgstr "التبديل إلى الإنجليزية"
+
+#. src: topbar-language
+msgid "Switching language..."
+msgstr "جارٍ تبديل اللغة..."
+
+#. src: topbar-language
+msgid "Save or discard your unsaved changes before switching language."
+msgstr "احفظ التغييرات غير المحفوظة أو تجاهلها قبل تبديل اللغة."
+
+#. src: topbar-language
+msgid "Could not switch language. Please try again."
+msgstr "تعذر تبديل اللغة. يرجى المحاولة مرة أخرى."
+
 #. src: sales-bill
 msgid "Quick bill"
 msgstr "فاتورة سريعة"
@@ -6455,3 +6488,488 @@ msgstr "التراجع عن القيم غير الصالحة"
 #. src: print amount wording
 msgid "Negative"
 msgstr "سالب"
+
+#. src: simple forms
+msgid "Form mode"
+msgstr "وضع النموذج"
+
+#. src: simple forms
+msgid "Simple"
+msgstr "مبسّط"
+
+#. src: simple forms
+msgid "Advanced"
+msgstr "متقدّم"
+
+#. src: bill workbench
+msgid "Sales bill"
+msgstr "فاتورة مبيعات"
+
+#. src: bill workbench
+msgid "Purchase bill"
+msgstr "فاتورة مشتريات"
+
+#. src: bill workbench
+msgid "Who are you buying from?"
+msgstr "من هو المورد؟"
+
+#. src: bill workbench
+msgid "What are you buying?"
+msgstr "ما الأصناف التي تشتريها؟"
+
+#. src: simple forms
+msgid "Document actions"
+msgstr "إجراءات المستند"
+
+#. src: simple forms
+msgid "New"
+msgstr "جديد"
+
+#. src: simple forms
+msgid "Save draft"
+msgstr "حفظ المسودة"
+
+#. src: simple forms
+msgid "Delete"
+msgstr "حذف"
+
+#. src: simple forms
+msgid "Payment"
+msgstr "دفعة"
+
+#. src: simple forms
+msgid "Discount"
+msgstr "خصم"
+
+#. src: simple forms
+msgid "Find item"
+msgstr "البحث عن صنف"
+
+#. src: simple forms
+msgid "Simple mode"
+msgstr "الوضع المبسّط"
+
+#. src: simple forms
+msgid "Advanced form"
+msgstr "النموذج المتقدم"
+
+#. src: simple forms
+msgid "Submit document"
+msgstr "اعتماد المستند"
+
+#. src: simple forms
+msgid "Scan barcode"
+msgstr "مسح الباركود"
+
+#. src: simple forms
+msgid "Document options"
+msgstr "خيارات المستند"
+
+#. src: simple forms
+msgid "Discount and tax"
+msgstr "الخصم والضريبة"
+
+#. src: simple forms
+msgid "New {0}"
+msgstr "{0} جديد"
+
+#. src: simple forms
+msgid "Choose the party before adding items."
+msgstr "اختر العميل أو المورد قبل إضافة الأصناف."
+
+#. src: simple forms
+msgid "Choose the party and add at least one item."
+msgstr "اختر العميل أو المورد وأضف صنفًا واحدًا على الأقل."
+
+#. src: simple forms
+msgid "Choose the party, add items, then save or submit when the document is ready."
+msgstr "اختر العميل أو المورد، ثم أضف الأصناف واحفظ المستند أو اعتمده عندما يصبح جاهزًا."
+
+#. src: simple forms
+msgid "A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."
+msgstr "المسودة لا ترحّل الحسابات ولا تحرّك المخزون ولا تسجّل دفعة. يعتمد النظام المستند عبر التحقق والتأكيد الأصليين."
+
+#. src: simple forms
+msgid "Camera scanning is not available in this browser. Type the barcode in item search."
+msgstr "المسح بالكاميرا غير متاح في هذا المتصفح. أدخل الباركود في خانة البحث عن صنف."
+
+#. src: simple forms
+msgid "Discard unsaved changes and reload this document?"
+msgstr "هل تريد تجاهل التغييرات غير المحفوظة وإعادة تحميل المستند؟"
+
+#. src: simple forms
+msgid "Submit the document before recording payment."
+msgstr "اعتمد المستند قبل تسجيل الدفعة."
+
+#. src: simple forms
+msgid "Draft saved. Submit it when it is ready to affect accounts or stock."
+msgstr "حُفظت المسودة. اعتمدها عندما تصبح جاهزة للتأثير في الحسابات أو المخزون."
+
+#. src: simple forms
+msgid "The document was not submitted. Review the highlighted fields."
+msgstr "لم يُعتمد المستند. راجع الحقول المميزة."
+
+#. src: simple forms
+msgid "The draft was not saved. Review the message or open the advanced form."
+msgstr "لم تُحفظ المسودة. راجع الرسالة أو افتح النموذج المتقدم."
+
+#. src: simple forms
+msgid "Could not update the document. Open the advanced form to review."
+msgstr "تعذر تحديث المستند. افتح النموذج المتقدم لمراجعته."
+
+#. src: simple forms
+msgid "This field is not editable. Use the advanced form."
+msgstr "هذا الحقل غير قابل للتحرير. استخدم النموذج المتقدم."
+
+#. src: simple forms
+msgid "Use the advanced form for this document type or permission level."
+msgstr "استخدم النموذج المتقدم لهذا النوع من المستندات أو مستوى الصلاحية."
+
+#. src: simple forms
+msgid "The fields needed for this task are shown. Advanced mode keeps every ERPNext option on the same document."
+msgstr "تظهر الحقول اللازمة لهذه المهمة. يحتفظ الوضع المتقدم بجميع خيارات النظام في المستند نفسه."
+
+#. src: simple forms
+msgid "View"
+msgstr "العرض"
+
+#. src: simple forms
+msgid "Record a payment"
+msgstr "تسجيل دفعة"
+
+#. src: stock entry simple workbench
+msgid "Stock movement steps"
+msgstr "خطوات حركة المخزون"
+
+#. src: stock entry simple workbench
+msgid "Movement"
+msgstr "الحركة"
+
+#. src: stock entry simple workbench
+msgid "Warehouses"
+msgstr "المستودعات"
+
+#. src: stock entry simple workbench
+msgid "Items"
+msgstr "الأصناف"
+
+#. src: stock entry simple workbench
+msgid "Choose the movement"
+msgstr "اختر نوع الحركة"
+
+#. src: stock entry simple workbench
+msgid "Select how stock should enter, leave, or move between warehouses."
+msgstr "حدّد ما إذا كان المخزون سيدخل أو يخرج أو يُنقل بين المستودعات."
+
+#. src: stock entry simple workbench
+msgid "Choose the route"
+msgstr "حدّد مسار المخزون"
+
+#. src: stock entry simple workbench
+msgid "Only the warehouses required for this movement are shown."
+msgstr "تظهر فقط المستودعات المطلوبة لهذه الحركة."
+
+#. src: stock entry simple workbench
+msgid "Add items and quantities"
+msgstr "أضف الأصناف والكميات"
+
+#. src: stock entry simple workbench
+msgid "Scan, search, or add items in the table. Stock is posted only after submission."
+msgstr "امسح الباركود أو ابحث أو أضف الأصناف في الجدول. لا تُرحّل حركة المخزون إلا بعد الاعتماد."
+
+#. src: stock entry simple workbench
+msgid "Date and company"
+msgstr "التاريخ والشركة"
+
+#. src: stock entry simple workbench
+msgid "Movement summary"
+msgstr "ملخص حركة المخزون"
+
+#. src: stock entry simple workbench
+msgid "Outgoing"
+msgstr "الصادر"
+
+#. src: stock entry simple workbench
+msgid "Incoming"
+msgstr "الوارد"
+
+#. src: stock entry simple workbench
+msgid "Difference"
+msgstr "الفرق"
+
+#. src: stock entry simple workbench
+msgid "Move stock"
+msgstr "نقل المخزون"
+
+#. src: stock entry simple workbench
+msgid "Choose the movement, warehouses, and items. Use Advanced for manufacturing, subcontracting, and accounting options."
+msgstr "اختر نوع الحركة والمستودعات والأصناف. استخدم الوضع المتقدم لخيارات التصنيع والمقاولات الفرعية والمحاسبة."
+
+#. src: shared simple-form actions
+msgid "Save"
+msgstr "حفظ"
+
+#. src: shared simple-form actions
+msgid "Submit"
+msgstr "اعتماد"
+
+#. src: simple forms
+msgid "Choose whether money came in, went out, or moved between accounts. Then select the party, amount, accounts, and invoices that apply."
+msgstr "اختر ما إذا كان المبلغ واردًا أو صادرًا أو محولًا بين الحسابات، ثم حدّد الطرف والمبلغ والحسابات والفواتير المعنية."
+msgid "Series"
+msgstr "سلسلة"
+
+msgid "Interactive chart"
+msgstr "رسم بياني تفاعلي"
+
+msgid "Use the left and right arrow keys to inspect data points."
+msgstr "استخدم مفتاحي السهم الأيسر والأيمن لاستعراض نقاط البيانات."
+
+msgid "row"
+msgstr "صف"
+
+msgid "Select {0}"
+msgstr "اختر {0}"
+
+msgid "Taxes and charges"
+msgstr "الضرائب والرسوم"
+
+msgid "VAT"
+msgstr "ضريبة القيمة المضافة"
+
+msgid "Draft actions"
+msgstr "إجراءات المسودة"
+
+msgid "Invoice actions"
+msgstr "إجراءات الفاتورة"
+
+msgid "Invoice tools"
+msgstr "أدوات الفاتورة"
+
+msgid "ZATCA e-invoicing"
+msgstr "الفوترة الإلكترونية مع هيئة الزكاة والضريبة والجمارك"
+
+msgid "Checking ZATCA setup…"
+msgstr "جارٍ التحقق من إعدادات هيئة الزكاة والضريبة والجمارك…"
+
+msgid "Refresh status"
+msgstr "تحديث الحالة"
+
+msgid "ZATCA status is temporarily unavailable."
+msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+msgid "The ZATCA connector is not installed on this site."
+msgstr "موصل هيئة الزكاة والضريبة والجمارك غير مثبت على هذا الموقع."
+
+msgid "Create ZATCA Business Settings for this company."
+msgstr "أنشئ إعدادات أعمال هيئة الزكاة والضريبة والجمارك لهذه الشركة."
+
+msgid "ZATCA integration is disabled for this company."
+msgstr "الربط مع هيئة الزكاة والضريبة والجمارك معطل لهذه الشركة."
+
+msgid "Complete device onboarding with the OTP from Fatoora."
+msgstr "أكمل تهيئة الجهاز باستخدام رمز التحقق من فاتورة."
+
+msgid "Run compliance checks, then obtain the production CSID."
+msgstr "شغّل فحوصات الامتثال ثم احصل على معرّف الحل الإنتاجي."
+
+msgid "ZATCA is ready. This invoice will be prepared when it is submitted."
+msgstr "الربط مع الهيئة جاهز. ستُجهّز هذه الفاتورة عند اعتمادها."
+
+msgid "The signed invoice is being prepared for ZATCA."
+msgstr "جارٍ تجهيز الفاتورة الموقعة لإرسالها إلى الهيئة."
+
+msgid "The signed invoice is ready to send to ZATCA."
+msgstr "الفاتورة الموقعة جاهزة للإرسال إلى الهيئة."
+
+msgid "ZATCA accepted this invoice."
+msgstr "قبلت الهيئة هذه الفاتورة."
+
+msgid "ZATCA accepted this invoice with warnings."
+msgstr "قبلت الهيئة هذه الفاتورة مع تحذيرات."
+
+msgid "ZATCA rejected this invoice. Open the validation record before correcting it."
+msgstr "رفضت الهيئة هذه الفاتورة. افتح سجل التحقق قبل تصحيحها."
+
+msgid "ZATCA clearance is switched off. Review the validation record and company settings."
+msgstr "تخليص الهيئة معطل. راجع سجل التحقق وإعدادات الشركة."
+
+msgid "ZATCA settings"
+msgstr "إعدادات هيئة الزكاة والضريبة والجمارك"
+
+msgid "Send to ZATCA"
+msgstr "إرسال إلى الهيئة"
+
+msgid "View ZATCA record"
+msgstr "عرض سجل الهيئة"
+
+msgid "Install and migrate the KSA Compliance app before configuring ZATCA."
+msgstr "ثبّت تطبيق الامتثال السعودي ورحّله قبل إعداد الربط مع الهيئة."
+
+msgid "Queueing invoice for ZATCA…"
+msgstr "جارٍ وضع الفاتورة في قائمة الإرسال إلى الهيئة…"
+
+msgid "Invoice queued for ZATCA. Status will update automatically."
+msgstr "وُضعت الفاتورة في قائمة الإرسال إلى الهيئة. ستتحدث الحالة تلقائيًا."
+
+msgid "Only an Accounts Manager or System Manager can send an invoice to ZATCA."
+msgstr "يمكن لمدير الحسابات أو مدير النظام فقط إرسال فاتورة إلى الهيئة."
+
+msgid "Install KSA Compliance before sending invoices to ZATCA."
+msgstr "ثبّت تطبيق الامتثال السعودي قبل إرسال الفواتير إلى الهيئة."
+
+msgid "Submit the sales invoice before sending it to ZATCA."
+msgstr "اعتمد فاتورة المبيعات قبل إرسالها إلى الهيئة."
+
+msgid "The signed ZATCA invoice is still being prepared. Try again shortly."
+msgstr "لا تزال فاتورة الهيئة الموقعة قيد التجهيز. حاول مرة أخرى بعد قليل."
+
+msgid "Review the ZATCA validation record before trying again."
+msgstr "راجع سجل تحقق الهيئة قبل المحاولة مرة أخرى."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Review tax rows in Advanced"
+msgstr "مراجعة صفوف الضريبة في الوضع المتقدم"
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Review taxes and charges"
+msgstr "مراجعة الضرائب والرسوم"
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "The selected tax template contains no tax rows. Choose a valid standard, zero-rate, exempt, or out-of-scope template."
+msgstr "لا يحتوي قالب الضريبة المحدد على صفوف ضريبية. اختر قالبًا صالحًا للضريبة القياسية أو النسبة الصفرية أو الإعفاء أو خارج النطاق."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax template: {0}. No tax rows are configured. Choose a valid standard, zero-rate, exempt, or out-of-scope template."
+msgstr "قالب الضريبة: {0}. لا توجد صفوف ضريبية مُعدّة. اختر قالبًا صالحًا للضريبة القياسية أو النسبة الصفرية أو الإعفاء أو خارج النطاق."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Row: {0}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template."
+msgstr "مشكلة ضريبية. الصف: {0}. النسبة مفقودة أو غير صالحة. أدخل نسبة، أو اختر قالبًا صريحًا للنسبة الصفرية أو الإعفاء أو خارج النطاق."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Row: {0}. Account: {1}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template."
+msgstr "مشكلة ضريبية. الصف: {0}. الحساب: {1}. النسبة مفقودة أو غير صالحة. أدخل نسبة، أو اختر قالبًا صريحًا للنسبة الصفرية أو الإعفاء أو خارج النطاق."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Rows: {0}. Conflicting rates: {1}. Use one rate per tax account or separate the rates into different tax accounts."
+msgstr "مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. استخدم نسبة واحدة لكل حساب ضريبي أو افصل النسب في حسابات ضريبية مختلفة."
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Rows: {0}. Conflicting rates: {1}. Account: {2}. Use one rate per tax account or separate the rates into different tax accounts."
+msgstr "مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. الحساب: {2}. استخدم نسبة واحدة لكل حساب ضريبي أو افصل النسب في حسابات ضريبية مختلفة."
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Quantity"
+msgstr "الكمية"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Unit price"
+msgstr "سعر الوحدة"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Warehouse"
+msgstr "المستودع"
+
+#. In bunood.js
+#. src: ai
+msgid "Retract sidebar"
+msgstr "طي الشريط الجانبي"
+
+#. In sales_bill.js
+#. src: ai
+msgid "Item"
+msgstr "الصنف"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Prepare a delivery"
+msgstr "تجهيز تسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the customer and warehouse, then add the items being delivered. Use Advanced for transport, billing, and accounting details."
+msgstr "اختر العميل والمستودع، ثم أضف الأصناف المراد تسليمها. استخدم الوضع المتقدم لتفاصيل النقل والفوترة والمحاسبة."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery steps"
+msgstr "خطوات التسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Fulfilment"
+msgstr "التنفيذ"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Who is receiving this delivery?"
+msgstr "من سيستلم هذا التسليم؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Select the customer for this delivery note."
+msgstr "اختر العميل لإشعار التسليم هذا."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Where is it leaving from?"
+msgstr "من أي مستودع ستخرج الأصناف؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the source warehouse used for the delivered items."
+msgstr "اختر مستودع المصدر للأصناف التي سيتم تسليمها."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "What are you delivering?"
+msgstr "ما الأصناف التي ستسلّمها؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Add the items and quantities. Stock changes only after submission."
+msgstr "أضف الأصناف والكميات. لا يتغير المخزون إلا بعد الاعتماد."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery summary"
+msgstr "ملخص التسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Total quantity"
+msgstr "إجمالي الكمية"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Grand total"
+msgstr "الإجمالي العام"
+
+#. In report_compat.py
+#. src: ai
+msgid "Background export requested. Download link email: {0}"
+msgstr "تم طلب التصدير في الخلفية. البريد الإلكتروني لرابط التنزيل: {0}"
+
+#. src: sidebar
+msgid "Invoicing"
+msgstr "الفوترة"
+
+#. src: sidebar
+msgid "Add Sidebar Item"
+msgstr "إضافة عنصر إلى الشريط الجانبي"
+
+#. src: sidebar
+msgid "Stock"
+msgstr "المخزون"

@@ -1107,6 +1107,10 @@ html[dir="rtl"] .print-format .filter-row {
 
 // Actual table direction mirrors column order; IDs and numeric cells remain LTR.
 .bnd-invoice[dir="rtl"] { direction: rtl; text-align: right; }
+.bnd-invoice[dir="rtl"] h1,
+.bnd-invoice[dir="rtl"] .bnd-inv-totals {
+	font-family: "Cairo", "Noto Naskh Arabic", "DejaVu Sans", sans-serif;
+}
 .bnd-invoice[dir="rtl"] td,
 .bnd-invoice[dir="rtl"] th,
 .bnd-invoice[dir="rtl"] .bnd-inv-reference { text-align: right; }

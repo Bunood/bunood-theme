@@ -345,11 +345,11 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     base = BASE_LIGHT if mode == "light" else BASE_DARK
 
     out: dict[str, str] = {"--bnd-brand": brand, "--bnd-accent": accent}
-    # The requested desktop icon plate is white even on a dark desk. Fit its
-    # outline separately: the dark chrome's lifted green is too pale on white.
-    out["--bnd-desktop-icon-bg"] = "#ffffff"
-    out["--bnd-desktop-icon-ink"], _ = fit_ink(
-        brand, [out["--bnd-desktop-icon-bg"]], target=AA_NON_TEXT
+    # Brand-colored desktop icon plates use white outlines in both modes.
+    # Fit the plate against white so light brand seeds keep readable glyphs.
+    out["--bnd-desktop-icon-ink"] = "#ffffff"
+    out["--bnd-desktop-icon-bg"], _ = fit_ink(
+        brand, [out["--bnd-desktop-icon-ink"]], target=AA_NON_TEXT
     )
     # The surfaces mix the GROUND; everything read on top of them still fits the BRAND.
     surface_seed = ground or brand

@@ -159,7 +159,7 @@ def pairs():
     # gate exists to catch.
     out += [
         Pair("var(--bnd-desktop-icon-ink)", "var(--bnd-desktop-icon-bg)",
-             AA_NON_TEXT, "desktop icon outline on its white plate"),
+             AA_NON_TEXT, "white desktop icon outline on its brand plate"),
         Pair("var(--bnd-on-brand, var(--bnd-ink-inverse))",
              "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
         Pair("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),

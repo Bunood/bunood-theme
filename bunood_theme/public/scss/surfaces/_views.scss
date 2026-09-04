@@ -157,6 +157,16 @@ html[data-bnd-views] .image-view-container .image-view-item {
   box-shadow: var(--bnd-view-shadow);
   color: var(--bnd-view-ink);
 }
+
+// Frappe gives gallery metadata and the form image placeholder literal light
+// greys. They become new AA failures when our tile supplies a white surface.
+// Use the palette's already contrast-gated muted ink and remove the vendor
+// opacity reduction; this remains secondary text without becoming unreadable.
+html[data-bnd-views] .image-view-container .image-view-item .image-view-info li,
+html[data-bnd-views] .image-field > .placeholder-text {
+  color: var(--bnd-ink-muted) !important;
+  opacity: 1;
+}
 // The stock hover replaces the box-shadow AND drops the image to 30% opacity —
 // an aggressive, unthemed reveal (image_view.scss). Under our anchor the object
 // keeps its identity on hover: the boundary firms and the lift grows by one

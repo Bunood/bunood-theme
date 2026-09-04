@@ -127,8 +127,8 @@ html[data-bnd-report="slab"] {
   // elevation — the missing statement that the band is a header (§the item's
   // whole first goal). Rows are clean: faint horizontal separators, no columns.
   --bnd-rep-cell-bg: var(--bnd-surface);
-  --bnd-rep-head-bg: var(--bnd-raised);
-  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-head-bg: var(--bnd-hover);
+  --bnd-rep-head-ink: var(--bnd-brand-ink);
   --bnd-rep-grid-x: transparent;
   --bnd-rep-grid-y: var(--bnd-border);
   --bnd-rep-head-sep: var(--bnd-border-strong);
@@ -227,6 +227,81 @@ html[data-bnd-report] .datatable .dt-cell__content {
 // `.widget .report-summary` (verified disjoint — the split de-fusion).
 html[data-bnd-report] [id="page-query-report"] .report-summary {
   font-variant-numeric: var(--bnd-numeric);
+}
+
+// One report page rhythm. Native hidden filters, dropdowns, chart sizing and
+// virtual row heights stay native; only the surrounding surfaces are aligned.
+// No clipping on these panels: filter popovers must escape their container.
+html[data-bnd-report] [id="page-query-report"] {
+  .page-form {
+    margin: var(--bnd-sp-4);
+    padding: var(--bnd-sp-2);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-md);
+    background: var(--bnd-raised);
+  }
+
+  .page-form .form-group {
+    padding-inline: var(--bnd-sp-2);
+    margin-block: var(--bnd-sp-2);
+  }
+
+  .report-summary,
+  .chart-wrapper {
+    margin: var(--bnd-sp-4);
+    padding: var(--bnd-sp-4);
+    background: var(--bnd-surface);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-md);
+  }
+
+  .report-summary {
+    --green-500: var(--bnd-status-green);
+    --red-500: var(--bnd-status-red);
+    --blue-500: var(--bnd-status-blue);
+    gap: var(--bnd-sp-4);
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .report-summary .summary-item {
+    flex: 1 1 10rem;
+    min-inline-size: 0;
+    max-inline-size: none;
+    block-size: auto;
+    margin: 0;
+    padding: var(--bnd-sp-3);
+    background: var(--bnd-raised);
+    border-radius: var(--bnd-radius-sm);
+  }
+
+  .report-summary .summary-label,
+  .report-summary .summary-value,
+  .report-summary .summary-value div {
+    text-align: start;
+    line-height: var(--bnd-leading-base);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .report-summary .summary-value {
+    padding-block: var(--bnd-sp-2) 0;
+  }
+
+  .report-wrapper {
+    padding-inline: var(--bnd-sp-4);
+    padding-block-end: var(--bnd-sp-4);
+  }
+
+  .report-footer {
+    margin-inline: var(--bnd-sp-4);
+    padding-block: var(--bnd-sp-3);
+    font-size: var(--bnd-text-xs);
+  }
+}
+
+html[data-bnd-report] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  font-weight: var(--bnd-weight-medium);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

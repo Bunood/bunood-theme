@@ -76,6 +76,19 @@ html[data-theme] .bnd-avatar-btn {
   }
 }
 
+// Captions are part of every global-navigation control's DOM so a responsive
+// remount never has to rebuild behaviour. Desktop clusters keep their compact
+// icon form; the phone bar exposes the shared caption rhythm.
+html[data-theme] .bnd-mobile-nav-label {
+  display: none;
+}
+
+html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-mobile-nav-label {
+  display: block;
+  inline-size: 100%;
+  text-align: center;
+}
+
 // Divider between page actions and global cluster in the compact layout's
 // shared strip — the "one strip, two jobs" seam made visible.
 html[data-theme] .bnd-cluster-divider {
@@ -178,8 +191,8 @@ html[data-theme] .bnd-dock-item:focus-visible {
 html[data-theme] :is(
   .bnd-apps-rail-item, .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
   .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-brand, .bnd-sb-item, .bnd-sb-module,
-  .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
-  .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
+  .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
+  .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import,
   .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank
 ):focus-visible {
   outline: 2px solid var(--bnd-accent);

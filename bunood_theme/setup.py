@@ -245,6 +245,9 @@ def after_install() -> None:
     # The riyal sign trails the amount (bunood_theme/currency.py). Vacancy-gated
     # and self-healing, so it belongs on both entry points, like the two above.
     sync_currency_symbol_position()
+    from bunood_theme.report_compat import sync_report_compatibility
+
+    sync_report_compatibility()
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -382,6 +385,9 @@ def after_migrate() -> None:
     # design — duplicate a format to customize, see printing/README.md).
     sync_print_theme()
     sync_currency_symbol_position()
+    from bunood_theme.report_compat import sync_report_compatibility
+
+    sync_report_compatibility()
     # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
     # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
     # .rtl_patch now reaches them at RENDER time (see that module and
@@ -487,7 +493,15 @@ def _seed_defaults() -> None:
     try:
         if not frappe.db.exists("DocType", "Theme Settings"):
             return  # pre-migrate; nothing to seed yet
+        meta = frappe.get_meta("Theme Settings")
         for field, value in DEFAULTS.items():
+            # Preset catalogues can land ahead of their DocType slice during
+            # a rolling upgrade.  A missing later field must not abort every
+            # field that *is* present (which previously stopped an unrelated
+            # new Check, such as crumb_copy_link, from being seeded at all).
+            # Ignore retired/forward fields until their schema exists.
+            if not meta.get_field(field):
+                continue
             if not frappe.db.get_single_value("Theme Settings", field):
                 frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
         # Default-on Checks: seed ONLY the never-written state, so an admin
@@ -502,6 +516,8 @@ def _seed_defaults() -> None:
             )
         }
         for field, value in CHECK_DEFAULTS.items():
+            if not meta.get_field(field):
+                continue
             if field not in stored:
                 frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
         frappe.db.commit()

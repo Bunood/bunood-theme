@@ -55,12 +55,12 @@
   </table>
   <div class="bnd-inv-summary">
     <table class="bnd-inv-totals">
-      <tr><th scope="row">{{ label("Net subtotal", "الصافي قبل الضرائب") }}</th><td dir="ltr">{{ money(doc.net_total, doc.precision("net_total")) }}</td></tr>
-      <tr><th scope="row">{{ label("Taxes and charges", "الضرائب والرسوم") }}
+      <tr><th scope="row">{{ label("Net subtotal", "الإجمالي قبل الضريبة") }}</th><td dir="ltr">{{ money(doc.net_total, doc.precision("net_total")) }}</td></tr>
+      <tr><th scope="row">{{ label("Taxes and charges", "إجمالي الضرائب والرسوم") }}
         {% for tax in doc.get("taxes") or [] %}{% if tax.get("category") != "Valuation" %}<div class="bnd-inv-tax-note"><span dir="auto">{{ (tax.get("description") or tax.get("account_head") or "") | striptags | e }}</span><br><span dir="ltr">{% if tax.get("add_deduct_tax") == "Deduct" %}{{ label("Deduct", "خصم") }} {% endif %}{{ money(tax.get("tax_amount_after_discount_amount") if tax.get("tax_amount_after_discount_amount") is not none else tax.tax_amount, tax.precision("tax_amount"), with_currency=true) }}</span></div>{% endif %}{% endfor %}
       </th><td dir="ltr">{{ money(doc.total_taxes_and_charges, doc.precision("total_taxes_and_charges")) }}</td></tr>
       {% if rounded and doc.get("rounding_adjustment") %}<tr><th scope="row">{{ label("Rounding adjustment", "تسوية التقريب") }}</th><td dir="ltr">{{ money(doc.rounding_adjustment, doc.precision("rounding_adjustment")) }}</td></tr>{% endif %}
-      <tr class="bnd-inv-grand"><th scope="row">{{ label("Grand total", "الإجمالي النهائي") }}</th><td dir="ltr">{{ money(doc.rounded_total if rounded else doc.grand_total, doc.precision("grand_total"), with_currency=true) }}</td></tr>
+      <tr class="bnd-inv-grand"><th scope="row">{{ label("Grand total", "الإجمالي شامل الضريبة") }}</th><td dir="ltr">{{ money(doc.rounded_total if rounded else doc.grand_total, doc.precision("grand_total"), with_currency=true) }}</td></tr>
     </table>
     {% if doc.get("discount_amount") %}<table class="bnd-inv-discount"><tr><th scope="row">{{ label("Additional discount (already included)", "الخصم الإضافي محتسب في الإجماليات") }}</th><td dir="ltr">{{ money(doc.discount_amount, doc.precision("discount_amount"), with_currency=true) }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage | e }}%){% endif %}</td></tr></table>{% endif %}
     {% if doc.get("in_words") and frappe.db.get_single_value("Theme Settings", "print_words") != "Hide" %}

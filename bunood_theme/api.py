@@ -30,7 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
-from frappe.utils import add_months, flt, get_first_day, getdate, nowdate
+from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, nowdate
 
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
@@ -115,6 +115,14 @@ def get_home_dashboard(company: str | None = None) -> dict:
         # one.
         "drafts": {"sales": 0, "purchase": 0},
         "invoice_status": {"paid": 0, "open": 0, "overdue": 0},
+        # The client uses this exact scope when opening a status list.  Keep it
+        # beside the facts it describes so a click can never drift back to the
+        # stored ``status`` label (which ERPNext updates asynchronously).
+        "invoice_scope": {
+            "company": selected,
+            "from_date": six_month_start.isoformat(),
+            "as_of": today.isoformat(),
+        },
         "trend": [],
         "recent": [],
     }
@@ -131,22 +139,33 @@ def get_home_dashboard(company: str | None = None) -> dict:
     purchases = _dashboard_rows(
         "Purchase Invoice",
         filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
-        fields=["name", "supplier_name", "posting_date", "grand_total", "outstanding_amount", "currency"],
+        fields=["name", "supplier_name", "posting_date", "grand_total", "currency"],
         order_by="posting_date desc, modified desc",
-        limit=0,
+        limit=5,
+    )
+    purchase_totals = _dashboard_rows(
+        "Purchase Invoice",
+        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
+        fields=[{"SUM": "outstanding_amount", "AS": "outstanding_amount"}],
+        limit=1,
     )
     older_receivables = _dashboard_rows(
         "Sales Invoice",
         filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0], "posting_date": ["<", six_month_start]},
-        fields=["outstanding_amount"],
-        limit=0,
+        fields=[{"SUM": "outstanding_amount", "AS": "outstanding_amount"}],
+        limit=1,
     )
 
     month_totals = {}
     cursor = six_month_start
     for _ in range(6):
         key = cursor.strftime("%Y-%m")
-        month_totals[key] = {"label": cursor.strftime("%b"), "value": 0.0}
+        month_totals[key] = {
+            "label": cursor.strftime("%b"),
+            "value": 0.0,
+            "from_date": cursor.isoformat(),
+            "to_date": get_last_day(cursor).isoformat(),
+        }
         cursor = get_first_day(add_months(cursor, 1))
 
     for invoice in sales:
@@ -166,8 +185,12 @@ def get_home_dashboard(company: str | None = None) -> dict:
         else:
             result["invoice_status"]["open"] += 1
 
-    result["metrics"]["receivables"] += sum(flt(row.outstanding_amount) for row in older_receivables)
-    result["metrics"]["payables"] = sum(flt(row.outstanding_amount) for row in purchases)
+    result["metrics"]["receivables"] += flt(
+        older_receivables[0].outstanding_amount if older_receivables else 0
+    )
+    result["metrics"]["payables"] = flt(
+        purchase_totals[0].outstanding_amount if purchase_totals else 0
+    )
     result["trend"] = list(month_totals.values())
 
     # Unfinished work. `_dashboard_rows` is the permission-filtered helper every
@@ -195,10 +218,11 @@ def get_home_dashboard(company: str | None = None) -> dict:
         ledger = _dashboard_rows(
             "GL Entry",
             filters={"company": selected, "docstatus": 1, "account": ["in", account_names]},
-            fields=["debit", "credit"],
-            limit=0,
+            fields=[{"SUM": "debit", "AS": "debit"}, {"SUM": "credit", "AS": "credit"}],
+            limit=1,
         )
-        result["metrics"]["cash_balance"] = sum(flt(row.debit) - flt(row.credit) for row in ledger)
+        if ledger:
+            result["metrics"]["cash_balance"] = flt(ledger[0].debit) - flt(ledger[0].credit)
 
     recent = []
     for invoice in sales[:5]:

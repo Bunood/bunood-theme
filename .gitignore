@@ -28,3 +28,8 @@ ruvector.db*
 # Read-only reference clones (shallow) — never shipped
 _reference/
 run.txt
+
+# Local review evidence and agent scratch space. These can contain screenshots,
+# exported archives, and third-party reference trees; they are never app assets.
+/artifacts/
+/work/
