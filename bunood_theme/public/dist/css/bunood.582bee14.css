@@ -75,7 +75,9 @@
   --bnd-sb-w: 220px;
   --bnd-sb-cell: 36px;
   --bnd-sb-band-pad: 6px;
+  --bnd-sb-band-gap: 6px;
   --bnd-sb-pane-pad: 8px;
+  --bnd-sb-tile: 40px;
   --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
@@ -244,6 +246,7 @@ html[data-bnd-density=comfortable] {
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
   --bnd-sb-cell: 36px;
+  --bnd-sb-tile: 40px;
 }
 
 html[data-bnd-density=compact] {
@@ -251,6 +254,7 @@ html[data-bnd-density=compact] {
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
   --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -397,6 +401,11 @@ html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
 }
 
 html[data-bnd-own~=panetoggle] .page-title .sidebar-toggle-btn {
+  display: none;
+}
+
+html[data-bnd-own~=onboard] .body-sidebar .onboarding-sidebar,
+html[data-bnd-own~=onboard] .body-sidebar p:has(> .onboarding-sidebar) {
   display: none;
 }
 
@@ -589,6 +598,10 @@ html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
 }
 
+html[data-theme] .bnd-topbar .bnd-zone[data-zone=center] .bnd-search-field {
+  inline-size: min(420px, 100%);
+}
+
 html[data-theme] .bnd-statusbar {
   position: fixed;
   inset-block-end: 0;
@@ -630,6 +643,14 @@ html[data-theme] .bnd-statusbar button.bnd-status-item:hover {
   color: var(--bnd-ink);
   text-decoration: none;
 }
+html[data-theme] .bnd-statusbar .bnd-status-density {
+  order: 1000;
+  margin-inline-start: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-statusbar .bnd-status-density svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
 html[data-theme] .bnd-statusbar .bnd-conn-dot {
   inline-size: 7px;
   block-size: 7px;
@@ -652,6 +673,9 @@ html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-bt
 html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-btn) .bnd-search-field {
   inline-size: min(280px, 32vw);
   block-size: calc(var(--bnd-bottombar-h) - 12px);
+}
+html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-btn) .bnd-zone[data-zone=center] .bnd-search-field {
+  inline-size: min(280px, 32vw);
 }
 
 html[data-bnd-search=sbtop] .body-sidebar .navbar-search-bar,
@@ -772,7 +796,8 @@ html[data-theme] .bnd-topbar {
   html[data-theme] .bnd-statusbar .bnd-search-field kbd {
     display: none;
   }
-  html[data-theme] .bnd-search-center .bnd-search-field {
+  html[data-theme] .bnd-search-center .bnd-search-field,
+  html[data-theme] .bnd-statusbar .bnd-zone[data-zone=center] .bnd-search-field {
     inline-size: auto;
   }
 }
@@ -814,6 +839,8 @@ html[data-bnd-narrow] .bnd-statusbar .bnd-search-field {
 html[data-bnd-touch] .bnd-statusbar a.bnd-status-item,
 html[data-bnd-touch] .bnd-statusbar button.bnd-status-item {
   min-block-size: 24px;
+  min-inline-size: 24px;
+  justify-content: center;
 }
 
 html[data-theme] .bnd-dock {
@@ -1107,6 +1134,28 @@ html[data-theme] .bnd-acct-panel .bnd-acct-kbd {
   font-family: inherit;
   color: var(--bnd-ink-subtle);
 }
+html[data-theme] .bnd-acct-panel .bnd-acct-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  justify-items: start;
+  column-gap: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item svg {
+  grid-column: 1;
+  justify-self: center;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item .bnd-acct-item-label {
+  grid-column: 2;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+html[data-theme] .bnd-acct-panel .bnd-acct-item .bnd-acct-kbd {
+  grid-column: 3;
+  margin-inline-start: 0;
+  justify-self: end;
+}
 html[data-theme] .bnd-acct-panel .bnd-acct-signout {
   color: var(--bnd-critical);
 }
@@ -1190,6 +1239,7 @@ html[data-theme] .bnd-zone[data-zone=center] {
   inset-inline: 0;
   margin-inline: auto;
   inline-size: fit-content;
+  max-inline-size: 46%;
   justify-content: center;
 }
 
@@ -1440,7 +1490,6 @@ html[data-bnd-sb-color] {
   --bnd-sb-ink: var(--bnd-ink);
   --bnd-sb-ink-muted: var(--bnd-ink-muted);
   --bnd-sb-line: var(--bnd-border);
-  --bnd-sb-tile: 40px;
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
   --bnd-sb-card-base: var(--bnd-raised);
@@ -1518,13 +1567,14 @@ html[data-bnd-sb-color] .section-item .standard-sidebar-item .bnd-sb-rollup {
 
 html[data-bnd-sb-color] .bnd-sb-band {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-end: var(--bnd-sb-pane-pad);
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-2);
-  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  gap: var(--bnd-sb-band-gap);
+  margin-inline: 0;
   padding: var(--bnd-sb-band-pad);
-  border-block-start: 1px solid var(--bnd-sb-line);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-lg);
   background: var(--bnd-sb-card-base);
 }
 html[data-bnd-sb-color] .bnd-sb-band > button {
@@ -1535,7 +1585,7 @@ html[data-bnd-sb-color] .bnd-sb-band > button {
   align-items: center;
   justify-content: center;
 }
-html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=bell] {
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=user] {
   order: 1;
 }
 html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=home] {
@@ -1544,17 +1594,37 @@ html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=home] {
 html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=apps] {
   order: 3;
 }
-html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=user] {
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=bell] {
   order: 9;
   margin-inline-start: auto;
+}
+html[data-bnd-sb-color] .bnd-sb-band > .bnd-avatar-btn {
+  inline-size: var(--bnd-sb-tile);
+  block-size: var(--bnd-sb-tile);
+  padding: 0;
+  border-radius: var(--bnd-radius-lg);
+  overflow: hidden;
+}
+html[data-bnd-sb-color] .bnd-sb-band > .bnd-avatar-btn .avatar,
+html[data-bnd-sb-color] .bnd-sb-band > .bnd-avatar-btn .avatar-frame {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  font-size: var(--bnd-text-base);
 }
 
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
+  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  padding-inline: 0;
+}
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band > button[data-bnd-part=bell] {
+  order: 1;
+  margin-inline-start: 0;
 }
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band > button[data-bnd-part=user] {
-  margin-inline-start: 0;
+  order: 9;
   margin-block-start: auto;
 }
 

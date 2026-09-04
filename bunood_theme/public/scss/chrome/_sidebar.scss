@@ -76,9 +76,6 @@ html[data-bnd-sb-color] {
   --bnd-sb-ink: var(--bnd-ink);
   --bnd-sb-ink-muted: var(--bnd-ink-muted);
   --bnd-sb-line: var(--bnd-border);
-  // The brand tile (slice 2) and, from slice 3, the foot's avatar tile: one
-  // size, so the pane's top and bottom rhyme.
-  --bnd-sb-tile: 40px;
   // A chip is a wash of the ink over whatever the pane is; a card is a step
   // up from it. Both are relationships, so both follow the theme without a
   // second value to keep in step.
@@ -177,26 +174,31 @@ html[data-bnd-sb-color] .section-item .standard-sidebar-item .bnd-sb-rollup {
   flex: 0 0 auto;
 }
 
-// ── The account band (item 40, 8c) ──────────────────────────────────────
+// ── The account band (item 40, 8c; the tile card, item 42 slice 3) ─────
 // The pane's foot is ONE toolbar of square cells, not a stack of rows.
 // Canonical order comes from the registry via data-bnd-part - never the
 // admin's placement order - so two desks with the same tenants look
-// identical; the account is pinned to the inline-end corner and is the
-// only FILLED mark in a run of strokes (item 22's identifiable-at-rest
-// rule, answered by form rather than size). Sticky at the block end so
-// the foot never scrolls away with a 70-link workspace; the surface is
-// the card base - one step raised, and a token the gate already fits.
+// identical. Item 42 (the user's option 14) turned the strip into a CARD:
+// it floats inside the pane's own padding, the account LEADS and fills a
+// tile - still the only FILLED mark in a run of strokes (item 22's
+// identifiable-at-rest rule, answered by form) - and the bell is pinned
+// to the inline end. Sticky at the block end so the foot never scrolls
+// away with a 70-link workspace; the surface is the card base - one step
+// raised, and a token the gate already fits.
 html[data-bnd-sb-color] .bnd-sb-band {
   position: sticky;
-  inset-block-end: 0;
+  // A card inside the vendor's pane padding, floating one pane-pad above
+  // the foot. Usable width is W - 2*pane-pad - 2*band-pad - the border by our
+  // numbers; the foot check measures all four edges, and the gap token carries
+  // the arithmetic that makes the cluster fit the narrowest pane.
+  inset-block-end: var(--bnd-sb-pane-pad);
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-2);
-  // Full bleed past the vendor's pane padding, then our own 6px: usable
-  // width is W - 12 by OUR numbers. The check measures both bounds.
-  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  gap: var(--bnd-sb-band-gap);
+  margin-inline: 0;
   padding: var(--bnd-sb-band-pad);
-  border-block-start: 1px solid var(--bnd-sb-line);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-lg);
   background: var(--bnd-sb-card-base);
 
   > button {
@@ -206,13 +208,33 @@ html[data-bnd-sb-color] .bnd-sb-band {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    // Canonical order (registry: inbox, home, apps; account pinned last).
-    &[data-bnd-part="bell"] { order: 1; }
+    // The account leads; registry order between; the bell pinned to the end.
+    &[data-bnd-part="user"] { order: 1; }
     &[data-bnd-part="home"] { order: 2; }
     &[data-bnd-part="apps"] { order: 3; }
-    &[data-bnd-part="user"] {
+    &[data-bnd-part="bell"] {
       order: 9;
       margin-inline-start: auto;
+    }
+  }
+
+  // The avatar FILLS its tile: a rounded square, not Frappe's circle, and
+  // the same tile as the brand row's mark. Frappe sizes `.avatar-small` to
+  // 24px and rounds `.avatar-frame` fully; both are overridden here, on
+  // the one element we build, never on the vendor's nodes elsewhere.
+  > .bnd-avatar-btn {
+    inline-size: var(--bnd-sb-tile);
+    block-size: var(--bnd-sb-tile);
+    padding: 0;
+    border-radius: var(--bnd-radius-lg);
+    overflow: hidden;
+
+    .avatar,
+    .avatar-frame {
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: inherit;
+      font-size: var(--bnd-text-base);
     }
   }
 }
@@ -224,10 +246,20 @@ html[data-bnd-sb-color] .bnd-sb-band {
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
+  // The rail is 50px and the tile is 40: the card gives up its inline
+  // inset and padding here, or the tile would not fit its own card.
+  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  padding-inline: 0;
 
+  // The column reads the other way round (the user's call): bell ABOVE,
+  // avatar below, pinned to the block end.
   > button {
-    &[data-bnd-part="user"] {
+    &[data-bnd-part="bell"] {
+      order: 1;
       margin-inline-start: 0;
+    }
+    &[data-bnd-part="user"] {
+      order: 9;
       margin-block-start: auto;
     }
   }

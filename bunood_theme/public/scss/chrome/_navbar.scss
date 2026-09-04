@@ -92,3 +92,12 @@ html[data-theme] .bnd-search-field {
 html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
 }
+
+// Search placed at the TOP BAR'S centre is the wide form: the strip is tall
+// enough for a real field and this is the placement modern desks converged on.
+// Stated here rather than in _cluster.scss because the bottom bar wants its own
+// narrower number and the two rules would otherwise be decided by import order
+// (item 42, slice 1b). The zone above it caps the pair at 46% of the bar.
+html[data-theme] .bnd-topbar .bnd-zone[data-zone="center"] .bnd-search-field {
+  inline-size: min(420px, 100%);
+}

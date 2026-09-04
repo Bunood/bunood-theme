@@ -74,7 +74,9 @@
   --bnd-sb-w: 220px;
   --bnd-sb-cell: 36px;
   --bnd-sb-band-pad: 6px;
+  --bnd-sb-band-gap: 6px;
   --bnd-sb-pane-pad: 8px;
+  --bnd-sb-tile: 40px;
   --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
@@ -243,6 +245,7 @@ html[data-bnd-density=comfortable] {
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
   --bnd-sb-cell: 36px;
+  --bnd-sb-tile: 40px;
 }
 
 html[data-bnd-density=compact] {
@@ -250,6 +253,7 @@ html[data-bnd-density=compact] {
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
   --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
 }
 
 @media (prefers-reduced-motion: reduce) {

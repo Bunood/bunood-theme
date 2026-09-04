@@ -99,7 +99,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 22300,
-		"js_gzip": 107050,
+		"js_gzip": 107600,
 		"web_css_gzip": 4000,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

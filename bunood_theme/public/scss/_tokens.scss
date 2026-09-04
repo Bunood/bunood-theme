@@ -254,7 +254,19 @@
   // band check fails NAMING it rather than the desk quietly shifting.
   --bnd-sb-cell: 36px;
   --bnd-sb-band-pad: 6px;
+  // The gap between the foot card's cells. 6px, not the 8px of --bnd-sp-2, and
+  // the arithmetic is why: at the 200px stop the card is inset by the pane's own
+  // 8px padding on each side, so its usable width is 200 - 16 - 12 - 1 = 171px,
+  // and the four cells (the 40px account tile plus three 36px cells) need 148 +
+  // 3*gap. At 8 that is 172 and the bell overflowed the card it sits in -- by one
+  // pixel, on the narrowest pane, which is exactly the width nobody looks at. At
+  // 6 it is 166, and compact density (36 + 3*32) is 150.
+  --bnd-sb-band-gap: 6px;
   --bnd-sb-pane-pad: 8px;
+  // The TILE (item 42): the brand row's mark and the foot's avatar cell,
+  // one size so the pane's two ends rhyme. Steps down with density like
+  // the cell does, and the foot check reads it off the element.
+  --bnd-sb-tile: 40px;
   // The account panel's fixed inline size (8c): identity text CLAMPS to
   // it rather than stretching it - the check pins the panel at this width
   // with a 40-char Arabic name and a 45-char address.
@@ -551,6 +563,12 @@ html[data-bnd-density="comfortable"] {
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
   --bnd-sb-cell: 36px;
+  // The tile restores with the cell, for the reason stated above it: a site
+  // whose default density is Compact stamps that on <html>, and a person who
+  // picks Comfortable gets THIS block -- so anything the compact block lowers
+  // and this one omits stays lowered for them. --bnd-sb-cell is here for
+  // exactly that; the tile arrived later and has to join it.
+  --bnd-sb-tile: 40px;
 }
 html[data-bnd-density="compact"] {
   --bnd-row-h: 24px;
@@ -562,6 +580,7 @@ html[data-bnd-density="compact"] {
   // it, and a branch whose guard is false on every desk is untested code
   // pretending to be a safety net (the ledger records this call).
   --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
 }
 
 // ── Reduced motion ──────────────────────────────────────────────────────────

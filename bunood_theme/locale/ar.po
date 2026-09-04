@@ -6261,3 +6261,9 @@ msgstr "المبيعات الخاضعة للنسبة الصفرية"
 #. src: hesham
 msgid "vs previous period"
 msgstr "مقارنة بالفترة السابقة"
+
+#. In bunood.js
+#. src: item42
+#, fuzzy
+msgid "Getting Started"
+msgstr "الشروع في العمل"

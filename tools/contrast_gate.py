@@ -1493,15 +1493,57 @@ def check_layout_catalogue() -> list[str]:
 
     if DEFAULT_DESK_LAYOUT not in registry.LAYOUT_CHROME:
         problems.append(f"DEFAULT_DESK_LAYOUT {DEFAULT_DESK_LAYOUT!r} is not a LAYOUT_CHROME row")
+    # EVERY FIELD ANY ROW STATES, checked against EVERY row. Asking only whether a
+    # row exists let a row that named two of the three tenant fields pass as
+    # complete: the third then falls through to the shipped default, which is a
+    # different layout's answer, and the picker's derived label reads Custom on a
+    # desk nobody customised.
+    stated: set = set()
+    for tenants in registry.LAYOUT_TENANTS.values():
+        stated |= set(tenants)
     for name, chrome in registry.LAYOUT_CHROME.items():
         tenants = registry.LAYOUT_TENANTS.get(name)
         if not tenants:
             problems.append(f"{name}: has a LAYOUT_CHROME row but no LAYOUT_TENANTS row -- a half-written layout")
             continue
+        for missing in sorted(stated - set(tenants)):
+            problems.append(
+                f"{name}: states no {missing} while every other row does -- it would inherit "
+                f"another layout's answer from the shipped default"
+            )
         for field, value in tenants.items():
-            if field in options and value not in options[field]:
+            # A FIELD THE DOCTYPE DOES NOT OFFER IS THE LOUDEST CASE, not a skip.
+            # `if field in options` meant a renamed or deleted Select made this
+            # guard silent about the row that still writes it -- and Theme Settings
+            # is a Single, where one out-of-range value fails every later save of
+            # the whole document.
+            if field not in options:
+                problems.append(
+                    f"{name}: {field} is not a Select on Theme Settings, so this row writes a "
+                    f"value nothing can store"
+                )
+                continue
+            if value not in options[field]:
                 problems.append(f"{name}: {field} = {value!r} is not an option the doctype offers")
             if value == "Off":
+                # "Off" RELEASES THE CLAIM so Frappe's own affordance renders --
+                # and every one of those lives in the SIDE PANE (registry's `native`
+                # column names `.body-sidebar .sidebar-notification` and
+                # `.body-sidebar .sidebar-user-button`). A row that switches the pane
+                # off and still says Off is promising a control it does not mount;
+                # for `user_placement` that is the only route to Log Out.
+                # `guard_critical_reach` recovers it at runtime, which is exactly why
+                # the catalogue must not be able to spell it in the first place.
+                if not chrome.get("sidepane", 0):
+                    component = next(
+                        (c for c in registry.COMPONENTS if c.get("key") == field[: -len("_placement")]),
+                        None,
+                    )
+                    if component and component.get("native"):
+                        problems.append(
+                            f"{name}: {field} = 'Off' releases the tenant to {component['native']!r}, "
+                            f"which lives in the side pane this row switches OFF"
+                        )
                 continue
             region = next((by_label[label] for label in by_label if value.startswith(label + " ")), None)
             if region is None:

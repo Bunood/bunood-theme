@@ -1051,6 +1051,9 @@ const EXTRA_OWNED_NATIVES = {
 	// theme row) once ours exist; the menu is not a component we replace, so it
 	// has no registry row and never will.
 	"frappe-menu": "an item inside Frappe's context menu, not a component we replace",
+	// Getting Started (item 42, slice 4): the account panel carries it, so the
+	// vendor's foot link is hidden by the `onboard` token. A link, not a component.
+	"onboarding-sidebar": "Frappe's Getting Started link at the pane's foot; the account panel carries it",
 	// (slice 9 moved `sidebar-header` to the `panehead` MARK row in registry.py
 	// — the list shrank, which is the direction it is allowed to move.)
 };

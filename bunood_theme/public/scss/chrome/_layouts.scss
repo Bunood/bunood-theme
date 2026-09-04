@@ -69,6 +69,23 @@ html[data-bnd-own~="panetoggle"] .page-title .sidebar-toggle-btn {
   display: none;
 }
 
+// Getting Started (item 42, slice 4). Frappe's onboarding link at the pane's
+// foot moves into the account panel, and the link is hidden only while our
+// avatar -- the panel's trigger -- is in the document: stamped by
+// stamp_appearance_route, re-measured on every remount, so a desk whose
+// avatar never mounted keeps the vendor's link. The `<p>` wrapping it goes
+// too, or an empty paragraph keeps its margin at the foot.
+//
+// The menu item itself (avatar_menu_items; the reasoning lives here because
+// bunood.js ships its comments verbatim and the payload gate counts them) is
+// offered only when the vendor offers it -- Frappe marks its link `.hidden`
+// for a workspace with no module onboarding -- and it proxies a click to the
+// vendor's own link, so the widget, its fetch and its dismissal stay theirs.
+html[data-bnd-own~="onboard"] .body-sidebar .onboarding-sidebar,
+html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
+  display: none;
+}
+
 // ── The pane's head (item 40) ───────────────────────────────────────────────
 // The fourth one, and it arrived last because it was the one doing it wrong.
 // `_sidebar.scss` hid Frappe's `.sidebar-header` from `html[data-bnd-sb-color]`

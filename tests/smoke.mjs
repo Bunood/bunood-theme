@@ -2566,6 +2566,45 @@ async function main() {
 			expect(reachable.user, "and so is the user menu, and therefore Log Out");
 		});
 
+		await test("status: the density segment is an icon at the trailing edge, named for AT", async () => {
+			// ITEM 42, SLICE 5 (the user's call: density right-aligned, icon only).
+			// The words move to the accessible name and the tooltip; the glyph is
+			// the LAST thing in the bar, past the cluster; and it is still the
+			// control it was -- one click cycles the density. Run under a cleared
+			// personal density so the cycle starts from Auto and is restored.
+			//
+			// Watched failing before: a text run reading "Density: Auto", second
+			// from the leading edge.
+			await withPersonal("Administrator", { bnd_density: "" }, async () => {
+				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", status_style: "Always On", status_segments_density: 1 });
+				await goDesk("/desk/item", ".bnd-statusbar", 3000);
+				const m = await page.evaluate(() => {
+					const bar = document.querySelector(".bnd-statusbar");
+					const d = bar && bar.querySelector(".bnd-status-density");
+					if (!d) return null;
+					const kids = [...bar.children].filter((k) => getComputedStyle(k).display !== "none" && k.getBoundingClientRect().width > 0);
+					const right = (k) => k.getBoundingClientRect().right;
+					const last = kids.reduce((a, k) => (right(k) > right(a) ? k : a), kids[0]);
+					return {
+						hasSvg: !!d.querySelector("svg"),
+						text: (d.textContent || "").trim(),
+						label: d.getAttribute("aria-label") || "",
+						title: d.title,
+						last: last === d,
+						before: document.documentElement.getAttribute("data-bnd-density"),
+					};
+				});
+				expect(m, "the density segment mounts");
+				expect(m.hasSvg && m.text === "", `icon only, no text run (${JSON.stringify(m.text)})`);
+				expect(/Density/.test(m.label) && m.title === m.label, `named for AT and the tooltip (${JSON.stringify(m.label)} / ${JSON.stringify(m.title)})`);
+				expect(m.last, "it is the last thing at the bar's trailing edge");
+				await page.click(".bnd-statusbar .bnd-status-density");
+				await page.waitForTimeout(600);
+				const after = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-density"));
+				expect(after !== m.before, `a click still cycles the density (${m.before} -> ${after})`);
+			});
+		});
+
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
 			// The centre search slot must not flex: flexible lengths resolve
 			// before auto margins, so a flexing sibling cancels the trailing
@@ -3327,8 +3366,14 @@ async function main() {
 			// persists it. Proven the only way that means anything: change it,
 			// RELOAD THE PAGE without saving, and read it back from the server.
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
-			const start = getSettings(["crumb_separator"]).crumb_separator;
-			const want = start === "Chevron" ? "Dot" : "Chevron";
+			// THE SUBJECT HAS TO BE LIVE AT THE SHIPPED DEFAULTS. This drove
+			// `crumb_separator` until item 42 shipped `Crumb Pills`, which greys that
+			// whole group with "Pills draw no separators" -- so three checks about
+			// clicking a picker option started timing out on a control the product was
+			// correctly refusing to offer. `crumb_hover` greys only its Soft Pill option
+			// under Pills, so Underline and Darken are clickable at every shipped state.
+			const start = getSettings(["crumb_hover"]).crumb_hover;
+			const want = start === "Underline" ? "Darken" : "Underline";
 
 			await page.evaluate(() => {
 				// The breadcrumbs entry, so the picker under test is on screen.
@@ -3338,15 +3383,15 @@ async function main() {
 				if (item) item.click();
 			});
 			await page.waitForTimeout(800);
-			await page.click(`[data-field="crumb_separator"][data-value="${want}"]`);
+			await page.click(`[data-field="crumb_hover"][data-value="${want}"]`);
 			// Long enough for a debounced save to fire and land, and no longer.
 			await page.waitForTimeout(3000);
 
-			expectEq(getSettings(["crumb_separator"]).crumb_separator, want, "the click reached the database");
+			expectEq(getSettings(["crumb_hover"]).crumb_hover, want, "the click reached the database");
 
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
 			expectEq(
-				await page.evaluate(() => String(window.cur_frm.doc.crumb_separator)),
+				await page.evaluate(() => String(window.cur_frm.doc.crumb_hover)),
 				want,
 				"and survives a reload, so nothing was waiting on a Save"
 			);
@@ -3354,7 +3399,7 @@ async function main() {
 				!(await page.evaluate(() => window.cur_frm.is_dirty())),
 				"the form does not sit dirty afterwards"
 			);
-			setSettings({ crumb_separator: start });
+			setSettings({ crumb_hover: start });
 		});
 
 		await test("settings: a container applies to the desk on click, with no reload", async () => {
@@ -3445,8 +3490,8 @@ async function main() {
 			// The contract: what THIS edit touched wins; everything else the
 			// other writer stored survives it.
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
-			const start = getSettings(["crumb_separator", "tagline"]);
-			const wantSep = start.crumb_separator === "Chevron" ? "Dot" : "Chevron";
+			const start = getSettings(["crumb_hover", "tagline"]);
+			const wantSep = start.crumb_hover === "Underline" ? "Darken" : "Underline";
 			const wantTag = "concurrent-" + Date.now();
 
 			await page.evaluate(() => {
@@ -3464,16 +3509,16 @@ async function main() {
 
 			// Now the user clicks. The form's document is already stale.
 			await page.evaluate((v) => {
-				const o = document.querySelector(`[data-field="crumb_separator"][data-value="${v}"]`);
+				const o = document.querySelector(`[data-field="crumb_hover"][data-value="${v}"]`);
 				if (o) o.click();
 			}, wantSep);
 			await page.waitForTimeout(7000);
 
-			const after = getSettings(["crumb_separator", "tagline"]);
-			expectEq(after.crumb_separator, wantSep, "the click landed");
+			const after = getSettings(["crumb_hover", "tagline"]);
+			expectEq(after.crumb_hover, wantSep, "the click landed");
 			expectEq(after.tagline, wantTag, "and the other writer's field survived it");
 
-			setSettings({ crumb_separator: start.crumb_separator, tagline: start.tagline || "" });
+			setSettings({ crumb_hover: start.crumb_hover, tagline: start.tagline || "" });
 		});
 
 		await test("settings: rapid clicks all land, and none is lost", async () => {
@@ -3491,13 +3536,16 @@ async function main() {
 			});
 			await page.waitForTimeout(800);
 
-			for (const v of ["Dot", "Arrow", "Slash", "Chevron"]) {
-				await page.click(`[data-field="crumb_separator"][data-value="${v}"]`);
+			// Only the two options Crumb Pills leaves clickable, alternating -- the claim is
+			// "faster than a save can finish", not "four distinct values". Ends on Underline,
+			// which is what the assertion below reads back.
+			for (const v of ["Darken", "Underline", "Darken", "Underline"]) {
+				await page.click(`[data-field="crumb_hover"][data-value="${v}"]`);
 				await page.waitForTimeout(120); // faster than any save can finish
 			}
 			await page.waitForTimeout(5000);
 
-			expectEq(getSettings(["crumb_separator"]).crumb_separator, "Chevron", "the last click is what is stored");
+			expectEq(getSettings(["crumb_hover"]).crumb_hover, "Underline", "the last click is what is stored");
 			const dialog = await page.evaluate(() => {
 				const m = document.querySelector(".modal.show .modal-body, .msgprint");
 				return m ? m.textContent.trim().replace(/\s+/g, " ").slice(0, 160) : "";
@@ -5026,10 +5074,17 @@ print("ok")
 							const pr = pane.getBoundingClientRect();
 							const cs = getComputedStyle(band);
 							const cells = [...band.querySelectorAll(":scope > button")];
-							const rects = cells.map((c) => c.getBoundingClientRect());
+							// The account cell is the TILE (item 42); every other cell is a cell.
+							const plain = cells.filter((c) => c.getAttribute("data-bnd-part") !== "user");
+							const rects = plain.map((c) => c.getBoundingClientRect());
+							const all = cells.map((c) => c.getBoundingClientRect());
+							const ur = cells.find((c) => c.getAttribute("data-bnd-part") === "user").getBoundingClientRect();
 							return {
 								role: band.getAttribute("role"),
 								bandW: Math.round(br.width), paneW: Math.round(pr.width),
+								panePad: Math.round(parseFloat(getComputedStyle(pane).paddingInlineStart)),
+								tile: [Math.round(ur.width), Math.round(ur.height)],
+								tileToken: Math.round(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-tile"))),
 								padI: cs.paddingInlineStart + " " + cs.paddingInlineEnd,
 								// VISUAL order — the canonical order is CSS `order`,
 								// so DOM order is mount order and proves nothing.
@@ -5039,8 +5094,8 @@ print("ok")
 									.map((c) => c.p),
 								cellHs: rects.map((r) => Math.round(r.height)),
 								cellWs: rects.map((r) => Math.round(r.width)),
-								lastEnd: Math.round(Math.max(...rects.map((r) => r.right))),
-								firstStart: Math.round(Math.min(...rects.map((r) => r.left))),
+								lastEnd: Math.round(Math.max(...all.map((r) => r.right))),
+								firstStart: Math.round(Math.min(...all.map((r) => r.left))),
 								bandContentEnd: Math.round(br.right - parseFloat(cs.paddingInlineEnd)),
 								bandContentStart: Math.round(br.left + parseFloat(cs.paddingInlineStart)),
 							};
@@ -5048,15 +5103,19 @@ print("ok")
 						const tag = `w=${w} density=${density || "default"}`;
 						expect(m, `the band mounts in the pane (${tag})`);
 						expectEq(m.role, "toolbar", `the band is a toolbar, not more nav rows (${tag})`);
-						// Full bleed: the band spans the PANE, and its own 6px does
-						// the inset — usable width is exactly paneW - 12.
-						expect(Math.abs(m.bandW - m.paneW) <= 1, `the band escapes the vendor padding and spans the pane (band ${m.bandW}, pane ${m.paneW}, ${tag})`);
+						// A CARD inside the pane's own padding (item 42, slice 3): the band
+						// is the pane minus two pane-pads, and its own 6px does the rest —
+						// usable width is paneW - 2*panePad - 12, and the tile fits it.
+						expect(Math.abs(m.bandW - (m.paneW - 2 * m.panePad)) <= 1, `the card is inset by the pane's padding on both sides (band ${m.bandW}, pane ${m.paneW}, pad ${m.panePad}, ${tag})`);
 						expectEq(m.padI, "6px 6px", `the band re-applies its OWN inline padding (${m.padI}, ${tag})`);
 						expectEq(m.parts.length, 4, `four tenants render as four cells (${JSON.stringify(m.parts)}, ${tag})`);
-						// Canonical order from the registry, account pinned to the
-						// inline-end corner — never the admin's placement order.
-						expectEq(m.parts.join(","), "bell,home,apps,user", `registry order with the account pinned last (${JSON.stringify(m.parts)}, ${tag})`);
+						// The account LEADS, registry order between, the bell pinned to
+						// the inline-end corner — never the admin's placement order.
+						expectEq(m.parts.join(","), "user,home,apps,bell", `the account leads and the bell is pinned last (${JSON.stringify(m.parts)}, ${tag})`);
 						const want = density === "compact" ? 32 : 36;
+						const wantTile = density === "compact" ? 36 : 40;
+						expectEq(m.tileToken, wantTile, `the tile token steps with density (${m.tileToken}, ${tag})`);
+						expectEq(m.tile.join("x"), `${wantTile}x${wantTile}`, `the account cell IS the tile (${m.tile.join("x")}, ${tag})`);
 						for (const h of m.cellHs) expectEq(h, want, `cells are ${want}px at ${tag} (got ${JSON.stringify(m.cellHs)})`);
 						for (const cw of m.cellWs) expect(cw >= want, `cells are at least square at ${tag} (${JSON.stringify(m.cellWs)})`);
 						// The cluster FITS inside the usable width, both edges.
@@ -5100,7 +5159,7 @@ print("ok")
 						cells: cells.map((c) => {
 							const r = c.getBoundingClientRect();
 							const cs = getComputedStyle(c);
-							return { part: c.getAttribute("data-bnd-part"), w: Math.round(r.width), h: Math.round(r.height), vis: cs.visibility, disp: cs.display };
+							return { part: c.getAttribute("data-bnd-part"), w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top), vis: cs.visibility, disp: cs.display };
 						}),
 						badge: badge ? { text: (badge.textContent || "").trim(), hidden: badge.hidden, disp: bs.display, vis: bs.visibility } : null,
 					};
@@ -5111,11 +5170,74 @@ print("ok")
 					expect(c.w > 0 && c.h > 0 && c.vis !== "hidden" && c.disp !== "none",
 						`${c.part} has a real rect at the rail (${JSON.stringify(c)})`);
 				}
+				// The column reads the other way round from the row (item 42): bell
+				// ABOVE, avatar below.
+				const yOf = (p) => (m.cells.find((c) => c.part === p) || {}).y;
+				expect(yOf("bell") < yOf("user"), `the rail reads bell over avatar (bell ${yOf("bell")}, user ${yOf("user")})`);
 				expect(m.badge && !m.badge.hidden && m.badge.disp !== "none" && m.badge.vis !== "hidden",
 					`the badge is not withheld at the rail (${JSON.stringify(m.badge)})`);
 				expectEq(m.badge.text, "2", `and it is still a COUNT, not a dot (${JSON.stringify(m.badge)})`);
 			} finally {
 				clearNotifications();
+				setSettings(before);
+			}
+		});
+
+		await test("foot: the tile card floats in the pane, the avatar fills its tile, the bell pins to the end", async () => {
+			// ITEM 42, SLICE 3 — the user's option 14. Watched failing before the
+			// change: a full-bleed strip (inset 0), a 36px circle avatar at the END.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				setSettings(BAND_PLACE);
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
+				await sbEnsureExpanded();
+				await page.waitForFunction(() => !!document.querySelector(".body-sidebar .bnd-sb-band"), null, { timeout: 20000 });
+				const m = await page.evaluate(() => {
+					const pane = document.querySelector(".body-sidebar");
+					const band = pane.querySelector(".bnd-sb-band");
+					const pr = pane.getBoundingClientRect();
+					const br = band.getBoundingClientRect();
+					const cs = getComputedStyle(band);
+					const pad = parseFloat(getComputedStyle(pane).paddingInlineStart);
+					const user = band.querySelector('[data-bnd-part="user"]');
+					const bell = band.querySelector('[data-bnd-part="bell"]');
+					const ur = user.getBoundingClientRect();
+					const belr = bell.getBoundingClientRect();
+					const frame = user.querySelector(".avatar-frame") || user.querySelector(".avatar");
+					const fr = frame ? frame.getBoundingClientRect() : null;
+					const tile = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-tile"));
+					return {
+						insetStart: Math.round(br.left - pr.left),
+						insetEnd: Math.round(pr.right - br.right),
+						pad: Math.round(pad),
+						gapBelow: Math.round(pr.bottom - br.bottom),
+						radius: parseFloat(cs.borderTopLeftRadius),
+						border: parseFloat(cs.borderTopWidth),
+						tile,
+						user: [Math.round(ur.width), Math.round(ur.height)],
+						frame: fr ? [Math.round(fr.width), Math.round(fr.height)] : null,
+						frameRadius: frame ? parseFloat(getComputedStyle(frame).borderTopLeftRadius) : null,
+						userAtStart: Math.round(ur.left - (br.left + parseFloat(cs.paddingInlineStart) + parseFloat(cs.borderLeftWidth))),
+						bellAtEnd: Math.round(br.right - parseFloat(cs.paddingInlineEnd) - parseFloat(cs.borderRightWidth) - belr.right),
+					};
+				});
+				expect(m.tile >= 36, `the tile token is on the element (${m.tile})`);
+				// WITHIN A PIXEL, and the tolerance is stated rather than assumed: the pane's
+				// width is fractional at several stops, so the two insets round apart -- 8 at
+				// the start and 9 at the end on a 200px pane that is really 199.5. A whole
+				// pixel of asymmetry would still fail, which is the defect worth catching.
+				expect(Math.abs(m.insetStart - m.pad) <= 1, `the card is inset by the pane's own padding at the start (${m.insetStart} vs ${m.pad})`);
+				expect(Math.abs(m.insetEnd - m.pad) <= 1, `and at the end (${m.insetEnd} vs ${m.pad})`);
+				expect(Math.abs(m.insetStart - m.insetEnd) <= 1, `and the two insets match each other (${m.insetStart} vs ${m.insetEnd})`);
+				expect(m.gapBelow >= m.pad - 1, `it floats above the foot (${m.gapBelow}px)`);
+				expect(m.radius >= 8 && m.border > 0, `a card: rounded (${m.radius}px) and edged (${m.border}px)`);
+				expectEq(m.user.join("x"), `${m.tile}x${m.tile}`, `the account cell IS the tile (${m.user.join("x")} vs ${m.tile})`);
+				expect(m.frame && Math.abs(m.frame[0] - m.tile) <= 1 && Math.abs(m.frame[1] - m.tile) <= 1, `the avatar fills it (${JSON.stringify(m.frame)} vs ${m.tile})`);
+				expect(m.frameRadius !== null && m.frameRadius < m.tile / 2, `a rounded SQUARE, not a circle (radius ${m.frameRadius}px on ${m.tile}px)`);
+				expectEq(m.userAtStart, 0, `the avatar sits at the inline start (${m.userAtStart}px in)`);
+				expectEq(m.bellAtEnd, 0, `the bell is pinned to the inline end (${m.bellAtEnd}px short)`);
+			} finally {
 				setSettings(before);
 			}
 		});
@@ -5872,6 +5994,95 @@ print("ok")
 			}
 		});
 
+		await test("onboarding: Getting Started moves into the account panel, owned, and fails open", async () => {
+			// ITEM 42, SLICE 4. Frappe's `a.onboarding-sidebar` at the pane's foot
+			// becomes an item in the account panel; the foot link is hidden by the
+			// `onboard` token, stamped exactly while our avatar (the panel's
+			// trigger) is in the document. Three claims: owned and hidden with the
+			// avatar mounted; the panel lists it (with its glyph) wherever the
+			// vendor offers onboarding, and clicking it mounts the VENDOR'S widget;
+			// and with the avatar gone the token is released -- fail open, like
+			// every other row in _layouts.scss's own-then-hide block.
+			//
+			// Watched failing before: the link visible at the foot, no token, no item.
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", user_placement: "Top Bar End" });
+			await goDesk("/app/selling", ".body-sidebar", 3000);
+			await sbEnsureExpanded();
+			const m = await page.evaluate(() => {
+				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
+				const own = (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/);
+				return {
+					present: !!link,
+					offered: !!link && !link.classList.contains("hidden"),
+					linkHidden: !link || getComputedStyle(link).display === "none" || link.getClientRects().length === 0,
+					owned: own.includes("onboard"),
+					avatar: !!document.querySelector(".bnd-avatar-btn"),
+				};
+			});
+			expect(m.avatar, "precondition: our avatar is mounted");
+			// THE SUBJECT HAS TO EXIST. Without this the next two claims are true of a
+			// desk with no onboarding link at all -- `linkHidden` is trivially true when
+			// there is nothing to hide -- and the whole check passes while testing
+			// nothing. `/app/selling` is chosen because ERPNext ships module onboarding
+			// for Selling; if that ever stops being true this fails LOUDLY rather than
+			// quietly skipping, which is the difference between a guard and a comment.
+			expect(m.present, "precondition: Frappe renders its Getting Started link on this workspace");
+			expect(m.offered, "precondition: and offers onboarding here, so the menu item has a subject");
+			expect(m.owned, "the token is stamped while the avatar is in the document");
+			expect(m.linkHidden, "and the vendor's foot link is hidden");
+			{
+				await page.click(".bnd-avatar-btn");
+				await page.waitForSelector(".bnd-acct-panel .bnd-acct-item", { timeout: 5000 });
+				const row = await page.evaluate(() => {
+					const r = [...document.querySelectorAll(".bnd-acct-item")].find((b) => /Getting Started/.test(b.textContent || ""));
+					return r ? { present: true, hasIcon: !!r.querySelector("svg") } : { present: false };
+				});
+				expect(row.present && row.hasIcon, `the panel lists Getting Started with its glyph (${JSON.stringify(row)})`);
+				// Click it: the vendor's own widget mounts in the vendor's own wrapper.
+				// EMPTY THE WRAPPER FIRST, or the assertion below is already true: Frappe
+				// fills `.user-onboarding` on load for a workspace that has onboarding, so
+				// "the widget is mounted after the click" says nothing about the click. The
+				// vendor's own handler re-runs setup_onboarding(), which is what refills it.
+				const emptied = await page.evaluate(() => {
+					const w = document.querySelector(".user-onboarding");
+					if (!w) return false;
+					w.innerHTML = "";
+					return w.childElementCount === 0;
+				});
+				expect(emptied, "the vendor's onboarding wrapper is present and was emptied");
+				await page.evaluate(() => {
+					const r = [...document.querySelectorAll(".bnd-acct-item")].find((b) => /Getting Started/.test(b.textContent || ""));
+					r.click();
+				});
+				await page.waitForFunction(
+					() => { const w = document.querySelector(".user-onboarding"); return !!w && w.childElementCount > 0; },
+					null, { timeout: 8000 }
+				);
+			}
+			// Fail open: take the avatar away, re-measure, and the link comes back.
+			// FAIL OPEN, asserted as the RULE rather than by poking the runtime. Item
+			// 40's ownership check is written this way for the reason it records: whether
+			// our replacement mounts at all depends on Frappe's desk_settings and the
+			// layout, so driving a re-mount and demanding a token back is flaky. The
+			// claim that matters is the SELECTOR's polarity -- release the token and the
+			// vendor's link must render -- and it needs no avatar at all. Mutate and read
+			// in DIFFERENT evaluates: getComputedStyle served a stale value to a read in
+			// the same tick, twice, on this suite.
+			await page.evaluate(() => {
+				const html = document.documentElement;
+				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+				own.delete("onboard");
+				html.setAttribute("data-bnd-own", [...own].join(" "));
+			});
+			const back = await page.evaluate(() => {
+				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
+				return { owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("onboard"),
+					shown: !!link && getComputedStyle(link).display !== "none" };
+			});
+			expect(!back.owned, "the token can be released");
+			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
+		});
+
 		await test("sidepane: brand row, then search, then the place row — in that order, at two widths", async () => {
 			// ITEM 42, SLICE 2. Item 40 collapsed brand, quick links and module row into
 			// ONE place row; the user's brief separated the company (logo + name, on
@@ -5886,30 +6097,52 @@ print("ok")
 			try {
 				setSettings({ sidebar_enabled: 1, sidebar_menu_rail: "Always Expanded", search_placement: "Side Pane Start" });
 				await goDesk("/app/selling", ".body-sidebar", 3000);
+				// The two stops are measured and COMPARED: without that both passes could
+				// have read one pane (a stop that never applied), and the order claim would
+				// have been made twice about the same width.
+				const widths = [];
 				for (const stop of ["5", "1"]) {
 					// Page-local, like the picker's preview; the stop is not saved.
 					await page.evaluate((v) => window.bunood_theme.sb_apply({ sidebar_pane_width: v }), stop);
 					await page.waitForTimeout(600);
 					const r = await page.evaluate(() => {
 						const pane = document.querySelector(".body-sidebar");
-						const kids = [...pane.children];
+						// ORDER IS THE CLAIM, so index over EVERY direct child -- Frappe keeps its
+						// search row inside `.standard-items-sections`, and filtering the children
+						// by their own display drops that wrapper on the routes where it is empty,
+						// which reported search as absent from a pane that was rendering it. The
+						// vendor's own (owned, hidden) header is skipped by name instead, because
+						// it is re-prepended on every workspace switch. Visibility is asserted
+						// separately, below, on the three rows themselves.
+						const kids = [...pane.children].filter((k) => !k.classList.contains("sidebar-header"));
 						const brand = pane.querySelector(".bnd-sb-brand");
 						const search = pane.querySelector(".navbar-search-bar, [data-bnd-part=search]");
 						const head = pane.querySelector(".bnd-sb-head");
 						const list = pane.querySelector(".body-sidebar-top");
 						const rect = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, w: b.width, h: b.height }; };
-						const idx = (el) => (el ? kids.indexOf(el) : -1);
+						// By CONTAINMENT, not identity: the row we are locating may sit inside a
+						// direct child rather than being one.
+						const idx = (el) => (el ? kids.findIndex((k) => k === el || k.contains(el)) : -1);
 						return {
 							order: { brand: idx(brand), search: idx(search), head: idx(head), list: idx(list) },
 							rects: { brand: rect(brand), search: rect(search), head: rect(head), list: rect(list) },
 							tile: rect(pane.querySelector(".bnd-sb-brand-mark")),
-							company: (brand && brand.textContent.trim()) || "",
+							// THE NAME'S OWN NODE, not the row's text: the tile carries the
+							// company's initial, so reading the whole row is non-empty however
+							// the name resolves -- including when it does not.
+							company: ((brand && brand.querySelector(".bnd-sb-brand-name")) || {}).textContent || "",
+							shown: [brand, search, head].map((n) => {
+								if (!n) return false;
+								const cs = getComputedStyle(n);
+								return cs.display !== "none" && cs.visibility !== "hidden" && n.getBoundingClientRect().height > 0;
+							}),
 							owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panehead"),
 							nativeHidden: (() => { const n = pane.querySelector(".sidebar-header"); return !n || getComputedStyle(n).display === "none"; })(),
 							paneW: pane.getBoundingClientRect().width,
 						};
 					});
 					const w = Math.round(r.paneW);
+					widths.push(w);
 					expect(r.order.brand === 0, `stop ${stop} (${w}px): the brand row is the pane's first child (index ${r.order.brand})`);
 					expect(r.order.search > r.order.brand && r.order.search < r.order.head,
 						`stop ${stop}: search sits between brand (${r.order.brand}) and the place row (${r.order.head}); search at ${r.order.search}`);
@@ -5920,8 +6153,10 @@ print("ok")
 					expect(r.rects.search.bottom <= r.rects.head.top + 1, `stop ${stop}: search (${Math.round(r.rects.search.bottom)}) ends above the place row (${Math.round(r.rects.head.top)})`);
 					expectEq(Math.round(r.tile.w) + "x" + Math.round(r.tile.h), "40x40", `stop ${stop}: the brand tile is the 40px tile`);
 					expect(r.company.length > 0, `stop ${stop}: the brand row names the company`);
+					expectEq(r.shown.join(","), "true,true,true", `stop ${stop}: all three rows actually render (${r.shown.join(",")})`);
 					expect(r.owned && r.nativeHidden, `stop ${stop}: both rows present, so panehead is owned and Frappe's header hidden`);
 				}
+				expect(widths[0] > widths[1], `the two stops render two different widths (${widths.join(" vs ")})`);
 			} finally {
 				setSettings(before);
 			}
@@ -7114,18 +7349,27 @@ print("ok")
 			// The catalogue, the toggles and the slot vocabularies are READ from
 			// `registry`, never restated here -- one table, several consumers.
 			const raw = benchPy(
-				"from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS, slots_for\n" +
+				"from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS, COMPONENTS, slots_for\n" +
 				"from bunood_theme.presets import DEFAULT_DESK_LAYOUT\n" +
 				"print(json.dumps({\n" +
 				"  'chrome': LAYOUT_CHROME,\n" +
 				"  'tenants': LAYOUT_TENANTS,\n" +
 				"  'toggles': [[c['key'], c['toggle']] for c in CONTAINERS if c.get('toggle')],\n" +
-				"  'slots': {f: list(slots_for(f)) for f in ('inbox_placement', 'user_placement', 'search_placement')},\n" +
+				"  'slots': {c['key'] + '_placement': slots_for(c['key']) for c in COMPONENTS if c['key'] in ('inbox', 'user', 'search')},\n" +
 				"  'default': DEFAULT_DESK_LAYOUT,\n" +
 				"}))\n"
 			);
 			const cat = JSON.parse(raw.split("\n").reverse().find((l) => l.trim().startsWith("{")));
 			expect(Object.keys(cat.chrome).length >= 5, `the catalogue has rows (${Object.keys(cat.chrome).length})`);
+			// AND THE VOCABULARY IS NOT EMPTY. `slots_for` takes a component KEY and returns
+			// [] for anything else, so handing it a FIELD name -- which the first draft of
+			// this check did -- makes every walk below exactly one element long (the
+			// placement the layout preset already wrote), 165 of 180 tenant cells silently
+			// stop running, and the check still prints `matrix: 0 finding(s)` and passes.
+			// A returned [] must never again read as a completed walk.
+			for (const [field, slots] of Object.entries(cat.slots)) {
+				expect(slots.length > 1, `${field} offers a real slot vocabulary (${slots.length})`);
+			}
 
 			const stranded = () =>
 				page.evaluate(() => {

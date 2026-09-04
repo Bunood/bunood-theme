@@ -1050,6 +1050,9 @@
 		);
 		if (seeded || document.querySelector(".bnd-avatar-btn")) bnd_own("appearance");
 		else bnd_disown("appearance");
+		// Getting Started rides the same measure (item 42) — see _layouts.scss.
+		if (document.querySelector(".bnd-avatar-btn")) bnd_own("onboard");
+		else bnd_disown("onboard");
 	}
 
 	/** Release an affordance back to Frappe's own control. */
@@ -2081,6 +2084,18 @@
 			icon: "icon-expand",
 			run: () => frappe.ui.toolbar.toggle_full_width(),
 		});
+		// Getting Started (item 42) — argument in _layouts.scss. The pane has to be
+		// USABLE, not merely present: the vendor mounts its widget into the pane, so
+		// on a desk with no side pane the row would open something nobody can see.
+		// `.click()` fires on a hidden element, which is what makes this a silent
+		// no-op rather than an error.
+		if (!sidebar_is_hidden() && document.querySelector(".body-sidebar .onboarding-sidebar:not(.hidden)")) {
+			items.push({
+				label: __("Getting Started"),
+				icon: "icon-user-check",
+				run: () => proxy_click(".body-sidebar .onboarding-sidebar"),
+			});
+		}
 		items.push("divider");
 		// The trailing hints the vendor shows and item 40's audit called an
 		// information regression to drop. Unit strings, not sentences.
@@ -3561,19 +3576,13 @@ function sb_zone_anchor(pane, zone, node) {
 			if (slot === "topcenter" || slot === "botcenter") {
 				// ONE centre (item 42, slice 1b): the cluster's centre zone, so a
 				// tenant placed there sits beside the field — argument in _cluster.scss.
-				// The bar's own slot is the fallback for a bar with no cluster yet.
-				// zone_in reserves the cluster's zones: search mounts before the tenants do.
-				const zone = zone_in(host, "center");
-				if (zone) {
-					zone.insertBefore(field, zone.firstChild);
-				} else {
-					let centre = host.querySelector(".bnd-search-center");
-					if (!centre) {
-						centre = el("div", "bnd-search-center");
-						host.appendChild(centre);
-					}
-					centre.appendChild(field);
-				}
+				// `zone_in` RESERVES the cluster and its three zones, so this cannot
+				// come back empty for a host that exists, and the host is checked above.
+				// The first draft carried a fallback to the bar's old `.bnd-search-center`
+				// slot for "a bar with no cluster yet" — a state reserve_cluster makes
+				// unreachable, so it was a branch that could never run pretending to be a
+				// safety net.
+				zone_in(host, "center").appendChild(field);
 			} else {
 				host.insertBefore(field, host.firstChild);
 			}
@@ -3723,13 +3732,13 @@ function sb_zone_anchor(pane, zone, node) {
 			status_refs.fresh = fresh;
 		}
 
-		// Density: label shows the user's override or "Auto"; click cycles.
+		// Density: an icon at the trailing edge (item 42); words in the label.
 		if (status_on("status_segments_density")) {
-			const density = el("button", "bnd-status-item", {
+			const density = el("button", "bnd-status-item bnd-status-density", {
 				type: "button",
-				title: __("Toggle Density"),
 				"data-bnd-prio": "2",
 			});
+			density.appendChild(sprite_icon("icon-list-alt"));
 			density.addEventListener("click", () => bunood.cycle_density());
 			bar.appendChild(density);
 			status_refs.density = density;
@@ -3788,7 +3797,10 @@ function sb_zone_anchor(pane, zone, node) {
 	function refresh_density_label() {
 		if (!status_refs.density) return;
 		const value = (frappe.boot && frappe.boot.bnd_density) || "";
-		status_refs.density.textContent = __("Density: {0}", [value ? __(value) : __("Auto")]);
+		const label = __("Density: {0}", [value ? __(value) : __("Auto")]);
+		// The glyph stays; the words go to AT and to the tooltip.
+		status_refs.density.setAttribute("aria-label", label);
+		status_refs.density.title = label;
 	}
 
 	/** How long the socket may take to finish its handshake before we say so. */
@@ -6359,12 +6371,15 @@ function sb_zone_anchor(pane, zone, node) {
 		claim_panehead();
 	}
 
-	/** Above the list; same anchor as sb_zone_anchor's start branch. */
+	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
+	 *  start branch walks, including the vendor-header rung: without it a pane
+	 *  with neither list nor brand row put the place row ABOVE Frappe's own
+	 *  header instead of below it. */
 	function sb_place_head(sidebar, head) {
 		const list = sidebar.querySelector(":scope > .body-sidebar-top");
 		if (list) return list.insertAdjacentElement("beforebegin", head);
-		const brand = sidebar.querySelector(":scope > .bnd-sb-brand");
-		if (brand) return brand.insertAdjacentElement("afterend", head);
+		const top = sidebar.querySelector(":scope > .bnd-sb-brand") || sidebar.querySelector(":scope > .sidebar-header");
+		if (top) return top.insertAdjacentElement("afterend", head);
 		return sidebar.insertBefore(head, sidebar.firstChild);
 	}
 
@@ -6581,11 +6596,6 @@ function sb_zone_anchor(pane, zone, node) {
 
 			const sidebar = document.querySelector(".body-sidebar");
 			if (!sidebar) continue;
-			// ONE anchor, not a ladder. The head is always above the list, so
-			// "under the head" is a position rather than a race.
-			const head =
-				sidebar.querySelector(".bnd-sb-head") || sidebar.querySelector(".sidebar-header");
-			if (!head) continue;
 
 			// Foot links are band cells (8c); the bar variant is the cell.
 			if (zone === "end") {
@@ -6597,7 +6607,14 @@ function sb_zone_anchor(pane, zone, node) {
 			const utils = el("div", "bnd-sb-utils");
 			utils.setAttribute("data-bnd-zone", zone || "start");
 			for (const which of members) utils.appendChild(build_quick_link(which, false));
-			head.insertAdjacentElement("afterend", utils);
+			// THROUGH THE SAME ANCHOR AS EVERY OTHER TENANT (item 42). These links
+			// used to carry their own -- `afterend` of the head -- and that was one
+			// position until the head split in two: the Start zone now anchors ABOVE
+			// the place row, so a bell at Side Pane Start sat above it and Home sat
+			// below, from the same words in the same picker. enforce_desk_order could
+			// not tell them apart either, because it sorts siblings and these were
+			// never in one run.
+			sb_zone_anchor(sidebar, zone || "start", utils);
 		}
 		sb_band_prune();
 		enforce_desk_order();

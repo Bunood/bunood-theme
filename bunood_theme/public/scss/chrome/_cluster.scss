@@ -291,6 +291,37 @@ html[data-theme] .bnd-acct-panel {
     font-family: inherit;
     color: var(--bnd-ink-subtle);
   }
+  // The action rows align on ONE grid (item 42, slice 3): a 20px icon
+  // column, the label, the hint at the end. A row with no icon keeps the
+  // column (the JS puts an empty gap there), so labels never wander.
+  .bnd-acct-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    justify-items: start;
+    column-gap: var(--bnd-sp-2);
+
+    // THE COLUMNS ARE PINNED, not filled. A row with no icon would otherwise
+    // slide its label into the icon column and its hint into the label's, so
+    // the first cut appended an empty span to hold the place -- a node that
+    // ships on every desk to cover a row that does not exist yet. Naming the
+    // column on each part costs nothing and covers the case by construction.
+    svg {
+      grid-column: 1;
+      justify-self: center;
+    }
+    .bnd-acct-item-label {
+      grid-column: 2;
+      min-inline-size: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .bnd-acct-kbd {
+      grid-column: 3;
+      margin-inline-start: 0;
+      justify-self: end;
+    }
+  }
   .bnd-acct-signout {
     color: var(--bnd-critical);
     svg {
@@ -402,10 +433,25 @@ html[data-theme] .bnd-zone[data-zone="center"] {
   inset-inline: 0;
   margin-inline: auto;
   inline-size: fit-content;
+  // AGAINST THE BAR, NEVER THE VIEWPORT. The zone's containing block is the
+  // bar (see the note below), so a percentage here shortens with the bar when
+  // the side pane takes 280px of the screen. The first cut of this wrote the
+  // cap on the FIELD as `46vw` and the field then reached into the end zone --
+  // the bell and the avatar sit there, and a 420px field over a 500px bar
+  // covers them. `.bnd-search-center`, the slot this replaced, always read
+  // `min(420px, 46%)`; this is that number, back where it works.
+  max-inline-size: 46%;
   justify-content: center;
 }
 
 // ONE CENTRE PER BAR (item 42, slice 1b — the switch matrix's first finding).
+//
+// THE FIELD'S OWN WIDTH IS STATED PER BAR, in _navbar.scss and _statusbar.scss,
+// and that is not tidiness: this rule and the bottom bar's `:has()` rule weigh
+// the same (0,4,1), `chrome/cluster` is imported after `chrome/statusbar`, and a
+// width written here therefore beat the slim strip's deliberate 280px on IMPORT
+// ORDER alone. A rule that wins by where it sits in a manifest is a rule nobody
+// can reason about from the selector.
 // A bar used to carry TWO centred boxes: search's own `.bnd-search-center`
 // slot and this zone, both absolute and both centred on the bar's axis, so a
 // bell placed at "Top Bar Center" rendered under the search field. Search
