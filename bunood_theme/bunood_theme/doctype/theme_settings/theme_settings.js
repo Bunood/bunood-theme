@@ -1483,9 +1483,9 @@ function bnd_match_layout(frm) {
  * duplicated.
  */
 const BND_OVERVIEW_TENANTS = [
-	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Top Bar Center" },
-	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Top Bar End" },
-	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Top Bar End" },
+	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Side Pane Start" },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Side Pane End" },
+	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Side Pane End" },
 ];
 
 function bnd_render_overview(frm, $pane) {
@@ -1494,7 +1494,8 @@ function bnd_render_overview(frm, $pane) {
 	const off = [];
 
 	BND_OVERVIEW_TENANTS.forEach((t, i) => {
-		const value = frm.doc[t.field] || t.fallback;
+		// The served shipped map first (one fact); the literal only before it arrives.
+		const value = frm.doc[t.field] || (bnd_shipped || {})[t.field] || t.fallback;
 		const g = bnd_slot_geom(value);
 		if (!g) {
 			off.push(t);
@@ -2055,80 +2056,67 @@ function bnd_shell_select(frm, key) {
  */
 const BND_LAYOUTS = [
 	{
-		value: "Top Bar",
-		blurb: () => __("Search, notifications and profile in a bar above the page. Slim status bar below."),
+		value: "Unified Side Pane",
+		blurb: () => __("Everything in the side pane: brand, search, workspaces, notifications and profile. No bars above the page."),
 		svg:
 			'<svg viewBox="0 0 120 76">' +
 			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
-			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".14"/>' +
-			'<rect x="34" y="5" width="30" height="5" rx="2.5" fill="currentColor" opacity=".2"/>' +
-			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #3d8150)"/>' +
-			'<circle cx="98" cy="7.5" r="2" fill="currentColor" opacity=".35"/>' +
-			'<rect x="30" y="16" width="88" height="8" fill="currentColor" opacity=".06"/>' +
-			'<rect x="34" y="30" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="38" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="46" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="30" y="69" width="88" height="5" fill="currentColor" opacity=".14"/>' +
+			'<rect x="2" y="2" width="30" height="72" fill="currentColor" opacity=".08"/>' +
+			'<rect x="5" y="5" width="8" height="8" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<rect x="15" y="7" width="13" height="4" rx="2" fill="currentColor" opacity=".3"/>' +
+			'<rect x="5" y="17" width="24" height="5" rx="2.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="5" y="27" width="20" height="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="5" y="33" width="20" height="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="5" y="39" width="20" height="3" fill="currentColor" opacity=".12"/>' +
+			'<rect x="5" y="58" width="24" height="12" rx="3" fill="currentColor" opacity=".14"/>' +
+			'<rect x="7" y="60" width="8" height="8" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<circle cx="24" cy="64" r="2" fill="currentColor" opacity=".35"/>' +
+			'<rect x="38" y="8" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="16" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="24" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="32" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="34" y="69" width="84" height="5" fill="currentColor" opacity=".14"/>' +
 			"</svg>",
 	},
 	{
-		value: "Compact",
-		blurb: () => __("No extra bars — global controls share the page title row. Most space for data."),
+		value: "Taskbar",
+		blurb: () => __("A start button, centred search, notifications and profile in a bar along the bottom edge."),
 		svg:
 			'<svg viewBox="0 0 120 76">' +
 			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
-			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="5" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
-			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #3d8150)"/>' +
-			'<circle cx="98" cy="7.5" r="2" fill="currentColor" opacity=".35"/>' +
-			'<rect x="34" y="20" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="28" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="36" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="44" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="30" y="69" width="88" height="5" fill="currentColor" opacity=".14"/>' +
-			"</svg>",
-	},
-	{
-		value: "Classic",
-		blurb: () => __("Everything stays in the sidebar — closest to standard ERPNext."),
-		svg:
-			'<svg viewBox="0 0 120 76">' +
-			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
-			'<rect x="5" y="8" width="20" height="4" rx="2" fill="currentColor" opacity=".25"/>' +
-			'<circle cx="8" cy="18" r="2" fill="currentColor" opacity=".35"/>' +
-			'<circle cx="8" cy="66" r="3" fill="var(--primary, #3d8150)"/>' +
-			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="5" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
-			'<rect x="34" y="20" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="28" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="36" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="44" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			"</svg>",
-	},
-	{
-		value: "Bottom Bar",
-		blurb: () => __("Global search, notifications and profile in a bar along the bottom edge."),
-		svg:
-			'<svg viewBox="0 0 120 76">' +
-			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="2" y="2" width="26" height="72" fill="currentColor" opacity=".08"/>' +
-			'<rect x="30" y="2" width="88" height="11" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="5" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
-			'<rect x="34" y="20" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="28" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="34" y="36" width="80" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="30" y="63" width="88" height="11" fill="currentColor" opacity=".16"/>' +
-			'<rect x="34" y="66" width="26" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="2" width="26" height="60" fill="currentColor" opacity=".08"/>' +
+			'<rect x="38" y="8" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="16" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="24" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="32" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="2" y="63" width="116" height="11" fill="currentColor" opacity=".16"/>' +
+			'<rect x="5" y="65.5" width="7" height="7" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<rect x="44" y="66" width="32" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
 			'<circle cx="106" cy="68.5" r="3" fill="var(--primary, #3d8150)"/>' +
 			'<circle cx="98" cy="68.5" r="2" fill="currentColor" opacity=".35"/>' +
 			"</svg>",
 	},
 	{
-		value: "Dock",
-		blurb: () => __("No sidebar — workspaces float in a bottom dock. Full-width pages."),
+		value: "Top Taskbar",
+		blurb: () => __("The taskbar at the top: start button, centred search, notifications and profile above the page."),
+		svg:
+			'<svg viewBox="0 0 120 76">' +
+			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="2" width="116" height="11" fill="currentColor" opacity=".16"/>' +
+			'<rect x="5" y="4.5" width="7" height="7" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<rect x="44" y="5" width="32" height="5" rx="2.5" fill="currentColor" opacity=".25"/>' +
+			'<circle cx="106" cy="7.5" r="3" fill="var(--primary, #3d8150)"/>' +
+			'<circle cx="98" cy="7.5" r="2" fill="currentColor" opacity=".35"/>' +
+			'<rect x="2" y="14" width="26" height="60" fill="currentColor" opacity=".08"/>' +
+			'<rect x="38" y="20" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="28" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="38" y="36" width="76" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="30" y="69" width="88" height="5" fill="currentColor" opacity=".14"/>' +
+			"</svg>",
+	},
+	{
+		value: "Floating Bar",
+		blurb: () => __("No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."),
 		svg:
 			'<svg viewBox="0 0 120 76">' +
 			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +

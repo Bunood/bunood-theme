@@ -23,7 +23,18 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
-from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, TENANTS, layout_settings
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_TENANTS, TENANTS, layout_settings
+
+#: The desk layout a fresh install gets — "Unified Side Pane" since item 42 (it
+#: was "Top Bar"). Named once, up here, because it decides the container
+#: defaults AND the shipped tenant placements below: facts that would otherwise
+#: be free to disagree, which is how the shipped default and what the shipped
+#: default RENDERS drift apart.
+DEFAULT_DESK_LAYOUT = "Unified Side Pane"
+#: The default row's placements, read once so the kit defaults below point at
+#: them rather than restating them (`tests/smoke.mjs` checks SHIPPED against
+#: the row end to end).
+_DEFAULT_TENANTS = LAYOUT_TENANTS[DEFAULT_DESK_LAYOUT]
 
 #: Ordered field names, matching theme_settings.json. Order matters only for
 #: the picker's "does the current state match a preset?" comparison.
@@ -292,16 +303,16 @@ STATUS_FIELDS = [
     "status_escalate",
 ]
 
-#: The shipped defaults. Search sits centred in the top bar — the placement
-#: modern desks converged on, and the one that leaves the bottom strip free
-#: for status. "Quiet" is the status style: a healthy desk shows almost
-#: nothing, and a segment only appears once it has earned attention.
+#: The shipped defaults. Search sits where the shipped layout's row puts it
+#: (the pane's start, since item 42), derived rather than restated. "Quiet" is
+#: the status style: a healthy desk shows almost nothing, and a segment only
+#: appears once it has earned attention.
 #:
 #: PLACEMENT IS A REQUEST, NOT A GUARANTEE: a layout without a top bar
 #: (Classic, Dock) cannot honour "Top Bar Center", so bunood.js walks a
 #: documented fallback chain rather than dropping the field silently.
 STATUS_DEFAULTS = {
-    "search_placement": "Top Bar Center",
+    "search_placement": _DEFAULT_TENANTS["search_placement"],
     "status_style": "Quiet",
     "status_clock": "Off",
     "status_interval": "60s",
@@ -368,7 +379,7 @@ LINKS_DEFAULTS = {
     "apps_placement": "Off",
 }
 
-USER_DEFAULTS = {"user_placement": "Top Bar End"}
+USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
@@ -769,11 +780,6 @@ LOGIN_DEFAULTS = {
     "login_theme": "Follow OS",
 }
 
-#: The desk layout a fresh install gets. Named once, because it seeds
-#: ``desk_layout`` AND decides the container defaults below — two facts that
-#: would otherwise be free to disagree, which is how the shipped default and
-#: what the shipped default RENDERS drift apart.
-DEFAULT_DESK_LAYOUT = "Top Bar"
 
 #: Containers whose on/off field the doctype has actually grown.
 #: What a fresh install writes for each container it ships, derived from the
@@ -1133,12 +1139,11 @@ MOBILE_DEFAULTS = {
 #: document earns an interruption, a share notification does not.
 INBOX_DEFAULTS = {
     "inbox_style": "Inbox + Page",
-    # Not a no-op default, and deliberately so: the bell has always been in
-    # the top bar for the shipped layout, and seeding "Off" here would take
-    # it away from every existing site on upgrade. The migration patch writes
-    # what each layout ACTUALLY rendered; this is only what a fresh install
-    # gets, and a fresh install gets the Top Bar layout.
-    "inbox_placement": "Top Bar End",
+    # Not a no-op default, and deliberately so: seeding "Off" here would take
+    # the bell away from every existing site on upgrade. The migration patch
+    # writes what each layout ACTUALLY rendered; this is only what a fresh
+    # install gets, and a fresh install gets the shipped layout's row.
+    "inbox_placement": _DEFAULT_TENANTS["inbox_placement"],
     "inbox_badge": "Count",
     "inbox_arrival": "Approvals Only",
     # Checks: behaviours inside a user-invoked panel, invisible until opened.

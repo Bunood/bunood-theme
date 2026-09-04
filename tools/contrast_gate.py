@@ -1424,26 +1424,83 @@ def check_layout_identity() -> list[str]:
         if got != name:
             bad.append(f"{name} does not round-trip: layout_of said {got!r}")
 
-    containers = {c for c in layout_settings("Classic") if c.endswith("_enabled")}
-    if all(layout_settings("Classic")[c] == layout_settings("Bottom Bar")[c] for c in containers):
-        if layout_of(layout_settings("Bottom Bar")) == "Classic":
-            bad.append("Classic and Bottom Bar collapse - the comparison reads containers only")
+    # Rows with IDENTICAL container rows must still be told apart (Unified Side
+    # Pane and Taskbar today; Classic and Bottom Bar when this was written).
+    names = list(LAYOUT_CHROME)
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            if LAYOUT_CHROME[a] == LAYOUT_CHROME[b] and layout_of(layout_settings(b)) == a:
+                bad.append(f"{a} and {b} collapse - the comparison reads containers only")
 
-    for name in ("Classic", "Dock"):
+    for name in names:
         moved = dict(layout_settings(name))
-        moved["search_placement"] = "Top Bar Center"
+        moved["search_placement"] = (
+            "Side Pane Start" if moved.get("search_placement") == "Top Bar Center" else "Top Bar Center"
+        )
         got = layout_of(moved)
         if got != name:
             bad.append(f"{name} with search moved reports {got!r} - search_placement is "
                        f"deciding the shape it is supposed to be asking about")
 
-    odd = dict(layout_settings("Classic"))
-    odd["topbar_enabled"] = 1
-    if layout_of(odd) == "Classic":
-        bad.append("a Classic desk with a top bar still reports Classic - the match is "
-                   "not exact")
+    for name in names:
+        odd = dict(layout_settings(name))
+        odd["topbar_enabled"] = 0 if odd.get("topbar_enabled") else 1
+        if layout_of(odd) == name:
+            bad.append(f"a {name} desk with its top bar flipped still reports {name} - the "
+                       f"match is not exact")
     return bad
 
+
+#: The rows item 42 retired, as a site upgraded from v0.41 may still hold them:
+#: containers, tenants, and the name the derivation should now answer. Three
+#: rows survive under a new name because their VALUES survived; two spell a
+#: shape no card offers any more and honestly derive to "" (the picker reads
+#: "Custom"), which is the removal rule: nothing stops working, it stops being
+#: named.
+RETIRED_LAYOUTS = {
+    "Top Bar": ({"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Top Bar End", "user_placement": "Top Bar End", "search_placement": "Top Bar Center"},
+                "Top Taskbar"),
+    "Compact": ({"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Page Header End", "user_placement": "Page Header End", "search_placement": "Side Pane Start"},
+                ""),
+    "Classic": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Off", "user_placement": "Off", "search_placement": "Side Pane Start"},
+                ""),
+    "Bottom Bar": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                   {"inbox_placement": "Bottom Bar End", "user_placement": "Bottom Bar End", "search_placement": "Bottom Bar Center"},
+                   "Taskbar"),
+    "Dock": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
+             {"inbox_placement": "Dock End", "user_placement": "Dock End", "search_placement": "Bottom Bar Center"},
+             "Floating Bar"),
+}
+
+
+def check_layout_lineage() -> list[str]:
+    """An upgraded site's stored shape derives its successor, or "" — never a stranger.
+
+    ITEM 42, SLICE 6. The catalogue was renamed and re-cut, and nothing migrates a
+    site's stored values — a layout is values, and the values still mean what they
+    meant. So the derivation has to answer for every row the OLD catalogue could
+    have written: the successor where one exists, "" where the shape is no longer
+    offered. A wrong answer here is a picker highlighting a card the site is not on,
+    and a search fallback order the site did not ask for.
+    """
+    from bunood_theme.presets import layout_of
+    from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME
+
+    bad: list[str] = []
+    toggle = {c["key"]: c["toggle"] for c in CONTAINERS if c.get("toggle")}
+    for old, (chrome, tenants, successor) in RETIRED_LAYOUTS.items():
+        if old in LAYOUT_CHROME:
+            bad.append(f"{old} is still in the catalogue - RETIRED_LAYOUTS is stale")
+            continue
+        values = {toggle[k]: v for k, v in chrome.items() if k in toggle}
+        values.update(tenants)
+        got = layout_of(values)
+        if got != successor:
+            bad.append(f"a site still on the retired {old} row derives {got!r}, not {successor!r}")
+    return bad
 
 def check_layout_catalogue() -> list[str]:
     """Every layout row is internally consistent: its tenants land in containers it turns on.
@@ -1730,6 +1787,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    lineage = check_layout_lineage()
+    if lineage:
+        print("a retired layout row derives the wrong successor:")
+        for m in lineage:
+            print(f"   {m}")
+        print()
+
     layouts = check_layout_catalogue()
     if layouts:
         print("the layout catalogue is inconsistent with itself:")
@@ -1799,7 +1863,7 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if (failures or drift or sep or ref or inert or lift or cat or theme or shape or layouts
+    if (failures or drift or sep or ref or inert or lift or cat or theme or shape or layouts or lineage
             or split or sb_hues):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")

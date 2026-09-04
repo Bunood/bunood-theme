@@ -380,27 +380,22 @@ CRITICAL = [c for c in COMPONENTS if c["critical"]]
 #: Keys are container ``key``s, not toggle fieldnames: this table is about the
 #: desk, and :data:`CONTAINERS` already says which field carries each one.
 LAYOUT_CHROME = {
-    # Global bar above the page, slim status strip below. The shipped default.
-    "Top Bar": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
-    # One merged strip: the cluster rides in each page's own title row.
-    "Compact": {"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
-    # Stock v16 plus the breadcrumb chip and the ambient strip. The escape
-    # hatch: it mounts none of the bars that CARRY controls.
-    #
-    # THE BOTTOM BAR CELL WAS THE ONE TO ARGUE ABOUT, and slice 2c-4 settled it
-    # at 1 — the way it had already been settled on 2026-08-06, when deleting
-    # `status_in_classic` made the status bar a component precisely so every
-    # layout would have one subject to its own switch. Writing 0 here would
-    # have quietly reversed that a day later: a preset that writes a starting
-    # point is not the same as a branch in `mount_chrome`, but a user picking
-    # Classic and losing their status bar cannot tell the difference. The
-    # smoke suite states the older decision outright ("status bar follows
-    # status_style, not the layout") and it was right to.
-    "Classic": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
-    # Everything global at the foot of the screen.
-    "Bottom Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
-    # The boldest: no side pane at all, the dock IS the navigation.
-    "Dock": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
+    # Everything in the side pane — brand, search, workspaces, notifications
+    # and profile — with the ambient strip below. The shipped default (item 42).
+    "Unified Side Pane": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # A Windows-style bar along the bottom edge: a start button (slice 7),
+    # search centred, the bell and the profile as a tray. Same containers as
+    # Unified Side Pane — the two are told apart by where the tenants sit,
+    # which is what `layout_of` compares and `check_layout_identity` pins.
+    "Taskbar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # The same bar at the block start; the status strip stays.
+    "Top Taskbar": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # The dock as the primary surface: no side pane at rest, the pill carries
+    # everything (slice 9 gives it the start button and opens the pane as a sheet).
+    "Floating Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
+    # Rail + Flyout joins in slice 8: it is Unified Side Pane with the pane in
+    # its Rail state, and a row that cannot be told from another row is not a
+    # row — `check_layout_identity` would refuse it today.
 }
 
 
@@ -434,45 +429,26 @@ LAYOUT_CHROME = {
 #: `tests/smoke.mjs` now asserts this table against `slots_for` directly, so
 #: the next value added cannot be one the field will not accept.
 LAYOUT_TENANTS = {
-    "Top Bar": {
-        "inbox_placement": "Top Bar End",
-        "user_placement": "Top Bar End",
-        "search_placement": "Top Bar Center",
-    },
-    "Compact": {
-        "inbox_placement": "Page Header End",
-        "user_placement": "Page Header End",
-        # Compact exists to NOT grow chrome, so search stays in the sidebar row
-        # Frappe already renders rather than widening the page-head strip.
-        # "Side Pane Start" is that row: it is where "Sidebar Top" pointed, and
-        # the pane's start zone is the only place the row has ever been.
+    "Unified Side Pane": {
+        # The pane's End zone is the foot card (item 42, slice 3): the account
+        # tile leading, the bell pinned to the inline end.
+        "inbox_placement": "Side Pane End",
+        "user_placement": "Side Pane End",
+        # Frappe's OWN search row, revealed at the pane's start; mount_search_at
+        # deliberately does not claim it.
         "search_placement": "Side Pane Start",
     },
-    "Classic": {
-        # "Off", NOT "Side Pane", and the difference is the whole meaning of
-        # this layout. "Side Pane" mounts OUR bell into Frappe's sidebar and
-        # stamps `data-bnd-own`, which hides Frappe's own — a themed control in
-        # a native place. "Off" releases the token, so the stock affordance is
-        # what renders. Classic is the escape hatch to stock v16; it has to
-        # reach it by not claiming anything, not by rebuilding it.
-        #
-        # `patches/v0_11_0/chrome_placement.py` maps Classic to "Side Pane"
-        # while its own comment says "nothing of ours -> the sidebar's own bell
-        # and user button". Those disagree, and it has already run on real
-        # sites; see HANDOVER for the open question of whether to correct them.
-        "inbox_placement": "Off",
-        "user_placement": "Off",
-        # Search is different and the pane's start zone is right: that slot is
-        # pure CSS revealing Frappe's OWN row, and mount_search_at deliberately
-        # does not claim it. Stock behaviour, reached by naming it.
-        "search_placement": "Side Pane Start",
-    },
-    "Bottom Bar": {
+    "Taskbar": {
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
     },
-    "Dock": {
+    "Top Taskbar": {
+        "inbox_placement": "Top Bar End",
+        "user_placement": "Top Bar End",
+        "search_placement": "Top Bar Center",
+    },
+    "Floating Bar": {
         "inbox_placement": "Dock End",
         "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form

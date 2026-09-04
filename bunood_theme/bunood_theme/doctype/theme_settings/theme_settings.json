@@ -353,7 +353,7 @@
    "fieldname": "topbar_enabled",
    "fieldtype": "Check",
    "label": "Show the top bar",
-   "default": "1",
+   "default": "0",
    "description": "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
   },
   {
@@ -1121,7 +1121,7 @@
    "fieldtype": "Select",
    "label": "Search Placement",
    "options": "Top Bar Start\nTop Bar Center\nBottom Bar Start\nBottom Bar Center\nSide Pane Start\nSide Pane End",
-   "default": "Top Bar Center",
+   "default": "Side Pane Start",
    "hidden": 1,
    "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
   },

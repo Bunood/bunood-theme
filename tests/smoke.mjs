@@ -540,14 +540,36 @@ async function withBranding(values, fn) {
  * `write_brand_css` never ran and the desk kept serving the old stylesheet. The
  * colours only changed at the next migrate, with nothing to connect the two.
  */
+/**
+ * The two SHAPES item 42's catalogue stopped naming, kept as suite shorthand.
+ *
+ * A layout is values, and these values still mean what they meant: "Compact" is
+ * the page-head desk and "Classic" is the stock-affordance desk, both reachable
+ * from the new default by explicit switches. Tests named for those shapes keep
+ * driving them. The three rows whose values survived were RENAMED in place
+ * (Top Bar -> Top Taskbar, Bottom Bar -> Taskbar, Dock -> Floating Bar) rather
+ * than aliased, so this table stays two rows long. An unknown pick THROWS in
+ * setSettings rather than silently driving whatever was on before.
+ */
+const LEGACY_LAYOUTS = {
+	Compact: { pick: "Unified Side Pane", values: { pagehead_enabled: 1, inbox_placement: "Page Header End", user_placement: "Page Header End" } },
+	Classic: { pick: "Unified Side Pane", values: { inbox_placement: "Off", user_placement: "Off" } },
+};
+
 function setSettings(values) {
 	// `desk_layout` IS NO LONGER A FIELD (item 37) - it is this suite's shorthand
 	// for "the admin picked this layout", and it expands to the containers below.
 	// Split off before the guard so it is neither restore-checked nor written:
 	// writing it would recreate the orphan tabSingles row v0_37_0 deleted, and
 	// `get_single_value` would keep serving it to anything that asked by name.
-	const { desk_layout: layoutPick, ...values_ } = values;
+	let { desk_layout: layoutPick, ...values_ } = values;
 	values = values_;
+	if (layoutPick && LEGACY_LAYOUTS[layoutPick]) {
+		const legacy = LEGACY_LAYOUTS[layoutPick];
+		layoutPick = legacy.pick;
+		// The test's own values still win, as they always did over the preset.
+		values = { ...legacy.values, ...values };
+	}
 	const unrestorable = Object.keys(values).filter((f) => !MUTABLE_FIELDS.includes(f));
 	if (unrestorable.length) {
 		throw new Error(
@@ -572,7 +594,7 @@ function setSettings(values) {
 	//
 	// Order is explicit rather than dict order: an explicit value in `values`
 	// must always beat the preset, which is what makes a state like
-	// {desk_layout: "Top Bar", topbar_enabled: 0} mean what it reads as.
+	// {desk_layout: "Top Taskbar", topbar_enabled: 0} mean what it reads as.
 	//
 	// The catalogue is read from `registry`, never restated here — the whole
 	// point of it being one table.
@@ -591,6 +613,8 @@ function setSettings(values) {
 		`restorable = set(json.loads(${JSON.stringify(JSON.stringify(MUTABLE_FIELDS))}))\n` +
 		`meta = frappe.get_meta("Theme Settings")\n` +
 		`unrestorable = []\n` +
+		`if pick and not layout_settings(pick):\n` +
+		`    raise SystemExit("BND_UNKNOWN_LAYOUT " + pick)\n` +
 		`if pick:\n` +
 		`    for f, v in layout_settings(pick).items():\n` +
 		// Containers whose slice has not landed have no field yet; writing one
@@ -1777,7 +1801,17 @@ async function main() {
 
 		// ── Desk layouts ───────────────────────────────────────────────────
 		const LAYOUT_CHECKS = {
-			"Top Bar": async () => {
+			"Unified Side Pane": async () => {
+				// The shipped desk (item 42): no bar above the page, the ambient strip
+				// below, and search asked for a top bar it does not have falls back
+				// to the pane's own row - the honest placement is the pane anyway.
+				expect(!(await q(".bnd-topbar")) && !(await q(".bnd-dock")), "no top bar, no dock");
+				expect(await q(".bnd-statusbar"), "the ambient strip");
+				expectEq(await visible(".body-sidebar .navbar-search-bar"), true, "search in the pane");
+				expect(await q('.body-sidebar .bnd-sb-band [data-bnd-part="user"]'), "the account in the pane's foot card");
+				expect(await q('.body-sidebar .bnd-sb-band [data-bnd-part="bell"]'), "and the bell beside it");
+			},
+			"Top Taskbar": async () => {
 				expect(await q(".main-section > header .bnd-topbar"), "topbar mounted");
 				expect(await q(".bnd-statusbar"), "a bottom bar");
 				expectEq(await visible(".body-sidebar .navbar-search-bar"), false, "sidebar search hidden");
@@ -1805,7 +1839,7 @@ async function main() {
 				expect(await q(".bnd-statusbar"), "status bar follows status_style, not the layout");
 				expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
 			},
-			"Bottom Bar": async () => {
+			"Taskbar": async () => {
 				expect(await q(".bnd-statusbar .bnd-cluster"), "cluster in the bottom bar");
 				// Search is its own setting since item 14, and the DEFAULT asks
 				// for a top bar this layout never mounts. So this asserts the
@@ -1813,7 +1847,7 @@ async function main() {
 				// bar promptly rather than vanish or arrive seconds late.
 				await page.waitForSelector(".bnd-statusbar .bnd-search-field", { timeout: 2500 });
 			},
-			"Dock": async () => {
+			"Floating Bar": async () => {
 				expect(await q(".bnd-dock .bnd-dock-brand"), "dock with brand chip");
 				expectEq(
 					await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar-container")).display),
@@ -1853,7 +1887,7 @@ async function main() {
 				await checks();
 			});
 		}
-		setSettings({ ...layoutSettings("Top Bar"), desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+		setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
 
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);
@@ -2258,7 +2292,7 @@ async function main() {
 			// the BELL, not the layout: the fixed-position relocation this test
 			// measures keys on `data-bnd-bell="topbar"`, which only a bell
 			// mounted in the top bar stamps.
-			setSettings({ inbox_style: "Original", desk_layout: "Top Bar", topbar_enabled: 1, inbox_placement: "Top Bar End" });
+			setSettings({ inbox_style: "Original", desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 2500);
 			expectEq(await attr("data-bnd-inbox"), null, "no style attr");
 			expect(!(await q(".bnd-inbox-badge:not([hidden])")), "no badge");
@@ -2314,7 +2348,7 @@ async function main() {
 			// And a COLD load straight onto a form URL.
 			await goDesk("/desk/system-settings", ".page-head", 2500);
 			await painted("on a cold form load");
-			setSettings({ desk_layout: "Top Bar" });
+			setSettings({ desk_layout: "Top Taskbar" });
 		});
 
 		await test("status: Classic honours status_style in BOTH directions", async () => {
@@ -2335,7 +2369,7 @@ async function main() {
 			expectEq(await visible(".body-sidebar .sidebar-notification"), true, "sidebar bell kept");
 			expectEq(await visible(".body-sidebar .sidebar-user-button"), true, "sidebar user menu kept");
 
-			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Quiet" });
 		});
 
 		await test("inbox: works in Classic, which mounts no themed bell", async () => {
@@ -2373,7 +2407,7 @@ async function main() {
 				return getComputedStyle(n).borderRadius;
 			});
 			expect(skinned && skinned !== "0px", `Refined skin applies in Classic (radius ${skinned})`);
-			setSettings({ desk_layout: "Top Bar", inbox_style: "Inbox + Page" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_style: "Inbox + Page" });
 		});
 
 		await test("inbox: live preview flips the style and back", async () => {
@@ -2399,7 +2433,7 @@ async function main() {
 		for (const [label, slug] of Object.entries(SEARCH_SLOTS)) {
 			await test(`search: placed at ${label}`, async () => {
 				// THE CONTAINERS ARE STATED, and they have to be since the split.
-				// This used to say only `desk_layout: "Top Bar"`, which was
+				// This used to say only `desk_layout: "Top Taskbar"`, which was
 				// sufficient while the layout DECIDED which containers mounted.
 				// Slice 2c gave every container its own switch, so a layout is
 				// now a starting point a user can override — and a toggle left
@@ -2417,7 +2451,7 @@ async function main() {
 				// this loop are the ones that measure fallback.
 				setSettings({
 					...CHROME_DEFAULTS,
-					desk_layout: "Top Bar",
+					desk_layout: "Top Taskbar",
 					topbar_enabled: 1,
 					bottombar_enabled: 1,
 					sidebar_enabled: 1,
@@ -2452,7 +2486,7 @@ async function main() {
 			expectEq(
 				await visible(".body-sidebar .navbar-search-bar"), true, "native search row is reachable"
 			);
-			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
 		});
 
 		await test("search: a hidden sidebar is not a valid home", async () => {
@@ -2460,14 +2494,14 @@ async function main() {
 			// container, so an existence check "places" search into a hidden
 			// box and it disappears with no error anywhere. Whatever slot is
 			// chosen, the field must end up somewhere a user can see.
-			setSettings({ desk_layout: "Dock", search_placement: "Side Pane Start" });
+			setSettings({ desk_layout: "Floating Bar", search_placement: "Side Pane Start" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			// Falls back to the DOCK, not the status bar: the pill is the one
 			// piece of chrome this layout always has, and it is where the
 			// layout's other controls already live.
 			expectEq(await attr("data-bnd-search"), "dock", "left the hidden sidebar for the dock");
 			expectEq(await visible(".bnd-dock .bnd-search-icon"), true, "search is actually on screen");
-			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
 		});
 
 		await test("status: Quiet hides healthy signals, Always On shows them", async () => {
@@ -2547,7 +2581,7 @@ async function main() {
 			// longer "the chrome survives" but the rule that replaced it: a
 			// control may be removed only while something else can still reach
 			// the same function.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Bottom Bar", bottombar_enabled: 0 });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Taskbar", bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expectEq(await q(".bnd-statusbar"), false, "the bar is really gone");
 			const reachable = await page.evaluate(() => {
@@ -2576,7 +2610,7 @@ async function main() {
 			// Watched failing before: a text run reading "Density: Auto", second
 			// from the leading edge.
 			await withPersonal("Administrator", { bnd_density: "" }, async () => {
-				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", status_style: "Always On", status_segments_density: 1 });
+				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", status_style: "Always On", status_segments_density: 1 });
 				await goDesk("/desk/item", ".bnd-statusbar", 3000);
 				const m = await page.evaluate(() => {
 					const bar = document.querySelector(".bnd-statusbar");
@@ -2623,7 +2657,7 @@ async function main() {
 			// this test inherited from whatever ran before it.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				search_placement: "Top Bar Center",
 				inbox_placement: "Top Bar End",
@@ -2669,11 +2703,11 @@ async function main() {
 				});
 				expectEq(count, 1, `${layout}: exactly one search field on screen`);
 			}
-			setSettings({ desk_layout: "Top Bar", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
 		});
 
 		await test("status: the dock and the status bar stack, never overlap", async () => {
-			setSettings({ desk_layout: "Dock", status_style: "Always On", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Floating Bar", status_style: "Always On", search_placement: "Top Bar Center" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const geom = await page.evaluate(() => {
 				const dock = document.querySelector(".bnd-dock");
@@ -2684,7 +2718,7 @@ async function main() {
 			});
 			expect(geom, "dock and bar both mounted");
 			expect(geom.dockBottom <= geom.barTop, `dock clears the bar (${JSON.stringify(geom)})`);
-			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Quiet" });
 		});
 
 		await test("status: the bar collapses because IT is narrow, not the window", async () => {
@@ -2696,7 +2730,7 @@ async function main() {
 			// Pinned to the scenario the ranks were modelled on: item 42 shipped the
 			// clock Off and a 280px pane, which changes which ranks exist and how wide
 			// the bar is at 1200px -- this check is about collapse, not defaults.
-			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", search_placement: "Top Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3" });
 			await page.setViewportSize({ width: 1200, height: 900 });
 			await goDesk("/desk/item", ".page-head", 4500);
 
@@ -2852,19 +2886,19 @@ async function main() {
 		// matrix did in Dock (76px reserved for 62px of chrome).
 		const RESERVE_LAYOUTS = [
 			// [layout, status_style, what the layout mounts]
-			["Top Bar", "Quiet", ".bnd-statusbar"],
+			["Top Taskbar", "Quiet", ".bnd-statusbar"],
 			["Compact", "Quiet", ".bnd-statusbar"],
-			["Bottom Bar", "Quiet", ".bnd-statusbar"],
+			["Taskbar", "Quiet", ".bnd-statusbar"],
 			// Dock mounts a floating pill AND a status bar; the reserve has to
 			// clear whichever sits highest, which is the pill.
-			["Dock", "Quiet", ".bnd-dock"],
+			["Floating Bar", "Quiet", ".bnd-dock"],
 			// Dock with the status bar switched Off: the pill ALONE. Worth its
 			// own row because the pill is appended to <body> while the status
 			// bar goes into .main-section — so a reserve that only watches
 			// .main-section passes the row above (the bar's arrival triggers
 			// the re-measure, which then happens to see the pill) and fails
 			// this one. It did exactly that; measured in RTL at 430px.
-			["Dock", "Quiet", ".bnd-dock"],
+			["Floating Bar", "Quiet", ".bnd-dock"],
 			// Classic mounts the bar like every other layout now: the status bar
 			// is a component, so `status_style` decides and the layout has no
 			// opinion. It used to need `status_in_classic`, and that opt-in had
@@ -2924,7 +2958,7 @@ async function main() {
 			// The mirror image of the tests above. With no bar mounted the desk
 			// must be stock height — a reserve that outlives its bar is a strip
 			// of viewport the user paid for and cannot use.
-			setSettings({ desk_layout: "Top Bar", bottombar_enabled: 0 });
+			setSettings({ desk_layout: "Top Taskbar", bottombar_enabled: 0 });
 			await goDesk("/desk/item", ".frappe-list", 4500);
 			const g = await bottomGeometry();
 			expectEq(g.barTop, null, "no bottom chrome is mounted");
@@ -2932,7 +2966,7 @@ async function main() {
 			const vh = await page.evaluate(() => window.innerHeight);
 			expectEq(g.mainBottom, vh, ".main-section runs to the viewport edge");
 			setSettings({
-				desk_layout: "Top Bar", status_style: "Quiet",
+				desk_layout: "Top Taskbar", status_style: "Quiet",
 				search_placement: "Top Bar Center",
 			});
 		});
@@ -2978,7 +3012,7 @@ async function main() {
 				};
 			});
 
-		for (const [layout, wantTopbar] of [["Top Bar", true], ["Classic", false]]) {
+		for (const [layout, wantTopbar] of [["Top Taskbar", true], ["Classic", false]]) {
 			await test(`reserve: the report view's foot clears the bottom chrome (${layout})`, async () => {
 				setSettings({ desk_layout: layout, status_style: "Quiet" });
 				await goDesk("/app/account/view/report", ".dt-scrollable .dt-row", 5000);
@@ -3015,7 +3049,7 @@ async function main() {
 		// scroll (the reason nothing was ever hidden). The board is the pinned
 		// fixture from tools/fixtures-views.mjs.
 		await test("reserve: the kanban column fits the scroll box under the top bar", async () => {
-			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Quiet" });
 			await goDesk("/app/todo/view/kanban/Bunood%20Memos", ".kanban-column", 5000);
 			const g = await page.evaluate(() => {
 				const ms = document.querySelector(".main-section");
@@ -3420,7 +3454,7 @@ async function main() {
 			// Driven from the CONTROL, not from `setSettings`: the whole failure
 			// lives between the click and the desk, which a server-side write
 			// jumps straight over. That is why the suite was green throughout.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar" });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar" });
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
 			expect(await q(".bnd-topbar"), "precondition: the desk has a top bar");
 
@@ -3629,7 +3663,7 @@ async function main() {
 		await test("placement: the bell and the avatar can be separated", async () => {
 			// The whole point of splitting build_cluster: these two were one
 			// DOM node with four call sites, so they could never be apart.
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Side Pane End", user_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Side Pane End", user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const where = await page.evaluate(() => ({
 				bellInSidebar: !!document.querySelector(".body-sidebar .bnd-bell"),
@@ -3642,7 +3676,7 @@ async function main() {
 		});
 
 		await test("placement: Off removes ours and gives ERPNext its own back", async () => {
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Off", user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const state = await page.evaluate(() => {
 				const vis = (sel) => {
@@ -6005,7 +6039,7 @@ print("ok")
 			// every other row in _layouts.scss's own-then-hide block.
 			//
 			// Watched failing before: the link visible at the foot, no token, no item.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", user_placement: "Top Bar End" });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", user_placement: "Top Bar End" });
 			await goDesk("/app/selling", ".body-sidebar", 3000);
 			await sbEnsureExpanded();
 			const m = await page.evaluate(() => {
@@ -6687,7 +6721,7 @@ print("ok")
 			// three existed. It is EXACTLY ONE, and in the right place.
 			const ALL_ON = {
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, pagehead_enabled: 1, bottombar_enabled: 1,
 				sidebar_enabled: 1, dock_enabled: 1,
 			};
@@ -6795,7 +6829,7 @@ print("ok")
 			// EVENTS can break independently, so each is exercised.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				bottombar_enabled: 1,
 				inbox_placement: "Top Bar End",
@@ -6919,7 +6953,7 @@ print("ok")
 			// test follows: a single static pass cannot tell "ordered" from
 			// "happened to mount that way".
 			const ALL_ON = {
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			};
 			const at = (part) =>
@@ -6949,7 +6983,7 @@ print("ok")
 			// unifies the links into the zone, so this asserts all three
 			// tenants in ONE zone holding a chosen order across a flip.
 			const state = {
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar Start", home_placement: "Top Bar Start",
 				apps_placement: "Top Bar Start", user_placement: "Top Bar End",
 			};
@@ -6981,7 +7015,7 @@ print("ok")
 			// is synthetic: the handlers are ours, the browser's gesture
 			// recognition is not.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
@@ -7085,7 +7119,7 @@ print("ok")
 			// same pixel, which is how the sidebar pair went unnoticed —
 			// measured 2026-08-07, y 228 for both.
 			const ALL_ON = {
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				pagehead_enabled: 0, dock_enabled: 0,
 			};
@@ -7145,7 +7179,7 @@ print("ok")
 			]) {
 				setSettings({
 					...CHROME_DEFAULTS,
-					desk_layout: "Top Bar",
+					desk_layout: "Top Taskbar",
 					topbar_enabled: 1,
 					bottombar_enabled: 1,
 					dock_enabled: 1,
@@ -7172,7 +7206,7 @@ print("ok")
 			// remove: one setting silently requiring another.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				topbar_enabled: 1,
 				sidebar_enabled: 0,
 				home_placement: "Top Bar Start",
@@ -7226,7 +7260,7 @@ print("ok")
 			// protection, one fewer place for it to live.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Bottom Bar",
+				desk_layout: "Taskbar",
 				topbar_enabled: 0,
 				inbox_placement: "Top Bar End",
 				user_placement: "Top Bar End",
@@ -7270,13 +7304,13 @@ print("ok")
 		});
 
 		await test("container: the Top Bar layout with the top bar switched off has none", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 0 });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expectEq(await q(".bnd-topbar"), false, "no top bar once it is switched off");
 		});
 
 		await test("container: the page-head cluster mounts in a layout that never had one", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", pagehead_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", pagehead_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".page-head .bnd-cluster"), "a page-head cluster on a Top Bar desk");
 		});
@@ -7302,7 +7336,7 @@ print("ok")
 			// get both, exactly like any other pair.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				dock_enabled: 1,
 				sidebar_enabled: 1,
 			});
@@ -7318,7 +7352,7 @@ print("ok")
 			// the invariant matrix walks that state.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				dock_enabled: 0,
 				sidebar_enabled: 0,
 			});
@@ -7445,7 +7479,7 @@ print("ok")
 			// about the state it was named for.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Dock",
+				desk_layout: "Floating Bar",
 				topbar_enabled: 0,
 				pagehead_enabled: 0,
 				dock_enabled: 0,
@@ -7474,7 +7508,7 @@ print("ok")
 			// produce.
 			setSettings({
 				...CHROME_DEFAULTS,
-				desk_layout: "Top Bar",
+				desk_layout: "Top Taskbar",
 				sidebar_enabled: 0,
 				topbar_enabled: 1,
 			});
@@ -7521,7 +7555,7 @@ print("ok")
 			// And every surviving style still leaves a bar, because existence is
 			// not its job any more.
 			for (const style of opts) {
-				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", status_style: style, bottombar_enabled: 1 });
+				setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", status_style: style, bottombar_enabled: 1 });
 				await goDesk("/desk/item", ".page-head", 4500);
 				expect(await visible(".bnd-statusbar"), `style ${style} still has a bar`);
 			}
@@ -7543,7 +7577,7 @@ print("ok")
 				bottombar: ".bnd-statusbar",
 				dock: ".bnd-dock",
 			};
-			for (const layout of ["Top Bar", "Compact", "Classic", "Bottom Bar", "Dock"]) {
+			for (const layout of Object.keys(chrome)) {
 				// Writing desk_layout alone applies the preset — setSettings models
 				// the picker, which is the only gesture that can change it.
 				setSettings({ desk_layout: layout, status_style: "Quiet", search_placement: "Top Bar Center" });
@@ -7574,13 +7608,19 @@ print("ok")
 				benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
 					.trim().split("\n").pop()
 			);
-			const layouts = ["Top Bar", "Compact", "Classic", "Bottom Bar", "Dock"];
-			for (const l of layouts) expect(chrome[l], `the catalogue covers ${l}`);
+			// ITEM 42 (slice 6): the catalogue is the four rows the user chose
+			// (Rail + Flyout joins in slice 8). Named here on purpose - this is
+			// the one place the suite states WHICH rows exist, so a row added or
+			// dropped by accident fails by name.
+			const layouts = ["Unified Side Pane", "Taskbar", "Top Taskbar", "Floating Bar"];
+			expectEq(Object.keys(chrome).sort().join(","), [...layouts].sort().join(","), "the catalogue is exactly these rows");
 			// One row per split container: the layout it belongs to writes 1 and
 			// every other layout writes 0. Stated per container rather than as a
-			// whole-table snapshot, so a failure names which cell moved.
+			// whole-table snapshot, so a failure names which cell moved. The page
+			// head has NO owner any more: no shipped shape grows chrome into the
+			// title row, and the switch is how a site that wants it gets it.
 			for (const [container, owner] of [
-				["topbar", "Top Bar"], ["pagehead", "Compact"], ["dock", "Dock"],
+				["topbar", "Top Taskbar"], ["dock", "Floating Bar"],
 			]) {
 				// (the bottom bar is not in this list: more than one layout writes
 				// it, so "one owner" is the wrong shape — it is checked below)
@@ -7589,11 +7629,11 @@ print("ok")
 					expectEq(chrome[l][container], 0, `${l} writes no ${container}`);
 				}
 			}
+			for (const l of layouts) expectEq(chrome[l].pagehead, 0, `${l} writes no page-head cluster`);
 			// The side pane is the other way round: every layout keeps it except
-			// Dock, which is how "Dock" goes on meaning what it always meant now
-			// that the dock no longer hides the pane by itself.
+			// Floating Bar, where the dock IS the navigation.
 			for (const l of layouts) {
-				expectEq(chrome[l].sidepane, l === "Dock" ? 0 : 1, `${l}'s side pane`);
+				expectEq(chrome[l].sidepane, l === "Floating Bar" ? 0 : 1, `${l}'s side pane`);
 			}
 			// EVERY layout keeps the ambient strip, Classic included. That was
 			// settled on 2026-08-06 when `status_in_classic` was deleted to make
@@ -7638,13 +7678,13 @@ print("ok")
 				if (!(field in shipped)) continue;
 				expectEq(
 					Number(shipped[field]),
-					chrome["Top Bar"][key],
+					chrome["Unified Side Pane"][key],
 					`SHIPPED.${field} is what the shipped layout's catalogue row says`
 				);
 			}
 		});
 
-		setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar" });
+		setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar" });
 
 		// ── Invariant matrix ───────────────────────────────────────────────
 		//
@@ -7681,16 +7721,16 @@ print("ok")
 		// container contradicts its layout — that combination did not exist
 		// before and no older test can have covered it.
 		const INVARIANT_STATES = [
-			["Top Bar", "Quiet", "Top Bar Center", {}],
+			["Top Taskbar", "Quiet", "Top Bar Center", {}],
 			// The critical v0.10.0 defect: this strip IS the layout's only
 			// chrome, so "no status bar" must not mean "no logout".
-			["Bottom Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
-			["Bottom Bar", "Always On", "Bottom Bar Center", {}],
+			["Taskbar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
+			["Taskbar", "Always On", "Bottom Bar Center", {}],
 			// No bar anywhere: everything must fall back to the natives.
 			["Classic", "Quiet", "Top Bar Center", { bottombar_enabled: 0, }],
 			// Sidebar hidden outright — the natives are NOT available here.
-			["Dock", "Quiet", "Side Pane Start", { bottombar_enabled: 0, }],
-			["Dock", "Quiet", "Top Bar Center", {}],
+			["Floating Bar", "Quiet", "Side Pane Start", { bottombar_enabled: 0, }],
+			["Floating Bar", "Quiet", "Top Bar Center", {}],
 			// Compact keeps its native search row; the layout mounts no top bar.
 			["Compact", "Minimal", "Top Bar Center", {}],
 			// Search asked for a bar that this layout does not mount.
@@ -7699,11 +7739,11 @@ print("ok")
 			// and search still asking for it. Search must fall back rather
 			// than vanish — the same failure the placement chain was built for,
 			// reachable now by a route that did not exist before the split.
-			["Top Bar", "Quiet", "Top Bar Center", { topbar_enabled: 0 }],
+			["Top Taskbar", "Quiet", "Top Bar Center", { topbar_enabled: 0 }],
 			// A top bar on a Dock desk: the one layout that hides the sidebar,
 			// so the natives are unreachable and OUR containers are the only
 			// route to anything. Two containers where there was one.
-			["Dock", "Quiet", "Top Bar Center", { topbar_enabled: 1 }],
+			["Floating Bar", "Quiet", "Top Bar Center", { topbar_enabled: 1 }],
 			// A top bar on a Classic desk — a container contradicting its
 			// layout in the direction nothing else in this list covers.
 			["Classic", "Quiet", "Top Bar Start", { bottombar_enabled: 0,  topbar_enabled: 1 }],
@@ -7716,21 +7756,21 @@ print("ok")
 			// natives are unreachable and this cluster is a real route — and it
 			// is the one container that remounts on every route change, in the
 			// layout where losing it would leave nothing.
-			["Dock", "Quiet", "Top Bar Center", { pagehead_enabled: 1 }],
+			["Floating Bar", "Quiet", "Top Bar Center", { pagehead_enabled: 1 }],
 			// The Dock layout with no dock — not a state before the split, one
 			// keystroke away after it. The Dock preset has already written
 			// sidepane 0, so this is EVERY CONTAINER OFF: nothing of ours, and
 			// the pane switched off too. The guard is the only thing standing
 			// between this state and a desk nobody can log out of.
-			["Dock", "Quiet", "Top Bar Center", { bottombar_enabled: 0, 
+			["Floating Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, 
 				topbar_enabled: 0, pagehead_enabled: 0, dock_enabled: 0, sidebar_enabled: 0,
 			}],
 			// A dock alongside a side pane, which no layout could express.
-			["Top Bar", "Quiet", "Top Bar Center", { dock_enabled: 1 }],
+			["Top Taskbar", "Quiet", "Top Bar Center", { dock_enabled: 1 }],
 			// The side pane off while our own chrome carries everything — the
 			// state the guard must NOT fire in, asserted here as an invariant
 			// rather than only as a unit check.
-			["Top Bar", "Quiet", "Top Bar Center", { sidebar_enabled: 0 }],
+			["Top Taskbar", "Quiet", "Top Bar Center", { sidebar_enabled: 0 }],
 		];
 
 		for (const [layout, style, placement, chrome] of INVARIANT_STATES) {
@@ -7844,7 +7884,7 @@ print("ok")
 
 		setSettings({
 			...CHROME_DEFAULTS,
-			desk_layout: "Top Bar",
+			desk_layout: "Top Taskbar",
 			status_style: "Quiet",
 			search_placement: "Top Bar Center",
 		});
@@ -8312,7 +8352,7 @@ print("ok")
 					}));
 				}, key);
 
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar End", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Top Bar End", status_style: "Quiet" });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			await page.click('.bnd-shell-item[data-key="inbox"]');
 			await page.waitForTimeout(500);
@@ -8344,7 +8384,7 @@ print("ok")
 			);
 
 			// Change the LAYOUT and the warnings must move with it.
-			setSettings({ desk_layout: "Dock" });
+			setSettings({ desk_layout: "Floating Bar" });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			await page.click('.bnd-shell-item[data-key="inbox"]');
 			await page.waitForTimeout(500);
@@ -8354,7 +8394,7 @@ print("ok")
 				warned.includes("Side Pane") && warned.includes("Top Bar") && !warned.includes("Dock"),
 				`Dock layout warned "${warned}" — it hides the sidebar and HAS a dock`
 			);
-			setSettings({ desk_layout: "Top Bar" });
+			setSettings({ desk_layout: "Top Taskbar" });
 		});
 
 		await test("overview: one mark per placed component, each a route to its control", async () => {
@@ -8859,7 +8899,7 @@ print("ok")
 				// layout — a genuine "Custom" the matcher cannot name (turning a
 				// single toggle the other way just lands on another real layout,
 				// which is what the first draft of this check got wrong).
-				setSettings({ desk_layout: "Top Bar", dock_enabled: 1 });
+				setSettings({ desk_layout: "Top Taskbar", dock_enabled: 1 });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
 				await page.click('.bnd-shell-item[data-key="overview"]');
 				await page.waitForSelector(".bnd-dgm-overview", { timeout: 15000 });
@@ -8905,6 +8945,33 @@ print("ok")
 			}
 		});
 
+		await test("layout: the picker offers exactly the catalogue, and the shipped desk is the current card", async () => {
+			// ITEM 42, SLICE 6. Two copies of one list - `registry.LAYOUT_CHROME`
+			// and the picker's cards - so the suite asserts they agree, and that at
+			// shipped defaults the current card is the shipped layout. Watched
+			// failing before the swap: five old cards, a Top Bar current.
+			const cat = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import LAYOUT_CHROME\n" +
+					"from bunood_theme.presets import DEFAULT_DESK_LAYOUT\n" +
+					"print(json.dumps({'rows': list(LAYOUT_CHROME), 'default': DEFAULT_DESK_LAYOUT}))\n"
+				).trim().split("\n").pop()
+			);
+			setSettings({ desk_layout: cat.default });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await page.click('.bnd-shell-item[data-key="layout"]');
+			await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
+			const cards = await page.evaluate(() =>
+				[...document.querySelectorAll(".bnd-lp-card")].map((c) => ({
+					value: c.dataset.value,
+					current: c.classList.contains("bnd-cbp-on") && c.getAttribute("aria-pressed") === "true",
+				}))
+			);
+			expectEq(cards.map((c) => c.value).sort().join(","), [...cat.rows].sort().join(","), "the cards are the catalogue");
+			const current = cards.filter((c) => c.current).map((c) => c.value);
+			expectEq(current.join(","), cat.default, `the shipped layout is the current card (${JSON.stringify(current)})`);
+		});
+
 		await test("honest: picking a layout writes BOTH halves — the containers and the tenants", async () => {
 			// THE PICKER AUDIT'S HEADLINE FINDING (item 36). Every layout card's
 			// blurb names where search, notifications and the profile will sit,
@@ -8924,26 +8991,26 @@ print("ok")
 				"inbox_placement", "user_placement", "search_placement",
 			]);
 			try {
-				setSettings({ desk_layout: "Top Bar" });
+				setSettings({ desk_layout: "Top Taskbar" });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				await page.click('.bnd-shell-item[data-key="layout"]');
 				await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
-				await page.click('.bnd-lp-card[data-value="Bottom Bar"]');
+				await page.click('.bnd-lp-card[data-value="Taskbar"]');
 				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 20000 });
 				const got = getSettings([
 					"topbar_enabled", "bottombar_enabled",
 					"inbox_placement", "user_placement", "search_placement",
 				]);
 				// The container half, which always worked.
-				expectEq(String(got.topbar_enabled), "0", "Bottom Bar switched the top bar off");
-				expectEq(String(got.bottombar_enabled), "1", "Bottom Bar switched the bottom bar on");
+				expectEq(String(got.topbar_enabled), "0", "Taskbar switched the top bar off");
+				expectEq(String(got.bottombar_enabled), "1", "Taskbar switched the bottom bar on");
 				// The half that did not: every tenant must now name a region the
 				// layout actually mounts. Read the catalogue rather than pinning
 				// literals — the table is the fact, this is its consumer.
 				const want = JSON.parse(
 					benchPy(
 						"from bunood_theme.registry import LAYOUT_TENANTS\n" +
-							"print(json.dumps(LAYOUT_TENANTS['Bottom Bar']))\n"
+							"print(json.dumps(LAYOUT_TENANTS['Taskbar']))\n"
 					).trim().split("\n").pop()
 				);
 				for (const [field, value] of Object.entries(want)) {
@@ -9044,14 +9111,14 @@ print("ok")
 			// left Layout claiming "Default" over a desk that had changed.
 			const before = getSettings(["dock_enabled"]);
 			try {
-				setSettings({ desk_layout: "Top Bar" });
+				setSettings({ desk_layout: "Top Taskbar" });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				const atRest = await page.evaluate(() =>
 					document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden")
 				);
 				expect(atRest, "the Layout dot is lit on a desk that matches its preset");
 				// Dock on WITH topbar on matches no layout — a genuine Custom.
-				setSettings({ desk_layout: "Top Bar", dock_enabled: 1 });
+				setSettings({ desk_layout: "Top Taskbar", dock_enabled: 1 });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				const changed = await page.evaluate(() => ({
 					lit: !document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden"),
@@ -9326,7 +9393,7 @@ print("ok")
 			// specific group. `data-bnd-part` answers "what is this", nothing
 			// styles it, and the registry is where the answer lives so the
 			// desk code and this suite cannot disagree about it.
-			setSettings({ desk_layout: "Top Bar", status_style: "Always On", search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", search_placement: "Top Bar Center" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const parts = registry.components
 				.filter((c) => c.part)
@@ -9350,9 +9417,9 @@ print("ok")
 			// dock-over-statusbar bug belonged to without anyone having to
 			// predict which two components would collide next.
 			for (const [layout, style] of [
-				["Top Bar", "Always On"],
-				["Bottom Bar", "Always On"],
-				["Dock", "Always On"],
+				["Top Taskbar", "Always On"],
+				["Taskbar", "Always On"],
+				["Floating Bar", "Always On"],
 				["Compact", "Quiet"],
 			]) {
 				setSettings({ desk_layout: layout, status_style: style, search_placement: "Top Bar Center" });
@@ -9364,7 +9431,7 @@ print("ok")
 				});
 				expectEq(faults.length, 0, `${layout}/${style}: ${faults.slice(0, 3).join(" | ")}`);
 			}
-			setSettings({ desk_layout: "Top Bar", status_style: "Quiet" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Quiet" });
 		});
 
 		// ── Contrast, measured on the rendered desk (item 32) ──────────────
@@ -10019,7 +10086,7 @@ print("ok")
 					return !!(n && n.offsetParent !== null);
 				}, sel);
 
-			setSettings({ desk_layout: "Dock", inbox_placement: "Off", user_placement: "Off" });
+			setSettings({ desk_layout: "Floating Bar", inbox_placement: "Off", user_placement: "Off" });
 			await goDesk("/desk/item", ".bnd-dock", 4500);
 			expect(
 				(await reachable(".bnd-avatar-btn")) || (await reachable(".body-sidebar .sidebar-user-button")),
@@ -10032,7 +10099,7 @@ print("ok")
 
 			// And where the stock control IS reachable, Off must still work —
 			// otherwise the guard above would have turned Off into a no-op.
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Off", user_placement: "Off" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Off", user_placement: "Off" });
 			await goDesk("/desk/item", ".bnd-topbar", 4500);
 			expectEq(await q(".bnd-avatar-btn"), false, "Top Bar + user Off should remove ours");
 			expect(
@@ -10040,7 +10107,7 @@ print("ok")
 				"Top Bar + user Off: the stock button must be released, not left hidden"
 			);
 
-			setSettings({ desk_layout: "Top Bar", inbox_placement: "Top Bar End", user_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Top Bar End", user_placement: "Top Bar End" });
 		});
 
 		await test("placement: Compact keeps it across a route change", async () => {
@@ -10066,7 +10133,7 @@ print("ok")
 				"Compact lost every reachable route to the user menu after a route change"
 			);
 
-			setSettings({ desk_layout: "Top Bar", user_placement: "Top Bar End", inbox_placement: "Top Bar End" });
+			setSettings({ desk_layout: "Top Taskbar", user_placement: "Top Bar End", inbox_placement: "Top Bar End" });
 		});
 
 		// ── Console error budget ───────────────────────────────────────────
@@ -10080,7 +10147,7 @@ print("ok")
 		// ARIA" and "keeps its ARIA promises".
 
 		await test("a11y: the palette is a combobox and focus comes back where it left", async () => {
-			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette" });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			// Open FROM the trigger, so "restore" has something real to claim.
 			await page.focus(".bnd-search-field");
@@ -10137,7 +10204,7 @@ print("ok")
 			// behind the same guard as j/k/e, so the panel could be opened
 			// from the bell and never left without a mouse.
 			setSettings({
-				desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
+				desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
 				inbox_placement: "Top Bar End", inbox_keyboard: 0,
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10179,7 +10246,7 @@ print("ok")
 			// gate and green — so this suite contract is the only mechanism,
 			// which is §2.3's whole thesis.
 			setSettings({
-				desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
+				desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_style: "Bunood Inbox",
 				inbox_placement: "Top Bar End",
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10219,7 +10286,7 @@ print("ok")
 			// The badge's text is masked by the bell's aria-label under accname
 			// rules, so the LABEL carries the count. The two must agree: digits
 			// in the label exactly when the badge shows.
-			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, inbox_style: "Bunood Inbox", inbox_placement: "Top Bar End", inbox_badge: "Count" });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_style: "Bunood Inbox", inbox_placement: "Top Bar End", inbox_badge: "Count" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			await page.click(".bnd-bell");
 			await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { timeout: 5000 });
@@ -10286,7 +10353,7 @@ print("ok")
 			// the armed chip's own "Move to…" menu (the next test), never
 			// the zone itself.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
@@ -10337,7 +10404,7 @@ print("ok")
 			// list used to create (search has no Off, no page header, no `*`
 			// End) simply cannot happen when the menu never lists them.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, bottombar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				search_placement: "Top Bar Center",
 			});
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
@@ -10428,7 +10495,7 @@ print("ok")
 				});
 
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			});
@@ -10448,7 +10515,7 @@ print("ok")
 			// by a >=3:1 border OR a fill delta against its host. These two
 			// rested on a 1.2-1.5:1 hairline with a near-zero delta; the rule
 			// says the delta must be real, so this measures it.
-			setSettings({ desk_layout: "Top Bar", topbar_enabled: 1, search_placement: "Top Bar Center" });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			const delta = await page.evaluate(() => {
 				const parse = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
@@ -10515,7 +10582,7 @@ print("ok")
 		});
 
 		await test("a11y: the skip link is the first Tab and it skips", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, sidebar_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, sidebar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 3000);
 			await page.evaluate(() => document.activeElement && document.activeElement.blur());
 			await page.keyboard.press("Tab");
@@ -10690,7 +10757,7 @@ print("ok")
 
 		await test("a11y: every container is a named landmark, and no two share a name", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, dock_enabled: 1, bottombar_enabled: 1, pagehead_enabled: 0,
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10715,7 +10782,7 @@ print("ok")
 		});
 
 		await test("a11y: the open workspace says so, in the dock and in the rail", async () => {
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Dock", dock_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Floating Bar", dock_enabled: 1 });
 			await goDesk("/desk/item", ".bnd-dock", 3000);
 			// The negative half is the point: update_dock_active REMOVES the
 			// attribute, and a positive-only test would pass on a build that
@@ -10759,7 +10826,7 @@ print("ok")
 			// fails without menu_trigger(), correctly: aria-haspopup used to
 			// be stamped inside show_menu() itself, only after a menu had
 			// already been opened once.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1, user_placement: "Top Bar End" });
+			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1, user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			const avatar = await page.evaluate(() => {
 				const el = document.querySelector('[data-bnd-part="user"]');
@@ -10777,7 +10844,7 @@ print("ok")
 
 		await test("a11y: decorating a crumb does not rename it", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
 				crumb_style: "Quiet Trail", icon_crumbs: "Off",
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10804,7 +10871,7 @@ print("ok")
 
 		await test("a11y: the copy-link button shows itself when focus arrives", async () => {
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar", topbar_enabled: 1,
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
 			});
 			await goDesk("/desk/item", ".page-head", 3000);
@@ -10862,7 +10929,7 @@ print("ok")
 			const PAGE_RULES = ["region", "page-has-heading-one", "landmark-one-main", "bypass"];
 
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
@@ -10947,7 +11014,7 @@ print("ok")
 			// .bnd-dock only exists in the Dock layout, which hides the side pane
 			// entirely — mutually exclusive with every state set above, so it
 			// gets its own pass rather than a setting flipped in place.
-			setSettings({ ...layoutSettings("Dock"), desk_layout: "Dock" });
+			setSettings({ ...layoutSettings("Floating Bar"), desk_layout: "Floating Bar" });
 			await goDesk("/desk/item", ".bnd-dock", 4000);
 			bad = bad.concat(await scan("dock layout"));
 
@@ -11133,7 +11200,7 @@ print("ok")
 			// :focus-visible is a Chromium heuristic a programmatic focus can
 			// fail to match) and reads the rendered outline at each stop.
 			setSettings({
-				...CHROME_DEFAULTS, desk_layout: "Top Bar",
+				...CHROME_DEFAULTS, desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
@@ -11457,7 +11524,7 @@ print("ok")
 			// over the Top Bar layout's status bar. ARCHITECTURE §11's contract
 			// — the kit must not move the paging row under the bar.
 			setSettings({
-				list_style: "Floating Cards", desk_layout: "Top Bar",
+				list_style: "Floating Cards", desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, status_style: "Quiet",
 			});
 			await goDesk("/desk/item", ".frappe-list", 4000);
@@ -11693,7 +11760,7 @@ print("ok")
 			setSettings({
 				form_style: "Floating Panels", form_sidebar: "Floating Pane",
 				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1,
-				desk_layout: "Top Bar", topbar_enabled: 1, bottombar_enabled: 1,
+				desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				status_style: "Quiet",
 			});
 			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
@@ -15110,8 +15177,8 @@ print("cleared")
 			const wideAgain = () =>
 				page.setViewportSize({ width: 1920, height: 1080 }).then(() => page.waitForTimeout(300));
 			const topBar = () => ({
-				...layoutSettings("Top Bar"),
-				desk_layout: "Top Bar",
+				...layoutSettings("Top Taskbar"),
+				desk_layout: "Top Taskbar",
 				search_placement: "Top Bar Center",
 			});
 			// A tenant is REACHABLE only if some affordance is actually laid out —

@@ -131,9 +131,10 @@ DEFAULTS = {
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
     "density_default": "Comfortable",
-    # Desk layout (checklist item 9). "Top Bar" is the layout the user chose as
-    # the default: global bar above the page, breadcrumb title row, slim status
-    # bar below. Same seeding rationale as density_default.
+    # Desk layout (checklist item 9; re-chosen in item 42). "Unified Side Pane"
+    # is the layout the user chose as the default: everything in the side pane,
+    # no top bar, the slim status bar below. Same seeding rationale as
+    # density_default.
     #
     # Named in presets.py rather than spelt out here because the CONTAINER
     # defaults are derived from this layout's catalogue row: a literal in both

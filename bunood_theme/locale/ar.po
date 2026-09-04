@@ -6267,3 +6267,51 @@ msgstr "مقارنة بالفترة السابقة"
 #, fuzzy
 msgid "Getting Started"
 msgstr "الشروع في العمل"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Unified Side Pane"
+msgstr "اللوحة الجانبية الموحّدة"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Taskbar"
+msgstr "شريط المهام"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Top Taskbar"
+msgstr "شريط المهام العلوي"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Floating Bar"
+msgstr "الشريط العائم"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Everything in the side pane: brand, search, workspaces, notifications and profile. No bars above the page."
+msgstr "كل شيء في اللوحة الجانبية: العلامة والبحث ومساحات العمل والإشعارات والملف الشخصي. لا أشرطة فوق الصفحة."
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "A start button, centred search, notifications and profile in a bar along the bottom edge."
+msgstr "زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي في شريط على طول الحافة السفلية."
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "The taskbar at the top: start button, centred search, notifications and profile above the page."
+msgstr "شريط المهام في الأعلى: زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة."
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."
+msgstr "بدون لوحة جانبية — مساحات العمل والبحث والإشعارات والملف الشخصي تطفو في كبسولة سفلية. صفحات بعرض كامل."
