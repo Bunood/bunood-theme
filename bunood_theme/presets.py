@@ -207,11 +207,16 @@ CRUMB_FIELDS = [
     "crumb_narrow_collapse",
 ]
 
-#: The shipped default: "Quiet Trail" (muted ancestors, strong last crumb,
-#: chevron separators, module chip on the first crumb, soft-pill hover) —
-#: the wireframe the user picked as option A. "Original" leaves v16's stock
-#: trail untouched, the same escape hatch the desk-layout picker offers with
-#: "Classic". Values are Select LABELS; bunood.js owns label -> css-slug.
+#: The shipped default is "Crumb Pills" since item 42 (the user's call, chosen
+#: against the drawn round); it was "Quiet Trail" from item 11. "Original"
+#: leaves v16's stock trail untouched — the same escape hatch every kit offers.
+#: Values are Select LABELS; bunood.js owns label -> css-slug.
+#:
+#: PILLS MAKE TWO OF THE FIELDS BELOW INERT, and the picker says so rather than
+#: ignoring them: `crumb_separator` is greyed whole ("Pills draw no separators")
+#: and `crumb_hover`'s Soft Pill option is greyed ("Pills have their own hover").
+#: That is the honest-picker rule working, not a gap — but it means a check that
+#: wants to click "some crumb option" has to name one this default leaves live.
 CRUMB_DEFAULTS = {
     "crumb_style": "Crumb Pills",
     "crumb_separator": "Chevron",
@@ -428,10 +433,11 @@ WORKSPACE_FIELDS = [
     "workspace_menu_reveal",
 ]
 
-#: The shipped workspace defaults — the item-25 wireframe picks (2026-08-16):
-#: 1C Hairline Grid, 4C Edge Rail, reveal on. "Original" stays one click away.
-#: Hairline Grid was picked over the recommended Mixed Weights "for now"; both
-#: ship, so switching the default later is one value and no code.
+#: The shipped workspace defaults. The style is "Soft Tiles" since item 42 (the
+#: user's call); item 25 shipped Hairline Grid, over the recommended Mixed
+#: Weights, with the note that switching later would be "one value and no code"
+#: — which is what this is. 4C Edge Rail and reveal-on are unchanged, and
+#: "Original" stays one click away.
 WORKSPACE_DEFAULTS = {
     # One statement over canvas, tile and gutter — a gapless style requires zero
     # gutter, so they cannot be separate fields without composing a non-style.
