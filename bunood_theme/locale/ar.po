@@ -2140,6 +2140,66 @@ msgstr "كبسولة ناعمة"
 msgid "Soft pill"
 msgstr "كبسولة ناعمة"
 
+#. Option for 'Icon Style' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Fill on Active"
+msgstr "تلوين النشط"
+
+#. Option for 'Icon Style' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Solid Tile"
+msgstr "مربّع مصمت"
+
+#. Option for 'Icon Style' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Circle Badge"
+msgstr "شارة دائرية"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Fill on active"
+msgstr "تلوين النشط"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Solid tile"
+msgstr "مربّع مصمت"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Circle badge"
+msgstr "شارة دائرية"
+
+#. Option for 'Pane Material' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Bordered"
+msgstr "محدّد"
+
+#. Option for 'Pane Material' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Textured"
+msgstr "منقّش"
+
+#. Option for 'Pane Material' in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Gradient"
+msgstr "متدرّج"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "What the pane is made of, behind the links."
+msgstr "ممّ تتكوّن اللوحة، خلف الروابط."
+
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
 msgid "Solid"
@@ -6377,3 +6437,15 @@ msgstr "موضع زر البدء"
 #, fuzzy
 msgid "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
 msgstr "زر بدء يفتح اللوحة الجانبية، مثل شريط المهام. معطل في المكتب المشحون، حيث اللوحة مفتوحة بالفعل."
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "Rail + Flyout"
+msgstr "شريط مع لوحة منبثقة"
+
+#. In theme_settings.js
+#. src: item42
+#, fuzzy
+msgid "A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."
+msgstr "شريط رفيع من الأيقونات يتوسع عند الوصول إليه. اللوحة حاضرة حين تريدها وـ 52 بكسل حين لا تريد."

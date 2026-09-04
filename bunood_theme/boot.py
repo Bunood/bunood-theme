@@ -807,9 +807,13 @@ def _apply_icon_inference(bootinfo, source):
         * ``Letters``  — clear icons so Frappe renders no glyph and the client draws
                          a letter chip (kept client-side: the letter is the display
                          language's first character, correct only after translation).
-        * anything else (``Smart``) — infer from the untranslated ``link_to``,
-                         OVERRIDING what the record held wherever we have a better
-                         idea, and leaving it untouched where we do not.
+        * anything else (``Smart``) — infer from the DocType the link points at,
+                         which may override what the record held; then from the
+                         record's own icon; then from a keyword on the
+                         untranslated ``link_to``, which fills gaps and no longer
+                         overrides (item 42, slice I — it was rewriting `home`
+                         and `chart` to a shopping cart on the Selling sidebar,
+                         because `link_to` there is the WORKSPACE name).
 
     Args:
         bootinfo: the boot payload; its ``workspace_sidebar_item`` is rewritten.
@@ -827,6 +831,10 @@ def _apply_icon_inference(bootinfo, source):
 
         letters = mode == "letters"
         doctype_icons = {} if letters else get_doctype_icon_map()
+        # THE SHIPPED SNAPSHOT, so "does the row's own icon exist" is answerable
+        # here. `icons.sprite_ids()` reads the same file `tools/check_icons.py`
+        # holds the module to -- one snapshot, two consumers.
+        sprite = None if letters else icons.sprite_ids()
         for sidebar in sidebars.values():
             for item in (sidebar or {}).get("items") or []:
                 if not isinstance(item, dict) or item.get("type") != "Link":
@@ -835,7 +843,7 @@ def _apply_icon_inference(bootinfo, source):
                     # No <use> renders; the client's letter fallback fills it.
                     item["icon"] = None
                     continue
-                symbol = icons.icon_for_item(item, doctype_icons)
+                symbol = icons.icon_for_item(item, doctype_icons, sprite)
                 if symbol:
                     # item.icon is a BARE name — frappe.utils.icon() prefixes
                     # "#icon-"; an es-* id is left whole (it renders those as-is).

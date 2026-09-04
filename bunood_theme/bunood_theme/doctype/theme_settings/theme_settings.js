@@ -1253,6 +1253,11 @@ let bnd_layout_chrome = null;
 //: `registry.LAYOUT_TENANTS`, served beside the chrome because a layout is
 //: BOTH — every card's blurb names where search, the bell and the profile sit.
 let bnd_layout_tenants = null;
+//: `registry.LAYOUT_PANE` — how much of the pane each layout starts with. The
+//: catalogue's third half (item 42, slice 9), served for the same reason the
+//: other two are: a picker that is told two thirds of what a layout means writes
+//: two thirds of it.
+let bnd_layout_pane = null;
 let bnd_container_toggles = null;
 
 /**
@@ -1473,7 +1478,16 @@ function bnd_match_layout(frm) {
 			if (!frm.get_field(field)) return true;
 			return String(frm.doc[field] ?? tenants[field]) === String(tenants[field]);
 		});
-		if (matches && placed) return name;
+		// AND THE PANE'S STATE. Without it two rows with identical containers and
+		// tenants — Unified Side Pane and Rail + Flyout — are one row to this
+		// function, so it would return whichever iterates first and the card
+		// highlighted would be a coin toss. `presets.layout_of` compares it server-
+		// side for exactly the same reason.
+		const wantPane = bnd_layout_pane && bnd_layout_pane[name];
+		const paneOk =
+			!wantPane || !frm.get_field("sidebar_pane_state") ||
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
+		if (matches && placed && paneOk) return name;
 	}
 	return "Custom";
 }
@@ -1919,6 +1933,7 @@ function bnd_load_shipped() {
 			bnd_shipped = (data && data.defaults) || null;
 			bnd_layout_chrome = (data && data.layout_chrome) || null;
 			bnd_layout_tenants = (data && data.layout_tenants) || null;
+			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
 		})
 		.catch(() => {
@@ -1975,6 +1990,14 @@ function bnd_apply_layout_preset(frm, name) {
 		// Guarded on the field EXISTING, exactly as the containers are: a
 		// catalogue that names a field this doctype lacks must skip it rather
 		// than orphan a tabSingles row.
+		// The pane's starting state, before the tenants: a row that hides the pane
+		// and places a tenant in it is a state the catalogue cannot spell (the
+		// offline guard refuses it), so order costs nothing here and reads in the
+		// same sequence the catalogue is written.
+		const paneState = bnd_layout_pane && bnd_layout_pane[name];
+		if (paneState && frm.get_field("sidebar_pane_state")) {
+			frm.set_value("sidebar_pane_state", paneState);
+		}
 		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || null;
 		if (tenants) {
 			for (const field of Object.keys(tenants)) {
@@ -2121,6 +2144,27 @@ const BND_LAYOUTS = [
 			'<rect x="38" y="28" width="76" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="38" y="36" width="76" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="30" y="69" width="88" height="5" fill="currentColor" opacity=".14"/>' +
+			"</svg>",
+	},
+	{
+		value: "Rail + Flyout",
+		blurb: () => __("A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."),
+		svg:
+			'<svg viewBox="0 0 120 76">' +
+			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="2" width="13" height="72" fill="currentColor" opacity=".1"/>' +
+			'<rect x="5" y="5" width="7" height="7" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<rect x="5" y="17" width="7" height="7" rx="2" fill="currentColor" opacity=".28"/>' +
+			'<rect x="5" y="27" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
+			'<rect x="5" y="37" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
+			'<rect x="17" y="8" width="30" height="52" rx="3" fill="currentColor" opacity=".07"/>' +
+			'<rect x="20" y="12" width="22" height="4" rx="2" fill="currentColor" opacity=".22"/>' +
+			'<rect x="20" y="21" width="18" height="3" fill="currentColor" opacity=".14"/>' +
+			'<rect x="20" y="28" width="18" height="3" fill="currentColor" opacity=".14"/>' +
+			'<rect x="54" y="8" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="54" y="16" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="54" y="24" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="17" y="69" width="101" height="5" fill="currentColor" opacity=".14"/>' +
 			"</svg>",
 	},
 	{
@@ -2309,13 +2353,47 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_material",
+		// A SURFACE NEEDS A PANE TO BE A SURFACE OF. Hidden leaves the floating
+		// pill and nothing else, so every card here would govern nothing —
+		// the same reason, and the same wording, as the placement group above.
+		disabled: (frm) =>
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+				? __("The pane is hidden")
+				: "",
 		zone: "pane",
-		title: () => __("Pane material"),
-		desc: () => __("Glass lets the page glow through; blurred frosts it as well."),
+		title: () => __("Pane surface"),
+		desc: () => __("What the pane is made of, behind the links."),
 		options: [
 			{ value: "Solid", name: () => __("Solid"), thumb: bnd_sb_pane("currentColor", "opacity:.3") },
-			{ value: "Glass", name: () => __("Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px") },
-			{ value: "Blurred Glass", name: () => __("Blurred Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px;filter:blur(1px)") },
+			{
+				value: "Bordered", name: () => __("Bordered"),
+				thumb: bnd_sb_pane("currentColor", "opacity:.3;outline:2px solid currentColor;outline-offset:-2px"),
+			},
+			{
+				value: "Elevated", name: () => __("Elevated"),
+				thumb: bnd_sb_pane("currentColor", "opacity:.3;box-shadow:2px 2px 4px rgba(0,0,0,.35)"),
+			},
+			{
+				value: "Textured", name: () => __("Textured"),
+				// The thumb draws the SAME repeating gradient the surface does, at the
+				// same angle and pitch — a thumbnail that invents its own texture is a
+				// picture of a surface this app does not paint.
+				thumb: bnd_sb_pane(
+					"currentColor",
+					"opacity:.3;background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 1px,transparent 1px 4px)"
+				),
+			},
+			{
+				value: "Tinted", name: () => __("Tinted"),
+				thumb: bnd_sb_pane("var(--primary,#3d8150)", "opacity:.35"),
+			},
+			{
+				value: "Gradient", name: () => __("Gradient"),
+				thumb: bnd_sb_pane(
+					"linear-gradient(to bottom, var(--primary,#3d8150) 0%, currentColor 62%)",
+					"opacity:.35"
+				),
+			},
 		],
 	},
 	// THE PANE COLOUR PICKER IS GONE (2026-09-01, the user's call after two
@@ -2909,13 +2987,18 @@ const BND_ICON_DEFAULTS = {
  * picker (item 23) — the style is the CHIP concern, distinct from the glyph
  * concerns (weight, the missing-icon fallback) below it.
  */
+// THE THUMBS ARE DRAWN FROM TOKENS, not from six hand-picked hexes (item 42,
+// slice I). The old set painted #d9eadc / #2e6b44 literals, so a tenant with a
+// violet brand chose between four pictures of somebody else's desk -- and the
+// Filled Color card claimed a green a Filled Color pane never renders. These
+// read the pane's own category hues, which is exactly what the rows use. The
+// fallbacks are for the one surface where the attribute is absent, never for
+// the desk.
 const BND_ICON_STYLES = [
-	{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
-	{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
-	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
-	{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150);opacity:.5">◪</span>' },
-	{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">○</span>' },
-	{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
+	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-1, var(--primary,#3d8150))">▮</span><span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-2, #2f5cc4)">●</span>' },
+	{ value: "Fill on Active", name: () => __("Fill on active"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-2, #2f5cc4)">●</span>' },
+	{ value: "Solid Tile", name: () => __("Solid tile"), thumb: '<span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-1, var(--primary,#3d8150));color:var(--bnd-pane, #fff)">▮</span><span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-2, #2f5cc4);color:var(--bnd-pane, #fff)">●</span>' },
+	{ value: "Circle Badge", name: () => __("Circle badge"), thumb: '<span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-1, var(--primary,#3d8150));color:var(--bnd-pane, #fff);border-radius:50%">▮</span><span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-2, #2f5cc4);color:var(--bnd-pane, #fff);border-radius:50%">●</span>' },
 ];
 
 /**
@@ -3003,7 +3086,10 @@ function bnd_render_icons_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "icons_picker", host);
 	if (!$host) return;
 
-	const current_style = frm.doc.icon_style || "Colored Chips";
+	// `bnd_default_of` rather than a literal: the four reset chips that wrote a
+	// value the site does not ship were exactly this shape, and "Colored Chips"
+	// is not even an option any more.
+	const current_style = frm.doc.icon_style || bnd_default_of("icon_style", BND_ICON_DEFAULTS.icon_style);
 	const style_cards = P.cards(
 		BND_ICON_STYLES.map((s) => ({ value: s.value, name: s.name(), svg: s.thumb })),
 		{ selected: current_style, cls: "bnd-cbp-style bnd-icp-style" }

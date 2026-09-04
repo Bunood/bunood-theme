@@ -1335,8 +1335,17 @@ async function layoutFaults(rootSel, opts = {}) {
 
 const SLUG = {
 	sidebar_placement: { Attached: "attached", Floating: "floating" },
-	sidebar_material: { Solid: "solid", Glass: "glass", "Blurred Glass": "glassblur" },
-	icon_style: { "Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled", Duotone: "duotone", "Brand Lines": "brandlines", Monochrome: "mono" },
+	sidebar_material: {
+		Solid: "solid", Bordered: "bordered", Elevated: "elevated",
+		Textured: "textured", Tinted: "tinted", Gradient: "gradient",
+		Glass: "elevated", "Blurred Glass": "elevated",
+	},
+	icon_style: {
+		"Filled Color": "filled", "Fill on Active": "onactive",
+		"Solid Tile": "tile", "Circle Badge": "badge",
+		"Colored Chips": "tile", "Colored Dots": "badge",
+		Duotone: "filled", "Brand Lines": "filled", Monochrome: "onactive",
+	},
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
 	sidebar_hue_wash: { Off: "off", Subtle: "subtle", Rich: "rich" },
@@ -2307,7 +2316,18 @@ async function main() {
 			// the BELL, not the layout: the fixed-position relocation this test
 			// measures keys on `data-bnd-bell="topbar"`, which only a bell
 			// mounted in the top bar stamps.
-			setSettings({ inbox_style: "Original", desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_placement: "Top Bar End" });
+			// THE PANE MUST BE OPEN, and the reason is the subject of this check rather
+			// than a detail of it: under Original our inbox kit stands down and the bell
+			// proxies to FRAPPE'S panel, which renders inside the side pane. Top Taskbar
+			// starts the pane Hidden since slice 9, so the stock panel opened at 0x0 —
+			// correct behaviour for a hidden pane, and not what this check is about.
+			//
+			// IT IS ALSO A REAL COMBINATION worth naming: Original + a hidden pane + the
+			// bell placed in a bar gives a bell whose panel nobody can see.
+			// `guard_critical_reach` does not catch it — it asks whether a ROUTE to
+			// notifications exists, and our bell in the top bar is one — so the switch
+			// matrix is where that pairing gets its own row.
+			setSettings({ inbox_style: "Original", desk_layout: "Top Taskbar", topbar_enabled: 1, inbox_placement: "Top Bar End", sidebar_pane_state: "Open" });
 			await goDesk("/desk/item", ".page-head", 2500);
 			expectEq(await attr("data-bnd-inbox"), null, "no style attr");
 			expect(!(await q(".bnd-inbox-badge:not([hidden])")), "no badge");
@@ -2371,7 +2391,7 @@ async function main() {
 			// Classic HAS a bar would pass just as well if the layout had started
 			// mounting one unconditionally — which is the bug the deleted field
 			// used to prevent. Both directions, or the test says nothing.
-			setSettings({ desk_layout: "Classic", status_style: "Quiet" });
+			setSettings({ sidebar_pane_state: "Open", desk_layout: "Classic", status_style: "Quiet" });
 			await goDesk("/desk/item", ".body-sidebar-container", 3500);
 			expect(await q(".bnd-statusbar"), "Classic + Quiet should mount the bar");
 
@@ -2464,11 +2484,18 @@ async function main() {
 				// pane. All three are switched on, so the fallback chain is
 				// never what is being measured here — the tests either side of
 				// this loop are the ones that measure fallback.
+				// ...and since slice 9, a VISIBLE pane is one more thing to state. The
+				// comment above says the sidebar slots need one; `sidebar_enabled: 1` used
+				// to be that, and now means only that the container is on — Top Taskbar
+				// starts the pane Hidden, `search_slot_host` correctly refuses a hidden
+				// pane, and both sidebar slots resolved to the top bar's centre. The same
+				// defect this comment was written about, one vocabulary later.
 				setSettings({
 					desk_layout: "Top Taskbar",
 					topbar_enabled: 1,
 					bottombar_enabled: 1,
 					sidebar_enabled: 1,
+					sidebar_pane_state: "Open",
 					pagehead_enabled: 0,
 					dock_enabled: 0,
 					search_placement: label,
@@ -3144,7 +3171,10 @@ async function main() {
 			// always expanded — after which this test was exercising a rail
 			// that never mounted and passing on nothing. The behaviour under
 			// test did not change; the preset carrying it did.
-			setSettings(presets["Bunood Light"]);
+			// The look carries Rail; the STATE is stated anyway, because a layout picked
+			// by whatever ran before can hide the pane and a hover over a hidden
+			// container opens nothing.
+			setSettings({ ...presets["Bunood Light"], sidebar_pane_state: "Rail" });
 			await goDesk("/desk/sales-invoice", ".page-head", 3000);
 			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(300);
@@ -3301,12 +3331,166 @@ async function main() {
 		// sidebar chip attribute — coverage the preset test used to give before
 		// the field left the preset dicts. Set it, reload (the field applies
 		// through boot until the Phase 3 picker adds live preview), read the attr.
-		await test("icon engine: icon_style drives the sidebar chip attribute", async () => {
-			const want = getSettings(["icon_style"]).icon_style === "Monochrome" ? "Colored Dots" : "Monochrome";
-			setSettings({ icon_style: want });
-			await goDesk("/desk/item", ".body-sidebar-container", 4000);
-			expectEq(await attr("data-bnd-sb-icons"), SLUG.icon_style[want], "data-bnd-sb-icons follows icon_style");
-			setSettings({ icon_style: "Colored Chips" });
+		await test("icon engine: the Smart audit — every workspace link, every glyph", async () => {
+			// ITEM 42, SLICE I. `npm run icons:check` proves every id `icons.py` SPELLS
+			// is in the sprite. That is a check on the source, and it cannot see the
+			// other half: the doctype map's ids come out of the DATABASE, and which
+			// links exist at all is a property of the site, not of this repo. So this
+			// resolves every sidebar link in every workspace the way boot does and asks
+			// three questions the static check cannot.
+			//
+			// (a) DOES IT EXIST. An id absent from the sprite renders an EMPTY BOX --
+			//     worse than the letter it displaced, and invisible to any check that
+			//     only asks whether inference returned something.
+			// (b) DOES IT DISTINGUISH. A glyph that every sibling in a section shares
+			//     is decoration, not navigation. Measured on Selling, which is where
+			//     the sales bucket put a shopping cart on quotations, orders and
+			//     opportunities alike.
+			// IT WALKS WHAT BOOT WALKS. `_apply_icon_inference` rewrites only rows of
+			// `type == "Link"`, and hands `icon_for_item` the row's OWN icon and the
+			// sprite set. A walk that dropped either would be auditing a path this app
+			// does not take -- and the first draft did exactly that, reporting six shared
+			// carts on Selling that the real inference does not produce.
+			//
+			// (c) HOW MUCH IS LEFT. The count of rows resolving to nothing is reported
+			//     rather than asserted -- it is a coverage number, and a floor on it
+			//     would be a target to game. But it is asserted NOT TO BE EVERYTHING,
+			//     because an inference that resolves zero rows passes every other
+			//     assertion here trivially.
+			const audit = JSON.parse(
+				benchPy(
+					"import json\n" +
+					"from bunood_theme import icons\n" +
+					"from bunood_theme.api import get_doctype_icon_map\n" +
+					"sprite = icons.sprite_ids()\n" +
+					"dmap = get_doctype_icon_map()\n" +
+					"rows = frappe.get_all('Workspace Sidebar', pluck='name')\n" +
+					"out = {'missing': [], 'clobbered': [], 'shared': {}, 'resolved': 0, 'own': 0}\n" +
+					"for ws in rows:\n" +
+					"    doc = frappe.get_doc('Workspace Sidebar', ws)\n" +
+					"    seen = {}\n" +
+					"    for it in (doc.get('items') or []):\n" +
+					"        if it.get('type') != 'Link':\n" +
+					"            continue\n" +
+					"        item = {'link_type': it.get('link_type'), 'link_to': it.get('link_to'),\n" +
+					"                'icon': it.get('icon'),\n" +
+					"                'label': it.get('label') or it.get('link_to')}\n" +
+					"        own = icons.sprite_for_item_icon(item['icon'], sprite)\n" +
+					"        sym = icons.icon_for_item(item, dmap, sprite)\n" +
+					"        if own:\n" +
+					"            out['own'] += 1\n" +
+					"            if sym != own:\n" +
+					"                out['clobbered'].append([ws, item['label'], own, sym])\n" +
+					"        if not sym:\n" +
+					"            continue\n" +
+					"        out['resolved'] += 1\n" +
+					"        if sym not in sprite:\n" +
+					"            out['missing'].append([ws, item['label'], sym])\n" +
+					"        seen.setdefault(sym, []).append(item['label'])\n" +
+					"    dupes = {k: len(v) for k, v in seen.items() if len(v) > 1}\n" +
+					"    if dupes:\n" +
+					"        out['shared'][ws] = dupes\n" +
+					"print('BND_AUDIT' + json.dumps(out))\n"
+				).split(/\r?\n/).find((l) => l.startsWith("BND_AUDIT")).slice("BND_AUDIT".length)
+			);
+			// ANTI-VACUITY FIRST. Every assertion below is trivially true over an
+			// empty walk, and an empty walk is exactly what a renamed doctype or a
+			// changed boot shape would produce.
+			expect(audit.resolved > 100,
+				`the audit resolved real links (${audit.resolved} of them, ${audit.own} carrying an icon of their own)`);
+			expect(audit.own > 100, `and real rows brought their own (${audit.own})`);
+			expectEq(
+				JSON.stringify(audit.missing), "[]",
+				"every inferred glyph is in the sprite — an absent id paints an empty box"
+			);
+
+			// (b) THE INVARIANT, and it took two wrong drafts to find the one that is
+			// both true and worth asserting. "No two siblings share a glyph" is not
+			// achievable: seven Selling reports are all about sales and there is no
+			// per-report knowledge that would tell them apart. What IS invariant is that
+			// INFERENCE MUST NOT DESTROY A DISTINCTION THE DATA ALREADY HAD -- a row
+			// whose own icon resolves keeps it, and the only rows a guess may touch are
+			// the ones nobody chose for.
+			//
+			// Measured before the fix, on this site: 541 links, and inference rewrote
+			// `home` and `chart` to a shopping cart on Selling because `link_to` there is
+			// the WORKSPACE name, and `sell` and `receipt` to a generic file because the
+			// doctype map outranked the row. 407 rows resolved; 448 do now.
+			expectEq(
+				JSON.stringify(audit.clobbered.slice(0, 6)), "[]",
+				`inference kept every row's own icon (${audit.clobbered.length} clobbered)`
+			);
+
+			// (c) SHARED GLYPHS ARE REPORTED, never failed. The number is a coverage
+			// signal and a floor on it would be a target to game.
+			const shared = Object.entries(audit.shared)
+				.map(([ws, d]) => [ws, Object.values(d).reduce((a, b) => a + b, 0)])
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 3);
+			console.log(
+				`      icons: ${audit.resolved} resolved, ${audit.own} from the row itself; ` +
+					`most-shared sidebars ${shared.map(([w, n]) => `${w}:${n}`).join(", ")}`
+			);
+		});
+
+		await test("icon engine: every icon style drives its own chip attribute", async () => {
+			// WALKS THE CATALOGUE (item 42, slice I) rather than flipping between two
+			// values. It used to pick Monochrome or Colored Dots and restore to
+			// Colored Chips — three values that no longer exist, and the restore was
+			// writing one of them back into a Select that would refuse it on the next
+			// full save. The catalogue is READ, so a style added to the field cannot
+			// slip past this the way a hand-typed pair let three retired ones through.
+			const before = getSettings(["icon_style", "sidebar_pane_state"]);
+			try {
+				const styles = JSON.parse(
+					benchPy(
+						"f = frappe.get_meta('Theme Settings').get_field('icon_style')\n" +
+						"print(json.dumps([o for o in (f.options or '').split(chr(10)) if o.strip()]))\n"
+					).trim().split("\n").pop()
+				);
+				expectEq(styles.length, 4, `the field offers four styles (${styles.join(",")})`);
+				const seen = new Set();
+				const painted = {};
+				for (const style of styles) {
+					setSettings({ sidebar_pane_state: "Open", icon_style: style });
+					await goDesk("/desk/item", ".body-sidebar-container", 4000);
+					const got = await attr("data-bnd-sb-icons");
+					expectEq(got, SLUG.icon_style[style], `${style} stamps its own slug`);
+					expect(!seen.has(got), `${style}'s slug is its own (${got} already seen)`);
+					seen.add(got);
+					// AND THE SLUG REACHES A PIXEL. An attribute nothing acts on is the
+					// defect this project keeps finding in its own pickers -- `sections`
+					// had four options and one rule for an entire item. Read the chip the
+					// rules actually target, not the row.
+					// AT REST **AND** ON THE ACTIVE ROW. Fill on Active is defined by what
+					// it does to the current row, so a walk that only read a resting chip
+					// would be judging it on the half it shares with Filled Color.
+					painted[style] = await page.evaluate(() => {
+						const read = (el) => {
+							if (!el) return "(absent)";
+							const cs = getComputedStyle(el);
+							return [cs.backgroundColor, cs.color, cs.borderRadius].join(" ~ ");
+						};
+						const rest = document.querySelector(".body-sidebar .sidebar-item-icon");
+						if (!rest) return null;
+						const active = document.querySelector(
+							".body-sidebar .standard-sidebar-item.active-sidebar .sidebar-item-icon"
+						);
+						return read(rest) + " || " + read(active);
+					});
+					expect(painted[style], `${style}: there is a chip to measure`);
+				}
+				for (let i = 0; i < styles.length; i++) {
+					for (let j = i + 1; j < styles.length; j++) {
+						expect(
+							painted[styles[i]] !== painted[styles[j]],
+							`${styles[i]} and ${styles[j]} paint the same chip (${painted[styles[i]]})`
+						);
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		// icon_weight (item 23, Phase 3) is the new axis: it stamps
@@ -3314,7 +3498,7 @@ async function main() {
 		// stroke-width of every desk icon — the measured thing, not just the
 		// attribute, because Frappe hard-codes 1.5px and this has to WIN.
 		await test("icon engine: icon_weight sets the rendered stroke", async () => {
-			setSettings({ icon_weight: "2" });
+			setSettings({ sidebar_pane_state: "Open", icon_weight: "2" });
 			await goDesk("/desk/item", ".body-sidebar-container", 4000);
 			const m = await page.evaluate(() => {
 				const html = document.documentElement;
@@ -3613,19 +3797,20 @@ async function main() {
 			// next one, so this states what it needs.
 			// THE SUBJECT, AND WHY IT IS NOT THE OBVIOUS ONE. This was
 			// `sidebar_color` until its four options became one pane under four
-			// names. The natural replacement is `sidebar_material` -- Solid to Glass
-			// visibly repaints the pane -- and it FAILS here, correctly: headless
-			// Chromium reports `prefers-reduced-transparency: reduce`, so Glass
-			// degrades to the solid pane by design and the background never moves.
-			// Asserting it would mean either a red suite or emulating the media
-			// feature, and this test is about the PREVIEW PATH, not about glass.
+			// names, and then `sidebar_material` -- which was ruled out because Glass
+			// degraded to the solid pane under the `prefers-reduced-transparency:
+			// reduce` headless Chromium reports, so the background never moved.
+			// SLICE S RETIRED BOTH GLASSES and every surface is opaque now, so that
+			// objection is spent -- but the subject stays `sidebar_placement`,
+			// because this test is about the PREVIEW PATH and a subject with no media
+			// feature anywhere near it is the one that keeps saying so. Six surfaces
+			// have their own check.
 			//
-			// `sidebar_placement` is the honest subject: Floating detaches the pane
-			// into a rounded card, so `border-radius` moves, and nothing about it is
-			// conditional on a media feature the harness overrides.
+			// Floating detaches the pane into a rounded card, so `border-radius`
+			// moves, and nothing about it is conditional.
 			const restore = getSettings(["sidebar_enabled", "sidebar_placement"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_placement: "Attached" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", sidebar_placement: "Attached" });
 				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
 				const radius = () => page.evaluate(
 					() => getComputedStyle(document.querySelector(".body-sidebar-container")).borderRadius);
@@ -3718,7 +3903,7 @@ async function main() {
 			// no head at all; attribute absent and the mount succeeded renders BOTH.
 			// The rule now keys on `[data-bnd-own~="panehead"]`, stamped by
 			// `claim_panehead` only once our head is in the document.
-			setSettings({ sidebar_enabled: 1 });
+			setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			// READINESS IS `body`, AND THE PREMISE IS WAITED FOR SEPARATELY. Waiting
 			// on `.body-sidebar` means waiting for it to be VISIBLE, and whether the
 			// pane renders depends on the layout the previous check left behind --
@@ -3874,14 +4059,20 @@ async function main() {
 			// on one pixel. The hue now rides the SECTION CONTAINER, which exists in
 			// every mode.
 			//
-			// Measured through Filled Color icons (the shipped default): the glyph
-			// takes `var(--bnd-sb-hue, chip-ink)` directly, so Off vs Subtle is the
-			// glyph's colour, and Subtle vs Rich is the section LABEL's.
+			// MEASURED AT THE CHIP SINCE SLICE I, and the move is the point. The wash
+			// used to gate `--bnd-sb-hue` itself, so at Off the glyph fell back to the
+			// muted chip ink -- which is exactly what Fill on Active paints, so two
+			// icon styles rendered one pixel on any site with the wash off. The hue is
+			// stamped at every wash now and the WASH is the chip behind the glyph,
+			// which is what the field's name has always claimed. So Off vs Subtle is
+			// the chip's BACKGROUND, and Subtle vs Rich is that plus the section
+			// LABEL's colour.
 			const before = getSettings(["sidebar_enabled", "sidebar_section_style", "sidebar_hue_wash", "icon_style"]);
 			try {
 				const read = async (wash) => {
 					setSettings({
-						sidebar_enabled: 1,						sidebar_section_style: "Plain", sidebar_hue_wash: wash,
+						sidebar_enabled: 1,
+				sidebar_pane_state: "Open",						sidebar_section_style: "Plain", sidebar_hue_wash: wash,
 						icon_style: "Filled Color",
 					});
 					await goDesk("/app/selling", "body", 3000);
@@ -3907,6 +4098,11 @@ async function main() {
 							// sprite never reads, and reading `color` here would have
 							// certified the wash while the pixels stayed grey.
 							glyph: glyph ? getComputedStyle(glyph).stroke : null,
+							// The chip the wash actually paints (slice I).
+							chip: (() => {
+								const c = section.querySelector(".sidebar-item-icon");
+								return c ? getComputedStyle(c).backgroundColor : null;
+							})(),
 						};
 					});
 				};
@@ -3915,13 +4111,19 @@ async function main() {
 				const rich = await read("Rich");
 				// ANTI-VACUITY: all three reads found real nodes.
 				for (const [name, r] of [["Off", off], ["Subtle", subtle], ["Rich", rich]]) {
-					expect(r.label && r.glyph, `${name}: a section label and a glyph rendered (${JSON.stringify(r)})`);
+					expect(r.label && r.glyph && r.chip, `${name}: a section label, a glyph and a chip rendered (${JSON.stringify(r)})`);
 					expectEq(r.cards, 0, `${name}: Plain builds no card wrappers`);
 				}
-				expect(off.glyph !== subtle.glyph,
-					`Off and Subtle differ at the glyph under Plain (${off.glyph} vs ${subtle.glyph})`);
+				expect(off.chip !== subtle.chip,
+					`Off and Subtle differ at the chip under Plain (${off.chip} vs ${subtle.chip})`);
+				expect(subtle.chip !== rich.chip,
+					`Subtle and Rich differ at the chip under Plain (${subtle.chip} vs ${rich.chip})`);
 				expect(subtle.label !== rich.label,
-					`Subtle and Rich differ at the section label under Plain (${subtle.label} vs ${rich.label})`);
+					`Subtle and Rich differ at the section label too (${subtle.label} vs ${rich.label})`);
+				// AND THE GLYPH DOES NOT MOVE. It is the hue at every wash now, which is
+				// what keeps Filled Color and Fill on Active two different styles at Off.
+				expectEq(off.glyph, subtle.glyph,
+					"the hue is stamped at Off too, so the glyph is the wash-independent half");
 			} finally {
 				setSettings(before);
 			}
@@ -3944,7 +4146,8 @@ async function main() {
 			try {
 				const read = async (style, depth) => {
 					setSettings({
-						sidebar_enabled: 1,						sidebar_section_style: style, sidebar_card_depth: depth,
+						sidebar_enabled: 1,
+				sidebar_pane_state: "Open",						sidebar_section_style: style, sidebar_card_depth: depth,
 					});
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(
@@ -4128,9 +4331,12 @@ async function main() {
 			// rendered when On (an On that sometimes shows nothing is the
 			// dishonest picker); the placeholder says FILTER, never Search, which
 			// is the palette's job.
-			const before = getSettings(["sidebar_enabled", "sidebar_filter"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_filter", "sidebar_pane_state"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_filter: 1 });
+				// THE PANE HAS TO BE OPEN, and since slice 9 that is a separate question
+				// from whether the container is on: a taskbar row leaves `sidebar_enabled`
+				// at 1 and the pane Hidden, so a filter input inside it never renders.
+				setSettings({ sidebar_enabled: 1, sidebar_filter: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-filter-input"), null, { timeout: 20000 });
 				// THE INPUT IS DRIVEN SYNTHETICALLY, and the reason is measured, not
@@ -4325,7 +4531,7 @@ async function main() {
 			const before = getSettings(["sidebar_enabled"]);
 			try {
 				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
-				setSettings({ sidebar_enabled: 1 });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -4563,85 +4769,139 @@ async function main() {
 			}
 		});
 
-		await test("sidepane: Glass is not Solid wearing its name, expanded AND railed", async () => {
-			// TWO DEFECTS, ONE TEST, and the second one is why this survived item 40's
-			// colour deletion. The first was the brand pane: it painted a gradient,
-			// a gradient cannot go through color-mix(), so the translucency rule
-			// excluded it outright and Glass rendered exactly as Solid there. That
-			// pane is gone, and with it the exclusion.
+		await test("sidepane: six surfaces, six panes — expanded, railed, and in the dark", async () => {
+			// ITEM 42, SLICE S. `sidebar_material` was Solid / Glass / Blurred Glass:
+			// one opaque surface and two translucencies of it. Six surfaces is a
+			// different claim, and it has three halves that can each fail silently.
 			//
-			// THE SECOND IS SPECIFICITY, AND IT IS LIVE. The exclusion was written as
-			// `:not([data-bnd-sb-color="brand"])` on the reduced-transparency arms,
-			// and removing it when the brand pane went read like a simplification. It
-			// is not: the `:not()` was carrying WEIGHT. The rail translucency rule is
-			// `[material][data-bnd-rail] .container .body-sidebar` -- (0,4,1) -- so
-			// arms at (0,3,1) lose the background and win only the blur, leaving a
-			// pane translucent at alpha 0.85 with its frosting removed: the one combination the
-			// degradation exists to prevent. THE RAIL CASE IS THE ONE THAT CATCHES
-			// IT; the expanded case passes either way.
+			// (a) SIX VALUES, SIX PANES. The named defect this vocabulary exists to
+			//     prevent, and the pane has shipped it twice — Mini-Cards and Accordion
+			//     Cards were one pixel under two names for an entire item.
+			// (b) THE RAIL ARMS. Expanded, the CONTAINER paints; railed, the container
+			//     is a 52px strip and the overlay inside it is the pane. A surface with
+			//     no rail arm reverts to Solid there and nothing says so — which is why
+			//     both nodes are read in both states rather than the one that suits.
+			// (c) THE TINTED FIT, AND ITS SPECIFICITY. Tinted and Gradient move the
+			//     background the category hues were fitted against, so they carry a fit
+			//     of their own. Three arms — light, dark, automatic — and if a polarity
+			//     were missing one, the LIGHT tinted block would tie the dark base at
+			//     (0,2,1) and win on order: light hues on a dark tinted pane, at 3.48:1.
+			//     That is defect 27 in a new location, and only the DARK cell sees it.
 			//
-			// HEADLESS CHROMIUM REPORTS prefers-reduced-transparency: reduce, so the
-			// degraded pole is the DEFAULT here and the translucent one has to be
-			// emulated through CDP -- the trap that hid this kit's degradation for an
-			// entire item. Playwright carries no flag for this media feature.
-			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_pane_state"]);
+			// The expectation comes from `palette.sb_hues`, never from the stylesheet
+			// under test — the gate pins the literals to that derivation, and this asks
+			// the browser the different question of whether the block APPLIES.
+			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_pane_state", "sidebar_placement"]);
 			try {
-				for (const rail of ["Always Expanded", "Rail"]) {
-					// The rail paints on `.body-sidebar`; expanded paints on the
-					// container. Reading the wrong node is this repo's oldest trap, and
-					// here it would report the rail case as passing every time.
-					const sel = rail === "Rail" ? ".body-sidebar-container .body-sidebar"
-						: ".body-sidebar-container";
-					const paint = async (material) => {
+				// THE CATALOGUE IS READ, never typed: a list here is the second copy, and
+				// a surface added to the field would silently go unmeasured.
+				const surfaces = JSON.parse(
+					benchPy(
+						"f = frappe.get_meta('Theme Settings').get_field('sidebar_material')\n" +
+						"print(json.dumps([o for o in (f.options or '').split(chr(10)) if o.strip()]))\n"
+					).trim().split("\n").pop()
+				);
+				expectEq(surfaces.length, 6, `the field offers six surfaces (${surfaces.join(",")})`);
+				const fits = JSON.parse(
+					benchPy(
+						"from bunood_theme import palette\n" +
+						"t = palette.SB_SURFACE_TINT['tinted']\n" +
+						"print(json.dumps({'light': palette.sb_hues('light')[0], 'dark': palette.sb_hues('dark')[0],\n" +
+						"                  'lightTint': palette.sb_hues('light', t)[0], 'darkTint': palette.sb_hues('dark', t)[0]}))\n"
+					).trim().split("\n").pop()
+				);
+
+				for (const state of ["Open", "Rail"]) {
+					const seen = {};
+					for (const material of surfaces) {
 						setSettings({
-							sidebar_enabled: 1, sidebar_pane_state: rail, sidebar_material: material,
+							sidebar_enabled: 1, sidebar_pane_state: state,
+							sidebar_material: material, sidebar_placement: "Attached",
 						});
 						await goDesk("/app/selling", "body", 3000);
 						await page.waitForFunction(
-							(q) => !!document.querySelector(q),
-							sel, { timeout: 20000 }
+							() => !!document.querySelector(".body-sidebar-container .body-sidebar"),
+							null, { timeout: 20000 }
 						);
-						const read = () => page.evaluate((q) => {
-							const cs = getComputedStyle(document.querySelector(q));
-							return { bg: cs.backgroundColor, filter: cs.backdropFilter || "none" };
-						}, sel);
-						const degraded = await read();
-						const cdp = await page.context().newCDPSession(page);
-						await cdp.send("Emulation.setEmulatedMedia", {
-							features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
+						// BOTH NODES, ALWAYS. Reading only the one a state happens to paint is
+						// this file's oldest trap, and here it would report a missing rail arm
+						// as a pass. STRINGS, never parsed colours: Chrome computes
+						// color-mix() to oklab(), which this repo has been bitten by reading
+						// as near-black. Identity and difference need no parser.
+						seen[material] = await page.evaluate(() => {
+							const read = (q) => {
+								const cs = getComputedStyle(document.querySelector(q));
+								return [cs.backgroundColor, cs.backgroundImage, cs.boxShadow, cs.borderInlineEndWidth].join(" ~ ");
+							};
+							return {
+								paint: read(".body-sidebar-container") + " || " + read(".body-sidebar-container .body-sidebar"),
+								hue: getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-cat-1").trim(),
+							};
 						});
-						const full = await read();
-						await cdp.send("Emulation.setEmulatedMedia", { features: [] });
-						return { degraded, full };
-					};
-					const solid = await paint("Solid");
-					const glass = await paint("Glass");
-					const blurred = await paint("Blurred Glass");
-
-					// STRINGS, NEVER PARSED COLOURS: Chrome computes color-mix() to
-					// oklab(), which this repo has already been bitten by reading as
-					// near-black. Identity and difference answer this without a parser
-					// that could guess.
-					expect(solid.full.bg && solid.full.bg !== "rgba(0, 0, 0, 0)",
-						`premise (${rail}): the pane paints a background (${solid.full.bg})`);
-					expect(glass.full.bg !== solid.full.bg,
-						`${rail}: Glass differs from Solid -- not two options and one pixel`);
-					expect(blurred.full.bg !== solid.full.bg,
-						`${rail}: and so does Blurred Glass`);
-					expect(/blur\(/.test(blurred.full.filter),
-						`${rail}: Blurred Glass frosts what shows through (${blurred.full.filter})`);
-
-					// THE DEGRADATION, BOTH HALVES OR NEITHER. Asked for less
-					// transparency, both glasses become the designed solid: opaque AND
-					// unfrosted. Half a degradation is worse than none -- it removes the
-					// frosting that made the transparency tolerable.
-					expectEq(glass.degraded.bg, solid.degraded.bg,
-						`${rail}: reduced transparency returns Glass to the solid pane`);
-					expectEq(blurred.degraded.bg, solid.degraded.bg,
-						`${rail}: and Blurred Glass with it`);
-					expectEq(blurred.degraded.filter, "none",
-						`${rail}: with the frosting gone too (${blurred.degraded.filter})`);
+					}
+					for (let i = 0; i < surfaces.length; i++) {
+						for (let j = i + 1; j < surfaces.length; j++) {
+							expect(
+								seen[surfaces[i]].paint !== seen[surfaces[j]].paint,
+								`${state}: ${surfaces[i]} and ${surfaces[j]} render the same pane ` +
+									`(${seen[surfaces[i]].paint})`
+							);
+						}
+					}
+					// (c), light half: the fit APPLIES, and both tinted surfaces get the
+					// same one — one number in palette.py, one block in the stylesheet.
+					expectEq(seen["Solid"].hue.toLowerCase(), fits.light, `${state}: Solid carries the untinted fit`);
+					expectEq(seen["Tinted"].hue.toLowerCase(), fits.lightTint, `${state}: Tinted carries its own fit`);
+					expectEq(seen["Gradient"].hue.toLowerCase(), fits.lightTint, `${state}: and Gradient shares it`);
 				}
+
+				// (c), THE HALF THAT CATCHES THE SPECIFICITY BUG. Mutate and read in
+				// SEPARATE evaluates — getComputedStyle has served a stale value when an
+				// attribute was changed and re-read inside one call, which this repo has
+				// recorded and paid for.
+				setSettings({
+					sidebar_enabled: 1, sidebar_pane_state: "Open",
+					sidebar_material: "Tinted", sidebar_placement: "Attached",
+				});
+				await goDesk("/app/selling", "body", 3000);
+				await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
+				const darkHue = await page.evaluate(() =>
+					getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-cat-1").trim()
+				);
+				await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+				expectEq(darkHue.toLowerCase(), fits.darkTint,
+					"a dark desk on Tinted takes the DARK tinted fit, not the light one");
+
+				// AND FLOATING DOES NOT STACK. Floating already draws a shadow; Elevated
+				// reuses the same token deliberately, so the two must resolve to ONE
+				// shadow rather than a smear. Half a rule beating half of a pair is the
+				// regression shape this repo has recorded twice.
+				setSettings({
+					sidebar_enabled: 1, sidebar_pane_state: "Open",
+					sidebar_material: "Elevated", sidebar_placement: "Floating",
+				});
+				await goDesk("/app/selling", "body", 3000);
+				const floating = await page.evaluate(() => {
+					const cs = getComputedStyle(document.querySelector(".body-sidebar-container"));
+					return { shadow: cs.boxShadow, edge: cs.borderInlineEndStyle };
+				});
+				expect(floating.shadow && floating.shadow !== "none",
+					`Floating + Elevated keeps a shadow (${floating.shadow})`);
+				// AGAINST FLOATING ALONE, not against a layer count. `--bnd-shadow-lg`
+				// is itself a three-layer shadow, so counting layers said "3" for the
+				// one shadow this asserts -- the check measured the token, not the
+				// question. Two rules setting `box-shadow` cannot stack in CSS; one
+				// wins. The claim is that the winner is the SAME value Floating draws
+				// on its own, which is what "they never stack" actually means here.
+				setSettings({ sidebar_material: "Solid", sidebar_placement: "Floating" });
+				await goDesk("/app/selling", "body", 3000);
+				const plainFloat = await page.evaluate(() =>
+					getComputedStyle(document.querySelector(".body-sidebar-container")).boxShadow
+				);
+				expectEq(floating.shadow, plainFloat,
+					`Elevated adds no second shadow to a floating card (${floating.shadow})`);
+				expect(floating.edge !== "none",
+					"and Elevated has not cut a hole in the floating card's own border");
 			} finally {
 				setSettings(before);
 			}
@@ -6055,7 +6315,10 @@ print("ok")
 			// every other row in _layouts.scss's own-then-hide block.
 			//
 			// Watched failing before: the link visible at the foot, no token, no item.
-			setSettings({ desk_layout: "Top Taskbar", user_placement: "Top Bar End" });
+			// A VISIBLE PANE is this check's premise — the link it is about lives at the
+			// pane's foot — and since slice 9 the taskbar rows start it Hidden, so the
+			// state has to be said rather than assumed from the container.
+			setSettings({ desk_layout: "Top Taskbar", user_placement: "Top Bar End", sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", ".body-sidebar", 3000);
 			await sbEnsureExpanded();
 			const m = await page.evaluate(() => {
@@ -6133,6 +6396,59 @@ print("ok")
 			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
 		});
 
+		await test("layout: each row starts the pane where its own shape needs it", async () => {
+			// ITEM 42, SLICE 9. The catalogue's third half. Containers say which strips
+			// exist and tenants say what sits in them; neither could say how much of the
+			// PANE a shape starts with — which is the difference between a taskbar and a
+			// side-pane desk, and the reason Rail + Flyout could not be a row until the
+			// field existed. `check_layout_identity` refuses two rows it cannot tell
+			// apart, so this asserts the rendered consequence rather than the table.
+			const rows = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import LAYOUT_PANE\n" +
+					"print(json.dumps(LAYOUT_PANE))\n"
+				).trim().split("\n").pop()
+			);
+			expect(Object.keys(rows).length >= 5, `every row states a pane state (${Object.keys(rows).length})`);
+			const before = getSettings(["sidebar_pane_state", "start_placement"]);
+			try {
+				for (const [layout, want] of Object.entries(rows)) {
+					setSettings({ desk_layout: layout });
+					await goDesk("/app/selling", "body", 3500);
+					const r = await page.evaluate(() => {
+						const c = document.querySelector(".body-sidebar-container");
+						const vis = (x) => {
+							const e = document.querySelector(x);
+							if (!e) return false;
+							const cs = getComputedStyle(e);
+							return cs.display !== "none" && e.getClientRects().length > 0;
+						};
+						return {
+							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+							shown: !!c && getComputedStyle(c).display !== "none",
+							width: c ? Math.round(c.getBoundingClientRect().width) : 0,
+							pill: vis(".bnd-sb-pill"),
+						};
+					});
+					expectEq(r.state, want.toLowerCase(), `${layout}: the pane starts ${want}`);
+					// AND THE STATE IS RENDERED, not merely stamped: an attribute nothing
+					// acts on is the defect this project keeps finding in its own pickers.
+					if (want === "Hidden") {
+						expectEq(r.shown, false, `${layout}: and the pane really goes`);
+						expect(r.pill, `${layout}: leaving the brand pill`);
+					} else if (want === "Rail") {
+						expect(r.shown && r.width > 0 && r.width <= 80, `${layout}: a rail, not a pane (${r.width}px)`);
+						expectEq(r.pill, false, `${layout}: and no pill — the pane is right there`);
+					} else {
+						expect(r.shown && r.width > 150, `${layout}: the pane is open (${r.width}px)`);
+						expectEq(r.pill, false, `${layout}: and no pill`);
+					}
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("start: the taskbar button opens the pane, closes it, and says which", async () => {
 			// ITEM 42, SLICE 7. The control that makes a taskbar a taskbar. It builds
 			// no surface — it moves the pane between the states slice 8 defined — so
@@ -6165,29 +6481,41 @@ print("ok")
 				expect(a.inBar, "in the bottom bar the layout switches on");
 				expectEq(a.zone, "start", "at the bar's start — which is what its name claims");
 				expect((a.label || "").length > 0, "and it is named for AT");
-				expectEq(a.state, "open", "precondition: the pane is open");
-				expectEq(a.aria, "true", "so it says expanded BEFORE anybody clicks it");
+				// THE TASKBAR STARTS HIDDEN (slice 9): a Windows-style bar beside an
+				// already-open pane is not the shape this row draws, and the start button
+				// is the affordance that makes it a taskbar. So the round trip begins
+				// where the layout leaves it rather than where the old default did.
+				expectEq(a.state, "hidden", "the Taskbar row starts with the pane away");
+				expectEq(a.pane, false, "so there is nothing of it on screen");
+				expectEq(a.aria, "false", "and the button says collapsed BEFORE anybody clicks it");
 
 				await page.click('[data-bnd-part="start"]');
 				await page.waitForTimeout(700);
 				const b2 = await snap();
-				expectEq(b2.state, "hidden", "one click takes the pane away");
-				expectEq(b2.pane, false, "and it really goes");
-				expectEq(b2.aria, "false", "and the button says so");
+				expectEq(b2.state, "open", "one click brings the pane back");
+				expectEq(b2.pane, true, "and it really returns");
+				expectEq(b2.aria, "true", "and the button says so");
 
 				await page.click('[data-bnd-part="start"]');
 				await page.waitForTimeout(700);
 				const c2 = await snap();
-				expectEq(c2.state, "open", "the next click brings it back");
-				expectEq(c2.pane, true, "and it really returns");
-				expectEq(c2.aria, "true", "and the button says that too");
+				expectEq(c2.state, "hidden", "the next click takes it away again");
+				expectEq(c2.pane, false, "and it really goes");
+				expectEq(c2.aria, "false", "and the button says that too");
 
 				// OFF IS OFF, and costs no route: the pane keeps its own handle.
 				setSettings({ start_placement: "Off" });
 				await goDesk("/app/selling", "body", 3500);
 				const off = await snap();
 				expectEq(off.btn, false, "Off removes it");
-				expect(off.pane, "and the pane is still reachable without it");
+				// AND COSTS NO ROUTE: the pane is Hidden on this row, so "reachable" is
+				// about the CONTAINER still being on — Frappe's page-title toggle and the
+				// pane's own handle both act on it, and the pill's button is right there.
+				const route = await page.evaluate(() => ({
+					container: !!document.querySelector(".body-sidebar-container"),
+					pill: !!document.querySelector(".bnd-sb-pill-open"),
+				}));
+				expect(route.container && route.pill, `the pane is still reachable without it (${JSON.stringify(route)})`);
 			} finally {
 				setSettings(before);
 			}
@@ -6247,6 +6575,80 @@ print("ok")
 						expect(r.pillName.length > 0, "Hidden: and names the company");
 					}
 				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: a state change does not cost the pane its bell and its account", async () => {
+			// THE SHARPEST DEFECT THIS ITEM SHIPPED, and it took the matrix's new
+			// pane-state axis to find it. `sb_teardown_pane_utils` removed
+			// `.bnd-sb-band` along with `.bnd-sb-utils` — but the band is a SHELL, and
+			// what is inside it are the placed TENANTS, which belong to
+			// `mount_placed_tenants` and not to that part. Nothing in the pane's mount
+			// ladder put them back.
+			//
+			// So ONE `sb_apply` — a settings click, the start button, the pill's way
+			// back — left a Unified Side Pane desk with NO ROUTE TO LOG OUT until the
+			// page was reloaded. Measured before the fix: after a single
+			// `pane_state("Open")` on an ALREADY-OPEN pane, `.bnd-avatar-btn` was gone
+			// from the DOM and did not return at any state.
+			//
+			// A NO-OP WRITE IS THE FIRST CASE ON PURPOSE. Open → Open changes no
+			// attribute and no pixel, so a check that only drove real transitions
+			// would have called the teardown a consequence of the state rather than of
+			// the apply, and looked for the bug in the wrong half.
+			//
+			// WHAT IT ACTUALLY HOLDS, established by sabotaging each half in turn: the
+			// `tenants` row in SB_PARTS. Restoring the band's removal to
+			// `sb_teardown_pane_utils` leaves this GREEN — the tenants part rebuilds it
+			// either way — and deleting the row turns it red with the measured symptom
+			// verbatim. Saying so here is the difference between a check whose subject
+			// is known and one that passes for a reason nobody has looked at.
+			const before = getSettings(["sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({
+					...CHROME_DEFAULTS,
+					desk_layout: "Unified Side Pane",
+					inbox_placement: "Side Pane End",
+					user_placement: "Side Pane End",
+				});
+				await goDesk("/app/selling", "body", 4000);
+				await page.waitForFunction(
+					() => window.bunood_theme && window.bunood_theme.pane_state,
+					null, { timeout: 20000 }
+				);
+				const read = () =>
+					page.evaluate(() => ({
+						state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+						// IN THE DOM, not merely visible: Hidden legitimately hides them (they
+						// are in the pane), and the defect was that they stopped EXISTING.
+						avatar: !!document.querySelector(".bnd-avatar-btn"),
+						bell: !!document.querySelector('[data-bnd-part="bell"]'),
+						band: !!document.querySelector(".bnd-sb-band"),
+					}));
+				const start = await read();
+				expect(start.avatar && start.bell && start.band,
+					`premise: the pane carries the band and both tenants (${JSON.stringify(start)})`);
+
+				for (const state of ["Open", "Rail", "Hidden", "Open"]) {
+					await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+					await page.waitForTimeout(900);
+					const now = await read();
+					expect(now.avatar && now.bell && now.band,
+						`after pane_state(${state}): the band and both tenants survive ` +
+						`(${JSON.stringify(now)})`);
+				}
+
+				// AND THE GUARD REACHES THE RUNTIME GESTURE. It runs at mount; the start
+				// button and the pill are clicks. On THIS desk every route to identity is
+				// inside the pane, so Hidden has to be refused — the same two arms the
+				// check below asserts for the mount path, one gesture later.
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden"));
+				await page.waitForTimeout(900);
+				const refused = await read();
+				expectEq(refused.state, "open",
+					"hiding a pane that carries the only Log Out is refused at runtime too");
 			} finally {
 				setSettings(before);
 			}
@@ -6465,7 +6867,7 @@ print("ok")
 			// and timed out waiting for a head on a desk whose pane the previous
 			// check had left switched off — which reads as the feature missing.
 			const before = getSettings(["sidebar_enabled"]);
-			setSettings({ sidebar_enabled: 1 });
+			setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.click(".bnd-sb-head");
@@ -6551,7 +6953,7 @@ print("ok")
 			// Scoped to observations of a node INSIDE the pane, because
 			// `remount_chrome` legitimately builds observers for other chrome and
 			// a bare count would measure those too.
-			setSettings({ sidebar_enabled: 1 });
+			setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -6598,7 +7000,7 @@ print("ok")
 			// there.
 			const before = getSettings(["sidebar_enabled"]);
 			try {
-				setSettings({ sidebar_enabled: 1 });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 
@@ -6658,7 +7060,7 @@ print("ok")
 			// fixes, a generous timeout passes for the wrong reason.
 			const before = getSettings(["sidebar_enabled", "sidebar_badges"]);
 			try {
-				setSettings({ sidebar_enabled: 1, sidebar_badges: "Counts" });
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", sidebar_badges: "Counts" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 				// Let the first fetch land and stamp the throttle.
@@ -6696,28 +7098,24 @@ print("ok")
 			}
 		});
 
-		await test("sidepane: the three pane materials render three different panes", async () => {
-			// THE DEFECT THIS AXIS HAD. material x opacity x blur was thirty
-			// combinations and Solid collapsed fifteen of them onto one pixel --
-			// `presets.py` said so in a comment. The merge is only honest if what
-			// SURVIVES is three visibly different panes, so this measures the
-			// RENDERED surface: an attribute assertion would pass just as happily
-			// for three identical panes, which is the two-options-one-pixel trap
-			// the picker vocabulary exists to prevent.
+		await test("sidepane: no surface asks the compositor for transparency", async () => {
+			// THE PREMISE A DELETED BLOCK RESTS ON (item 42, slice S). This used to
+			// assert that Solid, Glass and Blurred Glass were three different panes,
+			// and it found the sharpest bug the pane has had: the reduced-transparency
+			// degradation weighed (0,2,1) against a translucent surface rule carrying a
+			// `:not()` at (0,3,1), so it lost the background and won only the blur — a
+			// pane left 75% transparent with its frosting removed, the ONE combination
+			// the degradation exists to prevent. It survived because HEADLESS CHROMIUM
+			// REPORTS `prefers-reduced-transparency: reduce`, so every desk this suite
+			// had ever driven was in the degraded branch and nothing had looked.
 			//
-			// AND IT MEASURES BOTH TRANSPARENCY REGIMES, because writing the first
-			// version found that HEADLESS CHROMIUM REPORTS `prefers-reduced-
-			// transparency: reduce`. So every desk this suite has ever driven was
-			// in the degraded branch, nothing had ever looked at it, and it was
-			// broken: the reduce block weighed (0,2,1) against a translucent
-			// surface rule carrying a `:not()` at (0,3,1), so it lost the
-			// background and won only the blur -- a pane left 75% transparent with
-			// its frosting removed, which is the single combination the
-			// degradation exists to prevent.
-			//
-			// Read `.body-sidebar-container` by COMPUTED STYLE rather than a rect:
-			// that is what the rules target, the container is not reliably laid out
-			// on this site, and nothing here needs it to be.
+			// Both glasses are retired, the degradation block went with them, and the
+			// six surfaces that replaced them are all opaque. THAT IS NOW A PREMISE
+			// RATHER THAN AN OBSERVATION, so it is asserted: every surface, in BOTH
+			// transparency regimes, fully opaque and asking for no backdrop filter. Add
+			// a translucent surface without restoring the degradation and this goes red
+			// — which is the only thing standing between the next author and that bug
+			// a third time.
 			const before = getSettings(["sidebar_material"]);
 			try {
 				const alpha = (bg) => {
@@ -6732,28 +7130,40 @@ print("ok")
 						const parts = c[1].split("/").map((x) => x.trim());
 						return parts.length > 1 ? parseFloat(parts[1]) : 1;
 					}
-					// A gradient (brand mode) or a keyword: not a colour, so refuse
-					// rather than guess. A helper that guesses at an unrecognised
-					// input is how `triple()` read oklab() as near-black.
+					// A keyword or a gradient: not a colour, so refuse rather than guess. A
+					// helper that guesses at an unrecognised input is how `triple()` read
+					// oklab() as near-black.
 					throw new Error("cannot read an alpha from " + JSON.stringify(bg));
 				};
+				// Every colour in a paint string. `none` and keywords contribute
+				// nothing; a bare `rgb(...)` is opaque and is returned so the caller's
+				// loop is never empty, which would pass by measuring nothing.
+				const paints = (s) => {
+					const found = String(s || "").match(/rgba?\([^)]*\)|color\(srgb[^)]*\)/g) || [];
+					return found.length ? found : ["rgb(0, 0, 0)"];
+				};
 
-				const surfaces = {};
-				for (const material of ["Solid", "Glass", "Blurred Glass"]) {
+				// The catalogue is read, never typed — a surface added to the field must
+				// not be able to slip past this.
+				const surfaces = JSON.parse(
+					benchPy(
+						"f = frappe.get_meta('Theme Settings').get_field('sidebar_material')\n" +
+						"print(json.dumps([o for o in (f.options or '').split(chr(10)) if o.strip()]))\n"
+					).trim().split("\n").pop()
+				);
+				expect(surfaces.length >= 6, `the field offers every surface (${surfaces.length})`);
+
+				for (const material of surfaces) {
 					setSettings({ sidebar_material: material });
-					// NO attribute wait here, deliberately, and the active-style walk
-					// below explains why one is needed there: this walk runs in a FRESH
-					// CONTEXT as another user, where a `waitForFunction` on the
-					// attribute times out rather than settling. Its own three-frame
-					// settle plus the alpha assertions are what guard it.
-					// A FRESH CONTEXT, not the shared page: this emulates a media
-					// feature, and this suite's own rule at `withGuest` is that
-					// emulation leaks off the shared page.
-					surfaces[material] = await withDeskUser("/app", "body", async (dp) => {
-						// Poll until three consecutive frames agree: the pane carries
-						// a transition, and a value read mid-fade has reported a
-						// settled pair as failing in this repo -- and, worse, the
-						// other way round.
+					// A FRESH CONTEXT, not the shared page: this emulates a media feature,
+					// and this suite's own rule at `withGuest` is that emulation leaks off
+					// the shared page. No attribute wait — in a fresh context as another
+					// user a `waitForFunction` on the attribute times out rather than
+					// settling; the three-frame settle below is the guard.
+					const seen = await withDeskUser("/app", "body", async (dp) => {
+						// Poll until three consecutive frames agree: the pane carries a
+						// transition, and a value read mid-fade has reported a settled pair
+						// as failing in this repo — and, worse, the other way round.
 						const settle = () =>
 							dp.evaluate(() =>
 								new Promise((done) => {
@@ -6763,13 +7173,24 @@ print("ok")
 									let frames = 0;
 									const tick = () => {
 										const cs = getComputedStyle(el);
-										seen.push(cs.backgroundColor + "|" + (cs.backdropFilter || "none"));
+										// COLOUR **AND** IMAGE, AS SEPARATE FIELDS. A gradient
+										// surface leaves `background-color` at rgba(0,0,0,0) and
+										// puts every stop in `background-image`, so the colour
+										// alone reported an opaque gradient as transparent. Joining
+										// them into one string was the next draft's mistake: the
+										// base colour then had to be parsed back out of a run that
+										// contains commas and spaces of its own.
+										seen.push(
+											cs.backgroundColor + "|" + (cs.backgroundImage || "none") +
+												"|" + (cs.backdropFilter || "none")
+										);
 										const n = seen.length;
 										if (n >= 3 && seen[n - 1] === seen[n - 2] && seen[n - 2] === seen[n - 3]) {
-											const [bg, filter] = seen[n - 1].split("|");
-											return done({ bg, filter });
+											const [bg, img, filter] = seen[n - 1].split("|");
+											return done({ bg, img, filter });
 										}
-										if (++frames > 90) return done({ bg: "(unsettled)", filter: "(unsettled)" });
+										if (++frames > 90)
+											return done({ bg: "(unsettled)", img: "(unsettled)", filter: "(unsettled)" });
 										requestAnimationFrame(tick);
 									};
 									requestAnimationFrame(tick);
@@ -6783,31 +7204,27 @@ print("ok")
 						const full = await settle();
 						return { degraded, full };
 					});
-					expect(surfaces[material].full, `the pane container is in the document under ${material}`);
-				}
-
-				const solid = surfaces["Solid"].full;
-				const glass = surfaces["Glass"].full;
-				const blurred = surfaces["Blurred Glass"].full;
-
-				// Given transparency, three materials are three different panes.
-				expectEq(alpha(solid.bg), 1, `Solid is opaque (${solid.bg})`);
-				expectEq(solid.filter, "none", `Solid asks the compositor for nothing (${solid.filter})`);
-				expect(alpha(glass.bg) < 1, `Glass lets the page through (${glass.bg})`);
-				expect(alpha(blurred.bg) < 1, `Blurred glass lets the page through (${blurred.bg})`);
-				expect(/blur\(/.test(blurred.filter), `Blurred glass frosts what shows through (${blurred.filter})`);
-				expectEq(glass.filter, "none", `plain Glass does not (${glass.filter})`);
-				expect(alpha(blurred.bg) < alpha(glass.bg),
-					`blurred sits lighter than plain glass (${alpha(blurred.bg)} vs ${alpha(glass.bg)})`);
-
-				// And asked for less transparency, BOTH glasses become the designed
-				// solid -- opaque and unfrosted, not one without the other.
-				for (const material of ["Glass", "Blurred Glass"]) {
-					const d = surfaces[material].degraded;
-					expectEq(alpha(d.bg), 1,
-						`${material} degrades to the designed solid under reduced transparency (${d.bg})`);
-					expectEq(d.filter, "none",
-						`${material} drops its frosting with its translucency, not instead of it (${d.filter})`);
+					expect(seen && seen.full, `the pane container is in the document under ${material}`);
+					// BOTH REGIMES. The whole point is that they are the same now: an
+					// opaque surface has nothing to degrade, so asking for less
+					// transparency changes nothing — and if one day it does, the branch
+					// nobody looks at is the one every test runs in.
+					for (const [regime, r] of [["asked for less", seen.degraded], ["given full", seen.full]]) {
+						// THE COMPOSITE, not every layer. An opaque base `background-color`
+						// makes the surface opaque however translucent the layers over it
+						// are -- Textured's grain is a 9% stripe of ink ON the pane, and a
+						// per-layer rule called that a translucent pane. Where there is no
+						// base colour (Gradient sets the shorthand, which resets it) every
+						// stop has to carry its own opacity, and there the strict reading is
+						// the right one.
+						const layers = alpha(r.bg) === 1 ? [r.bg] : paints(r.img);
+						for (const c of layers) {
+							expectEq(alpha(c), 1,
+								`${material}, ${regime}: the pane is opaque (${c}; base ${r.bg}, image ${r.img})`);
+						}
+						expectEq(r.filter, "none",
+							`${material}, ${regime}: and asks the compositor for nothing (${r.filter})`);
+					}
 				}
 			} finally {
 				setSettings(before);
@@ -7516,10 +7933,14 @@ print("ok")
 			// "Dock" used to mean "dock, and therefore no side pane" — one
 			// layout, two facts, no way to take them apart. Ask for both and you
 			// get both, exactly like any other pair.
+			// THE PANE'S STATE IS STATED, because since slice 9 `sidebar_enabled: 1` no
+			// longer implies a pane you can see — Top Taskbar starts Hidden, and this
+			// check is about two CONTAINERS coexisting, not about the pane's state.
 			setSettings({
 				desk_layout: "Top Taskbar",
 				dock_enabled: 1,
 				sidebar_enabled: 1,
+				sidebar_pane_state: "Open",
 			});
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".bnd-dock"), "a dock");
@@ -7563,11 +7984,13 @@ print("ok")
 			// The catalogue, the toggles and the slot vocabularies are READ from
 			// `registry`, never restated here -- one table, several consumers.
 			const raw = benchPy(
-				"from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS, COMPONENTS, slots_for\n" +
+				"from bunood_theme.registry import (LAYOUT_CHROME, LAYOUT_TENANTS, LAYOUT_PANE,\n" +
+				"                                   CONTAINERS, COMPONENTS, slots_for)\n" +
 				"from bunood_theme.presets import DEFAULT_DESK_LAYOUT\n" +
 				"print(json.dumps({\n" +
 				"  'chrome': LAYOUT_CHROME,\n" +
 				"  'tenants': LAYOUT_TENANTS,\n" +
+				"  'pane': LAYOUT_PANE,\n" +
 				"  'toggles': [[c['key'], c['toggle']] for c in CONTAINERS if c.get('toggle')],\n" +
 				"  'slots': {c['key'] + '_placement': slots_for(c['key']) for c in COMPONENTS if c['key'] in ('inbox', 'user', 'search')},\n" +
 				"  'default': DEFAULT_DESK_LAYOUT,\n" +
@@ -7612,6 +8035,11 @@ print("ok")
 
 			try {
 				for (const layout of Object.keys(cat.chrome)) {
+					// THE ROW'S OWN STATE, not a forced Open (item 42, slice 10).
+					// `setSettings` writes the layout preset first, and the preset now
+					// carries `sidebar_pane_state` -- so naming Open here overrode three
+					// of five rows into a configuration they do not ship, and the taskbar
+					// shapes were never once walked in the state a user actually gets.
 					setSettings({ desk_layout: layout });
 					await goDesk("/desk/item", ".page-head", 4500);
 					const row = cat.chrome[layout];
@@ -7638,6 +8066,41 @@ print("ok")
 							await cell(`${layout}: ${field}=${slot}`);
 						}
 					}
+					// (c) THE THIRD AXIS (item 42, slice 10): every state of the pane, in
+					// every layout. A SEPARATE SHORT WALK rather than a third nested loop,
+					// on purpose -- the switch matrix is ~150 cells and tripling it would
+					// cost half an hour to say what fifteen cells already say. What it asks
+					// is the question the state axis actually opened: Hidden removes the
+					// pane, so a desk whose only routes to identity were inside it has none,
+					// and the guard has to see the second way to hide a pane as well as the
+					// first.
+					for (const state of ["Open", "Rail", "Hidden"]) {
+						await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+						await cell(`${layout}: pane=${state}`);
+					}
+					// ...and back to the row's own, so the next layout starts clean.
+					await page.evaluate(
+						(v) => window.bunood_theme.pane_state(v), cat.pane[layout] || "Open"
+					);
+
+					// (d) THE ROUND TRIP (item 42, slice 10). Every switch above was flipped
+					// and put back, so the STORED state must be the row's again -- and a
+					// layout's name is DERIVED from that state by exact comparison, never
+					// stored. `layout_of` is therefore the one assertion that can tell a
+					// restore which missed a field from one that did not: a single value left
+					// behind makes the whole comparison miss and the desk reads "Custom"
+					// forever. Per layout rather than once at the end, because at the end only
+					// the LAST row's restore is still visible.
+					const derived = benchPy(
+						"from bunood_theme.presets import layout_of\n" +
+							"doc = frappe.get_cached_doc('Theme Settings')\n" +
+							"print('BND_LAYOUT=' + (layout_of(doc.as_dict()) or ''))\n"
+					)
+						.split(/\r?\n/)
+						.find((l) => l.startsWith("BND_LAYOUT="));
+					expectEq(String(derived).slice("BND_LAYOUT=".length), layout,
+						`${layout}: the derived label survives its own switches`);
+
 					const fresh = consoleErrors.slice(errs0);
 					if (fresh.length) found.push(`${layout}: ${fresh.length} console/page error(s) -- ${fresh[0]}`);
 				}
@@ -7688,7 +8151,7 @@ print("ok")
 			// so it is checked. This drives the check directly, because the
 			// state it defends against is a mount FAILURE that no setting can
 			// produce.
-			setSettings({
+			setSettings({ sidebar_pane_state: "Open",
 				desk_layout: "Top Taskbar",
 				sidebar_enabled: 0,
 				topbar_enabled: 1,
@@ -7752,6 +8215,10 @@ print("ok")
 				benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
 					.trim().split("\n").pop()
 			);
+			const pane = JSON.parse(
+				benchPy(`from bunood_theme.registry import LAYOUT_PANE\nprint(json.dumps(LAYOUT_PANE))\n`)
+					.trim().split("\n").pop()
+			);
 			const SELECTOR = {
 				topbar: ".bnd-topbar",
 				pagehead: ".page-head .bnd-cluster",
@@ -7770,10 +8237,17 @@ print("ok")
 						`${layout}: ${key} present, catalogue says ${chrome[layout][key]}`
 					);
 				}
+				// TWO QUESTIONS SINCE SLICE 9, and this used to ask one. `sidepane` says
+				// whether the CONTAINER is on; `sidebar_pane_state` says how much of the
+				// pane is on screen. Every row keeps the container now — the taskbars
+				// hide the pane instead, so their start button has something to open —
+				// and a check that reads visibility off the container's cell reports a
+				// correct desk as broken.
+				const wantHidden = !chrome[layout].sidepane || pane[layout] === "Hidden";
 				expectEq(
 					await paneHidden(),
-					!chrome[layout].sidepane,
-					`${layout}: side pane hidden, catalogue says sidepane ${chrome[layout].sidepane}`
+					wantHidden,
+					`${layout}: side pane hidden, catalogue says sidepane ${chrome[layout].sidepane} and pane ${pane[layout]}`
 				);
 			}
 		});
@@ -7793,7 +8267,7 @@ print("ok")
 			// (Rail + Flyout joins in slice 8). Named here on purpose - this is
 			// the one place the suite states WHICH rows exist, so a row added or
 			// dropped by accident fails by name.
-			const layouts = ["Unified Side Pane", "Taskbar", "Top Taskbar", "Floating Bar"];
+			const layouts = ["Unified Side Pane", "Taskbar", "Top Taskbar", "Floating Bar", "Rail + Flyout"];
 			expectEq(Object.keys(chrome).sort().join(","), [...layouts].sort().join(","), "the catalogue is exactly these rows");
 			// One row per split container: the layout it belongs to writes 1 and
 			// every other layout writes 0. Stated per container rather than as a
@@ -7814,7 +8288,12 @@ print("ok")
 			// The side pane is the other way round: every layout keeps it except
 			// Floating Bar, where the dock IS the navigation.
 			for (const l of layouts) {
-				expectEq(chrome[l].sidepane, l === "Floating Bar" ? 0 : 1, `${l}'s side pane`);
+				// EVERY ROW KEEPS THE PANE since slice 9. Floating Bar used to switch the
+				// container off, which left its own start button with nothing to open and
+				// the pill with nothing to restore; it hides the pane instead, which is
+				// the same desk at rest and a reachable pane one click away. How much of
+				// the pane a row starts with is LAYOUT_PANE's answer, asserted below.
+				expectEq(chrome[l].sidepane, 1, `${l} keeps the pane`);
 			}
 			// EVERY layout keeps the ambient strip, Classic included. That was
 			// settled on 2026-08-06 when `status_in_classic` was deleted to make
@@ -8189,6 +8668,12 @@ print("ok")
 					`from bunood_theme.registry import LAYOUT_CHROME\nprint(json.dumps(len(LAYOUT_CHROME)))\n`
 				).trim().split("\n").pop()
 			);
+			const iconCount = JSON.parse(
+				benchPy(
+					"f = frappe.get_meta('Theme Settings').get_field('icon_style')\n" +
+						"print(json.dumps(len([o for o in (f.options or '').split(chr(10)) if o.strip()])))\n"
+				).trim().split("\n").pop()
+			);
 			const EXPECTED = {
 				theme_picker: { cards: themeCount },
 				layout_picker: { cards: layoutCount },
@@ -8265,7 +8750,9 @@ print("ok")
 				// option chips across four groups — 4 weights, 3 missing-icon
 				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
 				// specimen is aria-hidden decoration, not a control.
-				icons_picker: { cards: 6, toggles: 0, opts: 13 },
+				// DERIVED, for the third time in this object and for the same reason: a
+				// literal 6 here outlived the six icon styles by exactly one slice.
+				icons_picker: { cards: iconCount, toggles: 0, opts: 13 },
 				// The three below joined this map in item 35 — web and email had been
 				// MISSING since their items shipped (only the fingerprint fixture
 				// covered them; a picker that silently rendered nothing would have
@@ -8540,7 +9027,13 @@ print("ok")
 					}));
 				}, key);
 
-			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Top Bar End", status_style: "Quiet" });
+			// THE PANE IS OPEN for the first arm, because this arm is about the slots a
+			// LAYOUT cannot honour — its regions. Since slice 8 a hidden pane is a
+			// second, correct reason to warn Side Pane slots (the tenant would land
+			// somewhere nobody can see), and since slice 9 the taskbar rows start Hidden
+			// — so without this the arm measures both reasons at once and reads as a
+			// regression in the one it was written for.
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Top Bar End", status_style: "Quiet", sidebar_pane_state: "Open" });
 			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 			await page.click('.bnd-shell-item[data-key="inbox"]');
 			await page.waitForTimeout(500);
@@ -9117,7 +9610,7 @@ print("ok")
 			);
 			const before = getSettings(["home_placement", "apps_placement"]);
 			try {
-				setSettings({ home_placement: "Top Bar End", sidebar_enabled: 1 });
+				setSettings({ home_placement: "Top Bar End", sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
 				await page.click('.bnd-shell-item[data-key="links"]');
 				await page.waitForSelector('[data-fieldname="links_picker"] .bnd-cbp-reset', { timeout: 15000 });
@@ -9185,22 +9678,26 @@ print("ok")
 				await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
 				await page.click('.bnd-lp-card[data-value="Taskbar"]');
 				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 20000 });
-				const got = getSettings([
-					"topbar_enabled", "bottombar_enabled",
-					"inbox_placement", "user_placement", "search_placement",
-				]);
-				// The container half, which always worked.
-				expectEq(String(got.topbar_enabled), "0", "Taskbar switched the top bar off");
-				expectEq(String(got.bottombar_enabled), "1", "Taskbar switched the bottom bar on");
-				// The half that did not: every tenant must now name a region the
-				// layout actually mounts. Read the catalogue rather than pinning
-				// literals — the table is the fact, this is its consumer.
+				// THE EXPECTATION COMES FROM THE CATALOGUE, never a list typed here: a
+				// fixed one is the second copy that goes stale, and it did — the card
+				// gained `start_placement` and the read came back undefined for it, which
+				// is how the missing write was found. Read BEFORE `got`, which asks for
+				// exactly the fields it names.
 				const want = JSON.parse(
 					benchPy(
 						"from bunood_theme.registry import LAYOUT_TENANTS\n" +
 							"print(json.dumps(LAYOUT_TENANTS['Taskbar']))\n"
 					).trim().split("\n").pop()
 				);
+				const got = getSettings([
+					"topbar_enabled", "bottombar_enabled", "sidebar_pane_state",
+					...Object.keys(want),
+				]);
+				// The container half, which always worked.
+				expectEq(String(got.topbar_enabled), "0", "Taskbar switched the top bar off");
+				expectEq(String(got.bottombar_enabled), "1", "Taskbar switched the bottom bar on");
+				// The half that did not: every tenant must now name a region the layout
+				// actually mounts.
 				for (const [field, value] of Object.entries(want)) {
 					expectEq(got[field], value, `${field} followed the layout card's promise`);
 					expect(
@@ -9454,31 +9951,49 @@ print("ok")
 			);
 		});
 
-		await test("settings: the glass merge maps every material a site could be in", async () => {
+		await test("settings: two material patches in a row leave a value the field accepts", async () => {
 			// THE BRANCH THIS SITE NEVER TAKES. demo ships Solid, so the only
 			// interesting arm -- Glass with a full blur becoming its own material
 			// -- is false here, and a branch whose guard is false on the dev site
-			// is UNTESTED, not working. So all three tenant states are simulated,
-			// the way `retire_apps_rail` was exercised before it was trusted.
+			// is UNTESTED, not working. So all the tenant states are simulated, the
+			// way `retire_apps_rail` was exercised before it was trusted.
+			//
+			// AND IT IS THE CHAIN, NOT ONE PATCH (item 42, slice S). v0_40_0's merge
+			// folded opacity and blur INTO the material and could only land on Glass
+			// or Blurred Glass; slice S retired both of those, so on a real upgrade
+			// the two run back to back and only the second one's answer is a value
+			// the field still offers. Asserting the first patch alone would leave an
+			// out-of-range Select on a Single, which is not cosmetic: the next full
+			// save of Theme Settings validates the WHOLE document, so one stale value
+			// breaks every later save of every other setting. Measured 2026-08-08,
+			// six unrelated checks red and none of them naming the cause.
 			//
 			// Solid is in the list on purpose: it is the state where the two
-			// departed fields were "inert", and inert has to mean the patch reaps
-			// them and changes nothing, not that it is never asked.
+			// departed fields were "inert", and inert has to mean the patches reap
+			// them and change nothing, not that they are never asked.
 			const CASES = [
-				{ label: "Glass + Full blur becomes Blurred Glass", material: "Glass", blur: "Full", want: "Blurred Glass" },
-				{ label: "Glass + Soft blur stays Glass", material: "Glass", blur: "Soft", want: "Glass" },
-				// Off is NOT Solid: the tenant asked for glass, and taking the
-				// translucency away because they turned the blur down would answer
-				// a question they did not ask.
-				{ label: "Glass + no blur stays Glass", material: "Glass", blur: "Off", want: "Glass" },
-				{ label: "Solid absorbs both departed fields", material: "Solid", blur: "Soft", want: "Solid" },
+				{ label: "Glass + Full blur becomes Blurred Glass, then Elevated", material: "Glass", blur: "Full", want: "Elevated" },
+				{ label: "Glass + Soft blur stays Glass, then Elevated", material: "Glass", blur: "Soft", want: "Elevated" },
+				// Off was NOT Solid at the merge: the tenant asked for glass, and taking
+				// the translucency away because they turned the blur down would have
+				// answered a question they did not ask. Slice S takes it, because the
+				// surface itself is gone -- and lands on the lift rather than the flat.
+				{ label: "Glass + no blur stays Glass, then Elevated", material: "Glass", blur: "Off", want: "Elevated" },
+				{ label: "Solid absorbs both departed fields and survives both patches", material: "Solid", blur: "Soft", want: "Solid" },
 			];
 			const before = getSettings(["sidebar_material"]);
+			const offered = JSON.parse(
+				benchPy(
+					"f = frappe.get_meta('Theme Settings').get_field('sidebar_material')\n" +
+					"print(json.dumps([o for o in (f.options or '').split(chr(10)) if o.strip()]))\n"
+				).trim().split("\n").pop()
+			);
 			try {
 				for (const c of CASES) {
 					const out = benchPy(
 						"import json\n" +
 							"from bunood_theme.patches.v0_40_0.merge_glass_material import execute\n" +
+							"from bunood_theme.patches.v0_42_0.retire_glass import execute as retire\n" +
 							"def raw(f):\n" +
 							"    rows = frappe.db.sql(\"select value from tabSingles where doctype='Theme Settings' and field=%s\", (f,))\n" +
 							"    return rows[0][0] if rows else None\n" +
@@ -9492,6 +10007,8 @@ print("ok")
 							`'${c.blur}'` + ")\")\n" +
 							`    frappe.db.set_single_value('Theme Settings', 'sidebar_material', '${c.material}')\n` +
 							"    execute()\n" +
+							"    res['merged'] = raw('sidebar_material')\n" +
+							"    retire()\n" +
 							"    res['material'] = raw('sidebar_material')\n" +
 							"    res['left'] = {f: raw(f) for f in ('sidebar_glass_opacity', 'sidebar_blur')}\n" +
 							"finally:\n" +
@@ -9504,6 +10021,12 @@ print("ok")
 					if (!line) throw new Error("glass-merge probe produced no JSON: " + String(out).slice(-300));
 					const r = JSON.parse(line.slice("BND_GM".length));
 					expectEq(r.material, c.want, c.label);
+					// AND THE END OF THE CHAIN IS LEGAL. The reason the chain is tested at
+					// all: an intermediate value the field no longer offers is fine, a
+					// final one is a document that can never be saved again.
+					expect(offered.includes(r.material),
+						`${c.label}: ${r.material} is a value the field still offers ` +
+							`(via ${r.merged}; offers ${offered.join(", ")})`);
 					expect(!r.left.sidebar_glass_opacity && !r.left.sidebar_blur,
 						`${c.label}: both departed fields are reaped (${JSON.stringify(r.left)})`);
 				}
@@ -10694,6 +11217,7 @@ print("ok")
 			setSettings({
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				sidebar_pane_state: "Open",
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 			});
 			await goDesk("/desk/item", ".page-head", 4000);
@@ -10746,8 +11270,11 @@ print("ok")
 			// are kept, because they failed for different reasons and a single
 			// config would only ever prove one of them.
 			const configs = [
+				// `sidebar_pane_state: "Open"` in both: a pill can only be measured on a
+				// pane that is on screen, and since slice 9 that is its own field rather
+				// than something the container implies.
 				{ label: "Rich wash, cards", settings: {
-					sidebar_active_style: "Solid Pill",
+					sidebar_active_style: "Solid Pill", sidebar_pane_state: "Open",
 					sidebar_hue_wash: "Rich", sidebar_section_style: "Cards",
 				} },
 				{ label: "wash off, plain", settings: {
@@ -10779,7 +11306,8 @@ print("ok")
 		});
 
 		await test("a11y: the skip link is the first Tab and it skips", async () => {
-			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, sidebar_enabled: 1 });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, sidebar_enabled: 1,
+				sidebar_pane_state: "Open" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			await page.evaluate(() => document.activeElement && document.activeElement.blur());
 			await page.keyboard.press("Tab");
@@ -10815,7 +11343,7 @@ print("ok")
 		await test("a11y: the menu takes focus when it opens, and gives it back", async () => {
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10852,7 +11380,7 @@ print("ok")
 		await test("a11y: the menu moves on arrows, wraps, and Home/End jump", async () => {
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10897,7 +11425,7 @@ print("ok")
 			// does not.
 			// Re-pointed in 8c: the avatar opens the account PANEL; the menu
 			// contract is proven on the Place row's switcher.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -10917,7 +11445,7 @@ print("ok")
 			// Re-pointed in 8c: the avatar opens the account PANEL now (a
 			// dialog, checked by its own family), so the menu contract is
 			// proven on the Place row's switcher — same component, same rules.
-			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1 });
+			setSettings({ ...CHROME_DEFAULTS, sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", "body", 3000);
 			await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
 			await page.evaluate(() => document.querySelector(".bnd-sb-head").click());
@@ -11128,6 +11656,7 @@ print("ok")
 			setSettings({
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				sidebar_pane_state: "Open",
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				inbox_style: "Bunood Inbox", palette_style: "Bunood Palette",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1, icon_crumbs: "Every Crumb",
@@ -11399,6 +11928,7 @@ print("ok")
 			setSettings({
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
+				sidebar_pane_state: "Open",
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
 				// PLACED ON PURPOSE, like the axe scan above: the quick links stand
@@ -15540,6 +16070,14 @@ print("cleared")
 				// already collapsed its own pane. Now the resting container is out
 				// of flow and the desk fills the viewport; Frappe's drawer still
 				// overlays on demand.
+				//
+				// AND IT CAUGHT ITEM 42's Hidden state reaching a breakpoint it was never
+				// written for. Top Taskbar starts the pane Hidden, `display: none
+				// !important` is what Hidden means, and below 768 the pane IS the drawer --
+				// so the hamburger opened a 0px overlay and a phone had no route to the
+				// workspace list at all. The premise is left UNSTATED on purpose: this
+				// check drives the layout a user picks and asks what a phone then gets,
+				// and pinning the pane state here would have hidden exactly this.
 				setSettings(topBar());
 				await page.setViewportSize(NARROW);
 				await goDesk("/desk/item", ".page-head", 3500);
@@ -17908,7 +18446,7 @@ print("cleared")
 					"Always Dark holds its palette on a light device"
 				);
 			} finally {
-				setSettings({ web_theme: before.web_theme });
+				setSettings({ sidebar_pane_state: "Open", web_theme: before.web_theme });
 			}
 		});
 

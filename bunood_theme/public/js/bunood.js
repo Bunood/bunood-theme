@@ -610,6 +610,7 @@
 	// names here cost nothing while SEARCH_FALLBACKS' cost a wrong placement.
 	const LAYOUT_CONTAINERS = {
 		unifiedsidepane: ["bottombar", "sidepane"],
+		"rail+flyout": ["bottombar", "sidepane"],
 		taskbar: ["bottombar", "sidepane"],
 		toptaskbar: ["topbar", "bottombar", "sidepane"],
 		// The one layout with no side pane: it hides the whole container.
@@ -1085,11 +1086,19 @@
 	 */
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
-		material: { "Solid": "solid", "Glass": "glass", "Blurred Glass": "glassblur" },
+		// Six surfaces; four icon styles. The retired labels keep entries —
+		// argument in _sidebar.scss, which Sass strips before the wire.
+		material: {
+			"Solid": "solid", "Bordered": "bordered", "Elevated": "elevated",
+			"Textured": "textured", "Tinted": "tinted", "Gradient": "gradient",
+			"Glass": "elevated", "Blurred Glass": "elevated",
+		},
 		// `color` is gone; see _sidebar.scss's head for why.
 		icons: {
-			"Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled",
-			"Duotone": "duotone", "Brand Lines": "brandlines", "Monochrome": "mono",
+			"Filled Color": "filled", "Fill on Active": "onactive",
+			"Solid Tile": "tile", "Circle Badge": "badge",
+			"Colored Chips": "tile", "Colored Dots": "badge",
+			"Duotone": "filled", "Brand Lines": "filled", "Monochrome": "onactive",
 		},
 		active: {
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
@@ -2526,7 +2535,10 @@ function sb_zone_anchor(pane, zone, node) {
 	 * half-written or stale order degrades to the shipped one, never to an
 	 * error. No migration needed for exactly this reason.
 	 */
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "apps", "start"];
+	// REGISTRY ORDER, not append-at-the-end: `registry.default_desk_order()` reads
+	// the components table top to bottom and `start` sits before `apps` there, so
+	// spelling it last here would be a second copy that disagrees about ties.
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps"];
 	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
 
 	function desk_order_rank() {
@@ -3468,6 +3480,12 @@ function sb_zone_anchor(pane, zone, node) {
 		// The shipped desk: everything is in the pane, so the pane is where a
 		// homeless search belongs.
 		unifiedsidepane: ["sbtop", "sbbottom", "botcenter", "botedge"],
+		// The rail is still a pane: it expands, and a search that lands in it is
+		// THE KEY CARRIES THE PLUS. `layout()` lowercases and strips WHITESPACE and
+		// nothing else, so "Rail + Flyout" arrives as `rail+flyout` — not a bare
+		// identifier, so it is quoted. assertLayoutSlugs checks it against the
+		// catalogue either way.
+		"rail+flyout": ["sbtop", "sbbottom", "botcenter", "botedge"],
 		// The taskbar IS the strip this layout is about.
 		taskbar: ["botcenter", "botedge", "sbtop", "sbbottom"],
 		toptaskbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
@@ -6476,6 +6494,8 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!sb_state) return;
 
 		bunood.sb_apply({ sidebar_pane_state: value });
+		// The guard runs at MOUNT; this is a runtime gesture. _sidebar.scss.
+		if (guard_critical_reach()) mount_placed_tenants();
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -6518,18 +6538,8 @@ function sb_zone_anchor(pane, zone, node) {
 			const header = d.closest(".standard-sidebar-item");
 			if (header) header.click();
 		}
-		// SETTLE, don't sample. The vendor's own toggle updates `data-state`
-		// asynchronously, so one frame later it may still say `opened` — and the
-		// mirror then writes the OLD state into `aria-expanded`, leaving a folded
-		// section telling a screen reader it is open. Measured: two of four. A
-		// short chain of frames costs nothing and is idempotent.
-		let frames = 0;
-		const settle = () => {
-			sb_mirror_disclosure();
-			sb_update_rollups();
-			if (++frames < 4) requestAnimationFrame(settle);
-		};
-		requestAnimationFrame(settle);
+		// No settle here: `sb_mount_aria`'s observer watches `data-state` and mirrors
+		// whenever the vendor actually writes it, however long that takes.
 	}
 
 	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
@@ -7313,7 +7323,7 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The link rows the PANE holds. A bar-placed pair outlives it. */
 	function sb_teardown_pane_utils() {
 		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-utils")) n.remove();
-		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-band")) n.remove();
+		// NOT the band — it is a shell for somebody else's nodes. _sidebar.scss.
 	}
 
 	/** Remove the badges and forget the throttle, so a remount refetches. */
@@ -7350,6 +7360,8 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "aria", volatile: true, mount: sb_mount_aria, unmount: sb_teardown_aria },
 		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
+		// The pane's half of a contract with the chrome. _sidebar.scss.
+		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
 	];
 
 	/** The watch record: the NODES being observed, their observers, and the one
@@ -7411,17 +7423,24 @@ function sb_zone_anchor(pane, zone, node) {
 		const list = document.querySelector(".body-sidebar .sidebar-items");
 		if (!list || list.dataset.bndAria) return;
 		list.dataset.bndAria = "1";
-		list.addEventListener(
-			"click",
-			(e) => {
-				if (!e.target.closest || !e.target.closest(".section-item .standard-sidebar-item")) return;
-				requestAnimationFrame(() => {
-					sb_mirror_disclosure();
-					sb_update_rollups();
-				});
-			},
-			true
-		);
+		// WATCH THE ATTRIBUTE, do not guess when it changes. This was a click
+		// listener that re-mirrored one frame later, and `sb_collapse_all` added a
+		// four-frame settle on top; both are guesses about how long the vendor takes
+		// to write `data-state`, and both were measured wrong — two sections stayed
+		// `aria-expanded="true"` after folding, which tells a screen reader the
+		// opposite of what the desk shows. An observer on the attribute itself
+		// cannot be early or late.
+		const seen = new MutationObserver(() => {
+			sb_mirror_disclosure();
+			sb_update_rollups();
+		});
+		seen.observe(list, {
+			subtree: true,
+			attributes: true,
+			// `data-state` ONLY: mirroring writes `aria-expanded`, and watching that
+			// too would make this observer its own trigger.
+			attributeFilter: ["data-state"],
+		});
 	}
 
 	/** Hidden badges sum into one header chip (1a). _sidebar.scss. */

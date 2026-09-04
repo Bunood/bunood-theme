@@ -1540,7 +1540,12 @@ function assertLayoutSlugs(registrySrc, jsSrc) {
 	for (const table of ["SEARCH_FALLBACKS", "LAYOUT_CONTAINERS"]) {
 		const blk = jsSrc.match(new RegExp(`const ${table} = \\{([\\s\\S]*?)\\n\\t\\};`));
 		if (!blk) throw new Error(`Layout-slug guard: ${table} not found in bunood.js`);
-		const got = [...blk[1].matchAll(/^\t\t([a-z0-9]+):/gm)].map((m) => m[1]).sort();
+		// QUOTED KEYS COUNT TOO. `layout()` strips whitespace and nothing else, so a
+		// catalogue name like "Rail + Flyout" slugifies to `rail+flyout` — not a bare
+		// identifier, so it must be written as a string. A pattern that read only bare
+		// keys would report the quoted one as MISSING and send the next reader off to
+		// rename a key that was already correct.
+		const got = [...blk[1].matchAll(/^\t\t"?([a-z0-9+]+)"?:/gm)].map((m) => m[1]).sort();
 		if (got.join(",") !== want.join(",")) {
 			throw new Error(
 				`Layout-slug guard: ${table} is keyed on [${got.join(", ")}] but the catalogue\n` +

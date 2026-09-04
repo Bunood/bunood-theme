@@ -408,7 +408,7 @@
    "fieldname": "sidebar_material",
    "fieldtype": "Select",
    "label": "Pane Material",
-   "options": "Solid\nGlass\nBlurred Glass",
+   "options": "Solid\nBordered\nElevated\nTextured\nTinted\nGradient",
    "hidden": 1
   },
   {
@@ -422,7 +422,7 @@
    "fieldname": "icon_style",
    "fieldtype": "Select",
    "label": "Icon Style",
-   "options": "Colored Chips\nColored Dots\nFilled Color\nDuotone\nBrand Lines\nMonochrome",
+   "options": "Filled Color\nFill on Active\nSolid Tile\nCircle Badge",
    "hidden": 1
   },
   {
@@ -1221,7 +1221,7 @@
    "label": "Placement Board"
   },
   {
-   "default": "search,inbox,user,home,apps",
+   "default": "search,inbox,user,home,start,apps",
    "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
    "fieldname": "desk_order",
    "fieldtype": "Data",

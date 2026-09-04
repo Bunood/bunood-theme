@@ -448,6 +448,49 @@ SB_PANES = {
     "dark": {"theme": SidebarPane(("alias", "--bnd-pane"), "pane, dark desk", themed=True)},
 }
 
+#: THE PANE SURFACES THAT MOVE THE BACKGROUND, and by how much (item 42).
+#:
+#: Six surfaces ship; four of them change no colour at all -- Solid is the pane,
+#: Bordered adds edges, Elevated swaps to `--bnd-raised` (already swept, and
+#: measured at 5.12:1 worst hue against the pane's 4.60), Textured lays a grain
+#: in the pane's own line colour. Only Tinted and Gradient mix the brand in, and
+#: they mix the SAME amount because Gradient's strong stop IS Tinted's colour --
+#: one fit, two surfaces, no second number to drift.
+#:
+#: WHY THE FIT IS PER SURFACE RATHER THAN GLOBAL. Measured 2026-09-04 across the
+#: 27 gate seeds x 2 modes: the seven hues are fitted to land EXACTLY on the 4.6
+#: target against the binding pane, so a brand tint of ONE PER CENT already puts
+#: the worst of them under 4.5 (4.47:1). Feeding the tint into the global walk
+#: fixes that -- every hue clears 4.60 again at every tint -- but it re-fits the
+#: hues for EVERY site, including the ones on Solid, and at a 16% stop the light
+#: binding moves from #ebebeb to #c5c5c5 and the whole palette muddies. So the
+#: tinted surfaces carry their own block, fitted against their own binding, and
+#: a site that does not choose them pays nothing.
+SB_SURFACE_TINT = {"tinted": 9, "gradient": 9}
+
+#: Textured's grain, as the alpha of ONE stripe of `--bnd-sb-ink` over the pane.
+#:
+#: THE NUMBER IS THE WORST PIXEL, not the average. A repeating gradient's mean is
+#: not what a glyph sits on -- a stripe is -- so the gate measures the stripe at
+#: full alpha and no average is computed anywhere.
+#:
+#: IT IS DRAWN IN INK, and the two rejected alternatives are why:
+#:
+#:   * `--bnd-sb-line` at 22% puts the seven hues at 2.95:1. The gate fired on
+#:     its own subject before the surface shipped, which is what writing the
+#:     check first is for.
+#:   * `--bnd-raised` at any alpha is contrast-free (4.89:1 worst at 55%) and
+#:     INVISIBLE on some sites: at the pure-white seed pane and raised are both
+#:     #ffffff, deltaE 0.00. An option that renders nothing is the defect this
+#:     vocabulary exists to prevent, so safe was not enough.
+#:
+#: Ink is both. It is always visible -- ink against pane is the largest delta the
+#: desk has -- and it needs no fit of its own, because at the BINDING seed the
+#: tint's extreme is pure black in light and pure white in dark, and the ink is
+#: inside that by construction. So Textured shares Tinted's block, and the gate
+#: asserts the bound that makes the sharing legal rather than assuming it.
+SB_GRAIN_PCT = 9
+
 def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | None = None) -> str:
     """One pane as the concrete hex a SITE renders.
 
@@ -474,7 +517,7 @@ def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | No
     raise ValueError(f"unknown pane recipe {pane.recipe!r}")
 
 
-def _sb_binding_bg(polarity: str) -> str:
+def _sb_binding_bg(polarity: str, tint: int = 0) -> str:
     """The single hardest pane a hue of ``polarity`` must clear, across every seed.
 
     Same structure as :func:`_chart_binding_bg`, and for the same reason: it is
@@ -500,11 +543,18 @@ def _sb_binding_bg(polarity: str) -> str:
     extreme = "#000000" if polarity == "light" else "#ffffff"
     cands = [sb_pane_value(p, extreme, polarity, ground=extreme)
              for p in SB_PANES[polarity].values()]
+    # A TINTED SURFACE IS A PANE, so it belongs in the walk rather than in a
+    # second fit somewhere else. `tint` is the percentage of the brand seed
+    # mixed into the pane, and at the extreme seed that mix is the darkest a
+    # light pane ever gets and the lightest a dark one does -- which is what
+    # `_chart_binding_bg` means by binding, arriving here unchanged.
+    if tint:
+        cands += [mix(extreme, tint, c) for c in list(cands)]
     key = lambda hx: luminance(parse_color(hx))
     return min(cands, key=key) if polarity == "light" else max(cands, key=key)
 
 
-def sb_hues(polarity: str) -> list[str]:
+def sb_hues(polarity: str, tint: int = 0) -> list[str]:
     """The seven category hues for one polarity, fitted to the binding pane.
 
     Every fit takes exactly ONE background, so :func:`fit_ink`'s straddle
@@ -516,7 +566,7 @@ def sb_hues(polarity: str) -> list[str]:
     replaces a hand-copied table with the derivation that produces it, at no
     visual cost.
     """
-    bg = _sb_binding_bg(polarity)
+    bg = _sb_binding_bg(polarity, tint)
     seeds = SB_HUE_SEEDS_LIGHT if polarity == "light" else SB_HUE_SEEDS_DARK
     return [fit_ink(h, [bg], target=SB_TARGET_HUE)[0] for h in seeds]
 

@@ -104,5 +104,11 @@ bunood_theme.patches.v0_40_0.retire_manual_collapse
 # Item 42: the pane's two-state field becomes a three-state one. Before the
 # healer below, which would otherwise see a placement field it cannot map.
 bunood_theme.patches.v0_42_0.rename_pane_state
+# Item 42, slice S: the two glass materials retire into the six-surface
+# catalogue. Also before the healer -- it would see a material it cannot map.
+bunood_theme.patches.v0_42_0.retire_glass
+# Item 42, slice I: six icon styles become four. Same shape, same reason for
+# sitting before the healer.
+bunood_theme.patches.v0_42_0.retire_icon_styles
 
 bunood_theme.patches.v0_11_0.heal_unknown_placements

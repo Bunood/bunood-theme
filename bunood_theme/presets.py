@@ -96,7 +96,7 @@ _SIDEBAR_LOOKS = {
     },
     "Bunood Light": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Glass",
+        "sidebar_material": "Elevated",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
@@ -166,7 +166,7 @@ _SIDEBAR_LOOKS = {
     },
     "Aurora": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Blurred Glass",
+        "sidebar_material": "Elevated",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
@@ -1374,7 +1374,7 @@ THEME_PRESETS = {
     "Focus": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Ink",
         "values": {
-            "icon_style": "Monochrome", "crumb_style": "Original",
+            "icon_style": "Fill on Active", "crumb_style": "Original",
             "list_style": "Hairline Rows", "list_hover": "Soft Wash",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "report_grain": "Plain",
@@ -1388,7 +1388,7 @@ THEME_PRESETS = {
     "Canvas": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
-            "icon_style": "Duotone", "crumb_style": "Eyebrow Title",
+            "icon_style": "Filled Color", "crumb_style": "Eyebrow Title",
             "list_style": "Open Rows", "form_style": "Open Canvas",
             "workspace_style": "Open Board", "report_style": "Open Sheet",
             "views_style": "Hairline", "overlay_style": "Hairline",
@@ -1420,7 +1420,7 @@ THEME_PRESETS = {
     "Carbon": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Teal", "sidebar": "Carbon",
         "values": {
-            "icon_style": "Brand Lines", "list_style": "Hairline Rows",
+            "icon_style": "Filled Color", "list_style": "Hairline Rows",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "views_style": "Hairline",
             "overlay_style": "Hairline", "empty_style": "Quiet",
@@ -1466,7 +1466,7 @@ THEME_PRESETS = {
     "Workbench": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Workbench",
         "values": {
-            "icon_style": "Brand Lines", "crumb_style": "Original",
+            "icon_style": "Filled Color", "crumb_style": "Original",
             "list_style": "Hairline Rows", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ruled Grid",
             "report_grain": "Row Stripes", "views_style": "Hairline",
@@ -1501,7 +1501,7 @@ THEME_PRESETS = {
             # "Original" - it hands the desk back Frappe's own icons - so a look
             # whose whole promise is "everything that can stand down does" has to
             # take it. `icon_style` keeps its quietest pole for what remains.
-            "icon_source": "Original", "icon_style": "Monochrome",
+            "icon_source": "Original", "icon_style": "Fill on Active",
             # The three that genuinely cannot: the side pane and the status bar
             # MOUNT chrome, and chart_grid ships no Original. They take their
             # quietest setting instead, and the card's blurb names all three.

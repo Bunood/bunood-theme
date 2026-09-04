@@ -1045,7 +1045,7 @@ def get_shipped_defaults() -> dict:
         whole rework exists to have exactly once. Same request, because a form
         that needs both and asks twice can render a moment where it has one.
     """
-    from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_TENANTS, CONTAINERS
+    from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_PANE, LAYOUT_TENANTS, CONTAINERS
     from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
 
     # The shipped-EMPTY identity fields ride in as "" so the change dots can
@@ -1067,6 +1067,13 @@ def get_shipped_defaults() -> dict:
         "defaults": {**{f: "" for f in SHIPPED_EMPTY}, **SHIPPED},
         "layout_chrome": LAYOUT_CHROME,
         "layout_tenants": LAYOUT_TENANTS,
+        # ...and the pane's state, for the same reason (item 42, slice 9). A
+        # layout is THREE halves now, and a picker served two of them writes two:
+        # picking Taskbar set the containers and the tenants and left the pane
+        # open, so the card's own promise — a taskbar with the pane away — was
+        # one the gesture could not keep, and the derived label disagreed with
+        # `presets.layout_of` on the same desk.
+        "layout_pane": LAYOUT_PANE,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
     }
 

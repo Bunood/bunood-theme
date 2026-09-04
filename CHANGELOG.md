@@ -64,12 +64,13 @@ already trusts.
 
 ### Changed — the desk shapes
 
-**The catalogue is four rows, and the shipped desk is Unified Side Pane.** The five
+**The catalogue is five rows, and the shipped desk is Unified Side Pane.** The five
 layouts item 11 shipped are retired; the new ones are the user's pick from the drawn
-round: **Unified Side Pane** (default) · Taskbar · Top Taskbar · Floating Bar. Rail +
-Flyout joins in a later slice — it is Unified with the pane in its Rail state, and until
-the field that says so exists its row would be byte-identical to Unified's, which
-`check_layout_identity` refuses and is right to.
+round: **Unified Side Pane** (default) · Taskbar · Top Taskbar · Floating Bar · Rail +
+Flyout. The fifth arrived a slice later than the rest, and the reason is worth keeping:
+it is Unified with the pane in its Rail state, so until `sidebar_pane_state` existed its
+row was byte-identical to Unified's — which `check_layout_identity` refuses, and is
+right to. A catalogue cannot hold two rows it cannot tell apart.
 
 Three old rows survive under new names because their VALUES survived — Top Bar → Top
 Taskbar, Bottom Bar → Taskbar, Dock → Floating Bar. **Compact and Classic are shapes no
@@ -91,6 +92,217 @@ actually show the widget.
 
 **The status bar's density segment is an icon** at the trailing edge; its value lives in
 the accessible name and the tooltip rather than a text run.
+
+### Changed — the pane has three states, and the catalogue has a third half
+
+**`sidebar_pane_state`: Open · Rail · Hidden.** It replaces `sidebar_menu_rail`, whose
+two options answered a narrower question — the pre-split rail labels and `Always
+Expanded` migrate to `Rail` and `Open`. **Hidden is the state the user asked for**: the
+pane goes, and what survives is a floating pill at the page's inline-start corner
+carrying the company's tile, its name, and one button back. The pill mounts on every
+desk and the attribute is what puts it on screen, so a state change never waits on a
+mount.
+
+**Rail keeps the place row.** The first cut hid it, which took the workspace cascade,
+the pins and collapse-all away from anybody working in a rail.
+
+**The start button** is a tenant, not a fixture: a registry row, a `start_placement`
+field, placed by the board and sorted by `desk_order` like the bell and the account. It
+builds no surface — it moves the pane between the three states — so it has no second
+pane to keep in agreement and no focus trap to get wrong. It reads its `aria-expanded`
+from the live state rather than a constant, which is what it was doing wrong first: a
+plainly open pane announced as collapsed until the first click, which is exactly when a
+screen-reader user has already been told otherwise. Switching it off costs the shortcut
+and never the route — the pane keeps its own handle.
+
+**`LAYOUT_PANE` is the catalogue's third half.** Containers say which strips exist and
+tenants say what sits in them; neither could say how much of the PANE a shape starts
+with — which is the difference between a taskbar and a side-pane desk. With the field in
+place **Rail + Flyout becomes the fifth row**, and it is not byte-identical to Unified
+Side Pane any more, which is what `check_layout_identity` refused before.
+
+**Floating Bar keeps its pane and hides it** rather than switching the container off. The
+old row left its own start button with nothing to open and the pill with nothing to
+restore; the desk looks the same at rest and the pane is one click away.
+
+And picking a layout card now writes all three halves. It wrote two: the pane state was
+not served to the form at all, so "Taskbar" left the pane open and the picker's matcher
+could not tell Unified Side Pane from Rail + Flyout.
+
+**`guard_critical_reach` learned the second way to hide a pane.** It knew the container
+being switched off; a desk with the bell and the account at Side Pane End and the pane
+Hidden had no route to Log Out and no recovery. Two arms, because a guard that always
+fires is not a guard: with a bar carrying identity, Hidden stays hidden.
+
+`desk_order`'s shipped default gains `start` **in registry order**, not appended — the
+table is the fact and a second list that disagrees about ties is the trap this repo keeps
+finding.
+
+### Changed — six pane surfaces, and none of them is glass
+
+`sidebar_material` was **Solid · Glass · Blurred Glass** — one opaque surface and two
+translucencies of it. It is now **Solid · Bordered · Elevated · Textured · Tinted ·
+Gradient**, and a patch maps both glasses to **Elevated**. That is not the nearest name:
+both glasses only ever shipped on a *floating* pane (Bunood Light and Aurora are the two
+looks that named them, and both float), so what a site with glass actually saw was a card
+lifted off the page. Solid would have kept the colour and thrown away the lift. The two
+looks re-point in the same commit, so a site on either theme still **matches** it rather
+than quietly reading "Custom".
+
+**Four of the six change no colour at all, and that is a measurement rather than a
+preference.** The seven category hues are fitted to land *exactly* on 4.6:1 against the
+pane, so across the 27 gate seeds × 2 modes a brand tint of **one per cent** already puts
+the worst of them at 4.47:1. A catalogue of six brand tints was the obvious design and it
+is unshippable. So Bordered adds edges and Elevated takes `--bnd-raised` (5.12:1 worst
+hue — *more* headroom than the pane, because that surface is already inside the binding
+walk the fit runs against).
+
+**Textured took three attempts, and the gate found two of them.** A grain in the pane's
+line colour at 22% puts the seven hues at **2.95:1** — the new arm fired on its own
+subject before the surface shipped, which is what writing the check first is for. A grain
+in `--bnd-raised` is contrast-free at any alpha (4.89:1 at 55%) and **invisible on some
+sites**: at the pure-white seed the pane and the raised surface are the same hex, ΔE 0.00
+— safe was not enough, because an option that renders nothing is the defect this
+vocabulary exists to prevent. It is drawn in **ink** at the tint's own percentage: always
+visible, and bounded by the tint's binding, so it shares Tinted's block instead of
+minting a third. The gate asserts that bound rather than assuming it.
+
+**Tinted and Gradient do tint, and carry a fit of their own.** `palette.sb_hues` takes a
+tint now and adds the tinted pane to the binding walk — the same derivation, one argument
+wider. Feeding the tint into the *global* walk also works and was rejected: it re-fits the
+hues for every site including the ones on Solid, moving the light binding from `#ebebeb`
+to `#d6d6d6` and muddying every palette to pay for an option nobody picked. The two share
+one fit and one block, because Gradient's strong stop **is** Tinted's colour.
+
+**Every surface has a rail arm.** Expanded, the container paints; railed, the container is
+a 52px strip and the overlay inside it is the pane — a surface with no rail arm reverts to
+Solid there and nothing says so. The check reads *both* nodes in *both* states rather than
+the one that suits each.
+
+**And the reduced-transparency block is gone with the glass it degraded.** Its lesson is
+kept in prose at the site, because it is this file's sharpest: size a selector against the
+*rule* it must beat, never the element. That block once weighed (0,2,1) against a rail rule
+at (0,4,1), so it lost the background and won only the blur — a pane left translucent with
+its frosting removed, the one combination it existed to prevent. It survived because
+**headless Chromium reports `prefers-reduced-transparency: reduce`**, so every desk this
+suite had ever driven was in the degraded branch. What replaces it asserts the premise the
+deletion rests on: every surface, in both transparency regimes, fully opaque and asking
+for no backdrop filter. Add a translucent surface without restoring the degradation and it
+goes red.
+
+New gate arm `check_sidebar_surfaces`: the two percentages in `_sidebar.scss` are pinned
+to `palette.py`, and every surface's hues and muted ink are measured against the
+background *that surface* renders. Solid is skipped on purpose — the main sweep already
+covers `--bnd-pane`, and a second row would report one finding as two.
+
+### Changed — four icon styles, and a wash that means what it says
+
+`icon_style` was **Colored Chips · Colored Dots · Filled Color · Duotone · Brand Lines ·
+Monochrome**. It is now **Filled Color · Fill on Active · Solid Tile · Circle Badge**.
+Two of the six were doing one job under three names: Duotone was Filled Color at 85%
+opacity, and Brand Lines was Filled Color with the hue swapped for the brand ink — which
+is what the hue already resolves to when no wash is on.
+
+A patch maps every retired value to what it rendered: Chips → Solid Tile, **Dots → Circle
+Badge** (the plan sent both to the tile; they differ by one property, the catalogue kept
+both shapes, and sending the round one to the square would change what a site sees for
+nothing), Duotone and Brand Lines → Filled Color, Monochrome → Fill on Active. The six
+themes that name an icon style re-point in the same commit, so a site on Focus or Quiet
+still matches it.
+
+**Monogram is not here, and it was in the plan.** It is `icon_source: Letters` under
+another field's name — that source already replaces every glyph with the label's first
+character, and composing it with Solid Tile gives a lettered tile today. Shipping it as a
+fifth *style* would be two options landing on one pixel across two fields, which is worse
+than within one, because neither picker can say so.
+
+**The tiles are free, and the gate says so rather than the argument.** Solid Tile and
+Circle Badge use the hue as a *fill* and knock the pane out of it — and the hues are
+fitted *against* the pane, so pane-on-hue is the same measured pair read backwards. On a
+tinted surface the hue moves with the tint while the knockout does not, which is exactly
+why that row is measured instead of reasoned.
+
+### Fixed — two icon styles rendered one pixel wherever the wash was off
+
+`--bnd-sb-hue` was gated on `sidebar_hue_wash` not being Off, so at Off the glyph fell
+back to the muted chip ink — **which is exactly what Fill on Active paints at rest**. Two
+styles, one grey glyph, on every non-active row, on any site with the wash off.
+
+The hue is INK: it is read as `color:` in six rules. The *wash* is `--bnd-sb-hue-chip`,
+a separate token, and it is what Off / Subtle / Rich actually decide. One field had been
+deciding two things and the picker could only honestly describe one of them.
+
+That left the wash with **no consumer at all** under Plain and Divided — its only reader
+had been the deleted Colored Chips rule — which is the same three-options-one-pixel defect
+arriving from the other side. It gets **one surface per section style**: the section card
+where there is one, a chip behind the glyph where there is not. Deliberately scoped away
+from Cards, which is the shipped default: tinting the card *and* every glyph behind it
+would change what every existing site looks like to fix a combination it does not use.
+
+Two floors fell out of that, and they are different on purpose. A **glyph** on its own
+wash is a graphic (WCAG 1.4.11, 3:1) and measures 3.47:1 at Rich — passing. A **letter**
+in the same chip is text (4.5:1) and would fail, so `.bnd-sb-letter` stops taking the hue
+and takes the pane's primary ink: 5.20:1 at the worst of 27 seeds × 2 modes × tinted and
+untinted surfaces. Under the two tiles it is knocked out instead, like any other glyph.
+
+The picker's style thumbnails stop painting `#d9eadc` / `#2e6b44` literals and read the
+pane's own category hues — a tenant with a violet brand was choosing between four pictures
+of somebody else's desk, and the Filled Color card claimed a green that a Filled Color
+pane never renders.
+
+### Fixed — a count badge painted like a graphic
+
+The Counts badge took the section's hue as its numeral, on a 15% wash of that same hue.
+Measured across the 27 gate seeds × 2 modes × the tinted and untinted surfaces: **3.53:1**
+against a 4.5 floor. That is why `sidebar_badges` shipped Off — an option that rendered,
+and could not be defaulted.
+
+The wash stays; the ink changes. `--bnd-sb-ink` on the same chip measures **5.28:1** at
+the worst of that sweep. The alternative — a solid hue pill with the pane knocked out, the
+way Solid Tile works — clears by more and was rejected on design rather than on colour: a
+count appears on many rows at once, and a run of solid pills competes with the active row,
+which is the pane's primary signal.
+
+The Dots badge is a **graphic** (floor 3:1) and measures 3.38:1 at the worst seed —
+passing, and close enough that it is now gated rather than asserted.
+
+**The default stays Off**, and what decides that is the semantics — unread against total —
+which is a product question, not a colour one.
+
+### Fixed — one click took the bell and the account out of the pane, for good
+
+The sharpest defect this item shipped, and the matrix's new pane-state axis is what
+found it. `sb_teardown_pane_utils` removed `.bnd-sb-band` along with `.bnd-sb-utils` —
+but the band is a **shell**, and what sits in it are the placed *tenants*, which belong
+to `mount_placed_tenants` and not to that part. Nothing in the pane's mount ladder put
+them back.
+
+So one `sb_apply` — a settings click, the start button, the pill's way back — left a
+Unified Side Pane desk with **no route to Log Out** until the page was reloaded. Measured
+on a live desk: after a single `pane_state("Open")` on an *already-open* pane,
+`.bnd-avatar-btn` was gone from the DOM and did not return at any state.
+
+`SB_PARTS` ends with a `tenants` row now, and its unmount is a real mirror rather than a
+courtesy `() => {}` — an empty band is exactly what the utils teardown leaves behind, and
+`sb_band_prune` removes a band with no children and only then. Sabotaging each half in
+turn established which one carries the fix: the part does, and the teardown's restraint
+is kept because it lets the tenants be *moved* rather than rebuilt.
+
+**And the guard reaches the runtime gesture.** `guard_critical_reach` runs at mount; the
+start button and the pill are clicks, so on a desk whose only routes to identity are
+inside the pane, Hidden took them away with no reload to put them back. `pane_state`
+calls the guard now and re-places the tenants when it intervened — so on a Unified Side
+Pane desk the start button's Hidden is refused, and on a taskbar desk, where a bar
+carries identity, it is honoured. The guard's two arms, reaching a control that had
+escaped them.
+
+### Fixed — a folded section that told a screen reader it was open
+
+The pane's disclosure mirror ran one frame after a click, and collapse-all added a
+four-frame settle on top. Both are guesses about how long the vendor takes to write
+`data-state`, and both were measured wrong — two sections of four kept
+`aria-expanded="true"` after folding. A MutationObserver on `data-state` itself cannot
+be early or late, and it is shorter than the pair it replaces.
 
 ### Fixed — four reset chips wrote values the site does not ship
 

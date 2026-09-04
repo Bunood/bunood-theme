@@ -11,12 +11,16 @@
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
 //   data-bnd-sb-placement   attached | floating
-//   data-bnd-sb-material    solid | glass | glassblur
-//                            ^="glass" is BOTH glass materials - they share
-//                            every surface rule and differ only in the blur
-//                            and one opacity step.
+// A RETIRED LABEL STILL RESOLVES, in `SB_SLUGS` — Glass and Blurred Glass to
+// `elevated`, the six old icon styles to their four successors. A boot cached
+// before the patch ran still serves the old string, and an unknown label sets NO
+// attribute at all: a pane with no surface, rather than the one the migration
+// chose for it. The map is where that is expressible; this is where it is said,
+// because build.mjs copies bunood.js verbatim and every comment there ships.
+//   data-bnd-sb-material    solid | bordered | elevated | textured |
+//                           tinted | gradient   (item 42, slice S)
 //   data-bnd-sb-color       theme | minimal | dark | brand
-//   data-bnd-sb-icons       chips | dots | filled | duotone | brandlines | mono
+//   data-bnd-sb-icons       filled | onactive | tile | badge  (item 42, slice I)
 //   data-bnd-sb-active      pill | softpill | rail | outline | foldertab
 //   data-bnd-sb-sections    plain | divided | cards | accordion
 //   data-bnd-sb-wash        off | subtle | rich
@@ -82,6 +86,33 @@ html[data-bnd-sb-color] {
   --bnd-sb-chip-bg: color-mix(in srgb, var(--bnd-ink) 7%, transparent);
   --bnd-sb-chip-ink: var(--bnd-ink-muted);
   --bnd-sb-card-base: var(--bnd-raised);
+
+  // THE SURFACES THAT MIX. Both percentages are pinned to `palette.py` by
+  // `check_sidebar_surfaces` -- a copy with a drift check is a cache, a copy
+  // without one is the same fact in two places. They are composed HERE rather
+  // than in `_tokens.scss` because they read `--bnd-sb-bg`, which is declared
+  // in this block and nowhere else; the two glass percentages they replace did
+  // live there, and had to be resolved one hop later.
+  --bnd-sb-tint: color-mix(in srgb, var(--bnd-brand) 9%, var(--bnd-sb-bg));
+  // `to bottom` is deliberate and survives the logical-properties gate: the
+  // block axis does not mirror in any writing mode this app supports, and an
+  // RTL desk wants the same top-to-bottom fall, not a mirrored one.
+  --bnd-sb-gradient: linear-gradient(to bottom, var(--bnd-sb-tint) 0%, var(--bnd-sb-bg) 62%);
+  // THE GRAIN'S NUMBER IS ITS WORST PIXEL, never its average: a glyph sits on a
+  // stripe, not on the mean of the stripe and the gap. The gate measures the
+  // stripe at full alpha and computes no average at all.
+  //
+  // DRAWN IN INK, at the tint's own percentage, and both of those are measured.
+  // The line colour at 22% puts the seven hues at 2.95:1; the raised surface is
+  // contrast-free at any alpha and INVISIBLE at the pure-white seed, where pane
+  // and raised are the same hex. Ink is always visible and is bounded by the
+  // tint's binding, which is why Textured can share Tinted's fit below instead
+  // of minting a third block.
+  --bnd-sb-grain-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bnd-sb-ink) 9%, transparent) 0 1px,
+    transparent 1px 4px
+  );
 }
 
 // ── The category hues are the ONE thing that does not alias ────────────────
@@ -136,6 +167,63 @@ html[data-theme="dark"][data-bnd-sb-color] {
   }
 }
 
+// ── ...and again for the two surfaces that tint the pane (slice S) ────────
+//
+// A TINT MOVES THE BACKGROUND THE HUES WERE FITTED AGAINST, so they are fitted
+// again -- `palette.sb_hues(polarity, 9)`, the same derivation with the
+// tinted pane added to the binding walk. Without this, measured across the 27
+// gate seeds, the worst hue on a tinted pane is 4.47:1 at ONE per cent and
+// 3.48:1 at 9. `check_sidebar_surfaces` pins every value below.
+//
+// ONE BLOCK FOR BOTH because Gradient's strong stop is Tinted's colour, and
+// the fit must hold at the strong end -- the weak end is the untinted pane,
+// which the base blocks above already cover.
+//
+// SPECIFICITY, and it is the whole reason all three arms exist. Each carries
+// `[data-bnd-sb-color]` purely as WEIGHT, exactly as the deleted
+// reduced-transparency block did: (0,2,1) light beats the (0,1,1) base, and
+// the dark and automatic arms reach (0,3,1) to beat the (0,2,1) dark base. If
+// a polarity were missing an arm, the LIGHT tinted block would tie the dark
+// base at (0,2,1) and win on order -- light hues on a dark tinted pane, which
+// is defect 27 in a new location. That is why they land together.
+html[data-bnd-sb-color][data-bnd-sb-material="tinted"],
+html[data-bnd-sb-color][data-bnd-sb-material="gradient"],
+html[data-bnd-sb-color][data-bnd-sb-material="textured"] {
+  --bnd-sb-cat-1: #205ca5;
+  --bnd-sb-cat-2: #a23910;
+  --bnd-sb-cat-3: #106949;
+  --bnd-sb-cat-4: #7d5400;
+  --bnd-sb-cat-5: #ae1f55;
+  --bnd-sb-cat-6: #006b00;
+  --bnd-sb-cat-7: #4a3aa7;
+}
+
+html[data-theme="dark"][data-bnd-sb-color][data-bnd-sb-material="tinted"],
+html[data-theme="dark"][data-bnd-sb-color][data-bnd-sb-material="gradient"],
+html[data-theme="dark"][data-bnd-sb-color][data-bnd-sb-material="textured"] {
+  --bnd-sb-cat-1: #a1c4ed;
+  --bnd-sb-cat-2: #f5b195;
+  --bnd-sb-cat-3: #68d4ad;
+  --bnd-sb-cat-4: #f1b73a;
+  --bnd-sb-cat-5: #f1aec7;
+  --bnd-sb-cat-6: #5ed95e;
+  --bnd-sb-cat-7: #c2bbe8;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"][data-bnd-sb-color][data-bnd-sb-material="tinted"],
+  html[data-theme="automatic"][data-bnd-sb-color][data-bnd-sb-material="gradient"],
+  html[data-theme="automatic"][data-bnd-sb-color][data-bnd-sb-material="textured"] {
+    --bnd-sb-cat-1: #a1c4ed;
+    --bnd-sb-cat-2: #f5b195;
+    --bnd-sb-cat-3: #68d4ad;
+    --bnd-sb-cat-4: #f1b73a;
+    --bnd-sb-cat-5: #f1aec7;
+    --bnd-sb-cat-6: #5ed95e;
+    --bnd-sb-cat-7: #c2bbe8;
+  }
+}
+
 // ── Pane surface: color + material + placement ──────────────────────────────
 html[data-bnd-sb-color] .body-sidebar-container {
   background: var(--bnd-sb-bg);
@@ -147,12 +235,64 @@ html[data-bnd-sb-color] .body-sidebar-container {
   }
 }
 
-// Glass: keep N% of the pane color, let the page bleed through the rest.
-// ONE rule now, for one pane. This used to carry a `:not(brand)` guard
-// because the brand pane was a GRADIENT and a gradient cannot go through
-// color-mix(); that pane went with the colour modes, and the guard with it.
-html[data-bnd-sb-material^="glass"] .body-sidebar-container {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
+// ── The six pane surfaces (item 42, slice S) ──────────────────
+//
+// SIX SURFACES, AND FOUR OF THEM CHANGE NO COLOUR AT ALL. That is a
+// measurement, not a preference: the seven category hues are fitted to land
+// EXACTLY on 4.6:1 against the pane, so across the 27 gate seeds x 2 modes a
+// brand tint of ONE PER CENT already puts the worst of them at 4.47:1. A
+// catalogue of six brand tints was the obvious design and it is unshippable.
+//
+//   Solid      the pane's own colour and a hairline edge. The base; no rule.
+//   Bordered   the same colour, a 2px edge, and an outline on every section.
+//   Elevated   the raised surface, lifted off the page. 5.12:1 worst hue --
+//              MORE headroom than the pane, because `--bnd-raised` is already
+//              inside the binding walk `sb_hues` fits against.
+//   Textured   the pane plus a grain drawn in its OWN line colour.
+//   Tinted     the pane mixed with the brand, hues re-fitted below.
+//   Gradient   Tinted at the block start, easing to the pane by 62%.
+//
+// TINTED AND GRADIENT SHARE ONE FIT because Gradient's strong stop IS Tinted's
+// colour -- one number in `palette.SB_SURFACE_TINT`, one block of hues, no
+// second value to drift. And the fit is PER SURFACE rather than global:
+// feeding the tint into the global binding walk also works, and re-fits the
+// hues for every site including the ones on Solid -- muddying every palette to
+// pay for an option nobody picked.
+//
+// EVERY SURFACE HAS A RAIL ARM further down, because railed it is the overlay
+// inside the container that paints, not the container.
+html[data-bnd-sb-material="bordered"] .body-sidebar-container {
+  border-inline-end-width: 2px;
+}
+// The section edge is what makes Bordered legible under Plain and Divided,
+// where there is no card to thicken. Under Cards it lands on the same element
+// the card rule already borders, so it thickens one box rather than drawing a
+// second inside it.
+html[data-bnd-sb-material="bordered"] .body-sidebar .standard-items-sections > .section-item {
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-md);
+}
+
+// Elevated does NOT touch the border. Floating already draws one on all four
+// sides plus a shadow, and a surface that cleared the inline-end colour would
+// cut a hole in that card's edge -- half a rule beating half of a pair, the
+// regression shape this repo has now recorded twice. It reuses Floating's own
+// `--bnd-shadow-lg`, so the two never stack: one wins, and it is the same value.
+html[data-bnd-sb-material="elevated"] .body-sidebar-container {
+  background: var(--bnd-raised);
+  box-shadow: var(--bnd-shadow-lg);
+}
+
+html[data-bnd-sb-material="textured"] .body-sidebar-container {
+  background-image: var(--bnd-sb-grain-image);
+}
+
+html[data-bnd-sb-material="tinted"] .body-sidebar-container {
+  background: var(--bnd-sb-tint);
+}
+
+html[data-bnd-sb-material="gradient"] .body-sidebar-container {
+  background: var(--bnd-sb-gradient);
 }
 
 // Pane width stops. Stop 2 is v16's original 220px — the former default;
@@ -383,7 +523,17 @@ html[data-theme] .bnd-sb-start {
 // The chrome-off rule two files over hit this in July 2026 and wrote it down;
 // this is the second control on the same element, so it inherits the finding
 // rather than rediscovering it.
-html[data-bnd-sb-panestate="hidden"] .body-sidebar-container {
+// ...AND HIDDEN IS A DESKTOP STATE. Below 768 the pane IS Frappe's drawer, and
+// the drawer is the only route to the workspace list on a phone -- the
+// page-title hamburger opens it and nothing else does. Hiding it there removes
+// navigation outright, which is not a state any picker offers; it is this rule
+// reaching a breakpoint it was never written for. FOUND BY THE SUITE, at 390px:
+// the drawer opened 0px wide.
+//
+// The pill is already stood down at narrow for the mirror-image reason (a
+// floating brand tile over a 390px screen is chrome competing with the page),
+// so this is the second half of one decision, not a new one.
+html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-container {
   display: none !important;
 }
 
@@ -523,11 +673,7 @@ html[data-theme] .bnd-sb-wchip {
   pointer-events: none;
 }
 
-html[data-bnd-sb-material="glassblur"] { --bnd-sb-glass-pct: var(--bnd-sb-glass-pct-blurred); }
-
-html[data-bnd-sb-material="glassblur"] .body-sidebar-container {
-  backdrop-filter: blur(14px) saturate(1.15);
-}
+// (Blurred Glass lived here. The surfaces block above replaced both glasses.)
 
 // Floating: the pane detaches into a rounded card; the page canvas shows
 // around it. The container keeps its flex slot; the visual is all its own.
@@ -539,6 +685,48 @@ html[data-bnd-sb-placement="floating"] .body-sidebar-container {
   box-shadow: var(--bnd-shadow-lg);
   overflow: hidden;
 }
+
+// ── The band is a shell, and it outlives the utils (item 42) ──────────────
+//
+// `sb_teardown_pane_utils` used to remove `.bnd-sb-band` along with
+// `.bnd-sb-utils`, and that one line was the sharpest defect this item shipped.
+// The band is a SHELL: `sb_band` builds it on demand and the things inside it
+// are the placed TENANTS -- the bell and the account -- which belong to
+// `mount_placed_tenants`, not to the utils part. Removing it took them with it,
+// and nothing in the pane's mount ladder put them back.
+//
+// So ONE `sb_apply` -- a settings click, the start button, or the pill's way
+// back -- left a Unified Side Pane desk with NO ROUTE TO LOG OUT until the page
+// was reloaded. Measured 2026-09-04: after a single `pane_state("Open")` on an
+// already-open pane, `.bnd-avatar-btn` was gone from the DOM and did not return
+// at any state. `guard_critical_reach` could not see it either -- it runs at
+// mount, and this happens after.
+//
+// TWO HALVES, AND ONLY ONE OF THEM IS LOAD-BEARING — established by sabotaging
+// each in turn against the check, not by reading. `SB_PARTS` ends with a
+// `tenants` row whose mount is `mount_placed_tenants`, and THAT is the fix: with
+// it in place the band comes back even if the teardown removes it. Its unmount is
+// a REAL mirror rather than a courtesy `() => {}` — an empty band is exactly what
+// the utils teardown leaves behind, and `sb_band_prune` removes a band with no
+// children and only then. (`CONTAINER_TEARDOWN.sidepane` carried an empty function
+// once; that is the defect item 40 opened with.)
+//
+// The teardown's restraint is kept anyway, and it is worth its line: with the band
+// surviving, `mount_placed_tenants` MOVES the existing bell and account rather
+// than building new ones, so nothing bound to those nodes is lost on a state
+// change. Removing somebody else's nodes and rebuilding them is a slower, lossier
+// way to arrive at the same DOM.
+//
+// AND THE GUARD RUNS ON A RUNTIME STATE CHANGE, which is the second half of the
+// same defect. `guard_critical_reach` runs at MOUNT; the start button, the pill's
+// way back and a settings click are all runtime gestures, and on a desk whose only
+// routes to identity are inside the pane, Hidden takes them away with no reload to
+// put them back. `bunood.pane_state` calls the guard and re-places the tenants when
+// it intervened -- the same pairing `mount_chrome` uses, for the same reason: a pane
+// that has just returned makes regions available that were not there a moment ago.
+// So on a Unified Side Pane desk the start button's Hidden is REFUSED, and on a
+// taskbar desk, where a bar carries identity, it is honoured. That is the guard's
+// two arms reaching a control that had escaped them.
 
 // ── THE PANE'S LIFECYCLE (item 40) ──────────────────────────────────────────
 // No rules here. This is where `bunood.js`'s lifecycle comments point, because
@@ -905,46 +1093,105 @@ html[data-bnd-sb-icons] .bnd-sb-chip svg {
   flex: none;
 }
 
-html[data-bnd-sb-icons="chips"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="chips"] .bnd-sb-chip,
-html[data-bnd-sb-icons="dots"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="dots"] .bnd-sb-chip {
-  background: var(--bnd-sb-hue-chip, var(--bnd-sb-chip-bg));
-  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+// ── Four icon styles (item 42, slice I) ───────────────────────────────────
+//
+// SIX BECAME FOUR, and the two that went were doing one job between three
+// names. Duotone was Filled Color at 85% opacity; Brand Lines was Filled
+// Color with the hue swapped for the brand ink, which is what the hue already
+// is when no wash is on. Three options, one pixel and a fade.
+//
+//   Filled Color    the glyph in its row's hue, no chip. The shipped default.
+//   Fill on Active  muted at rest; the CURRENT row's glyph takes the row's own
+//                   ink. Deliberately `inherit` rather than the hue: the active
+//                   styles include a filled pill, and a hue glyph on a brand
+//                   fill is a pair nothing gates. The row's ink is already
+//                   fitted for whatever its active style paints.
+//   Solid Tile      the hue as a FILL with the pane knocked out of it.
+//   Circle Badge    the same, round.
+//
+// THE KNOCKOUT IS THE PANE, and that is what makes the two tiles free: the
+// hues are FITTED against the pane, so pane-on-hue is the same measured pair
+// read the other way round -- 4.6:1 by construction, at every seed, on every
+// surface (a tint moves the pane and the hue together). `check_sidebar_tiles`
+// asserts it rather than trusting the argument.
+//
+// AND MONOGRAM IS NOT HERE. It was in the plan and it is `icon_source:
+// Letters` under another field's name -- that source already replaces every
+// glyph with the label's first character, and composing it with Solid Tile
+// gives a lettered tile today. Shipping it as a fifth STYLE would be two
+// options landing on one pixel across two fields, which is worse than within
+// one, because neither picker can say so.
+html[data-bnd-sb-icons="tile"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="tile"] .bnd-sb-chip,
+html[data-bnd-sb-icons="badge"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="badge"] .bnd-sb-chip {
+  background: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  color: var(--bnd-sb-bg);
   border-radius: var(--bnd-radius-md);
 
   svg {
     stroke: currentColor;
   }
 }
-html[data-bnd-sb-icons="dots"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="dots"] .bnd-sb-chip {
+html[data-bnd-sb-icons="badge"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="badge"] .bnd-sb-chip {
   border-radius: var(--bnd-radius-pill);
 }
 
+// THE FALLBACK IS A COLOUR, and that is the whole name of the style. Rows
+// above the first section break -- Home, Dashboard, the first few links on
+// every stock sidebar -- are in no section, so no hue is in scope, and the old
+// fallback was `--bnd-sb-chip-ink`, which is the muted ink Fill on Active
+// paints at rest. Two styles, one grey glyph, on exactly the rows a user sees
+// first. Found by the catalogue walk, not by reading.
+//
+// `--bnd-brand-ink` measures 3.78:1 at the worst of 27 seeds x 2 modes x four
+// surfaces. That is the GRAPHIC floor (WCAG 1.4.11, 3:1) and it is the right
+// one here: this declaration paints a glyph. The letter that can share the
+// chip is TEXT and takes `--bnd-sb-ink` instead, one rule down.
 html[data-bnd-sb-icons="filled"] .body-sidebar .sidebar-item-icon,
 html[data-bnd-sb-icons="filled"] .bnd-sb-chip {
   background: transparent;
-  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  color: var(--bnd-sb-hue, var(--bnd-brand-ink));
+  border-radius: var(--bnd-radius-md);
 }
 
-html[data-bnd-sb-icons="duotone"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="duotone"] .bnd-sb-chip {
-  background: transparent;
-  color: var(--bnd-sb-hue, var(--bnd-brand));
-  opacity: 0.85;
-}
-
-html[data-bnd-sb-icons="brandlines"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="brandlines"] .bnd-sb-chip {
-  background: transparent;
-  color: var(--bnd-brand-ink);
-}
-
-html[data-bnd-sb-icons="mono"] .body-sidebar .sidebar-item-icon,
-html[data-bnd-sb-icons="mono"] .bnd-sb-chip {
+html[data-bnd-sb-icons="onactive"] .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="onactive"] .bnd-sb-chip {
   background: transparent;
   color: var(--bnd-sb-ink-muted);
+  border-radius: var(--bnd-radius-md);
+}
+
+// ── Where the wash shows when there is no card (item 42, slice I) ─────────
+//
+// `--bnd-sb-hue-chip` NEEDED ITS CONSUMER BACK. It fed the old Colored Chips
+// rule; deleting that style left the token declared and read nowhere -- a
+// phantom the build guard would refuse, and, worse, it would have made Off and
+// Subtle one pixel apart under Plain and Divided, where there is no card for
+// the wash to tint. That is the same three-options-one-pixel defect the wash
+// was rewritten to fix in the first place, arriving from the other side.
+//
+// SCOPED AWAY FROM CARDS, and that scope is the whole care in this rule. Under
+// Cards -- the shipped default -- the wash already paints the section card, and
+// adding a chip behind every glyph as well would tint the default desk twice
+// and change what every existing site looks like. The wash gets ONE surface per
+// section style: the card where there is one, the chip where there is not.
+//
+// A GLYPH ON ITS OWN WASH IS A GRAPHIC, floor 3:1 (WCAG 1.4.11), and it
+// measures 3.47:1 at Rich across the 27 gate seeds -- passing, and it would
+// fail as text. That is why the letter below stops taking the hue.
+html[data-bnd-sb-icons="filled"]:not([data-bnd-sb-sections="cards"]) .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="filled"]:not([data-bnd-sb-sections="cards"]) .bnd-sb-chip,
+html[data-bnd-sb-icons="onactive"]:not([data-bnd-sb-sections="cards"]) .body-sidebar .sidebar-item-icon,
+html[data-bnd-sb-icons="onactive"]:not([data-bnd-sb-sections="cards"]) .bnd-sb-chip {
+  background: var(--bnd-sb-hue-chip, transparent);
+}
+// The one row that is not at rest. `.active-sidebar` is the native marker every
+// active style already targets, so this follows the same node rather than
+// inventing a second idea of current.
+html[data-bnd-sb-icons="onactive"] .body-sidebar .standard-sidebar-item.active-sidebar .sidebar-item-icon {
+  color: inherit;
 }
 
 // Sidebar link text picks up the pane ink in every icon mode.
@@ -1099,8 +1346,27 @@ html[data-bnd-sb-intensity="5"] {
 // 1..7 — the same assignment the JS stamp produced, minus the stamp. Custom
 // properties inherit, so everything nested inside the section (chips, glyphs,
 // the active pill's accent) sees its section's hue for free.
+//
+// THE HUE IS STAMPED AT EVERY WASH, INCLUDING OFF (item 42, slice I), and the
+// `:not([data-bnd-sb-wash="off"])` that used to gate it is deleted. Two reasons,
+// and the second is a measurement:
+//
+//   * ROLE. `--bnd-sb-hue` is read as `color:` in six rules -- it is INK. The
+//     WASH is `--bnd-sb-hue-chip`, declared separately below and correctly
+//     absent at Off. Gating the ink on the wash made one field decide two
+//     things, and the picker could only honestly describe one of them.
+//   * IT COLLAPSED TWO ICON STYLES ONTO ONE PIXEL. At Off the hue fell back to
+//     `--bnd-sb-chip-ink`, which is `--bnd-ink-muted` -- exactly what Fill on
+//     Active paints at rest. So Filled Color and Fill on Active rendered the
+//     same grey glyph on every non-active row, under two names, on any site
+//     with the wash off. The catalogue walk in the suite is what says so.
+//
+// The selector loses the `:not()` and therefore one attribute of weight. Checked
+// rather than assumed: this is the ONLY declaration of `--bnd-sb-hue` anywhere in
+// the app, so there is no rule for it to lose a tie against -- which is the
+// question this file has had to re-learn twice.
 @for $i from 1 through 7 {
-  html[data-bnd-sb-wash]:not([data-bnd-sb-wash="off"])
+  html[data-bnd-sb-wash]
     .body-sidebar-top .sidebar-items > :nth-child(7n + #{$i} of .sidebar-item-container.section-item) {
     // The MODE's fitted hue, never the global token: the global is one hex
     // for four panes and failed AA on at least one of them for every hue.
@@ -1367,6 +1633,22 @@ html[data-bnd-sb-badges] .bnd-sb-badge {
   margin-inline-start: auto;
   flex: none;
 }
+// A COUNT IS TEXT, AND IT WAS PAINTED LIKE A GRAPHIC. The numeral took the
+// section's hue on a 15% wash of that same hue -- measured across the 27 gate
+// seeds x 2 modes x the tinted and untinted surfaces: 3.53:1, against a 4.5
+// floor. It is why `sidebar_badges` shipped Off: the option existed, rendered,
+// and could not be defaulted.
+//
+// THE WASH STAYS, THE INK CHANGES. `--bnd-sb-ink` on the same chip measures
+// 5.28:1 at the worst of that sweep. The alternative -- a solid hue pill with
+// the pane knocked out, the way Solid Tile works -- clears by more and was
+// rejected on design rather than on colour: a count appears on many rows at
+// once, and a run of solid pills competes with the active row, which is the
+// pane's primary signal. The wash keeps the section's identity; the numeral
+// stops borrowing it.
+//
+// The default stays Off. What decides that is the SEMANTICS -- unread against
+// total -- which is the user's call and is not a colour question.
 html[data-bnd-sb-badges="counts"] .bnd-sb-badge {
   font-size: var(--bnd-text-xs);
   font-variant-numeric: var(--bnd-numeric);
@@ -1374,8 +1656,13 @@ html[data-bnd-sb-badges="counts"] .bnd-sb-badge {
   padding-block: 0;
   padding-inline: var(--bnd-sp-2);
   background: color-mix(in srgb, var(--bnd-sb-hue, var(--bnd-brand)) 15%, transparent);
-  color: var(--bnd-sb-hue, var(--bnd-brand));
+  color: var(--bnd-sb-ink);
 }
+// The dot is a GRAPHIC (WCAG 1.4.11, floor 3:1) and measures 3.38:1 at the
+// worst seed -- passing, and close enough that it is gated rather than
+// asserted. It is the same 7px mark in every section, so it takes the status
+// colour rather than the section's hue: a count says how many, a dot says
+// something is waiting, and those are different claims.
 html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
   inline-size: 7px;
   block-size: 7px;
@@ -1435,12 +1722,23 @@ html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .b
   inset-inline-start: 0;
 }
 
-// Glass applies to the overlay surface in rail modes.
-html[data-bnd-sb-material^="glass"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  background: color-mix(in srgb, var(--bnd-sb-bg) var(--bnd-sb-glass-pct), transparent);
+// THE SURFACE FOLLOWS THE PANE INTO THE RAIL. Expanded, the container is what
+// paints; railed, the container is a 52px strip and the OVERLAY inside it is
+// the pane -- so every surface that changes the container's paint needs the
+// same arm here, or the rail silently reverts to Solid. Reading the wrong node
+// is this file's oldest trap; these carry (0,4,1), which is what the rail's own
+// rules weigh.
+html[data-bnd-sb-material="tinted"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+  background: var(--bnd-sb-tint);
 }
-html[data-bnd-sb-material="glassblur"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  backdrop-filter: blur(14px) saturate(1.15);
+html[data-bnd-sb-material="gradient"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+  background: var(--bnd-sb-gradient);
+}
+html[data-bnd-sb-material="elevated"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+  background: var(--bnd-raised);
+}
+html[data-bnd-sb-material="textured"][data-bnd-rail] .body-sidebar-container .body-sidebar {
+  background-image: var(--bnd-sb-grain-image);
 }
 
 // The pin control (hoverpin only; bunood.js mounts it).
@@ -1564,6 +1862,15 @@ html[data-bnd-sb-iconsrc="original"] .body-sidebar .sidebar-item-icon {
   color: inherit;
 }
 
+// A LETTER IS A GLYPH HERE. Under the two tiles the icon span carries the hue
+// as its background and the pane as its colour, and `currentColor` is what
+// carries that down -- so the letter is knocked out exactly as an svg is,
+// rather than painting hue-on-hue at 1:1.
+html[data-bnd-sb-icons="tile"] .bnd-sb-letter,
+html[data-bnd-sb-icons="badge"] .bnd-sb-letter {
+  color: inherit;
+}
+
 html[data-bnd-sb-color] .bnd-sb-letter {
   display: inline-grid;
   place-items: center;
@@ -1571,7 +1878,13 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   block-size: 100%;
   font-size: var(--bnd-text-xs);
   font-weight: var(--bnd-weight-medium);
-  color: var(--bnd-sb-hue, var(--bnd-sb-chip-ink));
+  // THE PANE'S INK, NEVER THE HUE. A letter is TEXT, so its floor is 4.5:1,
+  // and the hue is fitted against the PANE -- on a washed chip it measures
+  // 3.47:1, which is fine for a glyph (a graphic, floor 3) and a failure for a
+  // character. Primary ink on the worst washed chip is 5.20:1, measured across
+  // the 27 gate seeds and both tinted and untinted surfaces. The two tile
+  // styles override this to `inherit` above, where the knockout is the pane.
+  color: var(--bnd-sb-ink);
   text-transform: uppercase;
 }
 
@@ -1650,64 +1963,19 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
   }
 }
 
-// ── Reduce transparency (OS-level) ──────────────────────────────────────────
-// Glass degrades to the designed solid, never to a glitch, and this is the
-// ONLY thing that does it - there is no per-user transparency toggle, and the
-// sentence claiming one stood here unchecked from item 10 until item 40.
-// Both glass materials, hence the prefix: an OS that asks for less
-// transparency is not asking for less blur.
+// ── Reduce transparency (OS-level) ───────────────────────
+// NOTHING TO DEGRADE, and that is what the surfaces catalogue bought rather
+// than something it forgot. Glass and Blurred Glass were the app's only
+// translucent surfaces; the six that replaced them are all opaque, so an OS
+// asking for less transparency is already served.
 //
-// AND THE SELECTOR IS SIZED AGAINST THE RULE IT MUST BEAT, not against the
-// element. The translucent surface above carries a :not([...="brand"]) and so
-// weighs (0,3,1); the two-attribute form this block used until item 40 weighed
-// (0,2,1) and therefore LOST the background while still winning the blur --
-// leaving a pane that stayed 75% transparent and dropped the frosting, which
-// is the one combination the degradation exists to prevent. Measured, not
-// reasoned: headless Chromium reports `reduce`, so every desk this suite has
-// ever driven was in this branch and nothing looked.
-//
-// Ties are enough, because this block is later in the file. BRAND IS NO
-// LONGER EXEMPT: it has real translucency to stand down from since item 40
-// gave its gradient alpha stops, and the sentence that used to sit here --
-// "brand has no translucency to stand down FROM" -- became false the moment
-// that rule landed. Its degradation is the same one every other pane gets:
-// back to the opaque `--bnd-sb-bg`, with the frosting removed by the block
-// below rather than left behind (the half-degradation this file already
-// measured once, and the reason both halves are asserted together).
-//
-// AND THE BRAND ARM IS SIZED AGAINST THE RULE IT MUST BEAT, not against
-// the element -- this file's own recorded trap, walked into again while
-// closing the defect and caught by the check rather than by reading. The
-// brand Glass rule carries TWO attributes plus the colour one, (0,4,1);
-// the general degradation selector is (0,3,1) and simply lost, leaving a
-// pane 15% transparent with its frosting removed -- the one combination
-// this degradation exists to prevent. The brand arm ties at (0,4,1) and
-// wins on order, which is what 'ties are enough' actually requires.
-@media (prefers-reduced-transparency: reduce) {
-  // THE SECOND ATTRIBUTE IS SPECIFICITY, NOT A CONDITION. `[data-bnd-sb-color]`
-  // is present whenever the kit is on, so it selects nothing extra and nothing
-  // less -- it is here to carry WEIGHT. These arms used to earn that weight
-  // from a `:not([data-bnd-sb-color="brand"])` guard; when the brand pane went,
-  // dropping the guard read like a simplification and silently took them from
-  // (0,4,1) to (0,3,1).
-  //
-  // What they must beat is NOT the rule they look like they are beating. The
-  // base translucency rule is (0,2,1) and would lose to anything. The RAIL
-  // arms 250 lines up are `[material][data-bnd-rail] .container .body-sidebar`
-  // -- (0,4,1) -- so a (0,3,1) degradation loses the background and wins only
-  // the blur, leaving a pane translucent at alpha 0.85 with its frosting removed: the one
-  // combination this block exists to prevent. Size against the RULE, not the
-  // element. And headless Chromium reports `reduce`, so every desk this suite
-  // has ever driven is inside this branch -- it would have shipped looking fine.
-  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container,
-  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container .body-sidebar {
-    background: var(--bnd-sb-bg);
-  }
-  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container,
-  html[data-bnd-sb-material^="glass"][data-bnd-sb-color] .body-sidebar-container .body-sidebar {
-    backdrop-filter: none;
-  }
-}
+// THE LESSON THE DELETED BLOCK CARRIED IS KEPT ON PURPOSE, because the next
+// translucent surface added here has to re-learn it or repeat it: size a
+// selector against the RULE it must beat, never against the element. The rail
+// arms below weigh (0,4,1), so a (0,3,1) degradation lost the background and
+// won only the blur -- a pane left translucent with its frosting removed, the
+// one combination the degradation existed to prevent. And headless Chromium
+// reports `reduce`, so the branch nobody looks at is the one every test ran in.
 
 // Every `html[data-bnd-rail]` rule above carries `:not([data-bnd-narrow])`
 // (slice 11): below 768 the pane is Frappe's drawer, the page-title
