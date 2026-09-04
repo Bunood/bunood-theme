@@ -2526,8 +2526,8 @@ function sb_zone_anchor(pane, zone, node) {
 	 * half-written or stale order degrades to the shipped one, never to an
 	 * error. No migration needed for exactly this reason.
 	 */
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "apps"];
-	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps" };
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "apps", "start"];
+	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
 
 	function desk_order_rank() {
 		const stored = String((placement_state && placement_state.order) || "")
@@ -2604,6 +2604,10 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const [tenant, token, cls, build] of [
 			["inbox", "bell", "bnd-bell", build_bell],
 			["user", "user", "bnd-avatar-btn", build_user],
+			// The start button (item 42, slice 7). It replaces no native, so its
+			// token is its own and releasing it costs nothing — the pane keeps its
+			// handle and Frappe's page-title toggle either way.
+			["start", "start", "bnd-sb-start", build_start],
 		]) {
 			const region = placement_for(tenant);
 			// The panel stamp follows the OUTCOME of every branch below: only a
@@ -2734,6 +2738,46 @@ function sb_zone_anchor(pane, zone, node) {
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
+	/** The start button — argument in _sidebar.scss. */
+	function build_start() {
+		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
+			type: "button",
+			"data-bnd-part": "start",
+			"aria-label": __("Menu"),
+			title: __("Menu"),
+			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
+			// that was plainly open as collapsed until the first click corrected it —
+			// and the first click is exactly when a screen-reader user has already
+			// been told the wrong thing.
+			"aria-expanded":
+				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false",
+		});
+		const mark = el("span", "bnd-sb-start-mark");
+		if (frappe.boot.bnd_logo) {
+			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
+		} else {
+			mark.classList.add("bnd-sb-brand-initial");
+			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		}
+		btn.appendChild(mark);
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			bunood.pane_toggle();
+		});
+		return btn;
+	}
+
+	/** Open the pane if it is away, put it back if it is not. */
+	bunood.pane_toggle = function () {
+		if (!sb_state) return;
+		const html = document.documentElement;
+		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
+		bunood.pane_state(away ? "Open" : "Hidden");
+		for (const b of document.querySelectorAll(".bnd-sb-start")) {
+			b.setAttribute("aria-expanded", away ? "true" : "false");
+		}
+	};
+
 	function build_bell() {
 		const bell = el("button", "bnd-icon-btn bnd-bell", {
 			type: "button",
@@ -7772,6 +7816,7 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const [field, key] of Object.entries({
 				inbox_placement: "inbox",
 				user_placement: "user",
+				start_placement: "start",
 				home_placement: "home",
 				apps_placement: "apps",
 			})) {

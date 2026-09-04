@@ -1452,15 +1452,28 @@ def check_layout_identity() -> list[str]:
 
 
 #: The rows item 42 retired, as a site upgraded from v0.41 may still hold them:
-#: containers, tenants, and the name the derivation should now answer. Three
-#: rows survive under a new name because their VALUES survived; two spell a
-#: shape no card offers any more and honestly derive to "" (the picker reads
-#: "Custom"), which is the removal rule: nothing stops working, it stops being
-#: named.
+#: containers, tenants, and the name the derivation should now answer.
+#:
+#: ALL FIVE ANSWER "" SINCE SLICE 7, and the reason is worth writing down because
+#: it will recur every time the catalogue grows a tenant. Three of these rows
+#: DID derive their successor -- their values had survived the rename intact.
+#: Then `start_placement` joined the catalogue, `layout_of` matches exactly on
+#: every field a layout writes, and a desk that predates the field falls back to
+#: the shipped default and matches nothing. A Top Bar desk has no start button and
+#: a Top Taskbar desk has one: they are different desks, and "" says so. The
+#: picker reads "Custom", the desk renders exactly as it did, and one click on a
+#: card adopts the new shape. That is the removal rule again -- nothing stops
+#: working, it stops being named.
+#:
+#: What this guard still refuses is the failure that matters: a retired row
+#: deriving a STRANGER, which would put the picker on a card the site is not on
+#: and hand search a fallback order nobody asked for.
 RETIRED_LAYOUTS = {
+    # WAS "Top Taskbar" until slice 7 gave that row a start button this desk has
+    # no setting for. See the note above RETIRED_LAYOUTS.
     "Top Bar": ({"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
                 {"inbox_placement": "Top Bar End", "user_placement": "Top Bar End", "search_placement": "Top Bar Center"},
-                "Top Taskbar"),
+                ""),
     "Compact": ({"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
                 {"inbox_placement": "Page Header End", "user_placement": "Page Header End", "search_placement": "Side Pane Start"},
                 ""),
@@ -1469,10 +1482,10 @@ RETIRED_LAYOUTS = {
                 ""),
     "Bottom Bar": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
                    {"inbox_placement": "Bottom Bar End", "user_placement": "Bottom Bar End", "search_placement": "Bottom Bar Center"},
-                   "Taskbar"),
+                   ""),
     "Dock": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
              {"inbox_placement": "Dock End", "user_placement": "Dock End", "search_placement": "Bottom Bar Center"},
-             "Floating Bar"),
+             ""),
 }
 
 

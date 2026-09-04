@@ -311,6 +311,35 @@ COMPONENTS = [
         "critical": False,
     },
     {
+        "key": "start",
+        "part": "start",
+        "label": "Start button",
+        "type": TENANT,
+        # The taskbar layouts' way into the pane (item 42, slice 7). It does not
+        # BUILD anything: it puts Frappe's own pane into the open state the rail
+        # already drives, so there is no second pane to keep in agreement and
+        # every rule the pane has applies unchanged.
+        "selector": '[data-bnd-part="start"]',
+        # Ours entirely; stock v16 has no such control, so a failed mount
+        # releases nothing — the pane is still reachable by its own handle.
+        "native": None,
+        # NOT the side pane: a button inside the pane that opens the pane is a
+        # control with nothing to do. The page header is out for the same reason
+        # search is — no slug exists there.
+        "regions": ("topbar", "bottombar", "dock"),
+        "toggle": None,
+        # OFFABLE, and the taskbar layouts do not depend on it being on: the pane
+        # keeps its own collapse handle and Frappe's page-title toggle, so
+        # switching this off costs the shortcut, never the route. A tenant whose
+        # Off strands somebody would have to be `critical`, and this is not that.
+        "offable": True,
+        # START ONLY: it is the leading-edge control on every bar that carries it,
+        # which is what "start button" means. Offering Center or End would be a
+        # picker whose options land in places the name contradicts.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
         "key": "apps",
         "part": "apps",
         "label": "All apps link",
@@ -430,6 +459,9 @@ LAYOUT_CHROME = {
 #: the next value added cannot be one the field will not accept.
 LAYOUT_TENANTS = {
     "Unified Side Pane": {
+        # No start button: this desk's pane is already open, and a control that
+        # opens what is open is the dishonest affordance.
+        "start_placement": "Off",
         # The pane's End zone is the foot card (item 42, slice 3): the account
         # tile leading, the bell pinned to the inline end.
         "inbox_placement": "Side Pane End",
@@ -439,16 +471,21 @@ LAYOUT_TENANTS = {
         "search_placement": "Side Pane Start",
     },
     "Taskbar": {
+        # The start button is what makes this a taskbar.
+        "start_placement": "Bottom Bar Start",
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
     },
     "Top Taskbar": {
+        "start_placement": "Top Bar Start",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
     },
     "Floating Bar": {
+        # The pill's own way back to the pane this row switches off.
+        "start_placement": "Dock Start",
         "inbox_placement": "Dock End",
         "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form

@@ -6369,3 +6369,11 @@ msgstr "الإشعارات داخل اللوحة — ضعها في شريط أو
 #, fuzzy
 msgid "Your profile is in the pane — place it in a bar first"
 msgstr "ملفك الشخصي داخل اللوحة — ضعه في شريط أولًا"
+msgid "Start Button Placement"
+msgstr "موضع زر البدء"
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: item42
+#, fuzzy
+msgid "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
+msgstr "زر بدء يفتح اللوحة الجانبية، مثل شريط المهام. معطل في المكتب المشحون، حيث اللوحة مفتوحة بالفعل."

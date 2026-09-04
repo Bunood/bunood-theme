@@ -709,7 +709,7 @@ def extend_bootinfo(bootinfo):
         # Placement rides in the same dict as the rest of the kit, not in a
         # new one: the client reads a flat blob per kit, and a second payload
         # for "where" would be a second thing to keep in step with "what".
-        from bunood_theme.presets import LINKS_DEFAULTS, USER_DEFAULTS
+        from bunood_theme.presets import LINKS_DEFAULTS, START_DEFAULTS, USER_DEFAULTS
 
         from bunood_theme.registry import default_desk_order
 
@@ -720,6 +720,8 @@ def extend_bootinfo(bootinfo):
             # sidebar style kit as one shared field.
             "home": (settings.get("home_placement") or LINKS_DEFAULTS["home_placement"]),
             "apps": (settings.get("apps_placement") or LINKS_DEFAULTS["apps_placement"]),
+            # The taskbar layouts' way into the pane (item 42, slice 7).
+            "start": (settings.get("start_placement") or START_DEFAULTS["start_placement"]),
             # E3: the desk order the tenants sort by when they share a zone.
             # Same payload as the placements because it is the same fact —
             # where things sit — split across two keys would be two things to

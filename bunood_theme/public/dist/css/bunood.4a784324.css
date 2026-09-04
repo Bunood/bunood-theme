@@ -1632,6 +1632,23 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
+html[data-theme] .bnd-sb-start {
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border-radius: var(--bnd-radius-md);
+  overflow: hidden;
+}
+html[data-theme] .bnd-sb-start .bnd-sb-start-mark {
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: var(--bnd-radius-sm);
+  overflow: hidden;
+  font-size: var(--bnd-text-xs);
+}
+
 html[data-bnd-sb-panestate=hidden] .body-sidebar-container {
   display: none !important;
 }

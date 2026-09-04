@@ -1419,7 +1419,7 @@ const MUTABLE_FIELDS = [
 	// Search placement + status bar (item 14).
 	// Component rework, slice 1: the bell and the user menu place themselves.
 	// Slice 2: so do Home and All Apps, which used to share one field.
-	"inbox_placement", "user_placement", "home_placement", "apps_placement",
+	"inbox_placement", "user_placement", "home_placement", "apps_placement", "start_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
@@ -6131,6 +6131,66 @@ print("ok")
 			});
 			expect(!back.owned, "the token can be released");
 			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
+		});
+
+		await test("start: the taskbar button opens the pane, closes it, and says which", async () => {
+			// ITEM 42, SLICE 7. The control that makes a taskbar a taskbar. It builds
+			// no surface — it moves the pane between the states slice 8 defined — so
+			// the claim is a round trip plus the spoken state, and the spoken state is
+			// the half that was wrong first: built from a constant, the button
+			// announced a plainly open pane as collapsed until the first click, which
+			// is exactly when a screen-reader user has already been told otherwise.
+			//
+			// Watched failing before the tenant existed: no node at all.
+			const before = getSettings(["start_placement", "sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({ desk_layout: "Taskbar" });
+				await goDesk("/app/selling", "body", 3500);
+				const snap = () =>
+					page.evaluate(() => {
+						const b = document.querySelector('[data-bnd-part="start"]');
+						const c = document.querySelector(".body-sidebar-container");
+						return {
+							btn: !!b,
+							inBar: !!(b && b.closest(".bnd-statusbar")),
+							zone: b && b.closest(".bnd-zone") && b.closest(".bnd-zone").getAttribute("data-zone"),
+							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+							pane: !!c && getComputedStyle(c).display !== "none",
+							aria: b && b.getAttribute("aria-expanded"),
+							label: b && b.getAttribute("aria-label"),
+						};
+					});
+				const a = await snap();
+				expect(a.btn, "the Taskbar layout mounts a start button");
+				expect(a.inBar, "in the bottom bar the layout switches on");
+				expectEq(a.zone, "start", "at the bar's start — which is what its name claims");
+				expect((a.label || "").length > 0, "and it is named for AT");
+				expectEq(a.state, "open", "precondition: the pane is open");
+				expectEq(a.aria, "true", "so it says expanded BEFORE anybody clicks it");
+
+				await page.click('[data-bnd-part="start"]');
+				await page.waitForTimeout(700);
+				const b2 = await snap();
+				expectEq(b2.state, "hidden", "one click takes the pane away");
+				expectEq(b2.pane, false, "and it really goes");
+				expectEq(b2.aria, "false", "and the button says so");
+
+				await page.click('[data-bnd-part="start"]');
+				await page.waitForTimeout(700);
+				const c2 = await snap();
+				expectEq(c2.state, "open", "the next click brings it back");
+				expectEq(c2.pane, true, "and it really returns");
+				expectEq(c2.aria, "true", "and the button says that too");
+
+				// OFF IS OFF, and costs no route: the pane keeps its own handle.
+				setSettings({ start_placement: "Off" });
+				await goDesk("/app/selling", "body", 3500);
+				const off = await snap();
+				expectEq(off.btn, false, "Off removes it");
+				expect(off.pane, "and the pane is still reachable without it");
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		await test("sidepane: three states — Open, Rail, Hidden — and what each keeps", async () => {

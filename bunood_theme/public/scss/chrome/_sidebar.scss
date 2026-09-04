@@ -292,6 +292,40 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
+// ── The start button (item 42, slice 7) ────────────────────────────────────
+// What makes a taskbar a taskbar: the company's mark at the bar's leading edge,
+// and one click between the pane being there and not. It BUILDS NOTHING — it
+// moves the pane between the states slice 8 defined — so there is no second
+// pane to keep in agreement, no focus trap to get wrong, and every rule the
+// pane already has applies unchanged.
+//
+// A TENANT, not a fixture: placed by `start_placement`, mounted by
+// `mount_placed_tenants`, sorted by `enforce_desk_order`, released like any
+// other. It replaces no native affordance, so switching it off costs the
+// shortcut and never the route — the pane keeps its own collapse handle and
+// Frappe's page-title toggle. That is why it is `offable` and not `critical`.
+//
+// Start-only on three regions, because "start button" names a position and a
+// picker whose options contradict its own label is the dishonest control this
+// vocabulary exists to abolish.
+html[data-theme] .bnd-sb-start {
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border-radius: var(--bnd-radius-md);
+  overflow: hidden;
+
+  .bnd-sb-start-mark {
+    display: grid;
+    place-items: center;
+    inline-size: 22px;
+    block-size: 22px;
+    border-radius: var(--bnd-radius-sm);
+    overflow: hidden;
+    font-size: var(--bnd-text-xs);
+  }
+}
+
 // ── Hidden: the pane goes, the pill stays (item 42, slice 8) ───────────────
 //
 // THE ARGUMENTS FOR THE RUNTIME LIVE HERE, because `build.mjs` copies bunood.js

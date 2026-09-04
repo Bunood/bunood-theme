@@ -1557,6 +1557,15 @@
    "hidden": 1
   },
   {
+   "fieldname": "start_placement",
+   "fieldtype": "Select",
+   "label": "Start Button Placement",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nDock Start",
+   "default": "Off",
+   "hidden": 1,
+   "description": "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
+  },
+  {
    "fieldname": "section_personal",
    "fieldtype": "Section Break",
    "label": "Personalization"
