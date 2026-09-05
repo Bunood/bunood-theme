@@ -2228,7 +2228,7 @@ msgstr "ممّ تتكوّن اللوحة، خلف الروابط."
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
 msgid "Solid"
-msgstr "معتمة"
+msgstr "معتم"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
