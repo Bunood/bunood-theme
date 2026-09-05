@@ -42,6 +42,8 @@ WHY THE SEED IS NEVER REJECTED
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from bunood_theme.contrast import (
     AA_NON_TEXT,
     AA_TEXT,
@@ -310,6 +312,217 @@ def status_ramp(mode: str) -> dict[str, str]:
     return out
 
 
+#: The side pane's own palette (item 40).
+#:
+#: WHY IT LIVES HERE. `_sidebar.scss` hand-authored 77 declarations across six
+#: colour-mode blocks — 60 of them literal — and `tools/contrast_gate.py` kept a
+#: second hand-copy of eighteen of those constants with no drift check, its own
+#: comment admitting the two had to be edited together. That is the same fact in
+#: three places. It lives here once, and the gate measures what this returns.
+#:
+#: The pane is NOT `derive()`'s business and is deliberately a sibling of it:
+#: `derive` returns one flat map for a mode, and the pane has four independent
+#: colour worlds that a flat map cannot express.
+
+#: The hue floor 34a fitted to. Above `AA_TEXT` on purpose: these are category
+#: marks that must stay identifiable, not merely legible.
+SB_TARGET_HUE = 4.6
+
+#: The designed category hues, before fitting, per POLARITY.
+SB_HUE_SEEDS_LIGHT = ["#2469bc", "#b94112", "#127753", "#8e6000", "#c62360", "#007a00", "#4a3aa7"]
+SB_HUE_SEEDS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00c300", "#a9a0de"]
+
+#: The working set every colour mode must declare in full.
+#:
+#: `_sidebar.scss`'s own header has said "Each mode sets the full set;
+#: components below never look elsewhere" since item 10, and nothing checked
+#: it. Item 40 measured the cost: dark-minimal declared 12 of these 14, so
+#: `--bnd-sb-chip-bg` and `--bnd-sb-chip-ink` fell through to the LIGHT block
+#: and painted #6d7570 on #15181a — 3.76:1 against a 4.5 floor. A sentence in
+#: a comment is not a contract; this tuple is, and `check_sidebar_coverage`
+#: enforces it.
+class SidebarPane(NamedTuple):
+    """One colour mode's pane: how it is built, and what to call it in a report."""
+
+    #: How the pane is produced. Four kinds, and WHICH SEED a kind names is the
+    #: whole of item 40's slice-2 decision:
+    #:
+    #:   ``("literal", hex)``       a fixed pane. Nothing a tenant sets moves it.
+    #:   ``("alias", token)``       the pane IS a global surface; resolve THAT
+    #:                              recipe, which mixes ``ground or brand``.
+    #:   ``("brand", pct, base)``   ``mix(brand, pct, base)`` — the brand, never
+    #:                              the ground, even when a ground is set.
+    #:   ``("ground", pct, base)``  ``mix(ground, pct, base)``, and plain ``base``
+    #:                              when no ground is set. The pane shows what the
+    #:                              tenant ASKED for and never the brand behind it.
+    recipe: tuple
+    label: str
+    #: Whether this mode's block is scoped by ``data-theme``. Match Theme and
+    #: Minimal have a light block and a dark one; Dark Contrast and Brand have a
+    #: single block that applies in BOTH desk themes. The emitter needs this to
+    #: build a selector, and inferring it from the polarity key would be wrong
+    #: for exactly the mode filed under "dark" because its PANE is dark — which
+    #: is the trap `SB_PANES`'s own comment already warns about, one level up.
+    themed: bool
+
+
+#: Every measurable pane, grouped by POLARITY — and that grouping is the trap.
+#:
+#: "Dark Contrast" is dark in BOTH desk themes, so it belongs to the dark group
+#: even when the desk is light. Measured while writing this: including it in
+#: the light walk drags the light binding from #ebebeb to #111713, and all
+#: seven light hues then "fit" against a near-black background and move.
+#: :func:`~bunood_theme.contrast.fit_ink` cannot catch that — its own docstring
+#: says backgrounds straddling the ink return a value on the wrong side of the
+#: dip, silently. `tools/contrast_gate.py` has always grouped the panes this
+#: way; this table is that grouping, written down once instead of twice.
+#:
+#: The keys are the `data-bnd-sb-color` values, so a mode added to the
+#: stylesheet and not to this table is a coverage failure rather than a pane
+#: no hue was ever fitted against.
+#:
+#: ── MINIMAL, DECIDED 2026-08-29 (item 40, slice 2) ─────────────────────────
+#:
+#: Minimal was 0 of 14 tokens seed-dependent in both themes: the same pane on
+#: every site in the world. The two open questions were what should tint it and
+#: by how much. Both were measured against the real derivation before either
+#: was answered, and the measurement moved both answers.
+#:
+#: WHAT: the GROUND, never the brand. `ground or brand` — what `derive` does
+#: for every other surface — is bit-identical to this on sixteen of the
+#: seventeen shipped palettes, because all but one name a ground. The
+#: seventeenth is Bunood, and `presets.py` hands Bunood to exactly one theme
+#: that uses Minimal: **Quiet**, whose own preamble calls itself "the honest
+#: stand-down" and names the side pane as a kit that can only "take its
+#: quietest pole". So `ground or brand`'s entire practical effect would have
+#: been to brand-tint the pane of the one look whose promise is that everything
+#: which can stand down does. `ground_color` is a free Color field, so this is
+#: not "always neutral" — a tenant who wants a warm pane sets a warm ground.
+#:
+#: HOW MUCH: 5% in dark, and NOTHING in light. Not a preference — the light
+#: pane has no margin to spend and nothing to buy with it:
+#:
+#:   * Minimal's own `--bnd-sb-ink-muted` / `--bnd-sb-chip-ink` are #6d7570 on
+#:     #fafbfa, measuring 4.57:1 against a 4.5 floor. The worst NAMED ground
+#:     crosses that floor at 1.36%; the three candidates measured 4.45 / 4.35 /
+#:     4.22, and worse against an unconstrained one. Every candidate was a gate
+#:     failure in light. `check_sidebar_headroom` now enforces this.
+#:   * And it would have bought nothing. At 3% in light all six shipped grounds
+#:     mix to the SAME hex, #f7f8f7 — not similar, identical. Match Theme's own
+#:     light pane is four distinct colours across seventeen tenants. The
+#:     surface ramp is not what identifies a site; `--bnd-brand` is.
+#:
+#: Dark has both the room and the gain: every ink clears the floor at every
+#: candidate, and 5% holds the separation from Match Theme at 3.80 worst case
+#: while 8% drops it to 2.84 — under this repo's own 3.0 separation floor, and
+#: seven of seventeen palettes with it.
+#:
+#: WHY NOT 8%, properly. The plan said it "collapses Minimal into Match Theme".
+#: True, but not for the stated reason and not by a threshold: Match Theme's
+#: light pane is `mix(ground, 8%, #ffffff)`, so Minimal at 8% would be the SAME
+#: RECIPE AT THE SAME PERCENTAGE with a different base, and the difference
+#: between them becomes the constant `0.92 x (#fafbfa - #ffffff)` at every
+#: ground. The light separation curve is not even monotonic — it bottoms at ~6%
+#: (ΔE 0.47) and recovers — so "pick a smaller number to be safe" is false
+#: there. 8% also crosses the hue-fit binding at 6.20%.
+#:
+#: DARK CONTRAST KEEPS THE BRAND, deliberately and inconsistently. It is a
+#: statement pane, not a stand-down, so it stays `("brand", …)` — but note that
+#: it therefore ignores the ground entirely, which is a question this slice did
+#: not open. Recorded so the next reader knows it was seen, not missed.
+#: The pane a sidebar hue has to be legible on.
+#:
+#: WAS FOUR PANES PER POLARITY, and the shrink is the whole of item 40's colour
+#: decision: the kit used to carry Match Theme, Minimal, Dark Contrast and Brand
+#: as separate colour worlds, each with its own hand-authored working set. They
+#: are gone -- the pane takes the theme's palette now -- and what is left is the
+#: one they all should have been: `--bnd-pane`, which `derive` already produces
+#: per site and per polarity.
+#:
+#: IT IS STILL A MAP RATHER THAN A CONSTANT because two fits read it and both
+#: need the polarity split: `_sb_binding_bg` walks it for the hardest pane a hue
+#: must clear, and it is the shape `fit_ink`'s straddle precondition is
+#: satisfied by -- light panes and dark panes must never be fitted together.
+SB_PANES = {
+    "light": {"theme": SidebarPane(("alias", "--bnd-pane"), "pane", themed=True)},
+    "dark": {"theme": SidebarPane(("alias", "--bnd-pane"), "pane, dark desk", themed=True)},
+}
+
+def sb_pane_value(pane: SidebarPane, brand: str, polarity: str, ground: str | None = None) -> str:
+    """One pane as the concrete hex a SITE renders.
+
+    ``ground=None`` means the tenant set none, which is the case a
+    ``("ground", …)`` recipe answers by standing down to its base — the whole
+    of the "what tints Minimal" decision, in one branch.
+    """
+    kind = pane.recipe[0]
+    if kind == "literal":
+        return pane.recipe[1]
+    if kind == "brand":
+        return mix(brand, pane.recipe[1], pane.recipe[2])
+    if kind == "ground":
+        return mix(ground, pane.recipe[1], pane.recipe[2]) if ground else pane.recipe[2]
+    if kind == "alias":
+        ramp = SURFACES_LIGHT if polarity == "light" else SURFACES_DARK
+        for tok, pct, base in ramp:
+            if tok == pane.recipe[1]:
+                # The aliased surface mixes `ground or brand`, exactly as
+                # `derive` does. Reading it any other way would model a pane
+                # this app never paints.
+                return mix(ground or brand, pct, base)
+        raise ValueError(f"unknown surface alias {pane.recipe[1]}")
+    raise ValueError(f"unknown pane recipe {pane.recipe!r}")
+
+
+def _sb_binding_bg(polarity: str) -> str:
+    """The single hardest pane a hue of ``polarity`` must clear, across every seed.
+
+    Same structure as :func:`_chart_binding_bg`, and for the same reason: it is
+    computed from the recipes at the extreme seed so the ramp never recurses
+    into :func:`derive`. A light hue is dark-on-light, so the binding pane is
+    the DARKEST any light pane gets, which is at the darkest seed; a dark hue
+    is the LIGHTEST, at the brightest seed.
+
+    THE EXTREME IS APPLIED TO BOTH SEEDS, brand and ground, because both are
+    unconstrained Frappe Color fields — `ground_color`'s `validate()` strips and
+    lowercases and throws nothing. A walk that took the extreme brand but a
+    named ground would compute a binding no pathological site reaches, and the
+    next re-fit would land hues that fail on one.
+
+    An ``("alias", …)`` entry resolves to the aliased surface's own recipe —
+    NOT to the alias string. Reading it as an opaque literal would compute a
+    binding that cannot see Match Theme's pane at all, and the next re-fit
+    would land hues that fail there. It happens to be invisible today, which is
+    the "a branch whose guard is false on the dev site is UNTESTED" case.
+    """
+    if polarity not in ("light", "dark"):
+        raise ValueError(f"polarity must be light or dark, got {polarity!r}")
+    extreme = "#000000" if polarity == "light" else "#ffffff"
+    cands = [sb_pane_value(p, extreme, polarity, ground=extreme)
+             for p in SB_PANES[polarity].values()]
+    key = lambda hx: luminance(parse_color(hx))
+    return min(cands, key=key) if polarity == "light" else max(cands, key=key)
+
+
+def sb_hues(polarity: str) -> list[str]:
+    """The seven category hues for one polarity, fitted to the binding pane.
+
+    Every fit takes exactly ONE background, so :func:`fit_ink`'s straddle
+    precondition cannot be violated here by construction.
+
+    At every seed the designed values already clear the floor and come back
+    untouched — verified for all fourteen, and re-verified after the slice-2
+    tint decision moved the dark Minimal recipe. That is the point: this
+    replaces a hand-copied table with the derivation that produces it, at no
+    visual cost.
+    """
+    bg = _sb_binding_bg(polarity)
+    seeds = SB_HUE_SEEDS_LIGHT if polarity == "light" else SB_HUE_SEEDS_DARK
+    return [fit_ink(h, [bg], target=SB_TARGET_HUE)[0] for h in seeds]
+
+
+
+
 def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:
     """Every seed-dependent token for one mode.
 
@@ -381,6 +594,20 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     fill_seed = brand
     if mode != "light":
         fill_seed = to_hex(lift_lightness(parse_color(brand), DARK_FILL_TARGET_L))
+    # THE SIDEBAR'S PANES USED TO JOIN THE CONSTRAINT SET, and this is what
+    # removing them costs and buys. Slice 12 added the Minimal and Dark Contrast
+    # panes here because neither was a global surface, so the active pill's fill
+    # could sit at 1.06:1 against the one surface it lived on. Those panes are
+    # gone; the pane is `--bnd-pane`, which is already in `surfaces`, so the
+    # constraint is now satisfied by construction rather than by a second list.
+    #
+    # MEASURED before removing it (2026-09-01, 27 seeds x 2 modes): five of
+    # fifty-four brand-solid values move, all light, all at pathological seeds,
+    # and every one still clears 3:1 on its pane -- worst 3.03:1. Four of the
+    # five are a REPAIR: a black seed derived #646464 because the fill was being
+    # lifted to clear a dark pane nobody renders, and now derives #111111, which
+    # is 5.01:1 -> 15.98:1 and the colour the tenant actually chose. The shipped
+    # seed is not among the five, so `_tokens.scss` needs no regeneration.
     out["--bnd-brand-solid"], out["--bnd-on-brand"], _ = fill_pair(
         fill_seed, surfaces=surfaces
     )

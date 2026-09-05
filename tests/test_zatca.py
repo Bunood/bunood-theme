@@ -16,7 +16,7 @@ def load_module():
     # whole suite in one process, making otherwise independent tests order
     # dependent.
     sys.modules["frappe"] = fake
-    path = Path(__file__).parents[1] / "bunood_theme" / "zatca.py"
+    path = Path(__file__).parents[1] / "bunood_theme" / "zatca" / "status.py"
     spec = importlib.util.spec_from_file_location("bunood_zatca_test", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

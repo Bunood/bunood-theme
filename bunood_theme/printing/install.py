@@ -15,6 +15,8 @@
 #   formats/*.html           -> Print Format records (Jinja), created/updated.
 #                               Managed: local edits are overwritten on migrate —
 #                               duplicate a format to customize (see README.md).
+#   ../zatca/formats/*.html  -> the same, for the ZATCA package's own list
+#                               (bunood_theme.zatca.FORMATS, item 41).
 #
 # Idempotent and defensive: a failure logs and never blocks bench migrate
 # (matching the non-blocking ops policy in bunood_erpnext). A substitution
@@ -26,6 +28,8 @@ import re
 import subprocess
 
 import frappe
+
+from bunood_theme import zatca
 
 STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
@@ -63,8 +67,10 @@ FORMATS = [
 ]
 
 
-def _read(*parts):
-    with open(os.path.join(BASE, *parts), encoding="utf-8") as f:
+def _read(*parts, base=BASE):
+    """A file under this package by default; ``base`` lets a spec that lives in
+    another package (``bunood_theme.zatca``) be read from its own directory."""
+    with open(os.path.join(base, *parts), encoding="utf-8") as f:
         return f.read()
 
 
@@ -85,7 +91,8 @@ def sync_print_theme():
             title="bunood_theme: letterhead sync failed"[:140],
             message=frappe.get_traceback(),
         )
-    for spec in FORMATS:
+    # The ZATCA package ships its own formats (item 41); one loop syncs both.
+    for spec in FORMATS + zatca.FORMATS:
         try:
             _sync_format(spec)
         except Exception:
@@ -360,7 +367,7 @@ def _sync_format(spec):
     if not frappe.db.exists("DocType", spec["doctype"]):
         return
 
-    html = _read("formats", spec["file"])
+    html = _read("formats", spec["file"], base=spec.get("dir", BASE))
     values = {
         "doc_type": spec["doctype"],
         "print_format_type": "Jinja",
@@ -400,7 +407,7 @@ def _sync_format(spec):
 def resync_print_brand(settings=None):
     """Re-substitute the two brand carriers after a Theme Settings save.
 
-    Narrower than :func:`sync_print_theme` on purpose: the seven format records
+    Narrower than :func:`sync_print_theme` on purpose: the format records
     carry no colour (their look lives in the Print Style), so a settings save
     only needs the style sheet and the letterhead rewritten. Each step keeps
     the same never-blocks guard the full sync has.

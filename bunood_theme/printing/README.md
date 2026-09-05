@@ -48,7 +48,7 @@ PDF text extraction still depends on the reader: wkhtmltopdf emits shaped
 Arabic glyphs, not a tagged semantic accounting interchange format. Use the
 source document API/export for automated accounting imports.
 
-نمط طباعة عام + ٩ قوالب جاهزة، **تصل كل موقع تلقائياً** (المُثبّت يعمل مع كل
+نمط طباعة عام + قوالب جاهزة، **تصل كل موقع تلقائياً** (المُثبّت يعمل مع كل
 `bench migrate` عبر `after_migrate`) — لا خطوات يدوية لكل مستأجر.
 
 ## كيف «يؤخذ الثيم» لكل التطبيقات حتى المستقبلية؟
@@ -69,6 +69,7 @@ source document API/export for automated accounting imports.
 | بونود - فاتورة ضريبية مبسطة (A4) | Sales Invoice | B2C — بيانات المشتري اختيارية، QR إلزامي |
 | بونود - فاتورة ضريبية (حراري 80مم) | Sales Invoice | إيصال حراري + بيانات المشتري إن وُجدت |
 | بونود - فاتورة مبسطة (حراري 80مم) | Sales Invoice | إيصال POS الكلاسيكي |
+| زاتكا - فاتورة مبسطة (حراري 80مم) | Sales Invoice | إيصال زاتكا (المرحلة الأولى) — العنصر 41: بيانات البائع من ZATCA Phase 1 Business Settings، قياسية/مبسطة تلقائياً من الرقم الضريبي للعميل، QR إلزامي، صفوف الدفع والباقي والمتبقي الآجل. يعمل بلا `ksa_compliance` بتحذير مُعلَن. **يعيش في `bunood_theme/zatca/`** مع مساعد الـ QR وقائمة قوالبه؛ المُثبّت هنا يقرأه من هناك |
 | بونود - فاتورة (نقطي) | Sales Invoice | هيكل Courier أساس — **انسخه وعدّله لكل عميل** حسب نموذجه المطبوع مسبقاً |
 | بونود - سند قبض / صرف | Payment Entry | العنوان يتبدّل تلقائياً (قبض/صرف/تحويل) + صندوق مبلغ + مراجع |
 | بونود - سند قيد | Journal Entry | جدول مدين/دائن + الإجماليات |
@@ -87,10 +88,13 @@ source document API/export for automated accounting imports.
 الـ macro‏ `zatca_qr(doc)` يجرّب الحقول المعروفة (`ksa_einv_qr` من توطين السعودية،
 `qr_code`، `custom_zatca_qr`، `custom_qr_code`) ويتجاهل بصمت إن غابت — القوالب
 تعمل مع/بدون `ksa_compliance`. توليد الـ QR نفسه مسؤولية تطبيق التوطين.
+منذ العنصر 41: إن لم تُخزَّن صورة QR (المرحلة الثانية)، يُولَّد QR المرحلة الأولى وقت
+الطباعة عبر `ksa_compliance` نفسه (`get_zatca_phase_1_qr_for_invoice`، الكود في `bunood_theme/zatca/qr.py`) متى وُجد سجل
+ZATCA Phase 1 Business Settings نشط للشركة — والمرحلتان لا تكونان نشطتين معاً.
 
 ## سياسات الإدارة (مهم للمشرفين)
 
-- **القوالب مُدارة:** أي تعديل يدوي على قالب «بونود - …» في الـ Desk **سيُستبدل مع
+- **القوالب مُدارة:** أي تعديل يدوي على قالب «بونود - …» أو «زاتكا - …» في الـ Desk **سيُستبدل مع
   الـ migrate التالي** (الملفات هنا هي مصدر الحقيقة). للتخصيص لعميل: **انسخ القالب**
   (Duplicate) باسم جديد وعدّل النسخة — النسخ لا تُلمس أبداً.
 - **نمط الطباعة يُضبط مرة واحدة:** المُثبّت يجعل «Bunood» الافتراضي فقط إذا كان

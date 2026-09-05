@@ -63,6 +63,51 @@ bunood_theme.patches.v0_38_0.hoist_home_sidebar
 # Item 38 companion: Payment Due Date rendered required-and-empty until a
 # customer was picked. Defaults come from vacancy only.
 bunood_theme.patches.v0_38_0.seed_form_defaults
+# Item 38: the Appearance dialog subsumes the density menu row. Must land with
+# the seeder rename, or after_migrate re-creates it.
+bunood_theme.patches.v0_38_0.drop_density_navbar_item
+
+# Item 40: the apps rail retires and its capability moves to the dock. Must run
+# after the doctype sync (it reads the departed field's row directly, because
+# get_single_value raises for a field the meta has lost).
+bunood_theme.patches.v0_40_0.retire_apps_rail
+
+# Same release, same reason: the two renamed side-pane fields. A Single's
+# values are keyed by FIELDNAME, so a rename orphans the stored row and the
+# site silently loses a setting it chose. Nothing errors, which is why it is
+# easy to skip.
+bunood_theme.patches.v0_40_0.rename_sidebar_fields
+
+# And the glass merge, same release. Reads both departed fields' rows
+# directly for the same reason, and only ever writes when the tenant chose
+# Glass with a full blur - every other combination is already expressed by
+# the material it keeps.
+bunood_theme.patches.v0_40_0.merge_glass_material
+
+# And the last of the side-pane field model: two active-link styles that
+# rendered as another one, and three fields with nothing behind them. The
+# style rewrite matters most - an out-of-range Select on a Single fails
+# validation for the WHOLE document, so one stale value breaks every later
+# save of every other setting.
+bunood_theme.patches.v0_40_0.collapse_pane_options
+
+# The Place row replaces four rows of pane furniture with one, so the two
+# quick links stand down by default. Only a row still holding the OLD default
+# moves: both fields are THEME AXES, and leaving them would make every site
+# read Custom on all twelve theme cards against a baseline that had moved.
+bunood_theme.patches.v0_40_0.quick_links_stand_down
+
+# The option vocabulary the plan retired, in one pass: Accordion Cards and
+# Mini-Cards become Cards, Button Only stops being a trigger (and gives back
+# the edge button its implementation was drawing anyway), Top becomes Header
+# and Bottom moves off the foot's own controls.
+bunood_theme.patches.v0_40_0.retune_pane_vocabulary
+
+# And the two whose DEFAULT moved rather than whose options did: the rail mode
+# loses Manual Collapse (the user's call), and the pane's icons lose their chip
+# for the dock's size. Both are theme axes, so both move only where the site
+# still holds the value that is going away.
+bunood_theme.patches.v0_40_0.retire_manual_collapse
 
 # Last, and it stays: whatever the translation above could not map, this makes
 # legal. An out-of-range Select on a Single fails validation for the WHOLE

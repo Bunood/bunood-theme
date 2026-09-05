@@ -72,34 +72,57 @@ Therefore:
   any `data-theme` JS sets is overwritten milliseconds later. **If we ever need a JS
   override, set `data-theme-mode`.**
 
-### "Automatic": measured behaviour (corrected 2026-07-29 on the live site)
+### "Automatic": measured behaviour (re-measured 2026-08-29 on frappe v16.27.0)
 
-The mechanism is subtler than it looks, and an earlier draft of this document got it
-wrong. What actually happens:
+**This section asserted the opposite until item 38, and the correction is worth keeping
+as an example rather than quietly deleting.** From 2026-07-29 it said *"`Automatic` is not
+durable — it normalises to Light or Dark after one load,"* and cited an empirical check.
+That does not reproduce. The claim shaped a whole roadmap item's plan — item 38 was
+approved with a slice to "repair" it — before anyone re-ran it.
+
+What actually happens:
 
 * `sessions.py:182` puts `User.desk_theme` into boot **unresolved** — so boot really can
-  contain `"Automatic"`, and `desk.html` really does render
-  `data-theme="automatic"` on a cold load.
+  contain `"Automatic"`, and `desk.html` really does render `data-theme="automatic"` on
+  every load, not merely a cold one.
 * `frappe.ui.set_theme()` (`public/js/frappe/ui/theme_switcher.js:154-163`) then resolves
   it client-side from `data-theme-mode` plus `prefers-color-scheme`, and **rewrites
-  `data-theme` to a concrete value**.
-* `theme_switcher.js:132` calls `frappe.core.doctype.user.user.switch_theme`, which
-  **persists the resolved value back to `User.desk_theme`**. Verified empirically: the
-  field was set to `Automatic`, one desk load occurred, and the field read back `Light`.
+  `data-theme` to a concrete value**. It touches no server.
+* `theme_switcher.js:127-134` `toggle_theme` calls
+  `frappe.core.doctype.user.user.switch_theme`, and that endpoint (`user.py:1458`) is the
+  **only writer of the field in the framework**. It is guarded to the three valid values
+  and writes **exactly what it is handed**. Its only caller is the click handler on a
+  theme card (`theme_switcher.js:113`), so it fires on a gesture and never on a load.
+
+**Measured**: the field set to `Automatic`, three full desk loads in three fresh browser
+contexts — the field read back `Automatic` every time, `User.modified` was byte-identical
+throughout, and the served markup was `<html data-theme-mode="automatic"
+data-theme="automatic">` on all three.
+
+**Where the wrong claim came from, most likely.** Two things here have almost one name:
+the **field**, which stores the person's intent, and the **attribute**, which stores
+today's answer. `data-theme` genuinely does read back `light` after one load — that is
+correct, and it is how "follow the OS" becomes a colour. A check that sampled the
+attribute and reported it as the field produces the old sentence verbatim. Nothing caught
+it because every account on the dev site reads `Light`: the branch had never once been
+exercised.
 
 Three consequences for this theme:
 
 1. **`html[data-theme="automatic"]` only ever matches during the first paint**, before JS
    runs. That is precisely the window we care about, so the rule stays — but it is a
    first-paint-only rule, not a steady-state one. Do not rely on it for anything else.
-2. **`Automatic` is not durable.** It normalises to Light or Dark after one load, so it
-   cannot be treated as a persistent user preference we can read.
+2. **`Automatic` IS durable**, so it can be read as a persistent preference. We still do
+   not store our own copy: item 38 makes the mode axis a pass-through to
+   `switch_theme`, which is what the roadmap line ("via `User.desk_theme`, never a
+   parallel localStorage") asked for and what keeps Frappe's own theme modal showing the
+   right selection.
 3. **Never write `data-theme` from JS.** `set_theme()` overwrites it at startup. A JS
    override must set `data-theme-mode`, which is what Frappe derives from.
 
 The `@media (prefers-color-scheme: dark) { html[data-theme="automatic"] { … } }` block in
 `_tokens.scss` and `_bridge.scss` therefore serves exactly one purpose: correct colours on
-the cold-load splash for a dark-OS user whose stored value is still `Automatic`.
+the cold-load splash for a dark-OS user whose stored value is `Automatic`.
 
 ---
 

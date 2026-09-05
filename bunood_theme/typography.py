@@ -26,10 +26,26 @@ WHY ``unicode-range`` IS THE WHOLE MECHANISM
     CHARACTERS IN THE DOM, rendered or not — and Frappe's boot script carries
     the native language names (العربية among them) on every desk. Measured
     2026-08-10 on a live ``en`` desk: both weights fetched with zero rendered
-    Arabic on the page. So the honest cost is "one face, ~60-90 KB, fetched
-    once per browser and cached against an immutable URL" — on every desk, not
-    only Arabic ones. Never write "Latin desks download nothing" anywhere; it
-    was written, measured, and retracted.
+    Arabic on the page. So the honest cost is "one face, fetched once per
+    browser and cached against an immutable URL" — on every desk, not only
+    Arabic ones. Never write "Latin desks download nothing" anywhere; it was
+    written, measured, and retracted.
+
+    THE NUMBER, RE-MEASURED 2026-09-03, because item 42 moved the default and
+    the old range stopped being true of it. Bytes on disk, per face:
+
+      Noto Sans Arabic   166 KB   one variable file, 100-900   <- the default
+      IBM Plex Sans Arabic 87 KB  two static files, 400 + 700  <- was default
+      Cairo               (variable, one file)
+      Almarai             (static pair)
+
+    The docstring said "~60-90 KB" and the shipped default is now nearly double
+    that. It is a deliberate trade — one variable file covers every weight, so
+    the pair's two round trips become one and the whole 100-900 span is
+    available — but it is a doubling on first paint for every desk, and NO
+    PAYLOAD BUCKET MEASURES IT: ``tools/payload.mjs`` scans ``dist/{css,js}``
+    only, and these live in ``public/fonts``. A tenant who wants the old cost
+    picks IBM Plex Sans Arabic in Theme Settings; nothing else changes.
 
 WHY LEADING IS PER-FACE AND NOT A CONSTANT
     Arabic wants looser line-height than Latin, but "+8%" is wrong as a rule:
@@ -121,4 +137,4 @@ FACES = {
 #: What a fresh install selects. A self-hosted face and not System, because
 #: defaulting to System ships the per-platform inconsistency 7(b) exists to
 #: remove. ``setup.SHIPPED`` reads this so the two cannot disagree.
-DEFAULT_FACE = "IBM Plex Sans Arabic"
+DEFAULT_FACE = "Noto Sans Arabic"  # was IBM Plex Sans Arabic until 2026-09-02, the user's call

@@ -22,9 +22,1038 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased]
+## [Unreleased] — The desk shapes, rebuilt (item 42)
 
-(nothing yet)
+The plan lives at `~/.claude/plans/desk-shapes-rebuilt.md`; ROADMAP carries the entry.
+Decided with the user through five drawn rounds on 2026-09-02/03 and built slice by slice.
+
+### Changed — the shipped defaults, chosen one by one
+
+Every option of the side-pane and icon fields was rendered on the live desk, measured, and
+described (an adversarial pass checked each description against its screenshot); the
+user chose field by field. The defaults that move, in `setup.SHIPPED`, the "Bunood Night"
+look and the doctype JSON together, so the "default preset IS the shipped default" gate
+stays true:
+
+| field | was | now |
+|---|---|---|
+| `arabic_font` | IBM Plex Sans Arabic | **Noto Sans Arabic** |
+| `crumb_style` | Quiet Trail | **Crumb Pills** |
+| `workspace_style` | Hairline Grid | **Soft Tiles** |
+| `status_clock` | 24 Hour | **Off** |
+| `sidebar_hue_wash` | Rich | **Subtle** |
+| `sidebar_active_style` | Solid Pill | **Accent Rail** |
+| `sidebar_card_depth` | 3 | **4** |
+| `sidebar_pane_width` | 3 (240px) | **5 (280px)** |
+
+Kept, deliberately: company name, the Bunood green triple, Comfortable density, the
+quick links Off, Cards sections, Attached, Solid, Filled Color, Smart icons, weight 1.5,
+filter off. `sidebar_badges` stays Off until the Counts pill is refitted and gated (it
+measures 3.56:1 today) — that pick lands with its own slice.
+
+**The baseline is shared, so this reaches other presets.** A theme preset with
+`values: {}` means "the shipped default", by construction — so `status_clock` Off reaches
+all twelve, Crumb Pills reaches the eight that did not name a crumb style, Soft Tiles the
+two that did not name a workspace style. Measured before landing, preset by preset; the
+four sidebar values reach Bunood Night alone. Focus, Canvas, Contrast, Workbench and
+Quiet keep their own crumbs; Focus, Canvas, Elevated and Studio keep their own workspace.
+
+Also: the width stepper's fallback read a literal stop 2 while the shipped stop was 3
+(now 5) — it reads `bnd_shipped` now, the same object the picker's Default/Changed note
+already trusts.
+
+### Changed — the desk shapes
+
+**The catalogue is four rows, and the shipped desk is Unified Side Pane.** The five
+layouts item 11 shipped are retired; the new ones are the user's pick from the drawn
+round: **Unified Side Pane** (default) · Taskbar · Top Taskbar · Floating Bar. Rail +
+Flyout joins in a later slice — it is Unified with the pane in its Rail state, and until
+the field that says so exists its row would be byte-identical to Unified's, which
+`check_layout_identity` refuses and is right to.
+
+Three old rows survive under new names because their VALUES survived — Top Bar → Top
+Taskbar, Bottom Bar → Taskbar, Dock → Floating Bar. **Compact and Classic are shapes no
+card offers any more**: they derive to `""`, the picker reads "Custom", and every switch
+that composed them is still there. Nothing stops working; it stops being named.
+
+**The pane's head is two rows now.** A brand row (the company's mark as a 40px filled
+tile, and its name) is the pane's first child; Frappe's own search row sits under it;
+the place row — workspace name and switcher — sits under that, directly above the list.
+Item 40 had collapsed all of this into one row deliberately; the user's brief separated
+*whose desk this is* from *where you are*, and the order holds whichever mounts first.
+
+**The foot is a floating tile card** (the user's option 14): the account avatar fills a
+40px rounded square at the card's start, the bell is pinned to its end, and the rail
+flips it to a column reading bell over avatar. The account menu's rows align on a
+`20px | label | hint` grid. **Getting Started** moves into that menu — Frappe's
+pane-foot link is hidden by ownership, and the row is offered only where the pane can
+actually show the widget.
+
+**The status bar's density segment is an icon** at the trailing edge; its value lives in
+the accessible name and the tooltip rather than a text run.
+
+### Fixed — four reset chips wrote values the site does not ship
+
+`theme_settings.js` carries a `BND_*_DEFAULTS` literal per kit, mirroring `presets.py`.
+Four had drifted — `icon_style` since before this item, and `crumb_style`,
+`workspace_style`, `status_clock` when the defaults above were chosen — so the per-option
+`↺` wrote a value the site does not ship, on the one control whose whole promise is
+putting a field back. Resets now read the served shipped map first, and a new build
+guard compares all twenty maps against `presets.py`.
+
+Also fixed, all found by the review pass rather than by a test: a bar carried **two
+absolutely-centred boxes**, so a bell placed at a bar's centre rendered underneath the
+search field; **"Side Pane Start" meant two different positions** once the head split,
+with placed tenants above the place row and the quick links below it; the foot card
+**overflowed itself by one pixel at the 200px stop**; the icon-only density segment
+**missed WCAG 2.5.8 on the inline axis**, because the coarse-pointer floor only ever
+grew the block one; `--bnd-sb-tile` **did not step back up** in the comfortable block;
+and `tools/fingerprint.mjs` still **cleared the cache before committing** — the named
+trap, 26 windows per capture.
+
+### Added — three guards, and a matrix
+
+- **The switch matrix**: every layout × every container switch × every placement slot,
+  driven through the settings form's own seams, asserting per cell that a route to
+  identity survives, that the layout invariants hold, and that no console error fired.
+  Written before the catalogue it holds to account. Its first draft walked **nothing** —
+  `slots_for` takes a component key and was handed field names, so 165 of 180 tenant
+  cells silently stopped running while it printed `0 finding(s)` and passed; an
+  anti-vacuity assertion now refuses an empty vocabulary.
+- **`check_layout_catalogue`**: every row's tenants land in containers it switches on;
+  an unrecognised field is the loudest case, not a skip; and `"Off"` is checked against
+  the pane, because every native it releases to lives there — a row with no pane
+  promising the stock account row is a desk with no route to Log Out.
+- **`check_layout_lineage`**: nothing migrates a site, so every retired row must derive
+  its successor or `""` — never a stranger.
+- **`assertDefaultMirrors`**: the twenty client default maps against `presets.py`. It
+  shipped with the bug it exists to prevent — a one-line map made its regex swallow the
+  next map whole — found by sabotage, not by reading.
+
+**A cost worth naming:** the new Arabic default is **166 KB** against IBM Plex's 87,
+fetched on every desk (Arabic or not — measured in item 7 and still true). One variable
+file covers 100–900, so the static pair's two round trips become one. No payload bucket
+measures fonts; the number is now written beside the faces, and a tenant who wants the
+old cost picks IBM Plex in Theme Settings.
+## [Unreleased] — ZATCA Phase-1 printing (item 41)
+
+**Re-merged from `studio-zatca` on 2026-09-02, where it had shipped inside
+`v0.39.0`.** Hesham's two ZATCA commits, exactly as they were, under this line's
+own item number — 39 stays spent on that branch, and the Report Studio stays there.
+Releases as `v0.41.0` **after** item 40's `v0.40.0`: a tag cut here would carry
+item 40's unreleased source, which is the `v0.29.0` lesson above.
+
+**The Report Studio's Arabic came across without the studio.** Its 176 strings,
+Hesham's, appended to `locale/ar.po` as one attributed block and emitted (1,122 →
+1,298 rows, the added rows byte-identical to the branch's). Nothing on this line
+emits those msgids yet — the block's banner says why they survive a dead-row
+reap — so the studio lands with its Arabic already decided. The user's call,
+made knowing they are consumer-less until then.
+
+**Untested on this stack, and said so:** the dev site has no `ksa_compliance`
+installed, so the Phase-1 QR path below is Hesham's bench verification, not
+ours. What IS measured here is the degradation — no doctype → the receipt's
+stated warning and the macro's QR-missing box, never a crash.
+
+**A ZATCA-style 80mm receipt ksa_compliance never shipped.** «زاتكا - فاتورة
+مبسطة (حراري 80مم)» — the same content rules as their Phase-1 A4 format
+(seller block from ZATCA Phase 1 Business Settings, Standard-vs-Simplified
+detected from the customer's `custom_vat_registration_number`, per-line VAT
+with the pre-0.37.1 fallback, mandatory QR via the theme's phase-aware
+macro) laid out for a receipt roll, plus what a POS receipt needs and theirs
+lacks: payment mode rows, change, and the deferred remainder. Verified on
+the bench against a split-payment POS sale, a credit sale, and a B2B
+invoice (auto-detects Standard and prints the buyer's VAT number).
+
+**The invoice QR now works under ZATCA Phase 1, not only Phase 2.**
+`bunood_zatca_qr_src` knew two sources — an image field on the invoice and
+ksa_compliance's "Sales Invoice Additional Fields" record — and both exist only
+once Phase 2 (integration) is live. A company on Phase 1 (generation), which is
+every company before its ZATCA wave, printed **no QR at all** from the themed
+formats, and the simplified format showed its "not valid as a simplified tax
+invoice" warning on perfectly valid invoices. The helper now falls back to
+ksa_compliance's own print-time Phase-1 generator
+(`get_zatca_phase_1_qr_for_invoice` — the TLV of seller, VAT number, timestamp,
+grand total and VAT), returned as a `data:` URI. Verified on the dev bench:
+fail-first baseline (no QR on three formats), then QR present on all three and
+the TLV decoded back to exactly tags 1–5 with the invoice's own values; a
+Disabled settings row returns the helper to inert, and a site without
+ksa_compliance never reaches the import. Phase 1 and Phase 2 cannot both be
+Active (their app validates that), so the source order cannot double-serve.
+
+### Changed
+
+- **ZATCA has its own directory.** `bunood_theme/zatca/` holds the receipt
+  (`formats/`), the Phase-1 QR helper (`qr.py`, which `printing/jinja.py` calls
+  after the stored Phase-2 sources) and its own `FORMATS` list, which
+  `printing/install.py` syncs alongside its own. `printing/` stays the generic
+  funnel and reads from the package, never the reverse. A move, not a change:
+  the format record, the helper's answers and the page options are identical,
+  and the thermal page-size guard reads both directories.
+
+### Fixed
+
+- **The receipt printed at A4 from the PDF button.** It declared no page size on
+  `.print-format`, the only rule `read_options_from_html` reads — measured: the
+  engine got 15mm margins and no size, against 80×297mm for the two sibling
+  thermal formats. The desk preview never consults that option, which is why a
+  verification of the rendered receipt could not see it. Declared now, and
+  `build.mjs` refuses any thermal format without it — the guard failed on this
+  file before the fix and names it.
+
+## [0.40.0] — 2026-09-03 — The side pane, rebuilt (item 40)
+
+**TAGGED AT `ff6dd9d`, NOT AT HEAD — the v0.29.0 precedent, for the same reason.** Item
+41 (ZATCA Phase-1 printing, the other session's re-merge) was committed on top of item
+40's close before this tag was cut, so a tag at HEAD would carry item 41's source inside
+a release named for item 40. The version files at `ff6dd9d` still read `0.37.1`; the
+"`app_version` matches the latest tag" invariant resumes at item 42's release. Recorded
+here rather than left to be rediscovered as a bug.
+
+**BUILT, thirteen for thirteen.** The COLOUR phase; the FIELD MODEL — nineteen
+style settings down to twelve, thirteen with the filter; THE PLACE ROW; ONE
+LIFECYCLE; SECTIONS, which stop being surgery; THE LIST FEATURES; SHORTCUTS;
+DRAG-TO-RESIZE; THE ACCOUNT BAND AND PANEL; IDENTITY AND PLACEMENT; PRESET
+INTEGRATION; THE RAIL'S PANETOGGLE CLAIM; THE ACCESSIBILITY AND CONTRAST ARM;
+and THE PICKED DESIGN's last two features, placed by the user from drawn
+options. The release gauntlet is what stands between this and the v0.40.0 tag.
+
+The pane (item 10's sidebar kit) was built before the doctrine that now governs every
+other surface and amended by six later items without ever being re-designed. Its palette
+was 78% hand-authored hex: 77 declarations across six colour-mode blocks, 60 of them
+literal, of which six moved with the seed and two with the ground. **Minimal was 0 of 14
+seed-dependent in both themes** — the same pane on every site in the world.
+
+### Fixed
+
+- **The `automatic` theme was a curated subset, and 30 tokens were missing.**
+  `html[data-theme="automatic"]` hand-listed 25 of the dark set's 55. Measured against the
+  compiled sheet: all seven category hues plus tint and wash, `critical`/`good`/`serious`/
+  `warn`, all twelve status colours, both scrims and all three shadows resolved **light**
+  on a dark OS. `data-theme` is literally `"automatic"` until our JS runs, so this is the
+  whole first-paint window on every page load — the window skeletons paint in. Replaced
+  with `@include dark`, after verifying a pure superset: of the 25 tokens both blocks
+  declared, zero differed.
+- **The side pane had no `automatic` arm at all.** Verified absent in the compiled bundle,
+  not inferred. Minimal rendered a `#fafbfa` pane beside a `#131a1a` page; Match Theme's
+  seven hues measured **1.79–2.79:1** against a 4.5 floor, worst case hue 7 at 1.79.
+- **The guard over that had been inert since item 32.** `assertAutomaticParity` covered
+  chart-series tokens only *and* compared an empty set, because the block it read contains
+  only `@include dark` and the reader never expanded it. Proven by gutting the automatic
+  block and watching the build stay green. Now generalised to every token, accepting
+  parity-by-construction, and joined by `assertAutomaticArms`: every compiled
+  `[data-theme="dark"]` selector must have an `automatic` twin inside a prefers-dark block.
+- **Dark Minimal declared 12 of its 14 tokens.** `--bnd-sb-chip-bg` and `--bnd-sb-chip-ink`
+  fell through to the *light* block — `transparent` and `#6d7570` on a `#15181a` pane,
+  **3.76:1**, on three of the twelve shipped looks. The file's own header said "Each mode
+  sets the full set" two lines above the block that did not.
+- **`contrast.parse_color` could composite `transparent` but not read it**, and guessed at
+  `currentColor`. Both now explicit: `transparent` parses, `currentColor` raises with what
+  to do instead.
+- **`ground_color` was a brand input the brand-input list did not name.** The suite writes
+  settings with `set_single_value`, which does not fire `on_update`, so its restore
+  regenerated the stylesheet only for the fields in `BRAND_INPUTS` — a test's ground would
+  have survived the database restore.
+
+### Changed
+
+- **The pane's palette is derived, not hand-copied.** `tools/contrast_gate.py` held its own
+  copy of fourteen fitted hexes and four pane expressions, with a comment instructing a
+  human to keep them in step and nothing that checked. They now come from
+  `palette.sb_hues()` and `palette.sb_pane_css()`. All fourteen hues return byte-identical
+  and unadjusted, so this is zero pixels and zero bytes.
+- **`SB_PANES` states each colour mode's recipe once**, grouped by **polarity, not desk
+  mode** — Dark Contrast is dark in both themes, and including it in the light walk drags
+  the light binding pane from `#ebebeb` to `#111713` and moves all seven light hues, which
+  `fit_ink` cannot catch because its bisection is only valid on one side of the ink.
+- **Minimal is tinted by the ground, never the brand, at 5% in dark and 0% in light.**
+  `ground or brand` is bit-identical on sixteen of the seventeen shipped palettes; the
+  seventeenth is Bunood, which `presets.py` hands to **Quiet** — the look whose own
+  preamble calls it "the honest stand-down". Light ships at 0% because its muted ink sits
+  at **4.57:1 against a 4.5 floor** and crosses at **1.36%** of the worst shipped ground,
+  and because it would buy nothing: at 3% all six grounds mix to the same hex.
+- **A ground-tinted pane now reaches the site.** No static rule can name the ground — there
+  is no `--bnd-ground` token, because it is an input to `palette.derive` and not an output
+  — so `brand.py` emits it, at matching (0,2,1) specificity with the `automatic` twin, and
+  the bundle's block stays as the fallback floor. A tenant with no ground gets no block and
+  a byte-identical sheet.
+
+### Added
+
+- **Six guards, each watched failing before it was trusted.**
+  `check_sidebar_agrees` (the stylesheet declares what the ramp derives, and the dark arms
+  reduce to their mixins) · `_coverage` (every mode declares the whole working set, nothing
+  stray) · `_binding` (every mode the stylesheet offers is a pane some hue was fitted
+  against, both directions) · `_headroom` (a pane that moves must not take its own ink
+  below the floor) · `_emission` (the per-site block beats the bundle on specificity, has
+  its twin, stands down when there is no ground, and carries the derived value) ·
+  `--check-sidebar` (the pane's own tokens read out of a browser, for **all four** colour
+  modes rather than whichever one the desk happened to be in — 114 tokens, with a floor so
+  it cannot pass by measuring none).
+- **The gate had no chip row and no row for the pane's own text.** Fourteen decorative
+  category marks were gated; the workspace links were not. Both now measured on the pane
+  they are painted on, which is why `Pair` grew `overlay` — `resolve` flattens a
+  translucent colour over `--bnd-surface`, and that is `#ffffff` where the pane is
+  `#15181a`.
+- **`tools/sabotage_sidebar.py`** — the failing-first step, made repeatable. Sixteen cases
+  across two targets, each naming the guard that OWNS it; a mutation that fails to change
+  its file is reported as a MISS, never a pass; it refuses to run over a dirty tree. It has
+  already earned its place three times: it proved `check_sidebar_coverage` could **not**
+  catch the dark-Minimal chip defect it was written believing it caught, it caught a
+  specificity comparison that derived its target from the selector it was judging, and its
+  rot detector fired the moment a new field on `SidebarPane` made a case stop matching.
+
+### Changed — the field model
+
+- **Nineteen style settings became twelve.** Every deletion was measured, not judged, and
+  each one is a picker offering a choice that landed where another one already did.
+  `sidebar_glass_opacity` and `sidebar_blur` fold into `sidebar_material`, which becomes
+  **Solid / Glass / Blurred Glass**: the three fields offered THIRTY combinations and Solid
+  collapsed fifteen of them onto one pixel — `presets.py` said so in a comment calling the
+  two "inert while the material is Solid". Of the rest, five alpha stops were parameterised
+  rather than drawn. The two that WERE drawn are the two the shipped looks use, so Glass
+  takes 85% and Blurred Glass 75% and **neither Bunood Light nor Aurora moves by a pixel**.
+- **`sidebar_active_style` loses Glow Ring and Dot Marker.** Glow Ring is Outline plus a
+  blur. Dot Marker is measured: its `::after` sits at `inset-inline-end: var(--bnd-sp-2)`
+  and `.bnd-sb-badge` at `margin-inline-start: auto` — **the same pixel** — so Dot Marker
+  with badges on Dots drew two 6px circles in one place, in two colours, and the picker
+  offered that combination. Carbon moves to Outline; a stored Dot Marker migrates to Accent
+  Rail, the other minimal marker, which marks the leading edge and cannot collide.
+- **Three fields go with nothing behind them.** `sidebar_rail_button_shape` — three shapes
+  of one 24px control, all eight looks shipping Circle, and two of the three rendered
+  through a CONCATENATED class the focus-ring guard structurally cannot see.
+  `sidebar_remember_sections` — a Check with **zero consumers since v0.6.0**: boot emitted
+  it, `sb_apply` copied it forward, nothing read it, and Frappe v16 turns out to persist
+  section state itself, keyed by workspace. `sidebar_scroll_fades` — the field goes and the
+  behaviour returns later as an automatic overflow fade; a mask you switch on is the wrong
+  shape, because whether a list overflows is not a preference.
+- **Two fields say what they are.** `sidebar_section_layout` → `sidebar_section_style`
+  (one of its options was never a layout — "Accordion Cards" is Cards plus a behaviour that
+  does not exist), and `sidebar_surface_intensity` → `sidebar_card_depth` (it only ever
+  reaches card sections, and a name that does not say which surface cannot explain why it
+  looks inert under Plain). Fieldnames only: boot payload keys, `data-bnd-*` attributes and
+  field labels are untouched, which is what kept the diff to 36 symmetric lines and left
+  every stylesheet and both Arabic files out of it.
+- **The apps rail is retired**, and the dock inherits the job in its own slice. It was a
+  Check on the SIDEBAR kit that mounted a fixed strip onto `document.body` — outside the
+  pane whose field it was — with no teardown, no registry row, a 12-workspace cap, and an
+  active-highlight that was a copy of the dock's and said so. All eight shipped looks ship
+  it off, so only a tenant who ticked the box by hand has one; they get `dock_enabled`.
+
+### Fixed — the field model
+
+- **The pane's own header was hidden by a DECLARATION, not by ownership.** `_sidebar.scss`
+  keyed on `html[data-bnd-sb-color]`, which lands at parse time, while the replacement
+  mounts up to 4.5s later inside a `try_for`. Both failure modes are the bug this item was
+  opened for: attribute present with a failed mount is a pane with no head, attribute absent
+  with a successful one renders both. `claim_panehead` now measures the DOM and disowns on
+  the negative branch.
+- **The guard that should have caught it could not, and adding the class to its list would
+  not have helped.** `assertOwnershipPolarity` fired only when a rule named an owned native
+  **and** matched `/data-bnd-(desk|search)/` — a denylist of two attributes where the
+  doctrine is an allowlist of one. The rule failed both tests. Inverted (any `display:none`
+  on an owned native must contain `data-bnd-own`) it goes red on that one rule and nothing
+  else, and `OWNED_NATIVES` is now derived from `registry.py` rather than hand-listed.
+- **Reduced transparency degraded the pane by half, which is worse than not at all.** Found
+  by writing a check that three materials render three panes: HEADLESS CHROMIUM REPORTS
+  `prefers-reduced-transparency: reduce`, so every desk this suite has ever driven was in
+  that branch and nothing had looked. The block weighed (0,2,1) against a translucent
+  surface rule carrying a `:not()` at (0,3,1), so it **lost the background and won only the
+  blur** — a pane left 75% transparent with its frosting removed, the one combination the
+  degradation exists to prevent.
+- **Two sentences in that neighbourhood were false and are now true.** The reduce block
+  credited a "per-user toggle" that sets `blur=off`: there is no such toggle anywhere. And
+  the glass rule said brand+glass "falls back to slight translucency via opacity on a
+  pseudo-layer": no such layer exists, so on the brand pane Glass renders exactly as Solid.
+  That last one is RECORDED rather than repaired — making a gradient translucent means
+  mixing transparency into its stops, which is a derivation change.
+- **`check_theme_catalogue` had two holes that stay green while everything is wrong.** A
+  theme axis could name a field the doctype does not have — the option check skipped when
+  the answer was `None`, which is exactly what a missing field returns — so every card would
+  read "Custom" on every site forever. And only the twelve composed themes were checked for
+  distinctness, not the eight sidebar looks: measured while writing it, **`Daylight` and
+  `Paper` differ at `sidebar_active_style` ALONE**, so removing an option value can collapse
+  two looks with nothing saying so.
+- **The palette showed the same row twice.** `get_frequent_links` labels both
+  `List/ToDo/Calendar/default` and `List/ToDo/List` as "ToDo List" — the vendor builds the
+  label from the doctype and the view CLASS and drops the view, so two destinations arrive
+  under one name and the key dedupe correctly passes both. The empty state now dedupes by
+  what the row READS as well as by where it goes.
+- **The axe baseline stopped drifting.** Frappe's onboarding panel lives inside
+  `.body-sidebar-container`, rendered on six of the scanned routes, and its content tracks
+  the completion percentage — which the suite's own fixtures advance. It is excluded, and
+  that is not laundering: this theme emits **zero** rules matching `.onb-*` and the panel
+  paints its own opaque white. The gate was then proven to still catch our own regressions
+  by breaking one on purpose. The route list also stops existing twice —
+  `tools/axe-routes.mjs` holds the routes AND the scan, so the capture tool and the check
+  cannot disagree about tags, the exclude, or which pages are covered.
+
+### Migrations
+
+Five patches, each reading `tabSingles` directly because patches run after the doctype sync
+and `get_single_value` **raises** for a field the doctype has lost. Every one preserves what
+the site sees: `retire_apps_rail` (rail on → `dock_enabled`), `rename_sidebar_fields`,
+`merge_glass_material` (Glass+Full → Blurred Glass; Glass+Off stays Glass, because the tenant
+asked for glass and turning the blur down is not the same request), and `collapse_pane_options`
+(Glow Ring → Outline, Dot Marker → Accent Rail, three dead rows reaped). A hand-tuned tenant
+on glass opacity 1, 2 or 5 lands on their material's value — a visible change, and the point
+of the merge.
+
+**Every migration arm is simulated in the suite**, because demo ships Solid, Mini-Cards and
+Solid Pill: the interesting branch is false on this site for all of them, and a branch whose
+guard is false on the dev site is UNTESTED, not working.
+
+### Changed — the Place row
+
+- **Four rows of pane furniture became one.** A default pane spent four rows before the
+  first workspace link: the brand (routed home), the Home quick link (routed home too),
+  All Apps (which the dock already offers), and the module row — which re-rendered a
+  workspace name the breadcrumbs already carry and then routed to the page you were
+  already on. Three of the four were navigation AWAY and two went to the same place.
+  `.bnd-sb-head` carries the brand mark, the place you are in, and a chevron.
+- **The chevron is now constructed.** `.bnd-sb-module-chev` was styled in four CSS rules
+  and built by no JavaScript at all — a popup trigger with no affordance. The head is
+  `aria-haspopup="menu"` and its chevron rotates on `aria-expanded`.
+- **The switcher carries the workspace cascade**, which the posture decision makes an
+  obligation rather than a nicety: hiding Frappe's own `.sidebar-header` takes its
+  Desktop/Workspaces list with it, and the old module row dropped it entirely — its
+  docstring claimed to open "the native brand menu", and the code beneath said "No menu
+  here by design". Every root workspace, no cap; the menu scrolls instead, capped at
+  `min(70vh, 560px)` so nineteen rows cannot run off a short viewport.
+- **The two quick links stand down by default.** Nothing became unreachable — the
+  switcher reaches Home and All Apps — and the picker still offers all five slots.
+  `v0_40_0/quick_links_stand_down` moves only sites still holding the old default,
+  because both fields are THEME AXES and leaving them would make every existing site
+  read "Custom" on all twelve theme cards.
+- **The place name has two states, both facts:** the workspace you are in, or whose desk
+  this is. The module row read the literal string "Workspaces" when nothing resolved — a
+  doctype's name, not a place.
+
+### Fixed — the Place row
+
+- **The place indicator rendered BELOW the workspace list**, whenever the quick links
+  were placed at Side Pane End. `sb_mount_module_row` anchored to `.bnd-sb-utils`, so
+  its position was an accident of how many times `sb_mount_utils` had run after it. The
+  plan predicted the opposite failure — stranding at the top — and the measurement is
+  what settled it. One node at one position replaces the anchor ladder.
+- **The mount ladder existed twice**, in `mount_sidebar_kit` and again inside
+  `sb_observe`'s timer: one mount order written in two places, free to disagree.
+- **The switcher's own menu repeated itself.** Frappe ships a workspace called "Home",
+  and `""` and `"home"` are different routes — `/desk` and `/desk/home`, measured —
+  rendering the same page. A cascade row whose title already reads as one of the actions
+  is dropped, the same rule the command palette's empty state follows.
+- **The picker kept its own copy of the default**, and the suite caught it rather than a
+  build guard: `BND_LINKS_DEFAULTS` is a hand-kept mirror of `presets.LINKS_DEFAULTS`
+  carrying a "keep in sync" comment, so the per-option reset chip went on writing "Side
+  Pane Start" — the honest-picker check reported the chip writing something other than
+  the shipped default, which is exactly what it is for.
+- **Two a11y checks had counted what happened to be reachable.** The axe scan required
+  every selector in its OURS list to match in some state and `.bnd-sb-utils` no longer
+  renders by default; the focus walk required eight distinct `bnd-` classes and the
+  eighth was the module row. Both now PLACE the quick links deliberately — a control
+  that ships Off still has to be scanned and still has to draw a ring in the state where
+  somebody turned it on — and the focus floor moves to seven with the reason recorded.
+
+### Fixed — one lifecycle
+
+- **THE DOUBLE RENDER IS CLOSED, and now measured as a picture rather than as a token.**
+  The symptom this item was opened for — our head and Frappe's showing one under the
+  other — is asserted across all four colour modes plus rail and floating, counting
+  VISIBLE header rows in the pane. Frappe's own header stays in the document and is
+  hidden by the ownership rule, so counting nodes would report a double render nobody
+  can see; counting rendered rows is the question the report was about. Watched failing
+  by removing the rule: `wanted 1, got 2`.
+- **The pane built two MutationObservers per remount, forever.** `sb_observe` was reached
+  from both `mount_chrome` and `remount_chrome` and deduped nothing, so five container
+  flips plus two breakpoint crossings added **fourteen** — each with its own undeduped
+  200ms timer, each re-running the whole mount chain. The throttles hid the effects,
+  which is why the check counts constructions. Now one record, deduped on NODE IDENTITY
+  rather than a boolean: Frappe re-creates `.sidebar-items`, and an observer on a
+  detached node never fires again, so an `if (installed) return` guard would have traded
+  the leak for a silence.
+- **Nothing tore the pane down.** `CONTAINER_TEARDOWN.sidepane` was `() => {}`, on the
+  argument that the pane is Frappe's and hiding is the whole mechanism — true of the
+  container, false of everything we put inside it. Switching the side pane off left our
+  head in the document while `remount_chrome` had already released its ownership token:
+  the token and the DOM disagreeing about what was there. Teardown is now the exact
+  mirror of the mount, and it disconnects the observers, so a list mutation after
+  teardown mounts nothing.
+- **A retry outlived its premise.** The head mounts inside a `try_for`, which survives
+  the call that scheduled it — so switching the pane off while attempts were pending let
+  a later one land AFTER the teardown and put the head back on a pane the person had
+  just closed. The deferred body re-checks. Nothing noticed before, because before this
+  slice nothing tore down.
+- **The badge throttle answered the wrong question.** A bare timestamp with a
+  sixty-second window asks "how long since I asked" when the question is "am I asking
+  about the same links". A workspace switch replaces every label, and the observer's
+  re-mount was swallowed: a person moved to a new workspace and saw no badges at all
+  until the minute ran out. The window now applies within one label set.
+
+### Changed — one lifecycle
+
+- **The mount ladder was written three times** — `mount_sidebar_kit`, `bunood.sb_apply`
+  and the observer's timer body — and they disagreed: `sb_apply` re-ran eight of the ten
+  mounts and skipped two. `SB_PARTS` is that order as DATA and both directions read it,
+  so "runs a different subset" is no longer something anyone can write by accident.
+  `volatile` marks the parts that live inside `.sidebar-items`, which Frappe empties on
+  every workspace switch — a list rebuild touches exactly those, and stops re-mounting
+  the head roughly four times per route.
+- **`js_gzip`'s ceiling moves 98,300 → 99,000**, in this commit and with the reason in
+  `payload-budget.json`: the bytes are five unmount functions, the parts table and one
+  deduped observer — a teardown that did not previously exist. The prose that would have
+  cost another 981 went to `_sidebar.scss`, which Sass strips before the wire. Slices 7–8
+  are expected to return it if Frappe's own sections turn out to nest.
+
+### Changed — the option vocabulary, and the icons
+
+Four option sets were still carrying words the field model had retired. They are the
+last of item 40's picker vocabulary, and every one of them was a choice that landed
+where another choice already did.
+
+- **`sidebar_menu_rail` becomes Expanded / Rail.** *Manual Collapse* was the one mode
+  in which the pane's WIDTH had a different owner from every other property —
+  `sb_apply_width` deliberately cleared our inline width and handed the column to
+  Frappe. Five of the eight shipped looks ship it, so a drag-to-resize wired "only in
+  expanded mode" would have been dead on most sites. Frappe's collapse BEHAVIOUR is
+  untouched: the link and the handle still toggle it, and `sb_apply_width` now reads
+  the `expanded` class that toggle flips. **That pairing is load-bearing** — pin the
+  width whenever the SETTING says expanded and a collapsed pane stays our width wide.
+  An observer on the container's class re-runs it, because nothing did.
+- **`sidebar_section_style` becomes Plain / Divided / Cards.** *Accordion Cards* was
+  never a style: no rule keys on `[data-bnd-sb-sections="accordion"]` and
+  `sb_wrap_sections` treated it as a synonym for `cards`. Two options, one pixel — in
+  the picker whose vocabulary exists to prevent exactly that. Collapse arrives as its
+  own field, and it will arrive built.
+- **`sidebar_rail_trigger` loses Button Only.** It was not a trigger, and its
+  implementation read `if (trigger === "button" && !pos) pos = "edge"` — **one picker
+  silently overwriting another picker's field**. A tenant on Button Only with the rail
+  button set to None was shown an edge button anyway. The migration writes what they
+  were looking at: Click, plus the edge button the old code was drawing.
+- **`sidebar_rail_button` becomes None / Edge / Header.** *Bottom* sat at
+  `inset-inline-end: 50%`, over the foot's own controls — Frappe's collapse link and
+  the resize handle both live there. *Top* is renamed for what it is rather than for a
+  compass point; its geometry is unchanged, so nobody's button moves.
+
+**And the pane's icons take the dock's size, without a shape.** The glyph goes 15px →
+**20px**, which is what the dock has drawn since it shipped — the same gesture on two
+surfaces, sized differently for no reason anyone could name. The shipped `icon_style`
+moves from *Colored Chips* to **Filled Color**: a chip is a second border inside a row
+that already has one, and at 15px the glyph read as a decoration beside the label
+rather than as the thing you aim at. The workspace hue the chip was carrying moves onto
+the glyph itself, so nothing loses its colour. Measured after: every resting row's icon
+background is `rgba(0,0,0,0)`.
+
+Both defaults are THEME AXES, so both moved with a patch that touches only sites still
+holding the old value — the same trap the quick links found, two fields over.
+
+### Fixed — sections are paint
+
+- **The wrapping surgery is deleted**, and with it the app's largest standing violation
+  of "never touch Frappe-generated DOM". Probe P1, run on the live desk: v16 NESTS a
+  section's items inside its container (the first Selling section holds nine), so every
+  `.bnd-sb-card` wrapper held exactly one node — a card drawn around a container that
+  already was the whole group. The card is now a rule on the section container; the hue
+  is derived per section by POSITION (`:nth-child(7n+i of .section-item)`, support
+  measured), so a workspace switch has no stamp to lose. Gone with it:
+  `sb_unwrap_sections`, the edit-mode observer, and the `sb_mutating` re-entrancy guard.
+  The check asserts the DOM under Cards is IDENTICAL to the DOM under Plain while the
+  paint differs — watched failing at HEAD with five wrapper nodes.
+- **`sidebar_section_collapse` is deliberately NOT built.** P1 confirmed Frappe's own
+  collapse working here — drop-icon present, a header click toggling 28px ↔ 289px — so
+  building ours would be the second affordance fighting the first, the defect the rail's
+  own comment already records.
+- **The hue wash is real under Plain and Divided.** It was three options on one pixel
+  outside Cards, because its only consumer was the wrapper Cards alone built. The chip
+  tint and the rich caps label ride the section container in every layout now, and
+  wash=Off finally means OFF — the old loop stamped hues for any value including "off".
+- **Every icon mode was tinting a property the glyph never reads.** The modes set
+  `color` on the icon span; Frappe stamps `.text-ink-gray-7` on the SVG ITSELF (beating
+  inheritance) and paints the stroke from it via `.current-color`. Measured link by
+  link: the span was already the hue while the stroke stayed grey. `color: inherit` at
+  our rule's higher specificity is the fix — and the check's own first draft read
+  `color` too, certifying the wash while the pixels stayed grey, before it was made to
+  read the painted property.
+- **The preset matrix moves to a sectioned workspace.** Its old route resolved a
+  sidebar with no sections, and the wrapper-count assertion only passed there because
+  the wrap built a neutral "card 0" around loose links — certifying Cards on a pane
+  that could not show it.
+
+### Added — the list features
+
+- **An in-pane filter (`sidebar_filter`)** — the survey's clearest gap: common in
+  product tools (6/13), absent from every ERP surveyed (0/14), while ERPs are the ones
+  with 70-link workspaces. Always rendered when On; the placeholder says "Filter this
+  workspace", never Search, which is the palette's job; headers follow their items; the
+  live region speaks *Matches: N* as label + value, never a bare count; Escape restores
+  everything and ArrowDown enters the list.
+- **The filter REVEALS matches inside collapsed sections** — its own premise check
+  found that sections rest collapsed here, leaving six visible links of sixty, so a
+  filter over only what is open finds almost nothing. Frappe collapses with
+  `.hidden { display: none !important }`, a vendor `!important` literal, so the reveal
+  is the sanctioned pattern's newest site (GUIDELINES §1.3): one escalation, scoped to
+  a transient attribute the filter alone stamps — dropping it is the total undo, and
+  the check proves collapsed sections close again on Escape.
+- **The overflow fade is automatic**, replacing the deleted `sidebar_scroll_fades`
+  preference with the fact it always was: JS stamps which EDGES hide content, so the
+  fade exists exactly when there is overflow, and the top edge stays unmasked at the
+  top — the old unconditional mask clipped the first row's focus ring.
+
+### Fixed — the list features
+
+- **A resting rail refuses focus instead of merely hiding.** `opacity: 0` removes
+  nothing from the tab order, so the collapsed rail was dozens of invisible links a
+  keyboard user tabbed straight into, mitigated only by focusin opening the rail after
+  the fact. `visibility: hidden` with a delayed transition keeps the fade and removes
+  the trap; the check asserts focusability itself, because walking Tab would have been
+  dressed by the very mitigation.
+- **The pane's active row says `aria-current="page"`** — set on the dock since item 13
+  and never on the one place a person actually is. Exactly one row carries it,
+  refreshed on route change.
+- Badge roll-up and collapse-all are deferred to the design slice, stated rather than
+  shrunk: roll-up needs re-aggregation on Frappe's collapse toggle, and collapse-all
+  needs a drawn home, which is the user's pick.
+
+### Added — Shortcuts
+
+- **Pins and recents in one region** — Stripe's model, the survey's verdict made
+  flesh: people navigate to RECORDS, not pages, and only one surveyed ERP treated
+  that as first-class. A page you visit appears as a recent; pinning promotes it to a
+  stable slot; no region at all until there is something to show. The pin gesture
+  lives in the Place row's menu (hover-only row actions are refused), and every row's
+  unpin control is in the DOM at rest — Fluent's position, asserted visible.
+- **The caps are the server's**: 25 pinned total, at most 15 from one doctype —
+  Dynamics' numbers — enforced in `api.toggle_sb_pin` so they cannot be dodged by
+  calling the endpoint directly, with refusals that NAME their cap. Proven as the
+  non-admin desk fixture, never Administrator.
+- **A pin the user cannot read any more VANISHES, never 403s** — the one behaviour
+  the survey found undefined in every product it examined. `resolve_sb_pins`
+  re-resolves at render time, as the user; the store is never rewritten, so a
+  restored permission restores the pin. The check earned that sentence the hard way:
+  its first draft pinned a fake docname, the EXISTENCE arm did the dropping, and the
+  sabotage harness gutted the permission filter with the check still green. It pins a
+  real Item now, and the same sabotage fails it naming the arm.
+- `bnd_sb_pins` joins `personal.AXES`; the axes guard caught a nested `as_json()`
+  hiding `parent=` from its capture on the way in. Boot publishes through a defensive
+  wrapper — a decoration must never take the boot payload down.
+- `js_gzip` ceiling 99,450 → 100,850, reason in the budget file: ~1,240 gzip bytes of
+  designed feature after prose was trimmed to pointers.
+
+### Added — Drag-to-resize
+
+- **Free-pixel drag on Frappe's own `.sidebar-resize-handle`** — the survey's
+  clearest differentiator: every product tool has one, no ERP surveyed does, and
+  the vendor's handle never resized anything. Any pixel from 200 to 280, as in VS
+  Code — the user's call over the recommended detent. A **4px movement latch**
+  discriminates drag from Frappe's click-to-collapse: under it the press is the
+  vendor's collapse untouched, over it the collapse is swallowed for that gesture
+  only. Escape cancels with nothing persisted; the readout chip is the only thing
+  that says WHY the pane stopped at a bound.
+- **The stop table moved to Python** (`presets.SB_PANE_STOPS`), and `assertPaneStops`
+  holds its four consumers to it — the five SCSS width rules, the doctype Select's
+  options, the picker's endpoint labels, and the `SB_PANE_RANGE` bounds the drag
+  clamps to. No JS file contains a stops literal; a sixth stop costs one tuple row.
+- **`bnd_sb_width` joins `personal.AXES` as the first RANGE axis** — `range_for()`
+  beside `values_for()`, a third dispatch branch in `api.set_personal` that
+  validates bounds instead of membership. Lock `personal_comfort`, same family as
+  density; empty means *follow the site's width*, and the stop menu's "Use the
+  site's width" posts exactly that — the escape hatch that makes supersession
+  safe.
+- **Keyboard is the APG splitter over pixels**: `role="separator"`, physical
+  arrows with direction derived from the container (in RTL, Right narrows),
+  Home/End to the bounds, Enter delegates to Frappe's toggle, Up/Down deliberately
+  unconsumed. `clientX` never mirrors, so the drag math derives direction the same
+  way — asserted in a real Arabic desk, not an emulated one.
+- **WCAG 2.5.7's pointer alternative is a conformance dependency, not a nicety**:
+  the context menu on the strip renders the five stops as named presets plus the
+  way back, entirely from boot data — zero network, because a conformance claim
+  behind a round trip is not a control on the page. Asserted by resource-count
+  delta, not by faith.
+- **Two shipped defects fixed on the way** (both named at plan time): an admin's
+  settings click no longer silently reverts a person's width until reload
+  (defect 23 — `sb_apply_width` re-applies the personal pixel on every re-derive),
+  and `clear_personal` now reads the TARGET user's row rather than the session
+  user's, so an admin rescuing a stranded user gets a real answer (defect 24).
+- `js_gzip` ceiling 100,850 → 102,600, reason in the budget file: ~1,660 gzip
+  bytes of pointer engine, splitter contract and stop menu after prose was
+  trimmed to pointers.
+
+### Added — The account band and panel
+
+- **The pane's foot is ONE `role="toolbar"` of square cells**, not a stack of
+  unrelated nav rows: bell, Home, All Apps and the account as 36px cells (32px
+  compact), canonical order guarded against the registry (`assertBandOrder` — the
+  CSS `order` values are derived, not chosen), the account pinned to the
+  inline-end corner as the only filled mark in a run of strokes. The band escapes
+  the vendor's pane padding and re-applies its own 6px, so usable width is W−12
+  by our numbers — measured at both width bounds and every density. The rail is
+  the same cells flipped to a column; nothing hides, and the unread badge stays a
+  **count** (shadcn's icon-collapse hides both badge and action, which tells a
+  collapsed user nothing was withheld when it was).
+- **The avatar opens a `role="dialog"` panel, never a menu** — identity block
+  with `<bdi>` on every free-text line, an instant light/dark/automatic
+  radiogroup through Frappe's own `switch_theme` endpoint, the company sub-list
+  through the vendor's session-defaults write, the session actions with the
+  vendor's shortcut hints restored, and a caption. Focus lands on the panel,
+  never the radiogroup. One clamp rule, three consumers: a 40-char Arabic name
+  grows nothing, asserted by two-measurement equality. Sign Out stays reachable
+  at a 600px viewport with the sub-list open; the RTL box is asserted inside the
+  viewport on a real Arabic desk.
+- **Every menu flips honestly now** (plan defect 22): `show_menu` asks *does it
+  fit*, not *is the trigger below mid-screen* — an eleven-item menu from a
+  trigger just above the midpoint used to overflow the bottom edge.
+- **Two guards landed before the feature**, both watched firing: no
+  `"left"`/`"right"` word-literals in `bunood.js` (the CSS logical-properties
+  gate cannot see JavaScript, and the failure never shows on an English dev
+  site), and the band-order derivation above.
+- The badge-to-dot degradation below 32px cells is deliberately **unbuilt**: no
+  shipped density crosses 32, and a branch whose guard is false on every desk is
+  untested code pretending to be a safety net. The panel's close rides the fast
+  motion token (the drawn 90ms close would need a literal the motion primitive
+  refuses).
+- Ceilings css 21,500 → 22,100 and js → 105,600, reasons in the budget file; the
+  dead menu-header branch and styles funded part of it.
+
+### Fixed — Identity and placement
+
+- **The registry tells the truth about the pane.** The `sidepane` row's selector
+  is `.body-sidebar-container` — the thing whose visibility answers *is this
+  container on the desk* — with a `host` key for the pane inside it, because this
+  is the one container whose host is not its own selector: this theme built
+  neither. A new **MARKS** list carries identity-only rows: `panehead` on the
+  place row (carrying the one native its node owns, so `OWNED_NATIVES` derives it
+  and the hand-kept exception list SHRINKS) and `railbtn` on the rail button.
+  Both nodes stamp `data-bnd-part`, so the placement board, desk order and the
+  invariant matrix stop being blind to the pane's own chrome.
+- **`data-bnd-sidepane` gains its setter** — it was a removal with no setter, a
+  dead branch since the container split. Mount stamps it, teardown releases it,
+  and the check asserts both directions.
+- **The foot goes where we chose** (plan defect 20): the end anchor asked *is
+  Frappe's bottom block the last child*, which is permanently false — the
+  collapse link and resize handle trail it, both absolute — so every End tenant
+  fell through to `appendChild` and sat BELOW the bottom block (measured: band at
+  index 8, bottom at 5). It asks *last in flow* now; the band routes through the
+  same repaired door; and the check's loud half names any new in-flow sibling
+  that ever appears after the bottom block.
+
+### Changed — Preset integration
+
+- **The sidebar catalogue is private.** A catalogue is public when a picker picks
+  from it, and nothing has since item 37 deleted the preset cards — all eight
+  entries exist to be named by the theme table. `SIDEBAR_PRESETS` is
+  `_SIDEBAR_LOOKS` now: an authoring input to `theme_settings()`, the role
+  `palette_seeds` already plays. All twelve themes re-proved matching themselves
+  after the rename (10,556 pairs, 27 seeds).
+- **`api.get_sidebar_presets` is deleted, and the two-fetch race with it** — the
+  shipped-defaults request and the catalogue request landed in either order, and
+  the pane's note read "Default" on the one entry with a real name,
+  intermittently. The picker renders from `BND_SIDEBAR_FIELDS`, a real mirror at
+  last (the sidebar was the one kit whose field list came from a fetch, dodging
+  the mirror guard); the check asserts ZERO calls to the endpoint.
+- **The pane's note is Default / Changed**, like every other kit — Focus and
+  Quiet both compose the Ink pane, so a look's name was never an identity the
+  pane could claim.
+- **The `↺` reset returns to SHIPPED, wherever you start.** The old target was
+  the currently matched look, so resetting one field pulled it toward a
+  composition the admin never picked — measured: on Ink, reset was a no-op.
+
+### Fixed — The rail claims the hamburger
+
+- **Rail mode shows ONE collapse affordance** (audit defect 3): Frappe's
+  page-title hamburger joins the registry as the rail button's native, and
+  `bnd_own("panetoggle")` is stamped by the rail wiring only after the trigger
+  is actually live — a rail whose JS died leaves the native visible and
+  working. The inverted ownership guard went red on the chrome-off rule the
+  moment the native landed (the ideal failing-first) and learned its second
+  legal key with the reasoning written in: chrome-off is outcome-backed, with
+  `guard_critical_reach` as its release path.
+- **The drawer-safety arm found a real stranding bug**: at phone width the
+  rail attribute persisted, the claim stamped, and the drawer's ONLY opener
+  was hidden — a Rail-mode phone could not open the pane at all. Two
+  stand-downs fix it and agree: the wiring tears down at narrow, and all
+  seventeen `html[data-bnd-rail]` rules carry `:not([data-bnd-narrow])` —
+  with only the JS half, the drawer "opened" into the rail's 52px sizing
+  (measured: a 52px-wide open drawer at 390px). The inbox's rail-pinned
+  panel rule follows.
+
+### Fixed — Accessibility and contrast, enforced
+
+- **The five measured-not-enforced pill rows are LAW.** Flipped first and
+  watched red — the gate failed at exactly the pathological pair its own
+  comment had published (1.06:1, dark-contrast pane on a light desk) — then
+  the fit: the sidebar's own panes join `--bnd-brand-solid`'s constraint set
+  in `palette.derive`, resolved FROM `SB_PANES`, per mode (a dark desk never
+  renders the light-minimal pane, and feeding both polarities made the joint
+  band empty). The fit exposed a limitation in `fill_pair` itself: its two
+  scan axes welded each ink to one direction, and from a `#000000` seed the
+  only feasible band is reached by LIGHTENING under the LIGHT ink — all four
+  ink × direction pairs run now, smallest-move-wins deciding across them.
+  All 10,556 pairs pass enforced, and the shipped seed's value did not move.
+- **The pane is a labelled navigation landmark** — `role="navigation"` named
+  by the place, written by the same function that writes the head's label:
+  one writer, no drift, never the literal "Workspaces".
+- **The sections' disclosure state is spoken**: Frappe keeps its truth in
+  `data-state`, which AT cannot hear; the kit mirrors it into `aria-expanded`
+  on the vendor's own drop-icon — attributes, the one sanctioned mutation
+  surface — re-mirrored after a header click and on every list rebuild. The
+  check toggles a section and demands both attributes move together.
+
+### Added — The picked design's last two features
+
+- **Badge roll-up (the user's pick 1a)**: a collapsed section's hidden badges
+  sum into ONE chip on its header, in the row badge's own form and tokens —
+  derived from the rows, no second fetch, re-derived after the badge fetch,
+  after any disclosure toggle, and on every list rebuild. Expansion removes
+  the node. The build's one defect was invisible by construction: a
+  wrong-parent `insertBefore` threw into the badge engine's own silent catch
+  — five badges, no chip, no error anywhere — because `closest()` proves
+  descent, not parentage.
+- **Collapse-all (pick 2a)**: one item in the Place row's switcher, rendered
+  only when something is actually foldable, each fold through Frappe's OWN
+  per-section toggle — persistence rides the vendor's state and no second
+  collapse mechanism is born.
+
+### Removed — the pane's colour system, at the user's direction
+
+**The `sidebar_color` picker is gone, and the pane takes the theme's palette.**
+This reverses the colour work earlier in this item, and it is the user's call after
+watching two attempts to make four hand-authored colour worlds follow a tenant's
+seed: *"just remove it and have colors only come from the presets."*
+
+- **Four worlds became one alias block.** Match Theme, Minimal, Dark Contrast and
+  Brand each declared the pane's whole working set. They are replaced by
+  `--bnd-sb-bg: var(--bnd-pane)` and its six siblings, so the pane follows a site's
+  brand, accent and ground in light, dark and automatic *by construction* — there is
+  no second derivation left to drift. **210 lines out of `_sidebar.scss`, 85 in.**
+- **Three of the eight looks change on screen, and this is the upgrade note.**
+  Five already used Match Theme, so their panes are unaffected. `Ink` and
+  `Workbench` used Minimal, and **`Carbon` used Dark Contrast — a dark pane on a
+  light desk** — and all three now take the theme's pane like everything else. The
+  eight looks remain pairwise distinct (they differ on other axes), so no two
+  collapse into one, but a site on those three will see a different sidebar.
+- **The one thing that could not alias, and why.** `--bnd-sb-hue` is read as `color:`
+  in six rules, so the pane's category hues are INK; the global `--bnd-cat-*` are
+  FILLS. Pointing one at the other measured **1.82:1** for amber text on a light pane,
+  with 282 of 378 pairs failing. They stay derived by `palette.sb_hues()` and are
+  declared per polarity plus the automatic arm, pinned by a new drift check.
+- **The per-site emission went with them.** `brand.py` computed a sidebar block
+  because a ground-tinted pane had no static form — there is no `--bnd-ground` token.
+  The pane now reads `--bnd-pane`, which that sheet has always emitted, so the tint
+  arrives by the path that was always there. `palette.sidebar_ramp`, `sb_blocks`,
+  `SB_WORKING_SET`, `SB_STOPS` and the emission ceiling are deleted with it.
+- **`--bnd-brand-solid` gets its seed back on five palettes.** The sidebar's
+  non-global panes were constraints on the brand fill; with them gone the constraint
+  is satisfied by `--bnd-pane` already being a surface. Five of 54 values move, all at
+  pathological seeds, all still above 3:1 — and four are repairs: a black seed derived
+  `#646464` because the fill was lifted to clear a pane nobody renders, and now
+  derives `#111111` (5.01:1 → 15.98:1). The shipped seed is not among them, so
+  `_tokens.scss` is unchanged.
+
+### Fixed — two defects the removal created, both measured
+
+- **A dropped `:not()` was carrying specificity, not meaning.** With the brand pane
+  gone, `:not([data-bnd-sb-color="brand"])` on the reduced-transparency arms read as
+  dead weight — and both sides of the pair were dropped together, which is the check
+  that makes it look safe. The rule they must actually beat is a third one 250 lines
+  away: the rail's translucency arm at (0,4,1), against arms that had just fallen to
+  (0,3,1). That loses the background and wins only the blur: a pane translucent at alpha 0.85
+  with its frosting removed, the one combination the degradation exists to prevent.
+  Re-weighted with `[data-bnd-sb-color]`, which is always present and is there purely
+  as weight. **The rail case is what catches it; expanded passes either way** — so the
+  glass test now walks both.
+- **The console-error allowlist was coupled to one spelling of the base URL.** It
+  carried a literal `localhost` for an error its own comment already calls
+  environmental — Frappe absolutises the email preview's asset URL and drops a
+  non-default port. Run the suite through the `BND_URL` override that
+  `tools/session.mjs` has always supported and the same known non-defect reports
+  as an unexpected console error. The pattern now matches a *port-less host*,
+  which is what the comment always meant.
+- **A drift check that read the first of two identical selectors.** Two blocks carry
+  `html[data-bnd-sb-color]`; `re.search` found the alias block, which declares no
+  hues, and reported seven false drifts against correct code. It merges every matching
+  block now, because that is what the cascade does.
+
+### Changed — the gate and the suite stop measuring four panes
+
+- `tools/contrast_gate.py` loses **647 lines**: six sidebar arms become one
+  `check_sidebar_hues`, because the rest of the pane's tokens are global tokens the
+  sweep already walks at every seed. What is genuinely uncovered is the chip — the
+  pane *derives* it rather than aliasing it — so that pair gets rows of its own.
+  Watched failing both ways: a re-stepped hue names the token and both values.
+- The pill's fill on its pane **becomes enforced**. It was measured-not-enforced
+  because two panes read ~1.06:1 and 1.00:1 at pathological seeds; both were
+  properties of panes that no longer exist. Worst of 54 against the real pane: 3.04:1.
+- **9,184 pairs**, down from 10,556, and every one passes.
+- The suite drops `sidebar_color` entirely (32 writes that set a colour that no longer
+  exists, plus the stale `SLUG`/`ATTR_OF` mirror rows). Three tests that walked the
+  four modes now walk an axis that still varies; `tools/sabotage_sidebar.py` is
+  deleted with the five checks it existed to prove.
+- **The live-preview test found a restore it never had.** It ended by setting
+  `sidebar_color`, which put back nothing it had changed. Its new subject is
+  `sidebar_placement` — deliberately not `sidebar_material`, because headless Chromium
+  reports `prefers-reduced-transparency: reduce` and Glass therefore *correctly*
+  renders as Solid.
+
+**`sidebar_color` survives as a doctype field and as the attribute the kit stamps to
+say "our decoration is on this pane"** — 76 rules and `sb_active()` key on its
+presence, which is a different question from what colour it carries. Its value is now
+a constant. The field is left in the doctype deliberately: deleting a Select from a
+Single is the change that made six unrelated saves fail validation once.
+
+### Known, and filed rather than fixed
+
+**Nothing.** All three entries this item filed are now fixed, the last two after a
+human looked at the desk and saw what the suite could not:
+
+- The pane rendered **220px inside its container at every width stop** — Frappe
+  sizes the inner pane from their own `--sidebar-width` while our control sized
+  the container — so the wash stopped short and the container's paint showed past
+  it as a second layer, and a drag widened the *gap*. Six checks measured the
+  container and all six were right about it.
+- On the **brand** pane, Glass and Blurred Glass rendered exactly as Solid. The
+  transparency goes into the gradient's own stops now, with the stop numbers held
+  to `palette.SB_STOPS` in both places they appear.
+- The sweep's **print-field damage** — the restore now deletes rows the sweep
+  created, fires `on_update`, and refuses to say "restored" over a non-empty diff
+  — and the dead **`ar.po` rows**, 39 reaped with a per-row decision while the ten
+  reaching `__()` as runtime data were deliberately kept.
+
+## [0.38.0] — 2026-08-29 — Per-user preferences (item 38)
+
+**Tagged at `e19e12f`, not at HEAD, and SHIPPED WITHOUT A GREEN FULL-SUITE RUN.**
+Both are deliberate and both are recorded here rather than left to be found.
+
+*Why the tag is retroactive.* Item 40 was already committed when this tag was
+cut, so a tag at HEAD would have carried item 40's source inside a release named
+for item 38 — the same reasoning, and the same remedy, as `v0.29.0` and
+`v0.34.0`. The version files at `e19e12f` therefore still read `0.37.1`; the
+"`app_version` matches the latest tag" invariant resumes at the next release.
+
+*Why there is no green gate.* Ten full-suite runs were attempted. None was
+usable, and the causes were environmental rather than this item's: `ground_color`
+residue from an earlier session (Teal's sage ground, which made the settings
+form's derived label read "Custom" and broke three unrelated-looking checks);
+stale nginx upstream connections after a forced backend restart, producing
+intermittent `ERR_CONNECTION_RESET`; an emptied asset mount after the frontend
+restart meant to fix that, which 404'd `bunood.js` and failed 43 checks at once;
+and finally a second session committing item 40 *during* the runs, which moved
+both the tree and the settings the checks read. Across all ten, item 38's own
+checks never produced an assertion failure — every `personal:` failure was a
+timeout, a failed fetch, or a baseline that moved underneath it.
+
+*What was verified.* The `personal:` kit passed 8/8 in isolation and 21/21 when
+run after the `print:` checks that had exposed an ordering bug in it. The
+filtered desk-composition run passed 275/275 over every kit the boot restructure
+touches. Contrast passed at 9,520 pairs over 27 seeds. The build guards and the
+payload ceiling passed. The Appearance dialog was driven in a real browser as a
+non-administrator. What is missing is the single green run of all 416 together.
+
+The last of the 38, and the one that was already half-built without anyone
+designing it. Four per-user stores had accumulated in `frappe.defaults` — a
+density override (item 4), a side-pane look (v0.6.0), the palette's ranking
+(item 12), dismissed alerts (item 13) — each with its own validator and its own
+cache drop, and nothing anywhere saying what may be personal. The surface was
+five avatar-menu entries wired to three mechanisms, with no way to put any of
+them back.
+
+### Added
+
+- **`bunood_theme/personal.py` — the one table.** Every `frappe.defaults` key
+  this app writes, with its lock, its boot key and what empty means; the per-user
+  state that is real but is Frappe's (`User.desk_theme`, `__UserSettings`), so
+  the map is complete; and the field partition — **look 85 / shape 8 / off-desk
+  22 / site-only 9 = 124** — derived from the catalogue, never listed.
+- **A whole-desk personal look** (`bnd_look`) and a **personal desk shape**
+  (`bnd_shape`), both stored as NAMES. Storing a name rather than 124 values is
+  what lets a look be improved later without migrating everyone who chose it.
+- **The Appearance dialog**, replacing the five scattered entries. Live preview
+  on click, abandonable — closing without saving puts back exactly what was
+  there — and every axis carries a named "Follow the site (Focus)" row rather
+  than a separate reset button, which is the shape Discourse and Directus both
+  give inherit.
+- **Three administrator locks.** `personal_look` and `personal_comfort` ship
+  OPEN because both already have live users and a locked default would silently
+  withdraw a working feature on upgrade; `personal_shape` ships CLOSED because it
+  is new and is the only axis that invalidates written instructions. A locked
+  axis is shown **disabled with the reason**, never hidden.
+- **Reduced motion** as a per-user axis, with **no lock, ever**. Motion had been
+  governed only by `prefers-reduced-motion`, so somebody on a locked-down desktop
+  had no way to calm the interface. One pole: a person may always reduce and may
+  never force motion back on over an accessibility request.
+- **A personal landing workspace**, chosen from a permission-checked list and
+  applied only at the bare desk root — a requested route always wins.
+- **A second desk account for the suite** (`tools/desk-fixture.mjs`), and the
+  first checks that drive one.
+
+### Fixed
+
+- **`ARCHITECTURE.md` §3 was wrong about "Automatic", and the plan was built on
+  it.** The document claimed since 2026-07-29 that `User.desk_theme = "Automatic"`
+  normalises to Light or Dark after one load, citing an empirical check, and item
+  38 was approved with a slice to repair it. Re-measured on v16.27.0: the field
+  survives three desk loads unchanged and `User.modified` never moves.
+  `switch_theme` is the only writer, is click-only, and writes verbatim. The
+  likely origin is that two things here have almost one name — the FIELD stores
+  the intent, the ATTRIBUTE stores today's answer, and `data-theme` genuinely does
+  read back `light`. Nothing contradicted it for a month because every account on
+  the dev site reads `Light`.
+- **A personal look could never have changed the icons.** `_apply_icon_inference`
+  consumes `icon_source` and bakes glyphs into the boot payload server-side, well
+  before the point the old per-user overlay ran. Moving the resolve into fieldname
+  space *before* composition fixes it by construction.
+
+- **The "Automatic" theme was a subset, and on a dark OS the desk painted light
+  until JS resolved it.** Not item 38's — found while planning item 40, fixed here
+  because it lives in the same block. `html[data-theme="automatic"]` hand-listed 25
+  of the dark set's 55 tokens; the 30 missing were every category hue, every status
+  colour, critical/good/serious/warn, both scrims and all three shadows, and each
+  resolved LIGHT for the first-paint window on every load. The side pane was worse —
+  its two dark blocks had no automatic arm at all, so Match Theme's seven hues
+  painted their light fits on a dark pane (worst 1.79:1 against a 4.5 floor) and
+  Minimal rendered a `#fafbfa` pane beside a `#131a1a` page. Skeletons paint in
+  exactly that window, which is where it showed. The block now `@include dark;` —
+  the one-line fix its own comment had already named — and the pane's dark sets are
+  emitted under both selectors from shared mixins. Verified a pure superset first:
+  of the 25 tokens both blocks declared, none differed.
+- **Minimal's dark pane was missing two of its fourteen declarations**, so the chip
+  wash and chip ink fell through to the LIGHT set — `#6d7570` on `#15181a`, 3.76:1.
+  They now take the mode's own muted ink, which is what light Minimal already does:
+  5.66:1.
+
+### Internal
+
+- The boot resolve moved to the top of `extend_bootinfo`, over a **copy** of the
+  cached settings doc — `get_cached_doc` hands back a shared object, and
+  overlaying one person's look onto it would leak into every later consumer in
+  that process. This deleted the eighteen-entry `key_map` the sidebar override
+  needed.
+- `presets.look_of` joins `layout_of`: which named look a set of values spells,
+  over the look fields only, so a desk on Focus with its own shape still reads
+  Focus.
+- `api.get_personal_presets` is **ungated**, and item 38 makes that doctrine: an
+  endpoint reachable from a per-user surface may not carry a role gate, and its
+  check must run as the fixture user.
+- `js_gzip` raised 93,900 → 98,200 for the dialog.
+- **`assertAutomaticParity` had been inert since item 32.** It read the body of
+  `html[data-theme="dark"]`, which has contained only `@include dark;` since the
+  mixin landed — no declarations at all. Every comparison loop ran zero times, so
+  the guard passed whatever the automatic block said, which is how the 30-token gap
+  grew behind a guard written to prevent it. Proven by gutting the automatic block
+  entirely and watching the build stay green. It now resolves the include, compares
+  EVERY token rather than the eight chart-series ones, and accepts parity by
+  construction. A new `assertAutomaticArms` covers the other half: any
+  `[data-theme="dark"]` selector must have an `automatic` twin inside a prefers-dark
+  block. Both were watched failing, for the right reasons, before being trusted.
+- **The seven dark category hues were byte-identical in three blocks** — 21
+  declarations carrying seven facts. One `sb-dark-hues` mixin now, so a re-fit is a
+  single edit rather than three that can drift apart silently.
+
+### Not delivered
+
+- **Remembering which side-pane sections a person left open.** It needs Frappe's
+  own expanded/collapsed contract measured, and a guessed selector would be the
+  "green tests that assert existence" trap with a storage key attached.
+  `sidebar_remember_sections` therefore stays what it has been since v0.6.0: a
+  field written by all eight sidebar presets and read by nothing.
 
 ## [0.37.1] — 2026-08-28 — The vendor mark follows the recalibrated seed
 

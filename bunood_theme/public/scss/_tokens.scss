@@ -265,16 +265,41 @@
   // the --bnd-sb-* working set (bg, ink, chip, card); these are the shared
   // geometry/stop values every mode agrees on.
   --bnd-sb-w: 220px;
+  // The account band (item 40, 8c): cell box and the band's OWN inline
+  // padding. The band escapes the vendor's pane padding and re-applies
+  // this, so its usable width is W minus 2*pad by OUR numbers - a fact
+  // Frappe cannot move under us. --bnd-sb-pane-pad mirrors the vendor's
+  // 8px pane padding for exactly that escape; if their number moves, the
+  // band check fails NAMING it rather than the desk quietly shifting.
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  // The gap between the foot card's cells. 6px, not the 8px of --bnd-sp-2, and
+  // the arithmetic is why: at the 200px stop the card is inset by the pane's own
+  // 8px padding on each side, so its usable width is 200 - 16 - 12 - 1 = 171px,
+  // and the four cells (the 40px account tile plus three 36px cells) need 148 +
+  // 3*gap. At 8 that is 172 and the bell overflowed the card it sits in -- by one
+  // pixel, on the narrowest pane, which is exactly the width nobody looks at. At
+  // 6 it is 166, and compact density (36 + 3*32) is 150.
+  --bnd-sb-band-gap: 6px;
+  --bnd-sb-pane-pad: 8px;
+  // The TILE (item 42): the brand row's mark and the foot's avatar cell,
+  // one size so the pane's two ends rhyme. Steps down with density like
+  // the cell does, and the foot check reads it off the element.
+  --bnd-sb-tile: 40px;
+  // The account panel's fixed inline size (8c): identity text CLAMPS to
+  // it rather than stretching it - the check pins the panel at this width
+  // with a 40-char Arabic name and a 45-char address.
+  --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
-  --bnd-apps-rail-w: 46px;
   --bnd-sb-radius: 14px;
-  // Glass opacity stops (Theme Settings "Glass opacity", 1..5). The value is
-  // the OPAQUE percentage of the pane color kept in the mix.
-  --bnd-sb-glass-1: 55%;
-  --bnd-sb-glass-2: 65%;
-  --bnd-sb-glass-3: 75%;
-  --bnd-sb-glass-4: 85%;
-  --bnd-sb-glass-5: 93%;
+  // Pane translucency: the OPAQUE percentage of the pane color kept in the
+  // mix, one value per glass material. Five parameterised stops became two
+  // drawn ones (item 40), and the two numbers are the ones the shipped glass
+  // looks already used - so Glass and Blurred Glass keep their exact pixels.
+  // Blurred sits lighter because the backdrop blur is doing the separating;
+  // at the same opacity it reads as murk rather than glass.
+  --bnd-sb-glass-pct: 85%;
+  --bnd-sb-glass-pct-blurred: 75%;
 
   // ── Z-index ladder ────────────────────────────────────────────────────────
   // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and
@@ -516,41 +541,22 @@ html[data-theme="dark"] {
 // This block is the fix, and it must stay in CSS: JS runs after first paint.
 @media (prefers-color-scheme: dark) {
   html[data-theme="automatic"] {
-    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
-    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
-    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
-    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
-    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
-    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
-    // Item 30: the automatic block is a curated subset and nothing enforces
-    // membership — a token in :root + dark but NOT here resolves LIGHT on
-    // automatic + OS-dark. A skeleton paints before the theme resolves, which
-    // is exactly when that would show.
-    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
-    --bnd-ink: #e8eaec;
-    --bnd-ink-muted: #b8bdc4;
-    --bnd-ink-subtle: #9197a1;
-    --bnd-brand-solid: #60a471;
-    --bnd-on-brand: #16181d;
-    --bnd-brand-ink: #6fa27d;
-    --bnd-accent: #0090ff;
-    --bnd-on-critical: #16181d;
-    --bnd-border: rgba(255, 255, 255, 0.1);
-    --bnd-border-strong: rgba(255, 255, 255, 0.18);
-
-    // Chart series must match the dark block here, not fall through to :root's
-    // light values. Unlike everything else in this block, these are read by JS
-    // (getComputedStyle in the chart hook) — and a chart can construct while the
-    // theme is still the unresolved "automatic", so a dark-OS user would get the
-    // LIGHT ramp on dark cards. assertAutomaticParity in build.mjs guards it.
-    --bnd-series-1: #cc6677;
-    --bnd-series-2: #8075b5;
-    --bnd-series-3: #ddcc77;
-    --bnd-series-4: #388e55;
-    --bnd-series-5: #88ccee;
-    --bnd-series-6: #ad688b;
-    --bnd-series-7: #44aa99;
-    --bnd-series-other: #808080;
+    // ITEM 40: this block was a CURATED SUBSET — 25 of the dark set's 55 — and
+    // its own comment recorded that nothing enforced membership. Measured
+    // 2026-08-29 against the compiled sheet: 30 tokens resolved LIGHT here on a
+    // dark OS, including all seven category hues, all twelve status colours,
+    // critical/good/serious/warn, both scrims and all three shadows. A skeleton
+    // paints before the theme resolves, which is exactly when that showed.
+    //
+    // The subset is now the whole set, which is what the previous comment said
+    // the fix was. Verified a PURE SUPERSET before making it: of the 25 tokens
+    // both blocks declared, ZERO had differing values, so nothing that already
+    // worked changes — this only stops 30 tokens falling through to light.
+    //
+    // The series tokens are no longer listed separately; `dark` carries them,
+    // and assertAutomaticParity still guards that they match, now by construction
+    // rather than by a second hand-kept copy.
+    @include dark;
   }
 }
 
@@ -575,11 +581,25 @@ html[data-bnd-density="comfortable"] {
   --bnd-row-h: 32px;
   --bnd-control-h: 30px;
   --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
+  // The tile restores with the cell, for the reason stated above it: a site
+  // whose default density is Compact stamps that on <html>, and a person who
+  // picks Comfortable gets THIS block -- so anything the compact block lowers
+  // and this one omits stays lowered for them. --bnd-sb-cell is here for
+  // exactly that; the tile arrived later and has to join it.
+  --bnd-sb-tile: 40px;
 }
 html[data-bnd-density="compact"] {
   --bnd-row-h: 24px;
   --bnd-control-h: 26px;
   --bnd-pad-y: 3px;
+  // 32px, NOT below it: the band's count badge degrades to a dot only
+  // under 32, so both shipped densities keep the count. The degradation
+  // rule itself is deliberately unbuilt - no shipped preset can trigger
+  // it, and a branch whose guard is false on every desk is untested code
+  // pretending to be a safety net (the ledger records this call).
+  --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
 }
 
 // ── Reduced motion ──────────────────────────────────────────────────────────
@@ -592,4 +612,25 @@ html[data-bnd-density="compact"] {
     --bnd-dur-slow: 0ms;
     --bnd-dur-loop: 0ms;
   }
+}
+
+// The same zeroing, asked for by the PERSON rather than by their machine
+// (item 38). Until now motion was governed only by the query above, so somebody
+// on a shared or locked-down desktop who cannot change that setting had no way
+// to calm the interface.
+//
+// ADDITIVE, NOT AN OVERRIDE, and that is the whole design: there is no pole that
+// turns motion back ON. Either signal zeroes the tokens and neither can undo the
+// other, so this can never become a control for overriding an operating-system
+// accessibility request. It is also why the selector is separate rather than
+// folded into the block above — a person's Reduced must apply on a machine that
+// asks for no-preference.
+//
+// (0,1,1) beats the (0,1,0) of `:root`, the same specificity argument density
+// already relies on one block up.
+html[data-bnd-motion="reduce"] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
 }

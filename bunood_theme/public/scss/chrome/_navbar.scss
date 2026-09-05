@@ -128,6 +128,15 @@ html[data-theme] .bnd-search-field {
   }
 }
 
+// Frappe's compact shortcut hint appears inside form actions. Its upstream
+// muted-on-transparent pair falls below AA once Bunood changes the surrounding
+// surface, so give the keycap a complete theme-owned colour pair.
+html[data-theme] .keyboard-shortcut {
+  color: var(--bnd-ink);
+  background: var(--bnd-raised);
+  border-color: var(--bnd-border-strong);
+}
+
 // Pushes the cluster to the bar's end regardless of what sits between.
 html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
@@ -239,3 +248,12 @@ html[data-bnd-desktop-shell] .desktop-wrapper > .desktop-navbar {
 // _statusbar.scss owns the shared centre slot for both bars. Its logical
 // insets and auto margins centre in LTR and RTL; an additional translation
 // here shifts the field by half its own width.
+
+// Search placed at the TOP BAR'S centre is the wide form: the strip is tall
+// enough for a real field and this is the placement modern desks converged on.
+// Stated here rather than in _cluster.scss because the bottom bar wants its own
+// narrower number and the two rules would otherwise be decided by import order
+// (item 42, slice 1b). The zone above it caps the pair at 46% of the bar.
+html[data-theme] .bnd-topbar .bnd-zone[data-zone="center"] .bnd-search-field {
+  inline-size: min(420px, 100%);
+}

@@ -349,8 +349,9 @@ artifacts is intentionally untouched and must not be swept into the commit.
 **VERSION NUMBERING CHANGED 2026-08-20, AND IT IS A STANDING RULE: MINOR IS THE ROADMAP
 ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
 fixes-on-top. The old increment-by-one scheme had drifted EIGHT behind the roadmap (0.20.0
-was item 28), so a version number carried no information about its contents. **The next
-item, 38, releases as `v0.38.0` — do NOT compute it from the previous tag.** Releases
+was item 28), so a version number carried no information about its contents. **Item 38 is done and
+releases as `v0.38.0`; the item in flight is 40, which releases as `v0.40.0` — do NOT
+compute either from the previous tag, and note that 39 is spent (see below).** Releases
 before 0.29.0 keep their numbers; the 0.20.0 to 0.29.0 jump is the adoption, not lost
 releases. CHANGELOG's policy paragraph is the authority.
 
@@ -380,6 +381,420 @@ force-pushed over `origin/main` with `--force-with-lease`. `v0.36.0` is pushed.
 - **The version numbers on that branch are spent.** Items 39 and the 0.39.x tags name
   work that is not on `main`. MINOR = the ROADMAP item number still holds for this
   line; item 37 releases as `v0.37.0` even though a higher tag exists elsewhere.
+- **The ZATCA half is back on this line as item 41 (2026-09-02).** Merged from
+  `origin/feat/zatca-phase1-qr` with `--no-ff`, so Hesham's SHAs are in `main`'s history
+  and a later merge of `studio-zatca` will not re-apply them. The Report Studio stays on
+  the branch; its 176 Arabic strings crossed into `locale/ar.po` as one attributed block.
+  Item 41 releases as `v0.41.0` AFTER item 40's `v0.40.0` — a tag cut now would carry
+  item 40's unreleased source. The dev site has no `ksa_compliance` installed, so the
+  Phase-1 QR path is untested here; the receipt's A4 page-size defect was found and fixed
+  by reading what the PDF engine reads (`read_options_from_html`), not the preview.
+
+**ITEM 40 (the side pane, rebuilt) — IN FLIGHT since 2026-08-28. Colour phase DONE;
+FIELD MODEL DONE (19 style settings → 12, 13 with the filter); PLACE ROW DONE; ONE
+LIFECYCLE DONE; SECTIONS DONE (paint, not surgery); LIST FEATURES DONE; SHORTCUTS
+DONE (pins+recents, server caps 25/15, render-time permission re-resolution);
+DRAG-TO-RESIZE DONE (free-pixel, 4px latch, SB_PANE_STOPS one table, bnd_sb_width
+range axis, defects 23+24 fixed); ACCOUNT BAND + PANEL DONE (one toolbar at the
+foot, W−12 owned, registry-derived order guarded; the avatar's role=dialog with
+bdi identity, mode radios on Frappe's endpoint, the exact clamp; defect 22 fixed
+for every menu); IDENTITY + PLACEMENT DONE (sidepane selector truth + host key,
+MARKS rows for panehead/railbtn, data-bnd-sidepane setter, the end anchor asks
+last-IN-FLOW — defect 20); PRESET INTEGRATION DONE (_SIDEBAR_LOOKS private, the
+two-fetch race deleted with its endpoint, note = Default/Changed, reset returns
+to SHIPPED, BND_SIDEBAR_FIELDS mirror under the guard); PANETOGGLE CLAIM DONE
+(one affordance in rail mode; the rail stands down at narrow in JS AND all 17
+CSS rules — the claim was hiding the drawer's only opener at 390px); THE A11Y
++ CONTRAST ARM DONE (pill rows enforced with the pane fit in derive and a
+four-axis fill_pair; the pane is a navigation landmark named by the place;
+the vendor's disclosure state mirrored into aria-expanded); SLICE 13 DONE —
+badge roll-up (1a) + collapse-all in the switcher (2a), the user's picks.
+ALL THIRTEEN SLICES BUILT; the release gauntlet + v0.40.0 tag remain.**
+The double render this item was opened for is CLOSED and asserted as a rendered
+outcome — visible header rows counted across placement and rail, not just the
+ownership token.
+
+**AND THEN THE COLOUR PHASE WAS REMOVED, 2026-09-01, BY THE USER.** After two
+rounds of repair they said it plainly: *"just remove it and have colors only come
+from the presets."* So `sidebar_color`'s four worlds are gone and the pane aliases
+the global palette — `--bnd-sb-bg: var(--bnd-pane)` and six siblings — which means
+it follows a tenant's brand, accent and ground in all three colour modes by
+construction. **Do not rebuild a pane palette.** What that cost and taught:
+
+- **One token could not alias, and finding out took a measurement.** `--bnd-sb-hue`
+  is read as `color:`, so the pane's category hues are INK; the global `--bnd-cat-*`
+  are FILLS. Aliasing them measures 1.82:1 for amber text on a light pane, 282 of 378
+  pairs failing. They stay derived by `palette.sb_hues()`, declared per polarity plus
+  the automatic arm, and `check_sidebar_hues` is the drift check.
+- **Removing the `:not()` guards broke the reduced-transparency degradation**, and
+  the check that made it look safe (both sides of the pair dropped together) was true
+  and insufficient — the competitor is the RAIL arm at (0,4,1), 250 lines away. See
+  CLAUDE.md trap (c). The expanded case passes either way.
+- **`--bnd-brand-solid` moved on five of 54 palettes**, all pathological seeds, four
+  of them repairs (a black seed derived `#646464`, now `#111111`). The shipped seed
+  is not among them, so `_tokens.scss` did not need regenerating — but check that
+  before touching `SB_PANES` again.
+- **The gate lost 647 lines and 1,372 pairs and is not weaker**: the pane's tokens
+  ARE global tokens now, already swept at 27 seeds x 2 modes. Only the chip is
+  genuinely new coverage, because the pane derives it rather than aliasing it.
+- `palette.sidebar_ramp`, `sb_blocks`, `SB_WORKING_SET`, `SB_STOPS`, `SB_LIFTS`,
+  `sb_pane_css`, the emission ceiling and `tools/sabotage_sidebar.py` are deleted.
+  `brand.py` no longer emits a sidebar block.
+Commits: `f73ffc2` · `c6d6780` · `b568246` · `c665602` · `df6a2d5` · `ddccf39` · `84a4551`
+· `373e183` · `a592285` · `9598a12` · `0566c1e` · `71e73b9` · `d04a780` · `76b2cae`
+· `845eb44` · `40ced44` · `19465ab` · `b17118b`. The plan lives at
+`C:\Users\saltedfish\.claude\plans\lets-go-back-to-quirky-giraffe.md`; ROADMAP's
+item-40 entry and CHANGELOG carry the account. What belongs HERE is what will cost time
+again:
+
+- **THE AXE BASELINE NO LONGER DRIFTS — FIXED 2026-08-30, and here is what it was.**
+  `a11y: axe over the Desk` records node COUNTS, and Frappe's onboarding panel lives
+  inside `.body-sidebar-container`, so it rendered on SIX scanned routes and was a large
+  share of every count. Its content tracks the completion percentage — `.onb-progress-badge`
+  literally renders "17% completed", and a finished step renders `.onb-step-text` with
+  `line-through`, a node that does not exist at 0%. Documents created by the suite's own
+  fixtures advance it, so the gate went red for reasons that were never ours.
+
+  The panel is now excluded from the scan, and the baseline was regenerated once. Every
+  count went DOWN and every decrease is the panel:
+
+  | route | button-name | color-contrast | image-alt |
+  |---|---|---|---|
+  | `/desk/item` | 9 → 7 | 2 → 0 | 1 → 0 |
+  | `/desk/item/BND-TEST-001` | 15 → 13 | 6 → 4 | 1 → 0 |
+  | `/desk/selling` | 8 → 6 | 2 → 1 | 1 → 0 |
+  | `/desk/dashboard-view/Selling` | 10 → 8 | — | 1 → 0 |
+  | `/app/account/view/report` | 8 → 6 | 4 → 0 | 1 → 0 |
+  | `/app/item/view/image` | 9 → 7 | 17 → 15 | 1 → 0 |
+
+  **Why excluding it is not laundering.** This theme emits ZERO rules matching `.onb-*` —
+  grepped across the SCSS and the runtime, and 0 occurrences in the compiled bundle — and
+  the panel paints its own opaque `#ffffff` / `#fdfaed`. Nothing of ours reaches its
+  contrast. **If we ever DO emit a rule for it, revisit this exclusion rather than widen
+  it.**
+
+  **The gate still catches our own regressions, and that was proven rather than assumed.**
+  Setting `--bnd-sb-ink` to the pane's own background produced
+  `/desk/item: NEW rule color-contrast (22 nodes)`. Two earlier sabotage attempts did NOT
+  trip it, and both were the sabotage's fault, not the gate's: 52 of the pane's 62 labels
+  are 0×0 inside collapsed sections (axe correctly skips them), and the visible ones take
+  `color: inherit` rather than a rule appended at the end of the file. **If a contrast
+  sabotage here comes back green, check that it applied before concluding anything.**
+
+  **The route list is no longer duplicated.** `tools/axe-routes.mjs` holds the routes AND
+  the scan, shared by the capture tool and the check. `build.mjs::assertAxeRoutesAgree` is
+  retired with the duplication that needed it — it compared the two texts on route,
+  selector and session, and could not have seen that only one copy had learned to
+  `exclude()`. `assertAxeScanShared` replaces it and holds the five things that can still
+  drift; every arm was watched failing.
+
+- **HEADLESS CHROMIUM REPORTS `prefers-reduced-transparency: reduce`, AND NOBODY HAD
+  LOOKED.** Measured 2026-08-30. Every desk this suite has ever driven runs in that
+  branch, which means the glass materials have never been blur-tested and the degradation
+  path was the only one under test — and it was broken. Its selector weighed (0,2,1)
+  against a translucent surface rule carrying `:not([data-bnd-sb-color="brand"])` at
+  (0,3,1), so it LOST the background and won only the blur: a pane left 75% transparent
+  with its frosting removed, which is the one combination the degradation exists to
+  prevent. **Size a selector against the RULE it must beat, not against the element** —
+  this repo already had that lesson from a vendor `:hover` group, and it arrives here from
+  our own file.
+
+  To measure the other regime, emulate it: `page.context().newCDPSession(page)` then
+  `Emulation.setEmulatedMedia({features: [{name: "prefers-reduced-transparency", value:
+  "no-preference"}]})`. Playwright's own `emulateMedia` does not carry this feature. Do it
+  on a FRESH context, never the shared page — emulation leaks, and this suite says so at
+  `withGuest`.
+
+- **`ar.csv` IS GENERATED. THE DECISIONS FILE IS `locale/ar.po`.** Edit the PO, then
+  `npm run i18n:emit`. Slice 4d edited the CSV directly, `i18n:emit` in slice 4e silently
+  reverted every one of those edits, and coverage went red — the banner saying so is in
+  the PO header, not the CSV. New strings need a hand-authored PO entry carrying
+  `#, fuzzy`, which is what marks them for the user's Arabic review; `i18n_po.mjs build`
+  only ingests a provider map, and that key is a user-only errand.
+
+  And **do not bulk-reap "unused" rows.** `node tools/i18n.mjs list` is a STATIC
+  extractor: on 2026-08-30 it called 67 rows dead, and several of them — "Aurora",
+  "Daylight", "Ink", "Paper", "Classic", "Site Default", "Apps", "Tools", "More" — are
+  preset and layout NAMES translated at runtime from data. Deleting those drops Arabic
+  labels with a green `i18n:check`, because that gate measures coverage in one direction
+  only. Fifteen rows were reaped in 4e, each confirmed absent as a literal; the other 52
+  are a filed task.
+
+- **A PATCH THAT HAS ALREADY RUN CANNOT BE EXTENDED.** `bench migrate` records executed
+  patches by module path, so adding a case to a patch file that ran on this site last
+  week executes nothing here — and the next site gets both. Item 40's field model is four
+  patches for that reason, not one. Related, and the reason all four read raw SQL:
+  **`npm run deploy` never migrates.** A doctype change needs
+  `bench --site demo.bunood.test migrate` after the deploy, or the field simply does not
+  exist on the site while the code assumes it does.
+
+- **THE FIXTURE'S THEME CARD DRIFTS WHEN THE SITE IS OFF SHIPPED DEFAULTS**, and a full
+  run can leave it that way: on 2026-08-30 a run ended with `crumb_style: Eyebrow Title`
+  and `crumb_narrow_collapse: 1` still set, so `no unexplained structural drift` reported
+  a theme card that had lost `bnd-cbp-on` — nothing to do with the change under test.
+  Before regenerating the shape fixture, diff the site against `setup.SHIPPED` and put
+  back whatever a check did not; the diff must be `{}`.
+
+- **THE PALETTE'S EMPTY STATE CAN SHOW ONE ROW TWICE, and it is the vendor's label.**
+  `get_frequent_links` returns `route` as a STRING (while `get_recent_pages` returns an
+  ARRAY), carries no `type` field, and labels both `List/ToDo/Calendar/default` and
+  `List/ToDo/List` as "ToDo List" — doctype plus view CLASS, with the view dropped. Two
+  destinations, one name, distinct keys. Now deduped by what the row READS as well; the
+  label set is seeded from the CAPPED survivors, because seeding it from the pre-cap list
+  lets a label that never rendered suppress a Recent row that would have.
+
+- **A CHECK THAT DRIVES A GESTURE WHICH PERSISTS STATE MUST CLEAR THAT STATE,
+  or every later run starts from this run's leftovers.** The resize drags
+  persist the admin's personal pixel by design; three checks dragged and never
+  cleared, so a family run inherited 280 — the clamp, where a +15px drag cannot
+  move — and two checks failed with the engine entirely correct. The premise is
+  now stated (clear before) and the leftover swept (clear in finally), the same
+  discipline `withPersonal` already codifies for values it can snapshot.
+
+- **A ZERO-NETWORK CLAIM COUNTS ITS OWN REQUESTS, never the world's.** The
+  stop-menu check diffed the global resource count and five of Frappe's
+  background polls drifted into the window; the arm now filters the delta to
+  our own endpoints, which is the actual conformance claim.
+
+- **A WHOLE-FUNCTION `try` TURNS A HARD ERROR INTO A QUIET STAND-DOWN.**
+  `extend_bootinfo` swallows everything so a theme can never block boot — the
+  right call — but that meant a NameError in one new boot key killed the ENTIRE
+  `bnd_sidebar` payload and everything assembled after it, and the desk simply
+  rendered stock: no error, no console line, a green build, five suite failures
+  that read like five bugs. The import was module-level in one function and
+  local in another. When a kit is inexplicably OFF, check `frappe.boot.bnd_*`
+  BEFORE reading the mount chain — and any new key added to a swallowed
+  assembly gets its imports checked at module scope.
+
+- **`overflow: clip` ON A CONTAINER AMPUTATES A CHILD'S HIT AREA PAST THE EDGE,
+  and Frappe's resize handle LIVES past the edge.** The drag floor needs
+  `min-inline-size: 0` + `overflow: clip` on the expanded container; applied to
+  the collapsed one it cut the handle's 4px overhang, the re-open click landed
+  on `.page-content`, and the pane stuck at 51px — which then poisoned every
+  later resize check, because Frappe persists collapse in localStorage. Two
+  rules: scope geometry helpers to the STATE they serve (`.expanded`, the class
+  Frappe flips), and a check that needs an expanded pane FORCES it first —
+  state the premise, never inherit it.
+
+- **A SABOTAGE THAT PASSES IS A CHECK THAT LIES, and slice 8b has the cleanest
+  specimen yet.** The permission-vanish check pinned a FAKE docname, so the existence
+  arm dropped the row and the check stayed green with the permission filter gutted.
+  When a check has two arms that can each produce the same outcome, the probe must
+  pin down which arm fired — here, by pinning a REAL record the fixture cannot read,
+  with the fixture's lack of permission asserted as the premise. Clean passes /
+  gutted fails / restored passes, all three watched.
+
+- **`assertPersonalAxes` MATCHES TO THE FIRST CLOSING PAREN**, so a nested call
+  (`frappe.as_json(x, indent=None)`) inside `set_default(...)` cuts its capture
+  short of the `parent=` it exists to demand, and the build fails on a call that is
+  actually correct. Hoist the nested expression into a variable — the guard's own
+  comment says single-line calls only, and now there is a second reason.
+
+- **SECTIONS REST COLLAPSED, AND FRAPPE'S `.hidden` IS `display: none !important`.**
+  Two facts a pane feature will trip over: only ~6 of 60 links are visible at rest on
+  this desk, and nothing beats that vendor literal unescalated. The filter's reveal is
+  the sanctioned `!important` pattern's newest site (scoped to `data-bnd-sb-filtering`,
+  which the filter alone stamps); anything else that needs to see inside a collapsed
+  section goes the same way or re-aggregates on the toggle, never by flipping Frappe's
+  own class — their collapse state machine owns it.
+
+- **THE SPRITE GLYPH PAINTS BY `stroke`, NEVER BY `color` — and Frappe stamps its grey
+  ON THE SVG ITSELF.** `.text-ink-gray-7` sits on the svg element, so a span-level
+  `color` never reaches it (a direct rule beats inheritance), and
+  `.current-color { stroke: currentcolor }` then paints from that grey. Every icon
+  mode had tinted the span for the whole life of the kit and the glyph never followed.
+  The repair is `color: inherit` on the svg at higher specificity, plus
+  `--icon-stroke: currentColor` for our own `sprite_icon()` glyphs (no
+  `.current-color` in their class list). **And measure `stroke` in any check about
+  icon colour** — the first draft of slice 7's check read `color` and would have
+  certified grey pixels.
+
+- **A SETTINGS WRITE CAN REACH THE DESK A PAGE-LOAD LATE, and it looks exactly like a
+  broken feature.** Seen repeatedly on 2026-08-31: a check writes value B, reloads,
+  and the desk still renders value A — so a walk over five styles reports styles 1 and
+  2 as identical, a preset matrix reports the previous preset's colour, and an icon
+  check reports the default it just moved away from. The tell is that the WRONG value
+  is always the PREVIOUS case's.
+
+  Two layers. `boot.py` composes from `dict(site.as_dict())` — a CACHED Single, which
+  `frappe.db.set_single_value` does not invalidate; a `doc.save()` does. And the
+  backend's workers hold their own state: **restarting `bunood-backend-1` fixed three
+  of four failing checks in one go**, which is the measurement, not a theory.
+
+  Where a check MEASURES A RENDERING of a state it set, wait for the state first —
+  `page.waitForFunction` on the `data-bnd-*` attribute. That is not laundering: the
+  subject is the rendering, not the plumbing. Do NOT do it inside `withDeskUser`,
+  where it times out rather than settling.
+
+- **A `try_for` RETRY OUTLIVES THE CALL THAT SCHEDULED IT.** The head mounts inside
+  one, so switching the pane off while attempts were pending let a later attempt land
+  AFTER the teardown and put the head back on a closed pane. Any deferred body that can
+  outlive its premise has to re-check it; returning `true` stops the loop rather than
+  burning the budget. This was invisible until item 40 gave the pane a teardown.
+
+- **`set_single_value` DOES NOT REFRESH THE CACHED SINGLE THAT `boot` READS.** `boot.py`
+  composes from `dict(site.as_dict())`, and a site whose cached doc is stale serves the
+  OLD value while `frappe.db.get_single_value` reports the new one — so a probe can
+  show `sidebar_badges: "Counts"` stored and `"Off"` in `frappe.boot`. A `doc.save()`
+  clears it. Symptom to recognise: a setting that measurably wrote, and a desk that
+  behaves as though it did not.
+
+- **THIS SITE DRIFTS OFF SHIPPED DEFAULTS WHENEVER A RUN IS INTERRUPTED**, and the next
+  run then reports failures that belong to the state, not the change — on 2026-08-31 a
+  killed filtered run left `inbox_placement`, `home/apps_placement` and `desk_order`
+  moved, and the following run blamed the bell, the change dot and two presets. **Never
+  run the suite in the foreground with a timeout shorter than it needs**; background it.
+  And when failure sets SHIFT between runs, diff against `setup.SHIPPED` and restore
+  with `doc.save()` before theorising — that is the 2026-08-08 lesson in a new costume.
+
+- **THE LOGIN-ROUTE FAILURE CLUSTER IS ONE CAUSE WITH FOUR NAMES.** Seen in three
+  consecutive full runs, 2026-08-30/31, and every one of them passes in isolation on a
+  freshly restarted stack. The signature: `ERR_CONNECTION_RESET` on Frappe's OWN static
+  assets (`frappe-web.bundle.*.js`, `login.bundle.*.css`, and our `bunood-*.css`) deep
+  into a 45-minute run on this 6GB host. What it surfaces as:
+
+  | check | how it reads |
+  |---|---|
+  | `login: the guest harness` | a console that is not clean, naming the reset |
+  | `login: the card's text clears AA` | our sheet never arrived, so nothing is dressed |
+  | `a11y: axe over the Desk` | `/login: NEW color-contrast (3)` + `image-alt 1 -> 4` |
+  | `web: both sheets arrive` | `--bnd-page` resolves to nothing |
+
+  **The axe one is the trap**, because it names a rule and a count and reads like a real
+  regression on a page somebody just changed. It is not: our CSS failing to load is what
+  puts Frappe's own undressed controls in front of axe. Before hunting it, check whether
+  a `login:` check failed in the same run — they travel together — and re-run the pair
+  after `BND_FORCE_RESTART=1 npm run deploy`.
+
+- **CHANGING A DEFAULT MOVES WHAT "Default" MEANS, AND THE PLACEMENTS ARE THEME AXES.**
+  `home_placement` and `apps_placement` are in `THEME_AXES`, and `bnd_theme_match`
+  compares EVERY axis against each preset's composed values. Those values come from
+  `presets._shipped_baseline()`, whose only source for these two fields is
+  `LINKS_DEFAULTS` — grep it, one occurrence each. So moving the default and leaving
+  existing rows alone (which is what the plan said to do) would leave every site
+  storing "Side Pane Start" against a baseline reading "Off": no preset matches, and
+  **all twelve theme cards read "Custom" on every site, forever.** That is item 37's
+  own trap, and it was found by simulating the change rather than by reading the code.
+
+  `v0_40_0/quick_links_stand_down` moves ONLY a row still holding the old default. A
+  site that chose something keeps it. The honest limit, since Frappe stores no
+  "explicitly set" bit: a tenant who deliberately picked the old default is
+  indistinguishable from one who never opened the picker, and both move.
+
+- **THE MODULE ROW STRANDED DOWNWARD, NOT UPWARD — measure before believing a plan.**
+  The plan predicted it would strand at the TOP when the quick links moved to the
+  foot. It anchored to `.bnd-sb-utils`, so with the links at Side Pane End the row
+  saying WHERE YOU ARE rendered below the entire workspace list. Its position was an
+  accident of how many times `sb_mount_utils` had run after it. The Place row is one
+  node at one position, which is the repair.
+
+- **THE LADDER WAS WRITTEN TWICE.** `mount_sidebar_kit` climbs it and `sb_observe`'s
+  timer body climbs it again — the same mount order, free to disagree, which is
+  exactly the plan's defect 5. Both lost their rung together; if you touch one, look
+  for the other.
+
+- **`withDeskUser` IS FOR A DIFFERENT USER OR AN EMULATED MEDIUM, NOT FOR A VIEWPORT.**
+  The switcher's short-viewport arm used it and timed out waiting for `.bnd-sb-head`:
+  the pane kit does not necessarily mount for that fixture. Every other
+  short-viewport check here uses `page.setViewportSize` on the shared page with a
+  restore in a `finally`, and so does this one now.
+
+- **STATE THE PREMISE; DO NOT INHERIT IT.** The same check's first draft only
+  navigated, and failed on a desk whose pane an earlier check had switched off — a
+  timeout that reads exactly like the feature being missing.
+
+- **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
+  off their shipped defaults while printing "state restored", and four unrelated checks
+  then go red — the picker-drift check, both `shell:` change-dot checks and a print
+  rendering check — none of them naming the cause. Repair: load the Theme Settings
+  document, set each drifted `print_*` field to its `setup.SHIPPED` value, and `doc.save()`
+  — `set_single_value` does not fire `on_update`. Both this and the axe drift are filed as
+  their own tasks.
+- **THE DECISIONS ARE MADE; DO NOT RE-OPEN THEM.** Free-pixel drag-to-resize (overruling
+  the design round) · `sidebar_menu_rail` drops to Expanded / Rail · the pane's colour is
+  derived AND emitted per site · Minimal is tinted by the **ground, never the brand**, at
+  **5% in dark and 0% in light**. The last one is drawn at
+  https://claude.ai/code/artifact/46e3f9d9-efd5-4ec7-825c-e49d56e5c938 with every swatch a
+  real `palette.derive` output.
+
+  **And the two that gated slice 5, settled 2026-08-30.** POSTURE: **keep replacing, done
+  correctly** — the pane's head stays ours; the recommendation to theme Frappe's own
+  `.sidebar-header` instead was put and overruled. Read it narrowly: it is a decision
+  about the HEAD. Nothing in it reopens the refusal to rebuild the workspace list, the
+  frame or the drawer, which stands on five measured consequences. What it BUYS US AS
+  WORK, and this is the part to not forget: the switcher menu must carry the **Workspaces
+  cascade** Frappe's own header offers and ours currently drops, and the collapse memory
+  and edit-mode stand-down stay ours. DEFAULT LOOK: **may change**, with today's exact
+  configuration added to the theme catalogue by name so any site returns to it in one
+  click.
+
+  One thing the posture pick does NOT change: `guard_critical_reach` must never treat
+  Frappe's header dropdown as a route to Log Out. That entry is pushed inside
+  `if (frappe.boot.desk_settings.notifications)` — a per-user Check the user can switch
+  off — so a user who unchecks Notifications loses Logout from that menu.
+- **WHY LIGHT SHIPS AT 0%, because it looks like an omission and is not.** Minimal's own
+  `--bnd-sb-ink-muted` is `#6d7570` on `#fafbfa` — **4.57:1 against a 4.5 floor** — and
+  crosses at **1.36%** of the worst shipped ground. Every candidate percentage was a gate
+  failure in light, and would have bought nothing: at 3% all six shipped grounds mix to
+  the same hex. `check_sidebar_headroom` enforces it now.
+- **RUN `python tools/sabotage_sidebar.py` BEFORE TRUSTING ANY NEW PANE GUARD.** Sixteen
+  cases across `_sidebar.scss` and `palette.py`, each naming the guard that OWNS it. It
+  mutates both files, so never beside a build or a suite, and it refuses a dirty tree. It
+  has already caught a guard that could not do its job, a comparison that measured
+  nothing, and its own rot.
+- **THE PANE'S PALETTE IS DERIVED NOW.** `palette.SB_PANES` states each colour mode's
+  recipe once, grouped by **polarity, not desk mode** — Dark Contrast is dark in BOTH desk
+  themes, and putting it in the light walk drags the light binding pane from `#ebebeb` to
+  `#111713` and moves all seven light hues. `fit_ink` cannot catch that; its bisection is
+  only valid with every background on one side of the ink.
+
+**ITEM 38 (per-user preferences) — DONE 2026-08-29. The last of the 38.** Commits:
+`93f70ec` slice 0 · `18494ee` slice 1 · `37d8ac8` slice 2 · `e00b90c` slices 3–7.
+ROADMAP's item-38 entry and CHANGELOG carry the account; what belongs HERE is what will
+cost time again:
+
+- **`ARCHITECTURE.md` LIED ABOUT `Automatic` FOR A MONTH, AND THE PLAN WAS BUILT ON IT.**
+  §3 claimed `User.desk_theme = "Automatic"` normalises after one load, citing an
+  empirical check, and item 38 was APPROVED with a slice to repair it. It does not
+  reproduce on v16.27.0: `switch_theme` (`user.py:1458`) is the only writer, is
+  click-only, and writes verbatim. Measured over three desk loads — the field stayed
+  `Automatic` and `User.modified` never moved. The likely origin is that two things have
+  almost one name: the FIELD holds the intent, the ATTRIBUTE holds today's answer, and
+  `data-theme` genuinely does read back `light`. **Nothing contradicted it because every
+  account on this site reads `Light`** — the branch had never been exercised. Re-measure
+  a documented claim before building on it; §3 now carries the correction and the reason.
+- **`frappe.db.get_single_value` IS THE WRONG READ FOR A CHECK.** It **raises** for a
+  field the doctype meta does not have yet — every site between deploying code and
+  running `bench migrate` — and it **casts a missing row to 0**, which for a lock means
+  "closed". Use `get_cached_doc(...).get()`, which returns `None` in both states.
+  `setup.py`'s seeder already recorded the cast and reads row-absence in raw SQL.
+- **A ROLE-LESS SYSTEM USER CANNOT EXIST.** `user_type` is derived, not set:
+  `set_system_user` (`user.py:415`) rewrites it from `has_desk_access()`, which is False
+  for an empty role list. The desk fixture grants exactly `Desk User`. Corollary:
+  `bnd-status-probe@example.com`, which `smoke.mjs` calls "a throwaway user with no
+  roles", is a **Website User** — its check never noticed because it only calls
+  `frappe.set_user()` and never loads a desk.
+- **THE KEY LITERAL MUST STAY AT THE `frappe.defaults` CALL SITE.**
+  `build.mjs::assertPersonalAxes` matches it there to check `personal.py` against the
+  code in both directions. A `stored(key)` helper makes every key it reads invisible and
+  the guard then reports them as declared-but-unread. Written down in slice 1 and
+  violated in slice 3; the guard caught it.
+- **`get_cached_doc` HANDS BACK A SHARED OBJECT.** The per-user resolve overlays a
+  `dict(...)` copy. Mutating the doc would leak one person's look into every later
+  consumer in that worker process.
+- **THE PER-USER LAYER IS UNEXERCISED ON THIS SITE.** Zero `bnd_*` rows in
+  `tabDefaultValue`. Any check needing a stored preference must create one, and
+  `node tools/desk-fixture.mjs --audit | --clean` is how residue is found and cleared —
+  `setSettings`' MUTABLE_FIELDS guard is structurally blind to that table and the
+  `site data:` preamble matches branding VALUES.
+- **A GLOBAL DEFAULT IS ONE KEYWORD ARGUMENT AWAY.** `frappe.defaults.set_default(k, v)`
+  without `parent=` writes `parent = "__default"`, which every account inherits including
+  Guest. The build guard refuses that spelling.
+- **NOT DELIVERED:** remembering which side-pane sections a person left open. It needs
+  Frappe's own expanded/collapsed contract measured. `sidebar_remember_sections` remains
+  a field written by all eight sidebar presets and read by nothing, as since v0.6.0.
+- **Item 38 adds 22 fuzzy `ar.po` rows** on top of item 37's 26 — **48 await the user's
+  review**, their own commit as always.
 
 **ITEM 37 (presets) — DONE 2026-08-28, released as `v0.37.0`.** The last piece of the
 settings architecture: one catalogue for the whole desk, twelve looks writing 124 values
@@ -2179,6 +2594,69 @@ docker exec bunood-backend-1 bash -lc 'cd /home/frappe/frappe-bench && bench --s
 Get the authoritative order from the database, never from memory —
 `frappe.get_installed_apps()` is the list, and we sit 3rd of ten (which the
 translation merge order depends on).
+
+**The empty mount, reproduced cleanly (2026-09-02) — and the recovery order.** A
+full `wsl --shutdown` followed by Docker Desktop restarting its containers put
+BOTH binds up empty: the backend's `apps/bunood_theme` had 0 entries (owned by
+root, timestamped at the restart) so every request was a 500 with `No module named
+'bunood_theme'`, and the frontend's `assets/bunood_theme` had 0 entries so every
+asset 404'd. The WSL source was fine throughout (`presets.py` md5 identical to the
+Windows repo). The same `docker restart` re-attaches a POPULATED mount once Ubuntu
+is genuinely up — measured 0 → 28 and 0 → 5 entries — so the fix is timing, not
+relinking. And note that an unforced `npm run deploy` restarts the BACKEND and
+then correctly reports the frontend's assets as 404: right diagnosis, no repair.
+
+Order, after any full stop:
+
+1. `wsl -l -v` shows Ubuntu **Running** and `wsl -d Ubuntu -- true` answers.
+2. `docker start` the six containers — **never `docker compose up`**, which can
+   recreate the backend and delete the apps living in its writable layer.
+3. `/login` 500 with `No module named 'bunood_theme'` → `docker restart
+   bunood-backend-1`.
+4. Assets 404 → `docker restart bunood-frontend-1`.
+5. Trust `page.evaluate(() => !!window.bunood_theme)` (the suite's `desk boots
+   authenticated with theme assets` check), not an HTTP 200.
+
+**The third sharp edge — `localhost` is IPv6, and its relay dies** (hit
+2026-09-01). A full run died from check ~140 onward with
+`net::ERR_CONNECTION_RESET` while `docker ps` showed every container healthy
+and the backend at 25% of its memory cap. It was neither the app, nor memory,
+nor the empty mount above. Measured:
+
+| address | result |
+|---|---|
+| `http://127.0.0.1:8080/login` | **200** |
+| `http://[::1]:8080/login` | 000 |
+| `http://localhost:8080/login` | 000 |
+| `http://frontend:8080/login` (inside the docker network) | **200** |
+
+`netstat -ano | grep :8080` names the culprit — **two different PIDs**:
+`com.docker.backend.exe` holds `0.0.0.0:8080` and `[::]:8080` and works, while
+`C:\Program Files\WSL\wslrelay.exe` holds `[::1]:8080` in `CLOSE_WAIT`.
+Windows resolves `localhost` to `::1` first, so every request reaches the dead
+relay. **Restarting the frontend container does not fix it** — the relay is
+above the container.
+
+The fix touches no file, because `tools/session.mjs:37` already reads the
+override:
+
+```bash
+BND_URL=http://127.0.0.1:8080 npm run deploy && BND_URL=http://127.0.0.1:8080 npm run verify
+```
+
+**`npm run deploy` prints the tell BEFORE the suite ever fails**: `wsl.exe exec
+is down` with `Error code: Wsl/Service/0x8007274c`. When that line appears,
+expect the relay to be dead too. Do NOT reach for a Docker Desktop or
+`wsl --shutdown` restart to chase it — both are disruptive, and a second
+assistant session may be mid-run on this same stack.
+
+**And a killed run leaves the site mid-walk, which reads as a code regression.**
+Aborting that run stranded `tagline`, a violet `brand_color`, a set
+`ground_color` and four layout fields off `setup.SHIPPED` — so the restarted
+gate failed the branding-hygiene check and would have failed a dozen more for
+reasons that were never the code. After any aborted run, restore before
+re-running, and clear `ground_color` EXPLICITLY: `setup.SHIPPED` has no key for
+it, so a loop over that dict never clears one.
 
 **Diagnostic worth keeping: a `tools/fingerprint.mjs` timeout on
 `.bnd-dgm-slot` can mean "the settings page did not render AT ALL", not the

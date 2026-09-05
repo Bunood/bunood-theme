@@ -74,10 +74,82 @@ const snapshot = JSON.parse(
 		.pop()
 );
 
-const restore = () =>
+// THE SECOND TABLE. Theme Settings is not the only state a walk through the
+// pickers can move: the desk chrome carries PERSONAL controls (the density
+// cycle, the drag, the panel's mode radios), and anything that persists
+// through frappe.defaults lands in tabDefaultValue — a table the tabSingles
+// snapshot cannot see. Found the hard way: a full gate's personal-hygiene
+// preamble red with bnd_density=Compact for Administrator after a day of
+// sweeps, writer unattributable. So the sweep snapshots the admin's bnd_*
+// rows too, and the restore reconciles them the same way: set what drifted,
+// clear what appeared, count both tables in the self-check.
+const personalSnapshot = JSON.parse(
 	py(
-		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\nfor f, v in vals.items():\n    if f in ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus"):\n        continue\n    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\nfrappe.clear_cache()\nfrappe.db.commit()\nprint("restored")\n`
+		`rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\nprint(json.dumps({r.defkey: r.defvalue for r in rows}))\n`
+	)
+		.trim()
+		.split(/\r?\n/)
+		.pop()
+);
+
+// THE RESTORE MUST ALSO DELETE. A Single field that has never been written
+// has NO tabSingles row — the snapshot cannot carry it, the sweep's click
+// CREATES the row, and a restore that only loops snapshot keys leaves the
+// clicked value behind forever. Reproduced 2026-08-30: eleven print_*
+// fields off their shipped defaults after a sweep that printed "state
+// restored", and four unrelated suite checks red with nothing naming the
+// cause. So: rows not in the snapshot are deleted back to absence, the
+// restored doc fires on_update ONCE (set_single_value does not, and the
+// sweep's own clicks regenerated artifacts from sweep-end values), and
+// the function returns the DIFF against the snapshot rather than trusting
+// itself — the caller refuses to say "restored" over a non-empty diff.
+const restore = () => {
+	const out = py(
+		`vals = json.loads(${JSON.stringify(JSON.stringify(snapshot))})\n` +
+			`skip = ("name", "modified", "modified_by", "owner", "creation", "idx", "docstatus")\n` +
+			`now = [r.field for r in frappe.db.sql("select field from tabSingles where doctype='Theme Settings'", as_dict=True)]\n` +
+			`for f in now:\n` +
+			`    if f in skip or f in vals:\n` +
+			`        continue\n` +
+			`    frappe.db.delete("Singles", {"doctype": "Theme Settings", "field": f})\n` +
+			`for f, v in vals.items():\n` +
+			`    if f in skip:\n` +
+			`        continue\n` +
+			`    frappe.db.set_single_value("Theme Settings", f, v, update_modified=False)\n` +
+			`frappe.db.commit()\n` +
+			`frappe.clear_cache()\n` +
+			`doc = frappe.get_cached_doc("Theme Settings")\n` +
+			`doc.run_method("on_update")\n` +
+			`frappe.db.commit()\n` +
+			`want_p = json.loads(${JSON.stringify(JSON.stringify(personalSnapshot))})\n` +
+			`have_rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\n` +
+			`have_p = {r.defkey: r.defvalue for r in have_rows}\n` +
+			`for k in set(list(want_p) + list(have_p)):\n` +
+			`    if want_p.get(k) == have_p.get(k):\n` +
+			`        continue\n` +
+			`    if k in want_p:\n` +
+			`        frappe.defaults.set_default(k, want_p[k], parent="Administrator")\n` +
+			`    else:\n` +
+			`        frappe.defaults.clear_default(k, parent="Administrator")\n` +
+			`frappe.cache.hdel("bootinfo", "Administrator")\n` +
+			`frappe.db.commit()\n` +
+			`after = {r.field: r.value for r in frappe.db.sql("select field, value from tabSingles where doctype='Theme Settings'", as_dict=True)}\n` +
+			`after_rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent='Administrator' and defkey like 'bnd_%'", as_dict=True)\n` +
+			`after_p = {r.defkey: r.defvalue for r in after_rows}\n` +
+			`drift = {}\n` +
+			`for k in set(list(want_p) + list(after_p)):\n` +
+			`    if want_p.get(k) != after_p.get(k):\n` +
+			`        drift["personal:" + k] = {"snapshot": want_p.get(k), "now": after_p.get(k)}\n` +
+			`for f in set(list(vals) + list(after)):\n` +
+			`    if f in skip:\n` +
+			`        continue\n` +
+			`    if vals.get(f) != after.get(f):\n` +
+			`        drift[f] = {"snapshot": vals.get(f), "now": after.get(f)}\n` +
+			`print("RESTORE_DRIFT=" + json.dumps(drift))\n`
 	);
+	const m = out.match(/RESTORE_DRIFT=(\{.*\})/);
+	return m ? JSON.parse(m[1]) : { __unreadable__: out.slice(-200) };
+};
 
 const b = await chromium.launch(browserLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -176,7 +248,7 @@ for (const key of items) {
 		// They still have to be NAMED here, because the crumbs catch-all below is
 		// the complement of these keys: leave one out and every one of its cards
 		// is swept as a crumb_style write that never lands.
-		const MULTI = [".bnd-lp-card", ".bnd-thp-style"];
+		const MULTI = [".bnd-lp-card", ".bnd-thp-style", ".bnd-prp-style"];
 		const IMPLICIT = {
 			".bnd-plp-style": "palette_style",
 			".bnd-ibp-style": "inbox_style",
@@ -217,6 +289,15 @@ for (const key of items) {
 			const preset = n.getAttribute("data-preset");
 			if (preset) push({ kind: "preset", preset }, "preset:" + preset);
 		}
+		// MULTI cards stay NAMED-not-swept: clicking a whole-preset card
+		// re-renders its pane, and a class-selector .first() click walks a
+		// DOM that no longer exists (tried 2026-08-31: 29 "vanished"
+		// reports, all of them the sweep chasing its own re-render, none a
+		// picker defect). Sweeping them for real needs per-family plumbing
+		// that re-enters the pane and targets by data-value — a separate
+		// piece of work. Their exclusion from the crumbs catch-all is what
+		// this list is FOR; the print cards sit here so a print-preset
+		// click is never again reported as a crumb_style write.
 		// PLAIN FRAPPE CONTROLS. The container panes (top bar, page header,
 		// dock) are a single stock Check field each, and density is a stock
 		// Select — settings like any other, invisible to a sweep that only
@@ -393,7 +474,15 @@ else {
 }
 console.log("-".repeat(60));
 
-restore();
-console.log("state restored");
+const drift = restore();
+if (Object.keys(drift).length) {
+	console.log("  RESTORE INCOMPLETE — the site is NOT as the sweep found it:");
+	for (const [f, d] of Object.entries(drift)) {
+		console.log(`    ${f}: now ${JSON.stringify(d.now)}, snapshot held ${JSON.stringify(d.snapshot)}`);
+	}
+	console.log("  Repair: load Theme Settings, set each field back, doc.save() so on_update fires.");
+} else {
+	console.log("state restored — verified against the snapshot, row for row");
+}
 await b.close();
-process.exit(failures.length ? 1 : 0);
+process.exit(failures.length || Object.keys(drift).length ? 1 : 0);

@@ -97,6 +97,11 @@ TOKENS_SCSS = os.path.join(
     "..", "bunood_theme", "public", "scss", "_tokens.scss",
 )
 
+SIDEBAR_SCSS = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "bunood_theme", "public", "scss", "chrome", "_sidebar.scss",
+)
+
 # ── The pairs ────────────────────────────────────────────────────────────────
 #
 # A pair is (ink, background, requirement, why). `requirement` is None for pairs
@@ -144,6 +149,13 @@ class Pair(NamedTuple):
     need: float | None
     why: str
     mode: str | None = None
+    #: The surface a TRANSLUCENT ``bg`` is painted on. Defaults to
+    #: ``--bnd-surface`` because that is what every pair before item 40
+    #: assumed — but the sidebar chip sits on the PANE, and the pane is
+    #: #15181a where --bnd-surface is #ffffff. Flattening the chip over the
+    #: wrong host is not a rounding error, it is the difference between
+    #: 3.76:1 and a pass.
+    overlay: str = "var(--bnd-surface)"
 
 
 def pairs():
@@ -230,106 +242,97 @@ def pairs():
              "hover accent alongside a background change; see item 22"),
     ]
 
-    # ── The sidebar kit's own palette (34a) ──────────────────────────────────
+    # ── The sidebar kit's category hues (item 22, rewritten item 40) ─────────
     #
-    # ENFORCED NOW, and per pane FAMILY, because the measurement round proved
-    # no single hex can serve four panes: every one of the seven global
-    # --bnd-cat-N hues failed AA on at least one pane (hue 4 read 1.97:1 on
-    # the light pair, hue 7 read 1.86:1 on the dark pair). Each colour mode
-    # therefore declares its own fits in _sidebar.scss — light modes darken,
-    # dark modes lighten, hue and saturation held, lightness searched until
-    # the worst ratio across every seed here cleared 4.6:1. These rows hold
-    # the gate to exactly those declared values; edit the fits in
-    # _sidebar.scss and these hexes together or the gate says so.
+    # ONE PANE NOW, AND THESE ROWS ARE WHY THE HUES DID NOT FOLLOW IT. The kit
+    # used to carry four colour worlds and this block swept the seven hues
+    # across all of them. The panes went; the hues did not, and must not:
+    # `--bnd-sb-hue` is read as `color:` in six rules, so it is INK, while the
+    # global `--bnd-cat-*` are FILLS. Aliasing one to the other is a role
+    # change, which this repo forbids, and it measures: #eda100 amber as text
+    # on a light pane is 1.82:1, and 282 of 378 pairs fail.
     #
-    # The brand pane has no rows: no fixed hue can be fitted to an
-    # arbitrary-seed gradient, so the hues stand down there and section
-    # labels take the mode's own white ink — checked below as a MEASURED row
-    # against the gradient's lightest stop, not enforced, because a
-    # near-white seed makes white-on-brand illegible by construction and
-    # that is the brand mode's own pre-existing design question, not this
-    # palette's.
-    SB_FITS_LIGHT = ["#2469bc", "#b94112", "#127753", "#8e6000", "#c62360", "#007a00", "#4a3aa7"]
-    SB_FITS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00c300", "#a9a0de"]
-    LIGHT_PANES = [("var(--bnd-pane)", "match-theme pane"), ("#fafbfa", "minimal pane")]
-    DARK_PANES = [
-        ("#15181a", "minimal pane, dark desk"),
-        ("color-mix(in srgb, var(--bnd-brand) 10%, #131a15)", "dark-contrast pane"),
-    ]
-    for n in range(7):
-        for pane, pane_label in LIGHT_PANES:
-            out.append(Pair(SB_FITS_LIGHT[n], pane, AA_TEXT,
-                             f"sidebar hue {n + 1} (light fit) on the {pane_label}", "light"))
-        for pane, pane_label in DARK_PANES:
-            # The dark-contrast pane is dark in BOTH desk themes, but its
-            # hues come from the mode block that also serves dark desks, so
-            # the dark fit is what renders on it always — checked in dark
-            # mode, where --bnd-pane agrees with it.
-            out.append(Pair(SB_FITS_DARK[n], pane, AA_TEXT,
-                             f"sidebar hue {n + 1} (dark fit) on the {pane_label}", "dark"))
-    out.append(Pair(
-        "#ffffff", "color-mix(in srgb, var(--bnd-brand) 96%, #ffffff)", None,
-        "brand-pane ink and active-pill fill at the gradient's lightest stop; see the brand-mode note",
-    ))
-    out.append(Pair(
-        "#ffffff", "color-mix(in srgb, var(--bnd-brand) 72%, #000000)", None,
-        "brand-pane active-pill fill at the gradient's darkest stop",
-    ))
+    # Fitted as ink by `palette.sb_hues()` they clear every pane at every seed,
+    # worst 4.60:1 -- measured 2026-09-01 across 27 seeds x 2 modes. The fit
+    # binds against the worst pane, so holding it here against `--bnd-pane`
+    # (which MOVES with the seed) is the row that keeps that true.
+    for polarity in ("light", "dark"):
+        for n, hue in enumerate(palette.sb_hues(polarity), 1):
+            out.append(Pair(
+                hue, "var(--bnd-pane)", AA_TEXT,
+                f"sidebar hue {n} ({polarity} fit) on the pane", polarity,
+            ))
 
-    # ── The active pill's fill and its label are one derivation (item 22) ────
+    # ── The pane's own surfaces, measured on the pane (item 40) ─────────────
     #
-    # 34a fitted the categorical hues to be INK on a pane (AA_TEXT), never a
-    # FILL under a label — Solid Pill used the wash hue as its fill whenever
-    # a wash was on, with the label set independently per colour mode, and
-    # the two drifted: Match Theme + Solid Pill measured 2.08:1 at seed
-    # #7f7f7f (already a gate seed above), Dark Contrast + Solid Pill
-    # measured 2.17-2.40:1 at every hue. The fix routes the pill through the
-    # brand's own gated pair instead (the "label on a brand fill" row above)
-    # in every colour mode except brand, which stands the pair down the same
-    # way its hues already do four lines up — no fixed pair survives an
-    # arbitrary-seed gradient. This row enforces that stand-down; the
-    # general-mode pair is the existing row above, now what actually renders.
-    out.append(Pair(
-        "#16181d", "#ffffff", AA_TEXT,
-        "sidebar active pill label on the brand pane's stand-down fill",
-    ))
-
-    # ── Measured, deliberately not enforced: the fill's own visibility ───────
+    # THE GATE HAD NO CHIP ROW AT ALL, and that is how defect 25 lived: dark
+    # minimal declared 12 of the 14 working-set tokens, so --bnd-sb-chip-ink
+    # fell through to the LIGHT block and painted #6d7570 on a #15181a pane.
+    # 3.76:1, shipped, with a green gate -- because nothing here ever asked.
     #
-    # The fix above makes the pill's fill legible UNDER its label at every
-    # seed. Whether the fill stays identifiable AS A CONTROL against its own
-    # pane is a different, 1.4.11 boundary question — and this fix exposes it
-    # more often rather than creating it: --bnd-brand-solid already fell back
-    # to this same fill whenever a wash was off, in all four non-theme colour
-    # modes, so wash-on joins wash-off in the exposure rather than being new.
-    # At the seed matrix's pathological ends it fails outright — the
-    # dark-contrast pane at a near-black seed on a LIGHT desk measures
-    # ~1.06:1 (the light-derived fill and the pane are both near-black), and
-    # the brand pane's own lightest gradient stop measures 1.00:1 at a
-    # near-white seed (two rows up). Fixing it needs --bnd-brand-solid fitted
-    # against the sidebar's OWN panes, not just the six global SURFACES — a
-    # palette.derive() change whose blast radius is every brand-solid
-    # consumer site-wide, not just the sidebar. Out of scope for this fix;
-    # measured and published so the gap has a number, not silence, and
-    # recorded as an open thread rather than lost.
-    for pane, pane_label in LIGHT_PANES[1:]:  # skip match-theme: already the global --bnd-pane row
-        out.append(Pair(
-            "var(--bnd-brand-solid, var(--bnd-brand))", pane, None,
-            f"sidebar active pill fill against its own {pane_label}", "light",
-        ))
-    for pane, pane_label in DARK_PANES:
-        out.append(Pair(
-            "var(--bnd-brand-solid, var(--bnd-brand))", pane, None,
-            f"sidebar active pill fill against its own {pane_label}", "dark",
-        ))
-    # Dark Contrast's own pane is dark in BOTH desk themes (see the hue-fit
-    # loop above), so its fill needs checking against a LIGHT-derived
-    # brand-solid too — a light desk with Dark Contrast sidebar mode is a
-    # real, reachable combination.
+    # These rows used to walk six colour worlds and read each one's own
+    # declarations out of the stylesheet. There is one pane now and it is the
+    # theme's, so the values are the GLOBAL tokens and the sweep is the one
+    # already running: `--bnd-ink` on `--bnd-pane` is a row above, at every
+    # seed, in both modes. What is NOT already covered is the chip, because
+    # the pane derives it rather than aliasing it --
+    # `color-mix(--bnd-ink 7%, transparent)` over the pane -- and a derived
+    # pair is a pair no global row has. That is the whole of what is left, and
+    # it is the shape of `closed is not covered`: the ratios were never wrong,
+    # there was simply no row.
+    #
+    # Measured 2026-09-01 across 27 seeds x 2 modes: 324 pairs, worst 6.11:1.
+    CHIP = "color-mix(in srgb, var(--bnd-ink) 7%, transparent)"
+    for polarity in ("light", "dark"):
+        for ink, what in (("var(--bnd-ink)", "link text"),
+                          ("var(--bnd-ink-muted)", "muted text")):
+            # The chip is TRANSLUCENT, which is why `Pair.overlay` exists:
+            # `resolve` flattens a translucent colour over --bnd-surface by
+            # default, and --bnd-surface is #ffffff in light. A chip measured
+            # against that reads 'fine' for exactly the dark pane where it is
+            # not.
+            out.append(Pair(
+                ink, CHIP, AA_TEXT,
+                f"sidebar {what} on its chip", polarity,
+                overlay="var(--bnd-pane)",
+            ))
+            out.append(Pair(
+                ink, "var(--bnd-raised)", AA_TEXT,
+                f"sidebar {what} on a section card", polarity,
+            ))
+    # Measured, not enforced -- the same standing as --bnd-border on
+    # --bnd-surface above. A hairline separator is a boundary between two
+    # regions of the same surface, not a control edge; item 22 argued this
+    # once and the pane's line is the same thing under another name.
     out.append(Pair(
-        "var(--bnd-brand-solid, var(--bnd-brand))", DARK_PANES[1][0], None,
-        "sidebar active pill fill against its own dark-contrast pane, light desk", "light",
+        "var(--bnd-border)", "var(--bnd-pane)", None,
+        "sidebar separator on the pane; see item 22",
     ))
+    # ── The active pill's fill against the pane it sits on ──────────────────
+    #
+    # Was a sweep over four panes, of which the two ALIAS ones duplicated a
+    # global surface row. One pane, one row per polarity -- and it is the
+    # 1.4.11 question (is the control identifiable against its own ground),
+    # so the floor is the non-text 3.0.
+    #
+    # THE BRAND-PANE STAND-DOWN ROW WENT WITH THE PANE. The pill used to route
+    # through the brand's gated label pair in every mode EXCEPT brand, where no
+    # fixed pair survives an arbitrary-seed gradient; that exception had one
+    # row here asserting the stand-down. There is nothing left to stand down
+    # from, so the general pair above is simply what renders, everywhere.
+    #
+    # AND THIS USED TO BE MEASURED-BUT-NOT-ENFORCED, and it is enforced now: the
+    # two pathological readings that forced that (a near-black seed's
+    # dark-contrast pane at ~1.06:1, a near-white seed's brand gradient at
+    # 1.00:1) were both properties of panes that no longer exist. Measured
+    # against the real pane the worst of 54 is 3.04:1, so the exemption has
+    # nothing left to excuse.
+    PILL = "var(--bnd-brand-solid, var(--bnd-brand))"
+    for polarity in ("light", "dark"):
+        out.append(Pair(
+            PILL, "var(--bnd-pane)", AA_NON_TEXT,
+            "sidebar active pill fill against the pane", polarity,
+        ))
 
     # ── List view kit (item 15, was 16) ───────────────────────────────────────
     # The selection wash and its inks, plus the rail against the wash. The
@@ -515,6 +518,162 @@ SEEDS = [
 # ── Reading the tokens ───────────────────────────────────────────────────────
 
 
+def _strip_comments(src: str) -> str:
+    """Drop `//` line comments. Every SCSS reader here starts with this."""
+    return re.sub(r"//[^\n]*", "", src)
+
+
+def body_of(src: str, pattern: str, what: str, path: str) -> str:
+    """The brace-matched body of the first construct matching ``pattern``."""
+    m = re.search(pattern, src, re.M)
+    if not m:
+        raise SystemExit(f"contrast gate: no {what} in {path}")
+    depth, i = 1, m.end()
+    while depth and i < len(src):
+        depth += {"{": 1, "}": -1}.get(src[i], 0)
+        i += 1
+    return src[m.end() : i - 1]
+
+
+def expand_includes(src: str, body: str, path: str, depth: int = 0) -> str:
+    """Substitute ``@include <name>;`` with the body of ``@mixin <name>``.
+
+    WHY THIS EXISTS (item 32). The dark token set became a ``@mixin`` so it
+    could be emitted under a third selector — a website page carries no
+    ``data-theme``, so the login sheet reaches dark through
+    ``prefers-color-scheme`` — and this parser reads the SOURCE, not the
+    compiled CSS. Without expansion, ``html[data-theme="dark"] { @include
+    dark; }`` parses as an EMPTY block, ``dark`` collapses onto ``light``,
+    and the gate reports 150 failures in dark for every seed while the
+    stylesheet is perfectly correct.
+
+    Recorded because of how it was found: the mixin commit proved itself
+    inert with a BYTE-IDENTICAL rebuild, which is real evidence about the
+    compiled sheet and no evidence at all about a tool that parses the
+    source. Two things read ``_tokens.scss`` and only one of them is Sass.
+
+    MODULE-LEVEL SINCE ITEM 40, and that is the point. ``_sidebar.scss`` now
+    uses the same mixin shape for the same reason — its dark hue set is
+    emitted under ``[data-theme="dark"]`` AND the ``automatic`` arm — so a
+    second reader had to expand includes too. Nested inside ``read_blocks``
+    this would have been copied, and a copy of a parser is the same-fact-twice
+    defect wearing a different hat: the item-32 incident above would then be
+    fixable in one reader and still live in the other.
+    """
+    if depth > 4:
+        raise SystemExit("contrast gate: @include nesting too deep in " + path)
+
+    def sub(m):
+        name = m.group(1)
+        inner = body_of(src, r"@mixin\s+" + re.escape(name) + r"\s*\{", f"@mixin {name}", path)
+        return expand_includes(src, inner, path, depth + 1)
+
+    return re.sub(r"@include\s+([\w-]+)\s*;", sub, body)
+
+
+def read_decls(src: str, pattern: str, what: str, path: str) -> dict:
+    """The custom-property declarations of one brace-matched block, includes expanded."""
+    out = {}
+    for decl in _split_decls(expand_includes(src, body_of(src, pattern, what, path), path)):
+        if ":" not in decl:
+            continue
+        name, _, value = decl.partition(":")
+        name = name.strip()
+        if name.startswith("--"):
+            out[name] = value.strip()
+    return out
+
+
+def check_sidebar_hues() -> list[str]:
+    """The pane's category hues in `_sidebar.scss` are `palette.sb_hues()`.
+
+    ALL THAT SURVIVES OF A SIX-ARM SWEEP, and the reason it survives is that it
+    is the only sidebar colour fact the global palette does not already carry.
+    Item 40 collapsed the pane's four colour worlds onto the theme, so
+    `--bnd-sb-bg`, `-ink`, `-line` and the rest are aliases of `--bnd-pane`,
+    `--bnd-ink`, `--bnd-border` -- already swept, at every seed, in both modes.
+    Re-measuring them here would measure the same pair twice and report one
+    finding as two.
+
+    The hues are different: they are INK fits against the pane, and no global
+    token plays that role (`--bnd-cat-*` are fills). So they are declared in
+    the stylesheet, and this is the drift check that pins those declarations to
+    the derivation that produced them -- `check_defaults_agree`'s shape, for
+    the same reason: a copy with a drift check is a cache, a copy without one
+    is the same fact in two places.
+
+    Both polarity blocks are read, AND the `automatic` arm, because an
+    Automatic user on a dark OS paints from CSS for the whole first-paint
+    window -- defect 27's lesson, and the arm a mode-keyed block is likeliest
+    to be missing.
+    """
+    problems: list[str] = []
+    src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
+    blocks = {
+        "light": r"html\[data-bnd-sb-color\]\s*\{",
+        "dark": r"html\[data-theme=\"dark\"\]\[data-bnd-sb-color\]\s*\{",
+        "automatic": r"html\[data-theme=\"automatic\"\]\[data-bnd-sb-color\]\s*\{",
+    }
+    for name, pattern in blocks.items():
+        # `automatic` must carry the DARK fits: it is the dark-OS first paint.
+        want = palette.sb_hues("light" if name == "light" else "dark")
+        # EVERY block with this selector, merged in source order -- which is
+        # what the cascade does. The alias block and the hue block share
+        # `html[data-bnd-sb-color]`, so reading only the first found an
+        # alias block with no hues in it and reported seven false
+        # drifts. A check that looks at one of two identical selectors is
+        # measuring the wrong element, one level up from the DOM.
+        found = list(re.finditer(pattern, src))
+        if not found:
+            problems.append(
+                f"_sidebar.scss has no {name} category-hue block -- "
+                f"a pane in that mode falls through to the global FILL hues"
+            )
+            continue
+        got: dict = {}
+        for m in found:
+            got.update(read_decls_from(_balanced(src, m.end() - 1)))
+        for i, hue in enumerate(want, 1):
+            tok = f"--bnd-sb-cat-{i}"
+            have = got.get(tok)
+            if have is None:
+                problems.append(
+                    f"{name}: {tok} is not declared, so it falls through to "
+                    f"var(--bnd-cat-{i}) -- a FILL hue used as ink"
+                )
+            elif have.lower() != hue.lower():
+                problems.append(
+                    f"{name}: {tok} is {have} but palette.sb_hues() derives {hue}"
+                )
+    return problems
+
+
+def _balanced(src: str, open_brace: int) -> str:
+    """The text between `src[open_brace]` and its matching `}`."""
+    depth = 0
+    for i in range(open_brace, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[open_brace + 1:i]
+    raise ValueError("unbalanced block in _sidebar.scss")
+
+
+def read_decls_from(body: str) -> dict:
+    """`--prop: value;` pairs at any depth of one block body."""
+    out = {}
+    for decl in _split_decls(body):
+        if ":" not in decl:
+            continue
+        name, _, value = decl.partition(":")
+        name = name.strip()
+        if name.startswith("--"):
+            out[name] = value.strip().rstrip(";").strip()
+    return out
+
+
 def read_blocks(path: str) -> tuple[dict, dict]:
     """Return ``(light, dark)`` custom-property maps parsed from ``_tokens.scss``.
 
@@ -533,57 +692,10 @@ def read_blocks(path: str) -> tuple[dict, dict]:
     rather than by oversight, which is only a meaningful distinction if it is
     written down.
     """
-    src = open(path, encoding="utf-8").read()
-    src = re.sub(r"//[^\n]*", "", src)
-
-    def body_of(pattern: str, what: str) -> str:
-        """The brace-matched body of the first construct matching ``pattern``."""
-        m = re.search(pattern, src, re.M)
-        if not m:
-            raise SystemExit(f"contrast gate: no {what} in {path}")
-        depth, i = 1, m.end()
-        while depth and i < len(src):
-            depth += {"{": 1, "}": -1}.get(src[i], 0)
-            i += 1
-        return src[m.end() : i - 1]
-
-    def expand_includes(body: str, depth: int = 0) -> str:
-        """Substitute ``@include <name>;`` with the body of ``@mixin <name>``.
-
-        WHY THIS EXISTS (item 32). The dark token set became a ``@mixin`` so it
-        could be emitted under a third selector — a website page carries no
-        ``data-theme``, so the login sheet reaches dark through
-        ``prefers-color-scheme`` — and this parser reads the SOURCE, not the
-        compiled CSS. Without expansion, ``html[data-theme="dark"] { @include
-        dark; }`` parses as an EMPTY block, ``dark`` collapses onto ``light``,
-        and the gate reports 150 failures in dark for every seed while the
-        stylesheet is perfectly correct.
-
-        Recorded because of how it was found: the mixin commit proved itself
-        inert with a BYTE-IDENTICAL rebuild, which is real evidence about the
-        compiled sheet and no evidence at all about a tool that parses the
-        source. Two things read ``_tokens.scss`` and only one of them is Sass.
-        """
-        if depth > 4:
-            raise SystemExit("contrast gate: @include nesting too deep in " + path)
-        def sub(m):
-            name = m.group(1)
-            return expand_includes(body_of(r"@mixin\s+" + re.escape(name) + r"\s*\{", f"@mixin {name}"), depth + 1)
-        return re.sub(r"@include\s+([\w-]+)\s*;", sub, body)
+    src = _strip_comments(open(path, encoding="utf-8").read())
 
     def block(selector: str) -> dict:
-        body = expand_includes(
-            body_of(r"^" + re.escape(selector) + r"\s*\{", f"top-level `{selector}` block")
-        )
-        out = {}
-        for decl in _split_decls(body):
-            if ":" not in decl:
-                continue
-            name, _, value = decl.partition(":")
-            name = name.strip()
-            if name.startswith("--"):
-                out[name] = value.strip()
-        return out
+        return read_decls(src, r"^" + re.escape(selector) + r"\s*\{", f"top-level `{selector}` block", path)
 
     light = block(":root")
     # Dark is an OVERRIDE layer, exactly as the cascade applies it — the dark
@@ -666,8 +778,11 @@ def evaluate(seed: str, defaults: dict, mode: str, derived: bool = True):
         if pair.mode and pair.mode != mode:
             continue
         try:
-            bg_c = resolve(bg, v)
-            ink_c = resolve(ink, v, over=bg)
+            bg_c = resolve(bg, v, over=pair.overlay)
+            # Composite the ink over the FLATTENED background, not over the
+            # background's expression — a translucent bg would otherwise host
+            # the ink at its own alpha, which is not what a browser paints.
+            ink_c = resolve(ink, v, over=to_hex(bg_c))
             r = ratio(ink_c, bg_c)
         except ValueError as exc:
             rows.append((ink, bg, need, why, None, str(exc)))
@@ -768,7 +883,17 @@ def check_theme_catalogue() -> list[str]:
         every later save of the whole document (item 36 measured six unrelated
         tests going red from exactly that).
       * PAIRWISE DISTINCT. Two presets with one composition make the derived label
-        ambiguous, and "Custom" would be the only honest answer to both.
+        ambiguous, and "Custom" would be the only honest answer to both. Held for
+        the eight SIDEBAR looks too, since item 40 — nothing checked those, and
+        merging an option that two looks differ at ALONE would have collapsed them
+        with the gate still green.
+      * EVERY AXIS IS A REAL FIELD. `allowed = options.get(field)` returns None
+        for a field the doctype does not have, and the option check then SKIPS it
+        — so a field could sit in `SIDEBAR_FIELDS`, be written by all eight
+        presets, and not exist. At runtime the comparison is `"" vs "Off"`, so all
+        twelve cards read "Custom" on every site forever, with a green suite and a
+        green gate. This is item 37's own trap, and a deletion slice is exactly
+        when it fires.
       * THE DEFAULT PRESET IS THE SHIPPED DEFAULT. If they differ by one value a
         brand-new site reads "Custom" on the day it is installed, which is the
         first thing its owner sees the settings page say.
@@ -797,9 +922,21 @@ def check_theme_catalogue() -> list[str]:
         for f in meta["fields"]
         if f.get("fieldname") and f.get("fieldtype") == "Select"
     }
+    # EVERY fieldname, not only the Selects: the option check below cannot see a
+    # field that does not exist, and that is the hole this closes.
+    fieldnames = {f["fieldname"] for f in meta["fields"] if f.get("fieldname")}
 
     bad: list[str] = []
     axes = set(THEME_AXES)
+
+    phantom = sorted(axes - fieldnames)
+    if phantom:
+        bad.append(
+            f"{len(phantom)} theme axes name a field the doctype does not have: "
+            f"{', '.join(phantom[:6])}. Every preset would write them and every card "
+            "would read Custom on every site, with nothing else failing — the option "
+            "check skips a field it cannot find."
+        )
     composed: dict = {}
 
     for name in THEME_PRESETS:
@@ -823,6 +960,23 @@ def check_theme_catalogue() -> list[str]:
             if composed[a] == composed[b]:
                 bad.append(f"{a} and {b} compose identically — the derived label "
                            f"cannot name either")
+
+    # THE EIGHT SIDEBAR LOOKS, WHICH NOTHING CHECKED. `THEME_PRESETS` names a
+    # `SIDEBAR_PRESETS` entry by string, so two identical looks make two theme
+    # cards indistinguishable in the pane while the twelve compositions still
+    # differ elsewhere — the distinctness check above would not see it. It bites
+    # the moment an option is merged away: item 40 removes two `sidebar_active_style`
+    # values, and `Daylight` and `Paper` differ at that field ALONE.
+    from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS
+
+    looks = list(SIDEBAR_PRESETS)
+    for i, a in enumerate(looks):
+        for b in looks[i + 1:]:
+            if SIDEBAR_PRESETS[a] == SIDEBAR_PRESETS[b]:
+                bad.append(
+                    f"sidebar looks {a} and {b} are identical — a merge collapsed them, "
+                    "and every theme that names either now shows the same pane"
+                )
 
     base = {f: v for f, v in _shipped_baseline().items() if f in axes}
     drift = {k for k in axes if base.get(k) != composed.get(DEFAULT_THEME_PRESET, {}).get(k)}
@@ -1162,8 +1316,8 @@ def check_computed() -> int:
             if need is None:
                 continue
             try:
-                bg_c = resolve(bg, variables)
-                ink_c = resolve(ink, variables, over=bg)
+                bg_c = resolve(bg, variables, over=pair.overlay)
+                ink_c = resolve(ink, variables, over=to_hex(bg_c))
                 r = ratio(ink_c, bg_c)
             except ValueError as exc:
                 failures.append(f"{mode}: {short(ink)} / {short(bg)} -> {exc}")
@@ -1179,6 +1333,8 @@ def check_computed() -> int:
         return 1
     print("rendered tokens pass every enforced pair, both modes")
     return 0
+
+
 
 
 def check_measured() -> int:
@@ -1270,24 +1426,295 @@ def check_layout_identity() -> list[str]:
         if got != name:
             bad.append(f"{name} does not round-trip: layout_of said {got!r}")
 
-    containers = {c for c in layout_settings("Classic") if c.endswith("_enabled")}
-    if all(layout_settings("Classic")[c] == layout_settings("Bottom Bar")[c] for c in containers):
-        if layout_of(layout_settings("Bottom Bar")) == "Classic":
-            bad.append("Classic and Bottom Bar collapse - the comparison reads containers only")
+    # Rows with IDENTICAL container rows must still be told apart (Unified Side
+    # Pane and Taskbar today; Classic and Bottom Bar when this was written).
+    names = list(LAYOUT_CHROME)
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            if LAYOUT_CHROME[a] == LAYOUT_CHROME[b] and layout_of(layout_settings(b)) == a:
+                bad.append(f"{a} and {b} collapse - the comparison reads containers only")
 
-    for name in ("Classic", "Dock"):
+    for name in names:
         moved = dict(layout_settings(name))
-        moved["search_placement"] = "Top Bar Center"
+        moved["search_placement"] = (
+            "Side Pane Start" if moved.get("search_placement") == "Top Bar Center" else "Top Bar Center"
+        )
         got = layout_of(moved)
         if got != name:
             bad.append(f"{name} with search moved reports {got!r} - search_placement is "
                        f"deciding the shape it is supposed to be asking about")
 
-    odd = dict(layout_settings("Classic"))
-    odd["topbar_enabled"] = 1
-    if layout_of(odd) == "Classic":
-        bad.append("a Classic desk with a top bar still reports Classic - the match is "
-                   "not exact")
+    for name in names:
+        odd = dict(layout_settings(name))
+        odd["topbar_enabled"] = 0 if odd.get("topbar_enabled") else 1
+        if layout_of(odd) == name:
+            bad.append(f"a {name} desk with its top bar flipped still reports {name} - the "
+                       f"match is not exact")
+    return bad
+
+
+#: The rows item 42 retired, as a site upgraded from v0.41 may still hold them:
+#: containers, tenants, and the name the derivation should now answer. Three
+#: rows survive under a new name because their VALUES survived; two spell a
+#: shape no card offers any more and honestly derive to "" (the picker reads
+#: "Custom"), which is the removal rule: nothing stops working, it stops being
+#: named.
+RETIRED_LAYOUTS = {
+    "Top Bar": ({"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Top Bar End", "user_placement": "Top Bar End", "search_placement": "Top Bar Center"},
+                "Top Taskbar"),
+    "Compact": ({"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Page Header End", "user_placement": "Page Header End", "search_placement": "Side Pane Start"},
+                ""),
+    "Classic": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                {"inbox_placement": "Off", "user_placement": "Off", "search_placement": "Side Pane Start"},
+                ""),
+    "Bottom Bar": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+                   {"inbox_placement": "Bottom Bar End", "user_placement": "Bottom Bar End", "search_placement": "Bottom Bar Center"},
+                   "Taskbar"),
+    "Dock": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
+             {"inbox_placement": "Dock End", "user_placement": "Dock End", "search_placement": "Bottom Bar Center"},
+             "Floating Bar"),
+}
+
+
+def check_layout_lineage() -> list[str]:
+    """An upgraded site's stored shape derives its successor, or "" — never a stranger.
+
+    ITEM 42, SLICE 6. The catalogue was renamed and re-cut, and nothing migrates a
+    site's stored values — a layout is values, and the values still mean what they
+    meant. So the derivation has to answer for every row the OLD catalogue could
+    have written: the successor where one exists, "" where the shape is no longer
+    offered. A wrong answer here is a picker highlighting a card the site is not on,
+    and a search fallback order the site did not ask for.
+    """
+    from bunood_theme.presets import layout_of
+    from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME
+
+    bad: list[str] = []
+    toggle = {c["key"]: c["toggle"] for c in CONTAINERS if c.get("toggle")}
+    for old, (chrome, tenants, successor) in RETIRED_LAYOUTS.items():
+        if old in LAYOUT_CHROME:
+            bad.append(f"{old} is still in the catalogue - RETIRED_LAYOUTS is stale")
+            continue
+        values = {toggle[k]: v for k, v in chrome.items() if k in toggle}
+        values.update(tenants)
+        got = layout_of(values)
+        if got != successor:
+            bad.append(f"a site still on the retired {old} row derives {got!r}, not {successor!r}")
+    return bad
+
+def check_layout_catalogue() -> list[str]:
+    """Every layout row is internally consistent: its tenants land in containers it turns on.
+
+    ITEM 42'S FIRST GUARD, written before the catalogue is replaced so the five new rows
+    are held to it from their first commit. Item 36's sharpest finding was a layout that
+    wrote HALF of itself — containers here, placements there — and the shape the suite
+    drove was one no gesture could produce; item 37 answered it with one composer
+    (`registry.layout_settings`). This is the check that composer never had: a row can
+    still say `topbar: 0` and `inbox_placement: "Top Bar End"` in the same breath, and
+    the bell then points at a region that does not exist on the day the layout is
+    picked — `mount_placed_tenants` falls through its fallback order and the label
+    derived by comparison reads a shape nobody drew.
+
+    Three claims per row, each one a way the catalogue has actually been wrong:
+      * a `LAYOUT_CHROME` row has a `LAYOUT_TENANTS` row (a layout without placements
+        writes containers only — the half-written shape);
+      * every placement value is one the doctype's Select offers (a value nothing can
+        store is a value the picker cannot show);
+      * the region a placement names is ON in that row's chrome (a tenant placed in a
+        container the row switches off).
+    Plus: the default layout is in the catalogue at all.
+
+    Frappe-free: the options come from the doctype JSON on disk, the rows from
+    `registry`, and nothing here needs a site.
+    """
+    import json
+
+    from bunood_theme import registry
+    from bunood_theme.presets import DEFAULT_DESK_LAYOUT
+
+    problems: list[str] = []
+    doctype = os.path.join(
+        os.path.dirname(__file__), "..", "bunood_theme", "bunood_theme", "doctype",
+        "theme_settings", "theme_settings.json",
+    )
+    with open(doctype, encoding="utf-8") as f:
+        fields = {r.get("fieldname"): r for r in json.load(f)["fields"]}
+    options = {
+        name: [o for o in (row.get("options") or "").split("\n") if o]
+        for name, row in fields.items()
+        if row.get("fieldtype") == "Select"
+    }
+    # "Top Bar Center" -> topbar: the region is the label's prefix, and REGION_LABELS is
+    # the one place the label is decided, so the map is derived rather than restated.
+    by_label = {label: key for key, label in registry.REGION_LABELS.items()}
+
+    if DEFAULT_DESK_LAYOUT not in registry.LAYOUT_CHROME:
+        problems.append(f"DEFAULT_DESK_LAYOUT {DEFAULT_DESK_LAYOUT!r} is not a LAYOUT_CHROME row")
+    # EVERY FIELD ANY ROW STATES, checked against EVERY row. Asking only whether a
+    # row exists let a row that named two of the three tenant fields pass as
+    # complete: the third then falls through to the shipped default, which is a
+    # different layout's answer, and the picker's derived label reads Custom on a
+    # desk nobody customised.
+    stated: set = set()
+    for tenants in registry.LAYOUT_TENANTS.values():
+        stated |= set(tenants)
+    for name, chrome in registry.LAYOUT_CHROME.items():
+        tenants = registry.LAYOUT_TENANTS.get(name)
+        if not tenants:
+            problems.append(f"{name}: has a LAYOUT_CHROME row but no LAYOUT_TENANTS row -- a half-written layout")
+            continue
+        for missing in sorted(stated - set(tenants)):
+            problems.append(
+                f"{name}: states no {missing} while every other row does -- it would inherit "
+                f"another layout's answer from the shipped default"
+            )
+        for field, value in tenants.items():
+            # A FIELD THE DOCTYPE DOES NOT OFFER IS THE LOUDEST CASE, not a skip.
+            # `if field in options` meant a renamed or deleted Select made this
+            # guard silent about the row that still writes it -- and Theme Settings
+            # is a Single, where one out-of-range value fails every later save of
+            # the whole document.
+            if field not in options:
+                problems.append(
+                    f"{name}: {field} is not a Select on Theme Settings, so this row writes a "
+                    f"value nothing can store"
+                )
+                continue
+            if value not in options[field]:
+                problems.append(f"{name}: {field} = {value!r} is not an option the doctype offers")
+            if value == "Off":
+                # "Off" RELEASES THE CLAIM so Frappe's own affordance renders --
+                # and every one of those lives in the SIDE PANE (registry's `native`
+                # column names `.body-sidebar .sidebar-notification` and
+                # `.body-sidebar .sidebar-user-button`). A row that switches the pane
+                # off and still says Off is promising a control it does not mount;
+                # for `user_placement` that is the only route to Log Out.
+                # `guard_critical_reach` recovers it at runtime, which is exactly why
+                # the catalogue must not be able to spell it in the first place.
+                if not chrome.get("sidepane", 0):
+                    component = next(
+                        (c for c in registry.COMPONENTS if c.get("key") == field[: -len("_placement")]),
+                        None,
+                    )
+                    if component and component.get("native"):
+                        problems.append(
+                            f"{name}: {field} = 'Off' releases the tenant to {component['native']!r}, "
+                            f"which lives in the side pane this row switches OFF"
+                        )
+                continue
+            region = next((by_label[label] for label in by_label if value.startswith(label + " ")), None)
+            if region is None:
+                problems.append(f"{name}: {field} = {value!r} names no region REGION_LABELS knows")
+                continue
+            if not chrome.get(region, 0):
+                problems.append(
+                    f"{name}: {field} = {value!r} places a tenant in {region!r}, which this row switches OFF"
+                )
+    return problems
+
+
+def check_personal_partition() -> list[str]:
+    """Every theme axis is filed as exactly one kind of thing — item 38.
+
+    ``personal.py`` splits the 124 fields a theme preset writes into four sets:
+    what a person's LOOK may carry, what their SHAPE is, what belongs to surfaces
+    that are not the desk, and what stays the administrator's. The split decides
+    what the per-user layer is allowed to touch, so it has to be a partition and
+    not a set of opinions that happen not to have collided yet.
+
+    THIS EXISTS BECAUSE THE FIRST DRAFT DEFINED THE LOOK BY SUBTRACTION, and
+    subtraction quietly admitted twenty-two fields it must never carry: the
+    sign-in page and the website render through a cache keyed on ``(path, lang)``
+    and nothing else, so a per-user value there is served to the next visitor;
+    email renders in a different process; print is regenerated as a per-site
+    record. A look that "worked" would have been leaking or inert, and nothing
+    would have said which.
+
+    Three properties, each failing differently:
+
+      * NO OVERLAP. A field in both LOOK and SHAPE has two owners on one request
+        and the winner is decided by composition order.
+      * NOTHING UNCLAIMED. A field a future kit adds and nobody files is a field
+        a look silently cannot carry — invisible, because the look still applies.
+      * NOTHING PHANTOM. A field filed here that no preset writes is describing
+        something that has been renamed or deleted.
+
+    And one that is not arithmetic: SHAPE must be exactly what a named layout
+    writes. Under "names only" a person picks a layout, so a shape field outside
+    ``layout_settings`` is one no gesture could ever set.
+    """
+    from bunood_theme import personal
+    from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+
+    bad: list[str] = []
+    p = personal.partition()
+
+    for pair, fields in p["overlap"].items():
+        bad.append(f"{pair} claim the same field(s): {', '.join(fields)}")
+    if p["unclaimed"]:
+        bad.append(
+            "filed nowhere, so no look can carry them and nothing says why: "
+            + ", ".join(p["unclaimed"])
+        )
+    if p["phantom"]:
+        bad.append(
+            "filed but not written by any preset — renamed or deleted: "
+            + ", ".join(p["phantom"])
+        )
+
+    written = {f for name in LAYOUT_CHROME for f in layout_settings(name)}
+    if set(p["shape"]) != written:
+        missing = sorted(written - set(p["shape"]))
+        extra = sorted(set(p["shape"]) - written)
+        bad.append(
+            "SHAPE_FIELDS is not what the layouts write"
+            + (f" (missing {', '.join(missing)})" if missing else "")
+            + (f" (extra {', '.join(extra)})" if extra else "")
+        )
+
+    # EVERY LOCK IS A REAL FIELD, WITH THE DEFAULT THE TABLE CLAIMS. `LOCKS` and
+    # the doctype are the same fact in two files — the trap this repo pays for
+    # more than any other — and the failure is silent in both directions: a lock
+    # naming a field the doctype lacks reads back None forever and the axis is
+    # permanently open, while a default that disagrees means the seeder writes
+    # one answer and `lock_open` resolves another for every site that has not
+    # migrated yet.
+    doctype_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "bunood_theme",
+        "bunood_theme", "doctype", "theme_settings", "theme_settings.json",
+    )
+    with open(doctype_path, encoding="utf-8") as fh:
+        doctype = json.load(fh)
+    by_name = {f.get("fieldname"): f for f in doctype.get("fields", [])}
+    for lock, row in personal.LOCKS.items():
+        field = by_name.get(lock)
+        if field is None:
+            bad.append(f"{lock} is declared in personal.LOCKS but is not a Theme Settings field")
+            continue
+        if field.get("fieldtype") != "Check":
+            bad.append(f"{lock} is a {field.get('fieldtype')} — a lock must be a Check")
+        declared = str(row["default"])
+        stored = str(field.get("default", "0"))
+        if declared != stored:
+            bad.append(
+                f"{lock} defaults to {declared} in personal.LOCKS but {stored} in the doctype"
+            )
+
+    # Every axis this app stores must name a lock that exists, or be one of the
+    # deliberately unlockable ones. A typo here would read as "no lock" and the
+    # axis would be ungoverned rather than loudly wrong.
+    for row in personal.AXES:
+        lock = row.get("lock")
+        if lock is None:
+            if row["kind"] == personal.PREFERENCE and row["key"] not in personal.UNLOCKABLE:
+                bad.append(f"{row['key']} is a preference with no lock and is not in UNLOCKABLE")
+        elif lock not in personal.LOCKS:
+            bad.append(f"{row['key']} names a lock that does not exist: {lock!r}")
+        if not row["key"].startswith(personal.PREFIX):
+            bad.append(f"{row['key']} does not carry the {personal.PREFIX!r} prefix")
+
     return bad
 
 
@@ -1355,6 +1782,27 @@ def main() -> int:
             print(f"   {d}")
         print("\nRun with --emit-defaults for the block to paste.\n")
 
+    sb_hues = check_sidebar_hues()
+    if sb_hues:
+        print("the pane's category hues have drifted from palette.sb_hues():")
+        for m in sb_hues:
+            print(f"   {m}")
+        print()
+
+    lineage = check_layout_lineage()
+    if lineage:
+        print("a retired layout row derives the wrong successor:")
+        for m in lineage:
+            print(f"   {m}")
+        print()
+
+    layouts = check_layout_catalogue()
+    if layouts:
+        print("the layout catalogue is inconsistent with itself:")
+        for m in layouts:
+            print(f"   {m}")
+        print()
+
     theme = check_theme_catalogue()
     if theme:
         print("the theme catalogue does not hold:")
@@ -1366,6 +1814,13 @@ def main() -> int:
     if shape:
         print("the layout's derived identity does not hold:")
         for m in shape:
+            print(f"   {m}")
+        print()
+
+    split = check_personal_partition()
+    if split:
+        print("the per-user field partition does not hold:")
+        for m in split:
             print(f"   {m}")
         print()
 
@@ -1410,7 +1865,8 @@ def main() -> int:
             print(f"   {s}")
         print()
 
-    if failures or drift or sep or ref or inert or lift or cat or theme or shape:
+    if (failures or drift or sep or ref or inert or lift or cat or theme or shape or layouts or lineage
+            or split or sb_hues):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
@@ -1423,8 +1879,9 @@ def main() -> int:
         return 1
 
     print(f"All {total} measured pairs pass: {len(seeds)} seeds plus the no-brand-sheet "
-          "fallback, both modes. _tokens.scss agrees with palette.derive, and the chart "
-          "series clears its separation floor.")
+          "fallback, both modes. _tokens.scss agrees with palette.derive, _sidebar.scss "
+          "carries the pane hues palette.sb_hues() derives, and the chart series "
+          "clears its separation floor.")
     return 0
 
 

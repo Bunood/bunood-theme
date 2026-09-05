@@ -238,6 +238,52 @@ live. Upstream Desk violations are not ours; ours are.
 - **Baselines must be versioned artefacts, not souvenirs.** A screenshot committed once
   and never updated across three releases is not a baseline.
 
+### 1.8 What may be personal (item 38)
+
+Four per-user stores accumulated here before anyone wrote a rule, each added by
+whichever item needed one. The rule, now that there is one:
+
+- **A per-user preference is a NAME or an ergonomic value, never a loose style knob.**
+  A person picks a whole designed look; option-level freedom is the administrator's.
+  A name also tracks the catalogue — improve a look and everyone on it gets the
+  improvement, where a stored copy of 124 values would freeze them.
+- **Declare it in `personal.py` in the same commit that grows its reader.** The build
+  guard checks the table against the code in *both* directions, so a table listing
+  tomorrow's keys makes half the check meaningless.
+- **The key literal stays at the `frappe.defaults` call site.** A `stored(key)` helper
+  makes every key it reads invisible to the guard. This was written down and then
+  violated within one slice; the guard caught it.
+- **Empty means inherit, and it is a state rather than an absence.** No sentinel. That
+  is what lets an administrator move a site default and have every undecided person
+  follow along.
+- **Every write names its parent.** `frappe.defaults.set_default` without `parent=`
+  writes the GLOBAL row, which every account inherits including Guest. One keyword
+  argument, silent, site-wide.
+- **Read a Check through the cached doc, never `get_single_value`.** It *raises* for a
+  field the meta does not have yet — every site between deploy and migrate — and casts
+  a missing row to `0`, which for a lock means "closed". An unwritten lock must resolve
+  to the SHIPPED answer or the first load after an upgrade drops every stored
+  preference on the site.
+- **A lock is enforced at the WRITE, not only in the picker.** The endpoints are
+  whitelisted; "the control is disabled" has never been an access control. A locked axis
+  keeps its stored value, so unlocking restores what people had.
+- **An endpoint reachable from a per-user surface may not carry a role gate, and its
+  check must run as the fixture user.** Item 37 pointed the personalize menu at an
+  `only_for("System Manager")` endpoint and it was dead for every non-administrator for
+  a whole release — invisible to a suite that runs as Administrator.
+- **An accessibility axis is a floor, not a preference among peers.** Reduced motion has
+  no lock and only one pole. A control that could force motion back on over an
+  operating-system request is a control for overriding somebody's accessibility setting.
+
+**The trades this accepts, written down rather than discovered.** Two colleagues now see
+different surfaces for the same record, so screenshots and support tickets stop being
+comparable — no surveyed product carries this cost, and it is the price of the desk shape
+being personal. A person's chosen mode does not apply to their own sign-in page. The
+narrow (<768px) collapse stays site-owned. And colours are site-wide because of one
+content-hashed stylesheet per site — a mechanism constraint, not a claim that colour
+cannot be personal: Discourse ships exactly that, as one variable-only sheet per palette,
+server-rendered.
+
 ---
 
 ## Part 2 — Audit, 2026-08-03

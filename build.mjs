@@ -423,6 +423,18 @@ function readRuntimeTokens(...sources) {
 		for (const m of src.matchAll(/["'](--bnd-[a-z0-9-]+)["']/g)) names.add(m[1]);
 		for (const m of src.matchAll(/(--bnd-[a-z0-9-]+)\s*:/g)) names.add(m[1]);
 	}
+	// THE SIDEBAR'S OWN TOKENS ARE NOT RUNTIME TOKENS. A runtime token is
+	// EXEMPT from the phantom check in every compiled sheet, so any `--bnd-sb-*`
+	// string literal reaching this extraction would make a phantom legal in the
+	// web, email and print sheets — silently, as a side effect of an edit in an
+	// unrelated file. It happened once: the gate's working-set tuple put nine of
+	// them in `palette.py`.
+	//
+	// This line was written with an expiry — `brand.py` was going to emit these
+	// per site, at which point they WOULD be runtime tokens. That emission was
+	// removed instead (item 40, 2026-09-01: the pane takes `--bnd-pane`), so the
+	// line is now unconditionally right and has no expiry left.
+	for (const t of [...names]) if (t.startsWith("--bnd-sb-")) names.delete(t);
 	if (names.size < 10) {
 		throw new Error(
 			`Phantom-token guard: only ${names.size} runtime tokens found in brand.py/palette.py — ` +
@@ -980,19 +992,99 @@ function assertAutomaticParity() {
 		for (const m of body.matchAll(/(--bnd-series-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
 		return out;
 	};
-	const dark = series(blockAfter('html[data-theme="dark"]'));
-	const auto = series(blockAfter('html[data-theme="automatic"]'));
+	// RESOLVE `@include dark`. The dark RULE's body is just `@include dark;` — it
+	// holds no declarations at all. Reading it directly yields an empty set, every
+	// comparison loop runs zero times, and the guard passes whatever the automatic
+	// block says. That is not hypothetical: this guard was inert from the moment
+	// item 32 introduced the mixin, PROVEN 2026-08-29 by gutting the automatic
+	// block entirely and watching the build stay green — which is exactly how the
+	// 30-token gap grew unseen behind a guard written to prevent it.
+	const resolved = (body) =>
+		/@include\s+dark\s*;/.test(body) ? blockAfter("@mixin dark") : body;
+
+	const autoBody = blockAfter('html[data-theme="automatic"]');
+
+	// PARITY BY CONSTRUCTION (item 40). The automatic block used to hand-list a
+	// curated subset of the dark set, and its own comment admitted that nothing
+	// enforced membership. Measured 2026-08-29: 30 of 55 tokens resolved LIGHT on
+	// a dark OS — every status colour, every category hue, both scrims, all three
+	// shadows. It now `@include dark;`, so the two sets ARE one set and there is
+	// nothing left to drift.
+	if (/@include\s+dark\s*;/.test(autoBody)) return;
+
+	// It does not, so compare EVERY token — not just the series, which is all this
+	// guard used to check and is exactly why the other thirty went unseen.
+	const decls = (body) => {
+		const out = {};
+		for (const m of body.matchAll(/(--bnd-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+		return out;
+	};
+	const dark = decls(resolved(blockAfter('html[data-theme="dark"]')));
+	const auto = decls(autoBody);
 	const problems = [];
 	for (const [tok, val] of Object.entries(dark)) {
-		if (!(tok in auto)) problems.push(`automatic block is missing ${tok} (dark has ${val})`);
+		if (!(tok in auto)) problems.push(`automatic is missing ${tok} (dark has ${val})`);
 		else if (auto[tok] !== val) problems.push(`${tok}: dark is ${val}, automatic is ${auto[tok]}`);
 	}
 	if (problems.length) {
 		throw new Error(
-			"Automatic-parity guard: the chart series must match the dark block in the " +
-				"`@media (prefers-color-scheme: dark) html[data-theme=\"automatic\"]` block, " +
-				"because JS reads these tokens before the theme resolves:\n  " +
+			"Automatic-parity guard: the automatic block must declare everything the " +
+				"dark block does. A token missing there resolves LIGHT on a dark OS, " +
+				"before JS resolves the theme. Simplest fix is `@include dark;`:\n  " +
 				problems.join("\n  ")
+		);
+	}
+}
+
+/**
+ * Automatic-ARM guard — every `[data-theme="dark"]` selector context must have a
+ * matching `[data-theme="automatic"]` twin inside a `prefers-color-scheme: dark`
+ * block.
+ *
+ * WHAT IT CAUGHT, AND WHY THE OTHER GUARD COULD NOT. `assertAutomaticParity`
+ * guards the token BLOCK. It cannot see a whole RULE with a dark arm and no
+ * automatic one — and the side pane had two. Measured 2026-08-29 against the
+ * compiled sheet: on Automatic with a dark OS the pane painted its LIGHT set on a
+ * dark desk, the seven Match Theme hues landing at 1.79-2.79:1 against a 4.5
+ * floor, and Minimal rendering a #fafbfa pane beside a #131a1a page.
+ *
+ * Nothing could see it. `npm run contrast` gates `light` and `dark`; it never
+ * gates the unresolved `automatic`, which is a real runtime state because CSS
+ * paints before JS resolves the theme.
+ */
+function assertAutomaticArms(css, name) {
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const selectors = new Set();
+	for (const m of stripped.matchAll(/([^{}]+)\{/g)) {
+		for (const part of m[1].split(",")) {
+			const p = part.trim();
+			if (p.includes("data-theme")) selectors.add(p);
+		}
+	}
+	// The bodies of every prefers-dark media block, where a valid twin must live.
+	let inDark = "";
+	for (const m of stripped.matchAll(/@media[^{]*prefers-color-scheme:\s*dark[^{]*\{/g)) {
+		let i = m.index + m[0].length - 1, depth = 0;
+		const start = i + 1;
+		for (; i < stripped.length; i++) {
+			if (stripped[i] === "{") depth++;
+			else if (stripped[i] === "}" && --depth === 0) break;
+		}
+		inDark += stripped.slice(start, i);
+	}
+	const missing = [];
+	for (const sel of selectors) {
+		if (!/\[data-theme=["']?dark["']?\]/.test(sel)) continue;
+		const twin = sel.replace(/(\[data-theme=["']?)dark(["']?\])/, "$1automatic$2");
+		if (!inDark.includes(twin)) missing.push(`${sel}  ->  needs  ${twin}`);
+	}
+	if (missing.length) {
+		throw new Error(
+			`Automatic-arm guard (${name}): a dark rule with no automatic twin does not ` +
+				"apply on a dark OS until JS resolves the theme, so it paints LIGHT first.\n  " +
+				missing.join("\n  ") +
+				"\nAdd the twin inside `@media (prefers-color-scheme: dark)`, and share the " +
+				"declarations through a mixin rather than copying them."
 		);
 	}
 }
@@ -1032,7 +1124,15 @@ function assertAutomaticParity() {
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density"];
+//
+// `personal` (item 38) is the second entry earned by an axis, on the same terms:
+// three Checks deciding whether a person may choose their own look, their own
+// desk shape, and their own comfort. It is deliberately NOT `user`, which is
+// already taken by the User profile COMPONENT (`user_placement`) — overloading
+// it would make "which user thing is this" a question the prefix no longer
+// answers. The axis itself is declared in `bunood_theme/personal.py`, which is
+// also what `assertPersonalAxes` reads.
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly
@@ -1077,27 +1177,112 @@ const FIELD_EXCEPTIONS = new Set([
  *
  * Keyed on `data-bnd-own`, which is stamped after the node is in the document.
  */
-const OWNED_NATIVES = ["navbar-search-bar", "sidebar-notification", "sidebar-user-button", "frappe-menu"];
+/**
+ * Frappe affordances this theme replaces, as the class each one is hidden by.
+ *
+ * DERIVED FROM `registry.py`, and that is half of the fix. The list used to be
+ * hand-kept here, so adding a component with a `native` extended the registry
+ * and NOT the guard — the same fact in two places, living inside the mechanism
+ * that exists to prevent it. A new `native` in the registry now joins this
+ * automatically.
+ *
+ * The last class in a native selector is the affordance itself:
+ * `.body-sidebar .navbar-search-bar` is hidden by `navbar-search-bar`, and
+ * matching on `body-sidebar` too would flag every rule in the pane.
+ */
+function readOwnedNatives(registrySrc) {
+	const out = new Set();
+	for (const m of registrySrc.matchAll(/"native":\s*"([^"]+)"/g)) {
+		const classes = [...m[1].matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
+		if (!classes.length) {
+			throw new Error(`Ownership guard: registry.py native "${m[1]}" names no class`);
+		}
+		out.add(classes[classes.length - 1]);
+	}
+	if (out.size < 3) {
+		throw new Error(
+			`Ownership guard: only ${out.size} natives read out of registry.py — the extraction has ` +
+				"broken, and an empty list would make this guard pass on everything."
+		);
+	}
+	return out;
+}
 
-function assertOwnershipPolarity(css, name) {
+/**
+ * Natives this theme claims that are NOT a registry component's `native`, each
+ * with the reason it is here instead. A shrink-enforced list, like the field
+ * naming exceptions: it should get shorter, never longer by default.
+ */
+const EXTRA_OWNED_NATIVES = {
+	// Frappe's own context menu. We hide two of ITS items (Display, and the
+	// theme row) once ours exist; the menu is not a component we replace, so it
+	// has no registry row and never will.
+	"frappe-menu": "an item inside Frappe's context menu, not a component we replace",
+	// Getting Started (item 42, slice 4): the account panel carries it, so the
+	// vendor's foot link is hidden by the `onboard` token. A link, not a component.
+	"onboarding-sidebar": "Frappe's Getting Started link at the pane's foot; the account panel carries it",
+	// (slice 9 moved `sidebar-header` to the `panehead` MARK row in registry.py
+	// — the list shrank, which is the direction it is allowed to move.)
+};
+
+//: Read once, at module scope, like RUNTIME_TOKENS and BASE_TOKENS above.
+const OWNED_NATIVES = new Set([
+	...readOwnedNatives(readFileSync(join(APP, "registry.py"), "utf8")),
+	...Object.keys(EXTRA_OWNED_NATIVES),
+]);
+
+/**
+ * Ownership polarity — a native affordance is hidden from the OUTCOME, never
+ * from a declaration.
+ *
+ * WHY THE POLARITY, in one sentence: a declaration lands at parse time and a
+ * mount can fail, so a rule keyed on "the user asked for our version" deletes
+ * the affordance whenever ours does not arrive. That is how "Off" cost the
+ * Bottom Bar layout its logout, and how a resolved-but-unmounted search
+ * placement hid the sidebar's search row with nothing to replace it.
+ *
+ * INVERTED IN ITEM 40, and the old shape is why it had to be. It fired only
+ * when a rule named an owned native AND matched `/data-bnd-(desk|search)/` — a
+ * DENYLIST of two attributes, where the doctrine is an ALLOWLIST of one. So
+ * `_sidebar.scss`'s `html[data-bnd-sb-color] .body-sidebar .sidebar-header
+ * { display: none }` walked straight through on both tests, and the pane
+ * shipped for six items with its header hidden by a declaration: attribute
+ * present plus a failed mount is a headerless pane, and attribute absent plus a
+ * successful mount renders BOTH. Adding `sidebar-header` to the list would not
+ * have caught it either — the attribute test was the other half.
+ *
+ * Now: any rule that `display:none`s an owned native must contain
+ * `data-bnd-own`. Verified against the compiled bundle before the change — of
+ * the four such rules, three already keyed that way and the fourth was the one
+ * this repair fixes.
+ */
+function assertOwnershipPolarity(css, name, owned) {
 	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const offenders = [];
 	// Each rule: everything up to `{`, then its body up to `}`.
 	for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
 		const [, selector, body] = m;
 		if (!/display\s*:\s*none/.test(body)) continue;
-		if (!OWNED_NATIVES.some((n) => selector.includes(n))) continue;
-		if (/data-bnd-(desk|search)/.test(selector)) {
-			offenders.push(selector.trim().slice(0, 120));
+		if (![...owned].some((n) => selector.includes(n))) continue;
+		// TWO legal keys, not one. `data-bnd-own` is the replacement claim.
+		// `data-bnd-chrome-off` is the OTHER outcome-backed state: the whole
+		// container is off, so its affordances toggle nothing — and unlike
+		// the desk/search declarations this guard exists to refuse, chrome-off
+		// has a release path (guard_critical_reach refuses to strand anyone,
+		// and container_on re-answers per viewport). _layouts.scss carries the
+		// argument at length beside the one rule that uses it.
+		if (!/data-bnd-own/.test(selector) && !/data-bnd-chrome-off/.test(selector)) {
+			offenders.push(selector.trim().replace(/\s+/g, " ").slice(0, 140));
 		}
 	}
 	if (offenders.length) {
 		throw new Error(
-			`Ownership guard: ${name} hides a native affordance from a DECLARATION:\n  ` +
+			`Ownership guard: ${name} hides a native affordance from something other than ` +
+				`ownership:\n  ` +
 				offenders.join("\n  ") +
-				"\nKey it on [data-bnd-own~=\"search|bell|user\"] instead — stamped after the " +
-				"replacement is in the DOM, so a failed mount degrades to stock rather than " +
-				"deleting the affordance."
+				'\nKey it on [data-bnd-own~="<token>"] instead — stamped after the replacement is ' +
+				"in the DOM, so a failed mount degrades to stock rather than deleting the " +
+				"affordance. A declaration lands at parse time; a mount can fail."
 		);
 	}
 }
@@ -1161,6 +1346,62 @@ function assertRegistryIdentity(registrySrc, deskJs) {
  * @param {string} presetsSrc - presets.py text
  * @param {string} jsSrc - theme_settings.js text
  */
+/**
+ * Pane-stops guard (item 40) — presets.SB_PANE_STOPS is THE width table, and
+ * this holds its four consumers to it: the five `[data-bnd-sb-width]` rules,
+ * the doctype Select's options, the picker stepper's endpoint labels, and the
+ * SB_PANE_RANGE bounds the free drag clamps to. The table moved to Python so
+ * that adding a sixth stop costs one tuple entry; this is what makes that
+ * sentence true rather than aspirational.
+ */
+function assertPaneStops(presetsSrc, sidebarScss, doctypeJson, pickerSrc) {
+	const stops = [...presetsSrc.matchAll(/\((\d+),\s*(\d+)\)/g)]
+		.map((m) => [Number(m[1]), Number(m[2])])
+		.filter(([i, px]) => i >= 1 && i <= 9 && px >= 100 && px <= 400);
+	const table = stops.slice(0, 5);
+	const problems = [];
+	if (table.length !== 5) {
+		problems.push(`SB_PANE_STOPS parsed to ${table.length} rows, expected 5`);
+	}
+	const range = presetsSrc.match(/SB_PANE_RANGE\s*=\s*\((\d+),\s*(\d+)\)/);
+	if (!range) problems.push("SB_PANE_RANGE not found in presets.py");
+	else {
+		if (Number(range[1]) !== table[0][1] || Number(range[2]) !== table[table.length - 1][1]) {
+			problems.push(
+				`SB_PANE_RANGE (${range[1]}, ${range[2]}) is not the stop table's ends ` +
+					`(${table[0][1]}, ${table[table.length - 1][1]})`
+			);
+		}
+	}
+	for (const [i, px] of table) {
+		const rule = new RegExp(
+			`\\[data-bnd-sb-width="${i}"\\]\\s*\\{\\s*--bnd-sb-w:\\s*${px}px`
+		);
+		if (!rule.test(sidebarScss)) {
+			problems.push(`_sidebar.scss has no rule mapping width stop ${i} to ${px}px`);
+		}
+	}
+	const field = (doctypeJson.fields || []).find((f) => f.fieldname === "sidebar_pane_width");
+	const options = field ? String(field.options || "").split("\n").filter(Boolean) : [];
+	if (options.join(",") !== table.map(([i]) => String(i)).join(",")) {
+		problems.push(
+			`sidebar_pane_width options (${options.join(",")}) disagree with the stop ` +
+				`table's indices (${table.map(([i]) => i).join(",")})`
+		);
+	}
+	const lo = `${table[0][1]}px`;
+	const hi = `${table[table.length - 1][1]}px`;
+	if (!pickerSrc.includes(`__("${lo}")`) || !pickerSrc.includes(`__("${hi}")`)) {
+		problems.push(
+			`the picker's pane-width endpoint labels are not ${lo}/${hi} — the stepper ` +
+				"is lying about the range the stops span"
+		);
+	}
+	if (problems.length) {
+		throw new Error("Pane-stops guard:\n  " + problems.join("\n  "));
+	}
+}
+
 function assertFieldMirrors(presetsSrc, jsSrc) {
 	const families = (src, re) => {
 		const out = {};
@@ -1320,6 +1561,222 @@ function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
  *
  * @param {string} jsSrc - theme_settings.js text
  */
+/**
+ * Logical-placement guard (item 40, 8c) — the CSS gate cannot see JavaScript,
+ * and a `"left"` that means inline-start never fails on a dev site loaded in
+ * English: Directus filed "tooltips appear outside the viewport" for exactly
+ * this, and shadcn names Sidebar as one of three components its RTL codemod
+ * cannot migrate. So bunood.js may not contain the WORD literals "left" or
+ * "right" (or any corner pair) as strings at all — placement math is either
+ * pure viewport geometry (getBoundingClientRect + clamps, which never names
+ * a side) or goes through `physical_inline()`, the one function that maps
+ * inlineStart/inlineEnd to a physical side and is marked `bnd:physical-map`.
+ * "top"/"bottom" alone are permitted: the block axis does not mirror in
+ * horizontal writing modes, and the scroll-fade attribute uses them as
+ * edge names our own CSS consumes.
+ */
+/**
+ * Band-order guard (item 40, 8c; re-pinned in item 42, slice 3) — the band's
+ * CSS `order` values are the registry's tenant order with TWO pins, both
+ * design decisions recorded here as the only allowed transforms: the account
+ * leads (it is the tile) and the bell is pinned to the inline end. Without
+ * this the SCSS is a second copy of the registry sequence, which is the
+ * same-fact-twice trap wearing a stylesheet. Read from the EXPANDED band rule
+ * only: the rail rule after it re-orders the same two cells on purpose (bell
+ * above, avatar below), and folding both blocks into one sort reads a column
+ * as a contradiction.
+ */
+/**
+ * Default mirrors (item 42) — `theme_settings.js`'s twenty `BND_*_DEFAULTS` maps are
+ * hand copies of `presets.py`'s, and a copy nothing checks is a copy that drifts.
+ *
+ * IT HAD ALREADY DRIFTED THREE WAYS when this was written: `icon_style` read
+ * "Colored Chips" against a shipped "Filled Color" (from before this item), and
+ * `crumb_style` / `workspace_style` moved when the defaults were re-chosen. Every one
+ * of them made a per-option reset chip write a value the site does not ship — the
+ * `↺` control whose whole promise is putting a field back where it started.
+ *
+ * Compares by FIELDNAME across both files rather than map to map: the JS groups its
+ * fields by picker and Python groups them by kit, and the two groupings are free to
+ * disagree without either being wrong. A field the JS carries and Python does not is
+ * reported too — that is a field with no shipped value at all.
+ *
+ * @param {string} jsSrc - theme_settings.js text
+ * @param {string} presetsSrc - presets.py text
+ */
+function assertDefaultMirrors(jsSrc, presetsSrc) {
+	const py = new Map();
+	for (const m of presetsSrc.matchAll(/^ {4}"([a-z_0-9]+)":\s*("[^"]*"|\d+),/gm)) {
+		if (!py.has(m[1])) py.set(m[1], m[2]);
+	}
+	const offenders = [];
+	let read = 0;
+	// EVERY DECLARED MAP IS READ, and the count is checked rather than assumed. The
+	// first draft matched bodies with a non-greedy `[\s\S]*?` up to a `};` on its own
+	// line -- and `BND_CHART_DEFAULTS` is written on ONE line, so its match ran on and
+	// swallowed BND_REPORT_DEFAULTS whole: nineteen of twenty maps compared, the chart
+	// map's own field never read at all, and the guard said nothing. Worse, a drift in
+	// the swallowed map was reported against the WRONG map. That is this repo's "a
+	// helper that guesses at an unrecognised input" trap, inside the guard written to
+	// stop a different one. So: slice each body from its own brace to the first `};`,
+	// refuse to cross the next declaration, and throw when a body cannot be found.
+	const declared = [...jsSrc.matchAll(/const (BND_[A-Z_]+_DEFAULTS) = \{/g)];
+	for (let i = 0; i < declared.length; i += 1) {
+		const name = declared[i][1];
+		const from = declared[i].index + declared[i][0].length;
+		const limit = i + 1 < declared.length ? declared[i + 1].index : jsSrc.length;
+		const close = jsSrc.indexOf("};", from);
+		if (close === -1 || close >= limit) {
+			throw new Error(
+				`Default-mirror guard: cannot find the end of ${name}. Fix the parser rather than ` +
+					"working around it -- an unread map is an unchecked copy."
+			);
+		}
+		read += 1;
+		for (const row of jsSrc.slice(from, close).matchAll(/([a-z_0-9]+):\s*("[^"]*"|\d+)/g)) {
+			const want = py.get(row[1]);
+			if (want === undefined) continue;
+			if (want !== row[2]) offenders.push(`${name}.${row[1]}: js ${row[2]} vs presets.py ${want}`);
+		}
+	}
+	// A guard that reads no maps passes everything.
+	if (read < 15) {
+		throw new Error(
+			`Default-mirror guard: only ${read} maps read -- the declaration pattern has stopped ` +
+				"matching. Fix the parser, not the count."
+		);
+	}
+	// AND EVERY KIT THAT HAS ONE HALF HAS THE OTHER. A floor cannot notice one map of
+	// twenty going missing -- renaming BND_CRUMB_DEFAULTS leaves nineteen, which clears
+	// any floor worth setting. The pairing does notice: a kit with a BND_<X>_FIELDS
+	// mirror and no BND_<X>_DEFAULTS has reset chips with nothing to reset to.
+	//
+	// The two standing exceptions are real and named rather than tolerated: SIDEBAR's
+	// defaults are the server's `_SIDEBAR_LOOKS` catalogue (there is no client literal
+	// to drift), and MOBILE's three fields are Checks whose reset is the toggle itself.
+	const PAIRLESS = new Set(["SIDEBAR", "MOBILE"]);
+	const haveDefaults = new Set(declared.map((d) => d[1].slice(4, -9)));
+	const unpaired = [...jsSrc.matchAll(/const BND_([A-Z_]+)_FIELDS = /g)]
+		.map((m) => m[1])
+		.filter((kit) => !PAIRLESS.has(kit) && !haveDefaults.has(kit));
+	if (unpaired.length) {
+		throw new Error(
+			"Default-mirror guard: these kits have a BND_<X>_FIELDS mirror and no readable\n" +
+				`BND_<X>_DEFAULTS map, so their reset chips have nothing to reset to: ${unpaired.join(", ")}.\n` +
+				"Either the map was renamed (fix the name) or the kit genuinely has none (add it\n" +
+				"to PAIRLESS with the reason, the way SIDEBAR and MOBILE are)."
+		);
+	}
+	if (offenders.length) {
+		throw new Error(
+			"Default-mirror guard: theme_settings.js disagrees with presets.py about the shipped\n" +
+				"default, so a reset chip writes a value the site does not ship:\n  " +
+				offenders.join("\n  ") +
+				"\n\nThe Python side is the canon. Fix the JS literal."
+		);
+	}
+}
+
+function assertBandOrder(registrySrc, sidebarScss) {
+	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	const members = ["bell", "user", "home", "apps"];
+	const expected = ["user"].concat(regParts.filter((t) => members.includes(t) && t !== "user" && t !== "bell"), ["bell"]);
+	const railAt = sidebarScss.indexOf("[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band");
+	const expanded = railAt === -1 ? sidebarScss : sidebarScss.slice(0, railAt);
+	const got = [];
+	for (const m of expanded.matchAll(/&\[data-bnd-part="([a-z]+)"\]\s*\{[^}]*?order:\s*(\d+)/g)) {
+		got.push([m[1], Number(m[2])]);
+	}
+	const inBand = got.filter(([t]) => members.includes(t));
+	// TWO CELLS CANNOT SHARE AN ORDER VALUE. The sort below is stable, so a
+	// stylesheet that gave two parts the same `order` would land them in source
+	// order and could compare equal to the registry by luck -- the arrangement
+	// would then be decided by DOM order, which is mount order, which is the
+	// thing this guard exists to stop deciding anything.
+	const dupes = inBand.map(([, o]) => o).filter((o, i, a) => a.indexOf(o) !== i);
+	if (dupes.length) {
+		throw new Error(
+			`Band-order guard: order value ${dupes[0]} is used by more than one cell ` +
+				"— the band's arrangement would fall back to DOM order."
+		);
+	}
+	const sorted = inBand.slice().sort((a, b) => a[1] - b[1]).map(([t]) => t);
+	if (sorted.join(",") !== expected.join(",")) {
+		throw new Error(
+			`Band-order guard: the band CSS orders tenants as [${sorted.join(", ")}] but the ` +
+				`registry (account first, bell last) says [${expected.join(", ")}]. The SCSS ` +
+				"order values are derived, not chosen — fix the stylesheet or the registry, not both."
+		);
+	}
+}
+
+function assertLogicalPlacementArgs(jsSrc) {
+	const lines = jsSrc.split("\n");
+	const offenders = [];
+	let marked = 0;
+	let mapFnAt = -1;
+	lines.forEach((line, i) => {
+		if (/function physical_inline\b/.test(line)) mapFnAt = i;
+		const isMarked = line.includes("bnd:physical-map");
+		if (isMarked) {
+			marked += 1;
+			if (mapFnAt === -1 || i - mapFnAt > 12) {
+				offenders.push(`${i + 1}: bnd:physical-map marker outside physical_inline()`);
+			}
+			return;
+		}
+		if (/["'](?:left|right|(?:top|bottom) (?:left|right)|(?:left|right) (?:top|bottom))["']/.test(line)) {
+			offenders.push(`${i + 1}: ${line.trim().slice(0, 90)}`);
+		}
+	});
+	if (marked > 2) {
+		offenders.push(`bnd:physical-map appears ${marked} times — the mapping lives in ONE function`);
+	}
+	if (offenders.length) {
+		throw new Error(
+			"Logical-placement guard: bunood.js names a physical side as a string:\n  " +
+				offenders.join("\n  ") +
+				"\nRoute it through physical_inline(inlineStart|inlineEnd) or express it as viewport math."
+		);
+	}
+}
+
+/**
+ * Item 41. A thermal print format must declare its page size on a rule whose
+ * selector is PURELY `.print-format`. That is the only channel either PDF
+ * engine reads: `frappe.utils.pdf.read_options_from_html` collects
+ * page-width/page-height/margin-* from exactly that selector, wkhtmltopdf
+ * ignores `@page`, and Frappe's chrome path hardcodes preferCSSPageSize=False
+ * (the sibling formats carry the full argument in their own <style>). The
+ * ZATCA receipt arrived from `studio-zatca` without one — measured 2026-09-02:
+ * read_options_from_html returned only the default 15mm margins for it and
+ * 80x297mm for its siblings, so its PDF button produced A4. The desk preview
+ * never consults the option, which is why a verification of the RENDERED
+ * receipt could not see it: the check has to read what the engine reads.
+ */
+function assertThermalPageSize(formats) {
+	if (!formats.length) {
+		throw new Error("Thermal page-size guard: found no thermal formats — it would pass by measuring nothing");
+	}
+	const rule = /^\s*\.print-format\s*\{([^}]*)\}/gm;
+	const problems = [];
+	for (const { name, src } of formats) {
+		const bodies = [...src.matchAll(rule)].map((m) => m[1]);
+		const sized = bodies.some(
+			(b) => /\bpage-width:\s*80mm\b/.test(b) && /\bpage-height:\s*\d+mm\b/.test(b)
+		);
+		if (!sized) problems.push(name);
+	}
+	if (problems.length) {
+		throw new Error(
+			"Thermal page-size guard: no `.print-format { page-width: 80mm; page-height: …mm }` rule, " +
+				"so both PDF engines print A4:\n  " +
+				problems.join("\n  ") +
+				"\nDeclare it on a rule whose selector is purely `.print-format` — @page reaches neither engine."
+		);
+	}
+}
+
 function assertResetChipsBound(jsSrc) {
 	const problems = [];
 	// Slice on `function bnd_render_*_picker(`, keeping each body up to the next
@@ -1365,95 +1822,162 @@ function assertResetChipsBound(jsSrc) {
 	}
 }
 
+
 /**
- * Axe-route guard — the two copies of the route list must agree on ROUTE and on
- * CONTEXT.
+ * The axe baseline is captured and enforced through ONE configuration.
  *
- * WHY THERE ARE TWO COPIES AT ALL, since `CLAUDE.md` names "the same fact in two
- * places" as this repo's first trap. `tools/axe-baseline.mjs` owns the list it
- * CAPTURES with; the `a11y: axe over the Desk` check owns the list it ENFORCES
- * with. Extraction into one module was the obvious fix and was rejected on
- * reading, for two reasons that are visible in the files:
+ * `tools/axe-baseline.mjs` CAPTURES `tests/fixtures/axe-baseline.json`; the
+ * `a11y: axe over the Desk` check ENFORCES it. If they scan different DOM, or
+ * scan the same DOM differently, the gate compares a number to one banked from
+ * somewhere else — and looks entirely correct doing it.
  *
- *   1. The commentary is load-bearing and DIFFERENT. The tool's explains what a
- *      capture must not get wrong; the suite's explains why each route is banked
- *      kit-on versus kit-absent, which is a gating decision the tool has no
- *      opinion about. Merging them produces one comment addressed to nobody.
- *   2. The metadata legitimately differs. The suite's item-33 entries carry
- *      `bust: true` and the tool's do not, and that is CORRECT rather than
- *      drift: the tool calls `frappe.clear_cache()` immediately before it scans
- *      (`axe-baseline.mjs`), while the suite runs mid-suite where a neighbouring
- *      check can have repopulated Frappe's `(path, lang)` page cache. A shared
- *      array would need per-consumer overrides to express that, which is more
- *      machinery than the duplication it removes.
+ * REPLACES `assertAxeRoutesAgree`, which compared the two files' route lists as
+ * TEXT. That guard existed because there were two copies, and it could only
+ * check the three things it knew to parse — route, selector, session. It could
+ * not see that one copy had learned to `exclude()` something and the other had
+ * not, which is exactly the change that retired it. `tools/axe-routes.mjs` now
+ * holds the list and the scan, so route/selector/session cannot disagree by
+ * construction; what remains checkable is that both consumers actually USE it.
  *
- * So the fact is allowed to live twice and this makes the copies unable to
- * disagree about the part that can silently corrupt a baseline: WHICH ROUTE and
- * IN WHICH SESSION. `guest` means a cookie-less context, `portal` means the
- * portal fixture's own user, and neither means an Administrator — scan a route
- * in the wrong one and you bank a DOM that looks entirely correct and is not.
- * Slice 0 proved that by sabotage: minting an Administrator for `/orders` left
- * every visible assertion passing because `website_list_for_contact.py` renders
- * a populated list through a different branch.
+ * Three things, each a real way back to two configurations:
  *
- * `bust` is deliberately NOT compared, for the reason in (2). Everything else
- * about an entry is.
- *
- * @param {string} toolSrc - tools/axe-baseline.mjs text
- * @param {string} suiteSrc - tests/smoke.mjs text
+ *   1. Both files import from the module. Dropping the import and re-inlining a
+ *      list is how this started.
+ *   2. The tool builds NO AxeBuilder of its own. It has exactly one scan and it
+ *      must be the shared one. (The suite legitimately builds its own for the
+ *      scoped checks over `.bnd-*` chrome, so the same ban there would be wrong
+ *      — it is held by the count below instead.)
+ *   3. The suite reaches the shared scan on all three of its paths — desk,
+ *      guest and portal. Replace one with an inline builder and the baseline is
+ *      enforced against a DOM it was never banked from, on that session only.
  */
-function assertAxeRoutesAgree(toolSrc, suiteSrc) {
-	// Pull `["route", "selector", {opts}]` tuples out of one region of source.
-	// Crude on purpose: these are literal arrays, and a parser that understood
-	// more would also fail more quietly when the shape changes.
-	const parse = (src, startRe, label) => {
-		const start = src.search(startRe);
-		if (start === -1) throw new Error(`axe routes: could not find the ${label} route list`);
-		// Stop at the line that closes the array — `];` for the tool's const,
-		// `]) {` for the suite's inline `for (… of [ … ]) {`.
-		const rest = src.slice(start);
-		const end = rest.search(/\n\s*\]\)?[;\s]/);
-		const body = rest.slice(0, end === -1 ? rest.length : end);
-		const out = new Map();
-		for (const m of body.matchAll(/\[\s*"([^"]+)"\s*,\s*"([^"]*)"\s*(?:,\s*\{([^}]*)\})?\s*\]/g)) {
-			const opts = m[3] || "";
-			out.set(m[1], {
-				waitFor: m[2],
-				guest: /\bguest\s*:\s*true/.test(opts),
-				portal: /\bportal\s*:\s*true/.test(opts),
-			});
-		}
-		if (!out.size) throw new Error(`axe routes: parsed zero routes from the ${label} list`);
-		return out;
-	};
-
-	const tool = parse(toolSrc, /const ROUTES = \[/, "tools/axe-baseline.mjs");
-	const suite = parse(suiteSrc, /for \(const \[route, waitFor, opts\] of \[/, "tests/smoke.mjs");
-
+function assertAxeScanShared(routesSrc, toolSrc, suiteSrc) {
 	const problems = [];
-	for (const route of tool.keys()) if (!suite.has(route)) problems.push(`${route}: captured by the tool, never gated by the suite`);
-	for (const route of suite.keys()) if (!tool.has(route)) problems.push(`${route}: gated by the suite, never captured by the tool`);
-	for (const [route, t] of tool) {
-		const s = suite.get(route);
-		if (!s) continue;
-		if (t.waitFor !== s.waitFor) problems.push(`${route}: waits for "${t.waitFor}" in the tool, "${s.waitFor}" in the suite`);
-		const ctx = (e) => (e.portal ? "portal user" : e.guest ? "guest" : "Administrator");
-		if (ctx(t) !== ctx(s)) problems.push(`${route}: scanned as ${ctx(t)} by the tool, ${ctx(s)} by the suite`);
+
+	if (!/\.exclude\(/.test(routesSrc)) {
+		problems.push(
+			"tools/axe-routes.mjs: scanForBaseline no longer excludes anything. The " +
+				"exclusion is the reason this module exists; removing it silently re-admits " +
+				"Frappe's onboarding panel to five routes' counts."
+		);
+	}
+	if (!/from "\.\/axe-routes\.mjs"/.test(toolSrc)) {
+		problems.push("tools/axe-baseline.mjs does not import tools/axe-routes.mjs");
+	}
+	if (!/from "\.\.\/tools\/axe-routes\.mjs"/.test(suiteSrc)) {
+		problems.push("tests/smoke.mjs does not import tools/axe-routes.mjs");
+	}
+	if (/new AxeBuilder\(/.test(toolSrc)) {
+		problems.push(
+			"tools/axe-baseline.mjs builds its own AxeBuilder. Its one scan must go " +
+				"through scanForBaseline, or what it banks stops matching what the suite " +
+				"enforces."
+		);
+	}
+	const calls = (suiteSrc.match(/scanForBaseline\(/g) || []).length;
+	if (calls < 3) {
+		problems.push(
+			`tests/smoke.mjs calls scanForBaseline ${calls} times; the baseline check has ` +
+				"THREE session paths (desk, guest, portal) and every one of them must use it."
+		);
 	}
 
 	if (problems.length) {
 		throw new Error(
-			[
-				"The axe route lists disagree:",
-				...problems.map((p) => "  " + p),
-				"",
-				"tools/axe-baseline.mjs CAPTURES tests/fixtures/axe-baseline.json;",
-				"the `a11y: axe over the Desk` check ENFORCES it. A route present in",
-				"one and not the other, or scanned in a different session, banks or",
-				"gates a DOM that looks correct and is not. Update both.",
-			].join("\n")
+			["The axe scan is no longer configured in one place:", ...problems.map((p) => "  " + p)].join("\n")
 		);
 	}
+}
+
+/**
+ * Every per-user store is declared, and every write names whose it is — item 38.
+ *
+ * TWO FAILURES THIS CATCHES, BOTH SILENT AND BOTH SITE-WIDE.
+ *
+ *   `frappe.defaults.set_default(key, value)` does NOT write the current user's
+ *   default. Its parent defaults to `__default`, which is the GLOBAL row — every
+ *   account inherits it, Guest included. The safe spellings are
+ *   `set_user_default(key, value)` and `clear_default(key, parent=...)`, and the
+ *   difference between right and catastrophic is one keyword argument that no
+ *   test would notice, because the value does apply to the user who wrote it.
+ *
+ *   And a `bnd_*` key written from somewhere `personal.py` does not know about is
+ *   a fifth ad-hoc store — precisely the drift that made item 38 necessary, since
+ *   four of them accumulated with nobody deciding anything.
+ *
+ * THE CHECK IS BIDIRECTIONAL, which is what makes the table worth having: a
+ * declared key with no reader is a row describing something that no longer
+ * exists, and the guard says so rather than letting the table rot into a wish
+ * list. That is why `personal.py` declares only what ships.
+ */
+function assertPersonalAxes(personalPy, sources) {
+	// Only the `bnd_*` rows — NATIVE deliberately carries `User.desk_theme` and
+	// `__UserSettings`, which are Frappe's to write and ours only to read.
+	const declared = new Set(
+		[...personalPy.matchAll(/"key":\s*"(bnd_[a-z0-9_]+)"/g)].map((m) => m[1])
+	);
+	if (!declared.size) {
+		throw new Error("Personal-axes guard: personal.py declares no bnd_* keys — did AXES move?");
+	}
+
+	const problems = [];
+	const seen = new Set();
+
+	for (const { path, text } of sources) {
+		if (/set_global_default\s*\(/.test(text)) {
+			problems.push(`${path}: set_global_default writes a value every account inherits`);
+		}
+		// `set_default` / `clear_default` must name a parent. Matched to the
+		// closing paren of the call, which is single-line for every live caller;
+		// a multi-line call simply fails to match and is caught by the key scan.
+		for (const m of text.matchAll(/frappe\.defaults\.(set_default|clear_default)\s*\(([^)]*)\)/g)) {
+			if (!/\bparent\s*=/.test(m[2])) {
+				problems.push(
+					`${path}: ${m[1]}(${m[2].trim().slice(0, 40)}...) does not name a parent — ` +
+						"without parent= this writes the global row"
+				);
+			}
+		}
+		// Every bnd_* key handed to the defaults API must be declared.
+		for (const m of text.matchAll(
+			/frappe\.defaults\.[a-z_]+\s*\(\s*["'](bnd_[a-z0-9_]+)["']/g
+		)) {
+			seen.add(m[1]);
+			if (!declared.has(m[1])) {
+				problems.push(
+					`${path}: ${m[1]} is written or read through frappe.defaults but is not in ` +
+						"personal.AXES — declare it there, in this commit, with its lock and what empty means"
+				);
+			}
+		}
+	}
+
+	for (const key of declared) {
+		if (!seen.has(key)) {
+			problems.push(
+				`personal.py declares ${key} but nothing reads or writes it — the table describes ` +
+					"what ships, so remove the row or land its reader"
+			);
+		}
+	}
+
+	if (problems.length) {
+		throw new Error("Personal-axes guard:\n  " + problems.join("\n  "));
+	}
+}
+
+/** Every `.py` under a directory, recursively. */
+async function pythonSources(dirUrl, prefix = "bunood_theme") {
+	const out = [];
+	for (const entry of await readdir(dirUrl, { withFileTypes: true })) {
+		const child = new URL(entry.name + (entry.isDirectory() ? "/" : ""), dirUrl);
+		if (entry.isDirectory()) {
+			out.push(...(await pythonSources(child, `${prefix}/${entry.name}`)));
+		} else if (entry.name.endsWith(".py")) {
+			out.push({ path: `${prefix}/${entry.name}`, text: await readFile(child, "utf8") });
+		}
+	}
+	return out;
 }
 
 function assertFieldNaming(doctypeJson) {
@@ -1501,8 +2025,9 @@ async function buildEntry({ key, src, pyid }) {
 	if (key === "bunood-print") assertPrintSafeCss(result.css, `${key}.css`);
 	else assertLogicalOnly(result.css, `${key}.css`);
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
-	assertOwnershipPolarity(result.css, `${key}.css`);
+	assertOwnershipPolarity(result.css, `${key}.css`, OWNED_NATIVES);
 	assertCursiveSafe(result.css, `${key}.css`);
+	assertAutomaticArms(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
 	assertNoAuthoredCopy(result.css, `${key}.css`);
@@ -1624,13 +2149,42 @@ async function main() {
 			"utf8"
 		)
 	);
+	assertPaneStops(
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/scss/chrome/_sidebar.scss", import.meta.url), "utf8"),
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		)
+	);
+	assertLogicalPlacementArgs(
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
+	);
+	assertDefaultMirrors(
+		await readFile(
+			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+			"utf8"
+		),
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8")
+	);
+	assertBandOrder(
+		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/public/scss/chrome/_sidebar.scss", import.meta.url), "utf8")
+	);
 	assertResetChipsBound(
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
 		)
 	);
-	assertAxeRoutesAgree(
+	assertAxeScanShared(
+		await readFile(new URL("./tools/axe-routes.mjs", import.meta.url), "utf8"),
 		await readFile(new URL("./tools/axe-baseline.mjs", import.meta.url), "utf8"),
 		await readFile(new URL("./tests/smoke.mjs", import.meta.url), "utf8")
 	);
@@ -1647,7 +2201,31 @@ async function main() {
 	// Item 7(c). A counted noun has no correct Arabic through a plural-free
 	// dictionary, so it is refused at the source rather than left for a
 	// translator who cannot fix it.
+	// Item 38. Every per-user store declared in one table, and no write that
+	// silently lands on the global row every account inherits.
+	assertPersonalAxes(
+		await readFile(new URL("./bunood_theme/personal.py", import.meta.url), "utf8"),
+		(await pythonSources(new URL("./bunood_theme/", import.meta.url))).filter(
+			(s) => !s.path.endsWith("/personal.py")
+		)
+	);
 	assertNoCountGoverned();
+	// Item 41. A thermal format is sized by what the PDF engines READ, which is
+	// the `.print-format` rule and nothing else — see the guard.
+	// Two format directories: printing's own, and the ZATCA package's (item 41
+	// moved the receipt there). Both are read, or the guard silently stops
+	// covering the one file it was written for.
+	{
+		const thermal = [];
+		for (const rel of ["printing/formats/", "zatca/formats/"]) {
+			const dir = new URL(`./bunood_theme/${rel}`, import.meta.url);
+			for (const f of await readdir(dir)) {
+				if (!/thermal/.test(f) || !f.endsWith(".html")) continue;
+				thermal.push({ name: rel + f, src: await readFile(new URL(f, dir), "utf8") });
+			}
+		}
+		assertThermalPageSize(thermal);
+	}
 	// Item 7(d). Held out of the build while it was red — a red build blocks
 	// every deploy — and wired in the moment translations/ar.csv shipped. From
 	// here a NEW `__()` string fails the build until someone decides what it

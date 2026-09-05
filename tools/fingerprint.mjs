@@ -35,8 +35,14 @@ const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.
 const set=(v)=>py(`vals=json.loads(${JSON.stringify(JSON.stringify(v))})
 for f,x in vals.items():
     frappe.db.set_single_value("Theme Settings",f,x)
-frappe.clear_cache()
+# COMMIT, THEN CLEAR -- never the other way round. A worker that touches Theme
+# Settings between the two repopulates the cache from the UNCOMMITTED row, the
+# commit lands behind a cache nobody clears again, and every later read serves
+# the value from BEFORE this write. tests/smoke.mjs and tools/session.mjs were
+# fixed for exactly this; the fixture tool was missed, and it writes settings
+# 26 times per capture.
 frappe.db.commit()
+frappe.clear_cache()
 print("ok")
 `);
 const shipped = JSON.parse(py(`from bunood_theme.setup import SHIPPED

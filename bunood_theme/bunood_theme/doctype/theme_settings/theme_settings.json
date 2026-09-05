@@ -44,22 +44,17 @@
   "sidebar_picker",
   "sidebar_placement",
   "sidebar_material",
-  "sidebar_glass_opacity",
-  "sidebar_blur",
   "sidebar_color",
   "sidebar_active_style",
-  "sidebar_section_layout",
+  "sidebar_section_style",
   "sidebar_hue_wash",
-  "sidebar_surface_intensity",
+  "sidebar_card_depth",
   "sidebar_menu_rail",
   "sidebar_rail_trigger",
   "sidebar_rail_button",
-  "sidebar_rail_button_shape",
   "sidebar_pane_width",
-  "sidebar_apps_rail",
   "sidebar_badges",
-  "sidebar_remember_sections",
-  "sidebar_scroll_fades",
+  "sidebar_filter",
   "section_crumbs",
   "crumb_style",
   "crumbs_picker",
@@ -203,7 +198,11 @@
   "print_words",
   "print_signatures",
   "section_generated",
-  "brand_css_url"
+  "brand_css_url",
+  "section_personal",
+  "personal_look",
+  "personal_shape",
+  "personal_comfort"
  ],
  "fields": [
   {
@@ -322,7 +321,7 @@
    "fieldtype": "Select",
    "label": "Arabic Font",
    "options": "System\nIBM Plex Sans Arabic\nNoto Sans Arabic\nAlmarai\nCairo",
-   "default": "IBM Plex Sans Arabic",
+   "default": "Noto Sans Arabic",
    "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
   },
   {
@@ -354,7 +353,7 @@
    "fieldname": "topbar_enabled",
    "fieldtype": "Check",
    "label": "Show the top bar",
-   "default": "1",
+   "default": "0",
    "description": "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
   },
   {
@@ -409,21 +408,7 @@
    "fieldname": "sidebar_material",
    "fieldtype": "Select",
    "label": "Pane Material",
-   "options": "Solid\nGlass",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_glass_opacity",
-   "fieldtype": "Select",
-   "label": "Glass Opacity",
-   "options": "1\n2\n3\n4\n5",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_blur",
-   "fieldtype": "Select",
-   "label": "Glass Blur",
-   "options": "Off\nSoft\nFull",
+   "options": "Solid\nGlass\nBlurred Glass",
    "hidden": 1
   },
   {
@@ -444,14 +429,14 @@
    "fieldname": "sidebar_active_style",
    "fieldtype": "Select",
    "label": "Active Link Style",
-   "options": "Solid Pill\nSoft Pill\nAccent Rail\nGlow Ring\nOutline\nDot Marker\nFolder Tab",
+   "options": "Solid Pill\nSoft Pill\nAccent Rail\nOutline\nFolder Tab",
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_section_layout",
+   "fieldname": "sidebar_section_style",
    "fieldtype": "Select",
    "label": "Section Layout",
-   "options": "Plain\nDivided\nMini-Cards\nAccordion Cards",
+   "options": "Plain\nDivided\nCards",
    "hidden": 1
   },
   {
@@ -462,7 +447,7 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_surface_intensity",
+   "fieldname": "sidebar_card_depth",
    "fieldtype": "Select",
    "label": "Surface Intensity",
    "options": "1\n2\n3\n4\n5",
@@ -472,7 +457,7 @@
    "fieldname": "sidebar_menu_rail",
    "fieldtype": "Select",
    "label": "Menu Rail",
-   "options": "Always Expanded\nManual Collapse\nRail",
+   "options": "Always Expanded\nRail",
    "hidden": 1,
    "description": "Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side."
   },
@@ -480,21 +465,14 @@
    "fieldname": "sidebar_rail_trigger",
    "fieldtype": "Select",
    "label": "Rail Expand Trigger",
-   "options": "Hover\nClick\nButton Only\nHover + Pin",
+   "options": "Hover\nClick\nHover + Pin",
    "hidden": 1
   },
   {
    "fieldname": "sidebar_rail_button",
    "fieldtype": "Select",
    "label": "Rail Expand Button",
-   "options": "None\nEdge\nTop\nBottom",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_rail_button_shape",
-   "fieldtype": "Select",
-   "label": "Rail Button Shape",
-   "options": "Circle\nSquare\nTab",
+   "options": "None\nEdge\nHeader",
    "hidden": 1
   },
   {
@@ -521,12 +499,6 @@
    "description": "Five stops from 200px to 280px; stop 2 is the original 220px."
   },
   {
-   "fieldname": "sidebar_apps_rail",
-   "fieldtype": "Check",
-   "label": "Apps Rail",
-   "hidden": 1
-  },
-  {
    "fieldname": "sidebar_badges",
    "fieldtype": "Select",
    "label": "Count Badges",
@@ -534,16 +506,11 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_remember_sections",
+   "default": "0",
+   "fieldname": "sidebar_filter",
    "fieldtype": "Check",
-   "label": "Remember Sections",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_scroll_fades",
-   "fieldtype": "Check",
-   "label": "Scroll Fades",
-   "hidden": 1
+   "hidden": 1,
+   "label": "Workspace Filter"
   },
   {
    "fieldname": "palette_enabled",
@@ -952,7 +919,7 @@
    "fieldtype": "Select",
    "label": "Breadcrumb Style",
    "options": "Original\nQuiet Trail\nTitle Fusion\nEyebrow Title\nCrumb Pills",
-   "default": "Quiet Trail",
+   "default": "Crumb Pills",
    "hidden": 1,
    "description": "Set by the picker below. Original leaves ERPNext's stock trail untouched."
   },
@@ -1154,7 +1121,7 @@
    "fieldtype": "Select",
    "label": "Search Placement",
    "options": "Top Bar Start\nTop Bar Center\nBottom Bar Start\nBottom Bar Center\nSide Pane Start\nSide Pane End",
-   "default": "Top Bar Center",
+   "default": "Side Pane Start",
    "hidden": 1,
    "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
   },
@@ -1183,7 +1150,7 @@
    "fieldtype": "Select",
    "label": "Clock",
    "options": "Off\n12 Hour\n24 Hour",
-   "default": "24 Hour",
+   "default": "Off",
    "hidden": 1
   },
   {
@@ -1402,7 +1369,7 @@
    "label": "Workspace Picker"
   },
   {
-   "default": "Hairline Grid",
+   "default": "Soft Tiles",
    "description": "Set by the picker above. How the tiles on a workspace sit together.",
    "fieldname": "workspace_style",
    "fieldtype": "Select",
@@ -1587,6 +1554,32 @@
    "label": "All Apps Link Placement",
    "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
    "hidden": 1
+  },
+  {
+   "fieldname": "section_personal",
+   "fieldtype": "Section Break",
+   "label": "Personalization"
+  },
+  {
+   "fieldname": "personal_look",
+   "fieldtype": "Check",
+   "label": "People may choose their own look",
+   "default": "1",
+   "description": "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
+  },
+  {
+   "fieldname": "personal_shape",
+   "fieldtype": "Check",
+   "label": "People may choose their own desk shape",
+   "default": "0",
+   "description": "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
+  },
+  {
+   "fieldname": "personal_comfort",
+   "fieldtype": "Check",
+   "label": "People may set their own comfort",
+   "default": "1",
+   "description": "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
   }
  ],
  "issingle": 1,

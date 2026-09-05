@@ -93,6 +93,71 @@ html[data-bnd-own~="user"] .body-sidebar .dropdown-navbar-user {
   display: none;
 }
 
+// The page-title hamburger (item 40, slice 11 - audit defect 3). Rail mode
+// used to leave TWO collapse affordances live: our trigger and Frappe's
+// toggle. The claim is stamped by sb_mount_rail only after the trigger
+// wiring is actually live, so a rail whose JS died leaves the hamburger
+// visible and working - the same fail-open every row above buys.
+html[data-bnd-own~="panetoggle"] .page-title .sidebar-toggle-btn {
+  display: none;
+}
+
+// Getting Started (item 42, slice 4). Frappe's onboarding link at the pane's
+// foot moves into the account panel, and the link is hidden only while our
+// avatar -- the panel's trigger -- is in the document: stamped by
+// stamp_appearance_route, re-measured on every remount, so a desk whose
+// avatar never mounted keeps the vendor's link. The `<p>` wrapping it goes
+// too, or an empty paragraph keeps its margin at the foot.
+//
+// The menu item itself (avatar_menu_items; the reasoning lives here because
+// bunood.js ships its comments verbatim and the payload gate counts them) is
+// offered only when the vendor offers it -- Frappe marks its link `.hidden`
+// for a workspace with no module onboarding -- and it proxies a click to the
+// vendor's own link, so the widget, its fetch and its dismissal stay theirs.
+html[data-bnd-own~="onboard"] .body-sidebar .onboarding-sidebar,
+html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
+  display: none;
+}
+
+// ── The pane's head (item 40) ───────────────────────────────────────────────
+// The fourth one, and it arrived last because it was the one doing it wrong.
+// `_sidebar.scss` hid Frappe's `.sidebar-header` from `html[data-bnd-sb-color]`
+// -- a DECLARATION -- while our own head mounts up to 4.5s later inside a
+// `try_for` with a 30-attempt budget. The two failure modes are the two halves
+// of the bug this item was opened for: attribute present and the mount failed
+// leaves a pane with no head at all, and attribute absent with the mount
+// succeeding renders Frappe's header AND ours, one under the other.
+//
+// `panehead` is stamped by `sb_mount_head` only after `.bnd-sb-head` is found
+// IN THE DOCUMENT -- the `stamp_appearance_route` rule, and the reason a cluster
+// that was built but never appended owns nothing. `claim_panehead` DISOWNS on
+// the negative branch rather than merely declining to claim, so a pane whose
+// brand was torn out releases the header instead of leaving it hidden by a token
+// nobody cleared.
+//
+// THREE RELEASE PATHS, all of them the same one three affordances already use.
+// `remount_chrome` releases every token before the re-mounts and lets each
+// re-claim only what it really mounts, so a container flip, the kit standing
+// down, and `sidebar_enabled: 0` all end with Frappe's own header back rather
+// than a head-shaped hole. `sb_mount_head` re-claims on its early-return path
+// too: our node survives a release, and claiming only on the build path would
+// leave the head rendered with Frappe's own header un-hidden beneath it.
+//
+// An unclaimed header is a VISIBLE header, styled for the pane it sits in by
+// `_sidebar.scss`'s own header block -- which this repair turns from dead code
+// (it styled a `display:none` node) into what a failed mount looks like.
+//
+// THE ARGUMENT LIVES HERE AND NOT IN `bunood.js` BECAUSE THE RUNTIME PAYS FOR
+// ITS OWN PROSE. `build.mjs` copies that file verbatim -- no bundler, by policy
+// -- so every comment ships to every desk. This repair's first draft put the
+// reasoning at the call sites and cost 449 gzip bytes, over the `js_gzip`
+// ceiling. Sass strips `//` before anything reaches the wire, and this is where
+// the polarity contract already lives, so the constraint moved the prose to the
+// file that should always have held it.
+html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header {
+  display: none;
+}
+
 // ── The side pane, switched off ─────────────────────────────────────────────
 // `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
 // `html[data-bnd-desk="dock"]` hid the pane, so "dock" and "no side pane"
@@ -487,6 +552,26 @@ html[data-bnd-own~="user"] {
     .dropdown-menu-item[onclick*="cycle_density"] {
       display: none;
     }
+  }
+}
+
+// ── The Appearance route, in every shape (item 38) ──────────────────────────
+// The seeded Navbar Settings item is DELIBERATELY NOT hidden by the block above,
+// and that is the whole reachability argument. A person may now choose their own
+// desk shape, and `Classic` mounts no avatar button at all — so a dialog reached
+// only through the avatar strands anyone who picks it. The seed sits in Frappe's
+// own settings dropdown, which every shape renders, and the avatar menu links the
+// same function where it exists.
+//
+// Frappe's Display item is hidden HERE rather than above, keyed on ownership of
+// `appearance` rather than of `user`: our dialog is what replaces it, so the
+// stamp has to follow the dialog's reachability and not the avatar's. Stamped
+// from a DOM query after the seeded item is found — never from the mere fact
+// that `bunood.appearance` was defined, which is a declaration and exactly what
+// the ownership rule forbids.
+html[data-bnd-own~="appearance"] .frappe-menu.context-menu {
+  .dropdown-menu-item:has(use[href="#icon-monitor"]) {
+    display: none;
   }
 }
 

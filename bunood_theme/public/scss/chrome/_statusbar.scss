@@ -71,6 +71,20 @@ html[data-theme] .bnd-statusbar {
     }
   }
 
+  // The density segment is an icon at the TRAILING edge (item 42, slice 5):
+  // it sorts after the cluster slot, whose auto margin pushes everything
+  // past it to the end, so the glyph is the last thing in the bar in either
+  // direction. Its words live in aria-label and title.
+  .bnd-status-density {
+    order: 1000;
+    margin-inline-start: var(--bnd-sp-2);
+
+    svg {
+      inline-size: 14px;
+      block-size: 14px;
+    }
+  }
+
   // Connection dot: green connected, critical red otherwise. The label beside
   // it carries the words, so the state survives greyscale and colour-blindness.
   .bnd-conn-dot {
@@ -122,6 +136,15 @@ html[data-theme] .bnd-statusbar:has(.bnd-search-field, .bnd-bell, .bnd-avatar-bt
     // item by 3px at the standard desktop viewport).
     inline-size: min(260px, 28vw);
     block-size: calc(var(--bnd-bottombar-h) - 12px);
+  }
+
+  // ...at the bar's CENTRE too (item 42, slice 1b). Search placed there now
+  // mounts into the cluster's centre zone rather than the bar's own slot, and
+  // the zone selector out-weighs the plain one above -- so the slim strip's
+  // deliberate 280px has to be restated for it, or the top bar's 420px wins on
+  // import order and the bar grows a field it has no room for.
+  .bnd-zone[data-zone="center"] .bnd-search-field {
+    inline-size: min(280px, 32vw);
   }
 }
 
@@ -356,7 +379,8 @@ html[data-theme] .bnd-topbar {
     display: none;
   }
 
-  html[data-theme] .bnd-search-center .bnd-search-field {
+  html[data-theme] .bnd-search-center .bnd-search-field,
+  html[data-theme] .bnd-statusbar .bnd-zone[data-zone="center"] .bnd-search-field {
     inline-size: auto;
   }
 }
@@ -457,6 +481,25 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-avatar-btn .avatar {
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field {
   flex: none;
+  // Desktop search sizing is intentionally content-like. In the phone grid it
+  // is a navigation destination and must surrender that intrinsic width so it
+  // owns exactly one track, like every neighbouring control.
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-width: 0;
+  justify-self: stretch;
+}
+
+// Centre-zone desktop sizing has deliberately high specificity because it
+// wins over the base field. Match that contract in narrow mode so its 32vw
+// width cannot overflow one phone-navigation track into the bell's track.
+html[data-bnd-narrow][data-theme]
+  .bnd-statusbar:has(.bnd-search-field)
+  .bnd-zone[data-zone="center"]
+  .bnd-search-field {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field .bnd-search-label {
@@ -510,7 +553,14 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
 // coarse pointer they grow to WCAG 2.5.8's 24px. Below 768 the bar is the mobile
 // nav at 44px and its signals stand down, so this is purely the touch-at-desktop
 // -width case.
+// BOTH AXES, and the inline one is new (item 42, slice 5). Every segment used
+// to be a glyph beside a label and was naturally wider than 24px, so only the
+// block axis was ever at risk. The density segment is now the glyph ALONE at
+// 14px, which clears 2.5.8 vertically and fails it horizontally -- a floor that
+// grows one axis is not a floor.
 html[data-bnd-touch] .bnd-statusbar a.bnd-status-item,
 html[data-bnd-touch] .bnd-statusbar button.bnd-status-item {
   min-block-size: 24px;
+  min-inline-size: 24px;
+  justify-content: center;
 }

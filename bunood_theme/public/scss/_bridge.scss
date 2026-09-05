@@ -165,3 +165,33 @@ html[data-theme] :is(.modal, .form-in-grid) {
     @include bnd-frappe-mapping;
   }
 }
+
+// ── The one LENGTH in this file, and it is here for the same reason as the
+// colours: `--sidebar-width` is FRAPPE'S name, and this file is where their
+// names live.
+//
+// WHAT WAS WRONG (measured 2026-09-01, reported from the desk before any
+// check saw it). Frappe sizes the inner pane itself —
+// `.body-sidebar-container.expanded .body-sidebar { width: var(--sidebar-width) }`
+// — from their variable, default 220px, while item 40's width control sizes
+// the CONTAINER through `--bnd-sb-w`. At every stop but 220 the two
+// disagreed: at stop 3 the container was 240 and the pane 220, so the pane
+// wash stopped 20px short and the container's own paint showed past it as a
+// second layer; at stop 1 the pane OVERFLOWED its 200px container. Dragging
+// made it worse — the container tracked the pointer to 280 while the pane
+// stayed 220, so the drag widened the GAP instead of the pane.
+//
+// WHY THE SELECTOR IS THE CONTAINER AND NOT `html`. `sb_apply_width` sets
+// `--bnd-sb-w` as an INLINE custom property on the container, and custom
+// property substitution resolves where the property is DECLARED: declaring
+// this on `html` would freeze `--sidebar-width` at the stop value and the
+// personal drag would move nothing. Declared on the container, the inline
+// value is in scope and one variable drives both boxes.
+//
+// Scoped to the expanded desktop pane — the one state where our width
+// control is the authority. Rail mode sizes `.body-sidebar` through our own
+// rules and outranks Frappe's; below 768 the pane is Frappe's drawer and
+// their default is theirs to keep (slice 11's vocabulary).
+html[data-bnd-sb-menurail="expanded"]:not([data-bnd-narrow]) .body-sidebar-container {
+  --sidebar-width: var(--bnd-sb-w);
+}

@@ -51,6 +51,12 @@ def bunood_zatca_qr_src(doc):
          like an image path/URL, never raw TLV text.
       2. lavaloon ksa_compliance >= 0.18: the QR lives on the linked
          "Sales Invoice Additional Fields" record, not on the invoice.
+      3. lavaloon ksa_compliance Phase 1: no stored artefact exists at all —
+         the QR (TLV: seller, VAT no., timestamp, totals) is computed at print
+         time from "ZATCA Phase 1 Business Settings". Inert unless an Active
+         settings row covers the invoice's company, which is also what makes
+         the order safe: phase 1 and phase 2 cannot both be Active. The code
+         lives in bunood_theme/zatca/qr.py — the compliance package.
     Returns "" when no QR image exists (formats decide how to degrade).
     """
     try:
@@ -82,6 +88,14 @@ def bunood_zatca_qr_src(doc):
                             ("/files/", "/private/files/", "http", "data:image")
                         ):
                             return value
+
+        # 3. Phase 1 — computed at print time. Lives in bunood_theme/zatca, the
+        #    compliance package, with its ksa_compliance dependency.
+        from bunood_theme.zatca.qr import phase1_qr_src
+
+        value = phase1_qr_src(doc)
+        if value:
+            return value
     except Exception:
         frappe.log_error(title="bunood_theme: zatca_qr_src failed"[:140])
     return ""

@@ -513,7 +513,93 @@ def get_workspace_links(workspace: str) -> list:
         return []
 
 
-DENSITY_VALUES = ("", "Comfortable", "Compact")
+def _personal_open(key: str) -> bool:
+    """Whether the site still offers the axis one per-user key belongs to.
+
+    ENFORCED AT THE WRITE, not only in the picker that offers it. A lock checked
+    solely where the control is drawn is a suggestion: the endpoints below are
+    ``@frappe.whitelist()``, so anyone with a desk session can call them
+    directly, and "the button is not on the page" has never been an access
+    control. The dialog hides nothing and the boot resolve skips a locked axis;
+    this is the third of the three points, and it is the one that makes the
+    other two a convenience rather than the mechanism.
+
+    Polarity is :func:`bunood_theme.personal.lock_open`'s, deliberately — an
+    unwritten Check reads back ``None`` and must mean the SHIPPED answer, or the
+    first load after an upgrade withdraws every stored preference on the site.
+
+    READ THROUGH THE CACHED DOC, NEVER ``get_single_value``, and both halves of
+    that were measured on 2026-08-29 rather than assumed:
+
+      * For a field the doctype meta does not have YET — the state of every site
+        between deploying this code and running ``bench migrate`` —
+        ``get_single_value`` does not return ``None``, it **raises**
+        ``ValidationError``. A whitelisted endpoint would 500 for every caller
+        during that window.
+      * Once the field exists but its ``tabSingles`` row does not,
+        ``get_single_value`` **casts a missing Check to 0** — the seeder in
+        ``setup.py`` records the same measurement and reads row-absence in raw
+        SQL to avoid it. Zero is exactly the value that means "locked", so the
+        polarity helper would be handed the wrong answer with nothing to detect.
+
+    ``get_cached_doc(...).get()`` returns ``None`` in both states, which is the
+    input :func:`~bunood_theme.personal.lock_open` is written for. It is also the
+    read ``boot.py`` uses, so the two paths cannot disagree about whether an axis
+    is offered.
+    """
+    from bunood_theme import personal
+
+    lock = personal.lock_for(key)
+    if lock is None:
+        return True
+    return personal.lock_open(lock, frappe.get_cached_doc("Theme Settings").get(lock))
+
+
+def _home_choices() -> tuple:
+    """The workspaces THIS person may land on, resolved per request.
+
+    A BOUNDED LIST, NEVER A TYPED ROUTE. Both surveyed products that let somebody
+    choose where the app opens use an enum — Discourse's ``homepage_id`` is an
+    integer into a fixed map — and Directus never lets a person type one at all.
+    A free route field here would be a tenant-controlled string on its way into a
+    navigation call, which is the shape of three defects this codebase has
+    already paid for.
+
+    ``get_list`` rather than ``get_all``, because permissions are the entire
+    point: the choice must be checked against what this person can actually open,
+    not against what exists. Re-resolved on every read AND on the write, so a
+    revoked permission degrades to the site's landing page instead of a route
+    that 403s on sign-in — the one moment a person cannot route around.
+    """
+    try:
+        return tuple(
+            frappe.get_list("Workspace", pluck="name", order_by="sequence_id asc", limit_page_length=0)
+        )
+    except Exception:
+        # A landing preference is a convenience. Failing to enumerate it must
+        # cost the caller nothing.
+        return ()
+
+
+def _personal_values(key: str) -> tuple:
+    """The values one per-user key accepts, plus the empty state.
+
+    READ FROM :mod:`bunood_theme.personal`, which is the one table describing
+    every per-user store — its key, its lock, and what empty means. Item 38 wrote
+    that table because four of these had accumulated with four hand-written
+    validators and no statement anywhere of what may be personal.
+
+    The empty string is added HERE rather than listed there, because it is not a
+    member of the value set: it is the absence of a choice, stored as the absence
+    of a row. Listing it would invite a caller to write "" and create a row that
+    means "no row".
+    """
+    from bunood_theme import personal
+
+    return ("",) + (personal.values_for(key) or ())
+
+
+DENSITY_VALUES = _personal_values("bnd_density")
 """Valid per-user density choices. Empty string means "follow the site default" —
 a real state, not an absence: it is what lets an admin change the default and have
 every undecided user follow along."""
@@ -540,6 +626,8 @@ def set_user_density(density: str = "") -> dict:
     """
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
+    if not _personal_open("bnd_density"):
+        frappe.throw("Personal comfort settings are switched off for this site")
     if density not in DENSITY_VALUES:
         frappe.throw(f"Invalid density: {density!r}")
 
@@ -552,26 +640,11 @@ def set_user_density(density: str = "") -> dict:
     return {"density": density}
 
 
-@frappe.whitelist()
-def get_sidebar_presets() -> dict:
-    """Hand the sidebar preset catalogue to the Theme Settings picker.
-
-    The picker applies a preset by writing its values into the (hidden) style
-    fields — the values are the canon, the preset name is a label; see
-    :mod:`bunood_theme.presets`.
-
-    Returns:
-        ``{"presets": {...}, "fields": [...], "default": str}``.
-    """
-    from bunood_theme.presets import DEFAULT_SIDEBAR_PRESET, SIDEBAR_FIELDS, SIDEBAR_PRESETS
-
-    return {
-        "presets": SIDEBAR_PRESETS,
-        "fields": SIDEBAR_FIELDS,
-        "default": DEFAULT_SIDEBAR_PRESET,
-    }
-
-
+# `get_sidebar_presets` lived here and is DELETED (item 40, slice 10): its
+# only caller was the picker's second fetch, everything it served is in
+# `get_shipped_defaults`, and deleting it deletes the documented two-fetch
+# race by construction — the note read "Default" on the one entry with a
+# real name, intermittently, which is the worst kind.
 @frappe.whitelist()
 def set_user_sidebar_preset(preset: str = "") -> dict:
     """Persist the current user's sidebar preset override.
@@ -583,19 +656,21 @@ def set_user_sidebar_preset(preset: str = "") -> dict:
     the same reasons as density — rides into boot, never localStorage.
 
     Args:
-        preset: a name from :data:`bunood_theme.presets.SIDEBAR_PRESETS`, or
-            empty for "follow the site".
+        preset: a name from the theme catalogue, or empty for "follow the site".
 
     Returns:
         ``{"preset": <stored value>}``.
     """
-    from bunood_theme.presets import THEME_PRESETS
-
     if frappe.session.user in ("Guest", None, ""):
         frappe.throw("Not permitted")
+    if not _personal_open("bnd_sidebar_preset"):
+        frappe.throw("Personal looks are switched off for this site")
     # VALIDATED AGAINST THE THEME CATALOGUE (item 37), which is what the menu now
     # lists. Only the sidebar slice of the named look is applied — see boot.py.
-    if preset and preset not in THEME_PRESETS:
+    # Reached through personal.py (item 38) so the accepted values and the row
+    # describing this key cannot drift apart; that module names the catalogue
+    # rather than copying it.
+    if preset and preset not in _personal_values("bnd_sidebar_preset"):
         frappe.throw(f"Unknown theme preset: {preset!r}")
 
     if preset:
@@ -735,6 +810,101 @@ def record_palette_use(keys=None) -> dict:
             usage.pop(cold, None)
     frappe.defaults.set_user_default("bnd_palette_usage", frappe.as_json(usage, indent=None))
     return {"ok": True, "recorded": len(keys)}
+
+
+#: The shortcut caps — Dynamics 365's numbers, adopted by the item-40 survey:
+#: enough to be a workbench, few enough that the region stays a region.
+SB_PIN_CAP_TOTAL = 25
+SB_PIN_CAP_DOCTYPE = 15
+
+
+@frappe.whitelist()
+def toggle_sb_pin(route=None, label=None, doctype=None, name=None) -> dict:
+    """Pin the given route into the side pane's Shortcuts — or unpin it.
+
+    One gesture both ways, keyed on the ROUTE: pinning something twice is
+    an unpin, which is what lets the head-menu action read "Pin this page"
+    or "Unpin this page" from one bit of state.
+
+    UNGATED BEYOND GUEST on purpose (the item-38 rule): this is reachable
+    from a per-user surface, and a role gate here would 403 every
+    non-admin silently — the defect the per-user menu shipped with once.
+    The caps are enforced HERE, not in the client, so they cannot be
+    dodged by calling the endpoint directly.
+
+    Returns:
+        ``{"pins": <the user's resolved pin list>}``.
+    """
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    route = str(route or "").strip("/")[:200]
+    if not route:
+        frappe.throw("A pin needs a route")
+
+    try:
+        pins = frappe.parse_json(frappe.defaults.get_user_default("bnd_sb_pins") or "[]")
+        if not isinstance(pins, list):
+            pins = []
+    except Exception:
+        pins = []
+
+    kept = [p for p in pins if isinstance(p, dict) and p.get("r") != route]
+    if len(kept) == len(pins):
+        # A pin, not an unpin — the caps stand in the doorway.
+        if len(pins) >= SB_PIN_CAP_TOTAL:
+            frappe.throw(f"Pin limit reached ({SB_PIN_CAP_TOTAL}) — unpin something first")
+        dt = str(doctype or "").strip()[:100]
+        if dt and sum(1 for p in pins if p.get("d") == dt) >= SB_PIN_CAP_DOCTYPE:
+            frappe.throw(
+                f"Pin limit for {dt} reached ({SB_PIN_CAP_DOCTYPE} per doctype) — unpin one first"
+            )
+        entry = {"r": route, "l": str(label or route)[:140]}
+        if dt:
+            entry["d"] = dt
+        if name:
+            entry["n"] = str(name)[:140]
+        kept = pins + [entry]
+
+    # The blob is hoisted so the guard can SEE the parent=: assertPersonalAxes
+    # matches to the first closing paren, and a nested as_json() call would
+    # cut its capture short of the keyword it exists to demand.
+    blob = frappe.as_json(kept, indent=None)
+    frappe.defaults.set_default("bnd_sb_pins", blob, parent=frappe.session.user)
+    # A pin changes what boot composes for this user, and boot is cached.
+    frappe.cache.hdel("bootinfo", frappe.session.user)
+    return {"pins": resolve_sb_pins()}
+
+
+def resolve_sb_pins() -> list:
+    """The session user's pins, re-resolved for RIGHT NOW.
+
+    Render-time reconciliation — the one behaviour the item-40 survey found
+    undefined in every product it looked at. A record pin whose doc is gone
+    or whose doctype the user cannot read is DROPPED from the answer; the
+    stored list is never rewritten, so a restored permission restores the
+    pin. A page pin (no doctype) passes as-is.
+    """
+    try:
+        pins = frappe.parse_json(frappe.defaults.get_user_default("bnd_sb_pins") or "[]")
+    except Exception:
+        return []
+    if not isinstance(pins, list):
+        return []
+    out = []
+    for p in pins:
+        if not isinstance(p, dict) or not p.get("r"):
+            continue
+        dt = p.get("d")
+        if dt:
+            try:
+                if not frappe.has_permission(dt, "read"):
+                    continue
+                if p.get("n") and not frappe.db.exists(dt, p["n"]):
+                    continue
+            except Exception:
+                continue
+        out.append({"r": p["r"], "l": p.get("l") or p["r"], "d": dt or "", "n": p.get("n") or ""})
+    return out
 
 
 @frappe.whitelist()
@@ -1332,7 +1502,7 @@ def get_theme_presets() -> dict:
     a layout writing HALF of itself for the whole of phase 0 because the form
     composed the containers while ``registry.layout_settings`` composed containers
     *and* tenant placements, so the suite drove a state no gesture could produce.
-    At ~124 values that failure is a certainty unless both writers call the same
+    At ~123 values that failure is a certainty unless both writers call the same
     function. They do; this is it.
 
     ``axes`` rides along so the client derives its label by comparing the same
@@ -1383,7 +1553,7 @@ def get_theme_sidebar_presets() -> dict:
 
     It also over-served. The per-user layer applies the side pane and nothing else
     — colours are one content-hashed stylesheet per SITE, and containers are the
-    site's — so handing a non-admin all 124 values, brand seeds included, was a
+    site's — so handing a non-admin all 123 values, brand seeds included, was a
     payload they could neither use nor be shown. This returns exactly the fields
     ``sb_apply`` reads, in the same shape the retired ``get_sidebar_presets`` used,
     so the client needed no unpacking either way.
@@ -1404,6 +1574,197 @@ def get_theme_sidebar_presets() -> dict:
         "fields": SIDEBAR_FIELDS,
         "default": DEFAULT_THEME_PRESET,
     }
+
+
+@frappe.whitelist()
+def get_personal_presets() -> dict:
+    """Everything the Appearance dialog draws — item 38.
+
+    UNGATED, AND THAT IS THE POINT. Its sibling ``get_theme_presets`` opens
+    ``frappe.only_for("System Manager")``, and item 37 pointed the personalize
+    menu at it: every non-administrator's click became a 403 swallowed by an empty
+    ``catch``, so personalization was silently dead for everyone but admins for a
+    whole release, invisible to a suite that runs as Administrator.
+    ``get_theme_sidebar_presets`` was the narrow repair; this is the same rule
+    generalised, and item 38 writes it down as doctrine: **an endpoint reachable
+    from a per-user surface may not carry a role gate, and its check must run as
+    the fixture user.**
+
+    IT ALSO SERVES ONLY WHAT A PERSON MAY SET. The looks are filtered to
+    ``personal.LOOK_FIELDS`` — no colour seeds, no shape fields, and none of the
+    four surfaces that are not the desk — so a non-admin is never handed the
+    site's brand seeds, and a client bug cannot apply something a person is not
+    allowed to choose.
+
+    ``site`` names what "Follow the site" currently resolves to, per axis, so the
+    dialog can render *"Follow the site (Focus)"* rather than an unlabelled
+    inherit row. Both Discourse and Directus model inherit as a named, selectable
+    option inside the picker rather than a separate reset button; ServiceNow's
+    Next Experience represents it as an absent row with no label, and every
+    community thread about it is somebody asking how to get back.
+    """
+    from bunood_theme import personal
+    from bunood_theme.boot import resolve_for_user
+    from bunood_theme.presets import THEME_PRESETS, look_of, layout_of, theme_settings
+    from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+
+    site = frappe.get_cached_doc("Theme Settings")
+    _resolved, state = resolve_for_user(site)
+    wanted = set(personal.LOOK_FIELDS)
+
+    return {
+        "looks": {
+            name: {f: v for f, v in theme_settings(name).items() if f in wanted}
+            for name in THEME_PRESETS
+        },
+        # A shape is exactly what its layout writes — containers plus tenant
+        # placements — because under "names only" that is the whole gesture.
+        "shapes": {name: layout_settings(name) for name in LAYOUT_CHROME},
+        # The table, so the dialog's copy and its grouping are not a fifth place
+        # this information lives.
+        "axes": [
+            {
+                "key": row["key"],
+                "label": row["label"],
+                "lock": row.get("lock"),
+                "values": list(
+                    _home_choices()
+                    if row["key"] == "bnd_home"
+                    else (personal.values_for(row["key"]) or [])
+                ),
+            }
+            for row in personal.AXES
+            if row["kind"] == personal.PREFERENCE
+        ],
+        "state": state,
+        "site": {
+            "look": look_of(site.as_dict()),
+            "shape": layout_of(site.as_dict()),
+            "density": site.get("density_default") or "",
+        },
+        # THE SITE'S OWN VALUES, so "Follow the site" can be PREVIEWED and not
+        # merely chosen. Both names above are derived by comparison and are ""
+        # whenever the site is on a combination no preset spells — which is a
+        # common state, not an edge case — and a dialog that could preview every
+        # row except the one people reach for when they want out is worse than no
+        # preview at all.
+        "site_values": {
+            f: site.as_dict().get(f)
+            for f in list(personal.LOOK_FIELDS) + list(personal.SHAPE_FIELDS)
+        },
+    }
+
+
+@frappe.whitelist()
+def set_personal(values=None) -> dict:
+    """Write one person's preferences — one gesture, one cache drop.
+
+    SIX SETTERS WOULD BE SIX FULL CACHE CLEARS. ``frappe.defaults.set_default``
+    drops the writer's ENTIRE cache including their cached boot (measured in the
+    v0.8.0 release review), so a Save that wrote each axis separately would
+    invalidate the boot six times for one click and leave observable intermediate
+    states in between. This validates everything first, writes only what changed,
+    and drops the boot once at the end.
+
+    Every axis is checked against its lock HERE as well as in the dialog and in
+    the boot resolve. The dialog disables rather than hides a locked row, which is
+    a courtesy; this is the control.
+    """
+    from bunood_theme import personal
+
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    values = frappe.parse_json(values) if isinstance(values, str) else (values or {})
+    if not isinstance(values, dict):
+        frappe.throw("Invalid values")
+
+    user = frappe.session.user
+    writes = {}
+    for key, value in values.items():
+        row = personal.axis(key)
+        if row is None or row["kind"] != personal.PREFERENCE:
+            frappe.throw(f"Not a personal preference: {key!r}")
+        if not _personal_open(key):
+            frappe.throw(f"{row['label']} is switched off for this site")
+        value = "" if value is None else str(value)
+        # `bnd_home` has no static value set — its catalogue is "which workspaces
+        # can THIS person open", which changes per session and is a permission
+        # question rather than a display one. Checked HERE and not only in the
+        # picker: the picker is a courtesy, this endpoint is whitelisted.
+        # THE THIRD DISPATCH BRANCH (item 40): a free-range axis names bounds,
+        # not members — `values_for(key) or ()` on one would reject every
+        # width the drag can produce.
+        bounds = personal.range_for(key)
+        if bounds is not None:
+            if value:
+                try:
+                    n = int(value)
+                except Exception:
+                    frappe.throw(f"Invalid {row['label']}: {value!r}")
+                if not (bounds[0] <= n <= bounds[1]):
+                    frappe.throw(
+                        f"{row['label']} must be between {bounds[0]} and {bounds[1]} pixels"
+                    )
+                value = str(n)
+        else:
+            allowed = _home_choices() if key == "bnd_home" else (personal.values_for(key) or ())
+            if value and value not in allowed:
+                frappe.throw(f"Invalid {row['label']}: {value!r}")
+        # Only what actually moved — an unchanged axis is not a write.
+        if value != (frappe.defaults.get_user_default(key) or ""):
+            writes[key] = value
+
+    for key, value in writes.items():
+        if value:
+            frappe.defaults.set_default(key, value, parent=user)
+        else:
+            frappe.defaults.clear_default(key, parent=user)
+    if writes:
+        frappe.cache.hdel("bootinfo", user)
+    return {"written": sorted(writes)}
+
+
+@frappe.whitelist()
+def clear_personal(axis: str = "", user: str = "") -> dict:
+    """Put one person — or everyone's one axis — back to following the site.
+
+    WHY AN ADMINISTRATOR NEEDS THIS. Both existing setters write only for
+    ``frappe.session.user``, so the only lever for one stranded person was a
+    site-wide lock that strips everyone. And because a locked axis KEEPS its
+    stored value, unlocking months later springs every stale pin back at once —
+    including whichever one caused the incident.
+
+    Clearing another person's preferences is a System Manager act; clearing your
+    own is not.
+    """
+    from bunood_theme import personal
+
+    if frappe.session.user in ("Guest", None, ""):
+        frappe.throw("Not permitted")
+    target = user or frappe.session.user
+    if target != frappe.session.user:
+        frappe.only_for("System Manager")
+
+    keys = [axis] if axis else list(personal.keys(personal.PREFERENCE))
+    cleared = []
+    for key in keys:
+        if personal.axis(key) is None:
+            frappe.throw(f"Not a personal preference: {key!r}")
+        # THE TARGET'S row, never the session's — defect 24, pre-existing
+        # from item 38 and named by the item-40 plan before this fix: the
+        # bare read consulted the ADMIN's own defaults, so rescuing a
+        # stranded user returned {"cleared": []} with no error whenever the
+        # admin had no row of their own — which is exactly when they are
+        # doing the rescuing.
+        if frappe.defaults.get_user_default(key, target):
+            frappe.defaults.clear_default(key, parent=target)
+            cleared.append(key)
+    if cleared:
+        frappe.cache.hdel("bootinfo", target)
+    return {"cleared": sorted(cleared), "user": target}
 
 
 @frappe.whitelist()

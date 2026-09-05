@@ -49,11 +49,11 @@ from bunood_theme.presets import (
     VIEWS_DEFAULTS,
     WORKSPACE_DEFAULTS,
     DEFAULT_DESK_LAYOUT,
-    DEFAULT_SIDEBAR_PRESET,
+    _DEFAULT_SIDEBAR_LOOK,
     INBOX_DEFAULTS,
     MOBILE_DEFAULTS,
     PALETTE_DEFAULTS,
-    SIDEBAR_PRESETS,
+    _SIDEBAR_LOOKS,
     LINKS_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
@@ -106,6 +106,17 @@ CHECK_DEFAULTS = {
 # release review before it could bite.
 CHECK_DEFAULTS["palette_enabled"] = 1
 
+# The three personalization locks (item 38), read from the one table rather than
+# restated. They belong in CHECK_DEFAULTS and not DEFAULTS for the reason above
+# and one of their own: `personal_shape` ships as 0, so truthiness seeding would
+# never write it at all and the field would sit unwritten forever — reading back
+# None, which `personal.lock_open` resolves correctly but which leaves the
+# doctype unable to say what the site actually decided.
+from bunood_theme import personal as _personal  # noqa: E402  (after the maps it reads)
+
+for _lock, _row in _personal.LOCKS.items():
+    CHECK_DEFAULTS[_lock] = _row["default"]
+
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
 DEFAULTS = {
@@ -121,9 +132,10 @@ DEFAULTS = {
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
     "density_default": "Comfortable",
-    # Desk layout (checklist item 9). "Top Bar" is the layout the user chose as
-    # the default: global bar above the page, breadcrumb title row, slim status
-    # bar below. Same seeding rationale as density_default.
+    # Desk layout (checklist item 9; re-chosen in item 42). "Unified Side Pane"
+    # is the layout the user chose as the default: everything in the side pane,
+    # no top bar, the slim status bar below. Same seeding rationale as
+    # density_default.
     #
     # Named in presets.py rather than spelt out here because the CONTAINER
     # defaults are derived from this layout's catalogue row: a literal in both
@@ -136,7 +148,7 @@ DEFAULTS = {
     # default and the table cannot drift. The suite pins the doctype's literal
     # default to the same function.
     "desk_order": default_desk_order(),
-    **SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET],
+    **_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK],
     # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.
@@ -229,12 +241,30 @@ SHIPPED_EMPTY = (
 #: Label of the user-menu density toggle. Module-level so the seeder and any
 #: future remover agree on the one string that identifies our row.
 NAVBAR_DENSITY_LABEL = "Toggle Density"
+"""RETIRED by item 38 — kept only so the patch that deletes the row can name it.
+
+The item replaced three scattered entries with one Appearance dialog, so the
+global this seeded (``bunood_theme.cycle_density()``) no longer has a menu of its
+own. The label lives on here because ``_seed_navbar_density_item`` was idempotent
+BY LABEL: deleting the row without also deleting the seeder would put it straight
+back on the next ``after_migrate``, pointing at a command nothing offers.
+"""
+
+NAVBAR_APPEARANCE_LABEL = "Appearance"
+"""The one route to the Appearance dialog that no desk shape can remove.
+
+Item 38 lets a person choose their own shape, and ``Classic`` mounts no avatar
+button — so a dialog reachable only through the avatar strands whoever picks it.
+Frappe's own settings dropdown is rendered by every shape, and a Navbar Settings
+``Action`` is the native way into it: no DOM manipulation, correct placement, and
+Frappe owns the rendering.
+"""
 
 
 def after_install() -> None:
     """Seed defaults, the navbar toggle, the first brand stylesheet, and print."""
     _seed_defaults()
-    _seed_navbar_density_item()
+    _seed_navbar_appearance_item()
     write_brand_css()
     # Print Style "Bunood" + the business Print Formats + the bilingual Letter
     # Head, synced from the files in printing/ and letterhead/ (the source of
@@ -377,7 +407,7 @@ def after_migrate() -> None:
     neither is redundant with ``after_install``.
     """
     _seed_defaults()
-    _seed_navbar_density_item()
+    _seed_navbar_appearance_item()
     write_brand_css()
     # Same contract as after_install: the files in printing/ and letterhead/
     # are the source of truth, so every migrate re-syncs the managed records
@@ -396,8 +426,19 @@ def after_migrate() -> None:
     _defend_identity_overrides()
 
 
-def _seed_navbar_density_item() -> None:
-    """Put a "Toggle Density" action into Frappe's own user menu, idempotently.
+def _seed_navbar_appearance_item() -> None:
+    """Put an "Appearance" action into Frappe's own settings dropdown, idempotently.
+
+    THE ROUTE NO SHAPE CAN REMOVE (item 38). A person may now choose their own
+    desk shape, and `Classic` mounts no avatar button — so the dialog cannot live
+    only in the avatar menu without stranding whoever picks it. Frappe renders
+    this dropdown in every shape.
+
+    It REPLACES the "Toggle Density" item this function used to seed; the dialog
+    subsumes that command. `patches/v0_38_0/drop_density_navbar_item` deletes the
+    old row, and the two have to land together: this seeder was idempotent BY
+    LABEL, so deleting the row while the old seeder survived would put it back on
+    the next `after_migrate`, pointing at a menu command nothing offers.
 
     Navbar Settings is the NATIVE way to add a command to the settings dropdown —
     an ``Action``-type Navbar Item whose ``action`` string is evaluated on click
@@ -410,15 +451,15 @@ def _seed_navbar_density_item() -> None:
     """
     try:
         ns = frappe.get_doc("Navbar Settings")
-        if any((r.item_label or "") == NAVBAR_DENSITY_LABEL for r in ns.settings_dropdown):
+        if any((r.item_label or "") == NAVBAR_APPEARANCE_LABEL for r in ns.settings_dropdown):
             return
         ns.append(
             "settings_dropdown",
             {
-                "item_label": NAVBAR_DENSITY_LABEL,
+                "item_label": NAVBAR_APPEARANCE_LABEL,
                 "item_type": "Action",
-                # bunood.js defines this global; cycles "" -> Comfortable -> Compact.
-                "action": "bunood_theme.cycle_density()",
+                # bunood.js defines this global; opens the Appearance dialog.
+                "action": "bunood_theme.appearance()",
                 "is_standard": 0,
                 "hidden": 0,
             },
@@ -426,7 +467,7 @@ def _seed_navbar_density_item() -> None:
         ns.save(ignore_permissions=True)
         frappe.db.commit()
     except Exception as e:
-        frappe.log_error(str(e), "Bunood Theme navbar density item")
+        frappe.log_error(str(e), "Bunood Theme navbar appearance item")
 
 
 def on_theme_settings_update(doc, method=None) -> None:

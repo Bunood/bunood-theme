@@ -15,7 +15,6 @@ Alert	frappe: إنذار
 App	frappe: تطبيق
 Auto	frappe: تلقائى
 Batch Size	erpnext: حجم الدفعة
-Bottom	frappe: الأسفل
 Breadcrumbs	frappe: مسار التصفح
 Calendar Event	erpnext: حدث التقويم
 Charts	frappe: الرسوم البيانية
@@ -47,6 +46,5 @@ Sidebar	frappe: الشريط الجانبي
 Source Text	frappe: النص المصدر
 Style	frappe: النمط
 System	frappe: نظام
-Top	frappe: أعلى
 Tree	frappe: شجرة
 Unread	frappe: غير مقروء

@@ -9,7 +9,7 @@ WHAT
     * ``setup.py``  seeds a fresh site with the default preset's values.
     * ``boot.py``   falls back to the default preset for any empty field, so a
                     half-seeded site still renders a coherent design.
-    * ``api.get_sidebar_presets``  hands the dict to the Theme Settings picker,
+    * ``theme_settings()``         composes ``_SIDEBAR_LOOKS`` into the themes,
                     which applies a preset client-side by setting the fields.
 
 WHY VALUES ARE THE CANON AND PRESETS ARE SUGAR
@@ -23,183 +23,160 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
-from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, TENANTS, layout_settings
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_TENANTS, TENANTS, layout_settings
+
+#: The desk layout a fresh install gets — "Unified Side Pane" since item 42 (it
+#: was "Top Bar"). Named once, up here, because it decides the container
+#: defaults AND the shipped tenant placements below: facts that would otherwise
+#: be free to disagree, which is how the shipped default and what the shipped
+#: default RENDERS drift apart.
+DEFAULT_DESK_LAYOUT = "Unified Side Pane"
+#: The default row's placements, read once so the kit defaults below point at
+#: them rather than restating them (`tests/smoke.mjs` checks SHIPPED against
+#: the row end to end).
+_DEFAULT_TENANTS = LAYOUT_TENANTS[DEFAULT_DESK_LAYOUT]
 
 #: Ordered field names, matching theme_settings.json. Order matters only for
 #: the picker's "does the current state match a preset?" comparison.
+#: The pane's width stops — THE table, stated once (item 40). The five
+#: `[data-bnd-sb-width]` rules in _sidebar.scss, the doctype Select's five
+#: options, the picker's endpoint labels and boot's stop array must all agree
+#: with this tuple, and build.mjs::assertPaneStops holds them to it. Stop 2 is
+#: v16's original 220px; stop 3 ships. The RANGE is what free drag clamps to
+#: and what api.set_personal's range branch validates against.
+SB_PANE_STOPS = ((1, 200), (2, 220), (3, 240), (4, 260), (5, 280))
+SB_PANE_RANGE = (200, 280)
+
 SIDEBAR_FIELDS = [
     "sidebar_placement",
     "sidebar_material",
-    "sidebar_glass_opacity",
-    "sidebar_blur",
-    "sidebar_color",
     "sidebar_active_style",
-    "sidebar_section_layout",
+    "sidebar_section_style",
     "sidebar_hue_wash",
-    "sidebar_surface_intensity",
+    "sidebar_card_depth",
     "sidebar_menu_rail",
     "sidebar_rail_trigger",
     "sidebar_rail_button",
-    "sidebar_rail_button_shape",
     "sidebar_pane_width",
-    "sidebar_apps_rail",
     "sidebar_badges",
-    "sidebar_remember_sections",
-    "sidebar_scroll_fades",
+    "sidebar_filter",
 ]
 
-#: The preset catalogue. "Bunood Night" is the shipped default — the user's
+#: The sidebar LOOKS — private on purpose (item 40, slice 10). Not a
+#: catalogue: nothing picks from it any more (item 37 deleted the preset
+#: cards; the picker's note is Default/Changed like every other kit). It is
+#: an authoring input to ``theme_settings()`` — how twelve themes share six
+#: pane designs without restating the values — the exact role
+#: ``palette_seeds`` already plays.
+#: "Bunood Night" is the shipped default — the user's
 #: chosen combination, re-chosen on 2026-08-08: attached and solid rather than
 #: floating glass, a step wider, the pane following the theme colour, and no
 #: rail button (its rendering was broken; the rail still opens on hover).
 #: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
 #: appearance remains one click away rather than gone.
-SIDEBAR_PRESETS = {
+_SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        # Inert while the material is Solid, kept so flipping back to Glass
-        # restores the look that was tuned, not a default.
-        "sidebar_glass_opacity": "4",
-        "sidebar_blur": "Soft",
-        "sidebar_color": "Match Theme",
-        "sidebar_active_style": "Solid Pill",
-        "sidebar_section_layout": "Mini-Cards",
-        "sidebar_hue_wash": "Rich",
-        "sidebar_surface_intensity": "3",
-        # One independent top-bar control owns the sidebar in every preset.
-        "sidebar_menu_rail": "Rail",
+        "sidebar_active_style": "Accent Rail",
+        "sidebar_section_style": "Cards",
+        "sidebar_hue_wash": "Subtle",
+        "sidebar_card_depth": "4",
+        # Always expanded, because the re-chosen look is "attached, solid, a
+        # step wider" — a pane that collapses to a 52px rail shows none of
+        # those. The rail lives on in Bunood Light and the picker.
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        # Trigger, shape and icon are inert while the mode has no rail and the
-        # button is None — kept so flipping back restores a tuned look, same
-        # rule as the glass fields above.
-        "sidebar_rail_button_shape": "Circle",
-        "sidebar_pane_width": "3",
-        "sidebar_apps_rail": 0,
+        # Trigger and icon are inert while the mode has no rail and the button
+        # is None — kept so flipping back restores a tuned look.
+        "sidebar_pane_width": "5",
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Bunood Light": {
         "sidebar_placement": "Floating",
         "sidebar_material": "Glass",
-        "sidebar_glass_opacity": "4",
-        "sidebar_blur": "Soft",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
-        "sidebar_section_layout": "Mini-Cards",
+        "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
-        "sidebar_surface_intensity": "3",
+        "sidebar_card_depth": "3",
         "sidebar_menu_rail": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Daylight": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Solid Pill",
-        "sidebar_section_layout": "Divided",
+        "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
-        "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "2",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Ink": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
-        "sidebar_color": "Minimal",
         "sidebar_active_style": "Soft Pill",
-        "sidebar_section_layout": "Divided",
+        "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
-        "sidebar_surface_intensity": "1",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "1",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Carbon": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
-        "sidebar_color": "Dark Contrast",
-        "sidebar_active_style": "Glow Ring",
-        "sidebar_section_layout": "Plain",
+        "sidebar_active_style": "Outline",
+        "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
-        "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "2",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Paper": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
-        "sidebar_color": "Match Theme",
         "sidebar_active_style": "Soft Pill",
-        "sidebar_section_layout": "Divided",
+        "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
-        "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "2",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
     "Aurora": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Glass",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Full",
-        "sidebar_color": "Match Theme",
+        "sidebar_material": "Blurred Glass",
         "sidebar_active_style": "Soft Pill",
-        "sidebar_section_layout": "Mini-Cards",
+        "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
-        "sidebar_surface_intensity": "2",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "2",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Off",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 1,
+        "sidebar_filter": 0,
     },
     # Renamed from "Operator" for item 7. ERPNext already translates "Operator"
     # as a MACHINE OPERATOR — a person — in Manufacturing (downtime_entry,
@@ -212,27 +189,21 @@ SIDEBAR_PRESETS = {
     "Workbench": {
         "sidebar_placement": "Attached",
         "sidebar_material": "Solid",
-        "sidebar_glass_opacity": "3",
-        "sidebar_blur": "Off",
-        "sidebar_color": "Minimal",
         "sidebar_active_style": "Accent Rail",
-        "sidebar_section_layout": "Divided",
+        "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
-        "sidebar_surface_intensity": "1",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_card_depth": "1",
+        "sidebar_menu_rail": "Always Expanded",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
-        "sidebar_rail_button_shape": "Circle",
         "sidebar_pane_width": "2",
-        "sidebar_apps_rail": 0,
         "sidebar_badges": "Counts",
-        "sidebar_remember_sections": 0,
-        "sidebar_scroll_fades": 0,
+        "sidebar_filter": 0,
     },
 }
 
 #: The default preset name — the user's chosen combination.
-DEFAULT_SIDEBAR_PRESET = "Bunood Night"
+_DEFAULT_SIDEBAR_LOOK = "Bunood Night"
 
 
 #: Breadcrumb kit fields (item 11), matching theme_settings.json. Unlike the
@@ -247,13 +218,18 @@ CRUMB_FIELDS = [
     "crumb_narrow_collapse",
 ]
 
-#: The shipped default: "Quiet Trail" (muted ancestors, strong last crumb,
-#: chevron separators, module chip on the first crumb, soft-pill hover) —
-#: the wireframe the user picked as option A. "Original" leaves v16's stock
-#: trail untouched, the same escape hatch the desk-layout picker offers with
-#: "Classic". Values are Select LABELS; bunood.js owns label -> css-slug.
+#: The shipped default is "Crumb Pills" since item 42 (the user's call, chosen
+#: against the drawn round); it was "Quiet Trail" from item 11. "Original"
+#: leaves v16's stock trail untouched — the same escape hatch every kit offers.
+#: Values are Select LABELS; bunood.js owns label -> css-slug.
+#:
+#: PILLS MAKE TWO OF THE FIELDS BELOW INERT, and the picker says so rather than
+#: ignoring them: `crumb_separator` is greyed whole ("Pills draw no separators")
+#: and `crumb_hover`'s Soft Pill option is greyed ("Pills have their own hover").
+#: That is the honest-picker rule working, not a gap — but it means a check that
+#: wants to click "some crumb option" has to name one this default leaves live.
 CRUMB_DEFAULTS = {
-    "crumb_style": "Quiet Trail",
+    "crumb_style": "Crumb Pills",
     "crumb_separator": "Chevron",
     "crumb_hover": "Soft Pill",
     # Checks: 1/0, not labels. Copy-link defaults ON (hover-only affordance,
@@ -282,7 +258,12 @@ ICON_FIELDS = [
 ]
 
 ICON_DEFAULTS = {
-    "icon_style": "Colored Chips",
+    # No shape around the glyph, and the glyph at the dock's size (item 40):
+    # a chip is a second border inside a row that already has one, and at
+    # 15px the icon read as a decoration rather than as the thing you aim
+    # at. "Filled Color" keeps the workspace hue, which is what the chip was
+    # carrying; the hue moves onto the glyph itself.
+    "icon_style": "Filled Color",
     # New axis (Phase 3): the glyph stroke, normalised across the sprite grids so
     # this is the weight you actually get. 1.5 is Frappe's own declared value,
     # made true everywhere for the first time.
@@ -322,18 +303,18 @@ STATUS_FIELDS = [
     "status_escalate",
 ]
 
-#: The shipped defaults. Search sits centred in the top bar — the placement
-#: modern desks converged on, and the one that leaves the bottom strip free
-#: for status. "Quiet" is the status style: a healthy desk shows almost
-#: nothing, and a segment only appears once it has earned attention.
+#: The shipped defaults. Search sits where the shipped layout's row puts it
+#: (the pane's start, since item 42), derived rather than restated. "Quiet" is
+#: the status style: a healthy desk shows almost nothing, and a segment only
+#: appears once it has earned attention.
 #:
 #: PLACEMENT IS A REQUEST, NOT A GUARANTEE: a layout without a top bar
 #: (Classic, Dock) cannot honour "Top Bar Center", so bunood.js walks a
 #: documented fallback chain rather than dropping the field silently.
 STATUS_DEFAULTS = {
-    "search_placement": "Top Bar Center",
+    "search_placement": _DEFAULT_TENANTS["search_placement"],
     "status_style": "Quiet",
-    "status_clock": "24 Hour",
+    "status_clock": "Off",
     "status_interval": "60s",
     # Checks: segments a user is allowed to see. Permission is decided
     # elsewhere and always wins, so these mean "show if permitted", never
@@ -387,12 +368,18 @@ PLACEMENTS = ("Off", "Top Bar", "Bottom Bar", "Page Header", "Side Pane", "Dock"
 #: which meant a preset chose where they lived and the two could never be
 #: separated. `registry.py` has always called them two components; these are
 #: their settings, and a sidebar preset no longer writes them.
+#: Both stand down by default since item 40: the Place row's menu reaches
+#: Home and All Apps, and a default pane that renders the brand, a Home row
+#: routing to the same place, All Apps and the module row spends four rows
+#: on navigation furniture before the first workspace link. Legal under the
+#: removal rule because nothing becomes unreachable, and the picker still
+#: offers all five slots to anyone who wants a row of their own.
 LINKS_DEFAULTS = {
-    "home_placement": "Side Pane Start",
-    "apps_placement": "Side Pane Start",
+    "home_placement": "Off",
+    "apps_placement": "Off",
 }
 
-USER_DEFAULTS = {"user_placement": "Top Bar End"}
+USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
@@ -457,14 +444,15 @@ WORKSPACE_FIELDS = [
     "workspace_menu_reveal",
 ]
 
-#: The shipped workspace defaults — the item-25 wireframe picks (2026-08-16):
-#: 1C Hairline Grid, 4C Edge Rail, reveal on. "Original" stays one click away.
-#: Hairline Grid was picked over the recommended Mixed Weights "for now"; both
-#: ship, so switching the default later is one value and no code.
+#: The shipped workspace defaults. The style is "Soft Tiles" since item 42 (the
+#: user's call); item 25 shipped Hairline Grid, over the recommended Mixed
+#: Weights, with the note that switching later would be "one value and no code"
+#: — which is what this is. 4C Edge Rail and reveal-on are unchanged, and
+#: "Original" stays one click away.
 WORKSPACE_DEFAULTS = {
     # One statement over canvas, tile and gutter — a gapless style requires zero
     # gutter, so they cannot be separate fields without composing a non-style.
-    "workspace_style": "Hairline Grid",
+    "workspace_style": "Soft Tiles",
     # The number card's interior (axis 2). Display: an eyebrow label over a value
     # that steps up with the card's own width.
     "workspace_metric": "Display",
@@ -792,11 +780,6 @@ LOGIN_DEFAULTS = {
     "login_theme": "Follow OS",
 }
 
-#: The desk layout a fresh install gets. Named once, because it seeds
-#: ``desk_layout`` AND decides the container defaults below — two facts that
-#: would otherwise be free to disagree, which is how the shipped default and
-#: what the shipped default RENDERS drift apart.
-DEFAULT_DESK_LAYOUT = "Top Bar"
 
 #: Containers whose on/off field the doctype has actually grown.
 #: What a fresh install writes for each container it ships, derived from the
@@ -1156,12 +1139,11 @@ MOBILE_DEFAULTS = {
 #: document earns an interruption, a share notification does not.
 INBOX_DEFAULTS = {
     "inbox_style": "Inbox + Page",
-    # Not a no-op default, and deliberately so: the bell has always been in
-    # the top bar for the shipped layout, and seeding "Off" here would take
-    # it away from every existing site on upgrade. The migration patch writes
-    # what each layout ACTUALLY rendered; this is only what a fresh install
-    # gets, and a fresh install gets the Top Bar layout.
-    "inbox_placement": "Top Bar End",
+    # Not a no-op default, and deliberately so: seeding "Off" here would take
+    # the bell away from every existing site on upgrade. The migration patch
+    # writes what each layout ACTUALLY rendered; this is only what a fresh
+    # install gets, and a fresh install gets the shipped layout's row.
+    "inbox_placement": _DEFAULT_TENANTS["inbox_placement"],
     "inbox_badge": "Count",
     "inbox_arrival": "Approvals Only",
     # Checks: behaviours inside a user-invoked panel, invisible until opened.
@@ -1318,7 +1300,7 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 124 of the doctype's 134.
+    """Every field a theme preset writes and compares — 123 of the doctype's 133.
 
     THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
@@ -1360,12 +1342,12 @@ THEME_AXES = _theme_axes()
 #: The shipped looks. A preset NAMES its inputs rather than restating them — the
 #: layout composes containers and tenant placements through
 #: ``registry.layout_settings``, the palette composes the colour fields through
-#: :func:`palette_seeds`, and the sidebar names a :data:`SIDEBAR_PRESETS` entry —
+#: :func:`palette_seeds`, and the sidebar names a :data:`_SIDEBAR_LOOKS` entry —
 #: then ``values`` overrides individual fields on top of the shipped defaults.
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~124 values. It also makes the one invariant free: ``Bunood Night`` overrides
+#: all ~123 values. It also makes the one invariant free: ``Bunood Night`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1559,7 +1541,7 @@ def _shipped_baseline() -> dict:
               SKELETON_DEFAULTS, FILTERS_DEFAULTS, LOGIN_DEFAULTS, WEB_DEFAULTS,
               EMAIL_DEFAULTS, PRINT_DEFAULTS):
         out.update(d)
-    out.update(SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET])
+    out.update(_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK])
     return out
 
 
@@ -1615,6 +1597,50 @@ def layout_of(settings, ignore=SHAPE_IGNORES) -> str:
     return ""
 
 
+def look_of(settings, fields=None) -> str:
+    """Which named look a set of values spells, over the LOOK fields only — item 38.
+
+    The sibling of :func:`layout_of`, and it exists for the same reason: the
+    Appearance dialog has to be able to say *"Follow the site (Focus)"* rather
+    than *"Follow the site"*, and an inherit option that cannot name what it
+    inherits is the state ServiceNow's Next Experience ships — where the default
+    is an absent row with no label, and every community thread about it is
+    somebody asking how to get back.
+
+    IT COMPARES THE LOOK FIELDS AND NOTHING ELSE, which is what makes it usable
+    where the layout identity is not. A desk on the Focus look with its own
+    SHAPE is still on Focus; comparing all 124 axes would answer "" and the
+    dialog would go quiet exactly when a person has personalised something.
+
+    Exact match, unset falls back to the shipped baseline, "" when no preset
+    spells these values — the same three rules :func:`layout_of` follows.
+
+    Args:
+        settings: any mapping of field -> value.
+        fields: the fields to compare. Defaults to the look partition in
+            :mod:`bunood_theme.personal`, which the contrast gate holds to being
+            a partition; passed in only by that gate's own arms.
+    """
+    if fields is None:
+        from bunood_theme.personal import LOOK_FIELDS
+
+        fields = LOOK_FIELDS
+    base = _shipped_baseline()
+    for name in THEME_PRESETS:
+        want = theme_settings(name)
+        for field in fields:
+            if field not in want:
+                continue
+            live = settings.get(field)
+            if live is None or live == "":
+                live = base.get(field)
+            if str(live) != str(want[field]):
+                break
+        else:
+            return name
+    return ""
+
+
 def theme_settings(name: str) -> dict:
     """The Theme Settings values a theme preset writes, keyed by FIELD.
 
@@ -1623,7 +1649,7 @@ def theme_settings(name: str) -> dict:
     settings form composed the containers while ``registry.layout_settings``
     composed containers *and* tenant placements, so the suite drove a state no
     gesture could produce, and picking "Bottom Bar" left the bell pointing at a
-    region that no longer existed. At ~124 values that failure is a certainty
+    region that no longer existed. At ~123 values that failure is a certainty
     unless the product's writer and the suite's writer call the same function.
     This is that function; nothing else may assemble a preset.
 
@@ -1639,7 +1665,7 @@ def theme_settings(name: str) -> dict:
     out = {f: v for f, v in _shipped_baseline().items() if f in axes}
     out.update(layout_settings(spec["layout"]))
     out.update(palette_seeds(spec["palette"]))
-    out.update(SIDEBAR_PRESETS.get(spec["sidebar"], {}))
+    out.update(_SIDEBAR_LOOKS.get(spec["sidebar"], {}))
     out.update(spec["values"])
     # Never write outside the declared axes, whatever a table says.
     return {f: v for f, v in out.items() if f in axes}

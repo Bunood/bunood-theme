@@ -81,6 +81,16 @@ BRAND_INPUTS = (
     "accent_color",
     "brand_color_dark",
     "accent_color_dark",
+    # Item 40. `render_brand_css` has read this since the ground landed
+    # (`brand.py`'s own `ground` local) and `email.py` reads it too, but it was
+    # never listed here — against this list's own stated rule. The suite writes
+    # settings with `set_single_value`, which does not fire `on_update`, so its
+    # restore path regenerates only for the fields named here. Measured before
+    # the fix: writing a ground moved the rendered `--bnd-page` from #f7faf8 to
+    # #fcf6f6 while `set(vals) & set(BRAND_INPUTS)` stayed empty — the sheet
+    # would have kept a test's ground after the DB was restored, which is the
+    # `tagline` leak this list was created for, with a colour seed instead.
+    "ground_color",
     "density_default",
     "tagline",
     "arabic_font",
@@ -264,6 +274,18 @@ def render_brand_css(settings=None) -> str:
     # pseudo-element rather than an empty box with margins.
     tagline = _css_string(s.get("tagline"))
     tagline_decl = f"\n  --bnd-login-tagline: {tagline};" if tagline else ""
+
+    # ── The side pane (item 40) ─────────────────────────────────────────────
+    #
+    # THE SIDEBAR'S PER-SITE EMISSION IS GONE (2026-09-01), and this
+    # note is what it was for. Three of the pane's four colour recipes could
+    # already be written in the bundle; the fourth -- a GROUND-tinted pane --
+    # could not, because there is no `--bnd-ground` token, so it reached a site
+    # only by being computed here. That was the whole justification.
+    #
+    # The pane now takes `--bnd-pane` directly, which THIS SHEET already emits
+    # for every other surface. So the tinting arrives by the path that was
+    # always there, and a second emission would be the same fact twice.
 
     return f"""@media screen {{
 :root {{

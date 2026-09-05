@@ -65,6 +65,145 @@ def _boot_text(value) -> str:
     return strip_html_tags(str(value)).replace("<", "")
 
 
+def resolve_for_user(site) -> tuple:
+    """The settings THIS desk is composed from, and the choices behind them.
+
+    WHY THE RESOLVE HAPPENS HERE, BEFORE ANYTHING IS COMPOSED
+        A first draft overlaid the person's choices onto the finished ``bnd_*``
+        payload at the end of :func:`extend_bootinfo`, the way item 37's
+        eighteen-field sidebar override did. That does not scale past one kit and
+        it was already wrong twice over:
+
+        * **The payload is not field-keyed.** ``bnd_chrome`` is keyed by container
+          key, ``bnd_placement`` by short tenant name, and ``bnd_sidebar`` /
+          ``bnd_crumbs`` / ``bnd_icons`` rename every field they carry. Overlaying
+          there needs a field-to-(dict, key) map for about a hundred fields — a
+          THIRD copy of a fact ``registry.CONTAINERS`` and the client's own
+          ``chrome_apply`` already hold twice — and a reverse map to feed
+          ``layout_of``. The eighteen-entry ``key_map`` this function replaces was
+          the first sixth of that map, and deleting it is the point.
+        * **It is provably too late.** ``_apply_icon_inference`` consumes
+          ``icon_source`` — a LOOK field — and bakes inferred glyphs into
+          ``workspace_sidebar_item`` server-side, well before the end of the
+          function. A late overlay would have left every personal look rendering
+          the site's icons, silently, with the rest of the look correct.
+
+        Resolving in FIELDNAME space first makes all of that go away: no map,
+        ``layout_of(resolved)`` needs no re-derivation, and every downstream
+        consumer — including the ones that run early — reads the right value
+        because there is only one place a value comes from.
+
+    THE COPY IS NOT DEFENSIVE, IT IS REQUIRED
+        ``frappe.get_cached_doc`` hands back a SHARED object. Overlaying one
+        person's look onto it would leak that look into every later consumer in
+        the same process — the next request served by this worker included. So the
+        doc is read, never written, and everything happens on ``dict(...)`` of it.
+
+    THE LOCKS ARE READ FROM THE SITE, NEVER FROM THE RESOLVED MAP, for the
+    obvious reason: a value a person can influence must not decide whether they
+    are allowed to influence it.
+
+    Args:
+        site: the cached Theme Settings doc. Read-only.
+
+    Returns:
+        ``(resolved, personal)`` — the effective field values for this user, and
+        the raw stored intents plus the resolved locks. ``personal`` carries the
+        person's CHOICE even where a lock is currently suppressing it, because
+        that is what the Appearance dialog has to render; ``resolved`` carries
+        only what actually applies.
+    """
+    from bunood_theme import personal as personal_axes
+    from bunood_theme.presets import THEME_PRESETS, theme_settings
+    from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+
+    resolved = dict(site.as_dict())
+
+    def is_open(key: str) -> bool:
+        lock = personal_axes.lock_for(key)
+        return True if lock is None else personal_axes.lock_open(lock, site.get(lock))
+
+    # SPELLED OUT, ONE CALL PER KEY, and a `stored(key)` helper that read the same
+    # four values was written first and rejected by the build. `assertPersonalAxes`
+    # matches the key LITERAL at the `frappe.defaults` call site — that is how it
+    # can check the table against the code in both directions — so a helper makes
+    # every key it reads invisible to the guard, and the guard then reports the
+    # keys as declared-but-unread. Four repetitive lines are the price of the
+    # check, and slice 1's docstring said so before this tried to be clever.
+    look = frappe.defaults.get_user_default("bnd_look") or ""
+    shape = frappe.defaults.get_user_default("bnd_shape") or ""
+    sidebar_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
+    density = frappe.defaults.get_user_default("bnd_density") or ""
+    motion = frappe.defaults.get_user_default("bnd_motion") or ""
+    home = frappe.defaults.get_user_default("bnd_home") or ""
+
+    # THE LOOK. A whole named look, filtered to the fields a look is allowed to
+    # carry — never the colour seeds, never the shape, and never the four
+    # surfaces that are not the desk. `personal.LOOK_FIELDS` is that set and the
+    # contrast gate holds it to being a partition.
+    if is_open("bnd_look") and look in THEME_PRESETS:
+        chosen = theme_settings(look)
+        resolved.update({f: v for f, v in chosen.items() if f in personal_axes.LOOK_FIELDS})
+    elif is_open("bnd_sidebar_preset") and sidebar_preset in THEME_PRESETS:
+        # THE DEPRECATED KEY, honoured in field space now rather than through the
+        # eighteen-entry rename map it used to need. It applies only the side
+        # pane, which is what the people who chose it chose; `bnd_look` wins
+        # outright where both are set, because it is the newer and larger answer
+        # to the same question.
+        chosen = theme_settings(sidebar_preset)
+        from bunood_theme.presets import SIDEBAR_FIELDS
+
+        resolved.update({f: v for f, v in chosen.items() if f in SIDEBAR_FIELDS})
+
+    # THE SHAPE. Exactly what a named layout writes — containers plus tenant
+    # placements — because under "names only" that is the whole gesture. Applied
+    # after the look on purpose: a look must never be able to move the chrome,
+    # and `LOOK_FIELDS` already excludes every field this writes.
+    if is_open("bnd_shape") and shape in LAYOUT_CHROME:
+        resolved.update(layout_settings(shape))
+
+    return resolved, {
+        "look": look,
+        "shape": shape,
+        "sidebar_preset": sidebar_preset,
+        # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
+        # differs whenever comfort is locked; the dialog needs both.
+        "density": density,
+        "motion": motion,
+        "home": home,
+        "locks": {
+            name: 1 if personal_axes.lock_open(name, site.get(name)) else 0
+            for name in personal_axes.LOCKS
+        },
+        # Per AXIS rather than per lock field, so no consumer has to re-derive
+        # the mapping — this is the answer both the density read below and the
+        # Appearance dialog actually want, and deriving it twice is how the two
+        # would come to disagree.
+        "open": {row["key"]: 1 if is_open(row["key"]) else 0 for row in personal_axes.AXES},
+        "unlockable": list(personal_axes.UNLOCKABLE),
+    }
+
+
+from bunood_theme.presets import SB_PANE_STOPS as _SB_PANE_STOPS
+
+# Module-level ON PURPOSE: `pane_px` reads it inside extend_bootinfo, whose
+# whole-function `try` SWALLOWS a NameError - the kit goes quietly dark on
+# every desk instead of failing one line. resolve_for_user's local import
+# of the same module is untouched (it shadows this one harmlessly).
+from bunood_theme import personal as personal_axes
+
+
+def _sb_shortcuts() -> list:
+    """The session user's pins, resolved by api.resolve_sb_pins — wrapped so a
+    defect in a decoration can never take the boot payload down with it."""
+    try:
+        from bunood_theme.api import resolve_sb_pins
+
+        return resolve_sb_pins()
+    except Exception:
+        return []
+
+
 def extend_bootinfo(bootinfo):
     """Add the theme's behaviour flags to ``frappe.boot``.
 
@@ -80,7 +219,13 @@ def extend_bootinfo(bootinfo):
         bootinfo: the mutable boot payload Frappe is assembling for this user.
     """
     try:
-        settings = frappe.get_cached_doc("Theme Settings")
+        # `site` is the SHARED cached doc and is never written. `settings` is this
+        # user's resolved view of it — the site's values with their own look and
+        # shape already folded in, in fieldname space, so that every block below
+        # composes from one place and nothing has to be patched afterwards. See
+        # `resolve_for_user`.
+        site = frappe.get_cached_doc("Theme Settings")
+        settings, personal_state = resolve_for_user(site)
 
         # RTL language set (item 7 follow-up). A pure constant — no Theme
         # Settings read, no per-user variance — so it is the cheapest thing
@@ -172,7 +317,20 @@ def extend_bootinfo(bootinfo):
         # splash, so an attribute applied from boot is applied before anything it
         # changes exists. Empty string = follow the site default, which travels in
         # the brand stylesheet instead.
-        bootinfo.bnd_density = frappe.defaults.get_user_default("bnd_density") or ""
+        #
+        # LOCKED MEANS IT STOPS APPLYING, not merely that it stops being offered
+        # (item 38). The stored value is deliberately left alone, so unlocking
+        # restores what each person had rather than starting everyone over.
+        bootinfo.bnd_density = (
+            personal_state["density"] if personal_state["open"]["bnd_density"] else ""
+        )
+
+        # Reduced motion (item 38). Same flash exemption as density and stamped
+        # the same way, with one honest limit worth stating rather than
+        # discovering: the attribute lands after the splash paints, so a personal
+        # Reduced governs everything AFTER the splash and the splash itself still
+        # follows the operating system. There is no lock — see personal.UNLOCKABLE.
+        bootinfo.bnd_motion = personal_state["motion"]
 
         # Desk layout (checklist item 9). Same flash exemption as density: the
         # layout attribute only hides sidebar rows and mounts bars — all elements
@@ -279,15 +437,16 @@ def extend_bootinfo(bootinfo):
         # falls back to the default preset so a half-seeded site still renders
         # a coherent design instead of a mixed one. Same flash exemption: the
         # sidebar is built by Frappe's JS after the splash.
+        # THEME_PRESETS and theme_settings left this import with item 38: the
+        # per-user look is resolved in fieldname space before composition now,
+        # so nothing down here needs the catalogue.
         from bunood_theme.presets import (
-            DEFAULT_SIDEBAR_PRESET,
             ICON_DEFAULTS,
-            SIDEBAR_PRESETS,
-            THEME_PRESETS,
-            theme_settings,
+            _DEFAULT_SIDEBAR_LOOK,
+            _SIDEBAR_LOOKS,
         )
 
-        preset = SIDEBAR_PRESETS[DEFAULT_SIDEBAR_PRESET]
+        preset = _SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK]
         get = lambda f: settings.get(f) or preset.get(f)  # noqa: E731
         # Icon fields are an axis now, not sidebar-preset fields, so they fall
         # back to ICON_DEFAULTS. Their VALUES feed the sidebar/crumb payload keys
@@ -296,30 +455,36 @@ def extend_bootinfo(bootinfo):
         bootinfo.bnd_sidebar = {
             "placement": get("sidebar_placement"),
             "material": get("sidebar_material"),
-            "glass_opacity": get("sidebar_glass_opacity"),
-            "blur": get("sidebar_blur"),
-            "color": get("sidebar_color"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset
             # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",
             # "icon_source"), so bunood.js and the SCSS are untouched.
             "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
-            "sections": get("sidebar_section_layout"),
+            "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
-            "intensity": get("sidebar_surface_intensity"),
+            "intensity": get("sidebar_card_depth"),
             "menurail": get("sidebar_menu_rail"),
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
-            "rail_button_shape": get("sidebar_rail_button_shape"),
             "rail_button_icon": icon("icon_rail_button"),
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
-            "apps_rail": settings.get("sidebar_apps_rail") or 0,
             "badges": get("sidebar_badges"),
-            "remember": settings.get("sidebar_remember_sections") or 0,
-            "scroll_fades": settings.get("sidebar_scroll_fades") or 0,
+            "filter": settings.get("sidebar_filter") or 0,
+            # Per-user shortcuts, resolved for THIS user right now — the
+            # permission filter is the point, so it cannot be client-side.
+            "shortcuts": _sb_shortcuts(),
+            # The free-drag pixel (item 40). Lock-aware like density: a locked
+            # comfort axis STOPS APPLYING, not merely stops being offered.
+            "pane_px": (
+                (frappe.defaults.get_user_default("bnd_sb_width") or "")
+                if personal_axes.lock_open("personal_comfort", settings.get("personal_comfort"))
+                else ""
+            ),
+            # The stop table, for the zero-network context menu.
+            "pane_stops": [list(t) for t in _SB_PANE_STOPS],
         }
 
         # Item 23: give every sidebar link a title-derived icon, on the server,
@@ -599,45 +764,25 @@ def extend_bootinfo(bootinfo):
             # A missing table pre-migrate must not cost the user their boot.
             pass
 
-        # Per-user preset override (the "personalize" layer): a user-chosen
-        # preset REPLACES the style values wholesale — never a field-level
-        # merge, so a user always sees a designed combination. Stored in
-        # frappe.defaults like density; empty = follow the site.
-        # ITEM 37: the name is a THEME preset now, and only its SIDEBAR slice is
-        # applied. A per-user palette is unbuildable (one content-hashed stylesheet
-        # per site) and per-user containers or placements are out of scope by
-        # design, so `theme_settings` is asked for the whole look and this reads
-        # the eighteen fields it is allowed to honour.
-        user_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
-        if user_preset and user_preset in THEME_PRESETS:
-            chosen = theme_settings(user_preset)
-            key_map = {
-                "sidebar_placement": "placement",
-                "sidebar_material": "material",
-                "sidebar_glass_opacity": "glass_opacity",
-                "sidebar_blur": "blur",
-                "sidebar_color": "color",
-                # Icon fields left this map with item 23: a per-user SIDEBAR
-                # preset no longer reaches across and rewrites the Icons axis
-                # (the whole point of moving them out).
-                "sidebar_active_style": "active",
-                "sidebar_section_layout": "sections",
-                "sidebar_hue_wash": "wash",
-                "sidebar_surface_intensity": "intensity",
-                "sidebar_menu_rail": "menurail",
-                "sidebar_rail_trigger": "rail_trigger",
-                "sidebar_rail_button": "rail_button",
-                "sidebar_rail_button_shape": "rail_button_shape",
-                "sidebar_pane_width": "pane_width",
-                "sidebar_apps_rail": "apps_rail",
-                "sidebar_badges": "badges",
-                "sidebar_remember_sections": "remember",
-                "sidebar_scroll_fades": "scroll_fades",
-            }
-            for field, key in key_map.items():
-                if field in chosen:
-                    bootinfo.bnd_sidebar[key] = chosen[field]
-        bootinfo.bnd_sidebar["user_preset"] = user_preset
+        # THE PER-USER OVERLAY ALREADY HAPPENED, in fieldname space, before any of
+        # the blocks above composed anything — see `resolve_for_user`. What used
+        # to live here was an eighteen-entry map from Theme Settings fieldnames to
+        # the short keys `bnd_sidebar` uses, applied after the fact; it is gone
+        # because the values it patched now arrive correct.
+        #
+        # `user_preset` is still served under its old name and place. `bunood.js`
+        # reads `sb_state.user_preset` to tick the current row in the personalize
+        # menu, and item 38 does not touch that client until its own slice.
+        bootinfo.bnd_sidebar["user_preset"] = (
+            personal_state["sidebar_preset"]
+            if personal_state["open"]["bnd_sidebar_preset"]
+            else ""
+        )
+
+        # The choices behind the resolved values, for the Appearance dialog:
+        # the RAW stored intents (so a locked axis still shows what the person
+        # picked) plus which axes this site currently offers.
+        bootinfo.bnd_personal = personal_state
 
     except Exception:
         # A missing DocType (pre-migrate) or a locked table must not break boot.
