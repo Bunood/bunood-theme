@@ -470,7 +470,7 @@ html[data-theme] .bnd-sb-start {
 //
 // THE ARGUMENTS FOR THE RUNTIME LIVE HERE, because `build.mjs` copies bunood.js
 // verbatim and every comment in it ships to every desk; Sass strips these before
-// the wire. `sb_mount_pill`, `bunood.pane_state` and `guard_critical_reach` point
+// the wire. `sb_mount_pagehead_brand`, `bunood.pane_state` and `guard_critical_reach` point
 // at this block.
 //
 // WHY THE PILL IS NOT A PANE PART. `sidepane_sync` tears the whole kit down the
@@ -530,80 +530,113 @@ html[data-theme] .bnd-sb-start {
 // reaching a breakpoint it was never written for. FOUND BY THE SUITE, at 390px:
 // the drawer opened 0px wide.
 //
-// The pill is already stood down at narrow for the mirror-image reason (a
-// floating brand tile over a 390px screen is chrome competing with the page),
-// so this is the second half of one decision, not a new one.
+// The page-head brand below is a desktop affordance for the mirror-image
+// reason: on a phone the page-title hamburger already carries the way to the
+// drawer, so this is the second half of one decision, not a new one.
 html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-container {
   display: none !important;
 }
 
-// WHAT SURVIVES. The tile, the name, and one way back -- floating clear of the
-// page at the pane's own leading edge, above Frappe's content and below every
-// overlay. It carries the brand row's classes, so the tile's shape, the name's
-// ellipsis and the theme's tokens are inherited rather than restated.
+// ── The brand in the page head (Hidden) ──────────────────────────────────
+// WHAT SURVIVES A HIDDEN PANE, AND WHERE. The first draft was a floating pill
+// -- tile, name and a way back, fixed over the page's leading corner. The user
+// refused it on sight: a pill is a third thing on a desk that already has a
+// page head, and the way back should sit where a sidebar toggle sits in every
+// product that has one -- at the head's start, before the breadcrumbs. So the
+// brand joins Frappe's `.page-title`, ahead of the crumbs, with a hairline
+// separating the two, and the pane's own brand row carries the matching
+// control to hide it. (The pill's glyph, `icon-sidebar-expand`, was not even in
+// the sprite; the vendor ships `es-line-sidebar-expand`, which this uses.)
 //
-// ONLY IN HIDDEN. The pill mounts on every desk (see sb_mount_pill's note -- a
-// state change must not wait for a mount), so the attribute is what puts it on
-// screen. Any other state, and it is not there at all.
-.bnd-sb-pill {
-  display: none;
+// THE PAGE HEAD LENDS THE PANE ITS TENANTS. The pill left one hole the guard
+// kept closing by force: the bell and the account placed in a pane that is
+// then Hidden had nowhere to go, `guard_critical_reach` found identity
+// stranded and flipped the pane back to Open -- so on the shipped desk Hidden
+// was a state the setting named and the runtime refused, every time. Now a
+// tenant whose slot is in a hidden pane resolves to the page head's End zone
+// instead (`placement_for` / `zone_for` / `HOSTS.pagehead` in bunood.js),
+// which reserves its cluster on demand whether or not the page-head
+// container is on. Identity stays reachable, the guard has nothing to catch,
+// and Hidden means hidden. A start button, where a layout places one, already
+// carries the mark and the way back, so the brand stands down beside it.
+//
+// Mounted per page -- every page container has its own head -- from the
+// route hook, and only while the state is Hidden; teardown is total.
+.bnd-ph-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--bnd-sp-1);
+  margin-inline-end: var(--bnd-sp-3);
+  padding-inline-end: var(--bnd-sp-3);
+  border-inline-end: var(--bnd-line) solid var(--bnd-border);
+  color: var(--bnd-ink);
 }
 
-html[data-bnd-sb-panestate="hidden"] .bnd-sb-pill {
-  position: fixed;
-  inset-block-start: var(--bnd-sp-3);
-  inset-inline-start: var(--bnd-sp-3);
-  z-index: var(--bnd-z-bar);
-  display: flex;
+.bnd-ph-home {
+  display: inline-flex;
   align-items: center;
-  gap: var(--bnd-sp-3);
-  max-inline-size: 280px;
-  padding: var(--bnd-sp-2);
-  padding-inline-end: var(--bnd-sp-3);
-  border: var(--bnd-line) solid var(--bnd-border);
-  border-radius: var(--bnd-radius-pill);
-  background: var(--bnd-raised);
-  box-shadow: var(--bnd-shadow-md);
-  color: var(--bnd-ink);
+  gap: var(--bnd-sp-2);
+  padding: var(--bnd-sp-1);
+  padding-inline-end: var(--bnd-sp-2);
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: inherit;
   font-size: var(--bnd-text-base);
   font-weight: var(--bnd-weight-medium);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bnd-hover);
+  }
+
+  .bnd-sb-brand-mark {
+    display: grid;
+    place-items: center;
+    inline-size: var(--bnd-sb-ph-tile);
+    block-size: var(--bnd-sb-ph-tile);
+    border-radius: var(--bnd-radius-md);
+    overflow: hidden;
+    flex: none;
+  }
+
+  .bnd-sb-brand-logo {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+  }
+
+  .bnd-sb-brand-initial {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+    font-size: var(--bnd-text-base);
+  }
+
+  .bnd-sb-brand-name {
+    max-inline-size: 180px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 
-// The tile is the brand row's, at the brand row's size.
-html[data-bnd-sb-panestate="hidden"] .bnd-sb-pill .bnd-sb-brand-mark {
-  display: grid;
-  place-items: center;
-  inline-size: var(--bnd-sb-tile);
-  block-size: var(--bnd-sb-tile);
-  border-radius: var(--bnd-radius-lg);
-  overflow: hidden;
+.bnd-ph-show .es-icon,
+.bnd-sb-brand-hide .es-icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+// The way out, at the end of the pane's brand row; the rail hides it (below).
+html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-hide {
+  margin-inline-start: auto;
   flex: none;
-}
-html[data-bnd-sb-panestate="hidden"] .bnd-sb-pill .bnd-sb-brand-logo {
-  inline-size: 100%;
-  block-size: 100%;
-  object-fit: contain;
-}
-html[data-bnd-sb-panestate="hidden"] .bnd-sb-pill .bnd-sb-brand-initial {
-  background: var(--bnd-brand-solid);
-  color: var(--bnd-on-brand);
-  font-size: var(--bnd-text-lg);
-}
-html[data-bnd-sb-panestate="hidden"] .bnd-sb-pill-name {
-  min-inline-size: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+  color: var(--bnd-sb-ink-muted);
 
-// NARROW STANDS IT DOWN. Below the breakpoint the pane is Frappe's own drawer
-// and the phone bar carries the routes, so a floating pill over a 390px screen
-// would be chrome competing with chrome for the one thing that matters there:
-// the page. The drawer's own trigger is the way back.
-html[data-bnd-narrow] .bnd-sb-pill {
-  display: none;
+  &:hover {
+    color: var(--bnd-sb-ink);
+  }
 }
-
 html[data-bnd-sb-panestate="open"] .body-sidebar-container {
   flex-shrink: 0;
   // THE FLOOR'S OTHER HALF (item 40). A flex item's implicit
@@ -927,20 +960,6 @@ html[data-bnd-sb-color] .bnd-sb-head {
 // wearing one name. So the row stays, centred, at the chevron's width — the
 // affordance survives the collapse, which is the rule the rail already
 // follows for the foot's cells and the badge's count.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-head {
-  justify-content: center;
-  padding-inline: 0;
-
-  .bnd-sb-head-name {
-    display: none;
-  }
-
-  // The chevron stops being a trailing hint and becomes the whole control, so
-  // it gives up the auto margin that pushed it to the end.
-  .bnd-sb-head-chev {
-    margin-inline-start: 0;
-  }
-}
 
 // ── The brand row (item 42, slice 2) ────────────────────────────────────────
 // The company's mark and name, the pane's FIRST row, over a hairline. It is a
@@ -1004,14 +1023,6 @@ html[data-bnd-sb-color] .bnd-sb-brand {
 }
 
 // Rail rest: the tile alone, centred.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand {
-  justify-content: center;
-  padding-inline: 0;
-
-  .bnd-sb-brand-name {
-    display: none;
-  }
-}
 
 // Quick links living in a bar: a tight icon pair at the bar's start.
 html[data-bnd-sb-color] .bnd-sb-utils-bar {
@@ -1484,102 +1495,37 @@ html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:n
   display: block !important;
 }
 
-// ── Shortcuts (item 40) ─────────────────────────────────────────────────────
-// Stripe's merged model, picked by the survey: ONE region — a page you visit
-// appears as a recent, pinning promotes it to a stable slot. No empty second
-// section; no region at all until there is something to show. People navigate
-// to RECORDS, not pages, and this is the one surveyed feature that treats
-// that as first-class. The unpin/pin control is in the DOM at rest —
-// Fluent's position, and the reason hover-only row actions were refused.
-html[data-bnd-sb-color] .bnd-sb-shortcuts {
-  margin-inline: var(--bnd-sp-1);
-  margin-block-end: var(--bnd-sp-1);
-  padding-block-end: var(--bnd-sp-1);
-  border-block-end: var(--bnd-line) solid var(--bnd-sb-line);
-}
+// ── Search, as a bar ─────────────────────────────────────────────────────
+// Frappe's search row in the pane is a plain list row -- icon, the word
+// "Search", a Ctrl+K hint -- and reads as one more workspace link. It is an
+// input in every product that puts search in a side pane, so it is drawn as
+// one: a bordered field on the card surface, placeholder-weight ink, the hint
+// pinned to the end. Still the vendor's node and the vendor's click; this is
+// paint. The rail (below) reduces it to its icon like every other row.
+html[data-bnd-sb-color] .body-sidebar .navbar-search-bar > .standard-sidebar-item {
+  margin-block: var(--bnd-sp-1);
+  border: var(--bnd-line) solid var(--bnd-sb-line);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-sb-card-base);
 
-html[data-bnd-sb-color] .bnd-sb-shortcuts-title {
-  font-size: var(--bnd-text-xs);
-  font-weight: var(--bnd-weight-medium);
-  text-transform: uppercase;
-  color: var(--bnd-sb-ink-muted);
-  padding-block: var(--bnd-sp-1);
-  padding-inline: var(--bnd-sp-2);
-}
+  &:hover {
+    border-color: var(--bnd-sb-ink-muted);
+  }
 
-html[data-bnd-sb-color] .bnd-sb-shortcut {
-  display: flex;
-  align-items: center;
-
-  .bnd-sb-shortcut-go {
-    flex: 1;
-    min-inline-size: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--bnd-sp-2);
-    padding-block: 4px;
+  .item-anchor {
+    block-size: var(--bnd-sb-search-h);
     padding-inline: var(--bnd-sp-2);
-    border: none;
-    border-radius: var(--bnd-radius-md);
-    background: transparent;
-    color: var(--bnd-sb-ink-muted);
-    font-size: var(--bnd-text-sm);
-    text-align: start;
-    cursor: pointer;
-
-    svg {
-      inline-size: 14px;
-      block-size: 14px;
-      flex: none;
-    }
-
-    &:hover {
-      background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
-      color: var(--bnd-sb-ink);
-    }
+    gap: var(--bnd-sp-2);
   }
 
-  .bnd-sb-shortcut-label {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  .sidebar-item-label {
+    color: var(--bnd-sb-ink-muted);
   }
 
-  .bnd-sb-unpin {
-    display: grid;
-    place-items: center;
-    inline-size: 22px;
-    block-size: 22px;
-    flex: none;
-    border: none;
-    border-radius: var(--bnd-radius-md);
-    background: transparent;
-    color: var(--bnd-sb-ink-muted);
-    cursor: pointer;
-
-    svg {
-      inline-size: 12px;
-      block-size: 12px;
-    }
-
-    &:hover {
-      background: color-mix(in srgb, var(--bnd-sb-ink) 10%, transparent);
-      color: var(--bnd-sb-ink);
-    }
+  .sidebar-item-suffix {
+    margin-inline-start: auto;
   }
 }
-
-// The rail hides the region with the rest of the pane content (the rest
-// rule lists .body-sidebar-top et al; the region sits beside the filter and
-// takes the same treatment).
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-shortcuts {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-  transition: opacity var(--bnd-dur-fast) var(--bnd-ease),
-    visibility 0s var(--bnd-dur-fast);
-}
-
 // ── The overflow fade (item 40) ─────────────────────────────────────────────
 // AUTOMATIC, replacing the deleted `sidebar_scroll_fades` preference: whether
 // a list overflows is a fact. The JS stamps which EDGES hide content, so the
@@ -1924,33 +1870,101 @@ html[data-bnd-desktop] {
 // is noise (measured on the Stock workspace). At rest the rail shows ONLY the
 // brand mark, the utility chips and the module chip; the link list fades in
 // with the expansion. Opacity (not display) so the expansion animates.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) {
-  .body-sidebar-top,
+// AN ICON RAIL, NOT AN EMPTY ONE. The first rail hid the whole list at rest --
+// a 52px strip carrying the brand tile, a chevron and the foot, and nothing a
+// person could navigate with; the user's screenshot of the pane had icons in
+// it because they had reached FRAPPE'S collapse (`.collapse-sidebar-link`, a
+// 50px pane with every label truncated to one letter), which no rule here
+// styled at all. Two collapsed panes, neither right. Both are now one visual
+// state: the rows keep their icons, centred; labels, hints and edit
+// affordances are gone rather than clipped; the brand and the foot centre on
+// the same axis. `display: none` on the labels, not opacity: a label that is
+// invisible and still laid out is what produced the one-letter clipping, and
+// an invisible-but-focusable control is the trap the old rest state had to
+// paper over. The icons ARE focusable and visible, and focus opens the rail.
+//
+// The second selector is Frappe's own collapse in the Open state -- the
+// container without `.expanded` on a desktop -- which the vendor styles only
+// by width. `:not([data-bnd-rail])` keeps the two arms disjoint: our rail
+// keeps `.expanded` on the container and sizes the pane itself.
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open),
+html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) {
+  .sidebar-item-label,
+  .sidebar-item-suffix,
+  .sidebar-item-control,
   .body-sidebar-cards,
-  .body-sidebar-bottom,
-  .standard-items-sections,
+  // The foot keeps Frappe own account button as an AVATAR: with `user_placement`
+  // Off it is the only route to identity, and the matrix counts routes. Its name,
+  // e-mail, the edit controls and the banners go; the avatar stays, centred.
+  .body-sidebar-bottom .bottom-edit-controls,
+  .body-sidebar-bottom .promotional-banners,
+  .body-sidebar-bottom .avatar-name-email,
   .bnd-sb-filter,
-  .sidebar-header .sidebar-item-label,
-  .sidebar-header span:not(.sidebar-item-icon):not(.bnd-sb-pin) {
-    opacity: 0;
-    pointer-events: none;
-    // VISIBILITY, DELAYED — the keyboard repair (item 40). Opacity removes
-    // NOTHING from the tab order, so a resting rail was dozens of invisible
-    // links a keyboard user tabbed straight into, mitigated only by the
-    // focusin handler opening the rail after the fact. `visibility: hidden`
-    // refuses focus outright; the delay lets the fade-out finish first, and
-    // opening the rail drops this whole rule so everything is visible and
-    // focusable again at once.
-    visibility: hidden;
-    transition: opacity var(--bnd-dur-fast) var(--bnd-ease),
-      visibility 0s var(--bnd-dur-fast);
-  }
-
-  // Labels are text; opacity alone leaves their WIDTH, which pushed the
-  // chips past the 52px rail edge (measured). At rest the injected rows
-  // become icon-only and centered.
+  .bnd-sb-brand-name,
+  .bnd-sb-brand-hide,
+  .bnd-sb-head-name,
   .bnd-sb-item .bnd-sb-item-label {
     display: none;
+  }
+
+  // The vendor header, when ours failed to mount: fade its text, keep its icon.
+  // Not display:none — the ownership guard reads that as hiding a native.
+  .body-sidebar-bottom .onboarding-sidebar span,
+  .sidebar-header .sidebar-item-label,
+  .sidebar-header span:not(.sidebar-item-icon) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .item-anchor {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .body-sidebar-bottom .sidebar-user-button,
+  .body-sidebar-bottom .onboarding-sidebar {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  // A section header is a label; without one it is a hairline -- drawn once,
+  // where loose rows give way to sections, never between two sections: four
+  // collapsed sections in a row drew four stacked lines (measured 2026-09-04).
+  .sidebar-item-container.section-item + .sidebar-item-container.section-item > .standard-sidebar-item {
+    display: none;
+  }
+
+  .sidebar-item-container.section-item > .standard-sidebar-item {
+    block-size: 0;
+    min-block-size: 0;
+    margin-block: var(--bnd-sp-1);
+    padding: 0;
+    border-block-start: var(--bnd-line) solid var(--bnd-sb-line);
+    overflow: hidden;
+  }
+
+  // Cards flatten: there is no room for a card around a column of icons.
+  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .navbar-search-bar > .standard-sidebar-item {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .bnd-sb-brand,
+  .bnd-sb-head {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .bnd-sb-head-chev {
+    margin-inline-start: 0;
   }
 
   .bnd-sb-item {
@@ -1960,6 +1974,21 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 
   .bnd-sb-utils {
     padding-inline: 0;
+  }
+}
+
+// Frappe's collapse flips the foot the way our rail does (rule above the band).
+html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-band {
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
+  padding-inline: 0;
+
+  > button {
+    &[data-bnd-part="bell"] {
+      order: 1;
+      margin-inline-start: 0;
+    }
   }
 }
 

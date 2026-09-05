@@ -133,10 +133,17 @@
   "`desk.bundle.js` that no isolated reproduction could source. We already track live",
   "charts and already prune the dead ones; pruning only stopped US redrawing them.",
   "81 bytes unbinds the vendor's listener too, and the argument went to",
-  "surfaces/_charts.scss where Sass strips it."
+  "surfaces/_charts.scss where Sass strips it.",
+  "AND css_gzip TO 22900 for v0.42.1, the pane seen: +184 gzip. The rail rest state",
+  "gained a SECOND ARM -- Frappe own collapse, `.body-sidebar-container:not(.expanded)`,",
+  "which no rule had ever styled and which is the 50px pane with one-letter labels the",
+  "user photographed -- so every rest rule now compiles to two long selectors. The",
+  "page-head brand (the pill replacement) and the search bar are the rest. The",
+  "shortcuts block (96 lines) came out in the same commit, which is why +184 and not",
+  "+400. Growth is the two-arm rest state; it is the feature."
  ],
  "ceiling": {
-  "css_gzip": 22600,
+  "css_gzip": 22900,
   "js_gzip": 110000,
   "web_css_gzip": 4000,
   "email_css_gzip": 2000,

@@ -203,17 +203,6 @@ from bunood_theme.presets import SB_PANE_STOPS as _SB_PANE_STOPS
 from bunood_theme import personal as personal_axes
 
 
-def _sb_shortcuts() -> list:
-    """The session user's pins, resolved by api.resolve_sb_pins — wrapped so a
-    defect in a decoration can never take the boot payload down with it."""
-    try:
-        from bunood_theme.api import resolve_sb_pins
-
-        return resolve_sb_pins()
-    except Exception:
-        return []
-
-
 def extend_bootinfo(bootinfo):
     """Add the theme's behaviour flags to ``frappe.boot``.
 
@@ -472,9 +461,6 @@ def extend_bootinfo(bootinfo):
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
             "badges": get("sidebar_badges"),
             "filter": settings.get("sidebar_filter") or 0,
-            # Per-user shortcuts, resolved for THIS user right now — the
-            # permission filter is the point, so it cannot be client-side.
-            "shortcuts": _sb_shortcuts(),
             # The free-drag pixel (item 40). Lock-aware like density: a locked
             # comfort axis STOPS APPLYING, not merely stops being offered.
             "pane_px": (

@@ -2600,7 +2600,7 @@ const BND_SB_GROUPS = [
 		field: "sidebar_pane_state",
 		zone: "rail",
 		title: () => __("Side pane"),
-		desc: () => __("How much of the pane you keep. Hidden leaves the brand pill and the start button."),
+		desc: () => __("How much of the pane you keep. Hidden moves the brand and a way back into the page head."),
 		options: [
 			{ value: "Open", name: () => __("Open", null, "pane state"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
 			{ value: "Rail", name: () => __("Rail"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },

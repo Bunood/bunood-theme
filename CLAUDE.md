@@ -25,6 +25,11 @@ disagree, GUIDELINES wins and this file is stale — fix it.
    a suite mid-run.
    **Never deploy while the suite is running** — it invalidates the run and
    produces phantom failures.
+   **Then look at it.** `node tools/shots.mjs <outdir> [width]` screenshots the desk in every
+   pane state (Open, Frappe's own collapse, Rail at rest and hovered, Hidden) with a
+   page-head strip for each; READ the PNGs before reporting done. Item 42 shipped
+   478/478 green with three defects one glance caught -- clipped rail labels, an
+   off-axis brand tile, an empty Hidden column. A check asserts; a picture shows.
 5. **Commit locally. Never push, tag-push or open a PR without being asked.**
 
 ## Non-negotiables

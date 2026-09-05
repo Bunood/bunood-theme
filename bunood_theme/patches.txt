@@ -111,4 +111,6 @@ bunood_theme.patches.v0_42_0.retire_glass
 # sitting before the healer.
 bunood_theme.patches.v0_42_0.retire_icon_styles
 
+bunood_theme.patches.v0_42_1.retire_shortcuts
+
 bunood_theme.patches.v0_11_0.heal_unknown_placements

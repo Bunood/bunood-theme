@@ -77,6 +77,8 @@
   --bnd-sb-band-gap: 6px;
   --bnd-sb-pane-pad: 8px;
   --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;
+  --bnd-sb-search-h: 32px;
   --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
@@ -244,6 +246,8 @@ html[data-bnd-density=comfortable] {
   --bnd-pad-y: 6px;
   --bnd-sb-cell: 36px;
   --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;
+  --bnd-sb-search-h: 32px;
 }
 
 html[data-bnd-density=compact] {

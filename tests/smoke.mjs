@@ -4209,7 +4209,7 @@ async function main() {
 			}
 		});
 
-		await test("rail: a resting rail is unfocusable, not merely invisible", async () => {
+		await test("rail: a resting rail is an icon rail — reachable, its labels gone rather than clipped", async () => {
 			// THE AUDIT'S KEYBOARD TRAP. The rail's rest state hid the pane's
 			// content with `opacity: 0; pointer-events: none` — and opacity
 			// removes NOTHING from the tab order, so a keyboard user tabbed
@@ -4234,10 +4234,20 @@ async function main() {
 					const link = document.querySelector(".body-sidebar-top .item-anchor");
 					if (!container || !link) return null;
 					const atRest = !container.classList.contains("bnd-rail-open");
+					// REVISED 2026-09-04: the rest state is an icon rail. The old one hid the
+					// list (visibility: hidden) and asserted a link REFUSED focus; the user's
+					// screenshot showed why that was the wrong rail -- nothing to navigate
+					// with. Now the icon is visible and reachable, the LABEL is display:none
+					// (gone, not clipped to one letter), and focus opens the rail to read it.
+					const label = link.querySelector(".sidebar-item-label");
+					const labelAtRest = label ? getComputedStyle(label).display : "none";
+					const iconAtRest = (() => { const i = link.querySelector(".sidebar-item-icon"); return !!i && i.getClientRects().length > 0; })();
 					document.activeElement && document.activeElement.blur();
 					link.focus();
 					return {
 						atRest,
+						labelAtRest,
+						iconAtRest,
 						focused: document.activeElement === link,
 						opened: container.classList.contains("bnd-rail-open"),
 						visibility: getComputedStyle(link).visibility,
@@ -4245,8 +4255,11 @@ async function main() {
 				});
 				expect(r, "the resting rail has a link to try");
 				expect(r.atRest, "the rail is at rest before the attempt");
-				expect(!r.focused,
-					`an invisible link refuses focus (focused=${r.focused}, visibility=${r.visibility})`);
+				expectEq(r.labelAtRest, "none", "at rest the label is gone, not clipped");
+				expect(r.iconAtRest, "and the icon is there to navigate with");
+				expect(r.focused,
+					`a visible icon takes focus (focused=${r.focused}, visibility=${r.visibility})`);
+				expect(r.opened, "and focus opens the rail, so the label is read");
 			} finally {
 				setSettings(before);
 			}
@@ -4310,8 +4323,8 @@ async function main() {
 					});
 				};
 				// THE PREMISE HUNTS ITS OWN HEIGHT. A fixed 520px depended on what
-				// neighbouring checks left in the pane (the shortcuts region, the
-				// sections' collapse states) and went false in family order while
+				// neighbouring checks left in the pane (the sections' collapse
+				// states) and went false in family order while
 				// holding alone. Overflow-at-SOME-height is the premise; which
 				// height is not the subject.
 				let short_ = null;
@@ -4427,172 +4440,6 @@ async function main() {
 					0, "Off mounts no filter row"
 				);
 			} finally {
-				setSettings(before);
-			}
-		});
-
-		await test("shortcuts: the caps are the server's, and a non-admin hits them", async () => {
-			// DYNAMICS' NUMBERS, ENFORCED WHERE THEY CANNOT BE DODGED: 25 pinned
-			// total, at most 15 from one doctype — the cap is what makes a
-			// high-volume doctype unable to flood the region. Driven as the desk
-			// FIXTURE, not Administrator, because item 37 nearly shipped the
-			// per-user menu dead for every non-admin and no Administrator-run
-			// check could see it.
-			const out = benchPy(
-				"import json\n" +
-					"from bunood_theme import api\n" +
-					`frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` +
-					"frappe.defaults.clear_default('bnd_sb_pins', parent=frappe.session.user)\n" +
-					"res = {}\n" +
-					"try:\n" +
-					"    for i in range(15):\n" +
-					"        api.toggle_sb_pin(route='app/todo/T-%02d' % i, label='ToDo %d' % i, doctype='ToDo', name='T-%02d' % i)\n" +
-					"    try:\n" +
-					"        api.toggle_sb_pin(route='app/todo/T-16', label='ToDo 16', doctype='ToDo', name='T-16')\n" +
-					"        res['sixteenth'] = 'ACCEPTED'\n" +
-					"    except Exception as e:\n" +
-					"        res['sixteenth'] = str(e)[:80]\n" +
-					"    for i in range(10):\n" +
-					"        api.toggle_sb_pin(route='app/page-%d' % i, label='Page %d' % i)\n" +
-					"    try:\n" +
-					"        api.toggle_sb_pin(route='app/page-26', label='Page 26')\n" +
-					"        res['twenty_sixth'] = 'ACCEPTED'\n" +
-					"    except Exception as e:\n" +
-					"        res['twenty_sixth'] = str(e)[:80]\n" +
-					"    raw = frappe.parse_json(frappe.defaults.get_user_default('bnd_sb_pins') or '[]')\n" +
-					"    res['stored'] = len(raw)\n" +
-					"    api.toggle_sb_pin(route='app/page-0', label='Page 0')\n" +
-					"    raw = frappe.parse_json(frappe.defaults.get_user_default('bnd_sb_pins') or '[]')\n" +
-					"    res['after_unpin'] = len(raw)\n" +
-					"finally:\n" +
-					"    frappe.set_user('Administrator')\n" +
-					`    frappe.defaults.clear_default('bnd_sb_pins', parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
-					"    frappe.db.commit()\n" +
-					"print('BND_CAP' + json.dumps(res))\n"
-			);
-			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_CAP"));
-			if (!line) throw new Error("cap probe produced no JSON: " + String(out).slice(-300));
-			const r = JSON.parse(line.slice("BND_CAP".length));
-			expect(r.sixteenth !== "ACCEPTED", `the 16th pin of one doctype is refused (${r.sixteenth})`);
-			expect(/15/.test(r.sixteenth), `and the refusal NAMES the cap (${r.sixteenth})`);
-			expect(r.twenty_sixth !== "ACCEPTED", `the 26th pin overall is refused (${r.twenty_sixth})`);
-			expect(/25/.test(r.twenty_sixth), `naming its cap too (${r.twenty_sixth})`);
-			expectEq(r.stored, 25, "exactly the cap is stored");
-			expectEq(r.after_unpin, 24, "and toggle unpins — the same gesture both ways");
-		});
-
-		await test("shortcuts: a pin the user cannot read any more VANISHES, never 403s", async () => {
-			// THE SURVEY'S ONE UNANIMOUS HOLE: reconciliation is undefined in
-			// every product surveyed. A pinned record whose permission was
-			// revoked — or which was deleted — must disappear from the region,
-			// because a row that 403s on click is a trap someone else set.
-			// Resolution happens at RENDER TIME, server-side, as the user; the
-			// store itself is left alone, so a restored permission brings the
-			// pin back without anyone re-pinning.
-			const out = benchPy(
-				"import json\n" +
-					"from bunood_theme import api\n" +
-					"todo = frappe.get_doc({'doctype': 'ToDo', 'description': 'bnd shortcut probe'}).insert(ignore_permissions=True)\n" +
-					"frappe.db.commit()\n" +
-					// A REAL Item, so only the PERMISSION arm can drop it. The first
-					// draft used a fake name and the existence arm did the dropping —
-					// the sabotage harness proved the permission filter could be
-					// gutted with this check still green.
-					"item = frappe.get_all('Item', limit=1)[0].name\n" +
-					"pins = [\n" +
-					"    {'r': 'app/item/' + item, 'l': 'Item pin', 'd': 'Item', 'n': item},\n" +
-					"    {'r': 'app/todo/' + todo.name, 'l': 'Live ToDo', 'd': 'ToDo', 'n': todo.name},\n" +
-					"    {'r': 'app/todo/GONE-000', 'l': 'Deleted ToDo', 'd': 'ToDo', 'n': 'GONE-000'},\n" +
-					"    {'r': 'app/selling', 'l': 'Selling'},\n" +
-					"]\n" +
-					`frappe.defaults.set_default('bnd_sb_pins', frappe.as_json(pins, indent=None), parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
-					"frappe.db.commit()\n" +
-					"res = {}\n" +
-					"try:\n" +
-					`    frappe.set_user(${JSON.stringify(DESK_FIXTURE.user)})\n` +
-					"    res['fixture_reads_item'] = bool(frappe.has_permission('Item', 'read'))\n" +
-					"    res['resolved'] = [p['l'] for p in api.resolve_sb_pins()]\n" +
-					"finally:\n" +
-					"    frappe.set_user('Administrator')\n" +
-					`    frappe.defaults.clear_default('bnd_sb_pins', parent=${JSON.stringify(DESK_FIXTURE.user)})\n` +
-					"    frappe.delete_doc('ToDo', todo.name, ignore_permissions=True, force=True)\n" +
-					"    frappe.db.commit()\n" +
-					"print('BND_PERM' + json.dumps(res))\n"
-			);
-			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_PERM"));
-			if (!line) throw new Error("permission probe produced no JSON: " + String(out).slice(-300));
-			const r = JSON.parse(line.slice("BND_PERM".length));
-			// ANTI-VACUITY: if the fixture could read Item, nothing here would
-			// prove filtering — the check would pass by permissiveness.
-			expect(!r.fixture_reads_item, "the fixture genuinely cannot read Item (premise)");
-			expect(r.resolved.includes("Live ToDo"), `a readable, existing record survives (${JSON.stringify(r.resolved)})`);
-			expect(r.resolved.includes("Selling"), "a page pin needs no doctype and survives");
-			expect(!r.resolved.includes("Item pin"), "the unreadable doctype's pin VANISHED");
-			expect(!r.resolved.includes("Deleted ToDo"), "and so did the deleted record's");
-		});
-
-		await test("shortcuts: the region merges pins and recents, from the head's own menu", async () => {
-			// STRIPE'S MODEL, picked by the survey: one region — you visit a
-			// page, it appears as a recent; you pin it to keep it. No empty
-			// second section, no region at all until there is something to show.
-			// The pin gesture lives in the Place row's menu, because a
-			// hover-only row action is refused (Fluent's position) and the menu
-			// already exists.
-			const before = getSettings(["sidebar_enabled"]);
-			try {
-				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
-				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
-				await goDesk("/app/selling", "body", 3000);
-				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-head"), null, { timeout: 20000 });
-
-				// Navigate once so a RECENT exists, then return.
-				await page.evaluate(() => window.frappe.set_route("stock"));
-				await page.waitForTimeout(1500);
-				await page.evaluate(() => window.frappe.set_route("selling"));
-				await page.waitForTimeout(1500);
-
-				const recent = await page.evaluate(() => ({
-					region: !!document.querySelector(".bnd-sb-shortcuts"),
-					recents: document.querySelectorAll(".bnd-sb-shortcuts .bnd-sb-shortcut[data-bnd-kind=\"recent\"]").length,
-				}));
-				expect(recent.region, "visiting pages alone summons the region (Stripe's model)");
-				expect(recent.recents > 0, `and it holds a recent (${recent.recents})`);
-
-				// Pin the current page from the head's menu.
-				await page.click(".bnd-sb-head");
-				await page.waitForSelector(".bnd-menu", { timeout: 5000 });
-				const pinLabel = await page.evaluate(() => {
-					const item = [...document.querySelectorAll(".bnd-menu-item")].find((b) => /pin/i.test(b.textContent));
-					if (!item) return null;
-					const label = item.textContent.trim();
-					item.click();
-					return label;
-				});
-				expect(pinLabel && /pin/i.test(pinLabel), `the menu offers a pin action (${pinLabel})`);
-				await page.waitForFunction(
-					() => document.querySelectorAll('.bnd-sb-shortcuts .bnd-sb-shortcut[data-bnd-kind="pin"]').length > 0,
-					null, { timeout: 8000 }
-				);
-
-				// The pinned row carries an ALWAYS-PRESENT unpin control — no
-				// hover requirement — and using it empties the pin back out.
-				const unpin = await page.evaluate(() => {
-					const row = document.querySelector('.bnd-sb-shortcut[data-bnd-kind="pin"]');
-					const btn = row && row.querySelector("button.bnd-sb-unpin");
-					if (!btn) return { present: false };
-					const cs = getComputedStyle(btn);
-					const visible = cs.display !== "none" && cs.visibility !== "hidden" && parseFloat(cs.opacity) > 0.5;
-					btn.click();
-					return { present: true, visible };
-				});
-				expect(unpin.present, "the pinned row carries its unpin control in the DOM");
-				expect(unpin.visible, "and it is visible at rest, not hover-summoned");
-				await page.waitForFunction(
-					() => document.querySelectorAll('.bnd-sb-shortcut[data-bnd-kind="pin"]').length === 0,
-					null, { timeout: 8000 }
-				);
-			} finally {
-				benchPy("frappe.defaults.clear_default('bnd_sb_pins', parent='Administrator')\nfrappe.db.commit()\nprint('ok')\n");
 				setSettings(before);
 			}
 		});
@@ -6437,7 +6284,11 @@ print("ok")
 							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 							shown: !!c && getComputedStyle(c).display !== "none",
 							width: c ? Math.round(c.getBoundingClientRect().width) : 0,
-							pill: vis(".bnd-sb-pill"),
+							// REVISED 2026-09-04: the pill is gone. What Hidden leaves is a way
+							// back -- the page head's button, or the start button on the rows
+							// that place one (the page-head brand stands down beside a start).
+							back: vis(".bnd-ph-show") || vis('[data-bnd-part="start"]'),
+							brand: vis(".bnd-ph-brand"),
 						};
 					});
 					expectEq(r.state, want.toLowerCase(), `${layout}: the pane starts ${want}`);
@@ -6445,13 +6296,13 @@ print("ok")
 					// acts on is the defect this project keeps finding in its own pickers.
 					if (want === "Hidden") {
 						expectEq(r.shown, false, `${layout}: and the pane really goes`);
-						expect(r.pill, `${layout}: leaving the brand pill`);
+						expect(r.back, `${layout}: leaving a way back — the page head's button or a start button`);
 					} else if (want === "Rail") {
 						expect(r.shown && r.width > 0 && r.width <= 80, `${layout}: a rail, not a pane (${r.width}px)`);
-						expectEq(r.pill, false, `${layout}: and no pill — the pane is right there`);
+						expectEq(r.brand, false, `${layout}: and no page-head brand — the pane is right there`);
 					} else {
 						expect(r.shown && r.width > 150, `${layout}: the pane is open (${r.width}px)`);
-						expectEq(r.pill, false, `${layout}: and no pill`);
+						expectEq(r.brand, false, `${layout}: and no page-head brand`);
 					}
 				}
 			} finally {
@@ -6523,9 +6374,10 @@ print("ok")
 				// pane's own handle both act on it, and the pill's button is right there.
 				const route = await page.evaluate(() => ({
 					container: !!document.querySelector(".body-sidebar-container"),
-					pill: !!document.querySelector(".bnd-sb-pill-open"),
+					// REVISED 2026-09-04: no pill. With the start button Off, the page head carries the way back.
+					back: !!document.querySelector(".bnd-ph-show"),
 				}));
-				expect(route.container && route.pill, `the pane is still reachable without it (${JSON.stringify(route)})`);
+				expect(route.container && route.back, `the pane is still reachable without it — the page head carries the way back (${JSON.stringify(route)})`);
 			} finally {
 				setSettings(before);
 			}
@@ -6533,8 +6385,8 @@ print("ok")
 
 		await test("sidepane: three states — Open, Rail, Hidden — and what each keeps", async () => {
 			// ITEM 42, SLICE 8. The third state is the one the user asked for: the pane
-			// GONE, with the company's mark and name surviving as a floating pill and one
-			// button back. The claim is not just that Hidden hides -- it is that each
+			// GONE, with the company mark and name surviving in the page head (v0.42.1;
+			// before that a floating pill) and one button back. The claim is not just that Hidden hides -- it is that each
 			// state keeps the things that state is supposed to keep, which is where the
 			// first cut of the rail was wrong (it hid the place row and took the
 			// workspace menu with it).
@@ -6547,13 +6399,16 @@ print("ok")
 				// taskbar-shaped choice, and the picker greys it with that reason when the
 				// placements make it impossible — so this drives the desk it belongs on.
 				setSettings({ desk_layout: "Top Taskbar" });
+				// REVISED 2026-09-04: no pill. Hidden keeps a WAY BACK -- the page
+				// head's brand-and-button, unless a start button already carries the
+				// mark (this layout has one), in which case the brand stands down.
 				const want = {
-					Open:   { pane: true,  pill: false, place: true },
+					Open:   { pane: true,  place: true },
 					// The rail keeps the place row's CHEVRON: that row carries the workspace
 					// cascade, the pins and collapse-all, and hiding it takes all three away
 					// from anybody working in a rail.
-					Rail:   { pane: true,  pill: false, place: true },
-					Hidden: { pane: false, pill: true,  place: false },
+					Rail:   { pane: true,  place: true },
+					Hidden: { pane: false, place: false },
 				};
 				for (const [state, expect_] of Object.entries(want)) {
 					setSettings({ sidebar_enabled: 1, sidebar_pane_state: state });
@@ -6569,20 +6424,23 @@ print("ok")
 						return {
 							attr: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 							pane: !!container && getComputedStyle(container).display !== "none",
-							pill: vis(".bnd-sb-pill"),
 							place: vis(".bnd-sb-head"),
-							pillName: ((document.querySelector(".bnd-sb-pill-name") || {}).textContent || "").trim(),
-							pillTile: !!document.querySelector(".bnd-sb-pill .bnd-sb-brand-mark"),
-							pillBack: !!document.querySelector(".bnd-sb-pill-open"),
+							brand: vis(".bnd-ph-brand"),
+							show: vis(".bnd-ph-show"),
+							start: vis('[data-bnd-part="start"]'),
+							brandName: ((document.querySelector(".bnd-ph-brand .bnd-sb-brand-name") || {}).textContent || "").trim(),
+							brandTile: !!document.querySelector(".bnd-ph-brand .bnd-sb-brand-mark"),
 						};
 					});
 					expectEq(r.attr, state.toLowerCase(), `${state}: the attribute says so`);
 					expectEq(r.pane, expect_.pane, `${state}: the pane is ${expect_.pane ? "there" : "gone"}`);
-					expectEq(r.pill, expect_.pill, `${state}: the pill is ${expect_.pill ? "shown" : "not shown"}`);
 					expectEq(r.place, expect_.place, `${state}: the place row (and its menu) is ${expect_.place ? "reachable" : "gone"}`);
 					if (state === "Hidden") {
-						expect(r.pillTile && r.pillBack, `Hidden: the pill carries the tile and the way back (${JSON.stringify(r)})`);
-						expect(r.pillName.length > 0, "Hidden: and names the company");
+						expect(r.show || r.start, `Hidden: a way back exists (${JSON.stringify(r)})`);
+						expectEq(r.brand, !r.start, "Hidden: the page-head brand appears exactly when no start button carries the mark");
+						if (r.brand) expect(r.brandTile && r.brandName.length > 0, `Hidden: the brand carries the tile and names the company (${JSON.stringify(r)})`);
+					} else {
+						expectEq(r.brand, false, `${state}: no page-head brand while the pane is there`);
 					}
 				}
 			} finally {
@@ -6636,6 +6494,9 @@ print("ok")
 						avatar: !!document.querySelector(".bnd-avatar-btn"),
 						bell: !!document.querySelector('[data-bnd-part="bell"]'),
 						band: !!document.querySelector(".bnd-sb-band"),
+						// REVISED 2026-09-04: a Hidden pane LENDS its tenants to the page head.
+						inHead: !!document.querySelector(".page-head .bnd-avatar-btn") && !!document.querySelector('.page-head [data-bnd-part="bell"]'),
+						back: !!document.querySelector(".page-head .bnd-ph-brand .bnd-ph-show"),
 					}));
 				const start = await read();
 				expect(start.avatar && start.bell && start.band,
@@ -6645,26 +6506,35 @@ print("ok")
 					await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
 					await page.waitForTimeout(900);
 					const now = await read();
-					expect(now.avatar && now.bell && now.band,
-						`after pane_state(${state}): the band and both tenants survive ` +
-						`(${JSON.stringify(now)})`);
+					if (state === "Hidden") {
+						expect(now.avatar && now.bell && now.inHead,
+							`after pane_state(Hidden): both tenants survive, LENT to the page head ` +
+							`(${JSON.stringify(now)})`);
+					} else {
+						expect(now.avatar && now.bell && now.band && !now.inHead,
+							`after pane_state(${state}): the band and both tenants are back in the pane ` +
+							`(${JSON.stringify(now)})`);
+					}
 				}
 
-				// AND THE GUARD REACHES THE RUNTIME GESTURE. It runs at mount; the start
-				// button and the pill are clicks. On THIS desk every route to identity is
-				// inside the pane, so Hidden has to be refused — the same two arms the
-				// check below asserts for the mount path, one gesture later.
+				// REVISED 2026-09-04. This arm used to assert the REFUSAL: hiding the pane
+				// that carried the only Log Out flipped it back to Open. That was the guard
+				// papering over a hole -- on the shipped desk Hidden could never be held.
+				// Now the page head lends the pane its tenants, so Hidden is honoured and
+				// identity is still one click away, at the head's end, beside the way back.
 				await page.evaluate(() => window.bunood_theme.pane_state("Hidden"));
 				await page.waitForTimeout(900);
-				const refused = await read();
-				expectEq(refused.state, "open",
-					"hiding a pane that carries the only Log Out is refused at runtime too");
+				const lent = await read();
+				expectEq(lent.state, "hidden",
+					"hiding the pane that carries the only Log Out is HONOURED: the page head lends it the tenants");
+				expect(lent.inHead && lent.back,
+					`and the head carries the bell, the account and the way back (${JSON.stringify(lent)})`);
 			} finally {
 				setSettings(before);
 			}
 		});
 
-		await test("sidepane: Hidden never strands identity — the guard sees the second way to hide a pane", async () => {
+		await test("sidepane: Hidden never strands identity — the page head lends the pane its tenants", async () => {
 			// THE SHARPEST INVARIANT IN THE APP, and Hidden opened a hole in it: the pane
 			// is where every stock affordance lives, and `guard_critical_reach` only knew
 			// the container being switched OFF. A desk with the bell and the account
@@ -6689,9 +6559,19 @@ print("ok")
 				const r = await page.evaluate(() => ({
 					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 					pane: (() => { const c = document.querySelector(".body-sidebar-container"); return !!c && getComputedStyle(c).display !== "none"; })(),
+					lent: !!document.querySelector('.page-head [data-bnd-part="bell"]') && !!document.querySelector(".page-head .bnd-avatar-btn"),
+					back: !!document.querySelector(".page-head .bnd-ph-brand .bnd-ph-show"),
+					inPane: !!document.querySelector(".body-sidebar .bnd-avatar-btn"),
 				}));
-				expectEq(r.state, "open", "the guard gave the pane back rather than strand identity in it");
-				expect(r.pane, "and the pane really renders");
+				// REVISED 2026-09-04: this arm used to expect the guard to FIRE and give the
+				// pane back. Lending makes that the wrong answer: the tenants placed in the
+				// hidden pane resolve to the page head's End zone, nothing is stranded, and
+				// the setting is honoured. The guard still stands behind it -- the second
+				// arm below is unchanged -- but on this row it has nothing to catch.
+				expectEq(r.state, "hidden", "Hidden holds: the page head lends the pane its tenants, so nothing is stranded");
+				expect(r.lent && !r.inPane, `the bell and the account are in the page head, not the hidden pane (${JSON.stringify(r)})`);
+				expect(r.back, "with the brand and the way back ahead of the crumbs");
+				expectEq(r.pane, false, "and the pane is really gone");
 
 				// The other direction: with our own chrome carrying identity, Hidden is a
 				// legitimate choice and the guard must leave it alone.

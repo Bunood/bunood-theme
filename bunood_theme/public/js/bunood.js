@@ -314,7 +314,10 @@
 		// Retire a chart whose container is gone. surfaces/_charts.scss.
 		function retire(c) {
 			try {
-				if (c && c.boundDrawFn) window.removeEventListener("resize", c.boundDrawFn);
+				// The vendor own destroy(): both window listeners AND the ResizeObserver
+				// on the parent, which the resize-only unbind left firing on dead charts.
+				if (c && typeof c.destroy === "function") c.destroy();
+				else if (c && c.boundDrawFn) window.removeEventListener("resize", c.boundDrawFn);
 			} catch (e) {
 				/* a vendor that stops binding this way must not take the desk down */
 			}
@@ -398,6 +401,24 @@
 			return chart;
 		}
 		BndChart.prototype = NativeChart.prototype;
+
+		// A redraw during the SMIL swap (the real svg is out of its container for
+		// 250ms; a ResizeObserver fires when our chrome mounts) is the removeChild
+		// pageerror. Put the real svg back first. Argument: surfaces/_charts.scss.
+		const native_area = NativeChart.prototype.makeChartArea;
+		if (typeof native_area === "function" && !native_area._bnd) {
+			const guarded = function () {
+				if (this.svg && this.container && this.svg.parentNode !== this.container) {
+					for (const n of Array.from(this.container.children)) {
+						if (n.tagName && n.tagName.toLowerCase() === "svg") this.container.removeChild(n);
+					}
+					this.container.appendChild(this.svg);
+				}
+				return native_area.apply(this, arguments);
+			};
+			guarded._bnd = true;
+			NativeChart.prototype.makeChartArea = guarded;
+		}
 		frappe.Chart = BndChart;
 
 		// The ONE honest theme-flip signal: frappe.ui.set_theme writes data-theme
@@ -927,9 +948,9 @@
 		// that held them leaves them behind in a node that has just been
 		// removed, or absent from the one that has just arrived.
 		sb_mount_utils();
-		// The brand pill (item 42) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pill();
-		else sb_teardown_pill();
+		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
 		defer_bottom_reserve();
 		// A shape change moves which route to Appearance exists, so the claim on
 		// Frappe's Display item is re-measured rather than assumed (item 38).
@@ -2211,7 +2232,13 @@
 		// any navigation.
 		pagehead: () => {
 			const page = (window.frappe && frappe.container && frappe.container.page) || document;
-			return page.querySelector(".page-head .bnd-cluster");
+			const have = page.querySelector(".page-head .bnd-cluster");
+			if (have || !sb_pane_hidden()) return have;
+			// Lending: reserve the head's cluster whether or not that container is on.
+			const section = page.querySelector(".page-head .standard-items-section");
+			if (!section) return null;
+			section.appendChild(el("span", "bnd-cluster-divider"));
+			return reserve_cluster(section);
 		},
 		dock: () => document.querySelector(".bnd-dock .bnd-cluster"),
 		sidepane: () => (sidebar_is_hidden() ? null : document.querySelector(".body-sidebar")),
@@ -2322,12 +2349,16 @@
 		if (label === "Off") return "off";
 		const { region, zone } = parse_slot(label);
 		if (!region) return "absent";
+		// A Hidden pane LENDS its tenants to the page head (argument in _sidebar.scss).
+		if (region === "sidepane" && sb_pane_hidden()) return host_for("pagehead", "end") ? "pagehead" : "absent";
 		return host_for(region, zone) ? region : "absent";
 	}
 
 	/** The zone a tenant asked for, for the region it resolved to. */
 	function zone_for(tenant) {
-		return parse_slot(active_placement(tenant)).zone || "end";
+		const slot = parse_slot(active_placement(tenant));
+		if (slot.region === "sidepane" && sb_pane_hidden()) return "end"; // lent
+		return slot.zone || "end";
 	}
 
 	/**
@@ -3569,6 +3600,12 @@ function sb_zone_anchor(pane, zone, node) {
 	function sidebar_is_hidden() {
 		const container = document.querySelector(".body-sidebar-container");
 		return !!container && getComputedStyle(container).display === "none";
+	}
+
+	/** Hidden WANTED, on a desktop — the setting, not what the DOM does yet. */
+	function sb_pane_hidden() {
+		const html = document.documentElement;
+		return html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
 	}
 
 	/** The slot the admin asked for, as a slug. */
@@ -6211,110 +6248,6 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The workspace shown by the crumb decorator; the module row reuses it. */
 	let sb_current_workspace = null;
 
-	/** Boot's resolved pins, until a toggle replaces them. */
-	let sb_pins = ((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).shortcuts || [];
-
-	/** The route as a pin key. */
-	function sb_route_key() {
-		return (frappe.get_route() || []).join("/").replace(/^[/]+|[/]+$/g, "") &&
-			("app/" + (frappe.get_route() || []).map((x) => (frappe.router && frappe.router.slug ? frappe.router.slug(String(x)) : String(x).toLowerCase())).join("/"))
-				.replace(/\/+$/, "");
-	}
-
-	/** What pinning HERE stores; doctype feeds the per-doctype cap. */
-	function sb_pin_payload() {
-		const route = frappe.get_route() || [];
-		const key = sb_route_key();
-		if (!key) return null;
-		const payload = { route: key, label: document.title.split(" | ")[0].trim().slice(0, 140) || key };
-		if (route[0] === "Form" && route[1]) {
-			payload.doctype = String(route[1]);
-			if (route[2]) payload.name = String(route[2]);
-		} else if (route[0] === "List" && route[1]) {
-			payload.doctype = String(route[1]);
-		}
-		return payload;
-	}
-
-	/** Pins first, then recents; appears only with rows. _sidebar.scss. */
-	function sb_mount_shortcuts() {
-		for (const n of document.querySelectorAll(".bnd-sb-shortcuts")) n.remove();
-		const sidebar = document.querySelector(".body-sidebar");
-		if (!sidebar) return;
-		const pinned = Array.isArray(sb_pins) ? sb_pins : [];
-		const taken = new Set(pinned.map((p) => p.r));
-		const here = sb_route_key();
-		taken.add(here);
-		// Frappe's route history; deduped by route AND label (palette lesson).
-		const seenLabels = new Set(pinned.map((p) => p.l));
-		const recents = [];
-		const hist = ((window.frappe && frappe.route_history) || []).slice(-25).reverse();
-		for (const r of hist) {
-			if (recents.length >= 3) break;
-			if (!Array.isArray(r) || !r.length) continue;
-			const key = "app/" + r.map((x) => (frappe.router && frappe.router.slug ? frappe.router.slug(String(x)) : String(x).toLowerCase())).join("/");
-			if (taken.has(key)) continue;
-			const label = r.length > 2 ? r[1] + " " + r[2] : r.length === 2 ? r[1] + " " + r[0] : String(r[0]);
-			if (seenLabels.has(label)) continue;
-			taken.add(key);
-			seenLabels.add(label);
-			recents.push({ r: key, l: label });
-		}
-		if (!pinned.length && !recents.length) return;
-
-		const region = el("div", "bnd-sb-shortcuts");
-		const title = el("div", "bnd-sb-shortcuts-title");
-		title.textContent = __("Shortcuts");
-		region.appendChild(title);
-		const row_for = (entry, kind) => {
-			const row = el("div", "bnd-sb-shortcut", { "data-bnd-kind": kind });
-			const go = el("button", "bnd-sb-shortcut-go", { type: "button", title: entry.l });
-			go.appendChild(sprite_icon(kind === "pin" ? "icon-pin" : "icon-clock"));
-			const label = el("span", "bnd-sb-shortcut-label");
-			label.textContent = entry.l;
-			go.appendChild(label);
-			go.addEventListener("click", () => {
-				const parts = entry.r.replace(/^app\//, "").split("/");
-				frappe.set_route(parts);
-			});
-			row.appendChild(go);
-			// In the DOM at rest — Fluent's position on row actions.
-			const act = el("button", "bnd-sb-unpin", {
-				type: "button",
-				title: kind === "pin" ? __("Unpin") : __("Pin"),
-				"aria-label": (kind === "pin" ? __("Unpin") : __("Pin")) + " " + entry.l,
-			});
-			act.appendChild(sprite_icon(kind === "pin" ? "icon-x" : "icon-pin"));
-			act.addEventListener("click", (e) => {
-				e.stopPropagation();
-				sb_toggle_pin({ route: entry.r, label: entry.l, doctype: entry.d, name: entry.n });
-			});
-			row.appendChild(act);
-			return row;
-		};
-		for (const pin of pinned) region.appendChild(row_for(pin, "pin"));
-		for (const r of recents) region.appendChild(row_for(r, "recent"));
-
-		const anchor = sidebar.querySelector(".bnd-sb-filter") || sidebar.querySelector(".bnd-sb-head");
-		if (anchor) anchor.insertAdjacentElement("afterend", region);
-		else sidebar.insertBefore(region, sidebar.firstChild);
-	}
-
-	function sb_teardown_shortcuts() {
-		for (const n of document.querySelectorAll(".bnd-sb-shortcuts")) n.remove();
-	}
-
-	/** One round-trip; the region re-renders from the answer. */
-	function sb_toggle_pin(payload) {
-		frappe
-			.xcall("bunood_theme.api.toggle_sb_pin", payload)
-			.then((res) => {
-				sb_pins = (res && res.pins) || [];
-				sb_mount_shortcuts();
-			})
-			.catch(() => {}); // the caps throw their number; Frappe showed it
-	}
-
 	/** The filter row. Argument: _sidebar.scss. */
 	function sb_mount_filter() {
 		if (!document.documentElement.hasAttribute("data-bnd-sb-filter")) {
@@ -6457,6 +6390,17 @@ function sb_zone_anchor(pane, zone, node) {
 			const company = el("span", "bnd-sb-brand-name");
 			company.textContent = frappe.boot.bnd_company || __("Home");
 			brand.appendChild(company);
+			const hide = el("button", "bnd-icon-btn bnd-sb-brand-hide", {
+				type: "button",
+				title: __("Hide the side pane"),
+				"aria-label": __("Hide the side pane"),
+			});
+			hide.appendChild(sprite_icon("es-line-sidebar-expand"));
+			hide.addEventListener("click", (e) => {
+				e.stopPropagation();
+				bunood.pane_state("Hidden");
+			});
+			brand.appendChild(hide);
 			sidebar.insertBefore(brand, sidebar.firstChild);
 		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
@@ -6480,10 +6424,19 @@ function sb_zone_anchor(pane, zone, node) {
 		claim_panehead();
 	}
 
-	/** What Hidden leaves behind — argument in _sidebar.scss. */
-	function sb_mount_pill() {
-		if (document.querySelector(".bnd-sb-pill")) return;
-		const pill = el("div", "bnd-sb-pill");
+	/** What Hidden leaves behind: the brand in the page head — argument in _sidebar.scss. */
+	function sb_mount_pagehead_brand() {
+		const page = (window.frappe && frappe.container && frappe.container.page) || null;
+		const title = page && page.querySelector(".page-head .page-title");
+		// A start button already carries the mark and the way back; two would be noise.
+		if (!title || !sb_pane_hidden() || document.querySelector('[data-bnd-part="start"]')) {
+			sb_teardown_pagehead_brand();
+			return;
+		}
+		for (const n of document.querySelectorAll(".bnd-ph-brand")) if (!title.contains(n)) n.remove();
+		if (title.querySelector(".bnd-ph-brand")) return;
+		const wrap = el("div", "bnd-ph-brand");
+		const home = el("button", "bnd-ph-home", { type: "button", title: __("Home"), "aria-label": __("Home") });
 		const mark = el("span", "bnd-sb-brand-mark");
 		if (frappe.boot.bnd_logo) {
 			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
@@ -6491,24 +6444,26 @@ function sb_zone_anchor(pane, zone, node) {
 			mark.classList.add("bnd-sb-brand-initial");
 			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
 		}
-		pill.appendChild(mark);
-		const name = el("span", "bnd-sb-brand-name bnd-sb-pill-name");
+		home.appendChild(mark);
+		const name = el("span", "bnd-sb-brand-name");
 		name.textContent = frappe.boot.bnd_company || __("Home");
-		pill.appendChild(name);
-		const back = el("button", "bnd-icon-btn bnd-sb-pill-open", {
+		home.appendChild(name);
+		home.addEventListener("click", () => frappe.set_route(""));
+		wrap.appendChild(home);
+		const show = el("button", "bnd-icon-btn bnd-ph-show", {
 			type: "button",
 			title: __("Show the side pane"),
 			"aria-label": __("Show the side pane"),
 		});
-		back.appendChild(sprite_icon("icon-sidebar-expand"));
-		back.addEventListener("click", () => bunood.pane_state("Open"));
-		pill.appendChild(back);
-		document.body.appendChild(pill);
+		show.appendChild(sprite_icon("es-line-sidebar-collapse"));
+		show.addEventListener("click", () => bunood.pane_state("Open"));
+		wrap.appendChild(show);
+		title.insertBefore(wrap, title.firstChild);
 	}
 
-	/** Remove it — the mirror, for CONTAINER_TEARDOWN. */
-	function sb_teardown_pill() {
-		for (const n of document.querySelectorAll(".bnd-sb-pill")) n.remove();
+	/** Remove it — the mirror. */
+	function sb_teardown_pagehead_brand() {
+		for (const n of document.querySelectorAll(".bnd-ph-brand")) n.remove();
 	}
 
 	/** The pane's state, page-locally — argument in _sidebar.scss. */
@@ -6516,8 +6471,14 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!sb_state) return;
 
 		bunood.sb_apply({ sidebar_pane_state: value });
-		// The guard runs at MOUNT; this is a runtime gesture. _sidebar.scss.
-		if (guard_critical_reach()) mount_placed_tenants();
+		// Re-place search and the tenants: a hidden pane lends them to the page head.
+		mount_search();
+		mount_placed_tenants();
+		if (guard_critical_reach()) {
+			mount_placed_tenants();
+			sidepane_sync("settings");
+		}
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -6568,19 +6529,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
 	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
 	function sb_head_menu() {
-		const payload = sb_pin_payload();
-		const pinnedHere = !!(payload && (sb_pins || []).some((p) => p.r === payload.route));
 		const items = [
-			...(payload
-				? [
-						{
-							label: pinnedHere ? __("Unpin this page") : __("Pin this page"),
-							icon: "icon-pin",
-							run: () => sb_toggle_pin(payload),
-						},
-						"divider",
-				  ]
-				: []),
 			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
 			{
 				label: __("All Apps"),
@@ -7372,7 +7321,6 @@ function sb_zone_anchor(pane, zone, node) {
 	const SB_PARTS = [
 		{ key: "head", volatile: false, mount: sb_mount_head, unmount: sb_teardown_head },
 		{ key: "filter", volatile: false, mount: sb_mount_filter, unmount: sb_teardown_filter },
-		{ key: "shortcuts", volatile: false, mount: sb_mount_shortcuts, unmount: sb_teardown_shortcuts },
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
 		{ key: "current", volatile: true, mount: sb_mark_current, unmount: sb_unmark_current },
@@ -7985,9 +7933,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// nowhere at all when the side pane was off. Idempotent — it clears its
 		// own previous mounts first — so the kit calling it too costs nothing.
 		sb_mount_utils();
-		// The brand pill (item 42) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pill();
-		else sb_teardown_pill();
+		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();
@@ -8025,8 +7973,11 @@ function sb_zone_anchor(pane, zone, node) {
 				if (container_on("dock")) update_dock_active();
 				sb_update_head();
 				sb_mark_current();
+				if (sb_pane_hidden() && container_on("sidepane")) {
+					sb_mount_pagehead_brand();
+					mount_placed_tenants();
+				}
 				// Recents churn with the route.
-				if (sb_active() && container_on("sidepane")) sb_mount_shortcuts();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration

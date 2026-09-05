@@ -22,6 +22,99 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.42.1] — 2026-09-04 — The pane, seen (item 42, patch)
+
+**Four defects the user found by looking, on a build the suite had passed 478/478.**
+Every one had a check; every check asserted an attribute, a count or a computed style,
+and none of them looked. The lesson is now a standing rule (memory, CLAUDE.md to
+follow): screenshot every state a change can be in, at the user's width as well as
+1440, and read the pictures before reporting done.
+
+### Fixed — the rail is an icon rail, and Frappe's own collapse is the same state
+
+- **The user's rail had every label clipped to one letter, the brand tile flush-left
+  and the account button off-axis.** It was not our Rail state at all: it was
+  **Frappe's own collapse** (`.collapse-sidebar-link`, the container without
+  `.expanded`, a 50px pane the vendor styles only by width), which no rule in
+  `_sidebar.scss` had ever addressed. Our own Rail, meanwhile, hid the whole list at
+  rest — a 52px strip carrying a tile, a chevron and the foot, and nothing a person
+  could navigate with. Both are now ONE visual state: rows keep their icons, centred;
+  labels, hints and edit affordances are `display: none` rather than clipped; the
+  brand, the head's chevron and the foot centre on the same axis; a section header
+  becomes one hairline where loose rows give way to sections (four collapsed sections
+  in a row drew four stacked lines — measured — so consecutive ones draw none).
+- **The search icon was missing from the rail at rest** while Frappe's collapse showed
+  it. `_inbox.scss` carried a repair for the OLD rest state — un-fade
+  `.standard-items-sections`, re-fade its other children so the Classic bell survived —
+  and the re-fade was the one rule still hiding the search row. Retired, with the
+  measurement in its place.
+- **The resting rail's keyboard check inverted.** It asserted a link REFUSED focus
+  (the old `visibility: hidden` list). Now: the label is gone, the icon is there, the
+  icon takes focus, and focus opens the rail so the label is read.
+
+### Changed — search renders as a bar
+
+Frappe's search row in the pane read as one more workspace link. It is an input in
+every product that puts search in a side pane, so it is drawn as one: a bordered field
+on the card surface, placeholder-weight ink, the `Ctrl+K` hint pinned to the end. Still
+the vendor's node and the vendor's click. The rail reduces it to its icon like every
+other row.
+
+### Changed — Hidden lends its tenants to the page head; the pill is gone
+
+- **The floating pill is replaced by the brand in the page head**, ahead of the
+  breadcrumbs with a hairline between: the tile, the company name (a button that
+  routes home) and the button that brings the pane back. The pane's own brand row
+  carries the matching control to hide it. Where a layout places a start button, the
+  start already carries the mark and the way back, so the page-head brand stands down
+  beside it. (The pill's glyph, `icon-sidebar-expand`, was never in the sprite and had
+  rendered empty; the vendor's `es-line-sidebar-expand` / `-collapse` pair is used, the
+  "collapse" glyph on the button that opens and vice versa, because that is which way
+  their chevrons point for a pane at the inline start.)
+- **Hidden means hidden.** On the shipped desk the bell and the account are placed IN
+  the pane, so Hidden stranded them, `guard_critical_reach` found identity unreachable
+  and flipped the pane back to Open — and, mid-flip, left an EMPTY 280px column with
+  nothing mounted in it (the user's second screenshot). Now a tenant whose slot is in a
+  hidden pane resolves to the **page head's End zone** (`placement_for`, `zone_for`,
+  `HOSTS.pagehead`, which reserves the head's cluster on demand whether or not the
+  page-head container is on). Identity stays one click away, the guard has nothing to
+  catch, the setting is honoured. Mounted per page from the route hook, since every
+  page container has its own head; a runtime state change re-places search and the
+  tenants before it mounts the brand. Two suite checks that asserted the REFUSAL now
+  assert the lend.
+- The doctype's and the picker's prose for Hidden no longer promise a pill.
+
+### Removed — Shortcuts, completely
+
+Item 40's pinned-and-recent region is retired at the user's call: `sb_pins` and its
+five functions, the `SB_PARTS` row, the head menu's pin item, the route remount
+(−118 lines of `bunood.js`); the stylesheet block and its rail arm (−96); `api.toggle_sb_pin`,
+`resolve_sb_pins` and the two caps (−95); `boot._sb_shortcuts` and the payload key;
+the `bnd_sb_pins` personal axis; three suite checks (−166); five `ar.po` rows. A patch
+(`v0_42_1.retire_shortcuts`) deletes every user's pin row through the table rather than
+`frappe.defaults` — the personal-axes guard reads any `frappe.defaults` call naming a
+key as that key being live, and this one is being retired.
+
+### Fixed — the `removeChild` pageerror, diagnosed properly
+
+It came back twice in 26-check runs after v0.42.0 shipped with `retire()`, so the first
+account was half right. Read from this bench's fork of frappe-charts: `configure()` also
+observes the chart's PARENT with a `ResizeObserver`, which the resize-only unbind left
+firing on dead charts — `retire()` now calls the vendor's own `destroy()`. And the throw
+needs no dead chart: `runSMILAnimation` takes the real svg out of its container for 250ms
+and parks an animated clone there; a `draw(true)` inside that window — the observer
+firing because our chrome just mounted and moved the page's width — reaches
+`container.removeChild(this.svg)` with the svg not a child. That race is why no probe ever
+reproduced it. `makeChartArea` is wrapped on the prototype to put the real svg back first;
+the swap's pending timeout then finds the clone gone and skips. Argument in
+`surfaces/_charts.scss`.
+
+### Budget
+
+`css_gzip` 22,600 → 22,900 (+184 measured): the rest state's second arm compiles every
+rule to two long selectors; the page-head brand and the search bar are the rest; the
+shortcuts block came out in the same commit. `js_gzip` fell.
+
 ## [0.42.0] — 2026-09-04 — The desk shapes, rebuilt (item 42)
 
 **`app_version` resumes here at 0.42.0**, from 0.37.1. It stopped tracking the tag

@@ -267,6 +267,8 @@
   // one size so the pane's two ends rhyme. Steps down with density like
   // the cell does, and the foot check reads it off the element.
   --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;   // the brand tile in the page head (Hidden) — a crumb's height
+  --bnd-sb-search-h: 32px;  // the pane's search bar; an input, so an input's height
   // The account panel's fixed inline size (8c): identity text CLAMPS to
   // it rather than stretching it - the check pins the panel at this width
   // with a 40-char Arabic name and a 45-char address.
@@ -560,6 +562,8 @@ html[data-bnd-density="comfortable"] {
   // and this one omits stays lowered for them. --bnd-sb-cell is here for
   // exactly that; the tile arrived later and has to join it.
   --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;   // the brand tile in the page head (Hidden) — a crumb's height
+  --bnd-sb-search-h: 32px;  // the pane's search bar; an input, so an input's height
 }
 html[data-bnd-density="compact"] {
   --bnd-row-h: 24px;

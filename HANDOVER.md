@@ -15,7 +15,7 @@
 (slice 7) · `e2736cc` (slices 9/S/I/B) · `c3cfea1` (slices 10/11). The account is in
 CHANGELOG `[0.42.0]`; ROADMAP item 42 is `[x]`. What shipped, in one breath: five desk
 shapes with `LAYOUT_PANE` as the catalogue's third half; the three-state pane (Open ·
-Rail · Hidden) with its start button and floating pill; six pane surfaces and four icon
+Rail · Hidden) with its start button and floating pill — **v0.42.1 (2026-09-04) replaced the pill with the brand in the page head, lent a hidden pane's tenants to that head, made the rail an icon rail, drew search as a bar and removed Shortcuts; CHANGELOG `[0.42.1]`**; six pane surfaces and four icon
 styles, both catalogues MEASURED rather than chosen; the Counts badge refitted; a Desk
 parts page on the settings Overview; the switch matrix over every layout × every switch
 × every pane state. Refused with a reason: Monogram (it is `icon_source: Letters` under

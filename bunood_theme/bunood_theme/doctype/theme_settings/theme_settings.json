@@ -460,7 +460,7 @@
    "options": "Open\nRail\nHidden",
    "default": "Open",
    "hidden": 1,
-   "description": "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
+   "description": "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it — the brand and a button to bring it back move into the page head, and anything placed in the pane follows."
   },
   {
    "fieldname": "sidebar_rail_trigger",
