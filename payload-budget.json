@@ -154,12 +154,15 @@
 		"page-head brand (the pill replacement) and the search bar are the rest. The",
 		"shortcuts block (96 lines) came out in the same commit, which is why +184 and not",
 		"+400. Growth is the two-arm rest state; it is the feature.",
-		"2026-09-05 INTEGRATION DECISION: the desk ceilings rise from 29,600 to 31,650 CSS gzip bytes and 133,000 to 149,000 JS gzip bytes to merge the reviewed Home, invoice workbench, mobile shell and non-overlay sidebar fixes with main's v0.42 pane-state catalogue, v0.42.1 native-collapse/page-head recovery, six pane surfaces, per-user preferences, resize support and ZATCA print additions. The measured merged bundles are 31,503 CSS and 147,992 JS gzip bytes. The merge removes the retired apps rail and duplicate in-pane expansion controls; no UI framework or runtime dependency was added."
+		"2026-09-05 INTEGRATION DECISION: the desk ceilings rise from 29,600 to 31,650 CSS gzip bytes and 133,000 to 149,000 JS gzip bytes to merge the reviewed Home, invoice workbench, mobile shell and non-overlay sidebar fixes with main's v0.42 pane-state catalogue, v0.42.1 native-collapse/page-head recovery, six pane surfaces, per-user preferences, resize support and ZATCA print additions. The measured merged bundles are 31,503 CSS and 147,992 JS gzip bytes. The merge removes the retired apps rail and duplicate in-pane expansion controls; no UI framework or runtime dependency was added.",
+		"AND web_css_gzip TO 4600 (2026-09-05, the workspace menu + place-row icon): +4 gzip.",
+		"Two tokens -- `--bnd-sb-head-ico`, `--bnd-menu-ico` -- live in _tokens.scss, which the",
+		"web sheet also compiles; nothing else in that change reaches a website page."
 	],
 	"ceiling": {
 		"css_gzip": 31650,
 		"js_gzip": 149000,
-		"web_css_gzip": 4500,
+		"web_css_gzip": 4600,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
 	},

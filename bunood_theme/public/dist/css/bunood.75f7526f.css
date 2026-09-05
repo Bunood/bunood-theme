@@ -83,6 +83,8 @@
   --bnd-sb-pane-pad: 8px;
   --bnd-sb-tile: 40px;
   --bnd-sb-ph-tile: 26px;
+  --bnd-sb-head-ico: 22px;
+  --bnd-menu-ico: 20px;
   --bnd-sb-search-h: 32px;
   --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
@@ -252,6 +254,8 @@ html[data-bnd-density=comfortable] {
   --bnd-sb-cell: 36px;
   --bnd-sb-tile: 40px;
   --bnd-sb-ph-tile: 26px;
+  --bnd-sb-head-ico: 22px;
+  --bnd-menu-ico: 20px;
   --bnd-sb-search-h: 32px;
 }
 
@@ -1494,9 +1498,30 @@ html[data-theme] .bnd-menu .bnd-menu-item {
   text-align: start;
   cursor: pointer;
 }
+html[data-theme] .bnd-menu .bnd-menu-item .bnd-menu-ico {
+  display: grid;
+  place-items: center;
+  inline-size: var(--bnd-menu-ico);
+  block-size: var(--bnd-menu-ico);
+  flex: none;
+}
+html[data-theme] .bnd-menu .bnd-menu-item .bnd-menu-img {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--bnd-radius-sm);
+  object-fit: contain;
+}
+html[data-theme] .bnd-menu .bnd-menu-item .bnd-menu-label {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 html[data-theme] .bnd-menu .bnd-menu-item svg {
-  inline-size: 15px;
-  block-size: 15px;
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
   flex: none;
   color: var(--bnd-ink-muted);
 }
@@ -1618,6 +1643,7 @@ html[data-theme] .bnd-acct-panel .bnd-acct-company svg,
 html[data-theme] .bnd-acct-panel .bnd-acct-company-opt svg {
   inline-size: 15px;
   block-size: 15px;
+  margin: 0;
   flex: none;
   color: var(--bnd-ink-muted);
 }
@@ -2424,7 +2450,7 @@ html[data-bnd-sb-color] .bnd-sb-head {
   border-radius: var(--bnd-radius-xl);
   background: var(--bnd-brand-solid);
   color: var(--bnd-on-brand);
-  font-size: var(--bnd-text-base);
+  font-size: var(--bnd-text-md);
   font-weight: var(--bnd-weight-medium);
   text-align: start;
   cursor: pointer;
@@ -2432,6 +2458,25 @@ html[data-bnd-sb-color] .bnd-sb-head {
 html[data-bnd-sb-color] .bnd-sb-head:hover {
   background: var(--bnd-brand-solid);
   filter: brightness(1.04);
+}
+html[data-bnd-sb-color] .bnd-sb-head .bnd-sb-head-ico {
+  display: grid;
+  place-items: center;
+  inline-size: var(--bnd-sb-head-ico);
+  block-size: var(--bnd-sb-head-ico);
+  flex: none;
+}
+html[data-bnd-sb-color] .bnd-sb-head .bnd-sb-head-ico svg {
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  color: var(--bnd-sb-ink-muted);
+}
+html[data-bnd-sb-color] .bnd-sb-head .bnd-sb-head-ico img {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--bnd-radius-sm);
+  object-fit: contain;
 }
 html[data-bnd-sb-color] .bnd-sb-head .bnd-sb-head-name {
   overflow: hidden;
@@ -3251,7 +3296,7 @@ html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sideba
   padding-inline: 0;
 }
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-head-chev {
-  margin-inline-start: 0;
+  display: none;
 }
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-item {
   justify-content: center;

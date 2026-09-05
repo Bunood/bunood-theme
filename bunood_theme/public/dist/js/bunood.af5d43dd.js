@@ -1782,6 +1782,20 @@
 		return sb_existing_symbol([want, "icon-folder-normal"]) || want;
 	}
 
+	/** A workspace's ORIGINAL desktop icon (the vendor's header uses the same
+	 *  resolver), or "" — `frappe.utils.get_desktop_icon` answers false when
+	 *  the app ships none for that label. */
+	function ws_original_icon(w) {
+		try {
+			const get = window.frappe && frappe.utils && frappe.utils.get_desktop_icon;
+			if (typeof get !== "function" || !w) return "";
+			const style = (frappe.boot && frappe.boot.desktop_icon_style) || "solid";
+			return get.call(frappe.utils, w.title || w.name, style) || "";
+		} catch (e) {
+			return "";
+		}
+	}
+
 	/**
 	 * Clone the icon out of a native control so our proxy button looks exactly
 	 * like the thing it forwards to, whatever icon set this Frappe version
@@ -2448,8 +2462,14 @@
 				role: "menuitem",
 				tabindex: "-1",
 			});
-			if (item.icon) btn.appendChild(sprite_icon(item.icon));
-			btn.appendChild(document.createTextNode(item.label));
+			// One 20px cell per row, image or sprite, so the labels share a column.
+			const ico = el("span", "bnd-menu-ico");
+			if (item.image) ico.appendChild(el("img", "bnd-menu-img", { src: item.image, alt: "" }));
+			else if (item.icon) ico.appendChild(sprite_icon(item.icon));
+			btn.appendChild(ico);
+			const label = el("span", "bnd-menu-label");
+			label.textContent = item.label;
+			btn.appendChild(label);
 			btn.addEventListener("click", () => {
 				close_menu();
 				try {
@@ -6948,6 +6968,7 @@ function sb_zone_anchor(pane, zone, node) {
 				"aria-haspopup": "menu",
 				"aria-expanded": "false",
 			});
+			head.appendChild(el("span", "bnd-sb-head-ico"));
 			head.appendChild(el("span", "bnd-sb-head-name"));
 			const chev = el("span", "bnd-sb-head-chev");
 			chev.appendChild(sprite_icon("icon-chevron-down"));
@@ -7038,6 +7059,13 @@ function sb_zone_anchor(pane, zone, node) {
 		const ws = sb_current_workspace;
 		const label = (ws && __(ws.title || ws.name)) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
+		const ico = document.querySelector(".bnd-sb-head .bnd-sb-head-ico");
+		if (ico) {
+			ico.textContent = "";
+			const image = ws ? ws_original_icon(ws) : "";
+			if (image) ico.appendChild(el("img", "bnd-sb-head-img", { src: image, alt: "" }));
+			else ico.appendChild(sprite_icon(ws ? ws_symbol(ws.icon) : "icon-home"));
+		}
 		// The landmark shares this label: one writer, no drift.
 		const pane = document.querySelector(".body-sidebar");
 		if (pane) {
@@ -7091,6 +7119,7 @@ function sb_zone_anchor(pane, zone, node) {
 			items.push({
 				label: __(w.title || w.name),
 				icon: ws_symbol(w.icon),
+				image: ws_original_icon(w),
 				run: () => frappe.set_route(ws_route(w.name)),
 			});
 		}

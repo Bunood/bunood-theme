@@ -910,7 +910,9 @@ html[data-bnd-sb-color] .bnd-sb-head {
 	border-radius: var(--bnd-radius-xl);
 	background: var(--bnd-brand-solid);
 	color: var(--bnd-on-brand);
-  font-size: var(--bnd-text-base);
+  // The module's name is the pane's heading, one step above the rows (the user
+  // asked for it larger, 2026-09-05), with the module's own icon before it.
+  font-size: var(--bnd-text-md);
   font-weight: var(--bnd-weight-medium);
   text-align: start;
   cursor: pointer;
@@ -919,6 +921,28 @@ html[data-bnd-sb-color] .bnd-sb-head {
 		background: var(--bnd-brand-solid);
 		filter: brightness(1.04);
 	}
+
+  .bnd-sb-head-ico {
+    display: grid;
+    place-items: center;
+    inline-size: var(--bnd-sb-head-ico);
+    block-size: var(--bnd-sb-head-ico);
+    flex: none;
+
+    svg {
+      inline-size: 18px;
+      block-size: 18px;
+      margin: 0; // the vendor's `.icon { margin: 0 auto }` -- _cluster.scss, the menu
+      color: var(--bnd-sb-ink-muted);
+    }
+
+    img {
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: var(--bnd-radius-sm);
+      object-fit: contain;
+    }
+  }
 
   .bnd-sb-head-name {
     overflow: hidden;
@@ -2248,8 +2272,9 @@ html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sideba
     padding-inline: 0;
   }
 
+  // The module's icon is the row at rest; a bare chevron said nothing.
   .bnd-sb-head-chev {
-    margin-inline-start: 0;
+    display: none;
   }
 
   .bnd-sb-item {

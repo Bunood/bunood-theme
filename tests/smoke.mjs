@@ -7148,6 +7148,54 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: the workspace menu keeps one icon column, and the modules wear their own icons", async () => {
+			// THE USER'S SCREENSHOT (2026-09-05): labels end-aligned, the icon at a
+			// different x on every row. Measured root cause: Frappe's `.icon { margin:
+			// 0 auto }` on every sprite svg -- inside our flex row the auto margins
+			// absorb the free space and push the label to the end by the label's own
+			// width. `.bnd-menu-ico` is a fixed cell, the svg's margin is zeroed, and a
+			// module with an original desktop icon (the vendor's own resolver,
+			// `frappe.utils.get_desktop_icon`) renders it as an <img> in that cell.
+			// The place row carries the same icon before a name one step larger.
+			//
+			// Watched failing before the fix: icon x = 128,122,131,120,126; no head icon.
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
+				await goDesk("/app/buying", ".bnd-sb-head", 3000);
+				await page.click(".bnd-sb-head");
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 5000 });
+				const r = await page.evaluate(() => {
+					const rows = [...document.querySelectorAll(".bnd-menu .bnd-menu-item")];
+					const icoX = rows.map((n) => { const i = n.querySelector(".bnd-menu-ico"); return i ? Math.round(i.getBoundingClientRect().left) : -1; });
+					const labelX = rows.map((n) => { const l = n.querySelector(".bnd-menu-label"); return l ? Math.round(l.getBoundingClientRect().left) : -1; });
+					const originals = rows.filter((n) => n.querySelector("img.bnd-menu-img")).length;
+					const style = frappe.boot.desktop_icon_style || "solid";
+					const expectOriginals = (frappe.boot.allowed_workspaces || []).filter(
+						(w) => !w.parent_page && frappe.utils.get_desktop_icon && frappe.utils.get_desktop_icon(w.title || w.name, style)
+					).length;
+					const head = document.querySelector(".bnd-sb-head");
+					const headIco = head && head.querySelector(".bnd-sb-head-ico img, .bnd-sb-head-ico svg");
+					return {
+						rows: rows.length, icoX, labelX, originals, expectOriginals,
+						headIco: !!headIco,
+						headFont: parseFloat(getComputedStyle(head.querySelector(".bnd-sb-head-name")).fontSize),
+						rowFont: parseFloat(getComputedStyle(rows[0]).fontSize),
+					};
+				});
+				await page.keyboard.press("Escape");
+				expect(r.rows >= 5, `the menu has rows to measure (${r.rows})`);
+				expect(new Set(r.icoX).size === 1 && r.icoX[0] > 0, `every icon sits in ONE column (${r.icoX.join(",")})`);
+				expect(new Set(r.labelX).size === 1, `and every label starts at the same x (${r.labelX.join(",")})`);
+				expect(r.expectOriginals > 0, "premise: this desk has modules with original desktop icons");
+				expectEq(r.originals, r.expectOriginals, "each module that has an original icon renders it, and no other row does");
+				expect(r.headIco, "the place row carries the workspace's icon");
+				expect(r.headFont > r.rowFont, `and its name is set larger than a menu row (${r.headFont}px vs ${r.rowFont}px)`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: three states — Open, Rail, Hidden — and what each keeps", async () => {
 			// ITEM 42, SLICE 8. The third state is the one the user asked for: the pane
 			// GONE, with the company mark and name surviving in the page head (v0.42.1;

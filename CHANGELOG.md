@@ -84,6 +84,21 @@ other row.
   assert the lend.
 - The doctype's and the picker's prose for Hidden no longer promise a pill.
 
+### Fixed — the workspace menu aligns, and modules wear their own icons
+
+The user's screenshot showed the place-row menu with labels end-aligned and the icon at a
+different x on every row. Measured root cause: Frappe's `.icon { margin: 0 auto }` on every
+sprite svg — inside our flex row the two auto margins split the free space, floating the
+icon to the middle and pushing the label to the end by the label's own width. The same
+rule had scattered the account panel's icons (the "root cause not yet found" of item 42's
+notes). Every menu row now has a fixed 20px icon cell and a label span, the svg's margin
+is zeroed in both the menu and the account panel, and a module with an original desktop
+icon — resolved by the vendor's own `frappe.utils.get_desktop_icon`, in the site's
+desktop-icon style — renders it in that cell; the rest keep their sprite. The place row
+gets the same icon before the module's name, set one step larger (`--bnd-text-md`), and
+shows the icon rather than a bare chevron in the rail. Checked by a new suite row that
+measures the columns, counts the originals and reads the head's font size.
+
 ### Removed — Shortcuts, completely
 
 Item 40's pinned-and-recent region is retired at the user's call: `sb_pins` and its

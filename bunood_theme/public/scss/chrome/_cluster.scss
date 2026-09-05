@@ -141,9 +141,41 @@ html[data-theme] .bnd-menu {
     text-align: start;
     cursor: pointer;
 
+    // ONE ICON COLUMN. Measured 2026-09-05 from the user's screenshot of the
+    // workspace menu: labels end-aligned, icons at a different x on every row
+    // (128, 122, 131, 120, 126 px). Root cause: Frappe's `.icon { margin: 0 auto }`
+    // on every sprite svg -- inside a flex row the two auto margins split the
+    // free space, so the icon floats to the middle and pushes the label to the
+    // end, by an amount that depends on the label's width. Zeroing the margin
+    // is the fix; the fixed cell is what keeps sprites and the modules' own
+    // desktop-icon images (20px tiles) on the same column.
+    .bnd-menu-ico {
+      display: grid;
+      place-items: center;
+      inline-size: var(--bnd-menu-ico);
+      block-size: var(--bnd-menu-ico);
+      flex: none;
+    }
+
+    .bnd-menu-img {
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: var(--bnd-radius-sm);
+      object-fit: contain;
+    }
+
+    .bnd-menu-label {
+      flex: 1;
+      min-inline-size: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
     svg {
-      inline-size: 15px;
-      block-size: 15px;
+      inline-size: 16px;
+      block-size: 16px;
+      margin: 0; // beats the vendor's `.icon { margin: 0 auto }` -- see above
       flex: none;
       color: var(--bnd-ink-muted);
     }
@@ -290,6 +322,7 @@ html[data-theme] .bnd-acct-panel {
     svg {
       inline-size: 15px;
       block-size: 15px;
+      margin: 0; // the same vendor auto-margin that scattered the menu's icons
       flex: none;
       color: var(--bnd-ink-muted);
     }
