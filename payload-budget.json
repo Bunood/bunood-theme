@@ -157,10 +157,11 @@
 		"2026-09-05 INTEGRATION DECISION: the desk ceilings rise from 29,600 to 31,650 CSS gzip bytes and 133,000 to 149,000 JS gzip bytes to merge the reviewed Home, invoice workbench, mobile shell and non-overlay sidebar fixes with main's v0.42 pane-state catalogue, v0.42.1 native-collapse/page-head recovery, six pane surfaces, per-user preferences, resize support and ZATCA print additions. The measured merged bundles are 31,503 CSS and 147,992 JS gzip bytes. The merge removes the retired apps rail and duplicate in-pane expansion controls; no UI framework or runtime dependency was added.",
 		"AND web_css_gzip TO 4600 (2026-09-05, the workspace menu + place-row icon): +4 gzip.",
 		"Two tokens -- `--bnd-sb-head-ico`, `--bnd-menu-ico` -- live in _tokens.scss, which the",
-		"web sheet also compiles; nothing else in that change reaches a website page."
+		"web sheet also compiles; nothing else in that change reaches a website page.",
+		"AND css_gzip 31650 -> 31800 (measured 31683) (2026-09-05): the pane's hide button, restored after the overhaul merge dropped it -- a positioned sibling of the brand row (which is a <button> in the overhaul), its glyph sizing and its focus ring."
 	],
 	"ceiling": {
-		"css_gzip": 31650,
+		"css_gzip": 31800,
 		"js_gzip": 149000,
 		"web_css_gzip": 4600,
 		"email_css_gzip": 2000,

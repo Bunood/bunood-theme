@@ -117,12 +117,19 @@ APP_CONTAINERS=(
 	"${BASE_PREFIX}-queue-short-1"
 	"${BASE_PREFIX}-scheduler-1"
 )
+# The backend is required; the workers are shipped to WHEN THEY EXIST. A local stack
+# (compose.yaml + compose.local.yaml) runs backend + websocket only, and with the app
+# bind-mounted the mirror below is the deploy anyway -- a missing queue-long here
+# was a hard exit that shipped nothing (2026-09-05).
+container_exists "$BACKEND" || {
+	say "ERROR: required container '$BACKEND' not found. check docker ps --format '{{.Names}}'"
+	exit 1
+}
+PRESENT=()
 for c in "${APP_CONTAINERS[@]}"; do
-	container_exists "$c" || {
-		say "ERROR: required container '$c' not found. check docker ps --format '{{.Names}}'"
-		exit 1
-	}
+	if container_exists "$c"; then PRESENT+=("$c"); else say "  (no $c on this stack — skipped)"; fi
 done
+APP_CONTAINERS=("${PRESENT[@]}")
 
 # Reject incompatible upstream state before any deployment mutation.
 BND_BACKEND="$BACKEND" BND_SITE="$SITE" bash tools/upstream-preflight.sh

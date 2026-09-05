@@ -6960,6 +6960,18 @@ function sb_zone_anchor(pane, zone, node) {
 			brand.appendChild(company);
 			brand.addEventListener("click", go_home);
 			sidebar.insertBefore(brand, sidebar.firstChild);
+			// The way out (v0.42.1). A sibling, not a child: the brand row is a button.
+			const hide = el("button", "bnd-icon-btn bnd-sb-brand-hide", {
+				type: "button",
+				title: __("Hide the side pane"),
+				"aria-label": __("Hide the side pane"),
+			});
+			hide.appendChild(sprite_icon("es-line-sidebar-expand"));
+			hide.addEventListener("click", (e) => {
+				e.stopPropagation();
+				bunood.pane_state("Hidden");
+			});
+			brand.insertAdjacentElement("afterend", hide);
 		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
@@ -8014,7 +8026,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Remove the head. */
 	function sb_teardown_head() {
-		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand")) n.remove();
+		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand, .bnd-sb-brand-hide")) n.remove();
 		claim_panehead();
 	}
 
