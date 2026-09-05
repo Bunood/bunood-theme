@@ -188,6 +188,25 @@ AXES = (
         ),
     },
     {
+        "key": "bnd_pane_state",
+        "kind": PREFERENCE,
+        "label": "Side pane",
+        "values": ("Open", "Rail", "Hidden"),
+        # COMFORT, not look. How much of the screen the pane takes is the same
+        # kind of question as density -- it is about working room, not about
+        # how the desk is styled -- and `personal.py`'s own rule for that
+        # family is what `bnd_density` sits under.
+        "lock": "personal_comfort",
+        "boot": "bnd_pane_state",
+        "empty": "follow the site's sidebar_pane_state",
+        "since": "item 42",
+        "note": (
+            "The third state is what makes this worth having per person: one desk "
+            "wants every workspace listed, the next wants the screen. Rail was "
+            "already a per-site choice; Hidden is the one people ask for."
+        ),
+    },
+    {
         "key": "bnd_density",
         "kind": PREFERENCE,
         "label": "Density",

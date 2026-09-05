@@ -192,6 +192,6 @@ html[data-theme] :is(.modal, .form-in-grid) {
 // control is the authority. Rail mode sizes `.body-sidebar` through our own
 // rules and outranks Frappe's; below 768 the pane is Frappe's drawer and
 // their default is theirs to keep (slice 11's vocabulary).
-html[data-bnd-sb-menurail="expanded"]:not([data-bnd-narrow]) .body-sidebar-container {
+html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-container {
   --sidebar-width: var(--bnd-sb-w);
 }

@@ -53,7 +53,15 @@ NAME_HINTS = (
     (("customer", "supplier", "employee", "contact", "member", "student", "patient", "party", "lead", "user"), "icon-users"),
     (("item", "product", "stock", "warehouse", "batch", "serial", "inventory", "packing", "delivery", "shipment"), "icon-stock"),
     (("purchase", "buying", "procurement"), "icon-buying"),
-    (("sales", "selling", "order", "quotation", "opportunity"), "icon-shopping-cart"),
+    # THE SALES BUCKET, SPLIT (item 42, slice I). One entry used to answer for
+    # quotations, orders and opportunities with a shopping cart, so a Selling
+    # workspace drew the same glyph on three sibling rows -- and a row's icon is
+    # only worth anything if it tells that row apart from its neighbours. A
+    # quotation is a document being written, not a cart. `icon-file-pen` rather
+    # than the plan's `icon-file-text`, because that id is already the journal /
+    # voucher bucket's and the split would have swapped one collision for another.
+    (("quotation", "quote", "proposal", "estimate"), "icon-file-pen"),
+    (("sales", "selling", "order", "opportunity"), "icon-shopping-cart"),
     (("company", "organization", "branch", "department", "cost center"), "icon-organization"),
     (("project", "task", "timesheet", "activity"), "icon-project"),
     (("journal", "voucher", "entry", "note", "ledger post"), "icon-file-text"),
@@ -145,6 +153,68 @@ def _norm_fa(icon):
     return ""
 
 
+def sprite_for_item_icon(icon, sprite_ids=None):
+    """A verified sprite id for a SIDEBAR ROW's own `icon` value, or None.
+
+    NOT THE SAME VOCABULARY AS `sprite_for_fa`, and that cost a measurement to
+    learn. `DocType.icon` still holds FontAwesome (`fa fa-cog`), which is what
+    that function reads; a `Workspace Sidebar Item.icon` holds a BARE v16 sprite
+    name -- `home`, `chart`, `sell`, `receipt-text` -- because `frappe.utils.icon()`
+    prefixes `#icon-` at render time. Handing a bare name to `sprite_for_fa`
+    returns None for every row, silently: `_norm_fa` answers "" for anything not
+    starting with `fa-`, so the whole signal reads as absent and the keyword
+    guess wins again. That is what it did until this function existed, and the
+    only reason it was caught is that the audit printed the glyphs rather than a
+    pass.
+
+    Accepts all three spellings a row can hold, most literal first, and verifies
+    every one against `sprite_ids` -- an id the sprite lacks renders an EMPTY
+    BOX, which is worse than the fallback it would displace.
+    """
+    raw = str(icon).strip() if icon else ""
+    if not raw:
+        return None
+    if raw.startswith("icon-") or raw.startswith("es-"):
+        return raw if (sprite_ids is None or raw in sprite_ids) else None
+    fa = sprite_for_fa(raw, sprite_ids)
+    if fa:
+        return fa
+    direct = "icon-" + raw.split()[-1]
+    if sprite_ids is not None and direct in sprite_ids:
+        return direct
+    return None
+
+
+def sprite_ids():
+    """The ids in the shipped sprite snapshot, as a set. Cached after the first read.
+
+    ONE SNAPSHOT, THREE CONSUMERS: `tools/check_icons.py` holds this module to it,
+    the suite's Smart audit measures against it, and `boot._apply_icon_inference`
+    needs it to answer whether a row's OWN icon is usable -- an id the sprite does
+    not have renders an empty box, which is worse than the guess it displaced.
+
+    Returns an empty set if the file is missing rather than raising: a degraded
+    inference is a worse desk, an exception here is no desk at all.
+    """
+    global _SPRITE_IDS
+    if _SPRITE_IDS is None:
+        import json
+        import os
+
+        path = os.path.join(os.path.dirname(__file__), "data", "sprite_ids.json")
+        try:
+            with open(path, encoding="utf-8") as fh:
+                _SPRITE_IDS = frozenset(json.load(fh)["ids"])
+        except Exception:
+            _SPRITE_IDS = frozenset()
+    return _SPRITE_IDS
+
+
+#: Filled on first `sprite_ids()` call; the file ships with the app and never
+#: changes at runtime, so one read is one read.
+_SPRITE_IDS = None
+
+
 def sprite_for_fa(icon, sprite_ids=None):
     """A verified sprite id for a `DocType.icon` value, or None.
 
@@ -183,7 +253,7 @@ def sprite_for_name(name):
     return None
 
 
-def icon_for_item(item, doctype_icons=None):
+def icon_for_item(item, doctype_icons=None, sprite_ids=None):
     """The full inference for one boot sidebar item — a verified sprite id, or
     None to mean "no better idea, leave the fallback to the caller".
 
@@ -191,9 +261,36 @@ def icon_for_item(item, doctype_icons=None):
     `link_to`, `link_type` and (for reports) `report.ref_doctype`. Signals run
     strongest-first:
 
-      1. The DocType's OWN icon (highest precision, 168 doctypes carry one),
-         reached for a DocType link and for a Report via its `ref_doctype`.
-      2. A keyword hit on the untranslated `link_to`.
+      1. The ROW'S OWN icon, wherever it resolves to a real sprite id.
+      2. The DocType's icon (168 doctypes carry one), reached for a DocType
+         link and for a Report via its `ref_doctype`.
+      3. A keyword hit on the untranslated `link_to`.
+
+    THE ORDER IS ITEM 42's, AND IT IS THE REVERSE OF WHAT SHIPPED. Inference
+    used to run the doctype map first and the keyword pass second, overriding
+    whatever the row held on the theory that Frappe's shipped icons are generic.
+    Measured on this site, over 541 links in 25 sidebars, both halves of that
+    were wrong:
+
+      * The KEYWORD pass is a CATEGORY guess and it beat specific icons. On
+        Selling, `link_to` is the WORKSPACE name for two link types -- `Home`
+        (Workspace -> "Selling") and `Dashboard` (Dashboard -> "Selling") -- so
+        both matched the word "selling" and were rewritten from their shipped
+        `home` and `chart` to a shopping cart.
+      * The DOCTYPE map is not more specific than the row either. Sales Order
+        ships `sell` and Sales Invoice ships `receipt` on the ROW, while their
+        doctypes both resolve to a generic file -- so six Selling rows wore one
+        glyph, and the two that had a good one lost it.
+
+    A row's icon is only worth anything if it tells that row apart from its
+    neighbours, and the person who wrote the row is the one who chose for THAT
+    row. Everything else is a fallback for rows nobody chose for.
+
+    `sprite_ids` is what makes "usable" checkable: an icon the record holds but
+    the sprite does not have renders an EMPTY BOX, which is worse than the
+    guess it displaced -- so that case still falls through to the keyword pass.
+    Optional, and omitting it means "assume the row's own icon is usable", which
+    is the conservative reading for a caller that cannot check.
 
     `doctype_icons` maps DocType name → already-resolved sprite id (built by
     `api.get_doctype_icon_map`, whose values are verified there). Optional so the
@@ -204,7 +301,17 @@ def icon_for_item(item, doctype_icons=None):
     link_type = item.get("link_type")
     link_to = item.get("link_to")
 
-    # 1. The doctype's own icon.
+    # 1. The row's own icon, wherever it resolves. `sprite_ids` is what makes
+    #    "resolves" checkable: an icon the record holds but the sprite does not
+    #    have renders an EMPTY BOX, which is worse than the fallback it would
+    #    displace, so that case falls through. Omitting `sprite_ids` means
+    #    "assume it is usable" -- the conservative reading for a caller that
+    #    cannot check, and what the mapping's own unit tests pass.
+    own = sprite_for_item_icon(item.get("icon"), sprite_ids)
+    if own:
+        return own
+
+    # 2. The doctype's own icon.
     doctype = None
     if link_type == "DocType" and link_to:
         doctype = link_to
@@ -214,5 +321,5 @@ def icon_for_item(item, doctype_icons=None):
     if doctype and doctype_icons and doctype in doctype_icons:
         return doctype_icons[doctype]
 
-    # 2. Keyword on the untranslated name.
+    # 3. Keyword on the untranslated name.
     return sprite_for_name(link_to or item.get("label"))

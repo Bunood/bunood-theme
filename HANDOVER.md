@@ -346,6 +346,43 @@ artifacts is intentionally untouched and must not be swept into the commit.
 
 ## 1. Where the work stands
 
+**ITEM 42 IS BUILT AND RELEASED AS v0.42.0 (2026-09-04): 478/478, all thirteen slices,
+`app_version` resumed at 0.42.0 from 0.37.1.** Commits `61b8c77` (slice 8) · `78ac43a`
+(slice 7) · `e2736cc` (slices 9/S/I/B) · `c3cfea1` (slices 10/11). The account is in
+CHANGELOG `[0.42.0]`; ROADMAP item 42 is `[x]`. What shipped, in one breath: five desk
+shapes with `LAYOUT_PANE` as the catalogue's third half; the three-state pane (Open ·
+Rail · Hidden) with its start button and floating pill; six pane surfaces and four icon
+styles, both catalogues MEASURED rather than chosen; the Counts badge refitted; a Desk
+parts page on the settings Overview; the switch matrix over every layout × every switch
+× every pane state. Refused with a reason: Monogram (it is `icon_source: Letters` under
+another field's name).
+
+**Four facts from this item that will cost time if rediscovered:**
+
+- **A brand tint on the pane crosses AA at ONE per cent.** `palette.sb_hues` fits the
+  seven category hues to land exactly on 4.6:1 against the pane, so there is no headroom.
+  A surface that tints the pane needs its own hue block (`sb_hues(polarity, tint)`).
+- **Three defects of one shape — something bound to what a later render replaces.** A
+  `pane_state` write destroyed the account band (one click, no route to Log Out until
+  reload); the Desk parts handlers went dead after five switch clicks; that page drew
+  nothing on a cold form. Bind by delegation to a root that outlives renders, and let a
+  surface that depends on a fetch own its own wait.
+- **frappe-charts leaks one window `resize` listener per chart and removes it nowhere**,
+  so a dead chart redraws into a detached container on the next resize and throws
+  `removeChild`. It needs a chart to have died first — no isolated probe reproduces it,
+  four consecutive full runs did. `retire()` in the chart kit unbinds it; the pageerror
+  capture keeps four frames now so a recurrence names its caller.
+- **Icon inference precedence was backwards** (doctype map and keyword pass both outranked
+  the row's own icon); a `Workspace Sidebar Item.icon` is a BARE v16 sprite name, not a fa
+  class, and `sprite_for_fa` answered None for every one silently. 407 rows resolved →
+  448.
+
+**Tags:** `v0.42.0` is cut at the HANDOVER commit on top of `c3cfea1`; `v0.40.0` (`ff6dd9d`)
+and `v0.42.0` are pushed with `main`. **`v0.41.0` is cut at `dd32157`** (2026-09-04, at the
+user's instruction) — the last commit before any item-42 source, so the release named
+for Hesham's ZATCA re-merge carries none of item 42. Version files there read 0.37.1;
+the invariant resumes at v0.42.0, as CHANGELOG `[0.41.0]` records.
+
 **VERSION NUMBERING CHANGED 2026-08-20, AND IT IS A STANDING RULE: MINOR IS THE ROADMAP
 ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
 fixes-on-top. The old increment-by-one scheme had drifted EIGHT behind the roadmap (0.20.0
@@ -2355,6 +2392,10 @@ check that was verified by putting the defect back and watching it turn red.
 
 ## 2. Waiting on the user
 
+0. **Ten fuzzy `ar.po` rows from item 42** (six surface and icon-style names, the Desk
+   parts labels) are machine-proposed and served — fuzzy rows reach the CSV — but nobody
+   has reviewed the Arabic — REVIEWED 2026-09-04 (four corrected, one mojibake
+   repaired); 89 fuzzy rows remain from earlier items. `v0.41.0` is cut (above).
 1. **Release.** Item 17 (was 32) is a MINOR by the versioning policy but sits in
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
    three gates: CI green (is), smoke green (is), adversarial release review clean

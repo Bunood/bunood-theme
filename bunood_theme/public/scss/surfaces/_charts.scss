@@ -1,3 +1,33 @@
+// ── A dead chart keeps redrawing (item 42) ────────────────────────────────
+//
+// frappe-charts binds ONE window `resize` listener per instance —
+// `window.addEventListener("resize", this.boundDrawFn)` — and nothing removes
+// it when Frappe re-renders the widget the chart lived in. The object survives
+// with a `container` that is no longer in the document, and the next resize
+// calls `makeChartArea`, whose first act is
+// `this.container.removeChild(this.svg)`. That throws: the svg is not a child of
+// that container any more. Three full-run gates recorded it as an unexplained
+// pageerror in `desk.bundle.js`, and no isolated reproduction found it —
+// repeated resizes on one page, an SPA round trip, the same viewport churn with
+// our chrome on AND off. It needs a chart to have DIED first, which is a state
+// a whole run accumulates and a probe does not.
+//
+// We already track live charts, because a theme flip has to repaint them, and we
+// already prune the ones whose container has gone. Pruning only stopped US from
+// redrawing them; the vendor's own listener kept going. `retire()` unbinds it,
+// so a chart that is off the page stops redrawing for everyone — the error goes
+// with it, and so does the wasted work behind it.
+//
+// SWEPT AT TWO MOMENTS, and one of them is not enough. Retiring at the next
+// CONSTRUCTION covers the common case — a re-render replaces the chart — and
+// misses the one where nothing replaces it: navigate away from a dashboard,
+// resize, and the dead chart is still bound to the window. A route change is the
+// moment both cases pass through, so the sweep hangs off that too.
+//
+// NOT A PATCH OF THE VENDOR: we unbind a listener for an object we are already
+// holding, at the moment we already decided it is dead. Guarded, because a
+// version that stops exposing `boundDrawFn` must degrade to today's behaviour
+// rather than take the desk down.
 // ─────────────────────────────────────────────────────────────────────────────
 // Charts — the chart surface (item 25)
 //

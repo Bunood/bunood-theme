@@ -311,6 +311,35 @@ COMPONENTS = [
         "critical": False,
     },
     {
+        "key": "start",
+        "part": "start",
+        "label": "Start button",
+        "type": TENANT,
+        # The taskbar layouts' way into the pane (item 42, slice 7). It does not
+        # BUILD anything: it puts Frappe's own pane into the open state the rail
+        # already drives, so there is no second pane to keep in agreement and
+        # every rule the pane has applies unchanged.
+        "selector": '[data-bnd-part="start"]',
+        # Ours entirely; stock v16 has no such control, so a failed mount
+        # releases nothing — the pane is still reachable by its own handle.
+        "native": None,
+        # NOT the side pane: a button inside the pane that opens the pane is a
+        # control with nothing to do. The page header is out for the same reason
+        # search is — no slug exists there.
+        "regions": ("topbar", "bottombar", "dock"),
+        "toggle": None,
+        # OFFABLE, and the taskbar layouts do not depend on it being on: the pane
+        # keeps its own collapse handle and Frappe's page-title toggle, so
+        # switching this off costs the shortcut, never the route. A tenant whose
+        # Off strands somebody would have to be `critical`, and this is not that.
+        "offable": True,
+        # START ONLY: it is the leading-edge control on every bar that carries it,
+        # which is what "start button" means. Offering Center or End would be a
+        # picker whose options land in places the name contradicts.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
         "key": "apps",
         "part": "apps",
         "label": "All apps link",
@@ -392,10 +421,44 @@ LAYOUT_CHROME = {
     "Top Taskbar": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
     # The dock as the primary surface: no side pane at rest, the pill carries
     # everything (slice 9 gives it the start button and opens the pane as a sheet).
-    "Floating Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
-    # Rail + Flyout joins in slice 8: it is Unified Side Pane with the pane in
-    # its Rail state, and a row that cannot be told from another row is not a
-    # row — `check_layout_identity` would refuse it today.
+    # THE PANE IS KEPT AND HIDDEN, not switched off (item 42, slice 9). With the
+    # container off there is nothing for this row's own start button to open and
+    # nothing for the pill to restore — the dock would be the only navigation
+    # there has ever been, which is not what "the pane opens as a sheet from the
+    # dock" means. At rest the desk looks identical either way.
+    "Floating Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 1},
+    # The fifth row, and slice 8's field is what makes it expressible: it is
+    # Unified Side Pane with the pane at its Rail state. Until `sidebar_pane_state`
+    # existed this row was byte-identical to Unified's and `check_layout_identity`
+    # refused it — correctly, because a row nothing can tell apart is not a row.
+    # The rail's one expansion control lives in the top bar. Shipping the rail
+    # without that host either strands navigation or forces the pane open, so
+    # this shape includes the control surface it actually needs.
+    "Rail + Flyout": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+}
+
+
+#: How much of the pane each layout starts with — the catalogue's third half.
+#:
+#: A LAYOUT FIELD, not a look axis, and the distinction is the whole reason this
+#: table exists rather than a value in `_SIDEBAR_LOOKS`. How much of the pane is
+#: on screen is part of what a SHAPE means — it is the difference between a
+#: taskbar and a side-pane desk — while a look decides how the pane is painted.
+#: A look writing this would be the inline-override trap item 40's audit named,
+#: with a preset quietly moving chrome.
+#:
+#: THE PERSON STILL WINS. `bnd_pane_state` (personal.py) resolves after the shape
+#: in boot, so somebody who wants their pane open on a taskbar desk keeps it —
+#: this is where the desk STARTS, never where it is pinned.
+LAYOUT_PANE = {
+    "Unified Side Pane": "Open",
+    # Both taskbars start with the pane away: a Windows-style bar beside an
+    # already-open pane is not the shape this row draws, and the start button is
+    # the affordance that makes it a taskbar rather than a bar.
+    "Taskbar": "Hidden",
+    "Top Taskbar": "Hidden",
+    "Floating Bar": "Hidden",
+    "Rail + Flyout": "Rail",
 }
 
 
@@ -430,6 +493,9 @@ LAYOUT_CHROME = {
 #: the next value added cannot be one the field will not accept.
 LAYOUT_TENANTS = {
     "Unified Side Pane": {
+        # No start button: this desk's pane is already open, and a control that
+        # opens what is open is the dishonest affordance.
+        "start_placement": "Off",
         # The pane's End zone is the foot card (item 42, slice 3): the account
         # tile leading, the bell pinned to the inline end.
         "inbox_placement": "Side Pane End",
@@ -439,16 +505,29 @@ LAYOUT_TENANTS = {
         "search_placement": "Side Pane Start",
     },
     "Taskbar": {
+        # The start button is what makes this a taskbar.
+        "start_placement": "Bottom Bar Start",
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
     },
     "Top Taskbar": {
+        "start_placement": "Top Bar Start",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
     },
+    "Rail + Flyout": {
+        # The same tenants as Unified: this row differs by the pane's STATE, which
+        # is what LAYOUT_PANE says and what tells the two apart.
+        "start_placement": "Off",
+        "inbox_placement": "Side Pane End",
+        "user_placement": "Side Pane End",
+        "search_placement": "Side Pane Start",
+    },
     "Floating Bar": {
+        # The pill's own way back to the pane this row switches off.
+        "start_placement": "Dock Start",
         "inbox_placement": "Dock End",
         "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form
@@ -949,6 +1028,11 @@ def layout_settings(layout: str) -> dict:
     # update. The mixed type is the point: this returns FIELD -> VALUE.
     values: dict = {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
     values.update(LAYOUT_TENANTS.get(layout, {}))
+    # The pane's starting state (item 42, slice 9) — the third half of what a
+    # layout means, and the field that lets two rows with identical containers
+    # and identical tenants still be two rows.
+    if layout in LAYOUT_PANE:
+        values["sidebar_pane_state"] = LAYOUT_PANE[layout]
     return values
 
 

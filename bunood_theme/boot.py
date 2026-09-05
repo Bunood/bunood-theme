@@ -134,6 +134,7 @@ def resolve_for_user(site) -> tuple:
     shape = frappe.defaults.get_user_default("bnd_shape") or ""
     sidebar_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
     density = frappe.defaults.get_user_default("bnd_density") or ""
+    pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
     home = frappe.defaults.get_user_default("bnd_home") or ""
 
@@ -162,6 +163,14 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_shape") and shape in LAYOUT_CHROME:
         resolved.update(layout_settings(shape))
 
+    # THE PANE STATE. Last, and deliberately so: a look must not be able to take
+    # somebody's pane away, and a shape names the containers rather than how much
+    # of the pane is on screen. This is one field, it is the person's own comfort
+    # (the same family as density), and it wins over both because it is the
+    # narrowest and most recent statement about the same desk.
+    if is_open("bnd_pane_state") and pane_state in ("Open", "Rail", "Hidden"):
+        resolved["sidebar_pane_state"] = pane_state
+
     return resolved, {
         "look": look,
         "shape": shape,
@@ -169,6 +178,7 @@ def resolve_for_user(site) -> tuple:
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
         "density": density,
+        "pane_state": pane_state,
         "motion": motion,
         "home": home,
         "locks": {
@@ -464,7 +474,7 @@ def extend_bootinfo(bootinfo):
             "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
             "intensity": get("sidebar_card_depth"),
-            "menurail": get("sidebar_menu_rail"),
+            "panestate": get("sidebar_pane_state"),
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
             "rail_button_icon": icon("icon_rail_button"),
@@ -710,7 +720,7 @@ def extend_bootinfo(bootinfo):
         # Placement rides in the same dict as the rest of the kit, not in a
         # new one: the client reads a flat blob per kit, and a second payload
         # for "where" would be a second thing to keep in step with "what".
-        from bunood_theme.presets import LINKS_DEFAULTS, USER_DEFAULTS
+        from bunood_theme.presets import LINKS_DEFAULTS, START_DEFAULTS, USER_DEFAULTS
 
         from bunood_theme.registry import default_desk_order
 
@@ -721,6 +731,8 @@ def extend_bootinfo(bootinfo):
             # sidebar style kit as one shared field.
             "home": (settings.get("home_placement") or LINKS_DEFAULTS["home_placement"]),
             "apps": (settings.get("apps_placement") or LINKS_DEFAULTS["apps_placement"]),
+            # The taskbar layouts' way into the pane (item 42, slice 7).
+            "start": (settings.get("start_placement") or START_DEFAULTS["start_placement"]),
             # E3: the desk order the tenants sort by when they share a zone.
             # Same payload as the placements because it is the same fact —
             # where things sit — split across two keys would be two things to
@@ -806,9 +818,13 @@ def _apply_icon_inference(bootinfo, source):
         * ``Letters``  — clear icons so Frappe renders no glyph and the client draws
                          a letter chip (kept client-side: the letter is the display
                          language's first character, correct only after translation).
-        * anything else (``Smart``) — infer from the untranslated ``link_to``,
-                         OVERRIDING what the record held wherever we have a better
-                         idea, and leaving it untouched where we do not.
+        * anything else (``Smart``) — infer from the DocType the link points at,
+                         which may override what the record held; then from the
+                         record's own icon; then from a keyword on the
+                         untranslated ``link_to``, which fills gaps and no longer
+                         overrides (item 42, slice I — it was rewriting `home`
+                         and `chart` to a shopping cart on the Selling sidebar,
+                         because `link_to` there is the WORKSPACE name).
 
     Args:
         bootinfo: the boot payload; its ``workspace_sidebar_item`` is rewritten.
@@ -826,6 +842,10 @@ def _apply_icon_inference(bootinfo, source):
 
         letters = mode == "letters"
         doctype_icons = {} if letters else get_doctype_icon_map()
+        # THE SHIPPED SNAPSHOT, so "does the row's own icon exist" is answerable
+        # here. `icons.sprite_ids()` reads the same file `tools/check_icons.py`
+        # holds the module to -- one snapshot, two consumers.
+        sprite = None if letters else icons.sprite_ids()
         for sidebar in sidebars.values():
             for item in (sidebar or {}).get("items") or []:
                 if not isinstance(item, dict) or item.get("type") != "Link":
@@ -834,7 +854,7 @@ def _apply_icon_inference(bootinfo, source):
                     # No <use> renders; the client's letter fallback fills it.
                     item["icon"] = None
                     continue
-                symbol = icons.icon_for_item(item, doctype_icons)
+                symbol = icons.icon_for_item(item, doctype_icons, sprite)
                 if symbol:
                     # item.icon is a BARE name — frappe.utils.icon() prefixes
                     # "#icon-"; an es-* id is left whole (it renders those as-is).

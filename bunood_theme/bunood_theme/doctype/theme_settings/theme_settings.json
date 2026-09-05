@@ -408,7 +408,7 @@
    "fieldname": "sidebar_material",
    "fieldtype": "Select",
    "label": "Pane Material",
-   "options": "Solid\nGlass\nBlurred Glass",
+   "options": "Solid\nBordered\nElevated\nTextured\nTinted\nGradient",
    "hidden": 1
   },
   {
@@ -422,7 +422,7 @@
    "fieldname": "icon_style",
    "fieldtype": "Select",
    "label": "Icon Style",
-   "options": "Colored Chips\nColored Dots\nFilled Color\nDuotone\nBrand Lines\nMonochrome",
+   "options": "Filled Color\nFill on Active\nSolid Tile\nCircle Badge",
    "hidden": 1
   },
   {
@@ -454,12 +454,13 @@
    "hidden": 1
   },
   {
-   "fieldname": "sidebar_menu_rail",
+   "fieldname": "sidebar_pane_state",
    "fieldtype": "Select",
-   "label": "Menu Rail",
-   "options": "Always Expanded\nRail",
+   "label": "Side Pane State",
+   "options": "Open\nRail\nHidden",
+   "default": "Open",
    "hidden": 1,
-   "description": "Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side."
+   "description": "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
   },
   {
    "fieldname": "sidebar_rail_trigger",
@@ -1220,7 +1221,7 @@
    "label": "Placement Board"
   },
   {
-   "default": "search,inbox,user,home,apps",
+   "default": "search,inbox,user,home,start,apps",
    "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
    "fieldname": "desk_order",
    "fieldtype": "Data",
@@ -1554,6 +1555,15 @@
    "label": "All Apps Link Placement",
    "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
    "hidden": 1
+  },
+  {
+   "fieldname": "start_placement",
+   "fieldtype": "Select",
+   "label": "Start Button Placement",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nDock Start",
+   "default": "Off",
+   "hidden": 1,
+   "description": "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
   },
   {
    "fieldname": "section_personal",

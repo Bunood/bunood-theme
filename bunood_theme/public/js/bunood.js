@@ -444,6 +444,17 @@
 			for (const [index, node] of [...root.querySelectorAll(".chart-legend .indicator, .graph-stats-container .indicator")].entries()) node.style.backgroundColor = colors[index % colors.length];
 		}
 
+		// Retire a chart whose container is gone. surfaces/_charts.scss.
+		function retire(c) {
+			try {
+				if (c && c.boundDrawFn) window.removeEventListener("resize", c.boundDrawFn);
+			} catch (e) {
+				/* a vendor that stops binding this way must not take the desk down */
+			}
+			live.delete(c);
+			deferred.delete(c);
+		}
+
 		function repaint_one(c) {
 			if (!c || c._bnd_type === "heatmap" || !c.container || !c.container.isConnected) return;
 			const colors = merged_colors(c._bnd_given || [], c._bnd_type);
@@ -465,7 +476,7 @@
 			ramp_gen++; // invalidate the cache: the theme moved
 			for (const c of Array.from(live)) {
 				if (!c.container || !c.container.isConnected) {
-					live.delete(c);
+					retire(c);
 					continue;
 				}
 				if (!force && busy(c)) deferred.add(c);
@@ -475,7 +486,7 @@
 		function flush_deferred() {
 			for (const c of Array.from(deferred)) {
 				if (!c.container || !c.container.isConnected) {
-					deferred.delete(c);
+					retire(c);
 					continue;
 				}
 				if (busy(c)) continue;
@@ -503,7 +514,11 @@
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
 				decorate_chart(chart, parent, options || {}, navigable);
-				for (const c of live) if (!c.container || !c.container.isConnected) live.delete(c);
+				// Prune opportunistically so the set cannot grow without bound on a
+				// long-lived desk that renders many charts — and RETIRE rather than
+				// forget: a chart Frappe has re-rendered past is still bound to the
+				// window's resize.
+				for (const c of live) if (!c.container || !c.container.isConnected) retire(c);
 				live.add(chart);
 			}
 			return chart;
@@ -525,6 +540,15 @@
 					repaint_all();
 				});
 			}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+		}
+
+		// ...and on every route change, when a widget's chart dies. _charts.scss.
+		if (frappe.router && frappe.router.on) {
+			frappe.router.on("change", () => {
+				for (const c of Array.from(live)) {
+					if (!c.container || !c.container.isConnected) retire(c);
+				}
+			});
 		}
 
 		// The MANDATORY live-preview hook, present from day one — a kit that saves
@@ -729,13 +753,17 @@
 	 * have left the last two slices with a fallback that silently answered "no"
 	 * for a container that was plainly there.
 	 */
+	// Renamed with the catalogue (item 42). Reached only when `chrome_state`
+	// lacks a key — boot has carried all five since the container split, so this
+	// is the pre-boot floor rather than a live decision, which is why the stale
+	// names here cost nothing while SEARCH_FALLBACKS' cost a wrong placement.
 	const LAYOUT_CONTAINERS = {
-		topbar: ["topbar", "bottombar", "sidepane"],
-		compact: ["pagehead", "bottombar", "sidepane"],
-		classic: ["bottombar", "sidepane"],
-		bottombar: ["bottombar", "sidepane"],
+		unifiedsidepane: ["bottombar", "sidepane"],
+		"rail+flyout": ["bottombar", "sidepane"],
+		taskbar: ["bottombar", "sidepane"],
+		toptaskbar: ["topbar", "bottombar", "sidepane"],
 		// The one layout with no side pane: it hides the whole container.
-		dock: ["dock", "bottombar"],
+		floatingbar: ["dock", "bottombar"],
 	};
 
 	/**
@@ -907,17 +935,21 @@
 	function guard_critical_reach() {
 		const html = document.documentElement;
 		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).filter(Boolean);
-		if (!off.includes("sidepane")) return false;
+		// TWO WAYS TO HIDE THE PANE since item 42 — argument in _sidebar.scss.
+		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden";
+		if (!off.includes("sidepane") && !hidden) return false;
 
-		// PRESENCE, not visibility. This runs while Frappe is still painting,
-		// so a node of ours that exists but has not been laid out yet is a real
-		// route and measuring it would say otherwise. The natives are excluded
-		// deliberately — they are inside the pane we have hidden, so asking
-		// about them answers the question we are trying to decide.
+		// PRESENCE, not visibility — except inside the pane we are hiding, where a
+		// present node is an unreachable one. Argument in _sidebar.scss.
 		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
-		const stranded = critical.filter((c) => !document.querySelector(c.selector));
+		const stranded = critical.filter((c) => {
+			const node = document.querySelector(c.selector);
+			return !node || !!node.closest(".body-sidebar-container");
+		});
 		if (!stranded.length) return false;
 
+		// Release whichever mechanism is hiding it. Both, when both are.
+		if (hidden) html.setAttribute("data-bnd-sb-panestate", "open");
 		const kept = off.filter((k) => k !== "sidepane");
 		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
 		else html.removeAttribute("data-bnd-chrome-off");
@@ -1021,6 +1053,9 @@
 		// that held them leaves them behind in a node that has just been
 		// removed, or absent from the one that has just arrived.
 		sb_mount_utils();
+		// The brand pill (item 42) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pill();
+		else sb_teardown_pill();
 		sync_desktop_shell();
 		defer_bottom_reserve();
 		// A shape change moves which route to Appearance exists, so the claim on
@@ -1208,11 +1243,19 @@
 	 */
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
-		material: { "Solid": "solid", "Glass": "glass", "Blurred Glass": "glassblur" },
+		// Six surfaces; four icon styles. The retired labels keep entries —
+		// argument in _sidebar.scss, which Sass strips before the wire.
+		material: {
+			"Solid": "solid", "Bordered": "bordered", "Elevated": "elevated",
+			"Textured": "textured", "Tinted": "tinted", "Gradient": "gradient",
+			"Glass": "elevated", "Blurred Glass": "elevated",
+		},
 		// `color` is gone; see _sidebar.scss's head for why.
 		icons: {
-			"Colored Chips": "chips", "Colored Dots": "dots", "Filled Color": "filled",
-			"Duotone": "duotone", "Brand Lines": "brandlines", "Monochrome": "mono",
+			"Filled Color": "filled", "Fill on Active": "onactive",
+			"Solid Tile": "tile", "Circle Badge": "badge",
+			"Colored Chips": "tile", "Colored Dots": "badge",
+			"Duotone": "filled", "Brand Lines": "filled", "Monochrome": "onactive",
 		},
 		active: {
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
@@ -1220,10 +1263,13 @@
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Cards": "cards" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
-		// Legacy labels ("Hover-Expand", "Hover + Pin") predate the split into
-		// mode + trigger; they still resolve so an already-configured site
-		// keeps its rail across the upgrade.
-		menurail: { "Always Expanded": "expanded", "Rail": "rail", "Hover-Expand": "rail", "Hover + Pin": "rail" },
+		// Three states since item 42. The legacy spellings still resolve — the
+		// migration rewrites stored values, but a desk mid-upgrade (boot cached
+		// before the patch ran) must not lose its pane over a label.
+		panestate: {
+			"Open": "open", "Rail": "rail", "Hidden": "hidden",
+			"Always Expanded": "open", "Hover-Expand": "rail", "Hover + Pin": "rail",
+		},
 		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
 		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
 		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
@@ -1261,14 +1307,18 @@
 		set("active", SB_SLUGS.active[sb.active]);
 		set("sections", SB_SLUGS.sections[sb.sections]);
 		set("wash", SB_SLUGS.wash[sb.wash]);
-		set("menurail", SB_SLUGS.menurail[sb.menurail]);
+		const state = SB_SLUGS.panestate[sb.panestate] || "open";
+		set("panestate", state);
+		// Rail keeps its own anchor attribute plus the trigger the JS wires --
+		// four dozen rules key on `data-bnd-rail` and it stays their subject.
+		// Legacy "Hover + Pin" mode labels imply their trigger.
 		// The custom collapsed pane is desktop-only. At narrow widths leave the
 		// rail attribute off so Frappe's native off-canvas drawer remains usable.
-		if (SB_SLUGS.menurail[sb.menurail] === "rail" && !is_narrow()) {
+		if (state === "rail" && !is_narrow()) {
 			html.setAttribute("data-bnd-rail", "");
 			const trigger =
 				SB_SLUGS.railtrigger[sb.rail_trigger] ||
-				(sb.menurail === "Hover + Pin" ? "hoverpin" : "hover");
+				(sb.panestate === "Hover + Pin" ? "hoverpin" : "hover");
 			html.setAttribute("data-bnd-sb-railtrigger", trigger);
 		}
 		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
@@ -2948,8 +2998,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 * half-written or stale order degrades to the shipped one, never to an
 	 * error. No migration needed for exactly this reason.
 	 */
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "apps"];
-	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps" };
+	// REGISTRY ORDER, not append-at-the-end: `registry.default_desk_order()` reads
+	// the components table top to bottom and `start` sits before `apps` there, so
+	// spelling it last here would be a second copy that disagrees about ties.
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps"];
+	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
 
 	function desk_order_rank() {
 		const stored = String((placement_state && placement_state.order) || "")
@@ -3026,6 +3079,10 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const [tenant, token, cls, build] of [
 			["inbox", "bell", "bnd-bell", build_bell],
 			["user", "user", "bnd-avatar-btn", build_user],
+			// The start button (item 42, slice 7). It replaces no native, so its
+			// token is its own and releasing it costs nothing — the pane keeps its
+			// handle and Frappe's page-title toggle either way.
+			["start", "start", "bnd-sb-start", build_start],
 		]) {
 			const region = placement_for(tenant);
 			// The panel stamp follows the OUTCOME of every branch below: only a
@@ -3156,6 +3213,53 @@ function sb_zone_anchor(pane, zone, node) {
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
+	/** The start button — argument in _sidebar.scss. */
+	function build_start() {
+		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
+			type: "button",
+			"data-bnd-part": "start",
+			"aria-label": __("Menu"),
+			title: __("Menu"),
+			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
+			// that was plainly open as collapsed until the first click corrected it —
+			// and the first click is exactly when a screen-reader user has already
+			// been told the wrong thing.
+			"aria-expanded":
+				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false",
+		});
+		const mark = el("span", "bnd-sb-start-mark");
+		if (frappe.boot.bnd_logo) {
+			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
+		} else {
+			mark.classList.add("bnd-sb-brand-initial");
+			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		}
+		btn.appendChild(mark);
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			bunood.pane_toggle();
+		});
+		return btn;
+	}
+
+	/** Open the pane if it is away, put it back if it is not. */
+	bunood.pane_toggle = function () {
+		if (!sb_state) return;
+		const html = document.documentElement;
+		const container = document.querySelector(".body-sidebar-container");
+		// In Rail, the bar's Menu control is the rail control. Reuse it instead
+		// of creating a second button or changing the saved pane state.
+		if (html.getAttribute("data-bnd-sb-panestate") === "rail" && !is_narrow() && container?._bnd_toggle_rail) {
+			container._bnd_toggle_rail();
+			return;
+		}
+		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
+		bunood.pane_state(away ? "Open" : "Hidden");
+		for (const b of document.querySelectorAll(".bnd-sb-start")) {
+			b.setAttribute("aria-expanded", away ? "true" : "false");
+		}
+	};
+
 	function build_bell() {
 		const bell = el("button", "bnd-icon-btn bnd-bell", {
 			type: "button",
@@ -3843,20 +3947,29 @@ function sb_zone_anchor(pane, zone, node) {
 	 *   dock               hides the sidebar outright, so it has only bars.
 	 *   bottombar          its own strip first: that strip IS the layout.
 	 */
+	// KEYED ON THE CATALOGUE'S NAMES, slugified — so renaming a layout renames
+	// these keys, and item 42 did exactly that. Every desk fell through to the
+	// old `topbar` row for one suite run: on the shipped pane-first desk, search
+	// asked for a top bar that is not there and landed in the STATUS STRIP
+	// instead of the pane. The `|| ` default below is what made it silent.
 	const SEARCH_FALLBACKS = {
+		// The shipped desk: everything is in the pane, so the pane is where a
+		// homeless search belongs.
 		unifiedsidepane: ["sbtop", "sbbottom", "botcenter", "botedge"],
-		toptaskbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
+		// The rail is still a pane: it expands, and a search that lands in it is
+		// THE KEY CARRIES THE PLUS. `layout()` lowercases and strips WHITESPACE and
+		// nothing else, so "Rail + Flyout" arrives as `rail+flyout` — not a bare
+		// identifier, so it is quoted. assertLayoutSlugs checks it against the
+		// catalogue either way.
+		"rail+flyout": ["sbtop", "sbbottom", "botcenter", "botedge"],
+		// The taskbar IS the strip this layout is about.
 		taskbar: ["botcenter", "botedge", "sbtop", "sbbottom"],
+		toptaskbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
+		// The dock FIRST, not the status bar. This layout hides the sidebar and
+		// may have no status bar at all, so the pill is the one piece of chrome
+		// guaranteed to be there — and putting search anywhere else here leaves
+		// the pill's own controls split across two strips.
 		floatingbar: ["dock", "botcenter", "botedge"],
-		topbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
-		compact: ["sbtop", "sbbottom", "botcenter", "botedge"],
-		classic: ["sbtop", "sbbottom", "botcenter", "botedge"],
-		bottombar: ["botcenter", "botedge", "sbtop", "sbbottom"],
-		// The dock FIRST, not the status bar. Dock hides the sidebar and may
-		// have no status bar at all, so the pill is the one piece of chrome
-		// guaranteed to be there — and putting search anywhere else in this
-		// layout leaves the pill's own controls split across two strips.
-		dock: ["dock", "botcenter", "botedge"],
 	};
 
 	/**
@@ -6916,6 +7029,46 @@ function sb_zone_anchor(pane, zone, node) {
 		claim_panehead();
 	}
 
+	/** What Hidden leaves behind — argument in _sidebar.scss. */
+	function sb_mount_pill() {
+		if (document.querySelector(".bnd-sb-pill")) return;
+		const pill = el("div", "bnd-sb-pill");
+		const mark = el("span", "bnd-sb-brand-mark");
+		if (frappe.boot.bnd_logo) {
+			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
+		} else {
+			mark.classList.add("bnd-sb-brand-initial");
+			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		}
+		pill.appendChild(mark);
+		const name = el("span", "bnd-sb-brand-name bnd-sb-pill-name");
+		name.textContent = frappe.boot.bnd_company || __("Home");
+		pill.appendChild(name);
+		const back = el("button", "bnd-icon-btn bnd-sb-pill-open", {
+			type: "button",
+			title: __("Show the side pane"),
+			"aria-label": __("Show the side pane"),
+		});
+		back.appendChild(sprite_icon("icon-sidebar-expand"));
+		back.addEventListener("click", () => bunood.pane_state("Open"));
+		pill.appendChild(back);
+		document.body.appendChild(pill);
+	}
+
+	/** Remove it — the mirror, for CONTAINER_TEARDOWN. */
+	function sb_teardown_pill() {
+		for (const n of document.querySelectorAll(".bnd-sb-pill")) n.remove();
+	}
+
+	/** The pane's state, page-locally — argument in _sidebar.scss. */
+	bunood.pane_state = function (value) {
+		if (!sb_state) return;
+
+		bunood.sb_apply({ sidebar_pane_state: value });
+		// The guard runs at MOUNT; this is a runtime gesture. _sidebar.scss.
+		if (guard_critical_reach()) mount_placed_tenants();
+	};
+
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
 	 *  start branch walks, including the vendor-header rung: without it a pane
 	 *  with neither list nor brand row put the place row ABOVE Frappe's own
@@ -6956,10 +7109,8 @@ function sb_zone_anchor(pane, zone, node) {
 			const header = d.closest(".standard-sidebar-item");
 			if (header) header.click();
 		}
-		requestAnimationFrame(() => {
-			sb_mirror_disclosure();
-			sb_update_rollups();
-		});
+		// No settle here: `sb_mount_aria`'s observer watches `data-state` and mirrors
+		// whenever the vendor actually writes it, however long that takes.
 	}
 
 	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
@@ -7321,7 +7472,6 @@ function sb_zone_anchor(pane, zone, node) {
 			// navigation there.
 			if (narrow) {
 				container.classList.remove("bnd-rail-open", "expanded");
-				delete container.dataset.bndExpanded;
 			}
 			// A collapsible sidebar without its one top-bar control would be a
 			// permanently hidden navigation system. Degrade that configuration to
@@ -7398,7 +7548,15 @@ function sb_zone_anchor(pane, zone, node) {
 	/** Mount (or restore after a chrome remount) the sidebar's only visible control. */
 	function sb_mount_topbar_toggle(container) {
 		if (is_narrow()) {
-			for (const node of document.querySelectorAll(".bnd-sidebar-toggle")) node.remove();
+			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
+				if (node._bnd_start_markup !== undefined) {
+					node.innerHTML = node._bnd_start_markup;
+					delete node._bnd_start_markup;
+				}
+				node.classList.remove("bnd-sidebar-toggle");
+				node.removeAttribute("data-bnd-rail-toggle");
+			}
 			return;
 		}
 		const bar = document.querySelector(".bnd-topbar");
@@ -7407,8 +7565,27 @@ function sb_zone_anchor(pane, zone, node) {
 		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
 		const expanded = container.classList.contains("bnd-rail-open");
 		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+		// A taskbar already has a Menu button in this exact host. Make that the
+		// rail toggle; two adjacent buttons for one pane was the original defect.
+		const start = bar.querySelector('.bnd-sb-start[data-bnd-part="start"]');
+		if (start) {
+			// The tenant normally carries the brand mark. While it owns rail
+			// expansion it must communicate that action as clearly as ChatGPT's
+			// panel control; save the mark so leaving Rail restores it exactly.
+			start._bnd_start_markup = start.innerHTML;
+			start.innerHTML = BND_PANEL_SVG;
+			start.classList.add("bnd-sidebar-toggle");
+			start.setAttribute("data-bnd-rail-toggle", "reused");
+			start.setAttribute("aria-label", label);
+			start.setAttribute("aria-expanded", expanded ? "true" : "false");
+			start.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
+			start.title = label;
+			bnd_own("panetoggle");
+			return;
+		}
 		const button = el("button", "bnd-sidebar-toggle", {
 			type: "button",
+			"data-bnd-rail-toggle": "created",
 			"data-bnd-part": "panetoggle",
 			"aria-label": label,
 			"aria-expanded": expanded ? "true" : "false",
@@ -7443,49 +7620,59 @@ function sb_zone_anchor(pane, zone, node) {
 		// mount_sidebar_kit, so widening restores the width.
 		if (is_narrow()) {
 			container.style.width = "";
-			// `.expanded` is FRAPPE'S OWN drawer state on a phone — it is what
-			// opens the off-canvas overlay. Never touch it here, and release
-			// anything we added at desktop width so the drawer behaves.
-			sb_release_expanded(container);
 			return;
 		}
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
-		const mode = document.documentElement.getAttribute("data-bnd-sb-menurail");
 		// The pixel rides an inline custom property; clearing is one remove.
 		const px = parseInt(sb_pane_px, 10);
 		if (px >= 200 && px <= 280) container.style.setProperty("--bnd-sb-w", px + "px");
 		else container.style.removeProperty("--bnd-sb-w");
-		if (mode === "expanded") {
-			container.style.width = "var(--bnd-sb-w)";
-			// THE WIDTH ALONE WAS NEVER ENOUGH. v16 sizes the INNER pane only
-			// under `.body-sidebar-container.expanded` (see the `--sidebar-width`
-			// note in _bridge.scss); without the class the container measured
-			// 240px around a 50px rail and every row was crushed to 6px. Adding
-			// Frappe's own class is the published way to open the pane — no
-			// `!important`, no out-specifying the vendor.
+		// Pane state is the higher-level contract. "Open" cannot inherit a stale
+		// vendor collapse from a previous route or layout and render as a 51px
+		// ghost column. Synchronize Frappe's STATE, not just its class: changing
+		// only the class leaves `sidebar_expanded` and localStorage saying false,
+		// so the next native render immediately folds it again.
+		if (document.documentElement.getAttribute("data-bnd-sb-panestate") === "open") {
 			if (!container.classList.contains("expanded")) {
-				container.classList.add("expanded");
-				// Marked so we only ever remove what WE added. Frappe toggles
-				// this class too, and reclaiming its state would fight the
-				// user's own collapse.
-				container.dataset.bndExpanded = "1";
+				try {
+					localStorage.setItem("sidebar-expanded", "true");
+				} catch (_error) {
+					/* a storage-denied desk can still use the in-memory state */
+				}
+				const native = window.frappe?.app?.sidebar;
+				if (native?.wrapper?.[0] === container && typeof native.expand_sidebar === "function") {
+					native.sidebar_expanded = true;
+					native.expand_sidebar();
+				} else {
+					// Early boot: Frappe will read the persisted value when its instance
+					// arrives; the class keeps first paint at the same width meanwhile.
+					container.classList.add("expanded");
+				}
 			}
-		} else {
-			container.style.width = "";
-			sb_release_expanded(container);
 		}
-	}
-
-	/** Drop `.expanded` only when this kit is the one that added it. */
-	function sb_release_expanded(container) {
-		if (!container.dataset.bndExpanded) return;
-		delete container.dataset.bndExpanded;
-		container.classList.remove("expanded");
+		// Frappe's class still owns a person's manual collapse outside pane-state
+		// transitions; this function only sizes whichever state is now current.
+		container.style.width = container.classList.contains("expanded") ? "var(--bnd-sb-w)" : "";
 	}
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
 	function sb_teardown_rail(container) {
-		for (const node of document.querySelectorAll(".bnd-sidebar-toggle")) node.remove();
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
+			if (node._bnd_start_markup !== undefined) {
+				node.innerHTML = node._bnd_start_markup;
+				delete node._bnd_start_markup;
+			}
+			node.classList.remove("bnd-sidebar-toggle");
+			node.removeAttribute("data-bnd-rail-toggle");
+			node.removeAttribute("aria-controls");
+			node.setAttribute(
+				"aria-expanded",
+				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false"
+			);
+			node.setAttribute("aria-label", __("Menu"));
+			node.title = __("Menu");
+		}
 		bnd_disown("panetoggle");
 		if (!container.dataset.bndRail) return;
 		delete container.dataset.bndRail;
@@ -7680,13 +7867,12 @@ function sb_zone_anchor(pane, zone, node) {
 		handle.setAttribute("aria-label", __("Side pane width"));
 		aria();
 
-		// "Always Expanded" has one meaning and one visible state. Frappe's
-		// resize strip also carries a click-to-collapse handler; suppress only
-		// that click in this mode so a small resize gesture cannot flash or fold
-		// the pane behind the top-bar-only sidebar contract.
+		// The resize strip resizes only. Pane state belongs to the dedicated
+		// navigation control; allowing Frappe's click-to-collapse handler to run
+		// here creates a second, unlabeled collapse control on the pane edge.
 		handle.addEventListener("click", (e) => {
-			if (document.documentElement.getAttribute("data-bnd-sb-menurail") !== "expanded") return;
-			if (document.documentElement.hasAttribute("data-bnd-rail")) return;
+			const state = document.documentElement.getAttribute("data-bnd-sb-panestate");
+			if (state !== "open" && state !== "rail") return;
 			e.stopImmediatePropagation();
 			e.preventDefault();
 		}, true);
@@ -7868,7 +8054,7 @@ function sb_zone_anchor(pane, zone, node) {
 	/** The link rows the PANE holds. A bar-placed pair outlives it. */
 	function sb_teardown_pane_utils() {
 		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-utils")) n.remove();
-		for (const n of document.querySelectorAll(".body-sidebar .bnd-sb-band")) n.remove();
+		// NOT the band — it is a shell for somebody else's nodes. _sidebar.scss.
 	}
 
 	/** Remove the badges and forget the throttle, so a remount refetches. */
@@ -7905,6 +8091,8 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "aria", volatile: true, mount: sb_mount_aria, unmount: sb_teardown_aria },
 		{ key: "width", volatile: false, mount: sb_apply_width, unmount: sb_clear_width },
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
+		// The pane's half of a contract with the chrome. _sidebar.scss.
+		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
 	];
 
 	/** The watch record: the NODES being observed, their observers, and the one
@@ -7966,17 +8154,24 @@ function sb_zone_anchor(pane, zone, node) {
 		const list = document.querySelector(".body-sidebar .sidebar-items");
 		if (!list || list.dataset.bndAria) return;
 		list.dataset.bndAria = "1";
-		list.addEventListener(
-			"click",
-			(e) => {
-				if (!e.target.closest || !e.target.closest(".section-item .standard-sidebar-item")) return;
-				requestAnimationFrame(() => {
-					sb_mirror_disclosure();
-					sb_update_rollups();
-				});
-			},
-			true
-		);
+		// WATCH THE ATTRIBUTE, do not guess when it changes. This was a click
+		// listener that re-mirrored one frame later, and `sb_collapse_all` added a
+		// four-frame settle on top; both are guesses about how long the vendor takes
+		// to write `data-state`, and both were measured wrong — two sections stayed
+		// `aria-expanded="true"` after folding, which tells a screen reader the
+		// opposite of what the desk shows. An observer on the attribute itself
+		// cannot be early or late.
+		const seen = new MutationObserver(() => {
+			sb_mirror_disclosure();
+			sb_update_rollups();
+		});
+		seen.observe(list, {
+			subtree: true,
+			attributes: true,
+			// `data-state` ONLY: mirroring writes `aria-expanded`, and watching that
+			// too would make this observer its own trigger.
+			attributeFilter: ["data-state"],
+		});
 	}
 
 	/** Hidden badges sum into one header chip (1a). _sidebar.scss. */
@@ -8288,7 +8483,7 @@ function sb_zone_anchor(pane, zone, node) {
 			sections: v("sidebar_section_style", "sections"),
 			wash: v("sidebar_hue_wash", "wash"),
 			intensity: v("sidebar_card_depth", "intensity"),
-			menurail: v("sidebar_menu_rail", "menurail"),
+			panestate: v("sidebar_pane_state", "panestate"),
 			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
 			rail_button: v("sidebar_rail_button", "rail_button"),
 			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
@@ -8372,6 +8567,7 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const [field, key] of Object.entries({
 				inbox_placement: "inbox",
 				user_placement: "user",
+				start_placement: "start",
 				home_placement: "home",
 				apps_placement: "apps",
 			})) {
@@ -9268,6 +9464,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// nowhere at all when the side pane was off. Idempotent — it clears its
 		// own previous mounts first — so the kit calling it too costs nothing.
 		sb_mount_utils();
+		// The brand pill (item 42) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pill();
+		else sb_teardown_pill();
 		sync_desktop_shell();
 
 		// The palette kit owns search invocation in every layout.

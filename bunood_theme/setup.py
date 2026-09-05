@@ -55,6 +55,7 @@ from bunood_theme.presets import (
     PALETTE_DEFAULTS,
     _SIDEBAR_LOOKS,
     LINKS_DEFAULTS,
+    START_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
 )
@@ -94,6 +95,7 @@ CHECK_DEFAULTS = {
         STATUS_DEFAULTS,
         USER_DEFAULTS,
         LINKS_DEFAULTS,
+        START_DEFAULTS,
         CHROME_DEFAULTS,
         MOBILE_DEFAULTS,
     )
@@ -194,6 +196,7 @@ DEFAULTS = {
     **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in USER_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LINKS_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in START_DEFAULTS.items() if not isinstance(v, int)},
     # Icon system (item 23): the relocated sidebar/crumb fields plus the new
     # axes, all Selects — a fresh install seeds these; existing sites keep their
     # own via the v0_15_0 patch.

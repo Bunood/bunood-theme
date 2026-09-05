@@ -292,15 +292,6 @@
   --bnd-acct-w: 280px;
   --bnd-sb-rail-w: 52px;
   --bnd-sb-radius: 14px;
-  // Pane translucency: the OPAQUE percentage of the pane color kept in the
-  // mix, one value per glass material. Five parameterised stops became two
-  // drawn ones (item 40), and the two numbers are the ones the shipped glass
-  // looks already used - so Glass and Blurred Glass keep their exact pixels.
-  // Blurred sits lighter because the backdrop blur is doing the separating;
-  // at the same opacity it reads as murk rather than glass.
-  --bnd-sb-glass-pct: 85%;
-  --bnd-sb-glass-pct-blurred: 75%;
-
   // ── Z-index ladder ────────────────────────────────────────────────────────
   // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and
   // alerts, so a dialog always covers our chrome. Panels (our menus, the

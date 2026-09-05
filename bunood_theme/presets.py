@@ -54,7 +54,7 @@ SIDEBAR_FIELDS = [
     "sidebar_section_style",
     "sidebar_hue_wash",
     "sidebar_card_depth",
-    "sidebar_menu_rail",
+    "sidebar_pane_state",
     "sidebar_rail_trigger",
     "sidebar_rail_button",
     "sidebar_pane_width",
@@ -85,7 +85,7 @@ _SIDEBAR_LOOKS = {
         # Always expanded, because the re-chosen look is "attached, solid, a
         # step wider" — a pane that collapses to a 52px rail shows none of
         # those. The rail lives on in Bunood Light and the picker.
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
@@ -96,12 +96,12 @@ _SIDEBAR_LOOKS = {
     },
     "Bunood Light": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Glass",
+        "sidebar_material": "Elevated",
         "sidebar_active_style": "Solid Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
-        "sidebar_menu_rail": "Rail",
+        "sidebar_pane_state": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
@@ -115,7 +115,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -129,7 +129,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -143,7 +143,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -157,7 +157,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -166,12 +166,12 @@ _SIDEBAR_LOOKS = {
     },
     "Aurora": {
         "sidebar_placement": "Floating",
-        "sidebar_material": "Blurred Glass",
+        "sidebar_material": "Elevated",
         "sidebar_active_style": "Soft Pill",
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -193,7 +193,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_menu_rail": "Always Expanded",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -380,6 +380,12 @@ LINKS_DEFAULTS = {
 }
 
 USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
+
+#: The start button (item 42, slice 7). Off on the shipped desk, because Unified
+#: Side Pane HAS its pane open — a button to open what is already open is the
+#: dishonest affordance this project's picker vocabulary exists to abolish. The
+#: taskbar rows turn it on, which is what makes them taskbars.
+START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Off")}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
@@ -1323,7 +1329,7 @@ def _theme_axes() -> list:
         ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
-        list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS),
+        list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
         STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
@@ -1368,7 +1374,7 @@ THEME_PRESETS = {
     "Focus": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Ink",
         "values": {
-            "icon_style": "Monochrome", "crumb_style": "Original",
+            "icon_style": "Fill on Active", "crumb_style": "Original",
             "list_style": "Hairline Rows", "list_hover": "Soft Wash",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "report_grain": "Plain",
@@ -1382,7 +1388,7 @@ THEME_PRESETS = {
     "Canvas": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
-            "icon_style": "Duotone", "crumb_style": "Eyebrow Title",
+            "icon_style": "Filled Color", "crumb_style": "Eyebrow Title",
             "list_style": "Open Rows", "form_style": "Open Canvas",
             "workspace_style": "Open Board", "report_style": "Open Sheet",
             "views_style": "Hairline", "overlay_style": "Hairline",
@@ -1414,7 +1420,7 @@ THEME_PRESETS = {
     "Carbon": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Teal", "sidebar": "Carbon",
         "values": {
-            "icon_style": "Brand Lines", "list_style": "Hairline Rows",
+            "icon_style": "Filled Color", "list_style": "Hairline Rows",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "views_style": "Hairline",
             "overlay_style": "Hairline", "empty_style": "Quiet",
@@ -1460,7 +1466,7 @@ THEME_PRESETS = {
     "Workbench": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Workbench",
         "values": {
-            "icon_style": "Brand Lines", "crumb_style": "Original",
+            "icon_style": "Filled Color", "crumb_style": "Original",
             "list_style": "Hairline Rows", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ruled Grid",
             "report_grain": "Row Stripes", "views_style": "Hairline",
@@ -1495,7 +1501,7 @@ THEME_PRESETS = {
             # "Original" - it hands the desk back Frappe's own icons - so a look
             # whose whole promise is "everything that can stand down does" has to
             # take it. `icon_style` keeps its quietest pole for what remains.
-            "icon_source": "Original", "icon_style": "Monochrome",
+            "icon_source": "Original", "icon_style": "Fill on Active",
             # The three that genuinely cannot: the side pane and the status bar
             # MOUNT chrome, and chart_grid ships no Original. They take their
             # quietest setting instead, and the card's blurb names all three.
@@ -1534,7 +1540,7 @@ def _shipped_baseline() -> dict:
         "density_default": "Comfortable",
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
-    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, ICON_DEFAULTS,
+    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, ICON_DEFAULTS,
               CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
               LIST_DEFAULTS, FORM_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
               REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,

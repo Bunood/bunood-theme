@@ -362,7 +362,16 @@ function bnd_region_blocker(frm, region) {
 	// side pane coexist and the only thing that removes the pane is its own
 	// setting.
 	if (region === "sidepane") {
-		return parseInt(frm.doc.sidebar_enabled ?? 1, 10) ? "" : __("the side pane is switched off");
+		if (!parseInt(frm.doc.sidebar_enabled ?? 1, 10)) return __("the side pane is switched off");
+		// ...AND THE PANE'S OWN STATE (item 42). Hidden removes the pane without
+		// switching the container off, so a slot inside it is offered on a desk
+		// that shows no pane — the runtime falls back and the picture lies. Rail
+		// is NOT a blocker: the pane is still there, still expands, and a tenant
+		// in it is reachable the moment it does.
+		if (bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden") {
+			return __("the side pane is hidden");
+		}
+		return "";
 	}
 	if (region === "bottombar") {
 		// Was: "Bottom Bar layout always has one, otherwise ask status_style".
@@ -1243,7 +1252,18 @@ let bnd_layout_chrome = null;
 //: `registry.LAYOUT_TENANTS`, served beside the chrome because a layout is
 //: BOTH — every card's blurb names where search, the bell and the profile sit.
 let bnd_layout_tenants = null;
+//: `registry.LAYOUT_PANE` — how much of the pane each layout starts with. The
+//: catalogue's third half (item 42, slice 9), served for the same reason the
+//: other two are: a picker that is told two thirds of what a layout means writes
+//: two thirds of it.
+let bnd_layout_pane = null;
 let bnd_container_toggles = null;
+
+/** Served with the catalogue (item 42, slice 10): tenant key -> the slots its
+ *  field accepts, straight from `registry.slots_for`. `null` until it arrives,
+ *  and the parts panel simply does not draw its placements until it does — an
+ *  empty select would offer nothing and look like a broken control. */
+let bnd_layout_slots = null;
 
 /**
  * Which fields each shell entry owns, as PREFIXES rather than a list.
@@ -1463,7 +1483,16 @@ function bnd_match_layout(frm) {
 			if (!frm.get_field(field)) return true;
 			return String(frm.doc[field] ?? tenants[field]) === String(tenants[field]);
 		});
-		if (matches && placed) return name;
+		// AND THE PANE'S STATE. Without it two rows with identical containers and
+		// tenants — Unified Side Pane and Rail + Flyout — are one row to this
+		// function, so it would return whichever iterates first and the card
+		// highlighted would be a coin toss. `presets.layout_of` compares it server-
+		// side for exactly the same reason.
+		const wantPane = bnd_layout_pane && bnd_layout_pane[name];
+		const paneOk =
+			!wantPane || !frm.get_field("sidebar_pane_state") ||
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
+		if (matches && placed && paneOk) return name;
 	}
 	return "Custom";
 }
@@ -1485,6 +1514,109 @@ const BND_OVERVIEW_TENANTS = [
 	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Side Pane Start" },
 	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Side Pane End" },
 	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Side Pane End" },
+];
+
+/**
+ * Every part of the desk, on one page — item 42, slice 10.
+ *
+ * WHY IT EXISTS. The controls were all reachable already: five container
+ * switches in five kit panes, five placements on the board, the pane's state in
+ * the sidebar picker. Reachable is not the same as ANSWERABLE — "what is this
+ * desk made of" took six visits, and the question a person actually asks when
+ * they open this form is exactly that one. So the diagram above says WHERE, and
+ * this says WHAT, and both are the same state read two ways.
+ *
+ * IT OWNS NOTHING. Every row writes through the same seam its own picker uses —
+ * `bnd_container_changed` for a switch, `bnd_inbox_set` for a placement — so a
+ * value set here previews, saves and repaints exactly as it does there. A second
+ * write path would be a second chance to disagree, which is the defect this
+ * whole surface was reworked to remove.
+ *
+ * THE VOCABULARY IS SERVED, not restated: `bnd_layout_slots` comes from
+ * `registry.slots_for`, so this page cannot offer a slot the field would refuse,
+ * and a tenant added to the registry appears here with no edit.
+ */
+function bnd_render_parts(frm) {
+	if (!bnd_container_toggles) return "";
+	const rows = [];
+
+	// The containers, in the catalogue's own order.
+	for (const key of Object.keys(bnd_container_toggles)) {
+		const field = bnd_container_toggles[key];
+		if (!frm.get_field(field)) continue;
+		const on = parseInt(frm.doc[field] ?? 1, 10);
+		rows.push(
+			'<div class="bnd-parts-row" data-part="' + bnd_esc(key) + '">' +
+				P.toggle({
+					field: field,
+					on: on,
+					name: BND_PART_NAMES[key] ? BND_PART_NAMES[key]() : key,
+					cls: "bnd-parts-toggle",
+				}) +
+				"</div>"
+		);
+	}
+
+	// The tenants, each offered exactly the slots its field accepts.
+	for (const t of BND_DESK_TENANTS) {
+		const slots = (bnd_layout_slots || {})[t.key] || [];
+		if (!slots.length || !frm.get_field(t.field)) continue;
+		const cur = frm.doc[t.field] || (bnd_shipped || {})[t.field] || slots[0];
+		const opts = slots
+			.map((slot) => {
+				// THE SAME WARNING THE DIAGRAM GIVES, in the only form a native
+				// option has: its label. Greying it out would be a lie — the
+				// runtime falls back rather than refusing, which is why every
+				// other surface here warns instead of blocking.
+				const why = slot === "Off" ? "" : bnd_region_blocker(frm, bnd_slot_region(slot));
+				return (
+					'<option value="' + bnd_esc(slot) + '"' +
+					(slot === cur ? " selected" : "") + ">" +
+					bnd_esc(
+						why
+							? __("{0} — not available: {1}. Falls back to the nearest slot.", [__(slot), why])
+							: __(slot)
+					) +
+					"</option>"
+				);
+			})
+			.join("");
+		rows.push(
+			'<div class="bnd-parts-row" data-part="' + bnd_esc(t.key) + '">' +
+				'<label class="bnd-parts-label" for="bnd-parts-' + bnd_esc(t.key) + '">' +
+				bnd_esc(t.label()) + "</label>" +
+				'<select class="bnd-parts-slot" id="bnd-parts-' + bnd_esc(t.key) + '"' +
+				' data-field="' + bnd_esc(t.field) + '">' + opts + "</select>" +
+				"</div>"
+		);
+	}
+
+	if (!rows.length) return "";
+	return P.group({
+		title: __("Desk parts"),
+		desc: __("Every switch and every placement, in one place."),
+		body: '<div class="bnd-parts">' + rows.join("") + "</div>",
+	});
+}
+
+/** The containers, named for a person rather than by their registry key. */
+const BND_PART_NAMES = {
+	topbar: () => __("Top bar"),
+	pagehead: () => __("Page title row"),
+	bottombar: () => __("Bottom bar"),
+	sidepane: () => __("Side pane"),
+	dock: () => __("Dock"),
+};
+
+/** The tenants the parts page places. Keys match `registry`'s, which is what
+ *  the served slot vocabulary is keyed on. */
+const BND_DESK_TENANTS = [
+	{ key: "search", field: "search_placement", label: () => __("Search") },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Notifications") },
+	{ key: "user", field: "user_placement", label: () => __("Profile") },
+	{ key: "start", field: "start_placement", label: () => __("Start button") },
+	{ key: "home", field: "home_placement", label: () => __("Home link") },
+	{ key: "apps", field: "apps_placement", label: () => __("All apps link") },
 ];
 
 function bnd_render_overview(frm, $pane) {
@@ -1545,12 +1677,52 @@ function bnd_render_overview(frm, $pane) {
 				__("Layout preset: {0}. Each mark is a control — select it to change where that piece lives.", [
 					bnd_tr_layout(bnd_match_layout(frm)),
 				])
-			) + hidden
+			) + hidden + bnd_render_parts(frm)
 		)
 	);
 	$pane.find(".bnd-dgm-mark").on("click", function () {
 		bnd_shell_select(frm, this.getAttribute("data-goto"));
 	});
+	// THE SAME SEAMS THE OWNING PICKERS USE. `bnd_container_changed` rebuilds
+	// the desk from all five containers and repaints every placement picker;
+	// `bnd_inbox_set` previews a placement and repaints the board. Re-rendering
+	// this pane last is what keeps the diagram above and the list below telling
+	// the same story after a change made in either.
+	// DELEGATED, not bound per node — and that distinction is the whole
+	// difference between this list working and looking like it does. Every row
+	// here re-renders the pane, and a container switch re-renders it a second
+	// time from `bnd_container_changed`'s own repaint; a handler attached to a
+	// button is attached to a button that no longer exists by the time the next
+	// gesture lands. Measured: after one pass over the five switches, changing a
+	// placement select wrote nothing at all and reported no error. Delegation
+	// binds to the PANE, which outlives every render inside it — the same
+	// re-anchoring lesson this item spent a slice on in the side pane.
+	//
+	// `.off()` first, because the pane is re-rendered by this very handler and a
+	// second delegate would fire the whole chain twice.
+	$pane.off("click.bndparts change.bndparts");
+	$pane.on("click.bndparts", ".bnd-parts-toggle", function () {
+		if (this.hasAttribute("disabled")) return;
+		frm.set_value(this.getAttribute("data-field"), parseInt(this.getAttribute("data-value"), 10));
+		bnd_container_changed(frm);
+		bnd_render_overview(frm, $pane);
+	});
+	$pane.on("change.bndparts", ".bnd-parts-slot", function () {
+		bnd_inbox_set(frm, this.getAttribute("data-field"), this.value);
+		bnd_render_overview(frm, $pane);
+	});
+
+	// THE PANE SAYS SO ITSELF, rather than every caller remembering. The parts
+	// list is drawn from a SERVED catalogue, so on a cold form it renders before
+	// the xcall resolves and there is simply nothing there — measured on the first
+	// live probe: the panel absent, the diagram fine. The layout picker carries the
+	// same three lines for the same reason and its comment argues it: a surface
+	// that depends on a fetch should own the wait.
+	if (!bnd_container_toggles || !bnd_layout_slots) {
+		bnd_load_shipped().then(() => {
+			if (bnd_container_toggles && bnd_layout_slots) bnd_render_overview(frm, $pane);
+		});
+	}
 }
 
 /**
@@ -1909,7 +2081,9 @@ function bnd_load_shipped() {
 			bnd_shipped = (data && data.defaults) || null;
 			bnd_layout_chrome = (data && data.layout_chrome) || null;
 			bnd_layout_tenants = (data && data.layout_tenants) || null;
+			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
+			bnd_layout_slots = (data && data.slots) || null;
 		})
 		.catch(() => {
 			// Let the next caller try again: this one may have failed because
@@ -1965,6 +2139,14 @@ function bnd_apply_layout_preset(frm, name) {
 		// Guarded on the field EXISTING, exactly as the containers are: a
 		// catalogue that names a field this doctype lacks must skip it rather
 		// than orphan a tabSingles row.
+		// The pane's starting state, before the tenants: a row that hides the pane
+		// and places a tenant in it is a state the catalogue cannot spell (the
+		// offline guard refuses it), so order costs nothing here and reads in the
+		// same sequence the catalogue is written.
+		const paneState = bnd_layout_pane && bnd_layout_pane[name];
+		if (paneState && frm.get_field("sidebar_pane_state")) {
+			frm.set_value("sidebar_pane_state", paneState);
+		}
 		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || null;
 		if (tenants) {
 			for (const field of Object.keys(tenants)) {
@@ -2111,6 +2293,27 @@ const BND_LAYOUTS = [
 			'<rect x="38" y="28" width="76" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="38" y="36" width="76" height="4" fill="currentColor" opacity=".1"/>' +
 			'<rect x="30" y="69" width="88" height="5" fill="currentColor" opacity=".14"/>' +
+			"</svg>",
+	},
+	{
+		value: "Rail + Flyout",
+		blurb: () => __("A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."),
+		svg:
+			'<svg viewBox="0 0 120 76">' +
+			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="2" y="2" width="13" height="72" fill="currentColor" opacity=".1"/>' +
+			'<rect x="5" y="5" width="7" height="7" rx="2" fill="var(--primary, #3d8150)"/>' +
+			'<rect x="5" y="17" width="7" height="7" rx="2" fill="currentColor" opacity=".28"/>' +
+			'<rect x="5" y="27" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
+			'<rect x="5" y="37" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
+			'<rect x="17" y="8" width="30" height="52" rx="3" fill="currentColor" opacity=".07"/>' +
+			'<rect x="20" y="12" width="22" height="4" rx="2" fill="currentColor" opacity=".22"/>' +
+			'<rect x="20" y="21" width="18" height="3" fill="currentColor" opacity=".14"/>' +
+			'<rect x="20" y="28" width="18" height="3" fill="currentColor" opacity=".14"/>' +
+			'<rect x="54" y="8" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="54" y="16" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="54" y="24" width="60" height="4" fill="currentColor" opacity=".1"/>' +
+			'<rect x="17" y="69" width="101" height="5" fill="currentColor" opacity=".14"/>' +
 			"</svg>",
 	},
 	{
@@ -2284,6 +2487,11 @@ function bnd_sb_pane(bg, extra) {
 const BND_SB_GROUPS = [
 	{
 		field: "sidebar_placement",
+		// Nothing to attach or float when there is no pane (item 42).
+		disabled: (frm) =>
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+				? __("The pane is hidden")
+				: "",
 		zone: "placement",
 		title: () => __("Pane placement"),
 		desc: () => __("How the sidebar sits against the page."),
@@ -2294,13 +2502,47 @@ const BND_SB_GROUPS = [
 	},
 	{
 		field: "sidebar_material",
+		// A SURFACE NEEDS A PANE TO BE A SURFACE OF. Hidden leaves the floating
+		// pill and nothing else, so every card here would govern nothing —
+		// the same reason, and the same wording, as the placement group above.
+		disabled: (frm) =>
+			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+				? __("The pane is hidden")
+				: "",
 		zone: "pane",
-		title: () => __("Pane material"),
-		desc: () => __("Glass lets the page glow through; blurred frosts it as well."),
+		title: () => __("Pane surface"),
+		desc: () => __("What the pane is made of, behind the links."),
 		options: [
 			{ value: "Solid", name: () => __("Solid"), thumb: bnd_sb_pane("currentColor", "opacity:.3") },
-			{ value: "Glass", name: () => __("Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px") },
-			{ value: "Blurred Glass", name: () => __("Blurred Glass"), thumb: bnd_sb_pane("currentColor", "opacity:.12;outline:1px solid currentColor;outline-offset:-1px;filter:blur(1px)") },
+			{
+				value: "Bordered", name: () => __("Bordered"),
+				thumb: bnd_sb_pane("currentColor", "opacity:.3;outline:2px solid currentColor;outline-offset:-2px"),
+			},
+			{
+				value: "Elevated", name: () => __("Elevated"),
+				thumb: bnd_sb_pane("currentColor", "opacity:.3;box-shadow:2px 2px 4px rgba(0,0,0,.35)"),
+			},
+			{
+				value: "Textured", name: () => __("Textured"),
+				// The thumb draws the SAME repeating gradient the surface does, at the
+				// same angle and pitch — a thumbnail that invents its own texture is a
+				// picture of a surface this app does not paint.
+				thumb: bnd_sb_pane(
+					"currentColor",
+					"opacity:.3;background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 1px,transparent 1px 4px)"
+				),
+			},
+			{
+				value: "Tinted", name: () => __("Tinted"),
+				thumb: bnd_sb_pane("var(--primary,#3d8150)", "opacity:.35"),
+			},
+			{
+				value: "Gradient", name: () => __("Gradient"),
+				thumb: bnd_sb_pane(
+					"linear-gradient(to bottom, var(--primary,#3d8150) 0%, currentColor 62%)",
+					"opacity:.35"
+				),
+			},
 		],
 	},
 	// THE PANE COLOUR PICKER IS GONE (2026-09-01, the user's call after two
@@ -2354,13 +2596,34 @@ const BND_SB_GROUPS = [
 		],
 	},
 	{
-		field: "sidebar_menu_rail",
+		field: "sidebar_pane_state",
 		zone: "rail",
-		title: () => __("Menu rail"),
-		desc: () => __("How your sidebar rests. Separate from the apps rail below."),
+		title: () => __("Side pane"),
+		desc: () => __("How much of the pane you keep. Hidden leaves the brand pill and the start button."),
 		options: [
-			{ value: "Always Expanded", name: () => __("Always expanded"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
+			{ value: "Open", name: () => __("Open", null, "pane state"), thumb: bnd_sb_pane("currentColor", "opacity:.18") },
 			{ value: "Rail", name: () => __("Rail"), thumb: '<span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:8px;border-radius:3px;background:currentColor;opacity:.45"></span><span style="position:absolute;inset-block:5px;inset-inline-start:5px;inline-size:24px;border-radius:5px;background:currentColor;opacity:.12"></span>' },
+			{
+				value: "Hidden",
+				name: () => __("Hidden"),
+				thumb: '<span style="position:absolute;inset-block-start:5px;inset-inline-start:5px;inline-size:22px;block-size:8px;border-radius:4px;background:currentColor;opacity:.22"></span>',
+				// THE ONE OPTION THAT DEPENDS ON ANOTHER PICKER. Hiding the pane takes
+				// every stock affordance with it, so a desk whose bell and profile live
+				// IN the pane has no route to notifications or Log Out the moment this
+				// is chosen — and `guard_critical_reach` gives the pane straight back,
+				// which reads to a person as a control that does nothing. Saying why is
+				// the honest version, and it names the fix rather than the rule.
+				disabled: (frm) => {
+					const inPane = (f) => /^Side Pane/.test(String(frm.doc[f] || ""));
+					const stuck = ["inbox_placement", "user_placement"].filter(inPane);
+					if (!stuck.length) return "";
+					return stuck.length === 2
+						? __("Notifications and your profile are in the pane — place them in a bar first")
+						: stuck[0] === "inbox_placement"
+							? __("Notifications are in the pane — place them in a bar first")
+							: __("Your profile is in the pane — place it in a bar first");
+				},
+			},
 		],
 	},
 	{
@@ -2429,9 +2692,11 @@ function bnd_render_sidebar_picker(frm, host) {
  * "Rail" now.
  */
 function bnd_sb_norm(field, value) {
-	if (field === "sidebar_menu_rail" && (value === "Hover-Expand" || value === "Hover + Pin")) {
-		return "Rail";
-	}
+	if (field !== "sidebar_pane_state") return String(value ?? "");
+	// The pre-split rail labels and the pre-item-42 mode name. A site whose boot
+	// was cached before the migration ran still highlights the right card.
+	if (value === "Hover-Expand" || value === "Hover + Pin") return "Rail";
+	if (value === "Always Expanded") return "Open";
 	return String(value ?? "");
 }
 
@@ -2589,7 +2854,7 @@ function bnd_sb_preview(frm) {
 	if (!window.bunood_theme || !window.bunood_theme.sb_apply) return;
 	const values = {};
 	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
-	values.sidebar_menu_rail = bnd_sb_norm("sidebar_menu_rail", values.sidebar_menu_rail);
+	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 	window.bunood_theme.sb_apply(values);
 }
 
@@ -2635,7 +2900,7 @@ function bnd_sb_set(frm, fieldname, value) {
 /** Card art + copy per shipped look. No VALUES — those are the server's. */
 const BND_THEME_ART = {
 	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The shipped look. Floating cards on a hue-washed pane.") },
-	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — floating glass instead of attached solid.") },
+	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
 	"Ledger": { name: () => __("Ledger"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
@@ -2851,7 +3116,7 @@ function bnd_render_theme_picker(frm, host) {
 const BND_SIDEBAR_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
-	"sidebar_card_depth", "sidebar_menu_rail", "sidebar_rail_trigger",
+	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
 	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
 	"sidebar_filter",
 ];
@@ -2871,13 +3136,18 @@ const BND_ICON_DEFAULTS = {
  * picker (item 23) — the style is the CHIP concern, distinct from the glyph
  * concerns (weight, the missing-icon fallback) below it.
  */
+// THE THUMBS ARE DRAWN FROM TOKENS, not from six hand-picked hexes (item 42,
+// slice I). The old set painted #d9eadc / #2e6b44 literals, so a tenant with a
+// violet brand chose between four pictures of somebody else's desk -- and the
+// Filled Color card claimed a green a Filled Color pane never renders. These
+// read the pane's own category hues, which is exactly what the rows use. The
+// fallbacks are for the one surface where the attribute is absent, never for
+// the desk.
 const BND_ICON_STYLES = [
-	{ value: "Colored Chips", name: () => __("Colored chips"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4">◉</span>' },
-	{ value: "Colored Dots", name: () => __("Colored dots"), thumb: '<span class="bnd-sbp-ic" style="background:#d9eadc;color:#2e6b44;border-radius:50%">▤</span><span class="bnd-sbp-ic" style="background:#dbe7fb;color:#2f5cc4;border-radius:50%">◉</span>' },
-	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:#2e6b44">▮</span><span class="bnd-sbp-ic" style="color:#2f5cc4">●</span>' },
-	{ value: "Duotone", name: () => __("Duotone"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">◪</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150);opacity:.5">◪</span>' },
-	{ value: "Brand Lines", name: () => __("Brand lines"), thumb: '<span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">▢</span><span class="bnd-sbp-ic" style="color:var(--primary,#3d8150)">○</span>' },
-	{ value: "Monochrome", name: () => __("Monochrome"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--text-muted)">○</span>' },
+	{ value: "Filled Color", name: () => __("Filled color"), thumb: '<span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-1, var(--primary,#3d8150))">▮</span><span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-2, #2f5cc4)">●</span>' },
+	{ value: "Fill on Active", name: () => __("Fill on active"), thumb: '<span class="bnd-sbp-ic" style="color:var(--text-muted)">▢</span><span class="bnd-sbp-ic" style="color:var(--bnd-sb-cat-2, #2f5cc4)">●</span>' },
+	{ value: "Solid Tile", name: () => __("Solid tile"), thumb: '<span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-1, var(--primary,#3d8150));color:var(--bnd-pane, #fff)">▮</span><span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-2, #2f5cc4);color:var(--bnd-pane, #fff)">●</span>' },
+	{ value: "Circle Badge", name: () => __("Circle badge"), thumb: '<span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-1, var(--primary,#3d8150));color:var(--bnd-pane, #fff);border-radius:50%">▮</span><span class="bnd-sbp-ic" style="background:var(--bnd-sb-cat-2, #2f5cc4);color:var(--bnd-pane, #fff);border-radius:50%">●</span>' },
 ];
 
 /**
@@ -2965,7 +3235,10 @@ function bnd_render_icons_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "icons_picker", host);
 	if (!$host) return;
 
-	const current_style = frm.doc.icon_style || "Colored Chips";
+	// `bnd_default_of` rather than a literal: the four reset chips that wrote a
+	// value the site does not ship were exactly this shape, and "Colored Chips"
+	// is not even an option any more.
+	const current_style = frm.doc.icon_style || bnd_default_of("icon_style", BND_ICON_DEFAULTS.icon_style);
 	const style_cards = P.cards(
 		BND_ICON_STYLES.map((s) => ({ value: s.value, name: s.name(), svg: s.thumb })),
 		{ selected: current_style, cls: "bnd-cbp-style bnd-icp-style" }

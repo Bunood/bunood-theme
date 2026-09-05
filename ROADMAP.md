@@ -1520,7 +1520,7 @@ only its Arabic strings crossed.
   **after** `v0.40.0`: a tag cut on top of item 40's unreleased source is the v0.29.0
   trap.
 
-- `[ ]` **42 · The desk shapes, rebuilt** *(opened 2026-09-02; plan at
+- `[x]` **42 · The desk shapes, rebuilt** *(opened 2026-09-02, built 2026-09-04; plan at
   `~/.claude/plans/desk-shapes-rebuilt.md`; releases as v0.42.0)*. Decided with the user
   through five drawn rounds — the pane foot
   ([Pane Foot Round](https://claude.ai/code/artifact/3d9c07d3-498d-4d94-b0d7-bacae2e54b7a)),
@@ -1541,6 +1541,16 @@ only its Arabic strings crossed.
   (Filled Color + Fill on Active, Solid Tile, Circle Badge, Monogram); Getting Started
   moves into the profile menu by ownership; the menu becomes a grid; the status bar loses
   its clock. Slices in the plan; the account in CHANGELOG.
+  **Built.** Five layouts with `LAYOUT_PANE` as the catalogue's third half; the
+  three-state pane with its start button and floating pill; six surfaces and four
+  icon styles, both catalogues measured rather than chosen (a brand tint on the pane
+  crosses AA at one per cent); the Counts badge refitted from 3.53:1 to 5.28:1; the
+  switch matrix walking every layout x every switch x all three states. Two defects
+  the matrix found and nothing else could: a state change took the bell and the
+  account out of the pane for good, and `Hidden` reached the phone, where the pane IS
+  Frappe's drawer. **Not built, with a reason:** Monogram (it is `icon_source:
+  Letters` under another field's name). Released as **v0.42.0**; `app_version` resumes
+  tracking here.
 
 ---
 

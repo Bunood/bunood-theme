@@ -609,14 +609,34 @@ def check_sidebar_hues() -> list[str]:
     """
     problems: list[str] = []
     src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
+    # SIX ROWS, NOT THREE (item 42, slice S). Tinted and Gradient move the
+    # background the hues were fitted against, so they carry a fit of their own
+    # -- and a tinted arm that went missing would not fall back to a WRONG
+    # colour, it would fall back to the untinted fit, which is 3.48:1 at the
+    # shipped tint. Every arm is named here so a missing one is a finding.
+    tinted = palette.SB_SURFACE_TINT["tinted"]
     blocks = {
-        "light": r"html\[data-bnd-sb-color\]\s*\{",
-        "dark": r"html\[data-theme=\"dark\"\]\[data-bnd-sb-color\]\s*\{",
-        "automatic": r"html\[data-theme=\"automatic\"\]\[data-bnd-sb-color\]\s*\{",
+        "light": (r"html\[data-bnd-sb-color\]\s*\{", 0),
+        "dark": (r"html\[data-theme=\"dark\"\]\[data-bnd-sb-color\]\s*\{", 0),
+        "automatic": (r"html\[data-theme=\"automatic\"\]\[data-bnd-sb-color\]\s*\{", 0),
+        "light tinted": (
+            r"html\[data-bnd-sb-color\]\[data-bnd-sb-material=\"(?:tinted|gradient)\"\][^{]*\{",
+            tinted,
+        ),
+        "dark tinted": (
+            r"html\[data-theme=\"dark\"\]\[data-bnd-sb-color\]"
+            r"\[data-bnd-sb-material=\"(?:tinted|gradient)\"\][^{]*\{",
+            tinted,
+        ),
+        "automatic tinted": (
+            r"html\[data-theme=\"automatic\"\]\[data-bnd-sb-color\]"
+            r"\[data-bnd-sb-material=\"(?:tinted|gradient)\"\][^{]*\{",
+            tinted,
+        ),
     }
-    for name, pattern in blocks.items():
+    for name, (pattern, tint) in blocks.items():
         # `automatic` must carry the DARK fits: it is the dark-OS first paint.
-        want = palette.sb_hues("light" if name == "light" else "dark")
+        want = palette.sb_hues("light" if name.startswith("light") else "dark", tint)
         # EVERY block with this selector, merged in source order -- which is
         # what the cascade does. The alias block and the hue block share
         # `html[data-bnd-sb-color]`, so reading only the first found an
@@ -645,6 +665,193 @@ def check_sidebar_hues() -> list[str]:
                 problems.append(
                     f"{name}: {tok} is {have} but palette.sb_hues() derives {hue}"
                 )
+    return problems
+
+
+#: The two wash percentages `_sidebar.scss` mixes into `--bnd-sb-hue-chip`.
+#: Off declares nothing, so the chip is transparent and the glyph sits on the
+#: surface -- already measured by the rows above.
+#: 15 is the COUNT BADGE's own wash, not an icon chip's -- it lands in the same
+#: tuple because the pair is identical in shape (a mark on a wash of its own
+#: hue) and measuring it separately would be a second loop over one difference.
+SB_WASH_PCTS = (12, 15, 16)
+
+
+def check_sidebar_surfaces(light: dict, dark: dict) -> list[str]:
+    """The six pane surfaces are legible, and their two numbers have not drifted.
+
+    ITEM 42, SLICE S. `sidebar_material` used to be Solid / Glass / Blurred Glass
+    -- one opaque surface and two translucencies of it, so there was nothing here
+    to measure that the pane's own row did not already cover. Six surfaces is a
+    different question: four of them change what a hue sits on.
+
+    WHAT IS MEASURED, and why each one is not already covered elsewhere:
+
+    * Solid is `--bnd-pane` and IS covered by the main sweep. Skipped here
+      deliberately -- re-measuring it would report one finding as two.
+    * Elevated is `--bnd-raised`, also swept. Asserted anyway, because the claim
+      in `_sidebar.scss` is that it has MORE headroom than the pane; a comment
+      carrying a number nothing checks is how this file's other numbers rotted.
+    * Textured is a stripe of `--bnd-sb-line` over the pane. THE STRIPE, NOT THE
+      AVERAGE: a glyph sits on one or the other, and the mean of the two is a
+      surface this app never paints.
+    * Tinted and Gradient mix the brand in, and carry their own hue fit. This
+      measures the fitted hues against the tinted pane -- the pair the
+      stylesheet actually renders, not the pair it would render untinted.
+
+    AND THE TWO PERCENTAGES ARE PINNED. `_sidebar.scss` composes
+    `--bnd-sb-tint` and the grain from literals, because CSS cannot call
+    Python; a copy with a drift check is a cache, a copy without one is the
+    same fact in two places -- `check_defaults_agree`'s argument, verbatim.
+    """
+    problems: list[str] = []
+    src = _strip_comments(open(SIDEBAR_SCSS, encoding="utf-8").read())
+
+    tint = palette.SB_SURFACE_TINT["tinted"]
+    if palette.SB_SURFACE_TINT["gradient"] != tint:
+        problems.append(
+            "SB_SURFACE_TINT: Tinted and Gradient must mix the same amount -- "
+            "they share one hue fit, and two numbers would need two blocks"
+        )
+    # THE BOUND THAT LETS TEXTURED SHARE TINTED'S BLOCK. At the binding seed the
+    # tint mixes pure black (light) or pure white (dark) into the pane, and the
+    # ink is inside that by construction -- so a grain at or under the tint needs
+    # no fit of its own. Raise the grain past the tint and the sharing becomes a
+    # claim nobody checked, which is how this file's other numbers rotted.
+    if palette.SB_GRAIN_PCT > tint:
+        problems.append(
+            f"SB_GRAIN_PCT ({palette.SB_GRAIN_PCT}%) is stronger than the tint "
+            f"({tint}%), so Textured cannot share Tinted's hue fit -- either "
+            f"lower it or give Textured a block of its own"
+        )
+    for what, pct, pattern in (
+        ("--bnd-sb-tint", tint, r"--bnd-sb-tint:\s*color-mix\(in srgb, var\(--bnd-brand\) (\d+)%"),
+        ("the grain", palette.SB_GRAIN_PCT,
+         r"--bnd-sb-grain-image:.*?var\(--bnd-sb-ink\) (\d+)%"),
+    ):
+        m = re.search(pattern, src, re.S)
+        if not m:
+            problems.append(
+                f"_sidebar.scss no longer composes {what} the way this check reads it -- the pin is broken, not the value"
+            )
+        elif int(m.group(1)) != pct:
+            problems.append(
+                f"{what} is {m.group(1)}% in _sidebar.scss but palette.py says {pct}%"
+            )
+
+    # HOISTED OUT OF THE SEED LOOP, and not as a micro-optimisation: a fit is
+    # against the BINDING pane, which is computed at the extreme seed and is
+    # therefore the same for every site. Calling it per seed would run 324
+    # bisections to produce four answers -- and would read as though the fit
+    # depended on the seed, which is the misreading this whole file exists to
+    # prevent.
+    hues = {
+        ("light", 0): palette.sb_hues("light"),
+        ("dark", 0): palette.sb_hues("dark"),
+        ("light", tint): palette.sb_hues("light", tint),
+        ("dark", tint): palette.sb_hues("dark", tint),
+    }
+
+    # The surfaces, per seed and mode, against the hues the stylesheet carries
+    # for THAT surface.
+    for seed, label in SEEDS:
+        for mode, static in (("light", light), ("dark", dark)):
+            v = dict(static)
+            v.update(palette.derive(seed, ACCENT_SEED, mode))
+            pane = v["--bnd-pane"]
+            surfaces = [
+                ("Elevated", v["--bnd-raised"], hues[(mode, 0)]),
+                # THE STRIPE, at full alpha, against the fit it SHARES. Measuring
+                # it against the untinted fit would be measuring a stylesheet this
+                # app does not ship -- Textured is in the tinted selector list.
+                ("Textured",
+                 palette.mix(v["--bnd-ink"], palette.SB_GRAIN_PCT, pane),
+                 hues[(mode, tint)]),
+                ("Tinted", palette.mix(seed, tint, pane), hues[(mode, tint)]),
+            ]
+            # Gradient's weak end is the untinted pane, already swept; its strong
+            # end IS Tinted's colour, measured on the row above. Nothing to add,
+            # and saying so beats a row that measures the same pair twice.
+            # `fitted`, not `hues`: the outer name is the fit TABLE, and
+            # rebinding it here silently emptied it on the second seed.
+            for name, bg, fitted in surfaces:
+                for i, hue in enumerate(fitted, 1):
+                    r = ratio(parse_color(hue), parse_color(bg))
+                    if r < 4.5:
+                        problems.append(
+                            f"{label}/{mode}: {name} paints --bnd-sb-cat-{i} ({hue}) "
+                            f"on {bg} at {r:.2f}:1"
+                        )
+                muted = v["--bnd-ink-muted"]
+                r = ratio(parse_color(muted), parse_color(bg))
+                if r < 4.5:
+                    problems.append(
+                        f"{label}/{mode}: {name} paints --bnd-ink-muted ({muted}) "
+                        f"on {bg} at {r:.2f}:1"
+                    )
+                # THE TWO TILE ICON STYLES, READ THE OTHER WAY ROUND (slice I).
+                # Solid Tile and Circle Badge use the hue as a FILL and knock the
+                # PANE out of it -- `--bnd-sb-bg`, which is `--bnd-pane`, not the
+                # surface's own rendered background. That is deliberate and it is
+                # exactly why this row exists: the argument for the tiles being
+                # free is that a hue is FITTED against the pane, so pane-on-hue is
+                # the same measured pair inverted -- and on a tinted surface the
+                # hue moves with the tint while the knockout does not. An argument
+                # is not a measurement.
+
+                # FILLED COLOR'S FALLBACK, on the rows above the first section
+                # break where no hue is in scope. A glyph, so the graphic floor.
+                bi = v["--bnd-brand-ink"]
+                r = ratio(parse_color(bi), parse_color(bg))
+                if r < AA_NON_TEXT:
+                    problems.append(
+                        f"{label}/{mode}: under {name}, an un-hued Filled Color "
+                        f"glyph (--bnd-brand-ink {bi}) on {bg} is {r:.2f}:1"
+                    )
+
+                # THE DOT BADGE, a 7px graphic in the status colour on this
+                # surface. It clears by 0.38 at the worst seed, which is exactly
+                # the margin that wants a gate rather than a sentence.
+                serious = v["--bnd-serious"]
+                dot = ratio(parse_color(serious), parse_color(bg))
+                if dot < AA_NON_TEXT:
+                    problems.append(
+                        f"{label}/{mode}: under {name}, the dot badge "
+                        f"(--bnd-serious {serious}) on {bg} is {dot:.2f}:1, "
+                        f"under the {AA_NON_TEXT} graphic floor"
+                    )
+
+                for i, hue in enumerate(fitted, 1):
+                    r = ratio(parse_color(pane), parse_color(hue))
+                    if r < 4.5:
+                        problems.append(
+                            f"{label}/{mode}: under {name}, a tile knocks the pane "
+                            f"({pane}) out of --bnd-sb-cat-{i} ({hue}) at {r:.2f}:1"
+                        )
+                    # AND THE HUE WASH BEHIND AN UNTILED GLYPH (slice I). Two
+                    # floors, and they are different on purpose: a GLYPH is a
+                    # graphic (WCAG 1.4.11, 3:1) and measures 3.47:1 at Rich,
+                    # while the LETTER the same chip can hold is TEXT (4.5:1) --
+                    # which is exactly why `.bnd-sb-letter` stopped taking the
+                    # hue and takes `--bnd-sb-ink`. Measuring both against one
+                    # floor would either fail a passing glyph or pass a failing
+                    # letter.
+                    for wash in SB_WASH_PCTS:
+                        chip = palette.mix(hue, wash, bg)
+                        g = ratio(parse_color(hue), parse_color(chip))
+                        if g < AA_NON_TEXT:
+                            problems.append(
+                                f"{label}/{mode}: under {name} at wash {wash}%, "
+                                f"--bnd-sb-cat-{i} ({hue}) on its own chip ({chip}) "
+                                f"is {g:.2f}:1, under the {AA_NON_TEXT} graphic floor"
+                            )
+                        t = ratio(parse_color(v["--bnd-ink"]), parse_color(chip))
+                        if t < AA_TEXT:
+                            problems.append(
+                                f"{label}/{mode}: under {name} at wash {wash}%, a "
+                                f"letter (--bnd-ink {v['--bnd-ink']}) on the chip "
+                                f"({chip}) is {t:.2f}:1"
+                            )
     return problems
 
 
@@ -1454,15 +1661,28 @@ def check_layout_identity() -> list[str]:
 
 
 #: The rows item 42 retired, as a site upgraded from v0.41 may still hold them:
-#: containers, tenants, and the name the derivation should now answer. Three
-#: rows survive under a new name because their VALUES survived; two spell a
-#: shape no card offers any more and honestly derive to "" (the picker reads
-#: "Custom"), which is the removal rule: nothing stops working, it stops being
-#: named.
+#: containers, tenants, and the name the derivation should now answer.
+#:
+#: ALL FIVE ANSWER "" SINCE SLICE 7, and the reason is worth writing down because
+#: it will recur every time the catalogue grows a tenant. Three of these rows
+#: DID derive their successor -- their values had survived the rename intact.
+#: Then `start_placement` joined the catalogue, `layout_of` matches exactly on
+#: every field a layout writes, and a desk that predates the field falls back to
+#: the shipped default and matches nothing. A Top Bar desk has no start button and
+#: a Top Taskbar desk has one: they are different desks, and "" says so. The
+#: picker reads "Custom", the desk renders exactly as it did, and one click on a
+#: card adopts the new shape. That is the removal rule again -- nothing stops
+#: working, it stops being named.
+#:
+#: What this guard still refuses is the failure that matters: a retired row
+#: deriving a STRANGER, which would put the picker on a card the site is not on
+#: and hand search a fallback order nobody asked for.
 RETIRED_LAYOUTS = {
+    # WAS "Top Taskbar" until slice 7 gave that row a start button this desk has
+    # no setting for. See the note above RETIRED_LAYOUTS.
     "Top Bar": ({"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
                 {"inbox_placement": "Top Bar End", "user_placement": "Top Bar End", "search_placement": "Top Bar Center"},
-                "Top Taskbar"),
+                ""),
     "Compact": ({"topbar": 0, "pagehead": 1, "bottombar": 1, "sidepane": 1, "dock": 0},
                 {"inbox_placement": "Page Header End", "user_placement": "Page Header End", "search_placement": "Side Pane Start"},
                 ""),
@@ -1471,10 +1691,10 @@ RETIRED_LAYOUTS = {
                 ""),
     "Bottom Bar": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
                    {"inbox_placement": "Bottom Bar End", "user_placement": "Bottom Bar End", "search_placement": "Bottom Bar Center"},
-                   "Taskbar"),
+                   ""),
     "Dock": ({"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 0, "dock": 1},
              {"inbox_placement": "Dock End", "user_placement": "Dock End", "search_placement": "Bottom Bar Center"},
-             "Floating Bar"),
+             ""),
 }
 
 
@@ -1789,6 +2009,13 @@ def main() -> int:
             print(f"   {m}")
         print()
 
+    surfaces = check_sidebar_surfaces(light, dark)
+    if surfaces:
+        print("a pane surface is not legible, or its number has drifted:")
+        for m in surfaces:
+            print(f"   {m}")
+        print()
+
     lineage = check_layout_lineage()
     if lineage:
         print("a retired layout row derives the wrong successor:")
@@ -1866,7 +2093,7 @@ def main() -> int:
         print()
 
     if (failures or drift or sep or ref or inert or lift or cat or theme or shape or layouts or lineage
-            or split or sb_hues):
+            or split or sb_hues or surfaces):
         if failures:
             print(f"{len(failures)} of {total} measured pairs fail.\n")
             by_pair = {}
