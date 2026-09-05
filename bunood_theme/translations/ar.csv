@@ -710,6 +710,7 @@ One elevated sheet; sections divide inside it.,صفحة واحدة مرتفعة�
 "One submitted invoice can fire assignment, share and workflow notifications within a minute — this collects them under the document.",فاتورة معتمدة واحدة قد تطلق إخطارات تكليف ومشاركة وسير عمل في دقيقة — هذا يجمعها تحت المستند.,
 Only a System Manager can manage translations.,لا يدير الترجمات إلا مدير النظام.,
 Open,فتح,
+Open,مفتوح,pane state
 Open Board,لوح مفتوح,
 Open Canvas,مساحة مفتوحة,
 Open Rows,صفوف مفتوحة,

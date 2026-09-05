@@ -128,17 +128,23 @@ function buildPo(mapFiles) {
 /** msgid/msgstr pairs out of the PO, skipping the header and obsolete entries. */
 export function parsePo(text) {
 	const out = new Map();
-	let id = null, str = null, field = null;
+	let id = null, str = null, field = null, ctx = "";
 	const unq = (s) => {
 		const m = s.match(/"([\s\S]*)"\s*$/);
 		return m ? m[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\") : "";
 	};
-	const flush = () => { if (id) out.set(id, str || ""); id = null; str = null; field = null; };
+	// A `msgctxt` keys the entry as `context\u0004msgid` -- gettext's separator, and
+	// the key `tools/i18n.mjs` catalogues a contextual `__()` under.
+	const flush = () => {
+		if (id) out.set(ctx ? id + "\u0004" + ctx : id, str || "");
+		id = null; str = null; field = null; ctx = "";
+	};
 	for (const raw of text.split(/\r?\n/)) {
 		const line = raw.trim();
 		if (line.startsWith("#~") || line === "") { flush(); continue; }
 		if (line.startsWith("#")) continue;
-		if (line.startsWith("msgid")) { flush(); id = unq(line.slice(5)); str = ""; field = "id"; continue; }
+		if (line.startsWith("msgctxt")) { flush(); ctx = unq(line.slice(7)); field = "ctx"; continue; }
+		if (line.startsWith("msgid")) { const c = ctx; flush(); ctx = c; id = unq(line.slice(5)); str = ""; field = "id"; continue; }
 		if (line.startsWith("msgstr")) { str = unq(line.slice(6)); field = "str"; continue; }
 		if (line.startsWith('"')) {
 			if (field === "id") id += unq(line);
@@ -162,9 +168,14 @@ function emitCsv() {
 	const rows = [...po.entries()]
 		.filter(([, str]) => str) // an empty msgstr is a decision to fall back, not a row
 		.sort(([a], [b]) => (a < b ? -1 : 1))
-		// Frappe's reader: col0 source, col1 translation, col2 context (empty).
-		// The trailing comma is that empty third column, same as upstream's files.
-		.map(([id, str]) => `${csvq(id)},${csvq(str)},`);
+		// Frappe's reader: col0 source, col1 translation, col2 context. Its loader
+		// keys a row with a context as `source:context`, which is what a
+		// `__("x", null, "context")` call looks up; every other row keeps the
+		// empty third column upstream's files carry.
+		.map(([key, str]) => {
+			const [id, ctx = ""] = key.split("\u0004");
+			return `${csvq(id)},${csvq(str)},${csvq(ctx)}`;
+		});
 	mkdirSync(dirname(CSV), { recursive: true });
 	writeFileSync(CSV, rows.join("\n") + "\n", "utf8");
 	console.log(`  wrote translations/ar.csv: ${rows.length} rows (GENERATED — edit the PO, then re-emit)`);

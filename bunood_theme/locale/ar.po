@@ -3756,6 +3756,14 @@ msgstr "إعلام"
 msgid "Open"
 msgstr "فتح"
 
+#. In theme_settings.js (context: pane state) — the STATE of the side pane, an
+#. adjective; the row above is the verb on the inbox's button. One English word,
+#. two Arabic ones, and Frappe's context argument is what keeps them apart.
+#. src: reviewed
+msgctxt "pane state"
+msgid "Open"
+msgstr "مفتوح"
+
 #. src: apps-trim
 msgid "Refresh"
 msgstr "تحديث"

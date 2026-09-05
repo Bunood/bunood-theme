@@ -128,7 +128,15 @@ export function fromDoctype(path) {
 
 // Group 1 is the opening quote, group 2 everything up to the matching one.
 // [\s\S] so a message may span lines, which Frappe's own pattern also allows.
-const CALL = /__\(\s*(["'`])((?:(?!\1)[\s\S])*)\1/g;
+//
+// Groups 3 and 4 are Frappe's CONTEXT argument -- `__("Open", null, "pane state")`
+// -- which the runtime looks up as `Open:pane state`. One word, two meanings, is
+// the only reason it exists here: "Open" is a verb on the inbox's button and an
+// adjective on the pane-state card, and Arabic has no word that is both. A
+// contextual string is catalogued under `msgid + \u0004 + context`, gettext's own
+// separator, so it can never collide with the bare string it shares its text with.
+const CALL = /__\(\s*(["'`])((?:(?!\1)[\s\S])*)\1(?:\s*,\s*null\s*,\s*(["'`])((?:(?!\3)[\s\S])*)\3)?/g;
+export const CTX = "\u0004";
 const RAW = /__\(\s*["'`]/g;
 
 /** Decode the escapes that actually occur in UI strings. */
@@ -157,7 +165,10 @@ export function fromJs(paths = JS_SOURCES) {
 		while ((m = CALL.exec(src))) {
 			matched++;
 			const text = unescape(m[2]);
-			if (isTranslatable(text)) out.push({ msg: text, comment: `In ${name}` });
+			const ctx = m[4] ? unescape(m[4]) : "";
+			if (isTranslatable(text)) {
+				out.push({ msg: ctx ? text + CTX + ctx : text, comment: `In ${name}` + (ctx ? ` (context: ${ctx})` : "") });
+			}
 		}
 	}
 
@@ -282,7 +293,9 @@ export function readTranslations(path) {
 		if (!r.length || !r[0]) continue;
 		const source = r[0].replace(/\\n/g, "\n");
 		const translated = (r[1] || "").trim();
-		if (translated) map.set(source, translated);
+		// Column 2 is Frappe's context, keyed exactly as the extractor keys it.
+		const ctx = (r[2] || "").trim();
+		if (translated) map.set(ctx ? source + CTX + ctx : source, translated);
 	}
 	return map;
 }

@@ -10670,7 +10670,10 @@ print("ok")
 						const identity = [];
 						const missing = [];
 						for (const id of ids) {
-							const got = dict[id];
+							// A CONTEXTUAL decision is catalogued as `msgid\u0004context` (gettext's
+							// separator) and served by Frappe as `msgid:context` -- two spellings of
+							// one key, and this is the seam where they meet.
+							const got = dict[id.replace("\u0004", ":")];
 							if (got === undefined) missing.push(id);
 							else if (got === id) identity.push(id);
 						}
@@ -10704,6 +10707,40 @@ print("ok")
 				// for the human review pass, not for a gate.
 				expectEq(probe.identity.join("\n"), "", "decisions erased by identity rows");
 			});
+		});
+
+		await test("i18n: the pane state's Open is an adjective, the inbox's Open a verb", async () => {
+			// ONE MSGID SERVED TWO SENSES. "Open" is the inbox detail's button (a verb,
+			// فتح) and the side pane's state (an adjective, مفتوح), and one row cannot be
+			// both — the state card read as an instruction to open something. Found in
+			// the fuzzy-row review, fixed with Frappe's own context argument:
+			// `__("Open", null, "pane state")`, which the runtime looks up as
+			// `Open:pane state` from the CSV's third column. This repo had never carried
+			// a context before, so the extractor, the PO parser and the CSV emitter all
+			// learned it at once — and this is the one place all four seams are read
+			// end to end, on a rendered Arabic desk rather than in the tooling's own
+			// self-checks.
+			//
+			// Watched failing before the split: the card read فتح.
+			const got = await withLang("ar", async () => {
+				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
+				return page.evaluate(() => {
+					const card = document.querySelector(
+						'.bnd-sbp-opt[data-field="sidebar_pane_state"][data-value="Open"] .bnd-sbp-oname'
+					);
+					return {
+						card: card ? card.textContent.trim() : "(no card)",
+						verb: window.__("Open"),
+						state: window.__("Open", null, "pane state"),
+					};
+				});
+			});
+			// The two senses differ, and the card carries the adjective. Neither Arabic
+			// word is pinned here — the PO owns the words; this owns that they are two.
+			expect(got.verb && got.state && got.verb !== got.state,
+				`the verb and the state translate differently (${got.verb} / ${got.state})`);
+			expectEq(got.card, got.state, "and the pane-state card shows the state, not the verb");
+			expect(got.state !== "Open", "and the contextual lookup resolved, rather than falling back to English");
 		});
 
 		await test("i18n: no visible theme-owned label equals its msgid", async () => {
