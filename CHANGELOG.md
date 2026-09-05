@@ -408,7 +408,13 @@ fetched on every desk (Arabic or not — measured in item 7 and still true). One
 file covers 100–900, so the static pair's two round trips become one. No payload bucket
 measures fonts; the number is now written beside the faces, and a tenant who wants the
 old cost picks IBM Plex in Theme Settings.
-## [Unreleased] — ZATCA Phase-1 printing (item 41)
+## [0.41.0] — 2026-09-02 — ZATCA Phase-1 printing (item 41)
+
+**Tagged at `dd32157` on 2026-09-04, at the user's instruction — the last commit before
+any item-42 source, so the release named for item 41 carries none of item 42.** The
+same cut v0.29.0 made, with the same recorded cost: the version files at that commit
+still read 0.37.1, and `app_version` catches up at v0.42.0. The work is Hesham
+Mohammed Ahmed Ali's, re-merged from `studio-zatca`; the cut is ours.
 
 **Re-merged from `studio-zatca` on 2026-09-02, where it had shipped inside
 `v0.39.0`.** Hesham's two ZATCA commits, exactly as they were, under this line's

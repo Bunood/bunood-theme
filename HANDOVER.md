@@ -42,9 +42,10 @@ another field's name).
   448.
 
 **Tags:** `v0.42.0` is cut at the HANDOVER commit on top of `c3cfea1`; `v0.40.0` (`ff6dd9d`)
-and `v0.42.0` are pushed with `main`. **`v0.41.0` is NOT cut**: item 41 is Hesham's ZATCA
-re-merge, already on `origin/main` and released only inside v0.42.0's range. Cutting a
-tag for another person's work is theirs to ask for.
+and `v0.42.0` are pushed with `main`. **`v0.41.0` is cut at `dd32157`** (2026-09-04, at the
+user's instruction) — the last commit before any item-42 source, so the release named
+for Hesham's ZATCA re-merge carries none of item 42. Version files there read 0.37.1;
+the invariant resumes at v0.42.0, as CHANGELOG `[0.41.0]` records.
 
 **VERSION NUMBERING CHANGED 2026-08-20, AND IT IS A STANDING RULE: MINOR IS THE ROADMAP
 ITEM NUMBER.** Item 29 released as `v0.29.0`, item 30 as `v0.30.0`; PATCH stays
@@ -2057,8 +2058,8 @@ check that was verified by putting the defect back and watching it turn red.
 
 0. **Ten fuzzy `ar.po` rows from item 42** (six surface and icon-style names, the Desk
    parts labels) are machine-proposed and served — fuzzy rows reach the CSV — but nobody
-   has reviewed the Arabic. `grep -c fuzzy bunood_theme/locale/ar.po` is 100. And
-   **`v0.41.0`**, above: cut it or not, but it is not mine to cut.
+   has reviewed the Arabic — REVIEWED 2026-09-04 (four corrected, one mojibake
+   repaired); 89 fuzzy rows remain from earlier items. `v0.41.0` is cut (above).
 1. **Release.** Item 17 (was 32) is a MINOR by the versioning policy but sits in
    `[Unreleased]`; `app_version` in `hooks.py` is unbumped. A release needs the
    three gates: CI green (is), smoke green (is), adversarial release review clean
