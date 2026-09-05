@@ -2142,103 +2142,86 @@ msgstr "كبسولة ناعمة"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Fill on Active"
-msgstr "تلوين النشط"
+msgstr "تعبئة عند التنشيط"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Solid Tile"
 msgstr "مربّع مصمت"
 
 #. Option for 'Icon Style' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Circle Badge"
 msgstr "شارة دائرية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Fill on active"
-msgstr "تلوين النشط"
+msgstr "تعبئة عند التنشيط"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Solid tile"
 msgstr "مربّع مصمت"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Circle badge"
 msgstr "شارة دائرية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Desk parts"
 msgstr "أجزاء المكتب"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Every switch and every placement, in one place."
 msgstr "كل مفتاح وكل موضع، في مكان واحد."
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Page title row"
 msgstr "صف عنوان الصفحة"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Profile"
 msgstr "الملف الشخصي"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Start button"
 msgstr "زر البدء"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "Home link"
-msgstr "رابط الرئيسية"
+msgstr "رابط الصفحة الرئيسية"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "All apps link"
 msgstr "رابط كل التطبيقات"
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Bordered"
-msgstr "محدّد"
+msgstr "مؤطَّر"
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Textured"
-msgstr "منقّش"
+msgstr "مُحبَّب"
 
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
-#, fuzzy
 msgid "Gradient"
 msgstr "متدرّج"
 
 #. In theme_settings.js
 #. src: ai
-#, fuzzy
 msgid "What the pane is made of, behind the links."
 msgstr "ممّ تتكوّن اللوحة، خلف الروابط."
 
@@ -5263,9 +5246,8 @@ msgstr "الشركة"
 msgid "Collapse all sections"
 msgstr "طيّ كل الأقسام"
 
-#, fuzzy
 msgid "Quick actions"
-msgstr "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø³Ø±ÙØ¹Ø©"
+msgstr "إجراءات سريعة"
 
 #, fuzzy
 msgid "Pin this page"
