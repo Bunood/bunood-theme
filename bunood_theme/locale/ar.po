@@ -410,7 +410,6 @@ msgstr "كربون"
 
 #. In theme_settings.js
 #. src: item40
-#, fuzzy
 msgid "Card depth"
 msgstr "عمق البطاقة"
 
@@ -1058,12 +1057,6 @@ msgstr "مؤشر الحداثة"
 #. src: ai
 msgid "Glass"
 msgstr "زجاجية"
-
-#. In theme_settings.js
-#. src: item40
-#, fuzzy
-msgid "Glass lets the page glow through; blurred frosts it as well."
-msgstr "الزجاج يدع الصفحة تشعّ من خلفه؛ والمموّهة تضبّبها أيضًا."
 
 #. In theme_settings.js
 #. src: ai
@@ -3663,13 +3656,6 @@ msgstr "تعتيم"
 msgid "Blurred"
 msgstr "ضبابي"
 
-#. Option for 'Pane Material' in DocType 'Theme Settings'
-#. In theme_settings.js
-#. src: item40
-#, fuzzy
-msgid "Blurred Glass"
-msgstr "زجاجية مموّهة"
-
 #. src: item28
 msgid "Menu Row"
 msgstr "صف القائمة"
@@ -4189,7 +4175,6 @@ msgstr "بطاقة"
 #. Option for 'Section Style' in DocType 'Theme Settings'
 #. In theme_settings.js
 #. src: item40
-#, fuzzy
 msgid "Cards"
 msgstr "بطاقات"
 
@@ -4964,322 +4949,262 @@ msgstr "سيعرض البريد والمستندات المطبوعة اسم ش�
 
 #. Label of the "ground_color" field in DocType 'Theme Settings'
 #. src: item37
-#, fuzzy
 msgid "Ground Color"
 msgstr "لون الأرضية"
 
 #. Description of the "ground_color" field in DocType 'Theme Settings'
 #. src: item37
-#, fuzzy
 msgid "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
-msgstr "اختياري. ما تُمزج منه أسطح المكتب. الفراغ يعني لون العلامة، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
+msgstr "اختياري. ما تُمزج منه أسطح المكتب. تركه فارغًا يعني لون العلامة التجارية، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
 
 #. src: item37
-#, fuzzy
 msgid "Bunood Day"
 msgstr "بنود نهاري"
 
 #. src: item37
-#, fuzzy
 msgid "Focus"
 msgstr "تركيز"
 
 #. src: item37
-#, fuzzy
 msgid "Canvas"
-msgstr "لوحة"
+msgstr "لوحة الرسم"
 
 #. src: item37
-#, fuzzy
 msgid "Ledger"
 msgstr "دفتر"
 
 #. src: item37
-#, fuzzy
 msgid "Records"
 msgstr "سجلات"
 
 #. src: item37
-#, fuzzy
 msgid "Studio"
 msgstr "استوديو"
 
 #. src: item37
-#, fuzzy
 msgid "Contrast"
 msgstr "تباين"
 
 #. src: item37
-#, fuzzy
 msgid "Theme Picker"
 msgstr "منتقي السمة"
 
 #. src: item37
-#, fuzzy
 msgid "The shipped look. Floating cards on a hue-washed pane."
-msgstr "المظهر المُضمَّن. بطاقات عائمة على لوحة مغسولة بالتدرّج اللوني."
+msgstr "المظهر الافتراضي. بطاقات عائمة على لوحة مغسولة بالألوان."
+
+#. In theme_settings.js
+#. src: ai
+msgid "The same design in daylight — a floating card lifted off the page instead of attached solid."
+msgstr "التصميم نفسه في وضح النهار — بطاقة عائمة مرفوعة عن الصفحة بدل اللوح المصمت الملتصق."
 
 #. src: item37
-#, fuzzy
-msgid "The same design in daylight — floating glass instead of attached solid."
-msgstr "التصميم نفسه في وضح النهار — زجاج عائم بدل اللوح المصمت الملتصق."
-
-#. src: item37
-#, fuzzy
 msgid "Dense hairlines, monochrome glyphs, nothing raised."
 msgstr "خطوط شعرية كثيفة، أيقونات أحادية اللون، ولا شيء مرتفع."
 
 #. src: item37
-#, fuzzy
 msgid "Unframed and text-forward — the container does the framing."
 msgstr "بلا إطارات ومع تقديم النص — الحاوية هي التي تؤطّر."
 
 #. src: item37
-#, fuzzy
 msgid "Ruled and precise: zebra rows, weighted tiles."
 msgstr "مسطّر ودقيق: صفوف مخطّطة وبطاقات متفاوتة الوزن."
 
 #. src: item37
-#, fuzzy
 msgid "Soft tiles, filled empties, rounded elevation throughout."
 msgstr "بطاقات ناعمة، وحالات فارغة ممتلئة، وارتفاع مستدير في كل مكان."
 
 #. src: item37
-#, fuzzy
 msgid "Structured and sharp — a grid you can feel, on a deep pane."
 msgstr "منظّم وحادّ — شبكة تكاد تلمسها، على لوحة داكنة."
 
 #. src: item37
-#, fuzzy
 msgid "Document-centric: a paper sheet on a headed board."
 msgstr "مُتمحور حول المستند: ورقة على لوح معنون."
 
 #. src: item37
-#, fuzzy
 msgid "The modern neutral — subtle borders, colour used sparingly."
 msgstr "الحياد الحديث — حدود خفيفة، ولون يُستخدم باقتصاد."
 
 #. src: item37
-#, fuzzy
 msgid "Bold and high-contrast: solid panels, filled colour."
 msgstr "جريء وعالي التباين: ألواح مصمتة ولون ممتلئ."
 
 #. src: item37
-#, fuzzy
 msgid "Dense rows, live count badges, the status bar always on."
 msgstr "صفوف كثيفة، وشارات عدّ حيّة، وشريط الحالة ظاهر دائمًا."
 
 #. src: item37
-#, fuzzy
 msgid "Every kit that can stand down does. The side pane, status bar and charts cannot — they mount chrome, or ship no Original — so they take their quietest setting."
 msgstr "كل طقم يستطيع التنحّي يفعل. اللوحة الجانبية وشريط الحالة والرسوم البيانية لا تستطيع — فهي تركّب عناصر واجهة، أو لا تقدّم خيار «الأصلي» — لذا تأخذ أهدأ إعداد لها."
 
 #. src: item37
-#, fuzzy
 msgid "Custom — your own combination. Picking a look overwrites every setting it names, including the colours."
 msgstr "مخصّص — تركيبتك أنت. اختيار مظهر يستبدل كل إعداد يسمّيه، بما في ذلك الألوان."
 
 #. src: item37
-#, fuzzy
 msgid "Every setting this look names is applied. Change any one of them and this reads Custom."
 msgstr "كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص»."
 
 #. src: item38
-#, fuzzy
 msgid "Personalization"
 msgstr "التخصيص الشخصي"
 
 #. src: item38
-#, fuzzy
 msgid "People may choose their own look"
 msgstr "يمكن للأشخاص اختيار مظهرهم الخاص"
 
 #. src: item38
-#, fuzzy
 msgid "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
-msgstr "يمكن لكل شخص اختيار أحد المظاهر المرفقة لنفسه، من نافذة المظهر. أما الألوان فتتبع إعدادات الموقع دائمًا."
+msgstr "يمكن لكل شخص اختيار أحد المظاهر المُضمَّنة لنفسه، من نافذة المظهر. أما الألوان فتتبع إعدادات الموقع دائمًا."
 
 #. src: item38
-#, fuzzy
 msgid "People may choose their own desk shape"
 msgstr "يمكن للأشخاص اختيار شكل مكتبهم الخاص"
 
 #. src: item38
-#, fuzzy
 msgid "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
 msgstr "يمكن لكل شخص اختيار تخطيط مكتبه: أي الأشرطة تظهر، وأين يقع البحث والإشعارات والملف الشخصي. مُعطَّل افتراضيًا، لأن مواد التدريب ومكالمات الدعم تصف مكتبًا واحدًا."
 
 #. src: item38
-#, fuzzy
 msgid "People may set their own comfort"
 msgstr "يمكن للأشخاص ضبط إعدادات الراحة الخاصة بهم"
 
 #. src: item38
-#, fuzzy
 msgid "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
 msgstr "يمكن لكل شخص ضبط الوضع الفاتح أو الداكن وكثافة الصفوف. أما تقليل الحركة فمتاح للجميع دائمًا ولا يتأثر بهذا الإعداد."
 
 #. src: item38
-#, fuzzy
 msgid "Follow the site ({0})"
 msgstr "اتّبع إعدادات الموقع ({0})"
 
 #. src: item38
-#, fuzzy
 msgid "Follow the site"
 msgstr "اتّبع إعدادات الموقع"
 
 #. src: item38
-#, fuzzy
 msgid "Set by your administrator."
 msgstr "محدَّد من قِبل المسؤول."
 
 #. src: item38
-#, fuzzy
 msgid "Look"
 msgstr "المظهر العام"
 
 #. src: item38
-#, fuzzy
 msgid "Desk shape"
 msgstr "شكل المكتب"
 
 #. src: item38
-#, fuzzy
 msgid "Light or dark"
 msgstr "فاتح أو داكن"
 
 #. src: item38
-#, fuzzy
 msgid "Automatic"
 msgstr "تلقائي"
 
 #. src: item38
-#, fuzzy
 msgid "Colours follow the site."
 msgstr "الألوان تتبع إعدادات الموقع."
 
 #. src: item38
-#, fuzzy
 msgid "Appearance saved"
 msgstr "تم حفظ المظهر"
 
 #. src: item38
-#, fuzzy
 msgid "Could not open Appearance"
 msgstr "تعذّر فتح المظهر"
 
 #. src: item38
-#, fuzzy
 msgid "Save"
 msgstr "حفظ"
 
 #. src: item38
-#, fuzzy
 msgid "Motion"
 msgstr "الحركة"
 
 #. src: item38
-#, fuzzy
 msgid "Follow my system"
 msgstr "اتّبع نظام جهازي"
 
 #. src: item38
-#, fuzzy
 msgid "Reduced"
 msgstr "مُخفَّفة"
 
 #. src: item38
-#, fuzzy
 msgid "Where the desk opens"
 msgstr "نقطة بدء المكتب"
 
 #. In theme_settings.js
 #. src: item40
-#, fuzzy
 msgid "Applies to card sections."
-msgstr "ينطبق على الأقسام البطاقية."
+msgstr "ينطبق على أقسام البطاقات."
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Filter this workspace"
 msgstr "رشِّح مساحة العمل هذه"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Matches: {0}"
 msgstr "المطابقات: {0}"
 
 #. In theme_settings.js
 #. src: item40
-#, fuzzy
 msgid "Workspace filter"
 msgstr "مرشِّح مساحة العمل"
 
 #. In theme_settings.js
 #. src: item40
-#, fuzzy
 msgid "An always-visible filter row above the links."
 msgstr "صف ترشيح ظاهر دائمًا فوق الروابط."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: item40
-#, fuzzy
 msgid "Workspace Filter"
 msgstr "مرشِّح مساحة العمل"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Shortcuts"
 msgstr "الاختصارات"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Company"
 msgstr "الشركة"
 
-#, fuzzy
 msgid "Collapse all sections"
 msgstr "طيّ كل الأقسام"
 
 msgid "Quick actions"
 msgstr "إجراءات سريعة"
 
-#, fuzzy
 msgid "Pin this page"
 msgstr "تثبيت هذه الصفحة"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Unpin this page"
 msgstr "إلغاء تثبيت هذه الصفحة"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Pin"
 msgstr "تثبيت"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Unpin"
 msgstr "إلغاء التثبيت"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Side pane width"
 msgstr "عرض اللوحة الجانبية"
 
 #. In bunood.js
 #. src: item40
-#, fuzzy
 msgid "Use the site's width"
 msgstr "استخدام عرض الموقع"
 
@@ -6348,109 +6273,91 @@ msgstr "مقارنة بالفترة السابقة"
 
 #. In bunood.js
 #. src: item42
-#, fuzzy
 msgid "Getting Started"
 msgstr "الشروع في العمل"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Unified Side Pane"
 msgstr "اللوحة الجانبية الموحّدة"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Taskbar"
 msgstr "شريط المهام"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Top Taskbar"
 msgstr "شريط المهام العلوي"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Floating Bar"
 msgstr "الشريط العائم"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Everything in the side pane: brand, search, workspaces, notifications and profile. No bars above the page."
 msgstr "كل شيء في اللوحة الجانبية: العلامة والبحث ومساحات العمل والإشعارات والملف الشخصي. لا أشرطة فوق الصفحة."
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "A start button, centred search, notifications and profile in a bar along the bottom edge."
-msgstr "زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي في شريط على طول الحافة السفلية."
+msgstr "زر البدء، وبحث في المنتصف، والإشعارات والملف الشخصي في شريط على طول الحافة السفلية."
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "The taskbar at the top: start button, centred search, notifications and profile above the page."
-msgstr "شريط المهام في الأعلى: زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة."
+msgstr "شريط المهام في الأعلى: زر البدء، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة."
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."
 msgstr "بدون لوحة جانبية — مساحات العمل والبحث والإشعارات والملف الشخصي تطفو في كبسولة سفلية. صفحات بعرض كامل."
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: item42
-#, fuzzy
 msgid "Side Pane State"
 msgstr "حالة اللوحة الجانبية"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: item42
-#, fuzzy
 msgid "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
-msgstr "«مفتوح» يظهر اللوحة؛ «شريط» يظهر أيقونات تتوسع عند المرور أو النقر؛ «مخفي» يزيلها ويبقي كبسولة العلامة وزر البدء."
+msgstr "«مفتوح» يظهر اللوحة؛ «سكة» تظهر أيقونات تتوسع عند المرور أو النقر؛ «مخفي» يزيلها ويبقي كبسولة العلامة وزر البدء."
 
 #. Option for 'Side Pane State' in DocType 'Theme Settings'
 #. src: item42
-#, fuzzy
 msgid "Hidden"
 msgstr "مخفي"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "the side pane is hidden"
 msgstr "اللوحة الجانبية مخفية"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "The pane is hidden"
 msgstr "اللوحة مخفية"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "How much of the pane you keep. Hidden leaves the brand pill and the start button."
 msgstr "مقدار ما تبقيه من اللوحة. «مخفي» يبقي كبسولة العلامة وزر البدء."
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Notifications and your profile are in the pane — place them in a bar first"
 msgstr "الإشعارات وملفك الشخصي داخل اللوحة — ضعهما في شريط أولًا"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Notifications are in the pane — place them in a bar first"
 msgstr "الإشعارات داخل اللوحة — ضعها في شريط أولًا"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Your profile is in the pane — place it in a bar first"
 msgstr "ملفك الشخصي داخل اللوحة — ضعه في شريط أولًا"
 msgid "Start Button Placement"
@@ -6458,18 +6365,15 @@ msgstr "موضع زر البدء"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: item42
-#, fuzzy
 msgid "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
-msgstr "زر بدء يفتح اللوحة الجانبية، مثل شريط المهام. معطل في المكتب المشحون، حيث اللوحة مفتوحة بالفعل."
+msgstr "زر بدء يفتح اللوحة الجانبية، مثل شريط المهام. معطَّل في المكتب الافتراضي، حيث اللوحة مفتوحة بالفعل."
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "Rail + Flyout"
-msgstr "شريط مع لوحة منبثقة"
+msgstr "سكة مع لوحة منبثقة"
 
 #. In theme_settings.js
 #. src: item42
-#, fuzzy
 msgid "A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."
-msgstr "شريط رفيع من الأيقونات يتوسع عند الوصول إليه. اللوحة حاضرة حين تريدها وـ 52 بكسل حين لا تريد."
+msgstr "سكة رفيعة من الأيقونات تتوسع عند الوصول إليها. اللوحة حاضرة حين تريدها و52 بكسل حين لا تريد."

@@ -2901,7 +2901,7 @@ function bnd_sb_set(frm, fieldname, value) {
 /** Card art + copy per shipped look. No VALUES — those are the server's. */
 const BND_THEME_ART = {
 	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The shipped look. Floating cards on a hue-washed pane.") },
-	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — floating glass instead of attached solid.") },
+	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
 	"Ledger": { name: () => __("Ledger"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
