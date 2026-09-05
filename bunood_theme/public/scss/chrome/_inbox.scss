@@ -68,31 +68,14 @@ html[data-bnd-inbox] .bnd-inbox-badge {
   }
 }
 
-// ── The bell must survive the rail's rest state ─────────────────────────────
-// In Classic the ONLY bell is Frappe's sidebar row, and that row lives inside
-// `.standard-items-sections`, which the menu rail fades to opacity 0 with
-// pointer-events: none at rest (_sidebar.scss "Rail rest state"). Result with
-// the shipped defaults (Classic + the Rail preset): no reachable bell and an
-// invisible badge — the click was measurably unhittable.
-//
-// A child cannot escape an opacity-0 ancestor, so the container is restored
-// and its OTHER children are faded individually instead. Same rest-state look,
-// one essential affordance kept — exactly how the brand and utility chips are
-// already treated.
-html[data-bnd-inbox][data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) .standard-items-sections {
-  opacity: 1;
-  pointer-events: auto;
-
-  // The bell AND the panel it opens: Frappe renders `.dropdown-notifications`
-  // as a SIBLING inside this same container, so fading it left the opened
-  // panel collapsing the moment the pointer left the rail (measured: 262px
-  // -> 34px, opacity 0). Under Refined that made the newly-working skin
-  // unusable with the shipped Classic + Rail defaults.
-  > *:not(.sidebar-notification):not(.dropdown-notifications) {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
+// ── The bell at the rail's rest ──────────────────────────────────────────
+// Nothing to restore any more. This block once un-faded `.standard-items-sections`
+// and re-faded its other children, because the rail's rest state faded the whole
+// container and took the Classic bell with it. The rest state is an icon rail now
+// (_sidebar.scss): the container is visible, the bell row keeps its icon like
+// every other row, and the re-fade was the one rule still hiding the pane's
+// search icon at rest. Measured 2026-09-04: search present in Frappe's own
+// collapse, absent in ours, with this the only difference.
 
 // The rail CLIPS the native panel out of existence, whatever its opacity:
 // `_sidebar.scss` gives `.body-sidebar` `position: absolute; inline-size:

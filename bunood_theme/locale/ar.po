@@ -2052,6 +2052,11 @@ msgstr "إظهار شريط الإرساء"
 msgid "Show the side pane"
 msgstr "إظهار اللوحة الجانبية"
 
+#. In bunood.js — the pane's own brand row; the mirror of the page head's button
+#. src: reviewed
+msgid "Hide the side pane"
+msgstr "إخفاء اللوحة الجانبية"
+
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: ai
 msgid "Show the top bar"
@@ -5233,12 +5238,6 @@ msgstr "مرشِّح مساحة العمل"
 #. In bunood.js
 #. src: item40
 #, fuzzy
-msgid "Shortcuts"
-msgstr "الاختصارات"
-
-#. In bunood.js
-#. src: item40
-#, fuzzy
 msgid "Company"
 msgstr "الشركة"
 
@@ -5249,28 +5248,6 @@ msgstr "طيّ كل الأقسام"
 #. src: v2-csv-restore
 msgid "Quick actions"
 msgstr "إجراءات سريعة"
-
-#, fuzzy
-msgid "Pin this page"
-msgstr "تثبيت هذه الصفحة"
-
-#. In bunood.js
-#. src: item40
-#, fuzzy
-msgid "Unpin this page"
-msgstr "إلغاء تثبيت هذه الصفحة"
-
-#. In bunood.js
-#. src: item40
-#, fuzzy
-msgid "Pin"
-msgstr "تثبيت"
-
-#. In bunood.js
-#. src: item40
-#, fuzzy
-msgid "Unpin"
-msgstr "إلغاء التثبيت"
 
 #. In bunood.js
 #. src: item40
@@ -6393,8 +6370,8 @@ msgstr "حالة اللوحة الجانبية"
 
 #. Description of a Select field in DocType 'Theme Settings'
 #. src: item42
-msgid "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it, leaving the brand pill and the start button."
-msgstr "«مفتوح» يظهر اللوحة؛ «سكة» تظهر أيقونات تتوسع عند المرور أو النقر؛ «مخفي» يزيلها ويبقي كبسولة العلامة وزر البدء."
+msgid "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it — the brand and a button to bring it back move into the page head, and anything placed in the pane follows."
+msgstr "«مفتوح» يظهر اللوحة؛ «سكة» تظهر أيقونات تتوسع عند المرور أو النقر؛ «مخفي» يزيلها — تنتقل العلامة وزر إعادتها إلى رأس الصفحة، ويتبعها كل ما وُضع في اللوحة."
 
 #. Option for 'Side Pane State' in DocType 'Theme Settings'
 #. src: item42
@@ -6413,8 +6390,8 @@ msgstr "اللوحة مخفية"
 
 #. In theme_settings.js
 #. src: item42
-msgid "How much of the pane you keep. Hidden leaves the brand pill and the start button."
-msgstr "مقدار ما تبقيه من اللوحة. «مخفي» يبقي كبسولة العلامة وزر البدء."
+msgid "How much of the pane you keep. Hidden moves the brand and a way back into the page head."
+msgstr "مقدار ما تبقيه من اللوحة. «مخفي» ينقل العلامة وطريق العودة إلى رأس الصفحة."
 
 #. In theme_settings.js
 #. src: item42

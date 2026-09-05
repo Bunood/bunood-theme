@@ -28,6 +28,25 @@
 // holding, at the moment we already decided it is dead. Guarded, because a
 // version that stops exposing `boundDrawFn` must degrade to today's behaviour
 // rather than take the desk down.
+// AND IT CAME BACK (v0.42.1) -- twice, in runs of 26 checks -- so the account
+// above is half right. Read from THIS bench fork of frappe-charts:
+//
+// (1) `configure()` also observes the PARENT with a ResizeObserver, and the first
+//     `retire()` removed only the window listener, so a dead chart kept redrawing
+//     on every parent resize. The vendor ships `destroy()` for exactly this --
+//     both window listeners and the observer -- and `retire()` now calls it.
+// (2) The throw needs no dead chart at all. `runSMILAnimation` takes the REAL
+//     svg out of the container for 250ms and parks an animated clone in its
+//     place; a `draw(true)` inside that window -- the ResizeObserver firing
+//     because our chrome just mounted and moved the page width -- reaches
+//     `this.container.removeChild(this.svg)` with the svg not a child. That is
+//     why no probe ever reproduced it: it is a race between a chart animating in
+//     and the desk changing shape around it, which a full run does constantly.
+//     `makeChartArea` is wrapped on the prototype: if the svg is out of its
+//     container, the clone is removed and the svg put back before the vendor
+//     body runs, and the swap pending timeout finds the clone gone and skips.
+//     A patch of a vendor method, confined to the one state the vendor own code
+//     creates and does not handle. Guarded by a marker so it is applied once.
 // ─────────────────────────────────────────────────────────────────────────────
 // Charts — the chart surface (item 25)
 //
