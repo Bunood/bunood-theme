@@ -1045,7 +1045,15 @@ def get_shipped_defaults() -> dict:
         whole rework exists to have exactly once. Same request, because a form
         that needs both and asks twice can render a moment where it has one.
     """
-    from bunood_theme.registry import LAYOUT_CHROME, LAYOUT_PANE, LAYOUT_TENANTS, CONTAINERS
+    from bunood_theme.registry import (
+        COMPONENTS,
+        CONTAINERS,
+        LAYOUT_CHROME,
+        LAYOUT_PANE,
+        LAYOUT_TENANTS,
+        TENANT,
+        slots_for,
+    )
     from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
 
     # The shipped-EMPTY identity fields ride in as "" so the change dots can
@@ -1075,6 +1083,14 @@ def get_shipped_defaults() -> dict:
         # `presets.layout_of` on the same desk.
         "layout_pane": LAYOUT_PANE,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
+        # ...AND THE SLOT VOCABULARY (item 42, slice 10). The one-switch page
+        # offers every tenant every slot its field accepts, and until now each
+        # placement picker carried its own client-side copy of that list --
+        # five copies of a table `registry.slots_for` already owns. A sixth
+        # would have been the same-fact-in-two-places trap, in the surface the
+        # whole rework exists to make honest. Served, so the page cannot offer
+        # a slot the field would refuse.
+        "slots": {c["key"]: slots_for(c["key"]) for c in COMPONENTS if c["type"] == TENANT},
     }
 
 

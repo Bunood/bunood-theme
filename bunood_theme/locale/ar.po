@@ -2176,6 +2176,48 @@ msgstr "مربّع مصمت"
 msgid "Circle badge"
 msgstr "شارة دائرية"
 
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Desk parts"
+msgstr "أجزاء المكتب"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Every switch and every placement, in one place."
+msgstr "كل مفتاح وكل موضع، في مكان واحد."
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Page title row"
+msgstr "صف عنوان الصفحة"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Profile"
+msgstr "الملف الشخصي"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Start button"
+msgstr "زر البدء"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "Home link"
+msgstr "رابط الرئيسية"
+
+#. In theme_settings.js
+#. src: ai
+#, fuzzy
+msgid "All apps link"
+msgstr "رابط كل التطبيقات"
+
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
 #, fuzzy

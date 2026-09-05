@@ -3381,6 +3381,44 @@ html[data-theme] .bnd-cbp-reset:hover {
   color: var(--primary);
 }
 
+html[data-theme] .bnd-parts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+html[data-theme] .bnd-parts-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-inline-size: 0;
+}
+html[data-theme] .bnd-parts-row:has(> .bnd-parts-slot) {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--control-bg);
+}
+html[data-theme] .bnd-parts-label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-parts-slot {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--fg-color);
+  color: var(--text-color);
+  font-size: var(--text-sm);
+}
+html[data-theme] .bnd-parts-slot:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
 html[data-theme] .bnd-cbp-toggle {
   display: flex;
   align-items: center;

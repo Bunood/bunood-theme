@@ -123,11 +123,21 @@
   "are the placed tenants. So ONE `sb_apply` -- a settings click, the start button,",
   "or the pill's way back -- took the bell and the account out of the DOM and nothing",
   "put them back: a Unified Side Pane desk with no route to Log Out until reload.",
-  "Measured on a live desk, and found by the matrix's new pane-state axis."
+  "Measured on a live desk, and found by the matrix's new pane-state axis.",
+  "AND TO 110000 for `retire()`, which stops a DEAD CHART from redrawing on every",
+  "window resize. frappe-charts binds one window `resize` listener per instance and",
+  "removes it nowhere; when Frappe re-renders the widget the chart lived in, the",
+  "object survives with a detached container and the next resize calls",
+  "`makeChartArea`, whose first act is `this.container.removeChild(this.svg)` -- and",
+  "that throws. Three full-run gates recorded it as an unexplained pageerror in",
+  "`desk.bundle.js` that no isolated reproduction could source. We already track live",
+  "charts and already prune the dead ones; pruning only stopped US redrawing them.",
+  "81 bytes unbinds the vendor's listener too, and the argument went to",
+  "surfaces/_charts.scss where Sass strips it."
  ],
  "ceiling": {
   "css_gzip": 22600,
-  "js_gzip": 109800,
+  "js_gzip": 110000,
   "web_css_gzip": 4000,
   "email_css_gzip": 2000,
   "print_css_gzip": 8000

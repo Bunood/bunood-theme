@@ -22,7 +22,14 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — The desk shapes, rebuilt (item 42)
+## [0.42.0] — 2026-09-04 — The desk shapes, rebuilt (item 42)
+
+**`app_version` resumes here at 0.42.0**, from 0.37.1. It stopped tracking the tag
+when item 38 shipped unnumbered and items 39-41 were spent elsewhere — item 39 on the
+Report Studio and ZATCA work preserved off this line, item 40 on the side pane, item 41
+on the ZATCA re-merge. The MINOR is the ROADMAP item number, so the gaps are in the
+TAG sequence and not in the versions: **v0.40.0 is tagged locally and unpushed, and
+v0.41.0 is not cut at all.** Tagging is left to a person; nothing here creates one.
 
 The plan lives at `~/.claude/plans/desk-shapes-rebuilt.md`; ROADMAP carries the entry.
 Decided with the user through five drawn rounds on 2026-09-02/03 and built slice by slice.
@@ -295,6 +302,60 @@ calls the guard now and re-places the tenants when it intervened — so on a Uni
 Pane desk the start button's Hidden is refused, and on a taskbar desk, where a bar
 carries identity, it is honoured. The guard's two arms, reaching a control that had
 escaped them.
+
+### Added — one page that carries every desk part
+
+The settings Overview grows a **Desk parts** list under its diagram: five container
+switches and six placement selects, every one of them live. The controls were all
+reachable before — five kit panes, the placement board, the sidebar picker — but
+*reachable* is not *answerable*, and "what is this desk made of" took six visits. The
+picture says where; the list says what.
+
+**It owns nothing.** Every row writes through the same seam its own picker uses, so a
+value set here previews, saves and repaints exactly as it does there — a second write
+path would be a second chance to disagree. And the slot vocabulary is now **served**
+with the catalogue (`registry.slots_for`), which removes the five client-side copies the
+placement pickers each carried rather than adding a sixth.
+
+A native `<select>` rather than chips, deliberately: six tenants × up to fifteen slots is
+ninety choices, and ninety chips is a wall. It is also the one control the keyboard, the
+screen reader and the touch device all already understand.
+
+**Two defects it found in itself before it shipped**, both of them this item's recurring
+shape. Its handlers were bound to nodes a later render replaced — after one pass over the
+five switches, changing a placement wrote *nothing*, with no error; they are delegated to
+the pane now, the same re-anchoring lesson the side pane spent a slice on. And a cold form
+drew no panel at all, because it reads a served catalogue and rendered before the xcall
+resolved; the pane owns that wait now, as the layout picker already does.
+
+The switch matrix gained the third axis with it: every layout × every switch × all three
+pane states, plus the assertion that a layout's **derived label survives its own
+switches** — `layout_of` compares exactly, so one value left behind by a restore makes the
+whole comparison miss and the desk reads "Custom" forever.
+
+### Fixed — a dead chart kept redrawing on every window resize
+
+frappe-charts binds one window `resize` listener per instance and removes it nowhere. When
+Frappe re-renders the widget a chart lived in, the object survives with a container that is
+no longer in the document, and the next resize calls `makeChartArea`, whose first act is
+`this.container.removeChild(this.svg)` — which throws.
+
+It surfaced as an unexplained `removeChild` pageerror in `desk.bundle.js` that **failed the
+console error budget in four consecutive full runs**, always at the same check, and that no
+isolated reproduction could source: repeated resizes on one page, an SPA round trip, the
+same viewport churn with our chrome on *and* off, a container detached by hand. It needs a
+chart to have died first, which is a state a whole run accumulates and a probe does not.
+
+We already tracked live charts, because a theme flip has to repaint them, and already
+pruned the ones whose container had gone — but pruning only stopped *us* redrawing them.
+`retire()` unbinds the vendor's listener too, at construction and on every route change
+(one moment is not enough: retiring only at the next construction misses the case where
+nothing replaces the chart). Guarded, so a version that stops exposing `boundDrawFn`
+degrades to today's behaviour rather than taking the desk down.
+
+**Four runs with it, one without.** That is strong evidence and not proof — the pageerror
+capture keeps four stack frames and 900 characters now, so a recurrence names its caller
+instead of naming only what threw.
 
 ### Fixed — a folded section that told a screen reader it was open
 

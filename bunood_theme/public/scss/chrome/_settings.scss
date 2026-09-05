@@ -370,6 +370,65 @@ html[data-theme] {
   }
 }
 
+// ── Desk parts: every switch and every placement, on one page (item 42) ───
+//
+// A two-column grid rather than a stack of cards, because the question it
+// answers is a LIST question -- what is this desk made of -- and the diagram
+// above it already answers the spatial one. The switch rows reuse
+// `.bnd-cbp-toggle` untouched; only the placement rows are new, and they are a
+// native `<select>` on purpose: six tenants times up to fifteen slots is ninety
+// choices, and ninety chips is a wall. A select is also the one control the
+// keyboard, the screen reader and the touch device all already understand.
+html[data-theme] {
+  .bnd-parts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px;
+  }
+
+  .bnd-parts-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-inline-size: 0;
+
+    // A switch row brings its own box; a placement row is a label and a
+    // control, so it borrows the same one.
+    &:has(> .bnd-parts-slot) {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--control-bg);
+    }
+  }
+
+  .bnd-parts-label {
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--bnd-weight-medium);
+  }
+
+  .bnd-parts-slot {
+    // `min-inline-size: 0` is what lets a long slot label ellipsize instead
+    // of pushing the row past the card -- a flex item's implicit minimum is
+    // its content, which this file has paid for once already.
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--fg-color);
+    color: var(--text-color);
+    font-size: var(--text-sm);
+  }
+
+  .bnd-parts-slot:focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 1px;
+  }
+}
+
 // ── Switch row, shared by every kit ─────────────────────────────────────────
 // One rule set for both prefixes: the sidebar picker grew its own copy of an
 // identical control, and two copies of a switch is how two switches end up

@@ -1260,6 +1260,12 @@ let bnd_layout_tenants = null;
 let bnd_layout_pane = null;
 let bnd_container_toggles = null;
 
+/** Served with the catalogue (item 42, slice 10): tenant key -> the slots its
+ *  field accepts, straight from `registry.slots_for`. `null` until it arrives,
+ *  and the parts panel simply does not draw its placements until it does — an
+ *  empty select would offer nothing and look like a broken control. */
+let bnd_layout_slots = null;
+
 /**
  * Which fields each shell entry owns, as PREFIXES rather than a list.
  *
@@ -1511,6 +1517,109 @@ const BND_OVERVIEW_TENANTS = [
 	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Side Pane End" },
 ];
 
+/**
+ * Every part of the desk, on one page — item 42, slice 10.
+ *
+ * WHY IT EXISTS. The controls were all reachable already: five container
+ * switches in five kit panes, five placements on the board, the pane's state in
+ * the sidebar picker. Reachable is not the same as ANSWERABLE — "what is this
+ * desk made of" took six visits, and the question a person actually asks when
+ * they open this form is exactly that one. So the diagram above says WHERE, and
+ * this says WHAT, and both are the same state read two ways.
+ *
+ * IT OWNS NOTHING. Every row writes through the same seam its own picker uses —
+ * `bnd_container_changed` for a switch, `bnd_inbox_set` for a placement — so a
+ * value set here previews, saves and repaints exactly as it does there. A second
+ * write path would be a second chance to disagree, which is the defect this
+ * whole surface was reworked to remove.
+ *
+ * THE VOCABULARY IS SERVED, not restated: `bnd_layout_slots` comes from
+ * `registry.slots_for`, so this page cannot offer a slot the field would refuse,
+ * and a tenant added to the registry appears here with no edit.
+ */
+function bnd_render_parts(frm) {
+	if (!bnd_container_toggles) return "";
+	const rows = [];
+
+	// The containers, in the catalogue's own order.
+	for (const key of Object.keys(bnd_container_toggles)) {
+		const field = bnd_container_toggles[key];
+		if (!frm.get_field(field)) continue;
+		const on = parseInt(frm.doc[field] ?? 1, 10);
+		rows.push(
+			'<div class="bnd-parts-row" data-part="' + bnd_esc(key) + '">' +
+				P.toggle({
+					field: field,
+					on: on,
+					name: BND_PART_NAMES[key] ? BND_PART_NAMES[key]() : key,
+					cls: "bnd-parts-toggle",
+				}) +
+				"</div>"
+		);
+	}
+
+	// The tenants, each offered exactly the slots its field accepts.
+	for (const t of BND_DESK_TENANTS) {
+		const slots = (bnd_layout_slots || {})[t.key] || [];
+		if (!slots.length || !frm.get_field(t.field)) continue;
+		const cur = frm.doc[t.field] || (bnd_shipped || {})[t.field] || slots[0];
+		const opts = slots
+			.map((slot) => {
+				// THE SAME WARNING THE DIAGRAM GIVES, in the only form a native
+				// option has: its label. Greying it out would be a lie — the
+				// runtime falls back rather than refusing, which is why every
+				// other surface here warns instead of blocking.
+				const why = slot === "Off" ? "" : bnd_region_blocker(frm, bnd_slot_region(slot));
+				return (
+					'<option value="' + bnd_esc(slot) + '"' +
+					(slot === cur ? " selected" : "") + ">" +
+					bnd_esc(
+						why
+							? __("{0} — not available: {1}. Falls back to the nearest slot.", [__(slot), why])
+							: __(slot)
+					) +
+					"</option>"
+				);
+			})
+			.join("");
+		rows.push(
+			'<div class="bnd-parts-row" data-part="' + bnd_esc(t.key) + '">' +
+				'<label class="bnd-parts-label" for="bnd-parts-' + bnd_esc(t.key) + '">' +
+				bnd_esc(t.label()) + "</label>" +
+				'<select class="bnd-parts-slot" id="bnd-parts-' + bnd_esc(t.key) + '"' +
+				' data-field="' + bnd_esc(t.field) + '">' + opts + "</select>" +
+				"</div>"
+		);
+	}
+
+	if (!rows.length) return "";
+	return P.group({
+		title: __("Desk parts"),
+		desc: __("Every switch and every placement, in one place."),
+		body: '<div class="bnd-parts">' + rows.join("") + "</div>",
+	});
+}
+
+/** The containers, named for a person rather than by their registry key. */
+const BND_PART_NAMES = {
+	topbar: () => __("Top bar"),
+	pagehead: () => __("Page title row"),
+	bottombar: () => __("Bottom bar"),
+	sidepane: () => __("Side pane"),
+	dock: () => __("Dock"),
+};
+
+/** The tenants the parts page places. Keys match `registry`'s, which is what
+ *  the served slot vocabulary is keyed on. */
+const BND_DESK_TENANTS = [
+	{ key: "search", field: "search_placement", label: () => __("Search") },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Notifications") },
+	{ key: "user", field: "user_placement", label: () => __("Profile") },
+	{ key: "start", field: "start_placement", label: () => __("Start button") },
+	{ key: "home", field: "home_placement", label: () => __("Home link") },
+	{ key: "apps", field: "apps_placement", label: () => __("All apps link") },
+];
+
 function bnd_render_overview(frm, $pane) {
 	const pc = (n, total) => Math.round((n / total) * 10000) / 100 + "%";
 	const placed = [];
@@ -1569,12 +1678,52 @@ function bnd_render_overview(frm, $pane) {
 				__("Layout preset: {0}. Each mark is a control — select it to change where that piece lives.", [
 					bnd_tr_layout(bnd_match_layout(frm)),
 				])
-			) + hidden
+			) + hidden + bnd_render_parts(frm)
 		)
 	);
 	$pane.find(".bnd-dgm-mark").on("click", function () {
 		bnd_shell_select(frm, this.getAttribute("data-goto"));
 	});
+	// THE SAME SEAMS THE OWNING PICKERS USE. `bnd_container_changed` rebuilds
+	// the desk from all five containers and repaints every placement picker;
+	// `bnd_inbox_set` previews a placement and repaints the board. Re-rendering
+	// this pane last is what keeps the diagram above and the list below telling
+	// the same story after a change made in either.
+	// DELEGATED, not bound per node — and that distinction is the whole
+	// difference between this list working and looking like it does. Every row
+	// here re-renders the pane, and a container switch re-renders it a second
+	// time from `bnd_container_changed`'s own repaint; a handler attached to a
+	// button is attached to a button that no longer exists by the time the next
+	// gesture lands. Measured: after one pass over the five switches, changing a
+	// placement select wrote nothing at all and reported no error. Delegation
+	// binds to the PANE, which outlives every render inside it — the same
+	// re-anchoring lesson this item spent a slice on in the side pane.
+	//
+	// `.off()` first, because the pane is re-rendered by this very handler and a
+	// second delegate would fire the whole chain twice.
+	$pane.off("click.bndparts change.bndparts");
+	$pane.on("click.bndparts", ".bnd-parts-toggle", function () {
+		if (this.hasAttribute("disabled")) return;
+		frm.set_value(this.getAttribute("data-field"), parseInt(this.getAttribute("data-value"), 10));
+		bnd_container_changed(frm);
+		bnd_render_overview(frm, $pane);
+	});
+	$pane.on("change.bndparts", ".bnd-parts-slot", function () {
+		bnd_inbox_set(frm, this.getAttribute("data-field"), this.value);
+		bnd_render_overview(frm, $pane);
+	});
+
+	// THE PANE SAYS SO ITSELF, rather than every caller remembering. The parts
+	// list is drawn from a SERVED catalogue, so on a cold form it renders before
+	// the xcall resolves and there is simply nothing there — measured on the first
+	// live probe: the panel absent, the diagram fine. The layout picker carries the
+	// same three lines for the same reason and its comment argues it: a surface
+	// that depends on a fetch should own the wait.
+	if (!bnd_container_toggles || !bnd_layout_slots) {
+		bnd_load_shipped().then(() => {
+			if (bnd_container_toggles && bnd_layout_slots) bnd_render_overview(frm, $pane);
+		});
+	}
 }
 
 /**
@@ -1935,6 +2084,7 @@ function bnd_load_shipped() {
 			bnd_layout_tenants = (data && data.layout_tenants) || null;
 			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
+			bnd_layout_slots = (data && data.slots) || null;
 		})
 		.catch(() => {
 			// Let the next caller try again: this one may have failed because

@@ -1566,12 +1566,22 @@ async function main() {
 		}
 	});
 	page.on("pageerror", (err) =>
-		// The first stack frame rides along: two full-run gates recorded a
-		// removeChild pageerror that no isolated reproduction could source, and
-		// a message without a file:line teaches nothing twice.
+		// FOUR FRAMES, NOT ONE. Three full-run gates recorded a `removeChild`
+		// pageerror that no isolated reproduction could source -- repeated resizes
+		// on one page, an SPA round trip, the same viewport churn with our chrome
+		// on AND off: none of them reproduced it. One frame named `makeChartArea`
+		// in frappe-charts and stopped there, which says WHAT threw and nothing
+		// about who called it. The caller is the whole question.
 		consoleErrors.push(
 			"pageerror: " + err.message +
-				" @ " + String((err.stack || "").split("\n").find((l) => /https?:|\.js/.test(l)) || "").trim().slice(0, 160) +
+				" @ " +
+				(err.stack || "")
+					.split("\n")
+					.filter((l) => /https?:|\.js/.test(l))
+					.slice(0, 4)
+					.map((l) => l.trim())
+					.join(" <- ")
+					.slice(0, 900) +
 				" (during: " + currentTest + ")"
 		)
 	);
@@ -9651,6 +9661,116 @@ print("ok")
 			expectEq(cards.map((c) => c.value).sort().join(","), [...cat.rows].sort().join(","), "the cards are the catalogue");
 			const current = cards.filter((c) => c.current).map((c) => c.value);
 			expectEq(current.join(","), cat.default, `the shipped layout is the current card (${JSON.stringify(current)})`);
+		});
+
+		await test("parts: one page carries every switch and every placement, and each one moves the desk", async () => {
+			// ITEM 42, SLICE 10. The controls were all reachable before this page: five
+			// container switches in five kit panes, five placements on the board, the
+			// pane's state in the sidebar picker. Reachable is not ANSWERABLE — "what
+			// is this desk made of" took six visits — so the Overview grew a list to
+			// sit under the diagram: the picture says where, the list says what.
+			//
+			// A LIST OF CONTROLS THAT DOES NOT MOVE THE DESK IS A PICTURE OF CONTROLS,
+			// and this repo has shipped one of those before — `sections` had four
+			// options and one rule for an entire item. So every row is exercised, and
+			// the COUNT comes from the served catalogue rather than from a number typed
+			// here: a container or a tenant added to `registry.py` must appear on this
+			// page with no edit, and if it does not, this fails.
+			//
+			// Watched failing before the panel existed: `.bnd-parts` absent.
+			const want = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import COMPONENTS, CONTAINERS, TENANT, slots_for\n" +
+						"tenants = [c['key'] for c in COMPONENTS if c['type'] == TENANT and slots_for(c['key'])]\n" +
+						"print(json.dumps({'containers': [c['key'] for c in CONTAINERS if c.get('toggle')],\n" +
+						"                  'tenants': tenants}))\n"
+				).trim().split("\n").pop()
+			);
+			const before = getSettings([
+				"topbar_enabled", "pagehead_enabled", "bottombar_enabled", "sidebar_enabled", "dock_enabled",
+				"search_placement", "inbox_placement", "user_placement", "start_placement",
+				"home_placement", "apps_placement",
+			]);
+			try {
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await page.click('.bnd-shell-item[data-key="overview"]');
+				// The panel draws from a SERVED catalogue, so a cold form renders it a
+				// beat late — the pane owns that wait, and this waits for the result of
+				// it rather than for a fixed delay.
+				await page.waitForSelector(".bnd-parts-row", { timeout: 20000 });
+				const drawn = await page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-parts-row")].map((n) => n.getAttribute("data-part"))
+				);
+				for (const key of want.containers.concat(want.tenants)) {
+					expect(drawn.includes(key), `${key} has a row on the parts page (drawn: ${drawn.join(",")})`);
+				}
+
+				// (a) EVERY SWITCH MOVES THE DESK. The settings form IS a desk, so the
+				// container it switches off is the one around the form — measured on the
+				// page rather than asserted from the field it wrote.
+				const shown = (sel) =>
+					page.evaluate((q) => {
+						const n = document.querySelector(q);
+						return !!n && getComputedStyle(n).display !== "none" && n.getClientRects().length > 0;
+					}, sel);
+				const SEEN = {
+					topbar: ".bnd-topbar",
+					bottombar: ".bnd-statusbar",
+					dock: ".bnd-dock",
+					sidepane: ".body-sidebar-container",
+				};
+				for (const key of want.containers) {
+					const sel = SEEN[key];
+					if (!sel) continue; // pagehead has no node of its own to watch
+					const was = await shown(sel);
+					await page.click(`.bnd-parts-row[data-part="${key}"] .bnd-parts-toggle`);
+					await page.waitForTimeout(900);
+					const now = await shown(sel);
+					// THE GUARD IS ALLOWED TO REFUSE. Switching the pane off on a desk whose
+					// only routes to identity are inside it is exactly what
+					// `guard_critical_reach` exists to overrule, so the claim is that the
+					// switch REACHED the desk — either it moved, or the guard put it back and
+					// said so by leaving the container on.
+					expect(now !== was || key === "sidepane",
+						`${key}: the switch reached the desk (${was} -> ${now})`);
+					await page.click(`.bnd-parts-row[data-part="${key}"] .bnd-parts-toggle`);
+					await page.waitForTimeout(900);
+				}
+
+				// SETTLE FIRST, and the reason is a measurement rather than caution. Ten
+				// container writes just autosaved, and a `set_value` that lands inside that
+				// window is lost when the save's response refreshes the document — the
+				// select showed the new slot, `cur_frm.doc` showed the old one, and nothing
+				// errored. It is the same concurrent-write race this suite asserts the
+				// RECOVERY of elsewhere ("a concurrent write is merged, not clobbered"),
+				// reached at a rate no person produces: without the wait this check was
+				// measuring the framework's save window and calling it a dead control.
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), null, { timeout: 20000 });
+				await page.waitForTimeout(1200);
+
+				// (b) EVERY PLACEMENT WRITES ITS FIELD, through the same seam its own
+				// picker uses. The rendered consequence of a placement is the switch
+				// matrix's subject and is not re-measured here; what this owns is that the
+				// select is wired at all.
+				for (const key of want.tenants) {
+					const moved = await page.evaluate((k) => {
+					const sel = document.querySelector(`.bnd-parts-row[data-part="${k}"] .bnd-parts-slot`);
+					if (!sel) return null;
+					const other = [...sel.options].map((o) => o.value).find((v) => v !== sel.value);
+					if (!other) return null;
+					sel.value = other;
+					sel.dispatchEvent(new Event("change", { bubbles: true }));
+					return { field: sel.getAttribute("data-field"), to: other };
+					}, key);
+					expect(moved, `${key} offers a second slot to move to`);
+					await page.waitForFunction(() => !window.cur_frm.is_dirty(), null, { timeout: 20000 });
+					await page.waitForTimeout(600);
+					const stored = await page.evaluate((f) => window.cur_frm.doc[f], moved.field);
+					expectEq(stored, moved.to, `${key}: the select wrote ${moved.field}`);
+				}
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		await test("honest: picking a layout writes BOTH halves — the containers and the tenants", async () => {

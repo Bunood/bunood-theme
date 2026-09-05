@@ -311,6 +311,17 @@
 		const live = new Set();
 		const deferred = new Set();
 
+		// Retire a chart whose container is gone. surfaces/_charts.scss.
+		function retire(c) {
+			try {
+				if (c && c.boundDrawFn) window.removeEventListener("resize", c.boundDrawFn);
+			} catch (e) {
+				/* a vendor that stops binding this way must not take the desk down */
+			}
+			live.delete(c);
+			deferred.delete(c);
+		}
+
 		function repaint_one(c) {
 			if (!c || c._bnd_type === "heatmap" || !c.container || !c.container.isConnected) return;
 			const colors = merged_colors(c._bnd_given || [], c._bnd_type);
@@ -338,7 +349,7 @@
 			ramp_gen++; // invalidate the cache: the theme moved
 			for (const c of Array.from(live)) {
 				if (!c.container || !c.container.isConnected) {
-					live.delete(c);
+					retire(c);
 					continue;
 				}
 				if (busy(c)) deferred.add(c);
@@ -348,7 +359,7 @@
 		function flush_deferred() {
 			for (const c of Array.from(deferred)) {
 				if (!c.container || !c.container.isConnected) {
-					deferred.delete(c);
+					retire(c);
 					continue;
 				}
 				if (busy(c)) continue;
@@ -378,8 +389,10 @@
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
 				// Prune opportunistically so the set cannot grow without bound on a
-				// long-lived desk that renders many charts.
-				for (const c of live) if (!c.container || !c.container.isConnected) live.delete(c);
+				// long-lived desk that renders many charts — and RETIRE rather than
+				// forget: a chart Frappe has re-rendered past is still bound to the
+				// window's resize.
+				for (const c of live) if (!c.container || !c.container.isConnected) retire(c);
 				live.add(chart);
 			}
 			return chart;
@@ -401,6 +414,15 @@
 					repaint_all();
 				});
 			}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+		}
+
+		// ...and on every route change, when a widget's chart dies. _charts.scss.
+		if (frappe.router && frappe.router.on) {
+			frappe.router.on("change", () => {
+				for (const c of Array.from(live)) {
+					if (!c.container || !c.container.isConnected) retire(c);
+				}
+			});
 		}
 
 		// The MANDATORY live-preview hook, present from day one — a kit that saves
