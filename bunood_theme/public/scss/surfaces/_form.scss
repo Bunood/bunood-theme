@@ -76,6 +76,20 @@
 // variable when the component rule's var() fallback IS the quiet value.
 // ============================================================================
 
+// ── Density geometry (--bnd-control-h consumption, completing item 4) ───────
+// html[data-theme]-scoped, NOT the kit anchor: density is its own contract
+// (site default + per-user override) and must keep working under Original.
+// input/select only — a textarea sizes by content and a checkbox would
+// balloon; .like-disabled-input is the read-only value's box and follows so
+// editable and read-only rows keep one rhythm.
+html[data-theme] .frappe-control input.form-control:not([type="checkbox"]),
+html[data-theme] .frappe-control select.form-control {
+  block-size: var(--bnd-control-h);
+}
+html[data-theme] .frappe-control .control-value.like-disabled-input {
+  min-block-size: var(--bnd-control-h);
+}
+
 // ── The working set ─────────────────────────────────────────────────────────
 // One block of custom-property assignments per style value; every component
 // rule below consumes ONLY these (quiet values ride the var() fallbacks).
@@ -164,13 +178,13 @@ html[data-bnd-form] .layout-main-section {
   background: var(--bnd-form-canvas, transparent);
 }
 html[data-bnd-form] .std-form-layout > .form-layout > .form-page {
-  background: var(--bnd-form-page-bg, var(--card-bg));
+  background: var(--bnd-form-page-bg, var(--bnd-surface));
   border-radius: var(--bnd-form-shell-radius, 0);
   box-shadow: var(--bnd-form-shell-shadow, none);
   margin: var(--bnd-form-shell-margin, 0);
 }
 html[data-bnd-form] .form-tabs-list {
-  background: var(--bnd-form-tabbar-bg, var(--card-bg));
+  background: var(--bnd-form-tabbar-bg, var(--bnd-surface));
 }
 html[data-bnd-form] .form-tab-content {
   padding: var(--bnd-form-content-pad, 0);
@@ -252,7 +266,7 @@ html[data-bnd-form][data-bnd-form-tabs="pill"] .form-tabs-list {
 // grid frame variables, so a style cannot ship a floating section beside an
 // alien grid. The interior whitens so rows read as a table, not a tint.
 html[data-bnd-form] .form-grid {
-  background: var(--card-bg);
+  background: var(--bnd-surface);
   border-color: var(--bnd-form-grid-frame, var(--bnd-form-sec-border, var(--bnd-border)));
 }
 html[data-bnd-form] .grid-heading-row {
@@ -262,27 +276,6 @@ html[data-bnd-form] .grid-heading-row {
 }
 html[data-bnd-form] .form-grid .grid-row {
   border-block-end-color: var(--bnd-border);
-}
-
-// ── Money reads as a column, not as a sentence ───────────────────────────────
-// The line-items grid is the densest thing on an invoice and the one place a
-// user checks arithmetic by eye. Frappe already right-aligns the numeric
-// columns; what was missing is TABULAR figures, so `1,250.00` and `625.00` put
-// their decimal points on the same pixel down the column instead of drifting
-// with proportional digit widths. Measured on a Sales Invoice before this:
-// `font-variant-numeric: normal` on every cell.
-//
-// Keyed on `data-fieldtype`, which Frappe stamps on both the heading cell and
-// every body cell — an identity attribute, not a layout class, so it survives a
-// column re-order or a `col-xs-*` change. `--bnd-numeric` is the same token the
-// list, report, sidebar and status bar already read; this grid was the outlier.
-html[data-bnd-form] .form-grid :is(.grid-heading-row, .grid-body) .col:is(
-    [data-fieldtype="Currency"],
-    [data-fieldtype="Float"],
-    [data-fieldtype="Int"],
-    [data-fieldtype="Percent"]
-  ) {
-  font-variant-numeric: var(--bnd-numeric);
 }
 html[data-bnd-form] .form-grid .grid-body .grid-row:hover {
   background: var(--bnd-hover);
@@ -296,7 +289,7 @@ html[data-bnd-form] .form-grid .grid-body .grid-row:has(.grid-row-check:checked)
 // The editor state, unprobed at rest: one background so no alien slab sits
 // inside a styled grid, and NOTHING else.
 html[data-bnd-form] .form-grid .grid-row-open {
-  background: var(--card-bg);
+  background: var(--bnd-surface);
 }
 
 // ── Grid checkbox reveal ────────────────────────────────────────────────────

@@ -51,18 +51,6 @@ bunood_theme.patches.v0_37_0.migrate_user_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_sidebar_preset
 bunood_theme.patches.v0_37_0.drop_desk_layout
 
-# Item 38: the work comes before the reporting. Each board's day-one card is
-# lifted above its chart and number cards — one time, and only on a board whose
-# content still matches the JSON its app ships. See workspace/install.py for why
-# this is not an after_migrate sync.
-bunood_theme.patches.v0_38_0.hoist_day_one_cards
-bunood_theme.patches.v0_38_0.hoist_customer_fields
-# Item 38 companion: the Home sidebar led with Item, so the link back to the
-# landing page sat second. Same one-time, vacancy-only contract.
-bunood_theme.patches.v0_38_0.hoist_home_sidebar
-# Item 38 companion: Payment Due Date rendered required-and-empty until a
-# customer was picked. Defaults come from vacancy only.
-bunood_theme.patches.v0_38_0.seed_form_defaults
 # Item 38: the Appearance dialog subsumes the density menu row. Must land with
 # the seeder rename, or after_migrate re-creates it.
 bunood_theme.patches.v0_38_0.drop_density_navbar_item

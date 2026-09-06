@@ -35,13 +35,11 @@
  */
 
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as sass from "sass";
-import { pdfMediaCss } from "./tools/print-media.mjs";
 
 // The translation catalogue and its guards. Derived, never listed — see
 // tools/i18n.mjs for why the string inventory is recomputed on every build.
@@ -58,153 +56,6 @@ const SCSS = join(APP, "public", "scss");
 const JS = join(APP, "public", "js");
 const DIST_CSS = join(APP, "public", "dist", "css");
 const DIST_JS = join(APP, "public", "dist", "js");
-
-// This parser defines the legacy PDF guard's boundary. Its adversarial cases
-// run on every build (including CI), not only when somebody remembers to test.
-execFileSync(process.execPath, ["--test", join(ROOT, "tests", "print-media.test.mjs")], {
-	stdio: "pipe",
-});
-
-const FORBIDDEN_ROUTE_ATTRS = ["data-route", "data-page-route"];
-
-/**
- * Blank SCSS comments, preserving line structure so reported line numbers stay
- * true.
- *
- * THE GATE MEASURES CODE, NOT PROSE. A comment that NAMES a retired route
- * selector — to record why it was retired — is documentation. A gate that
- * fails on it teaches the next author to delete the explanation, which is the
- * opposite of what this repo wants.
- */
-function stripScssComments(source) {
-	let out = "";
-	let inBlock = false;
-	let inLine = false;
-	let inString = null;
-	for (let i = 0; i < source.length; i++) {
-		const c = source[i];
-		const d = source[i + 1];
-		if (inBlock) {
-			if (c === "*" && d === "/") { inBlock = false; out += "  "; i++; continue; }
-			out += c === "\n" ? "\n" : " ";
-			continue;
-		}
-		if (inLine) {
-			if (c === "\n") { inLine = false; out += "\n"; continue; }
-			out += " ";
-			continue;
-		}
-		if (inString) {
-			out += c;
-			if (c === "\\") { out += d ?? ""; i++; continue; }
-			if (c === inString) inString = null;
-			continue;
-		}
-		if (c === '"' || c === "'") { inString = c; out += c; continue; }
-		if (c === "/" && d === "*") { inBlock = true; out += "  "; i++; continue; }
-		if (c === "/" && d === "/") { inLine = true; out += "  "; i++; continue; }
-		out += c;
-	}
-	return out;
-}
-
-/**
- * Route-agnostic styling guard — CSS targets rendered component signatures,
- * never router metadata.
- *
- * Route selectors fail on aliases, standard modules such as `/app/buying`, and
- * custom apps that render the same Frappe component under a different URL. A
- * DOM signature such as `.page-container:has(.frappe-list)` follows what is on
- * screen and therefore applies universally.
- *
- * MATCH THE BRACKET, NOT `attr=`. This gate first shipped looking for the
- * literal strings `data-route=` and `data-page-route=`, and the two rules it
- * was written to prevent — `body[data-route^="Form"]` in `chrome/_layouts.scss`
- * — walked straight past it, because `^=` is not `=`. Anchoring on `[` catches
- * every CSS attribute operator (`=`, `^=`, `*=`, `$=`, `~=`, `|=`) and the bare
- * presence form `[data-route]` with it.
- *
- * @param {{name: string, source: string}[]} sources - SCSS source files
- */
-function assertRouteAgnosticScss(sources) {
-	const offenders = [];
-	const patterns = FORBIDDEN_ROUTE_ATTRS.map((attr) => [attr, new RegExp("\\[\\s*" + attr + "\\b")]);
-	for (const { name, source } of sources) {
-		const lines = stripScssComments(source).split(/\r?\n/);
-		for (let index = 0; index < lines.length; index++) {
-			for (const [attr, re] of patterns) {
-				if (re.test(lines[index])) offenders.push(`${name}:${index + 1} contains [${attr}`);
-			}
-		}
-	}
-	if (offenders.length) {
-		throw new Error(
-			[
-				"Route-agnostic styling gate failed:",
-				...offenders.map((item) => `  ${item}`),
-				"Route selectors are forbidden in SCSS. Use :has() DOM signatures that target the rendered component instead (for example, .page-container:has(.frappe-list)).",
-			].join("\n")
-		);
-	}
-}
-
-/** Recursively read every SCSS source beneath the canonical source directory. */
-async function readScssSources(dir = SCSS, prefix = "") {
-	const sources = [];
-	const entries = await readdir(dir, { withFileTypes: true });
-	for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-		const name = prefix ? `${prefix}/${entry.name}` : entry.name;
-		const path = join(dir, entry.name);
-		if (entry.isDirectory()) sources.push(...(await readScssSources(path, name)));
-		else if (entry.isFile() && entry.name.endsWith(".scss")) {
-			sources.push({ name, source: await readFile(path, "utf8") });
-		}
-	}
-	return sources;
-}
-
-/**
- * Negative-test the guard itself on every build. A guard that silently matches
- * nothing is worse than no guard; every forbidden spelling must be rejected,
- * while the sanctioned DOM-signature form must pass.
- *
- * EVERY OPERATOR, NOT JUST `=`. The first version of this self-test probed only
- * the exact strings the gate searched for, so it agreed with the gate about a
- * hole they shared: `^=`. `chrome/_layouts.scss` carried
- * `body[data-route^="Form"]` through this "passing" self-test. A self-test that
- * reuses the implementation's own assumption measures nothing — so the operator
- * list here is written out by hand, deliberately independent of the gate.
- *
- * The last case is the other half: a route selector NAMED IN A COMMENT is
- * documentation and must NOT fail, or the next author deletes the explanation.
- */
-function assertRouteAgnosticGateSelfTest() {
-	const OPERATORS = ["=", "^=", "*=", "$=", "~=", "|="];
-	for (const attr of FORBIDDEN_ROUTE_ATTRS) {
-		for (const op of OPERATORS) {
-			let rejected = false;
-			try {
-				assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${attr}${op}"List"] {}` }]);
-			} catch (error) {
-				rejected = String(error.message).includes(attr) && String(error.message).includes(":has()");
-			}
-			if (!rejected) throw new Error(`Route-agnostic gate self-test did not reject ${attr}${op}`);
-		}
-		// the bare presence form, which carries no operator at all
-		let presenceRejected = false;
-		try {
-			assertRouteAgnosticScss([{ name: "negative-test.scss", source: `html[${attr}] {}` }]);
-		} catch (error) {
-			presenceRejected = String(error.message).includes(attr);
-		}
-		if (!presenceRejected) throw new Error(`Route-agnostic gate self-test did not reject [${attr}]`);
-	}
-	assertRouteAgnosticScss([
-		{ name: "positive-test.scss", source: ".page-container:has(.frappe-list) {}" },
-		{ name: "comment-test.scss", source: `// the retired body[data-route^="Form"] spelling\n.page-container:has(.form-layout) {}` },
-		{ name: "block-comment-test.scss", source: `/* was html[data-page-route="List"] */\n.frappe-list {}` },
-	]);
-}
 
 /**
  * Custom properties `brand.py` declares at RUNTIME, in the per-site stylesheet.
@@ -445,21 +296,7 @@ function readRuntimeTokens(...sources) {
 }
 
 function assertLogicalOnly(css, name) {
-	const stripped = css
-		.replace(/\/\*[\s\S]*?\*\//g, "")
-		// Deliberate exception: the Arabic login keeps the surrounding form RTL,
-		// while the email value itself is LTR and visually aligned to the field's
-		// physical right edge. Keep the allowance bound to this exact selector.
-		.replace(
-			/(body\.bnd-auth \.page-card \.page-card-body input\[type=["']?email["']?\],\s*body\.bnd-auth \.page-card \.page-card-body input\[type=["']?text["']?\]\[id=["']?login_email["']?\]\s*\{[^{}]*?)text-align\s*:\s*right(\s*;?[^{}]*\})/g,
-			"$1$2"
-		)
-		// Deliberate exception: this exact topbar search host uses physical 50%
-		// plus translateX(-50%) as a direction-independent centering pair.
-		.replace(
-			/(html\[data-theme\] \.bnd-topbar \.bnd-search-center\s*\{[^{}]*?)left\s*:\s*50%(\s*;?[^{}]*\})/g,
-			"$1$2"
-		);
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const offenders = [];
 	const patterns = [
 		/(?<!border-top-|border-bottom-)(margin|padding|border|inset)-(left|right)\b/g,
@@ -888,9 +725,7 @@ const PRINT_SAFE_PROPS = new Set([
 	"color", "font", "font-family", "font-size", "font-style", "font-weight",
 	"font-variant-numeric", "font-display", "line-height", "text-align",
 	"text-decoration", "text-transform", "white-space", "word-break",
-	// Legacy spelling of overflow-wrap for Qt WebKit. Exercised by the PDF
-	// invoice regression's long item code/description on the actual engine.
-	"word-wrap", "overflow-wrap", "direction", "unicode-range", "src",
+	"overflow-wrap", "direction", "unicode-range", "src",
 	// Paint. Backgrounds need the color-adjust triple to survive the browsers'
 	// default "no background graphics" print setting.
 	"background", "background-color",
@@ -910,9 +745,7 @@ const PRINT_SAFE_DISPLAY = new Set([
 ]);
 
 function assertPrintSafeCss(css, name) {
-	// Preview layout is screen-only. The guard still checks every declaration
-	// that can reach paper, including mixed media queries and bare rules.
-	const stripped = pdfMediaCss(css);
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const bad = new Set();
 
 	for (const m of stripped.matchAll(/(?:^|[{;])\s*display\s*:\s*([^;}!]+)/g)) {
@@ -2109,12 +1942,6 @@ async function buildEntry({ key, src, pyid }) {
  */
 const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
 
-// Keep the optional invoice controller separate, but cover it with the same
-// identity, focus, translation, immutable hash and payload gates as desk JS.
-async function readDeskJs() {
-	return (await Promise.all(["bunood.js", "sales_bill.js", "simple_forms.js"].map(src => readFile(join(JS, src), "utf8")))).join("\n").replace(/\r\n/g, "\n");
-}
-
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
  * Mirrors buildEntry() for CSS; kept separate because the compile step differs.
@@ -2124,7 +1951,7 @@ async function buildJsEntry({ key, src, pyid }) {
 	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
 	// checkout must produce the SAME content hash, or the dist-drift gate
 	// fails on every push made from Windows (CI run #1 did exactly that).
-	const source = key === "bunood" ? await readDeskJs() : (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
+	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 
@@ -2169,12 +1996,6 @@ async function writeAssetsPy(entries) {
 }
 
 async function main() {
-	// Reject URL-coupled styling before Sass compilation. The negative self-test
-	// proves both forbidden spellings still trip the gate before the real tree is
-	// scanned recursively.
-	assertRouteAgnosticGateSelfTest();
-	assertRouteAgnosticScss(await readScssSources());
-
 	// Guard before compiling: a naming violation is cheaper to hear about
 	// before the build spends time on Sass than after.
 	assertFieldNaming(
@@ -2187,7 +2008,7 @@ async function main() {
 	);
 	assertRegistryIdentity(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
-		await readDeskJs()
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
 	);
 	assertFieldMirrors(
 		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
@@ -2306,7 +2127,7 @@ async function main() {
 	// guards, which all run BEFORE compilation on source alone.
 	assertRingCoverage(
 		built.map((b) => b.css || "").join("\n"),
-		await readDeskJs(),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"

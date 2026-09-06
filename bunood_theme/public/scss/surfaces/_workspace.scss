@@ -50,7 +50,7 @@
 // The widget and row SCOPES — no html anchor, so the anchor can be prepended per
 // rule without ever nesting one html inside another. Two grid containers, one
 // kit; `:is()` keeps the pair in one selector at one class of specificity, so a
-// tile rule lands at (0,3,1) — above Frappe's native workspace widget rule.
+// tile rule lands at (0,3,1) — above Frappe's `[data-page-route] .widget` (0,2,1).
 $ws: ":is(.ce-block, .widget-group-body) .widget";
 $row: ":is(.link-item, .quick-list-item)";
 
@@ -89,7 +89,7 @@ html[data-bnd-ws] .widget-group-body {
 
 // ── The tile — consumes the working set ──────────────────────────────────────
 html[data-bnd-ws] #{$ws} {
-  background: var(--ws-tile-bg, var(--card-bg));
+  background: var(--ws-tile-bg, var(--bnd-surface));
   border: var(--bnd-line) solid var(--ws-tile-border, var(--bnd-border));
   border-radius: var(--ws-tile-radius, var(--bnd-radius-lg));
   box-shadow: var(--ws-tile-shadow, none);
@@ -131,27 +131,6 @@ html[data-bnd-ws="grid"] .codex-editor__redactor {
 html[data-bnd-ws="grid"] .layout-main-section:not(.edit-mode) .codex-editor__redactor {
   overflow: hidden;
 }
-
-// THE "BOLD BOARD" COLOUR CYCLE IS GONE, and what it was is the argument for
-// deleting it: `:nth-child(7n+$i)` assigned one of seven hues by a tile's
-// POSITION IN THE DOM. Its own comment conceded the point — "it never
-// represents data category or status" — so the same card changed colour
-// between one board and the next, and a *spacer* was painted orange.
-//
-// Colour that carries no meaning is not decoration, it is noise competing with
-// the colour that does: the brand accent, and the status inks a user has to
-// read. It also contradicted the promise this style's own picker makes —
-// theme_settings.js describes "Hairline Grid" as "a gapless contact sheet —
-// tiles butt together, sharing one hairline".
-//
-// Measured before removal on /app/selling: 11 tiles, SIX distinct backgrounds
-// and six distinct 4px top edges. After: one surface, one hairline.
-//
-// Nothing replaces it. The tile falls through to machinery already here —
-// `--ws-tile-bg` is set for this style at the top of this file and consumed by
-// the shared tile rule, and `--card-bg` already resolves to `--bnd-surface` in
-// _bridge.scss. `--ws-accent` had no other reader in the tree, so both it and
-// its consumers leave together and the phantom-token gate stays green.
 
 // Soft Tiles — invert: the canvas turns white, tiles are a quiet raised fill.
 html[data-bnd-ws="soft"] {
@@ -215,58 +194,6 @@ html[data-bnd-ws="mixed"] #{$ws}.number-widget-box {
 html[data-bnd-ws="mixed"] #{$ws}.links-widget-box,
 html[data-bnd-ws="mixed"] #{$ws}.shortcut-widget-box {
   background: transparent;
-}
-
-// Dashboard widget icons inherit the card's active ink. This keeps them bright
-// on solid brand/number-card surfaces and dark on ordinary white widgets.
-.widget .widget-icon {
-  color: inherit !important;
-  background-color: color-mix(in srgb, currentColor 15%, transparent) !important;
-}
-
-.widget .widget-icon svg,
-.widget .widget-icon .icon {
-  stroke: currentColor !important;
-  color: inherit !important;
-}
-
-.widget .widget-icon svg.es-solid,
-.widget .widget-icon svg[fill]:not([fill="none"]) {
-  fill: currentColor !important;
-  stroke: none !important;
-}
-
-// Full-width enterprise workspace canvas. Bypass Frappe's reading-width
-// containers while retaining responsive edge breathing room.
-.workspace-page .container,
-html[data-bnd-ws] .page-container:has(.ce-block) .container,
-html[data-bnd-ws] .page-container:has(.widget-group-body) .container,
-html[data-bnd-ws] .container {
-  max-width: 100% !important;
-  width: 100% !important;
-  padding-inline: clamp(24px, 4vw, 64px) !important;
-}
-
-// Frappe v16 applies a separate 900px ceiling to the inner layout after the
-// outer .container has already expanded. Without clearing both, a wide canvas
-// still presents a narrow dashboard column in the middle of it.
-html[data-bnd-ws] .page-container:has(.ce-block) .layout-main,
-html[data-bnd-ws] .page-container:has(.widget-group-body) .layout-main {
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-.ce-block__content,
-.ce-toolbar__content {
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-.widget-group,
-.widget-group-body,
-.workspace-page .grid-col {
-  width: 100% !important;
-  max-width: 100% !important;
 }
 
 // ── Rows inside a links / quick-list tile (workspace_rows) ───────────────────

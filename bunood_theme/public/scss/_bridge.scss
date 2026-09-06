@@ -43,15 +43,12 @@
   --fg-color: var(--bnd-surface);
   --card-bg: var(--bnd-surface);
   --control-bg: var(--bnd-raised);
-  --control-bg-on-gray: var(--bnd-surface);
   --subtle-accent: var(--bnd-hover);
   --subtle-fg: var(--bnd-raised);
   --fg-hover-color: var(--bnd-hover);
   --modal-bg: var(--bnd-surface);
   --popover-bg: var(--bnd-surface);
   --toast-bg: var(--bnd-surface);
-  --timeline-badge-bg: var(--bnd-pane);
-  --timeline-badge-color: var(--bnd-brand-ink);
   // Item 28. `--surface-modal` is a THIRD modal-surface name Frappe carries,
   // declared in espresso/_colors.scss and left unmapped until now — measured
   // #232323 in dark against our #16241F, a 1.02:1 delta. It has exactly two
@@ -74,7 +71,6 @@
 
   // ── Lines ─────────────────────────────────────────────────────────────────
   --border-color: var(--bnd-border);
-  --table-border-color: var(--bnd-border);
   // Item 30. Stock's own skeleton fill, and the one Frappe variable whose dark
   // value collides with two others (--control-bg and --subtle-accent all
   // resolve to #232323), which is why a stock skeleton is invisible AS a
@@ -93,9 +89,11 @@
   // stricter 4.5:1 token; a border and a progress fill only need 3:1 and get
   // the fill token, which stays closer to the tenant's actual colour.
   //
+  // Frappe's primary BUTTON is not here: it reads `--btn-primary`, which this
+  // bridge does not map at all, so primary buttons stay Frappe's neutral grey.
+  // That is a branding gap, not a contrast one - noted, not fixed here.
   --primary: var(--bnd-brand-ink);
   --primary-color: var(--bnd-brand-ink);
-  --btn-primary: var(--bnd-brand-solid);
   --border-primary: var(--bnd-brand-solid);
   --progress-bar-bg: var(--bnd-brand-solid);
 
@@ -103,23 +101,6 @@
   // Density flows through here, which is why density is authored as token
   // VALUES rather than as selector variants.
   --list-row-height: var(--bnd-row-h);
-
-  // THE SIDE PANE'S WIDTH IS FRAPPE'S TO APPLY, AND OURS TO CHOOSE.
-  // v16 sizes the pane from its OWN `--sidebar-width`, and only through the
-  // `.expanded` class on `.body-sidebar-container`:
-  //
-  //   .body-sidebar                        { width: 50px }              // rail
-  //   .body-sidebar-container .body-sidebar { width: 0 }                // shut
-  //   .body-sidebar-container.expanded .body-sidebar { width: var(--sidebar-width) }
-  //
-  // The kit used to set an inline width on the CONTAINER only, so the inner
-  // pane kept Frappe's 50px rail while its container measured 240px — every row
-  // crushed to 6px with its label clipped, which is what "the collapsed menu has
-  // text and icons everywhere" was. Mapping the variable here, and letting
-  // `sb_apply_width` add Frappe's own class, fixes it through the vendor's
-  // published contract instead of out-specifying it — no `!important`, and a
-  // Frappe upgrade that renames this is a one-line fix in this file.
-  --sidebar-width: var(--bnd-sb-w);
 
   // ── Icons ─────────────────────────────────────────────────────────────────
   // Frappe colours EVERY desk icon with `--icon-stroke` (its own `--gray-800`
@@ -147,15 +128,6 @@ html:not([data-theme]) {
 
 html[data-theme="dark"] {
   @include bnd-frappe-mapping;
-}
-
-// Frappe redefines these variables on modal-shaped descendants in dark mode
-// with greater specificity than its root theme block. Keep the repair beside
-// the semantic bridge: surface partials should not need to know about this
-// vendor-local reset.
-html[data-theme] :is(.modal, .form-in-grid) {
-  --border-color: var(--bnd-border);
-  --control-bg: var(--bnd-raised);
 }
 
 // The "Automatic" compensation from _tokens.scss re-derives the `--bnd-*` values

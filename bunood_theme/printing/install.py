@@ -55,8 +55,6 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 STOCK_STYLES = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
 FORMATS = [
-    {"name": "Bunood Purchase Invoice (A4)", "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html"},
-    {"name": "Bunood Sales Invoice (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_a4.html"},
     {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
     {"name": "بونود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
     {"name": "بونود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
@@ -123,12 +121,7 @@ def _install_riyal_font():
     the riyal as a missing glyph under wkhtmltopdf -- exactly the old
     behaviour.
     """
-    _install_pdf_font(RIYAL_OTF)
-
-
-def _install_pdf_font(relative_path):
-    """Copy a shipped static face to the shared PDF fontconfig directory."""
-    src = os.path.join(os.path.dirname(BASE), relative_path)
+    src = os.path.join(os.path.dirname(BASE), RIYAL_OTF)
     if not os.path.exists(src):
         return
     dest_dir = os.path.join(frappe.utils.get_bench_path(), "sites", FONT_SUBDIR)
@@ -148,7 +141,7 @@ def _install_pdf_font(relative_path):
         subprocess.run(["fc-cache", "-f", dest_dir], capture_output=True, timeout=60)
     except Exception:
         frappe.log_error(
-            title="bunood_theme: PDF font not registered with fontconfig",
+            title="bunood_theme: riyal font not registered with fontconfig",
             message=frappe.get_traceback(),
         )
 
@@ -174,8 +167,6 @@ def _sync_style(settings=None):
     from bunood_theme.printing.sheet import print_css
 
     _install_riyal_font()
-    for face in ("Regular", "Bold"):
-        _install_pdf_font(os.path.join("public", "fonts", "noto-naskh", f"NotoNaskhArabic-{face}.ttf"))
     css = print_css(settings)
     if not css:
         # Stand-down: sheet.print_css already logged why. Never write emptiness

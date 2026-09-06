@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.42.3"
+app_version = "0.42.4"
 
 required_apps = []
 
@@ -84,28 +84,6 @@ web_include_css = [WEB_CSS]
 # for every website request. See ARCHITECTURE.md section 4.
 update_website_context = "bunood_theme.context.desk_context"
 
-# Frappe lets a guest browser's Accept-Language override System Settings, so a
-# site configured as Arabic can still open its very first screen in English.
-# Bunood treats the configured site language as the tenant's experience.
-before_request = ["bunood_theme.context.prefer_system_language_for_guests"]
-
-# Native report PDFs retain Frappe's restrictive fetch proxy. Only the installed
-# print stylesheet is canonicalized when a user browses an alternate origin.
-override_whitelisted_methods = {
-    "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
-    "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
-    "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
-}
-
-# Frappe v16's XLSX exporter asks every standard Query Report for an optional
-# Python style hook. SQL-only reports legitimately have no controller module,
-# but core currently treats that absence as fatal. Extend the native Report
-# class in every web/worker process so foreground and background exports share
-# the same narrow fallback. See report_compat.ReportXlsxStyleCompatibility.
-extend_doctype_class = {
-    "Report": ["bunood_theme.report_compat.ReportXlsxStyleCompatibility"],
-}
-
 # ── Boot payload ────────────────────────────────────────────────────────────────
 # Keep this MINIMAL. Anything that can be expressed as a CSS custom property belongs
 # in the brand stylesheet, not in boot: boot data arrives with the HTML but is only
@@ -128,7 +106,6 @@ pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
 after_install = "bunood_theme.setup.after_install"
-before_migrate = "bunood_theme.upstream.assert_compatible"
 after_migrate = "bunood_theme.setup.after_migrate"
 
 doc_events = {
@@ -140,26 +117,6 @@ doc_events = {
         # The icon inference (item 23) reads each DocType's own icon into a
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
-    },
-    # THE HANDLER DOCUMENTED ITS OWN REGISTRATION, AND THE REGISTRATION WAS NOT
-    # HERE. `api.clear_workspace_cache`'s docstring says "Registered on
-    # Workspace ``on_update`` and ``after_delete``" and warns that without it
-    # "an edited workspace keeps serving a stale sidebar for up to an hour" —
-    # but only Theme Settings and DocType were listed, so the handler had no
-    # caller at all. The same-fact-in-two-places trap, with the two copies
-    # disagreeing.
-    #
-    # Measured before this line existed: populate `bnd_doctype_workspace_map`,
-    # save a Workspace, and the key is still there. After: it is gone.
-    "Workspace": {
-        "on_update": "bunood_theme.api.clear_workspace_cache",
-        "after_delete": "bunood_theme.api.clear_workspace_cache",
-    },
-    "Sales Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
-    },
-    "Purchase Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
     },
 }
 
@@ -183,8 +140,6 @@ doc_events = {
 # /rtl_patch.py for the full picture and why one hook alone isn't enough.
 jinja = {
     "methods": [
-        "bunood_theme.printing.jinja.bunood_print_language",
-        "bunood_theme.printing.jinja.bunood_amount_in_words",
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",

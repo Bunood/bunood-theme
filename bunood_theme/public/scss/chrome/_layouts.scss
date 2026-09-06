@@ -60,39 +60,6 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
-// ── v16 MOVED THE SEARCH, AND THE ROW ABOVE STOPPED REACHING IT ─────────────
-// The block above names `.body-sidebar .navbar-search-bar`, which is where
-// Frappe kept search when it was written. On 16.31 the desk renders its search
-// as `.search-bar` inside the PAGE HEAD instead —
-//   div.page-head > div.container > div.row > .standard-items-section > .search-bar
-// — so that selector matches nothing and the native survives. Measured on the
-// Home workspace with search placed in the Bottom Bar: Frappe's magnifier at
-// the top-right AND our field in the bar, which is the duplicate search this
-// theme was reported for.
-//
-// Same polarity as the block above, and for the same reason: keyed on
-// `data-bnd-own`, so a search we never mounted leaves Frappe's own in place
-// rather than deleting the only way to search.
-html[data-bnd-own~="search"] .page-head .search-bar {
-  display: none;
-}
-
-// The wrapper, not just the link. `.sidebar-user-button` is an <a> inside
-// `div.nav-item.dropdown.dropdown-navbar-user`; hiding only the <a> left the
-// wrapper laying out at 33x8px — a stray sliver above the side pane's foot,
-// measured. Safe to hide whole because `build_user` builds our avatar and its
-// menu from scratch; nothing proxies into this node.
-//
-// THE BELL IS NOT THE SAME SHAPE, deliberately. Its native row looks
-// equivalent — `.sidebar-notification` beside `.dropdown-notifications` — but
-// our bell PROXIES into it (`proxy_click(".sidebar-notification .item-anchor")`)
-// and the rules further down RELOCATE `.dropdown-notifications` to whichever
-// container the bell sits in. Hiding that wrapper would leave every bell
-// opening a panel nobody can see, so only the trigger is hidden, above.
-html[data-bnd-own~="user"] .body-sidebar .dropdown-navbar-user {
-  display: none;
-}
-
 // The page-title hamburger (item 40, slice 11 - audit defect 3). Rail mode
 // used to leave TWO collapse affordances live: our trigger and Frappe's
 // toggle. The claim is stamped by sb_mount_rail only after the trigger
@@ -257,7 +224,7 @@ html[data-bnd-desk] .main-section {
 //
 // Frappe sizes the form's sidebar to the viewport and makes it sticky
 // (frappe scss/desk/form_sidebar.scss:273-279):
-//   the form route's `.layout-side-section` rule {
+//   body[data-route^="Form"] .layout-side-section {
 //     height: calc(100vh - var(--page-head-height));
 //     position: sticky; top: var(--page-head-height);
 //   }
@@ -271,73 +238,22 @@ html[data-bnd-desk] .main-section {
 //
 // Specificity is deliberate and load-bearing: Frappe's selector is (0,2,1), so
 // a bare `html[data-bnd-desk] .layout-side-section` would only TIE and be
-// decided by which sheet loads last. The form DOM signature raises this rule
-// to (0,4,1) and settles it on specificity instead of on app order — ahead of
-// the (0,3,2) the retired `body[data-route^="Form"]` spelling reached.
+// decided by which sheet loads last. Naming body[data-route] too makes it
+// (0,3,2) and settles it on specificity instead of on app order.
 // Theme Settings stands its form sidebar down. Assign / Attachments / Share /
 // "last edited by" cost 278px of a 1280px viewport — measured — on a Single
 // that nobody assigns, attaches to or shares, and the component settings need
-// that width for a list beside a detail pane. The unique `icons_picker` field
-// is the form's DOM signature, so this remains a judgement about this form,
-// not about forms and not about the URL used to reach it.
-//
-// SCOPE IS `data-bnd-desk`, NOT `data-bnd-layout`: item 37 stopped storing the
-// layout, and the slug attribute went with it. `data-bnd-desk` is the presence
-// mark bunood.js now stamps unconditionally. A rule scoped to the retired
-// attribute compiles, passes every gate, and matches nothing.
-html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="icons_picker"]) .layout-side-section {
+// that width for a list beside a detail pane. Scoped to this one route: it is
+// a judgement about this form, not about forms.
+// Prefix, not exact: a Single's route carries the docname too, so this form is
+// `Form/Theme Settings/Theme Settings` (measured, after an exact match matched
+// nothing).
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
   display: none;
 }
 
-// A DOCUMENT WITH LINE ITEMS GETS THE SIDEBAR'S WIDTH.
-//
-// Measured on a Sales Invoice at 1280px: the items grid is handed 563px and
-// needs 701, so Rate and Amount sit past the edge and the money on an invoice
-// requires a horizontal scroll to read. Frappe agrees it is short — it stamps
-// its own `column-limit-reached` on the container.
-//
-// The width has to come from somewhere, and on that viewport the split is desk
-// pane 240 + form 651 + this sidebar 277. Nothing else is a donor: the section's
-// 900px max-width never binds at a 595px column, and the paddings are 60px in
-// total. Standing the sidebar down gives the grid ~840px, comfortably past 701.
-//
-// THE SIGNATURE IS THE ITEMS TABLE, not a route and not a doctype list — so
-// every transactional document inherits it (invoices, orders, delivery notes,
-// receipts), including ones a custom app adds, which is the whole point of
-// keying on what is rendered.
-//
-// A DEFAULT, NOT A REMOVAL — and that distinction was measured, not hoped for.
-// This column carries Attachments, Assign, Share and Follow, and on an
-// accounting document those matter: a signed PO or a delivery proof is attached
-// exactly here. None of the three appears in the form's ⋯ menu (read from
-// `page.menu`, not guessed), so if this rule were the last word it would remove
-// a feature.
-//
-// It is not the last word. That menu carries Frappe's own **Toggle Sidebar**,
-// whose handler is `sidebar_wrapper.toggle()` — jQuery, which writes an INLINE
-// `display`, and an inline style outranks this rule. So the vendor's own
-// control reveals the column again, on a document where the user wants it.
-// Verified end to end by clicking the real menu item: the pane returns at 277px
-// with Attachments, Assign and Share all present.
-//
-// This rule is therefore `display: none` and NOT `!important` — deliberately.
-// `!important` here would beat the inline style and turn a default into the
-// removal it currently is not.
-html[data-bnd-desk] .page-container:has(.form-layout [data-fieldname="items"]) .layout-side-section {
-  display: none;
-}
-
-html[data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
+html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
-}
-
-// The top bar is in the main section's flow, so a sticky form sidebar begins
-// one bar lower than Frappe's viewport-only formula assumes. Subtract that
-// real occupied row as well; otherwise the last 45px sit behind bottom chrome.
-html[data-bnd-topbar][data-bnd-desk] .page-container:has(.form-layout) .layout-side-section {
-  block-size: calc(
-    100vh - var(--bnd-bottom-reserve) - var(--page-head-height) - var(--bnd-topbar-h) - var(--bnd-sp-1)
-  );
 }
 
 // ── The report view's own 100vh arithmetic needs the reserve too ────────────
@@ -431,10 +347,8 @@ html[data-bnd-topbar][data-bnd-desk] .kanban-column {
 
 // ── Top bar: the native <header> becomes the bar's home ─────────────────────
 // v16 renders an EMPTY <header> as .main-section's first child — a native
-// mount point, no DOM surgery. Keep it in normal flow: global navigation must
-// scroll with the desk instead of pinning a second layer above Frappe's own
-// page head. A sticky bar made dashboard cards travel underneath permanent
-// chrome and left two stacked headers competing for the same viewport edge.
+// mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section
+// flow and starts after the sidebar with no width bookkeeping.
 //
 // KEYED ON `data-bnd-topbar`, THE OUTCOME — NOT ON THE LAYOUT.
 //   The top bar is a container with its own setting since slice 2c, so "the
@@ -457,16 +371,15 @@ html[data-bnd-topbar][data-bnd-desk] .kanban-column {
 // Same contract as `data-bnd-statusbar`, which has worked this way since
 // item 14 for exactly the same reason.
 html[data-bnd-topbar] .main-section > header {
-  position: relative;
-  inset-block-start: auto;
+  position: sticky;
+  inset-block-start: 0;
   z-index: var(--bnd-z-bar);
   display: block;
 }
-// The top bar now leaves the viewport with the document, so the page head no
-// longer needs a permanent one-bar offset. Routes where Frappe keeps the page
-// head in normal flow now let both strips leave together.
+// Frappe's .page-head is sticky at block-start 0; under a topbar it must
+// stick BELOW the bar instead of sliding beneath it.
 html[data-bnd-topbar] .page-head {
-  inset-block-start: 0;
+  inset-block-start: var(--bnd-topbar-h);
 }
 
 // ── Notifications panel relocation ──────────────────────────────────────────

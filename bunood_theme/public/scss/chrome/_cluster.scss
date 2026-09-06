@@ -76,19 +76,6 @@ html[data-theme] .bnd-avatar-btn {
   }
 }
 
-// Captions are part of every global-navigation control's DOM so a responsive
-// remount never has to rebuild behaviour. Desktop clusters keep their compact
-// icon form; the phone bar exposes the shared caption rhythm.
-html[data-theme] .bnd-mobile-nav-label {
-  display: none;
-}
-
-html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-mobile-nav-label {
-  display: block;
-  inline-size: 100%;
-  text-align: center;
-}
-
 // Divider between page actions and global cluster in the compact layout's
 // shared strip — the "one strip, two jobs" seam made visible.
 html[data-theme] .bnd-cluster-divider {
@@ -433,8 +420,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 // payload ceiling with single-digit-percent headroom.
 html[data-theme] :is(
   .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-brand, .bnd-sb-item,
-  .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show, .bnd-sb-brand-hide,
+  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show, .bnd-sb-brand-hide,
   .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
   .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
   .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank
@@ -463,23 +449,6 @@ html[data-theme] .bnd-cluster {
   flex: 1;
   gap: var(--bnd-sp-2);
   position: relative;
-  // `flex: 1` makes this box as wide as the bar while its zones hold only the
-  // controls at the ends — measured at 1440px: a 1158px cluster whose start and
-  // centre zones are 0px and whose end zone is 66px. That leaves ~1090px of
-  // DEAD SPACE which, being a positioned box later in document order than
-  // `.bnd-search-center` and also at `z-index: auto`, painted OVER the search
-  // field and swallowed every click aimed at it. The field was never broken:
-  // `.click()` bypasses hit-testing, so it answered correctly to script and
-  // not to a mouse.
-  //
-  // Same remedy, same reasoning as `.bnd-search-center` two files over: a
-  // scaffold that stretches must not capture the pointer where it has nothing
-  // to show. Restored on the zones, so every control inside one inherits it.
-  pointer-events: none;
-}
-
-html[data-theme] .bnd-cluster > * {
-  pointer-events: auto;
 }
 
 html[data-theme] .bnd-zone {
@@ -558,35 +527,3 @@ html[data-theme] .bnd-zone[data-zone="end"] {
 // places by DOM position instead: after the header, after the workspace list,
 // or at the foot. The attribute below is kept for styling and for the settings
 // form to read; it does not position anything.
-
-/* 1. Force strict flex-start alignment so icon and text sit together on the right */
-.bnd-menu-item {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-start !important; /* Packs items to the start (Right edge in RTL) */
-  gap: 12px !important; /* Perfect spacing between icon and text */
-  width: 100% !important;
-  text-align: start !important;
-}
-
-/* 2. Kill the rogue auto-margins or space-between pushing the icons away */
-.bnd-menu-item > svg,
-.bnd-menu-item > .icon {
-  margin: 0 !important;
-  float: none !important;
-  flex-shrink: 0 !important;
-}
-
-/* 3. Ensure the header (Name and Email) perfectly aligns with the items */
-.bnd-menu-header {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  text-align: start !important;
-}
-
-/* 4. Flip the 'Logout' icon in RTL so the arrow points 'Out' (Left) */
-html[dir="rtl"] .bnd-menu-item.bnd-danger > svg {
-  transform: scaleX(-1) !important;
-}

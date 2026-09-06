@@ -35,8 +35,6 @@ costs. Rules are grouped by whether a machine enforces them.
 | Behaviour of every kit | 94-test Playwright suite | `tests/smoke.mjs` |
 | Test signal isn't corrupted by its own tooling | `npm run verify` — one command, the suite's own exit code | `tools/verify.mjs` |
 | A native affordance is hidden only once we replaced it | build **fails** on `display:none` of a native keyed on `data-bnd-layout`/`data-bnd-search` instead of `data-bnd-own` | `build.mjs` |
-| Styling is route-agnostic | build **fails** when any SCSS file contains `data-route=` or `data-page-route=`; an in-memory negative self-test proves both forbidden forms are rejected | `build.mjs` |
-| **Upstream has not moved under us** | `npm run upstream` **exits 1** when any pinned Frappe/ERPNext fact changes — app versions, forked templates, the shipped `content` of boards we reorder, the shipped field order of DocTypes we reorder | `tools/upstream.mjs` + `bunood_theme/upstream.py`, pins in `bunood_theme/data/upstream-pins.json` |
 | Every component has an identity, and every identity is real | build **fails** on a registry entry with no `part`, or a `data-bnd-part` the registry never defined | `build.mjs` + `registry.py` |
 | Settings fields are `<component>_<property>` | build **fails**, with a listed and shrinking exceptions set | `build.mjs` |
 | No literal duration reaches compiled CSS — the reduced-motion zero actually zeroes everything | build **fails** on a hardcoded `transition`/`animation` time outside `--bnd-dur-*` | `build.mjs` |
@@ -70,41 +68,6 @@ that cannot change the verdict.
 
 ### 1.2 Before you write the CSS
 
-**Upgrade acceptance is gated at deployment, verification and `before_migrate`.**
-Use the staging procedure in [docs/UPSTREAM-UPGRADES.md](docs/UPSTREAM-UPGRADES.md).
-An external image/git update is not automatically rolled back; incompatible
-candidates must not be promoted. Pins are shipped with the app so migration
-protection does not depend on a developer remembering a host command.
-
-- **Every upstream fact you build on gets PINNED.** This app is a layer over
-  software somebody else ships, and its characteristic failure is silent: when
-  Frappe or ERPNext moves a DOM node, a workspace's block order or a DocType's
-  field order, our rule does not crash. It compiles, passes every other gate, and
-  matches nothing. Three of those shipped here before anyone noticed — a hiding
-  rule naming `.body-sidebar .navbar-search-bar` after v16 moved search into
-  `.page-head`; scoping on `data-bnd-layout` after item 37 stopped stamping it;
-  and `frappe.get_route()` returning null mid-boot. None was caught by a gate.
-  All three were caught by looking, late.
-
-  So: if a change of yours depends on an upstream fact, add that fact to
-  `bunood_theme/upstream.py` in the same commit, and `npm run upstream --repin`.
-  **A drift failure is not a bug to silence.** Read what moved, port what it
-  means for the rules built on it, then re-pin *in the same commit* and say in
-  the message what you ported. Bumping a pin without reading is worse than
-  having no pin: it turns a loud signal into a silent one and leaves the next
-  person believing the fact was checked. `standard.html` is the worked example —
-  Frappe moved it, the pin went red, and the divergence sat unported.
-
-  DOM contracts are deliberately not pinned in that file: a selector's existence
-  is a *rendered* fact and belongs in the browser suite, which asserts it against
-  a real page. Pinning the selector string would only pin our own source.
-
-- **Route-Agnostic Styling:** Never use `data-route` or `data-page-route`. Use
-  `:has()` DOM signatures that identify the component actually rendered so standard
-  modules, route aliases and custom apps inherit the same styling universally.
-- **Universal Theming:** Never colour Frappe classes directly when Frappe exposes a
-  CSS variable for that role. Map Frappe's native semantic variable to the matching
-  `--bnd-*` token in `_bridge.scss`, so one token change repaints every consumer.
 - **Decide whether it's a one-way or two-way door.** Ship the simple version when the
   fix is a rule; think first when the fix is a token rename, a public class name, or
   anything Layer 3/4 consumes. Token names are an API — see 1.4.

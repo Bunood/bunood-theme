@@ -22,6 +22,70 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.42.4] — 2026-09-06 — Main returns to the v0.42.1 line; the overhaul lives on a branch
+
+**The user's call, after looking at production.** MrBrokenrightArm's V2 overhaul (37
+commits, 148 files, +24k lines, merged 2026-09-05 as `1fa4609`/`acc47c3` over v0.42.1 with
+no roadmap item and no changelog entry) shipped a desk look that overrode item 42's pane
+work: its "compact rail" clipped the icon rail at the viewport edge, it mounted a second
+pane toggle beside ours, painted the place row as a brand pill and dropped the in-pane
+search. Production ran it for half a day (v0.42.2/v0.42.3). The decision is to separate
+the two lines rather than repair one inside the other: **main is the v0.42.1 line again**,
+and the overhaul is preserved intact — including v0.42.2 and v0.42.3 on top of it — on the
+branch **`overhaul-v2`** (tip `9c6aea4`, pushed). Its features are inventoried in the
+2026-09-06 session and will be integrated one at a time, as their own item, with a plan.
+
+This is a new commit whose TREE is v0.42.1's, not a rewrite of history: the merge commits
+stay in main's ancestry, so nobody's clone diverges, and the branch keeps the tip.
+
+### Carried over from the four commits made on top of the merge
+
+- `61936fc` — the workspace menu aligns its icons and labels in two columns; the place row
+  wears the module's ORIGINAL desktop icon (`ws_original_icon`, via Frappe's own resolver)
+  and its name one type step larger. Cherry-picked; the one conflict was the place-row
+  rule, where the overhaul's brand-filled pill was NOT taken.
+- `82c00b3` — `tools/deploy.sh` ships to the worker containers only when they exist (a
+  local stack runs backend + websocket only). Only that hunk; the hide-button restoration
+  it also carried was needed only against the overhaul's tree.
+- `9c6aea4` — both item-40 patches read `tabSingles` with raw SQL, so a one-shot upgrade
+  from v0.39.x no longer aborts on the field item 42 removed.
+- Not carried: `57cd429`'s `upstream-pins.json`. The pins gate (`upstream.py`, the deploy
+  preflight, the `before_migrate` hook) is the overhaul's, and leaves main with it.
+
+### Production, after this deploy
+
+- The data the overhaul's patches wrote stays: the hoisted Home sidebar, the seeded form
+  defaults and the Sales Invoice field order (`Property Setter` rows, the field order one
+  dating from 2026-08-17, i.e. the v0.39.x era). Reverting code does not revert data; the
+  integration item decides what to keep.
+- Its two A4 print formats (`Bunood Sales Invoice (A4)`, `Bunood Purchase Invoice (A4)`)
+  were 264-byte stubs that `include` a template this line does not ship, so they were
+  deleted on the site rather than left to 500 when picked. Neither was any doctype's
+  default format.
+
+### The suite, for the record
+
+The full suite at `9c6aea4` (the overhaul plus our fixes) on a production-shaped bench
+(frappe 16.33.0 / erpnext 16.34.1 / the ten tenant apps) read **493/515**. Fourteen of
+the twenty-two are the overhaul's own `completion:` / `form:` / `home:` / `report:` checks
+on a site with no transactions (its fixture seeders were not run). The other eight failed
+identically on a re-run and are owed a look on THIS line: `rail: a resting rail is an
+icon rail` (the collision itself), `login: the primary action holds its ink` (4.19:1 on
+light/branded hover), `views: Plain nulls the kanban column tint`, both `All Apps`
+checks, `settings: the layout builder's wells lift off the card`, `i18n: the merged dict
+serves every decision`, `topbar shortcuts: unsaved edits block a language reload`.
+
+On the restored tree itself (this commit, same bench) a filtered run over the pane, the rail and the
+eight names above read **65/72**: the rail check passes again, and seven fail: `login` (4.19:1),
+`views` (the kanban tint), `settings` (the wells), `i18n` (the merged dict), plus three that the
+full run at `9c6aea4` did not show: `live preview: a pane option flips instantly, and stays`,
+`band: at the rail every cell has a rect and the badge still counts` (the badge is empty on a
+site with nothing to count) and `a11y: axe over the settings pickers, every pane`. v0.42.1 was
+478/478 on frappe 16.27.0 two days earlier, so the bench (16.33.0, a fresh site) is the first
+suspect; a full run on this line is owed before any of them is called a regression. All five
+pane states were screenshotted at 1280 with `tools/shots.mjs` and READ: Open, Frappe's own
+collapse, Rail, Rail hovered and Hidden all match v0.42.1's look.
+
 ## [0.42.3] — 2026-09-06 — A migration that only an old site could fail
 
 **Found on production, not on the dev bench.** `demo.hobbiverse.com` upgraded from theme

@@ -9,19 +9,12 @@ import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
-import { browserLaunchOptions } from "./browser.mjs";
 // Derived from this file's own location, not a hardcoded machine path, so the
 // documented regeneration command runs anywhere (item 27, §4.9).
 const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
 const { chromium } = require("playwright");
-// Use the same environment contract as the smoke suite. Hardcoding the old
-// demo stack made the documented regeneration command fingerprint a different
-// site—or fail outright—while verification ran on the active one.
-const SITE = process.env.BND_SITE || "demo.bunood.test";
-const BACKEND = process.env.BND_BACKEND || "bunood-backend-1";
-const URL_BASE = process.env.BND_URL || "http://localhost:8080";
-const py=(c)=>execFileSync(DOCKER_BIN,dockerArgv("exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
+const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE="http://localhost:8080";
+const py=(c)=>execFileSync("docker",["exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
  {input:`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n`+c,encoding:"utf8",stdio:["pipe","pipe","pipe"]});
 const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.cookie_manager=CookieManager()\nfrappe.local.form_dict=frappe._dict()\nfrappe.local.request=frappe._dict(path="/",method="GET",remote_addr="127.0.0.1",cookies=frappe._dict(),headers=frappe._dict(),environ=frappe._dict())\nfrappe.local.request_ip="127.0.0.1"\nlm=LoginManager()\nlm.login_as("Administrator")\nfrappe.db.commit()\nprint("SID="+frappe.session.sid)\n`).match(/SID=([a-f0-9]+)/)[1];
 // The state the fixture is captured in — read from the app's OWN shipped
@@ -55,32 +48,8 @@ print(json.dumps(SHIPPED))
 // `desk_layout` used to be pinned here; item 37 deleted the field, so pinning it
 // would write an orphan tabSingles row the doctype no longer knows.
 const SHAPE_STATE = { ...shipped, inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
-// A fixture generator is diagnostic tooling, not a settings migration. Preserve
-// every field it pins and restore the exact values even when capture throws;
-// otherwise reviewing a baseline silently rewrites the developer's site.
-const previous = JSON.parse(py(`fields=json.loads(${JSON.stringify(JSON.stringify(Object.keys(SHAPE_STATE)))})
-doc=frappe.get_cached_doc("Theme Settings")
-print(json.dumps({f: doc.get(f) for f in fields}))
-`).trim().split(/\r?\n/).pop());
-const previousLanguage = JSON.parse(py(`print(json.dumps({
-"system": frappe.db.get_single_value("System Settings", "language"),
-"default": frappe.db.get_default("lang"),
-"user": frappe.db.get_value("User", "Administrator", "language")
-}))
-`).trim().split(/\r?\n/).pop());
-const setLanguage = ({ system, default: defaultLanguage, user }) => py(`
-frappe.db.set_single_value("System Settings", "language", ${JSON.stringify(system)})
-frappe.db.set_default("lang", ${JSON.stringify(defaultLanguage)})
-frappe.db.set_value("User", "Administrator", "language", ${JSON.stringify(user)})
-frappe.db.commit()
-frappe.clear_cache()
-print("ok")
-`);
-let b = null;
-try {
 set(SHAPE_STATE);
-setLanguage({ system: "en", default: "en", user: "en" });
-b=await chromium.launch(browserLaunchOptions()); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
 await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
 // REFUSE TO CAPTURE A PAGE THAT IS NOT SHOWING THE PINNED STATE.
 //
@@ -151,8 +120,4 @@ const fp = await page.evaluate(()=>{
 // one file — the duplication this codebase keeps being bitten by.
 writeFileSync(process.argv[2], JSON.stringify({ state: SHAPE_STATE, pickers: fp }, null, 1) + "\n");
 for (const [k,v] of Object.entries(fp)) console.log(k.padEnd(16), v?`nodes=${v.n} svg=${v.svgs} text=${v.text}`:"ABSENT");
-} finally {
-	if (b) await b.close();
-	set(previous);
-	setLanguage(previousLanguage);
-}
+await b.close();

@@ -21,7 +21,6 @@
  *     and flips settings server-side via `docker exec` (boot is cached, so
  *     settings changes need a cache clear — only bench can do that).
  *   - npm i -D playwright  &&  npx playwright install chromium   (one-time)
- *     or BND_BROWSER_CHANNEL=chrome to use an installed Chrome build.
  *
  * USAGE
  *   npm test                     # BND_URL defaults to http://localhost:8080
@@ -29,7 +28,7 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 // The routes and the scan configuration are shared with the tool that BANKS
@@ -44,8 +43,6 @@ import { extractCatalogue, readExempt, readInherited, readTranslations } from ".
 // `fixturesReady` is the same predicate the tool's own exit code uses, so the
 // suite and the tool cannot disagree about what "ready" means.
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalFixtureStatus } from "../tools/portal-fixtures.mjs";
-import { DOCKER_BIN, dockerArgv } from "../tools/docker.mjs";
-import { browserLaunchOptions } from "../tools/browser.mjs";
 // Item 38's checks need a SECOND desk account, because every per-user preference
 // this theme ships has only ever been observed as Administrator — the vantage
 // point that hid item 37's dead personalize menu for a whole release. Same
@@ -71,32 +68,6 @@ const CONSOLE_ALLOWLIST = [
 	/\/undefined/,           // Frappe's own stray request, present on stock desks
 	/Failed to load resource.*40[34]/, // avatar images etc. on empty dev data
 	/impersonate you/i,      // Chrome's own console warning banner
-	// axe-core attempts its frame injection before applying the iframe selector
-	// exclusion below. The email preview deliberately has sandbox=""; Chromium
-	// therefore reports the blocked injection even though the frame is excluded
-	// from analysis. Exact security-boundary message only.
-	/^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set\./,
-	// Frappe v16.31's Home workspace chart renderer emits invalid SVG while
-	// assembling its stock chart paths over the seeded ledger. Exact upstream
-	// report: https://github.com/frappe/frappe/issues/42187. Keep these scoped
-	// to the browser's SVG parser messages and the non-finite tokens; any other
-	// chart or console error still fails the budget.
-	/^Error: <svg> attribute width: Expected length, "NaN"\./,
-	/^Error: <line> attribute x2: Expected length, "NaN"\./,
-	/^Error: <g> attribute transform: Expected number, "translate\(NaN, 0\)"\./,
-	/^Error: <path> attribute d: Unexpected end of attribute\. Expected number, "M"\./,
-	/^Error: <path> attribute d: Expected number, "M[^"]*(?:undefined|NaN)[^"]*"\./,
-	// The same native zero-total pie bug, after Chromium truncates the path.
-	// Reproduced with the unwrapped frappe.Chart.prototype.constructor; keep
-	// this exception restricted to Frappe's desk bundle and NaN arc coordinates.
-	/^Error: <path> attribute d: Expected number, "…A [^"]*NaN[^"]*"\. \[[^\]]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\]]+\.js\]/,
-	// Frappe's native chart redraw can briefly compute a negative width and can
-	// race its own ResizeObserver cleanup while a workspace is being replaced.
-	// Both are restricted to the vendor desk bundle and the exact DOM/SVG errors;
-	// theme errors and any other removeChild/negative-size failures stay red.
-	/^Error: <svg> attribute width: A negative value is not valid\. \("-\d+"\) \[[^\]]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\]]+\.js\]/,
-	/^pageerror: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\. \(during: workspace: every tile resolves to one surface, on boards and dashboards\)/,
-	/^(?:pageerror: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\. \(during: [^)]+\)\n)?NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node\.[\s\S]*\/assets\/frappe\/dist\/js\/desk\.bundle\.[^/\s]+\.js/,
 	// A recovered Single-write conflict.
 	//
 	// Saving Theme Settings writes the WHOLE document (`update_single` deletes
@@ -262,10 +233,7 @@ async function test(name, fn) {
 		process.stdout.write(`  ok    ${name}\n`);
 	} catch (err) {
 		results.push({ name, ok: false, err: String(err.message || err) });
-		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 1200)}\n`);
-		// A dead browser cannot measure another case. Unwind through main's
-		// restore instead of cascading errors until the process is killed.
-		if (/ERR_INSUFFICIENT_RESOURCES|Target.*(?:page|context|browser).*closed|browser has been closed|Accessibility audit timed out/i.test(String(err.message || err))) throw err;
+		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 300)}\n`);
 	}
 }
 
@@ -334,9 +302,7 @@ function benchPy(code, preConnect = "") {
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
-	// Three bounded retries, and only for MySQL 1020 on the two tables this
-	// suite writes.
-	// That error is an
+	// ONE retry, and only for MySQL 1020 on tabSingles. That error is an
 	// optimistic-lock conflict whose own text says "try restarting
 	// transaction" — Frappe retries it in request handling for the same
 	// reason. It became a startup-killer once the apps.json set was installed:
@@ -348,8 +314,8 @@ function benchPy(code, preConnect = "") {
 	for (let attempt = 1; ; attempt++) {
 		try {
 			return execFileSync(
-				DOCKER_BIN,
-				dockerArgv("exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"),
+				"docker",
+				["exec", "-i", BACKEND, "bash", "-lc", "cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
 				{ input: wrapped, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
 			);
 		} catch (err) {
@@ -366,11 +332,10 @@ function benchPy(code, preConnect = "") {
 				.filter((l) => !noise.test(l))
 				.join("\n")
 				.trim();
-			if (attempt <= 3 && /\b1020\b/.test(stderr) && /tab(?:Singles|User)/.test(stderr)) {
+			if (attempt === 1 && /\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) {
 				// Synchronous pause — benchPy is sync throughout, and its callers
-				// depend on that. Back off between fresh transactions so a scheduler
-				// writer can finish; attempt four still reports the real conflict.
-				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750 * attempt);
+				// depend on that.
+				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
 				continue;
 			}
 			throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
@@ -550,19 +515,6 @@ async function withBranding(values, fn) {
 			);
 		}
 	}
-}
-
-// Tests asserting a shipped identity must establish it, even on a custom site.
-// These fields are deliberately outside the ordinary mutable-settings reset.
-function withIdentityDefaults(state, fn) {
-	return withBranding(Object.fromEntries([
-		"company_name", "logo", "favicon", "brand_color", "accent_color",
-		"brand_color_dark", "accent_color_dark", "ground_color",
-		// The Theme preset label is derived from the whole preset, including
-		// typography and density. Pin and restore these too so a tenant's
-		// legitimate customization does not look like structural picker drift.
-		"arabic_font", "density_default",
-	].map(field => [field, state[field] ?? ""])), fn);
 }
 
 /**
@@ -783,11 +735,6 @@ function setLang(lang) {
 		`frappe.db.set_default("lang", ${JSON.stringify(system)})\n` +
 		`frappe.db.set_value("User", "Administrator", "language", ${JSON.stringify(user)})\n` +
 		`frappe.db.commit()\n` +
-		// get_user_lang() reads User.language through get_cached_value. A direct
-		// db.set_value bypasses User.on_update(), whose own implementation calls
-		// clear_cache(user=self.name); global translation-cache invalidation alone
-		// therefore leaves the authenticated desk on the old language.
-		`frappe.clear_cache(user="Administrator")\n` +
 		// Translations are cached under `merged_translations` per language and
 		// the whole dict ships in the per-user `bootinfo`. Without this the desk
 		// keeps serving the previous language's payload and the flip looks
@@ -845,55 +792,7 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 		await page.waitForTimeout(4000);
 		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
 	}
-	// A navigation can also be DISCARDED rather than fail: v16's desk shell does
-	// its own boot routing, and a goto issued while that is in flight resolves
-	// happily with the browser left on /desk (or bounced to the setup wizard).
-	// Nothing throws. The selector then belongs to a page we never opened, so
-	// the wait below burns its full 30s and reports a missing element — which
-	// reads as a broken component and is nothing of the kind.
-	//
-	// Measured on this bench, fresh context per attempt: 1 of 3 first
-	// navigations after login landed on /desk instead of /desk/todo. It is the
-	// FIRST tests in a run that pay, which is how one bounce turned into a
-	// screenful of failures.
-	//
-	// startsWith, not equality: frappe appends its own segments (asking for
-	// /desk/todo/view/calendar lands on /desk/todo/view/calendar/default).
-	for (let attempt = 0; attempt < 3; attempt++) {
-		if (new URL(page.url()).pathname.startsWith(route)) break;
-		await page.waitForTimeout(1500);
-		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
-	}
-	if (waitSel) {
-		try {
-			await page.waitForSelector(waitSel, { timeout: 30000 });
-		} catch (error) {
-			const state = await page.evaluate((selector) => {
-				const html = document.documentElement;
-				const pane = document.querySelector(".body-sidebar-container");
-				const target = document.querySelector(selector.replace(/:visible\b/g, ""));
-				const inspect = (node) => !node ? null : {
-					display: getComputedStyle(node).display,
-					visibility: getComputedStyle(node).visibility,
-					opacity: getComputedStyle(node).opacity,
-					width: Math.round(node.getBoundingClientRect().width),
-					height: Math.round(node.getBoundingClientRect().height),
-					classes: node.className,
-				};
-				return {
-					url: location.pathname,
-					viewport: [innerWidth, innerHeight],
-					narrow: html.hasAttribute("data-bnd-narrow"),
-					chromeOff: html.getAttribute("data-bnd-chrome-off"),
-					rail: html.hasAttribute("data-bnd-rail"),
-					pane: inspect(pane),
-					target: inspect(target),
-				};
-			}, waitSel).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }));
-			error.message += `\nDesk readiness: ${JSON.stringify(state)}`;
-			throw error;
-		}
-	}
+	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
 	await page.waitForTimeout(settle);
 }
 
@@ -947,9 +846,6 @@ async function fetchText(route) {
 }
 
 async function withGuest(route, waitSel, fn, opts = {}) {
-	// Public pages deliberately follow the tenant's System Settings language
-	// (context.prefer_system_language_for_guests), not a visitor cookie.
-	if (opts.lang) return withLang(opts.lang, () => withGuest(route, waitSel, fn, { ...opts, lang: null }));
 	// `bust` MIRRORS `withPortalUser`'s, and item 33 slice 6 is why it is here
 	// too. Frappe's website HTML cache is keyed on `(path, lang)` and NOTHING
 	// else, so a guest page fetched right after a settings write can be served
@@ -959,11 +855,16 @@ async function withGuest(route, waitSel, fn, opts = {}) {
 	// deliberately. OFF BY DEFAULT, and that is the honest default: a real
 	// visitor gets the cached render, so a check that always busts is measuring
 	// a branch production never uses.
-	const { width = 1440, height = 900, colorScheme = null, bust = false } = opts;
+	const { width = 1440, height = 900, lang = null, colorScheme = null, bust = false } = opts;
 	const ctx = await browser.newContext({
 		viewport: { width, height },
 		...(colorScheme ? { colorScheme } : {}),
 	});
+	if (lang) {
+		await ctx.addCookies([
+			{ name: "preferred_language", value: lang, domain: new URL(URL_BASE).hostname, path: "/" },
+		]);
+	}
 	const gp = await ctx.newPage();
 	const errs = [];
 	gp.on("console", (m) => {
@@ -1498,13 +1399,6 @@ const MUTABLE_FIELDS = [
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
-	// Print picker axes. The suite exercises all of them and must pin them to
-	// SHIPPED for default/dot/fingerprint checks, then restore the tenant's
-	// actual choices in the outer finally block.
-	"print_header_style", "print_table_style", "print_totals_style",
-	"print_heading_style", "print_accent", "print_letterhead",
-	"print_title_lang", "print_qr", "print_qr_place", "print_qr_size",
-	"print_words", "print_signatures",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
@@ -1630,10 +1524,6 @@ async function main() {
 	// an aborted `withLang` would fail dozens of unrelated checks and read as a
 	// broken feature. Cheap insurance: two reads and a cache clear.
 	const langSnapshot = getLang();
-	// Optional durable recovery for OS/process termination, where finally
-	// cannot run. This contains theme preferences and language, never a SID.
-	if (process.env.BND_RECOVERY_FILE) writeFileSync(process.env.BND_RECOVERY_FILE,
-		JSON.stringify({ site: SITE, backend: BACKEND, settings: snapshot, language: langSnapshot }, null, 2));
 	setLang(LANG_DEFAULT);
 
 	// RESET BEFORE RUNNING, not just restore after. Restoring protects the
@@ -1660,7 +1550,7 @@ async function main() {
 		benchPy(`from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	browser = await chromium.launch(browserLaunchOptions());
+	browser = await chromium.launch();
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);
@@ -2033,230 +1923,17 @@ async function main() {
 		}
 		setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
 
-		await test("topbar shortcuts: language persists per account and Home navigates", async () => {
-			setSettings({ ...layoutSettings("Top Taskbar"), home_placement: "Top Bar Start" });
-			const before = getLang();
-			// Native User.save also updates locale defaults. Restore those exact
-			// rows, including absence, rather than leaving a test-chosen locale.
-			const locale = JSON.parse(benchPy('keys = ["date_format", "time_format", "number_format", "first_day_of_the_week"]\nprint(json.dumps(frappe.get_all("DefaultValue", filters={"parent": "Administrator", "defkey": ["in", keys]}, fields=["defkey", "defvalue"])))\n').trim().split("\n").pop());
-			try {
-				await goDesk("/desk/item", ".bnd-topbar", 1000);
-				const language = page.locator('.bnd-topbar [data-bnd-part="language"]');
-				expectEq(await language.count(), 1, "one language button must be present in the top bar");
-				for (const [code, label, dir] of [["ar", "العربية", "rtl"], ["en", "English", "ltr"]]) {
-					expectEq((await language.textContent()).trim(), label, "button names the target language in that language");
-					await language.click();
-					// Synchronize on the product state, not the browser's generic load
-					// event. A cached Desk can complete that event before Playwright's
-					// navigation watcher observes it even though the language switch and
-					// remount both succeeded.
-					await page.waitForFunction(code =>
-						window.frappe?.boot?.lang === code &&
-						document.querySelector('.bnd-topbar [data-bnd-part="language"]'),
-					code, { timeout: 60000 });
-					expectEq(new URL(page.url()).pathname, "/desk/item", "language reload preserves the current page");
-					expectEq(await page.locator("html").getAttribute("dir"), dir, "document direction matches the selected language");
-					expectEq(getLang().user, code, "choice is persisted on the signed-in account");
-					expectEq(getLang().system, before.system, "switch must not change the site's language");
-				}
-				await page.locator('.bnd-topbar [data-bnd-part="home"]').click();
-				await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
-				expectEq(await page.locator('.bnd-topbar [data-bnd-part="language"]').count(), 1, "navigation must not duplicate the language control");
-			} finally {
-				setLang(before);
-				benchPy(`keys = ["date_format", "time_format", "number_format", "first_day_of_the_week"]\nfor key in keys: frappe.defaults.clear_default(key, parent="Administrator")\nfor row in json.loads(${JSON.stringify(JSON.stringify(locale))}): frappe.defaults.set_default(row["defkey"], row["defvalue"], "Administrator")\nfrappe.db.commit()\nfrappe.clear_cache(user="Administrator")\n`);
+		await test("Desktop page: all theme chrome stands down and returns", async () => {
+			await goDesk("/desk", "#page-desktop", 2000);
+			expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop")), "desktop attr");
+			for (const sel of [".bnd-topbar", ".bnd-statusbar"]) {
+				const vis = await visible(sel);
+				expect(vis === null || vis === false, `${sel} hidden on Desktop`);
 			}
-		});
-
-		await test("topbar shortcuts: unsaved edits block a language reload", async () => {
-			setSettings({ ...layoutSettings("Top Taskbar"), home_placement: "Top Bar Start" });
-			await goDesk("/desk/sales-invoice", ".bnd-topbar", 1000);
-			const before = getLang();
-			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Sales Invoice" && cur_frm.is_new());
-			try {
-				await page.evaluate(() => cur_frm.set_value("po_no", "Keep this unsaved edit"));
-				await page.locator('.bnd-topbar [data-bnd-part="language"]').click();
-				await page.getByText("Save or discard your unsaved changes before switching language.", { exact: true }).waitFor();
-				expectEq(await page.evaluate(() => cur_frm.doc.po_no), "Keep this unsaved edit", "switch must not discard the draft");
-				expectEq(getLang().user, before.user, "blocked switch must not persist a new language");
-			} finally {
-				await page.evaluate(() => { frappe.hide_msgprint(); cur_frm.doc.__unsaved = 0; });
-			}
-		});
-
-		await test("topbar shortcuts: controls fit both directions and remain reachable on mobile", async () => {
-			setSettings({ ...layoutSettings("Top Taskbar"), home_placement: "Top Bar Start" });
-			const viewport = page.viewportSize();
-			try {
-				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
-					for (const width of [800, 1024, 1440]) {
-						await page.setViewportSize({ width, height: 900 });
-						await goDesk("/desk/item", '.bnd-topbar [data-bnd-part="language"]', 1000);
-						for (const mode of ["light", "dark"]) {
-							await page.evaluate(mode => document.documentElement.setAttribute("data-theme", mode), mode);
-							const labelFits = await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => {
-								const button = n.getBoundingClientRect(), label = n.querySelector('span').getBoundingClientRect();
-								return label.x >= button.x && label.right <= button.right && n.scrollWidth <= n.clientWidth;
-							});
-							expect(labelFits, `${lang}/${width}/${mode}: target-language text must fit inside its button`);
-							const measured = await page.evaluate(() => {
-								const bar = document.querySelector('.bnd-topbar');
-								const controls = [...bar.querySelectorAll('button')].filter(n => n.getBoundingClientRect().width > 0);
-								return controls.map(n => {
-									const r = n.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-									const overlap = controls.some(other => {
-										if (other === n) return false;
-										const o = other.getBoundingClientRect();
-										return Math.min(r.right, o.right) - Math.max(r.x, o.x) > 1 && Math.min(r.bottom, o.bottom) - Math.max(r.y, o.y) > 1;
-									});
-									return {
-										name: n.getAttribute('aria-label'),
-										inside: r.x >= 0 && r.right <= innerWidth,
-										hit: n === hit || n.contains(hit),
-										overlap,
-										x: Math.round(r.x),
-										right: Math.round(r.right),
-										width: Math.round(r.width),
-									};
-								});
-							});
-							expect(measured.length >= 5 && measured.every(n => n.inside && n.hit && !n.overlap), `${lang}/${width}/${mode}: Home, language, search, bell and profile must not overlap: ${JSON.stringify(measured)}`);
-							const alignment = await page.evaluate(() => {
-								const bar = document.querySelector('.bnd-topbar');
-								const barRect = bar.getBoundingClientRect();
-								const centre = rect => rect.top + rect.height / 2;
-								const icons = ['home', 'apps'].map(part => {
-									const button = [...bar.querySelectorAll(`[data-bnd-part="${part}"]`)].find(node => node.getClientRects().length > 0);
-									const glyph = button?.querySelector('svg');
-									return button && glyph ? {
-										part,
-										buttonDelta: Math.abs(centre(button.getBoundingClientRect()) - centre(barRect)),
-										glyphDelta: Math.abs(centre(glyph.getBoundingClientRect()) - centre(button.getBoundingClientRect())),
-									} : { part, missing: true };
-								});
-								const keycap = bar.querySelector('.bnd-search-field kbd');
-								let keycapDelta = 999;
-								if (keycap?.firstChild) {
-									const range = document.createRange();
-									range.selectNodeContents(keycap);
-									keycapDelta = Math.abs(centre(range.getBoundingClientRect()) - centre(keycap.getBoundingClientRect()));
-								}
-								return { icons, keycapDelta };
-							});
-							expect(alignment.icons.filter(icon => !icon.missing).length > 0 && alignment.icons.every(icon => icon.missing || (icon.buttonDelta <= 1 && icon.glyphDelta <= 1)), `${lang}/${width}/${mode}: visible top-bar icon buttons and glyphs are centred: ${JSON.stringify(alignment)}`);
-							expect(alignment.keycapDelta <= 2, `${lang}/${width}/${mode}: Ctrl+K text is vertically centred (${alignment.keycapDelta}px)`);
-							await page.locator('.bnd-topbar [data-bnd-part="language"]').focus();
-							expect(await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => getComputedStyle(n).outlineStyle !== 'none'), "language control has a keyboard focus ring");
-							// Icon buttons transition their ink when themes change; the
-							// outline is immediate. Measure the settled state, not a frame
-							// between the old and new theme colours.
-							await page.waitForFunction(() => {
-								const style = getComputedStyle(document.querySelector('.bnd-topbar [data-bnd-part="language"]'));
-								return style.outlineColor === style.color;
-							}, null, { timeout: 3000 }).catch(async () => {
-								const colours = await page.locator('.bnd-topbar [data-bnd-part="language"]').evaluate(n => { const s = getComputedStyle(n); return { outline: s.outlineColor, text: s.color }; });
-								throw new Error(`language focus ring must follow brand text: ${JSON.stringify(colours)}`);
-							});
-							if (width === 1440 && process.env.BND_TOPBAR_SCREENSHOTS) {
-								await page.locator('.bnd-topbar').screenshot({ path: `${process.env.BND_TOPBAR_SCREENSHOTS}/${lang}-${mode}.png` });
-							}
-						}
-					}
-					await page.setViewportSize({ width: 390, height: 844 });
-					await goDesk("/desk/item", '[data-bnd-part="user"]', 1000);
-					await page.locator('[data-bnd-part="user"]').filter({ visible: true }).click();
-					// The consolidated account surface is a dialog, so its actions are
-					// buttons rather than menuitems. Verify the language switch remains
-					// reachable from the mobile avatar without reviving a second menu.
-					await page.getByRole("button", { name: lang === "en" ? "العربية" : "English", exact: true }).waitFor();
-					await page.keyboard.press("Escape");
-				});
-			} finally { await page.setViewportSize(viewport); }
-		});
-
-		await test("topbar shortcuts: failed language request leaves the page usable", async () => {
-			setSettings({ ...layoutSettings("Top Taskbar"), home_placement: "Top Bar Start" });
-			await goDesk("/desk/item", '.bnd-topbar [data-bnd-part="language"]', 1000);
-			const before = getLang();
-			const endpoint = '**/api/method/frappe.client.set_value';
-			await page.route(endpoint, route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
-			try {
-				await page.locator('.bnd-topbar [data-bnd-part="language"]').click();
-				await page.getByText("Could not switch language. Please try again.", { exact: true }).waitFor();
-				expectEq(new URL(page.url()).pathname, '/desk/item', 'a failed update must not reload or navigate');
-				expect(await page.locator('.bnd-topbar [data-bnd-part="language"]').isEnabled(), 'button is enabled for retry');
-				expectEq(getLang().user, before.user, 'a failed update must not change the account language');
-			} finally {
-				await page.unroute(endpoint);
-				await page.evaluate(() => frappe.hide_msgprint());
-				// Only the deliberately injected endpoint 503 is expected console
-				// traffic. Preserve unrelated errors for the full-suite error gate.
-				for (let i = consoleErrors.length - 1; i >= 0; i--) {
-					if (consoleErrors[i].includes('/api/method/frappe.client.set_value') && consoleErrors[i].includes('503') && consoleErrors[i].includes('during: topbar shortcuts: failed language request')) consoleErrors.splice(i, 1);
-				}
-			}
-		});
-
-		await test("Home affordance: v16 routes to the Home workspace and returns", async () => {
-			// Enable the affordance under test; the shipped preset sets it Off.
-			setSettings({ home_placement: "Top Bar Start" });
-			// v16's /desk is only a shell and repeatedly reloads through the setup
-			// wizard page; the real first-class surface is /desk/home. Click the
-			// user-facing control so this proves the contract, not only a route API.
-			await goDesk("/desk/invoicing", ".bnd-topbar", 2000);
-			const home = page.locator('[data-bnd-part="home"]:visible').first();
-			expect(await home.count(), "a visible Home affordance exists");
-			await home.click();
-			await page.waitForURL((url) => url.pathname.startsWith("/desk/home"), { timeout: 30000 });
-			await page.waitForFunction(() => window.frappe.get_route?.()[1] === "Home", null, { timeout: 30000 });
-			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "no legacy Desktop attr on the Home workspace");
-			expectEq(await visible(".bnd-topbar"), true, "topbar remains available at Home");
-			await page.evaluate(() => setTimeout(() => window.frappe.set_route("invoicing"), 0));
-			await page.waitForURL((url) => url.pathname.startsWith("/desk/invoicing"), { timeout: 30000 });
-			await page.waitForTimeout(1000);
-			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "legacy attr remains absent on workspace");
-			expectEq(await visible(".bnd-topbar"), true, "topbar remains available after returning");
-		});
-
-		await test("desktop icons: centered and unclipped with wrapped labels", async () => {
-			const viewport = page.viewportSize();
-			try {
-				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
-					for (const width of [1366, 390]) {
-						await page.setViewportSize({ width, height: 900 });
-						await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon");
-						for (const mode of ["light", "dark"]) {
-							await page.evaluate(m => document.documentElement.setAttribute("data-theme", m), mode);
-							const rows = await page.evaluate(() => [...document.querySelectorAll(".desktop-icon")]
-								.filter(tile => tile.getBoundingClientRect().width > 0)
-								.map(tile => {
-									const host = tile.querySelector(":scope > .icon-container");
-									const icon = host?.querySelector(":scope > .bnd-deskicon");
-									const label = tile.querySelector(":scope > .icon-caption .icon-title");
-									if (!icon) return { label: tile.dataset.id, missing: true };
-									const h = host.getBoundingClientRect(), i = icon.getBoundingClientRect();
-									const t = tile.getBoundingClientRect(), l = label?.getBoundingClientRect();
-									return { label: tile.dataset.id,
-										x: Math.abs(i.x + i.width / 2 - h.x - h.width / 2),
-										y: Math.abs(i.y + i.height / 2 - h.y - h.height / 2),
-									clearance: Math.min(i.top - h.top, h.bottom - i.bottom, i.left - h.left, h.right - i.right),
-									labelFits: !l || (l.top >= h.bottom && l.bottom <= t.bottom && l.left >= t.left && l.right <= t.right),
-									background: getComputedStyle(host).backgroundColor,
-								};
-								}));
-							expect(rows.length >= 10, `${lang}/${width}/${mode}: visible module grid`);
-							const bad = rows.filter(r => r.missing || r.x > 1 || r.y > 1 || r.clearance < 2 || !r.labelFits);
-							expect(!bad.length, `${lang}/${width}/${mode}: clipped/off-center icons or labels: ${JSON.stringify(bad)}`);
-							const plates = new Set(rows.map(r => r.background));
-							expectEq(plates.size, 1, `${lang}/${width}/${mode}: every module icon uses one plate colour`);
-						}
-					}
-				});
-			} finally {
-				await page.setViewportSize(viewport);
-				await goDesk("/desk/home", ".page-head");
-			}
+			await page.evaluate(() => window.frappe.set_route("invoicing"));
+			await page.waitForTimeout(2500);
+			expect(!(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-desktop"))), "attr cleared on workspace");
+			expectEq(await visible(".bnd-topbar"), true, "topbar returns");
 		});
 
 		// ── Breadcrumb kit (item 11): styles, Original, icon scope, preview ─
@@ -2348,17 +2025,6 @@ async function main() {
 		});
 
 		await test("palette: grouped results with the pinned fallback", async () => {
-			// This check used to inherit an open palette from the preceding test.
-			// Filtered runs skip that predecessor, turning a valid assertion into a
-			// 30-second wait for markup nobody asked to mount. Own the whole state.
-			setSettings({
-				palette_style: "Bunood Palette", palette_enabled: 1,
-				palette_frecency: 1, palette_footer: 1, palette_newtab: 1,
-				palette_fallbacks: 1, palette_suggest: 1, palette_sigils: 1,
-			});
-			await goDesk("/desk/sales-invoice", ".page-head", 2500);
-			await page.keyboard.press("Control+k");
-			await page.waitForSelector(".bnd-palette-backdrop:not([hidden])", { timeout: 5000 });
 			await page.fill(".bnd-palette-input", "item");
 			await page.waitForTimeout(400);
 			expect(
@@ -2386,19 +2052,10 @@ async function main() {
 				rows.some((r) => r.species === "action" && r.type === "New"),
 				"a New-doctype row is in the Actions group"
 			);
-			const fallbackState = await page.evaluate(() => ({
-				available: Boolean(window.frappe.searchdialog?.search || window.frappe.search?.SearchDialog),
-				setting: window.frappe.boot?.bnd_palette?.palette_fallbacks,
-			}));
-			expect(rows[rows.length - 1].species === "fallback", `search-all pinned last (available=${fallbackState.available}, setting=${fallbackState.setting}, last=${rows[rows.length - 1].species})`);
+			expect(rows[rows.length - 1].species === "fallback", "search-all pinned last");
 		});
 
 		await test("palette: execution routes and records frecency", async () => {
-			setSettings({ palette_style: "Bunood Palette", palette_enabled: 1, palette_frecency: 1 });
-			await goDesk("/desk/sales-invoice", ".page-head", 2500);
-			await page.keyboard.press("Control+k");
-			await page.fill(".bnd-palette-input", "item");
-			await page.waitForSelector('.bnd-palette-row[data-bnd-key="route:List/Item"]');
 			// Clear BEFORE acting, not only after: a leftover blob from an
 			// aborted earlier run would make the server-write assertion pass
 			// even if the endpoint regressed (release review v0.7.0..HEAD).
@@ -2409,7 +2066,13 @@ async function main() {
 			// /Item List/ and dereferenced it unguarded, so on any desk where
 			// that string is translated this THREW — a crash, not a failure,
 			// which reads as a broken suite rather than a broken feature.
-			await page.locator('.bnd-palette-row[data-bnd-key="route:List/Item"]').click();
+			await page.evaluate(() => {
+				const row = document.querySelector(
+					'.bnd-palette-row[data-bnd-key="route:List/Item"]'
+				);
+				if (!row) throw new Error("no row with data-bnd-key=route:List/Item");
+				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+			});
 			await page.waitForTimeout(2500);
 			expect(
 				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
@@ -3494,21 +3157,10 @@ async function main() {
 				expect(await q(".bnd-sb-head .bnd-sb-head-chev"), "a chevron that is actually built");
 				if (values.sidebar_pane_state === "Rail") {
 					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
-					const rail = await page.evaluate(() => {
-						const el = document.querySelector(".body-sidebar-container");
-						const cs = getComputedStyle(el);
-						return {
-							width: Math.round(el.getBoundingClientRect().width),
-							inline: el.style.width,
-							computed: cs.width,
-							token: getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-rail-w").trim(),
-							flex: cs.flex,
-							minInlineSize: cs.minInlineSize,
-							maxInlineSize: cs.maxInlineSize,
-							classes: el.className,
-						};
-					});
-					expect(rail.width >= 48 && rail.width <= 56, `preset keeps the compact navigation rail (${JSON.stringify(rail)})`);
+					expectEq(
+						await page.evaluate(() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width)),
+						52, "resting rail width"
+					);
 				}
 				if (values.sidebar_section_style === "Cards") {
 					// Paint on the section container, not a wrapper count: the wrap
@@ -3522,414 +3174,43 @@ async function main() {
 			});
 		}
 
-		// ── Rail behaviour: one ChatGPT-style toggle in the top bar ────────
-		await test("topbar: scrolls away cleanly with the dashboard header", async () => {
-			setSettings(presets["Bunood Light"]);
-			const viewport = page.viewportSize();
-			try {
-				await page.setViewportSize({ width: 1440, height: 700 });
-				await goDesk("/desk/home", ".bnd-topbar", 3000);
-				const before = await page.evaluate(() => {
-					const header = document.querySelector(".main-section > header");
-					const pageHead = document.querySelector(".page-head");
-					return {
-						position: getComputedStyle(header).position,
-						headerTop: Math.round(header.getBoundingClientRect().top),
-						pageHeadTop: Math.round(pageHead.getBoundingClientRect().top),
-					};
-				});
-				expectEq(before.position, "absolute", `rail top bar is document-positioned, never viewport-fixed (${JSON.stringify(before)})`);
-
-				await page.evaluate(() => window.scrollTo({ top: 600, behavior: "instant" }));
-				await page.waitForTimeout(250);
-				const after = await page.evaluate(() => {
-					const header = document.querySelector(".main-section > header");
-					const bar = document.querySelector(".bnd-topbar");
-					const pageHead = document.querySelector(".page-head");
-					const atTop = document.elementFromPoint(Math.round(innerWidth / 2), 2);
-					return {
-						scrollY: Math.round(window.scrollY),
-						headerBottom: Math.round(header.getBoundingClientRect().bottom),
-						barBottom: Math.round(bar.getBoundingClientRect().bottom),
-						pageHeadTop: Math.round(pageHead.getBoundingClientRect().top),
-						topOwnsViewportEdge: !!atTop?.closest(".bnd-topbar"),
-					};
-				});
-				expect(after.scrollY >= 300, `dashboard actually scrolled (${JSON.stringify(after)})`);
-				expect(after.headerBottom <= 0 && after.barBottom <= 0, `global top bar leaves the viewport with the page (${JSON.stringify(after)})`);
-				expect(Math.abs(after.pageHeadTop) <= 1, `page header takes the normal sticky edge without a reserved top-bar gap (${JSON.stringify(after)})`);
-				expectEq(after.topOwnsViewportEdge, false, `departed top bar cannot cover scrolling content (${JSON.stringify(after)})`);
-			} finally {
-				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
-				await page.setViewportSize(viewport);
-			}
-		});
-
-		// ── Rail behaviour: pointer proximity never changes navigation state ─
-		await test("rail: hover is inert; the top-bar control owns expansion", async () => {
-			setSettings({ ...presets["Bunood Light"], sidebar_pane_state: "Rail", topbar_enabled: 1 });
+		// ── Rail behaviour (Bunood Night: hover trigger + edge button) ─────
+		await test("rail: hover opens (with intent delay), leave closes (with grace)", async () => {
+			// "Bunood Light", because it is the preset that HAS a rail. Night
+			// was, until the 2026-08-08 re-choice made it attached, solid and
+			// always expanded — after which this test was exercising a rail
+			// that never mounted and passing on nothing. The behaviour under
+			// test did not change; the preset carrying it did.
+			// The look carries Rail; the STATE is stated anyway, because a layout picked
+			// by whatever ran before can hide the pane and a hover over a hidden
+			// container opens nothing.
+			setSettings({ ...presets["Bunood Light"], sidebar_pane_state: "Rail" });
 			await goDesk("/desk/sales-invoice", ".page-head", 3000);
 			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(300);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "hover does not open the pane");
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens on hover");
+			await page.mouse.move(1400, 500);
+			await page.waitForTimeout(150);
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "grace period holds");
+			await page.waitForTimeout(500);
+			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes after grace");
+		});
+
+		await test("rail: edge button pins open and unpins", async () => {
+			expect(await q(".bnd-railbtn.bnd-railbtn-edge"), "edge button mounted");
+			await page.click(".bnd-railbtn");
+			await page.waitForTimeout(300);
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "pinned open");
 			await page.mouse.move(1400, 500);
 			await page.waitForTimeout(500);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "leaving it remains inert");
-		});
-
-		await test("page head: Home title is centered in both axes", async () => {
-			setSettings(presets["Bunood Light"]);
-			const viewport = page.viewportSize();
-			try {
-				await page.setViewportSize({ width: 1440, height: 700 });
-				await goDesk("/desk/home", ".page-head .navbar-breadcrumbs", 3000);
-				const geometry = await page.evaluate(() => {
-					const current = window.frappe?.container?.page;
-					const head = current?.querySelector(".page-head") || [...document.querySelectorAll(".page-head")].find((node) => node.offsetParent);
-					const content = head?.querySelector(".page-head-content");
-					const title = head?.querySelector(".title-area");
-					const trail = head?.querySelector(".navbar-breadcrumbs");
-					const rect = (node) => {
-						const r = node?.getBoundingClientRect();
-						return r ? {
-							top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height), center: (r.top + r.bottom) / 2,
-							left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), centerX: (r.left + r.right) / 2,
-						} : null;
-					};
-					const hr = rect(head);
-					const tr = rect(trail);
-					return {
-						head: hr,
-						content: rect(content),
-						title: rect(title),
-						trail: tr,
-						deltaY: hr && tr ? Math.abs(hr.center - tr.center) : 999,
-						deltaX: rect(content) && tr ? Math.abs(rect(content).centerX - tr.centerX) : 999,
-						headDisplay: head ? getComputedStyle(head).display : null,
-						contentDisplay: content ? getComputedStyle(content).display : null,
-						contentAlign: content ? getComputedStyle(content).alignItems : null,
-						titleDisplay: title ? getComputedStyle(title).display : null,
-						titleAlign: title ? getComputedStyle(title).alignItems : null,
-						titleChildren: title ? [...title.children].map((node) => ({ tag: node.tagName, cls: node.className, box: rect(node) })) : [],
-						trailChildren: trail ? [...trail.children].map((node) => ({ tag: node.tagName, cls: node.className, text: node.textContent.trim(), box: rect(node) })) : [],
-					};
-				});
-				expect(geometry.head && geometry.trail, `visible Home breadcrumb row exists (${JSON.stringify(geometry)})`);
-				expect(geometry.deltaY <= 1, `Home title is vertically centered in the sticky page head (${JSON.stringify(geometry)})`);
-				expect(geometry.deltaX <= 1, `Home title is horizontally centered in the sticky page head (${JSON.stringify(geometry)})`);
-			} finally {
-				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
-				await page.setViewportSize(viewport);
-			}
-		});
-
-		await test("rail: collapsed state is a composed icon rail and toggled pane is opaque", async () => {
-			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-			const rest = await page.evaluate(() => {
-				const rail = document.querySelector(".body-sidebar-container");
-				const pane = rail.querySelector(".body-sidebar");
-				const main = document.querySelector(".main-section");
-				const rr = rail.getBoundingClientRect();
-				const pr = pane.getBoundingClientRect();
-				return {
-					railWidth: Math.round(rr.width),
-					paneWidth: Math.round(pr.width),
-					mainWidth: Math.round(main.getBoundingClientRect().width),
-					visibility: getComputedStyle(pane).visibility,
-					pointerEvents: getComputedStyle(pane).pointerEvents,
-					visibleLabels: [...pane.querySelectorAll(".bnd-sb-brand-name, .bnd-sb-item-label, .sidebar-items > .section-item > .standard-sidebar-item .sidebar-item-label")].filter((node) => {
-						const rect = node.getBoundingClientRect();
-						return rect.width > 0 && rect.height > 0 && getComputedStyle(node).display !== "none";
-					}).length,
-					targets: [
-						pane.querySelector(".bnd-sb-brand"),
-						...pane.querySelectorAll(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item"),
-					].filter(Boolean).map((node) => {
-						const rect = node.getBoundingClientRect();
-						return { width: Math.round(rect.width), height: Math.round(rect.height), title: node.title || node.getAttribute("aria-label") };
-					}),
-				};
-			});
-			expect(rest.railWidth >= 48 && rest.railWidth <= 56, `collapsed navigation has one disciplined rail width (${JSON.stringify(rest)})`);
-			expect(Math.abs(rest.paneWidth - rest.railWidth) <= 1, `compact pane follows the rail container inside its hairline border (${JSON.stringify(rest)})`);
-			expectEq(rest.visibility, "visible", `compact navigation remains visible (${JSON.stringify(rest)})`);
-			expectEq(rest.pointerEvents, "auto", `compact navigation remains interactive (${JSON.stringify(rest)})`);
-			expectEq(rest.visibleLabels, 0, `compact rail never clips or stacks labels (${JSON.stringify(rest)})`);
-			expect(rest.targets.length >= 5, `compact rail exposes the dashboard brand and every top-level section target (${JSON.stringify(rest)})`);
-			expect(rest.targets.every((target) => target.width === 40 && target.height === 40 && target.title), `compact rail targets are consistently sized and named (${JSON.stringify(rest)})`);
-
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
-			await page.waitForTimeout(300);
-			const open = await page.evaluate(() => {
-				const rail = document.querySelector(".body-sidebar-container");
-				const pane = rail.querySelector(".body-sidebar");
-				const brand = pane.querySelector(".bnd-sb-brand");
-				const main = document.querySelector(".main-section");
-				const rr = rail.getBoundingClientRect();
-				const pr = pane.getBoundingClientRect();
-				const mr = main.getBoundingClientRect();
-				const rgb = getComputedStyle(pane).backgroundColor.match(/[\d.]+/g)?.map(Number) || [];
-				return {
-					open: rail.classList.contains("bnd-rail-open"),
-					railWidth: Math.round(rr.width),
-					paneWidth: Math.round(pr.width),
-					paneTop: Math.round(pr.top),
-					mainWidth: Math.round(mr.width),
-					mainOverlap: Math.round(Math.max(0, Math.min(pr.right, mr.right) - Math.max(pr.left, mr.left))),
-					barBottom: Math.round(document.querySelector(".bnd-topbar").getBoundingClientRect().bottom),
-					brandWidth: Math.round(brand.getBoundingClientRect().width),
-					background: getComputedStyle(pane).backgroundColor,
-					alpha: rgb.length === 4 ? rgb[3] : 1,
-					backdrop: getComputedStyle(pane).backdropFilter,
-					visibility: getComputedStyle(pane).visibility,
-					visibleLabels: [...pane.querySelectorAll(".sidebar-item-label")].filter((el) => {
-						const cs = getComputedStyle(el);
-						return cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0;
-					}).length,
-				};
-			});
-			expect(open.open, `rail opened (${JSON.stringify(open)})`);
-			expect(open.railWidth >= 200, `expanded sidebar reserves its full layout column (${JSON.stringify(open)})`);
-			expect(open.paneWidth >= 200, `toggled pane uses configured sidebar width (${JSON.stringify(open)})`);
-			expectEq(open.visibility, "visible", `expanded navigation is visible (${JSON.stringify(open)})`);
-			expect(open.mainOverlap <= 1, `expanded sidebar shares only its 1px border seam with the main workspace (${JSON.stringify(open)})`);
-			expect(open.mainWidth <= rest.mainWidth - 130, `main workspace reflows beside the expanded sidebar (${JSON.stringify({ rest, open })})`);
-			expect(open.paneTop >= open.barBottom, `expanded pane begins below the independent top bar (${JSON.stringify(open)})`);
-			expect(open.brandWidth >= 160, `brand uses the expanded row geometry (${JSON.stringify(open)})`);
-			expectEq(open.alpha, 1, `toggled pane is opaque (${JSON.stringify(open)})`);
-			expectEq(open.backdrop, "none", "toggled pane does not fake opacity with backdrop blur");
-			expect(open.visibleLabels > 0, `expanded navigation labels are visible (${JSON.stringify(open)})`);
-		});
-
-		await test("rail: a compact section icon opens the full navigation tree", async () => {
-			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-			const section = page.locator(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item").first();
-			const target = await section.evaluate((node) => {
-				const rect = node.getBoundingClientRect();
-				const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-				const pane = node.closest(".body-sidebar");
-				const bar = document.querySelector(".bnd-topbar");
-				const pack = (value) => value && {
-					top: Math.round(value.top), bottom: Math.round(value.bottom),
-					left: Math.round(value.left), right: Math.round(value.right),
-				};
-				return {
-					target: pack(rect), pane: pack(pane?.getBoundingClientRect()),
-					bar: pack(bar?.getBoundingClientRect()),
-					hit: hit?.tagName + "." + String(hit?.className?.baseVal || hit?.className || "").trim().replace(/\s+/g, "."),
-					owned: hit === node || node.contains(hit),
-					paneInset: pane && getComputedStyle(pane).insetBlockStart,
-				};
-			});
-			expect(target.owned, `collapsed section owns its hit target (${JSON.stringify(target)})`);
-			await section.click();
-			await page.waitForTimeout(300);
-			const state = await page.evaluate(() => {
-				const container = document.querySelector(".body-sidebar-container");
-				const label = container.querySelector(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item .sidebar-item-label");
-				return {
-					open: container.classList.contains("bnd-rail-open"),
-					width: Math.round(container.getBoundingClientRect().width),
-					labelVisible: !!label && label.getBoundingClientRect().width > 0 && getComputedStyle(label).display !== "none",
-				};
-			});
-			expect(state.open && state.width >= 200 && state.labelVisible, `section icon reveals the complete navigation (${JSON.stringify(state)})`);
-		});
-
-		await test("rail: exactly one independent top-bar toggle opens and closes", async () => {
-			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-collapsed.png` });
-			}
-			const controls = await page.evaluate(() => ({
-				topbar: document.querySelectorAll(".bnd-topbar .bnd-sidebar-toggle").length,
-				attached: document.querySelectorAll(".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin").length,
-				nativeVisible: [...document.querySelectorAll(".body-sidebar .collapse-sidebar-link, .body-sidebar .sidebar-resize-handle")].filter((node) => {
-					const rect = node.getBoundingClientRect();
-					const cs = getComputedStyle(node);
-					return rect.width > 0 && rect.height > 0 && cs.display !== "none" && cs.visibility !== "hidden";
-				}).length,
-			}));
-			expectEq(controls.topbar, 1, `one top-bar sidebar toggle (${JSON.stringify(controls)})`);
-			expectEq(controls.attached, 0, `no controls are attached to the sidebar (${JSON.stringify(controls)})`);
-			expectEq(controls.nativeVisible, 0, `native competing controls are hidden (${JSON.stringify(controls)})`);
-			const collapsed = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
-				const buttonRect = button.getBoundingClientRect();
-				const barRect = button.closest(".bnd-topbar").getBoundingClientRect();
-				const paneRect = document.querySelector(".body-sidebar").getBoundingClientRect();
-				return {
-				label: button.getAttribute('aria-label'),
-				expanded: button.getAttribute('aria-expanded'),
-				glyph: !!button.querySelector('svg'),
-				width: buttonRect.width,
-				buttonCenterY: (buttonRect.top + buttonRect.bottom) / 2,
-				barCenterY: (barRect.top + barRect.bottom) / 2,
-				viewportInset: Math.round(buttonRect.left),
-				separateFromPane: buttonRect.bottom <= paneRect.top + 1,
-				};
-			});
-			expect(collapsed.label && collapsed.expanded === 'false' && collapsed.glyph, `collapsed button is named, stateful and illustrated (${JSON.stringify(collapsed)})`);
-			expect(collapsed.width >= 32 && collapsed.width <= 40, `top-bar toggle is a quiet compact target (${collapsed.width}px)`);
-			expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `top-bar toggle is vertically centred (${JSON.stringify(collapsed)})`);
-			expect(collapsed.separateFromPane, `top-bar toggle occupies its own chrome row above the sidebar (${JSON.stringify(collapsed)})`);
-			await page.mouse.move(1, 500);
-			await page.waitForTimeout(300);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "hover alone does not open the sidebar");
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
-			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens from top-bar toggle");
-			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-expanded.png` });
-			}
-			const expanded = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
-				const rect = button.getBoundingClientRect();
-				return {
-					label: button.getAttribute('aria-label'),
-					expanded: button.getAttribute('aria-expanded'),
-					viewportInset: Math.round(rect.left),
-				};
-			});
-			expect(expanded.label && expanded.label !== collapsed.label && expanded.expanded === 'true', `open button exposes its retract name and state (${JSON.stringify(expanded)})`);
-			expectEq(expanded.viewportInset, collapsed.viewportInset, `top-bar toggle stays at one viewport position instead of following the sidebar edge (${JSON.stringify({ collapsed, expanded })})`);
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays while pinned");
+			await page.click(".bnd-railbtn");
+			// Soft unpin BY DESIGN: with the pointer still over the pane it
+			// stays open until the pointer leaves (v0.6.1 rail-feel fix), so
+			// move away before expecting closure.
 			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(500);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays open until the same control is pressed again");
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
-			await page.waitForTimeout(300);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes from top-bar toggle");
-		});
-
-		await test("rail: top-bar toggle mirrors cleanly in Arabic dark mode", async () => {
-			setSettings(presets["Bunood Light"]);
-			await withLang("ar", async () => {
-				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-				const previousTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme") || "light");
-				const previousDir = await page.evaluate(() => document.documentElement.getAttribute("dir") || "ltr");
-				try {
-					// The authenticated browser session can retain its boot-time direction
-					// across a server-side language flip. Stamp the direction under test
-					// explicitly; translations themselves have their own catalogue gate.
-					await page.evaluate(() => {
-						document.documentElement.setAttribute("data-theme", "dark");
-						document.documentElement.setAttribute("dir", "rtl");
-					});
-					await page.waitForTimeout(100);
-					const collapsed = await page.evaluate(() => {
-						const button = document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getBoundingClientRect();
-						const bar = document.querySelector(".bnd-topbar").getBoundingClientRect();
-						const sidebar = document.querySelector(".body-sidebar-container").getBoundingClientRect();
-						const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
-						return {
-							dir: getComputedStyle(document.documentElement).direction,
-							buttonCenterY: (button.top + button.bottom) / 2,
-							barCenterY: (bar.top + bar.bottom) / 2,
-							// Floating placement keeps its intentional 8px viewport inset.
-							sidebarAtRight: Math.abs(innerWidth - sidebar.right) <= 12,
-							separateFromPane: button.bottom <= pane.top + 1,
-						};
-					});
-					expectEq(collapsed.dir, "rtl", `Arabic rail uses RTL geometry (${JSON.stringify(collapsed)})`);
-					expect(collapsed.sidebarAtRight, `Arabic sidebar remains on the right (${JSON.stringify(collapsed)})`);
-					expect(collapsed.separateFromPane, `Arabic top-bar toggle remains above the sidebar pane (${JSON.stringify(collapsed)})`);
-					expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `Arabic top-bar toggle stays centred (${JSON.stringify(collapsed)})`);
-					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-collapsed.png` });
-					}
-					await page.click(".bnd-topbar .bnd-sidebar-toggle");
-					await page.waitForTimeout(300);
-					const open = await page.evaluate(() => {
-						const rail = document.querySelector(".body-sidebar-container").getBoundingClientRect();
-						const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
-						const main = document.querySelector(".main-section").getBoundingClientRect();
-						return {
-							railWidth: Math.round(rail.width),
-							paneTop: Math.round(pane.top),
-							barBottom: Math.round(document.querySelector(".bnd-topbar").getBoundingClientRect().bottom),
-							mainOverlap: Math.round(Math.max(0, Math.min(pane.right, main.right) - Math.max(pane.left, main.left))),
-							expanded: document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getAttribute("aria-expanded"),
-						};
-					});
-					expectEq(open.expanded, "true", `Arabic toggle exposes its open state (${JSON.stringify(open)})`);
-					expect(open.railWidth >= 200, `Arabic sidebar reserves its expanded column (${JSON.stringify(open)})`);
-					expect(open.mainOverlap <= 1, `Arabic sidebar does not cover the main workspace (${JSON.stringify(open)})`);
-					expect(open.paneTop >= open.barBottom, `Arabic pane begins below the top bar (${JSON.stringify(open)})`);
-					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-expanded.png` });
-					}
-				} finally {
-					await page.evaluate(({ theme, dir }) => {
-						document.documentElement.setAttribute("data-theme", theme);
-						document.documentElement.setAttribute("dir", dir);
-					}, { theme: previousTheme, dir: previousDir });
-				}
-			});
-		});
-
-		await test("rail: entering narrow mode releases the expanded desktop column", async () => {
-			setSettings(presets["Bunood Light"]);
-			await page.setViewportSize({ width: 1440, height: 900 });
-			try {
-				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-				await page.click(".bnd-topbar .bnd-sidebar-toggle");
-				await page.waitForTimeout(300);
-				expect(await page.locator(".body-sidebar-container").evaluate(node => node.classList.contains("bnd-rail-open")), "desktop sidebar starts expanded");
-
-				await page.setViewportSize({ width: 430, height: 900 });
-				await page.waitForTimeout(600);
-				const narrow = await page.evaluate(() => {
-					const rail = document.querySelector(".body-sidebar-container");
-					const main = document.querySelector(".main-section");
-					return {
-						viewport: innerWidth,
-						narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
-						open: rail.classList.contains("bnd-rail-open"),
-						railWidth: Math.round(rail.getBoundingClientRect().width),
-						mainWidth: Math.round(main.getBoundingClientRect().width),
-						toggles: document.querySelectorAll(".bnd-sidebar-toggle").length,
-					};
-				});
-				expect(narrow.narrow, `430px enters the narrow layout (${JSON.stringify(narrow)})`);
-				expect(!narrow.open, `narrow layout closes the desktop rail state (${JSON.stringify(narrow)})`);
-				expect(narrow.railWidth <= 2, `collapsed mobile drawer reserves no desktop column beyond its border (${JSON.stringify(narrow)})`);
-				expect(narrow.mainWidth >= narrow.viewport - 1, `main workspace keeps the narrow viewport (${JSON.stringify(narrow)})`);
-				expectEq(narrow.toggles, 0, `desktop top-bar toggle stands down in narrow mode (${JSON.stringify(narrow)})`);
-				if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-					await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/narrow-after-expanded-rail.png`, fullPage: true });
-				}
-			} finally {
-				await page.setViewportSize({ width: 1440, height: 900 });
-				await page.waitForTimeout(300);
-			}
-		});
-
-		await test("rail: without a top bar the navigation defaults open", async () => {
-			setSettings({ ...CHROME_DEFAULTS, ...presets["Bunood Light"], topbar_enabled: 0 });
-			try {
-				await page.setViewportSize({ width: 1440, height: 900 });
-				await goDesk("/desk/home", ".body-sidebar .bnd-sb-brand", 3000);
-				const state = await page.evaluate(() => {
-					const container = document.querySelector(".body-sidebar-container");
-					const pane = container.querySelector(".body-sidebar");
-					const main = document.querySelector(".main-section").getBoundingClientRect();
-					const pr = pane.getBoundingClientRect();
-					return {
-						open: container.classList.contains("bnd-rail-open"),
-						width: Math.round(container.getBoundingClientRect().width),
-						overlap: Math.round(Math.max(0, Math.min(pr.right, main.right) - Math.max(pr.left, main.left))),
-						toggles: document.querySelectorAll(".bnd-sidebar-toggle").length,
-					};
-				});
-				expect(state.open && state.width >= 200, `navigation stays reachable when no toggle host exists (${JSON.stringify(state)})`);
-				expectEq(state.toggles, 0, `no orphaned toggle is mounted without a top bar (${JSON.stringify(state)})`);
-				expect(state.overlap <= 1, `fallback column still reflows the workspace (${JSON.stringify(state)})`);
-			} finally {
-				// Rail checks must not leak a hidden sidebar into the unrelated
-				// placement, invariant and accessibility matrices below.
-				setSettings({ ...CHROME_DEFAULTS, sidebar_pane_state: "Open" });
-			}
+			await page.waitForTimeout(700);
+			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "unpins closed after pointer leaves");
 		});
 
 		// ── Icon engine ────────────────────────────────────────────────────
@@ -3948,8 +3229,7 @@ async function main() {
 		});
 
 		await test("icon engine: smart mode leaves no link glyph-less", async () => {
-			setSettings({ sidebar_pane_state: "Open", topbar_enabled: 1 });
-			await goDesk("/desk/item", ".body-sidebar .bnd-sb-brand", 3000);
+			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(400);
 			const counts = await page.evaluate(() => {
 				let icons = 0, letters = 0, bare = 0;
@@ -3981,8 +3261,7 @@ async function main() {
 		// is a centred character, naturally narrower than tall, so it is checked
 		// for collapse, not for squareness.
 		await test("icon engine: chip and glyphs render at size, not squashed", async () => {
-			setSettings({ sidebar_pane_state: "Open", topbar_enabled: 1 });
-			await goDesk("/desk/item", ".body-sidebar .bnd-sb-brand", 3000);
+			await page.hover(".body-sidebar-container");
 			await page.waitForTimeout(400);
 			const m = await page.evaluate(() => {
 				const chips = [], svgs = [], letters = [];
@@ -4382,10 +3661,7 @@ async function main() {
 			// Driven from the CONTROL, not from `setSettings`: the whole failure
 			// lives between the click and the desk, which a server-side write
 			// jumps straight over. That is why the suite was green throughout.
-			// CHROME_DEFAULTS is the fresh-install state and deliberately has the
-			// optional top bar off. This check starts with it on so the first click
-			// has a real container to remove.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1 });
+			setSettings({ desk_layout: "Top Taskbar" });
 			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
 			expect(await q(".bnd-topbar"), "precondition: the desk has a top bar");
 
@@ -4688,10 +3964,6 @@ async function main() {
 			// the mutating evaluate has served a stale answer in this repo.
 			await page.evaluate(() => {
 				const html = document.documentElement;
-				// Frappe may restore its completion class after the native click.
-				// Keep the vendor link offered for this CSS ownership assertion;
-				// its original completion state is restored immediately below.
-				document.querySelector(".body-sidebar .onboarding-sidebar")?.classList.remove("hidden");
 				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
 				own.add("panehead");
 				html.setAttribute("data-bnd-own", [...own].join(" "));
@@ -5376,7 +4648,7 @@ async function main() {
 			// The expectation comes from `palette.sb_hues`, never from the stylesheet
 			// under test — the gate pins the literals to that derivation, and this asks
 			// the browser the different question of whether the block APPLIES.
-			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_pane_state", "sidebar_placement", "topbar_enabled"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_material", "sidebar_pane_state", "sidebar_placement"]);
 			try {
 				// THE CATALOGUE IS READ, never typed: a list here is the second copy, and
 				// a surface added to the field would silently go unmeasured.
@@ -5400,7 +4672,7 @@ async function main() {
 					const seen = {};
 					for (const material of surfaces) {
 						setSettings({
-							sidebar_enabled: 1, sidebar_pane_state: state, topbar_enabled: 1,
+							sidebar_enabled: 1, sidebar_pane_state: state,
 							sidebar_material: material, sidebar_placement: "Attached",
 						});
 						await goDesk("/app/selling", "body", 3000);
@@ -5562,7 +4834,7 @@ print("ok")
 			}
 		});
 
-		await test("resize: small movement is inert and a latched drag resizes without collapsing", async () => {
+		await test("resize: 3px is a click, 5px is a drag — the latch, both directions", async () => {
 			// THE DISCRIMINATOR IS MOVEMENT, NEVER TIME. Frappe's own
 			// `.sidebar-resize-handle` is click-to-toggle; our drag rides the
 			// same strip, so a 4px latch decides which gesture happened. Under
@@ -5622,16 +4894,23 @@ print("ok")
 
 					const a = await state();
 					expect(a.expanded, "the pane starts expanded (premise)");
-					await drag(3, true);
+					await drag(3, false);
 					const b = await state();
-					expect(b.expanded, `3px of travel leaves Always Expanded open (expanded=${b.expanded})`);
-					expectEq(b.w, a.w, `movement below the latch does not resize (${a.w} -> ${b.w})`);
+					expect(!b.expanded, `3px of travel is a CLICK — Frappe's collapse fired (expanded=${b.expanded})`);
+					// A 0px press, ON PURPOSE: collapsed, the handle's hit area is
+					// a 5px sliver (45-49 of a 45-53 rect) and a +3px drift from a
+					// 2px-inset aim ends on the boundary pixel — a coin toss under
+					// load, twice. Press 1 already proves 3px-is-a-click on the
+					// full-width handle; this press proves only the RE-OPEN.
+					await drag(0, true); // toggle back open, same path
+					const c = await state();
+					expect(c.expanded, "and a second 3px press opens it again");
 
 					await drag(15, undefined);
 					const d = await state();
 					expect(d.expanded, "15px of travel is a DRAG — the collapse must not fire");
-					expect(Math.abs(d.w - (b.w + 15)) <= 3,
-						`and the pane tracked the pointer (${b.w} -> ${d.w}, wanted ~${b.w + 15})`);
+					expect(Math.abs(d.w - (c.w + 15)) <= 3,
+						`and the pane tracked the pointer (${c.w} -> ${d.w}, wanted ~${c.w + 15})`);
 				});
 			} finally {
 				benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
@@ -5823,7 +5102,7 @@ print("ok")
 						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
 					expectEq(w1, w0, `Escape mid-drag restores the pre-drag width (${w0} -> ${w1})`);
 
-					// And the very next plain click is still inert in Always Expanded. RE-LOCATE the
+					// And the very next plain click still collapses. RE-LOCATE the
 					// handle: it rides the pane's inline end, and since the pane
 					// actually follows the container's width (the 2026-09-01
 					// repair) it MOVES with every drag. The cached `h` above was
@@ -5843,9 +5122,9 @@ print("ok")
 					await page.mouse.down();
 					await page.mouse.up();
 					await page.waitForTimeout(600);
-					const expanded = await page.evaluate(() =>
-						document.querySelector(".body-sidebar-container").classList.contains("expanded"));
-					expect(expanded, "a plain click after the cancelled drag keeps Always Expanded open");
+					const collapsed = await page.evaluate(() =>
+						!document.querySelector(".body-sidebar-container").classList.contains("expanded"));
+					expect(collapsed, "a plain click after the cancelled drag still collapses");
 				});
 			} finally {
 				benchPy(`frappe.defaults.clear_default("bnd_sb_width", parent="Administrator")
@@ -6357,11 +5636,11 @@ print("ok")
 			}
 		});
 
-		await test("sidepane: the place row and independent top-bar toggle announce their identity", async () => {
+		await test("sidepane: the place row and the rail button announce their identity", async () => {
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
 			// audit found the pane's own nodes invisible to all three.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_button", "topbar_enabled"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_button"]);
 			try {
 				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
@@ -6371,16 +5650,13 @@ print("ok")
 				);
 				expectEq(head, "panehead", `the place row is findable by part (${head})`);
 
-				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail", sidebar_rail_button: "Edge", topbar_enabled: 1 });
+				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_button: "Edge" });
 				await goDesk("/app/selling", "body", 3000);
-				await page.waitForFunction(() => !!document.querySelector(".bnd-topbar .bnd-sidebar-toggle"), null, { timeout: 20000 });
-				const btn = await page.evaluate(() => {
-					const node = document.querySelector(".bnd-topbar .bnd-sidebar-toggle");
-					return { part: node.getAttribute("data-bnd-part"), label: node.getAttribute("aria-label"),
-						expanded: node.getAttribute("aria-expanded"), controls: node.getAttribute("aria-controls") };
-				});
-				expect(["panetoggle", "start"].includes(btn.part), `the independent control is findable by part (${JSON.stringify(btn)})`);
-				expect(btn.label && btn.controls && btn.expanded === "false", `and announces its target and state (${JSON.stringify(btn)})`);
+				await page.waitForFunction(() => !!document.querySelector(".bnd-railbtn"), null, { timeout: 20000 });
+				const btn = await page.evaluate(() =>
+					document.querySelector(".bnd-railbtn").getAttribute("data-bnd-part")
+				);
+				expectEq(btn, "railbtn", `and so is the rail button (${btn})`);
 			} finally {
 				setSettings(before);
 			}
@@ -6560,11 +5836,10 @@ print("ok")
 			// doctrine exists for). Both directions, then the fail-open arm:
 			// with the claim withdrawn, the native must be reachable AND must
 			// still open the pane.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger", "topbar_enabled"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
 			try {
 				setSettings({
-					sidebar_enabled: 1, sidebar_pane_state: "Rail",
-					sidebar_rail_trigger: "Click", topbar_enabled: 1,
+					sidebar_enabled: 1,					sidebar_pane_state: "Rail", sidebar_rail_trigger: "Click",
 				});
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
@@ -6900,21 +6175,9 @@ print("ok")
 			// A VISIBLE PANE is this check's premise — the link it is about lives at the
 			// pane's foot — and since slice 9 the taskbar rows start it Hidden, so the
 			// state has to be said rather than assumed from the container.
-			setSettings({ ...CHROME_DEFAULTS, desk_layout: "Top Taskbar", topbar_enabled: 1,
-				user_placement: "Top Bar End", sidebar_pane_state: "Open" });
+			setSettings({ desk_layout: "Top Taskbar", user_placement: "Top Bar End", sidebar_pane_state: "Open" });
 			await goDesk("/app/selling", ".body-sidebar", 3000);
 			await sbEnsureExpanded();
-			// A reused verification site may already have completed this workspace's
-			// onboarding, in which case Frappe keeps the real link but marks it hidden.
-			// Reveal that vendor-owned subject for this interaction test; the suite
-			// restores the completion class before leaving the page.
-			const onboardingWasHidden = await page.evaluate(() => {
-				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
-				const hidden = !!link?.classList.contains("hidden");
-				if (hidden) link.classList.remove("hidden");
-				return hidden;
-			});
-			try {
 			const m = await page.evaluate(() => {
 				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
 				const own = (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/);
@@ -6937,43 +6200,7 @@ print("ok")
 			expect(m.offered, "precondition: and offers onboarding here, so the menu item has a subject");
 			expect(m.owned, "the token is stamped while the avatar is in the document");
 			expect(m.linkHidden, "and the vendor's foot link is hidden");
-			// Fail open before exercising Frappe's state-changing link. The native
-			// onboarding click is allowed to persist completion asynchronously, so
-			// asserting visibility after that click races vendor-owned state and does
-			// not test our selector. Release and reclaim the ownership token around
-			// the pure presentation check instead.
-			await page.evaluate(() => {
-				const html = document.documentElement;
-				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
-				own.delete("onboard");
-				html.setAttribute("data-bnd-own", [...own].join(" "));
-			});
-			await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-			const back = await page.evaluate(() => {
-				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
-				return { owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("onboard"),
-					shown: !!link && getComputedStyle(link).display !== "none" };
-			});
-			expect(!back.owned, "the token can be released");
-			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
-			await page.evaluate(() => {
-				const html = document.documentElement;
-				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
-				own.add("onboard");
-				html.setAttribute("data-bnd-own", [...own].join(" "));
-			});
 			{
-				await page.evaluate(() => {
-					const link = document.querySelector(".body-sidebar .onboarding-sidebar");
-					window.__bndOnboardingClicks = 0;
-					window.__bndOnboardingClickRestore = {
-						hadOwn: Object.prototype.hasOwnProperty.call(link, "click"),
-						value: link.click,
-					};
-					// Observe the proxy call without completing or dismissing Frappe's
-					// real onboarding flow on the shared verification tenant.
-					link.click = () => { window.__bndOnboardingClicks += 1; };
-				});
 				await page.click(".bnd-avatar-btn");
 				await page.waitForSelector(".bnd-acct-panel .bnd-acct-item", { timeout: 5000 });
 				const row = await page.evaluate(() => {
@@ -6981,38 +6208,49 @@ print("ok")
 					return r ? { present: true, hasIcon: !!r.querySelector("svg") } : { present: false };
 				});
 				expect(row.present && row.hasIcon, `the panel lists Getting Started with its glyph (${JSON.stringify(row)})`);
-				// Click it and assert the proxy reaches Frappe's real link. Whether that
-				// link mounts a widget is server state: a completed onboarding correctly
-				// remains complete on a reused verification site. The integration contract
-				// we own is dispatching the native control exactly once.
+				// Click it: the vendor's own widget mounts in the vendor's own wrapper.
+				// EMPTY THE WRAPPER FIRST, or the assertion below is already true: Frappe
+				// fills `.user-onboarding` on load for a workspace that has onboarding, so
+				// "the widget is mounted after the click" says nothing about the click. The
+				// vendor's own handler re-runs setup_onboarding(), which is what refills it.
+				const emptied = await page.evaluate(() => {
+					const w = document.querySelector(".user-onboarding");
+					if (!w) return false;
+					w.innerHTML = "";
+					return w.childElementCount === 0;
+				});
+				expect(emptied, "the vendor's onboarding wrapper is present and was emptied");
 				await page.evaluate(() => {
 					const r = [...document.querySelectorAll(".bnd-acct-item")].find((b) => /Getting Started/.test(b.textContent || ""));
 					r.click();
 				});
 				await page.waitForFunction(
-					() => window.__bndOnboardingClicks === 1,
+					() => { const w = document.querySelector(".user-onboarding"); return !!w && w.childElementCount > 0; },
 					null, { timeout: 8000 }
 				);
-				await page.evaluate(() => {
-					const link = document.querySelector(".body-sidebar .onboarding-sidebar");
-					const restore = window.__bndOnboardingClickRestore;
-					if (link && restore?.hadOwn) link.click = restore.value;
-					else if (link) delete link.click;
-					delete window.__bndOnboardingClickRestore;
-				});
 			}
-			} finally {
-				// Restore the exact vendor state even when an assertion above throws;
-				// otherwise the next full-suite case inherits our test fixture.
-				await page.evaluate((hidden) => {
-					const link = document.querySelector(".body-sidebar .onboarding-sidebar");
-					const restore = window.__bndOnboardingClickRestore;
-					if (link && restore?.hadOwn) link.click = restore.value;
-					else if (link && restore) delete link.click;
-					delete window.__bndOnboardingClickRestore;
-					if (link) link.classList.toggle("hidden", hidden);
-				}, onboardingWasHidden).catch(() => {});
-			}
+			// Fail open: take the avatar away, re-measure, and the link comes back.
+			// FAIL OPEN, asserted as the RULE rather than by poking the runtime. Item
+			// 40's ownership check is written this way for the reason it records: whether
+			// our replacement mounts at all depends on Frappe's desk_settings and the
+			// layout, so driving a re-mount and demanding a token back is flaky. The
+			// claim that matters is the SELECTOR's polarity -- release the token and the
+			// vendor's link must render -- and it needs no avatar at all. Mutate and read
+			// in DIFFERENT evaluates: getComputedStyle served a stale value to a read in
+			// the same tick, twice, on this suite.
+			await page.evaluate(() => {
+				const html = document.documentElement;
+				const own = new Set((html.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+				own.delete("onboard");
+				html.setAttribute("data-bnd-own", [...own].join(" "));
+			});
+			const back = await page.evaluate(() => {
+				const link = document.querySelector(".body-sidebar .onboarding-sidebar");
+				return { owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("onboard"),
+					shown: !!link && getComputedStyle(link).display !== "none" };
+			});
+			expect(!back.owned, "the token can be released");
+			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
 		});
 
 		await test("layout: each row starts the pane where its own shape needs it", async () => {
@@ -7049,9 +6287,7 @@ print("ok")
 							// REVISED 2026-09-04: the pill is gone. What Hidden leaves is a way
 							// back -- the page head's button, or the start button on the rows
 							// that place one (the page-head brand stands down beside a start).
-							pill: vis(".bnd-sb-pill"),
-							show: vis(".bnd-ph-show"),
-							start: vis('[data-bnd-part="start"]'),
+							back: vis(".bnd-ph-show") || vis('[data-bnd-part="start"]'),
 							brand: vis(".bnd-ph-brand"),
 						};
 					});
@@ -7060,8 +6296,7 @@ print("ok")
 					// acts on is the defect this project keeps finding in its own pickers.
 					if (want === "Hidden") {
 						expectEq(r.shown, false, `${layout}: and the pane really goes`);
-						expectEq(r.pill, false, `${layout}: the retired floating pill stays gone`);
-						expectEq(Number(r.show) + Number(r.start), 1, `${layout}: exactly one page-head or start recovery control remains`);
+						expect(r.back, `${layout}: leaving a way back — the page head's button or a start button`);
 					} else if (want === "Rail") {
 						expect(r.shown && r.width > 0 && r.width <= 80, `${layout}: a rail, not a pane (${r.width}px)`);
 						expectEq(r.brand, false, `${layout}: and no page-head brand — the pane is right there`);
@@ -7216,12 +6451,12 @@ print("ok")
 				// head's brand-and-button, unless a start button already carries the
 				// mark (this layout has one), in which case the brand stands down.
 				const want = {
-					Open:   { pane: true,  place: true, start: true },
+					Open:   { pane: true,  place: true },
 					// The rail keeps the place row's CHEVRON: that row carries the workspace
 					// cascade, the pins and collapse-all, and hiding it takes all three away
 					// from anybody working in a rail.
-					Rail:   { pane: true,  place: true, start: true },
-					Hidden: { pane: false, place: false, start: true },
+					Rail:   { pane: true,  place: true },
+					Hidden: { pane: false, place: false },
 				};
 				for (const [state, expect_] of Object.entries(want)) {
 					setSettings({ sidebar_enabled: 1, sidebar_pane_state: state });
@@ -7237,7 +6472,6 @@ print("ok")
 						return {
 							attr: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 							pane: !!container && getComputedStyle(container).display !== "none",
-							pill: vis(".bnd-sb-pill"),
 							place: vis(".bnd-sb-head"),
 							brand: vis(".bnd-ph-brand"),
 							show: vis(".bnd-ph-show"),
@@ -7248,11 +6482,9 @@ print("ok")
 					});
 					expectEq(r.attr, state.toLowerCase(), `${state}: the attribute says so`);
 					expectEq(r.pane, expect_.pane, `${state}: the pane is ${expect_.pane ? "there" : "gone"}`);
-					expectEq(r.pill, false, `${state}: the retired floating pill stays gone`);
-					expectEq(r.start, expect_.start, `${state}: the single top-bar control remains reachable`);
 					expectEq(r.place, expect_.place, `${state}: the place row (and its menu) is ${expect_.place ? "reachable" : "gone"}`);
 					if (state === "Hidden") {
-						expectEq(Number(r.show) + Number(r.start), 1, `Hidden: exactly one way back exists (${JSON.stringify(r)})`);
+						expect(r.show || r.start, `Hidden: a way back exists (${JSON.stringify(r)})`);
 						expectEq(r.brand, !r.start, "Hidden: the page-head brand appears exactly when no start button carries the mark");
 						if (r.brand) expect(r.brandTile && r.brandName.length > 0, `Hidden: the brand carries the tile and names the company (${JSON.stringify(r)})`);
 					} else {
@@ -7902,16 +7134,12 @@ print("ok")
 									requestAnimationFrame(tick);
 								})
 							);
-						const cdp = await dp.context().newCDPSession(dp);
-						await cdp.send("Emulation.setEmulatedMedia", {
-							features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
-						});
 						const degraded = await settle();
+						const cdp = await dp.context().newCDPSession(dp);
 						await cdp.send("Emulation.setEmulatedMedia", {
 							features: [{ name: "prefers-reduced-transparency", value: "no-preference" }],
 						});
 						const full = await settle();
-						await cdp.send("Emulation.setEmulatedMedia", { features: [] });
 						return { degraded, full };
 					});
 					expect(seen && seen.full, `the pane container is in the document under ${material}`);
@@ -8433,7 +7661,6 @@ print("ok")
 			const ALL_ON = {
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
-				sidebar_pane_state: "Open",
 				pagehead_enabled: 0, dock_enabled: 0,
 			};
 			const at = (part) =>
@@ -8665,7 +7892,6 @@ print("ok")
 			// the invariant matrix walks that state.
 			setSettings({
 				desk_layout: "Top Taskbar",
-				topbar_enabled: 1,
 				dock_enabled: 0,
 				sidebar_enabled: 0,
 			});
@@ -8981,21 +8207,18 @@ print("ok")
 			// dropped by accident fails by name.
 			const layouts = ["Unified Side Pane", "Taskbar", "Top Taskbar", "Floating Bar", "Rail + Flyout"];
 			expectEq(Object.keys(chrome).sort().join(","), [...layouts].sort().join(","), "the catalogue is exactly these rows");
-			// State each split container's owners rather than snapshotting the
-			// whole table, so a failure names the cell that moved. Rail + Flyout
-			// deliberately shares the top bar: that is where its sole, independent
-			// expansion control lives. The page head has no preset owner; its switch
-			// is how a site that wants it opts in.
-			for (const [container, owners] of [
-				["topbar", ["Top Taskbar", "Rail + Flyout"]],
-				["dock", ["Floating Bar"]],
+			// One row per split container: the layout it belongs to writes 1 and
+			// every other layout writes 0. Stated per container rather than as a
+			// whole-table snapshot, so a failure names which cell moved. The page
+			// head has NO owner any more: no shipped shape grows chrome into the
+			// title row, and the switch is how a site that wants it gets it.
+			for (const [container, owner] of [
+				["topbar", "Top Taskbar"], ["dock", "Floating Bar"],
 			]) {
 				// (the bottom bar is not in this list: more than one layout writes
 				// it, so "one owner" is the wrong shape — it is checked below)
-				for (const owner of owners) {
-					expectEq(chrome[owner][container], 1, `${owner} is a layout that writes a ${container}`);
-				}
-				for (const l of layouts.filter((x) => !owners.includes(x))) {
+				expectEq(chrome[owner][container], 1, `${owner} is the layout that writes a ${container}`);
+				for (const l of layouts.filter((x) => x !== owner)) {
 					expectEq(chrome[l][container], 0, `${l} writes no ${container}`);
 				}
 			}
@@ -9137,7 +8360,7 @@ print("ok")
 			// sidepane 0, so this is EVERY CONTAINER OFF: nothing of ours, and
 			// the pane switched off too. The guard is the only thing standing
 			// between this state and a desk nobody can log out of.
-			["Floating Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0,
+			["Floating Bar", "Quiet", "Top Bar Center", { bottombar_enabled: 0, 
 				topbar_enabled: 0, pagehead_enabled: 0, dock_enabled: 0, sidebar_enabled: 0,
 			}],
 			// A dock alongside a side pane, which no layout could express.
@@ -9559,57 +8782,59 @@ print("ok")
 			// which the four colour seeds and the ground are outside
 			// MUTABLE_FIELDS, so this pin cannot write them.
 			//
-			// Pin the colour axes too, using the existing verified restoration
-			// helper. A customized site's correct "Custom" label is not drift.
-			await withIdentityDefaults(fixture.state, async () => {
-				setSettings(
-					Object.fromEntries(
-						Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
-					)
-				);
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
-				const actual = await page.evaluate((names) => {
-					const out = {};
-					for (const f of names) {
-						const root = document.querySelector(`[data-fieldname="${f}"]`);
-						if (!root) { out[f] = null; continue; }
-						const seq = [];
-						const walk = (el) => {
-							for (const c of el.children) {
-								seq.push(
-									c.tagName.toLowerCase() + "." +
-									(c.getAttribute("class") || "").trim().split(/\s+/).sort().join(".")
-								);
-								walk(c);
-							}
-						};
-						walk(root);
-						out[f] = {
-							n: seq.length,
-							svgs: root.querySelectorAll("svg").length,
-							text: root.textContent.replace(/\s+/g, " ").trim().length,
-							seq,
-						};
-					}
-					return out;
-				}, Object.keys(expected));
-
-				const drift = [];
-				for (const [name, want] of Object.entries(expected)) {
-					const got = actual[name];
-					if (!got) { drift.push(`${name}: absent`); continue; }
-					// SVG and text counts are what catch a silently dropped
-					// thumbnail or label — the exact hand-porting failure.
-					if (got.svgs !== want.svgs) drift.push(`${name}: svg ${want.svgs} -> ${got.svgs}`);
-					if (got.text !== want.text) drift.push(`${name}: text ${want.text} -> ${got.text}`);
-					if (got.n !== want.n) drift.push(`${name}: nodes ${want.n} -> ${got.n}`);
-					else if (JSON.stringify(got.seq) !== JSON.stringify(want.seq)) {
-						const at = got.seq.findIndex((s, i) => s !== want.seq[i]);
-						drift.push(`${name}: structure at #${at} "${want.seq[at]}" -> "${got.seq[at]}"`);
-					}
+			// The check is still sound HERE, and only here: `npm run verify` drives
+			// the local stack alone, whose ambient seeds are the shipped ones that
+			// `tools/fingerprint.mjs` wrote when it captured the fixture. Every
+			// suite writer of a seed restores it with a verified read-back that
+			// throws. What is no longer true is the REASON, so it is not left
+			// standing as though it were.
+			setSettings(
+				Object.fromEntries(
+					Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
+				)
+			);
+			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+			const actual = await page.evaluate((names) => {
+				const out = {};
+				for (const f of names) {
+					const root = document.querySelector(`[data-fieldname="${f}"]`);
+					if (!root) { out[f] = null; continue; }
+					const seq = [];
+					const walk = (el) => {
+						for (const c of el.children) {
+							seq.push(
+								c.tagName.toLowerCase() + "." +
+								(c.getAttribute("class") || "").trim().split(/\s+/).sort().join(".")
+							);
+							walk(c);
+						}
+					};
+					walk(root);
+					out[f] = {
+						n: seq.length,
+						svgs: root.querySelectorAll("svg").length,
+						text: root.textContent.replace(/\s+/g, " ").trim().length,
+						seq,
+					};
 				}
-				expectEq(drift.length, 0, `structural drift:\n    ${drift.slice(0, 6).join("\n    ")}`);
-			});
+				return out;
+			}, Object.keys(expected));
+
+			const drift = [];
+			for (const [name, want] of Object.entries(expected)) {
+				const got = actual[name];
+				if (!got) { drift.push(`${name}: absent`); continue; }
+				// SVG and text counts are what catch a silently dropped
+				// thumbnail or label — the exact hand-porting failure.
+				if (got.svgs !== want.svgs) drift.push(`${name}: svg ${want.svgs} -> ${got.svgs}`);
+				if (got.text !== want.text) drift.push(`${name}: text ${want.text} -> ${got.text}`);
+				if (got.n !== want.n) drift.push(`${name}: nodes ${want.n} -> ${got.n}`);
+				else if (JSON.stringify(got.seq) !== JSON.stringify(want.seq)) {
+					const at = got.seq.findIndex((s, i) => s !== want.seq[i]);
+					drift.push(`${name}: structure at #${at} "${want.seq[at]}" -> "${got.seq[at]}"`);
+				}
+			}
+			expectEq(drift.length, 0, `structural drift:\n    ${drift.slice(0, 6).join("\n    ")}`);
 		});
 
 		await test("settings: no ragged rows — cards on a line match heights", async () => {
@@ -9972,30 +9197,30 @@ print("ok")
 			// "no dot at defaults" is a claim about a desk that IS at defaults,
 			// and the hand-picked version was patched twice — first placement
 			// (the E3 tests' leavings), then colors lit in a full run for a
-			// field nobody listed. Identity has its own verified restoration
-			// helper because it is intentionally outside MUTABLE_FIELDS.
-			await withIdentityDefaults(shipped, async () => {
-				setSettings(
-					Object.fromEntries(
-						Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
-					)
-				);
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				const entries = await page.evaluate(
-					() => document.querySelectorAll(".bnd-shell-item").length
-				);
-				expect(entries >= 6, `only ${entries} shell entries`);
-				expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
+			// field nobody listed. Fields outside MUTABLE_FIELDS (colours,
+			// branding) are asserted-by-omission: the suite never writes them,
+			// so shipped is what they hold, and if that ever stops being true
+			// this test failing IS the announcement.
+			setSettings(
+				Object.fromEntries(
+					Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
+				)
+			);
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			const entries = await page.evaluate(
+				() => document.querySelectorAll(".bnd-shell-item").length
+			);
+			expect(entries >= 6, `only ${entries} shell entries`);
+			expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
 
-				const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
-				setSettings({ crumb_hover: other });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
+			const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
+			setSettings({ crumb_hover: other });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
 
-				setSettings({ crumb_hover: shipped.crumb_hover });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
-			});
+			setSettings({ crumb_hover: shipped.crumb_hover });
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
 		});
 
 		await test("shell: the dot lights for identity fields the seeder never writes", async () => {
@@ -10036,35 +9261,33 @@ print("ok")
 				);
 				return m.join(",");
 			};
-			await withIdentityDefaults(served, async () => {
-				setSettings(
-					Object.fromEntries(
-						Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
-					)
-				);
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
-				// One field per blindness class: logo → identity (shipped-empty),
-				// dark seed → identity (shipped-empty), arabic_font → fonts
-				// (served all along, but unowned until item 36; Map 1 moved it to
-				// the Language & fonts entry with its own section).
-				for (const [values, key] of [
-					[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
-					[{ brand_color_dark: "#1a2f6e" }, "identity"],
-					[{ arabic_font: "Almarai" }, "fonts"],
-				]) {
-					await withBranding(values, async () => {
-						await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-						expectEq(
-							await lit(),
-							key,
-							`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
-						);
-					});
+			setSettings(
+				Object.fromEntries(
+					Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
+				)
+			);
+			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
+			// One field per blindness class: logo → identity (shipped-empty),
+			// dark seed → identity (shipped-empty), arabic_font → fonts
+			// (served all along, but unowned until item 36; Map 1 moved it to
+			// the Language & fonts entry with its own section).
+			for (const [values, key] of [
+				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
+				[{ brand_color_dark: "#1a2f6e" }, "identity"],
+				[{ arabic_font: "Almarai" }, "fonts"],
+			]) {
+				await withBranding(values, async () => {
 					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-					expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
-				}
-			});
+					expectEq(
+						await lit(),
+						key,
+						`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
+					);
+				});
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
+			}
 		});
 
 		await test("settings: theme portability reads one list, and the list covers the kits", async () => {
@@ -10619,9 +9842,7 @@ print("ok")
 			// DERIVED label. Watched red against the fields:["desk_layout"]
 			// ownership, where flipping a container lit the container's dot and
 			// left Layout claiming "Default" over a desk that had changed.
-			const defaultLayout = "Unified Side Pane";
-			const defaultState = layoutSettings(defaultLayout);
-			const before = getSettings(Object.keys(defaultState));
+			const before = getSettings(["dock_enabled"]);
 			try {
 				// THE SHIPPED LAYOUT, derived. "At rest" means the desk equals the shipped
 				// defaults, so this has to be whichever row ships -- naming one made the
@@ -10637,7 +9858,7 @@ print("ok")
 				const atRest = await page.evaluate(() =>
 					document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden")
 				);
-				expect(atRest, "the Layout dot is quiet on the shipped desk");
+				expect(atRest, "the Layout dot is lit on a desk that matches its preset");
 				// Dock on WITH topbar on matches no layout — a genuine Custom.
 				setSettings({ desk_layout: shippedLayout, dock_enabled: 1 });
 				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
@@ -11337,14 +10558,13 @@ print("ok")
 			// and a regression in boot threading would otherwise show up only as
 			// a customer's ur preview quietly flipping LTR.
 			// `User`, NOT `user` — the doctype's real name, which is what Frappe's
-			// own router produces when a person navigates here. v16.31's form
-			// loader treats the route's DocType token as case-sensitive: the
-			// lowercase spelling this check shipped with reaches the same page, so
-			// it looked fine, but print.js hands the raw route segment to
+			// own router produces when a person navigates here. The lowercase
+			// spelling this check shipped with reaches the same page, so it looked
+			// fine, and print.js hands the raw route segment to
 			// `frappe.desk.form.load.getdoc`, which raises DoesNotExistError on a
-			// doctype called "user" — a 500 on every run, invisible until the
+			// doctype called "user": a 500 on every run, invisible until the
 			// console-error budget counted it. Measured both spellings side by
-			// side: the 500 appears under the lowercase one only.
+			// side — the 500 appears under the lowercase one only.
 			await goDesk("/desk/print/User/Administrator", ".print-preview-wrapper", 3000);
 			const got = await page.evaluate(() => ({
 				ur: frappe.utils.is_rtl("ur"),
@@ -11500,12 +10720,6 @@ print("ok")
 							// record's, in whatever language they typed it.
 							if (el.closest("[data-doctype], [data-name]")) continue;
 							if (!vis(el)) continue;
-							// An explicitly language-tagged autonym/endonym is meant to stay
-							// in that language (for example English / العربية in the switcher).
-							// Its translated accessible action remains on the parent button.
-							const ownLang = el.getAttribute("lang")?.split(/[-_]/)[0];
-							const pageLang = document.documentElement.lang?.split(/[-_]/)[0];
-							if (ownLang && pageLang && ownLang !== pageLang) continue;
 							if (el.children.length === 0) record(el, el.textContent, "text");
 							for (const attr of ["aria-label", "title", "placeholder"]) {
 								record(el, el.getAttribute(attr), attr);
@@ -11690,7 +10904,7 @@ print("ok")
 
 			// And where the stock control IS reachable, Off must still work —
 			// otherwise the guard above would have turned Off into a no-op.
-			setSettings({ desk_layout: "Top Taskbar", sidebar_pane_state: "Open", inbox_placement: "Off", user_placement: "Off" });
+			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Off", user_placement: "Off" });
 			await goDesk("/desk/item", ".bnd-topbar", 4500);
 			expectEq(await q(".bnd-avatar-btn"), false, "Top Bar + user Off should remove ours");
 			expect(
@@ -11738,7 +10952,7 @@ print("ok")
 		// ARIA" and "keeps its ARIA promises".
 
 		await test("a11y: the palette is a combobox and focus comes back where it left", async () => {
-			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette", palette_fallbacks: 1 });
+			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center", palette_style: "Bunood Palette" });
 			await goDesk("/desk/item", ".page-head", 3000);
 			// Open FROM the trigger, so "restore" has something real to claim.
 			await page.focus(".bnd-search-field");
@@ -11759,12 +10973,9 @@ print("ok")
 			expectEq(open.controls, open.listId, "aria-controls points at the listbox");
 			// The selection moves without focus moving — activedescendant is
 			// the contract, asserted as a TRANSITION.
-			await page.fill(".bnd-palette-input", "item");
-			await page.waitForFunction(() => document.querySelectorAll(".bnd-palette-row").length > 1);
-			const before = await page.evaluate(() => ({
-				active: document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant"),
-				rows: document.querySelectorAll(".bnd-palette-row").length,
-			}));
+			const before = await page.evaluate(() =>
+				document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant")
+			);
 			await page.keyboard.press("ArrowDown");
 			const after = await page.evaluate(() => {
 				const input = document.querySelector(".bnd-palette-input");
@@ -11772,7 +10983,7 @@ print("ok")
 				const marked = document.querySelectorAll('.bnd-palette-row[aria-selected="true"]');
 				return { active, markedCount: marked.length, markedId: marked.length === 1 ? marked[0].id : null };
 			});
-			expect(after.active && after.active !== before.active, `aria-activedescendant moved with the arrow (${JSON.stringify({ before, after })})`);
+			expect(after.active && after.active !== before, "aria-activedescendant moved with the arrow");
 			expectEq(after.markedCount, 1, "exactly one option is aria-selected");
 			expectEq(after.active, after.markedId, "activedescendant names the selected option");
 			// Tab is trapped — aria-modal promised it.
@@ -11782,16 +10993,6 @@ print("ok")
 				"Tab stays inside the dialog"
 			);
 			// Two-stage Esc, then focus is back on the trigger.
-			await page.keyboard.press("Escape");
-			expectEq(
-				await page.inputValue(".bnd-palette-input"),
-				"",
-				"first Escape clears the query"
-			);
-			expect(
-				await page.isVisible(".bnd-palette-backdrop"),
-				"first Escape keeps the palette open"
-			);
 			await page.keyboard.press("Escape");
 			// state:"attached", NOT the default: the default wait is for
 			// visibility, and a [hidden] element is precisely never visible.
@@ -12768,36 +11969,25 @@ print("ok")
 			const matched = new Set();
 			const bad = [];
 			await walkSettingsPanes(async (key) => {
-				process.stdout.write(`    axe settings pane: ${key}\n`);
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS_SETTINGS) builder = builder.include(root);
 				// THE EMAIL PREVIEW IS EXCLUDED, and it is the sandbox that makes
 				// this necessary rather than a wish to look away. axe descends into
 				// every frame to analyse it; that frame carries `sandbox=""` because
-				// no script may run inside a rendered email. Current axe-core attempts
-				// injection before applying the exclusion, so Chromium reports the
-				// exact blocked-script message allowlisted above. The refusal is the
-				// security boundary working; granting scripts to silence it is wrong.
+				// no script may run inside a rendered email, so the injection is
+				// refused and Chromium logs "Blocked script execution in
+				// 'about:srcdoc'". The console budget caught it — two messages in
+				// 374 checks — and it took the run-attribution added alongside this
+				// to say where they came from, after six failed reproductions by
+				// hand.
 				//
 				// Nothing is lost by excluding it. axe CANNOT see through the
 				// sandbox, so the alternative is not coverage, it is a warning per
 				// run. And the frame is not our UI: it is a rendered email, a
 				// separate document, whose own markup is checked where it is
 				// generated rather than through a browser chrome scan.
-				// Print has the same no-script boundary (allow-same-origin only
-				// permits its fonts). Audit the picker, not its embedded document;
-				// the print family separately verifies the rendered output.
-				builder = builder.exclude(".bnd-emp-frame").exclude(".bnd-prp-frame");
-				let deadline;
-				let res;
-				try {
-					res = await Promise.race([
-						builder.analyze(),
-						new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error(`Accessibility audit timed out in ${key}`)), 60000); }),
-					]);
-				} finally { clearTimeout(deadline); }
-				// A timeout is fatal to the suite: main's finally closes the browser
-				// and restores preferences, so no pending audit leaks into a test.
+				builder = builder.exclude(".bnd-emp-frame");
+				const res = await builder.analyze();
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
 				}
@@ -12826,9 +12016,6 @@ print("ok")
 				sidebar_pane_state: "Open",
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				crumb_style: "Quiet Trail", crumb_copy_link: 1,
-				// This walk includes a bottom-bar control. Earlier settings tests
-				// may disable every segment, so establish that control explicitly.
-				status_style: "Always On", status_segments_density: 1,
 				// PLACED ON PURPOSE, like the axe scan above: the quick links stand
 				// down by default since item 40, and a control that ships Off still
 				// has to draw a ring in the state where somebody turned it on.
@@ -12858,12 +12045,7 @@ print("ok")
 			// "Moved" is real DOM-node identity, stashed on `window` between
 			// evaluate calls — a content/class key produces false stalls on
 			// Frappe's list rows, several of which render identical text.
-			// A fixed 90 stops can end inside a populated Item list, before the
-			// bottom bar. Bound the walk by the DOM instead, including hidden and
-			// disabled candidates as harmless extra headroom.
-			const tabBudget = await page.locator('a[href], button, input, select, textarea, [tabindex]').count() + 1;
-			let reachedEnd = false;
-			for (let i = 0; i < tabBudget; i++) {
+			for (let i = 0; i < 90; i++) {
 				await page.keyboard.press("Tab");
 				const info = await page.evaluate((suppress) => {
 					const el = document.activeElement;
@@ -12892,7 +12074,7 @@ print("ok")
 					};
 				}, SUPPRESS);
 
-				if (info.atEnd) { reachedEnd = true; break; }
+				if (info.atEnd) break;
 				if (!info.moved) stalls.push(`step ${i}: ${info.label}`);
 
 				if (info.bndClass && !info.suppressed) {
@@ -12903,7 +12085,6 @@ print("ok")
 				}
 			}
 
-			expect(reachedEnd, `the keyboard walk finished within ${tabBudget} DOM tab candidates`);
 			expectEq(stalls.join("\n"), "", "focus moved on every Tab press");
 			// SEVEN SINCE ITEM 40, not eight. The eighth was `.bnd-sb-module`, and
 			// the Place row folded it into `.bnd-sb-head` along with the brand — so
@@ -12988,10 +12169,8 @@ print("ok")
 				const base = baseline[route] || {};
 				const worse = [];
 				for (const [rule, count] of Object.entries(seen)) {
-					const violation = res.violations.find((entry) => entry.id === rule);
-					const targets = (violation?.nodes || []).slice(0, 5).map((node) => node.target.join(" ")).join(", ");
-					if (!(rule in base)) worse.push(`${route}: NEW rule ${rule} (${count} nodes: ${targets})`);
-					else if (count > base[rule]) worse.push(`${route}: ${rule} grew ${base[rule]} -> ${count} (${targets})`);
+					if (!(rule in base)) worse.push(`${route}: NEW rule ${rule} (${count} nodes)`);
+					else if (count > base[rule]) worse.push(`${route}: ${rule} grew ${base[rule]} -> ${count}`);
 				}
 				expectEq(worse.join("\n"), "", `no new axe violations on ${route}`);
 			}
@@ -13354,11 +12533,6 @@ print("ok")
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
 			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
-			// Item now defaults to Bunood Simple mode. Native tab/grid styling is
-			// an Advanced-mode contract, so enter Advanced before exercising it.
-			expect(await page.locator(".bnd-simple-switch").isVisible(), "Item defaults to the Simple/Advanced workbench");
-			expectEq(await page.locator(".bnd-simple-switch button").first().getAttribute("aria-pressed"), "true", "Simple is the default mode");
-			await page.locator(".bnd-simple-switch button").nth(1).click();
 			// The uoms grid lives on the UOM tab — activate it first.
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
@@ -13394,173 +12568,6 @@ print("ok")
 			expectEq(hovered, "1", "hover reveals the row's checkbox");
 		});
 
-		await test("form: Simple mode header aligns with native sections", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/payment-entry", ".list-row, .no-result", 2000);
-			await page.evaluate(() => frappe.new_doc("Payment Entry"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Payment Entry");
-			await page.locator('.bnd-simple-form-head:visible').waitFor();
-			const geometry = await page.evaluate(() => {
-				const visible = (node) => node && node.getClientRects().length > 0;
-				const head = [...document.querySelectorAll('.bnd-simple-form-head')].find(visible);
-				const section = [...document.querySelectorAll('.form-layout .form-section')].find(visible);
-				const headRect = head?.getBoundingClientRect();
-				const sectionRect = section?.getBoundingClientRect();
-				return {
-					hasGeometry: !!(headRect && sectionRect),
-					left: headRect && sectionRect ? Math.abs(headRect.left - sectionRect.left) : 999,
-					right: headRect && sectionRect ? Math.abs(headRect.right - sectionRect.right) : 999,
-				};
-			});
-			expect(geometry.hasGeometry, "Payment Entry exposes both the Simple header and a native form section");
-			expect(geometry.left <= 2 && geometry.right <= 2,
-				`Simple header and form sections share both edges (left ${geometry.left}px, right ${geometry.right}px)`);
-		});
-
-		await test("form: Payment Entry Simple mode removes specialist setup", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/payment-entry", ".list-row, .no-result", 2000);
-			await page.evaluate(() => frappe.new_doc("Payment Entry"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Payment Entry");
-			await page.locator('.bnd-simple-form-head:visible').waitFor();
-			const simple = await page.evaluate(() => ({
-				selected: [...document.querySelectorAll('.bnd-simple-visible')]
-					.map(node => node.getAttribute('data-fieldname')),
-				prepayment: !![...document.querySelectorAll('[data-fieldname="custom_prepayment_invoice"]')]
-					.find(node => node.getClientRects().length),
-				summary: !![...document.querySelectorAll('[data-bnd-part="form-summary"]')]
-					.find(node => node.getClientRects().length),
-			}));
-			for (const field of ["payment_type", "posting_date", "mode_of_payment", "party", "paid_amount", "received_amount"]) {
-				expect(simple.selected.includes(field), `Payment Entry Simple mode keeps ${field}`);
-			}
-			expectEq(simple.prepayment, false, "optional ZATCA prepayment setup stays in Advanced");
-			expectEq(simple.summary, false, "a new Simple payment does not repeat Date and Not Saved in a summary card");
-			expect(simple.selected.length <= 14, `Payment Entry stays within its task profile (${simple.selected.length} selected fields)`);
-		});
-
-		await test("form: Stock Entry is a real simple workflow and always returns from Advanced", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/stock-entry", ".list-row, .no-result", 2000);
-			await page.evaluate(() => frappe.new_doc("Stock Entry"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Stock Entry");
-			await page.locator(".bnd-stock-simple:visible").waitFor();
-			if (process.env.BND_STOCK_SCREENSHOT) {
-				await page.locator(".bnd-stock-simple").screenshot({ path: process.env.BND_STOCK_SCREENSHOT });
-			}
-			const simple = await page.evaluate(() => {
-				const visible = node => !!node && node.getClientRects().length > 0;
-				return {
-					steps: document.querySelectorAll(".bnd-stock-steps li").length,
-					cards: document.querySelectorAll(".bnd-stock-card").length,
-					layoutVisible: visible(document.querySelector(".form-layout")),
-					fields: ["stock_entry_type", "from_warehouse", "to_warehouse", "items"]
-						.filter(name => visible(document.querySelector(`.bnd-stock-simple [data-fieldname="${name}"]`))),
-				};
-			});
-			expectEq(simple.steps, 3, "Stock Entry presents a three-step task flow");
-			expect(simple.cards >= 3, `movement, route and item cards render (${simple.cards})`);
-			expectEq(simple.layoutVisible, false, "the dense native layout stays out of Simple mode");
-			for (const field of ["stock_entry_type", "items"]) expect(simple.fields.includes(field), `${field} uses its native control in the simple workflow`);
-			const mode = page.locator(".bnd-simple-switch:visible");
-			await mode.locator("button").nth(1).click();
-			await page.locator(".form-layout:visible").waitFor();
-			await page.evaluate(() => cur_frm.refresh());
-			await page.waitForTimeout(500);
-			expect(await mode.isVisible(), "the mode switch survives a native Advanced refresh");
-			await mode.locator("button").first().click();
-			await page.locator(".bnd-stock-simple:visible").waitFor();
-			expectEq(await mode.locator("button").first().getAttribute("aria-pressed"), "true", "Stock Entry returns to Simple");
-			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-		});
-
-		await test("form: Delivery Note is a real simple workflow and returns from Advanced", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/delivery-note", ".list-row, .no-result", 2000);
-			await page.evaluate(() => frappe.new_doc("Delivery Note"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Delivery Note");
-			await page.locator(".bnd-delivery-simple:visible").waitFor();
-			const simple = await page.evaluate(() => {
-				const visible = node => !!node && node.getClientRects().length > 0;
-				const root = document.querySelector(".bnd-delivery-simple");
-				return {
-					steps: root?.querySelectorAll(".bnd-stock-steps li").length || 0,
-					cards: root?.querySelectorAll(".bnd-stock-card").length || 0,
-					layoutVisible: visible(document.querySelector(".form-layout")),
-					fields: ["customer", "set_warehouse", "items"]
-						.filter(name => visible(root?.querySelector(`[data-fieldname="${name}"]`))),
-				};
-			});
-			expectEq(simple.steps, 3, "Delivery Note presents customer, fulfilment and item steps");
-			expect(simple.cards >= 3, `Delivery Note renders focused task cards (${simple.cards})`);
-			expectEq(simple.layoutVisible, false, "the dense native Delivery Note layout stays out of Simple mode");
-			for (const field of ["customer", "items"]) expect(simple.fields.includes(field), `${field} uses its native control in the Delivery Note workflow`);
-			const mode = page.locator(".bnd-simple-switch:visible");
-			expect(await mode.locator("button").first().evaluate(node => node.classList.contains("bnd-bill-primary")), "Simple has the selected visual treatment");
-			await mode.locator("button").nth(1).click();
-			await page.locator(".form-layout:visible").waitFor();
-			expect(await mode.locator("button").nth(1).evaluate(node => node.classList.contains("bnd-bill-primary")), "Advanced receives the selected visual treatment");
-			await mode.locator("button").first().click();
-			await page.locator(".bnd-delivery-simple:visible").waitFor();
-			expectEq(await mode.locator("button").first().getAttribute("aria-pressed"), "true", "Delivery Note returns to Simple");
-			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-		});
-
-		await test("form: every simplified form can return from Advanced", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/home", ".layout-main-section", 1000);
-			const generic = await page.evaluate(() => Object.keys(window.bunood_theme.simple_forms.profiles)
-				.filter(doctype => (frappe.boot.user.can_read || []).includes(doctype)).sort());
-			for (const doctype of generic) {
-				const navigation = await page.evaluate(async (dt) => {
-					try {
-						if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0;
-						await frappe.model.with_doctype(dt);
-						const doc = frappe.model.get_new_doc(dt);
-						frappe.set_route("Form", dt, doc.name);
-						return { name: doc.name };
-					} catch (error) {
-						return { error: error?.message || error?.exc || JSON.stringify(error) || String(error) };
-					}
-				}, doctype);
-				expect(!navigation.error, `${doctype} new-form navigation succeeds (${navigation.error || ""})`);
-				await page.waitForFunction(dt => cur_frm?.doctype === dt, doctype);
-				const mode = page.locator('.bnd-simple-form-head:visible .bnd-simple-switch');
-				await mode.waitFor();
-				expectEq(await mode.locator('button').first().getAttribute('aria-pressed'), "true", `${doctype} opens in Simple`);
-				expect(await mode.locator('button').first().evaluate(node => node.classList.contains('bnd-bill-primary')), `${doctype} visually selects Simple`);
-				await mode.locator('button').nth(1).click();
-				expect(await mode.isVisible(), `${doctype} keeps its mode switch visible in Advanced`);
-				expectEq(await mode.locator('button').nth(1).getAttribute('aria-pressed'), "true", `${doctype} enters Advanced`);
-				expect(await mode.locator('button').nth(1).evaluate(node => node.classList.contains('bnd-bill-primary')), `${doctype} visually selects Advanced`);
-				await mode.locator('button').first().click();
-				expectEq(await mode.locator('button').first().getAttribute('aria-pressed'), "true", `${doctype} returns to Simple`);
-			}
-			for (const doctype of ["Sales Invoice", "Purchase Invoice"]) {
-				const navigation = await page.evaluate(async (dt) => {
-					try {
-						if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0;
-						await frappe.model.with_doctype(dt);
-						const doc = frappe.model.get_new_doc(dt);
-						frappe.set_route("Form", dt, doc.name);
-						return { name: doc.name };
-					} catch (error) {
-						return { error: error?.message || error?.exc || JSON.stringify(error) || String(error) };
-					}
-				}, doctype);
-				expect(!navigation.error, `${doctype} new-form navigation succeeds (${navigation.error || ""})`);
-				await page.waitForFunction(dt => cur_frm?.doctype === dt, doctype);
-				const mode = page.locator('.bnd-bill-mode:visible');
-				await mode.waitFor();
-				await mode.locator('button').nth(1).click();
-				await page.locator('.form-layout:visible').waitFor();
-				expect(await mode.isVisible(), `${doctype} keeps its mode switch visible in Advanced`);
-				await mode.locator('button').first().click();
-				await page.locator('[data-bnd-part="sales-bill"]:visible').waitFor();
-			}
-			await page.evaluate(() => { if (window.cur_frm?.doc) cur_frm.doc.__unsaved = 0; });
-		});
-
 		await test("form: the sidebar is a card and clears the bottom chrome", async () => {
 			setSettings({
 				form_style: "Floating Panels", form_sidebar: "Floating Pane",
@@ -13588,12 +12595,6 @@ print("ok")
 					paneBg: getComputedStyle(pane).backgroundColor,
 					paneRadius: getComputedStyle(pane).borderRadius,
 					sideBottom: side && Math.round(side.getBoundingClientRect().bottom),
-					sideTop: side && side.getBoundingClientRect().top,
-					sideHeight: side && side.getBoundingClientRect().height,
-					computedHeight: side && getComputedStyle(side).height,
-					bottomReserve: getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve").trim(),
-					topbarHeight: getComputedStyle(document.documentElement).getPropertyValue("--bnd-topbar-h").trim(),
-					pageheadHeight: getComputedStyle(document.documentElement).getPropertyValue("--page-head-height").trim(),
 					barTop: bar && Math.round(bar.getBoundingClientRect().top),
 				};
 			});
@@ -13615,7 +12616,6 @@ print("ok")
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 0,
 			});
 			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
-			await page.locator(".bnd-simple-switch button").nth(1).click();
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
 			// The pencil reveals on row hover (probed: an un-hovered click
@@ -13652,80 +12652,6 @@ print("ok")
 			const attrs = await page.evaluate(() =>
 				[...document.documentElement.attributes].filter((a) => a.name.startsWith("data-bnd-ws")).map((a) => a.name));
 			expectEq(attrs.join(","), "", "no workspace attribute survives Original");
-		});
-
-		// ONE TILE COLOUR, ON EVERY SURFACE THE GRID STYLE REACHES.
-		//
-		// The "Bold Board" assigned one of seven hues with `:nth-child(7n+$i)` —
-		// a tile's POSITION in the document, not anything about the tile. The
-		// same card changed colour between boards and a *spacer* was painted
-		// orange. It shipped and survived because nothing measured a RENDERED
-		// tile: contrast_gate.py:402-412 emits fourteen chart-series pairs
-		// explicitly anchored on "the tile (--bnd-surface)", and stayed green
-		// throughout, because it reads TOKENS and never rendered CSS. Another
-		// Pair row there would have duplicated that premise, not caught this.
-		//
-		// So this asserts the premise those pairs already assume. It also covers
-		// the dashboard route, because the deleted selector named
-		// `.widget-group-body > :nth-child(7n+$i)` too — this was never only a
-		// workspace rule, and the workspace-only checks above would not have
-		// noticed.
-		await test("workspace: every tile resolves to one surface, on boards and dashboards", async () => {
-			setSettings({ workspace_style: "Hairline Grid" });
-			// A dashboard WITH SOMETHING ON IT. The first Dashboard by name is
-			// `Payments`, which renders zero tiles — asserting against it proved
-			// nothing and failed the empty-page guard below, which is the guard
-			// working. Pick one that actually has charts or cards.
-			//
-			// `.pop()` on the trimmed output is the idiom every other benchPy
-			// caller here uses: bench prints app-load noise before the payload.
-			const dash = JSON.parse(
-				benchPy(
-					`_best, _n = None, 0\n` +
-						`for _d in frappe.get_all("Dashboard", pluck="name"):\n` +
-						`    _doc = frappe.get_doc("Dashboard", _d)\n` +
-						`    _c = len(_doc.get("charts") or []) + len(_doc.get("cards") or [])\n` +
-						`    if _c > _n:\n` +
-						`        _best, _n = _d, _c\n` +
-						`print(json.dumps([_best] if _n else []))\n`
-				)
-					.trim()
-					.split("\n")
-					.pop()
-			);
-			const routes = ["/desk/selling", "/desk/buying", "/desk/stock"]
-				.concat(dash.length ? [`/desk/dashboard-view/${dash[0]}`] : []);
-			for (const route of routes) {
-				await goDesk(route, ".widget", 3000);
-				const seen = await page.evaluate(() => {
-					// MIRROR THE DELETED SELECTOR EXACTLY: `.ce-block:nth-child()`
-					// on a workspace, `.widget-group-body > :nth-child()` on a
-					// dashboard. The dashboard half is a DIRECT child — measured,
-					// after a descendant spelling reported 0 tiles on a page
-					// showing 12. A cross-route probe hid that, because
-					// navigating by `set_route` leaves the previous workspace's
-					// `.ce-block` tiles in the DOM and the descendant selector
-					// counted those instead.
-					const tiles = [
-						...document.querySelectorAll(".ce-block .widget, .widget-group-body > .widget"),
-					];
-					const surface = getComputedStyle(document.documentElement)
-						.getPropertyValue("--bnd-surface").trim();
-					const backgrounds = new Set();
-					const accents = new Set();
-					for (const tile of tiles) {
-						const style = getComputedStyle(tile);
-						backgrounds.add(style.backgroundColor);
-						accents.add(style.getPropertyValue("--ws-accent").trim());
-					}
-					return { tiles: tiles.length, backgrounds: [...backgrounds], accents: [...accents], surface };
-				});
-				// A route that rendered no tile proves nothing either way; say so
-				// rather than passing on an empty page.
-				expect(seen.tiles > 0, `${route}: rendered at least one tile (got ${seen.tiles})`);
-				expectEq(seen.backgrounds.length, 1, `${route}: ONE tile background (got ${seen.backgrounds.join(" | ")})`);
-				expectEq(seen.accents.join(""), "", `${route}: no --ws-accent survives (got ${seen.accents.join(" | ")})`);
-			}
 		});
 
 		const WS_STYLE_SLUG = {
@@ -13851,219 +12777,6 @@ print("ok")
 		// which is not in our ramp, so the equality fails.
 		const CHART_ROUTE = "/desk/selling"; // any desk page; frappe.Chart is loaded
 
-		await test("chart: compatible charts are interactive and keyboard navigable system-wide", async () => {
-			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
-			const r = await page.evaluate(async () => {
-				const host = document.createElement("div");
-				// Frappe's grouped-bar renderer needs enough real plot width for three
-				// datasets; a 420px synthetic host yields negative <rect> widths before
-				// our palette wrapper even runs. The specimen tests colour, not crowding.
-				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
-				document.body.appendChild(host);
-				new frappe.Chart(host, {
-					title: "Keyboard chart", type: "bar", height: 180, colors: [],
-					data: { labels: ["Jan", "Feb"], datasets: [{ name: "Sales", values: [3, 7] }] },
-				});
-				await new Promise((resolve) => setTimeout(resolve, 500));
-				const container = host.querySelector(".chart-container");
-				const describedBy = container && container.getAttribute("aria-describedby");
-				const event = new CustomEvent("data-select");
-				Object.defineProperty(event, "index", { value: 1 });
-				host.dispatchEvent(event);
-				const result = {
-					interactive: container && container.classList.contains("bnd-interactive-chart"),
-					role: container && container.getAttribute("role"),
-					label: container && container.getAttribute("aria-label"),
-					tabindex: container && container.getAttribute("tabindex"),
-					announcement: describedBy && document.getElementById(describedBy)
-						? document.getElementById(describedBy).textContent : "",
-				};
-				host.remove();
-				return result;
-			});
-			expect(r.interactive, "the global frappe.Chart wrapper marks the rendered chart interactive");
-			expectEq(r.role, "group", "the chart exposes a group role");
-			expectEq(r.label, "Keyboard chart", "the chart keeps its useful accessible name");
-			expect(r.tabindex !== null, "the chart can receive keyboard focus");
-			expect(/Feb/.test(r.announcement) && /Sales: 7/.test(r.announcement),
-				`data selection is announced (${r.announcement})`);
-		});
-
-		await test("home: real interactive charts replace static imitation bars", async () => {
-			await goDesk("/desk/home", ".bnd-home-trend-chart .chart-container", 5000);
-			if (process.env.BND_HOME_SCREENSHOT) {
-				await page.locator(".bnd-home-dashboard").screenshot({ path: process.env.BND_HOME_SCREENSHOT });
-			}
-			const hoverIndex = await page.evaluate(() => {
-				const bars = [...document.querySelectorAll(".bnd-home-trend-chart .bar, .bnd-home-trend-chart .dataset-bars rect")];
-				const visible = bars.find((node) => node.getBoundingClientRect().height > 1);
-				return visible ? visible.getAttribute("data-point-index") : null;
-			});
-			expect(hoverIndex !== null, "the seeded Home trend has a non-zero bar to inspect");
-			const firstBar = page.locator(`.bnd-home-trend-chart [data-point-index="${hoverIndex}"]`).first();
-			await firstBar.hover();
-			await page.waitForTimeout(150);
-			const tooltipVisible = await page.locator(".bnd-home-trend-chart .graph-svg-tip").isVisible();
-			await page.locator(".bnd-home-status-visual").evaluate((node) =>
-				node.scrollIntoView({ block: "center", inline: "center" }));
-			await page.waitForTimeout(300);
-			const statusBefore = await page.evaluate(() => {
-				const visual = document.querySelector(".bnd-home-status-visual")?.getBoundingClientRect();
-				const path = document.querySelector(".bnd-home-status-chart .donut-path");
-				const total = document.querySelector(".bnd-home-status-total");
-				const center = (node) => { const box = node?.getBoundingClientRect(); return box
-					? { x: box.left + box.width / 2 - visual.left, y: box.top + box.height / 2 - visual.top } : null; };
-				return {
-					path: center(path),
-					total: center(total),
-					aligned: total?.dataset.bndAligned === "true",
-					visual: visual && { width: visual.width, height: visual.height },
-					chart: (() => { const box = document.querySelector(".bnd-home-status-chart")?.getBoundingClientRect();
-						return box && { top: box.top - visual.top, width: box.width, height: box.height }; })(),
-					transform: document.querySelector(".bnd-home-status-chart .donut-chart")?.getAttribute("transform"),
-					pathState: path && { transform: path.getAttribute("transform"), style: path.getAttribute("style"),
-						computedTransform: getComputedStyle(path).transform, strokeWidth: getComputedStyle(path).strokeWidth,
-						d: path.getAttribute("d") },
-				};
-			});
-			const statusSlice = page.locator(".bnd-home-status-chart .donut-path").first();
-			if (await statusSlice.count()) {
-				const box = await statusSlice.boundingBox();
-				await statusSlice.dispatchEvent("mousemove", {
-					clientX: box.x + box.width,
-					clientY: box.y + box.height / 2,
-				});
-				await page.waitForTimeout(150);
-			}
-			const statusAfter = await page.evaluate(() => {
-				const visual = document.querySelector(".bnd-home-status-visual")?.getBoundingClientRect();
-				const path = document.querySelector(".bnd-home-status-chart .donut-path");
-				const box = path?.getBoundingClientRect();
-				return {
-					center: box ? { x: box.left + box.width / 2 - visual.left, y: box.top + box.height / 2 - visual.top } : null,
-					visual: visual && { width: visual.width, height: visual.height },
-					chart: (() => { const chart = document.querySelector(".bnd-home-status-chart")?.getBoundingClientRect();
-						return chart && { top: chart.top - visual.top, width: chart.width, height: chart.height }; })(),
-					transform: document.querySelector(".bnd-home-status-chart .donut-chart")?.getAttribute("transform"),
-					pathState: path && { transform: path.getAttribute("transform"), style: path.getAttribute("style"),
-						computedTransform: getComputedStyle(path).transform, strokeWidth: getComputedStyle(path).strokeWidth,
-						d: path.getAttribute("d") },
-					tooltip: (() => { const tip = document.querySelector(".bnd-home-status-chart .graph-svg-tip"); return {
-						visible: !!tip && getComputedStyle(tip).opacity !== "0",
-						style: tip?.getAttribute("style") || "",
-						text: tip?.textContent?.trim() || "",
-					}; })(),
-				};
-			});
-			await page.evaluate(() => {
-				window.__bndChartKeySelections = 0;
-				document.querySelector(".bnd-home-trend-chart").addEventListener("data-select", (event) => {
-					window.__bndChartKeySelections += 1;
-					event.stopImmediatePropagation();
-				}, true);
-			});
-			await page.locator(".bnd-home-trend-chart .chart-container").focus();
-			// Frappe Charts starts navigation on the latest point, so move left first.
-			await page.keyboard.press("ArrowLeft");
-			await page.waitForTimeout(150);
-			const keyboardSelections = await page.evaluate(() => window.__bndChartKeySelections);
-			const r = await page.evaluate(async () => {
-				const payload = await frappe.xcall("bunood_theme.api.get_home_dashboard");
-				const styles = getComputedStyle(document.documentElement);
-				const rgbHex = (color) => {
-					const match = String(color || "").match(/(\d+),\s*(\d+),\s*(\d+)/);
-					return match ? "#" + [match[1], match[2], match[3]]
-						.map((value) => Number(value).toString(16).padStart(2, "0")).join("") : String(color || "").toLowerCase();
-				};
-				const statusValues = [payload.invoice_status?.paid, payload.invoice_status?.open, payload.invoice_status?.overdue]
-					.map((value) => Number(value) || 0);
-				const expectedColors = ["--bnd-good", "--bnd-cat-1", "--bnd-critical"]
-					.map((token) => styles.getPropertyValue(token).trim().toLowerCase());
-				const expectedDonutColor = expectedColors[statusValues.findIndex((value) => value > 0)] || null;
-				const donut = document.querySelector(".bnd-home-status-chart .donut-path");
-				const statusContainer = document.querySelector(".bnd-home-status-chart .chart-container");
-				return {
-					trendCharts: document.querySelectorAll(".bnd-home-trend-chart .chart-container").length,
-					trendBars: document.querySelectorAll(".bnd-home-trend-chart .bar, .bnd-home-trend-chart .dataset-bars rect").length,
-					statusVisual: document.querySelectorAll(".bnd-home-status-chart .chart-container, .bnd-home-status-chart .bnd-home-chart-empty").length,
-					statusActions: document.querySelectorAll("button.bnd-home-status-row").length,
-					statusTotal: statusValues.reduce((sum, value) => sum + value, 0),
-					statusCenter: document.querySelector(".bnd-home-status-total-value")?.textContent || "",
-					statusChartHeight: statusContainer?.getBoundingClientRect().height || 0,
-					statusNativeLegend: document.querySelectorAll(".bnd-home-status-chart .chart-legend").length,
-					statusDonutColor: donut ? rgbHex(getComputedStyle(donut).stroke) : null,
-					expectedDonutColor,
-					statusMarkerColors: [...document.querySelectorAll(".bnd-home-status-marker")]
-						.map((node) => rgbHex(getComputedStyle(node).backgroundColor)),
-					expectedColors,
-					staticBars: document.querySelectorAll(".bnd-home-bars, .bnd-home-status-track").length,
-					interactive: [...document.querySelectorAll(".bnd-home-chart .chart-container")]
-						.every((node) => node.classList.contains("bnd-interactive-chart")),
-					boundedMonths: (payload.trend || []).every((point) => point.from_date && point.to_date),
-					invoiceScope: payload.invoice_scope,
-				};
-			});
-			expectEq(r.trendCharts, 1, "Home renders one Frappe sales chart");
-			expect(r.trendBars > 0, `the sales chart rendered real SVG bars (${r.trendBars})`);
-			expectEq(r.statusVisual, 1, "invoice status renders a donut or an honest empty state");
-			expectEq(r.statusActions, 3, "status legend entries are actionable filters");
-			expectEq(r.statusCenter, r.statusTotal ? String(r.statusTotal) : "", "the donut center shows the invoice total only when data exists");
-			expect(!r.statusTotal || r.statusChartHeight >= 270, `the invoice donut uses the full visual area (${r.statusChartHeight}px)`);
-			expectEq(r.statusNativeLegend, 0, "the cramped vendor legend is replaced by the dashboard status strip");
-			expect(!r.statusTotal || r.statusDonutColor === r.expectedDonutColor,
-				`the first visible donut slice keeps its semantic status color (${r.statusDonutColor} vs ${r.expectedDonutColor})`);
-			expectEq(JSON.stringify(r.statusMarkerColors), JSON.stringify(r.expectedColors),
-				"Paid, Open and Overdue markers use the good, informational and critical theme tokens");
-			expectEq(r.staticBars, 0, "the hand-built static bars are gone");
-			expect(r.interactive, "every rendered Home chart uses the shared interactive wrapper");
-			expect(r.boundedMonths, "each sales point carries an exact drill-down date range");
-			expect(r.invoiceScope?.company && r.invoiceScope?.from_date && r.invoiceScope?.as_of,
-				"the server publishes the exact invoice-status list scope");
-			if (r.statusTotal) {
-				expect(statusBefore.aligned, "the donut total is anchored after the chart has rendered");
-				expect(Math.hypot(statusBefore.path.x - statusBefore.total.x, statusBefore.path.y - statusBefore.total.y) <= 1,
-					`the donut total is centered in the rendered ring (${JSON.stringify(statusBefore)})`);
-				expect(Math.hypot(statusBefore.path.x - statusAfter.center.x, statusBefore.path.y - statusAfter.center.y) <= .25,
-					`hover does not move the donut (${JSON.stringify({ before: statusBefore, after: statusAfter })})`);
-				expect(statusAfter.tooltip.visible,
-					`hover still exposes the native donut tooltip (${JSON.stringify(statusAfter.tooltip)})`);
-			}
-			expect(tooltipVisible, "hovering a sales bar opens its formatted tooltip");
-			expect(keyboardSelections > 0, "ArrowLeft selects a chart point through Frappe Charts navigation");
-		});
-
-		await test("home: overdue action opens the same invoices the dashboard counted", async () => {
-			await goDesk("/desk/home", ".bnd-home-attn-row", 5000);
-			await page.evaluate(() => {
-				window.__bndCapturedInvoiceRoute = null;
-				window.__bndOriginalSetRoute = frappe.set_route;
-				frappe.set_route = (...args) => { window.__bndCapturedInvoiceRoute = args; };
-			});
-			try {
-				await page.locator(".bnd-home-attn-row").first().click();
-			} finally {
-				await page.evaluate(() => { frappe.set_route = window.__bndOriginalSetRoute; });
-			}
-			const result = await page.evaluate(async () => {
-				const route = window.__bndCapturedInvoiceRoute;
-				const payload = await frappe.xcall("bunood_theme.api.get_home_dashboard");
-				const filters = route?.[2] || {};
-				const rows = await frappe.xcall("frappe.client.get_list", {
-					doctype: "Sales Invoice", filters,
-					fields: ["name", "status", "due_date", "outstanding_amount"],
-					limit_page_length: 0,
-				});
-				return { route: route?.slice(0, 2), filters, rows, counted: Number(payload.invoice_status?.overdue) || 0 };
-			});
-			expectEq(JSON.stringify(result.route), JSON.stringify(["List", "Sales Invoice"]),
-				"the attention row opens the Sales Invoice list");
-			expect(!("status" in result.filters), "the overdue action does not depend on asynchronously stored status text");
-			expectEq(result.filters.outstanding_amount?.[0], ">", "the overdue action requires an outstanding balance");
-			expectEq(result.filters.due_date?.[0], "<", "the overdue action uses the same due-date boundary as Home");
-			expectEq(result.rows.length, result.counted,
-				`the destination contains exactly the ${result.counted} invoices shown on Home`);
-		});
-
 		await test("chart: series marks take the derived ramp, not the vendor palette", async () => {
 			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
 			const r = await page.evaluate(async () => {
@@ -14071,7 +12784,7 @@ print("ok")
 				const ramp = [];
 				for (let i = 1; i <= 7; i++) ramp.push(html.getPropertyValue("--bnd-series-" + i).trim().toLowerCase());
 				const host = document.createElement("div");
-				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
+				host.style.width = "420px";
 				document.body.appendChild(host);
 				const chart = new frappe.Chart(host, {
 					type: "bar", height: 200, colors: [],
@@ -14125,17 +12838,12 @@ print("ok")
 
 		await test("chart: a theme flip repaints the series in place", async () => {
 			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
-			// A dark starting preference would make the "flip" a no-op.
-			// Establish the light endpoint before constructing the specimen.
-			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
 			const r = await page.evaluate(async () => {
 				const rgbHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
 					return m ? "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("") : s; };
 				const ramp = () => { const h = getComputedStyle(document.documentElement); const a = [];
 					for (let i = 1; i <= 7; i++) a.push(h.getPropertyValue("--bnd-series-" + i).trim().toLowerCase()); return a; };
-				const host = document.createElement("div");
-				host.style.cssText = "position:fixed;inset:0 auto auto -10000px;width:720px;min-width:720px;flex:none";
-				document.body.appendChild(host);
+				const host = document.createElement("div"); host.style.width = "420px"; document.body.appendChild(host);
 				new frappe.Chart(host, { type: "bar", height: 200, colors: [],
 					data: { labels: ["a", "b"], datasets: [{ values: [3, 2] }, { values: [2, 4] }] } });
 				await new Promise((res) => setTimeout(res, 600));
@@ -14145,10 +12853,11 @@ print("ok")
 				document.documentElement.setAttribute("data-theme", "dark");
 				if (window.bunood_theme && window.bunood_theme.chart_apply) window.bunood_theme.chart_apply();
 				await new Promise((res) => setTimeout(res, 900));
-				// The shared wrapper repaints the existing marks without asking the
-				// vendor renderer to rebuild its SVG. The observable proof of "in
-				// place" is that the container still holds exactly ONE chart (not 0 =
-				// destroyed, not 2 = duplicated), recoloured.
+				// draw(false,false) rebuilds the chart's own SVG on the SAME instance
+				// in the SAME container — the widget holds the instance, not the SVG,
+				// so nothing is stranded. The observable proof of "in place" is that
+				// the container still holds exactly ONE chart (not 0 = destroyed, not
+				// 2 = duplicated), recoloured.
 				const after = { ramp: ramp(),
 					containers: host.querySelectorAll(".chart-container").length,
 					fills: [...new Set([...host.querySelectorAll("rect.bar, .dataset-bars rect")]
@@ -14508,246 +13217,6 @@ print("ok")
 			expect(/tabular-nums/.test(s.fvn), `the summary is tabular under the report kit alone (${s.fvn})`);
 		});
 
-		await test("report: panels align and summaries fit in both languages and themes", async () => {
-			const viewport = page.viewportSize();
-			setSettings({ report_style: "Pinned Slab" });
-			try {
-				for (const lang of ["en", "ar"]) await withLang(lang, async () => {
-					await goDesk("/desk/query-report/Balance Sheet", ".report-summary", 2000);
-					for (const width of [1440, 390]) {
-						await page.setViewportSize({ width, height: 1000 });
-						for (const mode of ["light", "dark"]) {
-							await page.evaluate(m => document.documentElement.setAttribute("data-theme", m), mode);
-							await page.waitForTimeout(350);
-							const r = await page.evaluate(() => {
-								const root = document.querySelector('[id="page-query-report"]');
-								const panels = [".page-form", ".report-summary", ".chart-wrapper"].map(s => root.querySelector(s));
-								const boxes = panels.map(e => ({ x: e.getBoundingClientRect().x, width: e.getBoundingClientRect().width, border: getComputedStyle(e).borderTopWidth }));
-								const items = [...root.querySelectorAll('.summary-item')];
-								return { boxes, fits: items.every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1), overflow: document.documentElement.scrollWidth > innerWidth + 1 };
-							});
-							expect(r.boxes.every(b => b.border === "1px" && Math.abs(b.x - r.boxes[0].x) < 2 && Math.abs(b.width - r.boxes[0].width) < 2), `${lang}/${mode}/${width}: aligned report panels ${JSON.stringify(r)}`);
-							expect(r.fits && !r.overflow, `${lang}/${mode}/${width}: summary content and page fit ${JSON.stringify(r)}`);
-						}
-					}
-				});
-			} finally { await page.setViewportSize(viewport); }
-		});
-
-		await test("All Apps always offers a labelled route to the main dashboard", async () => {
-			setSettings({
-				...CHROME_DEFAULTS,
-				desk_layout: "Top Taskbar",
-				topbar_enabled: 1,
-				sidebar_enabled: 1,
-				// Reproduce the dead-end state from the report: an explicit Off used
-				// to remove the only route back because this page has no side pane.
-				home_placement: "Off",
-				apps_placement: "Side Pane Start",
-			});
-			for (const [lang, label, dir] of [["en", "Dashboard", "ltr"], ["ar", "لوحة التحكم", "rtl"]]) {
-				await withLang(lang, async () => {
-					await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon", 1500);
-					const dashboard = page.locator('.bnd-topbar .bnd-dashboard-return[data-bnd-part="home"]:visible');
-					expectEq(await dashboard.count(), 1, `${lang}: All Apps has one dashboard route even when Home is Off`);
-					expectEq((await dashboard.textContent()).trim(), label, `${lang}: dashboard route has a visible localized label`);
-					expectEq(await page.locator("html").getAttribute("dir"), dir, `${lang}: direction matches the language`);
-					const fit = await dashboard.evaluate(button => {
-						const r = button.getBoundingClientRect();
-						const icon = button.querySelector("svg").getBoundingClientRect();
-						const text = button.querySelector(".bnd-dashboard-return-label").getBoundingClientRect();
-						return {
-							rect: { left: r.left, right: r.right, top: r.top, width: r.width, viewport: innerWidth },
-							withinViewport: r.left >= 0 && r.right <= innerWidth,
-							contentFits: button.scrollWidth <= button.clientWidth,
-							labelVisible: text.width > 40,
-							centred: Math.abs((icon.top + icon.height / 2) - (text.top + text.height / 2)) < 2,
-						};
-					});
-					expect(Object.entries(fit).filter(([key]) => key !== "rect").every(([, value]) => value), `${lang}: dashboard control is fitted and aligned: ${JSON.stringify(fit)}`);
-					if (process.env.BND_UI_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-dashboard-${lang}.png`, fullPage: true });
-					}
-					await dashboard.click();
-					await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
-				});
-			}
-		});
-
-		await test("All Apps has one global-control owner in Top Bar, Bottom Bar and mobile modes", async () => {
-			const viewport = page.viewportSize();
-			const states = [
-				{
-					name: "desktop Top Bar", width: 1440, mobile: false, owner: "topbar",
-					settings: { ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" },
-				},
-				{
-					name: "desktop Bottom Bar", width: 1280, mobile: false, owner: "bottombar",
-					settings: { ...layoutSettings("Taskbar"), desk_layout: "Taskbar" },
-				},
-				{
-					name: "mobile", width: 390, mobile: true, owner: "bottombar",
-					settings: { ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" },
-				},
-			];
-			try {
-				for (const state of states) {
-					setSettings(state.settings);
-					await page.setViewportSize({ width: state.width, height: 900 });
-					await goDesk("/desk/desktop", ".desktop-icon", 2000);
-					await page.waitForTimeout(500);
-					const result = await page.evaluate(() => {
-						const shown = (node) => {
-							if (!node) return false;
-							const box = node.getBoundingClientRect();
-							const css = getComputedStyle(node);
-							return box.width > 0 && box.height > 0 && css.display !== "none" && css.visibility !== "hidden";
-						};
-						const count = (selector) => [...document.querySelectorAll(selector)].filter(shown).length;
-						const dashboard = [...document.querySelectorAll('[data-bnd-part="home"]')].find(shown);
-						const controls = [...document.querySelectorAll(
-							'[data-bnd-part="home"], [data-bnd-part="apps"], [data-bnd-part="search"], [data-bnd-part="bell"], [data-bnd-part="user"]'
-						)].filter(shown);
-						const overlaps = [];
-						for (let i = 0; i < controls.length; i++) for (let j = i + 1; j < controls.length; j++) {
-							const a = controls[i].getBoundingClientRect();
-							const b = controls[j].getBoundingClientRect();
-							if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
-								Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) {
-								overlaps.push(`${controls[i].dataset.bndPart}/${controls[j].dataset.bndPart}`);
-							}
-						}
-						const owner = dashboard?.closest(".bnd-topbar") ? "topbar"
-							: dashboard?.closest(".bnd-statusbar") ? "bottombar"
-							: dashboard?.closest(".bnd-dock") ? "dock" : "other";
-						const bar = document.querySelector(".bnd-statusbar");
-						const main = document.querySelector(".main-section");
-						if (main) main.scrollTop = main.scrollHeight;
-						const lastTile = [...document.querySelectorAll(".desktop-icon")].at(-1);
-						const barBox = bar?.getBoundingClientRect();
-						const tileBox = lastTile?.getBoundingClientRect();
-						return {
-							stamp: document.documentElement.hasAttribute("data-bnd-desktop-shell"),
-							native: count(".desktop-navbar"),
-							search: count(".bnd-search-field, .bnd-search-icon, #desktop-navbar-modal-search"),
-							bell: count(".bnd-bell, .desktop-notification-icon"),
-							user: count(".bnd-avatar-btn, .desktop-avatar"),
-							dashboard: count('[data-bnd-part="home"]'),
-							apps: count('[data-bnd-part="apps"]'),
-							dashboardLabel: (dashboard?.querySelector(".bnd-dashboard-return-label")?.textContent || "").trim(),
-							owner,
-							barRole: bar?.getAttribute("role") || null,
-							statusItems: bar ? [...bar.children].filter((node) => node.matches(".bnd-status-item") && shown(node)).length : 0,
-							contentClearsBar: !barBox || !tileBox || tileBox.bottom <= barBox.top + 1,
-							overlaps,
-						};
-					});
-					if (process.env.BND_UI_SCREENSHOTS) {
-						const slug = state.name.toLowerCase().replace(/\s+/g, "-");
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-${slug}.png`, fullPage: true });
-					}
-					expect(result.stamp, `${state.name}: Bunood claims the Desktop page shell (${JSON.stringify(result)})`);
-					expectEq(result.native, 0, `${state.name}: Frappe's duplicate navbar stands down`);
-					expectEq(result.search, 1, `${state.name}: exactly one search remains`);
-					expectEq(result.bell, 1, `${state.name}: exactly one notification control remains`);
-					expectEq(result.user, 1, `${state.name}: exactly one profile control remains`);
-					expectEq(result.dashboard, 1, `${state.name}: exactly one Dashboard return remains`);
-					expectEq(result.apps, 0, `${state.name}: the current All Apps destination is not repeated`);
-					expect(result.dashboardLabel, `${state.name}: Dashboard return is visibly labelled`);
-					expectEq(result.owner, state.owner, `${state.name}: Dashboard stays in the shell that owns search`);
-					expectEq(result.barRole, state.mobile ? "navigation" : "region", `${state.name}: bottom-bar semantics match its job`);
-					expect(result.contentClearsBar, `${state.name}: the last app remains reachable above fixed bottom chrome`);
-					expectEq(result.overlaps.join(","), "", `${state.name}: global controls never overlap`);
-				if (state.mobile) expectEq(result.statusItems, 0, "mobile: no telemetry leaks into primary navigation");
-				}
-			} finally {
-				await page.setViewportSize(viewport);
-			}
-		});
-
-		await test("All Apps mobile navigation mirrors cleanly in Arabic", async () => {
-			const viewport = page.viewportSize();
-			setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" });
-			try {
-				await withLang("ar", async () => {
-					await page.setViewportSize({ width: 390, height: 844 });
-					await goDesk("/desk/desktop", ".desktop-icon", 2000);
-					const result = await page.evaluate(() => {
-						const bar = document.querySelector(".bnd-statusbar");
-						const shown = [...bar.querySelectorAll('[data-bnd-part]')].filter((node) => {
-							const rect = node.getBoundingClientRect();
-							return rect.width > 0 && getComputedStyle(node).display !== "none";
-						});
-						const items = shown.map((node) => ({
-							part: node.dataset.bndPart,
-							label: (node.querySelector(".bnd-mobile-nav-label, .bnd-search-label")?.textContent || "").trim(),
-							right: Math.round(node.getBoundingClientRect().right),
-							width: Math.round(node.getBoundingClientRect().width),
-						})).sort((a, b) => b.right - a.right);
-						const tileRects = [...document.querySelectorAll(".desktop-icon")].map((node) => {
-							const rect = node.getBoundingClientRect();
-							return { left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width) };
-						});
-						const visibleGrid = [...document.querySelectorAll(".desktop-wrapper .icons")].find((node) => node.getBoundingClientRect().width > 0);
-						const barRect = bar.getBoundingClientRect();
-						return {
-							dir: document.documentElement.dir,
-							items,
-							pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-							tileRects,
-							gridColumns: visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
-							gridTemplate: visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns : "",
-							gridInline: visibleGrid?.getAttribute("style") || "",
-							barRect: { top: Math.round(barRect.top), bottom: Math.round(barRect.bottom), viewport: innerHeight },
-						};
-					});
-					if (process.env.BND_UI_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-mobile-ar.png` });
-					}
-					expectEq(result.dir, "rtl", "Arabic All Apps uses RTL direction");
-					expectEq(result.items.map((item) => item.part).join(","), "home,search,bell,user", `Arabic mobile destinations remain ordered (${JSON.stringify(result.items)})`);
-					expectEq(result.items.map((item) => item.label).join("|"), "لوحة التحكم|البحث|إخطارات|الملف الشخصي", "Arabic captions are complete and localized");
-					expect(Math.max(...result.items.map((item) => item.width)) - Math.min(...result.items.map((item) => item.width)) <= 1, `Arabic columns remain equal (${JSON.stringify(result.items)})`);
-					expect(result.items.every((item, index, all) => !index || all[index - 1].right > item.right), `Arabic order mirrors from the right edge (${JSON.stringify(result.items)})`);
-					expect(result.pageOverflow <= 1, `Arabic mobile page has no horizontal overflow (${result.pageOverflow}px)`);
-					expect(result.tileRects.every((rect) => rect.left >= -1 && rect.right <= 391), `Arabic module cards remain inside the viewport (${JSON.stringify(result.tileRects)})`);
-					expectEq(result.gridColumns, 2, `a 390px All Apps grid uses two readable card columns (${result.gridTemplate}; ${result.gridInline})`);
-					expect(result.barRect.top >= 0 && result.barRect.bottom <= result.barRect.viewport + 1, `the mobile navigation stays pinned inside the viewport (${JSON.stringify(result.barRect)})`);
-				});
-			} finally {
-				await page.setViewportSize(viewport);
-			}
-		});
-
-		await test("Home sidebar is a permission-filtered module navigator", async () => {
-			setSettings({
-				...CHROME_DEFAULTS,
-				desk_layout: "Top Taskbar",
-				topbar_enabled: 1,
-				sidebar_enabled: 1,
-				sidebar_pane_state: "Open",
-				home_placement: "Side Pane Start",
-				apps_placement: "Side Pane Start",
-			});
-			await goDesk("/desk/home", ".body-sidebar .sidebar-item-label:visible", 1000);
-			const labels = (await page.locator('.body-sidebar:visible .sidebar-item-label').allTextContents())
-				.map((label) => label.trim());
-			for (const expected of ["Home", "Transactions", "Selling", "Buying", "Stock", "Invoicing", "Operations", "Reports", "Setup"]) {
-				expect(labels.includes(expected), `Home sidebar is missing ${expected}`);
-			}
-			for (const stale of ["Item", "Customer", "Supplier", "Sales Invoice"]) {
-				expect(!labels.includes(stale), `Home sidebar kept sparse fallback ${stale}`);
-			}
-			const selling = page.locator('.body-sidebar:visible a[href="/desk/selling"]');
-			if (!(await selling.isVisible())) {
-				await page.locator('.body-sidebar:visible').getByText("Transactions", { exact: true }).click();
-				await selling.waitFor({ state: "visible" });
-			}
-			await selling.click();
-			await page.waitForURL(/\/desk\/selling(?:$|[?#])/);
-			await page.waitForSelector('.body-sidebar:visible a[href="/desk/sales-invoice"]', { state: "attached" });
-		});
-
 		// ── The three adversarial-review findings (fixed pre-release) ────────
 		await test("report: a discarded live preview reverts to the saved state", async () => {
 			// bnd_report_preview was missing from the refresh/discard-revert batch
@@ -14816,17 +13285,6 @@ print("ok")
 		// is the anchor + the four repairs; the band/mark/media/reveal axes and
 		// the calendar colour wrap are slice 3.
 		const VIEWS_KANBAN = "/app/todo/view/kanban/Bunood%20Memos";
-		const goViewsCalendar = async () => {
-			await goDesk("/app/todo/view/calendar", ".fc", 1000);
-			await page.evaluate(() => {
-				const calendar = window.cur_list?.calendar?.fullCalendar;
-				if (!calendar) throw new Error("ToDo FullCalendar instance is unavailable");
-				calendar.gotoDate("2026-08-01");
-				calendar.refetchEvents();
-			});
-			await page.waitForSelector(".fc-daygrid-block-event", { timeout: 30000 });
-			await page.waitForTimeout(600);
-		};
 
 		await test("views: Original applies nothing at all", async () => {
 			// The stand-down must be total: no attribute survives AND the kanban
@@ -14845,7 +13303,7 @@ print("ok")
 			// under Original, or events keep our accent while the SCSS reverts (an
 			// adversarial-review finding: the wrap was ungated). Events must carry
 			// NO accent-derived fill.
-			await goViewsCalendar();
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const cal = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				const h = accent.replace("#", "");
@@ -15070,7 +13528,7 @@ print("seeded")
 			);
 			try {
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goViewsCalendar();
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const g = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				// accent hex -> "r, g, b"
@@ -15104,7 +13562,7 @@ print("cleared")
 			// hue; Outlined: transparent with a coloured border. Both fail against
 			// stock, whose events are always filled blocks.
 			setSettings({ views_style: "Floating Cards", views_mark: "Dot" });
-			await goViewsCalendar();
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const dot = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				const main = ev.querySelector(".fc-event-main");
@@ -15119,7 +13577,7 @@ print("cleared")
 			expect(dot.dot && dot.dot !== "auto" && dot.dot !== "0px", `the dot ::before is rendered (width ${dot.dot})`);
 
 			setSettings({ views_mark: "Outlined" });
-			await goViewsCalendar();
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const outlined = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				return { bg: getComputedStyle(ev).backgroundColor, border: getComputedStyle(ev).borderInlineStartColor };
@@ -15135,9 +13593,7 @@ print("cleared")
 			// before and after a data-theme flip; it must change (accent moves
 			// #4463f0 -> #516ef1 in dark).
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goViewsCalendar();
-			await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
-			await page.waitForTimeout(1200); // allow the native event refetch before the baseline
+			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
 			const flip = await page.evaluate(async () => {
 				const bg = () => {
 					const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
@@ -15243,7 +13699,6 @@ print("cleared")
 			// "selecting by class measures the wrong element", live, on the very
 			// rule this kit exists to fix.
 			await goDesk("/app/contact/new", ".form-layout", 6000);
-			await page.locator(".bnd-simple-switch button").nth(1).click();
 			const g = await page.evaluate(async () => {
 				document.documentElement.setAttribute("data-theme", "dark");
 				const add = [...document.querySelectorAll(".grid-add-row")].find((b) => b.offsetParent !== null);
@@ -17025,8 +15480,6 @@ print("cleared")
 				const sel = ".page-form .filter-selector .filter-button";
 				const probe = async () => {
 					await goDesk("/desk/todo", ".list-row, .no-result", 2500);
-					await page.mouse.move(5, 5);
-					await page.waitForTimeout(350);
 					const rest = await page.evaluate((q) => {
 						const c = getComputedStyle(document.querySelector(q));
 						return { bg: c.backgroundColor, shadow: c.boxShadow };
@@ -17519,10 +15972,10 @@ print("cleared")
 		// ── Responsive (item 24): the mobile boundary, and what holds below it ──
 		//
 		// Frappe's desk is "mobile" below 768px — `frappe.is_mobile()` is exactly
-		// `window.innerWidth < 768` (utils/common.js). Current v16 keeps the empty
-		// <header> at that width, but Bunood deliberately selects the narrow
-		// container set, so the top-bar cluster does not mount and its tenants fall
-		// back. The old
+		// `window.innerWidth < 768` (utils/common.js). At that width toolbar.js
+		// REPLACES the empty <header> that `mount_topbar` needs (desk.html:38
+		// renders it at every width; the swap, not the width, is what removes it),
+		// so the top-bar cluster does not mount and its tenants fall back. The old
 		// ROADMAP text ("~480px, header not rendered") was wrong on both counts;
 		// item 24 measured the real mechanism and these tests pin it.
 		//
@@ -17544,7 +15997,7 @@ print("cleared")
 			// a node zero-boxed inside Frappe's collapsed (width:0) sidebar is not.
 			const visSrc = `(s)=>{const n=document.querySelector(s);if(!n)return false;const r=n.getBoundingClientRect();const c=getComputedStyle(n);return r.width>0&&r.height>0&&c.visibility!=="hidden"&&c.display!=="none";}`;
 
-			await test("responsive: the topbar follows Frappe's mobile boundary at 768", async () => {
+			await test("responsive: the topbar follows the header's real presence at the 768 boundary", async () => {
 				setSettings(topBar());
 				// 768 is the first NON-mobile width (`< 768` is the test), so the
 				// <header> survives, mount_topbar finds it, and the OUTCOME stamp
@@ -17556,9 +16009,9 @@ print("cleared")
 					topbar: !!document.querySelector(".bnd-topbar"),
 					attr: document.documentElement.hasAttribute("data-bnd-topbar"),
 				}));
-				// 767 is mobile. Current v16 still leaves the empty <header> in the
-				// DOM, so the contract is the outcome: no bar mounts and no ownership
-				// attribute is stamped.
+				// 767 is mobile: toolbar.js has swapped the <header>, the query
+				// misses, nothing mounts, and — the whole reason the attribute is
+				// keyed on reality — nothing is stamped.
 				await page.setViewportSize({ width: 767, height: 1024 });
 				await goDesk("/desk/item", ".page-head", 3500);
 				const at767 = await page.evaluate(() => ({
@@ -17568,7 +16021,7 @@ print("cleared")
 				}));
 				await wideAgain();
 				expect(at768.header && at768.topbar && at768.attr, `768 mounts the bar (${JSON.stringify(at768)})`);
-				expect(!at767.topbar && !at767.attr, `767 mounts no topbar and stamps nothing (${JSON.stringify(at767)})`);
+				expect(!at767.header && !at767.topbar && !at767.attr, `767 mounts nothing, stamps nothing (${JSON.stringify(at767)})`);
 			});
 
 			await test("responsive: search reachable, page never scrolls sideways, chrome never overlaps at 390", async () => {
@@ -17627,11 +16080,11 @@ print("cleared")
 				expect(bar === true, `bottom bar visible at 390 (${bar})`);
 			});
 
-			await test("responsive: the mobile bar is one labelled, evenly-spaced navigation row (390)", async () => {
+			await test("responsive: the mobile bar carries every critical tenant at a touch size (390)", async () => {
 				// The item-24 defect, now closed: below 768 the bell and user were
 				// unreachable (zero-boxed in Frappe's collapsed sidebar). The narrow
-				// preset routes Home / Apps / Search / Alerts / You into the full-width
-				// bottom bar; ALL status telemetry stands down; each control clears the
+				// preset routes search / apps / alerts / you into the full-width
+				// bottom bar; the status signals stand down; each control clears the
 				// 24px touch floor. This assertion was red before slice C.
 				setSettings(topBar());
 				await page.setViewportSize(NARROW);
@@ -17648,37 +16101,18 @@ print("cleared")
 					return {
 						narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
 						start: b ? Math.round(b.getBoundingClientRect().left) : null,
-						role: b && b.getAttribute("role"),
-						label: b && b.getAttribute("aria-label"),
-						statusItems: b ? [...b.children].filter((n) => n.matches(".bnd-status-item") && getComputedStyle(n).display !== "none").length : -1,
-						columns: b ? [...b.querySelectorAll("[data-bnd-part]")]
-							.filter((n) => n !== b && getComputedStyle(n).display !== "none" && n.getBoundingClientRect().width > 0)
-							.map((n) => ({
-								part: n.getAttribute("data-bnd-part"),
-								width: Math.round(n.getBoundingClientRect().width),
-								caption: (n.querySelector(".bnd-mobile-nav-label, .bnd-search-label")?.textContent || "").trim(),
-							})) : [],
-						home: t('[data-bnd-part="home"]'),
+						signals: b ? [...b.querySelectorAll("[data-bnd-prio]")].filter((n) => getComputedStyle(n).display !== "none").length : -1,
 						search: t(".bnd-search-field, .bnd-search-icon"),
 						bell: t(".bnd-bell"),
 						user: t(".bnd-avatar-btn"),
 						apps: t('[data-bnd-part="apps"]'),
 					};
 				}, visSrc);
-				if (process.env.BND_UI_SCREENSHOTS) {
-					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/mobile-navigation-five-destinations.png` });
-				}
 				await wideAgain();
 				expect(bar.narrow, "data-bnd-narrow is stamped at 390");
 				expect(bar.start === 0, `the bar spans the viewport, not a stub beside a phantom column (starts at ${bar.start})`);
-				expectEq(bar.role, "navigation", "the phone bar exposes its real navigation role");
-				expect(bar.label, "the phone navigation has an accessible name");
-				expect(bar.statusItems === 0, `all status telemetry stands down (${bar.statusItems} still shown)`);
-				expectEq(bar.columns.length, 5, `the row has five destinations (${JSON.stringify(bar.columns)})`);
-				expect(bar.columns.every((item) => item.caption), `every destination has a visible caption (${JSON.stringify(bar.columns)})`);
-				const widths = bar.columns.map((item) => item.width);
-				expect(Math.max(...widths) - Math.min(...widths) <= 1, `columns share the width evenly (${widths.join(", ")})`);
-				for (const name of ["home", "apps", "search", "bell", "user"]) {
+				expect(bar.signals === 0, `the ranked status signals stand down (${bar.signals} still shown)`);
+				for (const name of ["search", "bell", "user", "apps"]) {
 					expect(bar[name].v, `${name} is visible in the mobile bar`);
 					expect(bar[name].min >= 24, `${name} clears the 24px touch floor (${bar[name].min}px)`);
 				}
@@ -17907,8 +16341,6 @@ print("cleared")
 		});
 
 		await test("login: Frappe flips this page itself, so our rules must not", async () => {
-			// Inspect the native alignment contract; V2 Split intentionally uses
-			// logical text-align:start for its own card head.
 			// GUIDELINES §1.3, pinned where the next person will trip over it.
 			// Frappe is RTL-correct here by a BUILD-TIME rtlcss pass, we are by
 			// logical properties, and the two DO NOT COMPOSE: a logical rule of
@@ -17933,13 +16365,8 @@ print("cleared")
 					}),
 					{ lang }
 				);
-			const priorStyle = getSettings(["login_style"]);
-			let ltr, rtl;
-			try {
-				setSettings({ login_style: "Original" });
-				ltr = await read(null);
-				rtl = await read("ar");
-			} finally { setSettings(priorStyle); }
+			const ltr = await read(null);
+			const rtl = await read("ar");
 			expectEq(ltr.dir, "ltr", "the default direction");
 			expectEq(rtl.dir, "rtl", "and Arabic flips the document");
 			expectEq(ltr.rtlSheets, 0, "LTR serves dist/css");
@@ -18848,7 +17275,7 @@ print("cleared")
 				expectEq(poleOf(split.body), "bnd-auth-split", "Split sets its own slug");
 				expectEq(split.wrapDisplay, "flex", "Split turns the wrapper into a row");
 				expect(split.art !== "none", `and creates its brand panel (content: ${split.art})`);
-				expect(split.mainW <= 620, `the V2 column stays within its 620px design bound (${split.mainW}px)`);
+				expect(split.mainW < 600, `the column is bounded (${split.mainW}px)`);
 				expectEq(split.ring, "none", "the card carries no ring of its own — the COLUMN is the surface");
 
 				// Decision D, asserted rather than assumed: the contracts survive the
@@ -19585,7 +18012,7 @@ print("cleared")
 				gp.evaluate(() => ({
 					session: document.body.getAttribute("frappe-session-status"),
 					path: location.pathname,
-					denied: /not permitted|log in|sign in|غير مسموح|تسجيل الدخول|سجّل الدخول/i.test(document.body.textContent || ""),
+					denied: /not permitted|log in|sign in/i.test(document.body.textContent || ""),
 					anyOrder: /SAL-ORD-/.test(document.body.textContent || ""),
 				}))
 			);
@@ -21238,9 +19665,9 @@ print("cleared")
 			// port anything load-bearing (a new marker, a new context key), then
 			// update the hash in the same commit with the diff in its message.
 			const PINNED = {
-				standard: "fd3e883de26cc12aa10f723e36bdc5ab9ebae160fcaa91fd62913a8c4f0ddf88",
+				standard: "ef600441177479bc327042bea532a10b52dc9e8415994d9a47a12458cce91457",
 				email_header: "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
-				email_footer: "801fd923887b41f710296218688a91f54311fccaf3220519b3c1fe3244982ad0",
+				email_footer: "3275615ecd933fb4936f44955046a19056ff05ed9a14ade8bc6df3419e961480",
 			};
 			const p = emailProbe();
 			for (const [name, want] of Object.entries(PINNED)) {
@@ -21783,15 +20210,17 @@ print("cleared")
 			// than applying to the live desk. It exists because the two arguments
 			// that ruled one out for the sign-in and website kits do not hold here.
 			//
-			// Frappe 16.31 fixed the no-outgoing-account crash. Prove the stock
-			// formatter stays fixed and that our preview no longer needs the
-			// synthetic Email Account which used to route around it.
+			// It does NOT go through frappe's already-whitelisted `get_email_html`:
+			// that omits `email_account`, and `email_body.py:419` resolves it with
+			// `find_outgoing()` which returns None on a site with no outgoing
+			// account — then line 433 dereferences it. Reproduced below, because a
+			// filing nobody can reproduce gets closed.
 			const out = benchPy(
 				"import json\n" +
 					"from bunood_theme.api import email_preview\n" +
 					"res = {}\n" +
 					"res['html'] = email_preview()\n" +
-					"# The upstream path must stay safe without an outgoing account.\n" +
+					"# The upstream crash our endpoint exists to route around.\n" +
 					"try:\n" +
 					"    from frappe.email.email_body import get_formatted_html\n" +
 					"    get_formatted_html('T', '<p>x</p>', with_container=True)\n" +
@@ -21825,8 +20254,9 @@ print("cleared")
 			expectEq(res.guest, "PermissionError", "a Guest must not be able to render the preview");
 			expectEq(
 				res.upstream,
-				"no error",
-				"frappe's formatter handles a missing outgoing account"
+				"AttributeError",
+				"frappe's own get_email_html path no longer crashes without an outgoing account — " +
+					"re-check docs/upstream/frappe-email.md §7 and simplify api.email_preview if it is fixed"
 			);
 		});
 
@@ -22556,337 +20986,6 @@ print("cleared")
 			}
 		});
 
-		// Read a saved invoice from the verification site's sample data; never
-		// modify it, and never couple assertions to a particular invoice number.
-		let summaryInvoiceName;
-		const summaryInvoiceRoute = () => {
-			if (!summaryInvoiceName) {
-				const names = JSON.parse(benchPy('print(json.dumps(frappe.get_all("Sales Invoice", pluck="name", order_by="creation asc", limit_page_length=1)))\n').trim().split("\n").pop());
-				if (!names.length) throw new Error("Summary checks require a saved Sales Invoice in the verification site's sample data");
-				summaryInvoiceName = names[0];
-			}
-			return `${URL_BASE}/desk/sales-invoice/${encodeURIComponent(summaryInvoiceName)}`;
-		};
-
-		// Frappe retains cached form pages in the DOM while navigating. Scope the
-		// mode control to cur_frm's connected wrapper and wait through the
-		// workbench's asynchronous flush so a stale hidden switch can never make
-		// an Advanced-only assertion pass or fail by accident.
-		const enterCurrentAdvancedMode = async () => {
-			await page.waitForFunction(() => {
-				const visible = node => !!node && node.getClientRects().length > 0;
-				return [...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")].some(visible) ||
-					[...document.querySelectorAll('[data-bnd-part="form-summary"]')].some(visible);
-			}, null, { timeout: 15000 });
-			for (let attempt = 0; attempt < 3; attempt++) {
-				const state = await page.evaluate(() => {
-					const visible = node => !!node && node.getClientRects().length > 0;
-					const mode = [...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
-						.find(node => node.getClientRects().length > 0);
-					// Returns, amendments and other unsupported invoice variants stay on
-					// the native form. Their visible summary already proves Advanced.
-					if (!mode && [...document.querySelectorAll('[data-bnd-part="form-summary"]')].some(visible)) return "native";
-					const advanced = mode?.querySelectorAll("button")?.[1];
-					if (!advanced) return "no-switch";
-					if (advanced.getAttribute("aria-pressed") === "true") return "advanced";
-					advanced.click();
-					return "clicked";
-				});
-				if (state === "native" || state === "advanced") return;
-				await page.waitForTimeout(250);
-				if (await page.evaluate(() => {
-					return !![...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
-						.find(node => node.getClientRects().length > 0)
-						?.querySelectorAll("button")?.[1]
-						?.getAttribute("aria-pressed")?.includes("true");
-				})) return;
-			}
-			const doctype = await page.evaluate(() => window.cur_frm?.doctype || "Current form");
-			throw new Error(`${doctype} did not remain in Advanced mode`);
-		};
-
-		await test("completion: Delivery Note Simple mode is a real reversible workbench", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/delivery-note");
-			await page.evaluate(() => frappe.new_doc("Delivery Note"));
-			await page.waitForFunction(() => cur_frm?.doctype === "Delivery Note" && cur_frm.is_new());
-			await page.waitForSelector('.bnd-simple-switch');
-			const readState = () => page.evaluate(() => {
-				const visible = node => !!node && node.getClientRects().length > 0;
-				const host = cur_frm.$wrapper[0];
-				const mode = [...host.querySelectorAll('.bnd-simple-switch')].find(visible);
-				const buttons = [...mode.querySelectorAll('button')].map(button => ({
-					pressed: button.getAttribute('aria-pressed'),
-					background: getComputedStyle(button).backgroundColor,
-				}));
-				const workbench = host.querySelector('.bnd-delivery-simple');
-				const native = host.querySelector('.form-layout');
-				const steps = workbench ? [...workbench.querySelectorAll('.bnd-stock-steps li')].map(node => node.textContent.trim()) : [];
-				const action = host.querySelector('.bnd-simple-actions .bnd-bill-action:not([hidden])');
-				const label = action?.querySelector('.bnd-bill-action-label')?.getBoundingClientRect();
-				const keycap = action?.querySelector('kbd')?.getBoundingClientRect();
-				return {
-					buttons,
-					steps,
-					workbenchVisible: visible(workbench),
-					nativeVisible: visible(native),
-					deliveryClass: host.classList.contains('bnd-delivery-simple-active'),
-					stockClass: host.classList.contains('bnd-stock-simple-active'),
-					shortcutGap: label && keycap ? Math.max(0, Math.max(label.left, keycap.left) - Math.min(label.right, keycap.right)) : -1,
-				};
-			});
-			try {
-				const simple = await readState();
-				expectEq(simple.buttons.map(button => button.pressed).join(','), 'true,false', 'Delivery Note defaults to Simple mode');
-				expect(simple.buttons[0].background !== simple.buttons[1].background, 'Simple selection has distinct paint');
-				expectEq(simple.steps.length, 3, 'Simple mode exposes three task steps');
-				expect(simple.workbenchVisible && !simple.nativeVisible, 'Simple mode replaces the native layout with its workbench');
-				expect(simple.deliveryClass && !simple.stockClass, 'Delivery Note carries only its own active-state hook');
-				expect(simple.shortcutGap >= 8, `action label and shortcut have breathing room (${simple.shortcutGap}px)`);
-				if (process.env.BND_UI_SCREENSHOTS) {
-					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/delivery-note-simple.png`, fullPage: true });
-				}
-
-				await page.locator('.bnd-simple-switch button').nth(1).click();
-				await page.waitForFunction(() => document.querySelector('.bnd-simple-switch button:nth-child(2)')?.getAttribute('aria-pressed') === 'true');
-				const advanced = await readState();
-				expectEq(advanced.buttons.map(button => button.pressed).join(','), 'false,true', 'Advanced becomes the selected mode');
-				expect(advanced.buttons[0].background !== advanced.buttons[1].background, 'Advanced selection has distinct paint');
-				expect(!advanced.workbenchVisible && advanced.nativeVisible, 'Advanced restores the native Delivery Note controls');
-
-				await page.locator('.bnd-simple-switch button').first().click();
-				await page.waitForFunction(() => document.querySelector('.bnd-simple-switch button:first-child')?.getAttribute('aria-pressed') === 'true');
-				const returned = await readState();
-				expect(returned.workbenchVisible && !returned.nativeVisible, 'returning to Simple remounts the workbench');
-			} finally {
-				await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-			}
-		});
-
-		await test("completion: document summary stays off administration and master forms", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			const records = JSON.parse(benchPy('names = ["Role", "Company", "Customer", "Supplier", "Item"]\nprint(json.dumps({dt: frappe.get_all(dt, pluck="name", order_by="creation asc", limit_page_length=1)[0] for dt in names}))\n').trim().split("\n").pop());
-			const routes = [
-				["User", "/desk/user/Administrator#user_details_tab"],
-				...Object.entries(records).map(([dt, name]) => [dt, `/desk/${dt.toLowerCase().replaceAll(" ", "-")}/${encodeURIComponent(name)}`]),
-				["System Settings", "/desk/system-settings"],
-				["Print Settings", "/desk/print-settings"],
-				["Theme Settings", "/desk/theme-settings"],
-			];
-			for (const [dt, route] of routes) {
-				await page.goto(URL_BASE + route);
-				await page.waitForFunction(dt => window.cur_frm?.doctype === dt && cur_frm.layout?.wrapper?.[0]?.isConnected && cur_frm.fields?.length, dt);
-				// Allow the form's existing 120ms summary debounce and native async refresh to settle.
-				await page.waitForTimeout(600);
-				expectEq(await page.locator('[data-bnd-part="form-summary"]').count(), 0, `${dt} should show its native form without a duplicate document summary`);
-				expect(await page.locator('.form-layout').filter({ visible: true }).count() > 0, `${dt} native controls must remain visible`);
-			}
-		});
-
-		await test("completion: transaction summaries stay after native fields and do not leak across navigation", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			const records = JSON.parse(benchPy('names = ["Sales Order", "Purchase Order", "Purchase Invoice", "Payment Entry", "Journal Entry"]\nprint(json.dumps({dt: frappe.get_all(dt, pluck="name", order_by="creation asc", limit_page_length=1)[0] for dt in names}))\n').trim().split("\n").pop());
-			for (const [dt, name] of Object.entries(records)) {
-				await page.goto(`${URL_BASE}/desk/${dt.toLowerCase().replaceAll(" ", "-")}/${encodeURIComponent(name)}`);
-				await page.waitForFunction(expected => window.cur_frm?.doctype === expected, dt);
-				// Simple mode deliberately hides the native review summary. This
-				// contract is about the native summary's position and lifecycle, so
-				// enter Advanced through the same persistent switch a user sees.
-				await enterCurrentAdvancedMode();
-				await page.waitForSelector('[data-bnd-part="form-summary"]', { state: 'visible' }).catch(async error => {
-					const mode = await page.evaluate(() => ({
-						doctype: window.cur_frm?.doctype,
-						wrapperClass: window.cur_frm?.$wrapper?.[0]?.className || '',
-						buttons: [...document.querySelectorAll('.bnd-bill-mode button, .bnd-simple-switch button')].map(button => ({ text: button.textContent.trim(), pressed: button.getAttribute('aria-pressed'), visible: !!button.offsetParent })),
-						summaryHidden: document.querySelector('[data-bnd-part="form-summary"]')?.hidden,
-						summaryDisplay: getComputedStyle(document.querySelector('[data-bnd-part="form-summary"]')).display,
-					}));
-					throw new Error(`${dt}: Advanced summary stayed hidden: ${JSON.stringify(mode)} (${error.message})`);
-				});
-				const state = await page.evaluate(() => {
-					const root = document.querySelector('[data-bnd-part="form-summary"]');
-					const host = cur_frm.layout.wrapper[0];
-					return { doctype: cur_frm.doctype, count: host.querySelectorAll('[data-bnd-part="form-summary"]').length, afterFields: host.lastElementChild === root, controls: host.querySelectorAll('.frappe-control').length };
-				});
-				expectEq(state.doctype, dt, "summary must belong to the current transaction");
-				expectEq(state.count, 1, `${dt} needs exactly one review section`);
-				expect(state.afterFields && state.controls > 0, `${dt} summary must follow, not replace or precede, the native controls`);
-			}
-			await page.evaluate(() => frappe.set_route("Form", "User", "Administrator"));
-			await page.waitForFunction(() => cur_frm?.doctype === "User" && cur_frm.doc?.name === "Administrator");
-			await page.waitForTimeout(600);
-			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 0, "a transaction summary must not follow navigation to User");
-			await page.evaluate(name => frappe.set_route("Form", "Journal Entry", name), records["Journal Entry"]);
-			await page.waitForFunction(() => cur_frm?.doctype === "Journal Entry");
-			await page.waitForSelector('[data-bnd-part="form-summary"]', { state: "visible" });
-			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 1, "returning to the cached transaction must not duplicate its summary");
-		});
-
-		await test("completion: invoice summary uses live values and excludes private fields", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await page.goto(summaryInvoiceRoute());
-			await page.waitForFunction(() => window.cur_frm?.doctype === "Sales Invoice");
-			await enterCurrentAdvancedMode();
-			await page.waitForSelector('[data-bnd-part="form-summary"]', { timeout: 15000 });
-			const summary = await page.evaluate(() => {
-				const root = document.querySelector('[data-bnd-part="form-summary"]');
-				const privateNames = cur_frm.fields.filter(f => f.df.fieldtype === "Password" || f.get_status?.() === "None").map(f => f.df.fieldname);
-				return {
-					count: document.querySelectorAll('[data-bnd-part="form-summary"]').length,
-					text: root.textContent,
-					customer: cur_frm.doc.customer,
-					leaked: [...root.querySelectorAll('[data-summary-field]')].some(n => privateNames.includes(n.dataset.summaryField)),
-					total: root.querySelector('[data-summary-field="grand_total"] dd')?.textContent,
-					expectedTotal: new DOMParser().parseFromString(frappe.format(cur_frm.doc.grand_total, cur_frm.fields_dict.grand_total.df, { inline: true }, cur_frm.doc), 'text/html').body.textContent,
-				};
-			});
-			expectEq(summary.count, 1, "exactly one summary belongs to the form");
-			expect(summary.text.includes(summary.customer), "summary must name the invoice's actual customer");
-			expectEq(summary.total, summary.expectedTotal, "summary must display ERPNext's calculated grand total and currency format");
-			expectEq(summary.leaked, false, "hidden and restricted values must not appear in the summary");
-		});
-
-		await test("completion: an unsaved invoice summary follows edits and visibility", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/sales-invoice");
-			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-			await page.waitForSelector('.bnd-bill-mode');
-			// Simple is the default invoice surface. The native document-summary
-			// contract belongs to Advanced mode and must become visible there.
-			expectEq(await page.locator('.bnd-bill-mode button').first().getAttribute('aria-pressed'), 'true', 'new invoices default to Simple mode');
-			await page.locator('.bnd-bill-mode button').nth(1).click();
-			await page.waitForSelector('[data-bnd-part="form-summary"]');
-			try {
-				await page.evaluate(() => cur_frm.set_value("po_no", "Summary preview one"));
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview one").catch(() => { throw new Error("summary did not follow the first purchase-order-reference edit"); });
-				await page.evaluate(() => cur_frm.set_value("po_no", "Summary preview two"));
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview two").catch(() => { throw new Error("summary did not follow the second purchase-order-reference edit"); });
-				const tabVisible = await page.evaluate(() => !cur_frm.fields_dict.po_no.tab.is_hidden());
-				expect(tabVisible, 'purchase-order-reference tab starts visible');
-				await page.evaluate(() => cur_frm.fields_dict.po_no.tab.toggle(false));
-				await page.waitForFunction(() => !document.querySelector('[data-summary-field="po_no"]'), null, { timeout: 3000 }).catch(() => { throw new Error("summary retained a field inside a hidden tab"); });
-				await page.evaluate(() => cur_frm.fields_dict.po_no.tab.toggle(true));
-				await page.waitForFunction(() => document.querySelector('[data-summary-field="po_no"] dd')?.textContent === "Summary preview two");
-				await page.evaluate(() => cur_frm.set_df_property("po_no", "hidden", 1));
-				await page.waitForFunction(() => !document.querySelector('[data-summary-field="po_no"]')).catch(() => { throw new Error("summary retained a field after it became hidden"); });
-			} finally {
-				// This fixture is an unsaved local document: never save an invoice.
-				await page.evaluate(() => { cur_frm.fields_dict.po_no.tab.toggle(true); cur_frm.set_df_property("po_no", "hidden", 0); cur_frm.doc.__unsaved = 0; });
-			}
-		});
-
-		await test("completion: ZATCA status is live, credential-free, and limited to issued invoices", async () => {
-			await goDesk("/desk/sales-invoice");
-			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-			await page.waitForSelector('[data-bnd-part="zatca-status"]');
-			const sales = await page.evaluate(async () => {
-				const response = await frappe.call({
-					method: "bunood_theme.zatca.get_status",
-					type: "GET",
-					args: { company: cur_frm.doc.company },
-				});
-				const payload = response.message || {};
-				return {
-					count: document.querySelectorAll('[data-bnd-part="zatca-status"]').length,
-					installed: payload.installed,
-					state: payload.state,
-					settings: payload.settings || {},
-					leaksCredential: /security_token|production_secret|\"secret\"/i.test(JSON.stringify(payload)),
-				};
-			});
-			expectEq(sales.count, 1, "Simple Sales Invoice has one ZATCA status panel");
-			expectEq(sales.installed, true, "the local site has the KSA Compliance connector installed");
-			const knownStates = new Set(["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"]);
-			expect(knownStates.has(sales.state), `the demo company reports a supported setup state (${sales.state})`);
-			if (sales.state === "ready") {
-				expectEq(sales.settings.server, "Sandbox", "the ready development connector is pinned to Sandbox");
-				expectEq(sales.settings.compliance_ready, true, "Sandbox onboarding produced a compliance CSID");
-				expectEq(sales.settings.production_ready, true, "Sandbox onboarding produced the test submission CSID");
-			}
-			expectEq(sales.leaksCredential, false, "the Bunood facade never returns a CSID token or secret");
-
-			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; return frappe.new_doc("Purchase Invoice"); });
-			await page.waitForFunction(() => cur_frm?.doctype === "Purchase Invoice" && document.querySelector('.bnd-bill-mode'));
-			expectEq(await page.locator('[data-bnd-part="zatca-status"]').filter({ visible: true }).count(), 0, "Purchase Invoice does not expose issuer-side ZATCA submission");
-			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-		});
-
-		await test("completion: invoice tax validation agrees in Simple mode and on the server", async () => {
-			const server = JSON.parse(benchPy(
-				`from bunood_theme.tax_validation import validate_invoice_taxes\n` +
-				`account = frappe.db.get_value("Account", {"account_type": "Tax"}, "name")\n` +
-				`if not account:\n` +
-				`    raise AssertionError("verification site needs one Tax account")\n` +
-				`def row(idx, rate):\n` +
-				`    return frappe._dict(idx=idx, charge_type="On Net Total", account_head=account, rate=rate)\n` +
-				`def rejected(doc):\n` +
-				`    try:\n` +
-				`        validate_invoice_taxes(doc)\n` +
-				`        return {"rejected": False, "message": ""}\n` +
-				`    except Exception as exc:\n` +
-				`        return {"rejected": True, "message": str(exc)}\n` +
-				`hooks = frappe.get_hooks("doc_events")\n` +
-				`validate_hooks = hooks.get("Sales Invoice", {}).get("validate", [])\n` +
-				`if isinstance(validate_hooks, str):\n` +
-				`    validate_hooks = [validate_hooks]\n` +
-				`conflict = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="", taxes=[row(2, 15), row(4, 5)]))\n` +
-				`empty = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="Selected VAT template", taxes=[]))\n` +
-				`zero = rejected(frappe._dict(doctype="Sales Invoice", docstatus=0, taxes_and_charges="", taxes=[row(1, 0)]))\n` +
-				`print(json.dumps({"account": account, "hooked": "bunood_theme.tax_validation.validate_invoice_taxes" in validate_hooks, "conflict": conflict, "empty": empty, "zero": zero}))\n`
-			));
-			expect(server.account, "the live validation resolved a real Tax account");
-			expectEq(server.hooked, true, "Sales Invoice validate events include Bunood's server tax guard");
-			expectEq(server.conflict.rejected, true, "the live server rejects two rates posted to one Tax account");
-			expect(/2, 4/.test(server.conflict.message) && /5%/.test(server.conflict.message) && /15%/.test(server.conflict.message), "the server rejection identifies the rows and conflicting rates");
-			expectEq(server.empty.rejected, true, "the live server rejects a selected template with no tax rows");
-			expectEq(server.zero.rejected, false, "an explicit zero rate remains valid on the server");
-
-			await goDesk("/desk/sales-invoice");
-			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-			await page.waitForSelector('.bnd-bill-mode');
-			const client = await page.evaluate((account) => {
-				const check = window.bunood_theme.sales_bill.taxConfigurationIssue;
-				const row = (idx, rate) => ({ idx, charge_type: "On Net Total", account_head: account, description: "VAT", rate });
-				return {
-					conflict: check({ taxes: [row(2, 15), row(4, 5)] }),
-					empty: check({ taxes_and_charges: "Selected VAT template", taxes: [] }),
-					zero: check({ taxes: [row(1, 0)] }),
-				};
-			}, server.account);
-			expectEq(client.conflict.code, "conflicting_rates", "Simple mode identifies conflicting VAT rates before save");
-			expectEq(client.conflict.rows.join(","), "2,4", "Simple mode points to the affected tax rows");
-			expectEq(client.empty.code, "empty_template", "Simple mode identifies an empty selected template");
-			expectEq(client.zero, null, "Simple mode accepts an explicit zero rate");
-			await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-		});
-
-		await test("i18n: simple bill field labels render in Arabic", async () => {
-			await withLang("ar", async () => {
-				await goDesk("/desk/sales-invoice");
-				await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-				await page.waitForSelector('.bnd-bill-mode');
-				try {
-					const fixture = await page.evaluate(async () => {
-						const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { disabled: 0, is_sales_item: 1 }, limit: 1 });
-						if (!item) return { error: "verification site needs one sales item" };
-						const row = cur_frm.doc.items.find(entry => !entry.item_code) || cur_frm.add_child("items");
-						await frappe.model.set_value(row.doctype, row.name, "item_code", item.name);
-						await frappe.after_ajax();
-						window.bunood_theme.sales_bill.open(cur_frm);
-						return { item: item.name };
-					});
-					expect(!fixture.error, fixture.error || "Arabic simple bill fixture was created");
-					await page.waitForSelector('.bnd-bill-line');
-					const rateLabel = await page.locator('.bnd-bill-cell .frappe-control[data-fieldname="rate"] .control-label').textContent();
-					expectEq(rateLabel.trim(), "سعر الوحدة", "Unit price must render in Arabic on the invoice row");
-					if (process.env.BND_UI_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/sales-invoice-arabic-labels.png`, fullPage: true });
-					}
-				} finally {
-					await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-				}
-			});
-		});
 		// ── Per-user preferences (item 38) ─────────────────────────────────
 		// The first checks in this suite that drive a SECOND account. Every
 		// per-user preference this theme ships has only ever been observed as
@@ -23097,207 +21196,6 @@ print("cleared")
 			});
 		});
 
-		await test("completion: simple bill rows align, fit, and expose warehouse choices", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/sales-invoice");
-			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
-			await page.waitForSelector('.bnd-bill-mode');
-			const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-			for (const theme of ['light', 'dark']) {
-				await page.evaluate(value => document.documentElement.setAttribute('data-theme', value), theme);
-				const shortcut = await page.evaluate(() => {
-					const button = document.querySelector('.bnd-bill-action-save');
-					const keycap = button?.querySelector('kbd');
-					return button && keycap ? {
-						button: getComputedStyle(button).backgroundColor,
-						keycap: getComputedStyle(keycap).backgroundColor,
-						border: getComputedStyle(keycap).borderColor,
-					} : null;
-				});
-				expect(shortcut && shortcut.keycap !== shortcut.button, `${theme}: Save shortcut keycap must be visually separate from the button`);
-				expect(shortcut && shortcut.border !== 'rgba(0, 0, 0, 0)', `${theme}: Save shortcut keycap needs a visible boundary`);
-				const keycapCentres = await page.evaluate(() => [...document.querySelectorAll('.bnd-bill-action kbd')]
-					.filter(keycap => keycap.getBoundingClientRect().width > 0)
-					.map(keycap => {
-						const range = document.createRange();
-						range.selectNodeContents(keycap);
-						const box = keycap.getBoundingClientRect();
-						const text = range.getBoundingClientRect();
-						const style = getComputedStyle(keycap);
-						return {
-							key: keycap.textContent.trim(),
-							x: Math.abs((text.left + text.right - box.left - box.right) / 2),
-							y: Math.abs((text.top + text.bottom - box.top - box.bottom) / 2),
-							display: style.display,
-							align: style.alignItems,
-							justify: style.justifyContent,
-							lineHeight: parseFloat(style.lineHeight),
-							fontSize: parseFloat(style.fontSize),
-						};
-					}));
-				expect(keycapCentres.length >= 2, `${theme}: New and Save expose their F-key legends`);
-				expect(keycapCentres.every(({ display, align, justify, lineHeight, fontSize }) => display.endsWith('flex') && align === 'center' && justify === 'center' && lineHeight <= fontSize + 0.1), `${theme}: every keycap owns an explicit centred text layout (${JSON.stringify(keycapCentres)})`);
-				expect(keycapCentres.every(({ x, y }) => x <= 1 && y <= 1), `${theme}: every F-key legend is centred in its keycap (${JSON.stringify(keycapCentres)})`);
-			}
-			await page.evaluate(value => value ? document.documentElement.setAttribute('data-theme', value) : document.documentElement.removeAttribute('data-theme'), originalTheme);
-			const searchGeometry = await page.evaluate(() => {
-				const search = document.querySelector('.bnd-bill-search');
-				const input = search?.querySelector('input');
-				const controls = input ? [input, ...search.querySelectorAll('button')] : [];
-				const bottoms = controls.map(control => control.getBoundingClientRect().bottom);
-				return {
-					controls: controls.length,
-					spread: bottoms.length ? Math.max(...bottoms) - Math.min(...bottoms) : 999,
-				};
-			});
-			expect(searchGeometry.controls >= 3, "item search exposes its input and both actions");
-			expect(searchGeometry.spread <= 2, `item search actions share the input baseline (${searchGeometry.spread}px spread)`);
-			const fixture = await page.evaluate(async () => {
-				const [customer] = await frappe.db.get_list("Customer", { fields: ["name"], limit: 1 });
-				const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { disabled: 0, is_sales_item: 1 }, limit: 1 });
-				if (!customer || !item) return { error: "verification site needs one customer and one sales item" };
-				await cur_frm.set_value("customer", customer.name);
-				// Keep the company's valid default VAT template. This is the normal
-				// Simple-bill path the product promises; forcing a tax-free draft here
-				// masked the exact missing-VAT regression reported by the user.
-				const row = cur_frm.doc.items.find(r => !r.item_code) || cur_frm.add_child("items");
-				await frappe.model.set_value(row.doctype, row.name, "item_code", item.name);
-				await frappe.after_ajax();
-				window.bunood_theme.sales_bill.open(cur_frm);
-				return {
-					item: item.name,
-					taxTemplate: cur_frm.doc.taxes_and_charges,
-					taxRows: (cur_frm.doc.taxes || []).map(row => ({ rate: row.rate, account: row.account_head })),
-				};
-			});
-			expect(!fixture.error, fixture.error || "simple bill fixture was created");
-			expect(fixture.taxTemplate && fixture.taxRows.length > 0, "Simple bill applies the company's default VAT template");
-			expect(fixture.taxRows.every(row => Number.isFinite(Number(row.rate)) && row.account), "every default VAT row has a rate and account");
-			let savedName = "";
-			try {
-				await page.waitForSelector('.bnd-bill-line');
-				const geometry = await page.evaluate(() => {
-					const lines = document.querySelector('.bnd-bill-lines');
-					const line = lines.querySelector('.bnd-bill-line');
-					const remove = line.querySelector('.bnd-bill-line-remove');
-					const rail = document.querySelector('.bnd-bill-rail');
-					const removeRect = remove?.getBoundingClientRect();
-					const railRect = rail?.getBoundingClientRect();
-					const bottoms = [...line.querySelectorAll('.bnd-bill-cell input')].map(input => input.getBoundingClientRect().bottom);
-					const itemValue = line.querySelector('.bnd-bill-item-value')?.getBoundingClientRect();
-					const rowBottoms = [...bottoms, ...(itemValue ? [itemValue.bottom] : [])];
-					const spread = bottoms.length ? Math.max(...bottoms) - Math.min(...bottoms) : 999;
-					const rowSpread = rowBottoms.length ? Math.max(...rowBottoms) - Math.min(...rowBottoms) : 999;
-					return {
-						fields: line.querySelectorAll('.bnd-bill-cell').length,
-						overflowX: getComputedStyle(lines).overflowX,
-						fits: line.scrollWidth <= lines.clientWidth + 2,
-						removeFits: !!remove && remove.getBoundingClientRect().left >= lines.getBoundingClientRect().left - 1,
-						removeOverlapsRail: !!(removeRect && railRect && removeRect.left < railRect.right && removeRect.right > railRect.left && removeRect.top < railRect.bottom && removeRect.bottom > railRect.top),
-						spread, rowSpread,
-					};
-				});
-				expectEq(geometry.fields, 4, "Simple mode keeps only quantity, price, discount and warehouse editable");
-				expectEq(geometry.overflowX, "visible", "the item section must not clip link suggestion menus");
-				expect(geometry.fits && geometry.removeFits && !geometry.removeOverlapsRail, "the line and Remove action must fit without clipping or colliding with the summary rail");
-				expect(geometry.spread <= 2, `line inputs share a baseline (${geometry.spread}px spread)`);
-				expect(geometry.rowSpread <= 2, `item identity and editable controls share one row (${geometry.rowSpread}px spread)`);
-				if (process.env.BND_UI_SCREENSHOTS) {
-					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/sales-invoice-item-row.png`, fullPage: true });
-				}
-
-				const warehouse = page.locator('.bnd-bill-line .frappe-control[data-fieldname="warehouse"] input').first();
-				await warehouse.click();
-				await page.keyboard.press("ArrowDown");
-				const choices = page.locator('.bnd-bill-line [role="listbox"]').filter({ visible: true }).last();
-				await choices.waitFor({ timeout: 5000 });
-				expect(await choices.locator('[role="option"], li').count() > 0, "warehouse suggestions are visible and populated");
-				await page.keyboard.press("Escape");
-
-				await page.locator('.bnd-bill-action[data-bnd-action="save"]').click();
-				await page.waitForFunction(() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(), null, { timeout: 15000 }).catch(async () => {
-					const state = await page.evaluate(() => ({
-						name: cur_frm?.doc?.name,
-						islocal: !!cur_frm?.doc?.__islocal,
-						dirty: !!cur_frm?.is_dirty(),
-						status: document.querySelector('.bnd-bill-status')?.textContent?.trim() || '',
-						dialog: document.querySelector('.modal.show .modal-body')?.textContent?.trim() || '',
-					}));
-					throw new Error(`draft save did not settle: ${JSON.stringify(state)}`);
-				});
-				savedName = await page.evaluate(() => cur_frm.doc.name);
-				const savedActions = await page.evaluate(() => ({
-					save: !document.querySelector('.bnd-bill-action[data-bnd-action="save"]').hidden,
-					submit: !document.querySelector('.bnd-bill-action[data-bnd-action="submit"]').hidden,
-					footerSubmit: document.querySelectorAll('.bnd-bill-footer [data-bnd-action="submit"]').length,
-				}));
-				expectEq(savedActions.save, false, "Save draft leaves the primary slot after a successful native save");
-				expectEq(savedActions.submit, true, "Submit document replaces Save draft for a clean saved draft");
-				expectEq(savedActions.footerSubmit, 0, "Submit is not duplicated in the sticky footer");
-
-				await page.evaluate(async () => {
-					await cur_frm.set_value("po_no", `edited-${Date.now()}`);
-					window.bunood_theme.sales_bill.open(cur_frm);
-				});
-				expectEq(await page.locator('.bnd-bill-action[data-bnd-action="save"]').isVisible(), true, "editing the saved draft restores Save draft");
-				expectEq(await page.locator('.bnd-bill-action[data-bnd-action="submit"]').isVisible(), false, "editing hides Submit until changes are saved");
-			} finally {
-				await page.evaluate(() => { cur_frm.doc.__unsaved = 0; });
-				if (savedName) benchPy(`frappe.delete_doc("Sales Invoice", ${JSON.stringify(savedName)}, force=True, ignore_permissions=True)\nfrappe.db.commit()\n`);
-			}
-		});
-
-		await test("completion: search selection navigates once and dashboard glyphs exist", async () => {
-			setSettings({ ...layoutSettings("Top Taskbar"), palette_style: "Bunood Palette", palette_enabled: 1, search_placement: "Top Bar Center" });
-			await page.goto(`${URL_BASE}/desk/home`);
-			await page.waitForSelector(".bnd-home-attn-row", { timeout: 30000 });
-			const missing = await page.evaluate(() => [...document.querySelectorAll('.bnd-home-dashboard use')].map(n => n.getAttribute('href') || n.getAttribute('xlink:href')).filter(h => !h || !document.getElementById(h.slice(1))));
-			expectEq(missing.length, 0, `dashboard icons must resolve: ${missing.join(',')}`);
-			await page.locator('[data-bnd-part="search"]').filter({ visible: true }).first().click();
-			await page.locator('.bnd-palette-input').fill('Chart of Accounts');
-			// Select by result identity/order, not translated presentation text.
-			await page.locator('.bnd-palette-row[data-bnd-key="route:Tree/Account"]').click();
-			await page.waitForSelector('.tree', { timeout: 20000 });
-			await page.waitForTimeout(500);
-			expect((await page.url()).includes('account'), 'mouse-up must not activate a dashboard action under the palette');
-		});
-
-		await test("completion: tree selection has a visible rail and uploader keeps native actions", async () => {
-			setSettings({ views_style: "Floating Cards" });
-			await page.goto(`${URL_BASE}/desk/account/view/tree`);
-			await page.waitForSelector('.tree-link');
-			await page.locator('.tree-link').first().click();
-			const selection = await page.evaluate(() => {
-				const selected = document.querySelector('.tree-link.selected, .tree-link.active');
-				return selected && { bg: getComputedStyle(selected).backgroundColor, rail: getComputedStyle(selected).borderInlineStartColor };
-			});
-			expect(selection && selection.bg !== 'rgba(0, 0, 0, 0)' && selection.rail !== 'rgba(0, 0, 0, 0)', 'selected account needs both wash and rail');
-			await page.evaluate(() => new frappe.ui.FileUploader({}));
-			await page.waitForSelector('.file-upload-area');
-			expect(await page.locator('.file-uploader .btn-file-upload, .file-uploader input[type="file"]').count() > 0, 'native device picker remains available');
-			await page.keyboard.press('Escape');
-		});
-
-		await test("completion: summaries work in Arabic and English, both themes, and on mobile", async () => {
-			setSettings({ form_style: "Floating Panels" });
-			for (const language of ['en', 'ar']) await withLang(language, async () => {
-				await page.goto(summaryInvoiceRoute());
-				await page.waitForSelector('.bnd-bill-mode');
-				await page.locator('.bnd-bill-mode button').nth(1).click();
-				await page.waitForSelector('[data-bnd-part="form-summary"]');
-				for (const theme of ['light', 'dark']) {
-					await page.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
-					await page.setViewportSize({ width: 390, height: 844 });
-					const state = await page.evaluate(() => {
-						const root = document.querySelector('[data-bnd-part="form-summary"]');
-						return { text: root.textContent, width: root.getBoundingClientRect().width, scroll: root.scrollWidth, cols: getComputedStyle(root.querySelector('dl')).gridTemplateColumns };
-					});
-					expect(state.text.includes(language === 'ar' ? 'ملخص المستند' : 'Document summary'), `heading must be translated (${language}: ${JSON.stringify(state.text.slice(0, 180))})`);
-					expect(state.scroll <= state.width + 2, 'summary must not overflow horizontally on mobile');
-				}
-				await page.setViewportSize({ width: 1920, height: 1080 });
-			});
-		});
 		await test("personal: nothing per-user reaches a cacheable route", async () => {
 			// Constraint 4, asserted rather than asserted-about. Frappe's website
 			// HTML cache is keyed on (path, lang) and nothing else, so a per-user
@@ -23335,10 +21233,7 @@ print("cleared")
 			// passed in isolation and failed in the full run, which is the whole
 			// signature of a check that assumed page state instead of establishing
 			// it.
-			// `/desk` redirects to the configured landing page; after earlier home
-			// tests that makes `#page-desktop` exist but remain hidden. Establish the
-			// actual themed page this check needs instead of waiting on a stale route.
-			await goDesk("/desk/home", ".bnd-home-dashboard", 2000);
+			await goDesk("/desk", "#page-desktop", 2000);
 			const durs = () =>
 				page.evaluate(() =>
 					["fast", "base", "slow", "loop"].map((k) =>

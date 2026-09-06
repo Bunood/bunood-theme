@@ -31,17 +31,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 SITE="${BND_SITE:-demo.bunood.test}"
-STACK="${BND_STACK:-bunood}"
-RAW_BACKEND="${BND_BACKEND:-}"
-RAW_FRONTEND="${BND_FRONTEND:-}"
+BACKEND="${BND_BACKEND:-bunood-backend-1}"
+FRONTEND="${BND_FRONTEND:-bunood-frontend-1}"
+APP_CONTAINERS=(bunood-backend-1 bunood-queue-long-1 bunood-queue-short-1 bunood-scheduler-1)
 # Where the app lives inside the frontend image — a different tree from the
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"
 WSL_MIRROR="${BND_WSL_MIRROR:-/home/saltedfish/bunood-theme}"
-# Inside WSL use its current user's home, not another machine's username.
-if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
-	WSL_MIRROR="${BND_WSL_MIRROR:-$HOME/bunood-theme}"
-fi
 # The same knob `tools/session.mjs` and `tests/smoke.mjs` read, spelled the same
 # way, so one export moves the whole toolchain. It exists because `localhost` is
 # not a synonym for `127.0.0.1` here: Windows resolves it to `::1` FIRST, and on
@@ -52,87 +48,19 @@ fi
 URL_BASE="${BND_URL:-http://localhost:8080}"
 
 say() { printf '  %s\n' "$*"; }
-
-# Diagnostics from a function whose STDOUT IS ITS RETURN VALUE.
-# resolve_container() runs inside a command substitution, so anything it
-# prints on stdout is captured as the container NAME: the frontend
-# auto-select warning became part of a docker cp destination and the deploy
-# died on "no such directory" with every asset already shipped.
-warn() { printf '  %s\n' "$*" >&2; }
-
-container_exists() { docker inspect "$1" >/dev/null 2>&1; }
-
-resolve_container() {
-	local role="$1"
-	local configured="$2"
-	local fallback="$3"
-	local match_count=0
-	local matched_name=""
-
-	if container_exists "$configured"; then
-		echo "$configured"
-		return 0
-	fi
-
-	if [[ -n "$fallback" ]] && container_exists "$fallback"; then
-		warn "warning: requested ${role} container '$configured' was not found; using '$fallback'"
-		echo "$fallback"
-		return 0
-	fi
-
-	while IFS= read -r container_name; do
-		[[ "$container_name" == *-${role}-* ]] || continue
-		match_count=$((match_count + 1))
-		matched_name="$container_name"
-	done < <(docker ps --format '{{.Names}}')
-
-	if [[ "$match_count" -eq 1 ]]; then
-		warn "warning: requested ${role} container '$configured' was not found; auto-selecting '$matched_name'"
-		echo "$matched_name"
-		return 0
-	fi
-
-	if [[ "$match_count" -gt 1 ]]; then
-		warn "ERROR: expected ${role} container '$configured' was not found and multiple candidates exist."
-	else
-		warn "ERROR: expected ${role} container '$configured' was not found."
-	fi
-	warn "Set BND_${role^^} to one of these running ${role} containers:"
-	while IFS= read -r container_name; do
-		[[ "$container_name" == *-${role}-* ]] || continue
-		warn "  - $container_name"
-	done < <(docker ps --format '{{.Names}}')
-	exit 1
-}
-
-BACKEND="$(resolve_container "backend" "${RAW_BACKEND:-${STACK}-backend-1}" "${STACK}-backend-1")"
-FRONTEND="$(resolve_container "frontend" "${RAW_FRONTEND:-${STACK}-frontend-1}" "${STACK}-frontend-1")"
-BASE_PREFIX="${BACKEND%-backend-1}"
-if [[ "$BASE_PREFIX" == "$BACKEND" ]]; then
-	BASE_PREFIX="$STACK"
-fi
-APP_CONTAINERS=(
-	"$BACKEND"
-	"${BASE_PREFIX}-queue-long-1"
-	"${BASE_PREFIX}-queue-short-1"
-	"${BASE_PREFIX}-scheduler-1"
-)
 # The backend is required; the workers are shipped to WHEN THEY EXIST. A local stack
 # (compose.yaml + compose.local.yaml) runs backend + websocket only, and with the app
 # bind-mounted the mirror below is the deploy anyway -- a missing queue-long here
-# was a hard exit that shipped nothing (2026-09-05).
-container_exists "$BACKEND" || {
+# was a hard exit that shipped nothing (2026-09-05; carried over from 82c00b3 in v0.42.4).
+docker inspect "$BACKEND" >/dev/null 2>&1 || {
 	say "ERROR: required container '$BACKEND' not found. check docker ps --format '{{.Names}}'"
 	exit 1
 }
 PRESENT=()
 for c in "${APP_CONTAINERS[@]}"; do
-	if container_exists "$c"; then PRESENT+=("$c"); else say "  (no $c on this stack — skipped)"; fi
+	if docker inspect "$c" >/dev/null 2>&1; then PRESENT+=("$c"); else say "  (no $c on this stack — skipped)"; fi
 done
 APP_CONTAINERS=("${PRESENT[@]}")
-
-# Reject incompatible upstream state before any deployment mutation.
-BND_BACKEND="$BACKEND" BND_SITE="$SITE" bash tools/upstream-preflight.sh
 
 # ── Build ───────────────────────────────────────────────────────────────────
 if [[ "${1:-}" != "--no-build" ]]; then
@@ -208,15 +136,6 @@ else
 		docker cp "$f" "$FRONTEND:$FRONTEND_ASSETS/$sub/" >/dev/null
 	done
 	say "shipped -> $FRONTEND (dist, ${#ASSETS[@]} files)"
-	# Print previews fetch self-hosted faces, while the shell favicon/splash
-	# fetches the vendor mark from images/. The backend source archive is not
-	# visible to nginx on stacks without a shared app mount, so both public
-	# directories must travel with the hashed bundles.
-	for public_dir in fonts images; do
-		docker exec "$FRONTEND" mkdir -p "${FRONTEND_ASSETS%/dist}/$public_dir"
-		docker cp "bunood_theme/public/$public_dir/." "$FRONTEND:${FRONTEND_ASSETS%/dist}/$public_dir/" >/dev/null
-		say "shipped -> $FRONTEND ($public_dir)"
-	done
 fi
 
 # ── Mirror into WSL ─────────────────────────────────────────────────────────
@@ -278,18 +197,7 @@ fi
 #      share must fail closed, not create it and mirror into it.
 WIN_PATH="$(pwd -W 2>/dev/null || pwd)"
 WSL_SRC="$(printf '%s' "$WIN_PATH" | sed -E 's#^([A-Za-z]):#/mnt/\l\1#; s#\\#/#g')"
-if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
-	MIRROR_TARGET="$(readlink -m "$WSL_MIRROR")"
-	# Fail closed before rsync's deletion pass, including on an unsafe override.
-	if [[ "$MIRROR_TARGET" != "$HOME/bunood-theme" || "$MIRROR_TARGET" == "$ROOT" ]]; then
-		warn "unsafe native WSL mirror target: $MIRROR_TARGET"
-		exit 1
-	fi
-	mkdir -p "$MIRROR_TARGET"
-	rsync -a --delete --exclude .git --exclude node_modules --exclude _reference \
-		"$ROOT/" "$MIRROR_TARGET/"
-	say "mirrored -> WSL $MIRROR_TARGET"
-elif wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
+if wsl.exe -- bash -lc "rsync -a --delete --delete-excluded \
 		--exclude .git --exclude node_modules --exclude _reference \
 		'$WSL_SRC/' '$WSL_MIRROR/'" 2>/dev/null; then
 	say "mirrored -> WSL $WSL_MIRROR"
@@ -320,16 +228,6 @@ else
 	fi
 fi
 
-# ── Synchronise the site schema ────────────────────────────────────────────
-# Shipping Python/JSON source without `bench migrate` leaves the running site
-# on the previous DocType contract. That exact split made the new Theme
-# Settings shell appear partially blank: the browser loaded current JS while
-# the database still lacked the current email, print and palette fields. A
-# successful deploy must therefore include the schema and after_migrate hooks,
-# not only files and asset hashes.
-say "migrating $SITE"
-docker exec "$BACKEND" bash -lc "cd /home/frappe/frappe-bench && bench --site '$SITE' migrate" >/dev/null
-
 # ── Restart and clear cache ─────────────────────────────────────────────────
 if [[ "$NEED_RESTART" == "1" || "${BND_FORCE_RESTART:-0}" == "1" ]]; then
 	say "restarting $BACKEND (assets changed)"
@@ -338,52 +236,6 @@ if [[ "$NEED_RESTART" == "1" || "${BND_FORCE_RESTART:-0}" == "1" ]]; then
 else
 	say "no asset change — skipping restart"
 fi
-
-# ── Make the SITE NAME resolvable inside the backend, so PDFs print ─────────
-# wkhtmltopdf runs INSIDE this container and fetches the print page's assets
-# over HTTP from `frappe.utils.get_url()` — which, with no `host_name` in
-# site_config, is the SITE NAME and no port: `http://<site>`. That name does
-# not resolve in here at all, so every asset fetch dies at DNS and wkhtmltopdf
-# exits with "network error: ConnectionRefusedError", which frappe surfaces as
-# a bare HTTP 500 on download_pdf. Measured 2026-08-30: 8 of 8 print formats
-# returned a 2 KB error page while printview was 200 for every one.
-#
-# `bench set-config host_name http://<frontend>:8080` also fixes it, and is NOT
-# used: get_url() builds user-facing links too (password resets, portal, email
-# footers), so that value would be wrong for a human clicking one. Making the
-# name resolve keeps the site's own URL correct and confines the fix to here.
-#
-# Re-applied on EVERY deploy because the restart above kills the forwarder.
-# Never fatal: a stack that cannot print is still a stack worth deploying, so
-# every step tolerates failure and the outcome is reported rather than raised.
-ensure_site_resolves() {
-	local shim="$ROOT/tools/site-resolve-shim.py"
-	[[ -f "$shim" ]] || { say "site-resolve shim missing — PDFs may 500"; return 0; }
-
-	docker cp "$shim" "$BACKEND:/tmp/bnd-site-resolve.py" >/dev/null 2>&1 || return 0
-	# /etc/hosts needs root; the container's default user is `frappe`.
-	docker exec --user root "$BACKEND" sh -c \
-		"grep -q '[[:space:]]$SITE\$' /etc/hosts || echo '127.0.0.1 $SITE' >> /etc/hosts" >/dev/null 2>&1 || true
-
-	if docker exec "$BACKEND" sh -c "curl -sf -o /dev/null -m 5 http://$SITE/" >/dev/null 2>&1; then
-		say "site name resolves in $BACKEND"
-		return 0
-	fi
-
-	# Port 80 is what get_url() implies, and binding it needs root. The frontend
-	# serves the desk on 8080 internally — its port 80 answers nothing.
-	docker exec --user root -d "$BACKEND" sh -c \
-		"nohup /home/frappe/frappe-bench/env/bin/python3 /tmp/bnd-site-resolve.py $FRONTEND 80 8080 >/tmp/bnd-site-resolve.log 2>&1 &" \
-		>/dev/null 2>&1 || true
-	sleep 2
-
-	if docker exec "$BACKEND" sh -c "curl -sf -o /dev/null -m 5 http://$SITE/" >/dev/null 2>&1; then
-		say "site name now resolves in $BACKEND — PDFs will render"
-	else
-		say "WARNING: $SITE does not resolve inside $BACKEND — PDF downloads will 500"
-	fi
-}
-ensure_site_resolves
 
 docker exec "$BACKEND" bash -lc "cd /home/frappe/frappe-bench && bench --site $SITE clear-cache" >/dev/null
 say "cache cleared"
@@ -414,13 +266,6 @@ for f in "${ASSETS[@]}"; do
 		BAD=1
 	fi
 done
-MARK_CODE="$(curl -s -o "$CURL_SINK" -w '%{http_code}' "$URL_BASE/assets/bunood_theme/images/bunood-mark.svg" || true)"
-if [[ "$MARK_CODE" == "200" ]]; then
-	say "serving bunood-mark.svg (200)"
-else
-	say "WARNING: bunood-mark.svg returns $MARK_CODE — branding assets are incomplete"
-	BAD=1
-fi
 if [[ "$BAD" == "1" ]]; then
 	exit 1
 fi

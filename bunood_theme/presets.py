@@ -1125,7 +1125,7 @@ CHROME_DEFAULTS = {
 #: bar below 768px. Search has no toggle — it is the only search on a phone
 #: (Frappe drops its own and Ctrl+K is unreachable on touch), so it is always
 #: there; these three choose what joins it. All on by default: the shipped bar
-#: is Home / Apps / Search / Alerts / You.
+#: is search / apps / alerts / you.
 MOBILE_DEFAULTS = {
     "mobile_inbox": 1,
     "mobile_user": 1,

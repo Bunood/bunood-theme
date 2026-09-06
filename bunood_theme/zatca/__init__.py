@@ -39,9 +39,3 @@ FORMATS = [
         "dir": DIR,
     },
 ]
-
-# The public whitelisted API remains ``bunood_theme.zatca.<method>``. Keeping
-# that stable while the implementation lives inside this package avoids the
-# Python module/package name collision that made every invoice status request
-# resolve this ``__init__`` without finding the old sibling ``zatca.py``.
-from .status import ACCEPTED, SENDABLE, classify_status, get_status, queue_invoice, submit_invoice  # noqa: E402,F401
