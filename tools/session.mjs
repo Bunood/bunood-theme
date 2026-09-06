@@ -150,7 +150,10 @@ export async function openDesk({ width = 1440, height = 900, user = "Administrat
 	const browser = await chromium.launch();
 	const context = await browser.newContext({ viewport: { width, height } });
 	await context.addCookies([
-		{ name: "sid", value: sid, domain: "localhost", path: "/" },
+		// The cookie must belong to the host BND_URL names: a "localhost" cookie is never
+		// sent to 127.0.0.1, so every desk opened that way landed on /login and timed out
+		// (tools/shots.mjs, 2026-09-06). The suite derives it the same way (smoke.mjs).
+		{ name: "sid", value: sid, domain: new URL(URL_BASE).hostname, path: "/" },
 	]);
 	const page = await context.newPage();
 
