@@ -46,6 +46,19 @@ refused. That is the 2026-08-08 defect, six unrelated checks red.
 
 import frappe
 
+
+def _stored(field):
+    """The value tabSingles holds, whether or not the doctype still has the field --
+    `get_single_value` raises for a field the doctype has lost (CLAUDE.md)."""
+    # Raw SQL, as v0_42_0.rename_pane_state does: `frappe.db.get_value` orders by `creation`,
+    # and tabSingles has no such column -- measured on production, 2026-09-06.
+    rows = frappe.db.sql("select value from tabSingles where doctype=%s and field=%s", ("Theme Settings", field))
+    return ((rows[0][0] if rows else "") or "").strip()
+
+
+def _has(field):
+    return frappe.get_meta("Theme Settings").has_field(field)
+
 #: field -> {stored value: what it becomes}
 RETUNE = {
     "sidebar_section_style": {"Mini-Cards": "Cards", "Accordion Cards": "Cards"},
@@ -60,22 +73,22 @@ def execute() -> None:
     # for itself chose to have no button. Only a tenant the old code was drawing
     # an edge button for gets one back.
     was_button_only = (
-        frappe.db.get_single_value("Theme Settings", "sidebar_rail_trigger") or ""
+        _stored("sidebar_rail_trigger")
     ).strip() == "Button Only"
 
     moved = False
     for field, table in RETUNE.items():
-        current = (frappe.db.get_single_value("Theme Settings", field) or "").strip()
+        current = _stored(field)
         landing = table.get(current)
-        if landing:
+        if landing and _has(field):
             frappe.db.set_single_value("Theme Settings", field, landing)
             moved = True
 
     if was_button_only:
         # Read AFTER the loop, so a site that also had to move Top or Bottom is
         # judged on where it landed rather than on where it started.
-        button = (frappe.db.get_single_value("Theme Settings", "sidebar_rail_button") or "").strip()
-        if button in ("", "None"):
+        button = _stored("sidebar_rail_button")
+        if button in ("", "None") and _has("sidebar_rail_button"):
             frappe.db.set_single_value("Theme Settings", "sidebar_rail_button", "Edge")
             moved = True
 

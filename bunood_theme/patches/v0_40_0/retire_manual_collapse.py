@@ -45,12 +45,27 @@ WHY BOTH NEED A PATCH, AND IT IS THE SAME REASON TWICE
 import frappe
 
 
+def _stored(field):
+    """The value tabSingles holds, whether or not the doctype still has the field --
+    `get_single_value` raises for a field the doctype has lost (CLAUDE.md)."""
+    # Raw SQL, as v0_42_0.rename_pane_state does: `frappe.db.get_value` orders by `creation`,
+    # and tabSingles has no such column -- measured on production, 2026-09-06.
+    rows = frappe.db.sql("select value from tabSingles where doctype=%s and field=%s", ("Theme Settings", field))
+    return ((rows[0][0] if rows else "") or "").strip()
+
+
+def _has(field):
+    return frappe.get_meta("Theme Settings").has_field(field)
+
+
 def execute() -> None:
     moved = False
 
     # The retired MODE. It has to move on every site that holds it, because the
     # value is no longer in the Select's options.
-    rail = (frappe.db.get_single_value("Theme Settings", "sidebar_menu_rail") or "").strip()
+    # tabSingles, not get_single_value: v0_42_0 renames this field away, and a site
+    # crossing both items in one migrate has already lost it from the meta here.
+    rail = _stored("sidebar_menu_rail")
     if rail == "Manual Collapse":
         frappe.db.set_single_value("Theme Settings", "sidebar_menu_rail", "Always Expanded")
         moved = True
@@ -58,8 +73,8 @@ def execute() -> None:
     # The moved DEFAULT. Only a site still sitting on the old one — anything
     # else is a choice, and a migration that overwrote it would be doing the
     # thing this file exists to avoid.
-    icons = (frappe.db.get_single_value("Theme Settings", "icon_style") or "").strip()
-    if icons == "Colored Chips":
+    icons = _stored("icon_style")
+    if icons == "Colored Chips" and _has("icon_style"):
         frappe.db.set_single_value("Theme Settings", "icon_style", "Filled Color")
         moved = True
 

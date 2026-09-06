@@ -22,6 +22,27 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.42.3] — 2026-09-06 — A migration that only an old site could fail
+
+**Found on production, not on the dev bench.** `demo.hobbiverse.com` upgraded from theme
+v0.39.1 to v0.42.2 in one `bench migrate`, so it ran every item-40 patch AFTER the doctype
+JSON had already been synced to item 42's shape. `v0_40_0.retire_manual_collapse` read
+`sidebar_menu_rail` with `frappe.db.get_single_value`, which RAISES for a field the doctype
+has lost — exactly the trap CLAUDE.md records — and the migration aborted there, leaving
+five later patches and the after-migrate hooks unrun. The dev site never saw it: item 40's
+patches had run there while the field still existed.
+
+### Fixed
+
+- `v0_40_0.retire_manual_collapse` and `v0_40_0.retune_pane_vocabulary` read the stored
+  value through `tabSingles` with raw SQL — as `v0_42_0.rename_pane_state` already did —
+  and write only fields the meta still has. Raw SQL, not `frappe.db.get_value("Singles", …)`:
+  that helper orders by `creation`, and `tabSingles` has no such column (measured on
+  production, the second attempt).
+- Production was repaired in place first (the two files copied into the running backend,
+  `bench --site demo.hobbiverse.com migrate` re-run to completion, the Patch Log recording
+  them), then this release carries the fix into the image for every future site.
+
 ## [0.42.2] — 2026-09-06 — The upstream pins move to the latest bench, and the pane keeps its way out
 
 **The rollout the user asked for on 2026-09-05:** re-pin to the latest upstream, push,
