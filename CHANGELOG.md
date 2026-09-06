@@ -54,6 +54,12 @@ stay in main's ancestry, so nobody's clone diverges, and the branch keeps the ti
 
 ### Production, after this deploy
 
+- Deployed 2026-09-06 ~22:25 UTC as `ghcr.io/bunood/bunood-bench:5bc45a85c36c1e9d9ccbe98306bd2104e2da3877`
+  (Bunood/bunood_erpnext PR #22, merge `5bc45a8`): the `migrate` one-shot exited 0 with the after-migrate
+  hooks run and no traceback, theme 0.42.4 / frappe 16.33.0 / erpnext 16.34.1, bundle `bunood.6ac95346.js`.
+  Screenshotted in Open, Rail and Hidden and read: the v0.42.1 look, rendered right-to-left because the
+  Administrator account had been switched to Arabic from a browser an hour before the deploy (four
+  `language` flips in the User's version log, from the overhaul's language button) — not a theme change.
 - The data the overhaul's patches wrote stays: the hoisted Home sidebar, the seeded form
   defaults and the Sales Invoice field order (`Property Setter` rows, the field order one
   dating from 2026-08-17, i.e. the v0.39.x era). Reverting code does not revert data; the
