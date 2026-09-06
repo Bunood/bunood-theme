@@ -22,6 +22,70 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.42.2] — 2026-09-06 — The upstream pins move to the latest bench, and the pane keeps its way out
+
+**The rollout the user asked for on 2026-09-05:** re-pin to the latest upstream, push,
+bring the real-estate app to its latest release, deploy to the server and make the server
+follow the pins. Everything below was verified on a staging run of the production image
+before the production deploy, per `docs/UPSTREAM-UPGRADES.md`.
+
+### Changed — `upstream-pins.json` is collected from the image production runs
+
+The pins are re-collected (`npm run upstream -- --repin`) from a site carrying production's
+tenant app set on the image built from `Bunood/bunood_erpnext` `fe81039`:
+
+| app | pinned before | now |
+|---|---|---|
+| frappe | 16.31.0 | **16.33.0** (`version-16` at build time) |
+| erpnext | 16.33.0 | **16.34.1** (`apps.json` pins the release tag; `version-16` floated) |
+| hrms | — | 16.17.1 |
+| crm | — | 1.79.0 |
+| helpdesk | — | 1.27.0 |
+| telephony | — | 0.0.1 (`develop`; helpdesk's `required_apps`) |
+| payments | — | 0.0.1 |
+| ksa_compliance | 0.61.7 | 0.61.7 |
+| bunood_real_estate | — | **1.4.0** (`Bunood/bunood_real_estate`, the successor of the public `bunood_realestate`; already pinned in production's `apps.json`) |
+| bunood_setup | 0.7.1 | not on the tenant (baked into the image, not in `TENANT_APPS`) |
+
+The previous pins named the collaborator's own bench (frappe 16.31 / erpnext 16.33 / setup
+0.7.1) and no other app, so the preflight rejected every bench that was not that one — this
+dev stack included — and the migration hook would have rejected production on the first
+deploy of the merged theme. Pins now describe the tenant as it is deployed.
+
+**What moved upstream between the two pins, read as the gate asks:** eleven frappe files the
+theme reads or forks — `www/printview.html`, `utils/print_format.py`, `utils/pdf.py`,
+`public/scss/desk/report.scss`, `views/reports/query_report.js`, `model/model.js`,
+`model/meta.js`, `form/grid_row.js`, `form/controls/link.js`, `form/controls/base_control.js`,
+`printing/page/print/print.js` — and two erpnext files, `public/js/utils/party.js` and
+`public/js/controllers/transaction.js`. No pinned workspace content or field order moved.
+Nothing was ported: the staging run — both local sites migrated under the new gate, the
+theme deployed through its own preflight, the desk booting clean, and the full suite on the
+production-shaped site (still running when this was cut, at the user's call to deploy; its
+tally is recorded in HANDOVER) — is the evidence that the print, report and form kits still
+hold against those files.
+
+### Fixed — production's tenant install of Helpdesk
+
+`install-app helpdesk` failed on every deploy with `No module named 'telephony'`: helpdesk
+v1.27.0 declares `required_apps = ["telephony"]` and the image did not carry it. The app is
+baked in now (`frappe/telephony`, `develop` — upstream ships no tags), so the tenant gets
+Helpdesk. (Infra change in `Bunood/bunood_erpnext` PR #19.)
+
+### Fixed — after the overhaul merge
+
+- The pane's brand-row **hide button** came back as a positioned sibling of the brand row
+  (a `<button>` in the overhaul cannot hold one); the rail hides it, teardown removes it.
+- `tools/deploy.sh` no longer exits when the queue and scheduler containers are absent: a
+  local stack runs backend + websocket only and the bind mount is the deploy. Workers are
+  shipped to when present, skipped with a note otherwise; the backend stays required.
+
+### Production note
+
+`demo.hobbiverse.com` had been down since 2026-09-04 09:58: a Coolify deploy removed the old
+containers and its nine parallel pulls of the same image raced (`lease does not exist`).
+Restarted by hand on 2026-09-06 from Coolify's generated compose after pulling the images once;
+the account is in HANDOVER.
+
 ## [0.42.1] — 2026-09-04 — The pane, seen (item 42, patch)
 
 **Four defects the user found by looking, on a build the suite had passed 478/478.**
