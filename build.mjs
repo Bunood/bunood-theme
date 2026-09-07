@@ -2107,7 +2107,12 @@ async function buildEntry({ key, src, pyid }) {
  * scripts tiny, and a copy step has zero dependencies to break. If the JS ever
  * grows enough to want imports, add esbuild THEN, not preemptively.
  */
-const JS_ENTRIES = [{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" }];
+const JS_ENTRIES = [
+	{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" },
+	// Loaded only by _auth_context. It keeps the public login bilingual without
+	// shipping the desk bundle or Frappe's full website navbar to that page.
+	{ key: "bunood-auth", src: "bunood_auth.js", pyid: "AUTH_JS" },
+];
 
 // Keep the optional invoice controller separate, but cover it with the same
 // identity, focus, translation, immutable hash and payload gates as desk JS.

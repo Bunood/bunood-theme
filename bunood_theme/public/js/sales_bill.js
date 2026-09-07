@@ -7,19 +7,18 @@
 	"use strict";
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const instances = new WeakMap();
+	let errorId = 0;
 	const PROFILES = {
 		"Sales Invoice": {
-			party: "customer", partyDoctype: "Customer", title: "Sales bill", question: "Who are you billing?",
-			itemQuestion: "What are you selling?", priceList: "selling_price_list",
-			lineFields: ["qty", "rate", "discount_percentage", "warehouse"],
+			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
+			lineFields: ["qty", "price_list_rate", "discount_percentage", "rate", "warehouse"],
 			context: ["company", "posting_date", "due_date", "currency", "selling_price_list"],
 			options: ["posting_date", "due_date", "update_stock", "set_warehouse", "currency", "selling_price_list", "payment_terms_template", "po_no"],
 			mapped: ["sales_order", "delivery_note", "so_detail", "dn_detail"],
 		},
 		"Purchase Invoice": {
-			party: "supplier", partyDoctype: "Supplier", title: "Purchase bill", question: "Who are you buying from?",
-			itemQuestion: "What are you buying?", priceList: "buying_price_list",
-			lineFields: ["qty", "rate", "discount_percentage", "warehouse"],
+			party: "supplier", partyDoctype: "Supplier", title: "Purchase bill", priceList: "buying_price_list",
+			lineFields: ["qty", "price_list_rate", "discount_percentage", "rate", "warehouse"],
 			context: ["company", "posting_date", "due_date", "currency", "buying_price_list"],
 			options: ["bill_no", "bill_date", "posting_date", "due_date", "update_stock", "set_warehouse", "currency", "buying_price_list", "payment_terms_template"],
 			mapped: ["purchase_order", "purchase_receipt", "po_detail", "pr_detail"],
@@ -30,8 +29,9 @@
 	// English on the Arabic workbench while the catalogue gate stayed green.
 	const LINE_LABELS = {
 		qty: () => __("Quantity"),
-		rate: () => __("Unit price"),
-		discount_percentage: () => __("Discount"),
+		price_list_rate: () => __("Price before discount"),
+		rate: () => __("Net unit price"),
+		discount_percentage: () => __("Discount (%)"),
 		warehouse: () => __("Warehouse"),
 	};
 	const profileFor = frm => PROFILES[frm?.doctype];
@@ -41,12 +41,40 @@
 		return { draft, savedDraft, showSave: draft && !savedDraft, showSubmit: savedDraft };
 	};
 	const fieldStatus = (frm, name) => frm.fields_dict[name]?.get_status?.() || "None";
+	function rowFieldStatus(frm, row, name) {
+		const grid = frm.fields_dict.items.grid;
+		if (!grid.is_editable()) return "Read";
+		const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
+		return df ? frappe.perm.get_field_display_status(df, row, frm.perm) : "None";
+	}
 	const canAdd = frm => {
 		const grid = frm.fields_dict.items.grid;
 		return grid.is_editable() && !grid.cannot_add_rows && !grid.df.cannot_add_rows;
 	};
 	const canRemove = frm => frm.fields_dict.items.grid.is_editable() && !frm.fields_dict.items.grid.df.cannot_delete_rows;
 	function totalField(frm) { return Number(frm.doc.disable_rounded_total) || !frm.fields_dict.rounded_total ? "grand_total" : "rounded_total"; }
+	async function setLineValue(doc, name, value, nativeSet, baseStatus = () => "None") {
+		if ((name === "qty" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) ||
+			(["rate", "price_list_rate"].includes(name) && (!Number.isFinite(Number(value)) || Number(value) < 0))) {
+			throw Error(__("Use a quantity above zero and a price of zero or more."));
+		}
+		// ERPNext percentage discounts require a positive price_list_rate.
+		if (name === "discount_percentage" && Number(value) !== 0 &&
+			(!Number.isFinite(Number(doc.price_list_rate)) || Number(doc.price_list_rate) <= 0)) {
+			throw Error(baseStatus() === "Write" ? __("Enter a price before discount first.") :
+				__("Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."));
+		}
+		return nativeSet(value);
+	}
+	function makePaymentEntry(frm) {
+		if (Number(frm.doc.docstatus) !== 1) throw Error(__("Submit the document before recording payment."));
+		if (typeof frm.cscript?.make_payment_entry !== "function") {
+			throw Error(__("Open the advanced form to create this payment."));
+		}
+		// Preserve the native dt/dn mapping, early-payment discount prompt and
+		// Payment Entry/Journal Entry selection instead of using a generic mapper.
+		return frm.cscript.make_payment_entry();
+	}
 	function hasTaxConfiguration(doc) {
 		return !!(doc?.taxes_and_charges || (doc?.taxes || []).length);
 	}
@@ -147,7 +175,7 @@
 	}
 	class BillWorkbench {
 		constructor(frm) {
-			this.frm = frm; this.doc = frm.doc; this.profile = profileFor(frm); this.controls = []; this.closed = false; this.simple = true; this.invalid = new Map(); this.pending = new Map(); this.rowViews = new Map(); this.editTimers = new Map();
+			this.frm = frm; this.doc = frm.doc; this.docname = frm.doc.name; this.profile = profileFor(frm); this.controls = []; this.closed = false; this.simple = true; this.invalid = new Map(); this.pending = new Map(); this.rowViews = new Map(); this.editTimers = new Map();
 			this.queue = new SerialChanges(() => this.active(), () => this.busy());
 			this.native = frm.$wrapper?.find(".form-layout").first()?.[0];
 			this.host = this.native?.parentElement || frm.$wrapper?.[0] || frm.wrapper;
@@ -155,15 +183,31 @@
 			if (this.native?.parentElement) this.native.before(this.root); else this.host?.prepend(this.root);
 			this.root.setAttribute("data-bnd-part", "sales-bill");
 			this.root.setAttribute("aria-label", __(this.profile.title));
-			const mode = node("nav", "bnd-bill-mode"); this.root.before(mode); mode.setAttribute("aria-label", __("Form mode"));
+			const mode = this.mode = node("nav", "bnd-bill-mode"); this.root.before(mode); mode.setAttribute("aria-label", __("Form mode"));
 			this.simpleButton = button(__("Simple"), mode, () => this.setMode(true), true);
 			this.advancedButton = button(__("Advanced"), mode, () => this.fullInvoice());
-			const toolbar = node("div", "bnd-bill-toolbar", null, this.root); toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", __("Document actions"));
+			const intro = node("header", "bnd-bill-intro", null, this.root);
+			const identity = node("div", "bnd-bill-identity", null, intro);
+			node("span", "bnd-bill-seal", "B", identity).setAttribute("aria-hidden", "true");
+			const heading = node("div", "", null, identity);
+			node("span", "bnd-bill-brand", "Bunood", heading);
+			node("h2", "", __(this.profile.title), heading);
+			this.documentState = node("p", "bnd-bill-document-state", "", heading);
+			const toolbar = node("div", "bnd-bill-toolbar", null, intro); toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", __("Document actions"));
 			const commitActions = node("div", "bnd-bill-action-group bnd-bill-action-group-commit", null, toolbar);
 			commitActions.setAttribute("role", "group"); commitActions.setAttribute("aria-label", __("Draft actions"));
-			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolbar);
+			const tools = node("details", "bnd-bill-tools", null, toolbar);
+			const toolsTrigger = node("summary", "", __("Invoice tools"), tools);
+			tools.addEventListener("keydown", e => {
+				if (e.key === "Escape" && tools.open) { e.preventDefault(); e.stopPropagation(); tools.open = false; toolsTrigger.focus(); }
+			});
+			tools.addEventListener("click", e => {
+				if (e.target.closest("button")) { const restoreFocus = tools.contains(document.activeElement); tools.open = false; if (restoreFocus) toolsTrigger.focus(); }
+			}, true);
+			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
+			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolBody);
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
-			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolbar);
+			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
 			utilityActions.setAttribute("role", "group"); utilityActions.setAttribute("aria-label", __("Invoice tools"));
 			this.newButton = this.action(commitActions, __("New"), "F1", () => this.newDocument());
 			this.newButton.classList.add("bnd-bill-action-new");
@@ -181,9 +225,6 @@
 			this.discountButton = this.action(documentActions, __("Discount"), "F10", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
 			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", () => this.restore());
 			this.searchButton = this.action(utilityActions, __("Find item"), "F12", () => this.picker?.set_focus());
-			const intro = node("header", "bnd-bill-intro", null, this.root);
-			node("h2", "", __(this.profile.title), intro);
-			node("p", "", __("Choose the party, add items, then save or submit when the document is ready."), intro);
 			this.status = node("p", "bnd-bill-status", "", this.root);
 			this.status.setAttribute("role", "status");
 			this.revertButton = button(__("Revert invalid edits"), this.root, () => { for (const key of this.invalid.keys()) this.pending.delete(key); this.invalid.clear(); this.render(); this.message(__("Changes stay in this invoice when you close this view.")); });
@@ -191,17 +232,23 @@
 			this.editor = node("fieldset", "bnd-bill-editor", null, this.root);
 			const layout = node("div", "bnd-bill-layout", null, this.editor);
 			const main = node("div", "bnd-bill-main", null, layout);
-			const customer = node("section", "bnd-bill-panel", null, main);
+			const customer = node("section", "bnd-bill-panel bnd-bill-party", null, main);
 			const customerHead = node("header", "bnd-bill-section-head", null, customer);
-			node("h3", "", __(this.profile.question), customerHead);
+			node("h3", "", __(this.profile.partyDoctype), customerHead);
 			if ((frappe.boot.user.can_create || []).includes(this.profile.partyDoctype) && fieldStatus(frm, this.profile.party) === "Write") {
-				button(__("New {0}", [__(this.profile.partyDoctype).toLowerCase()]), customerHead, () => this.newParty());
+				this.newPartyButton = button(__("New {0}", [__(this.profile.partyDoctype).toLowerCase()]), customerHead, () => this.newParty());
 			}
-			this.partyControl = this.bindControl(customer, frm.fields_dict[this.profile.party], this.doc);
+			const essentials = node("div", "bnd-bill-essentials", null, customer);
+			this.partyControl = this.bindControl(essentials, frm.fields_dict[this.profile.party], this.doc);
+			const primaryFields = ["posting_date", "due_date", ...(frm.doctype === "Purchase Invoice" ? ["bill_no", "bill_date"] : [])];
+			for (const name of primaryFields) {
+				const source = frm.fields_dict[name];
+				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
+			}
 			this.context = node("dl", "bnd-bill-context", null, customer);
-			const items = node("section", "bnd-bill-panel", null, main);
-			node("h3", "", __(this.profile.itemQuestion), items);
-			const search = node("div", "bnd-bill-search", null, items);
+			const items = node("section", "bnd-bill-panel bnd-bill-items", null, main);
+			node("h3", "", __("Items"), items);
+			const search = node("div", "bnd-bill-search bnd-bill-draft-only", null, items);
 			const pickerHost = node("div", "bnd-bill-picker", null, search);
 			this.picker = frappe.ui.form.make_control({ parent: pickerHost, render_input: true,
 				df: { fieldtype: "Link", fieldname: "quick_bill_item", options: "Item", label: __("Find an item"),
@@ -219,12 +266,12 @@
 			this.picker.$input.on("keydown.bnd-bill", e => {
 				if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); this.addItem(); }
 			});
-			node("p", "bnd-bill-hint", __("Select an item, then Add item. Ctrl+Enter adds it from search."), items);
+			node("p", "bnd-bill-hint bnd-bill-draft-only", __("Select an item, then Add item. Ctrl+Enter adds it from search."), items);
 			this.lines = node("div", "bnd-bill-lines", null, items);
 			this.rail = node("aside", "bnd-bill-panel bnd-bill-rail", null, layout);
 			node("h3", "", __("Bill total"), this.rail);
 			this.totals = node("dl", "bnd-bill-totals", null, this.rail);
-			this.stock = node("p", "bnd-bill-hint", null, this.rail);
+			this.stock = node("p", "bnd-bill-hint bnd-bill-draft-only", null, this.rail);
 			if (frm.doctype === "Sales Invoice") {
 				this.zatca = node("details", "bnd-bill-options", null, this.rail); this.zatca.open = true;
 				this.zatca.dataset.bndPart = "zatca-status";
@@ -237,6 +284,7 @@
 			const options = node("details", "bnd-bill-options", null, this.rail);
 			node("summary", "", __("Document options"), options);
 			for (const name of this.profile.options) {
+				if (primaryFields.includes(name)) continue;
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(options, source, this.doc);
 			}
@@ -245,11 +293,7 @@
 			for (const name of ["apply_discount_on", "additional_discount_percentage", "discount_amount", "taxes_and_charges"]) {
 				const source = frm.fields_dict[name]; if (source && fieldStatus(frm, name) !== "None") this.bindControl(this.discount, source, this.doc);
 			}
-			const footer = node("footer", "bnd-bill-footer", null, this.root);
-			this.footerTotal = node("strong", "bnd-bill-footer-total", "", footer);
-			const actions = node("div", "bnd-bill-actions", null, footer);
-			this.fullButton = button(__("Advanced form"), actions, () => this.fullInvoice());
-			node("p", "bnd-bill-hint", __("A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."), this.rail);
+			node("p", "bnd-bill-hint bnd-bill-draft-only", __("A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."), this.rail);
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
 			this.root.addEventListener("keydown", e => {
@@ -273,17 +317,61 @@
 			this.advancedButton?.setAttribute("aria-pressed", String(!simple));
 			this.simpleButton?.setAttribute("aria-current", simple ? "page" : "false");
 			this.advancedButton?.setAttribute("aria-current", simple ? "false" : "page");
+			this.syncSelectionGuard();
 		}
-		syncDocument() { this.doc = this.frm.doc; }
-		show() { this.syncDocument(); this.setMode(true); this.render(); }
-		active() { return !this.closed && window.cur_frm === this.frm && this.frm.doc === this.doc && supports(this.frm); }
+		syncSelectionGuard() {
+			const layout = this.frm.layout, key = "is_numeric_field_active", binding = this.selectionGuard;
+			if (binding) {
+				if (binding.layout === layout && this.simple && !this.closed) return;
+				if (binding.layout[key] === binding.guard) {
+					if (binding.descriptor) Object.defineProperty(binding.layout, key, binding.descriptor);
+					else delete binding.layout[key];
+				} else (this.selectionBlocked ||= new WeakSet()).add(binding.layout);
+				this.selectionGuard = null;
+			}
+			if (!layout || !this.simple || this.closed || this.selectionBlocked?.has(layout)) return;
+			const original = layout[key], descriptor = Object.getOwnPropertyDescriptor(layout, key);
+			if (typeof original !== "function" || (descriptor ? !descriptor.writable : !Object.isExtensible(layout))) return;
+			const workbench = this;
+			function guard(...args) {
+				// Exclude owned inputs from Layout.refresh's global selection.
+				const input = document.activeElement;
+				if (this === layout && layout[key] === guard && workbench.frm.layout === layout && workbench.simple && workbench.active()
+					&& workbench.root?.isConnected && !workbench.root.hidden && workbench.root.contains(input)
+					&& workbench.controls.some(c => c.control.$input?.[0] === input && (c.doc === workbench.doc || workbench.doc.items?.includes(c.doc)))) return false;
+				return original.apply(this, args);
+			}
+			Object.defineProperty(layout, key, descriptor ? { ...descriptor, value: guard } : { value: guard, configurable: true, writable: true });
+			this.selectionGuard = { layout, guard, descriptor };
+		}
+		dispose() {
+			if (this.closed) return;
+			this.closed = true;
+			if (instances.get(this.frm) === this) this.setMode(false); else this.syncSelectionGuard();
+			for (const timer of this.editTimers.values()) clearTimeout(timer);
+			this.editTimers.clear(); this.pending.clear(); this.invalid.clear();
+			this.root.remove(); this.mode.remove();
+			if (instances.get(this.frm) === this) instances.delete(this.frm);
+		}
+		syncDocument() {
+			if (this.closed) return false;
+			if (this.doc === this.frm.doc && this.docname === this.frm.doc.name) return true;
+			// Controls close over a document. Never relabel old bindings as new.
+			this.dispose();
+			if (window.cur_frm === this.frm && supports(this.frm)) open(this.frm);
+			return false;
+		}
+		show() { if (this.syncDocument()) { this.setMode(true); this.render(); } }
+		active() { return !this.closed && window.cur_frm === this.frm && this.frm.doc === this.doc && this.docname === this.doc.name && supports(this.frm); }
 		busy() {
-			const busy = !!this.queue.count || !!this.saving || !!this.closing || !!this.flushing;
-			if (this.editor) this.editor.disabled = busy;
+			const locked = !!this.saving || !!this.closing || !!this.flushing;
+			const busy = !!this.queue.count || locked;
+			// Recalculation preserves focus; commit/mode transitions lock inputs.
+			if (this.editor) this.editor.disabled = locked;
 			if (this.addButton) this.addButton.disabled = busy || !this.frm.doc[this.profile.party] || !canAdd(this.frm);
-			if (this.saveButton) this.saveButton.disabled = busy;
-			if (this.submitButton) this.submitButton.disabled = busy;
-			if (this.fullButton) this.fullButton.disabled = busy;
+			for (const action of [this.saveButton, this.submitButton, this.newButton, this.advancedButton, this.scanButton, this.newPartyButton]) if (action) action.disabled = busy;
+			for (const { remove } of this.rowViews.values()) if (remove) remove.disabled = busy;
+			if (this.zatcaButton) this.zatcaButton.disabled = busy || !!this.zatcaSending;
 			this.root?.setAttribute("aria-busy", String(busy));
 		}
 		message(text, error = false, action = null) {
@@ -328,6 +416,35 @@
 			try { await this.queue.run(action); if (this.active()) { if (!this.flushing) this.render(); this.message(__("Changes stay in this invoice when you close this view.")); } }
 			catch (e) { this.message(e.message || __("Could not update the invoice. Open the full invoice to review."), true); throw e; }
 		}
+		renderControl(control, key, refresh = false) {
+			const invalid = this.invalid.get(key);
+			const wrapper = control.$wrapper[0];
+			let input = control.$input?.[0], error = wrapper.querySelector(".bnd-bill-field-error");
+			if (error && input) {
+				if (error.nativeInvalid == null) input.removeAttribute("aria-invalid"); else input.setAttribute("aria-invalid", error.nativeInvalid);
+			}
+			const editing = input === document.activeElement && (invalid || this.pending.has(key) || control.get_value() === control.get_model_value());
+			if (refresh && !editing) {
+				control.refresh();
+				if (control.get_status() === "Write") {
+					if (invalid) control.set_input(invalid.raw);
+					if (this.pending.has(key)) control.set_input(this.pending.get(key));
+				}
+			}
+			input = control.$input?.[0];
+			if (!input) return;
+			const described = (input.getAttribute("aria-describedby") || "").split(/\s+/).filter(id => id && id !== error?.id);
+			const visible = !!invalid && control.get_status() === "Write";
+			if (visible) {
+				if (!error) { error = node("p", "bnd-bill-field-error bnd-bill-error", null, wrapper); error.id = `bnd-bill-error-${++errorId}`; }
+				error.nativeInvalid = input.getAttribute("aria-invalid");
+				input.setAttribute("aria-invalid", "true");
+				error.textContent = invalid.message;
+				described.push(error.id);
+			} else error?.remove();
+			if (described.length) input.setAttribute("aria-describedby", described.join(" ")); else input.removeAttribute("aria-describedby");
+			wrapper.classList.toggle("bnd-bill-invalid", visible);
+		}
 		bindControl(parent, source, doc, rowField) {
 			const frm = this.frm, name = source.df.fieldname;
 			const allowed = () => rowField
@@ -343,9 +460,9 @@
 			const key = `${doc.name}:${name}`;
 			const nativeValidate = control.validate_and_set_in_model.bind(control);
 			control.validate_and_set_in_model = (value, ...args) => {
-				if (value === doc[name] && this.invalid.has(key)) {
-					this.invalid.delete(key); control.$input?.attr("aria-invalid", "false");
-					control.$wrapper.removeClass("has-error"); this.revertButton.hidden = !this.invalid.size;
+				if (value === doc[name]) {
+					this.invalid.delete(key); this.pending.delete(key); this.renderControl(control, key);
+					this.revertButton.hidden = !this.invalid.size;
 					if (!this.invalid.size) this.message(__("Changes stay in this invoice when you close this view."));
 				}
 				return nativeValidate(value, ...args);
@@ -354,17 +471,19 @@
 				const raw = control.$input?.val();
 				this.pending.set(key, raw);
 				return this.change(async () => {
+				if (this.pending.get(key) !== raw) return;
 				if (allowed() !== "Write") throw Error(__("This field is not editable. Use the full invoice."));
 				if (rowField && !frm.doc.items.some(r => r.name === doc.name)) throw Error(__("This item is no longer on the invoice."));
-				if ((name === "qty" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) ||
-					(name === "rate" && (!Number.isFinite(Number(value)) || Number(value) < 0))) {
-					throw Error(__("Use a quantity above zero and a price of zero or more."));
-				}
-				await nativeSet(value); this.invalid.delete(key);
+				await setLineValue(doc, name, value, nativeSet, () => rowFieldStatus(frm, doc, "price_list_rate"));
+				if (this.pending.get(key) !== raw) return;
+				this.invalid.delete(key);
+				this.renderControl(control, key);
 				if (this.pending.get(key) === raw) this.pending.delete(key);
-			}).catch(() => {
+			}).catch(e => {
 				if (rowField && !frm.doc.items.some(r => r.name === doc.name)) { this.forgetRow(doc.name); return; }
-				this.invalid.set(key, raw); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error"); this.revertButton.hidden = false;
+				if (this.pending.get(key) !== raw) return;
+				this.invalid.set(key, { raw, message: e.message || __("Could not update the invoice. Open the full invoice to review.") });
+				this.renderControl(control, key); this.revertButton.hidden = false;
 			});
 			};
 			control.$input?.on("input.bnd-bill", () => {
@@ -381,7 +500,7 @@
 			});
 			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} · ${doc.item_code}` : __(source.df.label));
 			if (this.invalid.has(key)) {
-				control.set_input(this.invalid.get(key)); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error");
+				this.renderControl(control, key, true);
 			}
 			this.controls.push({ control, rowField, key, doc }); return control;
 		}
@@ -463,7 +582,13 @@
 					if (fieldStatus(this.frm, this.profile.party) !== "Write") throw Error(__("This field is not editable. Use the advanced form."));
 					return this.frm.set_value(this.profile.party, doc.name);
 				}).catch(() => {});
-			}, null, null, true);
+			}, entry => this.addPartyTaxField(entry), null, true);
+		}
+		addPartyTaxField(entry) {
+			if (!entry?.add_fields || entry.fields_dict?.tax_id) return;
+			const df = frappe.meta.get_docfield(this.profile.partyDoctype, "tax_id");
+			if (!df || df.hidden || df.read_only || frappe.perm.get_field_display_status(df, entry.doc, frappe.perm.get_perm(this.profile.partyDoctype)) !== "Write") return;
+			entry.add_fields([{ ...df, label: __("Tax ID") }]);
 		}
 		scanItem() {
 			if (!window.frappe?.ui?.Scanner) { this.message(__("Camera scanning is not available in this browser. Type the barcode in item search."), true); return; }
@@ -532,18 +657,19 @@
 			if (state === "preparing") this.zatcaTimer = setTimeout(() => this.loadZatca(true), 5000);
 		}
 		async zatcaAction() {
+			if (this.zatcaButton.disabled) return;
 			const data = this.zatcaData || {}, state = data.state;
 			if (state === "missing_app") {
 				frappe.msgprint(__("Install and migrate the KSA Compliance app before configuring ZATCA.")); return;
 			}
 			if (state === "preparing") return this.loadZatca(true);
 			if (state === "ready_to_send" && data.can_queue) {
-				this.zatcaButton.disabled = true;
+				this.zatcaSending = true; this.busy();
 				try {
 					await frappe.call({ method: "bunood_theme.zatca.queue_invoice", type: "POST", args: { invoice_name: this.doc.name }, freeze: true, freeze_message: __("Queueing invoice for ZATCA…") });
 					this.zatcaStatus.textContent = __("Invoice queued for ZATCA. Status will update automatically.");
 					setTimeout(() => this.loadZatca(true), 2500);
-				} finally { this.zatcaButton.disabled = false; }
+				} finally { this.zatcaSending = false; this.busy(); }
 				return;
 			}
 			if (data.invoice?.name) { frappe.set_route("Form", "Sales Invoice Additional Fields", data.invoice.name); return; }
@@ -551,11 +677,13 @@
 			if (route?.length) frappe.set_route(...route);
 		}
 		render() {
-			if (this.closed) return;
-			this.syncDocument();
+			if (this.closed || !this.syncDocument()) return;
+			this.syncSelectionGuard();
 			const frm = this.frm, doc = frm.doc;
+			this.documentState.textContent = `${doc.__islocal ? __("New") : doc.name} · ${doc.__islocal || frm.is_dirty() ? __("Not Saved") : __(doc.status || "Draft")}`;
 			this.context.replaceChildren();
 			for (const name of this.profile.context) {
+				if (["posting_date", "due_date"].includes(name)) continue;
 				const field = frm.fields_dict[name];
 				if (!field || fieldStatus(frm, name) === "None" || !doc[name]) continue;
 				const pair = node("div", "", null, this.context);
@@ -565,12 +693,7 @@
 			for (const [name, view] of this.rowViews) if (!rows.some(r => r.name === name)) { this.forgetRow(name); view.line.remove(); this.rowViews.delete(name); }
 			this.controls = this.controls.filter(c => !c.rowField || rows.some(r => r === c.doc));
 			for (const { control, key } of this.controls) {
-				control.$input?.attr("aria-invalid", String(this.invalid.has(key)));
-				const raw = this.pending.get(key);
-				if (control.$input?.[0] === document.activeElement) continue;
-				control.refresh();
-				if (this.pending.has(key)) control.set_input(raw);
-				if (this.invalid.has(key)) { control.set_input(this.invalid.get(key)); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error"); }
+				this.renderControl(control, key, true);
 			}
 			this.revertButton.hidden = !this.invalid.size;
 			this.lines.querySelector(".bnd-bill-empty")?.remove();
@@ -590,7 +713,7 @@
 					node("strong", "", row.item_name || row.item_code, itemValue);
 					node("bdi", "bnd-bill-hint", `${row.item_code}${row.uom ? " · " + __(row.uom) : ""}`, itemValue);
 				for (const name of this.profile.lineFields) {
-					const cell = node("div", "bnd-bill-cell", null, line);
+					const cell = node("div", `bnd-bill-cell bnd-bill-cell-${name}`, null, line);
 					const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
 					if (df) this.bindControl(cell, { df: { ...df, label: LINE_LABELS[name]?.() || __(df.label) } }, row, true);
 				}
@@ -616,14 +739,13 @@
 			}
 			const totalName = totalField(frm);
 			const totalControl = frm.fields_dict[totalName];
-			this.footerTotal.replaceChildren();
 			if (totalControl && fieldStatus(frm, totalName) !== "None") {
 				const pair = node("div", "bnd-bill-grand", null, this.totals);
 				node("dt", "", __("Total"), pair); this.money(node("dd", "", null, pair), doc[totalName], totalControl.df);
-				this.money(this.footerTotal, doc[totalName], totalControl.df);
 			}
 			this.stock.textContent = doc.update_stock ? __("Stock will be updated when the invoice is submitted.") : __("Stock is not updated by this invoice.");
 			const { draft, showSave, showSubmit } = actionState(doc, this.frm.is_dirty());
+			this.root.dataset.bndDraft = String(draft); this.searchButton.hidden = !draft;
 			this.addButton.hidden = !draft; this.scanButton.hidden = !draft; this.saveButton.hidden = !showSave;
 			this.submitButton.hidden = !showSubmit;
 			this.deleteButton.hidden = !draft || !!doc.__islocal; this.paymentButton.hidden = Number(doc.docstatus) !== 1;
@@ -651,51 +773,66 @@
 			this.closing = true; this.busy();
 			try {
 				if (Number(this.doc.docstatus) === 0) await this.flush();
+				if (!this.active()) return;
 				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); return; }
 				this.setMode(false);
 			} catch (e) { this.message(e.message || __("Could not update the document. Open the advanced form to review."), true); }
 			finally { this.closing = false; this.busy(); }
 		}
+		missingRequiredField() {
+			if (!this.doc[this.profile.party]) return {
+				message: this.profile.party === "supplier" ? __("Choose a supplier before continuing.") : __("Choose a customer before continuing."), control: this.partyControl,
+			};
+			if (!(this.doc.items || []).some(row => row.item_code)) return {
+				message: __("Add at least one item before continuing."), control: this.picker,
+			};
+			return null;
+		}
 		async save() {
 			if (this.saving || this.closing) return;
+			let missing;
 			this.saving = true; this.busy();
 			try {
 				await this.flush();
 				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
 				if (!this.active()) throw Error(__("This invoice is no longer active. Open it again to continue."));
-				if (!this.frm.doc[this.profile.party] || !this.frm.doc.items.some(r => r.item_code)) throw Error(__("Choose the party and add at least one item."));
+				missing = this.missingRequiredField();
+				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.frm.doc);
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
 				await this.queue.run(() => saveDraft(this.frm));
 				frappe.show_alert({ message: __("Draft saved. Submit it when it is ready to affect accounts or stock."), indicator: "green" }); this.render();
 			} catch (e) { this.message(e.message || __("The draft was not saved. Review the message or open the advanced form."), true); }
-			finally { this.saving = false; this.busy(); }
+			finally { this.saving = false; this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
 		}
 		async submit() {
-			if (Number(this.doc.docstatus) !== 0 || this.saving) return;
+			if (!this.active() || Number(this.doc.docstatus) !== 0 || this.saving) return;
+			let missing;
 			this.saving = true; this.busy();
 			try {
 				await this.flush();
-				if (!this.doc[this.profile.party] || !this.doc.items.some(row => row.item_code)) throw Error(__("Choose the party and add at least one item."));
+				if (!this.active()) return;
+				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
+				missing = this.missingRequiredField();
+				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.doc);
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
 				if (this.doc.__islocal || this.frm.is_dirty()) await saveDraft(this.frm);
+				if (!this.active()) return;
 				await this.frm.savesubmit();
 			} catch (e) { this.message(e.message || __("The document was not submitted. Review the highlighted fields."), true); }
-			finally { this.saving = false; this.render(); this.busy(); }
+			finally { this.saving = false; this.render(); this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
 		}
-		newDocument() { return frappe.new_doc(this.frm.doctype); }
+		newDocument() { if (this.active() && !this.queue.count && !this.saving && !this.flushing && !this.closing) return frappe.new_doc(this.frm.doctype); }
 		removeDocument() { if (!this.doc.__islocal && Number(this.doc.docstatus) === 0) this.frm.savetrash(); }
 		print() { if (!this.doc.__islocal) this.frm.print_doc(); }
 		restore() {
 			const reload = () => this.frm.reload_doc().then(() => { this.syncDocument(); this.render(); });
 			if (this.frm.is_dirty()) frappe.confirm(__("Discard unsaved changes and reload this document?"), reload); else reload();
 		}
-		payment() {
-			if (Number(this.doc.docstatus) !== 1) { this.message(__("Submit the document before recording payment."), true); return; }
-			frappe.model.open_mapped_doc({
-				method: "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry", frm: this.frm,
-			});
+		async payment() {
+			try { return await makePaymentEntry(this.frm); }
+			catch (error) { this.message(error.message, true); }
 		}
 	}
 	function open(frm) {
@@ -709,14 +846,15 @@
 	function newInvoice() {
 		return frappe.new_doc("Sales Invoice");
 	}
-	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, totalField, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, totalField, rowFieldStatus, setLineValue, makePaymentEntry, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// form-refresh precedes refresh_fields and native refresh handlers. Wait
 		// for that stack and its requests; never judge permissions mid-refresh.
 		setTimeout(() => frappe.after_ajax().then(() => {
-			if (window.cur_frm !== frm || !supports(frm)) return;
-			if (instances.has(frm)) { instances.get(frm).syncDocument(); instances.get(frm).render(); } else open(frm);
+			if (window.cur_frm !== frm) return;
+			if (!supports(frm)) { instances.get(frm)?.dispose(); return; }
+			if (instances.has(frm)) instances.get(frm).render(); else open(frm);
 		}), 0);
 	});
 })();

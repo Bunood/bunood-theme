@@ -961,10 +961,6 @@ frappe.ui.form.on("Theme Settings", {
 	bottombar_enabled: bnd_container_changed,
 	dock_enabled: bnd_container_changed,
 	sidebar_enabled: bnd_container_changed,
-	// The phone-bar toggles (item 24): re-apply on click like every kit.
-	mobile_inbox: bnd_mobile_changed,
-	mobile_user: bnd_mobile_changed,
-	mobile_apps: bnd_mobile_changed,
 });
 
 /**
@@ -992,22 +988,6 @@ function bnd_container_changed(frm) {
 		});
 	}
 	bnd_repaint_placement_pickers(frm);
-}
-
-/**
- * A phone-bar toggle changed (item 24): apply it to the live desk. All three go
- * every time, same reason chrome_apply gets all five — it rebuilds from the
- * whole picture. Visible only when the window is actually narrow; at the desktop
- * width the form is viewed at, it keeps the state current for the next resize.
- */
-function bnd_mobile_changed(frm) {
-	if (window.bunood_theme && typeof window.bunood_theme.mobile_apply === "function") {
-		window.bunood_theme.mobile_apply({
-			mobile_inbox: frm.doc.mobile_inbox,
-			mobile_user: frm.doc.mobile_user,
-			mobile_apps: frm.doc.mobile_apps,
-		});
-	}
 }
 
 /**
@@ -1097,10 +1077,6 @@ const BND_SHELL_GROUPS = [
 			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
 			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
-			// The phone bar (item 24): what the bottom bar carries below 768px.
-			// Sits with the bars because that is what it configures; its three
-			// toggles relocate here from section_mobile.
-			{ key: "mobile", label: () => __("Mobile bar"), anchors: ["mobile_inbox"] },
 		],
 	},
 	{
@@ -1357,8 +1333,6 @@ const BND_SHELL_OWNS = {
 	// Prefix rather than fields: the axis is `personal_*` and every field it
 	// grows belongs to this pane by construction (item 38).
 	personal: { prefixes: ["personal_"] },
-	// The phone bar (item 24): the three mobile_* toggles by prefix.
-	mobile: { prefixes: ["mobile_"] },
 };
 
 /**
@@ -4208,10 +4182,6 @@ function bnd_list_set(frm, fieldname, value) {
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
 const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
-// Mobile bar contents (item 24 C2). Export AND import list it — the same const
-// on both sides, so the two cannot drift (the item-18 escapee: export carried a
-// field the import's `known` set refused, silently dropping it on re-import).
-const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
 
 /**
  * Client mirror of presets.LINKS_DEFAULTS — keep in sync.
@@ -7754,7 +7724,7 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS);
 }
 
 /**

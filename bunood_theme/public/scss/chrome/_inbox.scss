@@ -25,6 +25,7 @@
 // Both bells anchor the badge: the themed one in the bars, and Frappe's own
 // sidebar row, which stays visible (and is the ONLY bell) in Classic.
 html[data-bnd-inbox] .bnd-icon-btn,
+html[data-bnd-inbox] .bnd-avatar-btn[data-bnd-inbox-route],
 html[data-bnd-inbox] .sidebar-notification .item-anchor {
   position: relative;
 }
@@ -66,6 +67,14 @@ html[data-bnd-inbox] .bnd-inbox-badge {
     block-size: 8px;
     padding-inline: 0;
   }
+}
+
+// On phones the unread state belongs to Account. Anchor it beside the avatar,
+// not at the far corner of the quarter-width navigation track.
+html[data-bnd-narrow][data-bnd-inbox] .bnd-statusbar
+  .bnd-avatar-btn[data-bnd-inbox-route] > .bnd-inbox-badge {
+  inset-block-start: 2px;
+  inset-inline-end: calc(50% - 18px);
 }
 
 // ── The bell at the rail's rest ──────────────────────────────────────────

@@ -164,6 +164,11 @@ html[data-bnd-desk] {
 // Frappe's native desktop count untouched. Every nested app group inherits the
 // same bound.
 html[data-bnd-desktop][data-bnd-narrow] .desktop-wrapper {
+  // The fixed navigation owns the viewport edge. A real end inset lets the
+  // final module caption scroll fully above it instead of stopping flush
+  // against the bar and looking clipped.
+  padding-block-end: var(--bnd-sp-6);
+
   .desktop-container {
     inline-size: 100%;
   }

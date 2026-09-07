@@ -744,10 +744,6 @@
 	// desktop and an always-open sidebar consumed almost the entire screen.
 	const narrow_chrome = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_chrome) || null;
 	const narrow_placement = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_placement) || null;
-	// The user's phone-bar toggles (item 24 C2): which tenants join search below
-	// 768. Search itself has no toggle — it is the only search on a phone. A live
-	// preference, not a rebuild: active_placement turns a 0 into "Off" while narrow.
-	const mobile_state = (window.frappe && frappe.boot && frappe.boot.bnd_mobile) || null;
 	const MOBILE_MQ = typeof window.matchMedia === "function" ? window.matchMedia("(width < 768px)") : null;
 
 	/** Below Frappe's 768 mobile boundary, with a narrow preset to apply. */
@@ -964,8 +960,9 @@
 		// present node is an unreachable one. Argument in _sidebar.scss.
 		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
 		const stranded = critical.filter((c) => {
-			const node = document.querySelector(c.selector);
-			return !node || !!node.closest(".body-sidebar-container");
+			const selectors = [c.selector, c.fallback].filter(Boolean).join(", ");
+			const routes = selectors ? [...document.querySelectorAll(selectors)] : [];
+			return !routes.some((node) => !node.closest(".body-sidebar-container"));
 		});
 		if (!stranded.length) return false;
 
@@ -1053,7 +1050,7 @@
 		apply_chrome_off();
 
 		// `panehead` joins them (item 40); see _layouts.scss.
-		for (const token of ["search", "bell", "user", "panehead", "panetoggle"]) bnd_disown(token);
+		for (const token of ["search", "bell", "user", "panehead", "panetoggle", "mobilehome"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -1119,21 +1116,13 @@
 	 * bar, which is not on screen — but the state is current the moment the window
 	 * crosses 768. The kit's mandatory re-apply-on-click hook, same as the others.
 	 */
-	bunood.mobile_apply = function (values) {
-		if (!values || !mobile_state) return;
-		const FIELD_TO_KEY = { mobile_inbox: "inbox", mobile_user: "user", mobile_apps: "apps" };
-		for (const [name, value] of Object.entries(values)) {
-			const key = FIELD_TO_KEY[name];
-			if (key && key in mobile_state) mobile_state[key] = parseInt(value, 10) ? 1 : 0;
-		}
-		remount_chrome();
-	};
-
 	function on_breakpoint_change() {
 		apply_viewport_mode();
-		// Release the desktop-open state while the rail attribute still exists;
-		// removing the attribute first would route through teardown and leave
-		// Frappe's `.expanded` class carrying the old floating-card geometry.
+		if (is_narrow()) {
+			const pane = document.querySelector(".body-sidebar-container");
+			const native = window.frappe?.app?.sidebar;
+			if (native?.wrapper?.[0] === pane && typeof native.close === "function") native.close();
+		}
 		document.querySelector(".body-sidebar-container")?._bnd_sync_rail?.();
 		// Rail is desktop chrome. Re-resolve its attribute before remounting so
 		// Frappe's native off-canvas drawer owns the narrow layout, then restore
@@ -2178,16 +2167,34 @@
 	function sync_desktop_shell() {
 		const html = document.documentElement;
 		sync_desktop_grid();
+		const mobile = is_narrow();
+		const bar = document.querySelector(".bnd-statusbar");
 		const search = document.querySelector(".bnd-search-field, .bnd-search-icon");
-		const shell = search && search.closest(".bnd-topbar, .bnd-statusbar, .bnd-dock, .page-head");
+		const desktop_shell = search && search.closest(".bnd-topbar, .bnd-statusbar, .bnd-dock, .page-head");
+		// On a phone, hiding Desktop's private navbar on the strength of search
+		// alone can expose a half-mounted navigation row. Claim global ownership
+		// only when the complete, stable four-destination contract is present.
+		const mobile_shell = mobile && bar && ["home", "apps", "search", "user"].every((part) =>
+			[...bar.querySelectorAll(`[data-bnd-part="${part}"]`)].some((node) => node.offsetParent !== null)
+		);
+		// Home's drawer trigger stands down only after its complete replacement
+		// navigation exists. The ownership token makes a failed mobile mount fall
+		// back to Frappe's working hamburger instead of hiding the last route.
+		if (mobile_shell && on_home_route()) bnd_own("mobilehome");
+		else bnd_disown("mobilehome");
 		html.toggleAttribute(
 			"data-bnd-desktop-shell",
-			html.hasAttribute("data-bnd-desktop") && !!shell
+			html.hasAttribute("data-bnd-desktop") && !!(mobile ? mobile_shell : desktop_shell)
 		);
 
-		const bar = document.querySelector(".bnd-statusbar");
+		// This is a workspace drawer opener, not a second Home/Apps destination.
+		// Name it by that job wherever Frappe remounts a page head.
+		for (const toggle of document.querySelectorAll(".page-head .sidebar-toggle-btn")) {
+			toggle.setAttribute("aria-label", __("Workspace menu"));
+			toggle.setAttribute("title", __("Workspace menu"));
+		}
+
 		if (!bar) return;
-		const mobile = is_narrow();
 		bar.toggleAttribute("data-bnd-mobile-nav", mobile);
 		bar.setAttribute("role", mobile ? "navigation" : "region");
 		bar.setAttribute("aria-label", mobile ? __("Primary navigation") : __("Status bar"));
@@ -2546,6 +2553,18 @@
 	 */
 	function avatar_menu_items() {
 		const items = [];
+		// A phone has four primary destinations. Notifications remains one tap
+		// away as the first Account action, while its unread state rides on the
+		// Account trigger. This replaces the former fifth bottom-bar column.
+		if (is_narrow()) {
+			items.push({
+				label: __("Notifications"),
+				icon: "icon-bell",
+				badge: inbox_unread > 0 ? String(inbox_unread) : "",
+				run: inbox_invoke,
+			});
+			items.push("divider");
+		}
 
 		// Place-switching that has no other home now that the old brand menu
 		// is retired: Website for everyone, Home where the sidebar is gone.
@@ -2777,15 +2796,11 @@
 	 * viewport is showing, the stored choice otherwise. Search is deliberately
 	 * NOT in `narrow_placement`: it walks a fallback chain, so tearing down the
 	 * top bar drops it into the bottom bar on its own (SEARCH_FALLBACKS). The
-	 * tenants that do NOT walk a chain — bell, user, apps — are the ones the
-	 * narrow preset has to place explicitly, or they resolve to "absent".
+	 * remaining tenants use one structural mobile information architecture;
+	 * per-site switches no longer make primary navigation change shape.
 	 */
 	function active_placement(tenant) {
 		if (is_narrow() && narrow_placement && narrow_placement[tenant]) {
-			// Gated by the user's phone-bar toggle: a tenant switched off stands
-			// down. Search is never in mobile_state, so it is never gated here —
-			// it is the only search on a phone and always present.
-			if (mobile_state && tenant in mobile_state && !mobile_state[tenant]) return "Off";
 			return narrow_placement[tenant];
 		}
 		return (placement_state && placement_state[tenant]) || "";
@@ -2914,6 +2929,20 @@
 			Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / 2))
 		);
 		return !!(hit && (control === hit || control.contains(hit) || hit.contains(control)));
+	}
+
+	/** A registry-declared alternate route to a critical tenant is usable. */
+	function critical_fallback_usable(tenant) {
+		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
+		const selector = critical.find((item) => item.key === tenant)?.fallback;
+		if (!selector) return false;
+		return [...document.querySelectorAll(selector)].some((node) => {
+			if (node.closest(".body-sidebar-container") || node.offsetParent === null) return false;
+			const style = getComputedStyle(node);
+			const rect = node.getBoundingClientRect();
+			return style.display !== "none" && style.visibility !== "hidden" &&
+				style.pointerEvents !== "none" && rect.width >= 24 && rect.height >= 24;
+		});
 	}
 
 /**
@@ -3128,8 +3157,10 @@ function sb_zone_anchor(pane, zone, node) {
 		// every route to the user menu means no log out, no theme switch and no
 		// session defaults.
 		for (const [tenant, token, cls, build] of [
-			["inbox", "bell", "bnd-bell", build_bell],
+			// User comes first because, on a phone, its Account panel is the
+			// registry-declared fallback route to Notifications.
 			["user", "user", "bnd-avatar-btn", build_user],
+			["inbox", "bell", "bnd-bell", build_bell],
 			// The start button (item 42, slice 7). It replaces no native, so its
 			// token is its own and releasing it costs nothing — the pane keeps its
 			// handle and Frappe's page-title toggle either way.
@@ -3168,6 +3199,9 @@ function sb_zone_anchor(pane, zone, node) {
 				return !!head && !!current_page && !current_page.contains(head);
 			};
 			const existing = [...document.querySelectorAll("." + cls)].filter((n) => !in_another_page(n));
+			// A bar can survive a breakpoint crossing. Reconcile the user control's
+			// mobile Account semantics even when it did not need rebuilding.
+			if (tenant === "user") existing.forEach(sync_user_button);
 
 			// Asked for a region this desk does not have: leave whatever is
 			// already there exactly where it is, and keep claiming it if it is
@@ -3196,6 +3230,15 @@ function sb_zone_anchor(pane, zone, node) {
 				// data-bnd-own). The first version of this guard did exactly
 				// that and turned Off into a no-op in every layout.
 				bnd_disown(token);
+				// A composite control can be the honest replacement too. On mobile,
+				// Account exposes Notifications and carries the unread badge, so keep
+				// the native drawer bell hidden and remove the redundant fifth item.
+				if (critical_fallback_usable(tenant)) {
+					for (const node of existing) node.remove();
+					bnd_own(token);
+					stamp("bottombar");
+					continue;
+				}
 				if (existing.length && !native_pane_usable(tenant)) {
 					// Releasing brought nothing back, so keep ONE of ours and
 					// claim it again. Keeping one rather than all is the other
@@ -3264,28 +3307,31 @@ function sb_zone_anchor(pane, zone, node) {
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
+	function sync_start_toggle(button, expanded) {
+		if (!button) return;
+		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+		button.setAttribute("aria-expanded", expanded ? "true" : "false");
+		button.setAttribute("aria-label", label);
+		button.title = label;
+	}
+
 	/** The start button — argument in _sidebar.scss. */
 	function build_start() {
-		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
+		const expanded = document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
+		const btn = el("button", "bnd-icon-btn bnd-sb-start bnd-sidebar-toggle", {
 			type: "button",
 			"data-bnd-part": "start",
-			"aria-label": __("Menu"),
-			title: __("Menu"),
+			"aria-controls": (sidebar && sidebar.id) || "bnd-primary-sidebar",
 			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
 			// that was plainly open as collapsed until the first click corrected it —
 			// and the first click is exactly when a screen-reader user has already
 			// been told the wrong thing.
-			"aria-expanded":
-				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false",
+			"aria-expanded": expanded ? "true" : "false",
 		});
-		const mark = el("span", "bnd-sb-start-mark");
-		if (frappe.boot.bnd_logo) {
-			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-		} else {
-			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		}
-		btn.appendChild(mark);
+		btn.innerHTML = BND_PANEL_SVG;
+		sync_start_toggle(btn, expanded);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			bunood.pane_toggle();
@@ -3307,7 +3353,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
 		bunood.pane_state(away ? "Open" : "Hidden");
 		for (const b of document.querySelectorAll(".bnd-sb-start")) {
-			b.setAttribute("aria-expanded", away ? "true" : "false");
+			sync_start_toggle(b, away);
 		}
 	};
 
@@ -3525,9 +3571,19 @@ function sb_zone_anchor(pane, zone, node) {
 				const hint = el("kbd", "bnd-acct-kbd");
 				hint.textContent = item.kbd;
 				row.appendChild(hint);
+			} else if (item.badge) {
+				const badge = el("span", "bnd-acct-item-badge");
+				badge.textContent = item.badge;
+				row.appendChild(badge);
 			}
-			row.addEventListener("click", () => {
-				close_acct(false);
+			row.addEventListener("click", (event) => {
+				// Account actions can open another overlay synchronously. Keep this
+				// originating click away from Frappe's document-level closers.
+				event.stopPropagation();
+				// Restore the stable Account trigger before running the action. If
+				// that action opens another dialog, it becomes the connected element
+				// focus returns to when the second dialog closes.
+				close_acct(true);
 				try {
 					item.run && item.run();
 				} catch (e) {
@@ -3588,6 +3644,21 @@ function sb_zone_anchor(pane, zone, node) {
 	 * Frappe's own, which is why `user` is the sharpest ownership token.
 	 * @returns {HTMLElement}
 	 */
+	function sync_user_button(avatar) {
+		const mobile = is_narrow();
+		avatar.setAttribute("aria-label", mobile ? __("Account") : __("User menu"));
+		avatar.toggleAttribute("data-bnd-inbox-route", mobile);
+		let badge = avatar.querySelector(":scope > .bnd-inbox-badge");
+		if (mobile && !badge) {
+			badge = el("span", "bnd-inbox-badge", { hidden: "" });
+			avatar.appendChild(badge);
+		} else if (!mobile && badge) {
+			badge.remove();
+		}
+		const label = avatar.querySelector(":scope > .bnd-mobile-nav-label");
+		if (label) label.textContent = mobile ? __("Account") : __("Profile");
+	}
+
 	function build_user() {
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
@@ -3598,6 +3669,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const label = el("span", "bnd-mobile-nav-label");
 		label.textContent = __("Profile");
 		avatar.appendChild(label);
+		sync_user_button(avatar);
 		avatar.setAttribute("aria-haspopup", "dialog");
 		avatar.setAttribute("aria-expanded", "false");
 		avatar.addEventListener("click", (e) => {
@@ -4610,6 +4682,22 @@ function sb_zone_anchor(pane, zone, node) {
 	 * is locale-tolerant here because workspace titles arrive in boot already
 	 * in the user's locale, same as the crumb label Frappe renders from them.
 	 */
+	function install_breadcrumb_context_fallback(breadcrumbs) {
+		if (!breadcrumbs || typeof breadcrumbs.set_workspace !== "function" || breadcrumbs._bnd_workspace_wrapped) return;
+		const native_set_workspace = breadcrumbs.set_workspace;
+		breadcrumbs.set_workspace = function (context) {
+			const result = native_set_workspace.apply(this, arguments);
+			if (theme_active() && context?.doctype && !context.workspace && this.last_route?.[0] === "Workspaces") {
+				// Cross-module origin: delegate native fallback without changing history.
+				const fallback = Object.create(this);
+				Object.defineProperty(fallback, "last_route", { value: undefined });
+				native_set_workspace.call(fallback, context);
+			}
+			return result;
+		};
+		breadcrumbs._bnd_workspace_wrapped = true;
+	}
+
 	function decorate_crumbs() {
 		const workspaces = (frappe.boot && frappe.boot.allowed_workspaces) || [];
 		const slug = (name) =>
@@ -4633,6 +4721,8 @@ function sb_zone_anchor(pane, zone, node) {
 			let resolved = false;
 
 			for (const trail of trails) {
+				const current_link = trail.querySelector("li:last-child > a");
+				if (current_link) current_link.setAttribute("aria-current", "page");
 				// 1. Resolution (always) — find the workspace crumb.
 				let ws_link = null;
 				let ws = null;
@@ -5948,6 +6038,14 @@ function sb_zone_anchor(pane, zone, node) {
 					: __("Notifications")
 			);
 		}
+		for (const account of document.querySelectorAll('.bnd-avatar-btn[data-bnd-inbox-route]')) {
+			account.setAttribute(
+				"aria-label",
+				inbox_unread > 0
+					? __("Account") + " — " + __("Unread: {0}", [String(inbox_unread)])
+					: __("Account")
+			);
+		}
 		// Announce the change too: marking rows read gives no visual feedback
 		// beyond the number shrinking, and no audible feedback at all without
 		// this. Lives on the PANEL so it only speaks while the panel is up.
@@ -6524,7 +6622,10 @@ function sb_zone_anchor(pane, zone, node) {
 	 * the skin on the way). Mirrors pal_invoke.
 	 */
 	function inbox_invoke() {
-		if (inbox_active() && frappe.xcall) {
+		// On phones Account is the sole Notifications route and Frappe's native
+		// trigger lives in chrome we intentionally suppress. Always use the
+		// responsive Bunood panel there, regardless of the desktop skin choice.
+		if ((inbox_active() || is_narrow()) && frappe.xcall) {
 			inbox_open_panel();
 			return;
 		}
@@ -6912,7 +7013,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the layout has hidden must not claim the current page from nowhere. */
 	function sb_mark_current() {
 		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
-			n.removeAttribute("aria-current");
+			if (!n.closest(".bnd-compact-nav")) n.removeAttribute("aria-current");
 		}
 		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
 		const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
@@ -7107,13 +7208,15 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
 	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
 	function sb_head_menu() {
+		// `key` is the UNTRANSLATED name the dedupe matches on; `label` is read.
 		const items = [
-			{ label: __("Home"), icon: "icon-home", run: go_home },
+			{ key: "Home", label: __("Home"), icon: "icon-home", run: go_home },
 			{
+				key: "All Apps",
 				label: __("All Apps"),
 				icon: "icon-grid-2x2",
 				run: () => {
-					window.location.href = "/apps";
+					frappe.set_route("desktop");
 				},
 			},
 		];
@@ -7122,7 +7225,10 @@ function sb_zone_anchor(pane, zone, node) {
 		// DIFFERENT routes (/desk and /desk/home, measured) that render the same
 		// page. Two rows a person cannot tell apart are not two choices -- the
 		// rule the command palette's empty state follows one component over.
-		const taken = new Set(items.map((i) => i.label));
+		// UNTRANSLATED BOTH SIDES: built from `__()` labels while the filter tests
+		// `w.title` (English), this matched only on an English desk -- in Arabic
+		// nothing dropped and Home rendered twice. Reported 2026-09-07.
+		const taken = new Set(items.map((i) => i.key));
 		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
 			(w) => !w.parent_page && !taken.has(w.title || w.name)
 		);
@@ -7174,9 +7280,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// The module grid hides the side pane, so its route back is a labelled
 		// destination rather than another unexplained square glyph in the global
 		// chrome. On every other route the same setting keeps its compact shape.
-		const is_desktop_return = is_home && in_bar && on_desktop;
-		const title = is_desktop_return ? __("Dashboard") : is_home ? __("Home") : __("All Apps");
-		const bar_title = in_bar && is_narrow() && is_home ? __("Dashboard") : title;
+		const is_desktop_return = is_home && in_bar && on_desktop && !is_narrow();
+		const title = is_home ? __("Home") : __("All Apps");
+		const bar_title = in_bar && is_narrow() && !is_home ? __("Apps") : title;
 		// "All Apps" goes to the DESKTOP, not to `/apps`.
 		//
 		// `/apps` is Frappe's app SWITCHER, and it only has something to switch
@@ -7217,9 +7323,12 @@ function sb_zone_anchor(pane, zone, node) {
 				"span",
 				`bnd-mobile-nav-label${is_desktop_return ? " bnd-dashboard-return-label" : ""}`
 			);
-			label.textContent = is_narrow() ? (is_home ? __("Dashboard") : __("Apps")) : title;
+			label.textContent = is_narrow() ? (is_home ? __("Home") : __("Apps")) : title;
 			btn.appendChild(label);
 			if (is_home && on_home_route()) {
+				btn.classList.add("is-current");
+				btn.setAttribute("aria-current", "page");
+			} else if (!is_home && on_desktop) {
 				btn.classList.add("is-current");
 				btn.setAttribute("aria-current", "page");
 			}
@@ -7280,9 +7389,10 @@ function sb_zone_anchor(pane, zone, node) {
 			// still respected everywhere else.
 			const route = frappe.get_route ? frappe.get_route() || [] : [];
 			const desktop = on_desktop_route(route);
-			// A shortcut to the page already being shown is duplicate chrome, not
-			// navigation. Replace All Apps with the reciprocal Dashboard route.
-			if (which === "apps" && desktop) return "Off";
+			// Wide Desktop does not need a shortcut to the page already showing.
+			// Mobile navigation is deliberately invariant, so Apps remains in its
+			// stable second slot and carries aria-current on this route.
+			if (which === "apps" && desktop && !is_narrow()) return "Off";
 			// Use the end zone: in rail mode the top bar deliberately spans back
 			// across the rail at its logical start, so a wide labelled control there
 			// would begin outside the viewport. The end is the stable global-actions
@@ -7398,29 +7508,103 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 
-	/**
-	 * The collapsible desktop sidebar. Active only in "Rail" mode for backwards
-	 * compatibility with the saved setting name. Closed is a compact, interactive
-	 * icon rail; open is the complete navigation pane. Frappe writes inline widths
-	 * of its own, so this function owns the container width while CSS makes the
-	 * inner pane follow that one source of truth.
-	 *
-	 * One quiet split-panel button in the top bar owns the state. Nothing is
-	 * attached to the pane edge, and hover never changes navigation state.
-	 */
+	/** Compact navigation derives from native permitted rows; no second catalogue. */
+	function sb_compact_entries(rows) {
+		const seen = new Set();
+		return rows.filter((row) => {
+			if (!row.label || row.hidden) return false;
+			if (row.section) return row.children > 0;
+			if (!/^\/desk(?:\/|$)/.test(row.href || "") || seen.has(row.href)) return false;
+			seen.add(row.href);
+			return true;
+		});
+	}
+
+	function sb_compact_icon(row) {
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("class", "bnd-rail-glyph");
+		svg.setAttribute("aria-hidden", "true");
+		svg.setAttribute("viewBox", "0 0 24 24");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "1.6");
+		const use = row.querySelector(":scope > .standard-sidebar-item .sidebar-item-icon use");
+		const id = use?.getAttribute("href") || use?.getAttribute("xlink:href") || "";
+		// TERNARY, NOT `&&`: `?.` guards only NULLISH, and `&&` gave `false` here.
+		const symbol = id.startsWith("#") ? document.getElementById(id.slice(1)) : null;
+		if (symbol?.tagName.toLowerCase() === "symbol") {
+			svg.setAttribute("viewBox", symbol.getAttribute("viewBox") || "0 0 24 24");
+			for (const child of symbol.children) svg.appendChild(child.cloneNode(true));
+		} else {
+			svg.innerHTML = '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>';
+		}
+		return svg;
+	}
+
+	function sb_mount_compact_nav() {
+		const container = document.querySelector(".body-sidebar-container");
+		const pane = container?.querySelector(".body-sidebar");
+		if (!pane || is_narrow() || !document.documentElement.hasAttribute("data-bnd-rail") || sb_edit_active()) {
+			sb_teardown_compact_nav();
+			return;
+		}
+		const rows = Array.from(pane.querySelectorAll(".sidebar-items > .sidebar-item-container"));
+		const entries = sb_compact_entries(rows.map((row) => ({
+			row,
+			label: row.querySelector(":scope > .standard-sidebar-item .sidebar-item-label")?.textContent.trim(),
+			href: row.querySelector(":scope > .standard-sidebar-item > .item-anchor")?.getAttribute("href"),
+			section: row.classList.contains("section-item"),
+			children: row.querySelectorAll(".sidebar-child-item .item-anchor[href]").length,
+			hidden: row.hidden || row.classList.contains("hidden") || row.classList.contains("bnd-sb-fhide"),
+			active: !!row.querySelector(".active-sidebar"),
+		})));
+		if (!entries.length) { container.classList.add("bnd-rail-open"); sb_teardown_compact_nav(); return; }
+		let nav = pane.querySelector(":scope > .bnd-compact-nav");
+		const signature = JSON.stringify(entries.map(({label, href, section, active}) => [label, href, section, active]));
+		if (nav?._bnd_signature === signature && entries.every((e, i) => nav._bnd_rows[i] === e.row)) return;
+		if (!nav) {
+			nav = el("div", "bnd-compact-nav", { "data-bnd-part": "compactnav" });
+			pane.insertBefore(nav, pane.querySelector(".body-sidebar-top"));
+		}
+		nav.replaceChildren();
+		for (const entry of entries) {
+			const node = el(entry.section ? "button" : "a", "bnd-rail-entry", {
+				...(entry.section ? { type: "button" } : { href: entry.href }),
+				title: entry.label, "aria-label": entry.label,
+			});
+			node.appendChild(sb_compact_icon(entry.row));
+			const label = el("span", "bnd-rail-label"); label.textContent = entry.label; node.appendChild(label);
+			if (entry.active) node.setAttribute(entry.section ? "data-active" : "aria-current", entry.section ? "true" : "page");
+			if (entry.section) node.addEventListener("click", () => {
+				if (!entry.row.isConnected) { sb_mount_compact_nav(); return; }
+				container._bnd_rail_return = node;
+				container.classList.add("bnd-rail-open"); container._bnd_sync_rail?.();
+				const disclosure = entry.row.querySelector(":scope > .standard-sidebar-item .drop-icon");
+				if (disclosure?.getAttribute("data-state") !== "opened") disclosure?.click();
+				requestAnimationFrame(() => entry.row.querySelector(".sidebar-child-item .item-anchor[href]")?.focus());
+			});
+			nav.appendChild(node);
+		}
+		nav._bnd_signature = signature; nav._bnd_rows = entries.map(e => e.row);
+		bnd_own("compactnav");
+	}
+
+	function sb_teardown_compact_nav() {
+		for (const node of document.querySelectorAll(".bnd-compact-nav")) node.remove();
+		bnd_disown("compactnav");
+	}
+
 	function sb_mount_rail() {
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container) return;
-		// Narrow = the drawer's turf: stand down, or the claim strands the phone.
 		if (!document.documentElement.hasAttribute("data-bnd-rail") || is_narrow()) {
 			sb_teardown_rail(container);
 			return;
 		}
 		if (container.dataset.bndRail) {
+			sb_mount_compact_nav();
 			container._bnd_sync_rail?.();
 			sb_mount_topbar_toggle(container);
-			// Already wired; remount released the token — re-claim.
-			bnd_own("panetoggle");
 			return;
 		}
 		container.dataset.bndRail = "1";
@@ -7429,39 +7613,17 @@ function sb_zone_anchor(pane, zone, node) {
 			target.addEventListener(event, fn, options);
 			container._bnd_rail_teardown.push(() => target.removeEventListener(event, fn, options));
 		};
-		const label_compact_items = () => {
-			for (const item of container.querySelectorAll(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item")) {
-				const label = item.querySelector(".sidebar-item-label")?.textContent?.trim();
-				if (!label) continue;
-				const owned = new Set((item.dataset.bndRailOwned || "").split(" ").filter(Boolean));
-				if (!item.hasAttribute("title")) { item.title = label; owned.add("title"); }
-				if (!item.hasAttribute("aria-label")) { item.setAttribute("aria-label", label); owned.add("aria-label"); }
-				if (!item.hasAttribute("role")) { item.setAttribute("role", "button"); owned.add("role"); }
-				if (!item.hasAttribute("tabindex")) { item.tabIndex = 0; owned.add("tabindex"); }
-				item.dataset.bndRailSection = "1";
-				item.dataset.bndRailOwned = [...owned].join(" ");
-			}
-		};
 
 		const sync_toggle = () => {
 			const narrow = is_narrow();
-			// Sidebar expansion is a desktop layout state. If zooming or resizing
-			// crosses Frappe's mobile boundary, release it before the fixed 220px
-			// column can crush the phone workspace; Frappe's own drawer owns
-			// navigation there.
 			if (narrow) {
-				container.classList.remove("bnd-rail-open", "expanded");
+				container.classList.remove("bnd-rail-open");
 			}
-			// A collapsible sidebar without its one top-bar control would be a
-			// permanently hidden navigation system. Degrade that configuration to
-			// an ordinary expanded column; when the bar exists, the user owns the
-			// state through its toggle.
 			if (!narrow && !document.querySelector(".bnd-topbar")) {
 				container.classList.add("bnd-rail-open");
 			}
 			const expanded = !narrow && container.classList.contains("bnd-rail-open");
-			// The container is the only width owner. A second width on the inner
-			// pane is what produced the broken 52px strip inside a 220px shell.
+			sb_mount_compact_nav();
 			container.style.width = narrow
 				? ""
 				: expanded
@@ -7477,7 +7639,6 @@ function sb_zone_anchor(pane, zone, node) {
 					sidebar.removeAttribute("inert");
 				}
 			}
-			label_compact_items();
 			for (const button of document.querySelectorAll(".bnd-sidebar-toggle")) {
 				button.setAttribute("aria-expanded", expanded ? "true" : "false");
 				const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
@@ -7495,63 +7656,78 @@ function sb_zone_anchor(pane, zone, node) {
 			sync_toggle();
 		};
 		sync_toggle();
-		// Escape is the only secondary gesture, and only closes. It is not a
-		// competing visible control and gives keyboard users a safe exit.
 		on(document, "keydown", (e) => {
 			if (e.key !== "Escape" || !container.classList.contains("bnd-rail-open")) return;
+			const returnFocus = container.contains(document.activeElement);
+			if (!returnFocus) return;
+			e.preventDefault(); e.stopPropagation();
 			container.classList.remove("bnd-rail-open");
 			sync_toggle();
+			if (returnFocus) (container._bnd_rail_return?.isConnected ? container._bnd_rail_return : document.querySelector(".bnd-sidebar-toggle"))?.focus();
 		});
-		// The native section headers are generic divs. Once the compact rail turns
-		// them into primary controls, give keyboard users the same open-and-select
-		// behaviour as a pointer click.
-		on(container, "keydown", (e) => {
-			if (e.key !== "Enter" && e.key !== " ") return;
-			const section = e.target.closest("[data-bnd-rail-section]");
-			if (!section) return;
-			e.preventDefault();
-			section.click();
-		});
-		// A section icon is a preview of the full navigation tree, not a tiny
-		// accordion. Open the pane before the native click expands that section.
-		on(container, "click", (e) => {
-			if (is_narrow() || container.classList.contains("bnd-rail-open")) return;
-			const section = e.target.closest(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item");
-			if (!section) return;
-			container.classList.add("bnd-rail-open");
-			sync_toggle();
-		}, true);
+
+		// THE TRIGGER WAS WRITTEN AND READ BY NOTHING: only the click path was ever
+		// wired, so a desk set to Hover could expand only via the toggle. Measured
+		// live -- forcing `bnd-rail-open` widened the pane, so the CSS was right and
+		// the gesture was missing. _sidebar-layout.scss:57 carries the width rule.
+		const railtrigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
+		// A coarse pointer has no hover to open with; those desks keep the toggle.
+		if (railtrigger !== "click" && window.matchMedia?.("(hover: hover)")?.matches) {
+			const rail_open = () => {
+				if (is_narrow() || sb_edit_active() || container.classList.contains("bnd-rail-open")) return;
+				container.classList.add("bnd-rail-open");
+				sync_toggle();
+			};
+			const rail_close = () => {
+				// Pinned, or the keyboard is inside it: closing would strand focus.
+				// `bnd-rail-pinned` already existed in sb_teardown_rail's remove()
+				// list with nothing setting it; reusing it keeps that line honest.
+				if (is_narrow() || container.classList.contains("bnd-rail-pinned")) return;
+				if (container.contains(document.activeElement)) return;
+				if (!container.classList.contains("bnd-rail-open")) return;
+				container.classList.remove("bnd-rail-open");
+				sync_toggle();
+			};
+			on(container, "mouseenter", rail_open);
+			on(container, "mouseleave", rail_close);
+			on(container, "focusin", rail_open);
+			on(container, "focusout", () => setTimeout(rail_close, 0));
+			if (railtrigger === "hoverpin") {
+				on(container, "click", (e) => {
+					if (e.target.closest(".bnd-sidebar-toggle")) return;
+					container.classList.toggle("bnd-rail-pinned");
+				});
+			}
+		}
 		sb_mount_topbar_toggle(container);
 	}
 
-	/** Mount (or restore after a chrome remount) the sidebar's only visible control. */
 	function sb_mount_topbar_toggle(container) {
+		bnd_disown("panetoggle");
 		if (is_narrow()) {
 			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
 			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
-				if (node._bnd_start_markup !== undefined) {
-					node.innerHTML = node._bnd_start_markup;
-					delete node._bnd_start_markup;
-				}
-				node.classList.remove("bnd-sidebar-toggle");
+				node.innerHTML = BND_PANEL_SVG;
+				delete node._bnd_start_markup;
+				node.classList.add("bnd-sidebar-toggle");
 				node.removeAttribute("data-bnd-rail-toggle");
+				sync_start_toggle(
+					node,
+					document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
+				);
 			}
 			return;
 		}
 		const bar = document.querySelector(".bnd-topbar");
-		if (!bar || bar.querySelector(".bnd-sidebar-toggle")) return;
+		if (!bar?.getClientRects().length) return;
 		const sidebar = container.querySelector(".body-sidebar");
 		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
 		const expanded = container.classList.contains("bnd-rail-open");
 		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
-		// A taskbar already has a Menu button in this exact host. Make that the
-		// rail toggle; two adjacent buttons for one pane was the original defect.
 		const start = bar.querySelector('.bnd-sb-start[data-bnd-part="start"]');
 		if (start) {
-			// The tenant normally carries the brand mark. While it owns rail
-			// expansion it must communicate that action as clearly as ChatGPT's
-			// panel control; save the mark so leaving Rail restores it exactly.
-			start._bnd_start_markup = start.innerHTML;
+			for (const node of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+			if (start._bnd_start_markup === undefined) start._bnd_start_markup = start.innerHTML;
 			start.innerHTML = BND_PANEL_SVG;
 			start.classList.add("bnd-sidebar-toggle");
 			start.setAttribute("data-bnd-rail-toggle", "reused");
@@ -7562,29 +7738,27 @@ function sb_zone_anchor(pane, zone, node) {
 			bnd_own("panetoggle");
 			return;
 		}
-		const button = el("button", "bnd-sidebar-toggle", {
-			type: "button",
-			"data-bnd-rail-toggle": "created",
-			"data-bnd-part": "panetoggle",
-			"aria-label": label,
-			"aria-expanded": expanded ? "true" : "false",
-			"aria-controls": (sidebar && sidebar.id) || "bnd-primary-sidebar",
-			title: label,
-		});
-		button.innerHTML = BND_PANEL_SVG;
-		button.addEventListener("click", () => container._bnd_toggle_rail?.());
-		bar.insertBefore(button, bar.firstChild);
+		let button = bar.querySelector('[data-bnd-rail-toggle="created"]');
+		if (!button) {
+			button = el("button", "bnd-sidebar-toggle", {
+				type: "button",
+				"data-bnd-rail-toggle": "created",
+				"data-bnd-part": "panetoggle",
+			});
+			button.innerHTML = BND_PANEL_SVG;
+			button.addEventListener("click", () => container._bnd_toggle_rail?.());
+			bar.insertBefore(button, bar.firstChild);
+		}
+		for (const duplicate of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) {
+			if (duplicate !== button) duplicate.remove();
+		}
+		button.setAttribute("aria-label", label);
+		button.setAttribute("aria-expanded", expanded ? "true" : "false");
+		button.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
+		button.title = label;
 		bnd_own("panetoggle");
 	}
 
-	/**
-	 * Apply the configured pane width. Collapsible mode's OPEN width and the
-	 * always-expanded pane both read --bnd-sb-w (stops 200-280px; stop 2 is
-	 * v16's original 220px). Manual-collapse mode is left to Frappe: its
-	 * collapse animation owns the width there, and an inline width from us
-	 * would pin it open.
-	 */
-	/** The free-drag pixel; "" follows the site. Defect 23: _sidebar.scss. */
 	let sb_pane_px = String(((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).pane_px || "");
 
 	function sb_apply_width() {
@@ -7601,6 +7775,7 @@ function sb_zone_anchor(pane, zone, node) {
 			container.style.width = "";
 			return;
 		}
+		container.querySelector(".body-sidebar")?.style.removeProperty("height");
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
 		// The pixel rides an inline custom property; clearing is one remove.
 		const px = parseInt(sb_pane_px, 10);
@@ -7612,6 +7787,8 @@ function sb_zone_anchor(pane, zone, node) {
 		// only the class leaves `sidebar_expanded` and localStorage saying false,
 		// so the next native render immediately folds it again.
 		if (document.documentElement.getAttribute("data-bnd-sb-panestate") === "open") {
+			// Clear the stale block written while Hidden's `display:none!important` won.
+			if (container.style.display === "block") container.style.removeProperty("display");
 			if (!container.classList.contains("expanded")) {
 				try {
 					localStorage.setItem("sidebar-expanded", "true");
@@ -7636,36 +7813,30 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
 	function sb_teardown_rail(container) {
+		sb_teardown_compact_nav();
 		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
 		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
-			if (node._bnd_start_markup !== undefined) {
-				node.innerHTML = node._bnd_start_markup;
-				delete node._bnd_start_markup;
-			}
-			node.classList.remove("bnd-sidebar-toggle");
+			node.innerHTML = BND_PANEL_SVG;
+			delete node._bnd_start_markup;
+			node.classList.add("bnd-sidebar-toggle");
 			node.removeAttribute("data-bnd-rail-toggle");
-			node.removeAttribute("aria-controls");
-			node.setAttribute(
-				"aria-expanded",
-				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false"
+			sync_start_toggle(
+				node,
+				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
 			);
-			node.setAttribute("aria-label", __("Menu"));
-			node.title = __("Menu");
 		}
-		bnd_disown("panetoggle");
+		const topToggle = document.querySelector('.bnd-topbar .bnd-sb-start[data-bnd-part="start"]');
+		if (!is_narrow() && topToggle?.getClientRects().length) bnd_own("panetoggle");
+		else bnd_disown("panetoggle");
 		if (!container.dataset.bndRail) return;
 		delete container.dataset.bndRail;
 		delete container._bnd_toggle_rail;
 		delete container._bnd_sync_rail;
+		delete container._bnd_rail_return;
 		container.style.width = "";
 		container.classList.remove("bnd-rail-open", "bnd-rail-pinned");
 		for (const off of container._bnd_rail_teardown || []) off();
 		container._bnd_rail_teardown = [];
-		for (const item of container.querySelectorAll("[data-bnd-rail-section]")) {
-			for (const attr of (item.dataset.bndRailOwned || "").split(" ").filter(Boolean)) item.removeAttribute(attr);
-			delete item.dataset.bndRailOwned;
-			delete item.dataset.bndRailSection;
-		}
 		for (const node of container.querySelectorAll(".bnd-railbtn, .bnd-sb-pin")) node.remove();
 	}
 
@@ -8063,6 +8234,7 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
 		{ key: "current", volatile: true, mount: sb_mark_current, unmount: sb_unmark_current },
+		{ key: "compactnav", volatile: true, mount: sb_mount_compact_nav, unmount: sb_teardown_compact_nav },
 		{ key: "fades", volatile: true, mount: sb_mount_fades, unmount: sb_teardown_fades },
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
@@ -8571,10 +8743,75 @@ function sb_zone_anchor(pane, zone, node) {
 	const HOME_ROUTE = "home";
 	let home_request = 0;
 	let home_status_resize_observer = null;
+	let home_greeting_timer = null;
 
 	function home_text(source) {
 		return typeof __ === "function" ? __(source) : source;
 	}
+
+	/** The greeting for a browser-local hour (or Date), exposed for regression tests. */
+	function home_greeting_text(hourOrDate) {
+		let hour;
+		if (hourOrDate instanceof Date) hour = hourOrDate.getHours();
+		else if (hourOrDate !== undefined && Number.isFinite(Number(hourOrDate))) hour = Number(hourOrDate);
+		else hour = new Date().getHours();
+		hour = ((Math.floor(hour) % 24) + 24) % 24;
+		// Keep the literals directly inside __(): the catalogue extractor cannot
+		// discover strings passed through the generic home_text helper.
+		if (hour >= 5 && hour < 12) return typeof __ === "function" ? __("Good morning") : "Good morning";
+		if (hour >= 12 && hour < 17) return typeof __ === "function" ? __("Good afternoon") : "Good afternoon";
+		if (hour >= 17 && hour < 22) return typeof __ === "function" ? __("Good evening") : "Good evening";
+		return typeof __ === "function" ? __("Welcome back") : "Welcome back";
+	}
+	bunood.home_greeting_text = home_greeting_text;
+
+	function home_clear_greeting_timer() {
+		clearTimeout(home_greeting_timer);
+		home_greeting_timer = null;
+	}
+
+	/** Update the cached Home page in place; navigation or a reload is unnecessary. */
+	function home_refresh_greeting(hourOrDate) {
+		const text = home_greeting_text(hourOrDate);
+		const host = on_home_route() ? home_host() : null;
+		const title = host && host.querySelector(":scope > .bnd-home-dashboard .bnd-home-title");
+		if (title) title.textContent = text;
+		return text;
+	}
+	bunood.home_refresh_greeting = home_refresh_greeting;
+
+	/** Re-evaluate at the next local 05:00 / 12:00 / 17:00 / 22:00 boundary. */
+	function home_schedule_greeting() {
+		home_clear_greeting_timer();
+		if (!on_home_route()) return;
+		const now = new Date();
+		let next = null;
+		for (const hour of [5, 12, 17, 22]) {
+			const candidate = new Date(now);
+			candidate.setHours(hour, 0, 0, 0);
+			if (candidate > now) {
+				next = candidate;
+				break;
+			}
+		}
+		if (!next) {
+			next = new Date(now);
+			next.setDate(next.getDate() + 1);
+			next.setHours(5, 0, 0, 0);
+		}
+		const delay = Math.max(1000, next.getTime() - now.getTime() + 50);
+		home_greeting_timer = setTimeout(() => {
+			home_refresh_greeting();
+			home_schedule_greeting();
+		}, delay);
+	}
+	bunood.home_schedule_greeting = home_schedule_greeting;
+
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState !== "visible" || !on_home_route()) return;
+		home_refresh_greeting();
+		home_schedule_greeting();
+	});
 
 	function on_home_route() {
 		// `|| []` GUARDS THE RETURN, not just the function's existence. The
@@ -8919,15 +9156,13 @@ function sb_zone_anchor(pane, zone, node) {
 		home_sign_from(data);
 		const metrics = data.metrics || {};
 		const currency = data.currency || "SAR";
-		const hour = new Date().getHours();
-		const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
 		const intro = el("header", "bnd-home-intro");
 		const intro_copy = el("div", "bnd-home-intro-copy");
 		const eyebrow = el("span", "bnd-home-eyebrow");
 		eyebrow.textContent = data.company || home_text("Bunood");
 		const title = el("h1", "bnd-home-title");
-		title.textContent = home_text(greeting);
+		title.textContent = home_greeting_text();
 		const subtitle = el("p", "bnd-home-subtitle");
 		subtitle.textContent = home_text("Your business at a glance");
 		intro_copy.append(eyebrow, title, subtitle);
@@ -9062,6 +9297,7 @@ function sb_zone_anchor(pane, zone, node) {
 		grid.prepend(attention);
 		attention.after(recent.panel);
 		root.appendChild(grid);
+		home_schedule_greeting();
 
 		// Native workspaces, dashboards, reports and Home now share Frappe Charts.
 		requestAnimationFrame(() => {
@@ -9123,6 +9359,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function home_render_error(root) {
+		home_clear_greeting_timer();
 		root.replaceChildren();
 		const state = el("div", "bnd-home-state");
 		state.appendChild(home_icon("icon-circle-alert", "bnd-home-state-icon"));
@@ -9134,6 +9371,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	function mount_home_dashboard(force) {
 		if (!on_home_route()) {
+			home_clear_greeting_timer();
 			home_stop_status_alignment();
 			for (const host of document.querySelectorAll(".bnd-home-host")) host.classList.remove("bnd-home-host");
 			for (const node of document.querySelectorAll(".bnd-home-dashboard")) node.remove();
@@ -9143,12 +9381,17 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!host) return false;
 		host.classList.add("bnd-home-host");
 		let root = host.querySelector(":scope > .bnd-home-dashboard");
-		if (root && !force) return true;
+		if (root && !force) {
+			home_refresh_greeting();
+			home_schedule_greeting();
+			return true;
+		}
 		if (!root) {
 			root = el("main", "bnd-home-dashboard", { "aria-label": home_text("Bunood dashboard") });
 			host.appendChild(root);
 		}
 		home_stop_status_alignment();
+		home_clear_greeting_timer();
 		root.replaceChildren();
 		const loading = el("div", "bnd-home-state is-loading");
 		loading.appendChild(home_icon("icon-loader-circle", "bnd-home-state-icon"));
@@ -9366,13 +9609,9 @@ function sb_zone_anchor(pane, zone, node) {
 		land_on_home();
 		decorate_crumbs();
 
-		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
-		// on each update() — route changes, add() calls, and every form
-		// header refresh (a doc save wipes our decoration). Wrapping update()
-		// is the sanctioned augmentation point: a plain object method, and
-		// core itself appends to the trail after clear() the same way.
-		// Fails open — if Frappe renames update(), decoration still runs on
-		// route changes below, just not on form refreshes.
+		// Native update rebuilds the trail, including on form refresh. Decorate
+		// afterward; if that hook disappears, route decoration still runs below.
+		install_breadcrumb_context_fallback(frappe.breadcrumbs);
 		if (frappe.breadcrumbs && typeof frappe.breadcrumbs.update === "function" && !frappe.breadcrumbs._bnd_wrapped) {
 			const native_update = frappe.breadcrumbs.update.bind(frappe.breadcrumbs);
 			frappe.breadcrumbs.update = function () {
@@ -9535,19 +9774,18 @@ function sb_zone_anchor(pane, zone, node) {
 	"use strict";
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const instances = new WeakMap();
+	let errorId = 0;
 	const PROFILES = {
 		"Sales Invoice": {
-			party: "customer", partyDoctype: "Customer", title: "Sales bill", question: "Who are you billing?",
-			itemQuestion: "What are you selling?", priceList: "selling_price_list",
-			lineFields: ["qty", "rate", "discount_percentage", "warehouse"],
+			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
+			lineFields: ["qty", "price_list_rate", "discount_percentage", "rate", "warehouse"],
 			context: ["company", "posting_date", "due_date", "currency", "selling_price_list"],
 			options: ["posting_date", "due_date", "update_stock", "set_warehouse", "currency", "selling_price_list", "payment_terms_template", "po_no"],
 			mapped: ["sales_order", "delivery_note", "so_detail", "dn_detail"],
 		},
 		"Purchase Invoice": {
-			party: "supplier", partyDoctype: "Supplier", title: "Purchase bill", question: "Who are you buying from?",
-			itemQuestion: "What are you buying?", priceList: "buying_price_list",
-			lineFields: ["qty", "rate", "discount_percentage", "warehouse"],
+			party: "supplier", partyDoctype: "Supplier", title: "Purchase bill", priceList: "buying_price_list",
+			lineFields: ["qty", "price_list_rate", "discount_percentage", "rate", "warehouse"],
 			context: ["company", "posting_date", "due_date", "currency", "buying_price_list"],
 			options: ["bill_no", "bill_date", "posting_date", "due_date", "update_stock", "set_warehouse", "currency", "buying_price_list", "payment_terms_template"],
 			mapped: ["purchase_order", "purchase_receipt", "po_detail", "pr_detail"],
@@ -9558,8 +9796,9 @@ function sb_zone_anchor(pane, zone, node) {
 	// English on the Arabic workbench while the catalogue gate stayed green.
 	const LINE_LABELS = {
 		qty: () => __("Quantity"),
-		rate: () => __("Unit price"),
-		discount_percentage: () => __("Discount"),
+		price_list_rate: () => __("Price before discount"),
+		rate: () => __("Net unit price"),
+		discount_percentage: () => __("Discount (%)"),
 		warehouse: () => __("Warehouse"),
 	};
 	const profileFor = frm => PROFILES[frm?.doctype];
@@ -9569,12 +9808,40 @@ function sb_zone_anchor(pane, zone, node) {
 		return { draft, savedDraft, showSave: draft && !savedDraft, showSubmit: savedDraft };
 	};
 	const fieldStatus = (frm, name) => frm.fields_dict[name]?.get_status?.() || "None";
+	function rowFieldStatus(frm, row, name) {
+		const grid = frm.fields_dict.items.grid;
+		if (!grid.is_editable()) return "Read";
+		const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
+		return df ? frappe.perm.get_field_display_status(df, row, frm.perm) : "None";
+	}
 	const canAdd = frm => {
 		const grid = frm.fields_dict.items.grid;
 		return grid.is_editable() && !grid.cannot_add_rows && !grid.df.cannot_add_rows;
 	};
 	const canRemove = frm => frm.fields_dict.items.grid.is_editable() && !frm.fields_dict.items.grid.df.cannot_delete_rows;
 	function totalField(frm) { return Number(frm.doc.disable_rounded_total) || !frm.fields_dict.rounded_total ? "grand_total" : "rounded_total"; }
+	async function setLineValue(doc, name, value, nativeSet, baseStatus = () => "None") {
+		if ((name === "qty" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) ||
+			(["rate", "price_list_rate"].includes(name) && (!Number.isFinite(Number(value)) || Number(value) < 0))) {
+			throw Error(__("Use a quantity above zero and a price of zero or more."));
+		}
+		// ERPNext percentage discounts require a positive price_list_rate.
+		if (name === "discount_percentage" && Number(value) !== 0 &&
+			(!Number.isFinite(Number(doc.price_list_rate)) || Number(doc.price_list_rate) <= 0)) {
+			throw Error(baseStatus() === "Write" ? __("Enter a price before discount first.") :
+				__("Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."));
+		}
+		return nativeSet(value);
+	}
+	function makePaymentEntry(frm) {
+		if (Number(frm.doc.docstatus) !== 1) throw Error(__("Submit the document before recording payment."));
+		if (typeof frm.cscript?.make_payment_entry !== "function") {
+			throw Error(__("Open the advanced form to create this payment."));
+		}
+		// Preserve the native dt/dn mapping, early-payment discount prompt and
+		// Payment Entry/Journal Entry selection instead of using a generic mapper.
+		return frm.cscript.make_payment_entry();
+	}
 	function hasTaxConfiguration(doc) {
 		return !!(doc?.taxes_and_charges || (doc?.taxes || []).length);
 	}
@@ -9675,7 +9942,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 	class BillWorkbench {
 		constructor(frm) {
-			this.frm = frm; this.doc = frm.doc; this.profile = profileFor(frm); this.controls = []; this.closed = false; this.simple = true; this.invalid = new Map(); this.pending = new Map(); this.rowViews = new Map(); this.editTimers = new Map();
+			this.frm = frm; this.doc = frm.doc; this.docname = frm.doc.name; this.profile = profileFor(frm); this.controls = []; this.closed = false; this.simple = true; this.invalid = new Map(); this.pending = new Map(); this.rowViews = new Map(); this.editTimers = new Map();
 			this.queue = new SerialChanges(() => this.active(), () => this.busy());
 			this.native = frm.$wrapper?.find(".form-layout").first()?.[0];
 			this.host = this.native?.parentElement || frm.$wrapper?.[0] || frm.wrapper;
@@ -9683,15 +9950,31 @@ function sb_zone_anchor(pane, zone, node) {
 			if (this.native?.parentElement) this.native.before(this.root); else this.host?.prepend(this.root);
 			this.root.setAttribute("data-bnd-part", "sales-bill");
 			this.root.setAttribute("aria-label", __(this.profile.title));
-			const mode = node("nav", "bnd-bill-mode"); this.root.before(mode); mode.setAttribute("aria-label", __("Form mode"));
+			const mode = this.mode = node("nav", "bnd-bill-mode"); this.root.before(mode); mode.setAttribute("aria-label", __("Form mode"));
 			this.simpleButton = button(__("Simple"), mode, () => this.setMode(true), true);
 			this.advancedButton = button(__("Advanced"), mode, () => this.fullInvoice());
-			const toolbar = node("div", "bnd-bill-toolbar", null, this.root); toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", __("Document actions"));
+			const intro = node("header", "bnd-bill-intro", null, this.root);
+			const identity = node("div", "bnd-bill-identity", null, intro);
+			node("span", "bnd-bill-seal", "B", identity).setAttribute("aria-hidden", "true");
+			const heading = node("div", "", null, identity);
+			node("span", "bnd-bill-brand", "Bunood", heading);
+			node("h2", "", __(this.profile.title), heading);
+			this.documentState = node("p", "bnd-bill-document-state", "", heading);
+			const toolbar = node("div", "bnd-bill-toolbar", null, intro); toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", __("Document actions"));
 			const commitActions = node("div", "bnd-bill-action-group bnd-bill-action-group-commit", null, toolbar);
 			commitActions.setAttribute("role", "group"); commitActions.setAttribute("aria-label", __("Draft actions"));
-			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolbar);
+			const tools = node("details", "bnd-bill-tools", null, toolbar);
+			const toolsTrigger = node("summary", "", __("Invoice tools"), tools);
+			tools.addEventListener("keydown", e => {
+				if (e.key === "Escape" && tools.open) { e.preventDefault(); e.stopPropagation(); tools.open = false; toolsTrigger.focus(); }
+			});
+			tools.addEventListener("click", e => {
+				if (e.target.closest("button")) { const restoreFocus = tools.contains(document.activeElement); tools.open = false; if (restoreFocus) toolsTrigger.focus(); }
+			}, true);
+			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
+			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolBody);
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
-			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolbar);
+			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
 			utilityActions.setAttribute("role", "group"); utilityActions.setAttribute("aria-label", __("Invoice tools"));
 			this.newButton = this.action(commitActions, __("New"), "F1", () => this.newDocument());
 			this.newButton.classList.add("bnd-bill-action-new");
@@ -9709,9 +9992,6 @@ function sb_zone_anchor(pane, zone, node) {
 			this.discountButton = this.action(documentActions, __("Discount"), "F10", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
 			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", () => this.restore());
 			this.searchButton = this.action(utilityActions, __("Find item"), "F12", () => this.picker?.set_focus());
-			const intro = node("header", "bnd-bill-intro", null, this.root);
-			node("h2", "", __(this.profile.title), intro);
-			node("p", "", __("Choose the party, add items, then save or submit when the document is ready."), intro);
 			this.status = node("p", "bnd-bill-status", "", this.root);
 			this.status.setAttribute("role", "status");
 			this.revertButton = button(__("Revert invalid edits"), this.root, () => { for (const key of this.invalid.keys()) this.pending.delete(key); this.invalid.clear(); this.render(); this.message(__("Changes stay in this invoice when you close this view.")); });
@@ -9719,17 +9999,23 @@ function sb_zone_anchor(pane, zone, node) {
 			this.editor = node("fieldset", "bnd-bill-editor", null, this.root);
 			const layout = node("div", "bnd-bill-layout", null, this.editor);
 			const main = node("div", "bnd-bill-main", null, layout);
-			const customer = node("section", "bnd-bill-panel", null, main);
+			const customer = node("section", "bnd-bill-panel bnd-bill-party", null, main);
 			const customerHead = node("header", "bnd-bill-section-head", null, customer);
-			node("h3", "", __(this.profile.question), customerHead);
+			node("h3", "", __(this.profile.partyDoctype), customerHead);
 			if ((frappe.boot.user.can_create || []).includes(this.profile.partyDoctype) && fieldStatus(frm, this.profile.party) === "Write") {
-				button(__("New {0}", [__(this.profile.partyDoctype).toLowerCase()]), customerHead, () => this.newParty());
+				this.newPartyButton = button(__("New {0}", [__(this.profile.partyDoctype).toLowerCase()]), customerHead, () => this.newParty());
 			}
-			this.partyControl = this.bindControl(customer, frm.fields_dict[this.profile.party], this.doc);
+			const essentials = node("div", "bnd-bill-essentials", null, customer);
+			this.partyControl = this.bindControl(essentials, frm.fields_dict[this.profile.party], this.doc);
+			const primaryFields = ["posting_date", "due_date", ...(frm.doctype === "Purchase Invoice" ? ["bill_no", "bill_date"] : [])];
+			for (const name of primaryFields) {
+				const source = frm.fields_dict[name];
+				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
+			}
 			this.context = node("dl", "bnd-bill-context", null, customer);
-			const items = node("section", "bnd-bill-panel", null, main);
-			node("h3", "", __(this.profile.itemQuestion), items);
-			const search = node("div", "bnd-bill-search", null, items);
+			const items = node("section", "bnd-bill-panel bnd-bill-items", null, main);
+			node("h3", "", __("Items"), items);
+			const search = node("div", "bnd-bill-search bnd-bill-draft-only", null, items);
 			const pickerHost = node("div", "bnd-bill-picker", null, search);
 			this.picker = frappe.ui.form.make_control({ parent: pickerHost, render_input: true,
 				df: { fieldtype: "Link", fieldname: "quick_bill_item", options: "Item", label: __("Find an item"),
@@ -9747,12 +10033,12 @@ function sb_zone_anchor(pane, zone, node) {
 			this.picker.$input.on("keydown.bnd-bill", e => {
 				if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); this.addItem(); }
 			});
-			node("p", "bnd-bill-hint", __("Select an item, then Add item. Ctrl+Enter adds it from search."), items);
+			node("p", "bnd-bill-hint bnd-bill-draft-only", __("Select an item, then Add item. Ctrl+Enter adds it from search."), items);
 			this.lines = node("div", "bnd-bill-lines", null, items);
 			this.rail = node("aside", "bnd-bill-panel bnd-bill-rail", null, layout);
 			node("h3", "", __("Bill total"), this.rail);
 			this.totals = node("dl", "bnd-bill-totals", null, this.rail);
-			this.stock = node("p", "bnd-bill-hint", null, this.rail);
+			this.stock = node("p", "bnd-bill-hint bnd-bill-draft-only", null, this.rail);
 			if (frm.doctype === "Sales Invoice") {
 				this.zatca = node("details", "bnd-bill-options", null, this.rail); this.zatca.open = true;
 				this.zatca.dataset.bndPart = "zatca-status";
@@ -9765,6 +10051,7 @@ function sb_zone_anchor(pane, zone, node) {
 			const options = node("details", "bnd-bill-options", null, this.rail);
 			node("summary", "", __("Document options"), options);
 			for (const name of this.profile.options) {
+				if (primaryFields.includes(name)) continue;
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(options, source, this.doc);
 			}
@@ -9773,11 +10060,7 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const name of ["apply_discount_on", "additional_discount_percentage", "discount_amount", "taxes_and_charges"]) {
 				const source = frm.fields_dict[name]; if (source && fieldStatus(frm, name) !== "None") this.bindControl(this.discount, source, this.doc);
 			}
-			const footer = node("footer", "bnd-bill-footer", null, this.root);
-			this.footerTotal = node("strong", "bnd-bill-footer-total", "", footer);
-			const actions = node("div", "bnd-bill-actions", null, footer);
-			this.fullButton = button(__("Advanced form"), actions, () => this.fullInvoice());
-			node("p", "bnd-bill-hint", __("A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."), this.rail);
+			node("p", "bnd-bill-hint bnd-bill-draft-only", __("A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."), this.rail);
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
 			this.root.addEventListener("keydown", e => {
@@ -9801,17 +10084,61 @@ function sb_zone_anchor(pane, zone, node) {
 			this.advancedButton?.setAttribute("aria-pressed", String(!simple));
 			this.simpleButton?.setAttribute("aria-current", simple ? "page" : "false");
 			this.advancedButton?.setAttribute("aria-current", simple ? "false" : "page");
+			this.syncSelectionGuard();
 		}
-		syncDocument() { this.doc = this.frm.doc; }
-		show() { this.syncDocument(); this.setMode(true); this.render(); }
-		active() { return !this.closed && window.cur_frm === this.frm && this.frm.doc === this.doc && supports(this.frm); }
+		syncSelectionGuard() {
+			const layout = this.frm.layout, key = "is_numeric_field_active", binding = this.selectionGuard;
+			if (binding) {
+				if (binding.layout === layout && this.simple && !this.closed) return;
+				if (binding.layout[key] === binding.guard) {
+					if (binding.descriptor) Object.defineProperty(binding.layout, key, binding.descriptor);
+					else delete binding.layout[key];
+				} else (this.selectionBlocked ||= new WeakSet()).add(binding.layout);
+				this.selectionGuard = null;
+			}
+			if (!layout || !this.simple || this.closed || this.selectionBlocked?.has(layout)) return;
+			const original = layout[key], descriptor = Object.getOwnPropertyDescriptor(layout, key);
+			if (typeof original !== "function" || (descriptor ? !descriptor.writable : !Object.isExtensible(layout))) return;
+			const workbench = this;
+			function guard(...args) {
+				// Exclude owned inputs from Layout.refresh's global selection.
+				const input = document.activeElement;
+				if (this === layout && layout[key] === guard && workbench.frm.layout === layout && workbench.simple && workbench.active()
+					&& workbench.root?.isConnected && !workbench.root.hidden && workbench.root.contains(input)
+					&& workbench.controls.some(c => c.control.$input?.[0] === input && (c.doc === workbench.doc || workbench.doc.items?.includes(c.doc)))) return false;
+				return original.apply(this, args);
+			}
+			Object.defineProperty(layout, key, descriptor ? { ...descriptor, value: guard } : { value: guard, configurable: true, writable: true });
+			this.selectionGuard = { layout, guard, descriptor };
+		}
+		dispose() {
+			if (this.closed) return;
+			this.closed = true;
+			if (instances.get(this.frm) === this) this.setMode(false); else this.syncSelectionGuard();
+			for (const timer of this.editTimers.values()) clearTimeout(timer);
+			this.editTimers.clear(); this.pending.clear(); this.invalid.clear();
+			this.root.remove(); this.mode.remove();
+			if (instances.get(this.frm) === this) instances.delete(this.frm);
+		}
+		syncDocument() {
+			if (this.closed) return false;
+			if (this.doc === this.frm.doc && this.docname === this.frm.doc.name) return true;
+			// Controls close over a document. Never relabel old bindings as new.
+			this.dispose();
+			if (window.cur_frm === this.frm && supports(this.frm)) open(this.frm);
+			return false;
+		}
+		show() { if (this.syncDocument()) { this.setMode(true); this.render(); } }
+		active() { return !this.closed && window.cur_frm === this.frm && this.frm.doc === this.doc && this.docname === this.doc.name && supports(this.frm); }
 		busy() {
-			const busy = !!this.queue.count || !!this.saving || !!this.closing || !!this.flushing;
-			if (this.editor) this.editor.disabled = busy;
+			const locked = !!this.saving || !!this.closing || !!this.flushing;
+			const busy = !!this.queue.count || locked;
+			// Recalculation preserves focus; commit/mode transitions lock inputs.
+			if (this.editor) this.editor.disabled = locked;
 			if (this.addButton) this.addButton.disabled = busy || !this.frm.doc[this.profile.party] || !canAdd(this.frm);
-			if (this.saveButton) this.saveButton.disabled = busy;
-			if (this.submitButton) this.submitButton.disabled = busy;
-			if (this.fullButton) this.fullButton.disabled = busy;
+			for (const action of [this.saveButton, this.submitButton, this.newButton, this.advancedButton, this.scanButton, this.newPartyButton]) if (action) action.disabled = busy;
+			for (const { remove } of this.rowViews.values()) if (remove) remove.disabled = busy;
+			if (this.zatcaButton) this.zatcaButton.disabled = busy || !!this.zatcaSending;
 			this.root?.setAttribute("aria-busy", String(busy));
 		}
 		message(text, error = false, action = null) {
@@ -9856,6 +10183,35 @@ function sb_zone_anchor(pane, zone, node) {
 			try { await this.queue.run(action); if (this.active()) { if (!this.flushing) this.render(); this.message(__("Changes stay in this invoice when you close this view.")); } }
 			catch (e) { this.message(e.message || __("Could not update the invoice. Open the full invoice to review."), true); throw e; }
 		}
+		renderControl(control, key, refresh = false) {
+			const invalid = this.invalid.get(key);
+			const wrapper = control.$wrapper[0];
+			let input = control.$input?.[0], error = wrapper.querySelector(".bnd-bill-field-error");
+			if (error && input) {
+				if (error.nativeInvalid == null) input.removeAttribute("aria-invalid"); else input.setAttribute("aria-invalid", error.nativeInvalid);
+			}
+			const editing = input === document.activeElement && (invalid || this.pending.has(key) || control.get_value() === control.get_model_value());
+			if (refresh && !editing) {
+				control.refresh();
+				if (control.get_status() === "Write") {
+					if (invalid) control.set_input(invalid.raw);
+					if (this.pending.has(key)) control.set_input(this.pending.get(key));
+				}
+			}
+			input = control.$input?.[0];
+			if (!input) return;
+			const described = (input.getAttribute("aria-describedby") || "").split(/\s+/).filter(id => id && id !== error?.id);
+			const visible = !!invalid && control.get_status() === "Write";
+			if (visible) {
+				if (!error) { error = node("p", "bnd-bill-field-error bnd-bill-error", null, wrapper); error.id = `bnd-bill-error-${++errorId}`; }
+				error.nativeInvalid = input.getAttribute("aria-invalid");
+				input.setAttribute("aria-invalid", "true");
+				error.textContent = invalid.message;
+				described.push(error.id);
+			} else error?.remove();
+			if (described.length) input.setAttribute("aria-describedby", described.join(" ")); else input.removeAttribute("aria-describedby");
+			wrapper.classList.toggle("bnd-bill-invalid", visible);
+		}
 		bindControl(parent, source, doc, rowField) {
 			const frm = this.frm, name = source.df.fieldname;
 			const allowed = () => rowField
@@ -9871,9 +10227,9 @@ function sb_zone_anchor(pane, zone, node) {
 			const key = `${doc.name}:${name}`;
 			const nativeValidate = control.validate_and_set_in_model.bind(control);
 			control.validate_and_set_in_model = (value, ...args) => {
-				if (value === doc[name] && this.invalid.has(key)) {
-					this.invalid.delete(key); control.$input?.attr("aria-invalid", "false");
-					control.$wrapper.removeClass("has-error"); this.revertButton.hidden = !this.invalid.size;
+				if (value === doc[name]) {
+					this.invalid.delete(key); this.pending.delete(key); this.renderControl(control, key);
+					this.revertButton.hidden = !this.invalid.size;
 					if (!this.invalid.size) this.message(__("Changes stay in this invoice when you close this view."));
 				}
 				return nativeValidate(value, ...args);
@@ -9882,17 +10238,19 @@ function sb_zone_anchor(pane, zone, node) {
 				const raw = control.$input?.val();
 				this.pending.set(key, raw);
 				return this.change(async () => {
+				if (this.pending.get(key) !== raw) return;
 				if (allowed() !== "Write") throw Error(__("This field is not editable. Use the full invoice."));
 				if (rowField && !frm.doc.items.some(r => r.name === doc.name)) throw Error(__("This item is no longer on the invoice."));
-				if ((name === "qty" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) ||
-					(name === "rate" && (!Number.isFinite(Number(value)) || Number(value) < 0))) {
-					throw Error(__("Use a quantity above zero and a price of zero or more."));
-				}
-				await nativeSet(value); this.invalid.delete(key);
+				await setLineValue(doc, name, value, nativeSet, () => rowFieldStatus(frm, doc, "price_list_rate"));
+				if (this.pending.get(key) !== raw) return;
+				this.invalid.delete(key);
+				this.renderControl(control, key);
 				if (this.pending.get(key) === raw) this.pending.delete(key);
-			}).catch(() => {
+			}).catch(e => {
 				if (rowField && !frm.doc.items.some(r => r.name === doc.name)) { this.forgetRow(doc.name); return; }
-				this.invalid.set(key, raw); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error"); this.revertButton.hidden = false;
+				if (this.pending.get(key) !== raw) return;
+				this.invalid.set(key, { raw, message: e.message || __("Could not update the invoice. Open the full invoice to review.") });
+				this.renderControl(control, key); this.revertButton.hidden = false;
 			});
 			};
 			control.$input?.on("input.bnd-bill", () => {
@@ -9909,7 +10267,7 @@ function sb_zone_anchor(pane, zone, node) {
 			});
 			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} · ${doc.item_code}` : __(source.df.label));
 			if (this.invalid.has(key)) {
-				control.set_input(this.invalid.get(key)); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error");
+				this.renderControl(control, key, true);
 			}
 			this.controls.push({ control, rowField, key, doc }); return control;
 		}
@@ -9991,7 +10349,13 @@ function sb_zone_anchor(pane, zone, node) {
 					if (fieldStatus(this.frm, this.profile.party) !== "Write") throw Error(__("This field is not editable. Use the advanced form."));
 					return this.frm.set_value(this.profile.party, doc.name);
 				}).catch(() => {});
-			}, null, null, true);
+			}, entry => this.addPartyTaxField(entry), null, true);
+		}
+		addPartyTaxField(entry) {
+			if (!entry?.add_fields || entry.fields_dict?.tax_id) return;
+			const df = frappe.meta.get_docfield(this.profile.partyDoctype, "tax_id");
+			if (!df || df.hidden || df.read_only || frappe.perm.get_field_display_status(df, entry.doc, frappe.perm.get_perm(this.profile.partyDoctype)) !== "Write") return;
+			entry.add_fields([{ ...df, label: __("Tax ID") }]);
 		}
 		scanItem() {
 			if (!window.frappe?.ui?.Scanner) { this.message(__("Camera scanning is not available in this browser. Type the barcode in item search."), true); return; }
@@ -10060,18 +10424,19 @@ function sb_zone_anchor(pane, zone, node) {
 			if (state === "preparing") this.zatcaTimer = setTimeout(() => this.loadZatca(true), 5000);
 		}
 		async zatcaAction() {
+			if (this.zatcaButton.disabled) return;
 			const data = this.zatcaData || {}, state = data.state;
 			if (state === "missing_app") {
 				frappe.msgprint(__("Install and migrate the KSA Compliance app before configuring ZATCA.")); return;
 			}
 			if (state === "preparing") return this.loadZatca(true);
 			if (state === "ready_to_send" && data.can_queue) {
-				this.zatcaButton.disabled = true;
+				this.zatcaSending = true; this.busy();
 				try {
 					await frappe.call({ method: "bunood_theme.zatca.queue_invoice", type: "POST", args: { invoice_name: this.doc.name }, freeze: true, freeze_message: __("Queueing invoice for ZATCA…") });
 					this.zatcaStatus.textContent = __("Invoice queued for ZATCA. Status will update automatically.");
 					setTimeout(() => this.loadZatca(true), 2500);
-				} finally { this.zatcaButton.disabled = false; }
+				} finally { this.zatcaSending = false; this.busy(); }
 				return;
 			}
 			if (data.invoice?.name) { frappe.set_route("Form", "Sales Invoice Additional Fields", data.invoice.name); return; }
@@ -10079,11 +10444,13 @@ function sb_zone_anchor(pane, zone, node) {
 			if (route?.length) frappe.set_route(...route);
 		}
 		render() {
-			if (this.closed) return;
-			this.syncDocument();
+			if (this.closed || !this.syncDocument()) return;
+			this.syncSelectionGuard();
 			const frm = this.frm, doc = frm.doc;
+			this.documentState.textContent = `${doc.__islocal ? __("New") : doc.name} · ${doc.__islocal || frm.is_dirty() ? __("Not Saved") : __(doc.status || "Draft")}`;
 			this.context.replaceChildren();
 			for (const name of this.profile.context) {
+				if (["posting_date", "due_date"].includes(name)) continue;
 				const field = frm.fields_dict[name];
 				if (!field || fieldStatus(frm, name) === "None" || !doc[name]) continue;
 				const pair = node("div", "", null, this.context);
@@ -10093,12 +10460,7 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const [name, view] of this.rowViews) if (!rows.some(r => r.name === name)) { this.forgetRow(name); view.line.remove(); this.rowViews.delete(name); }
 			this.controls = this.controls.filter(c => !c.rowField || rows.some(r => r === c.doc));
 			for (const { control, key } of this.controls) {
-				control.$input?.attr("aria-invalid", String(this.invalid.has(key)));
-				const raw = this.pending.get(key);
-				if (control.$input?.[0] === document.activeElement) continue;
-				control.refresh();
-				if (this.pending.has(key)) control.set_input(raw);
-				if (this.invalid.has(key)) { control.set_input(this.invalid.get(key)); control.$input?.attr("aria-invalid", "true"); control.$wrapper.addClass("has-error"); }
+				this.renderControl(control, key, true);
 			}
 			this.revertButton.hidden = !this.invalid.size;
 			this.lines.querySelector(".bnd-bill-empty")?.remove();
@@ -10118,7 +10480,7 @@ function sb_zone_anchor(pane, zone, node) {
 					node("strong", "", row.item_name || row.item_code, itemValue);
 					node("bdi", "bnd-bill-hint", `${row.item_code}${row.uom ? " · " + __(row.uom) : ""}`, itemValue);
 				for (const name of this.profile.lineFields) {
-					const cell = node("div", "bnd-bill-cell", null, line);
+					const cell = node("div", `bnd-bill-cell bnd-bill-cell-${name}`, null, line);
 					const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
 					if (df) this.bindControl(cell, { df: { ...df, label: LINE_LABELS[name]?.() || __(df.label) } }, row, true);
 				}
@@ -10144,14 +10506,13 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 			const totalName = totalField(frm);
 			const totalControl = frm.fields_dict[totalName];
-			this.footerTotal.replaceChildren();
 			if (totalControl && fieldStatus(frm, totalName) !== "None") {
 				const pair = node("div", "bnd-bill-grand", null, this.totals);
 				node("dt", "", __("Total"), pair); this.money(node("dd", "", null, pair), doc[totalName], totalControl.df);
-				this.money(this.footerTotal, doc[totalName], totalControl.df);
 			}
 			this.stock.textContent = doc.update_stock ? __("Stock will be updated when the invoice is submitted.") : __("Stock is not updated by this invoice.");
 			const { draft, showSave, showSubmit } = actionState(doc, this.frm.is_dirty());
+			this.root.dataset.bndDraft = String(draft); this.searchButton.hidden = !draft;
 			this.addButton.hidden = !draft; this.scanButton.hidden = !draft; this.saveButton.hidden = !showSave;
 			this.submitButton.hidden = !showSubmit;
 			this.deleteButton.hidden = !draft || !!doc.__islocal; this.paymentButton.hidden = Number(doc.docstatus) !== 1;
@@ -10179,51 +10540,66 @@ function sb_zone_anchor(pane, zone, node) {
 			this.closing = true; this.busy();
 			try {
 				if (Number(this.doc.docstatus) === 0) await this.flush();
+				if (!this.active()) return;
 				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); return; }
 				this.setMode(false);
 			} catch (e) { this.message(e.message || __("Could not update the document. Open the advanced form to review."), true); }
 			finally { this.closing = false; this.busy(); }
 		}
+		missingRequiredField() {
+			if (!this.doc[this.profile.party]) return {
+				message: this.profile.party === "supplier" ? __("Choose a supplier before continuing.") : __("Choose a customer before continuing."), control: this.partyControl,
+			};
+			if (!(this.doc.items || []).some(row => row.item_code)) return {
+				message: __("Add at least one item before continuing."), control: this.picker,
+			};
+			return null;
+		}
 		async save() {
 			if (this.saving || this.closing) return;
+			let missing;
 			this.saving = true; this.busy();
 			try {
 				await this.flush();
 				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
 				if (!this.active()) throw Error(__("This invoice is no longer active. Open it again to continue."));
-				if (!this.frm.doc[this.profile.party] || !this.frm.doc.items.some(r => r.item_code)) throw Error(__("Choose the party and add at least one item."));
+				missing = this.missingRequiredField();
+				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.frm.doc);
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
 				await this.queue.run(() => saveDraft(this.frm));
 				frappe.show_alert({ message: __("Draft saved. Submit it when it is ready to affect accounts or stock."), indicator: "green" }); this.render();
 			} catch (e) { this.message(e.message || __("The draft was not saved. Review the message or open the advanced form."), true); }
-			finally { this.saving = false; this.busy(); }
+			finally { this.saving = false; this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
 		}
 		async submit() {
-			if (Number(this.doc.docstatus) !== 0 || this.saving) return;
+			if (!this.active() || Number(this.doc.docstatus) !== 0 || this.saving) return;
+			let missing;
 			this.saving = true; this.busy();
 			try {
 				await this.flush();
-				if (!this.doc[this.profile.party] || !this.doc.items.some(row => row.item_code)) throw Error(__("Choose the party and add at least one item."));
+				if (!this.active()) return;
+				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
+				missing = this.missingRequiredField();
+				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.doc);
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
 				if (this.doc.__islocal || this.frm.is_dirty()) await saveDraft(this.frm);
+				if (!this.active()) return;
 				await this.frm.savesubmit();
 			} catch (e) { this.message(e.message || __("The document was not submitted. Review the highlighted fields."), true); }
-			finally { this.saving = false; this.render(); this.busy(); }
+			finally { this.saving = false; this.render(); this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
 		}
-		newDocument() { return frappe.new_doc(this.frm.doctype); }
+		newDocument() { if (this.active() && !this.queue.count && !this.saving && !this.flushing && !this.closing) return frappe.new_doc(this.frm.doctype); }
 		removeDocument() { if (!this.doc.__islocal && Number(this.doc.docstatus) === 0) this.frm.savetrash(); }
 		print() { if (!this.doc.__islocal) this.frm.print_doc(); }
 		restore() {
 			const reload = () => this.frm.reload_doc().then(() => { this.syncDocument(); this.render(); });
 			if (this.frm.is_dirty()) frappe.confirm(__("Discard unsaved changes and reload this document?"), reload); else reload();
 		}
-		payment() {
-			if (Number(this.doc.docstatus) !== 1) { this.message(__("Submit the document before recording payment."), true); return; }
-			frappe.model.open_mapped_doc({
-				method: "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry", frm: this.frm,
-			});
+		async payment() {
+			try { return await makePaymentEntry(this.frm); }
+			catch (error) { this.message(error.message, true); }
 		}
 	}
 	function open(frm) {
@@ -10237,14 +10613,15 @@ function sb_zone_anchor(pane, zone, node) {
 	function newInvoice() {
 		return frappe.new_doc("Sales Invoice");
 	}
-	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, totalField, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, totalField, rowFieldStatus, setLineValue, makePaymentEntry, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// form-refresh precedes refresh_fields and native refresh handlers. Wait
 		// for that stack and its requests; never judge permissions mid-refresh.
 		setTimeout(() => frappe.after_ajax().then(() => {
-			if (window.cur_frm !== frm || !supports(frm)) return;
-			if (instances.has(frm)) { instances.get(frm).syncDocument(); instances.get(frm).render(); } else open(frm);
+			if (window.cur_frm !== frm) return;
+			if (!supports(frm)) { instances.get(frm)?.dispose(); return; }
+			if (instances.has(frm)) instances.get(frm).render(); else open(frm);
 		}), 0);
 	});
 })();
@@ -10257,6 +10634,20 @@ function sb_zone_anchor(pane, zone, node) {
 	"use strict";
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const controllers = new WeakMap();
+	const pendingRefresh = new WeakMap();
+	function scheduleWorkbenchRefresh(frm) {
+		if (!controllers.get(frm)?.workbench) return;
+		const doc = frm.doc;
+		clearTimeout(pendingRefresh.get(frm));
+		const timer = setTimeout(() => {
+			frappe.after_ajax().then(() => {
+				if (pendingRefresh.get(frm) !== timer) return;
+				pendingRefresh.delete(frm);
+				if (window.cur_frm === frm && frm.doc === doc) controllers.get(frm)?.refresh();
+			});
+		}, 0);
+		pendingRefresh.set(frm, timer);
+	}
 	if (!frappe.has_permission && frappe.perm?.has_perm) {
 		frappe.has_permission = (doctype, ptype = "read", name) => frappe.perm.has_perm(
 			doctype, 0, ptype, typeof name === "string" ? frappe.get_doc?.(doctype, name) : name
@@ -10562,6 +10953,16 @@ function sb_zone_anchor(pane, zone, node) {
 		return true;
 	}
 	api.simple_forms = { mount, candidate, profiles: PROFILES, fallbackFields };
+	// Refresh presentation after native field handlers and their requests finish.
+	// Do not calculate values here or return an AJAX wait into a native trigger.
+	if (frappe.ui?.form?.on) {
+		for (const [doctype, fields] of Object.entries({
+			"Stock Entry": ["stock_entry_type", "purpose", "from_warehouse", "to_warehouse", "total_outgoing_value", "total_incoming_value", "value_difference"],
+			"Stock Entry Detail": ["items_add", "items_remove", "item_code", "qty", "transfer_qty", "basic_rate", "basic_amount", "amount", "s_warehouse", "t_warehouse"],
+			"Delivery Note": ["customer", "set_warehouse", "currency", "total_qty", "grand_total"],
+			"Delivery Note Item": ["items_add", "items_remove", "item_code", "qty", "stock_qty", "rate", "amount"],
+		})) frappe.ui.form.on(doctype, Object.fromEntries(fields.map(name => [name, scheduleWorkbenchRefresh])));
+	}
 	$(document).on("form-refresh.bnd-simple-forms", (_event, frm) => {
 		setTimeout(() => frappe.after_ajax().then(() => { if (window.cur_frm === frm) mount(frm); }), 0);
 	});

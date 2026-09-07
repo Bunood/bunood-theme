@@ -117,6 +117,12 @@ html[data-theme] .bnd-menu {
   // the axe scan; the shorter avatar menu could never trip it.
   max-block-size: min(70vh, 560px);
   overflow-y: auto;
+  // A capped, scrolling popup shows a scrollbar, and the platform default is a
+  // wide grey slab against a 220px panel — on the head switcher (every root
+  // workspace) it reads as a second border. Same treatment the pane already
+  // uses for its own overflow (_sidebar.scss), so the two agree.
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--bnd-ink) 22%, transparent) transparent;
   padding: var(--bnd-sp-1);
   background: var(--bnd-surface);
   border: var(--bnd-line) solid var(--bnd-border);
@@ -366,6 +372,21 @@ html[data-theme] .bnd-acct-panel {
       grid-column: 3;
       margin-inline-start: 0;
       justify-self: end;
+    }
+    .bnd-acct-item-badge {
+      grid-column: 3;
+      justify-self: end;
+      min-inline-size: 18px;
+      block-size: 18px;
+      padding-inline: 5px;
+      border-radius: var(--bnd-radius-pill);
+      background: var(--bnd-critical);
+      color: var(--bnd-on-critical);
+      font-size: 10px;
+      font-weight: var(--bnd-weight-medium);
+      line-height: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
     }
   }
   .bnd-acct-signout {

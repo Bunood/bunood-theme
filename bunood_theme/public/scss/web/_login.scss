@@ -251,6 +251,50 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+// ── Guest language — one compact control, not Frappe's full website navbar ──
+// Both language self-names remain visible, so a visitor can recover even when
+// the current interface is unfamiliar. The server owns translation/direction;
+// this control only chooses which server-rendered page to request.
+body.bnd-auth .bnd-auth-language-switch {
+  position: fixed;
+  z-index: 4;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: var(--bnd-sp-4);
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-auth-field);
+}
+
+body.bnd-auth .bnd-auth-language-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 36px;
+  min-inline-size: 78px;
+  padding-inline: var(--bnd-sp-3);
+  border-radius: calc(var(--bnd-radius-md) - 3px);
+  color: var(--bnd-ink-muted);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+body.bnd-auth .bnd-auth-language-choice:hover {
+  background: color-mix(in srgb, var(--bnd-ink) 6%, transparent);
+}
+
+body.bnd-auth .bnd-auth-language-choice[aria-current="true"] {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+// The real, translated hero is rendered by the server and moved into the split
+// row by the auth-only script. Other login compositions intentionally hide it.
+body.bnd-auth .bnd-auth-hero {
+  display: none;
+}
+
 // ── Contract R11: the tagline stops being a promise ─────────────────────────
 // Theme Settings has shipped a `tagline` field whose description reads "Shown
 // on the login page." since day one, and nothing has ever read it. That is a
@@ -709,20 +753,16 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
     z-index: 1;
   }
 
-  body.bnd-auth-split .page-content-wrapper::after {
-    content: "أهلاً بك في نظام بنود\Aأدر أعمالك بكفاءة وسهولة"; /* Welcome message */
-    white-space: pre-wrap; /* Allows the \A to act as a line break */
+  body.bnd-auth-split .page-content-wrapper > .bnd-auth-hero {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--bnd-sp-3);
     text-align: center;
 
     /* Typography */
     color: var(--bnd-on-brand); /* White text */
-    font-size: 2.25rem;
-    font-weight: 700;
-    line-height: 1.6;
-
     flex: 1;
     margin-block: var(--bnd-sp-2);
     margin-inline-end: var(--bnd-sp-2);
@@ -735,7 +775,20 @@ body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper
     /* Beautiful subtle dot-grid overlay using radial gradients */
     background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px) !important;
     background-size: 32px 32px !important;
-    background-position: center !important;
+  }
+
+  body.bnd-auth-split .bnd-auth-hero h2 {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2rem, 3.2vw, 3.25rem);
+    font-weight: 750;
+    line-height: 1.25;
+  }
+
+  body.bnd-auth-split .bnd-auth-hero p {
+    margin: 0;
+    color: inherit;
+    font-size: 1.05rem;
   }
 
   body.bnd-auth-split

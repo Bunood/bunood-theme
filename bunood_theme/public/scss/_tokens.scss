@@ -121,6 +121,7 @@
   // that because it repaints every stock control on the desk, and
   // `contrast_gate.py` exempts both on that evidence. Opt in per component.
   --bnd-line-strong: 1px;
+  --bnd-line-2: 2px; // Visible keyboard focus boundary for owned navigation controls.
   // Usable form width before a split login composition adds its padding.
   --bnd-auth-form-min: 320px;
   --bnd-border: rgba(0, 0, 0, 0.09);
@@ -294,7 +295,7 @@
   // it rather than stretching it - the check pins the panel at this width
   // with a 40-char Arabic name and a 45-char address.
   --bnd-acct-w: 280px;
-  --bnd-sb-rail-w: 52px;
+  --bnd-sb-rail-w: 96px; // Icon + readable bilingual label; shared column/pane width.
   --bnd-sb-radius: 14px;
   // ── Z-index ladder ────────────────────────────────────────────────────────
   // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and

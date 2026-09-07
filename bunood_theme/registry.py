@@ -262,6 +262,12 @@ COMPONENTS = [
         # The bell, NOT the badge inside it: the badge is the unread count and
         # is legitimately hidden on a quiet bench.
         "selector": ".bnd-bell",
+        # On a phone Notifications moves into the Account panel so the primary
+        # navigation stays at four stable destinations.  The account trigger is
+        # therefore a real route to this critical function, not merely a user
+        # affordance; the client guard reads this fallback before deciding that
+        # the side pane must be forced back on.
+        "fallback": '[data-bnd-inbox-route]',
         "native": ".body-sidebar .sidebar-notification",
         "regions": REGIONS,
         "toggle": None,
@@ -567,14 +573,16 @@ NARROW_CHROME = {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "doc
 #: `slots_for` for that tenant (apps offers only "Start" on a bar); the suite
 #: asserts it, the same guard `LAYOUT_TENANTS` gets.
 NARROW_PLACEMENT = {
-    "inbox": "Bottom Bar End",
+    # Notifications is secondary navigation on a phone.  It remains reachable
+    # as the first action in Account, with its unread badge on the Account
+    # trigger, instead of consuming a fifth primary-navigation column.
+    "inbox": "Off",
     "user": "Bottom Bar End",
     "apps": "Bottom Bar Start",
-    # A primary mobile navigation row needs a stable route to the dashboard.
+    # A primary mobile navigation row needs stable routes to both destinations.
     # Relying on Frappe's drawer made All Apps a dead end because that page has
-    # no side pane at all. Home and Apps are reciprocal: on the All Apps route
-    # the runtime suppresses Apps (the current destination) and relabels Home
-    # as Dashboard; everywhere else both remain available.
+    # no side pane at all. Home and Apps therefore keep the same slots on every
+    # route; the current one is identified with aria-current, never removed.
     "home": "Bottom Bar Start",
 }
 
@@ -596,6 +604,11 @@ NARROW_PLACEMENT = {
 MARK = "mark"
 
 MARKS = [
+    {
+        "key": "compactnav", "part": "compactnav", "label": "Compact navigation",
+        "type": MARK, "selector": ".bnd-compact-nav",
+        "native": ".body-sidebar-top", "regions": (), "toggle": None, "critical": False,
+    },
     {
         "key": "panehead",
         "part": "panehead",

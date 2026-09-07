@@ -69,20 +69,19 @@
 {%- endmacro %}
 <!--BND lh=split-->
 <div dir="{{ _dir }}" class="bnd-lh-split" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
-  <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+  <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
-      <td style="width:72%; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
+      <td style="width:{{ '72%' if logo else '100%' }}; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
         {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700;">{{ display_name | e }}</div>{% endif %}
         {{ identity_numbers() }}
       </td>
-      <td style="width:28%; text-align:{{ _end }}; vertical-align:middle;">
-        {% if logo %}<img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">{% endif %}
-      </td>
+      {% if logo %}<td style="width:28%; text-align:{{ _end }}; vertical-align:middle;">
+        <img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">
+      </td>{% endif %}
     </tr>
   </table>
   {#- brand rule as BORDERS (not background) so it prints on every engine incl. headless Chrome -#}
-  <div style="border-top:2px solid var(--bnd-accent); margin-top:8px;"></div>
-  <div style="border-top:2px solid var(--bnd-brand-solid);"></div>
+  <div class="bnd-lh-rule" style="border-top:1px solid var(--bnd-brand-solid); margin-top:8px;"></div>
 </div>
 <!--BND-END-->
 <!--BND lh=center-->

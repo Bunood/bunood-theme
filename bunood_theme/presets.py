@@ -1121,17 +1121,6 @@ CHROME_DEFAULTS = {
     for c in CONTAINERS
 }
 
-#: Mobile bar contents (item 24). Which tenants join search in the phone bottom
-#: bar below 768px. Search has no toggle — it is the only search on a phone
-#: (Frappe drops its own and Ctrl+K is unreachable on touch), so it is always
-#: there; these three choose what joins it. All on by default: the shipped bar
-#: is Home / Apps / Search / Alerts / You.
-MOBILE_DEFAULTS = {
-    "mobile_inbox": 1,
-    "mobile_user": 1,
-    "mobile_apps": 1,
-}
-
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our
 #: panel over Frappe's own Notification Log (filter tabs, rollup by
 #: document, reason chips, a REAL unread badge — Frappe's own badge code is
@@ -1306,9 +1295,9 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 123 of the doctype's 133.
+    """Every field a theme preset writes and compares — 123 of the doctype's 130.
 
-    THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
+    THE SEVEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
       * ``company_name`` ``tagline`` ``logo`` ``favicon`` describe the COMPANY,
         not the desk. A look that renamed the business would be absurd.
@@ -1316,12 +1305,11 @@ def _theme_axes() -> list:
         Writing it would hand a preset the power to point a site at a stale file.
       * ``arabic_font`` is a language choice, which item 36 deliberately moved
         out of Appearance.
-      * ``palette_enabled`` ``mobile_inbox`` ``mobile_user`` ``mobile_apps`` are
-        the honest gap. They DO describe the desk, and a preset does not write
-        them, so two desks differing only in a phone-bar toggle both read the
-        same preset name. Named here rather than left to be discovered, because
-        an unwritten axis is invisible: the derived label compares this list, so
-        a field missing from it can never make a desk read "Custom".
+      * ``palette_enabled`` is the honest gap. It DOES describe the desk, and a
+        preset does not write it, so two desks differing only in that gate both
+        read the same preset name. Named here rather than left to be discovered,
+        because an unwritten axis is invisible: the derived label compares this
+        list, so a field missing from it can never make a desk read "Custom".
     """
     seen: set = set()
     out: list = []

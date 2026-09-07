@@ -11,6 +11,7 @@
 		"bunood_real_estate": "1.4.0"
 	},
 	"files": {
+		"frappe:frappe/public/js/frappe/views/breadcrumbs.js": "95fdb6649ce010e07e3e8dae4eb7717d7b42c69ce98aabf623e838e8c8cfe3d8",
 		"num2words:num2words/lang_AR.py": "9283992d1c52cbee2c8cf0b7b9d6d5d46c001a31b91b5fc8ea70c43e255985b8",
 		"frappe:frappe/locale.py": "ac46224ff69a095f767674b3daa96ca6d4dd2f7d32d8a885756026dfdc2bc20f",
 		"frappe:frappe/utils/number_format.py": "40371f6ae3e4825a2ee50c37d541db36a2cc56df8e9f862dcf33f9cf70a66cc4",

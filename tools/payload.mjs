@@ -65,6 +65,7 @@ const BUCKETS = [
 	// fetches it. Measured anyway: unmeasured growth is unmeasured growth.
 	{ dir: ["css"], prefix: "bunood-print.", key: "print_css" },
 	{ dir: ["css"], prefix: "bunood.", key: "css" },
+	{ dir: ["js"], prefix: "bunood-auth.", key: "auth_js" },
 	{ dir: ["js"], prefix: "bunood.", key: "js" },
 ];
 
@@ -112,7 +113,9 @@ export function measure() {
  * would bound a number no single page ever pays, and would break every
  * history row's comparability at the release that introduced a second sheet.
  */
-export const CEILING_KEYS = ["css_gzip", "js_gzip", "web_css_gzip", "email_css_gzip", "print_css_gzip"];
+export const CEILING_KEYS = [
+	"css_gzip", "js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
+];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no
@@ -158,6 +161,7 @@ if (isMain) {
 	console.log(
 		`css ${kb(now.css_raw)} raw / ${kb(now.css_gzip)} gzip · ` +
 			`web ${kb(now.web_css_raw)} raw / ${kb(now.web_css_gzip)} gzip · ` +
+			`auth-js ${kb(now.auth_js_raw)} raw / ${kb(now.auth_js_gzip)} gzip · ` +
 			`js ${kb(now.js_raw)} raw / ${kb(now.js_gzip)} gzip`
 	);
 

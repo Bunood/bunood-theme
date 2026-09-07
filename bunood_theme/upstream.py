@@ -57,6 +57,8 @@ PINNED_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 
 #: Upstream files we read or fork, as ``(app, relative path)``.
 PINNED_FILES = (
+    # Cross-module workspace breadcrumb delegates the native fallback/getter.
+    ("frappe", "frappe/public/js/frappe/views/breadcrumbs.js"),
     # Arabic print wording extends the already-installed num2words locale.
     ("num2words", "num2words/lang_AR.py"),
     ("frappe", "frappe/locale.py"),

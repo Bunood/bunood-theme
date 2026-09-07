@@ -403,9 +403,9 @@ html[data-theme] .bnd-topbar {
 // bar itself is JS-mounted, so both the node and the attribute arrive together.
 //
 // The phone bar is NAVIGATION, not telemetry. It is one evenly-spaced row with
-// a stable information architecture: Home, Apps, Search, Notifications,
-// Profile. Optional tenants close their column cleanly; `grid-auto-columns`
-// redistributes the available width instead of leaving a visual hole.
+// a stable information architecture: Home, Apps, Search, Account. Alerts are
+// the first Account action and their unread state rides on that trigger, so a
+// second Notifications destination cannot duplicate the same global control.
 html[data-bnd-narrow][data-theme] .bnd-statusbar {
   // The sidebar is a drawer OVERLAY at this width, not an inline column, so the
   // bar spans the whole viewport instead of starting where a 220px+ column
@@ -415,8 +415,7 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar {
   inset-inline-start: 0;
   display: grid;
   grid-template-rows: 1fr;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   block-size: auto;
   min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-4));
   gap: 0;
@@ -465,6 +464,7 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
   background: transparent;
   color: var(--bnd-ink-muted);
   line-height: 1;
+  position: relative;
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
@@ -515,23 +515,29 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field kbd {
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
   [data-bnd-part="home"], [data-bnd-part="apps"], [data-bnd-part="search"],
-  [data-bnd-part="bell"], [data-bnd-part="user"]
+  [data-bnd-part="user"]
 ):hover {
   background: var(--bnd-hover);
   color: var(--bnd-ink);
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar [aria-current="page"] {
-  background: var(--bnd-active);
+  background: transparent;
   color: var(--bnd-brand-ink);
+  box-shadow: inset 0 2px 0 var(--bnd-brand-solid);
 }
 
 // Stable order independent of desktop placement zones and RTL direction.
 html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="home"] { order: 10; }
 html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="apps"] { order: 20; }
 html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="search"] { order: 30; }
-html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="bell"] { order: 40; }
-html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="user"] { order: 50; }
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="user"] { order: 40; }
+
+// Fail closed on duplication: if a stale boot payload briefly rebuilds the
+// old bell, the Account route remains the sole phone notification entry.
+html[data-bnd-narrow][data-theme] .bnd-statusbar [data-bnd-part="bell"] {
+  display: none;
+}
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
   .bnd-mobile-nav-label, .bnd-search-label

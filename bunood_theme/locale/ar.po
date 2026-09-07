@@ -4024,6 +4024,22 @@ msgstr "يترك «الأصلي» شريط التصفية كما هو — ولا
 msgid "Sign In"
 msgstr "تسجيل الدخول"
 
+#. src: auth-language
+msgid "Welcome! Please sign in to continue."
+msgstr "مرحبًا! سجّل الدخول للمتابعة."
+
+#. src: auth-language
+msgid "Forgot password?"
+msgstr "هل نسيت كلمة المرور؟"
+
+#. src: auth-language
+msgid "Welcome to Bunood"
+msgstr "أهلًا بك في بنود"
+
+#. src: auth-language
+msgid "Run your business with clarity and ease."
+msgstr "أدر أعمالك بوضوح وسهولة."
+
 #. src: item32
 msgid "Sign-In Style"
 msgstr "نمط تسجيل الدخول"
@@ -5409,6 +5425,23 @@ msgstr "فترة مخصصة"
 msgid "Customer"
 msgstr "العميل"
 
+#. Bill date labels override incorrect inherited Arabic translations.
+msgid "Due Date"
+msgstr "تاريخ استحقاق السداد"
+
+msgid "Supplier Invoice Date"
+msgstr "تاريخ فاتورة المورد"
+
+#. Everyday ERP workflow labels; avoid invoice-only dates and stock-market terminology.
+msgid "Posting Date"
+msgstr "تاريخ الترحيل"
+
+msgid "Stock Entry Type"
+msgstr "نوع حركة المخزون"
+
+msgid "Payment Entry"
+msgstr "سند دفع أو قبض"
+
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
 #. src: hesham
@@ -6501,6 +6534,27 @@ msgid "Choose the movement, warehouses, and items. Use Advanced for manufacturin
 msgstr "اختر نوع الحركة والمستودعات والأصناف. استخدم الوضع المتقدم لخيارات التصنيع والمقاولات الفرعية والمحاسبة."
 
 #. src: simple forms
+msgid "Tax ID"
+msgstr "الرقم الضريبي"
+
+msgid "Print setup required"
+msgstr "يلزم استكمال إعدادات الطباعة"
+
+msgid "The seller address is missing. Ask your administrator to complete the company address in ZATCA Phase 1 Business Settings before printing this format."
+msgstr "عنوان البائع غير موجود. اطلب من مسؤول النظام استكمال عنوان الشركة في إعدادات زاتكا للمرحلة الأولى قبل استخدام تنسيق الطباعة هذا."
+
+msgid "This print format requires active ZATCA Phase 1 Business Settings for the invoice company. Ask your administrator to review the company setup before printing this format."
+msgstr "يتطلب تنسيق الطباعة هذا إعدادات زاتكا نشطة للمرحلة الأولى لشركة الفاتورة. اطلب من مسؤول النظام مراجعة إعدادات الشركة قبل استخدام هذا التنسيق."
+
+msgid "Choose a supplier before continuing."
+msgstr "اختر المورد قبل المتابعة."
+
+msgid "Choose a customer before continuing."
+msgstr "اختر العميل قبل المتابعة."
+
+msgid "Add at least one item before continuing."
+msgstr "أضف صنفًا واحدًا على الأقل قبل المتابعة."
+
 msgid "Choose the party and add at least one item."
 msgstr "اختر العميل أو المورد وأضف صنفًا واحدًا على الأقل."
 
@@ -6683,7 +6737,7 @@ msgstr "جديد"
 
 #. src: simple forms
 msgid "New {0}"
-msgstr "{0} جديد"
+msgstr "إضافة {0}"
 
 #. src: form-summary
 #, fuzzy
@@ -6970,6 +7024,30 @@ msgstr "استخدم النموذج المتقدم لهذا النوع من ال
 msgid "Use the left and right arrow keys to inspect data points."
 msgstr "استخدم مفتاحي السهم الأيسر والأيمن لاستعراض نقاط البيانات."
 
+#. src: mobile-shell
+msgid "Account"
+msgstr "الحساب"
+
+#. src: home-dashboard
+msgid "Good morning"
+msgstr "صباح الخير"
+
+#. src: home-dashboard
+msgid "Good afternoon"
+msgstr "مساء الخير"
+
+#. src: home-dashboard
+msgid "Good evening"
+msgstr "مساء الخير"
+
+#. src: home-dashboard
+msgid "Welcome back"
+msgstr "مرحبًا بعودتك"
+
+#. src: mobile-shell
+msgid "Workspace menu"
+msgstr "قائمة مساحات العمل"
+
 msgid "VAT"
 msgstr "ضريبة القيمة المضافة"
 
@@ -7035,3 +7113,204 @@ msgstr "إعدادات هيئة الزكاة والضريبة والجمارك"
 
 msgid "ZATCA status is temporarily unavailable."
 msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+#. Home and invoice entry: helper/profile labels missed by the literal extractor.
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "New sales invoice"
+msgstr "فاتورة مبيعات جديدة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Record a purchase"
+msgstr "تسجيل فاتورة شراء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Receive payment"
+msgstr "استلام دفعة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Stock entry"
+msgstr "قيد مخزون"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "New customer"
+msgstr "عميل جديد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Your business at a glance"
+msgstr "لمحة عن أعمالك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Financial summary"
+msgstr "الملخص المالي"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Cash and bank balance"
+msgstr "الرصيد النقدي والبنكي"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Available across cash and bank accounts"
+msgstr "الرصيد المتاح في الحسابات النقدية والبنكية"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales this month"
+msgstr "مبيعات هذا الشهر"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Outstanding receivables"
+msgstr "المبالغ المستحقة من العملاء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Outstanding payables"
+msgstr "المبالغ المستحقة للموردين"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Needs your attention"
+msgstr "يحتاج إلى متابعتك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What to deal with today"
+msgstr "ما يحتاج إلى إجراء اليوم"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Overdue invoices"
+msgstr "فواتير متأخرة السداد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Bills to pay"
+msgstr "فواتير مطلوب سدادها"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Drafts to finish"
+msgstr "مسودات تحتاج إلى إكمال"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Nothing needs your attention"
+msgstr "لا توجد أمور تحتاج إلى متابعتك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No documents you can create yet"
+msgstr "لا تملك صلاحية إنشاء أي مستند حاليًا"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Recent activity"
+msgstr "أحدث الأنشطة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Latest invoices"
+msgstr "أحدث الفواتير"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No recent activity"
+msgstr "لا توجد أنشطة حديثة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales trend"
+msgstr "اتجاه المبيعات"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Last six months"
+msgstr "آخر ستة أشهر"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Invoice status"
+msgstr "حالة الفواتير"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Current sales invoices"
+msgstr "فواتير المبيعات الحالية"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No invoice data yet"
+msgstr "لا توجد بيانات فواتير بعد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Could not load dashboard data"
+msgstr "تعذّر تحميل بيانات لوحة التحكم"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales bill"
+msgstr "فاتورة مبيعات"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Who are you billing?"
+msgstr "لمن تُصدر هذه الفاتورة؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What are you selling?"
+msgstr "ما الأصناف التي تبيعها؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Purchase bill"
+msgstr "فاتورة شراء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Who are you buying from?"
+msgstr "ممن تشتري؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What are you buying?"
+msgstr "ما الأصناف التي تشتريها؟"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Price before discount"
+msgstr "السعر قبل الخصم"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Net unit price"
+msgstr "صافي سعر الوحدة"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Discount (%)"
+msgstr "الخصم (%)"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Enter a price before discount first."
+msgstr "أدخل السعر قبل الخصم أولًا."
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Open the advanced form to create this payment."
+msgstr "افتح النموذج المتقدم لإنشاء هذه الدفعة."
+
+#. src: ai — invoice pricing guidance 2026-09-06
+#, fuzzy
+msgid "Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."
+msgstr "يتطلب الخصم بالنسبة المئوية سعرًا للصنف في قائمة الأسعار المحددة. اختر صنفًا أو قائمة أسعار بسعر محدد، أو اضبط الخصم (%) على 0 وأدخل صافي سعر الوحدة."

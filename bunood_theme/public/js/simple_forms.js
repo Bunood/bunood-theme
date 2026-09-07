@@ -6,6 +6,20 @@
 	"use strict";
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const controllers = new WeakMap();
+	const pendingRefresh = new WeakMap();
+	function scheduleWorkbenchRefresh(frm) {
+		if (!controllers.get(frm)?.workbench) return;
+		const doc = frm.doc;
+		clearTimeout(pendingRefresh.get(frm));
+		const timer = setTimeout(() => {
+			frappe.after_ajax().then(() => {
+				if (pendingRefresh.get(frm) !== timer) return;
+				pendingRefresh.delete(frm);
+				if (window.cur_frm === frm && frm.doc === doc) controllers.get(frm)?.refresh();
+			});
+		}, 0);
+		pendingRefresh.set(frm, timer);
+	}
 	if (!frappe.has_permission && frappe.perm?.has_perm) {
 		frappe.has_permission = (doctype, ptype = "read", name) => frappe.perm.has_perm(
 			doctype, 0, ptype, typeof name === "string" ? frappe.get_doc?.(doctype, name) : name
@@ -311,6 +325,16 @@
 		return true;
 	}
 	api.simple_forms = { mount, candidate, profiles: PROFILES, fallbackFields };
+	// Refresh presentation after native field handlers and their requests finish.
+	// Do not calculate values here or return an AJAX wait into a native trigger.
+	if (frappe.ui?.form?.on) {
+		for (const [doctype, fields] of Object.entries({
+			"Stock Entry": ["stock_entry_type", "purpose", "from_warehouse", "to_warehouse", "total_outgoing_value", "total_incoming_value", "value_difference"],
+			"Stock Entry Detail": ["items_add", "items_remove", "item_code", "qty", "transfer_qty", "basic_rate", "basic_amount", "amount", "s_warehouse", "t_warehouse"],
+			"Delivery Note": ["customer", "set_warehouse", "currency", "total_qty", "grand_total"],
+			"Delivery Note Item": ["items_add", "items_remove", "item_code", "qty", "stock_qty", "rate", "amount"],
+		})) frappe.ui.form.on(doctype, Object.fromEntries(fields.map(name => [name, scheduleWorkbenchRefresh])));
+	}
 	$(document).on("form-refresh.bnd-simple-forms", (_event, frm) => {
 		setTimeout(() => frappe.after_ajax().then(() => { if (window.cur_frm === frm) mount(frm); }), 0);
 	});

@@ -157,6 +157,7 @@ doc_events = {
     },
     "Sales Invoice": {
         "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+        "before_print": "bunood_theme.zatca.print_guard.before_print",
     },
     "Purchase Invoice": {
         "validate": "bunood_theme.tax_validation.validate_invoice_taxes",

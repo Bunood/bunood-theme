@@ -1543,8 +1543,6 @@ const MUTABLE_FIELDS = [
 	// deciding. One field per container, added as its slice lands.
 	"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled",
 	"bottombar_enabled",
-	// Mobile bar contents (item 24 C2): which tenants join search on a phone.
-	"mobile_inbox", "mobile_user", "mobile_apps",
 ];
 
 /**
@@ -3621,6 +3619,194 @@ async function main() {
 				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 				await page.setViewportSize(viewport);
 			}
+		});
+
+		await test("sidebar: Top Taskbar Home uses one icon-only toggle for a populated reserved pane", async () => {
+			const wanted = layoutSettings("Top Taskbar");
+			const prior = getSettings(Object.keys(wanted));
+			const viewport = page.viewportSize();
+			let rest, open, closed;
+			let sidebarExpandedStorage;
+			const measure = () => page.evaluate(() => {
+				const visible = (node) => {
+					if (!node) return false;
+					const rect = node.getBoundingClientRect();
+					const style = getComputedStyle(node);
+					return rect.width > 0 && rect.height > 0 && style.display !== "none" &&
+						style.visibility !== "hidden" && Number(style.opacity) > 0;
+				};
+				const rect = (node) => {
+					const box = node?.getBoundingClientRect();
+					return box ? {
+						left: box.left, right: box.right, top: box.top, bottom: box.bottom,
+						width: box.width, height: box.height,
+					} : null;
+				};
+				const intersects = (first, second) => !!first && !!second &&
+					Math.min(first.right, second.right) - Math.max(first.left, second.left) > 0 &&
+					Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 0;
+				const candidates = [...document.querySelectorAll(
+					'.bnd-topbar [data-bnd-part="start"], .bnd-topbar [data-bnd-part="panetoggle"], .bnd-topbar .bnd-sidebar-toggle'
+				)].filter(visible);
+				const button = candidates[0] || null;
+				const container = document.querySelector(".body-sidebar-container");
+				const pane = container?.querySelector(".body-sidebar");
+				const main = document.querySelector(".main-section");
+				const bar = document.querySelector(".bnd-topbar");
+				const containerBox = rect(container);
+				const paneBox = rect(pane);
+				const mainBox = rect(main);
+				const viewportBox = {
+					left: 0,
+					top: 0,
+					right: document.documentElement.clientWidth,
+					bottom: window.innerHeight,
+					width: document.documentElement.clientWidth,
+					height: window.innerHeight,
+				};
+				const paintedInPane = (node) => {
+					const box = rect(node);
+					return visible(node) && intersects(box, paneBox) &&
+						intersects(box, containerBox) && intersects(box, viewportBox);
+				};
+				const overlap = paneBox && mainBox
+					? Math.max(0, Math.min(paneBox.right, mainBox.right) - Math.max(paneBox.left, mainBox.left))
+					: null;
+				let gap = null;
+				if (paneBox && mainBox) {
+					if (paneBox.right <= mainBox.left) gap = mainBox.left - paneBox.right;
+					else if (mainBox.right <= paneBox.left) gap = paneBox.left - mainBox.right;
+					else gap = 0;
+				}
+				const topRows = pane ? [...pane.querySelectorAll(
+					".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item"
+				)].filter(paintedInPane) : [];
+				const resizeHandles = pane ? [...pane.querySelectorAll(".sidebar-resize-handle")]
+					.filter(paintedInPane)
+					.map((handle) => ({
+						role: handle.getAttribute("role"),
+						label: handle.getAttribute("aria-label"),
+						width: rect(handle)?.width,
+					})) : [];
+				const otherControls = [...document.querySelectorAll(
+					".body-sidebar .collapse-sidebar-link, " +
+					".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin, .bnd-ph-show"
+				)].filter(visible);
+				return {
+					paneState: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					toggleCount: candidates.length,
+					toggle: button ? {
+						part: button.getAttribute("data-bnd-part"),
+						label: button.getAttribute("aria-label"),
+						title: button.getAttribute("title"),
+						expanded: button.getAttribute("aria-expanded"),
+						controls: button.getAttribute("aria-controls"),
+						hasPanelSvg: !!button.querySelector("svg"),
+						visibleCompanyMarks: [...button.querySelectorAll(
+							".bnd-sb-brand-initial, .bnd-sb-brand-name, .bnd-sb-brand-logo"
+						)].filter(visible).length,
+						text: button.innerText.trim(),
+						box: rect(button),
+					} : null,
+					container: containerBox, pane: paneBox, main: mainBox, bar: rect(bar),
+					overlap, gap, viewport: document.documentElement.clientWidth,
+					bodyScrollWidth: document.body.scrollWidth,
+					bodyClientWidth: document.body.clientWidth,
+					viewportBox,
+					panePaintedInBounds: intersects(paneBox, containerBox) && intersects(paneBox, viewportBox),
+					brandPaintedInBounds: paintedInPane(pane?.querySelector(".bnd-sb-brand")),
+					headPaintedInBounds: paintedInPane(pane?.querySelector(".bnd-sb-head")),
+					topRows: topRows.length,
+					rowLabels: topRows.map(row => row.querySelector(".sidebar-item-label")?.textContent.trim() || ""),
+					resizeHandles,
+					otherControls: otherControls.length,
+					sidebarExpanded: localStorage.getItem("sidebar-expanded"),
+				};
+			});
+
+			try {
+				await page.setViewportSize({ width: 1024, height: 800 });
+				sidebarExpandedStorage = await page.evaluate(() => {
+					const value = localStorage.getItem("sidebar-expanded");
+					return { present: value !== null, value };
+				});
+				await page.evaluate(() => localStorage.setItem("sidebar-expanded", "false"));
+				setSettings(wanted);
+				await goDesk("/desk/home", '.bnd-topbar [data-bnd-part="start"], .bnd-topbar [data-bnd-part="panetoggle"]', 3000);
+				rest = await measure();
+
+				const toggle = () => page.locator(
+					'.bnd-topbar [data-bnd-part="start"]:visible, .bnd-topbar [data-bnd-part="panetoggle"]:visible, .bnd-topbar .bnd-sidebar-toggle:visible'
+				).first();
+				await toggle().click();
+				await page.waitForFunction(() => {
+					const pane = document.querySelector(".body-sidebar");
+					return document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" &&
+						pane && pane.getBoundingClientRect().width >= 200;
+				}, null, { timeout: 4000 }).catch(() => {});
+				open = await measure();
+
+				await toggle().click();
+				await page.waitForFunction(() => {
+					const container = document.querySelector(".body-sidebar-container");
+					return document.documentElement.getAttribute("data-bnd-sb-panestate") === "hidden" &&
+						(!container || container.getBoundingClientRect().width <= 2);
+				}, null, { timeout: 4000 }).catch(() => {});
+				closed = await measure();
+			} finally {
+				if (sidebarExpandedStorage) {
+					await page.evaluate((snapshot) => {
+						if (snapshot.present) localStorage.setItem("sidebar-expanded", snapshot.value);
+						else localStorage.removeItem("sidebar-expanded");
+					}, sidebarExpandedStorage).catch(() => {});
+				}
+				setSettings(prior);
+				await page.setViewportSize(viewport);
+			}
+
+			expectEq(rest.sidebarExpanded, "false", `the test starts from the vendor-collapsed sidebar premise (${JSON.stringify(rest)})`);
+			expectEq(rest.toggleCount, 1, `Top Taskbar starts with one pane toggle (${JSON.stringify(rest)})`);
+			expect(rest.toggle?.hasPanelSvg && rest.toggle.visibleCompanyMarks === 0 && !rest.toggle.text,
+				`the menu glyph is an icon-only split panel, never the company initial or name (${JSON.stringify(rest.toggle)})`);
+			expect(rest.toggle.label && rest.toggle.title && rest.toggle.expanded === "false" && rest.toggle.controls,
+				`the closed toggle clearly names and controls the pane (${JSON.stringify(rest.toggle)})`);
+			expect(rest.container?.width <= 2 && rest.main?.width >= rest.viewport - 2,
+				`the closed pane leaves no empty sidebar gutter (${JSON.stringify(rest)})`);
+
+			expectEq(open.paneState, "open", `clicking the top-bar control opens the pane (${JSON.stringify(open)})`);
+			expectEq(open.toggleCount, 1, `the same single top-bar control remains while open (${JSON.stringify(open)})`);
+			expect(open.toggle?.expanded === "true" && open.toggle.part === rest.toggle.part,
+				`the same control exposes the open state (${JSON.stringify({ rest: rest.toggle, open: open.toggle })})`);
+			expect(open.panePaintedInBounds && open.brandPaintedInBounds && open.headPaintedInBounds &&
+				open.topRows >= 4 && open.rowLabels.every(Boolean),
+				`the opened sidebar and its brand, head and navigation rows paint inside the pane, container and viewport (${JSON.stringify(open)})`);
+			expect(open.container?.width >= 200 && open.pane?.width >= 200,
+				`the opened sidebar reserves a real navigation column (${JSON.stringify(open)})`);
+			expect(open.overlap <= 1 && open.gap <= 1,
+				`sidebar and main content meet at one seam without overlap or dead gutter (${JSON.stringify(open)})`);
+			expect(Math.abs(open.main.width + open.container.width - open.viewport) <= 2 &&
+				open.main.width <= rest.main.width - open.container.width + 2,
+				`the main workspace reflows by exactly the reserved column (${JSON.stringify({ rest, open })})`);
+			expect(Math.abs(open.pane.top - open.bar.bottom) <= 1,
+				`the pane begins exactly below the top bar within one pixel (${JSON.stringify(open)})`);
+			expect(open.pane.bottom <= open.container.bottom + 1,
+				`the pane remains inside its clipping container (${JSON.stringify(open)})`);
+			expect(open.resizeHandles.length === 1 && open.resizeHandles[0].role === "separator" &&
+				!!open.resizeHandles[0].label && Math.abs(open.resizeHandles[0].width - 8) <= 0.5,
+				`the pane exposes one labelled eight-pixel resize separator (${JSON.stringify(open.resizeHandles)})`);
+			expectEq(open.otherControls, 0,
+				`the pane exposes no competing collapse control (${JSON.stringify(open)})`);
+			expect(open.bodyScrollWidth - open.bodyClientWidth <= 1,
+				`the open pane does not create horizontal body overflow (${JSON.stringify(open)})`);
+
+			expectEq(closed.paneState, "hidden", `the top-bar control closes the pane again (${JSON.stringify(closed)})`);
+			expectEq(closed.toggleCount, 1, `closing does not duplicate or remove the top-bar control (${JSON.stringify(closed)})`);
+			expect(closed.toggle?.expanded === "false" && closed.container?.width <= 2,
+				`the closed state is announced and releases its column (${JSON.stringify(closed)})`);
+			expect(Math.abs(closed.main.width - rest.main.width) <= 2,
+				`the main workspace returns to its original width (${JSON.stringify({ rest, closed })})`);
+			expect(closed.bodyScrollWidth - closed.bodyClientWidth <= 1,
+				`the closed pane does not leave horizontal body overflow (${JSON.stringify(closed)})`);
 		});
 
 		await test("rail: collapsed state is a composed icon rail and toggled pane is opaque", async () => {
@@ -14032,6 +14218,88 @@ print("ok")
 			expect(keyboardSelections > 0, "ArrowLeft selects a chart point through Frappe Charts navigation");
 		});
 
+		await test("home: greeting follows local time and refreshes across a time boundary", async () => {
+			await goDesk("/desk/home", ".bnd-home-title", 3000);
+			const englishCases = [
+				[4, "Welcome back"],
+				[5, "Good morning"],
+				[12, "Good afternoon"],
+				[17, "Good evening"],
+				[22, "Welcome back"],
+			];
+			const english = await page.evaluate((cases) => ({
+				phrases: cases.map(([hour]) => window.bunood_theme.home_greeting_text(hour)),
+				datePhrase: window.bunood_theme.home_greeting_text(new Date(2026, 0, 1, 17)),
+				refresh: (() => {
+					const title = document.querySelector(".bnd-home-title");
+					const href = location.href;
+					window.bunood_theme.home_refresh_greeting(5);
+					const morning = title.textContent.trim();
+					window.bunood_theme.home_refresh_greeting(17);
+					return {
+						morning,
+						evening: title.textContent.trim(),
+						sameNode: title === document.querySelector(".bnd-home-title"),
+						sameLocation: href === location.href,
+					};
+				})(),
+			}), englishCases);
+			expectEq(english.phrases.join("|"), englishCases.map(([, text]) => text).join("|"),
+				`all greeting boundaries use the browser-local hour (${english.phrases.join("|")})`);
+			expectEq(english.datePhrase, "Good evening", "Date inputs use the browser's local hour, not a server clock");
+			expectEq(english.refresh.morning, "Good morning", "the live Home heading accepts the morning boundary");
+			expectEq(english.refresh.evening, "Good evening", "the same live heading refreshes after the time boundary");
+			expect(english.refresh.sameNode && english.refresh.sameLocation,
+				`greeting refresh updates in place without a reload (${JSON.stringify(english.refresh)})`);
+
+			const scheduled = await page.evaluate(() => {
+				const RealDate = window.Date;
+				const realSetTimeout = window.setTimeout;
+				let now = new RealDate(2026, 8, 5, 11, 59, 59, 900).getTime();
+				const queued = [];
+				class FakeDate extends RealDate {
+					constructor(...args) { super(...(args.length ? args : [now])); }
+					static now() { return now; }
+				}
+				window.Date = FakeDate;
+				window.setTimeout = (callback, delay) => {
+					queued.push({ callback, delay });
+					return 2147483000 + queued.length;
+				};
+				try {
+					window.bunood_theme.home_schedule_greeting();
+					const first = queued[0];
+					now = new RealDate(2026, 8, 5, 12, 0, 0, 100).getTime();
+					first?.callback();
+					return {
+						firstDelay: first?.delay,
+						nextDelay: queued[1]?.delay,
+						queueLength: queued.length,
+						title: document.querySelector(".bnd-home-title")?.textContent.trim(),
+					};
+				} finally {
+					window.Date = RealDate;
+					window.setTimeout = realSetTimeout;
+					window.bunood_theme.home_schedule_greeting();
+				}
+			});
+			expectEq(scheduled.firstDelay, 1000,
+				`the refresh is scheduled at the next local boundary (${scheduled.firstDelay}ms)`);
+			expectEq(scheduled.title, "Good afternoon", "the scheduled callback refreshes the visible heading");
+			expect(scheduled.queueLength === 2 && scheduled.nextDelay > 1000,
+				`the callback schedules the following boundary (${JSON.stringify(scheduled)})`);
+
+			await withLang("ar", async () => {
+				await goDesk("/desk/home", ".bnd-home-title", 3000);
+				const arabic = await page.evaluate((hours) =>
+					hours.map(hour => window.bunood_theme.home_greeting_text(hour)),
+					englishCases.map(([hour]) => hour)
+				);
+				expectEq(arabic.join("|"), "مرحبًا بعودتك|صباح الخير|مساء الخير|مساء الخير|مرحبًا بعودتك",
+					`every greeting bucket resolves through Arabic translations (${arabic.join("|")})`);
+			});
+		});
+
 		await test("home: overdue action opens the same invoices the dashboard counted", async () => {
 			await goDesk("/desk/home", ".bnd-home-attn-row", 5000);
 			await page.evaluate(() => {
@@ -14534,7 +14802,8 @@ print("ok")
 			} finally { await page.setViewportSize(viewport); }
 		});
 
-		await test("All Apps always offers a labelled route to the main dashboard", async () => {
+		await test("All Apps always exposes a consistently named Home route", async () => {
+			const viewport = page.viewportSize();
 			setSettings({
 				...CHROME_DEFAULTS,
 				desk_layout: "Top Taskbar",
@@ -14545,58 +14814,59 @@ print("ok")
 				home_placement: "Off",
 				apps_placement: "Side Pane Start",
 			});
-			for (const [lang, label, dir] of [["en", "Dashboard", "ltr"], ["ar", "لوحة التحكم", "rtl"]]) {
-				await withLang(lang, async () => {
-					await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon", 1500);
-					const dashboard = page.locator('.bnd-topbar .bnd-dashboard-return[data-bnd-part="home"]:visible');
-					expectEq(await dashboard.count(), 1, `${lang}: All Apps has one dashboard route even when Home is Off`);
-					expectEq((await dashboard.textContent()).trim(), label, `${lang}: dashboard route has a visible localized label`);
-					expectEq(await page.locator("html").getAttribute("dir"), dir, `${lang}: direction matches the language`);
-					const fit = await dashboard.evaluate(button => {
-						const r = button.getBoundingClientRect();
-						const icon = button.querySelector("svg").getBoundingClientRect();
-						const text = button.querySelector(".bnd-dashboard-return-label").getBoundingClientRect();
-						return {
-							rect: { left: r.left, right: r.right, top: r.top, width: r.width, viewport: innerWidth },
-							withinViewport: r.left >= 0 && r.right <= innerWidth,
-							contentFits: button.scrollWidth <= button.clientWidth,
-							labelVisible: text.width > 40,
-							centred: Math.abs((icon.top + icon.height / 2) - (text.top + text.height / 2)) < 2,
-						};
+			try {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				for (const [lang, homeLabel, dir] of [
+					["en", "Home", "ltr"],
+					["ar", "الصفحة الرئيسية", "rtl"],
+				]) {
+					await withLang(lang, async () => {
+						await goDesk("/desk/desktop", ".desktop-icon > .icon-container > .bnd-deskicon", 1500);
+						const home = page.locator('.bnd-topbar [data-bnd-part="home"]:visible');
+						expectEq(await home.count(), 1, `${lang}: All Apps has one Home route even when Home is Off`);
+						expectEq((await home.locator(".bnd-mobile-nav-label").textContent()).trim(), homeLabel,
+							`${lang}: Home uses the same visible name everywhere`);
+						expectEq(await page.locator("html").getAttribute("dir"), dir, `${lang}: direction matches the language`);
+						const fit = await home.evaluate(button => {
+							const r = button.getBoundingClientRect();
+							const icon = button.querySelector("svg").getBoundingClientRect();
+							const text = button.querySelector(".bnd-mobile-nav-label").getBoundingClientRect();
+							return {
+								rect: { left: r.left, right: r.right, top: r.top, width: r.width, viewport: innerWidth },
+								withinViewport: r.left >= 0 && r.right <= innerWidth,
+								contentFits: button.scrollWidth <= button.clientWidth,
+								labelVisible: text.width > 20 && text.height > 10,
+								centred: Math.abs((icon.top + icon.height / 2) - (text.top + text.height / 2)) < 2,
+							};
+						});
+						expect(Object.entries(fit).filter(([key]) => key !== "rect").every(([, value]) => value),
+							`${lang}: Home control is fitted and aligned: ${JSON.stringify(fit)}`);
+						if (process.env.BND_UI_SCREENSHOTS) {
+							await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-home-${lang}.png`, fullPage: true });
+						}
+						await home.click();
+						await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
 					});
-					expect(Object.entries(fit).filter(([key]) => key !== "rect").every(([, value]) => value), `${lang}: dashboard control is fitted and aligned: ${JSON.stringify(fit)}`);
-					if (process.env.BND_UI_SCREENSHOTS) {
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-dashboard-${lang}.png`, fullPage: true });
-					}
-					await dashboard.click();
-					await page.waitForURL(url => url.pathname.startsWith("/desk/home"));
-				});
+				}
+			} finally {
+				await page.setViewportSize(viewport);
 			}
 		});
 
-		await test("All Apps has one global-control owner in Top Bar, Bottom Bar and mobile modes", async () => {
+		await test("mobile shell has one global owner on Home, list, and All Apps", async () => {
 			const viewport = page.viewportSize();
-			const states = [
-				{
-					name: "desktop Top Bar", width: 1440, mobile: false, owner: "topbar",
-					settings: { ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" },
-				},
-				{
-					name: "desktop Bottom Bar", width: 1280, mobile: false, owner: "bottombar",
-					settings: { ...layoutSettings("Taskbar"), desk_layout: "Taskbar" },
-				},
-				{
-					name: "mobile", width: 390, mobile: true, owner: "bottombar",
-					settings: { ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" },
-				},
+			const routes = [
+				{ name: "Home", route: "/desk/home", wait: ".bnd-home-grid", content: ".bnd-home-dashboard > :last-child", current: "home", pageDrawer: false },
+				{ name: "list", route: "/desk/item", wait: ".frappe-list", content: ".list-paging-area", current: null, pageDrawer: true },
+				{ name: "All Apps", route: "/desk/desktop", wait: ".desktop-icon", content: ".desktop-icon", current: "apps", pageDrawer: false },
 			];
 			try {
-				for (const state of states) {
-					setSettings(state.settings);
-					await page.setViewportSize({ width: state.width, height: 900 });
-					await goDesk("/desk/desktop", ".desktop-icon", 2000);
+				setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" });
+				await page.setViewportSize({ width: 390, height: 844 });
+				for (const state of routes) {
+					await goDesk(state.route, state.wait, 2500);
 					await page.waitForTimeout(500);
-					const result = await page.evaluate(() => {
+					const result = await page.evaluate(async ({ content }) => {
 						const shown = (node) => {
 							if (!node) return false;
 							const box = node.getBoundingClientRect();
@@ -14604,10 +14874,8 @@ print("ok")
 							return box.width > 0 && box.height > 0 && css.display !== "none" && css.visibility !== "hidden";
 						};
 						const count = (selector) => [...document.querySelectorAll(selector)].filter(shown).length;
-						const dashboard = [...document.querySelectorAll('[data-bnd-part="home"]')].find(shown);
-						const controls = [...document.querySelectorAll(
-							'[data-bnd-part="home"], [data-bnd-part="apps"], [data-bnd-part="search"], [data-bnd-part="bell"], [data-bnd-part="user"]'
-						)].filter(shown);
+						const bar = [...document.querySelectorAll(".bnd-statusbar")].find(shown);
+						const controls = bar ? [...bar.querySelectorAll("[data-bnd-part]")].filter(shown) : [];
 						const overlaps = [];
 						for (let i = 0; i < controls.length; i++) for (let j = i + 1; j < controls.length; j++) {
 							const a = controls[i].getBoundingClientRect();
@@ -14617,55 +14885,61 @@ print("ok")
 								overlaps.push(`${controls[i].dataset.bndPart}/${controls[j].dataset.bndPart}`);
 							}
 						}
-						const owner = dashboard?.closest(".bnd-topbar") ? "topbar"
-							: dashboard?.closest(".bnd-statusbar") ? "bottombar"
-							: dashboard?.closest(".bnd-dock") ? "dock" : "other";
-						const bar = document.querySelector(".bnd-statusbar");
-						const main = document.querySelector(".main-section");
-						if (main) main.scrollTop = main.scrollHeight;
-						const lastTile = [...document.querySelectorAll(".desktop-icon")].at(-1);
+						for (const scroller of [document.scrollingElement, ...document.querySelectorAll(".main-section, .layout-main-section-wrapper")]) {
+							if (scroller) scroller.scrollTop = scroller.scrollHeight;
+						}
+						await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+						const contentNodes = [...document.querySelectorAll(content)].filter(shown);
+						const lastContent = contentNodes.at(-1);
 						const barBox = bar?.getBoundingClientRect();
-						const tileBox = lastTile?.getBoundingClientRect();
+						const contentBox = lastContent?.getBoundingClientRect();
+						const parts = controls.map(node => node.dataset.bndPart);
+						const account = controls.find(node => node.dataset.bndPart === "user");
+						const currentParts = controls.filter(node => node.getAttribute("aria-current") === "page")
+							.map(node => node.dataset.bndPart);
 						return {
-							stamp: document.documentElement.hasAttribute("data-bnd-desktop-shell"),
-							native: count(".desktop-navbar"),
-							search: count(".bnd-search-field, .bnd-search-icon, #desktop-navbar-modal-search"),
-							bell: count(".bnd-bell, .desktop-notification-icon"),
-							user: count(".bnd-avatar-btn, .desktop-avatar"),
-							dashboard: count('[data-bnd-part="home"]'),
-							apps: count('[data-bnd-part="apps"]'),
-							dashboardLabel: (dashboard?.querySelector(".bnd-dashboard-return-label")?.textContent || "").trim(),
-							owner,
+							narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
+							owners: count(".bnd-statusbar[data-bnd-mobile-nav], .bnd-topbar, .bnd-dock"),
+							parts,
+							uniqueParts: new Set(parts).size,
+							nativeGlobals: count(".desktop-navbar, .body-sidebar .navbar-search-bar, .body-sidebar .sidebar-notification, .body-sidebar .sidebar-user-button"),
+							pageDrawerToggle: count(".page-head .sidebar-toggle-btn"),
+							bell: count('.bnd-statusbar [data-bnd-part="bell"]'),
+							accountInboxRoute: !!account?.hasAttribute("data-bnd-inbox-route"),
+							accountBadge: !!account?.querySelector(":scope > .bnd-inbox-badge"),
+							currentParts,
 							barRole: bar?.getAttribute("role") || null,
 							statusItems: bar ? [...bar.children].filter((node) => node.matches(".bnd-status-item") && shown(node)).length : 0,
-							contentClearsBar: !barBox || !tileBox || tileBox.bottom <= barBox.top + 1,
+							contentFound: !!contentBox,
+							contentClearsBar: !barBox || !contentBox || contentBox.bottom <= barBox.top + 1,
 							overlaps,
 						};
-					});
+					}, state);
 					if (process.env.BND_UI_SCREENSHOTS) {
 						const slug = state.name.toLowerCase().replace(/\s+/g, "-");
-						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-${slug}.png`, fullPage: true });
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/mobile-shell-${slug}.png`, fullPage: true });
 					}
-					expect(result.stamp, `${state.name}: Bunood claims the Desktop page shell (${JSON.stringify(result)})`);
-					expectEq(result.native, 0, `${state.name}: Frappe's duplicate navbar stands down`);
-					expectEq(result.search, 1, `${state.name}: exactly one search remains`);
-					expectEq(result.bell, 1, `${state.name}: exactly one notification control remains`);
-					expectEq(result.user, 1, `${state.name}: exactly one profile control remains`);
-					expectEq(result.dashboard, 1, `${state.name}: exactly one Dashboard return remains`);
-					expectEq(result.apps, 0, `${state.name}: the current All Apps destination is not repeated`);
-					expect(result.dashboardLabel, `${state.name}: Dashboard return is visibly labelled`);
-					expectEq(result.owner, state.owner, `${state.name}: Dashboard stays in the shell that owns search`);
-					expectEq(result.barRole, state.mobile ? "navigation" : "region", `${state.name}: bottom-bar semantics match its job`);
-					expect(result.contentClearsBar, `${state.name}: the last app remains reachable above fixed bottom chrome`);
+					expect(result.narrow, `${state.name}: the narrow shell owns mobile navigation (${JSON.stringify(result)})`);
+					expectEq(result.owners, 1, `${state.name}: exactly one global shell is visible`);
+					expectEq(result.parts.join(","), "home,apps,search,user", `${state.name}: the same four destinations stay in order`);
+					expectEq(result.uniqueParts, 4, `${state.name}: no themed destination is duplicated`);
+					expectEq(result.nativeGlobals, 0, `${state.name}: native global controls do not create a second owner`);
+					if (!state.pageDrawer) expectEq(result.pageDrawerToggle, 0, `${state.name}: no competing global-navigation hamburger is visible`);
+					expectEq(result.bell, 0, `${state.name}: Notifications is consolidated into Account`);
+					expect(result.accountInboxRoute && result.accountBadge, `${state.name}: Account carries the inbox route and unread badge`);
+					expectEq(result.currentParts.join(","), state.current || "", `${state.name}: only the open primary destination is current`);
+					expectEq(result.barRole, "navigation", `${state.name}: bottom bar exposes navigation semantics`);
+					expect(result.contentFound, `${state.name}: found the final content node used for clearance`);
+					expect(result.contentClearsBar, `${state.name}: final content remains reachable above fixed bottom chrome`);
 					expectEq(result.overlaps.join(","), "", `${state.name}: global controls never overlap`);
-				if (state.mobile) expectEq(result.statusItems, 0, "mobile: no telemetry leaks into primary navigation");
+					expectEq(result.statusItems, 0, `${state.name}: no telemetry leaks into primary navigation`);
 				}
 			} finally {
 				await page.setViewportSize(viewport);
 			}
 		});
 
-		await test("All Apps mobile navigation mirrors cleanly in Arabic", async () => {
+		await test("All Apps mobile navigation keeps four localized destinations in Arabic", async () => {
 			const viewport = page.viewportSize();
 			setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar" });
 			try {
@@ -14681,6 +14955,9 @@ print("ok")
 						const items = shown.map((node) => ({
 							part: node.dataset.bndPart,
 							label: (node.querySelector(".bnd-mobile-nav-label, .bnd-search-label")?.textContent || "").trim(),
+							current: node.getAttribute("aria-current"),
+							inboxRoute: node.hasAttribute("data-bnd-inbox-route"),
+							badge: !!node.querySelector(":scope > .bnd-inbox-badge"),
 							right: Math.round(node.getBoundingClientRect().right),
 							width: Math.round(node.getBoundingClientRect().width),
 						})).sort((a, b) => b.right - a.right);
@@ -14699,14 +14976,22 @@ print("ok")
 							gridTemplate: visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns : "",
 							gridInline: visibleGrid?.getAttribute("style") || "",
 							barRect: { top: Math.round(barRect.top), bottom: Math.round(barRect.bottom), viewport: innerHeight },
+							nativeNavbar: [...document.querySelectorAll(".desktop-navbar")].filter(node => {
+								const rect = node.getBoundingClientRect();
+								return rect.width > 0 && rect.height > 0 && getComputedStyle(node).display !== "none";
+							}).length,
 						};
 					});
 					if (process.env.BND_UI_SCREENSHOTS) {
 						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/all-apps-mobile-ar.png` });
 					}
 					expectEq(result.dir, "rtl", "Arabic All Apps uses RTL direction");
-					expectEq(result.items.map((item) => item.part).join(","), "home,search,bell,user", `Arabic mobile destinations remain ordered (${JSON.stringify(result.items)})`);
-					expectEq(result.items.map((item) => item.label).join("|"), "لوحة التحكم|البحث|إخطارات|الملف الشخصي", "Arabic captions are complete and localized");
+					expectEq(result.items.map((item) => item.part).join(","), "home,apps,search,user", `Arabic mobile destinations remain ordered (${JSON.stringify(result.items)})`);
+					expectEq(result.items.map((item) => item.label).join("|"), "الصفحة الرئيسية|التطبيقات|البحث|الحساب", "Arabic captions are complete and localized");
+					expectEq(result.items.filter(item => item.current === "page").map(item => item.part).join(","), "apps", "Apps remains visible and current on its own page");
+					const account = result.items.find(item => item.part === "user");
+					expect(account?.inboxRoute && account?.badge, `Arabic Account retains the Notifications route and badge (${JSON.stringify(account)})`);
+					expectEq(result.nativeNavbar, 0, "Frappe's Desktop navbar stays hidden below the mobile boundary");
 					expect(Math.max(...result.items.map((item) => item.width)) - Math.min(...result.items.map((item) => item.width)) <= 1, `Arabic columns remain equal (${JSON.stringify(result.items)})`);
 					expect(result.items.every((item, index, all) => !index || all[index - 1].right > item.right), `Arabic order mirrors from the right edge (${JSON.stringify(result.items)})`);
 					expect(result.pageOverflow <= 1, `Arabic mobile page has no horizontal overflow (${result.pageOverflow}px)`);
@@ -17617,8 +17902,8 @@ print("cleared")
 			await test("responsive: the bottom bar mounts host-free below the boundary", async () => {
 				// mount_statusbar appends to document.body and needs no Frappe
 				// host, so it is the one container that survives the mobile
-				// <header> swap — which is why item 24 (slice C) routes the phone's
-				// bell and user INTO it rather than reviving the top bar.
+				// <header> swap. Home, Apps, Search and Account live here; Account
+				// is the composite route to Notifications rather than a fifth item.
 				setSettings({ ...topBar(), status_style: "Quiet" });
 				await page.setViewportSize(NARROW);
 				await goDesk("/desk/item", ".page-head", 3500);
@@ -17627,16 +17912,20 @@ print("cleared")
 				expect(bar === true, `bottom bar visible at 390 (${bar})`);
 			});
 
-			await test("responsive: the mobile bar is one labelled, evenly-spaced navigation row (390)", async () => {
-				// The item-24 defect, now closed: below 768 the bell and user were
-				// unreachable (zero-boxed in Frappe's collapsed sidebar). The narrow
-				// preset routes Home / Apps / Search / Alerts / You into the full-width
-				// bottom bar; ALL status telemetry stands down; each control clears the
-				// 24px touch floor. This assertion was red before slice C.
-				setSettings(topBar());
-				await page.setViewportSize(NARROW);
-				await goDesk("/desk/item", ".page-head", 3500);
-				const bar = await page.evaluate((visStr) => {
+			await test("responsive: the mobile bar is one labelled four-destination navigation row (390)", async () => {
+				// Four stable destinations are a mobile information-architecture
+				// contract, not a layout preference. Notifications moves into Account,
+				// which carries the unread state and remains one tap away. ALL status
+				// telemetry stands down and each control clears the 24px touch floor.
+				let bar;
+				let notificationsInAccount = 0;
+				let notificationsOpened = false;
+				let accountFocusRestored = false;
+				try {
+					setSettings({ ...topBar(), inbox_style: "Original" });
+					await page.setViewportSize(NARROW);
+					await goDesk("/desk/item", ".page-head", 3500);
+					bar = await page.evaluate((visStr) => {
 					const vis = eval(visStr);
 					const b = document.querySelector(".bnd-statusbar");
 					const t = (s) => {
@@ -17663,25 +17952,56 @@ print("cleared")
 						bell: t(".bnd-bell"),
 						user: t(".bnd-avatar-btn"),
 						apps: t('[data-bnd-part="apps"]'),
+						account: (() => {
+							const node = b && b.querySelector('[data-bnd-part="user"]');
+							return {
+								inboxRoute: !!node?.hasAttribute("data-bnd-inbox-route"),
+								badge: !!node?.querySelector(":scope > .bnd-inbox-badge"),
+							};
+						})(),
 					};
-				}, visSrc);
-				if (process.env.BND_UI_SCREENSHOTS) {
-					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/mobile-navigation-five-destinations.png` });
+					}, visSrc);
+					if (process.env.BND_UI_SCREENSHOTS) {
+						await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/mobile-navigation-four-destinations.png` });
+					}
+					await page.locator('.bnd-statusbar [data-bnd-part="user"]').click();
+					await page.waitForSelector(".bnd-acct-panel", { state: "visible" });
+					const notifications = page.locator(".bnd-acct-panel .bnd-acct-item")
+						.filter({ has: page.locator(".bnd-acct-item-label", { hasText: /^Notifications$/ }) });
+					notificationsInAccount = await notifications.count();
+					if (notificationsInAccount === 1) {
+						await notifications.click();
+						await page.waitForSelector(".bnd-inbox-backdrop:not([hidden])", { state: "visible" });
+						notificationsOpened = await visible(".bnd-inbox-backdrop:not([hidden])");
+					}
+					await page.keyboard.press("Escape");
+					accountFocusRestored = await page.evaluate(() =>
+						document.activeElement === document.querySelector('.bnd-statusbar [data-bnd-part="user"]')
+					);
+				} finally {
+					await wideAgain();
 				}
-				await wideAgain();
 				expect(bar.narrow, "data-bnd-narrow is stamped at 390");
 				expect(bar.start === 0, `the bar spans the viewport, not a stub beside a phantom column (starts at ${bar.start})`);
 				expectEq(bar.role, "navigation", "the phone bar exposes its real navigation role");
 				expect(bar.label, "the phone navigation has an accessible name");
 				expect(bar.statusItems === 0, `all status telemetry stands down (${bar.statusItems} still shown)`);
-				expectEq(bar.columns.length, 5, `the row has five destinations (${JSON.stringify(bar.columns)})`);
+				expectEq(bar.columns.map(item => item.part).join(","), "home,apps,search,user",
+					`the row has the canonical four destinations in order (${JSON.stringify(bar.columns)})`);
+				expectEq(bar.columns.map(item => item.caption).join("|"), "Home|Apps|Search|Account",
+					`the four destinations use one clear vocabulary (${JSON.stringify(bar.columns)})`);
 				expect(bar.columns.every((item) => item.caption), `every destination has a visible caption (${JSON.stringify(bar.columns)})`);
 				const widths = bar.columns.map((item) => item.width);
 				expect(Math.max(...widths) - Math.min(...widths) <= 1, `columns share the width evenly (${widths.join(", ")})`);
-				for (const name of ["home", "apps", "search", "bell", "user"]) {
+				for (const name of ["home", "apps", "search", "user"]) {
 					expect(bar[name].v, `${name} is visible in the mobile bar`);
 					expect(bar[name].min >= 24, `${name} clears the 24px touch floor (${bar[name].min}px)`);
 				}
+				expect(!bar.bell.v, "Notifications is not a redundant fifth destination");
+				expect(bar.account.inboxRoute && bar.account.badge, "Account carries the Notifications route and unread badge");
+				expectEq(notificationsInAccount, 1, "Notifications is one tap away inside Account");
+				expect(notificationsOpened, "Account opens Notifications even when the desktop inbox style is Original");
+				expect(accountFocusRestored, "closing Notifications returns keyboard focus to the Account destination");
 			});
 
 			await test("responsive: crossing the boundary remounts the chrome both ways", async () => {
@@ -17751,32 +18071,33 @@ print("cleared")
 				expect(drawer > 100, `the drawer still opens as an overlay (${drawer}px)`);
 			});
 
-			await test("responsive: the phone-bar toggles gate their tenants (C2)", async () => {
-				// mobile_apps off removes the All Apps button from the narrow bar;
-				// on brings it back. Search has no toggle — it is the only search on
-				// a phone — so it stays either way.
-				const appsVis = () =>
-					page.evaluate(() => {
-						const n = document.querySelector('.bnd-statusbar [data-bnd-part="apps"]');
-						return !!(n && n.getBoundingClientRect().width > 0);
+			await test("responsive: desktop placement choices cannot remove mobile primary destinations", async () => {
+				// A saved desktop preference may move or hide a tenant on a large
+				// screen, but it must not change the phone's primary navigation shape.
+				let parts = [];
+				try {
+					setSettings({
+						...topBar(),
+						home_placement: "Off",
+						apps_placement: "Off",
+						inbox_placement: "Off",
+						user_placement: "Off",
 					});
-				const searchVis = () =>
-					page.evaluate(() => {
-						const n = document.querySelector(".bnd-statusbar .bnd-search-field, .bnd-statusbar .bnd-search-icon");
-						return !!(n && n.getBoundingClientRect().width > 0);
+					await page.setViewportSize(NARROW);
+					await goDesk("/desk/item", ".page-head", 3500);
+					parts = await page.evaluate(() => {
+						const visible = (node) => {
+							const rect = node.getBoundingClientRect();
+							return rect.width > 0 && rect.height > 0 && getComputedStyle(node).display !== "none";
+						};
+						const bar = document.querySelector(".bnd-statusbar");
+						return [...bar.querySelectorAll("[data-bnd-part]")].filter(visible).map(node => node.dataset.bndPart);
 					});
-				setSettings({ ...topBar(), mobile_apps: 0 });
-				await page.setViewportSize(NARROW);
-				await goDesk("/desk/item", ".page-head", 3500);
-				const offApps = await appsVis();
-				const offSearch = await searchVis();
-				setSettings({ mobile_apps: 1 });
-				await goDesk("/desk/item", ".page-head", 3500);
-				const onApps = await appsVis();
-				await wideAgain();
-				expect(!offApps, "apps leaves the mobile bar when mobile_apps is off");
-				expect(offSearch, "search stays in the mobile bar regardless of the toggles");
-				expect(onApps, "apps returns when mobile_apps is on");
+				} finally {
+					await wideAgain();
+				}
+				expectEq(parts.join(","), "home,apps,search,user",
+					`the structural phone navigation survives every desktop Off preference (${parts.join(",")})`);
 			});
 
 			await test("responsive: axe finds nothing in the mobile nav (390)", async () => {
@@ -17849,6 +18170,144 @@ print("cleared")
 			expectEq(shown.length, 1, `exactly one section is visible (${shown.map((s) => s.cls).join(", ")})`);
 			expect(shown[0].cls.startsWith("for-login"), `and it is the sign-in one (${shown[0].cls})`);
 			expectEq(seen.cards, 4, "and .page-card matches four nodes — scope every later query to its section");
+		});
+
+		await test("login: the English Arabic mode is one persistent guest control", async () => {
+			// Guest language is browser state, not a tenant setting. Drive both
+			// directions inside one fresh cookie-less context so the test proves the
+			// control persists its own choice without touching System Settings or an
+			// authenticated user's locale. The forgot hash is intentional: /login is
+			// four forms in one document, and a language reload must keep the form the
+			// visitor was using as well as the redirect that brought them here.
+			let guestErrs = [];
+			const seen = await withGuest(
+				"/login?redirect-to=%2Fdesk%2Fhome#forgot",
+				".bnd-auth-language-switch",
+				async (gp, errs) => {
+					guestErrs = errs;
+					const read = () => gp.evaluate(() => {
+						const visible = (node) => {
+							if (!node) return false;
+							const box = node.getBoundingClientRect();
+							const css = getComputedStyle(node);
+							return box.width > 0 && box.height > 0 && css.display !== "none" && css.visibility !== "hidden";
+						};
+						const switches = [...document.querySelectorAll(".bnd-auth-language-switch")].filter(visible);
+						const choices = switches[0]
+							? [...switches[0].querySelectorAll("a, button")].filter(visible).map((node) => ({
+								lang: node.getAttribute("data-bnd-lang"),
+								label: (node.textContent || "").trim(),
+								tag: node.tagName.toLowerCase(),
+								current: node.getAttribute("aria-current"),
+							}))
+							: [];
+						const section = [...document.querySelectorAll("section")].find(visible);
+						const formCopy = section
+							? [...section.querySelectorAll("h1, h2, h3, h4, p, label, a, button")]
+								.filter(visible)
+								.map((node) => (node.textContent || "").replace(/\s+/g, " ").trim())
+								.filter(Boolean)
+							: [];
+						const hero = document.querySelector("[data-bnd-auth-hero]");
+						const url = new URL(location.href);
+						return {
+							lang: document.documentElement.lang,
+							dir: document.documentElement.dir,
+							path: url.pathname,
+							redirect: url.searchParams.get("redirect-to"),
+							hash: url.hash,
+							switches: switches.length,
+							choices,
+							section: section?.className || "",
+							formCopy,
+							hero: (hero?.textContent || "").replace(/\s+/g, " ").trim(),
+							heroVisible: visible(hero),
+							nativeDuplicates: [...document.querySelectorAll(
+								"#language-switcher, .navbar"
+							)].filter(visible).length,
+						};
+					});
+					const cookie = async () =>
+						(await gp.context().cookies()).find((item) => item.name === "preferred_language")?.value || "";
+					const waitForLanguage = (lang, dir) => gp.waitForFunction(
+						({ lang, dir }) => {
+							const html = document.documentElement;
+							const current = document.querySelector(`.bnd-auth-language-switch [data-bnd-lang="${lang}"]`);
+							return html.lang.toLowerCase().startsWith(lang) && html.dir === dir &&
+								["page", "true"].includes(current?.getAttribute("aria-current"));
+						},
+						{ lang, dir },
+						{ timeout: 30000 }
+					);
+
+					const englishBefore = await read();
+					const arabicChoice = gp.locator('.bnd-auth-language-switch [data-bnd-lang="ar"]');
+					await arabicChoice.focus();
+					const focus = await arabicChoice.evaluate((node) => {
+						const css = getComputedStyle(node);
+						return {
+							active: document.activeElement === node,
+							focusVisible: node.matches(":focus-visible"),
+							outline: css.outlineStyle !== "none" && parseFloat(css.outlineWidth) > 0,
+							shadow: css.boxShadow !== "none",
+						};
+					});
+					await arabicChoice.click();
+					await waitForLanguage("ar", "rtl");
+					const arabic = await read();
+					const arabicCookie = await cookie();
+
+					await gp.locator('.bnd-auth-language-switch [data-bnd-lang="en"]').click();
+					await waitForLanguage("en", "ltr");
+					const englishAfter = await read();
+					const englishCookie = await cookie();
+					return { englishBefore, arabic, englishAfter, arabicCookie, englishCookie, focus };
+				}
+			);
+
+			const clean = (state, lang, dir, current) => {
+				expectEq(state.lang.toLowerCase().split("-")[0], lang, `${lang}: html language follows the choice`);
+				expectEq(state.dir, dir, `${lang}: document direction follows the choice`);
+				expectEq(state.path, "/login", `${lang}: language switching stays on the login route`);
+				expectEq(state.redirect, "/desk/home", `${lang}: redirect-to survives the language reload`);
+				expectEq(state.hash, "#forgot", `${lang}: the active forgot-password form survives the language reload`);
+				expect(state.section.split(/\s+/).includes("for-forgot"), `${lang}: the forgot-password section remains visible`);
+				expectEq(state.switches, 1, `${lang}: exactly one Bunood language control is visible`);
+				expectEq(state.choices.map((choice) => choice.label).join("|"), "English|العربية",
+					`${lang}: the control offers exactly the two native language names`);
+				expect(state.choices.every((choice) => choice.tag === "a"), `${lang}: both choices are real navigation links`);
+				expectEq(
+					state.choices.filter((choice) => ["page", "true"].includes(choice.current)).map((choice) => choice.lang).join(","),
+					current,
+					`${lang}: only the current language is announced as current`
+				);
+				expectEq(state.nativeDuplicates, 0, `${lang}: the native language switcher/navbar does not duplicate the control`);
+			};
+			clean(seen.englishBefore, "en", "ltr", "en");
+			clean(seen.arabic, "ar", "rtl", "ar");
+			clean(seen.englishAfter, "en", "ltr", "en");
+			expectEq(seen.arabicCookie, "ar", "Arabic persists in the guest's preferred_language cookie");
+			expectEq(seen.englishCookie, "en", "English replaces the same guest preference without tenant state");
+			expect(seen.focus.active && seen.focus.focusVisible && (seen.focus.outline || seen.focus.shadow),
+				`the language choices expose a visible keyboard focus indicator (${JSON.stringify(seen.focus)})`);
+
+			const arabicScript = /[\u0600-\u06ff]/;
+			const latinScript = /[A-Za-z]/;
+			expect(seen.arabic.formCopy.length >= 3 && seen.arabic.formCopy.every((text) => arabicScript.test(text)),
+				`Arabic localizes every visible forgot-form label and action (${seen.arabic.formCopy.join(" | ")})`);
+			expect(seen.arabic.heroVisible && arabicScript.test(seen.arabic.hero) && /بنود/.test(seen.arabic.hero),
+				`Arabic localizes the real hero copy (${seen.arabic.hero})`);
+			for (const state of [seen.englishBefore, seen.englishAfter]) {
+				expect(state.formCopy.length >= 3 && state.formCopy.every((text) => latinScript.test(text)),
+					`English localizes every visible forgot-form label and action (${state.formCopy.join(" | ")})`);
+				expect(state.heroVisible && latinScript.test(state.hero) && /Bunood/i.test(state.hero) && !arabicScript.test(state.hero),
+					`English localizes the real hero copy (${state.hero})`);
+			}
+			expectEq(
+				guestErrs.filter((error) => !/socket\.io|favicon|Invalid origin/i.test(error)).join(" | "),
+				"",
+				"language switching keeps the fresh guest page console clean"
+			);
 		});
 
 		await test("login: the kit follows the TEMPLATE, so the site root is dressed too", async () => {

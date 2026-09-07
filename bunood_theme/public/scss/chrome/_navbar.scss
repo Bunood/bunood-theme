@@ -229,7 +229,7 @@ html[data-theme] .bnd-topbar .bnd-search-center {
 // measured a Bunood shell with a real search affordance and stamped ownership.
 // This covers Top Bar, Bottom Bar, Dock and the narrow phone nav; if none of
 // them mounts, the attribute never appears and Frappe remains the fallback.
-html[data-bnd-desktop-shell] .desktop-wrapper > .desktop-navbar {
+html[data-bnd-desktop-shell] .desktop-wrapper .desktop-navbar {
   display: none !important;
 }
 
