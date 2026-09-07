@@ -18,6 +18,14 @@
 {%- set kind = "Standard" if (p1 and p1.type_of_transaction == "Standard Tax Invoice")
       or (p1 and p1.type_of_transaction == "Both" and buyer_vat) else "Simplified" -%}
 <style>
+  /* Page size MUST be declared on `.print-format`: read_options_from_html()
+     takes page-width/page-height/margin-* only from a rule whose selector is
+     PURELY that, and @page reaches NEITHER pdf engine. Without it this format
+     laid 72mm of content onto an A4 page. Same values as the two sibling
+     thermal formats; the full argument lives in
+     sales_invoice_simplified_thermal.html. */
+  .print-format { page-width: 80mm; page-height: 297mm; margin-top: 4mm; margin-bottom: 4mm; margin-left: 4mm; margin-right: 4mm; }
+  @media print { @page { size: 80mm 297mm; margin: 4mm; } }
   .zt { width: 72mm; margin: 0 auto; font-size: 11px; line-height: 1.45; color: #000; }
   .zt * { font-family: inherit; }
   .zt-c { text-align: center; }
