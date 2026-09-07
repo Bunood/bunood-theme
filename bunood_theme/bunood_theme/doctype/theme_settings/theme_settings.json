@@ -1225,7 +1225,7 @@
    "label": "Placement Board"
   },
   {
-   "default": "search,inbox,user,home,start,apps",
+   "default": "search,inbox,user,home,start,apps,language,appearance",
    "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
    "fieldname": "desk_order",
    "fieldtype": "Data",

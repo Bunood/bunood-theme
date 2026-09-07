@@ -91,6 +91,21 @@ css_gzip 23,000 → 23,300 and js_gzip 110,100 → 112,700 (measured 23,240 / 11
 switch's logic ships with its comments. Twenty Arabic rows in `locale/ar.po` (the CSV is
 emitted); "Language" itself is inherited from Frappe.
 
+### The suite
+
+The full suite at `02ec4a1` on the production-shaped bench (frappe 16.33.0 / erpnext 16.34.1)
+read **479/485**. Two were this item's and are fixed in the follow-up commit: the doctype's
+`desk_order` default still spelled the six-tenant order (`slots: nothing ships a value the field
+will not accept` pins it to the registry's), and the settings shell had no ownership entry for the
+new band, so its note read blank (`shell: the note names a real preset`). Four are debts of the
+bench's move to frappe 16.33, older than this item and owed separately: `i18n: the merged dict`
+("Alert" absent), `views: Plain nulls the kanban column tint`, `email: the upstream templates we
+forked have not moved` (frappe's `standard.html` changed — re-read, port, re-pin) and `email: the
+preview renders the real thing` (`get_email_html` no longer crashes without an outgoing account —
+simplify `api.email_preview`). Worth recording: the six other names the filtered runs on this
+bench had shown (login ink, the wells, both All Apps, live preview, the rail badge, axe over the
+pickers) all PASSED in the full run on a quiet machine — a busy host, not the code.
+
 ## [0.42.4] — 2026-09-06 — Main returns to the v0.42.1 line; the overhaul lives on a branch
 
 **The user's call, after looking at production.** MrBrokenrightArm's V2 overhaul (37
