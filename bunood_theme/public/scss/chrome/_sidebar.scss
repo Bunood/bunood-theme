@@ -383,7 +383,15 @@ html[data-bnd-sb-color] .bnd-sb-band {
 // account pins to the block-end corner, and nothing hides - the badge
 // stays a COUNT (shadcn hides both badge and action at icon-collapse,
 // which tells a collapsed user nothing was withheld when it was).
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
+//
+// AT REST ONLY. `:not(.bnd-rail-open)` is load-bearing: the flyout is the same
+// Rail STATE with the pane at full width, and keyed on the state alone this
+// column followed the pane out - bell over avatar in a card three cells tall
+// with a void above them (the user's screenshot, 2026-09-06, an Arabic desk).
+// The band's axis follows the pane's WIDTH: flown out, it is the row rule
+// above, same as Open. The rest rules at the end of this file already key
+// on the same class for the same reason.
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
   // The rail is 50px and the tile is 40: the card gives up its inline

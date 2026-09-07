@@ -1561,8 +1561,13 @@ function assertBandOrder(registrySrc, sidebarScss) {
 	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
 	const members = ["bell", "user", "home", "apps"];
 	const expected = ["user"].concat(regParts.filter((t) => members.includes(t) && t !== "user" && t !== "bell"), ["bell"]);
-	const railAt = sidebarScss.indexOf("[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band");
-	const expanded = railAt === -1 ? sidebarScss : sidebarScss.slice(0, railAt);
+	// The rail's band rule is found by PATTERN, not by its literal selector: it gained
+	// `.body-sidebar-container:not(.bnd-rail-open)` when the flyout kept the column
+	// (2026-09-06), and a literal here read the rail block as part of the expanded one
+	// and reported a duplicate order. The split is what matters, not the spelling.
+	const railAt = sidebarScss.search(/\[data-bnd-rail\]:not\(\[data-bnd-narrow\]\)[^{]*\.bnd-sb-band\s*\{/);
+	if (railAt === -1) throw new Error("Band-order guard: the rail's band rule was not found in _sidebar.scss — the split it depends on is gone.");
+	const expanded = sidebarScss.slice(0, railAt);
 	const got = [];
 	for (const m of expanded.matchAll(/&\[data-bnd-part="([a-z]+)"\]\s*\{[^}]*?order:\s*(\d+)/g)) {
 		got.push([m[1], Number(m[2])]);

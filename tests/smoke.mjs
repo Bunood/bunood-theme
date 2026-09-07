@@ -5350,6 +5350,59 @@ print("ok")
 			}
 		});
 
+		await test("band: the flyout gives the band its row back", async () => {
+			// THE USER'S SCREENSHOT (2026-09-06, an Arabic desk): with the rail hovered
+			// and the pane flown out to its full width, the foot band still stood as
+			// the rail's COLUMN -- bell over avatar in a 180px-tall card with a void
+			// above them. The column rule keyed on the Rail STATE alone, and the
+			// flyout is the same state with more room. The band's axis has to follow
+			// the pane's width, not the setting: a flown-out pane is an open pane.
+			const before = getSettings(BAND_FIELDS);
+			try {
+				setSettings(Object.assign({}, BAND_PLACE, { sidebar_pane_state: "Rail" }));
+				await goDesk("/app/selling", "body", 3000);
+				await page.waitForFunction(
+					() => !!document.querySelector(".body-sidebar .bnd-sb-band"),
+					null, { timeout: 20000 }
+				);
+				const rest = await page.evaluate(() => getComputedStyle(document.querySelector(".body-sidebar .bnd-sb-band")).flexDirection);
+				expectEq(rest, "column", `at rest the rail stacks the band (${rest})`);
+				await page.hover(".body-sidebar-container");
+				await page.waitForFunction(
+					() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"),
+					null, { timeout: 5000 }
+				);
+				// The width transitions; read after it settles, not mid-slide.
+				await page.waitForFunction(() => {
+					const r = document.querySelector(".body-sidebar").getBoundingClientRect();
+					return r.width > 150;
+				}, null, { timeout: 5000 });
+				await page.waitForTimeout(400);
+				const m = await page.evaluate(() => {
+					const band = document.querySelector(".body-sidebar .bnd-sb-band");
+					const r = band.getBoundingClientRect();
+					const cells = [...band.querySelectorAll(":scope > button")].map((c) => {
+						const b = c.getBoundingClientRect();
+						return { part: c.getAttribute("data-bnd-part"), x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) };
+					});
+					return { flow: getComputedStyle(band).flexDirection, h: Math.round(r.height), w: Math.round(r.width), pane: Math.round(document.querySelector(".body-sidebar").getBoundingClientRect().width), cells };
+				});
+				expectEq(m.flow, "row", `flown out, the band is a row again (${m.flow}, pane ${m.pane}px)`);
+				expect(m.h < 64, `and one cell tall, not a stack (${m.h}px)`);
+				// Centres, not tops: the avatar tile is 40px in a run of 36px cells, so the
+				// row aligns their middles (align-items: center) and the tops differ by 2.
+				const mids = m.cells.map((c) => c.y + c.h / 2);
+				expect(Math.max(...mids) - Math.min(...mids) <= 1, `every cell shares the row's centre line (${JSON.stringify(m.cells)})`);
+				// The row's reading order: the avatar leads, the bell pins to the end (item 42).
+				const xOf = (p) => (m.cells.find((c) => c.part === p) || {}).x;
+				const rtl = await page.evaluate(() => document.documentElement.getAttribute("dir") === "rtl");
+				expect(rtl ? xOf("user") > xOf("bell") : xOf("user") < xOf("bell"), `avatar leads, bell at the end (${JSON.stringify(m.cells)})`);
+			} finally {
+				await page.mouse.move(1400, 500);
+				setSettings(before);
+			}
+		});
+
 		await test("foot: the tile card floats in the pane, the avatar fills its tile, the bell pins to the end", async () => {
 			// ITEM 42, SLICE 3 — the user's option 14. Watched failing before the
 			// change: a full-bleed strip (inset 0), a 36px circle avatar at the END.

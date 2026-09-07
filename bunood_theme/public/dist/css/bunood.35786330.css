@@ -1707,17 +1707,17 @@ html[data-bnd-sb-color] .bnd-sb-band > .bnd-avatar-btn .avatar-frame {
   font-size: var(--bnd-text-base);
 }
 
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
   margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
   padding-inline: 0;
 }
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band > button[data-bnd-part=bell] {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar .bnd-sb-band > button[data-bnd-part=bell] {
   order: 1;
   margin-inline-start: 0;
 }
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band > button[data-bnd-part=user] {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar .bnd-sb-band > button[data-bnd-part=user] {
   order: 9;
   margin-block-start: auto;
 }
