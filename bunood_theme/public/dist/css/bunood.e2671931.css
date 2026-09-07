@@ -1221,6 +1221,51 @@ html[data-theme] .bnd-acct-panel .bnd-acct-caption {
   color: var(--bnd-ink-subtle);
 }
 
+html[data-theme] .bnd-language-btn {
+  grid-auto-flow: column;
+  column-gap: var(--bnd-sp-1);
+}
+html[data-theme] .bnd-language-btn .bnd-lang-ico {
+  display: none;
+  line-height: 0;
+}
+html[data-theme] .bnd-language-btn .bnd-lang-code,
+html[data-theme] .bnd-language-btn .bnd-lang-name {
+  display: none;
+  font-size: var(--bnd-text-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+html[data-theme] .bnd-language-btn .bnd-lang-name {
+  font-weight: 500;
+}
+
+html[data-bnd-language-style=globe] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style=globe-code] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style=globe-name] .bnd-language-btn .bnd-lang-ico {
+  display: block;
+}
+
+html[data-bnd-language-style=code] .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style=globe-code] .bnd-language-btn .bnd-lang-code {
+  display: inline;
+}
+
+html[data-bnd-language-style=name] .bnd-language-btn .bnd-lang-name,
+html[data-bnd-language-style=globe-name] .bnd-language-btn .bnd-lang-name {
+  display: inline;
+}
+
+html[data-bnd-language-style=code] .bnd-language-btn,
+html[data-bnd-language-style=name] .bnd-language-btn,
+html[data-bnd-language-style=globe-code] .bnd-language-btn,
+html[data-bnd-language-style=globe-name] .bnd-language-btn {
+  inline-size: auto;
+  min-inline-size: 28px;
+  padding-inline: var(--bnd-sp-2);
+}
+
 html[data-theme] .bnd-icon-btn:focus-visible,
 html[data-theme] .bnd-avatar-btn:focus-visible,
 html[data-theme] .bnd-search-field:focus-visible,
@@ -1664,6 +1709,7 @@ html[data-bnd-sb-color] .bnd-sb-band {
   inset-block-end: var(--bnd-sb-pane-pad);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--bnd-sb-band-gap);
   margin-inline: 0;
   padding: var(--bnd-sb-band-pad);
@@ -1687,6 +1733,19 @@ html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=home] {
 }
 html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=apps] {
   order: 3;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=language] {
+  order: 4;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=appearance] {
+  order: 5;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button.bnd-language-btn {
+  column-gap: 0;
+  padding-inline: 0;
+}
+html[data-bnd-sb-color] .bnd-sb-band > button.bnd-language-btn .bnd-lang-name {
+  display: none;
 }
 html[data-bnd-sb-color] .bnd-sb-band > button[data-bnd-part=bell] {
   order: 9;
@@ -2601,6 +2660,17 @@ html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
   inline-size: 0;
   min-inline-size: 0;
   overflow: hidden;
+}
+
+html[data-bnd-language-style=name] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style=globe-name] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style=globe-code] .bnd-sb-band .bnd-language-btn .bnd-lang-code {
+  display: inline;
+}
+
+html[data-bnd-language-style=globe-name] .bnd-sb-band .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style=globe-code] .bnd-sb-band .bnd-language-btn .bnd-lang-ico {
+  display: none;
 }
 
 html[data-bnd-palette=refined] .modal.bnd-search-modal .modal-dialog {

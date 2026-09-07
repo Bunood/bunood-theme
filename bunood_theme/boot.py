@@ -695,7 +695,13 @@ def extend_bootinfo(bootinfo):
         # Placement rides in the same dict as the rest of the kit, not in a
         # new one: the client reads a flat blob per kit, and a second payload
         # for "where" would be a second thing to keep in step with "what".
-        from bunood_theme.presets import LINKS_DEFAULTS, START_DEFAULTS, USER_DEFAULTS
+        from bunood_theme.presets import (
+            APPEARANCE_DEFAULTS,
+            LANGUAGE_DEFAULTS,
+            LINKS_DEFAULTS,
+            START_DEFAULTS,
+            USER_DEFAULTS,
+        )
 
         from bunood_theme.registry import default_desk_order
 
@@ -708,11 +714,30 @@ def extend_bootinfo(bootinfo):
             "apps": (settings.get("apps_placement") or LINKS_DEFAULTS["apps_placement"]),
             # The taskbar layouts' way into the pane (item 42, slice 7).
             "start": (settings.get("start_placement") or START_DEFAULTS["start_placement"]),
+            # The language switch and the Appearance button (item 44).
+            "language": (settings.get("language_placement") or LANGUAGE_DEFAULTS["language_placement"]),
+            "appearance": (settings.get("appearance_placement") or APPEARANCE_DEFAULTS["appearance_placement"]),
             # E3: the desk order the tenants sort by when they share a zone.
             # Same payload as the placements because it is the same fact —
             # where things sit — split across two keys would be two things to
             # keep in step.
             "order": settings.get("desk_order") or default_desk_order(),
+        }
+
+        # The language switch's own blob (item 44): how it draws itself, and the
+        # languages it may offer - the ones ENABLED in Frappe's Language list, the
+        # same set My Settings offers. Exactly two make it a one-click toggle to
+        # the other; more make it a menu. The current language rides along so the
+        # client never guesses which side of the pair it is on.
+        bootinfo.bnd_language = {
+            "style": settings.get("language_style") or LANGUAGE_DEFAULTS["language_style"],
+            "current": frappe.local.lang or "en",
+            "languages": [
+                {"code": row.name, "name": row.language_name or row.name}
+                for row in frappe.get_all(
+                    "Language", filters={"enabled": 1}, fields=["name", "language_name"], order_by="language_name asc"
+                )
+            ],
         }
 
         bootinfo.bnd_inbox = {

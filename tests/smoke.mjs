@@ -1429,6 +1429,8 @@ const MUTABLE_FIELDS = [
 	// Component rework, slice 1: the bell and the user menu place themselves.
 	// Slice 2: so do Home and All Apps, which used to share one field.
 	"inbox_placement", "user_placement", "home_placement", "apps_placement", "start_placement",
+	// Item 44: the language switch and the Appearance button.
+	"language_placement", "language_style", "appearance_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
@@ -5399,6 +5401,232 @@ print("ok")
 				expect(rtl ? xOf("user") > xOf("bell") : xOf("user") < xOf("bell"), `avatar leads, bell at the end (${JSON.stringify(m.cells)})`);
 			} finally {
 				await page.mouse.move(1400, 500);
+				setSettings(before);
+			}
+		});
+
+		// ── Item 44: the language switch and the Appearance button ──────────
+		const LANG_FIELDS = ["language_placement", "language_style", "appearance_placement", "inbox_placement", "user_placement", "bottombar_enabled"];
+		// The Language list is SITE DATA the suite must leave as it found it: snapshot
+		// the enabled set, narrow it for a check, restore it in every finally.
+		const langSnapshot = () => JSON.parse(
+			benchPy("import json\nprint(json.dumps([r.name for r in frappe.get_all('Language', filters={'enabled': 1}, fields=['name'])]))\n").trim().split("\n").pop()
+		);
+		const langEnableOnly = (codes) => benchPy(
+			"frappe.db.sql(\"update tabLanguage set enabled=0\")\n" +
+			`frappe.db.sql("update tabLanguage set enabled=1 where name in %(c)s", {"c": ${JSON.stringify(codes)}})\n` +
+			"frappe.db.commit(); frappe.clear_cache()\n"
+		);
+		const userLangGet = (user) => benchPy(`print(frappe.db.get_value('User', ${JSON.stringify(user)}, 'language') or '')\n`).trim().split("\n").pop();
+		const userLangSet = (user, lang) => benchPy(
+			`frappe.db.set_value('User', ${JSON.stringify(user)}, 'language', ${JSON.stringify(lang)} or None, update_modified=False)\n` +
+			`frappe.db.commit(); frappe.clear_cache(user=${JSON.stringify(user)})\n`
+		);
+
+		await test("language: two enabled languages make the switch a one-click toggle to the other", async () => {
+			// The switch offers the languages ENABLED in Frappe's Language list - the set
+			// My Settings offers - so with exactly two it is a toggle naming the OTHER
+			// language in its own script.
+			const before = getSettings(LANG_FIELDS);
+			const snapshot = langSnapshot();
+			try {
+				langEnableOnly(["en", "ar"]);
+				// The bell and the avatar join the same zone so the ORDER can be read.
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Name", appearance_placement: "Bottom Bar End", inbox_placement: "Bottom Bar End", user_placement: "Bottom Bar End", bottombar_enabled: 1 });
+				await goDesk("/app/selling", ".bnd-statusbar", 3000);
+				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
+				const m = await page.evaluate(() => {
+					const zone = document.querySelector('.bnd-statusbar .bnd-zone[data-zone="end"]');
+					const btn = zone && zone.querySelector('[data-bnd-part="language"]');
+					const name = btn && btn.querySelector(".bnd-lang-name");
+					const ico = btn && btn.querySelector(".bnd-lang-ico svg");
+					const w = (n) => (n ? n.getBoundingClientRect().width : 0);
+					const order = zone ? [...zone.querySelectorAll("[data-bnd-part]")].map((n) => n.getAttribute("data-bnd-part")) : [];
+					return {
+						count: document.querySelectorAll('[data-bnd-part="language"]').length,
+						inZone: !!btn, order,
+						name: name ? name.textContent.trim() : null, lang: name && name.getAttribute("lang"), dir: name && name.getAttribute("dir"),
+						nameShown: w(name) > 0, icoShown: w(ico) > 0,
+						haspopup: btn && btn.getAttribute("aria-haspopup"), label: btn && btn.getAttribute("aria-label"),
+						boot: frappe.boot.bnd_language,
+					};
+				});
+				expectEq(m.count, 1, `exactly one switch on the desk (${m.count})`);
+				expect(m.inZone, "it sits in the bottom bar's end zone");
+				expectEq(m.boot.languages.length, 2, `boot carries the two enabled languages (${JSON.stringify(m.boot.languages)})`);
+				expectEq(m.name, "العربية", `it names the OTHER language in its own script (${m.name})`);
+				expectEq(m.lang, "ar", "the name carries lang=ar");
+				expectEq(m.dir, "rtl", "and dir=rtl");
+				expect(m.nameShown && m.icoShown, `Globe + Name shows both (name ${m.nameShown}, globe ${m.icoShown})`);
+				expect(!m.haspopup, `a toggle, not a menu (aria-haspopup=${m.haspopup})`);
+				expect(/العربية/.test(m.label || ""), `the accessible label says where it goes (${m.label})`);
+				// Registry order: the bell and the avatar, then language and appearance -
+				// which puts the two beside the density segment at the bar's trailing edge.
+				expectEq(m.order.join(","), "bell,user,language,appearance", `the end cluster reads in registry order (${m.order.join(",")})`);
+			} finally {
+				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: the switch writes the user's language and reloads the desk in it", async () => {
+			const before = getSettings(LANG_FIELDS);
+			const snapshot = langSnapshot();
+			const user = DESK_FIXTURE.user;
+			const userLang = userLangGet(user);
+			try {
+				langEnableOnly(["en", "ar"]);
+				userLangSet(user, "en");
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe", bottombar_enabled: 1 });
+				// /app/home, not /app/selling: the fixture user may not open the Selling
+				// workspace, and Frappe answers with a "Not permitted" modal that swallows
+				// every click (measured). The click is programmatic: what is under test is
+				// the switch's behaviour, and the bar's visibility is check one's business.
+				await withDeskUser("/app/home", "body", async (dp) => {
+					await dp.waitForSelector('[data-bnd-part="language"]', { state: "attached", timeout: 30000 });
+					await Promise.all([
+						dp.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 90000 }),
+						dp.evaluate(() => document.querySelector('[data-bnd-part="language"]').click()),
+					]);
+					await dp.waitForFunction(() => window.frappe && frappe.boot && frappe.boot.lang && window.bunood_theme, null, { timeout: 60000 });
+					const after = await dp.evaluate(() => ({ lang: frappe.boot.lang, dir: document.documentElement.getAttribute("dir") }));
+					expectEq(after.lang, "ar", `the desk reloaded in Arabic (${after.lang})`);
+					expectEq(after.dir, "rtl", `and right-to-left (${after.dir})`);
+				});
+				const stored = userLangGet(user);
+				expectEq(stored, "ar", `User.language is what changed (${stored})`);
+			} finally {
+				userLangSet(user, userLang);
+				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: more than two enabled languages make the switch a menu with the current one marked", async () => {
+			const before = getSettings(LANG_FIELDS);
+			const snapshot = langSnapshot();
+			try {
+				langEnableOnly(["en", "ar", "fr"]);
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Code", bottombar_enabled: 1 });
+				await goDesk("/app/selling", ".bnd-statusbar", 3000);
+				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
+				const t = await page.evaluate(() => {
+					const b = document.querySelector('[data-bnd-part="language"]');
+					return { haspopup: b.getAttribute("aria-haspopup"), code: (b.querySelector(".bnd-lang-code") || {}).textContent };
+				});
+				expectEq(t.haspopup, "menu", `three languages make it a menu trigger (${t.haspopup})`);
+				expectEq(t.code, "EN", `showing the CURRENT language's code when it is a menu (${t.code})`);
+				await page.click('[data-bnd-part="language"]');
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 5000 });
+				const m = await page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-menu .bnd-menu-item")].map((i) => ({ label: i.textContent.trim(), role: i.getAttribute("role"), checked: i.getAttribute("aria-checked") }))
+				);
+				expectEq(m.length, 3, `one entry per enabled language (${JSON.stringify(m)})`);
+				expect(m.every((i) => i.role === "menuitemradio"), `choices are radio items (${JSON.stringify(m.map((i) => i.role))})`);
+				expect(m.some((i) => i.label === "English" && i.checked === "true"), `the current language is marked (${JSON.stringify(m)})`);
+				expect(m.some((i) => i.label === "العربية") && m.some((i) => /Fran/.test(i.label)), "the others are named in their own script");
+				await page.keyboard.press("Escape");
+			} finally {
+				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: every style draws its promised parts, and the band shrinks a name to its code", async () => {
+			const before = getSettings(LANG_FIELDS.concat(BAND_FIELDS));
+			const snapshot = langSnapshot();
+			try {
+				langEnableOnly(["en", "ar"]);
+				const parts = async () => page.evaluate(() => {
+					const b = document.querySelector('[data-bnd-part="language"]');
+					const w = (s) => { const n = b && b.querySelector(s); return n ? Math.round(n.getBoundingClientRect().width) : 0; };
+					return { ico: w(".bnd-lang-ico svg") > 0, code: w(".bnd-lang-code") > 0, name: w(".bnd-lang-name") > 0, width: b ? Math.round(b.getBoundingClientRect().width) : 0, attr: document.documentElement.getAttribute("data-bnd-language-style") };
+				});
+				const want = { "Globe": "100", "Code": "010", "Name": "001", "Globe + Code": "110", "Globe + Name": "101" };
+				for (const [style, bits] of Object.entries(want)) {
+					setSettings({ language_placement: "Bottom Bar End", language_style: style, bottombar_enabled: 1 });
+					await goDesk("/app/selling", '[data-bnd-part="language"]', 2500);
+					const p = await parts();
+					expectEq([p.ico, p.code, p.name].map(Number).join(""), bits, `${style} in the bar shows globe/code/name = ${bits} (${JSON.stringify(p)})`);
+				}
+				// In the pane's foot band a 36px cell cannot hold a word: Name degrades to Code.
+				setSettings(Object.assign({}, BAND_PLACE, { language_placement: "Side Pane End", language_style: "Name" }));
+				await goDesk("/app/selling", '.bnd-sb-band [data-bnd-part="language"]', 2500);
+				const band = await parts();
+				expect(!band.name && band.code, `the band shows the code, not the name (${JSON.stringify(band)})`);
+				expect(band.width <= 40, `and stays a cell (${band.width}px)`);
+			} finally {
+				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: the API refuses a language the site has not enabled", async () => {
+			const snapshot = langSnapshot();
+			const user = DESK_FIXTURE.user;
+			const userLang = userLangGet(user);
+			try {
+				langEnableOnly(["en", "ar"]);
+				await withDeskUser("/app", "body", async (dp) => {
+					const r = await dp.evaluate(async () => {
+						const call = async (code) => {
+							const res = await fetch("/api/method/bunood_theme.api.set_language", {
+								method: "POST", headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": frappe.csrf_token },
+								body: JSON.stringify({ code }),
+							});
+							return res.status;
+						};
+						return { disabled: await call("fr"), enabled: await call("ar") };
+					});
+					expect(r.disabled >= 400, `a disabled language is refused (HTTP ${r.disabled})`);
+					expectEq(r.enabled, 200, `an enabled one is accepted (HTTP ${r.enabled})`);
+				});
+				const stored = userLangGet(user);
+				expectEq(stored, "ar", `and written to the user (${stored})`);
+			} finally {
+				userLangSet(user, userLang);
+				langEnableOnly(snapshot);
+			}
+		});
+
+		await test("appearance: the button opens the Appearance dialog", async () => {
+			const before = getSettings(LANG_FIELDS);
+			try {
+				setSettings({ appearance_placement: "Bottom Bar End", bottombar_enabled: 1 });
+				await goDesk("/app/selling", '[data-bnd-part="appearance"]', 2500);
+				const a = await page.evaluate(() => {
+					const b = document.querySelector('[data-bnd-part="appearance"]');
+					return { haspopup: b.getAttribute("aria-haspopup"), icon: !!b.querySelector("svg"), label: b.getAttribute("aria-label") };
+				});
+				expectEq(a.haspopup, "dialog", `it announces a dialog (${a.haspopup})`);
+				expect(a.icon, "it carries a glyph");
+				await page.click('[data-bnd-part="appearance"]');
+				await page.waitForSelector('.modal.show [data-bnd-part="appearance-axis"]', { timeout: 15000 });
+				const title = await page.evaluate(() => ((document.querySelector(".modal.show .modal-title") || {}).textContent || "").trim());
+				expect(/Appearance|المظهر/.test(title), `the Appearance dialog opened (${title})`);
+				await page.keyboard.press("Escape");
+				await page.waitForTimeout(400);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("band: six cells at the narrowest pane wrap rather than overflow", async () => {
+			const before = getSettings(LANG_FIELDS.concat(BAND_FIELDS));
+			try {
+				setSettings(Object.assign({}, BAND_PLACE, { sidebar_pane_width: "1", language_placement: "Side Pane End", appearance_placement: "Side Pane End", language_style: "Globe" }));
+				await goDesk("/app/selling", ".bnd-sb-band", 3000);
+				await page.waitForFunction(() => document.querySelectorAll(".bnd-sb-band > button").length >= 6, null, { timeout: 15000 });
+				const m = await page.evaluate(() => {
+					const b = document.querySelector(".bnd-sb-band");
+					const cells = [...b.querySelectorAll(":scope > button")];
+					const rows = new Set(cells.map((c) => Math.round(c.getBoundingClientRect().top)));
+					return { cells: cells.length, overflow: b.scrollWidth > b.clientWidth + 1, rows: rows.size, w: Math.round(b.getBoundingClientRect().width), pane: Math.round(document.querySelector(".body-sidebar").getBoundingClientRect().width) };
+				});
+				expectEq(m.cells, 6, `six tenants in the band (${m.cells})`);
+				expect(!m.overflow, `nothing overflows the card (band ${m.w}px in a ${m.pane}px pane)`);
+				expect(m.rows >= 2, `the cells wrap to a second row rather than spill (${m.rows} rows)`);
+			} finally {
 				setSettings(before);
 			}
 		});

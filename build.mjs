@@ -965,7 +965,7 @@ function assertAutomaticArms(css, name) {
 // it would make "which user thing is this" a question the prefix no longer
 // answers. The axis itself is declared in `bunood_theme/personal.py`, which is
 // also what `assertPersonalAxes` reads.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "language", "appearance", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly
@@ -1559,7 +1559,7 @@ function assertLayoutSlugs(registrySrc, jsSrc) {
 
 function assertBandOrder(registrySrc, sidebarScss) {
 	const regParts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)].map((m) => m[1]);
-	const members = ["bell", "user", "home", "apps"];
+	const members = ["bell", "user", "home", "apps", "language", "appearance"];
 	const expected = ["user"].concat(regParts.filter((t) => members.includes(t) && t !== "user" && t !== "bell"), ["bell"]);
 	// The rail's band rule is found by PATTERN, not by its literal selector: it gained
 	// `.body-sidebar-container:not(.bnd-rail-open)` when the flyout kept the column

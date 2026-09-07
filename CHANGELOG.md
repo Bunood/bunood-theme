@@ -22,6 +22,75 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.0] — 2026-09-06 — The language switch and the Appearance button (item 44)
+
+**Decided with the user through one drawn round** ([Language Switch Round](https://claude.ai/code/artifact/e819c7ab-029b-4e14-8c13-32e3d23ceed4)): a globe by
+default with a style setting (Code, Name, Globe + Code, Globe + Name), an Appearance button
+beside it, and "the languages turned on in settings" — which is Frappe's own Enabled flag on
+the Language list, the set My Settings already offers. Item 43 (the body anatomy) is still
+awaiting its picks; this item took the next number.
+
+### Added
+
+- **Two placeable tenants**, `language` and `appearance`, in `registry.py` like the bell: any
+  bar zone, the page head, the side pane's start or end, the dock, or Off. Neither replaces a
+  native. Both default to **Bottom Bar End, after the avatar** — the user said "next to
+  density", and the bottom bar draws its density segment at the trailing edge AFTER the
+  cluster, so the two go last in the registry and the default desk order ends
+  `…,apps,language,appearance`. A site with a stored desk order appends unknown tokens,
+  which is the same place, so no patch. Off on the phone bar (the user's chosen four stay);
+  the avatar menu carries the language entry everywhere.
+- **The switch.** Exactly two enabled languages make it a one-click toggle naming the OTHER
+  language in its own script (`lang` and `dir` on the label, the accessible name in the UI's
+  language); more make it a menu of autonyms with the current one marked as a
+  `menuitemradio`. It writes `User.language` through `bunood_theme.api.set_language`, which
+  refuses a code the site has not enabled and needs no write permission on the User doctype,
+  then reloads: a language change needs new translations and the matching LTR/RTL bundle.
+  Unsaved form edits block the switch with a message rather than being lost.
+- **`language_style`** (Globe · Code · Name · Globe + Code · Globe + Name), applied as
+  `data-bnd-language-style` on `<html>`: the button always carries all three parts and the
+  stylesheet shows the chosen ones, so a style change is an attribute swap. Text styles grow
+  the 28px cell into a pill in the bars; in the pane's foot band and the rail a 36px cell
+  cannot hold a word, so Name shrinks to Code and the globe pairs to their code.
+- **The Appearance button** opens item 38's dialog from a bar, not only from the avatar menu.
+- **Theme Settings**: a "Language & Appearance" section with `language_placement`,
+  `language_style` and `appearance_placement`; rows on the placement board and the desk
+  parts page; live preview of the style; the shape fixture regenerated for the three fields
+  and the longer desk order. Boot gains `bnd_language` (style, current, the enabled list).
+- The foot band **wraps to a second row** when six tenants meet the narrowest pane, rather
+  than spilling past the card.
+
+### Fixed
+
+- **The rail flyout kept the foot band as the rail's column** (the user's screenshot, an
+  Arabic desk): bell over avatar in a card three cells tall with a void above them. The
+  column rule keyed on the Rail STATE alone; it now keys on the resting rail
+  (`:not(.bnd-rail-open)`), and the band-order guard finds that rule by pattern instead of
+  by its literal selector.
+
+### Checks (seven new, plus the flyout's)
+
+`language: two enabled languages make the switch a one-click toggle to the other` ·
+`language: the switch writes the user's language and reloads the desk in it` ·
+`language: more than two enabled languages make the switch a menu with the current one
+marked` · `language: every style draws its promised parts, and the band shrinks a name to
+its code` · `language: the API refuses a language the site has not enabled` ·
+`appearance: the button opens the Appearance dialog` · `band: six cells at the narrowest
+pane wrap rather than overflow` · `band: the flyout gives the band its row back`.
+Watched failing first: the band checks could not find the switch in the foot card until
+`sb_zone_anchor` admitted the two parts (it was a list of four), and the reload check taught
+two things worth keeping — Playwright's click hangs on a page that reloads unless the click
+is programmatic, and the suite's fixture user cannot open the Selling workspace (Frappe
+answers with a "Not permitted" modal that swallows every click), so fixture checks open
+`/app/home`. The Language list is site data: every check snapshots the enabled set and
+restores it.
+
+### Payload and words
+
+css_gzip 23,000 → 23,300 and js_gzip 110,100 → 112,700 (measured 23,240 / 112,572); the
+switch's logic ships with its comments. Twenty Arabic rows in `locale/ar.po` (the CSV is
+emitted); "Language" itself is inherited from Frappe.
+
 ## [0.42.4] — 2026-09-06 — Main returns to the v0.42.1 line; the overhaul lives on a branch
 
 **The user's call, after looking at production.** MrBrokenrightArm's V2 overhaul (37

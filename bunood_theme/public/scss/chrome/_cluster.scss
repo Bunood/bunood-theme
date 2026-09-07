@@ -397,6 +397,56 @@ html[data-theme] .bnd-acct-panel {
 // panel still appears, because the tokens are the ONLY duration source.
 
 // Focus ring for keyboard users — accent token, visible in both modes.
+// ── The language switch (item 44) ──────────────────────────────────
+// One button, three parts; `data-bnd-language-style` on <html> says which show.
+// Display-driven so a style change is an attribute swap, not a rebuild - and a
+// cell that shows text grows into a pill, where an icon-only cell keeps the
+// 28px square every other bar control has. The pane's foot band overrides the
+// text parts (_sidebar.scss): a 36px cell cannot hold a word.
+html[data-theme] .bnd-language-btn {
+  grid-auto-flow: column;
+  column-gap: var(--bnd-sp-1);
+
+  .bnd-lang-ico {
+    display: none;
+    line-height: 0;
+  }
+  .bnd-lang-code,
+  .bnd-lang-name {
+    display: none;
+    font-size: var(--bnd-text-sm);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .bnd-lang-name {
+    font-weight: 500;
+  }
+}
+html[data-bnd-language-style="globe"] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn .bnd-lang-ico {
+  display: block;
+}
+html[data-bnd-language-style="code"] .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn .bnd-lang-code {
+  display: inline;
+}
+html[data-bnd-language-style="name"] .bnd-language-btn .bnd-lang-name,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn .bnd-lang-name {
+  display: inline;
+}
+// Text needs room: the cell becomes a pill. Same specificity as the icon-btn
+// rule above and later in the file, which is what lets it win the width.
+html[data-bnd-language-style="code"] .bnd-language-btn,
+html[data-bnd-language-style="name"] .bnd-language-btn,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn {
+  inline-size: auto;
+  min-inline-size: 28px;
+  padding-inline: var(--bnd-sp-2);
+}
+
 html[data-theme] .bnd-icon-btn:focus-visible,
 html[data-theme] .bnd-avatar-btn:focus-visible,
 html[data-theme] .bnd-search-field:focus-visible,

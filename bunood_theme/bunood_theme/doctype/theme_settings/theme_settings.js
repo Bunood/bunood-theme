@@ -895,6 +895,17 @@ frappe.ui.form.on("Theme Settings", {
 	onload(frm) {
 		bnd_fix_primary_action(frm);
 	},
+	// Item 44: plain Selects, so their live preview and the board redraw hang
+	// off the form events rather than a picker.
+	language_style(frm) {
+		bnd_language_preview(frm);
+	},
+	language_placement(frm) {
+		bnd_render_placement_board(frm);
+	},
+	appearance_placement(frm) {
+		bnd_render_placement_board(frm);
+	},
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
@@ -1114,6 +1125,8 @@ const BND_SHELL_GROUPS = [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
+			// Item 44: two tenants and the switch's style, plain Selects in one section.
+			{ key: "language", label: () => __("Language & Appearance"), anchors: ["language_placement"] },
 			// `palette_enabled` now sits with its seven siblings in
 			// section_palette, so one anchor reaches the whole component. It used
 			// to live three sections away, and anchoring it here claimed the
@@ -1302,6 +1315,8 @@ const BND_SHELL_OWNS = {
 			"user_placement",
 			"home_placement",
 			"apps_placement",
+			"language_placement",
+			"appearance_placement",
 			"desk_order",
 		],
 	},
@@ -1618,6 +1633,9 @@ const BND_DESK_TENANTS = [
 	{ key: "start", field: "start_placement", label: () => __("Start button") },
 	{ key: "home", field: "home_placement", label: () => __("Home link") },
 	{ key: "apps", field: "apps_placement", label: () => __("All apps link") },
+	// Item 44.
+	{ key: "language", field: "language_placement", label: () => __("Language switch") },
+	{ key: "appearance", field: "appearance_placement", label: () => __("Appearance button") },
 ];
 
 function bnd_render_overview(frm, $pane) {
@@ -3753,6 +3771,17 @@ function bnd_palette_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.INBOX_FIELDS — keep in sync. */
+const BND_LANGUAGE_FIELDS = ["language_style"];
+// The reset chip's target, mirroring presets.LANGUAGE_DEFAULTS (the default-mirror
+// guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
+const BND_LANGUAGE_DEFAULTS = { language_style: "Globe" };
+
+/** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
+function bnd_language_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.language_apply) return;
+	window.bunood_theme.language_apply({ language_style: frm.doc.language_style });
+}
+
 const BND_INBOX_FIELDS = [
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
@@ -7755,7 +7784,7 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
 /**

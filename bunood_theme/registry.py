@@ -366,6 +366,41 @@ COMPONENTS = [
         "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
         "critical": False,
     },
+    {
+        # The language switch (item 44). It replaces no native: Frappe keeps a
+        # user's language behind My Settings and offers no desk affordance for
+        # it. It is LAST in this table on purpose - registry order is the default
+        # desk order, and the user asked for it beside the density segment, which
+        # the bottom bar draws at its trailing edge AFTER the cluster (measured):
+        # so bell, avatar, language, appearance, density. What it offers is the
+        # languages ENABLED in the Language list (boot.bnd_language), the set My
+        # Settings offers.
+        "key": "language",
+        "part": "language",
+        "label": "Language switch",
+        "type": TENANT,
+        "selector": '[data-bnd-part="language"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": False,
+    },
+    {
+        # The Appearance button (item 44): the dialog item 38 built, reachable
+        # from a bar and not only from the avatar menu. Same position argument
+        # as the language switch above.
+        "key": "appearance",
+        "part": "appearance",
+        "label": "Appearance button",
+        "type": TENANT,
+        "selector": '[data-bnd-part="appearance"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": False,
+    },
 ]
 
 #: Containers, in mount order.
@@ -500,6 +535,9 @@ LAYOUT_TENANTS = {
         # Frappe's OWN search row, revealed at the pane's start; mount_search_at
         # deliberately does not claim it.
         "search_placement": "Side Pane Start",
+        # Item 44: beside the density segment, which ends the bar before the cluster.
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Taskbar": {
         # The start button is what makes this a taskbar.
@@ -507,12 +545,18 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
+        # Item 44: beside the density segment, which ends the bar before the cluster.
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Top Taskbar": {
         "start_placement": "Top Bar Start",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
+        # Item 44: beside the density segment, which ends the bar before the cluster.
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Rail + Flyout": {
         # The same tenants as Unified: this row differs by the pane's STATE, which
@@ -521,6 +565,9 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Side Pane End",
         "user_placement": "Side Pane End",
         "search_placement": "Side Pane Start",
+        # Item 44: beside the density segment, which ends the bar before the cluster.
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Floating Bar": {
         # The pill's own way back to the pane this row switches off.
@@ -532,6 +579,9 @@ LAYOUT_TENANTS = {
         # the dock first for this layout. Naming a slot the field does not offer
         # would write an illegal value into a Select.
         "search_placement": "Bottom Bar Center",
+        # Item 44: beside the density segment, which ends the bar before the cluster.
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
 }
 
@@ -570,6 +620,10 @@ NARROW_PLACEMENT = {
     # Home stands down on a phone: the mobile bar is search / alerts / you / apps
     # (the user's chosen four), and Frappe's own drawer carries the rest.
     "home": "Off",
+    # Item 44: the phone bar keeps the user's chosen four; the avatar menu
+    # carries the language entry, and Appearance is already there.
+    "language": "Off",
+    "appearance": "Off",
 }
 
 

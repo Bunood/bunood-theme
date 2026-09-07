@@ -2046,6 +2046,12 @@
 			const label = el("span", "bnd-menu-label");
 			label.textContent = item.label;
 			btn.appendChild(label);
+			// A menu of choices (item 44's language list) marks the current one the
+			// ARIA way: menuitemradio + aria-checked, never a check glyph alone.
+			if (item.checked !== undefined) {
+				btn.setAttribute("role", "menuitemradio");
+				btn.setAttribute("aria-checked", item.checked ? "true" : "false");
+			}
 			btn.addEventListener("click", () => {
 				close_menu();
 				try {
@@ -2151,6 +2157,9 @@
 			icon: "icon-monitor",
 			run: () => bunood.appearance(),
 		});
+		// Item 44: the always-present route to the language switch, for a desk whose
+		// layout has none of the bars the tenant sits in (and the phone bar).
+		for (const item of language_menu_items()) items.push(item);
 		// Theme Settings is site-wide admin config, so the shortcut only shows
 		// for users who can actually open it — everyone else would get a
 		// permission error page, which is worse than no entry.
@@ -2524,7 +2533,10 @@ function sb_zone_anchor(pane, zone, node) {
 	// Our end tenants become band cells.
 	if (zone === "end" && node.getAttribute) {
 		const part = node.getAttribute("data-bnd-part");
-		if (part === "bell" || part === "user" || part === "home" || part === "apps") {
+		// Every End-zone tenant lives in the foot card. This was a list of four and
+		// item 44 added two: the band-order guard in build.mjs derives the same set
+		// from registry.py, so a tenant missing here lands loose under the card.
+		if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
 			return sb_band(pane).appendChild(node);
 		}
 	}
@@ -2611,8 +2623,12 @@ function sb_zone_anchor(pane, zone, node) {
 	// REGISTRY ORDER, not append-at-the-end: `registry.default_desk_order()` reads
 	// the components table top to bottom and `start` sits before `apps` there, so
 	// spelling it last here would be a second copy that disagrees about ties.
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps"];
-	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
+	// Registry order (default_desk_order): the language switch and the Appearance
+	// button come LAST, so an end cluster reads bell, avatar, language, appearance -
+	// beside the density segment the bar draws at its trailing edge (item 44). A
+	// stored order that predates them appends them, which is the same place.
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps", "language", "appearance"];
+	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start", language: "language", appearance: "appearance" };
 
 	function desk_order_rank() {
 		const stored = String((placement_state && placement_state.order) || "")
@@ -2693,6 +2709,11 @@ function sb_zone_anchor(pane, zone, node) {
 			// token is its own and releasing it costs nothing — the pane keeps its
 			// handle and Frappe's page-title toggle either way.
 			["start", "start", "bnd-sb-start", build_start],
+			// Item 44. Neither replaces a native; the language switch may decline to
+			// build at all (one enabled language is no choice), which build() says
+			// by returning null.
+			["language", "language", "bnd-language-btn", build_language],
+			["appearance", "appearance", "bnd-appearance-btn", build_appearance],
 		]) {
 			const region = placement_for(tenant);
 			// The panel stamp follows the OUTCOME of every branch below: only a
@@ -2791,6 +2812,10 @@ function sb_zone_anchor(pane, zone, node) {
 			const zone = zone_for(tenant);
 			if (!keeper) {
 				const node = build();
+				if (!node) {
+					stamp("");
+					continue;
+				}
 				node.setAttribute("data-bnd-zone", zone);
 				if (region === "sidepane") sb_zone_anchor(host, zone, node);
 				else host.appendChild(node);
@@ -2861,6 +2886,169 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const b of document.querySelectorAll(".bnd-sb-start")) {
 			b.setAttribute("aria-expanded", away ? "true" : "false");
 		}
+	};
+
+	// ── The language switch and the Appearance button (item 44) ──────────
+	//
+	// A PLACEABLE TENANT like the bell, replacing no native: Frappe keeps a user's
+	// language behind My Settings and offers no desk affordance for it. What it
+	// offers is the languages ENABLED in the Language list (boot.bnd_language), the
+	// same set My Settings offers: exactly two make it a one-click toggle to the
+	// OTHER language, named in its own script so the person who needs it can read
+	// it; more make it a menu marking the current one. Switching writes
+	// User.language through the theme's endpoint (an ordinary role cannot save its
+	// own User doc) and reloads: a language change needs new translations and the
+	// matching LTR/RTL bundle, which no in-page apply can deliver.
+	//
+	// How it draws itself is `language_style` (Globe · Code · Name · Globe + Code ·
+	// Globe + Name), applied as `data-bnd-language-style` on <html>; the button
+	// always carries all three parts and the stylesheet shows the chosen ones, so a
+	// style change is an attribute, not a rebuild. In the pane's foot band and the
+	// rail a 36px cell cannot hold a word, so Name shrinks to Code there
+	// (_sidebar.scss).
+	const LANGUAGE_STYLE_SLUGS = { "Globe": "globe", "Code": "code", "Name": "name", "Globe + Code": "globe-code", "Globe + Name": "globe-name" };
+
+	function language_state() {
+		const b = (window.frappe && frappe.boot && frappe.boot.bnd_language) || {};
+		const current = String(b.current || (frappe.boot && frappe.boot.lang) || "en");
+		const languages = Array.isArray(b.languages) ? b.languages.filter((l) => l && l.code) : [];
+		return { style: b.style || "Globe", current, languages };
+	}
+
+	function apply_language_attrs(v) {
+		const slug = LANGUAGE_STYLE_SLUGS[(v && v.style) || "Globe"] || "globe";
+		document.documentElement.setAttribute("data-bnd-language-style", slug);
+	}
+
+	/** The base of a code ("ar" of "ar-SA"), which is how the pair is compared. */
+	function language_base(code) {
+		return String(code || "").split(/[-_]/)[0];
+	}
+
+	function language_dir(code) {
+		const rtl = (frappe.boot && frappe.boot.bnd_rtl_langs) || [];
+		return rtl.includes(language_base(code)) ? "rtl" : "ltr";
+	}
+
+	/** Toggle or menu: the two-language case offers the OTHER one directly. */
+	function language_pair() {
+		const { current, languages } = language_state();
+		const cur = language_base(current);
+		const others = languages.filter((l) => language_base(l.code) !== cur);
+		const here = languages.find((l) => language_base(l.code) === cur) || null;
+		const toggle = languages.length === 2 && others.length === 1;
+		return { languages, others, here, toggle, cur };
+	}
+
+	let language_switch_pending = false;
+	async function switch_language(code) {
+		if (language_switch_pending || !code) return;
+		// Unsaved edits would be lost to the reload: say so instead of losing them.
+		const dirty = Object.values(window.locals || {}).some((records) =>
+			Object.values(records || {}).some((doc) => doc && doc.__unsaved && !doc.parenttype)
+		);
+		if (dirty) {
+			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
+			return;
+		}
+		language_switch_pending = true;
+		const buttons = [...document.querySelectorAll('[data-bnd-part="language"]')];
+		for (const b of buttons) {
+			b.disabled = true;
+			b.setAttribute("aria-busy", "true");
+		}
+		try {
+			const r = await frappe.call({
+				method: "bunood_theme.api.set_language",
+				args: { code },
+				freeze: true,
+				freeze_message: __("Switching language..."),
+			});
+			if (!r || !r.message || r.message.language !== code) throw new Error("language not written");
+			window.location.reload();
+		} catch (e) {
+			frappe.msgprint(__("Could not switch language. Please try again."));
+			language_switch_pending = false;
+			for (const b of buttons) {
+				b.disabled = false;
+				b.removeAttribute("aria-busy");
+			}
+		}
+	}
+
+	/** Menu entries: a direct switch for two languages, else the list with the current marked. */
+	function language_menu_items() {
+		const { languages, others, toggle, cur } = language_pair();
+		if (languages.length < 2) return [];
+		if (toggle) {
+			return [{ label: __("Switch to {0}", [others[0].name]), icon: "icon-globe", run: () => switch_language(others[0].code) }];
+		}
+		return languages.map((l) => {
+			const checked = language_base(l.code) === cur;
+			return { label: l.name, icon: checked ? "icon-check" : undefined, checked, run: () => (checked ? null : switch_language(l.code)) };
+		});
+	}
+
+	function build_language() {
+		const { languages, others, here, toggle } = language_pair();
+		if (languages.length < 2) return null; // one language is no choice: the tenant stands down
+		// A toggle SHOWS the other language (where you would go); a menu shows the
+		// current one (where you are), and its list does the offering.
+		const shown = toggle ? others[0] : here || languages[0];
+		const attrs = { type: "button", "data-bnd-part": "language" };
+		if (toggle) {
+			attrs["aria-label"] = __("Switch to {0}", [shown.name]);
+			attrs.title = attrs["aria-label"];
+		} else {
+			attrs["aria-label"] = __("Language");
+			attrs.title = __("Language");
+			attrs["aria-haspopup"] = "menu";
+		}
+		const btn = el("button", "bnd-icon-btn bnd-language-btn", attrs);
+		const ico = el("span", "bnd-lang-ico");
+		ico.appendChild(sprite_icon("icon-globe"));
+		btn.appendChild(ico);
+		const code = el("span", "bnd-lang-code", { "aria-hidden": "true" });
+		code.textContent = language_base(shown.code).slice(0, 2).toUpperCase();
+		btn.appendChild(code);
+		// Only the autonym changes script; the accessible name stays in the UI's language.
+		const name = el("span", "bnd-lang-name", { lang: shown.code, dir: language_dir(shown.code), "aria-hidden": "true" });
+		name.textContent = shown.name;
+		btn.appendChild(name);
+		if (toggle) {
+			btn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				switch_language(others[0].code);
+			});
+		} else {
+			menu_trigger(btn);
+			btn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				show_menu(btn, language_menu_items());
+			});
+		}
+		return btn;
+	}
+
+	function build_appearance() {
+		const btn = el("button", "bnd-icon-btn bnd-appearance-btn", {
+			type: "button",
+			"data-bnd-part": "appearance",
+			"aria-label": __("Appearance"),
+			title: __("Appearance"),
+			"aria-haspopup": "dialog",
+		});
+		btn.appendChild(sprite_icon("icon-monitor"));
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			bunood.appearance();
+		});
+		return btn;
+	}
+
+	/** Live preview from the settings form (theme_settings.js): the style only. */
+	bunood.language_apply = function (values) {
+		apply_language_attrs({ style: (values && values.language_style) || "Globe" });
 	};
 
 	function build_bell() {
@@ -5379,6 +5567,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	apply_inbox_attrs(inbox_state);
+	apply_language_attrs(language_state());
 
 	/** True when OUR panel owns the bell (inbox / page styles). */
 	function inbox_active() {

@@ -387,6 +387,19 @@ USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 #: taskbar rows turn it on, which is what makes them taskbars.
 START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Off")}
 
+#: The language switch and the Appearance button (item 44). Both default to the
+#: bottom bar's end, after the avatar and beside the density segment the bar
+#: draws at its trailing edge - the user's words - and both
+#: are placeable anywhere a tenant can go, or Off. `language_style` is how the
+#: switch draws itself: a globe, the other language's two-letter code, its name
+#: in its own script, or the globe with either.
+LANGUAGE_DEFAULTS = {
+    "language_placement": _DEFAULT_TENANTS.get("language_placement", "Bottom Bar End"),
+    "language_style": "Globe",
+}
+LANGUAGE_FIELDS = ["language_style"]
+APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")}
+
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
 #: top-level choice and the two treatments compose with any style.

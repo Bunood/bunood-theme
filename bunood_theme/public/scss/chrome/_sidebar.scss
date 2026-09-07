@@ -334,6 +334,9 @@ html[data-bnd-sb-color] .bnd-sb-band {
   inset-block-end: var(--bnd-sb-pane-pad);
   display: flex;
   align-items: center;
+  // Six tenants can be placed here (item 44 added two). At the narrowest pane
+  // they do not fit one row, so the card wraps to a second rather than spill.
+  flex-wrap: wrap;
   gap: var(--bnd-sb-band-gap);
   margin-inline: 0;
   padding: var(--bnd-sb-band-pad);
@@ -349,9 +352,20 @@ html[data-bnd-sb-color] .bnd-sb-band {
     align-items: center;
     justify-content: center;
     // The account leads; registry order between; the bell pinned to the end.
+    // Registry order between the account and the bell (the build guard derives
+    // this list from registry.py; item 44 added language and appearance last).
     &[data-bnd-part="user"] { order: 1; }
     &[data-bnd-part="home"] { order: 2; }
     &[data-bnd-part="apps"] { order: 3; }
+    &[data-bnd-part="language"] { order: 4; }
+    &[data-bnd-part="appearance"] { order: 5; }
+    // The switch in a 36px cell (item 44): a globe, or the two-letter code -
+    // never the word, and never both, because 18 + 4 + 18 does not fit 36.
+    &.bnd-language-btn {
+      column-gap: 0;
+      padding-inline: 0;
+      .bnd-lang-name { display: none; }
+    }
     &[data-bnd-part="bell"] {
       order: 9;
       margin-inline-start: auto;
@@ -2061,4 +2075,17 @@ html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
   inline-size: 0;
   min-inline-size: 0;
   overflow: hidden;
+}
+
+// The language switch inside the foot band, per style (item 44): Name and the
+// globe pairs shrink to the two-letter code; only the plain globe keeps its
+// glyph. Top-level because the pair is (style on <html>) x (cell in the band).
+html[data-bnd-language-style="name"] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style="globe-name"] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style="globe-code"] .bnd-sb-band .bnd-language-btn .bnd-lang-code {
+  display: inline;
+}
+html[data-bnd-language-style="globe-name"] .bnd-sb-band .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style="globe-code"] .bnd-sb-band .bnd-language-btn .bnd-lang-ico {
+  display: none;
 }

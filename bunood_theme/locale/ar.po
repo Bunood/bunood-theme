@@ -6367,3 +6367,103 @@ msgstr "سكة مع لوحة منبثقة"
 #. src: item42
 msgid "A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."
 msgstr "سكة رفيعة من الأيقونات تتوسع عند الوصول إليها. اللوحة حاضرة حين تريدها و52 بكسل حين لا تريد."
+
+#. In bunood.js
+#. src: item44
+msgid "Switch to {0}"
+msgstr "التبديل إلى {0}"
+
+#. In bunood.js
+#. src: item44
+msgid "Switching language..."
+msgstr "جارٍ تبديل اللغة..."
+
+#. In bunood.js
+#. src: item44
+msgid "Save or discard your unsaved changes before switching language."
+msgstr "احفظ تغييراتك غير المحفوظة أو تجاهلها قبل تبديل اللغة."
+
+#. In bunood.js
+#. src: item44
+msgid "Could not switch language. Please try again."
+msgstr "تعذّر تبديل اللغة. حاول مرة أخرى."
+
+#. In theme_settings.js
+#. src: item44
+msgid "Language switch"
+msgstr "مبدّل اللغة"
+
+#. In theme_settings.js
+#. src: item44
+msgid "Appearance button"
+msgstr "زر المظهر"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Language & Appearance"
+msgstr "اللغة والمظهر"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Language Switch Placement"
+msgstr "موضع مبدّل اللغة"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Language Switch Style"
+msgstr "أسلوب مبدّل اللغة"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Appearance Button Placement"
+msgstr "موضع زر المظهر"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Globe"
+msgstr "كرة أرضية"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Code"
+msgstr "الرمز"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Name"
+msgstr "الاسم"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Globe + Code"
+msgstr "كرة أرضية + رمز"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Globe + Name"
+msgstr "كرة أرضية + اسم"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Where the language switch lives. It offers the languages enabled in the Language list; Off removes it, and the avatar menu keeps a Language entry."
+msgstr "موضع مبدّل اللغة. يعرض اللغات المفعّلة في قائمة اللغات؛ «معطَّل» يزيله، وتبقى قائمة الصورة الشخصية تحمل مدخل اللغة."
+
+#. In theme_settings.json
+#. src: item44
+msgid "How the switch draws itself: a globe, the other language's two-letter code, its name in its own script, or the globe with either. In the side pane's foot band and the rail a name shrinks to its code."
+msgstr "كيف يرسم المبدّل نفسه: كرة أرضية، أو رمز اللغة الأخرى من حرفين، أو اسمها بحرفها، أو الكرة الأرضية مع أيٍّ منهما. في شريط قاعدة اللوحة الجانبية والسكة يتقلّص الاسم إلى رمزه."
+
+#. In theme_settings.json
+#. src: item44
+msgid "Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button."
+msgstr "موضع زر المظهر. يفتح الحوار الذي يفتحه مدخل «المظهر» في قائمة الصورة الشخصية؛ «معطَّل» يزيل الزر."
+
+#. In api.py
+#. src: item44
+msgid "Sign in to change your language."
+msgstr "سجّل الدخول لتغيير لغتك."
+
+#. In api.py
+#. src: item44
+msgid "That language is not enabled on this site."
+msgstr "هذه اللغة غير مفعّلة في هذا الموقع."

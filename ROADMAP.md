@@ -1552,6 +1552,20 @@ only its Arabic strings crossed.
   Letters` under another field's name). Released as **v0.42.0**; `app_version` resumes
   tracking here.
 
+- `[x]` **44 · The language switch and the Appearance button** *(opened and built
+  2026-09-06; releases as v0.44.0)*. Asked for after the overhaul went back to its branch:
+  "add a language switch that can be added to different placements, default in bottom next
+  to density". Decided through one drawn round
+  ([Language Switch Round](https://claude.ai/code/artifact/e819c7ab-029b-4e14-8c13-32e3d23ceed4)): the globe by default with a style
+  setting (Code, Name, Globe + Code, Globe + Name), an Appearance button beside it, and the
+  languages Frappe has ENABLED as the set on offer — two make a toggle to the other, more
+  make a menu. **Built:** two placeable tenants defaulting to Bottom Bar End after the
+  avatar (the density segment sits at the bar's trailing edge, so that IS next to it), the
+  switch writing `User.language` through a validating endpoint and reloading, the avatar
+  menu's language entry as the route every layout keeps, the style as an attribute the
+  band degrades honestly, the foot band wrapping at six cells, seven checks. Item 43 is
+  still awaiting its picks; this took the next number. The account in CHANGELOG `[0.44.0]`.
+
 ---
 
 ## Open, unnumbered threads

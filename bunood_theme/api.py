@@ -30,6 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
+from frappe import _
 
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
@@ -1600,3 +1601,27 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
     except Exception:
         frappe.log_error(title="bunood_theme: print preview stood down")
         return ""
+
+
+@frappe.whitelist()
+def set_language(code: str = "") -> dict:
+    """Switch the signed-in user's desk language (item 44).
+
+    The switch is the theme's, but the FACT is Frappe's: ``User.language`` is what
+    the desk boots from, so that is what changes - through ``db.set_value`` rather
+    than ``doc.save()``, because a person switching their own language must not
+    need write permission on the User doctype, which ordinary roles do not have.
+    Only a language ENABLED in the Language list may be chosen: that is the set My
+    Settings offers and the set the switch was built from, so a stale client cannot
+    write a code the site has turned off. The client reloads afterwards - a language
+    change needs new translations and the matching LTR/RTL bundle, which no in-page
+    apply can deliver.
+    """
+    code = (code or "").strip()
+    if not code or frappe.session.user == "Guest":
+        frappe.throw(_("Sign in to change your language."), frappe.PermissionError)
+    if not frappe.db.get_value("Language", code, "enabled"):
+        frappe.throw(_("That language is not enabled on this site."), frappe.ValidationError)
+    frappe.db.set_value("User", frappe.session.user, "language", code, update_modified=False)
+    frappe.clear_cache(user=frappe.session.user)
+    return {"language": code}

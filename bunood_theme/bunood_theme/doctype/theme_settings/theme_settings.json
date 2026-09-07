@@ -96,6 +96,10 @@
   "links_picker",
   "home_placement",
   "apps_placement",
+  "section_language",
+  "language_placement",
+  "language_style",
+  "appearance_placement",
   "section_status",
   "bottombar_enabled",
   "status_style",
@@ -1557,6 +1561,32 @@
    "hidden": 1
   },
   {
+   "fieldname": "section_language",
+   "fieldtype": "Section Break",
+   "label": "Language & Appearance"
+  },
+  {
+   "fieldname": "language_placement",
+   "fieldtype": "Select",
+   "label": "Language Switch Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the language switch lives. It offers the languages enabled in the Language list; Off removes it, and the avatar menu keeps a Language entry."
+  },
+  {
+   "fieldname": "language_style",
+   "fieldtype": "Select",
+   "label": "Language Switch Style",
+   "options": "Globe\nCode\nName\nGlobe + Code\nGlobe + Name",
+   "description": "How the switch draws itself: a globe, the other language's two-letter code, its name in its own script, or the globe with either. In the side pane's foot band and the rail a name shrinks to its code."
+  },
+  {
+   "fieldname": "appearance_placement",
+   "fieldtype": "Select",
+   "label": "Appearance Button Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button."
+  },
+  {
    "fieldname": "start_placement",
    "fieldtype": "Select",
    "label": "Start Button Placement",
@@ -1594,7 +1624,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-16 12:00:00.000000",
+ "modified": "2026-09-06 18:45:27.906622",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",
