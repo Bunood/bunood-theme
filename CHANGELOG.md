@@ -106,6 +106,18 @@ simplify `api.email_preview`). Worth recording: the six other names the filtered
 bench had shown (login ink, the wells, both All Apps, live preview, the rail badge, axe over the
 pickers) all PASSED in the full run on a quiet machine — a busy host, not the code.
 
+### Production
+
+Deployed 2026-09-07 ~09:12 UTC as `ghcr.io/bunood/bunood-bench:b511778bf4ebada5695525c117f6aa7cce3f258e`
+(Bunood/bunood_erpnext PR #23, merge `b511778`), the same one-command pull and up as v0.42.4. The
+`migrate` one-shot exited 0 with no traceback; the three fields synced and seeded (Bottom Bar End /
+Globe / Bottom Bar End); theme 0.44.0 on frappe 16.33.0; 17 languages are enabled there, so the
+switch is a menu until the unused ones are disabled in the Language list. Looked at in Open, Rail
+and Hidden: the switch and the Appearance button sit at the bar's end. The bell, the avatar and
+search are in the pane, not the bar — the Administrator moved them there from a browser at 03:53
+site time that morning (the Version log shows the three placements changing in Arabic), eight
+hours before the deploy; recorded so nobody reads it as a regression.
+
 ## [0.42.4] — 2026-09-06 — Main returns to the v0.42.1 line; the overhaul lives on a branch
 
 **The user's call, after looking at production.** MrBrokenrightArm's V2 overhaul (37
