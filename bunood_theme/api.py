@@ -62,6 +62,26 @@ def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, l
         return []
 
 
+def _base_outstanding(row, company_currency: str) -> float:
+    """``outstanding_amount`` in the COMPANY's currency.
+
+    That field is stored in the PARTY ACCOUNT's currency (its `options` is
+    `party_account_currency`) and, unlike `grand_total`, it has no `base_*` twin
+    to read instead. Summing it raw put a 100,000 JPY balance into a SAR total.
+    `conversion_rate` is invoice -> company, which is the right factor exactly
+    when the party account is in the invoice's currency — ERPNext's normal
+    arrangement, and the case measured here (JPY/JPY, USD/USD).
+
+    Defined ONCE because receivables, payables and overdue all need it; three
+    copies of this rule is how two of them drift apart.
+    """
+    amount = flt(row.get("outstanding_amount"))
+    party_currency = row.get("party_account_currency") or company_currency
+    if party_currency == company_currency:
+        return amount
+    return amount * flt(row.get("conversion_rate") or 1)
+
+
 @frappe.whitelist()
 def get_home_dashboard(company: str | None = None) -> dict:
     """Return a small, permission-filtered financial snapshot for Bunood Home.
@@ -132,10 +152,15 @@ def get_home_dashboard(company: str | None = None) -> dict:
     sales = _dashboard_rows(
         "Sales Invoice",
         filters={"company": selected, "docstatus": 1, "posting_date": [">=", six_month_start]},
-        fields=["name", "customer_name", "posting_date", "due_date", "grand_total", "outstanding_amount", "status", "currency"],
+        fields=["name", "customer_name", "posting_date", "due_date", "grand_total",
+                "base_grand_total", "outstanding_amount", "conversion_rate",
+                "party_account_currency", "status", "currency"],
         order_by="posting_date desc, modified desc",
         limit=0,
     )
+    # The LIST keeps its `> 0` filter on purpose: it is the "bills to pay" queue,
+    # and a debit note is not a bill to pay. The TOTALS below must not filter —
+    # a total that silently drops returns is a wrong number, not a shorter list.
     purchases = _dashboard_rows(
         "Purchase Invoice",
         filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
@@ -143,17 +168,22 @@ def get_home_dashboard(company: str | None = None) -> dict:
         order_by="posting_date desc, modified desc",
         limit=5,
     )
-    purchase_totals = _dashboard_rows(
+    # NO `outstanding_amount > 0` HERE, and no SUM in SQL. A return invoice carries
+    # a NEGATIVE outstanding while its GL rows still reduce the control account, so
+    # `> 0` dropped every debit note from payables permanently (measured: 932.00
+    # shown against 332.00 true). The rows are summed in Python instead because the
+    # per-row currency is needed to reach the company currency at all.
+    purchase_rows = _dashboard_rows(
         "Purchase Invoice",
-        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
-        fields=[{"SUM": "outstanding_amount", "AS": "outstanding_amount"}],
-        limit=1,
+        filters={"company": selected, "docstatus": 1},
+        fields=["outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
     )
-    older_receivables = _dashboard_rows(
+    older_receivable_rows = _dashboard_rows(
         "Sales Invoice",
-        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0], "posting_date": ["<", six_month_start]},
-        fields=[{"SUM": "outstanding_amount", "AS": "outstanding_amount"}],
-        limit=1,
+        filters={"company": selected, "docstatus": 1, "posting_date": ["<", six_month_start]},
+        fields=["outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
     )
 
     month_totals = {}
@@ -171,11 +201,15 @@ def get_home_dashboard(company: str | None = None) -> dict:
     for invoice in sales:
         posting = getdate(invoice.posting_date)
         key = posting.strftime("%Y-%m")
+        # base_grand_total, NOT grand_total. Every figure here is rendered under the
+        # company's currency symbol, and `grand_total` is in the INVOICE's currency:
+        # a 100,000 JPY invoice (2,500 SAR) was adding 100,000 to a SAR total.
+        base_total = flt(invoice.base_grand_total)
         if key in month_totals:
-            month_totals[key]["value"] += flt(invoice.grand_total)
+            month_totals[key]["value"] += base_total
         if posting >= month_start:
-            result["metrics"]["sales_month"] += flt(invoice.grand_total)
-        outstanding = flt(invoice.outstanding_amount)
+            result["metrics"]["sales_month"] += base_total
+        outstanding = _base_outstanding(invoice, currency)
         result["metrics"]["receivables"] += outstanding
         if outstanding <= 0:
             result["invoice_status"]["paid"] += 1
@@ -185,11 +219,11 @@ def get_home_dashboard(company: str | None = None) -> dict:
         else:
             result["invoice_status"]["open"] += 1
 
-    result["metrics"]["receivables"] += flt(
-        older_receivables[0].outstanding_amount if older_receivables else 0
+    result["metrics"]["receivables"] += sum(
+        _base_outstanding(row, currency) for row in older_receivable_rows
     )
-    result["metrics"]["payables"] = flt(
-        purchase_totals[0].outstanding_amount if purchase_totals else 0
+    result["metrics"]["payables"] = sum(
+        _base_outstanding(row, currency) for row in purchase_rows
     )
     result["trend"] = list(month_totals.values())
 
