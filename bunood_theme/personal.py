@@ -441,6 +441,11 @@ SITE_ONLY_FIELDS = (
     "desk_order",
     "ground_color",
     "home_placement",
+    # Item 44's list of the languages the switch OFFERS. Which languages a site
+    # turns on is policy, not a look — the same reason the placements above are
+    # here. Filed with item 43 A3, when the partition gate first ran past the
+    # phantom this field's siblings had been since v0.44.0.
+    "language_choices",
 )
 
 #: The desk kits a personal look carries — named positively, one line each.
@@ -464,6 +469,10 @@ LOOK_KITS = (
     EMPTY_FIELDS,
     SKELETON_FIELDS,
     FILTERS_FIELDS,
+    # Item 44's globe: HOW the language switch draws is a look; WHICH languages it
+    # offers (`language_choices`) is site policy and sits in SITE_ONLY_FIELDS.
+    # The placement is SHAPE, written by the layouts like every other tenant's.
+    ["language_style"],
 )
 
 #: The fields a personal look may carry.

@@ -1375,6 +1375,12 @@ def _theme_axes() -> list:
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
+        # Item 44's two tenants. The layouts write them (so `personal.py` files
+        # them as SHAPE), and a theme preset must write them too, or the partition
+        # gate reads them as PHANTOM — "filed but not written by any preset" —
+        # which is exactly what `npm run contrast` said from v0.44.0 until item 43
+        # A3 needed the gate to run past that line.
+        list(LANGUAGE_DEFAULTS), list(APPEARANCE_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
         STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, DESK_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
@@ -1588,7 +1594,8 @@ def _shipped_baseline() -> dict:
         "density_default": "Comfortable",
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
-    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, ICON_DEFAULTS,
+    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, LANGUAGE_DEFAULTS,
+              APPEARANCE_DEFAULTS, ICON_DEFAULTS,
               CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
               LIST_DEFAULTS, FORM_DEFAULTS, DESK_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
               REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,
