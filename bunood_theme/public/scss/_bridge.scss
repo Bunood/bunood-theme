@@ -199,3 +199,12 @@ html[data-bnd-body-width="narrow"] {
 html[data-bnd-body-primary="brand"] {
   --btn-primary: var(--bnd-brand-solid);
 }
+
+// ── The form sidebar's image well (item 43 A5). `--form-sidebar-image-width`
+// is FRAPPE'S name (desk/form_sidebar.scss:3, declared on :root, 80px); it
+// sizes the photo AND the letter avatar. The inspector rail brings the well
+// down to a thumb on the name's row by feeding the variable, on the same
+// element at more weight — never a second width beside theirs.
+html[data-bnd-form][data-bnd-form-side="rail"] {
+  --form-sidebar-image-width: var(--bnd-form-thumb);
+}

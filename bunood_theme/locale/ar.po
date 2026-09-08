@@ -6759,3 +6759,21 @@ msgstr "بنود السطور"
 #, fuzzy
 msgid "How rows of items, taxes and payments read. Both theme options end-align the numbers and make Add row a quiet full-width button."
 msgstr "كيف تُقرأ صفوف الأصناف والضرائب والمدفوعات. كلا خياري السمة يحاذيان الأرقام إلى النهاية ويجعلان «إضافة صف» زرًا هادئًا بعرض كامل."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Inspector Rail"
+msgstr "شريط الفحص"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."
+msgstr "يُضبط من المنتقي أعلاه. كيف ينفصل الشريط الجانبي للسجل عن المستند — أو، كشريط فحص، يجاور المستند بلا بطاقة على الإطلاق."
+
+#. Group description in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."
+msgstr "كيف ينفصل الشريط الجانبي للسجل عن المستند — أو، كشريط فحص، يجاور المستند بلا بطاقة على الإطلاق."

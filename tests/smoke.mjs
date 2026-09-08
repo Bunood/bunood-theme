@@ -9197,8 +9197,9 @@ print("ok")
 				// option groups (tabs, sidebar) and the checkbox-reveal toggle.
 				// Item 43 A3 added three cards (Headed Groups, Grouped Insets,
 				// Tinted Heads); A2 the Fields group (Original + 4) and A4 the
-				// Line items group (Original + 2): 8 cards, 14 options.
-				form_picker: { cards: 8, toggles: 1, opts: 14 },
+				// Line items group (Original + 2); A5 the Sidebar group's fourth
+				// option (Inspector Rail): 8 cards, 15 options.
+				form_picker: { cards: 8, toggles: 1, opts: 15 },
 				// Desk body (item 43 A1): no cards — three option groups (width 4,
 				// type scale 4, primary button 2) over the desk diagram.
 				desk_picker: { cards: 0, toggles: 0, opts: 10 },
@@ -13157,6 +13158,57 @@ print("ok")
 				geom.sideBottom <= geom.barTop,
 				`the pinned sidebar clears the bar (${geom.sideBottom} <= ${geom.barTop})`
 			);
+		});
+
+		await test("form: Inspector Rail puts a 40px thumb on the name's row and no card around the column", async () => {
+			// Item 43 A5. The rail is the sidebar with its frame removed: the
+			// 80px image well becomes a 40px thumb INLINE with the name (grid
+			// placement over the vendor's sections — never a DOM move), the
+			// column carries no fill, border or shadow, and every affordance the
+			// stock sidebar offers is still where a click lands.
+			setSettings({
+				form_style: "Floating Panels", form_sidebar: "Inspector Rail",
+				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1,
+			});
+			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			const g = await page.evaluate(() => {
+				const sb = document.querySelector(".form-sidebar");
+				const r = (el) => el.getBoundingClientRect();
+				const img = sb.querySelector(".sidebar-image:not(.hide), .sidebar-standard-image");
+				const name = sb.querySelector(".sidebar-meta-details");
+				const pane = getComputedStyle(sb);
+				const side = document.querySelector(".layout-side-section");
+				const reach = [".add-assignment-btn", ".add-attachment-btn", ".add-tags-btn", ".share-doc-btn"].map((sel) => {
+					const b = sb.querySelector(sel);
+					if (!b) return { sel, visible: false, hit: false };
+					const rb = r(b);
+					const top = document.elementFromPoint(rb.left + rb.width / 2, rb.top + rb.height / 2);
+					return { sel, visible: rb.width > 0 && rb.height > 0, hit: !!top && (b === top || b.contains(top)) };
+				});
+				return {
+					imgW: r(img).width, imgMid: r(img).top + r(img).height / 2,
+					nameTop: r(name).top, nameBottom: r(name).bottom,
+					paneBg: pane.backgroundColor, paneBorder: pane.borderTopWidth,
+					paneBorderColor: pane.borderTopColor, paneShadow: pane.boxShadow,
+					sideEdge: getComputedStyle(side).borderInlineStartColor,
+					reach,
+				};
+			});
+			expect(g.imgW <= 40, `the thumb is at most 40px (${g.imgW})`);
+			expect(
+				g.imgMid >= g.nameTop && g.imgMid <= g.nameBottom,
+				`the thumb sits on the name's row (mid ${Math.round(g.imgMid)} in ${Math.round(g.nameTop)}–${Math.round(g.nameBottom)})`
+			);
+			expect(g.paneBg === "rgba(0, 0, 0, 0)", `no fill (${g.paneBg})`);
+			// The pane's frame is one rule for every option — a 1px border whose
+			// colour falls to transparent when the option sets none. Invisible is
+			// the contract, not absent: read the colour.
+			expect(
+				(g.paneBorder === "0px" || g.paneBorderColor === "rgba(0, 0, 0, 0)") && g.paneShadow === "none",
+				`no visible border or shadow (${g.paneBorder} ${g.paneBorderColor}, ${g.paneShadow})`
+			);
+			expect(g.sideEdge === "rgba(0, 0, 0, 0)", `the column's edge is transparent (${g.sideEdge})`);
+			for (const x of g.reach) expect(x.visible && x.hit, `${x.sel} is visible and where a click lands`);
 		});
 
 		await test("form: the grid edit state stays coherent", async () => {

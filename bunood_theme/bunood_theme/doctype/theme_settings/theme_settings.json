@@ -1412,12 +1412,12 @@
   },
   {
    "default": "Floating Pane",
-   "description": "Set by the picker above. How the record's sidebar separates from the document.",
+   "description": "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all.",
    "fieldname": "form_sidebar",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Form Sidebar",
-   "options": "Hairline Edge\nQuiet Pane\nFloating Pane"
+   "options": "Hairline Edge\nQuiet Pane\nFloating Pane\nInspector Rail"
   },
   {
    "default": "1",
@@ -1700,7 +1700,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 12:44:18.000000",
+ "modified": "2026-09-08 13:50:39.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

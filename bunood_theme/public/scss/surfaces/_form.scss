@@ -478,6 +478,86 @@ html[data-bnd-form][data-bnd-form-side="pane"] .layout-side-section {
   background: var(--bnd-raised);
 }
 
+// ── Inspector Rail (item 43 A5) ─────────────────────────────────────────────
+// The sidebar with its frame removed. The vendor's sections stay exactly where
+// they are: the sidebar becomes a three-column grid so the image well (a
+// `--bnd-form-thumb` thumb, fed to the vendor's own width variable in
+// _bridge.scss), the name and the edit/print/like cluster share ROW ONE —
+// `display: contents` on the image section lifts its two children into the
+// grid — and every other section spans the row under a hairline. Placement,
+// never a DOM move; the columns are logical, so RTL mirrors by itself.
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-4);
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-image-section {
+  display: contents;
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-image-section > .sidebar-image-wrapper,
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-meta-details,
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-image-section > .form-stats-likes {
+  grid-row: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-block: var(--bnd-sp-3);
+  padding-inline: 0;
+  // One hairline under the whole row. The name cell's is the vendor's own
+  // (`.border-bottom`, an !important shorthand, left as it is); the two cells
+  // beside it draw the same line so the three read as one rule.
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-image-section > .sidebar-image-wrapper {
+  grid-column: 1;
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-meta-details {
+  grid-column: 2;
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-image-section > .form-stats-likes {
+  grid-column: 3;
+}
+// The letter avatar's glyph is sized for the 80px well (40px, vendor); in a
+// 40px thumb it is a title-sized letter on the box's centre line.
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-standard-image .standard-image {
+  font-size: var(--bnd-body-title);
+  line-height: 0;
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-section:not(.sidebar-image-section):not(.sidebar-meta-details) {
+  grid-column: 1 / -1;
+  padding-block: var(--bnd-sp-3);
+  padding-inline: 0;
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-section:last-child {
+  border-block-end: 0;
+}
+// Group titles as eyebrows — from size and case only: tracking would sever
+// Arabic joins (the workspace kit's rule). Assign and Share carry
+// .form-sidebar-label; Attachments and Tags are a bare first span.
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items > span:first-child,
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-label {
+  font-size: var(--bnd-body-help);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-ink-muted);
+}
+// The "+" controls go quiet: muted ink at rest, full ink under the pointer or
+// keyboard focus; the glyph follows the button's ink instead of the vendor's
+// fixed stroke.
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn {
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn .icon {
+  stroke: currentColor;
+}
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn:hover,
+html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn:focus-visible {
+  color: var(--bnd-ink);
+}
+
 // ── Section heads (item 43 A3) ──────────────────────────────────────────────
 // Every style gets the same head anatomy: a flex row so the collapse
 // indicator is a 20px control at the inline end (stock inlines a 0-padding

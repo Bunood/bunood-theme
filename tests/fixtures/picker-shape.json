@@ -1478,9 +1478,9 @@
    ]
   },
   "form_picker": {
-   "n": 166,
+   "n": 168,
    "svgs": 8,
-   "text": 1394,
+   "text": 1471,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-fvp",
@@ -1640,6 +1640,8 @@
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "div.bnd-cbp-switches",
     "button.bnd-cbp-toggle.bnd-fvp-toggle",

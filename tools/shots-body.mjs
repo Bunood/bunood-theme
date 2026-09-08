@@ -7,6 +7,7 @@
 // else and changes no setting: set what you want to see first, shoot, restore.
 //
 // usage: BND_URL=http://127.0.0.1:8080 node tools/shots-body.mjs <outdir> [width]
+//        BND_ROUTES=item,item-uom limits the walk to the named routes.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { openDesk, goto } from "./session.mjs";
@@ -26,9 +27,11 @@ const ROUTES = [
 	["settings", "/desk/theme-settings?shell=0", ".bnd-cbp"],
 ];
 
+const only = process.env.BND_ROUTES ? new Set(process.env.BND_ROUTES.split(",")) : null;
 for (const mode of ["light", "dark"]) {
 	const { page, close, errors } = await openDesk({ width, height: 900 });
 	for (const [name, route, sel, tab] of ROUTES) {
+		if (only && !only.has(name)) continue;
 		await goto(page, route, sel, { settle: 3000 });
 		if (tab) {
 			await page.evaluate((re) => {

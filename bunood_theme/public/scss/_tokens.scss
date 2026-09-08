@@ -165,6 +165,9 @@
   // A section head's collapse indicator (item 43 A3): a control, so a hit box —
   // 20px is the floor the accessibility item set for a secondary control.
   --bnd-form-indicator: 20px;
+  // The inspector rail's record thumb (item 43 A5): the form sidebar's 80px image
+  // well brought down onto the name's row — 40px reads as an avatar, not a photo.
+  --bnd-form-thumb: 40px;
 
   // ── Radii ─────────────────────────────────────────────────────────────────
   --bnd-radius-sm: 4px;

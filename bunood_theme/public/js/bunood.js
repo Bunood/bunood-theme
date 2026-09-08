@@ -1349,7 +1349,7 @@
 				["fields", "form_fields", { "Original": "", "Stacked Outlined": "outline", "Property Rows": "rows", "Quiet Underline": "underline", "Inline Text": "inline" }],
 				["grid", "form_grid", { "Original": "", "Hairline Ledger": "ledger", "Ruled Sheet": "ruled" }],
 				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
-				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" }],
+				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card", "Inspector Rail": "rail" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
 		},

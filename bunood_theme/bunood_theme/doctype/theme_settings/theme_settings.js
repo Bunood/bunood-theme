@@ -4482,11 +4482,12 @@ const BND_FORM_GROUPS = [
 	{
 		field: "form_sidebar",
 		title: () => __("Sidebar"),
-		desc: () => __("How the record's sidebar separates from the document."),
+		desc: () => __("How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."),
 		options: [
 			{ value: "Hairline Edge", name: () => __("Hairline Edge") },
 			{ value: "Quiet Pane", name: () => __("Quiet Pane") },
 			{ value: "Floating Pane", name: () => __("Floating Pane") },
+			{ value: "Inspector Rail", name: () => __("Inspector Rail") },
 		],
 	},
 ];
