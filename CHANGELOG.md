@@ -22,6 +22,63 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.1] — 2026-09-08 — The pane, made to hold (patch)
+
+**Two screenshots from the user, the same workspace in English and Arabic**: Frappe's own
+"Notification" row under the search and its user button at the foot, on a pane the kit had
+dressed; three loose rows (Home, User, Role) bare beside two section cards; the Permissions
+section open in one language and closed in the other. "Fix these permanently. They keep
+breaking." Each was reproduced locally on the Users workspace before it was touched, and each
+now has a check that failed first.
+
+### Fixed
+
+- **A critical tenant placed where the desk has no host fell open to Frappe's own rows.** A
+  bell or avatar at "Top Bar End" on a desk with no top bar resolved "absent", which left the
+  natives unowned: the right instinct (a route must survive the setting) aimed at the wrong
+  destination. `resolve_placement` now falls back to the pane's foot band, to the page head
+  when the pane is Hidden (the lend a Hidden pane already makes), and to the natives only when
+  even those are gone. The bell, the avatar, the language switch and the Appearance button
+  fall back; the start button cannot (it opens the pane). A builder that throws is caught,
+  reported and stood down, so one bad build can no longer strand the tenants after it with
+  their natives unowned.
+- **Loose rows share one card.** Under Cards, a run of consecutive rows outside any section
+  is drawn as one headerless card that shares the sections' surface, border, radius and
+  edges — no wrapper, never Frappe's DOM: the first row of a run rounds its top, the last
+  (`:has(+ .section-item)`) rounds its bottom, and the hue stays neutral because a run
+  without a header has no category to be coloured by.
+- **A section's collapsed state follows the user across languages.** Frappe remembers it in
+  `localStorage` under the TRANSLATED workspace title and section title, so every language
+  kept its own memory. The kit mirrors every real click under the sidebar's name and the
+  item's own row name, and re-applies after each list build — after Frappe's own apply, so
+  the canonical state wins. Frappe's store is left alone (two stores, each owned by whoever
+  wrote it). Letter icons still differ by language: they are the label's first letter, and
+  the labels differ.
+- **The critical-reach guard's un-hide is durable for the session.** It flipped the pane's
+  attribute to Open and nothing else; the next re-apply stamped Hidden back from the stored
+  state, and a bell mounted into that window rode the pane down (measured on the settings
+  page). It now writes the stored state too, so the route it opens stays open.
+- **"Page Header Center" lands at the end of a lend cluster.** When our page-header
+  container is off, the page head is Frappe's own and the cluster a Hidden pane lends into
+  it sits beside the page actions with no room to centre anything: a bell centred there
+  overflowed the page by the head's padding (the switch matrix caught it, in Top Taskbar
+  and Floating Bar). The end zone is the honest degradation; the choice still moves the
+  tenant to the page head.
+- **The shell's live placement apply knows the language switch and the Appearance button**
+  (a seam v0.44.0 missed: a switch moved on the board stayed put until reload).
+
+### Checks (three new)
+
+`sidepane: a tenant placed where the desk has no host falls back to the pane's foot, never
+to Frappe's own rows` (Open, Rail and Hidden) · `sidepane: loose rows share one card, like
+the sections beside them` · `sidepane: a section's collapsed state follows the user across
+languages` (one browser driven through both languages by the User row: a signed-in desk
+ignores the `preferred_language` cookie, which is the guest path).
+
+### Payload
+
+css_gzip 23,300 → 23,500 and js_gzip 112,700 → 115,100 (measured 23,424 / 114,923).
+
 ## [0.44.0] — 2026-09-06 — The language switch and the Appearance button (item 44)
 
 **Decided with the user through one drawn round** ([Language Switch Round](https://claude.ai/code/artifact/e819c7ab-029b-4e14-8c13-32e3d23ceed4)): a globe by

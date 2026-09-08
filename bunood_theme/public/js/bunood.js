@@ -844,7 +844,15 @@
 		if (!stranded.length) return false;
 
 		// Release whichever mechanism is hiding it. Both, when both are.
-		if (hidden) html.setAttribute("data-bnd-sb-panestate", "open");
+		if (hidden) {
+			html.setAttribute("data-bnd-sb-panestate", "open");
+			// DURABLE for the session, not only the attribute: apply_sidebar_attrs
+			// re-stamps the attribute from sb_state on every re-apply, and an un-hide
+			// that lived only in the attribute was undone by the next one - a bell
+			// mounted into the un-hidden window then rode the pane down (measured on
+			// the settings page, 2026-09-08). The route the guard opens stays open.
+			if (sb_state) sb_state.panestate = "Open";
+		}
 		const kept = off.filter((k) => k !== "sidepane");
 		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
 		else html.removeAttribute("data-bnd-chrome-off");
@@ -2373,21 +2381,72 @@
 		return (placement_state && placement_state[tenant]) || "";
 	}
 
-	function placement_for(tenant) {
+	/**
+	 * Tenants that may FALL BACK to the pane's foot when the region they asked
+	 * for is not on this desk. THE USER'S SCREENSHOT (2026-09-08): a bell and an
+	 * avatar placed at "Top Bar End" on a desk with no top bar used to resolve
+	 * "absent", which left Frappe's own "Notification" row under the search and
+	 * its user button at the foot — the right instinct for a CRITICAL tenant (a
+	 * route must survive the setting) aimed at the wrong destination. The pane's
+	 * foot band is that destination now, the page head when the pane is Hidden
+	 * (the same lend a Hidden pane already makes), and the natives return only
+	 * when even those are gone. `start` is not here: it opens the pane, so the
+	 * pane cannot host it.
+	 */
+	const PANE_FALLBACK = new Set(["inbox", "user", "language", "appearance"]);
+
+	/** The page head's cluster is the LEND (inside Frappe's own head), not our page-header container. */
+	function pagehead_is_lend() {
+		return !document.documentElement.hasAttribute("data-bnd-pagehead") &&
+			!!document.querySelector(".page-head .standard-items-section > .bnd-cluster");
+	}
+
+	/** Hidden wanted by the attribute OR by the stored state (the attribute can lag or be flipped). */
+	function sb_pane_hidden_wanted() {
+		if (sb_pane_hidden()) return true;
+		const html = document.documentElement;
+		if (html.hasAttribute("data-bnd-narrow")) return false;
+		const want = sb_state && SB_SLUGS.panestate && SB_SLUGS.panestate[sb_state.panestate];
+		return want === "hidden";
+	}
+
+	/** Where a tenant goes: `{ region, zone }`, region "off" | "absent" | a key. */
+	function resolve_placement(tenant) {
 		const label = active_placement(tenant);
-		if (label === "Off") return "off";
-		const { region, zone } = parse_slot(label);
-		if (!region) return "absent";
+		if (label === "Off") return { region: "off", zone: "end" };
+		const slot = parse_slot(label);
+		if (!slot.region) return { region: "absent", zone: "end" };
 		// A Hidden pane LENDS its tenants to the page head (argument in _sidebar.scss).
-		if (region === "sidepane" && sb_pane_hidden()) return host_for("pagehead", "end") ? "pagehead" : "absent";
-		return host_for(region, zone) ? region : "absent";
+		if (slot.region === "sidepane" && sb_pane_hidden()) {
+			return host_for("pagehead", "end") ? { region: "pagehead", zone: "end" } : { region: "absent", zone: "end" };
+		}
+		if (host_for(slot.region, slot.zone)) {
+			// The page head is Frappe's own when our page-header container is off, and
+			// the cluster a Hidden pane LENDS into it sits beside the page actions with
+			// no room to centre anything: "Center" there overflowed the page by the
+			// head's padding (the switch matrix, 2026-09-08). It lands at the end.
+			const zone = slot.region === "pagehead" && slot.zone === "center" && pagehead_is_lend() ? "end" : slot.zone || "end";
+			return { region: slot.region, zone };
+		}
+		if (PANE_FALLBACK.has(tenant)) {
+			// "Hidden" from the SETTING as well as the attribute: guard_critical_reach
+			// flips the attribute to "open" for a moment and a later re-apply hides the
+			// pane again, and a bell mounted into that window would ride a hidden
+			// pane down (measured on the settings page, 2026-09-08).
+			const hidden = sb_pane_hidden_wanted();
+			if (!hidden && host_for("sidepane", "end")) return { region: "sidepane", zone: "end" };
+			if (host_for("pagehead", "end")) return { region: "pagehead", zone: "end" };
+		}
+		return { region: "absent", zone: "end" };
+	}
+
+	function placement_for(tenant) {
+		return resolve_placement(tenant).region;
 	}
 
 	/** The zone a tenant asked for, for the region it resolved to. */
 	function zone_for(tenant) {
-		const slot = parse_slot(active_placement(tenant));
-		if (slot.region === "sidepane" && sb_pane_hidden()) return "end"; // lent
-		return slot.zone || "end";
+		return resolve_placement(tenant).zone;
 	}
 
 	/**
@@ -2811,7 +2870,15 @@ function sb_zone_anchor(pane, zone, node) {
 			// pane is Frappe's DOM and this theme does not redraw it.
 			const zone = zone_for(tenant);
 			if (!keeper) {
-				const node = build();
+				// A builder that THROWS must not strand the tenants after it in this
+				// loop with their natives unowned — one bad build used to leave the
+				// whole foot to Frappe. The tenant stands down; the error is reported.
+				let node = null;
+				try {
+					node = build();
+				} catch (e) {
+					console.error("bunood: " + tenant + " did not build", e);
+				}
 				if (!node) {
 					stamp("");
 					continue;
@@ -7550,7 +7617,93 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 		// The pane's half of a contract with the chrome. _sidebar.scss.
 		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
+		// Volatile: Frappe rebuilds the list (and re-applies ITS per-language memory)
+		// on every workspace change; ours is applied after, so it wins.
+		{ key: "sections", volatile: true, mount: sb_apply_section_state, unmount: () => {} },
 	];
+
+	// ── A section's collapsed state, across languages ────────────────
+	//
+	// THE USER'S SCREENSHOT PAIR (2026-09-08): the same workspace with Permissions
+	// open in English and closed in Arabic. Frappe remembers a collapsed section in
+	// localStorage `section-breaks-state[workspace_title][title]`, and BOTH keys
+	// are the TRANSLATED strings (boot translates labels), so every language keeps
+	// its own memory and a bilingual desk contradicts itself. The kit keeps a
+	// second store keyed by the sidebar's NAME and the item's own identity (its
+	// row name, which never translates), records every real click, and re-applies
+	// after each list build — after Frappe's own apply, so the canonical state
+	// wins. Frappe's store is left alone: two stores, each owned by whoever wrote
+	// it (the item-40 rule). Nothing here touches Frappe's DOM: the instance's own
+	// `toggle()` does the work.
+	const SB_SECTION_STORE = "bnd-section-state";
+
+	function sb_section_instances() {
+		const sb = window.frappe && frappe.app && frappe.app.sidebar;
+		return ((sb && sb.items) || []).filter(
+			(i) => i && i.item && i.item.type === "Section Break" && i.wrapper && i.wrapper[0]
+		);
+	}
+
+	function sb_section_scope() {
+		const sb = window.frappe && frappe.app && frappe.app.sidebar;
+		return (sb && (sb.sidebar_name || sb.sidebar_title)) || "";
+	}
+
+	/** The item's own row name when boot carries it; its position among sections otherwise. */
+	function sb_section_key(inst, index) {
+		const it = inst.item || {};
+		return it.name ? "n:" + it.name : "i:" + index;
+	}
+
+	function sb_section_store_read() {
+		try {
+			return JSON.parse(localStorage.getItem(SB_SECTION_STORE) || "{}") || {};
+		} catch (e) {
+			return {};
+		}
+	}
+
+	function sb_section_store_write(store) {
+		try {
+			localStorage.setItem(SB_SECTION_STORE, JSON.stringify(store));
+		} catch (e) {
+			/* storage refused: the state simply does not follow */
+		}
+	}
+
+	function sb_apply_section_state() {
+		const scope = sb_section_scope();
+		if (!scope) return;
+		const store = sb_section_store_read();
+		const mine = store[scope];
+		if (!mine) return;
+		sb_section_instances().forEach((inst, i) => {
+			const want = mine[sb_section_key(inst, i)];
+			if (want === undefined || !!inst.collapsed === !!want) return;
+			inst.collapsed = !!want;
+			inst.toggle();
+		});
+	}
+
+	/** Every REAL click on a section header records the state Frappe just set. */
+	document.addEventListener("click", (e) => {
+		if (!e.isTrusted) return;
+		const head = e.target && e.target.closest && e.target.closest(".body-sidebar .section-item > .standard-sidebar-item");
+		if (!head) return;
+		const wrapper = head.parentElement;
+		const scope = sb_section_scope();
+		if (!scope) return;
+		// Frappe's own handler ran first (it is bound on the element); read what it set.
+		setTimeout(() => {
+			sb_section_instances().forEach((inst, i) => {
+				if (inst.wrapper[0] !== wrapper) return;
+				const store = sb_section_store_read();
+				store[scope] = store[scope] || {};
+				store[scope][sb_section_key(inst, i)] = !!inst.collapsed;
+				sb_section_store_write(store);
+			});
+		}, 0);
+	});
 
 	/** The watch record: the NODES being observed, their observers, and the one
 	 *  timer they share. Null when nothing is being watched. */
@@ -8026,6 +8179,10 @@ function sb_zone_anchor(pane, zone, node) {
 				start_placement: "start",
 				home_placement: "home",
 				apps_placement: "apps",
+				// Item 44 (a seam its release missed: a switch moved on the board
+				// stayed put until reload).
+				language_placement: "language",
+				appearance_placement: "appearance",
 			})) {
 				if (field in values) placement_state[key] = values[field];
 			}

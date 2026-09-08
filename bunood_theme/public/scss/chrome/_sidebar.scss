@@ -1371,6 +1371,39 @@ html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-i
   box-shadow: var(--bnd-sb-card-shadow);
 }
 
+// LOOSE ROWS SHARE ONE CARD (the user's call, 2026-09-08: "all menu items should
+// be inside a section"). A workspace may carry rows outside any section — Users
+// has Home, User and Role before Permissions and Audits — and under Cards they
+// stood bare beside the cards. A run of consecutive loose rows is now drawn as one
+// headerless card, with no wrapper (never touch Frappe's DOM): every loose row
+// carries the card's surface and side borders; the FIRST of a run (the first child,
+// or the row after a section) rounds and borders its top; the LAST of a run (the
+// last child, or the row before a section — `:has(+ .section-item)`, which this
+// desk's Chromium supports as item 40's `:nth-child(… of)` already requires) rounds
+// and borders its bottom and carries the card's block-end margin. The hue stays
+// neutral: a run without a header has no category to be coloured by.
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item) {
+  background: var(--bnd-sb-card-bg);
+  border-inline: var(--bnd-line) solid var(--bnd-sb-card-line);
+  padding-inline: var(--bnd-sp-1);
+}
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):first-child,
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .section-item + .sidebar-item-container:not(.section-item) {
+  border-block-start: var(--bnd-line) solid var(--bnd-sb-card-line);
+  border-start-start-radius: var(--bnd-radius-lg);
+  border-start-end-radius: var(--bnd-radius-lg);
+  padding-block-start: var(--bnd-sp-1);
+}
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):last-child,
+html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):has(+ .section-item) {
+  border-block-end: var(--bnd-line) solid var(--bnd-sb-card-line);
+  border-end-start-radius: var(--bnd-radius-lg);
+  border-end-end-radius: var(--bnd-radius-lg);
+  padding-block-end: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-2);
+  box-shadow: var(--bnd-sb-card-shadow);
+}
+
 // Surface intensity: bg / border / shadow move TOGETHER through 5 designed
 // stops — a tenant can only land on states we drew.
 html[data-bnd-sb-intensity="1"] {

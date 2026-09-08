@@ -2189,6 +2189,30 @@ html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-ite
   box-shadow: var(--bnd-sb-card-shadow);
 }
 
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item) {
+  background: var(--bnd-sb-card-bg);
+  border-inline: var(--bnd-line) solid var(--bnd-sb-card-line);
+  padding-inline: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):first-child,
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .section-item + .sidebar-item-container:not(.section-item) {
+  border-block-start: var(--bnd-line) solid var(--bnd-sb-card-line);
+  border-start-start-radius: var(--bnd-radius-lg);
+  border-start-end-radius: var(--bnd-radius-lg);
+  padding-block-start: var(--bnd-sp-1);
+}
+
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):last-child,
+html[data-bnd-sb-sections=cards] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):has(+ .section-item) {
+  border-block-end: var(--bnd-line) solid var(--bnd-sb-card-line);
+  border-end-start-radius: var(--bnd-radius-lg);
+  border-end-end-radius: var(--bnd-radius-lg);
+  padding-block-end: var(--bnd-sp-1);
+  margin-block-end: var(--bnd-sp-2);
+  box-shadow: var(--bnd-sb-card-shadow);
+}
+
 html[data-bnd-sb-intensity="1"] {
   --bnd-sb-card-bg: transparent;
   --bnd-sb-card-line: var(--bnd-sb-line);

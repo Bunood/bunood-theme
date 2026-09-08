@@ -142,11 +142,12 @@
   "shortcuts block (96 lines) came out in the same commit, which is why +184 and not",
   "+400. Growth is the two-arm rest state; it is the feature.",
   "2026-09-06 v0.42.4: css 22,900 -> 23,000 and js 110,000 -> 110,100 for 61936fc carried onto the v0.42.1 line (the workspace menu's icon cell, the place row's original icon): measured 22,961 / 110,006. The overhaul's 31,650 / 149,000 ceilings left main with the overhaul.",
-  "2026-09-06 item 44: css 23,000 -> 23,300 and js 110,100 -> 112,700 for the language switch and the Appearance button (two placeable tenants, the enabled-languages toggle/menu, the style attribute rules): measured 23,240 / 112,572. The switch's logic ships with its comments, per the file-copy policy."
+  "2026-09-06 item 44: css 23,000 -> 23,300 and js 110,100 -> 112,700 for the language switch and the Appearance button (two placeable tenants, the enabled-languages toggle/menu, the style attribute rules): measured 23,240 / 112,572. The switch's logic ships with its comments, per the file-copy policy.",
+  "2026-09-08 pane repairs: css 23,300 -> 23,500 and js 112,700 -> 115,100 for the absent-region fallback to the pane's foot, the language-independent section-state mirror and the loose-row card (measured 23,424 / 114,923 after the hidden-wanted fallback, the shape_apply seam, the durable guard and the lend cluster's centre-to-end)."
  ],
  "ceiling": {
-  "css_gzip": 23300,
-  "js_gzip": 112700,
+  "css_gzip": 23500,
+  "js_gzip": 115100,
   "web_css_gzip": 4000,
   "email_css_gzip": 2000,
   "print_css_gzip": 8000

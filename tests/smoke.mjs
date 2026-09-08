@@ -5943,6 +5943,145 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: a tenant placed where the desk has no host falls back to the pane's foot, never to Frappe's own rows", async () => {
+			// THE USER'S SCREENSHOT (2026-09-08): Frappe's own "Notification" row under
+			// the search and its user button at the foot, on a pane the kit had
+			// dressed. Reproduced: a bell or avatar placed in a region the desk lacks
+			// (Top Bar End with no top bar) used to "fail open" to the natives - the
+			// right instinct for a CRITICAL tenant (a route must survive) aimed at the
+			// wrong destination. The pane's foot is the fallback now, the page head when
+			// the pane is Hidden; the natives return only when even those are gone.
+			const FIELDS = ["inbox_placement", "user_placement", "topbar_enabled", "sidebar_pane_state", "sidebar_enabled"];
+			const before = getSettings(FIELDS);
+			try {
+				for (const state of ["Open", "Rail", "Hidden"]) {
+					setSettings({ inbox_placement: "Top Bar End", user_placement: "Top Bar End", topbar_enabled: 0, sidebar_enabled: 1, sidebar_pane_state: state });
+					// "body", not the pane: the Hidden case has no visible pane to wait for.
+					await goDesk("/app/users", "body", 3000);
+					await page.waitForFunction((want) => window.bunood_theme && document.documentElement.getAttribute("data-bnd-sb-panestate") === want, state.toLowerCase(), { timeout: 30000 });
+					await page.waitForFunction(() => /\bbell\b/.test(document.documentElement.getAttribute("data-bnd-own") || ""), null, { timeout: 15000 }).catch(() => {});
+					const m = await page.evaluate(() => {
+						const vis = (n) => { if (!n) return "absent"; const r = n.getBoundingClientRect(); const cs = getComputedStyle(n); return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden" ? "VISIBLE" : "hidden"; };
+						const where = (part) => [...document.querySelectorAll(`[data-bnd-part="${part}"]`)].map((n) => (n.closest(".bnd-sb-band") ? "band" : n.closest(".page-head") ? "pagehead" : n.closest(".bnd-statusbar") ? "bar" : "other"));
+						return { own: document.documentElement.getAttribute("data-bnd-own") || "", notification: vis(document.querySelector(".body-sidebar .sidebar-notification")), userbtn: vis(document.querySelector(".body-sidebar .sidebar-user-button")), bell: where("bell"), user: where("user") };
+					});
+					expect(m.notification !== "VISIBLE", `${state}: Frappe's notification row stays hidden (${m.notification})`);
+					expect(m.userbtn !== "VISIBLE", `${state}: Frappe's user button stays hidden (${m.userbtn})`);
+					const host = state === "Hidden" ? "pagehead" : "band";
+					expectEq(m.bell.join(","), host, `${state}: the bell fell back to the ${host} (${m.bell.join(",") || "nowhere"})`);
+					expectEq(m.user.join(","), host, `${state}: so did the avatar (${m.user.join(",") || "nowhere"})`);
+					expect(/\bbell\b/.test(m.own) && /\buser\b/.test(m.own), `${state}: both natives are OWNED (${m.own})`);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: loose rows share one card, like the sections beside them", async () => {
+			// The user's call (2026-09-08): "all menu items should be inside a section".
+			// The Users workspace has three loose rows (Home, User, Role) before two
+			// sections; under Cards the loose run is drawn as one headerless card that
+			// shares the sections' edges, surface, border and radius.
+			const before = getSettings(["sidebar_section_style", "sidebar_card_depth", "sidebar_pane_state"]);
+			try {
+				setSettings({ sidebar_section_style: "Cards", sidebar_card_depth: "3", sidebar_pane_state: "Open" });
+				await goDesk("/app/users", ".body-sidebar-top .sidebar-items > .sidebar-item-container", 3000);
+				const m = await page.evaluate(() => {
+					const rows = [...document.querySelectorAll(".body-sidebar-top .sidebar-items > .sidebar-item-container")];
+					const loose = rows.filter((r) => !r.classList.contains("section-item"));
+					const section = rows.find((r) => r.classList.contains("section-item"));
+					const geo = (n) => { const r = n.getBoundingClientRect(); const s = getComputedStyle(n); return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), width: Math.round(r.width), bg: s.backgroundColor, rTop: s.borderStartStartRadius, rBot: s.borderEndStartRadius, bt: s.borderBlockStartWidth, bb: s.borderBlockEndWidth, bl: s.borderInlineStartWidth }; };
+					return { loose: loose.map(geo), section: section ? geo(section) : null };
+				});
+				expect(m.loose.length >= 3, `the workspace has a loose run to card (${m.loose.length})`);
+				expect(!!m.section, "and a section card to match");
+				const first = m.loose[0], last = m.loose[m.loose.length - 1];
+				m.loose.forEach((r, i) => expect(r.bg !== "rgba(0, 0, 0, 0)" && r.bg !== "transparent", `loose row ${i} carries the card surface (${r.bg})`));
+				expect(first.rTop !== "0px" && last.rBot !== "0px", `the run rounds its top (${first.rTop}) and bottom (${last.rBot})`);
+				expect(m.loose.slice(1, -1).every((r) => r.rTop === "0px" && r.rBot === "0px"), "and the middle rows do not");
+				expect(first.bt !== "0px" && last.bb !== "0px" && m.loose.every((r) => r.bl !== "0px"), `one border around the run (top ${first.bt}, bottom ${last.bb}, sides ${first.bl})`);
+				for (let i = 1; i < m.loose.length; i++) expect(m.loose[i].top - m.loose[i - 1].bottom <= 1, `no gap between rows ${i - 1} and ${i} (${m.loose[i].top - m.loose[i - 1].bottom}px)`);
+				expect(Math.abs(first.left - m.section.left) <= 1 && Math.abs(first.width - m.section.width) <= 1, `the run shares the sections' edges (${first.left}/${first.width} vs ${m.section.left}/${m.section.width})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: a section's collapsed state follows the user across languages", async () => {
+			// THE USER'S SCREENSHOT PAIR (2026-09-08): the same workspace with Permissions
+			// open in English and closed in Arabic. Frappe keys `section-breaks-state` by
+			// the TRANSLATED title, so each language kept its own memory. The kit mirrors
+			// the state under a language-independent key and re-applies it after every
+			// list build; this drives ONE browser (one localStorage) through both.
+			// The pane must be Open: at the rail the rows exist but are not "visible" to
+			// Playwright, and Hidden has no rows at all.
+			const before = getSettings(["sidebar_pane_state", "sidebar_enabled"]);
+			setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1 });
+			const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+			const host = new URL(URL_BASE).hostname;
+			const sid = mintSid("Administrator");
+			// A signed-in desk follows the USER's language, not the preferred_language
+			// cookie (that is the guest path) - so the switch is the User row, as the
+			// real switch does it, restored in the finally.
+			const adminLang = benchPy("print(frappe.db.get_value('User', 'Administrator', 'language') or '')\n").trim().split("\n").pop();
+			// Three tries: the desk's own requests touch the Administrator row (last
+			// active), and a busy bench has held it past a write once (measured).
+			const setAdminLang = (l) => {
+				let last = null;
+				for (let i = 0; i < 3; i++) {
+					try {
+						return benchPy(`frappe.db.set_value('User', 'Administrator', 'language', ${JSON.stringify(l)} or None, update_modified=False)\nfrappe.db.commit(); frappe.clear_cache(user='Administrator')\n`);
+					} catch (e) {
+						last = e;
+						Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
+					}
+				}
+				throw last;
+			};
+			const lang = async (l) => { setAdminLang(l); await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]); };
+			const dp = await ctx.newPage();
+			const SEL = ".body-sidebar-top .sidebar-items > .section-item";
+			const open = async () => {
+				await dp.goto(`${URL_BASE}/app/users`, { waitUntil: "domcontentloaded", timeout: 60000 });
+				try {
+					await dp.waitForSelector(SEL, { state: "attached", timeout: 30000 });
+				} catch (e) {
+					// Say what the page WAS when the rows never came, not only that they did not.
+					const d = await dp.evaluate(() => ({ url: location.href, title: document.title, lang: document.documentElement.lang, pane: !!document.querySelector(".body-sidebar"), rows: document.querySelectorAll(".body-sidebar .sidebar-item-container").length, state: document.documentElement.getAttribute("data-bnd-sb-panestate"), msg: (document.querySelector(".modal.show .modal-body, .page-container .msgprint") || {}).textContent }));
+					throw new Error("sections never attached: " + JSON.stringify(d));
+				}
+				await dp.waitForFunction(() => window.bunood_theme && document.documentElement.getAttribute("data-bnd-sb-panestate") === "open", null, { timeout: 30000 });
+				await dp.waitForTimeout(3000);
+			};
+			const sections = () => dp.evaluate((sel) => [...document.querySelectorAll(sel)].map((s) => ({ label: s.getAttribute("item-name"), collapsed: !!(s.querySelector(".nested-container") && s.querySelector(".nested-container").classList.contains("hidden")) })), SEL);
+			const clickFirst = async () => { await dp.locator(SEL).first().locator(":scope > .standard-sidebar-item").click(); await dp.waitForTimeout(600); };
+			try {
+				await lang("en");
+				await open();
+				let s = await sections();
+				expect(s.length >= 2 && s.every((x) => !x.collapsed), `both sections start open in English (${JSON.stringify(s)})`);
+				await clickFirst();
+				s = await sections();
+				expect(s[0].collapsed && !s[1].collapsed, `the first section collapsed on a real click (${JSON.stringify(s)})`);
+				await lang("ar");
+				await open();
+				s = await sections();
+				expect(/[\u0600-\u06FF]/.test(s[0].label || ""), `the desk is in Arabic (${s[0].label})`);
+				expect(s[0].collapsed && !s[1].collapsed, `the same section is collapsed in Arabic (${JSON.stringify(s)})`);
+				await clickFirst();
+				s = await sections();
+				expect(!s[0].collapsed, `reopened in Arabic (${JSON.stringify(s)})`);
+				await lang("en");
+				await open();
+				s = await sections();
+				expect(s.every((x) => !x.collapsed), `and English sees it open again (${JSON.stringify(s)})`);
+			} finally {
+				await ctx.close();
+				setAdminLang(adminLang);
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the end zone sits between the list and Frappe's bottom block, in flow", async () => {
 			// Plan defect 20, repaired at last. The old guard asked "is
 			// .body-sidebar-bottom the LAST child" — permanently false, because
@@ -8065,18 +8204,22 @@ print("ok")
 			setSettings({ ...CHROME_DEFAULTS });
 		});
 
-		await test("placement: a region this desk lacks changes nothing", async () => {
+		await test("placement: a region this desk lacks falls back to the pane's foot", async () => {
 			// The shipped default is Top Bar, and this desk has no top bar.
 			// "Cannot honour" must not mean "delete" — that is the failure the
 			// whole rework exists to remove, and it would arrive via upgrade.
 			//
-			// What "leave it alone" LEAVES has changed, and deliberately. The
-			// bottom bar used to build a bell and an avatar unconditionally
-			// (`global_variant`), so an unhonourable placement left them sitting
-			// in that bar — a second answer to a question `inbox_placement`
-			// already owned. The bar reserves an empty slot now, so what is left
-			// alone is Frappe's own affordance, unclaimed and visible. Same
-			// protection, one fewer place for it to live.
+			// What "cannot honour" LEAVES has changed twice, both times on purpose.
+			// The bottom bar used to build a bell and an avatar unconditionally
+			// (`global_variant`), so an unhonourable placement left them sitting in
+			// that bar — a second answer to a question `inbox_placement` already
+			// owned. Then the bar reserved an empty slot and the natives were left
+			// unclaimed and VISIBLE: Frappe's "Notification" row under the search and
+			// its user button at the foot — which is what the user photographed on
+			// 2026-09-08 and called broken. The route survives the setting either
+			// way; since v0.44.1 it survives as OURS, in the pane's foot band, and
+			// the natives stay owned. The fuller matrix (Open · Rail · Hidden) is
+			// `sidepane: a tenant placed where the desk has no host …`.
 			setSettings({
 				desk_layout: "Taskbar",
 				topbar_enabled: 0,
@@ -8093,14 +8236,17 @@ print("ok")
 				};
 				const own = document.documentElement.getAttribute("data-bnd-own") || "";
 				return {
-					claimedBell: /bell/.test(own),
-					claimedUser: /user/.test(own),
+					claimedBell: /\bbell\b/.test(own),
+					claimedUser: /\buser\b/.test(own),
 					nativeBell: vis(".body-sidebar .sidebar-notification"),
 					nativeUser: vis(".body-sidebar .sidebar-user-button"),
+					bellInBand: vis('.bnd-sb-band [data-bnd-part="bell"]'),
+					userInBand: vis('.bnd-sb-band [data-bnd-part="user"]'),
 				};
 			});
-			expect(!state.claimedBell && !state.claimedUser, `nothing is claimed (${JSON.stringify(state)})`);
-			expect(state.nativeBell && state.nativeUser, "so ERPNext's own are left visible");
+			expect(state.claimedBell && state.claimedUser, `both natives are claimed (${JSON.stringify(state)})`);
+			expect(!state.nativeBell && !state.nativeUser, "so ERPNext's own stay hidden");
+			expect(state.bellInBand && state.userInBand, `and ours sit in the pane's foot (${JSON.stringify(state)})`);
 		});
 
 		// ── The container split (slice 2c) ─────────────────────────────────
@@ -8325,7 +8471,7 @@ print("ok")
 				}
 				console.log(`      matrix: ${found.length} finding(s)`);
 				for (const f of found) console.log(`        - ${f}`);
-				expectEq(found.length, 0, `${found.length} finding(s); first: ${found[0] || ""}`);
+				expectEq(found.length, 0, `${found.length} finding(s): ${found.join(" | ")}`);
 			} finally {
 				setSettings({ desk_layout: cat.default });
 			}
