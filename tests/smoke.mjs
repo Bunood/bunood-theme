@@ -338,7 +338,11 @@ function benchPy(code, preConnect = "") {
 				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
 				continue;
 			}
-			throw new Error(`benchPy failed:\n${stderr || String(err.message).slice(0, 200)}`);
+			// The exception line FIRST: the failure printer truncates long messages, and a
+			// traceback that ends in the class name loses exactly the line that names it.
+			const lines = String(stderr || err.message || "").split("\n").map((l) => l.trim()).filter(Boolean);
+			const last = lines.length ? lines[lines.length - 1].slice(0, 240) : "";
+			throw new Error(`benchPy failed: ${last}\n${stderr || String(err.message).slice(0, 200)}`);
 		}
 	}
 }
@@ -6121,16 +6125,25 @@ print("ok")
 			// Three tries: the desk's own requests touch the Administrator row (last
 			// active), and a busy bench has held it past a write once (measured).
 			const setAdminLang = (l) => {
+				// A busy bench has held the Administrator row past a write in two full runs
+				// (the desk's own requests touch it); a 5s lock wait and five tries bound
+				// that at ~35s instead of InnoDB's 50s per try, and the error is NAMED.
 				let last = null;
-				for (let i = 0; i < 3; i++) {
+				for (let i = 0; i < 5; i++) {
 					try {
-						return benchPy(`frappe.db.set_value('User', 'Administrator', 'language', ${JSON.stringify(l)} or None, update_modified=False)\nfrappe.db.commit(); frappe.clear_cache(user='Administrator')\n`);
+						return benchPy(
+							"frappe.db.sql('set session innodb_lock_wait_timeout = 5')\n" +
+							// set_value, not a raw UPDATE: it also clears the User document cache
+							// that the desk's language lookup reads — a raw write left it at 'en'.
+							`frappe.db.set_value('User', 'Administrator', 'language', ${JSON.stringify(l)} or None, update_modified=False)\n` +
+							"frappe.db.commit(); frappe.clear_cache(user='Administrator')\n"
+						);
 					} catch (e) {
 						last = e;
-						Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
+						Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
 					}
 				}
-				throw last;
+				throw new Error("setAdminLang gave up: " + String(last && last.message).split("\n")[0]);
 			};
 			const lang = async (l) => { setAdminLang(l); await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]); };
 			const dp = await ctx.newPage();
@@ -8593,9 +8606,12 @@ print("ok")
 			expectEq(await q(".bnd-dock"), false, "no dock");
 			expectEq(await q(".bnd-topbar"), false, "no top bar");
 			expect(!(await paneHidden()), "the guard gives the side pane back rather than strand the user");
+			// Since v0.44.1 the pane the guard gives back carries OUR avatar in its foot
+			// band (the fallback for a tenant whose region is gone), and Frappe's own
+			// user button only when even that failed. Either is a route to Log Out.
 			expect(
-				await visible(".body-sidebar .sidebar-user-button"),
-				"so ERPNext's own user button — and Log Out — is reachable"
+				(await visible('.body-sidebar .bnd-sb-band [data-bnd-part="user"]')) || (await visible(".body-sidebar .sidebar-user-button")),
+				"so a user button — ours in the band, or ERPNext's own — and Log Out is reachable"
 			);
 		});
 
@@ -11240,6 +11256,11 @@ print("ok")
 							// Server-supplied record text is whoever created the
 							// record's, in whatever language they typed it.
 							if (el.closest("[data-doctype], [data-name]")) continue;
+							// Text tagged with its OWN language below the root is verbatim by
+							// definition: a language's autonym (the switch, the settings picker)
+							// reads "English" on every desk, and that is not a missing translation.
+							const tagged = el.closest("[lang]");
+							if (tagged && tagged !== document.documentElement) continue;
 							if (!vis(el)) continue;
 							if (el.children.length === 0) record(el, el.textContent, "text");
 							for (const attr of ["aria-label", "title", "placeholder"]) {

@@ -65,6 +65,27 @@ The item-44 checks pin the offered set explicitly. The shape fixture gains the f
 js_gzip 115,100 → 115,400 (measured 115,244). Eight Arabic rows (the picker's strings, the
 field's label and description, the endpoint's refusal).
 
+### Suite
+
+Full run at the release commit: **484/491**. Four are bench debts this line already carries on
+frappe 16.33 (the i18n merged-dict "Alert" row, the kanban tint, the forked email template's
+hash, the email preview's crash path) — owed, and not this item's. Three were the suite's own,
+repaired in the follow-up commit and green when re-run:
+
+- `container: EVERY container off is refused at the last one` expected Frappe's user button
+  where OURS now sits in the pane's foot band — v0.44.1's fallback did what it promised and the
+  older contract had not heard. It accepts either route to Log Out.
+- `i18n: no visible theme-owned label equals its msgid` read a language's autonym — "English"
+  tagged `lang="en"` on an Arabic desk, in the switch and in the picker's chips — as an
+  untranslated label. Text tagged with its own language below the root is verbatim by
+  definition, and is now skipped.
+- `sidepane: a section's collapsed state follows the user across languages` lost its User-row
+  write only inside long runs, with a traceback the failure printer truncated before the line
+  that named the error. `benchPy` now leads its message with that line, and the write runs
+  under a 5s InnoDB lock wait with five tries and a named give-up. A raw `UPDATE` was tried on
+  the way and rejected: `get_user_lang` reads the cached User document, and only
+  `frappe.db.set_value` clears it — the desk stayed English and the check said so.
+
 ## [0.44.1] — 2026-09-08 — The pane, made to hold (patch)
 
 **Two screenshots from the user, the same workspace in English and Arabic**: Frappe's own
