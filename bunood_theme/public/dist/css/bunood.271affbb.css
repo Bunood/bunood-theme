@@ -4792,6 +4792,13 @@ html[data-bnd-list=cards] {
   --bnd-list-radius: var(--bnd-radius-md);
 }
 
+html[data-bnd-list=table] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: var(--bnd-border);
+  --bnd-list-radius: 0px;
+}
+
 html[data-bnd-list-hover=wash] {
   --bnd-list-hover-bg: var(--bnd-hover);
   --bnd-list-hover-rail: transparent;
@@ -4902,6 +4909,48 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
     opacity: 1;
   }
 }
+html[data-bnd-list=table] .list-row .level-left,
+html[data-bnd-list=table] .list-row .level-right {
+  padding-block: 0;
+}
+
+html[data-bnd-list=table] .list-row .list-subject .select-like {
+  padding-block: 0;
+}
+
+html[data-bnd-list=table] .list-row-head {
+  background: var(--bnd-raised);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-body-help);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding: 0;
+  block-size: auto;
+  line-height: inherit;
+  background: transparent;
+  font-weight: var(--bnd-weight-medium);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill::before {
+  content: "";
+  display: inline-block;
+  inline-size: var(--bnd-sp-2);
+  block-size: var(--bnd-sp-2);
+  border-radius: var(--bnd-radius-pill);
+  background: currentColor;
+}
+
+html[data-bnd-list=table] .result .list-row .level-right {
+  color: var(--bnd-ink-muted);
+}
+
 html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
   border-color: var(--bnd-accent);
   box-shadow: inset 0 0 0 2px var(--bnd-on-brand);

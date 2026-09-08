@@ -11,8 +11,9 @@
 //   clearing and stock rows render untouched.
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
-//   data-bnd-list            hairline | open | zebra | cards   (the style; the
-//                            ANCHOR — absent = every rule here inert)
+//   data-bnd-list            hairline | open | zebra | cards | table  (the style;
+//                            the ANCHOR — absent = every rule here inert; table
+//                            is item 43 A7's Dense Table)
 //   data-bnd-list-hover      wash | rail                (row hover treatment)
 //   data-bnd-list-select     soft | rail | bold  (checked rows + bulk header)
 //   data-bnd-list-ckreveal   (presence = checkboxes rest hidden; revealed on
@@ -105,6 +106,15 @@ html[data-bnd-list="cards"] {
   --bnd-list-alt-bg: transparent;
   --bnd-list-sep: transparent;
   --bnd-list-radius: var(--bnd-radius-md);
+}
+// Dense Table (item 43 A7): hairline rows at the density floor, an eyebrow
+// head, status as a dot and a word. The spreadsheet look — Airtable, a
+// datatable — for the desk that lives in lists.
+html[data-bnd-list="table"] {
+  --bnd-list-row-bg: transparent;
+  --bnd-list-alt-bg: transparent;
+  --bnd-list-sep: var(--bnd-border);
+  --bnd-list-radius: 0px;
 }
 
 // Hover treatments.
@@ -253,4 +263,60 @@ html[data-bnd-list][data-bnd-list-ckreveal] .result:has(.list-row-checkbox:check
   html[data-bnd-list][data-bnd-list-ckreveal] .result .list-row-checkbox {
     opacity: 1;
   }
+}
+
+// ── Dense Table (item 43 A7) ────────────────────────────────────────────────
+// The row's height is content-driven (the facts above): the stock status
+// PILL is what holds a row at 45px. As a dot and a word it is one text line;
+// with no level padding at all the content (24px: a cell's line box) meets
+// the density floor exactly — 32 comfortable, 24 compact — so --bnd-row-h,
+// the contract, IS the row's height, and the flex row centres the cells in
+// it. Single-style rules, written directly — a working-set variable per
+// property would be one style's private vocabulary.
+html[data-bnd-list="table"] .list-row .level-left,
+html[data-bnd-list="table"] .list-row .level-right {
+  padding-block: 0;
+}
+// Measured: with the pill gone the subject cell's checkbox block still held
+// the row at 41 — the vendor pads .select-like 9px top and bottom for a hit
+// area the whole row already provides.
+html[data-bnd-list="table"] .list-row .list-subject .select-like {
+  padding-block: 0;
+}
+// The head: an eyebrow — size and case only, never tracking (Arabic joins).
+// The vendor keeps the container sticky (.list-row-container:first-child);
+// this is paint. The head's cells already share the body's alignment
+// (text-right on Currency columns, measured) — nothing to repair.
+html[data-bnd-list="table"] .list-row-head {
+  background: var(--bnd-raised);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-body-help);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+}
+// Status: the pill's box goes, its ink stays (Frappe's --text-on-<hue>, the
+// pair the vendor's own dot indicator uses over plain surfaces), and a dot in
+// that ink leads the word.
+html[data-bnd-list="table"] .result .list-row .indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding: 0;
+  block-size: auto;
+  line-height: inherit;
+  background: transparent;
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-bnd-list="table"] .result .list-row .indicator-pill::before {
+  content: "";
+  display: inline-block;
+  inline-size: var(--bnd-sp-2);
+  block-size: var(--bnd-sp-2);
+  border-radius: var(--bnd-radius-pill);
+  background: currentColor;
+}
+// The meta column (modified, comments, assignees) recedes.
+html[data-bnd-list="table"] .result .list-row .level-right {
+  color: var(--bnd-ink-muted);
 }

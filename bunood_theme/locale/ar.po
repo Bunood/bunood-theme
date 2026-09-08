@@ -6813,3 +6813,15 @@ msgstr "النشاط"
 #, fuzzy
 msgid "Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."
 msgstr "أين تقع التعليقات والخط الزمني: أسفل النموذج، أو بجانبه على شاشة عريضة، أو في دُرج يُفتح من إجراءات الصفحة."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Dense Table"
+msgstr "جدول مكثّف"
+
+#. Card blurb in the list picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look."
+msgstr "صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات."

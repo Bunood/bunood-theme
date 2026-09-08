@@ -4180,6 +4180,28 @@ const BND_LIST_STYLES = [
 			'<rect x="6" y="30" width="108" height="16" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
 			'<rect x="12" y="36" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
 	},
+	{
+		value: "Dense Table",
+		blurb: () => __("Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="6" y="6" width="108" height="9" fill="currentColor" opacity=".08"/>' +
+			'<rect x="10" y="9" width="22" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<rect x="52" y="9" width="18" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<rect x="90" y="9" width="20" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<line x1="6" y1="24" x2="114" y2="24" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="6" y1="33" x2="114" y2="33" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="6" y1="42" x2="114" y2="42" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="10" y="18" width="30" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="19.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="18" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="10" y="27" width="26" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="28.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="27" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="10" y="36" width="34" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="37.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="36" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="92" y="18" width="18" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="96" y="27" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="90" y="36" width="20" height="3" rx="1.5" fill="currentColor" opacity=".4"/></svg>',
+	},
 ];
 
 /** The two composing option groups. */

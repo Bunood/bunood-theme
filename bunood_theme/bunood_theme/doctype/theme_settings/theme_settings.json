@@ -1300,7 +1300,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "List Style",
-   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards"
+   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards\nDense Table"
   },
   {
    "default": "Edge Rail",
@@ -1710,7 +1710,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 14:21:19.000000",
+ "modified": "2026-09-08 15:24:53.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

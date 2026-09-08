@@ -1333,7 +1333,7 @@
 	const BND_SURFACE_KITS = {
 		list: {
 			attr: "list", boot: "bnd_list",
-			anchor: ["list_style", { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards" }],
+			anchor: ["list_style", { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards", "Dense Table": "table" }],
 			axes: [
 				["hover", "list_hover", { "Soft Wash": "wash", "Edge Rail": "rail" }],
 				["select", "list_selection", { "Soft Tint": "soft", "Accent Rail": "rail", "Bold Bar": "bold" }],

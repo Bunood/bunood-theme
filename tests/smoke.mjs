@@ -9192,7 +9192,7 @@ print("ok")
 				// List view kit (item 16): 5 style cards (Original + 4), two option
 				// groups (2 hover + 3 selection = 5 opts), one reveal toggle.
 				// Back-filled here with item 27 — the HANDOVER omission, closed.
-				list_picker: { cards: 5, toggles: 1, opts: 5 },
+				list_picker: { cards: 6, toggles: 1, opts: 5 },
 				// Form view kit (item 18): 5 style cards (Original + 4), the two
 				// option groups (tabs, sidebar) and the checkbox-reveal toggle.
 				// Item 43 A3 added three cards (Headed Groups, Grouped Insets,
@@ -13335,6 +13335,45 @@ print("ok")
 			} finally {
 				await page.setViewportSize(vp);
 			}
+		});
+
+		await test("list: Dense Table — an eyebrow head, status as a dot and a word, rows at the density floor, head aligned to body", async () => {
+			// Item 43 A7. The stock row is 45px because of the status PILL; as a
+			// dot and a word the row falls to the density floor. Measured on the
+			// Item list (15 rows, a status column) at both densities.
+			setSettings({ list_style: "Dense Table", list_hover: "Edge Rail", list_selection: "Bold Bar", list_checkbox_reveal: 1 });
+			const measure = async () =>
+				page.evaluate(() => {
+					const head = document.querySelector(".list-row-head");
+					const row = document.querySelector(".result .list-row-container .list-row");
+					const pill = row.querySelector(".indicator-pill");
+					// The pseudo argument matters: a one-parameter helper reads the PILL
+					// for "::before" and reports its width as the dot's.
+					const cs = (el, pseudo) => getComputedStyle(el, pseudo);
+					const floor = parseFloat(cs(document.documentElement).getPropertyValue("--bnd-row-h"));
+					const cols = (r) => [...r.querySelectorAll(".list-row-col")].filter((c) => c.getBoundingClientRect().width > 0).map((c) => cs(c).textAlign);
+					const before = pill && cs(pill, "::before");
+					return {
+						headCaps: cs(head).textTransform, headSize: parseFloat(cs(head).fontSize), rowSize: parseFloat(cs(row).fontSize),
+						sticky: cs(document.querySelector(".result .list-row-container:first-child, .frappe-list .list-row-container:first-child")).position,
+						rowH: row.getBoundingClientRect().height, floor,
+						pillBg: pill && cs(pill).backgroundColor, dotW: before && parseFloat(before.width), dotBg: before && before.backgroundColor, pillInk: pill && cs(pill).color,
+						headAlign: cols(head), rowAlign: cols(row),
+					};
+				});
+			await goDesk("/desk/item", ".result .list-row-container .list-row", 3000);
+			const g = await measure();
+			expect(g.headCaps === "uppercase" && g.headSize < g.rowSize, `the head is an eyebrow (${g.headCaps}, ${g.headSize} < ${g.rowSize})`);
+			expect(g.pillBg === "rgba(0, 0, 0, 0)", `the status pill's box is gone (${g.pillBg})`);
+			expect(g.dotW >= 6 && g.dotBg === g.pillInk, `a dot in the status ink leads the word (${g.dotW}px, ${g.dotBg} vs ${g.pillInk})`);
+			expect(Math.abs(g.rowH - g.floor) <= 1, `the row sits on the density floor (${g.rowH} vs --bnd-row-h ${g.floor})`);
+			expect(g.rowH <= 36, `and reads dense (${g.rowH} <= 36)`);
+			expect(g.headAlign.length && g.headAlign.join() === g.rowAlign.join(), `every head cell shares its body cell's alignment (${g.headAlign.join(",")} vs ${g.rowAlign.join(",")})`);
+			// Compact: the floor moves, the row follows.
+			await page.evaluate(() => document.documentElement.setAttribute("data-bnd-density", "compact"));
+			await page.waitForTimeout(300);
+			const c = await measure();
+			expect(Math.abs(c.rowH - c.floor) <= 1 && c.floor < g.floor, `compact: row ${c.rowH} on the floor ${c.floor} (< ${g.floor})`);
 		});
 
 		await test("form: the grid edit state stays coherent", async () => {
