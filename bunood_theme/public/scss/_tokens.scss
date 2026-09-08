@@ -162,6 +162,9 @@
   // Property Rows' label column (item 43 A2): wide enough for the longest
   // shipped ERPNext label at the 14 set in English and Arabic, measured in A2.
   --bnd-label-w: 160px;
+  // A section head's collapse indicator (item 43 A3): a control, so a hit box —
+  // 20px is the floor the accessibility item set for a secondary control.
+  --bnd-form-indicator: 20px;
 
   // ── Radii ─────────────────────────────────────────────────────────────────
   --bnd-radius-sm: 4px;

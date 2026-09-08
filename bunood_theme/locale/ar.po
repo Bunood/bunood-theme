@@ -6687,3 +6687,39 @@ msgstr "الحقول"
 #, fuzzy
 msgid "What one field looks like: where its label sits and what its box is. Property Rows put the label beside the value; Inline Text draws no box until you hover."
 msgstr "شكل الحقل الواحد: أين تقع تسميته وما هو صندوقه. «صفوف الخصائص» تضع التسمية بجانب القيمة؛ و«نص مضمّن» لا يرسم صندوقًا حتى تمرّ بالمؤشر."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Headed Groups"
+msgstr "مجموعات معنونة"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Grouped Insets"
+msgstr "مجموعات غائرة"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Tinted Heads"
+msgstr "عناوين ملوّنة"
+
+#. Style card blurb in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "One sheet, each section a titled group under a hairline — air does the separating."
+msgstr "ورقة واحدة، كل قسم مجموعة معنونة تحت خط رفيع — والفراغ هو الذي يفصل."
+
+#. Style card blurb in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Sections sit in soft raised insets on the sheet, no borders anywhere."
+msgstr "الأقسام في مساحات غائرة مرتفعة بنعومة على الورقة، بلا حدود في أي مكان."
+
+#. Style card blurb in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "A brand-washed band heads each bordered section, the way a ledger rules its columns."
+msgstr "شريط مغسول بلون العلامة يعنون كل قسم محدود، كما يسطّر دفتر الحسابات أعمدته."

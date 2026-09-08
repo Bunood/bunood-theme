@@ -182,6 +182,15 @@ def pairs():
         Pair("var(--bnd-serious)", "var(--bnd-pane)", AA_NON_TEXT, "sidebar badge fill"),
     ]
 
+    # Item 43 A3: Tinted Heads paints a section head on the checked-row wash
+    # (10% brand over the surface) under plain ink. A wash is not a surface the
+    # cross product above knows, so it gets its own row; a bright seed pulls the
+    # wash toward itself, which is exactly what this measures.
+    out.append(Pair(
+        "var(--bnd-ink)", "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))",
+        AA_TEXT, "tinted section head",
+    ))
+
     # The focus ring, against every surface it can be drawn over. `outline` paints
     # OUTSIDE the element, so the adjacent colour is the container's, not the
     # control's — which is why this is a cross product and not one pair.

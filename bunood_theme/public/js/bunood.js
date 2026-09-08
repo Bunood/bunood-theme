@@ -1342,7 +1342,7 @@
 		},
 		form: {
 			attr: "form", boot: "bnd_form",
-			anchor: ["form_style", { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet" }],
+			anchor: ["form_style", { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet", "Headed Groups": "groups", "Grouped Insets": "inset", "Tinted Heads": "tinted" }],
 			axes: [
 				// Item 43 A2: the anatomy of one control. Original = the stock tint
 				// with no edge, so the whole axis stands down under it.

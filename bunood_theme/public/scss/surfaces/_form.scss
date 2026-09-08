@@ -12,8 +12,9 @@
 //   untouched.
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
-//   data-bnd-form            hairline | open | cards | sheet   (the style;
-//                            the ANCHOR — absent = every rule here inert)
+//   data-bnd-form            hairline | open | cards | sheet | groups | inset |
+//                            tinted   (the style; the ANCHOR — absent = every
+//                            rule here inert; the last three are item 43 A3)
 //   data-bnd-form-fields     outline | rows | underline | inline  (the anatomy
 //                            of one control, item 43 A2; absent = the stock
 //                            tint with no edge under a stacked label)
@@ -138,6 +139,39 @@ html[data-bnd-form="sheet"] {
   --bnd-form-shell-radius: var(--bnd-radius-lg);
   --bnd-form-shell-shadow: var(--bnd-shadow-md);
   --bnd-form-shell-margin: var(--bnd-sp-4);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+
+// Headed Groups (item 43 A3): ONE sheet and no boxes — each section is a
+// titled group under a hairline, and air does the separating. The head rule
+// draws the hairline; the container variables stay quiet.
+html[data-bnd-form="groups"] {
+  --bnd-form-sec-gap: var(--bnd-sp-5);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-head-rule: var(--bnd-border);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+// Grouped Insets (A3): soft raised insets on the sheet, no borders anywhere.
+html[data-bnd-form="inset"] {
+  --bnd-form-sec-bg: var(--bnd-raised);
+  --bnd-form-sec-radius: var(--bnd-radius-lg);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-grid-head-bg: var(--bnd-surface);
+}
+// Tinted Heads (A3): a brand-washed band heads each bordered section. The
+// wash is the checked-row wash (10% brand over the surface) under plain ink —
+// a gate row of its own, "tinted section head".
+html[data-bnd-form="tinted"] {
+  --bnd-form-sec-border: var(--bnd-border);
+  --bnd-form-sec-radius: var(--bnd-radius-sm);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-form-head-ink: var(--bnd-ink);
+  --bnd-form-head-bleed: var(--bnd-sp-4);
   --bnd-form-grid-head-bg: var(--bnd-raised);
 }
 
@@ -336,6 +370,42 @@ html[data-bnd-form][data-bnd-form-side="pane"] .layout-side-section {
   background: var(--bnd-raised);
 }
 
+// ── Section heads (item 43 A3) ──────────────────────────────────────────────
+// Every style gets the same head anatomy: a flex row so the collapse
+// indicator is a 20px control at the inline end (stock inlines a 0-padding
+// span after the text), an optional hairline under it (Headed Groups), an
+// optional band behind it (Tinted Heads, bleeding to the section's edge). The
+// head's SIZE is the body kit's (`data-bnd-body-scale`, A1); this is shape.
+html[data-bnd-form] .form-layout .form-section .section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline: calc(-1 * var(--bnd-form-head-bleed, 0px));
+  padding-inline: var(--bnd-form-head-bleed, 0px);
+  border-block-end: var(--bnd-line) solid var(--bnd-form-head-rule, transparent);
+  border-start-start-radius: var(--bnd-form-sec-radius, 0);
+  border-start-end-radius: var(--bnd-form-sec-radius, 0);
+  background: var(--bnd-form-head-bg, transparent);
+  color: var(--bnd-form-head-ink, inherit);
+}
+html[data-bnd-form="tinted"] .form-layout .form-section {
+  padding-inline: var(--bnd-form-head-bleed);
+}
+html[data-bnd-form] .form-layout .form-section .section-head .collapse-indicator {
+  order: 1;
+  margin-inline-start: auto;
+  inline-size: var(--bnd-form-indicator);
+  block-size: var(--bnd-form-indicator);
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-form] .form-layout .form-section .section-head.collapsible:hover .collapse-indicator {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
 // ── Fields (item 43 A2) ─────────────────────────────────────────────────────
 // THE ANATOMY OF ONE CONTROL. The census measured stock as a 1.02:1 tint with
 // no edge under a label the same size as the section head — a value with no
@@ -462,7 +532,11 @@ $bnd-form-row-types: "Data", "Link", "Dynamic Link", "Select", "Autocomplete", "
   "Duration", "Int", "Float", "Currency", "Percent", "Password", "Phone", "Color", "Rating", "Read Only";
 $bnd-form-row-is: "";
 @each $t in $bnd-form-row-types {
-  $bnd-form-row-is: $bnd-form-row-is + if($bnd-form-row-is == "", "", ",") + '[data-fieldtype="#{$t}"]';
+  @if $bnd-form-row-is == "" {
+    $bnd-form-row-is: '[data-fieldtype="#{$t}"]';
+  } @else {
+    $bnd-form-row-is: $bnd-form-row-is + ',[data-fieldtype="#{$t}"]';
+  }
 }
 html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .form-column > form > .frappe-control:is(#{$bnd-form-row-is}):not(.form-in-grid *) > .form-group {
   display: grid;

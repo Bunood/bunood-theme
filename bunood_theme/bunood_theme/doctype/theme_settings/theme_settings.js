@@ -4402,6 +4402,45 @@ const BND_FORM_STYLES = [
 			'<line x1="12" y1="32" x2="108" y2="32" stroke="currentColor" opacity=".2"/>' +
 			'<rect x="12" y="38" width="26" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
 	},
+	{
+		value: "Headed Groups",
+		blurb: () => __("One sheet, each section a titled group under a hairline — air does the separating."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="8" y="16" width="36" height="4" rx="2" fill="currentColor" opacity=".55"/>' +
+			'<line x1="8" y1="24" x2="112" y2="24" stroke="currentColor" opacity=".3"/>' +
+			'<rect x="8" y="28" width="46" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="38" width="28" height="4" rx="2" fill="currentColor" opacity=".55"/>' +
+			'<line x1="8" y1="46" x2="112" y2="46" stroke="currentColor" opacity=".3"/></svg>',
+	},
+	{
+		value: "Grouped Insets",
+		blurb: () => __("Sections sit in soft raised insets on the sheet, no borders anywhere."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="16" rx="5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="12" y="20" width="32" height="4" rx="2" fill="currentColor" opacity=".45"/>' +
+			'<rect x="6" y="34" width="108" height="14" rx="5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="12" y="39" width="26" height="4" rx="2" fill="currentColor" opacity=".45"/></svg>',
+	},
+	{
+		value: "Tinted Heads",
+		blurb: () => __("A brand-washed band heads each bordered section, the way a ledger rules its columns."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="16" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="6" y="14" width="108" height="7" rx="2" fill="var(--primary, #3d8150)" opacity=".2"/>' +
+			'<rect x="11" y="16" width="26" height="3" rx="1.5" fill="currentColor" opacity=".55"/>' +
+			'<rect x="6" y="34" width="108" height="14" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="6" y="34" width="108" height="7" rx="2" fill="var(--primary, #3d8150)" opacity=".2"/>' +
+			'<rect x="11" y="36" width="22" height="3" rx="1.5" fill="currentColor" opacity=".55"/></svg>',
+	},
 ];
 
 /** The composing option groups — the field's anatomy first, because it is the

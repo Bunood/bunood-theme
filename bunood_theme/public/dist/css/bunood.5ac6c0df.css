@@ -46,6 +46,7 @@
   --bnd-content-w: 1120px;
   --bnd-content-w-narrow: 1040px;
   --bnd-label-w: 160px;
+  --bnd-form-indicator: 20px;
   --bnd-radius-sm: 4px;
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
@@ -5139,6 +5140,34 @@ html[data-bnd-form=sheet] {
   --bnd-form-grid-head-bg: var(--bnd-raised);
 }
 
+html[data-bnd-form=groups] {
+  --bnd-form-sec-gap: var(--bnd-sp-5);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-head-rule: var(--bnd-border);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+
+html[data-bnd-form=inset] {
+  --bnd-form-sec-bg: var(--bnd-raised);
+  --bnd-form-sec-radius: var(--bnd-radius-lg);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-grid-head-bg: var(--bnd-surface);
+}
+
+html[data-bnd-form=tinted] {
+  --bnd-form-sec-border: var(--bnd-border);
+  --bnd-form-sec-radius: var(--bnd-radius-sm);
+  --bnd-form-sec-gap: var(--bnd-sp-3);
+  --bnd-form-sec-pad: var(--bnd-sp-3);
+  --bnd-form-content-pad: var(--bnd-sp-3);
+  --bnd-form-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-form-head-ink: var(--bnd-ink);
+  --bnd-form-head-bleed: var(--bnd-sp-4);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+}
+
 html[data-bnd-form][data-bnd-form-tabs=underline] {
   --bnd-form-tab-marker-size: 2px;
   --bnd-form-tab-marker-ink: var(--bnd-brand-solid);
@@ -5305,6 +5334,39 @@ html[data-bnd-form] .form-sidebar {
 
 html[data-bnd-form][data-bnd-form-side=pane] .layout-side-section {
   background: var(--bnd-raised);
+}
+
+html[data-bnd-form] .form-layout .form-section .section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline: calc(-1 * var(--bnd-form-head-bleed, 0px));
+  padding-inline: var(--bnd-form-head-bleed, 0px);
+  border-block-end: var(--bnd-line) solid var(--bnd-form-head-rule, transparent);
+  border-start-start-radius: var(--bnd-form-sec-radius, 0);
+  border-start-end-radius: var(--bnd-form-sec-radius, 0);
+  background: var(--bnd-form-head-bg, transparent);
+  color: var(--bnd-form-head-ink, inherit);
+}
+
+html[data-bnd-form=tinted] .form-layout .form-section {
+  padding-inline: var(--bnd-form-head-bleed);
+}
+
+html[data-bnd-form] .form-layout .form-section .section-head .collapse-indicator {
+  order: 1;
+  margin-inline-start: auto;
+  inline-size: var(--bnd-form-indicator);
+  block-size: var(--bnd-form-indicator);
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-bnd-form] .form-layout .form-section .section-head.collapsible:hover .collapse-indicator {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
 }
 
 html[data-theme] .form-layout .frappe-control input.form-control:not([type=checkbox]):focus-visible,

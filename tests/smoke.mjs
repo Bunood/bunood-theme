@@ -13414,6 +13414,57 @@ print("ok")
 			setSettings({ form_fields: "Stacked Outlined" });
 		});
 
+		// ── Item 43 A3: sections — three more containers, and the head's anatomy ──
+		const sectionGeom = () => page.evaluate(() => {
+			const vis = (el) => el && el.getBoundingClientRect().width > 0;
+			const sec = [...document.querySelectorAll(".form-layout .form-section")].find((s) => vis(s) && s.querySelector(".section-head"));
+			const head = sec.querySelector(".section-head");
+			const label = [...document.querySelectorAll(".frappe-control .control-label")].find(vis);
+			const px = (el) => parseFloat(getComputedStyle(el).fontSize);
+			const s = getComputedStyle(sec), h = getComputedStyle(head);
+			const ind = [...document.querySelectorAll(".form-layout .section-head.collapsible .collapse-indicator")].find(vis);
+			const r = ind && ind.getBoundingClientRect();
+			return {
+				secBg: s.backgroundColor, secBorder: s.borderInlineStartColor, secRadius: s.borderRadius,
+				headBg: h.backgroundColor, headRule: h.borderBlockEndWidth, headRuleColor: h.borderBlockEndColor, headPx: px(head), labelPx: px(label),
+				indicator: r ? { w: r.width, h: r.height } : null,
+			};
+		});
+		const NEW_STYLES = {
+			"Headed Groups": ["groups", (g, raised) => {
+				expectEq(g.secBg, "rgba(0, 0, 0, 0)", "no panel");
+				expectEq(g.headRule, "1px", "a hairline under the head");
+			}],
+			"Grouped Insets": ["inset", (g, raised) => {
+				expectEq(g.secBg, raised, "the raised tone");
+				expectEq(g.secBorder, "rgba(0, 0, 0, 0)", "no border");
+			}],
+			"Tinted Heads": ["tinted", (g, raised) => {
+				expect(g.headBg !== "rgba(0, 0, 0, 0)", `a wash behind the head (${g.headBg})`);
+				expect(g.secBorder !== "rgba(0, 0, 0, 0)", "a bordered section");
+			}],
+		};
+		for (const [label, [slug, assertStyle]] of Object.entries(NEW_STYLES)) {
+			await test(`form: ${label}`, async () => {
+				setSettings({ form_style: label, desk_scale: "Standard 14" });
+				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				expectEq(await attr("data-bnd-form"), slug, "style attribute");
+				const g = await sectionGeom();
+				const raised = await resolvePair("var(--bnd-raised)", "var(--bnd-ink)");
+				assertStyle(g, raised.bg);
+				expect(g.headPx > g.labelPx, `the head leads the label (${g.headPx} > ${g.labelPx})`);
+			});
+		}
+		await test("form: the collapse indicator is a 20px control on every style", async () => {
+			for (const label of ["Floating Panels", "Headed Groups", "Paper Sheet"]) {
+				setSettings({ form_style: label });
+				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				const g = await sectionGeom();
+				expect(g.indicator && g.indicator.w >= 20 && g.indicator.h >= 20, `${label}: indicator ${g.indicator && g.indicator.w}×${g.indicator && g.indicator.h}`);
+			}
+			setSettings({ form_style: "Floating Panels" });
+		});
+
 		await test("workspace: Original applies nothing at all", async () => {
 			setSettings({ workspace_style: "Original" });
 			await goDesk(WS_ROUTE, ".widget", 3000);
