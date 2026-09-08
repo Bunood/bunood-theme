@@ -127,6 +127,11 @@
   "list_hover",
   "list_selection",
   "list_checkbox_reveal",
+  "section_body",
+  "desk_picker",
+  "desk_width",
+  "desk_scale",
+  "desk_primary",
   "section_form",
   "form_picker",
   "form_style",
@@ -1321,6 +1326,43 @@
    "label": "Reveal Checkboxes on Hover"
   },
   {
+   "fieldname": "section_body",
+   "fieldtype": "Section Break",
+   "label": "Desk Body"
+  },
+  {
+   "fieldname": "desk_picker",
+   "fieldtype": "HTML",
+   "label": "Desk Body Picker"
+  },
+  {
+   "default": "Full Bleed",
+   "description": "Set by the picker above. How wide the body runs: Frappe's own 900px cap, a measured column, or the whole page.",
+   "fieldname": "desk_width",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Width",
+   "options": "Original\nMeasured Column\nNarrow Column\nFull Bleed"
+  },
+  {
+   "default": "Standard 14",
+   "description": "Set by the picker above. The body's type set: values, labels, section heads and titles move together.",
+   "fieldname": "desk_scale",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Scale",
+   "options": "Original\nCompact 13\nStandard 14\nTouch 16"
+  },
+  {
+   "default": "Brand",
+   "description": "Set by the picker above. Whether the primary button is Frappe's black or the brand fill.",
+   "fieldname": "desk_primary",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Primary Button",
+   "options": "Black\nBrand"
+  },
+  {
    "fieldname": "section_form",
    "fieldtype": "Section Break",
    "label": "Form View"
@@ -1638,7 +1680,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 04:14:26.284231",
+ "modified": "2026-09-08 11:32:01.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

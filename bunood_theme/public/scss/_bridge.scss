@@ -167,3 +167,35 @@ html[data-theme="dark"] {
 html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-container {
   --sidebar-width: var(--bnd-sb-w);
 }
+
+// ── The second LENGTH, and it earns its place the same way (item 43 A1):
+// `--page-max-width` is FRAPPE'S name. It caps `.section-body`, `.form-footer`,
+// `.form-section-description` and the workspace `.layout-main` at 900px with
+// `margin: auto !important` (desk/form.scss:88-96, 464-468), while the theme's
+// section card spans the whole column — the census measured a 1126px card
+// around a 900px body, 97px of dead card each side. The item-40 lesson applies
+// one for one: FEED the vendor's variable, never set a second width on our
+// card. Declared on `html`, where the vendor's own `:root` declares it, at one
+// attribute more weight; `body.full-width` (Frappe's own toggle) never read
+// the variable and keeps working. Absent attribute = the vendor's 900.
+html[data-bnd-body-width="full"] {
+  --page-max-width: none;
+}
+html[data-bnd-body-width="measured"] {
+  --page-max-width: var(--bnd-content-w);
+}
+html[data-bnd-body-width="narrow"] {
+  --page-max-width: var(--bnd-content-w-narrow);
+}
+
+// ── The primary button (item 43 A1). Frappe's `.btn.btn-primary` reads
+// `--btn-primary` (common/css_variables.scss:99, `--gray-900`), which this
+// bridge deliberately left unmapped — "a branding gap, not a contrast one",
+// above. `desk_primary` closes it as a choice: under Brand the fill is the
+// gated `--bnd-brand-solid`, and surfaces/_body.scss paints the ink from its
+// pair token `--bnd-on-brand`, because the vendor's ink is `--neutral` — white
+// in light, near-black in dark — the wrong one in one mode for any fill but
+// theirs. Under Black the button stays the vendor's.
+html[data-bnd-body-primary="brand"] {
+  --btn-primary: var(--bnd-brand-solid);
+}

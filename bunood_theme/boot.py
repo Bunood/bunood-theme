@@ -556,6 +556,18 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_form = {f: form_(f) for f in FORM_DEFAULTS}
 
+        # ── The body kit (item 43 A1) ────────────────────────────────────
+        # Width feeds Frappe's --page-max-width, the scale sets the body's type
+        # set, the primary flips the button — all attributes, all before the
+        # first section renders. No anchor: each axis stands down alone.
+        from bunood_theme.presets import DESK_DEFAULTS
+
+        def body_(field):
+            value = settings.get(field)
+            return DESK_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_body = {f: body_(f) for f in DESK_DEFAULTS}
+
         # ── Workspace tile surface (item 25) ────────────────────────────
         # No-flash: editor.js paints the widgets after boot, so an attribute
         # set from this payload is on <html> before the first tile exists.

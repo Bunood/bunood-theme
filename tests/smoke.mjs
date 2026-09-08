@@ -1374,6 +1374,8 @@ const MUTABLE_FIELDS = [
 	"desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
+	// The body kit (item 43 A1): width, type scale, primary button.
+	"desk_width", "desk_scale", "desk_primary",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -13187,6 +13189,127 @@ print("ok")
 		// the RENDERED tile, not just the attribute — an attribute proves it was
 		// set, a computed pixel proves it did something.
 		const WS_ROUTE = "/desk/selling"; // a workspace with charts, number cards and link cards
+
+		// ── Item 43 A1: the body kit — width, scale, primary ────────────────
+		// The census (docs/upstream/frappe-form-body.md) measured a 1126px card
+		// around a 900px body on an unsaved Sales Invoice: Frappe caps
+		// .section-body at --page-max-width while the theme's card spans the
+		// column. A NEW Item has the same wide column (its sidebar is hidden
+		// until saved) and none of that site's "Not found" dialog.
+		const BODY_ROUTE = "/desk/item/new";
+		const bodyWidths = () => page.evaluate(() => {
+			const sec = [...document.querySelectorAll(".form-layout .form-section")]
+				.find((s) => s.getBoundingClientRect().width > 0 && s.querySelector(".section-body"));
+			const body = sec.querySelector(".section-body");
+			const cs = getComputedStyle(sec);
+			// The card's inner box: padding AND border off — a styled card carries a
+			// 1px edge each side, and the first cut measured a 2px "defect" that was it.
+			const edges = ["paddingInlineStart", "paddingInlineEnd", "borderInlineStartWidth", "borderInlineEndWidth"]
+				.reduce((sum, p) => sum + parseFloat(cs[p]), 0);
+			return {
+				inner: sec.getBoundingClientRect().width - edges,
+				body: body.getBoundingClientRect().width,
+				cap: getComputedStyle(body).maxWidth,
+				column: document.querySelector(".layout-main-section").getBoundingClientRect().width,
+			};
+		});
+		const typeScale = () => page.evaluate(() => {
+			const vis = (el) => el && el.getBoundingClientRect().width > 0;
+			const px = (el) => parseFloat(getComputedStyle(el).fontSize);
+			const head = [...document.querySelectorAll(".form-layout .section-head")].find(vis);
+			const label = [...document.querySelectorAll(".frappe-control .control-label")].find(vis);
+			const input = [...document.querySelectorAll('.frappe-control[data-fieldtype="Data"] input.form-control')].find(vis);
+			return { head: px(head), label: px(label), value: px(input) };
+		});
+		// The pair a probe element resolves — the same trick the contrast checks use,
+		// because a token's value is only knowable where it is read.
+		const resolvePair = (bg, ink) => page.evaluate(([b, i]) => {
+			const probe = document.createElement("div");
+			probe.style.background = b; probe.style.color = i;
+			document.body.appendChild(probe);
+			const cs = getComputedStyle(probe);
+			const out = { bg: cs.backgroundColor, ink: cs.color };
+			probe.remove();
+			return out;
+		}, [bg, ink]);
+
+		await test("body: Full Bleed makes the card and the section body one width", async () => {
+			setSettings({ desk_width: "Full Bleed" });
+			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-body-width"), "full", "width attribute");
+			const w = await bodyWidths();
+			expect(w.column > 1000, `a new Item's column is the whole main section (${w.column})`);
+			expect(Math.abs(w.inner - w.body) <= 1, `card inner ${w.inner} == section body ${w.body}`);
+		});
+		await test("body: Original leaves Frappe's 900px cap exactly where it was", async () => {
+			setSettings({ desk_width: "Original" });
+			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-body-width"), null, "no width attribute");
+			const w = await bodyWidths();
+			expectEq(w.cap, "900px", "the vendor's cap");
+			expect(w.inner - w.body > 100, `the card is wider than the capped body (${w.inner} vs ${w.body})`);
+			// Frappe's own toggle keeps working: nothing here touched its class.
+			const lifted = await page.evaluate(() => {
+				document.body.classList.add("full-width");
+				const b = document.querySelector(".form-layout .form-section .section-body");
+				const v = getComputedStyle(b).maxWidth;
+				document.body.classList.remove("full-width");
+				return v;
+			});
+			expectEq(lifted, "none", "body.full-width still lifts the cap");
+		});
+		await test("body: the workspace column follows the same width", async () => {
+			setSettings({ desk_width: "Full Bleed" });
+			await goDesk("/desk/selling", ".layout-main", 3000);
+			const w = await page.evaluate(() => ({
+				main: document.querySelector(".layout-main").getBoundingClientRect().width,
+				section: document.querySelector(".layout-main-section").getBoundingClientRect().width,
+				max: getComputedStyle(document.querySelector(".layout-main")).maxWidth,
+			}));
+			expectEq(w.max, "none", "no cap on the workspace column");
+			expect(Math.abs(w.main - w.section) <= 1, `workspace column ${w.main} == section ${w.section}`);
+		});
+		const BODY_SCALE = { "Compact 13": ["13", 13], "Standard 14": ["14", 14], "Touch 16": ["16", 16] };
+		for (const [label, [slug, px]] of Object.entries(BODY_SCALE)) {
+			await test(`body: ${label} leads with the section head`, async () => {
+				setSettings({ desk_scale: label });
+				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				expectEq(await attr("data-bnd-body-scale"), slug, "scale attribute");
+				const t = await typeScale();
+				expectEq(t.value, px, `values render at ${px}px`);
+				expect(t.head > t.label, `section head ${t.head} > label ${t.label}`);
+				expect(t.head >= px + 1, `head ${t.head} leads the value ${px}`);
+			});
+		}
+		await test("body: Original scale is the flat stock set — head equals label", async () => {
+			setSettings({ desk_scale: "Original" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-body-scale"), null, "no scale attribute");
+			const t = await typeScale();
+			expectEq(t.head, t.label, "stock: 14 over 14, the census's diagnosis");
+		});
+		await test("body: Brand paints the primary button with the gated pair", async () => {
+			setSettings({ desk_primary: "Brand" });
+			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			expectEq(await attr("data-bnd-body-primary"), "brand", "primary attribute");
+			const want = await resolvePair("var(--bnd-brand-solid)", "var(--bnd-on-brand)");
+			const got = await page.evaluate(() => {
+				const b = document.querySelector(".page-actions .btn-primary");
+				return { bg: getComputedStyle(b).backgroundColor, ink: getComputedStyle(b).color };
+			});
+			expectEq(got.bg, want.bg, "fill is --bnd-brand-solid");
+			expectEq(got.ink, want.ink, "ink is --bnd-on-brand");
+		});
+		await test("body: Black keeps Frappe's own primary", async () => {
+			setSettings({ desk_primary: "Black" });
+			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			expectEq(await attr("data-bnd-body-primary"), null, "no primary attribute");
+			const want = await resolvePair("var(--gray-900)", "var(--neutral)");
+			const got = await page.evaluate(() => getComputedStyle(document.querySelector(".page-actions .btn-primary")).backgroundColor);
+			expectEq(got, want.bg, "the vendor's --gray-900");
+			// Back to the shipped body for everything that follows.
+			setSettings({ desk_width: "Full Bleed", desk_scale: "Standard 14", desk_primary: "Brand" });
+		});
 
 		await test("workspace: Original applies nothing at all", async () => {
 			setSettings({ workspace_style: "Original" });

@@ -939,6 +939,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
 		bnd_render_form_picker(frm);
+		bnd_render_desk_picker(frm);
 		bnd_render_workspace_picker(frm);
 		bnd_render_chart_picker(frm);
 		bnd_render_report_picker(frm);
@@ -1141,6 +1142,7 @@ const BND_SHELL_GROUPS = [
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
 			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
 			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
+			{ key: "desk", label: () => __("Desk body"), anchors: ["desk_width"] },
 			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
 			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
@@ -1335,6 +1337,10 @@ const BND_SHELL_OWNS = {
 	crumbs: { prefixes: ["crumb_"] },
 	list: { prefixes: ["list_"] },
 	form: { prefixes: ["form_"] },
+	// The body kit's three fields, by NAME: the desk_ prefix is already the
+	// placement board's for desk_order, and a prefix claim here would light
+	// two dots for one change.
+	desk: { fields: ["desk_width", "desk_scale", "desk_primary"] },
 	workspace: { prefixes: ["workspace_"] },
 	chart: { prefixes: ["chart_"] },
 	report: { prefixes: ["report_"] },
@@ -2395,6 +2401,7 @@ function bnd_all_previews(frm) {
 	bnd_inbox_preview(frm);
 	bnd_list_preview(frm);
 	bnd_form_preview(frm);
+	bnd_desk_preview(frm);
 	bnd_workspace_preview(frm);
 	bnd_chart_preview(frm);
 	bnd_report_preview(frm);
@@ -4513,6 +4520,107 @@ function bnd_form_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_form_preview(frm);
 	bnd_render_form_picker(frm);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Desk body picker (item 43 A1) — width, type scale, primary button
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.DESK_FIELDS — keep in sync. Export AND import list it. */
+const BND_DESK_FIELDS = ["desk_width", "desk_scale", "desk_primary"];
+
+/** Client mirror of presets.DESK_DEFAULTS — keep in sync. */
+const BND_DESK_DEFAULTS = {
+	desk_width: "Full Bleed",
+	desk_scale: "Standard 14",
+	desk_primary: "Brand",
+};
+
+/**
+ * Three rows and no style cards: the body kit has NO anchor. Each axis stands
+ * down alone, so each row offers its own "Original" — the vendor's 900px cap,
+ * the vendor's flat type, the vendor's black button — beside the theme's values.
+ */
+const BND_DESK_GROUPS = [
+	{
+		field: "desk_width",
+		title: () => __("Width"),
+		desc: () => __("How wide the body runs. Frappe caps forms, footers and workspaces at 900px and centres them; the theme's card used to span the whole column around that."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Measured Column", name: () => __("Measured Column") },
+			{ value: "Narrow Column", name: () => __("Narrow Column") },
+			{ value: "Full Bleed", name: () => __("Full Bleed") },
+		],
+	},
+	{
+		field: "desk_scale",
+		title: () => __("Type scale"),
+		desc: () => __("The body's type set: values, labels, section heads and titles move together, and the head leads. Density is separate and never touches type."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Compact 13", name: () => __("Compact 13") },
+			{ value: "Standard 14", name: () => __("Standard 14") },
+			{ value: "Touch 16", name: () => __("Touch 16") },
+		],
+	},
+	{
+		field: "desk_primary",
+		title: () => __("Primary button"),
+		desc: () => __("Frappe's near-black button, or the brand fill with its gated ink."),
+		options: [
+			{ value: "Black", name: () => __("Black") },
+			{ value: "Brand", name: () => __("Brand") },
+		],
+	},
+];
+
+/** Render the desk body picker. */
+function bnd_render_desk_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "desk_picker", host);
+	if (!$host) return;
+
+	const groups = BND_DESK_GROUPS.map((g) => {
+		// Filtered against the field's real options — the rule that retired the
+		// status Off-card wedge class of bug.
+		const offered = bnd_field_slots(frm, g.field);
+		return P.group({
+			title: g.title(),
+			desc: g.desc(),
+			field: g.field,
+			body: P.options(
+				g.options.filter((o) => offered.includes(o.value)).map((o) => ({ value: o.value, name: o.name() })),
+				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
+			),
+		});
+	}).join("");
+
+	$host.html(P.wrap('<div class="bnd-cbp bnd-dkp">' + groups + P.note(__("Applies as you click.")) + "</div>"));
+
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_desk_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_desk_set(frm, f, bnd_default_of(f, BND_DESK_DEFAULTS[f]));
+	});
+}
+
+/** Hand the form's body values to the desk engine — live preview. */
+function bnd_desk_preview(frm) {
+	if (!window.bunood_theme || !window.bunood_theme.body_apply) return;
+	const values = {};
+	for (const f of BND_DESK_FIELDS) values[f] = frm.doc[f];
+	window.bunood_theme.body_apply(values);
+}
+
+/** Set one body option, preview, re-render. */
+function bnd_desk_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_desk_preview(frm);
+	bnd_render_desk_picker(frm);
 }
 
 // ── Workspace picker (item 25) — 7 tile styles, a rows group, a menu toggle ──
@@ -7845,7 +7953,7 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_DESK_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
 /**
@@ -7939,6 +8047,7 @@ function bnd_sb_import(frm) {
 			bnd_render_status_picker(frm);
 			bnd_render_list_picker(frm);
 			bnd_render_form_picker(frm);
+		bnd_render_desk_picker(frm);
 			bnd_render_workspace_picker(frm);
 			bnd_render_chart_picker(frm);
 			bnd_render_report_picker(frm);

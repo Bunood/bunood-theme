@@ -1298,6 +1298,13 @@
 	//   surfaces/_overlays.scss scopes them html[data-theme], outside the
 	//   anchor, so clearing it never makes a dialog illegible. Dim and Inset
 	//   map to "" (stock scrim, stock row).
+	// - body (item 43): NO ANCHOR. Width, type scale and the primary button
+	//   are three axes that stand down one at a time — "Original" on width is
+	//   the vendor's 900px cap, on scale the vendor's 14-over-14 type, and
+	//   Black IS the vendor's button — so a site can keep Frappe's cap with
+	//   our type set. The attribute stem is "body", not "desk": data-bnd-desk
+	//   is the presence mark stamped below, and a kit named after it would
+	//   strip it on every apply. The FIELDS keep the registered desk_ prefix.
 
 	// Assigned by patch_calendar_colors below; a no-op until then so a boot
 	// with no Calendar class (or a headless build) never throws.
@@ -1341,6 +1348,16 @@
 				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
+		},
+		body: {
+			attr: "body", boot: "bnd_body",
+			anchor: null,
+			axes: [
+				["width", "desk_width", { "Original": "", "Measured Column": "measured", "Narrow Column": "narrow", "Full Bleed": "full" }],
+				["scale", "desk_scale", { "Original": "", "Compact 13": "13", "Standard 14": "14", "Touch 16": "16" }],
+				["primary", "desk_primary", { "Black": "", "Brand": "brand" }],
+			],
+			check: null,
 		},
 		workspace: {
 			attr: "ws", boot: "bnd_workspace",
@@ -1439,9 +1456,13 @@
 			if (!v) return;
 			state = v;
 			bnd_kit_state[kit] = v;
-			const style = def.anchor[1][v[def.anchor[0]]];
-			if (!style) return; // "" (Original) => pure clearing
-			html.setAttribute(stem, style);
+			// An ANCHORLESS kit (body) has no whole-kit stand-down: each axis
+			// stands down alone, and the bare stem is never set.
+			if (def.anchor) {
+				const style = def.anchor[1][v[def.anchor[0]]];
+				if (!style) return; // "" (Original) => pure clearing
+				html.setAttribute(stem, style);
+			}
 			for (const [suffix, field, slugs] of def.axes) {
 				const slug = slugs[v[field]];
 				if (slug) html.setAttribute(stem + "-" + suffix, slug);

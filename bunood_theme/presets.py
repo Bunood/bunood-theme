@@ -459,6 +459,27 @@ FORM_DEFAULTS = {
     "form_grid_checkbox_reveal": 1,
 }
 
+#: The body kit (item 43 A1), matching theme_settings.json: how wide the body runs,
+#: the type set it renders at, and whether the primary button is black or brand.
+#: Three axes that stand down ONE AT A TIME — there is no anchor, because a site can
+#: want Frappe's own cap with our type scale, and "Original" means the vendor's own
+#: value on each axis (its 900px cap, its 14-over-14 type, its near-black button).
+#: The fields keep the registered ``desk_`` prefix; the attribute stem is ``body``,
+#: because ``data-bnd-desk`` is the presence mark bunood.js stamps for "this file ran".
+DESK_FIELDS = [
+    "desk_width",
+    "desk_scale",
+    "desk_primary",
+]
+
+#: The shipped body — the user's pick from the item-43 composer (Bunood Console,
+#: 2026-09-08): full bleed, the 14 set, the brand fill.
+DESK_DEFAULTS = {
+    "desk_width": "Full Bleed",
+    "desk_scale": "Standard 14",
+    "desk_primary": "Brand",
+}
+
 #: Workspace tile surface fields (item 25), matching theme_settings.json. Like the
 #: other surface kits, no preset catalogue: the style IS the top-level choice.
 #: workspace_metric (the number-card interior) is a separate axis, added in slice 5.
@@ -1350,7 +1371,7 @@ def _theme_axes() -> list:
         [c["toggle"] for c in CONTAINERS],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
-        STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
+        STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, DESK_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
         FILTERS_FIELDS, LOGIN_FIELDS, WEB_FIELDS, EMAIL_FIELDS, PRINT_FIELDS,
     )
@@ -1509,6 +1530,9 @@ THEME_PRESETS = {
             "crumb_style": "Original", "palette_style": "Original",
             "inbox_style": "Original", "list_style": "Original",
             "form_style": "Original", "workspace_style": "Original",
+            # The body kit stands down one axis at a time (item 43 A1): the
+            # vendor's cap, its type, its black button.
+            "desk_width": "Original", "desk_scale": "Original", "desk_primary": "Black",
             "report_style": "Original", "views_style": "Original",
             "overlay_style": "Original", "empty_style": "Original",
             "skeleton_style": "Original", "filters_style": "Original",
@@ -1561,7 +1585,7 @@ def _shipped_baseline() -> dict:
     }
     for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, ICON_DEFAULTS,
               CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
-              LIST_DEFAULTS, FORM_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
+              LIST_DEFAULTS, FORM_DEFAULTS, DESK_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
               REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,
               SKELETON_DEFAULTS, FILTERS_DEFAULTS, LOGIN_DEFAULTS, WEB_DEFAULTS,
               EMAIL_DEFAULTS, PRINT_DEFAULTS):

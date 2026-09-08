@@ -39,9 +39,12 @@
   --bnd-text-2xl: 1.75rem;
   --bnd-weight-normal: 400;
   --bnd-weight-medium: 500;
+  --bnd-weight-semibold: 600;
   --bnd-leading-tight: 1.25;
   --bnd-leading-base: 1.5;
   --bnd-numeric: tabular-nums;
+  --bnd-content-w: 1120px;
+  --bnd-content-w-narrow: 1040px;
   --bnd-radius-sm: 4px;
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
@@ -243,6 +246,36 @@ html[data-theme=dark] {
     --bnd-on-critical: #16181d;
   }
 }
+html[data-bnd-body-scale="13"] {
+  --bnd-body-value: 0.8125rem;
+  --bnd-body-label: 0.75rem;
+  --bnd-body-help: 0.71875rem;
+  --bnd-body-head: 0.875rem;
+  --bnd-body-title: 1.125rem;
+  --bnd-body-table: 0.78125rem;
+  --bnd-body-table-head: 0.6875rem;
+}
+
+html[data-bnd-body-scale="14"] {
+  --bnd-body-value: 0.875rem;
+  --bnd-body-label: 0.78125rem;
+  --bnd-body-help: 0.75rem;
+  --bnd-body-head: 0.9375rem;
+  --bnd-body-title: 1.25rem;
+  --bnd-body-table: 0.8125rem;
+  --bnd-body-table-head: 0.71875rem;
+}
+
+html[data-bnd-body-scale="16"] {
+  --bnd-body-value: 1rem;
+  --bnd-body-label: 0.875rem;
+  --bnd-body-help: 0.8125rem;
+  --bnd-body-head: 1.0625rem;
+  --bnd-body-title: 1.375rem;
+  --bnd-body-table: 0.9375rem;
+  --bnd-body-table-head: 0.8125rem;
+}
+
 html[data-bnd-density=comfortable] {
   --bnd-row-h: 32px;
   --bnd-control-h: 30px;
@@ -372,6 +405,22 @@ html[data-theme=dark] {
 }
 html[data-bnd-sb-panestate=open]:not([data-bnd-narrow]) .body-sidebar-container {
   --sidebar-width: var(--bnd-sb-w);
+}
+
+html[data-bnd-body-width=full] {
+  --page-max-width: none;
+}
+
+html[data-bnd-body-width=measured] {
+  --page-max-width: var(--bnd-content-w);
+}
+
+html[data-bnd-body-width=narrow] {
+  --page-max-width: var(--bnd-content-w-narrow);
+}
+
+html[data-bnd-body-primary=brand] {
+  --btn-primary: var(--bnd-brand-solid);
 }
 
 html:lang(ar) body,
@@ -5255,6 +5304,59 @@ html[data-bnd-form] .form-sidebar {
 
 html[data-bnd-form][data-bnd-form-side=pane] .layout-side-section {
   background: var(--bnd-raised);
+}
+
+html[data-bnd-body-width=measured] .form-layout .form-section,
+html[data-bnd-body-width=measured] .form-layout .form-dashboard-section,
+html[data-bnd-body-width=measured] .form-layout .form-tabs-list {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+
+html[data-bnd-body-width=narrow] .form-layout .form-section,
+html[data-bnd-body-width=narrow] .form-layout .form-dashboard-section,
+html[data-bnd-body-width=narrow] .form-layout .form-tabs-list {
+  max-inline-size: var(--bnd-content-w-narrow);
+  margin-inline: auto;
+}
+
+html[data-bnd-body-scale] .form-layout .section-head {
+  font-size: var(--bnd-body-head);
+  font-weight: var(--bnd-weight-semibold);
+}
+
+html[data-bnd-body-scale] .frappe-control .control-label {
+  font-size: var(--bnd-body-label);
+}
+
+html[data-bnd-body-scale] .frappe-control .help-box,
+html[data-bnd-body-scale] .form-layout .form-section-description,
+html[data-bnd-body-scale] .form-layout .form-column-description {
+  font-size: var(--bnd-body-help);
+}
+
+html[data-bnd-body-scale] .frappe-control input.form-control,
+html[data-bnd-body-scale] .frappe-control select.form-control,
+html[data-bnd-body-scale] .frappe-control textarea.form-control,
+html[data-bnd-body-scale] .frappe-control .control-value,
+html[data-bnd-body-scale] .frappe-control .ql-editor {
+  font-size: var(--bnd-body-value);
+}
+
+html[data-bnd-body-scale] .form-grid .grid-heading-row {
+  font-size: var(--bnd-body-table-head);
+}
+
+html[data-bnd-body-scale] .form-grid .grid-body .grid-row {
+  font-size: var(--bnd-body-table);
+}
+
+html[data-bnd-body-scale] .list-row-head {
+  font-size: var(--bnd-body-table);
+}
+
+html[data-bnd-body-primary=brand] .btn.btn-primary {
+  color: var(--bnd-on-brand);
 }
 
 html[data-theme] .chart-container {

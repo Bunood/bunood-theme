@@ -1,0 +1,99 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THE BODY KIT — item 43 slice A1. Width, type set, primary button.
+//
+// WHAT
+//   Three axes every surface shares, keyed on attributes bunood.js derives from
+//   Theme Settings (boot -> data-bnd-body-*). Attribute-only and ANCHORLESS:
+//   each axis stands down alone, so a site can keep Frappe's own width cap with
+//   the theme's type set. Absent attributes ARE the stand-down.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-body-width     measured | narrow | full   (absent = the vendor's
+//                           900px cap, untouched)
+//   data-bnd-body-scale     13 | 14 | 16               (absent = the vendor's
+//                           flat 14-over-14 type)
+//   data-bnd-body-primary   brand                      (absent = the vendor's
+//                           near-black button)
+//
+// THE FACTS THIS FILE IS BUILT ON (docs/upstream/frappe-form-body.md, measured
+// 2026-09-08, Frappe 16.33.0)
+//   * Frappe caps `.section-body`, `.form-footer` and the workspace
+//     `.layout-main` at ITS variable `--page-max-width` (900px) with
+//     `margin: auto !important`, while the theme's section card spans the
+//     column: a 1126px card around a 900px body, 97px of dead card each side.
+//     THE CAP IS FED, NEVER FOUGHT: `_bridge.scss` points `--page-max-width` at
+//     our measure tokens (Frappe's names live there and nowhere else). What is
+//     here is the FRAME following the measure, so the card never spans a column
+//     its body does not — one token, read by the card and by the vendor.
+//   * The section head renders at 14px/500 and the label at 14px/420: nothing
+//     leads. The type set lives in `_tokens.scss` under the scale attribute;
+//     these rules are its consumers. The head gains a weight as well as a size
+//     (`--bnd-weight-semibold`) because one point alone did not read as a head
+//     against a column of 14px labels.
+//   * `.btn.btn-primary` reads Frappe's `--btn-primary` (fed in the bridge) and
+//     paints its ink from `--neutral`, which is white in light and near-black in
+//     dark — the wrong ink for a brand fill in one of the two modes. The ink is
+//     the GATED pair token `--bnd-on-brand`; the `:active` state keeps the
+//     vendor's `!important` inversion, which is legible on every seed.
+// ============================================================================
+
+// ── Width: the frame follows the measure ─────────────────────────────────────
+// Under a measured column the vendor centres the body at the token's width;
+// the card, the tabs bar and the connections dashboard take the same width so
+// there is nothing beside the body for the eye to read as a second edge.
+// Full Bleed needs no rule: the cap is `none` and everything fills the column.
+html[data-bnd-body-width="measured"] .form-layout .form-section,
+html[data-bnd-body-width="measured"] .form-layout .form-dashboard-section,
+html[data-bnd-body-width="measured"] .form-layout .form-tabs-list {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+html[data-bnd-body-width="narrow"] .form-layout .form-section,
+html[data-bnd-body-width="narrow"] .form-layout .form-dashboard-section,
+html[data-bnd-body-width="narrow"] .form-layout .form-tabs-list {
+  max-inline-size: var(--bnd-content-w-narrow);
+  margin-inline: auto;
+}
+
+// ── Type: the set the body renders in ────────────────────────────────────────
+// Keyed on the attribute's PRESENCE — the sizes themselves are the tokens each
+// scale block declares, so one rule serves all three sets.
+html[data-bnd-body-scale] .form-layout .section-head {
+  font-size: var(--bnd-body-head);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-bnd-body-scale] .frappe-control .control-label {
+  font-size: var(--bnd-body-label);
+}
+html[data-bnd-body-scale] .frappe-control .help-box,
+html[data-bnd-body-scale] .form-layout .form-section-description,
+html[data-bnd-body-scale] .form-layout .form-column-description {
+  font-size: var(--bnd-body-help);
+}
+html[data-bnd-body-scale] .frappe-control input.form-control,
+html[data-bnd-body-scale] .frappe-control select.form-control,
+html[data-bnd-body-scale] .frappe-control textarea.form-control,
+html[data-bnd-body-scale] .frappe-control .control-value,
+html[data-bnd-body-scale] .frappe-control .ql-editor {
+  font-size: var(--bnd-body-value);
+}
+// The child grid: a smaller head over table-sized rows. Alignment, rules and
+// the row wash are slice A4's (`data-bnd-form-grid`); only the sizes are here.
+html[data-bnd-body-scale] .form-grid .grid-heading-row {
+  font-size: var(--bnd-body-table-head);
+}
+html[data-bnd-body-scale] .form-grid .grid-body .grid-row {
+  font-size: var(--bnd-body-table);
+}
+// The list header sits a step under its rows, which stay at the value size.
+html[data-bnd-body-scale] .list-row-head {
+  font-size: var(--bnd-body-table);
+}
+
+// ── Primary: the brand fill's ink ────────────────────────────────────────────
+// The fill itself is `--btn-primary`, fed in `_bridge.scss`. Weight (0,3,1)
+// over the vendor's `.btn.btn-primary` at (0,2,0).
+html[data-bnd-body-primary="brand"] .btn.btn-primary {
+  color: var(--bnd-on-brand);
+}

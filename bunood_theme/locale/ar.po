@@ -6507,3 +6507,135 @@ msgstr "اختر لغتين على الأقل، بالترتيب الذي يجب
 #. src: item44
 msgid "That language is not offered on this site."
 msgstr "هذه اللغة غير معروضة في هذا الموقع."
+
+#. Label of a Section Break field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Desk Body"
+msgstr "متن المكتب"
+
+#. Label of an HTML field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Desk Body Picker"
+msgstr "منتقي متن المكتب"
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Desk Width"
+msgstr "عرض المتن"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How wide the body runs: Frappe's own 900px cap, a measured column, or the whole page."
+msgstr "يُضبط من المنتقي أعلاه. مدى اتساع المتن: سقف فرابي البالغ 900 بكسل، أو عمود مقاس، أو الصفحة كاملة."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Measured Column"
+msgstr "عمود مقاس"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Narrow Column"
+msgstr "عمود ضيق"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Full Bleed"
+msgstr "عرض كامل"
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Desk Scale"
+msgstr "مقياس خط المتن"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. The body's type set: values, labels, section heads and titles move together."
+msgstr "يُضبط من المنتقي أعلاه. مجموعة خطوط المتن: القيم والتسميات وعناوين الأقسام والعناوين تتحرك معًا."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Compact 13"
+msgstr "مضغوط 13"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Standard 14"
+msgstr "قياسي 14"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Touch 16"
+msgstr "لمس 16"
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Primary Button"
+msgstr "الزر الأساسي"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. Whether the primary button is Frappe's black or the brand fill."
+msgstr "يُضبط من المنتقي أعلاه. هل الزر الأساسي هو أسود فرابي أم تعبئة العلامة التجارية."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Black"
+msgstr "أسود"
+
+#. Group title in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Width"
+msgstr "العرض"
+
+#. Group description in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "How wide the body runs. Frappe caps forms, footers and workspaces at 900px and centres them; the theme's card used to span the whole column around that."
+msgstr "مدى اتساع المتن. يحدّ فرابي النماذج والتذييلات ومساحات العمل عند 900 بكسل ويوسّطها؛ وكانت بطاقة السمة تمتد على العمود كله حول ذلك."
+
+#. Group title in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Type scale"
+msgstr "مقياس الخط"
+
+#. Group description in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "The body's type set: values, labels, section heads and titles move together, and the head leads. Density is separate and never touches type."
+msgstr "مجموعة خطوط المتن: القيم والتسميات وعناوين الأقسام والعناوين تتحرك معًا، والعنوان يتقدّم. الكثافة منفصلة ولا تمسّ الخط أبدًا."
+
+#. Group title in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Primary button"
+msgstr "الزر الأساسي"
+
+#. Group description in the desk body picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Frappe's near-black button, or the brand fill with its gated ink."
+msgstr "زر فرابي شبه الأسود، أو تعبئة العلامة التجارية بحبرها المعتمد."
+
+#. Settings map entry for the body kit (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Desk body"
+msgstr "متن المكتب"
