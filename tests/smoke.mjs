@@ -1372,6 +1372,10 @@ const MUTABLE_FIELDS = [
 	// in BRAND_INPUTS so the `finally` restore regenerates the sheet with it.
 	"ground_color",
 	"desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
+	// Placements the suite writes (the topbar, pane-state and layout checks set
+	// them) and, until item 43 A9, never restored: every run left both on
+	// "Top Bar End" against a shipped "Side Pane End".
+	"inbox_placement", "user_placement",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// The body kit (item 43 A1): width, type scale, primary button.
@@ -13753,6 +13757,43 @@ print("ok")
 			const attrs = await page.evaluate(() =>
 				[...document.documentElement.attributes].filter((a) => a.name.startsWith("data-bnd-ws")).map((a) => a.name));
 			expectEq(attrs.join(","), "", "no workspace attribute survives Original");
+		});
+
+		await test("workspace: number cards keep ONE gutter on both routes, per style", async () => {
+			// Item 43 A9. The workspace lays number cards out as Editor.js blocks,
+			// the dashboard route as a CSS grid; the kit feeds one gutter token to
+			// both — and the vendor's own tile width undid it on the workspace
+			// (measured: 14px gaps under Hairline Grid while the dashboard's abut).
+			const gapsOn = async (route, sel) => {
+				await goDesk(route, sel, 5000);
+				return page.evaluate(() => {
+					const tiles = [...document.querySelectorAll(".number-widget-box")].filter((t) => t.getBoundingClientRect().width > 0);
+					const row = tiles.filter((t) => Math.abs(t.getBoundingClientRect().top - tiles[0].getBoundingClientRect().top) < 2).slice(0, 3);
+					const r = row.map((t) => t.getBoundingClientRect());
+					return r.slice(1).map((x, i) => Math.round(x.left - (r[i].left + r[i].width)));
+				});
+			};
+			for (const [label, gapless] of [["Hairline Grid", true], ["Soft Tiles", false]]) {
+				setSettings({ workspace_style: label });
+				const ws = await gapsOn("/desk/selling", ".number-widget-box");
+				const dash = await gapsOn("/desk/dashboard-view/Selling", ".widget-group-body .number-widget-box");
+				expect(ws.length >= 2 && dash.length >= 2, `${label}: both routes show a row of cards (${ws.length}, ${dash.length})`);
+				expect(Math.abs(ws[0] - dash[0]) <= 2, `${label}: one gutter on both routes (workspace ${ws[0]}px, dashboard ${dash[0]}px)`);
+				if (gapless) expect(ws[0] <= 1 && dash[0] <= 1, `${label}: gapless on both (${ws[0]}, ${dash[0]})`);
+				else expect(ws[0] >= 8, `${label}: a real gutter (${ws[0]}px)`);
+			}
+		});
+
+		await test("workspace: the workspace column and the form column share the width token", async () => {
+			setSettings({ desk_width: "Measured Column" });
+			await goDesk("/desk/selling", ".layout-main", 4000);
+			const ws = await page.evaluate(() => Math.round(document.querySelector(".layout-main").getBoundingClientRect().width));
+			await goDesk("/desk/item/new", ".form-section", 4000);
+			// The card (.form-section) is what the cap sizes on the form; its
+			// .section-body sits inside the card's padding (measured 1088 in 1120).
+			const form = await page.evaluate(() => Math.round(document.querySelector(".std-form-layout .form-section").getBoundingClientRect().width));
+			expect(Math.abs(ws - form) <= 2, `Measured Column: workspace ${ws} == form ${form}`);
+			expect(ws >= 1100 && ws <= 1140, `and it is the measured 1120 (${ws})`);
 		});
 
 		const WS_STYLE_SLUG = {

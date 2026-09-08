@@ -10,7 +10,7 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 ``rtl_`` on Arabic sites. See ARCHITECTURE.md section 6.
 """
 
-THEME_CSS = "/assets/bunood_theme/dist/css/bunood.271affbb.css"
+THEME_CSS = "/assets/bunood_theme/dist/css/bunood.0f1a6afb.css"
 WEB_CSS = "/assets/bunood_theme/dist/css/bunood-web.ad300c78.css"
 EMAIL_CSS = "/assets/bunood_theme/dist/css/bunood-email.1c5e93a1.css"
 PRINT_CSS = "/assets/bunood_theme/dist/css/bunood-print.d37178c9.css"

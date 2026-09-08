@@ -4514,13 +4514,12 @@ html[data-bnd-ws] {
   --ws-gutter-default: var(--bnd-sp-3);
 }
 
-html[data-bnd-ws] .codex-editor__redactor {
+html[data-bnd-ws] .layout-main-section .codex-editor .codex-editor__redactor {
   margin-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / -2);
 }
 
-html[data-bnd-ws] .ce-block {
-  padding-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
-  padding-block-end: var(--ws-gutter, var(--ws-gutter-default));
+html[data-bnd-ws] .layout-main-section:not(.edit-mode) .codex-editor .codex-editor__redactor .ce-block .ce-block__content {
+  padding: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
 }
 
 html[data-bnd-ws] .widget-group-body {
