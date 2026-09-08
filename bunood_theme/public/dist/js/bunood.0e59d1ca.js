@@ -1347,6 +1347,7 @@
 				// Item 43 A2: the anatomy of one control. Original = the stock tint
 				// with no edge, so the whole axis stands down under it.
 				["fields", "form_fields", { "Original": "", "Stacked Outlined": "outline", "Property Rows": "rows", "Quiet Underline": "underline", "Inline Text": "inline" }],
+				["grid", "form_grid", { "Original": "", "Hairline Ledger": "ledger", "Ruled Sheet": "ruled" }],
 				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
 				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" }],
 			],

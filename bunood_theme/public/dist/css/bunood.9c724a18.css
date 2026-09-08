@@ -3522,7 +3522,11 @@ html[data-theme] .bnd-cbp-group {
   padding: 10px 12px;
   background: var(--card-bg, var(--fg-color));
 }
-html[data-theme] .bnd-cbp-off {
+html[data-theme] .bnd-cbp-off > .bnd-cbp-title,
+html[data-theme] .bnd-cbp-off > .bnd-cbp-desc {
+  color: var(--bnd-ink-muted);
+}
+html[data-theme] .bnd-cbp-off > :not(.bnd-cbp-title):not(.bnd-cbp-desc) {
   opacity: 0.55;
 }
 html[data-theme] .bnd-cbp-title {
@@ -5103,6 +5107,17 @@ html[data-theme] .frappe-control .control-value.like-disabled-input {
   min-block-size: var(--bnd-control-h);
 }
 
+html[data-theme] .form-grid .grid-body .grid-row:not(.editable-row) > .row > .col {
+  display: grid;
+  align-content: center;
+  block-size: calc(var(--bnd-control-h) + 2 * var(--bnd-pad-y));
+  padding-block: var(--bnd-pad-y);
+}
+
+html[data-theme] .form-grid .grid-body .grid-row:not(.editable-row) > .row > .row-check {
+  justify-items: center;
+}
+
 html[data-bnd-form=hairline] {
   --bnd-form-sec-border: var(--bnd-border);
   --bnd-form-sec-radius: var(--bnd-radius-md);
@@ -5302,6 +5317,79 @@ html[data-bnd-form] .form-grid .grid-body .grid-row:has(.grid-row-check:checked)
 
 html[data-bnd-form] .form-grid .grid-row-open {
   background: var(--bnd-surface);
+}
+
+html[data-bnd-form][data-bnd-form-grid=ledger] {
+  --bnd-form-grid-vrule: transparent;
+  --bnd-form-grid-head-bg: transparent;
+  --bnd-form-grid-head-caps: uppercase;
+  --bnd-form-grid-zebra: var(--bnd-surface);
+}
+
+html[data-bnd-form][data-bnd-form-grid=ruled] {
+  --bnd-form-grid-vrule: var(--bnd-border);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+  --bnd-form-grid-zebra: color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-surface));
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .row-index,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .row-check {
+  border-inline-end-color: var(--bnd-form-grid-vrule);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .grid-static-col,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .row-index,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .row-check {
+  background: var(--bnd-form-grid-head-bg);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row {
+  color: var(--bnd-ink-muted);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: var(--bnd-form-grid-head-caps, none);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row:nth-child(even) {
+  background: var(--bnd-form-grid-zebra);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row .col:last-child {
+  background: transparent;
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row > .row-check,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row > .row-index {
+  background: inherit;
+}
+
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype=Currency],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype=Float],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype=Int],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype=Percent] {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-footer .grid-buttons {
+  flex: 1 1 auto;
+  gap: var(--bnd-sp-2);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-buttons .grid-add-row {
+  flex: 1 1 auto;
+  margin-inline: 0;
+  margin-block-start: var(--bnd-sp-2);
+  border: var(--bnd-line) dashed var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+}
+
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-buttons .grid-add-row:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
 }
 
 html[data-bnd-form][data-bnd-form-ckreveal] .form-grid .grid-body .grid-row-check {

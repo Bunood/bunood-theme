@@ -288,7 +288,16 @@ html[data-theme] {
     background: var(--card-bg, var(--fg-color));
   }
 
-  .bnd-cbp-off {
+  // A greyed group stays READABLE: its title and note keep AA ink — the
+  // reason it is off is the one thing the reader needs — and only the
+  // controls beneath them fade. Opacity over the whole group put the title
+  // near 4.0:1; axe caught it the day a shipped style (Crumb Pills) greyed a
+  // group on the default walk (item 43 A4).
+  .bnd-cbp-off > .bnd-cbp-title,
+  .bnd-cbp-off > .bnd-cbp-desc {
+    color: var(--bnd-ink-muted);
+  }
+  .bnd-cbp-off > :not(.bnd-cbp-title):not(.bnd-cbp-desc) {
     opacity: 0.55;
   }
 

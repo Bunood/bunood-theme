@@ -4305,7 +4305,7 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_fields", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
 // Mobile bar contents (item 24 C2). Export AND import list it — the same const
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
@@ -4334,6 +4334,7 @@ const BND_LINKS_DEFAULTS = {
 const BND_FORM_DEFAULTS = {
 	form_style: "Floating Panels",
 	form_fields: "Stacked Outlined",
+	form_grid: "Ruled Sheet",
 	form_tabs: "Solid Pill",
 	form_sidebar: "Floating Pane",
 	form_grid_checkbox_reveal: 1,
@@ -4456,6 +4457,16 @@ const BND_FORM_GROUPS = [
 			{ value: "Property Rows", name: () => __("Property Rows") },
 			{ value: "Quiet Underline", name: () => __("Quiet Underline") },
 			{ value: "Inline Text", name: () => __("Inline Text") },
+		],
+	},
+	{
+		field: "form_grid",
+		title: () => __("Line items"),
+		desc: () => __("How rows of items, taxes and payments read. Both theme options end-align the numbers and make Add row a quiet full-width button."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Hairline Ledger", name: () => __("Hairline Ledger") },
+			{ value: "Ruled Sheet", name: () => __("Ruled Sheet") },
 		],
 	},
 	{

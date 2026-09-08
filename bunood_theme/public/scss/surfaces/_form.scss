@@ -18,6 +18,8 @@
 //   data-bnd-form-fields     outline | rows | underline | inline  (the anatomy
 //                            of one control, item 43 A2; absent = the stock
 //                            tint with no edge under a stacked label)
+//   data-bnd-form-grid       ledger | ruled  (the child grid's anatomy, item 43
+//                            A4; absent = the stock grid: verticals, grey head)
 //   data-bnd-form-tabs       underline | segment | pill  (active tab marker)
 //   data-bnd-form-side       edge | pane | card          (the form sidebar)
 //   data-bnd-form-ckreveal   (presence = grid checkboxes rest hidden;
@@ -94,6 +96,25 @@ html[data-theme] .frappe-control select.form-control {
 }
 html[data-theme] .frappe-control .control-value.like-disabled-input {
   min-block-size: var(--bnd-control-h);
+}
+// The child grid's rows follow density too (item 43 A4) — a CONTRACT, outside
+// the anchor, so a compact desk is compact in its tables under Original as
+// well. Not `--bnd-row-h` (the list's 32/24): a grid row must hold a control
+// when it opens for editing, so its height is the control's plus the row's
+// vertical padding on both sides — 42 comfortable, 32 compact; stock is 44.
+// Static rows only: the editor row sizes itself from the controls it holds.
+// EVERY cell, not only the static columns: the row's last cell (the pencil)
+// is a bare `.col` that keeps the vendor's 10px padding and held the row at
+// 40 while the columns beside it were 32. A grid with centred content, so the
+// text sits mid-row at any density instead of on the top padding.
+html[data-theme] .form-grid .grid-body .grid-row:not(.editable-row) > .row > .col {
+  display: grid;
+  align-content: center;
+  block-size: calc(var(--bnd-control-h) + 2 * var(--bnd-pad-y));
+  padding-block: var(--bnd-pad-y);
+}
+html[data-theme] .form-grid .grid-body .grid-row:not(.editable-row) > .row > .row-check {
+  justify-items: center;
 }
 
 // ── The working set ─────────────────────────────────────────────────────────
@@ -329,6 +350,93 @@ html[data-bnd-form] .form-grid .grid-body .grid-row:has(.grid-row-check:checked)
 // inside a styled grid, and NOTHING else.
 html[data-bnd-form] .form-grid .grid-row-open {
   background: var(--bnd-surface);
+}
+
+// ── The grid's anatomy (item 43 A4) ─────────────────────────────────────────
+// data-bnd-form-grid — ledger | ruled. Stock (Original) is a 44px row with a
+// 1px `#ededed` rule between every cell, a 32px grey-on-grey head at 11.5px/420,
+// and "Add row" as a 68px button. Both options end-align numbers (the vendor
+// already does; this pins tabular figures under the anchor, the report kit's
+// decision) and turn Add row into a quiet full-width control.
+//   ledger  no verticals, a small-caps head with no fill, no stripe
+//   ruled   verticals on the theme's border, a raised head, odd-row stripes by
+//           the report kit's rule (3% ink over the surface)
+// The head's FILL variable is the same one the form styles set, on purpose:
+// the grid option is the more specific statement about the head and wins.
+html[data-bnd-form][data-bnd-form-grid="ledger"] {
+  --bnd-form-grid-vrule: transparent;
+  --bnd-form-grid-head-bg: transparent;
+  --bnd-form-grid-head-caps: uppercase;
+  // "No stripe" is the SURFACE, not transparent: the vendor paints every data
+  // row from `--fg-color`, so a transparent even row would itself be the stripe.
+  --bnd-form-grid-zebra: var(--bnd-surface);
+}
+html[data-bnd-form][data-bnd-form-grid="ruled"] {
+  --bnd-form-grid-vrule: var(--bnd-border);
+  --bnd-form-grid-head-bg: var(--bnd-raised);
+  --bnd-form-grid-zebra: color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-surface));
+}
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .row-index,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .row-check {
+  border-inline-end-color: var(--bnd-form-grid-vrule);
+}
+// The head's cells each paint the vendor's `--subtle-fg`; the option's fill
+// has to reach them, not only the row.
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .grid-static-col,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .row-index,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row .row-check {
+  background: var(--bnd-form-grid-head-bg);
+}
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row {
+  color: var(--bnd-ink-muted);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: var(--bnd-form-grid-head-caps, none);
+}
+// The stripe rides the ROW; the vendor paints the last cell (the row's pencil)
+// and the two sticky cells (check, index) from `--fg-color` on their own,
+// which would punch holes in every stripe. The sticky pair stays opaque —
+// it covers scrolled cells — so it INHERITS the row's paint rather than
+// dropping its own.
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row:nth-child(even) {
+  background: var(--bnd-form-grid-zebra);
+}
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row .col:last-child {
+  background: transparent;
+}
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row > .row-check,
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row > .row > .row-index {
+  background: inherit;
+}
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype="Currency"],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype="Float"],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype="Int"],
+html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-static-col[data-fieldtype="Percent"] {
+  font-variant-numeric: var(--bnd-numeric);
+}
+// `.grid-buttons` is a content-sized flex item in the footer's justify-between
+// row; a 100% button inside it spans 100% of itself. The host grows first.
+// Hidden siblings (add-multiple, upload) keep the button from ever being
+// `:last-child`, so the vendor's 4px end margin stays; a gap costs nothing
+// for a display:none sibling, so the spacing moves to the host.
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-footer .grid-buttons {
+  flex: 1 1 auto;
+  gap: var(--bnd-sp-2);
+}
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-buttons .grid-add-row {
+  flex: 1 1 auto;
+  margin-inline: 0;
+  margin-block-start: var(--bnd-sp-2);
+  border: var(--bnd-line) dashed var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-form][data-bnd-form-grid] .frappe-control .grid-buttons .grid-add-row:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
 }
 
 // ── Grid checkbox reveal ────────────────────────────────────────────────────

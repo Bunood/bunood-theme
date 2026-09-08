@@ -136,6 +136,7 @@
   "form_picker",
   "form_style",
   "form_fields",
+  "form_grid",
   "form_tabs",
   "form_sidebar",
   "form_grid_checkbox_reveal",
@@ -1392,6 +1393,15 @@
    "options": "Original\nStacked Outlined\nProperty Rows\nQuiet Underline\nInline Text"
   },
   {
+   "default": "Ruled Sheet",
+   "description": "Set by the picker above. How rows of items, taxes and payments read: the stock grid, a hairline ledger, or a ruled sheet.",
+   "fieldname": "form_grid",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Grid",
+   "options": "Original\nHairline Ledger\nRuled Sheet"
+  },
+  {
    "default": "Solid Pill",
    "description": "Set by the picker above. How the active tab announces itself.",
    "fieldname": "form_tabs",
@@ -1690,7 +1700,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 12:29:13.000000",
+ "modified": "2026-09-08 12:44:18.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

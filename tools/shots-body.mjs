@@ -16,8 +16,10 @@ const width = parseInt(process.argv[3] || "1440", 10);
 if (!outdir) { console.error("usage: node tools/shots-body.mjs <outdir> [width]"); process.exit(1); }
 mkdirSync(outdir, { recursive: true });
 
+// [name, route, readiness selector, tab to open first (regex on its label)]
 const ROUTES = [
 	["item", "/desk/item/BND-TEST-001", ".form-tabs-list"],
+	["item-uom", "/desk/item/BND-TEST-001", ".form-tabs-list", /uom/i],
 	["item-new", "/desk/item/new", ".form-section"],
 	["item-list", "/desk/item", ".list-row-head"],
 	["selling", "/desk/selling", ".layout-main"],
@@ -26,8 +28,15 @@ const ROUTES = [
 
 for (const mode of ["light", "dark"]) {
 	const { page, close, errors } = await openDesk({ width, height: 900 });
-	for (const [name, route, sel] of ROUTES) {
+	for (const [name, route, sel, tab] of ROUTES) {
 		await goto(page, route, sel, { settle: 3000 });
+		if (tab) {
+			await page.evaluate((re) => {
+				const a = [...document.querySelectorAll(".form-tabs .nav-link")].find((n) => new RegExp(re, "i").test(n.textContent));
+				if (a) a.click();
+			}, tab.source);
+			await page.waitForTimeout(700);
+		}
 		// Frappe's own theme switch is a boot/user setting; the attribute is what
 		// the stylesheets key on, and flipping it here is what the desk's own
 		// switcher does after the round trip.

@@ -1376,8 +1376,8 @@ const MUTABLE_FIELDS = [
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// The body kit (item 43 A1): width, type scale, primary button.
 	"desk_width", "desk_scale", "desk_primary",
-	// Field anatomy (item 43 A2).
-	"form_fields",
+	// Field anatomy (item 43 A2) and the child grid (A4).
+	"form_fields", "form_grid",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -9194,8 +9194,14 @@ print("ok")
 				// Back-filled here with item 27 — the HANDOVER omission, closed.
 				list_picker: { cards: 5, toggles: 1, opts: 5 },
 				// Form view kit (item 18): 5 style cards (Original + 4), the two
-				// option groups (3 tab markers + 3 sidebar treatments), one toggle.
-				form_picker: { cards: 5, toggles: 1, opts: 6 },
+				// option groups (tabs, sidebar) and the checkbox-reveal toggle.
+				// Item 43 A3 added three cards (Headed Groups, Grouped Insets,
+				// Tinted Heads); A2 the Fields group (Original + 4) and A4 the
+				// Line items group (Original + 2): 8 cards, 14 options.
+				form_picker: { cards: 8, toggles: 1, opts: 14 },
+				// Desk body (item 43 A1): no cards — three option groups (width 4,
+				// type scale 4, primary button 2) over the desk diagram.
+				desk_picker: { cards: 0, toggles: 0, opts: 10 },
 				// Workspace tile kit (item 25): 7 style cards (Original + 6), two
 				// option groups (5 metric + 3 rows = 8 opts), one menu toggle.
 				workspace_picker: { cards: 7, toggles: 1, opts: 8 },
@@ -9248,15 +9254,12 @@ print("ok")
 				// three clear). The specimen fills async; the wait above settles it.
 				identity_picker: { cards: 0, cells: 5, resets: 4 },
 			};
-			const got = await page.evaluate(() => {
+			// The names come FROM the table above: a second list here was the
+			// same fact in two places, and the desk picker (item 43) landed in one
+			// of them and reported "not rendered" from the other.
+			const got = await page.evaluate((names) => {
 				const out = {};
-				for (const f of Object.keys({
-					theme_picker: 1, layout_picker: 1, sidebar_picker: 1, crumbs_picker: 1, palette_picker: 1,
-					inbox_picker: 1, user_picker: 1, search_picker: 1, status_picker: 1,
-					list_picker: 1, form_picker: 1, workspace_picker: 1, chart_picker: 1,
-					report_picker: 1, views_picker: 1, overlay_picker: 1, empty_picker: 1, skeleton_picker: 1, filters_picker: 1, login_picker: 1, icons_picker: 1,
-					web_picker: 1, email_picker: 1, print_picker: 1, identity_picker: 1,
-				})) {
+				for (const f of names) {
 					const el = document.querySelector(`[data-fieldname="${f}"]`);
 					out[f] = el
 						? {
@@ -9271,7 +9274,7 @@ print("ok")
 						: null;
 				}
 				return out;
-			});
+			}, Object.keys(EXPECTED));
 			for (const [name, want] of Object.entries(EXPECTED)) {
 				expect(got[name], `${name} rendered`);
 				expect(got[name].h > 0, `${name} has height`);
@@ -13463,6 +13466,68 @@ print("ok")
 				expect(g.indicator && g.indicator.w >= 20 && g.indicator.h >= 20, `${label}: indicator ${g.indicator && g.indicator.w}×${g.indicator && g.indicator.h}`);
 			}
 			setSettings({ form_style: "Floating Panels" });
+		});
+
+		// ── Item 43 A4: the child grid — ledger or ruled sheet ────────────────
+		// Measured on the fixture's UOM tab (two rows, a Float column).
+		const gridGeom = () => page.evaluate(async () => {
+			const tab = [...document.querySelectorAll(".form-tabs .nav-link")].find((a) => /uom/i.test(a.textContent));
+			if (tab && !tab.classList.contains("active")) { tab.click(); await new Promise((r) => setTimeout(r, 600)); }
+			const grid = [...document.querySelectorAll(".form-grid")].find((g) => g.getBoundingClientRect().width > 0);
+			const rows = [...grid.querySelectorAll(".grid-body .grid-row")];
+			const cell = rows[0].querySelector(".grid-static-col");
+			const head = grid.querySelector(".grid-heading-row");
+			const headCell = head.querySelector(".grid-static-col");
+			const num = grid.querySelector('.grid-body .grid-static-col[data-fieldtype="Float"], .grid-body .grid-static-col[data-fieldtype="Currency"]');
+			const add = grid.closest(".frappe-control").querySelector(".grid-buttons .grid-add-row");
+			const cs = (el) => getComputedStyle(el);
+			return {
+				vrule: cs(cell).borderInlineEndColor,
+				headBg: cs(headCell).backgroundColor, headCaps: cs(head).textTransform, headWeight: cs(head).fontWeight,
+				row1: cs(rows[0]).backgroundColor, row2: rows[1] ? cs(rows[1]).backgroundColor : null,
+				rowH: rows[0].getBoundingClientRect().height,
+				numAlign: num ? cs(num.querySelector(".static-area") || num).textAlign : null,
+				numVariant: num ? cs(num.querySelector(".static-area") || num).fontVariantNumeric : null,
+				addW: add ? add.getBoundingClientRect().width : null, gridW: grid.getBoundingClientRect().width,
+				want: (() => { const h = getComputedStyle(document.documentElement); return parseFloat(h.getPropertyValue("--bnd-control-h")) + 2 * parseFloat(h.getPropertyValue("--bnd-pad-y")); })(),
+			};
+		});
+		await test("form: Ruled Sheet rules the grid, raises its head and stripes its rows", async () => {
+			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			expectEq(await attr("data-bnd-form-grid"), "ruled", "grid attribute");
+			const g = await gridGeom();
+			const border = await resolvePair("var(--bnd-border)", "var(--bnd-ink)");
+			expectEq(g.vrule, border.bg, "a vertical rule on the theme's border");
+			expect(g.headBg !== "rgba(0, 0, 0, 0)", `a raised head (${g.headBg})`);
+			expect(g.row2 && g.row2 !== g.row1, `the second row is striped (${g.row1} vs ${g.row2})`);
+			expect(/right|end/.test(g.numAlign), `numbers end-aligned (${g.numAlign})`);
+			expectEq(g.numVariant, "tabular-nums", "and tabular");
+			expect(g.addW && Math.abs(g.addW - g.gridW) <= 2, `Add row spans the grid (${g.addW} vs ${g.gridW})`);
+		});
+		await test("form: Hairline Ledger drops the verticals and sets a small-caps head", async () => {
+			setSettings({ form_grid: "Hairline Ledger" });
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			expectEq(await attr("data-bnd-form-grid"), "ledger", "grid attribute");
+			const g = await gridGeom();
+			expectEq(g.vrule, "rgba(0, 0, 0, 0)", "no vertical rule");
+			expectEq(g.headBg, "rgba(0, 0, 0, 0)", "no head fill");
+			expectEq(g.headCaps, "uppercase", "a small-caps head");
+			expect(g.row2 === g.row1, "no stripe");
+		});
+		await test("form: the grid row follows density under every grid option, Original included", async () => {
+			for (const opt of ["Original", "Ruled Sheet"]) {
+				setSettings({ form_grid: opt });
+				await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+				for (const density of ["comfortable", "compact"]) {
+					await page.evaluate((d) => document.documentElement.setAttribute("data-bnd-density", d), density);
+					await page.waitForTimeout(150);
+					const g = await gridGeom();
+					expect(Math.abs(g.rowH - g.want) <= 1, `${opt}/${density}: row ${g.rowH} == control + 2·pad ${g.want}`);
+				}
+				await page.evaluate(() => document.documentElement.removeAttribute("data-bnd-density"));
+			}
+			setSettings({ form_grid: "Ruled Sheet" });
 		});
 
 		await test("workspace: Original applies nothing at all", async () => {

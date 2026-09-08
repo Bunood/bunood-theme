@@ -191,6 +191,14 @@ def pairs():
         AA_TEXT, "tinted section head",
     ))
 
+    # Item 43 A4: Ruled Sheet's even rows carry a 3% ink wash under the row's
+    # own ink. Near-invisible on purpose, and a wash all the same — the gate
+    # measures every surface a text token is drawn over.
+    out.append(Pair(
+        "var(--bnd-ink)", "color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-surface))",
+        AA_TEXT, "ruled grid zebra row",
+    ))
+
     # The focus ring, against every surface it can be drawn over. `outline` paints
     # OUTSIDE the element, so the adjacent colour is the container's, not the
     # control's — which is why this is a cross product and not one pair.

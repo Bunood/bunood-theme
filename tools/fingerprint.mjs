@@ -98,7 +98,7 @@ await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
   for (const f of ["theme_picker","layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker",
-	"list_picker","form_picker","workspace_picker","chart_picker","report_picker","views_picker","overlay_picker","empty_picker","skeleton_picker","filters_picker","login_picker","web_picker",
+	"list_picker","form_picker","desk_picker", "workspace_picker","chart_picker","report_picker","views_picker","overlay_picker","empty_picker","skeleton_picker","filters_picker","login_picker","web_picker",
 	"email_picker","print_picker","icons_picker","placement_board"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}

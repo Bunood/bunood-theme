@@ -437,6 +437,7 @@ LIST_DEFAULTS = {
 FORM_FIELDS = [
     "form_style",
     "form_fields",
+    "form_grid",
     "form_tabs",
     "form_sidebar",
     "form_grid_checkbox_reveal",
@@ -455,6 +456,9 @@ FORM_DEFAULTS = {
     # Original is the stock tint with no edge; Property Rows, Quiet Underline
     # and Inline Text are the catalogue's other anatomies.
     "form_fields": "Stacked Outlined",
+    # Item 43 A4, the user's pick: the ruled sheet — verticals, a raised head,
+    # odd-row stripes by the report kit's rule. Hairline Ledger is the quiet one.
+    "form_grid": "Ruled Sheet",
     "form_tabs": "Solid Pill",
     # Styling only — the sidebar has no Off here. Hiding chrome is a
     # container concern; attachments and assignments must stay reachable.

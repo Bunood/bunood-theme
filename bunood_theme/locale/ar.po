@@ -6723,3 +6723,39 @@ msgstr "الأقسام في مساحات غائرة مرتفعة بنعومة ع
 #, fuzzy
 msgid "A brand-washed band heads each bordered section, the way a ledger rules its columns."
 msgstr "شريط مغسول بلون العلامة يعنون كل قسم محدود، كما يسطّر دفتر الحسابات أعمدته."
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Form Grid"
+msgstr "جدول النموذج"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. How rows of items, taxes and payments read: the stock grid, a hairline ledger, or a ruled sheet."
+msgstr "يُضبط من المنتقي أعلاه. كيف تُقرأ صفوف الأصناف والضرائب والمدفوعات: الجدول الأصلي، أو دفتر بخطوط رفيعة، أو ورقة مسطّرة."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Hairline Ledger"
+msgstr "دفتر بخطوط رفيعة"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Ruled Sheet"
+msgstr "ورقة مسطّرة"
+
+#. Group title in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Line items"
+msgstr "بنود السطور"
+
+#. Group description in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "How rows of items, taxes and payments read. Both theme options end-align the numbers and make Add row a quiet full-width button."
+msgstr "كيف تُقرأ صفوف الأصناف والضرائب والمدفوعات. كلا خياري السمة يحاذيان الأرقام إلى النهاية ويجعلان «إضافة صف» زرًا هادئًا بعرض كامل."
