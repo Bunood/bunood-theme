@@ -436,6 +436,7 @@ LIST_DEFAULTS = {
 #: the top-level choice and the treatments compose with any style.
 FORM_FIELDS = [
     "form_style",
+    "form_fields",
     "form_tabs",
     "form_sidebar",
     "form_grid_checkbox_reveal",
@@ -450,6 +451,10 @@ FORM_DEFAULTS = {
     # dashboard: they are one container statement, and splitting them is how
     # a floating section ends up beside a naked flat grid.
     "form_style": "Floating Panels",
+    # Item 43 A2, the user's pick (Bunood Console): a real edge on the field.
+    # Original is the stock tint with no edge; Property Rows, Quiet Underline
+    # and Inline Text are the catalogue's other anatomies.
+    "form_fields": "Stacked Outlined",
     "form_tabs": "Solid Pill",
     # Styling only — the sidebar has no Off here. Hiding chrome is a
     # container concern; attachments and assignments must stay reachable.

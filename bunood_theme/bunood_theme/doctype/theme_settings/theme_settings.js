@@ -4305,7 +4305,7 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
 // Mobile bar contents (item 24 C2). Export AND import list it — the same const
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
@@ -4333,6 +4333,7 @@ const BND_LINKS_DEFAULTS = {
 /** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
 const BND_FORM_DEFAULTS = {
 	form_style: "Floating Panels",
+	form_fields: "Stacked Outlined",
 	form_tabs: "Solid Pill",
 	form_sidebar: "Floating Pane",
 	form_grid_checkbox_reveal: 1,
@@ -4403,8 +4404,21 @@ const BND_FORM_STYLES = [
 	},
 ];
 
-/** The two composing option groups. */
+/** The composing option groups — the field's anatomy first, because it is the
+ * decision the item-43 census traced the "poorly done body" to. */
 const BND_FORM_GROUPS = [
+	{
+		field: "form_fields",
+		title: () => __("Fields"),
+		desc: () => __("What one field looks like: where its label sits and what its box is. Property Rows put the label beside the value; Inline Text draws no box until you hover."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Stacked Outlined", name: () => __("Stacked Outlined") },
+			{ value: "Property Rows", name: () => __("Property Rows") },
+			{ value: "Quiet Underline", name: () => __("Quiet Underline") },
+			{ value: "Inline Text", name: () => __("Inline Text") },
+		],
+	},
 	{
 		field: "form_tabs",
 		title: () => __("Tabs"),

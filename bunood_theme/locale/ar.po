@@ -6639,3 +6639,51 @@ msgstr "زر فرابي شبه الأسود، أو تعبئة العلامة ا�
 #, fuzzy
 msgid "Desk body"
 msgstr "متن المكتب"
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Form Fields"
+msgstr "حقول النموذج"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. What one field looks like: where its label sits and what its box is."
+msgstr "يُضبط من المنتقي أعلاه. شكل الحقل الواحد: أين تقع تسميته وما هو صندوقه."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Stacked Outlined"
+msgstr "مكدّس بإطار"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Property Rows"
+msgstr "صفوف الخصائص"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Quiet Underline"
+msgstr "خط سفلي هادئ"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Inline Text"
+msgstr "نص مضمّن"
+
+#. Group title in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Fields"
+msgstr "الحقول"
+
+#. Group description in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "What one field looks like: where its label sits and what its box is. Property Rows put the label beside the value; Inline Text draws no box until you hover."
+msgstr "شكل الحقل الواحد: أين تقع تسميته وما هو صندوقه. «صفوف الخصائص» تضع التسمية بجانب القيمة؛ و«نص مضمّن» لا يرسم صندوقًا حتى تمرّ بالمؤشر."

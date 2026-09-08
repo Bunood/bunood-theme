@@ -14,6 +14,9 @@
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
 //   data-bnd-form            hairline | open | cards | sheet   (the style;
 //                            the ANCHOR — absent = every rule here inert)
+//   data-bnd-form-fields     outline | rows | underline | inline  (the anatomy
+//                            of one control, item 43 A2; absent = the stock
+//                            tint with no edge under a stacked label)
 //   data-bnd-form-tabs       underline | segment | pill  (active tab marker)
 //   data-bnd-form-side       edge | pane | card          (the form sidebar)
 //   data-bnd-form-ckreveal   (presence = grid checkboxes rest hidden;
@@ -75,6 +78,8 @@
 // declare-everything working set, made for payload: a style block omits a
 // variable when the component rule's var() fallback IS the quiet value.
 // ============================================================================
+
+@use "../breakpoints" as *;
 
 // ── Density geometry (--bnd-control-h consumption, completing item 4) ───────
 // html[data-theme]-scoped, NOT the kit anchor: density is its own contract
@@ -329,4 +334,153 @@ html[data-bnd-form] .form-sidebar {
 // a room, not a box. Single-option rule, written directly.
 html[data-bnd-form][data-bnd-form-side="pane"] .layout-side-section {
   background: var(--bnd-raised);
+}
+
+// ── Fields (item 43 A2) ─────────────────────────────────────────────────────
+// THE ANATOMY OF ONE CONTROL. The census measured stock as a 1.02:1 tint with
+// no edge under a label the same size as the section head — a value with no
+// shape to find it by. Four treatments, one working set:
+//   outline    a real edge on the strong border, the surface as fill
+//   rows       label beside value in a fixed column, a hairline per row, a
+//              ghost box that surfaces under the pointer
+//   underline  the block-end edge alone, a small-caps label
+//   inline     no box at rest; the text sits where the label's text sits and
+//              the box appears on hover
+//
+// THE FACTS: stock is `.form-control { border: none; padding: var(--input-padding) }`
+// at (0,1,0) painted from `--control-bg`; the read-only value is
+// `.like-disabled-input` with its own fill. The control's DOM is
+// `.frappe-control > .form-group > (.clearfix > label.control-label)
+// + .control-input-wrapper > (.control-input, .control-value, .help-box)`, so
+// a grid on `.form-group` puts the label in column one and the box AND its
+// help in column two with no DOM change. Dialogs are outside `.form-layout`
+// and the grid's row editor is `.form-in-grid`: both keep the stacked shape.
+
+// Focus is a CONTRACT and survives Original: the filters kit's two-tone ring,
+// which clears 3:1 on every seed in one of its two tones (item 31). Bootstrap's
+// `.form-control:focus` sets outline 0 and its own grey shadow at (0,2,0).
+html[data-theme] .form-layout .frappe-control input.form-control:not([type="checkbox"]):focus-visible,
+html[data-theme] .form-layout .frappe-control select.form-control:focus-visible,
+html[data-theme] .form-layout .frappe-control textarea.form-control:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--bnd-on-brand);
+}
+
+// The working set.
+html[data-bnd-form][data-bnd-form-fields="outline"] {
+  --bnd-form-field-bg: var(--bnd-surface);
+  --bnd-form-field-border: var(--bnd-border-strong);
+  --bnd-form-field-radius: var(--bnd-radius-md);
+  --bnd-form-field-ro-bg: var(--bnd-raised);
+}
+html[data-bnd-form][data-bnd-form-fields="rows"] {
+  --bnd-form-field-bg: transparent;
+  --bnd-form-field-border: transparent;
+  --bnd-form-field-radius: var(--bnd-radius-md);
+  --bnd-form-field-hover-bg: var(--bnd-raised);
+  --bnd-form-field-hover-border: var(--bnd-border);
+  --bnd-form-field-ro-bg: transparent;
+}
+html[data-bnd-form][data-bnd-form-fields="underline"] {
+  --bnd-form-field-bg: transparent;
+  --bnd-form-field-border: var(--bnd-border-strong);
+  --bnd-form-field-radius: 0;
+  --bnd-form-field-ro-bg: transparent;
+}
+html[data-bnd-form][data-bnd-form-fields="inline"] {
+  --bnd-form-field-bg: transparent;
+  --bnd-form-field-border: transparent;
+  --bnd-form-field-radius: var(--bnd-radius-md);
+  --bnd-form-field-hover-bg: var(--bnd-raised);
+  --bnd-form-field-hover-border: var(--bnd-border);
+  --bnd-form-field-ro-bg: transparent;
+}
+
+// The box, riding the density contract's `.frappe-control` chain one attribute
+// heavier. Read-only values take their own fill so a value that cannot be
+// edited never wears an editable box.
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control input.form-control:not([type="checkbox"]),
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control select.form-control,
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control textarea.form-control {
+  background: var(--bnd-form-field-bg);
+  border: var(--bnd-line) solid var(--bnd-form-field-border);
+  border-radius: var(--bnd-form-field-radius);
+  transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control input.form-control:not([type="checkbox"]):hover,
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control select.form-control:hover,
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control textarea.form-control:hover {
+  background: var(--bnd-form-field-hover-bg, var(--bnd-form-field-bg));
+  border-color: var(--bnd-form-field-hover-border, var(--bnd-form-field-border));
+}
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control .control-value.like-disabled-input {
+  background: var(--bnd-form-field-ro-bg);
+  border: var(--bnd-line) solid var(--bnd-form-field-border);
+  border-radius: var(--bnd-form-field-radius);
+}
+
+// Underline: the block-end edge alone, the text flush with its label.
+html[data-bnd-form][data-bnd-form-fields="underline"] .form-layout .frappe-control input.form-control:not([type="checkbox"]),
+html[data-bnd-form][data-bnd-form-fields="underline"] .form-layout .frappe-control select.form-control,
+html[data-bnd-form][data-bnd-form-fields="underline"] .form-layout .frappe-control textarea.form-control,
+html[data-bnd-form][data-bnd-form-fields="underline"] .form-layout .frappe-control .control-value.like-disabled-input {
+  border-inline-width: 0;
+  border-block-start-width: 0;
+  padding-inline-start: 0;
+}
+html[data-bnd-form][data-bnd-form-fields="underline"] .form-layout .frappe-control .control-label {
+  text-transform: uppercase;
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+}
+
+// Inline: the text sits where the label's text sits (the box's own inline
+// padding pulled back), and the label steps down to subtle.
+html[data-bnd-form][data-bnd-form-fields="inline"] .form-layout .frappe-control input.form-control:not([type="checkbox"]),
+html[data-bnd-form][data-bnd-form-fields="inline"] .form-layout .frappe-control select.form-control,
+html[data-bnd-form][data-bnd-form-fields="inline"] .form-layout .frappe-control textarea.form-control,
+html[data-bnd-form][data-bnd-form-fields="inline"] .form-layout .frappe-control .control-value.like-disabled-input {
+  margin-inline-start: calc(-1 * var(--bnd-sp-2));
+}
+html[data-bnd-form][data-bnd-form-fields="inline"] .form-layout .frappe-control .control-label {
+  color: var(--bnd-ink-subtle);
+}
+
+// Property Rows: the label beside the value in a fixed column, a hairline
+// under each row. Only the single-line control types take the row — a Table,
+// an editor, an attachment or a long text keeps the stacked shape — and only
+// the section's own controls: the grid's row editor (`.form-in-grid`) is
+// excluded by the `:not()`, which also weighs in the selector. A DIALOG has a
+// `.form-layout` of its own (FieldGroup is a Layout), which is how the first
+// cut put a grid inside a modal; the desk form's layout is the one under
+// `.std-form-layout`, and only that one takes the row.
+// One `:is()` list, not eighteen rules: the first cut spelt every type out and
+// cost 470 gzip bytes of selector; `:is()` weighs as its heaviest argument,
+// one attribute, the same as the stacked-shape rules below it.
+$bnd-form-row-types: "Data", "Link", "Dynamic Link", "Select", "Autocomplete", "Date", "Datetime", "Time",
+  "Duration", "Int", "Float", "Currency", "Percent", "Password", "Phone", "Color", "Rating", "Read Only";
+$bnd-form-row-is: "";
+@each $t in $bnd-form-row-types {
+  $bnd-form-row-is: $bnd-form-row-is + if($bnd-form-row-is == "", "", ",") + '[data-fieldtype="#{$t}"]';
+}
+html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .form-column > form > .frappe-control:is(#{$bnd-form-row-is}):not(.form-in-grid *) > .form-group {
+  display: grid;
+  grid-template-columns: var(--bnd-label-w) minmax(0, 1fr);
+  column-gap: var(--bnd-sp-3);
+  align-items: center;
+  min-block-size: var(--bnd-row-h);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  margin-block-end: 0;
+}
+html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .form-column > form > .frappe-control[data-fieldtype]:not(.form-in-grid *) > .form-group > .clearfix .control-label {
+  margin-block-end: 0;
+}
+// Below md the column is too narrow for two: the rows stack. Same chain as
+// the row rule (the `:not()` weighs), later in the source, so it wins.
+@include bnd-until(md) {
+  html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .form-column > form > .frappe-control[data-fieldtype]:not(.form-in-grid *) > .form-group {
+    display: block;
+    border-block-end: 0;
+  }
 }

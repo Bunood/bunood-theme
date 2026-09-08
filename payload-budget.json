@@ -145,10 +145,11 @@
   "2026-09-06 item 44: css 23,000 -> 23,300 and js 110,100 -> 112,700 for the language switch and the Appearance button (two placeable tenants, the enabled-languages toggle/menu, the style attribute rules): measured 23,240 / 112,572. The switch's logic ships with its comments, per the file-copy policy.",
   "2026-09-08 pane repairs: css 23,300 -> 23,500 and js 112,700 -> 115,100 for the absent-region fallback to the pane's foot, the language-independent section-state mirror and the loose-row card (measured 23,424 / 114,923 after the hidden-wanted fallback, the shape_apply seam, the durable guard and the lend cluster's centre-to-end).",
   "2026-09-08 v0.44.2: js 115,100 -> 115,800 for the desk-page pane hook (page-change, route change and mount, through Frappe's own toggle); the offered-languages list lives server-side and in the settings form: measured 115,627.",
-  "AND css 23500 -> 24000 / js 115800 -> 116300 / web_css 4000 -> 4100 for item 43 slice A1, the body kit: three anchorless axes (desk_width feeding Frappe --page-max-width, desk_scale = seven type tokens per set, desk_primary bridging --btn-primary), one kit row plus its doctrine in bunood.js, and surfaces/_body.scss. The web bundle grows 44 because _tokens.scss gained the measure and weight tokens it shares."
+  "AND css 23500 -> 24000 / js 115800 -> 116300 / web_css 4000 -> 4100 for item 43 slice A1, the body kit: three anchorless axes (desk_width feeding Frappe --page-max-width, desk_scale = seven type tokens per set, desk_primary bridging --btn-primary), one kit row plus its doctrine in bunood.js, and surfaces/_body.scss. The web bundle grows 44 because _tokens.scss gained the measure and weight tokens it shares.",
+  "AND css 24000 -> 24500 for item 43 slice A2, the field anatomy: four working sets (Stacked Outlined, Property Rows, Quiet Underline, Inline Text) over one box rule, the row grid as a single :is() list, and the focus-ring CONTRACT on every form input (it survives Original, as the filters kit ring does). 429 gzip measured."
  ],
  "ceiling": {
-  "css_gzip": 24000,
+  "css_gzip": 24500,
   "js_gzip": 116300,
   "web_css_gzip": 4100,
   "email_css_gzip": 2000,

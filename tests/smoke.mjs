@@ -1376,6 +1376,8 @@ const MUTABLE_FIELDS = [
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// The body kit (item 43 A1): width, type scale, primary button.
 	"desk_width", "desk_scale", "desk_primary",
+	// Field anatomy (item 43 A2).
+	"form_fields",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -13309,6 +13311,107 @@ print("ok")
 			expectEq(got, want.bg, "the vendor's --gray-900");
 			// Back to the shipped body for everything that follows.
 			setSettings({ desk_width: "Full Bleed", desk_scale: "Standard 14", desk_primary: "Brand" });
+		});
+
+		// ── Item 43 A2: field anatomy ─────────────────────────────────────────
+		// One Data control, measured: where its label sits, what its box is.
+		const fieldGeom = () => page.evaluate(() => {
+			const vis = (el) => el && el.getBoundingClientRect().width > 0;
+			const ctl = [...document.querySelectorAll('.form-layout .form-column > form > .frappe-control[data-fieldtype="Data"]')].find(vis);
+			const label = ctl.querySelector(".control-label"), input = ctl.querySelector("input.form-control");
+			const l = label.getBoundingClientRect(), i = input.getBoundingClientRect();
+			// The COLUMN is the label's grid cell (.clearfix), not the label's own text run.
+			const cell = label.closest(".clearfix") || label;
+			const cs = getComputedStyle(input);
+			return {
+				labelCy: l.top + l.height / 2, inputCy: i.top + i.height / 2, labelBottom: l.bottom, inputTop: i.top,
+				labelX: l.left, inputX: i.left, labelW: cell.getBoundingClientRect().width,
+				bg: cs.backgroundColor, borderW: cs.borderInlineStartWidth, borderColor: cs.borderInlineStartColor,
+				underW: cs.borderBlockEndWidth, radius: cs.borderRadius,
+				group: getComputedStyle(ctl.querySelector(".form-group")).display,
+			};
+		});
+		const resolveOne = (v) => page.evaluate((x) => {
+			const p = document.createElement("div"); p.style.borderColor = x; p.style.borderStyle = "solid";
+			document.body.appendChild(p); const c = getComputedStyle(p).borderInlineStartColor; p.remove(); return c;
+		}, v);
+
+		await test("form: Stacked Outlined boxes the field on the theme's strong border", async () => {
+			setSettings({ form_style: "Floating Panels", form_fields: "Stacked Outlined" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form-fields"), "outline", "fields attribute");
+			const g = await fieldGeom();
+			expect(g.labelBottom <= g.inputTop + 1, `label above the box (${g.labelBottom} <= ${g.inputTop})`);
+			expectEq(g.borderW, "1px", "a real edge");
+			expectEq(g.borderColor, await resolveOne("var(--bnd-border-strong)"), "on --bnd-border-strong");
+		});
+		await test("form: Property Rows puts the label beside the value in a 160px column", async () => {
+			setSettings({ form_fields: "Property Rows" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form-fields"), "rows", "fields attribute");
+			const g = await fieldGeom();
+			expectEq(g.group, "grid", "the control is a grid");
+			expect(Math.abs(g.labelCy - g.inputCy) < 4, `label and box share a row (Δcy ${Math.abs(g.labelCy - g.inputCy).toFixed(1)})`);
+			expect(g.labelX < g.inputX, "label at the inline start in LTR");
+			expect(Math.abs(g.labelW - 160) <= 1, `label column is 160 (${g.labelW})`);
+			// Logical, so RTL mirrors without a rule of its own.
+			const rtl = await page.evaluate(() => {
+				document.documentElement.setAttribute("dir", "rtl");
+				const vis = (el) => el && el.getBoundingClientRect().width > 0;
+				const ctl = [...document.querySelectorAll('.form-layout .form-column > form > .frappe-control[data-fieldtype="Data"]')].find(vis);
+				const out = { labelX: ctl.querySelector(".control-label").getBoundingClientRect().left, inputX: ctl.querySelector("input.form-control").getBoundingClientRect().left };
+				document.documentElement.removeAttribute("dir");
+				return out;
+			});
+			expect(rtl.labelX > rtl.inputX, "label at the inline start in RTL");
+			// A dialog keeps its stacked controls, and a Check keeps its box before its label.
+			const other = await page.evaluate(async () => {
+				const d = new frappe.ui.Dialog({ title: "probe", fields: [{ fieldtype: "Data", fieldname: "bnd_probe", label: "Probe" }] });
+				d.show();
+				// The dialog's fields attach a tick after show(); a detached node
+				// computes to "" for every property.
+				await new Promise((r) => setTimeout(r, 400));
+				const grp = d.$wrapper[0].querySelector('.frappe-control[data-fieldname="bnd_probe"] .form-group');
+				const dialog = grp ? getComputedStyle(grp).display : "no dialog control";
+				d.hide();
+				const chk = [...document.querySelectorAll('.form-layout .frappe-control[data-fieldtype="Check"]')].find((el) => el.getBoundingClientRect().width > 0);
+				const box = chk.querySelector("input"), lab = chk.querySelector(".label-area");
+				return { dialog, boxBeforeLabel: box.getBoundingClientRect().left < lab.getBoundingClientRect().left };
+			});
+			expectEq(other.dialog, "block", "a dialog's control stays stacked");
+			expect(other.boxBeforeLabel, "a Check keeps its box before its label");
+		});
+		await test("form: Quiet Underline keeps only the block-end edge", async () => {
+			setSettings({ form_fields: "Quiet Underline" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form-fields"), "underline", "fields attribute");
+			const g = await fieldGeom();
+			expectEq(g.borderW, "0px", "no inline edge");
+			expectEq(g.underW, "1px", "an underline");
+			expectEq(g.bg, "rgba(0, 0, 0, 0)", "no fill");
+		});
+		await test("form: Inline Text draws no box at rest and one on hover", async () => {
+			setSettings({ form_fields: "Inline Text" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form-fields"), "inline", "fields attribute");
+			const rest = await fieldGeom();
+			expectEq(rest.bg, "rgba(0, 0, 0, 0)", "no fill at rest");
+			expectEq(rest.borderColor, "rgba(0, 0, 0, 0)", "no edge at rest");
+			// The first Data input in the DOM sits on a hidden tab; hover the visible one.
+			await page.locator('.form-layout .form-column > form > .frappe-control[data-fieldtype="Data"] input.form-control:visible').first().hover();
+			await page.waitForTimeout(250);
+			const hov = await fieldGeom();
+			expect(hov.bg !== "rgba(0, 0, 0, 0)", `a fill on hover (${hov.bg})`);
+		});
+		await test("form: Original fields are the stock box — tint, no edge, label above", async () => {
+			setSettings({ form_fields: "Original" });
+			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			expectEq(await attr("data-bnd-form-fields"), null, "no fields attribute");
+			const g = await fieldGeom();
+			expectEq(g.borderW, "0px", "stock has no edge");
+			expectEq(g.group, "block", "stock stacks");
+			expect(g.labelBottom <= g.inputTop + 1, "label above the box");
+			setSettings({ form_fields: "Stacked Outlined" });
 		});
 
 		await test("workspace: Original applies nothing at all", async () => {
