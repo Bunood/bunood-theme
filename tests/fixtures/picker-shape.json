@@ -85,6 +85,7 @@
   "start_placement": "Off",
   "language_placement": "Bottom Bar End",
   "language_style": "Globe",
+  "language_choices": "ar,en",
   "appearance_placement": "Bottom Bar End",
   "icon_style": "Filled Color",
   "icon_weight": "1.5",

@@ -396,8 +396,14 @@ START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Of
 LANGUAGE_DEFAULTS = {
     "language_placement": _DEFAULT_TENANTS.get("language_placement", "Bottom Bar End"),
     "language_style": "Globe",
+    # The languages the switch offers, as Language codes in display order (v0.44.2).
+    # The user's rule: "only languages turned on in settings" - Frappe enables
+    # seventeen at install that nobody chose, so the set is THIS field, and the
+    # shipped pair is the product's. `language.offered_languages` derives the list
+    # for boot and for the endpoint that validates a switch.
+    "language_choices": "ar,en",
 }
-LANGUAGE_FIELDS = ["language_style"]
+LANGUAGE_FIELDS = ["language_style", "language_choices"]
 APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs

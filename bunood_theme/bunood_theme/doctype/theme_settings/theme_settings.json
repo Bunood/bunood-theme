@@ -96,7 +96,9 @@
   "links_picker",
   "home_placement",
   "apps_placement",
-  "section_language",
+  "section_language_switch",
+  "language_picker",
+  "language_choices",
   "language_placement",
   "language_style",
   "appearance_placement",
@@ -1561,9 +1563,21 @@
    "hidden": 1
   },
   {
-   "fieldname": "section_language",
+   "fieldname": "section_language_switch",
    "fieldtype": "Section Break",
    "label": "Language & Appearance"
+  },
+  {
+   "fieldname": "language_picker",
+   "fieldtype": "HTML",
+   "label": "Languages Picker"
+  },
+  {
+   "fieldname": "language_choices",
+   "fieldtype": "Data",
+   "label": "Languages Offered",
+   "hidden": 1,
+   "description": "Set by the picker above: the languages the switch offers, in order, as Language codes. Empty means the shipped pair, Arabic and English."
   },
   {
    "fieldname": "language_placement",
@@ -1624,7 +1638,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-06 18:45:27.906622",
+ "modified": "2026-09-08 04:14:26.284231",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

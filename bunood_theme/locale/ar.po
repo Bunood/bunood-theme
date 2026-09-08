@@ -6467,3 +6467,43 @@ msgstr "سجّل الدخول لتغيير لغتك."
 #. src: item44
 msgid "That language is not enabled on this site."
 msgstr "هذه اللغة غير مفعّلة في هذا الموقع."
+
+#. In theme_settings.json
+#. src: item44
+msgid "Languages Picker"
+msgstr "منتقي اللغات"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Languages Offered"
+msgstr "اللغات المعروضة"
+
+#. In theme_settings.json
+#. src: item44
+msgid "Set by the picker above: the languages the switch offers, in order, as Language codes. Empty means the shipped pair, Arabic and English."
+msgstr "يضبطه المنتقي أعلاه: اللغات التي يعرضها المبدّل، بالترتيب، كرموز لغات. الفراغ يعني الزوج المُرسَل: العربية والإنجليزية."
+
+#. In theme_settings.js
+#. src: item44
+msgid "Languages the switch offers"
+msgstr "اللغات التي يعرضها المبدّل"
+
+#. In theme_settings.js
+#. src: item44
+msgid "Order: {0}"
+msgstr "الترتيب: {0}"
+
+#. In theme_settings.js
+#. src: item44
+msgid "Empty: the shipped pair, Arabic and English."
+msgstr "فارغ: الزوج المُرسَل، العربية والإنجليزية."
+
+#. In theme_settings.js
+#. src: item44
+msgid "Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load."
+msgstr "اختر لغتين على الأقل، بالترتيب الذي يجب أن يعرضه المبدّل. لا تظهر هنا إلا اللغات المفعّلة في قائمة اللغات. يُطبَّق عند تحميل الصفحة التالي."
+
+#. In api.py
+#. src: item44
+msgid "That language is not offered on this site."
+msgstr "هذه اللغة غير معروضة في هذا الموقع."

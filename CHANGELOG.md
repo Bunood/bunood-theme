@@ -22,6 +22,49 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.2] — 2026-09-08 — The switch offers what you chose; the pane stays on All Apps (patch)
+
+**Two more asks from the user, the same day.** "Language switch should only list languages
+turned on in settings" — on production it listed seventeen, the ones Frappe enables at
+install that nobody chose. And "the side pane should show in All Apps, known as the desk
+page" — Frappe's desktop page declares `hide_sidebar` and the pane vanished there.
+
+### Changed
+
+- **The switch offers the languages chosen in Theme Settings**, not Frappe's install-time
+  flag. A new `language_choices` field (Language codes in display order, hidden) is written
+  by a picker in the "Language & Appearance" section: a row of chips over the languages
+  enabled in the Language list, each click toggling a code, the order of choosing being the
+  order the switch lists. The shipped pair is **Arabic and English** (`ar,en`); an empty
+  choice means the pair. `bunood_theme/language.py` is the one derivation: boot serves it,
+  `api.set_language` validates against it, and a chosen language that is disabled in the
+  Language list is dropped rather than offered. Two make a toggle, more a menu, as before.
+- **The pane stays on the All Apps desk page.** Frappe's `container.js` honours a page's
+  `hide_sidebar` right after firing `page-change`; the kit clears the flag on the way
+  through whenever it owns a pane on this desk, and Frappe's own toggle shows it. The bars
+  still stand down in desktop mode — the ask was the pane.
+
+### Fixed
+
+- **Item 44's section reused a fieldname.** The doctype already had a `section_language`
+  (the Arabic font), and v0.44.0's "Language & Appearance" section took the same name, so the
+  two new fields here landed in the font section and the shell showed the picker in the
+  wrong band. The section is `section_language_switch` now; the shape fixture follows.
+
+### Checks
+
+`language: the switch offers exactly the languages chosen in settings, in that order` (a
+fourth enabled language stays out; an empty choice is the pair, and a toggle) · `language:
+the settings picker lists the enabled languages and writes the choice` · `sidepane: the
+pane stays on the All Apps desk page` (`/app/desktop` and `/app`). The API check now proves
+the refusal is the admin's list, not Frappe's flag (French enabled, not offered, refused).
+The item-44 checks pin the offered set explicitly. The shape fixture gains the field.
+
+### Payload and words
+
+js_gzip 115,100 → 115,400 (measured 115,244). Eight Arabic rows (the picker's strings, the
+field's label and description, the endpoint's refusal).
+
 ## [0.44.1] — 2026-09-08 — The pane, made to hold (patch)
 
 **Two screenshots from the user, the same workspace in English and Arabic**: Frappe's own

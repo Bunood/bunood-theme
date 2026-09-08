@@ -1430,7 +1430,7 @@ const MUTABLE_FIELDS = [
 	// Slice 2: so do Home and All Apps, which used to share one field.
 	"inbox_placement", "user_placement", "home_placement", "apps_placement", "start_placement",
 	// Item 44: the language switch and the Appearance button.
-	"language_placement", "language_style", "appearance_placement",
+	"language_placement", "language_style", "language_choices", "appearance_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
@@ -5432,7 +5432,7 @@ print("ok")
 			try {
 				langEnableOnly(["en", "ar"]);
 				// The bell and the avatar join the same zone so the ORDER can be read.
-				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Name", appearance_placement: "Bottom Bar End", inbox_placement: "Bottom Bar End", user_placement: "Bottom Bar End", bottombar_enabled: 1 });
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Name", language_choices: "en,ar", appearance_placement: "Bottom Bar End", inbox_placement: "Bottom Bar End", user_placement: "Bottom Bar End", bottombar_enabled: 1 });
 				await goDesk("/app/selling", ".bnd-statusbar", 3000);
 				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
 				const m = await page.evaluate(() => {
@@ -5477,7 +5477,7 @@ print("ok")
 			try {
 				langEnableOnly(["en", "ar"]);
 				userLangSet(user, "en");
-				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe", bottombar_enabled: 1 });
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe", language_choices: "en,ar", bottombar_enabled: 1 });
 				// /app/home, not /app/selling: the fixture user may not open the Selling
 				// workspace, and Frappe answers with a "Not permitted" modal that swallows
 				// every click (measured). The click is programmatic: what is under test is
@@ -5507,7 +5507,7 @@ print("ok")
 			const snapshot = langSnapshot();
 			try {
 				langEnableOnly(["en", "ar", "fr"]);
-				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Code", bottombar_enabled: 1 });
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Code", language_choices: "en,ar,fr", bottombar_enabled: 1 });
 				await goDesk("/app/selling", ".bnd-statusbar", 3000);
 				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
 				const t = await page.evaluate(() => {
@@ -5544,7 +5544,7 @@ print("ok")
 				});
 				const want = { "Globe": "100", "Code": "010", "Name": "001", "Globe + Code": "110", "Globe + Name": "101" };
 				for (const [style, bits] of Object.entries(want)) {
-					setSettings({ language_placement: "Bottom Bar End", language_style: style, bottombar_enabled: 1 });
+					setSettings({ language_placement: "Bottom Bar End", language_style: style, language_choices: "en,ar", bottombar_enabled: 1 });
 					await goDesk("/app/selling", '[data-bnd-part="language"]', 2500);
 					const p = await parts();
 					expectEq([p.ico, p.code, p.name].map(Number).join(""), bits, `${style} in the bar shows globe/code/name = ${bits} (${JSON.stringify(p)})`);
@@ -5561,12 +5561,15 @@ print("ok")
 			}
 		});
 
-		await test("language: the API refuses a language the site has not enabled", async () => {
+		await test("language: the API refuses a language the site does not offer", async () => {
+			const before = getSettings(["language_choices"]);
 			const snapshot = langSnapshot();
 			const user = DESK_FIXTURE.user;
 			const userLang = userLangGet(user);
 			try {
-				langEnableOnly(["en", "ar"]);
+				langEnableOnly(["en", "ar", "fr"]);
+				// fr is ENABLED but not OFFERED: the refusal is the admin's list, not Frappe's flag.
+				setSettings({ language_choices: "en,ar" });
 				await withDeskUser("/app", "body", async (dp) => {
 					const r = await dp.evaluate(async () => {
 						const call = async (code) => {
@@ -5578,7 +5581,7 @@ print("ok")
 						};
 						return { disabled: await call("fr"), enabled: await call("ar") };
 					});
-					expect(r.disabled >= 400, `a disabled language is refused (HTTP ${r.disabled})`);
+					expect(r.disabled >= 400, `a language that is enabled but not offered is refused (HTTP ${r.disabled})`);
 					expectEq(r.enabled, 200, `an enabled one is accepted (HTTP ${r.enabled})`);
 				});
 				const stored = userLangGet(user);
@@ -5586,6 +5589,97 @@ print("ok")
 			} finally {
 				userLangSet(user, userLang);
 				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: the switch offers exactly the languages chosen in settings, in that order", async () => {
+			// THE USER (2026-09-08): "language switch should only list languages turned on
+			// in settings". Frappe enables seventeen languages at install that nobody chose;
+			// the set is `language_choices`, and an empty choice is the shipped pair.
+			const before = getSettings(LANG_FIELDS.concat(["language_choices"]));
+			const snapshot = langSnapshot();
+			try {
+				langEnableOnly(["en", "ar", "fr", "de"]);
+				setSettings({ language_placement: "Bottom Bar End", language_style: "Globe + Code", language_choices: "fr,ar,en", bottombar_enabled: 1 });
+				await goDesk("/app/selling", ".bnd-statusbar", 3000);
+				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
+				let boot = await page.evaluate(() => frappe.boot.bnd_language.languages.map((l) => l.code));
+				expectEq(boot.join(","), "fr,ar,en", `boot carries the chosen three, in the chosen order (${boot.join(",")}) — de is enabled and not offered`);
+				await page.click('[data-bnd-part="language"]');
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 5000 });
+				const labels = await page.evaluate(() => [...document.querySelectorAll(".bnd-menu .bnd-menu-item")].map((i) => i.textContent.trim()));
+				expect(labels.length === 3 && /Fran/.test(labels[0]) && labels[1] === "العربية" && labels[2] === "English", `the menu lists them in that order (${JSON.stringify(labels)})`);
+				await page.keyboard.press("Escape");
+				// Empty: the shipped pair, which on this English desk is a toggle to Arabic.
+				setSettings({ language_choices: "" });
+				await goDesk("/app/selling", ".bnd-statusbar", 3000);
+				await page.waitForSelector('[data-bnd-part="language"]', { timeout: 20000 });
+				boot = await page.evaluate(() => ({ codes: frappe.boot.bnd_language.languages.map((l) => l.code), haspopup: document.querySelector('[data-bnd-part="language"]').getAttribute("aria-haspopup"), code: (document.querySelector('[data-bnd-part="language"] .bnd-lang-code') || {}).textContent }));
+				expectEq(boot.codes.join(","), "ar,en", `an empty choice is the shipped pair (${boot.codes.join(",")})`);
+				expect(!boot.haspopup && boot.code === "AR", `and two make a toggle to the other (${JSON.stringify(boot)})`);
+			} finally {
+				langEnableOnly(snapshot);
+				setSettings(before);
+			}
+		});
+
+		await test("language: the settings picker lists the enabled languages and writes the choice", async () => {
+			const before = getSettings(["language_choices"]);
+			try {
+				setSettings({ language_choices: "en,ar" });
+				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				// The shell shows one band at a time: open Language & Appearance first. The
+				// NAV item, by class: the placement board carries a chip with the same
+				// data-key (the tenant), earlier in the DOM, and a bare attribute selector
+				// clicked that chip instead (measured).
+				await page.click('.bnd-shell-item[data-key="language"]');
+				await page.waitForSelector(".bnd-cbp-lang", { timeout: 20000 });
+				const chips = await page.evaluate(() => [...document.querySelectorAll(".bnd-cbp-lang")].map((c) => ({ code: c.getAttribute("data-value"), on: c.classList.contains("bnd-cbp-on"), lang: c.getAttribute("lang") })));
+				expect(chips.length >= 2, `the picker lists the enabled languages (${chips.length})`);
+				expect(chips.every((c) => c.lang === c.code), "each chip carries its language tag");
+				// The chips list in the Language list's order, not the choice's: compare the SET.
+				expectEq(chips.filter((c) => c.on).map((c) => c.code).sort().join(","), "ar,en", `the chosen two are on (${JSON.stringify(chips.filter((c) => c.on))})`);
+				const off = chips.find((c) => !c.on);
+				expect(!!off, "there is an enabled language left to choose");
+				await page.click(`.bnd-cbp-lang[data-value="${off.code}"]`);
+				await page.waitForTimeout(400);
+				const wrote = await page.evaluate(() => cur_frm.doc.language_choices);
+				expectEq(wrote, "en,ar," + off.code, `a click appends the code in choosing order (${wrote})`);
+				await page.click('.bnd-cbp-lang[data-value="en"]');
+				await page.waitForTimeout(400);
+				expectEq(await page.evaluate(() => cur_frm.doc.language_choices), "ar," + off.code, "and a second click removes one");
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the pane stays on the All Apps desk page", async () => {
+			// THE USER (2026-09-08): "the side pane should show in all apps, known as desk
+			// page". Frappe's desktop page declares hide_sidebar; the kit clears it on
+			// page-change so Frappe's own toggle shows the pane. The bars still stand down.
+			const before = getSettings(["sidebar_pane_state", "sidebar_enabled"]);
+			try {
+				setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1 });
+				for (const route of ["/app/desktop", "/app"]) {
+					await goDesk(route, "body", 3500);
+					// Frappe's own sidebar setup runs after its data loads and re-applies the
+					// flag; the pane is shown once that has run, so poll rather than read a tick.
+					await page.waitForFunction(() => window.bunood_theme && document.querySelector(".body-sidebar-container"), null, { timeout: 30000 });
+					await page.waitForFunction(() => { const c = document.querySelector(".body-sidebar-container"); return c && getComputedStyle(c).display !== "none" && c.getBoundingClientRect().width > 0; }, null, { timeout: 15000 }).catch(() => {});
+					// The kit dresses the pane a beat after Frappe shows it: wait for the brand too.
+					await page.waitForFunction(() => { const b = document.querySelector(".bnd-sb-brand"); return b && b.getBoundingClientRect().width > 0; }, null, { timeout: 15000 }).catch(() => {});
+					await page.waitForTimeout(500);
+					const m = await page.evaluate(() => {
+						const c = document.querySelector(".body-sidebar-container");
+						const vis = (n) => !!n && getComputedStyle(n).display !== "none" && n.getBoundingClientRect().width > 0;
+						return { container: vis(c), brand: vis(document.querySelector(".bnd-sb-brand")), desktop: document.documentElement.hasAttribute("data-bnd-desktop"), route: JSON.stringify(frappe.get_route()) };
+					});
+					expect(m.container, `${route}: the pane container is shown (${JSON.stringify(m)})`);
+					expect(m.brand, `${route}: and it carries our brand row`);
+				}
+			} finally {
+				setSettings(before);
 			}
 		});
 

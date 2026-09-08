@@ -1923,6 +1923,27 @@
 	 * and hides the normal sidebar — every piece of Bunood chrome stands down
 	 * there via the data-bnd-desktop attribute (chrome/_sidebar.scss).
 	 */
+	/**
+	 * THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
+	 * desktop page declares `hide_sidebar`; container.js honours it right after
+	 * "page-change", and sidebar.js re-reads it on every setup. Clearing the flag
+	 * whenever the kit owns a pane on this desk, and asking Frappe's own toggle to
+	 * show what it hid, keeps the pane there. The bars still stand down in desktop
+	 * mode (_sidebar.scss): the ask was the pane. Idempotent, safe to call often.
+	 */
+	function keep_pane_on_desktop() {
+		const pg = window.frappe && frappe.container && frappe.container.page && frappe.container.page.page;
+		if (!pg || !pg.hide_sidebar || !sb_state) return;
+		const html = document.documentElement;
+		if ((html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).includes("sidepane")) return;
+		if (html.hasAttribute("data-bnd-narrow")) return;
+		pg.hide_sidebar = false;
+		if (frappe.app && frappe.app.sidebar && typeof frappe.app.sidebar.toggle === "function") frappe.app.sidebar.toggle(false);
+		// The kit skipped a pane that was hidden when it mounted (HOSTS.sidepane answers
+		// null then), so a pane shown here would stay undressed: dress it now. Idempotent.
+		if (typeof mount_sidebar_kit === "function") mount_sidebar_kit();
+	}
+
 	function update_desktop_mode() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const on_desktop = !route.length || (route.length === 1 && !route[0]);
@@ -8320,10 +8341,25 @@ function sb_zone_anchor(pane, zone, node) {
 		stamp_appearance_route();
 		apply_home_route();
 
+		// THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
+		// desktop page declares `hide_sidebar`, and container.js honours it right
+		// AFTER firing "page-change" - so the flag is cleared on the way through
+		// whenever the kit owns a pane on this desk, and Frappe's own toggle then
+		// shows it. Nothing here touches the pane's DOM. The bars still stand down
+		// in desktop mode (_sidebar.scss): the ask was the pane.
+		// Two hooks, because the order is not ours: "page-change" fires BEFORE
+		// container.js reads the flag (so clearing it there is enough on most loads),
+		// but a load whose first page-change ran before this script listened (measured
+		// on a second visit to /app) leaves the pane hidden — so the router's own
+		// change event, which fires AFTER the toggle, repairs it through Frappe's
+		// toggle(false). Both paths call one function; neither touches the pane's DOM.
+		if (window.jQuery) window.jQuery(document).on("page-change", keep_pane_on_desktop);
+		keep_pane_on_desktop();
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
+				keep_pane_on_desktop();
 				// AFTER update_desktop_mode, because that call is what stands
 				// the chrome down on route "" and brings it back — but on the
 				// NEXT frame, not in this handler. Measuring forces a

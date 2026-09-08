@@ -900,6 +900,9 @@ frappe.ui.form.on("Theme Settings", {
 	language_style(frm) {
 		bnd_language_preview(frm);
 	},
+	language_choices(frm) {
+		bnd_render_language_picker(frm);
+	},
 	language_placement(frm) {
 		bnd_render_placement_board(frm);
 	},
@@ -952,6 +955,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_identity_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
+		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
 		// AFTER the pickers, never before: the shell relocates the sections they
 		// were just drawn into, and moving a node the renderer is about to look
@@ -1039,6 +1043,7 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_user_picker(frm);
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
+	bnd_render_language_picker(frm);
 	// The side pane's own picker joins them (item 36's picker audit): toggling
 	// "Show the side pane" left its option groups offering themselves as
 	// live over a pane that no longer existed, and the kit-off note never
@@ -3773,10 +3778,64 @@ function bnd_palette_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.INBOX_FIELDS — keep in sync. */
-const BND_LANGUAGE_FIELDS = ["language_style"];
+const BND_LANGUAGE_FIELDS = ["language_style", "language_choices"];
 // The reset chip's target, mirroring presets.LANGUAGE_DEFAULTS (the default-mirror
 // guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
-const BND_LANGUAGE_DEFAULTS = { language_style: "Globe" };
+const BND_LANGUAGE_DEFAULTS = { language_style: "Globe", language_choices: "ar,en" };
+
+/** The enabled Language rows, fetched once per form: what the picker may offer. */
+let bnd_language_rows = null;
+
+/**
+ * The languages the switch offers (v0.44.2). A multi-choice row of chips over the
+ * languages ENABLED in the Language list; each click toggles a code in
+ * `language_choices`, and the order of choosing is the order the switch lists.
+ * The user's rule: "only languages turned on in settings" - the seventeen Frappe
+ * enables at install are not that.
+ */
+function bnd_render_language_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "language_picker", host);
+	if (!$host) return;
+	const codes = () => String(frm.doc.language_choices || "").split(",").map((s) => s.trim()).filter(Boolean);
+	const draw = () => {
+		const chosen = codes();
+		const rows = bnd_language_rows || [];
+		const chips = rows
+			.map((r) => {
+				const on = chosen.includes(r.name);
+				return (
+					'<button type="button" class="bnd-cbp-opt bnd-cbp-lang' + (on ? " bnd-cbp-on" : "") +
+					'" aria-pressed="' + (on ? "true" : "false") + '" data-value="' + bnd_esc(r.name) +
+					'" lang="' + bnd_esc(r.name) + '">' + bnd_esc(r.language_name || r.name) + "</button>"
+				);
+			})
+			.join("");
+		const order = chosen.length ? __("Order: {0}", [chosen.join(" · ")]) : __("Empty: the shipped pair, Arabic and English.");
+		$host.html(
+			P.wrap(
+				'<div class="bnd-cbp-group" data-field="language_choices"><div class="bnd-cbp-title">' +
+					bnd_esc(__("Languages the switch offers")) + '</div><div class="bnd-cbp-row bnd-cbp-langs">' + chips + "</div>" +
+					P.note(order) +
+					P.note(__("Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load.")) +
+					"</div>"
+			)
+		);
+		$host.find(".bnd-cbp-lang").on("click", function () {
+			const code = this.getAttribute("data-value");
+			const now = codes();
+			const next = now.includes(code) ? now.filter((c) => c !== code) : now.concat([code]);
+			frm.set_value("language_choices", next.join(","));
+			draw();
+		});
+	};
+	if (bnd_language_rows) return draw();
+	frappe.db
+		.get_list("Language", { filters: { enabled: 1 }, fields: ["name", "language_name"], order_by: "language_name asc", limit: 200 })
+		.then((rows) => {
+			bnd_language_rows = rows || [];
+			draw();
+		});
+}
 
 /** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
 function bnd_language_preview(frm) {

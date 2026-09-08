@@ -729,15 +729,14 @@ def extend_bootinfo(bootinfo):
         # same set My Settings offers. Exactly two make it a one-click toggle to
         # the other; more make it a menu. The current language rides along so the
         # client never guesses which side of the pair it is on.
+        from bunood_theme.language import offered_languages
+
         bootinfo.bnd_language = {
             "style": settings.get("language_style") or LANGUAGE_DEFAULTS["language_style"],
             "current": frappe.local.lang or "en",
-            "languages": [
-                {"code": row.name, "name": row.language_name or row.name}
-                for row in frappe.get_all(
-                    "Language", filters={"enabled": 1}, fields=["name", "language_name"], order_by="language_name asc"
-                )
-            ],
+            # The admin's list (Theme Settings), not Frappe's install-time flag - see
+            # bunood_theme/language.py for why the first cut was the wrong fact.
+            "languages": offered_languages(settings),
         }
 
         bootinfo.bnd_inbox = {
