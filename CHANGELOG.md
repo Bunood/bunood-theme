@@ -67,7 +67,8 @@ field's label and description, the endpoint's refusal).
 
 ### Suite
 
-Full run at the release commit: **484/491**. Four are bench debts this line already carries on
+Full run at the release commit: **484/491**; re-run on the follow-up commit, **487/491**, the
+four bench debts alone. Four are bench debts this line already carries on
 frappe 16.33 (the i18n merged-dict "Alert" row, the kanban tint, the forked email template's
 hash, the email preview's crash path) — owed, and not this item's. Three were the suite's own,
 repaired in the follow-up commit and green when re-run:
