@@ -4305,7 +4305,7 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_grid_checkbox_reveal"];
 // Mobile bar contents (item 24 C2). Export AND import list it — the same const
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
@@ -4337,6 +4337,7 @@ const BND_FORM_DEFAULTS = {
 	form_grid: "Ruled Sheet",
 	form_tabs: "Solid Pill",
 	form_sidebar: "Floating Pane",
+	form_activity: "Drawer",
 	form_grid_checkbox_reveal: 1,
 };
 
@@ -4488,6 +4489,16 @@ const BND_FORM_GROUPS = [
 			{ value: "Quiet Pane", name: () => __("Quiet Pane") },
 			{ value: "Floating Pane", name: () => __("Floating Pane") },
 			{ value: "Inspector Rail", name: () => __("Inspector Rail") },
+		],
+	},
+	{
+		field: "form_activity",
+		title: () => __("Activity"),
+		desc: () => __("Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Beside", name: () => __("Beside") },
+			{ value: "Drawer", name: () => __("Drawer") },
 		],
 	},
 ];

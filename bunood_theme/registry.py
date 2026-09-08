@@ -674,6 +674,23 @@ MARKS = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "drawer",
+        "part": "drawer",
+        "label": "Activity drawer",
+        "type": MARK,
+        "selector": ".bnd-drawer-toggle",
+        # Item 43 A6. The native is the form's own footer - the comment box
+        # and the timeline. It is never display:none'd: the Drawer option
+        # parks it off-canvas, which is hiding by another name, so the CSS
+        # keys on data-bnd-own~="drawer", stamped by mount_drawer only after
+        # the toggle that opens it is in the DOM and wired. A toggle that
+        # failed to mount leaves the footer below the form, exactly as stock.
+        "native": ".form-footer",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 SURFACE = "surface"

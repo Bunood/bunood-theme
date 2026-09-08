@@ -139,6 +139,7 @@
   "form_grid",
   "form_tabs",
   "form_sidebar",
+  "form_activity",
   "form_grid_checkbox_reveal",
   "section_workspace",
   "workspace_picker",
@@ -1420,6 +1421,15 @@
    "options": "Hairline Edge\nQuiet Pane\nFloating Pane\nInspector Rail"
   },
   {
+   "default": "Drawer",
+   "description": "Set by the picker above. Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions.",
+   "fieldname": "form_activity",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Activity",
+   "options": "Original\nBeside\nDrawer"
+  },
+  {
    "default": "1",
    "description": "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
    "fieldname": "form_grid_checkbox_reveal",
@@ -1700,7 +1710,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 13:50:39.000000",
+ "modified": "2026-09-08 14:21:19.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

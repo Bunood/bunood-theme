@@ -21,7 +21,12 @@
 //   data-bnd-form-grid       ledger | ruled  (the child grid's anatomy, item 43
 //                            A4; absent = the stock grid: verticals, grey head)
 //   data-bnd-form-tabs       underline | segment | pill  (active tab marker)
-//   data-bnd-form-side       edge | pane | card          (the form sidebar)
+//   data-bnd-form-side       edge | pane | card | rail   (the form sidebar)
+//   data-bnd-form-activity   beside | drawer  (where the timeline lives, item
+//                            43 A6; absent = below the form, stock). Drawer
+//                            moves the footer off-canvas ONLY under
+//                            data-bnd-own~="drawer"; data-bnd-drawer="open"
+//                            on <html> is its state.
 //   data-bnd-form-ckreveal   (presence = grid checkboxes rest hidden;
 //                             revealed on row hover, :focus-within, or while
 //                             ANY row is checked; stands down (hover: none))
@@ -556,6 +561,104 @@ html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn:hover,
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items .icon-btn:focus-visible {
   color: var(--bnd-ink);
+}
+
+// ── Activity (item 43 A6) ───────────────────────────────────────────────────
+// The footer — the comment box and the timeline — lives in a bare <div> that
+// is .layout-main-section's SIBLING under .layout-main-section-wrapper (the
+// census, docs/upstream/frappe-form-body.md §0). Both options are placement
+// of that element; nothing moves in the DOM.
+//
+// Beside: from 2xl the column is a grid — the form in column one, the footer's
+// wrapper in an auto column beside it, sized by the footer itself so an
+// unsaved document (whose wrapper is .hide) leaves no empty track. The
+// wrapper is sticky under the page head, so the timeline stays in view while
+// a long form scrolls.
+@include bnd-from(2xl) {
+  html[data-bnd-form][data-bnd-form-activity="beside"] body[data-route^="Form"] .layout-main-section-wrapper {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--bnd-sp-5);
+    align-items: start;
+  }
+  html[data-bnd-form][data-bnd-form-activity="beside"] body[data-route^="Form"] .layout-main-section-wrapper > .layout-main-section {
+    grid-column: 1;
+    min-inline-size: 0;
+  }
+  html[data-bnd-form][data-bnd-form-activity="beside"] body[data-route^="Form"] .layout-main-section-wrapper > div:has(> .form-footer) {
+    grid-column: 2;
+    grid-row: 1;
+    inline-size: var(--bnd-activity-w);
+    position: sticky;
+    inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-4));
+  }
+  html[data-bnd-form][data-bnd-form-activity="beside"] body[data-route^="Form"] .layout-main-section-wrapper > div > .form-footer {
+    max-inline-size: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+// Drawer: the footer is a fixed panel parked past the inline end, and only
+// once the theme OWNS it — the toggle that opens it is in the DOM and wired
+// (bunood.js mount_drawer stamps data-bnd-own~="drawer" last). Without the
+// stamp the footer stays below the form, exactly as stock: a mount that
+// failed degrades to Frappe, never to a timeline nobody can reach. The park
+// distance is logical (inset-inline-end), so RTL slides from the left by
+// itself; visibility follows the slide so a closed drawer is out of the tab
+// order, and both ride the motion tokens (0ms under reduced motion).
+html[data-bnd-form][data-bnd-form-activity="drawer"][data-bnd-own~="drawer"] body[data-route^="Form"] .form-footer {
+  position: fixed;
+  inset-block: 0 var(--bnd-bottom-reserve);
+  inset-inline-end: calc(-1 * var(--bnd-drawer-w) - var(--bnd-sp-6));
+  inline-size: min(var(--bnd-drawer-w), 100vw);
+  max-inline-size: none;
+  margin: 0;
+  padding: var(--bnd-sp-4);
+  overflow: auto;
+  z-index: var(--bnd-z-panel);
+  background: var(--bnd-surface);
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  box-shadow: var(--bnd-shadow-lg);
+  visibility: hidden;
+  transition:
+    inset-inline-end var(--bnd-dur-slow) var(--bnd-ease),
+    visibility 0s linear var(--bnd-dur-slow);
+}
+html[data-bnd-form][data-bnd-form-activity="drawer"][data-bnd-own~="drawer"][data-bnd-drawer="open"] body[data-route^="Form"] .form-footer {
+  inset-inline-end: 0;
+  visibility: visible;
+  transition-delay: 0s, 0s;
+}
+// The toggle: a pill in the page's action cluster — label and a count of
+// comments and communications. Painted as the desk's default button; the
+// count is a chip. A8a's band and A8c's foot re-home it when they exist.
+html[data-bnd-form] .bnd-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline-end: var(--bnd-sp-2);
+}
+html[data-bnd-form] .bnd-drawer-toggle .bnd-drawer-count:empty {
+  display: none;
+}
+html[data-bnd-form] .bnd-drawer-toggle .bnd-drawer-count {
+  min-inline-size: 1.5em;
+  padding-inline: var(--bnd-sp-1);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  font-size: var(--bnd-body-help);
+  font-weight: var(--bnd-weight-semibold);
+  font-variant-numeric: var(--bnd-numeric);
+  text-align: center;
+}
+html[data-bnd-form][data-bnd-drawer="open"] .bnd-drawer-toggle {
+  background: var(--bnd-hover);
+}
+// The ring every control of ours carries (the guard's own idiom).
+html[data-theme] .bnd-drawer-toggle:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
 }
 
 // ── Section heads (item 43 A3) ──────────────────────────────────────────────

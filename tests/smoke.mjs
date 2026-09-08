@@ -1377,7 +1377,7 @@ const MUTABLE_FIELDS = [
 	// The body kit (item 43 A1): width, type scale, primary button.
 	"desk_width", "desk_scale", "desk_primary",
 	// Field anatomy (item 43 A2) and the child grid (A4).
-	"form_fields", "form_grid",
+	"form_fields", "form_grid", "form_activity",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -9198,8 +9198,9 @@ print("ok")
 				// Item 43 A3 added three cards (Headed Groups, Grouped Insets,
 				// Tinted Heads); A2 the Fields group (Original + 4) and A4 the
 				// Line items group (Original + 2); A5 the Sidebar group's fourth
-				// option (Inspector Rail): 8 cards, 15 options.
-				form_picker: { cards: 8, toggles: 1, opts: 15 },
+				// option (Inspector Rail); A6 the Activity group (Original + 2):
+				// 8 cards, 18 options.
+				form_picker: { cards: 8, toggles: 1, opts: 18 },
 				// Desk body (item 43 A1): no cards — three option groups (width 4,
 				// type scale 4, primary button 2) over the desk diagram.
 				desk_picker: { cards: 0, toggles: 0, opts: 10 },
@@ -13209,6 +13210,131 @@ print("ok")
 			);
 			expect(g.sideEdge === "rgba(0, 0, 0, 0)", `the column's edge is transparent (${g.sideEdge})`);
 			for (const x of g.reach) expect(x.visible && x.hit, `${x.sel} is visible and where a click lands`);
+		});
+
+		await test("form: the drawer parks the footer only once owned, opens from its toggle, closes on Escape with focus returned, and still posts a comment", async () => {
+			// Item 43 A6. Ownership polarity, measured: with the token stripped
+			// the footer is in flow (stock); with it stamped the footer is a
+			// parked fixed panel. Then the gesture round trip, then the one thing
+			// a drawer must not break — the comment box inside it.
+			setSettings({
+				form_style: "Floating Panels", form_sidebar: "Floating Pane",
+				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Drawer",
+			});
+			await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 4000);
+			const own = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-own") || "");
+			expect(/(^|\s)drawer(\s|$)/.test(own), `the theme owns the drawer (${own})`);
+			// Sabotage in place: strip the token, read in a SEPARATE evaluate.
+			await page.evaluate(() => {
+				const h = document.documentElement;
+				h.setAttribute("data-bnd-own", (h.getAttribute("data-bnd-own") || "").split(/\s+/).filter((t) => t && t !== "drawer").join(" "));
+			});
+			await page.waitForTimeout(50);
+			const stock = await page.evaluate(() => getComputedStyle(document.querySelector(".form-footer")).position);
+			expect(stock === "relative", `unowned, the footer stays in flow (${stock})`);
+			await page.evaluate(() => {
+				const h = document.documentElement;
+				h.setAttribute("data-bnd-own", ((h.getAttribute("data-bnd-own") || "") + " drawer").trim());
+			});
+			// The hide is DELAYED by --bnd-dur-slow so the slide finishes first;
+			// read the SETTLED state, never a frame inside that window.
+			await page.waitForFunction(() => getComputedStyle(document.querySelector(".form-footer")).visibility === "hidden", undefined, { timeout: 5000 });
+			const parked = await page.evaluate(() => {
+				const f = document.querySelector(".form-footer");
+				const c = getComputedStyle(f);
+				const r = f.getBoundingClientRect();
+				return { position: c.position, visibility: c.visibility, offscreen: r.left >= window.innerWidth || r.right <= 0, open: document.documentElement.getAttribute("data-bnd-drawer") };
+			});
+			expect(parked.position === "fixed" && parked.visibility === "hidden" && parked.offscreen && !parked.open, `owned, the footer is a parked panel (${JSON.stringify(parked)})`);
+			// Open: the panel slides in; wait for the SETTLED state, never a mid-slide frame.
+			await page.click(".bnd-drawer-toggle");
+			await page.waitForFunction(() => {
+				const f = document.querySelector(".form-footer");
+				const r = f.getBoundingClientRect();
+				return getComputedStyle(f).visibility === "visible" && r.right <= window.innerWidth + 0.5 && r.width > 200;
+			}, undefined, { timeout: 5000 });
+			const opened = await page.evaluate(() => ({
+				open: document.documentElement.getAttribute("data-bnd-drawer"),
+				expanded: document.querySelector(".bnd-drawer-toggle").getAttribute("aria-expanded"),
+				focusInside: !!document.querySelector(".form-footer").contains(document.activeElement),
+			}));
+			expect(opened.open === "open" && opened.expanded === "true", `open state on <html> and the toggle (${JSON.stringify(opened)})`);
+			expect(opened.focusInside, "focus moved into the drawer");
+			// Escape closes and hands focus back to the toggle — pressed with focus
+			// inside the comment editor, the common case, which is why the listener
+			// runs in the capture phase.
+			await page.keyboard.press("Escape");
+			await page.waitForFunction(() => getComputedStyle(document.querySelector(".form-footer")).visibility === "hidden", undefined, { timeout: 5000 });
+			const closed = await page.evaluate(() => ({
+				open: document.documentElement.getAttribute("data-bnd-drawer"),
+				focusOnToggle: document.activeElement && document.activeElement.classList.contains("bnd-drawer-toggle"),
+			}));
+			expect(!closed.open, "Escape closes the drawer");
+			expect(closed.focusOnToggle, "and focus returns to the toggle");
+			// The comment box posts from inside the drawer. Frappe 16 updates docinfo
+			// and redraws the timeline through the REALTIME channel after a post
+			// (measured: add_comment returns 200, the row lands, and in-page docinfo
+			// stays 0 until the push arrives — sometimes never on this stack). So the
+			// proof is the server's 200, the emptied box, the DB row, and the count
+			// read after a reload, where docinfo is served with the document. The
+			// comment is deleted whatever happens.
+			await page.click(".bnd-drawer-toggle");
+			await page.waitForFunction(() => getComputedStyle(document.querySelector(".form-footer")).visibility === "visible", undefined, { timeout: 5000 });
+			const marker = "bnd-a6-check " + Date.now();
+			const commentFilter = '{"reference_doctype": "Item", "reference_name": "BND-TEST-001", "comment_type": "Comment", "content": ["like", "%bnd-a6-check%"]}';
+			try {
+				await page.click(".form-footer .comment-box .ql-editor");
+				await page.keyboard.type(marker);
+				const landed = page.waitForResponse((r) => r.url().includes("frappe.desk.form.utils.add_comment") && r.status() === 200, { timeout: 15000 });
+				await page.click(".form-footer .comment-box .btn-comment", { timeout: 10000 });
+				await landed;
+				await page.waitForFunction(() => ((document.querySelector(".form-footer .ql-editor") || {}).textContent || "").trim() === "", undefined, { timeout: 5000 });
+				const rows = parseInt(benchPy('print(len(frappe.get_all("Comment", filters=' + commentFilter + ')))\n').trim().split("\n").pop(), 10);
+				expect(rows >= 1, `the comment landed in the database (${rows})`);
+				await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 3000);
+				const after = await page.evaluate(() => ({
+					chip: document.querySelector(".bnd-drawer-toggle .bnd-drawer-count").textContent,
+					docinfo: (cur_frm.get_docinfo().comments || []).length + (cur_frm.get_docinfo().communications || []).length,
+				}));
+				expect(after.docinfo >= 1 && parseInt(after.chip, 10) === after.docinfo, `the toggle's count equals docinfo's (${JSON.stringify(after)})`);
+			} finally {
+				benchPy(
+					'for n in frappe.get_all("Comment", filters=' + commentFilter + ', pluck="name"):\n' +
+					'    frappe.delete_doc("Comment", n, force=1, ignore_permissions=True)\n' +
+					"frappe.db.commit()\n"
+				);
+			}
+		});
+
+		await test("form: Beside puts the activity beside the form at 1600 and below it at 1200", async () => {
+			const vp = page.viewportSize();
+			try {
+				setSettings({
+					form_style: "Floating Panels", form_sidebar: "Floating Pane",
+					form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Beside",
+				});
+				await page.setViewportSize({ width: 1600, height: 900 });
+				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				const wide = await page.evaluate(() => {
+					const f = document.querySelector(".form-footer").getBoundingClientRect();
+					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
+					const toggle = !!document.querySelector(".bnd-drawer-toggle");
+					return { footerLeft: Math.round(f.left), formRight: Math.round(m.right), footerW: Math.round(f.width), toggle };
+				});
+				expect(wide.footerLeft >= wide.formRight - 1, `at 1600 the footer sits beside the form (footer.x ${wide.footerLeft} >= form.right ${wide.formRight})`);
+				expect(wide.footerW > 200, `and has a real width (${wide.footerW})`);
+				expect(!wide.toggle, "no drawer toggle under Beside");
+				await page.setViewportSize({ width: 1200, height: 900 });
+				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				const narrow = await page.evaluate(() => {
+					const f = document.querySelector(".form-footer").getBoundingClientRect();
+					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
+					return { footerTop: Math.round(f.top), formBottom: Math.round(m.bottom) };
+				});
+				expect(narrow.footerTop >= narrow.formBottom - 1, `at 1200 the footer is below the form (footer.top ${narrow.footerTop} >= form.bottom ${narrow.formBottom})`);
+			} finally {
+				await page.setViewportSize(vp);
+			}
 		});
 
 		await test("form: the grid edit state stays coherent", async () => {

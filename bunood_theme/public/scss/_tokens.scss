@@ -168,6 +168,10 @@
   // The inspector rail's record thumb (item 43 A5): the form sidebar's 80px image
   // well brought down onto the name's row — 40px reads as an avatar, not a photo.
   --bnd-form-thumb: 40px;
+  // The activity column and drawer (item 43 A6): Beside lays the timeline in a
+  // column of this width at 2xl; Drawer slides it in as a panel of this width.
+  --bnd-activity-w: 340px;
+  --bnd-drawer-w: 420px;
 
   // ── Radii ─────────────────────────────────────────────────────────────────
   --bnd-radius-sm: 4px;

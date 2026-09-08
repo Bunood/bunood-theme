@@ -1350,8 +1350,12 @@
 				["grid", "form_grid", { "Original": "", "Hairline Ledger": "ledger", "Ruled Sheet": "ruled" }],
 				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
 				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card", "Inspector Rail": "rail" }],
+				["activity", "form_activity", { "Original": "", "Beside": "beside", "Drawer": "drawer" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
+			// The drawer is a MOUNT (item 43 A6): an attribute flip alone cannot
+			// build or remove its toggle, so the current form follows the value.
+			after: () => sync_activity(),
 		},
 		body: {
 			attr: "body", boot: "bnd_body",
@@ -1482,6 +1486,147 @@
 			if (def.after) def.after();
 		};
 	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	// Activity drawer (item 43 A6) — the form kit's one JS mount before the band
+	//
+	// `form_activity` = Drawer parks the form's footer (comment box + timeline)
+	// off-canvas by CSS, and that CSS keys on data-bnd-own~="drawer": the
+	// footer leaves the flow only once the toggle that brings it back is in
+	// the DOM and wired — the ownership rule every mount in this file obeys.
+	// The toggle lives in the page's action cluster (A8a's band and A8c's foot
+	// re-home it when they exist), carries a count of comments and
+	// communications read from frm.get_docinfo(), and is re-counted whenever
+	// the timeline re-renders. State is one attribute on <html>,
+	// data-bnd-drawer="open"; Escape closes and returns focus to the toggle; a
+	// route change closes. Under Original and Beside the mount tears itself
+	// down and releases the claim, so the footer is stock again.
+	const DRAWER_ATTR = "data-bnd-drawer";
+
+	function drawer_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-activity") === "drawer";
+	}
+
+	function drawer_count(frm) {
+		const info = frm.get_docinfo && frm.get_docinfo();
+		if (!info) return 0;
+		return (info.comments || []).length + (info.communications || []).length;
+	}
+
+	function drawer_set_open(open, restore) {
+		const html = document.documentElement;
+		if (open) html.setAttribute(DRAWER_ATTR, "open");
+		else html.removeAttribute(DRAWER_ATTR);
+		for (const t of document.querySelectorAll(".bnd-drawer-toggle")) {
+			t.setAttribute("aria-expanded", open ? "true" : "false");
+		}
+		if (!open && restore) {
+			// One tick later, after every other keydown listener: Frappe's own
+			// Escape handling blurs the active element, and would take the
+			// toggle's focus straight back if it were handed over synchronously.
+			window.setTimeout(() => {
+				if (restore.isConnected) restore.focus();
+			}, 0);
+		}
+	}
+
+	function drawer_recount(frm, toggle) {
+		const n = drawer_count(frm);
+		const badge = toggle.querySelector(".bnd-drawer-count");
+		if (badge) badge.textContent = n ? String(n) : "";
+	}
+
+	/** The current page's toggle, if any — pages are cached, so never the first in the DOM. */
+	function drawer_current_toggle() {
+		const frm = window.cur_frm;
+		const page = frm && frm.page && frm.page.wrapper && frm.page.wrapper[0];
+		return page ? page.querySelector(".bnd-drawer-toggle") : null;
+	}
+
+	/** Mount, refresh or tear down one form's toggle; runs on every refresh. */
+	function mount_drawer(frm) {
+		if (!frm || !frm.page || !frm.footer || !frm.footer.wrapper || (frm.meta && frm.meta.istable)) return;
+		const page = frm.page.wrapper && frm.page.wrapper[0];
+		if (!page) return;
+		let toggle = page.querySelector(".bnd-drawer-toggle");
+		// Nothing to open on an unsaved document: Frappe hides the footer's
+		// wrapper until the first save.
+		const wanted = drawer_wanted() && !(frm.is_new && frm.is_new());
+		if (!wanted) {
+			if (toggle) toggle.remove();
+			if (frm.__bnd_drawer_mo) {
+				frm.__bnd_drawer_mo.disconnect();
+				frm.__bnd_drawer_mo = null;
+			}
+			drawer_set_open(false);
+			// Release only once NO cached page still holds a toggle.
+			if (!document.querySelector(".bnd-drawer-toggle")) bnd_disown("drawer");
+			return;
+		}
+		const host = frm.page.page_actions && frm.page.page_actions[0];
+		if (!host) return;
+		if (!toggle) {
+			toggle = el("button", "bnd-drawer-toggle btn btn-default btn-sm", {
+				type: "button",
+				"data-bnd-part": "drawer",
+				"aria-expanded": "false",
+			});
+			const label = el("span", "bnd-drawer-label");
+			label.textContent = __("Activity");
+			toggle.appendChild(label);
+			toggle.appendChild(el("span", "bnd-drawer-count"));
+			toggle.addEventListener("click", () => {
+				const open = document.documentElement.getAttribute(DRAWER_ATTR) !== "open";
+				drawer_set_open(open, toggle);
+				if (!open) return;
+				// Focus lands in the drawer, on the first thing that takes it.
+				window.setTimeout(() => {
+					const first = frm.footer.wrapper[0].querySelector(
+						".ql-editor, button, [href], input, textarea, [tabindex]:not([tabindex='-1'])"
+					);
+					if (first) first.focus();
+				}, 0);
+			});
+			host.insertBefore(toggle, host.firstChild);
+		}
+		drawer_recount(frm, toggle);
+		if (!frm.__bnd_drawer_mo && typeof MutationObserver !== "undefined") {
+			let queued = false;
+			frm.__bnd_drawer_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => {
+					queued = false;
+					drawer_recount(frm, toggle);
+				});
+			});
+			frm.__bnd_drawer_mo.observe(frm.footer.wrapper[0], { childList: true, subtree: true });
+		}
+		// LAST: the footer may leave the flow only now that the way back is live.
+		bnd_own("drawer");
+	}
+
+	/** The form kit's after-apply hook: the current form follows the new value. */
+	function sync_activity() {
+		if (window.cur_frm) mount_drawer(window.cur_frm);
+	}
+
+	if (window.frappe && frappe.ui && frappe.ui.form && frappe.ui.form.on) {
+		// A wildcard handler runs after the doctype's own and after
+		// refresh_header, so the action cluster is settled when this mounts.
+		frappe.ui.form.on("*", { refresh: (frm) => mount_drawer(frm) });
+	}
+	// CAPTURE phase: focus is usually inside the comment editor when Escape is
+	// pressed, and Quill stops the keydown before it bubbles to the document.
+	// Escape has no editing meaning there; closing the panel is the one it has.
+	document.addEventListener(
+		"keydown",
+		(e) => {
+			if (e.key !== "Escape" || document.documentElement.getAttribute(DRAWER_ATTR) !== "open") return;
+			drawer_set_open(false, drawer_current_toggle());
+		},
+		true
+	);
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
@@ -8383,6 +8528,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
+				drawer_set_open(false);
 				update_desktop_mode();
 				keep_pane_on_desktop();
 				// AFTER update_desktop_mode, because that call is what stands

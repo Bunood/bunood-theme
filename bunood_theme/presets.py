@@ -440,6 +440,7 @@ FORM_FIELDS = [
     "form_grid",
     "form_tabs",
     "form_sidebar",
+    "form_activity",
     "form_grid_checkbox_reveal",
 ]
 
@@ -463,6 +464,9 @@ FORM_DEFAULTS = {
     # Styling only — the sidebar has no Off here. Hiding chrome is a
     # container concern; attachments and assignments must stay reachable.
     "form_sidebar": "Floating Pane",
+    # Item 43 A6, the user's pick: the timeline in a drawer opened from the
+    # page's actions. Original leaves it below the form; Beside is a column.
+    "form_activity": "Drawer",
     # A Check, default-on: the same three-door contract as the list kit's
     # reveal (hover, :focus-within, any-checked), stood down on touch.
     "form_grid_checkbox_reveal": 1,

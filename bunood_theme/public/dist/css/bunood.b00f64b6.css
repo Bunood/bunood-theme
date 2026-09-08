@@ -48,6 +48,8 @@
   --bnd-label-w: 160px;
   --bnd-form-indicator: 20px;
   --bnd-form-thumb: 40px;
+  --bnd-activity-w: 340px;
+  --bnd-drawer-w: 420px;
   --bnd-radius-sm: 4px;
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
@@ -5500,6 +5502,85 @@ html[data-bnd-form][data-bnd-form-side=rail] .form-sidebar .form-sidebar-items .
 html[data-bnd-form][data-bnd-form-side=rail] .form-sidebar .form-sidebar-items .icon-btn:hover,
 html[data-bnd-form][data-bnd-form-side=rail] .form-sidebar .form-sidebar-items .icon-btn:focus-visible {
   color: var(--bnd-ink);
+}
+
+@media (width >= 1440px) {
+  html[data-bnd-form][data-bnd-form-activity=beside] body[data-route^=Form] .layout-main-section-wrapper {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--bnd-sp-5);
+    align-items: start;
+  }
+  html[data-bnd-form][data-bnd-form-activity=beside] body[data-route^=Form] .layout-main-section-wrapper > .layout-main-section {
+    grid-column: 1;
+    min-inline-size: 0;
+  }
+  html[data-bnd-form][data-bnd-form-activity=beside] body[data-route^=Form] .layout-main-section-wrapper > div:has(> .form-footer) {
+    grid-column: 2;
+    grid-row: 1;
+    inline-size: var(--bnd-activity-w);
+    position: sticky;
+    inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-4));
+  }
+  html[data-bnd-form][data-bnd-form-activity=beside] body[data-route^=Form] .layout-main-section-wrapper > div > .form-footer {
+    max-inline-size: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+html[data-bnd-form][data-bnd-form-activity=drawer][data-bnd-own~=drawer] body[data-route^=Form] .form-footer {
+  position: fixed;
+  inset-block: 0 var(--bnd-bottom-reserve);
+  inset-inline-end: calc(-1 * var(--bnd-drawer-w) - var(--bnd-sp-6));
+  inline-size: min(var(--bnd-drawer-w), 100vw);
+  max-inline-size: none;
+  margin: 0;
+  padding: var(--bnd-sp-4);
+  overflow: auto;
+  z-index: var(--bnd-z-panel);
+  background: var(--bnd-surface);
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  box-shadow: var(--bnd-shadow-lg);
+  visibility: hidden;
+  transition: inset-inline-end var(--bnd-dur-slow) var(--bnd-ease), visibility 0s linear var(--bnd-dur-slow);
+}
+
+html[data-bnd-form][data-bnd-form-activity=drawer][data-bnd-own~=drawer][data-bnd-drawer=open] body[data-route^=Form] .form-footer {
+  inset-inline-end: 0;
+  visibility: visible;
+  transition-delay: 0s, 0s;
+}
+
+html[data-bnd-form] .bnd-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline-end: var(--bnd-sp-2);
+}
+
+html[data-bnd-form] .bnd-drawer-toggle .bnd-drawer-count:empty {
+  display: none;
+}
+
+html[data-bnd-form] .bnd-drawer-toggle .bnd-drawer-count {
+  min-inline-size: 1.5em;
+  padding-inline: var(--bnd-sp-1);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  font-size: var(--bnd-body-help);
+  font-weight: var(--bnd-weight-semibold);
+  font-variant-numeric: var(--bnd-numeric);
+  text-align: center;
+}
+
+html[data-bnd-form][data-bnd-drawer=open] .bnd-drawer-toggle {
+  background: var(--bnd-hover);
+}
+
+html[data-theme] .bnd-drawer-toggle:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
 }
 
 html[data-bnd-form] .form-layout .form-section .section-head {

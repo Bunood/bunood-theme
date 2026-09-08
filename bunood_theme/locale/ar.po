@@ -6777,3 +6777,39 @@ msgstr "يُضبط من المنتقي أعلاه. كيف ينفصل الشري�
 #, fuzzy
 msgid "How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."
 msgstr "كيف ينفصل الشريط الجانبي للسجل عن المستند — أو، كشريط فحص، يجاور المستند بلا بطاقة على الإطلاق."
+
+#. Label of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Form Activity"
+msgstr "نشاط النموذج"
+
+#. Description of a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."
+msgstr "يُضبط من المنتقي أعلاه. أين تقع التعليقات والخط الزمني: أسفل النموذج، أو بجانبه على شاشة عريضة، أو في دُرج يُفتح من إجراءات الصفحة."
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Beside"
+msgstr "بجانب النموذج"
+
+#. Option for a Select field in DocType 'Theme Settings'
+#. src: ai
+#, fuzzy
+msgid "Drawer"
+msgstr "دُرج"
+
+#. Group title in the form picker, and the drawer toggle's label (theme_settings.js, bunood.js)
+#. src: ai
+#, fuzzy
+msgid "Activity"
+msgstr "النشاط"
+
+#. Group description in the form picker (theme_settings.js)
+#. src: ai
+#, fuzzy
+msgid "Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."
+msgstr "أين تقع التعليقات والخط الزمني: أسفل النموذج، أو بجانبه على شاشة عريضة، أو في دُرج يُفتح من إجراءات الصفحة."
