@@ -833,6 +833,13 @@
 		// TWO WAYS TO HIDE THE PANE since item 42 — argument in _sidebar.scss.
 		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden";
 		if (!off.includes("sidepane") && !hidden) return false;
+		// NOT READY IS NOT STRANDED. A hidden pane lends its tenants to the page
+		// head, and a Form or List route builds that head AFTER the container
+		// this mount polls for (~0.8s against ~2s on a fresh load). Judged before
+		// the host existed, the guard opened a pane the user had hidden, on every
+		// load of every form; a workspace, built at once, never showed it. The
+		// head's arrival is "page-change": lend_to_arrived_page asks again then.
+		if (hidden && !off.includes("sidepane") && !visible_page_title()) return false;
 
 		// PRESENCE, not visibility — except inside the pane we are hiding, where a
 		// present node is an unreachable one. Argument in _sidebar.scss.
@@ -4375,6 +4382,14 @@ function sb_zone_anchor(pane, zone, node) {
 		return html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
 	}
 
+	/** The page title on screen, wherever it is — frappe.container.page lags a
+	 *  fresh load, and a Form or List route has no head until its meta arrives.
+	 *  What a hidden pane lends to the head is placed against the title that
+	 *  exists, never the pointer. Null while nothing is built yet. */
+	function visible_page_title() {
+		return [...document.querySelectorAll(".page-head .page-title")].find((t) => t.getBoundingClientRect().width > 0) || null;
+	}
+
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
 		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
@@ -7410,10 +7425,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// retry idiom, re-checking the premise on every attempt.
 		try_for(() => {
 			if (!map_route_on() || !sb_pane_hidden()) return true;
-			// The visible title, wherever it is: frappe.container.page can still
-			// point at the previous page while this route's head is already on
-			// screen (a fresh load of the settings route measured exactly that).
-			const title = [...document.querySelectorAll(".page-head .page-title")].find((t) => t.getBoundingClientRect().width > 0);
+			const title = visible_page_title();
 			if (!title) return false;
 			sb_place_pagehead_map(title);
 			return true;
@@ -8848,13 +8860,11 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/**
 	 * What a pane state MOVES, re-placed after every apply: search and the
-	 * tenants (a hidden pane lends them to the page head), and the brand and
-	 * settings map the page head keeps while Hidden. This ran only from
-	 * pane_state() until item 43 B3. The settings form's preview re-applies
-	 * the pane through sb_apply on every refresh, and on a fresh load of that
-	 * route it re-hid a pane guard_critical_reach had opened moments earlier
-	 * (the page head was not built yet, so the tenants had nowhere to go);
-	 * with nothing following the change, the head kept neither brand nor map.
+	 * tenants (a hidden pane lends them to the page head), the brand and the
+	 * settings map the head keeps while Hidden. Only pane_state() did this
+	 * until item 43 B3; the settings form's preview re-applies the pane through
+	 * sb_apply on every refresh, and with nothing following that change the
+	 * head kept neither brand nor map.
 	 */
 	function sb_follow_pane_state() {
 		mount_search();
@@ -8866,6 +8876,19 @@ function sb_zone_anchor(pane, zone, node) {
 		if (container_on("sidepane")) sb_mount_pagehead_brand();
 		else sb_teardown_pagehead_brand();
 		sb_mount_pagehead_map();
+	}
+
+	/** Frappe's "page-change": the page head exists now. Only Hidden cares —
+	 *  every other state keeps its tenants in the pane, which was there first.
+	 *  A retry, because the event fires with the title still at zero width
+	 *  (measured 2.2s against 3.0s on a User form); the premise is re-read. */
+	function lend_to_arrived_page() {
+		try_for(() => {
+			if (!sb_state || !sb_pane_hidden() || !container_on("sidepane")) return true;
+			if (!visible_page_title()) return false;
+			sb_follow_pane_state();
+			return true;
+		}, 40);
 	}
 
 	/**
@@ -9092,6 +9115,10 @@ function sb_zone_anchor(pane, zone, node) {
 		// toggle(false). Both paths call one function; neither touches the pane's DOM.
 		if (window.jQuery) window.jQuery(document).on("page-change", keep_pane_on_desktop);
 		keep_pane_on_desktop();
+		// THE HEAD HAS ARRIVED: under Hidden it is the tenants' host, and a slow
+		// page's head arrives after this mount placed and judged (the guard
+		// declines to judge until then). Idempotent — see lend_to_arrived_page.
+		if (window.jQuery) window.jQuery(document).on("page-change", lend_to_arrived_page);
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();

@@ -3841,7 +3841,12 @@ async function main() {
 		await test("placement: the bell and the avatar can be separated", async () => {
 			// The whole point of splitting build_cluster: these two were one
 			// DOM node with four call sites, so they could never be apart.
-			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Side Pane End", user_placement: "Top Bar End" });
+			// THE PANE IS OPEN BY NAME. Top Taskbar's row hides the pane (item 42),
+			// and a hidden pane lends its tenants to the page head — "moved to the
+			// side pane" needs a pane. This passed without saying so for as long
+			// as the critical-reach guard opened a hidden pane on every fresh load
+			// of this slow list route (fixed 2026-09-08); the premise is explicit now.
+			setSettings({ desk_layout: "Top Taskbar", sidebar_pane_state: "Open", inbox_placement: "Side Pane End", user_placement: "Top Bar End" });
 			await goDesk("/desk/item", ".page-head", 4500);
 			const where = await page.evaluate(() => ({
 				bellInSidebar: !!document.querySelector(".body-sidebar .bnd-bell"),
@@ -7051,6 +7056,42 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: Hidden holds on a fresh load of a slow page — the guard waits for the head it lends to", async () => {
+			// Read off a trace, not a screenshot (item 43 B3): guard_critical_reach
+			// judged reach ~0.8s into a fresh load of a Form route, before Frappe had
+			// built the page head (the meta fetch is asynchronous). The tenants had
+			// nowhere to go YET, the guard read "stranded", and opened a pane the user
+			// had hidden — on every load of every form and list. The check above
+			// never saw it: /app/selling is a workspace, and a workspace page exists
+			// by the time the chrome mounts. Not WANTED stops a guard; not READY must
+			// not trip it. Watched failing: state "open" on both routes.
+			const before = getSettings(["sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({
+					desk_layout: "Unified Side Pane",
+					sidebar_pane_state: "Hidden",
+					inbox_placement: "Side Pane End",
+					user_placement: "Side Pane End",
+				});
+				for (const [route, ready] of [["/desk/user/Administrator", ".form-layout"], ["/desk/todo", ".frappe-list"]]) {
+					await goDesk(route, ready, 4500);
+					const r = await page.evaluate(() => ({
+						state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+						pane: (() => { const c = document.querySelector(".body-sidebar-container"); return !!c && getComputedStyle(c).display !== "none" && c.getBoundingClientRect().width > 0; })(),
+						lent: !!document.querySelector('.page-head [data-bnd-part="bell"]') && !!document.querySelector(".page-head .bnd-avatar-btn"),
+						back: !!document.querySelector(".page-head .bnd-ph-brand .bnd-ph-show"),
+						inPane: !!document.querySelector(".body-sidebar .bnd-avatar-btn"),
+					}));
+					expectEq(r.state, "hidden", `${route}: Hidden holds on a fresh load`);
+					expect(r.lent && !r.inPane, `${route}: the bell and the account reached the page head once it existed (${JSON.stringify(r)})`);
+					expect(r.back, `${route}: with the brand and the way back`);
+					expectEq(r.pane, false, `${route}: and the pane is really gone`);
+				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: Hidden never strands identity — the page head lends the pane its tenants", async () => {
 			// THE SHARPEST INVARIANT IN THE APP, and Hidden opened a hole in it: the pane
 			// is where every stock affordance lives, and `guard_critical_reach` only knew
@@ -7730,8 +7771,13 @@ print("ok")
 			//
 			// So the claim is not "it is in the top bar" — that passed while
 			// three existed. It is EXACTLY ONE, and in the right place.
+			// The pane OPEN by name: Top Taskbar's row hides it (item 42), and the
+			// "Side Pane End" row below asks for a host that a hidden pane lends
+			// away to the page head. Explicit since the guard stopped opening a
+			// hidden pane on every fresh load of this route (2026-09-08).
 			const ALL_ON = {
 				desk_layout: "Top Taskbar",
+				sidebar_pane_state: "Open",
 				topbar_enabled: 1, pagehead_enabled: 1, bottombar_enabled: 1,
 				sidebar_enabled: 1, dock_enabled: 1,
 			};
@@ -8269,8 +8315,13 @@ print("ok")
 			// way; since v0.44.1 it survives as OURS, in the pane's foot band, and
 			// the natives stay owned. The fuller matrix (Open · Rail · Hidden) is
 			// `sidepane: a tenant placed where the desk has no host …`.
+			// The pane OPEN by name: the Taskbar row hides it (item 42), and the
+			// foot band this check reads is a pane's. Explicit since the guard
+			// stopped opening a hidden pane on every fresh load of this route
+			// (2026-09-08); the Hidden arm lives in the matrix named above.
 			setSettings({
 				desk_layout: "Taskbar",
+				sidebar_pane_state: "Open",
 				topbar_enabled: 0,
 				inbox_placement: "Top Bar End",
 				user_placement: "Top Bar End",
