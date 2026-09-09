@@ -858,6 +858,36 @@ msgstr "Helpdesk غير مثبّت."
 msgid "CRM is not installed."
 msgstr "CRM غير مثبّت."
 
+#. In theme_settings.js — the compare strip, a region, and its switch (item 43 C4)
+#. src: ai
+#, fuzzy
+msgid "Compare"
+msgstr "مقارنة"
+
+#. In theme_settings.js — the strip's heading, the decision it draws
+#. src: ai
+#, fuzzy
+msgid "Comparing: {0}"
+msgstr "مقارنة: {0}"
+
+#. In theme_settings.js — a cell's button, writing its value through the kit
+#. src: ai
+#, fuzzy
+msgid "Use this"
+msgstr "استخدم هذا"
+
+#. In theme_settings.js — a cell frame's title
+#. src: ai
+#, fuzzy
+msgid "Preview: {0}"
+msgstr "معاينة: {0}"
+
+#. In theme_settings.js — the Compare switch's line
+#. src: ai
+#, fuzzy
+msgid "Every value of the decision you last touched, side by side."
+msgstr "كل قيمة للقرار الذي لمسته آخرًا، جنبًا إلى جنب."
+
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
 msgid "Divided"

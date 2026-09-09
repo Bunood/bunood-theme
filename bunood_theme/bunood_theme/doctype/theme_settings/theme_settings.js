@@ -1708,8 +1708,15 @@ const BND_DESK_TENANTS = [
 // away what C3's frames will hold.
 // ════════════════════════════════════════════════════════════════════════════
 
+// LATCHED, once per document. Re-reading the address on every call looked the
+// same until the route left the page: Frappe caches the form hidden, the query
+// is gone from the address, and the next refresh (a landed save's) drew the
+// plain Compose card over the composer — frames destroyed, not parked. The
+// mode is a property of this page load; the Back link is a full navigation.
+let bnd_compose_latched = null;
 function bnd_compose_wanted() {
-	return new URLSearchParams(window.location.search).has("compose");
+	if (bnd_compose_latched === null) bnd_compose_latched = new URLSearchParams(window.location.search).has("compose");
+	return bnd_compose_latched;
 }
 
 /** The bands of the rail, in the order the pick reads: body, form, pages, shape. */
@@ -1892,6 +1899,8 @@ function bnd_composer_build(frm, $host) {
 			bnd_cmp_tick = 0;
 			bnd_composer_sync(frm);
 			bnd_composer_push_all(frm);
+			bnd_composer_strip_push_all(frm);
+			bnd_composer_strip_sync(frm);
 		});
 	});
 	// Colour reaches the desk only through the brand sheet on_update writes
@@ -1913,6 +1922,7 @@ function bnd_composer_set(frm, field, value) {
 	const row = bnd_composer_catalogue()[field];
 	if (!row) return;
 	row.set(frm, field, value);
+	bnd_composer_touch(frm, field);
 }
 
 /** The name beside a row's title: the hovered option's, else the current one's. */
@@ -1987,8 +1997,10 @@ function bnd_composer_line(frm) {
 // `?compare=0` disables every frame — the suite, the sweep and the axe scan
 // pass it, so nobody pays for a 1440×900 desk they did not ask for.
 
+let bnd_compare_latched = null;
 function bnd_compare_wanted() {
-	return new URLSearchParams(window.location.search).get("compare") !== "0";
+	if (bnd_compare_latched === null) bnd_compare_latched = new URLSearchParams(window.location.search).get("compare") !== "0";
+	return bnd_compare_latched;
 }
 
 let bnd_cmp_pages = null; // the server's answer, once per form session
@@ -2020,7 +2032,11 @@ function bnd_composer_push_frame(frm, frame) {
 		E.mobile_apply({ mobile_inbox: frm.doc.mobile_inbox, mobile_user: frm.doc.mobile_user, mobile_apps: frm.doc.mobile_apps });
 	}
 	if (typeof E.set_density === "function") E.set_density("", { save: false });
-	frame.setAttribute("data-bnd-route", (fw.frappe.get_route && fw.frappe.get_route().join("/")) || "");
+	// The frame's router may not have routed yet at `load` (measured: the
+	// second cell of a strip); the mark is left off and the seam runs again on
+	// the frame's own router change, which is when the mark is true.
+	const r = fw.frappe.get_route ? fw.frappe.get_route() : null;
+	if (Array.isArray(r) && r.length) frame.setAttribute("data-bnd-route", r.join("/"));
 	return true;
 }
 
@@ -2034,7 +2050,13 @@ function bnd_composer_frame_loaded(frm, frame) {
 		fw.history.pushState = fw.history.replaceState.bind(fw.history);
 		fw.__bnd_shimmed = true;
 	}
-	const push = () => bnd_composer_push_frame(frm, frame);
+	const push = () => {
+		try {
+			bnd_composer_push_frame(frm, frame);
+		} catch (e) {
+			console.error("bunood_theme composer stage", e); // eslint-disable-line no-console
+		}
+	};
 	push();
 	if (fw.frappe.router && fw.frappe.router.on) fw.frappe.router.on("change", push);
 	if (fw.jQuery) fw.jQuery(fw.document).on("page-change form-refresh", push);
@@ -2049,6 +2071,7 @@ function bnd_composer_navigate(frm, route) {
 	// one would read as "ready" through the whole navigation.
 	frame.removeAttribute("data-bnd-route");
 	frame.contentWindow.location.replace(url);
+	if (!route) bnd_cmp_queue = null;
 }
 
 /** Every live frame is told the form's values again (the dirty tick). */
@@ -2127,7 +2150,11 @@ function bnd_composer_build_stage(frm, $stage) {
 	// PARKED when the page hides (Frappe fires `hide` on the outgoing page and
 	// keeps it in the DOM): a cached display:none page would keep a desk
 	// running. Refresh on the way back rebuilds nothing and re-navigates.
-	frm.page.wrapper.off("hide.bndstage").on("hide.bndstage", () => bnd_composer_navigate(frm, ""));
+	frm.page.wrapper.off("hide.bndstage").on("hide.bndstage", () => {
+		bnd_composer_navigate(frm, "");
+		bnd_composer_strip_park(frm);
+	});
+	bnd_composer_render_compare_switch(frm, $stage);
 }
 
 /** On every refresh: a parked frame is sent back to its page. */
@@ -2137,6 +2164,296 @@ function bnd_composer_stage_sync(frm) {
 	const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
 	const parked = !frame.getAttribute("data-bnd-route") && frame.contentWindow && frame.contentWindow.location.href === "about:blank";
 	if (parked && current && current.route) bnd_composer_navigate(frm, current.route);
+}
+
+// ── The compare strip (item 43 C4) ─────────────────────────────────────────
+//
+// THE DECISION YOU LAST TOUCHED, EVERY WAY IT COULD GO. A rail click marks its
+// field as touched (`data-bnd-touch` on the composer — gesture state, never
+// document state), and a strip under the stage frame draws one cell per value
+// the field offers: each a same-origin desk frame at the stage's own scale,
+// pushed the FORM's values with that ONE field replaced, scrolled to the
+// element the decision governs. The current value's cell is marked; every
+// other cell's "Use this" goes through the kit's setter like any rail chip.
+//
+// CELLS ARE REUSED ACROSS DECISIONS: a frame on the same route is re-pushed
+// and re-focused, never navigated; a decision whose page differs (lists live
+// on the list, workspaces on a workspace) navigates the stage and the cells
+// together, one after another so the machine stays answerable. The Compare
+// switch parks the strip; `?compare=0` never builds it; Frappe's `hide` parks
+// every frame with the stage's.
+
+/** Where a decision is SEEN, and what to scroll its cell to. */
+const BND_COMPOSER_FOCUS = {
+	desk_width: { pages: null, sel: ".std-form-layout, .layout-main-section" },
+	desk_scale: { pages: null, sel: ".form-layout .form-section, .layout-main-section" },
+	desk_primary: { pages: null, sel: ".page-actions, .bnd-docfoot" },
+	form_style: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-layout .form-section" },
+	form_fields: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-layout .frappe-control[data-fieldtype='Data'], .form-layout .frappe-control" },
+	form_header: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-dochead, .page-head" },
+	form_header_tone: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-dochead, .page-head" },
+	form_grid: { pages: ["invoice"], sel: ".form-grid" },
+	form_tabs: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-tabs-list, .form-layout" },
+	form_sidebar: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".layout-side-section" },
+	form_activity: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-footer, .bnd-drawer-toggle" },
+	form_stage: { pages: ["invoice"], sel: ".bnd-stagepath, .bnd-dochead, .page-head" },
+	form_foot: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-docfoot, .page-actions" },
+	list_style: { pages: ["list"], sel: ".result, .frappe-list" },
+	workspace_style: { pages: ["home", "workspace"], sel: ".ce-block .widget, .layout-main-section" },
+	report_style: { pages: ["report"], sel: ".datatable .dt-scrollable, .datatable" },
+	chart_grid: { pages: ["dashboard"], sel: ".widget-group-body, .chart-container" },
+	sidebar_pane_state: { pages: null, sel: ".body-sidebar-container, .page-head" },
+};
+
+let bnd_cmp_compare = true; // the Compare switch: a gesture, per page load
+let bnd_cmp_touched = ""; // the decision the strip draws
+let bnd_cmp_queue = null; // cells still to load, one after another
+
+/** The form with ONE field replaced — what a cell is pushed. It INHERITS the
+ *  form (get_field, fields_dict, the wrapper) and owns only the document, so
+ *  the previews and the layout matcher read it exactly as they read the form. */
+function bnd_composer_variant(frm, field, value) {
+	return Object.create(frm, { doc: { value: Object.assign({}, frm.doc, { [field]: value }), enumerable: true } });
+}
+
+/** The values a strip draws for a field: the rail's own items, in the rail's order. */
+function bnd_composer_strip_values(frm, field) {
+	return [...frm.$wrapper.find('.bnd-cmp-row[data-field="' + field + '"] .bnd-cbp-opt:not([disabled])')].map((b) => ({
+		value: b.getAttribute("data-value"),
+		name: b.querySelector(".bnd-cbp-oname").textContent,
+	}));
+}
+
+/** The page a decision should be seen on: the stage's, if that page shows it; else its first. */
+function bnd_composer_page_for(field) {
+	const spec = BND_COMPOSER_FOCUS[field];
+	if (!spec || !spec.pages || !bnd_cmp_pages) return bnd_cmp_page;
+	if (spec.pages.includes(bnd_cmp_page)) return bnd_cmp_page;
+	const first = spec.pages.map((k) => bnd_cmp_pages.find((p) => p.key === k && p.route)).find(Boolean);
+	return first ? first.key : bnd_cmp_page;
+}
+
+/** A rail click touched a decision: draw (or redraw) its strip. */
+function bnd_composer_touch(frm, field) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length || !bnd_compare_wanted() || !bnd_cmp_compare || !bnd_cmp_pages) return;
+	$cmp.attr("data-bnd-touch", field);
+	bnd_cmp_touched = field;
+	const page = bnd_composer_page_for(field);
+	if (page !== bnd_cmp_page) {
+		bnd_cmp_page = page;
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	}
+	bnd_composer_render_strip(frm);
+}
+
+/** Build or reuse the cells for the touched decision, then load them one after another. */
+function bnd_composer_render_strip(frm) {
+	const $stage = frm.$wrapper.find(".bnd-cmp-stage");
+	const field = bnd_cmp_touched;
+	if (!$stage.length || !field) return;
+	let $strip = $stage.find(".bnd-cmp-strip");
+	if (!$strip.length) {
+		$strip = $('<section class="bnd-cmp-strip" aria-label="' + bnd_esc(__("Compare")) + '"><div class="bnd-cmp-striphead"></div><div class="bnd-cmp-cells"></div></section>');
+		$stage.append($strip);
+	}
+	$stage.attr("data-bnd-comparing", field);
+	const row = frm.$wrapper.find('.bnd-cmp-row[data-field="' + field + '"] .bnd-cbp-title');
+	const title = row.length ? row[0].childNodes[0].textContent.trim() : field;
+	$strip.find(".bnd-cmp-striphead").text(__("Comparing: {0}", [title]));
+	const values = bnd_composer_strip_values(frm, field);
+	const $cells = $strip.find(".bnd-cmp-cells");
+	const existing = [...$cells.children(".bnd-cmp-cell")];
+	// One cell per value; spare cells park, missing cells are made.
+	values.forEach((v, i) => {
+		let cell = existing[i];
+		if (!cell) {
+			cell = $(
+				'<div class="bnd-cmp-cell"><div class="bnd-cmp-cellclip"><iframe class="bnd-cmp-cellframe" title=""></iframe></div>' +
+					'<div class="bnd-cmp-cellbar"><span class="bnd-cmp-cellname"></span>' +
+					'<button type="button" class="bnd-cbp-opt bnd-cmp-use" data-field="" data-value=""><span class="bnd-cbp-oname">' + bnd_esc(__("Use this")) + "</span></button></div></div>"
+			)[0];
+			$cells.append(cell);
+			const frame = cell.querySelector(".bnd-cmp-cellframe");
+			frame.addEventListener("load", () => bnd_composer_cell_loaded(frm, cell));
+		}
+		cell.setAttribute("data-value", v.value);
+		cell.querySelector(".bnd-cmp-cellname").textContent = v.name;
+		cell.querySelector(".bnd-cmp-cellframe").setAttribute("title", __("Preview: {0}", [v.name]));
+		const use = cell.querySelector(".bnd-cmp-use");
+		use.setAttribute("data-field", field);
+		use.setAttribute("data-value", v.value);
+		cell.hidden = false;
+	});
+	for (const spare of existing.slice(values.length)) {
+		spare.hidden = true;
+		bnd_composer_cell_park(spare);
+	}
+	bnd_composer_strip_sync(frm);
+	// A new decision starts at its first cell: the strip's scroll is the
+	// previous decision's otherwise (read off a screenshot).
+	$cells[0].scrollLeft = 0;
+	// Load in order: a cell already on the stage's route is re-pushed in place.
+	bnd_cmp_queue = [...$cells.children(".bnd-cmp-cell:not([hidden])")];
+	bnd_composer_load_next(frm);
+}
+
+function bnd_composer_cell_park(cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	frame.removeAttribute("data-bnd-route");
+	if (frame.contentWindow) frame.contentWindow.location.replace("about:blank");
+}
+
+/** The stage's route today, from the page the switcher marks. */
+function bnd_composer_stage_route() {
+	const current = bnd_cmp_pages && bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+	return current && current.route ? current.route : "";
+}
+
+function bnd_composer_load_next(frm) {
+	if (!bnd_cmp_queue || !bnd_cmp_queue.length) return;
+	const cell = bnd_cmp_queue.shift();
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const route = bnd_composer_stage_route();
+	if (!route) return;
+	const fw = frame.contentWindow;
+	const onRoute = fw && fw.location && fw.location.pathname === route.split("?")[0] && frame.getAttribute("data-bnd-route");
+	if (onRoute) {
+		// Same route: re-push the variant, re-focus, move on.
+		bnd_composer_cell_push(frm, cell);
+		bnd_composer_load_next(frm);
+		return;
+	}
+	frame.removeAttribute("data-bnd-route");
+	fw.location.replace(window.location.origin + route);
+	// `load` continues the queue (bnd_composer_cell_loaded); a load that never
+	// comes (a hung request) hands the turn on after a minute rather than never.
+	clearTimeout(cell.__bnd_wait);
+	cell.__bnd_wait = setTimeout(() => bnd_composer_load_next(frm), 60000);
+}
+
+/** A cell's document arrived: shim, push its variant, focus, continue the queue. */
+function bnd_composer_cell_loaded(frm, cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const fw = frame.contentWindow;
+	if (!fw || fw.location.href === "about:blank") return; // parked, not a load step
+	clearTimeout(cell.__bnd_wait);
+	// A document without Frappe (a 504 on a cold backend) still ENDS this
+	// cell's turn — the queue must never stall on one cell.
+	if (fw.frappe) {
+		if (fw.history && !fw.__bnd_shimmed) {
+			fw.history.pushState = fw.history.replaceState.bind(fw.history);
+			fw.__bnd_shimmed = true;
+		}
+		// A push that throws must not stall the queue (it did: the whole strip
+		// behind one cell).
+		const push = () => {
+			try {
+				bnd_composer_cell_push(frm, cell);
+			} catch (e) {
+				console.error("bunood_theme composer cell", e); // eslint-disable-line no-console
+			}
+		};
+		push();
+		if (fw.frappe.router && fw.frappe.router.on) fw.frappe.router.on("change", push);
+		if (fw.jQuery) fw.jQuery(fw.document).on("page-change form-refresh", push);
+	}
+	bnd_composer_load_next(frm);
+}
+
+/** Push the cell's variant document and scroll its frame to the decision's element. */
+function bnd_composer_cell_push(frm, cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const field = bnd_cmp_touched;
+	const value = cell.getAttribute("data-value");
+	if (!field || value === null) return;
+	if (!bnd_composer_push_frame(bnd_composer_variant(frm, field, value), frame)) return;
+	bnd_composer_cell_focus(cell, field);
+}
+
+/**
+ * Focus: the element the decision governs, scrolled to the top of its own
+ * scroller (reaches nested ones), then the frame translated by the DELTA
+ * between the element's rect and the clip's — never a named side, so an RTL
+ * frame mirrors on its own. The sticky page head is left above the element.
+ */
+function bnd_composer_cell_focus(cell, field) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const fw = frame.contentWindow;
+	const spec = BND_COMPOSER_FOCUS[field];
+	if (!fw || !spec) return;
+	const settle = (tries) => {
+		const el = fw.document.querySelector(spec.sel);
+		if (!el) {
+			if (tries > 0) setTimeout(() => settle(tries - 1), 250);
+			return;
+		}
+		el.scrollIntoView({ block: "start" });
+		const head = fw.document.querySelector(".page-head");
+		const headH = head ? head.getBoundingClientRect().height : 0;
+		const top = el.getBoundingClientRect().top;
+		const scale = parseFloat(getComputedStyle(cell.querySelector(".bnd-cmp-cellclip")).getPropertyValue("--bnd-cmp-scale")) || 0.5;
+		const dy = Math.max(0, top - headH);
+		frame.style.translate = "0 " + -(dy * scale) + "px";
+		cell.setAttribute("data-bnd-focus", spec.sel.split(",")[0].trim());
+	};
+	settle(12);
+}
+
+/** The current value's cell is marked; the switch and the strip follow the gesture. */
+function bnd_composer_strip_sync(frm) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length || !bnd_cmp_touched) return;
+	const cat = bnd_composer_catalogue();
+	const current = bnd_composer_value(frm, bnd_cmp_touched, cat[bnd_cmp_touched]);
+	for (const cell of $cmp.find(".bnd-cmp-cell")) {
+		const on = cell.getAttribute("data-value") === current;
+		cell.classList.toggle("bnd-cmp-cell-on", on);
+		const use = cell.querySelector(".bnd-cmp-use");
+		use.classList.toggle("bnd-cbp-on", on);
+		use.setAttribute("aria-pressed", on ? "true" : "false");
+	}
+}
+
+/** Every live cell is told the form again (the dirty tick), its own field replaced. */
+function bnd_composer_strip_push_all(frm) {
+	if (!bnd_cmp_touched) return;
+	for (const cell of frm.$wrapper.find(".bnd-cmp-cell:not([hidden])")) {
+		const frame = cell.querySelector(".bnd-cmp-cellframe");
+		if (frame.getAttribute("data-bnd-route")) bnd_composer_cell_push(frm, cell);
+	}
+}
+
+/** Park every cell (Frappe's hide, the Compare switch off). */
+function bnd_composer_strip_park(frm) {
+	for (const cell of frm.$wrapper.find(".bnd-cmp-cell")) bnd_composer_cell_park(cell);
+	bnd_cmp_queue = null;
+}
+
+/** The Compare switch in the stage's head. */
+function bnd_composer_render_compare_switch(frm, $stage) {
+	if (!bnd_compare_wanted()) return;
+	const $sw = $(
+		'<button type="button" class="bnd-cbp-toggle bnd-cmp-compare" role="switch" aria-checked="' + (bnd_cmp_compare ? "true" : "false") + '">' +
+			'<span class="bnd-cbp-knob' + (bnd_cmp_compare ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + bnd_esc(__("Compare")) + "</b><br><span class='bnd-cbp-blurb'>" + bnd_esc(__("Every value of the decision you last touched, side by side.")) + "</span></span>" +
+			"</button>"
+	);
+	$stage.find(".bnd-cmp-pages").before($sw);
+	$sw.on("click", () => {
+		bnd_cmp_compare = !bnd_cmp_compare;
+		$sw.attr("aria-checked", bnd_cmp_compare ? "true" : "false");
+		$sw.find(".bnd-cbp-knob").toggleClass("bnd-cbp-knob-on", bnd_cmp_compare);
+		if (!bnd_cmp_compare) {
+			bnd_composer_strip_park(frm);
+			$stage.find(".bnd-cmp-strip").remove();
+			$stage.removeAttr("data-bnd-comparing");
+		} else if (bnd_cmp_touched) {
+			bnd_composer_render_strip(frm);
+		}
+	});
 }
 
 function bnd_render_overview(frm, $pane) {

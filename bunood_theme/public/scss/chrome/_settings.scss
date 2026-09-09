@@ -1499,6 +1499,14 @@ html[data-theme] .bnd-cmp-copy:focus-visible {
 	min-inline-size: 0;
 	position: sticky;
 	inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-3));
+	// NEVER TALLER THAN THE VIEWPORT: a sticky box taller than the window only
+	// shows its bottom once the row it sits in runs out — with a strip up, a
+	// cell's "Use this" was unreachable from the top of the rail (read off a
+	// screenshot). Bounded to the window under the head and above the bottom
+	// chrome, the stage scrolls on its own instead.
+	max-block-size: calc(100vh - var(--page-head-height) - var(--bnd-sp-3) * 2 - var(--bnd-bottom-reserve));
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 @include bnd-container-until(bndcmp, cmp) {
 	.bnd-cmp-stage {
@@ -1536,6 +1544,79 @@ html[data-theme] .bnd-cmp-copy:focus-visible {
 	transform-origin: 0 0;
 }
 html[data-theme] .bnd-cmp-open-page:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The compare strip (item 43 C4) ──────────────────────────────────────────
+// Under the stage frame, inside the sticky stage: a horizontal strip of cells
+// at the stage's own scale, one per value of the decision last touched. While
+// a strip is up the main frame's clip shows the page's first 600px instead of
+// 900, so pages + frame + strip still fit the sticky height at 900 tall.
+.bnd-cmp-stage[data-bnd-comparing] .bnd-cmp-clip {
+	block-size: calc(600px * var(--bnd-cmp-scale));
+}
+.bnd-cmp-strip {
+	display: grid;
+	gap: var(--bnd-sp-2);
+	min-inline-size: 0;
+}
+.bnd-cmp-striphead {
+	font-size: var(--bnd-text-sm);
+	font-weight: var(--bnd-weight-medium);
+}
+.bnd-cmp-cells {
+	display: flex;
+	gap: var(--bnd-sp-3);
+	overflow-x: auto;
+	scroll-snap-type: inline mandatory;
+	padding-block-end: var(--bnd-sp-2);
+}
+.bnd-cmp-cell {
+	flex: 0 0 auto;
+	inline-size: 100%;
+	scroll-snap-align: start;
+	display: grid;
+	gap: var(--bnd-sp-2);
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	padding: var(--bnd-sp-2);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cell-on {
+	border-color: var(--bnd-accent);
+}
+// The clip inherits the stage's scale from the clip above it (one ResizeObserver,
+// one token) — declared again here only as the fallback the guard reads.
+.bnd-cmp-cellclip {
+	--bnd-cmp-scale: 0.5;
+	position: relative;
+	inline-size: 100%;
+	block-size: calc(600px * var(--bnd-cmp-scale));
+	overflow: hidden;
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cellframe {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 1440px;
+	block-size: 900px;
+	border: 0;
+	transform: scale(var(--bnd-cmp-scale));
+	transform-origin: 0 0;
+}
+.bnd-cmp-cellbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-cellname {
+	font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-cmp-compare:focus-visible {
 	outline: 2px solid var(--bnd-accent);
 	outline-offset: 1px;
 }

@@ -9683,6 +9683,88 @@ print("ok")
 			expect(Object.keys(out).length >= 10, `ten pages (${Object.keys(out).length})`);
 		});
 
+		await test("composer: touching a decision draws one cell per value, each the form with that one field replaced, focused on its element", async () => {
+			// Item 43 C4. Sabotage 1 (push frm.doc unmodified): every cell carries
+			// the same scale. Sabotage 2 (zero the translate): the sidebar's rect
+			// is not inside the clip. The Selling Settings page is used because it
+			// is fast and a Single still has a sidebar.
+			const before = getSettings(["desk_scale", "form_sidebar"]);
+			try {
+				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				await page.waitForFunction(() => { const f = document.querySelector(".bnd-cmp-frame"); return f && f.getAttribute("data-bnd-route"); }, undefined, { timeout: 45000 });
+				await page.click('.bnd-cmp-page[data-page="settings"]');
+				await page.waitForFunction(() => { const f = document.querySelector(".bnd-cmp-frame"); return f && /Selling Settings/.test(f.getAttribute("data-bnd-route") || ""); }, undefined, { timeout: 45000 });
+				// Touch the type scale: four values, all seen on a Single.
+				const other = await page.evaluate(() => { const cur = cur_frm.doc.desk_scale; return [...document.querySelectorAll('.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"]:not([disabled])')].map((b) => b.getAttribute("data-value")).find((v) => v !== cur); });
+				await page.click(`.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"][data-value="${other}"]`);
+				await page.waitForFunction(() => {
+					const cells = [...document.querySelectorAll(".bnd-cmp-cell:not([hidden])")];
+					return cells.length >= 4 && cells.every((c) => { const f = c.querySelector(".bnd-cmp-cellframe"); return f.getAttribute("data-bnd-route") && f.contentWindow && f.contentWindow.document.documentElement.hasAttribute("data-bnd-desk"); });
+				}, undefined, { timeout: 120000 });
+				await page.waitForTimeout(1500);
+				const g = await page.evaluate(() => {
+					const cells = [...document.querySelectorAll(".bnd-cmp-cell:not([hidden])")];
+					return {
+						touch: document.querySelector(".bnd-cmp").getAttribute("data-bnd-touch"),
+						scales: cells.map((c) => c.querySelector(".bnd-cmp-cellframe").contentWindow.document.documentElement.getAttribute("data-bnd-body-scale") || ""),
+						forms: cells.map((c) => c.querySelector(".bnd-cmp-cellframe").contentWindow.document.documentElement.getAttribute("data-bnd-form") || ""),
+						values: cells.map((c) => c.getAttribute("data-value")),
+						on: cells.filter((c) => c.classList.contains("bnd-cmp-cell-on")).map((c) => c.getAttribute("data-value")),
+						doc: cur_frm.doc.desk_scale,
+					};
+				});
+				expectEq(g.touch, "desk_scale", "the touched decision is marked");
+				expectEq(new Set(g.scales).size, g.values.length, `every cell carries its OWN scale (${g.scales.join(",")})`);
+				expectEq(new Set(g.forms).size, 1, `and the same form style (${g.forms.join(",")})`);
+				expectEq(g.on.join(","), g.doc, "the current value's cell is marked");
+				// Focus: the sidebar decision's cell shows the sidebar inside its clip.
+				await page.click('.bnd-cmp .bnd-cbp-opt[data-field="form_sidebar"]:not(.bnd-cbp-on):not([disabled])');
+				await page.waitForFunction(() => {
+					const cells = [...document.querySelectorAll(".bnd-cmp-cell:not([hidden])")];
+					return cells.length >= 2 && cells.every((c) => c.getAttribute("data-bnd-focus") === ".layout-side-section");
+				}, undefined, { timeout: 120000 });
+				await page.waitForTimeout(1000);
+				const focus = await page.evaluate(() => {
+					const c = document.querySelector(".bnd-cmp-cell:not([hidden])");
+					const clip = c.querySelector(".bnd-cmp-cellclip").getBoundingClientRect();
+					const f = c.querySelector(".bnd-cmp-cellframe");
+					const el = f.contentWindow.document.querySelector(".layout-side-section");
+					const fr = f.getBoundingClientRect(); // the frame's SCALED box on the page
+					const scale = fr.width / 1440;
+					const r = el.getBoundingClientRect(); // in frame CSS px
+					const top = fr.top + r.top * scale;
+					return { clipTop: Math.round(clip.top), clipBottom: Math.round(clip.bottom), elTop: Math.round(top), elBottom: Math.round(top + r.height * scale), translate: f.style.translate };
+				});
+				expect(focus.elTop >= focus.clipTop - 2 && focus.elTop < focus.clipBottom, `the sidebar's top sits inside the clip (${JSON.stringify(focus)})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("composer: leaving the route parks every frame in the cached page", async () => {
+			// Sabotage: drop the hide handler — the cached, display:none page keeps
+			// nine desks running.
+			const before = getSettings(["desk_scale"]);
+			try {
+				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				await page.waitForFunction(() => { const f = document.querySelector(".bnd-cmp-frame"); return f && f.getAttribute("data-bnd-route"); }, undefined, { timeout: 45000 });
+				const other = await page.evaluate(() => { const cur = cur_frm.doc.desk_scale; return [...document.querySelectorAll('.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"]:not([disabled])')].map((b) => b.getAttribute("data-value")).find((v) => v !== cur); });
+				await page.click(`.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"][data-value="${other}"]`);
+				await page.waitForFunction(() => document.querySelectorAll(".bnd-cmp-cell:not([hidden]) .bnd-cmp-cellframe[data-bnd-route]").length >= 1, undefined, { timeout: 90000 });
+				// The theme's own way home (the brand tile's): an in-app route, so the
+				// form page is CACHED hidden with its frames — a path under another
+				// desk prefix would be a full load, and a fresh document has no
+				// frames to park.
+				await page.evaluate(() => frappe.set_route(""));
+				await page.waitForFunction(() => (frappe.get_route() || [])[0] !== "Form" && !!document.querySelector(".bnd-cmp"), undefined, { timeout: 20000 });
+				await page.waitForTimeout(1500);
+				const parked = await page.evaluate(() => [...document.querySelectorAll(".bnd-cmp iframe")].map((f) => [f.getAttribute("data-bnd-route") || "", (f.contentWindow && f.contentWindow.location.href) || ""]));
+				expect(parked.length >= 2 && parked.every(([r, h]) => !r && /about:blank$/.test(h)), `every frame parked (${JSON.stringify(parked)})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("map: the side pane lists the cards in order, scrolls to one on click, follows the scroll, dots the changed card, and is absent elsewhere", async () => {
 			// Item 43 B3. The rows equal the visible sections in count, order and
 			// label; a click scrolls the card under the page head and marks it
