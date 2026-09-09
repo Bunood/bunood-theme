@@ -387,6 +387,19 @@ USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 #: taskbar rows turn it on, which is what makes them taskbars.
 START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Off")}
 
+# Language and appearance controls introduced on the v0.44 line. Keep their
+# defaults alongside the other independently placeable chrome tenants so setup,
+# boot and preset derivation all read the same values.
+LANGUAGE_DEFAULTS = {
+    "language_placement": _DEFAULT_TENANTS.get("language_placement", "Bottom Bar End"),
+    "language_style": "Globe",
+    "language_choices": "ar,en",
+}
+LANGUAGE_FIELDS = ["language_style", "language_choices"]
+APPEARANCE_DEFAULTS = {
+    "appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")
+}
+
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
 #: top-level choice and the two treatments compose with any style.
@@ -1318,6 +1331,7 @@ def _theme_axes() -> list:
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
+        list(LANGUAGE_DEFAULTS), list(APPEARANCE_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
         STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
@@ -1528,7 +1542,8 @@ def _shipped_baseline() -> dict:
         "density_default": "Comfortable",
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
-    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, ICON_DEFAULTS,
+    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS,
+              LANGUAGE_DEFAULTS, APPEARANCE_DEFAULTS, ICON_DEFAULTS,
               CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
               LIST_DEFAULTS, FORM_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
               REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,
