@@ -4649,6 +4649,11 @@ html[data-theme] .bnd-cmp-open-page:focus-visible {
   transform-origin: 0 0;
 }
 
+html[dir=rtl] .bnd-cmp-frame,
+html[dir=rtl] .bnd-cmp-cellframe {
+  transform-origin: 100% 0;
+}
+
 .bnd-cmp-cellbar {
   display: flex;
   align-items: center;

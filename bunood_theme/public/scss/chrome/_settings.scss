@@ -1531,8 +1531,10 @@ html[data-theme] .bnd-cmp-copy:focus-visible {
 	border-radius: var(--bnd-radius-md);
 	background: var(--bnd-surface);
 }
-// Origin at the box's own corner, never a named side: the frame is a whole
-// desk and mirrors itself under RTL; the clip only scales it.
+// The frame anchors at the clip's inline START and must scale from THAT
+// corner: `transform-origin` knows no logical keywords, so RTL flips it below
+// (0 0 under RTL put the scaled desk 700px to the left of its clip — read off
+// the Arabic screenshot). The desk inside mirrors on its own.
 .bnd-cmp-frame {
 	position: absolute;
 	inset-block-start: 0;
@@ -1606,6 +1608,13 @@ html[data-theme] .bnd-cmp-open-page:focus-visible {
 	border: 0;
 	transform: scale(var(--bnd-cmp-scale));
 	transform-origin: 0 0;
+}
+// Under RTL the inline start is the right edge: the origin follows it, so the
+// scaled box is exactly the clip in both directions (measured: 47px of the
+// stage inside its clip before this).
+html[dir="rtl"] .bnd-cmp-frame,
+html[dir="rtl"] .bnd-cmp-cellframe {
+	transform-origin: 100% 0;
 }
 .bnd-cmp-cellbar {
 	display: flex;
