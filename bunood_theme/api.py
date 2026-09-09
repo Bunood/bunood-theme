@@ -1833,3 +1833,19 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
     except Exception:
         frappe.log_error(title="bunood_theme: print preview stood down")
         return ""
+
+
+@frappe.whitelist()
+def set_language(code: str = "") -> dict:
+    """Switch the signed-in user's desk language to an administrator-offered choice."""
+    code = (code or "").strip()
+    if not code or frappe.session.user == "Guest":
+        frappe.throw(_("Sign in to change your language."), frappe.PermissionError)
+
+    from bunood_theme.language import offered_languages
+
+    if code not in {row["code"] for row in offered_languages()}:
+        frappe.throw(_("That language is not offered on this site."), frappe.ValidationError)
+    frappe.db.set_value("User", frappe.session.user, "language", code, update_modified=False)
+    frappe.clear_cache(user=frappe.session.user)
+    return {"language": code}

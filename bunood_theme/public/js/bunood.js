@@ -2300,9 +2300,16 @@
 	// bundle. Persist only the signed-in User, then reload the same page.
 	let language_switch_pending = false;
 	function language_choice() {
-		return String(frappe.boot.lang || "en").split(/[-_]/)[0] === "ar"
-			// Language choices use their own names so the destination remains
-			// recognisable even when the current interface language is unfamiliar.
+		const configured = Array.isArray(frappe.boot.bnd_language?.languages)
+			? frappe.boot.bnd_language.languages.filter((row) => row && row.code)
+			: [];
+		const current = String(frappe.boot.bnd_language?.current || frappe.boot.lang || "en").split(/[-_]/)[0];
+		const destination = configured.find((row) => String(row.code).split(/[-_]/)[0] !== current);
+		if (destination) {
+			const label = destination.name || destination.language_name || destination.code;
+			return { code: destination.code, label, title: __("Switch to {0}", [label]) };
+		}
+		return current === "ar"
 			? { code: "en", label: "English", title: __("Switch to English") }
 			: { code: "ar", label: "العربية", title: __("Switch to Arabic") };
 	}
@@ -2321,10 +2328,9 @@
 		buttons.forEach(btn => { btn.disabled = true; btn.setAttribute("aria-busy", "true"); });
 		try {
 			const choice = language_choice();
-			// Native save checks User permissions and clears that user's boot cache.
 			const response = await frappe.call({
-				method: "frappe.client.set_value",
-				args: { doctype: "User", name: frappe.session.user, fieldname: "language", value: choice.code },
+				method: "bunood_theme.api.set_language",
+				args: { code: choice.code },
 				freeze: true,
 				freeze_message: __("Switching language..."),
 			});
