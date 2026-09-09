@@ -9588,6 +9588,101 @@ print("ok")
 			}
 		});
 
+		await test("composer: the stage is a real desk page carrying the FORM's values, and its routing never touches the joint history", async () => {
+			// Item 43 C3. The frame boots with the admin's PERSONAL look overlaid
+			// (resolve_for_user) — the dev Administrator has none, so one is set —
+			// and the seam must still hand it the form's value: sabotage (skip
+			// bnd_all_previews(frm, E)) leaves the frame on Canvas's list style.
+			// Switching pages replaces the frame's location; the top window's
+			// history length must not move (sabotage: src= instead of replace, or
+			// no pushState shim).
+			const before = getSettings(["list_style"]);
+			try {
+				await withPersonal("Administrator", { bnd_look: "Canvas" }, async () => {
+					await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+					await page.waitForFunction(() => {
+						const f = document.querySelector(".bnd-cmp-frame");
+						return f && f.getAttribute("data-bnd-route") && f.contentWindow && f.contentWindow.document.documentElement.hasAttribute("data-bnd-desk");
+					}, undefined, { timeout: 45000 });
+					// The form's value, unsaved, pushed on the dirty tick — a value the
+					// DB does NOT hold, asserted within one frame's worth of time, so a
+					// frame that merely booted from the database cannot pass (it did
+					// once: a screenshot's click had left Dense Table in the DB).
+					const pick = await page.evaluate(() => {
+						const cur = cur_frm.doc.list_style;
+						const want = cur === "Dense Table" ? ["Hairline Rows", "hairline"] : ["Dense Table", "table"];
+						const f = document.querySelector(".bnd-cmp-frame");
+						return { value: want[0], slug: want[1], was: f.contentWindow.document.documentElement.getAttribute("data-bnd-list"), route: f.getAttribute("data-bnd-route") };
+					});
+					expect(pick.was !== pick.slug, `the frame does not already carry ${pick.slug} (${pick.was})`);
+					await page.evaluate((v) => cur_frm.set_value("list_style", v), pick.value);
+					await page.waitForFunction((p) => {
+						const f = document.querySelector(".bnd-cmp-frame");
+						return f && f.getAttribute("data-bnd-route") === p.route && f.contentWindow.document.documentElement.getAttribute("data-bnd-list") === p.slug;
+					}, pick, { timeout: 300 });
+					const nav = await page.evaluate(() => ({ len: history.length, path: document.querySelector(".bnd-cmp-frame").contentWindow.location.pathname, pages: [...document.querySelectorAll(".bnd-cmp-page")].map((b) => [b.getAttribute("data-page"), b.disabled, b.title]) }));
+					// A Single, because it is fast: the new-invoice form is the slow page
+					// on this site (and opens its own "DocType Land not found" dialog).
+					const other = nav.pages.find(([k, dis]) => !dis && k === "settings") || nav.pages.find(([k, dis]) => !dis && k !== "home");
+					expect(other, `a second page is offered (${JSON.stringify(nav.pages)})`);
+					await page.click(`.bnd-cmp-page[data-page="${other[0]}"]`);
+					await page.waitForFunction((p) => document.querySelector(".bnd-cmp-frame").contentWindow.location.pathname !== p, nav.path, { timeout: 45000 });
+					// The NEW document is stamped by the seam at its load, with the form's value.
+					await page.waitForFunction((p) => { const f = document.querySelector(".bnd-cmp-frame"); return f && f.getAttribute("data-bnd-route") && f.getAttribute("data-bnd-route") !== p.route && f.contentWindow.document.documentElement.getAttribute("data-bnd-list") === p.slug; }, pick, { timeout: 45000 });
+					const after = await page.evaluate(() => ({ len: history.length, greyed: [...document.querySelectorAll(".bnd-cmp-page[disabled]")].every((b) => b.title) }));
+					expectEq(after.len, nav.len, "the joint history did not grow on a page switch");
+					expect(after.greyed, "every absent page carries its reason");
+				});
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("composer: a landed save of a brand input reloads the stage onto the new brand sheet", async () => {
+			// Colour cannot be previewed client-side: the sheet is content-hashed
+			// and written by on_update. The autosave says `bnd:saved` with the
+			// fields it landed; a brand input among them reloads the frames.
+			// Sabotage: never reload — the frame keeps the old href.
+			// The colour is written by the FORM's own autosave, never pre-written:
+			// a value the DB already holds gives the form nothing to land, and
+			// the signal is only ever a landed save's. Restored through doc.save
+			// afterwards, so the sheet comes back too (the branding helper's own
+			// recipe, without its pre-write).
+			const snap = getSettings(["brand_color"]);
+			const restore = () => benchPy('doc = frappe.get_doc("Theme Settings")\ndoc.set("brand_color", ' + JSON.stringify(snap.brand_color) + ')\ndoc.save(ignore_permissions=True)\nfrappe.db.commit()\nprint("ok")\n');
+			try {
+				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				await page.waitForFunction(() => { const f = document.querySelector(".bnd-cmp-frame"); return f && f.getAttribute("data-bnd-route"); }, undefined, { timeout: 45000 });
+				// The sheet is /files/<site>/brand_<hash>.css (content-hashed).
+				const href0 = await page.evaluate(() => (document.querySelector(".bnd-cmp-frame").contentWindow.document.querySelector('link[href*="/brand_"]') || {}).href || "");
+				expect(href0, "the frame carries a brand sheet to begin with");
+				await page.evaluate(() => cur_frm.set_value("brand_color", "#7a3b2e"));
+				await page.waitForFunction((h) => { const f = document.querySelector(".bnd-cmp-frame"); const l = f && f.getAttribute("data-bnd-route") && f.contentWindow.document.querySelector('link[href*="/brand_"]'); return l && l.href !== h; }, href0, { timeout: 45000 });
+				const url = benchPy("print(frappe.db.get_single_value('Theme Settings', 'brand_css_url'))").trim().split("\n").pop();
+				const href1 = await page.evaluate(() => document.querySelector(".bnd-cmp-frame").contentWindow.document.querySelector('link[href*="/brand_"]').getAttribute("href"));
+				expect(href1.endsWith(url) || url.endsWith(href1), `the frame fetched the sheet the DB names (${href1} vs ${url})`);
+			} finally {
+				restore();
+				const back = getSettings(["brand_color"]);
+				if (String(back.brand_color) !== String(snap.brand_color)) throw new Error(`BRANDING RESTORE FAILED — restore by hand NOW: brand_color=${JSON.stringify(snap.brand_color)} (site holds ${JSON.stringify(back.brand_color)})`);
+			}
+		});
+
+		await test("composer: the pages endpoint greys an absent doctype with its reason", async () => {
+			// Every app is installed on this site, so the absent branch is proved
+			// by taking one away: frappe.db.exists patched for HD Ticket alone.
+			const out = JSON.parse(benchPy(
+				"from bunood_theme import api\n" +
+				"real = frappe.db.exists\n" +
+				"frappe.db.exists = lambda *a, **k: False if (a and a[0] == 'DocType' and len(a) > 1 and a[1] == 'HD Ticket') else real(*a, **k)\n" +
+				"try:\n    pages = api.composer_pages()['pages']\nfinally:\n    frappe.db.exists = real\n" +
+				"print(json.dumps({p['key']: [bool(p['route']), p['reason']] for p in pages}))\n"
+			).trim().split("\n").pop());
+			expect(out.ticket && !out.ticket[0] && /Helpdesk/.test(out.ticket[1]), `the ticket page is greyed with its reason (${JSON.stringify(out.ticket)})`);
+			expect(out.invoice && out.invoice[0] && !out.invoice[1], "the invoice page still has a route");
+			expect(Object.keys(out).length >= 10, `ten pages (${Object.keys(out).length})`);
+		});
+
 		await test("map: the side pane lists the cards in order, scrolls to one on click, follows the scroll, dots the changed card, and is absent elsewhere", async () => {
 			// Item 43 B3. The rows equal the visible sections in count, order and
 			// label; a click scrolls the card under the page head and marks it

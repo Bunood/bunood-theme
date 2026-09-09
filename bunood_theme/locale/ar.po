@@ -780,6 +780,84 @@ msgstr "القوائم"
 msgid "The desk you are on is the preview: every choice applies to this page as you click, and saves on its own."
 msgstr "المكتب الذي أنت فيه هو المعاينة: كل اختيار يُطبَّق على هذه الصفحة فور النقر، ويُحفظ من تلقاء نفسه."
 
+#. In theme_settings.js — the stage's link to the page at 1:1 (item 43 C3)
+#. src: ai
+#, fuzzy
+msgid "Open at full size: {0}"
+msgstr "فتح بالحجم الكامل: {0}"
+
+#. In theme_settings.js — the stage under compare=0
+#. src: ai
+#, fuzzy
+msgid "Frames are off (compare=0): the desk you are on is the preview."
+msgstr "الإطارات متوقفة (compare=0): المكتب الذي أنت فيه هو المعاينة."
+
+#. In api.py — composer_pages, a workspace this site never made
+#. src: ai
+#, fuzzy
+msgid "Workspace missing on this site: {0}"
+msgstr "مساحة العمل غير موجودة في هذا الموقع: {0}"
+
+#. In api.py — composer_pages, an ERPNext page on a site without it
+#. src: ai
+#, fuzzy
+msgid "ERPNext is not installed."
+msgstr "ERPNext غير مثبّت."
+
+#. In api.py — composer_pages, the invoice form page
+#. src: ai
+#, fuzzy
+msgid "Sales Invoice"
+msgstr "فاتورة مبيعات"
+
+#. In api.py — composer_pages, the invoice list page
+#. src: ai
+#, fuzzy
+msgid "Invoice list"
+msgstr "قائمة الفواتير"
+
+#. In api.py — composer_pages, the dashboard page
+#. src: ai
+#, fuzzy
+msgid "Dashboard"
+msgstr "لوحة المعلومات"
+
+#. In api.py — composer_pages, no Dashboard record
+#. src: ai
+#, fuzzy
+msgid "No dashboard on this site."
+msgstr "لا توجد لوحة معلومات في هذا الموقع."
+
+#. In api.py — composer_pages, the Single page
+#. src: ai
+#, fuzzy
+msgid "Selling Settings"
+msgstr "إعدادات المبيعات"
+
+#. In api.py — composer_pages, the Helpdesk conversation page
+#. src: ai
+#, fuzzy
+msgid "Helpdesk ticket"
+msgstr "تذكرة الدعم"
+
+#. In api.py — composer_pages, the CRM pipeline page
+#. src: ai
+#, fuzzy
+msgid "CRM deal"
+msgstr "صفقة CRM"
+
+#. In api.py — composer_pages, a Helpdesk page on a site without it
+#. src: ai
+#, fuzzy
+msgid "Helpdesk is not installed."
+msgstr "Helpdesk غير مثبّت."
+
+#. In api.py — composer_pages, a CRM page on a site without it
+#. src: ai
+#, fuzzy
+msgid "CRM is not installed."
+msgstr "CRM غير مثبّت."
+
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
 msgid "Divided"

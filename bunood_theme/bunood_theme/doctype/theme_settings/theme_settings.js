@@ -819,6 +819,9 @@ function bnd_autosave(frm) {
 				return bnd_merge_and_retry(frm, mine);
 			}
 			bnd_snapshot(frm);
+			// LANDED, with what it carried: the composer reloads its frames when a
+			// brand input is among them (item 43 C3) — the sheet is server-written.
+			frm.$wrapper.trigger("bnd:saved", [mine]);
 			// A click that landed WHILE this save was in flight left the form
 			// dirty again. Re-arm — this is what makes the last click the one
 			// that ends up stored.
@@ -886,7 +889,11 @@ function bnd_merge_and_retry(frm, mine) {
 				frm.doc.__unsaved = 1;
 				return frm.save();
 			})
-			.then(() => bnd_snapshot(frm))
+			.then(() => {
+				bnd_snapshot(frm);
+				// Landed by the retry: the same announcement the direct path makes.
+				frm.$wrapper.trigger("bnd:saved", [mine]);
+			})
 			.catch(() => {
 				frm.doc.__unsaved = 1;
 			})
@@ -1289,6 +1296,8 @@ function bnd_default_of(field, fallback) {
  * half a preset from a guess.
  */
 let bnd_layout_chrome = null;
+/** The fields whose save rewrites the brand sheet — served by brand.py, never restated (item 43 C3). */
+let bnd_brand_inputs = null;
 //: The other half of a layout: where the tenants go (item 36's picker audit).
 //: `registry.LAYOUT_TENANTS`, served beside the chrome because a layout is
 //: BOTH — every card's blurb names where search, the bell and the profile sit.
@@ -1785,6 +1794,7 @@ function bnd_render_compose_picker(frm, host) {
 function bnd_render_composer_picker(frm, $host) {
 	if (!$host.find(".bnd-cmp").length) bnd_composer_build(frm, $host);
 	bnd_composer_sync(frm);
+	bnd_composer_stage_sync(frm);
 }
 
 function bnd_composer_build(frm, $host) {
@@ -1837,14 +1847,13 @@ function bnd_composer_build(frm, $host) {
 				'<div class="bnd-cmp-linebox"><code class="bnd-cmp-linetext"></code>' +
 				'<button type="button" class="btn btn-default btn-xs bnd-cmp-copy">' + bnd_esc(__("Copy")) + "</button></div>" +
 				"</nav>" +
-				'<section class="bnd-cmp-stage" aria-label="' + bnd_esc(__("Preview")) + '">' +
-				P.note(__("The desk you are on is the preview: every choice applies to this page as you click, and saves on its own.")) +
-				"</section>" +
+				'<section class="bnd-cmp-stage" aria-label="' + bnd_esc(__("Preview")) + '"></section>' +
 				"</div></div>"
 		)
 	);
 	// The current value named beside each title; hover previews a name there.
 	$host.find(".bnd-cmp-row .bnd-cbp-title").append('<span class="bnd-cmp-cur"></span>');
+	bnd_composer_build_stage(frm, $host.find(".bnd-cmp-stage"));
 
 	// DELEGATED, ONCE. A click re-renders nothing here: the kit's setter does
 	// the work (the hidden card's picker, the desk) and the dirty tick below
@@ -1882,7 +1891,20 @@ function bnd_composer_build(frm, $host) {
 		bnd_cmp_tick = requestAnimationFrame(() => {
 			bnd_cmp_tick = 0;
 			bnd_composer_sync(frm);
+			bnd_composer_push_all(frm);
 		});
+	});
+	// Colour reaches the desk only through the brand sheet on_update writes
+	// (content-hashed): a landed save naming a brand input reloads the frames.
+	frm.$wrapper.off("bnd:saved.bndcompose").on("bnd:saved.bndcompose", (e, mine) => {
+		const inputs = bnd_brand_inputs || [];
+		if (!Object.keys(mine || {}).some((f) => inputs.includes(f))) return;
+		for (const frame of frm.$wrapper.find(".bnd-cmp-frame")) {
+			if (frame.contentWindow && frame.getAttribute("data-bnd-route")) {
+				frame.removeAttribute("data-bnd-route");
+				frame.contentWindow.location.reload();
+			}
+		}
 	});
 }
 
@@ -1939,6 +1961,182 @@ function bnd_composer_line(frm) {
 		head: name ? __("This desk is {0}.", [name]) : __("Reading the desk…"),
 		text: [name || __("Custom")].concat(parts).join(" · "),
 	};
+}
+
+// ── The stage (item 43 C3) ─────────────────────────────────────────────────
+//
+// A REAL DESK PAGE, SCALED. The stage is a same-origin iframe of the desk —
+// never a mock — kept at 1440×900 CSS px and drawn at `--bnd-cmp-scale` (the
+// clip's width over 1440, set by a ResizeObserver). Pages come from the server
+// (`api.composer_pages`: the latest record of each doctype, the new-document
+// route when there is none, a REASON when the doctype is absent — drawn greyed,
+// never hidden). Navigation is `location.replace`, and the frame's history
+// API is shimmed at load so in-frame routing never writes the joint history.
+//
+// THE SEAM. At the frame's load, and again on its router change / page-change /
+// form-refresh, the frame's OWN engine (`fw.bunood_theme`) is handed the FORM's
+// values: the sixteen previews with `engine` (the form's packers normalise, the
+// frame's kits stamp), the shape (containers + placements + search + the pane
+// state) through `shape_apply`, the language style, the phone bar, and the
+// SITE density (`set_density("", {save:false})`) — so the frame shows the
+// setting, never the admin's personal comfort. `dirty` pushes the same seam
+// again, coalesced with the rail's sync. Colour cannot be previewed
+// client-side: brand inputs reach the desk only through `on_update`'s brand
+// sheet, so a landed save that touched one (`bnd:saved`) reloads the frames.
+//
+// `?compare=0` disables every frame — the suite, the sweep and the axe scan
+// pass it, so nobody pays for a 1440×900 desk they did not ask for.
+
+function bnd_compare_wanted() {
+	return new URLSearchParams(window.location.search).get("compare") !== "0";
+}
+
+let bnd_cmp_pages = null; // the server's answer, once per form session
+let bnd_cmp_page = ""; // the page on the stage
+let bnd_cmp_ro = null; // the clip's ResizeObserver
+
+/** The five container toggles + every placement + search + the pane state: the SHAPE. */
+const BND_COMPOSER_SHAPE = [
+	"topbar_enabled", "pagehead_enabled", "bottombar_enabled", "dock_enabled", "sidebar_enabled",
+	"inbox_placement", "user_placement", "start_placement", "home_placement", "apps_placement",
+	"language_placement", "appearance_placement", "search_placement", "sidebar_pane_state",
+];
+
+/** Everything the frame's engine is told, in order. Idempotent. */
+function bnd_composer_push_frame(frm, frame) {
+	const fw = frame && frame.contentWindow;
+	const E = fw && fw.bunood_theme;
+	if (!E || !fw.frappe || !fw.frappe.boot) return false;
+	bnd_all_previews(frm, E);
+	if (typeof E.shape_apply === "function") {
+		const values = {};
+		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
+		values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
+		const shape = bnd_match_layout(frm);
+		E.shape_apply(values, shape === "Custom" ? "" : shape);
+	}
+	if (typeof E.language_apply === "function") E.language_apply({ language_style: frm.doc.language_style });
+	if (typeof E.mobile_apply === "function") {
+		E.mobile_apply({ mobile_inbox: frm.doc.mobile_inbox, mobile_user: frm.doc.mobile_user, mobile_apps: frm.doc.mobile_apps });
+	}
+	if (typeof E.set_density === "function") E.set_density("", { save: false });
+	frame.setAttribute("data-bnd-route", (fw.frappe.get_route && fw.frappe.get_route().join("/")) || "");
+	return true;
+}
+
+/** Bind the frame's own events once per document it loads. */
+function bnd_composer_frame_loaded(frm, frame) {
+	const fw = frame.contentWindow;
+	if (!fw || !fw.frappe) return;
+	// NEVER THE JOINT HISTORY: in-frame routing replaces instead of pushing, so
+	// the composer's Back button is the browser's Back, not the frame's.
+	if (fw.history && !fw.__bnd_shimmed) {
+		fw.history.pushState = fw.history.replaceState.bind(fw.history);
+		fw.__bnd_shimmed = true;
+	}
+	const push = () => bnd_composer_push_frame(frm, frame);
+	push();
+	if (fw.frappe.router && fw.frappe.router.on) fw.frappe.router.on("change", push);
+	if (fw.jQuery) fw.jQuery(fw.document).on("page-change form-refresh", push);
+}
+
+/** Navigate the stage to a page, or park it (`about:blank`). */
+function bnd_composer_navigate(frm, route) {
+	const frame = frm.$wrapper.find(".bnd-cmp-frame")[0];
+	if (!frame || !frame.contentWindow) return;
+	const url = route ? window.location.origin + route : "about:blank";
+	// The mark is the NEW document's, stamped by the seam at its load; a stale
+	// one would read as "ready" through the whole navigation.
+	frame.removeAttribute("data-bnd-route");
+	frame.contentWindow.location.replace(url);
+}
+
+/** Every live frame is told the form's values again (the dirty tick). */
+function bnd_composer_push_all(frm) {
+	for (const frame of frm.$wrapper.find(".bnd-cmp-frame")) {
+		if (frame.getAttribute("data-bnd-route")) bnd_composer_push_frame(frm, frame);
+	}
+}
+
+/** The page buttons: current pressed, absent greyed with the reason, plus Open ↗. */
+function bnd_composer_render_pages(frm) {
+	const $stage = frm.$wrapper.find(".bnd-cmp-stage");
+	if (!$stage.length || !bnd_cmp_pages) return;
+	const pages = bnd_cmp_pages;
+	if (!bnd_cmp_page) {
+		const first = pages.find((p) => p.route);
+		bnd_cmp_page = first ? first.key : "";
+	}
+	const buttons = pages
+		.map(
+			(p) =>
+				'<button type="button" class="bnd-cbp-opt bnd-cmp-page' + (p.key === bnd_cmp_page ? " bnd-cbp-on" : "") + (p.reason ? " bnd-cbp-dis" : "") +
+				'" data-page="' + bnd_esc(p.key) + '" aria-pressed="' + (p.key === bnd_cmp_page ? "true" : "false") + '"' +
+				(p.reason ? ' disabled title="' + bnd_esc(p.reason) + '"' : "") + ">" +
+				bnd_esc(p.label) +
+				"</button>"
+		)
+		.join("");
+	const current = pages.find((p) => p.key === bnd_cmp_page);
+	$stage.find(".bnd-cmp-pages").html(
+		'<div class="bnd-cbp-row">' + buttons + "</div>" +
+			(current && current.route
+				? '<a class="bnd-cmp-open-page" href="' + bnd_esc(current.route) + '" target="_blank" rel="noopener">' + bnd_esc(__("Open at full size: {0}", [current.label])) + "</a>"
+				: "")
+	);
+}
+
+/** The stage's one-time build: the switcher host, the clip, the frame. */
+function bnd_composer_build_stage(frm, $stage) {
+	if (!bnd_compare_wanted()) {
+		$stage.html(P.note(__("Frames are off (compare=0): the desk you are on is the preview.")));
+		return;
+	}
+	$stage.html(
+		'<div class="bnd-cmp-pages"></div>' +
+			'<div class="bnd-cmp-clip"><iframe class="bnd-cmp-frame" title="' + bnd_esc(__("Preview")) + '"></iframe></div>'
+	);
+	const frame = $stage.find(".bnd-cmp-frame")[0];
+	frame.addEventListener("load", () => {
+		if (frame.contentWindow && frame.contentWindow.location.href !== "about:blank") bnd_composer_frame_loaded(frm, frame);
+	});
+	// The scale follows the clip's width: 1440 CSS px drawn into whatever the
+	// column gives. Declared in the sheet, overridden here — the runtime's own
+	// value, on the element where it is read.
+	const clip = $stage.find(".bnd-cmp-clip")[0];
+	if (bnd_cmp_ro) bnd_cmp_ro.disconnect();
+	bnd_cmp_ro = new ResizeObserver(() => {
+		const w = clip.getBoundingClientRect().width;
+		if (w > 0) clip.style.setProperty("--bnd-cmp-scale", String(Math.min(1, w / 1440)));
+	});
+	bnd_cmp_ro.observe(clip);
+	// Pages: fetched once, greyed with a reason when absent.
+	const load = bnd_cmp_pages ? Promise.resolve(bnd_cmp_pages) : frappe.xcall("bunood_theme.api.composer_pages").then((d) => (bnd_cmp_pages = (d && d.pages) || []));
+	load.then(() => {
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	});
+	$stage.off(".bndstage").on("click.bndstage", ".bnd-cmp-page", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_cmp_page = this.getAttribute("data-page");
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	});
+	// PARKED when the page hides (Frappe fires `hide` on the outgoing page and
+	// keeps it in the DOM): a cached display:none page would keep a desk
+	// running. Refresh on the way back rebuilds nothing and re-navigates.
+	frm.page.wrapper.off("hide.bndstage").on("hide.bndstage", () => bnd_composer_navigate(frm, ""));
+}
+
+/** On every refresh: a parked frame is sent back to its page. */
+function bnd_composer_stage_sync(frm) {
+	const frame = frm.$wrapper.find(".bnd-cmp-frame")[0];
+	if (!frame || !bnd_cmp_pages) return;
+	const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+	const parked = !frame.getAttribute("data-bnd-route") && frame.contentWindow && frame.contentWindow.location.href === "about:blank";
+	if (parked && current && current.route) bnd_composer_navigate(frm, current.route);
 }
 
 function bnd_render_overview(frm, $pane) {
@@ -2322,6 +2520,7 @@ function bnd_load_shipped() {
 			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
 			bnd_layout_slots = (data && data.slots) || null;
+			bnd_brand_inputs = (data && data.brand_inputs) || null;
 		})
 		.catch(() => {
 			// Let the next caller try again: this one may have failed because
@@ -2530,23 +2729,23 @@ const BND_LAYOUTS = [
  * sidebar through `_now` because its catalogue is already loaded. Folding those
  * together would be a behaviour change wearing a refactor's clothes.
  */
-function bnd_all_previews(frm) {
-	bnd_sb_preview(frm);
-	bnd_crumb_preview(frm);
-	bnd_palette_preview(frm);
-	bnd_inbox_preview(frm);
-	bnd_list_preview(frm);
-	bnd_form_preview(frm);
-	bnd_desk_preview(frm);
-	bnd_workspace_preview(frm);
-	bnd_chart_preview(frm);
-	bnd_report_preview(frm);
-	bnd_views_preview(frm);
-	bnd_overlay_preview(frm);
-	bnd_empty_preview(frm);
-	bnd_skeleton_preview(frm);
-	bnd_filters_preview(frm);
-	bnd_icon_preview(frm);
+function bnd_all_previews(frm, engine = window.bunood_theme) {
+	bnd_sb_preview(frm, engine);
+	bnd_crumb_preview(frm, engine);
+	bnd_palette_preview(frm, engine);
+	bnd_inbox_preview(frm, engine);
+	bnd_list_preview(frm, engine);
+	bnd_form_preview(frm, engine);
+	bnd_desk_preview(frm, engine);
+	bnd_workspace_preview(frm, engine);
+	bnd_chart_preview(frm, engine);
+	bnd_report_preview(frm, engine);
+	bnd_views_preview(frm, engine);
+	bnd_overlay_preview(frm, engine);
+	bnd_empty_preview(frm, engine);
+	bnd_skeleton_preview(frm, engine);
+	bnd_filters_preview(frm, engine);
+	bnd_icon_preview(frm, engine);
 }
 
 function bnd_picker_host(frm, fieldname, host) {
@@ -3018,12 +3217,12 @@ function bnd_render_sidebar_picker_now(frm, host) {
  * the chrome around this very form restyles instantly. Saving makes it
  * permanent for everyone the moment it is clicked — this form autosaves.
  */
-function bnd_sb_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.sb_apply) return;
+function bnd_sb_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.sb_apply) return;
 	const values = {};
 	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
 	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
-	window.bunood_theme.sb_apply(values);
+	engine.sb_apply(values);
 }
 
 /**
@@ -3465,8 +3664,8 @@ function bnd_render_icons_picker(frm, host) {
  * and its `set` is a no-op on an absent value, so a partial icon-values object
  * never disturbs a pane's other settings.
  */
-function bnd_icon_preview(frm) {
-	const bt = window.bunood_theme;
+function bnd_icon_preview(frm, engine = window.bunood_theme) {
+	const bt = engine;
 	if (!bt) return;
 	const values = {};
 	for (const f of BND_ICON_FIELDS) values[f] = frm.doc[f];
@@ -3719,11 +3918,11 @@ function bnd_render_crumbs_picker(frm, host) {
  * the trail above this very form restyles instantly. Saving makes it
  * permanent for everyone the moment it is clicked — this form autosaves.
  */
-function bnd_crumb_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.crumb_apply) return;
+function bnd_crumb_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.crumb_apply) return;
 	const values = {};
 	for (const f of BND_CRUMB_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.crumb_apply(values);
+	engine.crumb_apply(values);
 }
 
 /** Set one crumb option, preview, re-render. */
@@ -3912,12 +4111,12 @@ function bnd_render_palette_picker(frm, host) {
  * The palette is built lazily, so "preview" means the next Ctrl+K opens
  * with these options; saving makes them permanent for everyone.
  */
-function bnd_palette_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.palette_apply) return;
+function bnd_palette_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.palette_apply) return;
 	const values = {};
 	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
 	if (!parseInt(frm.doc.palette_enabled ?? 1, 10)) values.palette_style = "Original";
-	window.bunood_theme.palette_apply(values);
+	engine.palette_apply(values);
 }
 
 /** Set one palette option, preview, re-render. */
@@ -3992,9 +4191,9 @@ function bnd_render_language_picker(frm, host) {
 }
 
 /** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
-function bnd_language_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.language_apply) return;
-	window.bunood_theme.language_apply({ language_style: frm.doc.language_style });
+function bnd_language_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.language_apply) return;
+	engine.language_apply({ language_style: frm.doc.language_style });
 }
 
 const BND_INBOX_FIELDS = [
@@ -4217,11 +4416,11 @@ function bnd_render_inbox_picker(frm, host) {
 }
 
 /** LIVE PREVIEW: hand the form's current inbox values to the desk engine. */
-function bnd_inbox_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.inbox_apply) return;
+function bnd_inbox_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.inbox_apply) return;
 	const values = {};
 	for (const f of BND_INBOX_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.inbox_apply(values);
+	engine.inbox_apply(values);
 }
 
 /**
@@ -4455,11 +4654,11 @@ function bnd_render_list_picker(frm, host) {
 }
 
 /** Hand the form's current list values to the desk engine — live preview. */
-function bnd_list_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.list_apply) return;
+function bnd_list_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.list_apply) return;
 	const values = {};
 	for (const f of BND_LIST_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.list_apply(values);
+	engine.list_apply(values);
 }
 
 /** Set one list option, preview, re-render. */
@@ -4801,11 +5000,11 @@ function bnd_render_form_picker(frm, host) {
 }
 
 /** Hand the form's current form-kit values to the desk engine — live preview. */
-function bnd_form_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.form_apply) return;
+function bnd_form_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.form_apply) return;
 	const values = {};
 	for (const f of BND_FORM_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.form_apply(values);
+	engine.form_apply(values);
 }
 
 /** Set one form option, preview, re-render. */
@@ -4902,11 +5101,11 @@ function bnd_render_desk_picker(frm, host) {
 }
 
 /** Hand the form's body values to the desk engine — live preview. */
-function bnd_desk_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.body_apply) return;
+function bnd_desk_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.body_apply) return;
 	const values = {};
 	for (const f of BND_DESK_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.body_apply(values);
+	engine.body_apply(values);
 }
 
 /** Set one body option, preview, re-render. */
@@ -5109,11 +5308,11 @@ function bnd_render_workspace_picker(frm, host) {
 }
 
 /** Hand the workspace values to the desk engine — live preview. */
-function bnd_workspace_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.workspace_apply) return;
+function bnd_workspace_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.workspace_apply) return;
 	const values = {};
 	for (const f of BND_WORKSPACE_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.workspace_apply(values);
+	engine.workspace_apply(values);
 }
 
 /** Set one workspace option, preview, re-render. */
@@ -5213,11 +5412,11 @@ function bnd_render_chart_picker(frm, host) {
 }
 
 /** Hand the chart values to the desk engine — live preview. */
-function bnd_chart_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.chart_apply) return;
+function bnd_chart_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.chart_apply) return;
 	const values = {};
 	for (const f of BND_CHART_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.chart_apply(values);
+	engine.chart_apply(values);
 }
 
 /** Set the chart option, preview, re-render. */
@@ -5384,11 +5583,11 @@ function bnd_render_report_picker(frm, host) {
 }
 
 /** Hand the report values to the desk engine — live preview. */
-function bnd_report_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.report_apply) return;
+function bnd_report_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.report_apply) return;
 	const values = {};
 	for (const f of BND_REPORT_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.report_apply(values);
+	engine.report_apply(values);
 }
 
 /** Set one report option, preview, re-render. */
@@ -5555,11 +5754,11 @@ function bnd_render_views_picker(frm, host) {
 }
 
 /** Hand the view values to the desk engine — live preview. */
-function bnd_views_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.views_apply) return;
+function bnd_views_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.views_apply) return;
 	const values = {};
 	for (const f of BND_VIEWS_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.views_apply(values);
+	engine.views_apply(values);
 }
 
 /** Set one view option, preview, re-render. */
@@ -5799,15 +5998,15 @@ function bnd_render_overlay_picker(frm, host) {
 }
 
 /** Hand the overlay values to the desk engine — live preview. */
-function bnd_overlay_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.overlay_apply) return;
+function bnd_overlay_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.overlay_apply) return;
 	const values = {};
 	// `|| DEFAULT` matters: on a site where a field was never written,
 	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
 	// had just set — opening the settings form would strip the style. The two
 	// call sites in the renderer above already fall back; this one did not.
 	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]);
-	window.bunood_theme.overlay_apply(values);
+	engine.overlay_apply(values);
 }
 
 /** Set one overlay option, preview, re-render. */
@@ -5947,15 +6146,15 @@ function bnd_render_empty_picker(frm, host) {
 }
 
 /** Hand the empty-state values to the desk engine — live preview. */
-function bnd_empty_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.empty_apply) return;
+function bnd_empty_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.empty_apply) return;
 	const values = {};
 	// `|| DEFAULT` matters, and the overlays picker records why: on a site where
 	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
 	// the anchor the boot payload had just set — opening the settings form would
 	// strip the style.
 	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_EMPTY_DEFAULTS[f]);
-	window.bunood_theme.empty_apply(values);
+	engine.empty_apply(values);
 }
 
 /** Set one empty-state option, preview, re-render. */
@@ -6033,14 +6232,14 @@ function bnd_render_skeleton_picker(frm, host) {
 }
 
 /** Hand the loading values to the desk engine — live preview. */
-function bnd_skeleton_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.skeleton_apply) return;
+function bnd_skeleton_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.skeleton_apply) return;
 	const values = {};
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
 	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_SKELETON_DEFAULTS[f]);
-	window.bunood_theme.skeleton_apply(values);
+	engine.skeleton_apply(values);
 }
 
 /** Set the loading style, preview, re-render. */
@@ -6175,14 +6374,14 @@ function bnd_render_filters_picker(frm, host) {
 }
 
 /** Hand the filter values to the desk engine — live preview. */
-function bnd_filters_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.filters_apply) return;
+function bnd_filters_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.filters_apply) return;
 	const values = {};
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
 	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_FILTERS_DEFAULTS[f]);
-	window.bunood_theme.filters_apply(values);
+	engine.filters_apply(values);
 }
 
 /** Set a filter field, preview, re-render. */

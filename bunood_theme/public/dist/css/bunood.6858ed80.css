@@ -4485,7 +4485,6 @@ html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-
   display: grid;
   grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
   gap: var(--bnd-sp-5);
-  align-items: start;
 }
 
 @container bndcmp (width < 760px) {
@@ -4531,6 +4530,58 @@ html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-
 
 html[data-theme] .bnd-cmp-back:focus-visible,
 html[data-theme] .bnd-cmp-copy:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
+.bnd-cmp-stage {
+  display: grid;
+  gap: var(--bnd-sp-3);
+  align-content: start;
+  align-self: start;
+  min-inline-size: 0;
+  position: sticky;
+  inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-3));
+}
+
+@container bndcmp (width < 760px) {
+  .bnd-cmp-stage {
+    position: static;
+  }
+}
+.bnd-cmp-pages {
+  display: grid;
+  gap: var(--bnd-sp-2);
+}
+
+.bnd-cmp-open-page {
+  font-size: var(--bnd-text-xs);
+  justify-self: start;
+}
+
+.bnd-cmp-clip {
+  --bnd-cmp-scale: 0.6;
+  position: relative;
+  inline-size: 100%;
+  block-size: calc(900px * var(--bnd-cmp-scale));
+  overflow: hidden;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+
+.bnd-cmp-frame {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1440px;
+  block-size: 900px;
+  border: 0;
+  transform: scale(var(--bnd-cmp-scale));
+  transform-origin: 0 0;
+}
+
+html[data-theme] .bnd-cmp-open-page:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 1px;
 }
