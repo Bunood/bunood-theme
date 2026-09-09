@@ -4,8 +4,39 @@
 # fields, or bad data.
 
 import json
+from decimal import InvalidOperation
 
 import frappe
+
+
+def bunood_print_language():
+    """Read language at render time, not from a cached Jinja globals snapshot."""
+    language = getattr(frappe.local, "lang", None) or "en"
+    return "ar" if language.startswith("ar") else "en"
+
+
+def bunood_amount_in_words(amount, currency, precision=2):
+    """Print-only wording of the same payable number the template displays."""
+    if currency == "SAR" and bunood_print_language() == "ar":
+        from frappe.locale import get_number_format
+
+        from bunood_theme.printing.amount_words import arabic_sar_words
+
+        try:
+            displayed = frappe.utils.fmt_money(amount, precision=precision)
+            number_format = get_number_format()
+            if number_format.thousands_separator:
+                displayed = displayed.replace(number_format.thousands_separator, "")
+            if number_format.decimal_separator:
+                displayed = displayed.replace(number_format.decimal_separator, ".")
+            return arabic_sar_words(displayed)
+        except (ValueError, InvalidOperation, OverflowError):
+            return ""
+
+    words = frappe.utils.money_in_words(abs(amount), currency)
+    if currency == "SAR":
+        words = words.replace("SAR", "Saudi riyals")
+    return (frappe._("Negative") + " " if amount < 0 else "") + words
 
 
 def bunood_zatca_qr_src(doc):
