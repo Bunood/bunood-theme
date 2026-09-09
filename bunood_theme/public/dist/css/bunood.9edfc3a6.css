@@ -3921,6 +3921,25 @@ html[data-theme] .bnd-sbp-stop.bnd-sbp-on {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
+.bnd-cmp-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-4);
+  flex-wrap: wrap;
+}
+
+.bnd-cmp-line {
+  margin: 0;
+  font-size: var(--bnd-text-md);
+  font-weight: var(--bnd-weight-medium);
+}
+
+html[data-theme] .bnd-cmp-open:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
 .bnd-bd {
   container-type: inline-size;
   container-name: bndboard;

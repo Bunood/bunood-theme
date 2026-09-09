@@ -6991,3 +6991,218 @@ msgstr "المظهر الافتراضي: شريط رئيسي يسمّي السج
 #, fuzzy
 msgid "The desk before the body was rebuilt: floating cards on a hue-washed pane."
 msgstr "المكتب قبل إعادة بناء المتن: بطاقات عائمة على لوحة مغسولة بلون العلامة."
+
+#. src: ai
+#, fuzzy
+msgid "Compose"
+msgstr "تأليف"
+
+#. src: ai
+#, fuzzy
+msgid "This desk is {0}."
+msgstr "هذا المكتب هو {0}."
+
+#. src: ai
+#, fuzzy
+msgid "Reading the desk…"
+msgstr "جارٍ قراءة المكتب…"
+
+#. src: ai
+#, fuzzy
+msgid "The composer shows the real desk beside every decision and writes through the same settings as the cards below."
+msgstr "يعرض المؤلّف المكتب الحقيقي بجانب كل قرار ويكتب عبر الإعدادات نفسها التي تكتبها البطاقات أدناه."
+
+#. src: ai
+#, fuzzy
+msgid "The whole look in one place: what the desk is now, and the composer that changes it one decision at a time."
+msgstr "المظهر كله في مكان واحد: ما هو المكتب الآن، والمؤلّف الذي يغيّره قرارًا بعد قرار."
+
+#. src: ai
+#, fuzzy
+msgid "A named look for the whole desk — one card writes every kit below."
+msgstr "مظهر مسمّى للمكتب كله — بطاقة واحدة تكتب كل مجموعة أدناه."
+
+#. src: ai
+#, fuzzy
+msgid "The brand and accent seeds, their dark-mode counterparts, and the ground the surfaces are mixed from."
+msgstr "بذرتا العلامة والتمييز، ونظيراهما في الوضع الداكن، والأرضية التي تُمزج منها الأسطح."
+
+#. src: ai
+#, fuzzy
+msgid "The company's name, logo, favicon and tagline as the desk shows them."
+msgstr "اسم الشركة وشعارها وأيقونتها وسطرها التعريفي كما يعرضها المكتب."
+
+#. src: ai
+#, fuzzy
+msgid "The icon set, its weight, and where the desk draws it."
+msgstr "مجموعة الأيقونات ووزنها وأين يرسمها المكتب."
+
+#. src: ai
+#, fuzzy
+msgid "The Arabic typeface, and the translation console."
+msgstr "الخط العربي، ولوحة الترجمة."
+
+#. src: ai
+#, fuzzy
+msgid "How tightly rows and controls pack, as the site's default."
+msgstr "مدى تراصّ الصفوف وعناصر التحكم، كإعداد افتراضي للموقع."
+
+#. src: ai
+#, fuzzy
+msgid "What each user may change for themselves: look, shape, comfort."
+msgstr "ما يمكن لكل مستخدم تغييره لنفسه: المظهر والشكل والراحة."
+
+#. src: ai
+#, fuzzy
+msgid "The page's width, the type scale, and the primary button's colour."
+msgstr "عرض الصفحة، ومقياس الخط، ولون الزر الرئيسي."
+
+#. src: ai
+#, fuzzy
+msgid "A record's anatomy: sections, fields, line items, tabs, sidebar, activity, header, stage path, pinned foot."
+msgstr "تشريح السجل: الأقسام والحقول والبنود والتبويبات والشريط الجانبي والنشاط والرأس ومسار المراحل والذيل المثبّت."
+
+#. src: ai
+#, fuzzy
+msgid "Rows, hover, selection, and the checkbox reveal."
+msgstr "الصفوف والتحويم والتحديد وإظهار مربع الاختيار."
+
+#. src: ai
+#, fuzzy
+msgid "The landing page's tiles, metrics and rows."
+msgstr "بلاطات صفحة الهبوط ومقاييسها وصفوفها."
+
+#. src: ai
+#, fuzzy
+msgid "The report view's grid, grain and rows."
+msgstr "شبكة عرض التقرير ونسيجها وصفوفها."
+
+#. src: ai
+#, fuzzy
+msgid "Kanban, calendar, gantt and image views."
+msgstr "عروض كانبان والتقويم وغانت والصور."
+
+#. src: ai
+#, fuzzy
+msgid "The chart surface's grid."
+msgstr "شبكة سطح المخططات."
+
+#. src: ai
+#, fuzzy
+msgid "The filter bar, applied filters and saved views."
+msgstr "شريط التصفية والمرشحات المطبّقة والعروض المحفوظة."
+
+#. src: ai
+#, fuzzy
+msgid "Dialogs, scrims and menus."
+msgstr "الحوارات والحُجب والقوائم."
+
+#. src: ai
+#, fuzzy
+msgid "What an empty list or board shows."
+msgstr "ما تعرضه قائمة أو لوحة فارغة."
+
+#. src: ai
+#, fuzzy
+msgid "What a page shows while it loads."
+msgstr "ما تعرضه الصفحة أثناء تحميلها."
+
+#. src: ai
+#, fuzzy
+msgid "A preset for the five containers below — where the chrome lives."
+msgstr "إعداد مسبق للحاويات الخمس أدناه — أين يعيش الإطار."
+
+#. src: ai
+#, fuzzy
+msgid "The side pane: placement, material, colour, its rail and its width."
+msgstr "اللوحة الجانبية: موضعها ومادتها ولونها وسكّتها وعرضها."
+
+#. src: ai
+#, fuzzy
+msgid "A bar along the top edge."
+msgstr "شريط على طول الحافة العلوية."
+
+#. src: ai
+#, fuzzy
+msgid "The page's own title row."
+msgstr "صف عنوان الصفحة نفسها."
+
+#. src: ai
+#, fuzzy
+msgid "A floating dock along the bottom edge."
+msgstr "مرسى عائم على طول الحافة السفلية."
+
+#. src: ai
+#, fuzzy
+msgid "The bottom bar: clock, connection, jobs, errors."
+msgstr "الشريط السفلي: الساعة والاتصال والمهام والأخطاء."
+
+#. src: ai
+#, fuzzy
+msgid "What the bottom bar carries on a phone."
+msgstr "ما يحمله الشريط السفلي على الهاتف."
+
+#. src: ai
+#, fuzzy
+msgid "Where every component lives, on one board — and the overview of the desk."
+msgstr "أين يعيش كل مكوّن، على لوحة واحدة — ونظرة عامة على المكتب."
+
+#. src: ai
+#, fuzzy
+msgid "Where the search field sits."
+msgstr "أين يقع حقل البحث."
+
+#. src: ai
+#, fuzzy
+msgid "Where the profile menu sits."
+msgstr "أين تقع قائمة الملف الشخصي."
+
+#. src: ai
+#, fuzzy
+msgid "Where the Home and All Apps links sit."
+msgstr "أين يقع رابطا الصفحة الرئيسية وكل التطبيقات."
+
+#. src: ai
+#, fuzzy
+msgid "The language switch and the appearance button: enabled languages, placement, style."
+msgstr "مبدّل اللغة وزر المظهر: اللغات المفعّلة والموضع والنمط."
+
+#. src: ai
+#, fuzzy
+msgid "The trail above a record: style, separator, hover, status."
+msgstr "المسار فوق السجل: النمط والفاصل والتحويم والحالة."
+
+#. src: ai
+#, fuzzy
+msgid "Ctrl+K: style, ranking, footer and fallbacks."
+msgstr "Ctrl+K: النمط والترتيب والتذييل والبدائل."
+
+#. src: ai
+#, fuzzy
+msgid "The bell: style, placement, badge, grouping, row actions."
+msgstr "الجرس: النمط والموضع والشارة والتجميع وإجراءات الصف."
+
+#. src: ai
+#, fuzzy
+msgid "The sign-in page's style, action and theme."
+msgstr "نمط صفحة تسجيل الدخول وإجراؤها وسمتها."
+
+#. src: ai
+#, fuzzy
+msgid "The public website and the portal: style, header, theme."
+msgstr "الموقع العام والبوابة: النمط والرأس والسمة."
+
+#. src: ai
+#, fuzzy
+msgid "Outgoing email: style, header, action, theme."
+msgstr "البريد الصادر: النمط والرأس والإجراء والسمة."
+
+#. src: ai
+#, fuzzy
+msgid "Print formats: header, tables, totals, headings, QR, signatures."
+msgstr "تنسيقات الطباعة: الرأس والجداول والمجاميع والعناوين ورمز QR والتوقيعات."
+
+#. src: ai
+#, fuzzy
+msgid "What the theme wrote for this site: the brand stylesheet's address."
+msgstr "ما كتبته السمة لهذا الموقع: عنوان ورقة أنماط العلامة."

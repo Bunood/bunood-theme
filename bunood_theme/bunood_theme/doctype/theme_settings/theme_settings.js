@@ -958,6 +958,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_links_picker(frm);
 		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
+		bnd_render_compose_picker(frm);
 		// The two surfaces that own no field draw into fields of their own
 		// (item 43 B1: the shell that used to host them is gone).
 		for (const [name, render] of [["desk_overview", bnd_render_overview], ["language_translations", bnd_render_translations]]) {
@@ -1098,6 +1099,9 @@ const BND_SETTINGS_GROUPS = [
 	{
 		group: () => __("Desk"),
 		items: [
+			// The Compose card (item 43 B2): what the desk is, and the way into
+			// the composer. First on the page, first in the map.
+			{ key: "compose", label: () => __("Compose"), anchors: ["desk_compose"] },
 			// Renders rather than relocating, like Translations below: it owns no
 			// fields, it reads them.
 			{ key: "overview", label: () => __("Overview"), anchors: ["desk_overview"] },
@@ -1652,6 +1656,34 @@ const BND_DESK_TENANTS = [
 	{ key: "language", field: "language_placement", label: () => __("Language switch") },
 	{ key: "appearance", field: "appearance_placement", label: () => __("Appearance button") },
 ];
+
+/**
+ * The Compose card (item 43 B2): one line naming the look the desk IS — the
+ * matched theme preset, or "Custom" — and the way into the composer. The line
+ * is the theme picker's own derivation (bnd_theme_match over every axis), so
+ * the card and the picker cannot disagree; it reads "Reading the desk…" until
+ * the catalogue has landed.
+ */
+function bnd_render_compose_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "desk_compose", host);
+	if (!$host) return;
+	const name = bnd_theme_cache ? bnd_tr_layout(bnd_theme_match(frm)) : "";
+	const line = name ? __("This desk is {0}.", [name]) : __("Reading the desk…");
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cmp-card">' +
+				'<p class="bnd-cmp-line">' + bnd_esc(line) + "</p>" +
+				'<button type="button" class="btn btn-primary btn-sm bnd-cmp-open">' + bnd_esc(__("Compose")) + "</button>" +
+				"</div>" +
+				P.note(__("The composer shows the real desk beside every decision and writes through the same settings as the cards below."))
+		)
+	);
+	// A full navigation, on purpose: the composer is a MODE of this form read
+	// once from the address, and frappe.set_route drops the query.
+	$host.find(".bnd-cmp-open").on("click", () => {
+		window.location.assign("/desk/theme-settings?compose");
+	});
+}
 
 function bnd_render_overview(frm, $pane) {
 	const pc = (n, total) => Math.round((n / total) * 10000) / 100 + "%";
@@ -2874,10 +2906,12 @@ function bnd_render_theme_picker(frm, host) {
 		frappe.xcall("bunood_theme.api.get_theme_presets").then((r) => {
 			bnd_theme_cache = r;
 			bnd_render_theme_picker(frm);
-			// The shell's Theme note DERIVES from this catalogue, and two fetches
-			// race here. Painting again is the cheap half of the fix; the marks are
-			// idempotent, so the redundant repaint costs nothing.
+			// The Theme note DERIVES from this catalogue, and two fetches race
+			// here. Painting again is the cheap half of the fix; the marks are
+			// idempotent, so the redundant repaint costs nothing. The Compose
+			// card's line is the same derivation, so it repaints here too.
 			bnd_settings_marks(frm);
+			bnd_render_compose_picker(frm);
 		}).catch(() => {
 			// The flag RESETS so the next render retries — item 35's review caught
 			// a first cut latching one transient failure into a dead card row for

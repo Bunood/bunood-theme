@@ -1147,7 +1147,7 @@ async function walkSettingsSections(fn) {
  * (placement, inbox, sidepane…): the same card, reached by its picker field.
  */
 const SETTINGS_CARD_FIELD = {
-	overview: "desk_overview", translations: "language_translations", placement: "placement_board", inbox: "inbox_picker", user: "user_picker",
+	compose: "desk_compose", overview: "desk_overview", translations: "language_translations", placement: "placement_board", inbox: "inbox_picker", user: "user_picker",
 	links: "links_picker", language: "language_picker", sidepane: "sidebar_picker", crumbs: "crumbs_picker",
 	topbar: "topbar_enabled", search: "search_picker", theme: "theme_picker", layout: "layout_picker",
 };
@@ -9424,6 +9424,32 @@ print("ok")
 			// One width for every Select: the shell's relocation severed ONE wrapper
 			// (273 became 636) — a second width is the defect, whatever the first is.
 			expect(g.selects.length > 0 && new Set(g.selects).size === 1, `every Select keeps the same width (${[...new Set(g.selects)].join(",")})`);
+		});
+
+		await test("settings: the cards read in the doctype's order, Compose first and Generated last, each with its line", async () => {
+			// Item 43 B2. The DOM's section order IS field_order (one source); the
+			// first card is Compose, naming the matched look — Bunood Console on a
+			// desk at shipped state — and the last is Generated. Every section
+			// carries a one-line description.
+			const order = JSON.parse(benchPy(
+				'meta = frappe.get_meta("Theme Settings")\n' +
+				'print(json.dumps([[f.fieldname, bool(f.description)] for f in meta.fields if f.fieldtype == "Section Break"]))\n'
+			).trim().split("\n").pop());
+			const shipped = JSON.parse(benchPy('from bunood_theme.api import get_shipped_defaults\nprint(json.dumps(get_shipped_defaults()["defaults"]))\n').trim().split("\n").pop());
+			setSettings(Object.fromEntries(Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))));
+			await goDesk("/desk/theme-settings", ".bnd-cmp-card", 4500);
+			await page.waitForFunction(() => { const n = document.querySelector(".bnd-cmp-line"); return n && /\S/.test(n.textContent) && !/Reading/.test(n.textContent); }, undefined, { timeout: 15000 });
+			const g = await page.evaluate(() => ({
+				dom: [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0).map((n) => n.dataset.fieldname),
+				line: document.querySelector(".bnd-cmp-line").textContent,
+				button: !!document.querySelector(".bnd-cmp-open"),
+			}));
+			const expected = order.map(([f]) => f).filter((f) => g.dom.includes(f));
+			expectEq(g.dom.join(","), expected.join(","), "the DOM's section order equals field_order");
+			expectEq(g.dom[0], "section_compose", "the first card is Compose");
+			expectEq(g.dom[g.dom.length - 1], "section_generated", "the last card is Generated");
+			expectEq(order.filter(([, d]) => !d).map(([f]) => f).join(","), "", "every section carries a description");
+			expect(/Bunood Console/.test(g.line) && g.button, `the Compose card names the shipped look and offers the composer (${g.line})`);
 		});
 
 		await test("diagram: marks the current slot, and warns the ones the layout cannot honour", async () => {

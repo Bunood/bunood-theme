@@ -774,6 +774,27 @@ html[data-theme] {
 }
 
 
+// ── The Compose card (item 43 B2) ────────────────────────────────────────────
+// One line and one button, on the card's own row; the note beneath.
+.bnd-cmp-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
+}
+.bnd-cmp-line {
+	margin: 0;
+	font-size: var(--bnd-text-md);
+	font-weight: var(--bnd-weight-medium);
+}
+// The ring every control of ours carries (the guard's own idiom); it is a
+// button, not an option chip, so it does not borrow bnd-cbp-opt.
+html[data-theme] .bnd-cmp-open:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
 // ── The placement board (E2) ────────────────────────────────────────────────
 //
 // One desk, drawn big enough to drop things onto. The per-component thumbnails
