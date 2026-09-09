@@ -441,6 +441,9 @@ FORM_FIELDS = [
     "form_tabs",
     "form_sidebar",
     "form_activity",
+    "form_header",
+    "form_header_tone",
+    "form_stage",
     "form_grid_checkbox_reveal",
 ]
 
@@ -467,6 +470,14 @@ FORM_DEFAULTS = {
     # Item 43 A6, the user's pick: the timeline in a drawer opened from the
     # page's actions. Original leaves it below the form; Beside is a column.
     "form_activity": "Drawer",
+    # Item 43 A8a, the user's pick: a hero band naming the record, brand-dark.
+    # Original is the page head alone; Title Block and Highlights Band are the
+    # catalogue's quieter headers; Tinted is the band's lighter paint.
+    "form_header": "Hero Band",
+    "form_header_tone": "Brand-dark",
+    # Item 43 A8b, the user's pick: the stage path in the band. Off leaves the
+    # page head's docstatus pill where Frappe puts it.
+    "form_stage": "Status Path",
     # A Check, default-on: the same three-door contract as the list kit's
     # reveal (hover, :focus-within, any-checked), stood down on touch.
     "form_grid_checkbox_reveal": 1,

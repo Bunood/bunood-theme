@@ -3481,7 +3481,16 @@ const BND_CRUMB_GROUPS = [
 /** Toggle rows: field + name + one-liner. */
 const BND_CRUMB_TOGGLES = [
 	{ field: "crumb_copy_link", name: () => __("Copy link"), desc: () => __("A copy button appears on the last crumb when the title row is hovered.") },
-	{ field: "crumb_status_pill", name: () => __("Status in the trail row"), desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape.") },
+	{
+		field: "crumb_status_pill",
+		name: () => __("Status in the trail row"),
+		desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape."),
+		// Item 43 A8b: the stage path hides that pill; moving it is moot.
+		disabled: (frm) =>
+			(frm.doc.form_stage || "Status Path") === "Status Path" && (frm.doc.form_header || "Hero Band") !== "Original"
+				? __("The stage path shows the status")
+				: "",
+	},
 	{ field: "crumb_narrow_collapse", name: () => __("Back crumb on small screens"), desc: () => __("Under tablet width the trail becomes a single labeled link to the parent.") },
 ];
 
@@ -3530,7 +3539,7 @@ function bnd_render_crumbs_picker(frm, host) {
 			on: !!parseInt(frm.doc[t.field], 10),
 			name: t.name(),
 			desc: t.desc(),
-			reason: kit_down ? __("Original leaves the stock trail") : "",
+			reason: kit_down ? __("Original leaves the stock trail") : (t.disabled ? t.disabled(frm) : ""),
 		})
 	).join("");
 
@@ -4327,7 +4336,7 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_header", "form_header_tone", "form_stage", "form_grid_checkbox_reveal"];
 // Mobile bar contents (item 24 C2). Export AND import list it — the same const
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
@@ -4360,6 +4369,9 @@ const BND_FORM_DEFAULTS = {
 	form_tabs: "Solid Pill",
 	form_sidebar: "Floating Pane",
 	form_activity: "Drawer",
+	form_header: "Hero Band",
+	form_header_tone: "Brand-dark",
+	form_stage: "Status Path",
 	form_grid_checkbox_reveal: 1,
 };
 
@@ -4523,6 +4535,37 @@ const BND_FORM_GROUPS = [
 			{ value: "Drawer", name: () => __("Drawer") },
 		],
 	},
+	{
+		field: "form_header",
+		title: () => __("Document header"),
+		desc: () => __("What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Title Block", name: () => __("Title Block") },
+			{ value: "Highlights Band", name: () => __("Highlights Band") },
+			{ value: "Hero Band", name: () => __("Hero Band") },
+		],
+	},
+	{
+		field: "form_header_tone",
+		title: () => __("Header tone"),
+		desc: () => __("The hero band's paint: a tint of the brand, or the brand deepened to a dark block."),
+		options: [
+			{ value: "Tinted", name: () => __("Tinted") },
+			{ value: "Brand-dark", name: () => __("Brand-dark") },
+		],
+		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Hero Band" ? "" : __("Only the hero band is painted"),
+	},
+	{
+		field: "form_stage",
+		title: () => __("Stage path"),
+		desc: () => __("A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."),
+		options: [
+			{ value: "Off", name: () => __("Off") },
+			{ value: "Status Path", name: () => __("Status Path") },
+		],
+		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Original" ? __("The page head has no band to carry it") : "",
+	},
 ];
 
 const BND_FORM_TOGGLES = [
@@ -4555,17 +4598,21 @@ function bnd_render_form_picker(frm, host) {
 	);
 
 	const reason = off ? __("Original leaves the stock form untouched — nothing below applies.") : "";
-	const groups = BND_FORM_GROUPS.map((g) =>
-		P.group({
+	// A group may carry a reason of its own (the crumbs picker's shape): the
+	// kit's stand-down wins, else the group's.
+	const groups = BND_FORM_GROUPS.map((g) => {
+		const g_reason = reason || (g.disabled ? g.disabled(frm) : "");
+		return P.group({
 			title: g.title(),
 			desc: g.desc(),
 			field: g.field,
+			off: !!g_reason,
 			body: P.options(
-				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				g.options.map((o) => ({ value: o.value, name: o.name(), reason: g_reason })),
 				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_FORM_DEFAULTS[g.field]) }
 			),
-		})
-	).join("");
+		});
+	}).join("");
 
 	const toggles = BND_FORM_TOGGLES.map((t) =>
 		P.toggle({

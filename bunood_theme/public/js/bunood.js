@@ -1351,11 +1351,15 @@
 				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
 				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card", "Inspector Rail": "rail" }],
 				["activity", "form_activity", { "Original": "", "Beside": "beside", "Drawer": "drawer" }],
+				["header", "form_header", { "Original": "", "Title Block": "title", "Highlights Band": "facts", "Hero Band": "band" }],
+				["tone", "form_header_tone", { "Tinted": "tint", "Brand-dark": "dark" }],
+				["stage", "form_stage", { "Off": "", "Status Path": "path" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
-			// The drawer is a MOUNT (item 43 A6): an attribute flip alone cannot
-			// build or remove its toggle, so the current form follows the value.
-			after: () => sync_activity(),
+			// The drawer (item 43 A6) and the header (A8a) are MOUNTS: an
+			// attribute flip alone cannot build or remove them, so the current
+			// form follows the value.
+			after: () => sync_form_mounts(),
 		},
 		body: {
 			attr: "body", boot: "bnd_body",
@@ -1563,8 +1567,12 @@
 			if (!document.querySelector(".bnd-drawer-toggle")) bnd_disown("drawer");
 			return;
 		}
-		const host = frm.page.page_actions && frm.page.page_actions[0];
+		// The band re-homes the toggle when it exists (A8a); the page's action
+		// cluster is the fallback. A toggle in the wrong host is moved, not
+		// rebuilt — its observer and count ride along.
+		const host = page.querySelector(":scope .bnd-dochead > .bnd-dochead-actions") || (frm.page.page_actions && frm.page.page_actions[0]);
 		if (!host) return;
+		if (toggle && toggle.parentElement !== host) host.appendChild(toggle);
 		if (!toggle) {
 			toggle = el("button", "bnd-drawer-toggle btn btn-default btn-sm", {
 				type: "button",
@@ -1606,15 +1614,184 @@
 		bnd_own("drawer");
 	}
 
-	/** The form kit's after-apply hook: the current form follows the new value. */
-	function sync_activity() {
-		if (window.cur_frm) mount_drawer(window.cur_frm);
+	// ── The document header (item 43 A8a) — mount 2 of 3 ──────────────────
+	// `form_header` = Title Block · Highlights Band · Hero Band builds one
+	// .bnd-dochead as the FIRST child of .layout-main-section (never inside the
+	// page head: its content height is fixed at 48px and the tabs stick under
+	// it): the record's title in a <bdi>, its status as Frappe's own indicator,
+	// a meta line, and — Highlights and Hero — tiles from the doctype's first
+	// four list-view fields, formatted by frappe.format. Rebuilt on every
+	// refresh, removed under Original; the action slot survives the rebuild so
+	// the drawer's toggle (A6) keeps its observer. Owns no native.
+	const DOCHEAD_STYLES = new Set(["title", "facts", "band"]);
+	// Fieldtypes that make no tile: a Check reads "Is Fixed Asset: No", a table
+	// has no scalar, and the long-form types are the form's own body.
+	const DOCHEAD_SKIP = new Set([
+		"Check", "Table", "Table MultiSelect", "Section Break", "Column Break", "Tab Break",
+		"HTML", "Button", "Image", "Attach", "Attach Image", "Text Editor", "Long Text",
+		"Small Text", "Text", "Code", "Markdown Editor", "HTML Editor", "Geolocation", "Signature",
+	]);
+
+	function dochead_wanted() {
+		return DOCHEAD_STYLES.has(document.documentElement.getAttribute("data-bnd-form-header") || "");
+	}
+
+	/** The decided rule: the first four list-view fields, minus the title, status and the unfit types. */
+	function dochead_tile_fields(meta) {
+		return (meta.fields || [])
+			.filter((df) => df.in_list_view && df.fieldname !== meta.title_field && df.fieldname !== "status" && !DOCHEAD_SKIP.has(df.fieldtype))
+			.slice(0, 4);
+	}
+
+	// ── The stage path (item 43 A8b) — inside the band ─────────────────────
+	// The states in order and which one the record is at: the active Workflow's
+	// (frappe.workflow reads them from boot, synchronously), else the docstatus
+	// ladder on a submittable doctype, else none. The page head's docstatus
+	// pill says the same thing, so it is hidden — ONLY once the path is in the
+	// DOM (bnd_own("stagepath") is stamped last, released when the path goes).
+	function stagepath_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-stage") === "path";
+	}
+
+	function stagepath_states(frm) {
+		const doc = frm.doc || {};
+		let field = null;
+		try {
+			field = frappe.workflow && frappe.workflow.get_state_fieldname ? frappe.workflow.get_state_fieldname(frm.doctype) : null;
+		} catch (e) {
+			field = null;
+		}
+		const wf = field && frappe.workflow.workflows && frappe.workflow.workflows[frm.doctype];
+		if (field && wf && Array.isArray(wf.states) && wf.states.length) {
+			const states = wf.states.map((row) => row.state).filter(Boolean);
+			return { states, current: doc[field] || states[0] };
+		}
+		if (frm.meta.is_submittable) {
+			const states = [__("Draft"), __("Submitted"), __("Cancelled")];
+			return { states, current: states[Math.min(Math.max(parseInt(doc.docstatus, 10) || 0, 0), 2)] };
+		}
+		return null;
+	}
+
+	/** Build or remove the path in one band; returns whether it is present. */
+	function mount_stagepath(frm, head) {
+		let path = head.querySelector(":scope > .bnd-stagepath");
+		const ladder = stagepath_wanted() && !(frm.is_new && frm.is_new()) ? stagepath_states(frm) : null;
+		if (!ladder) {
+			if (path) path.remove();
+			return false;
+		}
+		if (!path) path = el("ol", "bnd-stagepath", { "data-bnd-part": "stagepath", "aria-label": __("Stage path") });
+		path.textContent = "";
+		const at = ladder.states.indexOf(ladder.current);
+		ladder.states.forEach((state, i) => {
+			const li = el("li", "bnd-stagepath-step");
+			if (i < at) li.setAttribute("data-bnd-done", "");
+			if (i === at) li.setAttribute("aria-current", "step");
+			const bdi = document.createElement("bdi");
+			bdi.textContent = __(state);
+			li.appendChild(bdi);
+			path.appendChild(li);
+		});
+		head.appendChild(path);
+		return true;
+	}
+
+	function mount_dochead(frm) {
+		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.main || !frm.page.main[0]) return;
+		const main = frm.page.main[0];
+		let head = main.querySelector(":scope > .bnd-dochead");
+		if (!dochead_wanted()) {
+			if (head) head.remove();
+			// No band, no path: the pill is Frappe's again.
+			if (!document.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+			return;
+		}
+		const style = document.documentElement.getAttribute("data-bnd-form-header");
+		if (!head) {
+			head = el("section", "bnd-dochead", { "data-bnd-part": "dochead", "aria-label": __("Document header") });
+			main.insertBefore(head, main.firstChild);
+		}
+		const doc = frm.doc || {};
+		const is_new = !!(frm.is_new && frm.is_new());
+		const title_field = frm.meta.title_field;
+		const title = is_new
+			? __("New") + " " + __(frm.doctype)
+			: String((title_field && doc[title_field]) || frm.docname || "");
+		// The action slot outlives the rebuild: detached with its children,
+		// re-appended below.
+		const actions = head.querySelector(":scope > .bnd-dochead-actions") || el("div", "bnd-dochead-actions");
+		head.textContent = "";
+		const h = el("h1", "bnd-dochead-title");
+		const bdi = document.createElement("bdi");
+		bdi.textContent = title;
+		h.appendChild(bdi);
+		let ind = null;
+		try {
+			ind = !is_new && frappe.get_indicator ? frappe.get_indicator(doc, frm.doctype) : null;
+		} catch (e) {
+			ind = null;
+		}
+		if (ind && ind[0]) {
+			const pill = el("span", "bnd-dochead-status indicator-pill no-indicator-dot " + (ind[1] || "gray"));
+			pill.textContent = __(ind[0]);
+			h.appendChild(pill);
+		}
+		head.appendChild(h);
+		const meta = el("p", "bnd-dochead-meta");
+		const bits = [__(frm.doctype)];
+		if (!is_new && title !== frm.docname) bits.push(frm.docname);
+		// prettyDate, not comment_when: the latter returns a <span> with a tooltip,
+		// and the meta line is text (the screenshot showed the markup verbatim).
+		if (!is_new && doc.modified && frappe.datetime && frappe.datetime.prettyDate) {
+			bits.push(__("Updated {0}", [frappe.datetime.prettyDate(doc.modified)]));
+		}
+		meta.textContent = bits.join(" · ");
+		head.appendChild(meta);
+		head.appendChild(actions);
+		const tiles = el("div", "bnd-dochead-tiles");
+		if (style !== "title" && !is_new) {
+			for (const df of dochead_tile_fields(frm.meta)) {
+				const tile = el("div", "bnd-dochead-tile", { "data-fieldname": df.fieldname });
+				const label = el("span", "bnd-dochead-tile-label");
+				label.textContent = __(df.label || df.fieldname);
+				tile.appendChild(label);
+				const value = el("span", "bnd-dochead-tile-value");
+				let text = "";
+				try {
+					text = String(frappe.format(doc[df.fieldname], df, { inline: true, only_value: true }, doc) || "");
+				} catch (e) {
+					text = "";
+				}
+				// Text, never markup: a formatter's output is shown, not interpreted.
+				value.textContent = text.trim() ? text.trim() : "—";
+				tile.appendChild(value);
+				tiles.appendChild(tile);
+			}
+		}
+		head.appendChild(tiles);
+		// LAST: the pill may leave only once the path that replaces it is live.
+		if (mount_stagepath(frm, head)) bnd_own("stagepath");
+		else if (!document.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+	}
+
+	/** The form kit's after-apply hook: the current form follows the new values. */
+	function sync_form_mounts() {
+		if (!window.cur_frm) return;
+		mount_dochead(window.cur_frm);
+		mount_drawer(window.cur_frm);
 	}
 
 	if (window.frappe && frappe.ui && frappe.ui.form && frappe.ui.form.on) {
 		// A wildcard handler runs after the doctype's own and after
 		// refresh_header, so the action cluster is settled when this mounts.
-		frappe.ui.form.on("*", { refresh: (frm) => mount_drawer(frm) });
+		// The header first: it offers the drawer's toggle its home.
+		frappe.ui.form.on("*", {
+			refresh: (frm) => {
+				mount_dochead(frm);
+				mount_drawer(frm);
+			},
+		});
 	}
 	// CAPTURE phase: focus is usually inside the comment editor when Escape is
 	// pressed, and Quill stops the keydown before it bubbles to the document.

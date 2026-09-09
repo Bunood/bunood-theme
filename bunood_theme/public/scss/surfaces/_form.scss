@@ -22,6 +22,13 @@
 //                            A4; absent = the stock grid: verticals, grey head)
 //   data-bnd-form-tabs       underline | segment | pill  (active tab marker)
 //   data-bnd-form-side       edge | pane | card | rail   (the form sidebar)
+//   data-bnd-form-header     title | facts | band  (what names the record above
+//                            the form, item 43 A8a — a MOUNT, bunood.js
+//                            mount_dochead; absent = the page head alone)
+//   data-bnd-form-tone       tint | dark  (the hero band's paint)
+//   data-bnd-form-stage      path  (the chevron path in the band, item 43 A8b;
+//                            it hides the page head's docstatus pill ONLY
+//                            under data-bnd-own~="stagepath")
 //   data-bnd-form-activity   beside | drawer  (where the timeline lives, item
 //                            43 A6; absent = below the form, stock). Drawer
 //                            moves the footer off-canvas ONLY under
@@ -848,4 +855,181 @@ html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .
     display: block;
     border-block-end: 0;
   }
+}
+
+// ── The document header (item 43 A8a) ───────────────────────────────────────
+// One node, three styles. Title Block is the title and its meta; Highlights
+// Band adds the tiles on the raised tone; Hero Band paints the whole thing —
+// tinted (the section-head wash, gated) or brand-dark (the derived
+// --bnd-brand-deep pair, gated, with tiles on --bnd-brand-deep-tile). Every
+// paint is a working-set variable; the layout is one grid.
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title actions"
+    "meta actions"
+    "tiles tiles"
+    "stage stage";
+  column-gap: var(--bnd-sp-4);
+  row-gap: var(--bnd-sp-1);
+  align-items: center;
+  // Inset to the form's own edge (the tab row and the cards sit 15px in from
+  // the column; measured) and off the page head by a step.
+  margin-block: var(--bnd-sp-3) var(--bnd-sp-4);
+  margin-inline: var(--bnd-sp-4);
+  padding: var(--bnd-form-head-pad, 0);
+  border-radius: var(--bnd-form-head-radius, 0);
+  background: var(--bnd-form-band-bg, transparent);
+  color: var(--bnd-form-band-ink, inherit);
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-title {
+  grid-area: title;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  margin: 0;
+  font-size: var(--bnd-form-hero);
+  font-weight: var(--bnd-weight-semibold);
+  line-height: 1.2;
+  color: inherit;
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-meta {
+  grid-area: meta;
+  margin: 0;
+  font-size: var(--bnd-body-help, var(--text-sm));
+  color: var(--bnd-form-band-muted, var(--bnd-ink-muted));
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--bnd-sp-2);
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-actions:empty {
+  display: none;
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tiles {
+  grid-area: tiles;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--bnd-label-w), 1fr));
+  gap: var(--bnd-sp-3);
+  margin-block-start: var(--bnd-sp-3);
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tiles:empty {
+  display: none;
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tile {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-form-tile-bg, var(--bnd-raised));
+  border: var(--bnd-line) solid var(--bnd-form-tile-border, var(--bnd-border));
+  min-inline-size: 0;
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tile-label {
+  display: block;
+  font-size: var(--bnd-body-help, var(--text-sm));
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-form-band-muted, var(--bnd-ink-muted));
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tile-value {
+  display: block;
+  font-size: var(--bnd-body-title, var(--text-lg));
+  font-weight: var(--bnd-weight-semibold);
+  font-variant-numeric: var(--bnd-numeric);
+  overflow-wrap: anywhere;
+}
+// The working sets. Title Block: nothing painted, no tiles (the mount builds
+// none). Highlights Band: tiles on the raised tone. Hero Band: the band.
+html[data-bnd-form][data-bnd-form-header="band"] {
+  --bnd-form-head-pad: var(--bnd-sp-5);
+  --bnd-form-head-radius: var(--bnd-radius-lg);
+  --bnd-form-band-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-form-band-ink: var(--bnd-ink);
+  --bnd-form-tile-bg: var(--bnd-surface);
+  --bnd-form-tile-border: var(--bnd-border);
+}
+// Brand-dark: the derived pair. NO muted ink on the band — a lighter mix of
+// the label ink would fall under 4.5:1 at the fitted seeds, so the meta and
+// the tile labels take the full ink at their smaller size.
+html[data-bnd-form][data-bnd-form-header="band"][data-bnd-form-tone="dark"] {
+  --bnd-form-band-bg: var(--bnd-brand-deep);
+  --bnd-form-band-ink: var(--bnd-on-deep);
+  --bnd-form-band-muted: var(--bnd-on-deep);
+  --bnd-form-tile-bg: var(--bnd-brand-deep-tile);
+  --bnd-form-tile-border: transparent;
+}
+
+// ── The stage path (item 43 A8b) ────────────────────────────────────────────
+// Chevrons by clip-path. The polygon is physical, so the mirror is written
+// out for RTL rather than hoped for; the notch is one token. The current step
+// takes the band's inverted pair — brand-solid under its label on the tinted
+// band, the label ink under the deep fill's ink on the brand-dark one — both
+// gated pairs, read the other way round.
+html[data-bnd-form][data-bnd-form-header] .bnd-stagepath {
+  grid-area: stage;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-1);
+  margin: var(--bnd-sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--bnd-body-help, var(--text-sm));
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-stagepath-step {
+  padding-block: var(--bnd-sp-1);
+  padding-inline: calc(var(--bnd-stage-notch) + var(--bnd-sp-3)) calc(var(--bnd-stage-notch) + var(--bnd-sp-2));
+  background: var(--bnd-form-stage-bg, var(--bnd-raised));
+  color: var(--bnd-form-stage-ink, var(--bnd-ink-muted));
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--bnd-stage-notch)) 0,
+    100% 50%,
+    calc(100% - var(--bnd-stage-notch)) 100%,
+    0 100%,
+    var(--bnd-stage-notch) 50%
+  );
+}
+html[dir="rtl"][data-bnd-form][data-bnd-form-header] .bnd-stagepath-step {
+  clip-path: polygon(
+    100% 0,
+    var(--bnd-stage-notch) 0,
+    0 50%,
+    var(--bnd-stage-notch) 100%,
+    100% 100%,
+    calc(100% - var(--bnd-stage-notch)) 50%
+  );
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-stagepath-step:first-child {
+  padding-inline-start: var(--bnd-sp-3);
+  clip-path: polygon(0 0, calc(100% - var(--bnd-stage-notch)) 0, 100% 50%, calc(100% - var(--bnd-stage-notch)) 100%, 0 100%);
+}
+html[dir="rtl"][data-bnd-form][data-bnd-form-header] .bnd-stagepath-step:first-child {
+  clip-path: polygon(100% 0, var(--bnd-stage-notch) 0, 0 50%, var(--bnd-stage-notch) 100%, 100% 100%);
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-stagepath-step[data-bnd-done] {
+  color: var(--bnd-form-stage-done-ink, var(--bnd-ink));
+}
+html[data-bnd-form][data-bnd-form-header] .bnd-stagepath-step[aria-current="step"] {
+  background: var(--bnd-form-stage-cur-bg, var(--bnd-brand-solid));
+  color: var(--bnd-form-stage-cur-ink, var(--bnd-on-brand));
+}
+// On the brand-dark band the steps sit on the tile wash and the current step
+// inverts the band's own pair.
+html[data-bnd-form][data-bnd-form-header="band"][data-bnd-form-tone="dark"] {
+  --bnd-form-stage-bg: var(--bnd-brand-deep-tile);
+  --bnd-form-stage-ink: var(--bnd-on-deep);
+  --bnd-form-stage-done-ink: var(--bnd-on-deep);
+  --bnd-form-stage-cur-bg: var(--bnd-on-deep);
+  --bnd-form-stage-cur-ink: var(--bnd-brand-deep);
+}
+// The page head's docstatus pill says what the path says — hidden only once
+// the path is live (the ownership rule; the guard reads this selector).
+// 16.33 renders it as a bare span.indicator-pill in .title-area (no
+// .page-indicator-pill wrapper — the crumb kit's rule names one that is not
+// there on this build).
+html[data-bnd-own~="stagepath"] .page-head .title-area > .indicator-pill {
+  display: none;
 }

@@ -1381,7 +1381,7 @@ const MUTABLE_FIELDS = [
 	// The body kit (item 43 A1): width, type scale, primary button.
 	"desk_width", "desk_scale", "desk_primary",
 	// Field anatomy (item 43 A2) and the child grid (A4).
-	"form_fields", "form_grid", "form_activity",
+	"form_fields", "form_grid", "form_activity", "form_header", "form_header_tone", "form_stage",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -9204,7 +9204,10 @@ print("ok")
 				// Line items group (Original + 2); A5 the Sidebar group's fourth
 				// option (Inspector Rail); A6 the Activity group (Original + 2):
 				// 8 cards, 18 options.
-				form_picker: { cards: 8, toggles: 1, opts: 18 },
+				// A8a the Document header group (Original + 3) and the tone group (2):
+				// 8 cards, 24 options.
+				// A8b the Stage path group (2): 8 cards, 26 options.
+				form_picker: { cards: 8, toggles: 1, opts: 26 },
 				// Desk body (item 43 A1): no cards — three option groups (width 4,
 				// type scale 4, primary button 2) over the desk diagram.
 				desk_picker: { cards: 0, toggles: 0, opts: 10 },
@@ -13339,6 +13342,192 @@ print("ok")
 			} finally {
 				await page.setViewportSize(vp);
 			}
+		});
+
+		await test("form: the band names the record, its status and its first four list-view fields, and re-homes the activity toggle", async () => {
+			// Item 43 A8a. The expectation comes from the DOCTYPE (frm.meta), never
+			// from the band: the same rule applied to the meta says which fields
+			// make tiles and frappe.format says what they read.
+			setSettings({
+				form_style: "Floating Panels", form_sidebar: "Floating Pane", form_tabs: "Solid Pill",
+				form_grid_checkbox_reveal: 1, form_activity: "Drawer", form_header: "Hero Band", form_header_tone: "Brand-dark",
+			});
+			await goDesk(FORM_ROUTE, ".bnd-dochead", 4000);
+			const g = await page.evaluate(() => {
+				const frm = cur_frm;
+				const heads = document.querySelectorAll(".bnd-dochead");
+				const head = heads[0];
+				const skip = new Set(["Check", "Table", "Table MultiSelect", "Section Break", "Column Break", "Tab Break", "HTML", "Button", "Image", "Attach", "Attach Image", "Text Editor", "Long Text", "Small Text", "Text", "Code", "Markdown Editor", "HTML Editor", "Geolocation", "Signature"]);
+				const want = frm.meta.fields.filter((df) => df.in_list_view && df.fieldname !== frm.meta.title_field && df.fieldname !== "status" && !skip.has(df.fieldtype)).slice(0, 4);
+				const probe = document.createElement("span");
+				probe.style.cssText = "position:absolute;background:var(--bnd-brand-deep);color:var(--bnd-on-deep)";
+				document.body.appendChild(probe);
+				const pc = getComputedStyle(probe);
+				const deep = pc.backgroundColor, onDeep = pc.color;
+				probe.remove();
+				const hc = getComputedStyle(head);
+				return {
+					count: heads.length,
+					title: head.querySelector(".bnd-dochead-title bdi").textContent,
+					wantTitle: frm.doc[frm.meta.title_field],
+					status: (head.querySelector(".bnd-dochead-status") || {}).textContent,
+					wantStatus: frappe.get_indicator(frm.doc, frm.doctype)[0],
+					tiles: [...head.querySelectorAll(".bnd-dochead-tile")].map((t) => ({ f: t.getAttribute("data-fieldname"), label: t.querySelector(".bnd-dochead-tile-label").textContent, value: t.querySelector(".bnd-dochead-tile-value").textContent })),
+					wantTiles: want.map((df) => ({ f: df.fieldname, label: __(df.label), value: String(frappe.format(frm.doc[df.fieldname], df, { inline: true, only_value: true }, frm.doc) || "").trim() || "—" })),
+					toggleInBand: !!head.querySelector(".bnd-dochead-actions .bnd-drawer-toggle"),
+					first: head.parentElement.firstElementChild === head && head.parentElement.classList.contains("layout-main-section"),
+					bg: hc.backgroundColor, ink: hc.color, deep, onDeep,
+					bdiDir: getComputedStyle(head.querySelector("bdi")).unicodeBidi,
+				};
+			});
+			expectEq(g.count, 1, "exactly one band on the form");
+			expectEq(g.title, g.wantTitle, "the title is the doctype's title field");
+			expectEq(g.status, g.wantStatus, "the status is frappe.get_indicator's label");
+			expect(g.wantTiles.length >= 1, `the fixture doctype yields tiles (${g.wantTiles.length})`);
+			expectEq(JSON.stringify(g.tiles), JSON.stringify(g.wantTiles), "the tiles are the first four list-view fields, formatted by frappe.format");
+			expect(g.toggleInBand, "the activity toggle lives in the band");
+			expect(g.first, "the band is the first child of .layout-main-section");
+			expect(g.bg === g.deep && g.ink === g.onDeep, `brand-dark paints the derived pair (${g.bg} on ${g.ink})`);
+			expect(/isolate/.test(g.bdiDir), `the title is bidi-isolated (${g.bdiDir})`);
+			// Live: Title Block drops the tiles; Highlights keeps them without the band's paint.
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_header: "Title Block" }));
+			await page.waitForTimeout(150);
+			const title = await page.evaluate(() => ({ tiles: document.querySelectorAll(".bnd-dochead .bnd-dochead-tile").length, bg: getComputedStyle(document.querySelector(".bnd-dochead")).backgroundColor }));
+			expect(title.tiles === 0 && title.bg === "rgba(0, 0, 0, 0)", `Title Block: no tiles, no paint (${JSON.stringify(title)})`);
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_header: "Highlights Band" }));
+			await page.waitForTimeout(150);
+			const facts = await page.evaluate(() => ({ tiles: document.querySelectorAll(".bnd-dochead .bnd-dochead-tile").length, bg: getComputedStyle(document.querySelector(".bnd-dochead")).backgroundColor }));
+			expect(facts.tiles === g.wantTiles.length && facts.bg === "rgba(0, 0, 0, 0)", `Highlights Band: tiles, no paint (${JSON.stringify(facts)})`);
+			await page.evaluate(() => window.bunood_theme.form_apply({ form_header: "Original" }));
+			await page.waitForTimeout(150);
+			const gone = await page.evaluate(() => document.querySelectorAll(".bnd-dochead").length);
+			expectEq(gone, 0, "Original removes the band");
+		});
+
+		await test("form: the band is absent under the page head and present for a desk user", async () => {
+			setSettings({ form_header: "Original", form_header_tone: "Brand-dark", form_activity: "Drawer" });
+			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			const none = await page.evaluate(() => document.querySelectorAll(".bnd-dochead").length);
+			expectEq(none, 0, "no band under the page head");
+			setSettings({ form_header: "Hero Band" });
+			// The suite runs as Administrator; a desk user with ONE role and no
+			// Item permission (the fixture, on purpose) is the reader this mount
+			// must also serve — on a record it can read: a ToDo of its own,
+			// created here and taken away in the finally.
+			const todo = JSON.parse(benchPy(
+				'd = frappe.get_doc({"doctype": "ToDo", "description": "bnd item 43 A8a", "allocated_to": ' + JSON.stringify(DESK_FIXTURE.user) + ', "owner": ' + JSON.stringify(DESK_FIXTURE.user) + '})\n' +
+				'd.insert(ignore_permissions=True)\nfrappe.db.commit()\nprint(json.dumps({"name": d.name}))\n'
+			).trim().split("\n").pop());
+			try {
+				await withDeskUser(`/desk/todo/${encodeURIComponent(todo.name)}`, ".bnd-dochead", async (dp) => {
+					const t = await dp.evaluate(() => ({
+						title: (document.querySelector(".bnd-dochead-title bdi") || {}).textContent,
+						want: String((cur_frm.meta.title_field && cur_frm.doc[cur_frm.meta.title_field]) || cur_frm.docname),
+						user: frappe.session.user,
+					}));
+					expectEq(t.user, DESK_FIXTURE.user, "read as the desk user");
+					expectEq(t.title, t.want, "the band names the record for a desk user");
+				});
+			} finally {
+				benchPy('frappe.delete_doc("ToDo", ' + JSON.stringify(todo.name) + ', force=1, ignore_permissions=True)\nfrappe.db.commit()\n');
+			}
+		});
+
+		await test("form: the stage path reads the docstatus ladder on a submittable record, hides the pill only once owned, and shows a workflow's states in order", async () => {
+			// Item 43 A8b. Item is neither submittable nor under a workflow: no
+			// path, the pill stays Frappe's. A Sales Invoice is submittable: the
+			// ladder, the current step by docstatus, the pill hidden — and hidden
+			// ONLY from the ownership token (stripped and restored in place). The
+			// workflow branch is exercised against the vendor's own API shape
+			// (frappe.workflow.state_fields / workflows, read from boot) with a
+			// client-side fixture, so no Workflow row and no custom field touch
+			// the site: the branch is the mount's, the data's shape is Frappe's.
+			setSettings({
+				form_style: "Floating Panels", form_activity: "Drawer", form_header: "Hero Band",
+				form_header_tone: "Brand-dark", form_stage: "Status Path",
+			});
+			await goDesk(FORM_ROUTE, ".bnd-dochead", 3000);
+			const item = await page.evaluate(() => ({
+				path: document.querySelectorAll(".bnd-stagepath").length,
+				owned: /(^|\s)stagepath(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
+				pill: (() => { const p = document.querySelector(".page-head .title-area > .indicator-pill"); return p ? getComputedStyle(p).display : "(none)"; })(),
+			}));
+			expect(item.path === 0 && !item.owned, `Item: no path, no claim (${JSON.stringify(item)})`);
+			expect(item.pill !== "none", `Item: the pill stays Frappe's (${item.pill})`);
+			// The first submittable doctype with a saved record: the dev site has
+			// no Sales Invoice (its list shows the empty state) and three Sales Orders.
+			const found = JSON.parse(benchPy(
+				'out = None\n' +
+				'for dt in ("Sales Order", "Sales Invoice", "Purchase Order", "Quotation", "Delivery Note", "Payment Entry"):\n' +
+				'    rows = frappe.get_all(dt, fields=["name", "docstatus"], limit=1)\n' +
+				'    if rows:\n' +
+				'        out = {"doctype": dt, "name": rows[0]["name"], "docstatus": rows[0]["docstatus"]}\n' +
+				'        break\n' +
+				'print(json.dumps(out))\n'
+			).trim().split("\n").pop());
+			expect(!!found, "the site has a submittable record to read");
+			const inv = found;
+			await goDesk(`/desk/${found.doctype.toLowerCase().replace(/ /g, "-")}/${encodeURIComponent(found.name)}`, ".bnd-stagepath", 3000);
+			const g = await page.evaluate(() => {
+				const steps = [...document.querySelectorAll(".bnd-stagepath-step")];
+				const p = document.querySelector(".page-head .title-area > .indicator-pill");
+				return {
+					states: steps.map((s) => s.textContent),
+					current: steps.findIndex((s) => s.getAttribute("aria-current") === "step"),
+					done: steps.filter((s) => s.hasAttribute("data-bnd-done")).length,
+					docstatus: cur_frm.doc.docstatus,
+					owned: /(^|\s)stagepath(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
+					pill: p ? getComputedStyle(p).display : "(none)",
+				};
+			});
+			const ladder = await page.evaluate(() => [__("Draft"), __("Submitted"), __("Cancelled")].join("·"));
+			expectEq(g.states.join("·"), ladder, "the docstatus ladder in order");
+			expect(g.current === Math.min(g.docstatus, 2) && g.done === g.current, `the current step is the docstatus (${g.current} for ${g.docstatus}, ${g.done} done)`);
+			expect(g.owned && g.pill === "none", `owned, the page head's pill is hidden (${g.pill})`);
+			await page.evaluate(() => {
+				const h = document.documentElement;
+				h.setAttribute("data-bnd-own", (h.getAttribute("data-bnd-own") || "").split(/\s+/).filter((t) => t && t !== "stagepath").join(" "));
+			});
+			await page.waitForTimeout(50);
+			const stripped = await page.evaluate(() => { const p = document.querySelector(".page-head .title-area > .indicator-pill"); return p ? getComputedStyle(p).display : "(none)"; });
+			expect(stripped !== "none", `unowned, the pill is back (${stripped})`);
+			// The workflow branch: the vendor's shape, a client-side fixture.
+			// The fixture sits where the vendor READS — a Workflow in the client
+			// model store — because frappe.workflow.setup() re-reads that store on
+			// every refresh and overwrote a stubbed state field with null.
+			await page.evaluate(() => {
+				// Both halves of what the vendor reads: the Workflow, and the Workflow
+				// State docs frappe.get_indicator styles the pill from (it indexes
+				// locals["Workflow State"][value], which this site never loads).
+				for (const [state, style] of [["Draft", ""], ["Unpaid", "Warning"], ["Paid", "Success"], ["Return", ""]]) {
+					frappe.model.add_to_locals({ doctype: "Workflow State", name: state, workflow_state_name: state, style });
+				}
+				frappe.model.add_to_locals({
+					doctype: "Workflow", name: "BND A8b", document_type: cur_frm.doctype, workflow_state_field: "status", is_active: 1,
+					states: [{ state: "Draft", doc_status: 0, allow_edit: "System Manager" }, { state: "Unpaid", doc_status: 1, allow_edit: "System Manager" }, { state: "Paid", doc_status: 1, allow_edit: "System Manager" }, { state: "Return", doc_status: 1, allow_edit: "System Manager" }],
+					transitions: [],
+				});
+				delete frappe.workflow.state_fields[cur_frm.doctype];
+				delete frappe.workflow.workflows[cur_frm.doctype];
+				cur_frm.doc.status = "Unpaid";
+				cur_frm.refresh();
+			});
+			// refresh() runs its handlers asynchronously: read once the four
+			// stubbed steps are drawn, never the ladder still on screen.
+			await page.waitForFunction(() => document.querySelectorAll(".bnd-stagepath-step").length === 4, undefined, { timeout: 5000 });
+			const wf = await page.evaluate(() => {
+				const steps = [...document.querySelectorAll(".bnd-stagepath-step")];
+				const out = { states: steps.map((s) => s.textContent), current: steps.findIndex((s) => s.getAttribute("aria-current") === "step") };
+				delete locals["Workflow"]["BND A8b"];
+				for (const state of ["Draft", "Unpaid", "Paid", "Return"]) delete locals["Workflow State"][state];
+				delete frappe.workflow.state_fields[cur_frm.doctype];
+				delete frappe.workflow.workflows[cur_frm.doctype];
+				cur_frm.reload_doc && cur_frm.reload_doc();
+				return out;
+			});
+			const wanted = await page.evaluate(() => ["Draft", "Unpaid", "Paid", "Return"].map((x) => __(x)).join("·"));
+			expectEq(wf.states.join("·"), wanted, "a workflow's states in their order");
+			expectEq(wf.current, 1, "the current step is the workflow state");
 		});
 
 		await test("list: Dense Table — an eyebrow head, status as a dot and a word, rows at the density floor, head aligned to body", async () => {

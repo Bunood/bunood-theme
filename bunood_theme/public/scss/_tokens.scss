@@ -51,6 +51,11 @@
   //                      surface AND 4.5:1 under --bnd-on-brand.
   //   --bnd-on-brand     what to write on --bnd-brand-solid. NOT always white:
   //                      a yellow seed keeps its yellow and takes dark ink.
+  //   --bnd-brand-deep   the document band's fill (item 43 A8a): the seed pulled
+  //                      toward the dark base and fitted as a fill; --bnd-on-deep
+  //                      is its ink and --bnd-brand-deep-tile the wash its tiles
+  //                      sit on, moved AWAY from the ink. palette.derive() emits
+  //                      all three; the gate measures both pairs.
   //   --bnd-brand-ink    the brand written as text. 4.5:1 against every surface,
   //                      which is a stricter bar than a fill has to clear.
   //
@@ -60,6 +65,9 @@
   --bnd-brand-solid: #3d8150;
   --bnd-on-brand: #ffffff;
   --bnd-brand-ink: #387649;
+  --bnd-brand-deep: #295036;
+  --bnd-on-deep: #ffffff;
+  --bnd-brand-deep-tile: #264732;
 
   // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
@@ -172,6 +180,13 @@
   // column of this width at 2xl; Drawer slides it in as a panel of this width.
   --bnd-activity-w: 340px;
   --bnd-drawer-w: 420px;
+  // The document header's title (item 43 A8a): a size above the section
+  // title, restated per type scale below. Declared here so the band has a
+  // size under the vendor's own scale too.
+  --bnd-form-hero: 1.5rem;
+  // The stage path's chevron notch (item 43 A8b): the point each step cuts
+  // into the next; drawn with clip-path, so it is stated once here.
+  --bnd-stage-notch: 10px;
 
   // ── Radii ─────────────────────────────────────────────────────────────────
   --bnd-radius-sm: 4px;
@@ -441,6 +456,9 @@
   --bnd-brand-solid: #60a471;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
 
   // The focus ring has to clear 3:1 on every dark surface; #4463f0 does not.
   --bnd-accent: #0090ff;
@@ -597,6 +615,7 @@ html[data-bnd-body-scale="13"] {
   --bnd-body-title: 1.125rem;         // 18
   --bnd-body-table: 0.78125rem;       // 12.5
   --bnd-body-table-head: 0.6875rem;   // 11
+  --bnd-form-hero: 1.375rem;          // 22
 }
 html[data-bnd-body-scale="14"] {
   --bnd-body-value: 0.875rem;         // 14
@@ -604,6 +623,7 @@ html[data-bnd-body-scale="14"] {
   --bnd-body-help: 0.75rem;           // 12
   --bnd-body-head: 0.9375rem;         // 15
   --bnd-body-title: 1.25rem;          // 20
+  --bnd-form-hero: 1.5rem;            // 24
   --bnd-body-table: 0.8125rem;        // 13
   --bnd-body-table-head: 0.71875rem;  // 11.5
 }
@@ -613,6 +633,7 @@ html[data-bnd-body-scale="16"] {
   --bnd-body-help: 0.8125rem;         // 13
   --bnd-body-head: 1.0625rem;         // 17
   --bnd-body-title: 1.375rem;         // 22
+  --bnd-form-hero: 1.75rem;           // 28
   --bnd-body-table: 0.9375rem;        // 15
   --bnd-body-table-head: 0.8125rem;   // 13
 }

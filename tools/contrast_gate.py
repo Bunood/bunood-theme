@@ -173,6 +173,11 @@ def pairs():
         Pair("var(--bnd-on-brand, var(--bnd-ink-inverse))",
              "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
         Pair("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),
+        # Item 43 A8a: the document band and the tiles on it. Both derived by
+        # palette.derive(); the tile wash moves away from the ink by construction,
+        # and this is where that construction is measured rather than trusted.
+        Pair("var(--bnd-on-deep)", "var(--bnd-brand-deep)", AA_TEXT, "band ink"),
+        Pair("var(--bnd-on-deep)", "var(--bnd-brand-deep-tile)", AA_TEXT, "band tile ink"),
         Pair("var(--bnd-warn)", "var(--bnd-raised)", AA_TEXT, "status segment, warning"),
         Pair("var(--bnd-critical)", "var(--bnd-raised)", AA_TEXT, "status segment, bad"),
         Pair("var(--bnd-critical)", ALARM_BG, AA_TEXT, "status segment on the alarm tint"),

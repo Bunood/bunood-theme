@@ -691,6 +691,44 @@ MARKS = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "dochead",
+        "part": "dochead",
+        "label": "Document header",
+        "type": MARK,
+        "selector": ".bnd-dochead",
+        # Item 43 A8a. Built by mount_dochead as the first child of
+        # .layout-main-section on every form refresh: the record's title, its
+        # status, a meta line and (Highlights/Hero) tiles from the doctype's
+        # own list-view fields. Owns no native: the page head keeps its title
+        # (the crumb kit already decides that) and the pill stays where it is
+        # until A8b's stage path claims it.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "stagepath",
+        "part": "stagepath",
+        "label": "Stage path",
+        "type": MARK,
+        "selector": ".bnd-stagepath",
+        # Item 43 A8b. The band's chevron path: the active Workflow's states,
+        # else Draft · Submitted · Cancelled on a submittable doctype, else
+        # nothing. It says what the page head's docstatus pill says, so the
+        # pill is hidden - ONLY from data-bnd-own~="stagepath", stamped by
+        # mount_dochead after the path is in the band. The crumb kit's
+        # "status in the trail row" moves the same pill; while the path is on,
+        # that toggle is greyed with the reason.
+        # Measured on 16.33: the indicator is a bare span.indicator-pill inside
+        # .title-area - the .page-indicator-pill wrapper the crumb kit's own
+        # rule names does not exist on this build (a crumb-kit defect, filed).
+        "native": ".page-head .title-area > .indicator-pill",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 SURFACE = "surface"

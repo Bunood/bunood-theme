@@ -6825,3 +6825,128 @@ msgstr "جدول مكثّف"
 #, fuzzy
 msgid "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look."
 msgstr "صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات."
+
+#. src: ai
+#, fuzzy
+msgid "Form Header"
+msgstr "رأس النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."
+msgstr "يُضبط من المنتقي أعلاه. ما يُسمّي السجل فوق نموذجه: رأس الصفحة وحده، أو كتلة عنوان، أو شريط أبرز حقائقه، أو شريط رئيسي."
+
+#. src: ai
+#, fuzzy
+msgid "Form Header Tone"
+msgstr "نبرة رأس النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. The hero band's paint: a tint of the brand, or the brand deepened to a dark block."
+msgstr "يُضبط من المنتقي أعلاه. طلاء الشريط الرئيسي: صبغة من لون العلامة، أو العلامة معمّقة إلى كتلة داكنة."
+
+#. src: ai
+#, fuzzy
+msgid "Title Block"
+msgstr "كتلة العنوان"
+
+#. src: ai
+#, fuzzy
+msgid "Highlights Band"
+msgstr "شريط الأبرز"
+
+#. src: ai
+#, fuzzy
+msgid "Hero Band"
+msgstr "الشريط الرئيسي"
+
+#. src: ai
+#, fuzzy
+msgid "Brand-dark"
+msgstr "داكن بلون العلامة"
+
+#. src: ai
+#, fuzzy
+msgid "Document header"
+msgstr "رأس المستند"
+
+#. src: ai
+#, fuzzy
+msgid "What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."
+msgstr "ما يُسمّي السجل فوق نموذجه: رأس الصفحة وحده، أو كتلة عنوان، أو شريط أبرز حقائقه، أو شريط رئيسي."
+
+#. src: ai
+#, fuzzy
+msgid "Header tone"
+msgstr "نبرة الرأس"
+
+#. src: ai
+#, fuzzy
+msgid "The hero band's paint: a tint of the brand, or the brand deepened to a dark block."
+msgstr "طلاء الشريط الرئيسي: صبغة من لون العلامة، أو العلامة معمّقة إلى كتلة داكنة."
+
+#. src: ai
+#, fuzzy
+msgid "Only the hero band is painted"
+msgstr "الشريط الرئيسي وحده يُطلى"
+
+#. src: ai
+#, fuzzy
+msgid "New"
+msgstr "جديد"
+
+#. src: ai
+#, fuzzy
+msgid "Updated {0}"
+msgstr "حُدّث {0}"
+
+#. src: ai
+#, fuzzy
+msgid "Form Stage"
+msgstr "مرحلة النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."
+msgstr "يُضبط من المنتقي أعلاه. مسار سهمي عبر رأس المستند: حالات سير العمل، أو مسودة · مُعتمد · ملغى في مستند قابل للاعتماد."
+
+#. src: ai
+#, fuzzy
+msgid "Status Path"
+msgstr "مسار الحالة"
+
+#. src: ai
+#, fuzzy
+msgid "Stage path"
+msgstr "مسار المراحل"
+
+#. src: ai
+#, fuzzy
+msgid "A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."
+msgstr "مسار سهمي عبر رأس المستند: حالات سير العمل، أو مسودة · مُعتمد · ملغى في مستند قابل للاعتماد."
+
+#. src: ai
+#, fuzzy
+msgid "The page head has no band to carry it"
+msgstr "لا يوجد في رأس الصفحة شريط يحمله"
+
+#. src: ai
+#, fuzzy
+msgid "The stage path shows the status"
+msgstr "مسار المراحل يعرض الحالة"
+
+#. src: ai
+#, fuzzy
+msgid "Draft"
+msgstr "مسودة"
+
+#. src: ai
+#, fuzzy
+msgid "Submitted"
+msgstr "مُعتمد"
+
+#. src: ai
+#, fuzzy
+msgid "Cancelled"
+msgstr "ملغى"

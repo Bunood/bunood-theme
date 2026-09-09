@@ -183,9 +183,12 @@ only; Beside grids `.layout-main-section-wrapper` (§0). Nothing here is moved.
 
 - `.page-head`: `position: sticky; top: 0; z-index: 6; border-bottom: 1px` with
   `.page-head-content { height: var(--page-head-height) }` — 48px, fixed.
-- `.page-title .title-area .indicator-pill` — the status pill (`indicator-pill
-  no-indicator-dot blue`, "Enabled" / "Not Saved"). The crumb kit already relocates it
-  under `data-bnd-crumb-pill`; the stage path (A8b) owns the same node — one at a time.
+- `.page-title .title-area > .indicator-pill` — the status pill (`indicator-pill
+  no-indicator-dot blue`, "Enabled" / "Not Saved"), a BARE span: there is no
+  `.page-indicator-pill` wrapper on 16.33 (measured 2026-09-08), so the crumb kit's
+  `html[data-bnd-crumb-pill] .page-head .page-indicator-pill` rule matches nothing on this
+  build — a crumb-kit defect to file. The stage path (A8b) owns the bare span under
+  `data-bnd-own~="stagepath"`.
 - `.page-actions .primary-action[data-label="Save"]` — **one jQuery `click` handler**
   bound by `page.js:283-286` (`$._data(btn, "events") → {click: 1}`), so
   `frm.page.btn_primary.trigger("click")` runs it and the foot bar (A8c) never touches the

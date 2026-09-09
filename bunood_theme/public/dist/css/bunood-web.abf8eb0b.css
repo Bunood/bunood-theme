@@ -4,6 +4,9 @@
   --bnd-brand-solid: #3d8150;
   --bnd-on-brand: #ffffff;
   --bnd-brand-ink: #387649;
+  --bnd-brand-deep: #295036;
+  --bnd-on-deep: #ffffff;
+  --bnd-brand-deep-tile: #264732;
   --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
   --bnd-surface: #ffffff;
   --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);
@@ -49,6 +52,8 @@
   --bnd-form-thumb: 40px;
   --bnd-activity-w: 340px;
   --bnd-drawer-w: 420px;
+  --bnd-form-hero: 1.5rem;
+  --bnd-stage-notch: 10px;
   --bnd-radius-sm: 4px;
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
@@ -147,6 +152,9 @@ html[data-theme=dark] {
   --bnd-brand-solid: #60a471;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
   --bnd-accent: #0090ff;
   --bnd-border: rgba(255, 255, 255, 0.1);
   --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -206,6 +214,9 @@ html[data-theme=dark] {
     --bnd-brand-solid: #60a471;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
     --bnd-accent: #0090ff;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -258,6 +269,7 @@ html[data-bnd-body-scale="13"] {
   --bnd-body-title: 1.125rem;
   --bnd-body-table: 0.78125rem;
   --bnd-body-table-head: 0.6875rem;
+  --bnd-form-hero: 1.375rem;
 }
 
 html[data-bnd-body-scale="14"] {
@@ -266,6 +278,7 @@ html[data-bnd-body-scale="14"] {
   --bnd-body-help: 0.75rem;
   --bnd-body-head: 0.9375rem;
   --bnd-body-title: 1.25rem;
+  --bnd-form-hero: 1.5rem;
   --bnd-body-table: 0.8125rem;
   --bnd-body-table-head: 0.71875rem;
 }
@@ -276,6 +289,7 @@ html[data-bnd-body-scale="16"] {
   --bnd-body-help: 0.8125rem;
   --bnd-body-head: 1.0625rem;
   --bnd-body-title: 1.375rem;
+  --bnd-form-hero: 1.75rem;
   --bnd-body-table: 0.9375rem;
   --bnd-body-table-head: 0.8125rem;
 }
@@ -330,6 +344,9 @@ html[data-bnd-motion=reduce] {
     --bnd-brand-solid: #60a471;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
     --bnd-accent: #0090ff;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -388,6 +405,9 @@ body.bnd-auth-theme-dark {
   --bnd-brand-solid: #60a471;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
   --bnd-accent: #0090ff;
   --bnd-border: rgba(255, 255, 255, 0.1);
   --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -675,6 +695,9 @@ body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disa
     --bnd-brand-solid: #60a471;
     --bnd-on-brand: #16181d;
     --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
     --bnd-accent: #0090ff;
     --bnd-border: rgba(255, 255, 255, 0.1);
     --bnd-border-strong: rgba(255, 255, 255, 0.18);
@@ -733,6 +756,9 @@ body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
   --bnd-brand-solid: #60a471;
   --bnd-on-brand: #16181d;
   --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
   --bnd-accent: #0090ff;
   --bnd-border: rgba(255, 255, 255, 0.1);
   --bnd-border-strong: rgba(255, 255, 255, 0.18);

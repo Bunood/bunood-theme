@@ -151,12 +151,14 @@
   "AND css 24700 -> 25000 for item 43 slice A4, the child grid: two working sets (Hairline Ledger, Ruled Sheet), the head fill reaching the cells the vendor paints one by one, the stripe with the last-cell hole closed, tabular numerals, Add row as a full-width quiet control, and the row-height DENSITY CONTRACT outside the anchor. 252 gzip measured. Then 25000 -> 25200 for what the live desk showed the first cut missed: the contract covers every cell (the pencil cell kept 10px and held the row at 40), the sticky check/index pair inherits the stripe, and Add row grows its HOST (a content-sized flex item) with a gap in place of the vendor's end margin. 25,004 measured.",
   "AND css 25200 -> 25600 for item 43 slice A5, the Inspector Rail: the form sidebar as a three-column grid (thumb · name · actions on row one via display:contents), hairlined sections, eyebrow labels, quiet plus controls, and the bridge feed of --form-sidebar-image-width.",
   "AND css 25600 -> 26100 / js 116300 -> 118200 for item 43 slice A6, the activity axis: Beside as a grid on .layout-main-section-wrapper at 2xl, Drawer as a fixed panel keyed on data-bnd-own~=\"drawer\" with its slide on the motion tokens, the toggle's paint; and in bunood.js the mount (wildcard form refresh, docinfo count, timeline observer, Escape, route close) with its doctrine. js 118,041 measured (the Escape listener's capture phase and the deferred focus hand-back came after the first measure of 117,830).",
-  "AND css 26100 -> 26400 for item 43 slice A7, Dense Table: a fifth list style — hairline rows at the density floor, an eyebrow head, the status pill as a dot and a word, muted meta."
+  "AND css 26100 -> 26400 for item 43 slice A7, Dense Table: a fifth list style — hairline rows at the density floor, an eyebrow head, the status pill as a dot and a word, muted meta.",
+  "AND css 26400 -> 27000 / js 118200 -> 120000 for item 43 slice A8a, the document header: the band's grid, its three styles and the brand-dark tone on the derived --bnd-brand-deep pair (palette.derive, gated); in bunood.js mount_dochead (title, indicator, meta, tiles from the doctype's list-view fields, the drawer toggle re-homed) with its doctrine. web_css 4100 -> 4200: _tokens.scss is shared with the web bundle and gained the band pair and the hero size (4,167 measured).",
+  "AND css 27000 -> 27400 / js 120000 -> 121000 for item 43 slice A8b, the stage path: chevron steps by clip-path (both directions), the current step on the band's inverted pair, the page head's pill hidden only under data-bnd-own~=\"stagepath\"; in bunood.js the ladder (workflow states from boot, else docstatus) and the claim."
  ],
  "ceiling": {
-  "css_gzip": 26400,
-  "js_gzip": 118200,
-  "web_css_gzip": 4100,
+  "css_gzip": 27400,
+  "js_gzip": 121000,
+  "web_css_gzip": 4200,
   "email_css_gzip": 2000,
   "print_css_gzip": 8000
  },

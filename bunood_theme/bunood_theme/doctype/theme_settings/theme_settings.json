@@ -140,6 +140,9 @@
   "form_tabs",
   "form_sidebar",
   "form_activity",
+  "form_header",
+  "form_header_tone",
+  "form_stage",
   "form_grid_checkbox_reveal",
   "section_workspace",
   "workspace_picker",
@@ -1430,6 +1433,33 @@
    "options": "Original\nBeside\nDrawer"
   },
   {
+   "default": "Hero Band",
+   "description": "Set by the picker above. What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band.",
+   "fieldname": "form_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header",
+   "options": "Original\nTitle Block\nHighlights Band\nHero Band"
+  },
+  {
+   "default": "Brand-dark",
+   "description": "Set by the picker above. The hero band's paint: a tint of the brand, or the brand deepened to a dark block.",
+   "fieldname": "form_header_tone",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header Tone",
+   "options": "Tinted\nBrand-dark"
+  },
+  {
+   "default": "Status Path",
+   "description": "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document.",
+   "fieldname": "form_stage",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Stage",
+   "options": "Off\nStatus Path"
+  },
+  {
    "default": "1",
    "description": "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
    "fieldname": "form_grid_checkbox_reveal",
@@ -1710,7 +1740,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 15:24:53.000000",
+ "modified": "2026-09-08 16:29:08.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",
