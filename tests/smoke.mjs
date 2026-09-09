@@ -786,6 +786,12 @@ const consoleErrors = [];
  * readiness selector (pass null/"" to skip); `settle` is a trailing wait in ms
  * for post-render mounts (bars, rail, icons) that attach after the DOM. */
 async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500) {
+	// THE SUITE IS FRAME-FREE on the settings page (item 43 C1): `?compare=0`
+	// disables the composer's frames, appended here — in ONE place — for every
+	// settings route, so no check pays for a 1440x900 desk it did not ask for.
+	if (route.startsWith("/desk/theme-settings") && !/[?&]compare=/.test(route)) {
+		route += (route.includes("?") ? "&" : "?") + "compare=0";
+	}
 	// One retry after a pause: Docker Desktop's host-port proxy occasionally
 	// drops mid-run (measured: ERR_EMPTY_RESPONSE cascade with healthy
 	// containers). A single environmental blip must not fail the matrix; a
@@ -9501,6 +9507,85 @@ print("ok")
 			expectEq(g.dom[g.dom.length - 1], "section_generated", "the last card is Generated");
 			expectEq(order.filter(([, d]) => !d).map(([f]) => f).join(","), "", "every section carries a description");
 			expect(/Bunood Console/.test(g.line) && g.button, `the Compose card names the shipped look and offers the composer (${g.line})`);
+		});
+
+		await test("composer: ?compose is a mode — the rail in the Compose card, every other card hidden, the plain page untouched", async () => {
+			// Item 43 C1. The address is read once at refresh (the retired ?shell's
+			// rule), and goDesk appends compare=0 to every settings route so the
+			// suite never pays for a frame. Watched failing: no .bnd-cmp, 39 cards.
+			const shipped = JSON.parse(benchPy('from bunood_theme.api import get_shipped_defaults\nprint(json.dumps(get_shipped_defaults()["defaults"]))\n').trim().split("\n").pop());
+			setSettings(Object.fromEntries(Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))));
+			await goDesk("/desk/theme-settings?compose", ".bnd-cmp .bnd-cbp-opt", 4500);
+			const g = await page.evaluate(() => {
+				const vis = (n) => n.getBoundingClientRect().height > 0;
+				return {
+					sections: [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter(vis).map((n) => n.dataset.fieldname),
+					rows: document.querySelectorAll(".bnd-cmp .bnd-cmp-row").length,
+					// The composer's frames only: the email and print cards carry
+					// srcdoc previews of their own, hidden with their cards here.
+					frames: document.querySelectorAll(".bnd-cmp iframe").length,
+					line: (document.querySelector(".bnd-cmp .bnd-cmp-line") || {}).textContent || "",
+					nav: !!document.querySelector("nav.bnd-cmp-rail[aria-label]"),
+					back: !!document.querySelector(".bnd-cmp-back[href]"),
+					search: location.search,
+				};
+			});
+			expectEq(g.sections.join(","), "section_compose", `only the Compose card stays up (${g.sections.length} visible)`);
+			expect(g.rows >= 16, `the rail carries every decision (${g.rows})`);
+			expectEq(g.frames, 0, `no frame under compare=0 (${g.search})`);
+			expect(/Bunood Console/.test(g.line), `the line names the shipped look (${g.line})`);
+			expect(g.nav && g.back, "a named nav, and the way back");
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
+			const plain = await page.evaluate(() => ({
+				cmp: document.querySelectorAll(".bnd-cmp").length,
+				composing: !!document.querySelector(".bnd-composing"),
+				sections: [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0).length,
+			}));
+			expect(plain.cmp === 0 && !plain.composing && plain.sections > 30, `the plain page is untouched (${JSON.stringify(plain)})`);
+		});
+
+		await test("composer: a rail click writes through the kit's setter, and a value set elsewhere shows on the rail before any save", async () => {
+			// Item 43 C2. Sabotage 1 (bypass the setter): the hidden card's picker
+			// keeps its old highlight and the desk keeps its old attribute. Sabotage
+			// 2 (drop the dirty listener): a set_value from anywhere else reaches
+			// the rail only at the next refresh, i.e. after the save.
+			const before = getSettings(["form_tabs", "form_fields"]);
+			try {
+				await goDesk("/desk/theme-settings?compose", ".bnd-cmp .bnd-cbp-opt", 4500);
+				const pick = await page.evaluate(() => {
+					const cur = cur_frm.doc.form_tabs;
+					const opts = [...document.querySelectorAll('.bnd-cmp .bnd-cbp-opt[data-field="form_tabs"]:not([disabled])')].map((b) => b.getAttribute("data-value"));
+					return { cur, other: opts.find((v) => v !== cur), attr: document.documentElement.getAttribute("data-bnd-form-tabs") };
+				});
+				expect(pick.other, "the tabs row offers another value");
+				await page.click(`.bnd-cmp .bnd-cbp-opt[data-field="form_tabs"][data-value="${pick.other}"]`);
+				await page.waitForFunction(
+					(p) => {
+						const card = document.querySelector('.bnd-fvp .bnd-cbp-opt[data-field="form_tabs"].bnd-cbp-on');
+						const rail = document.querySelector('.bnd-cmp .bnd-cbp-opt[data-field="form_tabs"].bnd-cbp-on');
+						return cur_frm.doc.form_tabs === p.other &&
+							card && card.getAttribute("data-value") === p.other &&
+							rail && rail.getAttribute("data-value") === p.other &&
+							document.documentElement.getAttribute("data-bnd-form-tabs") !== p.attr;
+					},
+					pick,
+					{ timeout: 6000 }
+				);
+				// From elsewhere, before any save: the rail derives, it does not remember.
+				const other2 = await page.evaluate(() => {
+					const cur = cur_frm.doc.form_fields;
+					return [...document.querySelectorAll('.bnd-cmp .bnd-cbp-opt[data-field="form_fields"]:not([disabled])')].map((b) => b.getAttribute("data-value")).find((v) => v !== cur);
+				});
+				await page.evaluate((v) => cur_frm.set_value("form_fields", v), other2);
+				await page.waitForFunction(
+					(v) => { const on = document.querySelector('.bnd-cmp .bnd-cbp-opt[data-field="form_fields"].bnd-cbp-on'); return on && on.getAttribute("data-value") === v && cur_frm.is_dirty(); },
+					other2,
+					{ timeout: 300 }
+				);
+				await page.waitForTimeout(1500);
+			} finally {
+				setSettings(before);
+			}
 		});
 
 		await test("map: the side pane lists the cards in order, scrolls to one on click, follows the scroll, dots the changed card, and is absent elsewhere", async () => {

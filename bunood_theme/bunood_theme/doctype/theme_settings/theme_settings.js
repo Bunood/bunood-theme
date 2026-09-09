@@ -490,7 +490,7 @@ function bnd_desk_diagram(o) {
  * disappears from it. "Off" is excluded because it is drawn as a chip beside
  * the diagram, not as a place on the desk.
  */
-function bnd_field_slots(frm, field) {
+function bnd_field_values(frm, field) {
 	// META FIRST, and the order matters. `frm.fields_dict[field].df.options` is
 	// whatever the form layer last put there, and for a Select that is not
 	// reliably the newline string the doctype stores — it can already be a list
@@ -508,7 +508,14 @@ function bnd_field_slots(frm, field) {
 	return list
 		.map((v) => (v && typeof v === "object" ? v.value : v) || "")
 		.map((v) => String(v).trim())
-		.filter((v) => v && v !== "Off");
+		.filter((v) => v);
+}
+
+/** The slots a PLACEMENT offers: every value but Off, which is drawn as a chip
+ *  beside the diagram, never as a place on the desk. The composer's rows read
+ *  the unfiltered list (item 43 C2): for a style field Off IS a value. */
+function bnd_field_slots(frm, field) {
+	return bnd_field_values(frm, field).filter((v) => v !== "Off");
 }
 
 /** The value a picker shows when the field is empty: the first slot it offers. */
@@ -912,6 +919,9 @@ frappe.ui.form.on("Theme Settings", {
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
+		// The composer is a MODE read once from the address (item 43 C1): the
+		// class on the page container is what stands every other card down.
+		frm.page.wrapper.toggleClass("bnd-composing", bnd_compose_wanted());
 		// THE LAYOUT IS A PRESET, AND ITS FIELD IS NOW A RECORD OF ONE (item 36).
 		// The "read-only for one release so support can still see what a site
 		// was" that stood here expired many releases ago; the picker's derived
@@ -1668,9 +1678,91 @@ const BND_DESK_TENANTS = [
  * the card and the picker cannot disagree; it reads "Reading the desk…" until
  * the catalogue has landed.
  */
+// ════════════════════════════════════════════════════════════════════════════
+// The composer (item 43 C1+C2)
+//
+// A MODE of this form, read once from the address: `/desk/theme-settings?compose`
+// hides every card but Compose and renders, into that card's own host, a rail
+// of decisions — the pick's letters as rows of options — beside a stage. The
+// address is read once at refresh, exactly as the retired `?shell` was:
+// frappe.set_route drops the query, so leaving the mode is a full navigation
+// (the Back link), never a route change.
+//
+// WHY A RAIL AND NOT A SECOND SURFACE. Every row is `P.options` over the kit's
+// OWN option table (BND_FORM_GROUPS, BND_DESK_GROUPS, the style cards) filtered
+// against the field's real Select options, and every click goes through the
+// kit's OWN setter (bnd_form_set …), so the card's picker re-renders and the
+// desk previews exactly as it always has. The rail restates no catalogue and
+// remembers nothing: highlights are DERIVED from frm.doc on every dirty tick,
+// so a value set by a card, a theme preset, an import or the rail itself shows
+// on the rail before any save. Build once, sync many — a re-render would throw
+// away what C3's frames will hold.
+// ════════════════════════════════════════════════════════════════════════════
+
+function bnd_compose_wanted() {
+	return new URLSearchParams(window.location.search).has("compose");
+}
+
+/** The bands of the rail, in the order the pick reads: body, form, pages, shape. */
+const BND_COMPOSER_ZONES = [
+	{ key: "body", title: () => __("Desk body"), rows: ["desk_width", "desk_scale", "desk_primary"] },
+	{
+		key: "form",
+		title: () => __("Form"),
+		rows: ["form_style", "form_fields", "form_header", "form_header_tone", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_stage", "form_foot"],
+	},
+	{ key: "pages", title: () => __("Lists & pages"), rows: ["list_style", "workspace_style", "report_style", "chart_grid"] },
+	{ key: "shape", title: () => __("Shape"), rows: ["sidebar_pane_state"] },
+];
+
+/**
+ * One row per decision: the kit table that names it (a group entry carries its
+ * title, its blurb and its options; a style card table carries the options
+ * under a literal title, because a card table has no title of its own), the
+ * setter that writes it, the defaults its reset reads. A FUNCTION, not a
+ * table: the kit tables are declared further down this file, and a top-level
+ * object would read them before they exist.
+ */
+function bnd_composer_catalogue() {
+	const desk = { set: bnd_desk_set, groups: BND_DESK_GROUPS, defaults: BND_DESK_DEFAULTS };
+	const form = { set: bnd_form_set, groups: BND_FORM_GROUPS, defaults: BND_FORM_DEFAULTS };
+	return {
+		desk_width: desk,
+		desk_scale: desk,
+		desk_primary: desk,
+		form_style: { set: bnd_form_set, styles: BND_FORM_STYLES, title: () => __("Sections"), defaults: BND_FORM_DEFAULTS },
+		form_fields: form,
+		form_header: form,
+		form_header_tone: form,
+		form_grid: form,
+		form_tabs: form,
+		form_sidebar: form,
+		form_activity: form,
+		form_stage: form,
+		form_foot: form,
+		list_style: { set: bnd_list_set, styles: BND_LIST_STYLES, title: () => __("Lists"), defaults: BND_LIST_DEFAULTS },
+		workspace_style: { set: bnd_workspace_set, styles: BND_WORKSPACE_STYLES, title: () => __("Workspace"), defaults: BND_WORKSPACE_DEFAULTS },
+		report_style: { set: bnd_report_set, styles: BND_REPORT_STYLES, title: () => __("Data tables"), defaults: BND_REPORT_DEFAULTS },
+		chart_grid: { set: bnd_chart_set, styles: BND_CHART_STYLES, title: () => __("Charts"), defaults: BND_CHART_DEFAULTS },
+		sidebar_pane_state: { set: bnd_sb_set, title: () => __("Side pane"), defaults: null },
+	};
+}
+
+/** The value a row shows: the stored one, else what the kit's picker would show. */
+function bnd_composer_value(frm, field, row) {
+	return String(frm.doc[field] || bnd_default_of(field, row.defaults ? row.defaults[field] : "") || "");
+}
+
+let bnd_cmp_tick = 0;
+
+/** The Compose card in either mode: the line and the way in, or the composer. */
 function bnd_render_compose_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "desk_compose", host);
 	if (!$host) return;
+	if (bnd_compose_wanted()) {
+		bnd_render_composer_picker(frm, $host);
+		return;
+	}
 	const name = bnd_theme_cache ? bnd_tr_layout(bnd_theme_match(frm)) : "";
 	const line = name ? __("This desk is {0}.", [name]) : __("Reading the desk…");
 	$host.html(
@@ -1687,6 +1779,166 @@ function bnd_render_compose_picker(frm, host) {
 	$host.find(".bnd-cmp-open").on("click", () => {
 		window.location.assign("/desk/theme-settings?compose");
 	});
+}
+
+/** Build once, sync many. */
+function bnd_render_composer_picker(frm, $host) {
+	if (!$host.find(".bnd-cmp").length) bnd_composer_build(frm, $host);
+	bnd_composer_sync(frm);
+}
+
+function bnd_composer_build(frm, $host) {
+	const cat = bnd_composer_catalogue();
+	const zones = BND_COMPOSER_ZONES.map((z) =>
+		P.zone({
+			key: "cmp-" + z.key,
+			title: z.title(),
+			body: z.rows
+				.map((field) => {
+					const row = cat[field];
+					const g = row.groups ? row.groups.find((x) => x.field === field) : null;
+					const reason = g && g.disabled ? g.disabled(frm) : "";
+					// Filtered against the field's real options — the rule that
+					// retired the status Off-card wedge class of bug.
+					const offered = bnd_field_values(frm, field);
+					const items = (g
+						? g.options.map((o) => ({ value: o.value, name: o.name() }))
+						: row.styles
+						? row.styles.map((s) => ({ value: s.value, name: __(s.value) }))
+						: offered.map((v) => ({ value: v, name: __(v) }))
+					)
+						.filter((i) => !offered.length || offered.includes(i.value))
+						.map((i) => ({ value: i.value, name: i.name, reason }));
+					return (
+						'<div class="bnd-cmp-row" data-field="' + bnd_esc(field) + '">' +
+						P.group({
+							title: g ? g.title() : row.title(),
+							desc: g && g.desc ? g.desc() : "",
+							field,
+							resetCls: "bnd-cmp-reset",
+							off: !!reason,
+							body: P.options(items, { field, value: bnd_composer_value(frm, field, row) }),
+						}) +
+						"</div>"
+					);
+				})
+				.join(""),
+		})
+	).join("");
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cmp-wrap"><div class="bnd-cmp">' +
+				'<div class="bnd-cmp-head">' +
+				'<p class="bnd-cmp-line"></p>' +
+				'<a class="btn btn-default btn-sm bnd-cmp-back" href="/desk/theme-settings">' + bnd_esc(__("Back to settings")) + "</a>" +
+				"</div>" +
+				'<nav class="bnd-cmp-rail" aria-label="' + bnd_esc(__("Decisions")) + '">' +
+				zones +
+				'<div class="bnd-cmp-linebox"><code class="bnd-cmp-linetext"></code>' +
+				'<button type="button" class="btn btn-default btn-xs bnd-cmp-copy">' + bnd_esc(__("Copy")) + "</button></div>" +
+				"</nav>" +
+				'<section class="bnd-cmp-stage" aria-label="' + bnd_esc(__("Preview")) + '">' +
+				P.note(__("The desk you are on is the preview: every choice applies to this page as you click, and saves on its own.")) +
+				"</section>" +
+				"</div></div>"
+		)
+	);
+	// The current value named beside each title; hover previews a name there.
+	$host.find(".bnd-cmp-row .bnd-cbp-title").append('<span class="bnd-cmp-cur"></span>');
+
+	// DELEGATED, ONCE. A click re-renders nothing here: the kit's setter does
+	// the work (the hidden card's picker, the desk) and the dirty tick below
+	// re-derives every highlight. Reset chips declare their class for the
+	// build's reset guard (the inbox picker's precedent).
+	$host
+		.off(".bndcompose")
+		.on("click.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			if (this.hasAttribute("disabled")) return;
+			bnd_composer_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+		})
+		.on("click.bndcompose", ".bnd-cmp .bnd-cmp-reset[data-field]", function (e) {
+			e.stopPropagation();
+			const f = this.getAttribute("data-field");
+			const row = bnd_composer_catalogue()[f];
+			bnd_composer_set(frm, f, bnd_default_of(f, row.defaults ? row.defaults[f] : ""));
+		})
+		.on("mouseenter.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
+		})
+		.on("mouseleave.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), null);
+		})
+		.on("click.bndcompose", ".bnd-cmp-copy", function () {
+			const text = $host.find(".bnd-cmp-linetext").text();
+			const done = () => frappe.show_alert({ message: __("Copied"), indicator: "green" });
+			if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done);
+			else frappe.msgprint(text);
+		});
+
+	// The highlights follow the DOCUMENT, whoever wrote it: frm.dirty() fires on
+	// every set_value (a theme card is ~120 of them), coalesced to one frame.
+	frm.$wrapper.off("dirty.bndcompose").on("dirty.bndcompose", () => {
+		if (bnd_cmp_tick) return;
+		bnd_cmp_tick = requestAnimationFrame(() => {
+			bnd_cmp_tick = 0;
+			bnd_composer_sync(frm);
+		});
+	});
+}
+
+/** One field through its kit's setter — the same path a card click takes. */
+function bnd_composer_set(frm, field, value) {
+	const row = bnd_composer_catalogue()[field];
+	if (!row) return;
+	row.set(frm, field, value);
+}
+
+/** The name beside a row's title: the hovered option's, else the current one's. */
+function bnd_composer_name(frm, rowNode, hovered) {
+	if (!rowNode) return;
+	const cur = rowNode.querySelector(".bnd-cmp-cur");
+	if (!cur) return;
+	if (hovered !== null) {
+		cur.textContent = hovered;
+		return;
+	}
+	const on = rowNode.querySelector(".bnd-cbp-opt.bnd-cbp-on .bnd-cbp-oname");
+	cur.textContent = on ? on.textContent : "";
+}
+
+/** Re-derive every highlight and the line from frm.doc. */
+function bnd_composer_sync(frm) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length) return;
+	const cat = bnd_composer_catalogue();
+	$cmp.find(".bnd-cmp-row").each(function () {
+		const field = this.getAttribute("data-field");
+		const value = bnd_composer_value(frm, field, cat[field]);
+		for (const b of this.querySelectorAll(".bnd-cbp-opt")) {
+			const on = b.getAttribute("data-value") === value;
+			b.classList.toggle("bnd-cbp-on", on);
+			b.setAttribute("aria-pressed", on ? "true" : "false");
+		}
+		if (!this.matches(":hover")) bnd_composer_name(frm, this, null);
+	});
+	const line = bnd_composer_line(frm);
+	$cmp.find(".bnd-cmp-line").text(line.head);
+	$cmp.find(".bnd-cmp-linetext").text(line.text);
+}
+
+/**
+ * The line: the matched look's name (the theme picker's own derivation, so the
+ * two cannot disagree), then every decision as `field value` — untranslated
+ * values on purpose, because the line is for pasting back, not for reading.
+ */
+function bnd_composer_line(frm) {
+	const name = bnd_theme_cache ? bnd_tr_layout(bnd_theme_match(frm)) : "";
+	const cat = bnd_composer_catalogue();
+	const parts = BND_COMPOSER_ZONES.flatMap((z) => z.rows).map((f) => f + " " + bnd_composer_value(frm, f, cat[f]));
+	return {
+		head: name ? __("This desk is {0}.", [name]) : __("Reading the desk…"),
+		text: [name || __("Custom")].concat(parts).join(" · "),
+	};
 }
 
 function bnd_render_overview(frm, $pane) {

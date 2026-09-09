@@ -1411,3 +1411,71 @@ html[data-theme] .bnd-cmp-open:focus-visible {
 html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .form-layout .form-section {
 	scroll-margin-block-start: calc(var(--page-head-height) + var(--bnd-sp-2));
 }
+
+// ── The composer (item 43 C1+C2) ─────────────────────────────────────────────
+// A MODE of the settings form (`?compose`): the Compose card hosts a rail of
+// decisions beside a stage, and every other card stands down. The class is
+// stamped by the form script on the page container at refresh — read once
+// from the address, like the retired ?shell — so the plain page is untouched.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .form-layout .form-section:not([data-fieldname="section_compose"]) {
+	display: none;
+}
+// The stage wants the width, and Frappe's 900px cap on the section body would
+// fold it: lifted for the composing page only (Full Bleed makes it moot on the
+// shipped desk; Original width still carries the cap everywhere else).
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-form-layout .section-body {
+	max-inline-size: none;
+}
+.bnd-cmp-wrap {
+	container-type: inline-size;
+	container-name: bndcmp;
+}
+.bnd-cmp {
+	display: grid;
+	grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+	gap: var(--bnd-sp-5);
+	align-items: start;
+}
+@include bnd-container-until(bndcmp, cmp) {
+	.bnd-cmp {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+.bnd-cmp-head {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
+}
+.bnd-cmp-rail {
+	display: grid;
+	gap: var(--bnd-sp-3);
+}
+// The value named beside a row's title; a hover previews the option there.
+.bnd-cmp-cur {
+	margin-inline-start: var(--bnd-sp-2);
+	font-weight: var(--bnd-weight-normal);
+	color: var(--bnd-ink-muted);
+}
+.bnd-cmp-linebox {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-linetext {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+	padding: 0;
+	background: transparent;
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-muted);
+	overflow-wrap: anywhere;
+}
+// Rings for the two controls of ours that are not option chips (the guard's own idiom).
+html[data-theme] .bnd-cmp-back:focus-visible,
+html[data-theme] .bnd-cmp-copy:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}

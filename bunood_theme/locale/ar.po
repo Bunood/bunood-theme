@@ -726,6 +726,60 @@ msgstr "الشكل"
 msgid "Beyond the desk"
 msgstr "خارج المكتب"
 
+#. In theme_settings.js — the composer's way back (item 43 C1)
+#. src: ai
+#, fuzzy
+msgid "Back to settings"
+msgstr "العودة إلى الإعدادات"
+
+#. In theme_settings.js — the composer's rail, a navigation landmark
+#. src: ai
+#, fuzzy
+msgid "Decisions"
+msgstr "القرارات"
+
+#. In theme_settings.js — the composer's stage, a region
+#. src: ai
+#, fuzzy
+msgid "Preview"
+msgstr "المعاينة"
+
+#. In theme_settings.js — the composer's copy button for the line
+#. src: ai
+#, fuzzy
+msgid "Copy"
+msgstr "نسخ"
+
+#. In theme_settings.js — after the line is copied
+#. src: ai
+#, fuzzy
+msgid "Copied"
+msgstr "تم النسخ"
+
+#. In theme_settings.js — the composer's band over the form decisions
+#. src: ai
+#, fuzzy
+msgid "Form"
+msgstr "النموذج"
+
+#. In theme_settings.js — the composer's band over lists, workspaces, data tables, charts
+#. src: ai
+#, fuzzy
+msgid "Lists & pages"
+msgstr "القوائم والصفحات"
+
+#. In theme_settings.js — the composer's row for the list style
+#. src: ai
+#, fuzzy
+msgid "Lists"
+msgstr "القوائم"
+
+#. In theme_settings.js — the composer's stage note before the frames land
+#. src: ai
+#, fuzzy
+msgid "The desk you are on is the preview: every choice applies to this page as you click, and saves on its own."
+msgstr "المكتب الذي أنت فيه هو المعاينة: كل اختيار يُطبَّق على هذه الصفحة فور النقر، ويُحفظ من تلقاء نفسه."
+
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
 msgid "Divided"
