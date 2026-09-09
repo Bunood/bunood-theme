@@ -29,6 +29,10 @@
 //   data-bnd-form-stage      path  (the chevron path in the band, item 43 A8b;
 //                            it hides the page head's docstatus pill ONLY
 //                            under data-bnd-own~="stagepath")
+//   data-bnd-form-foot       pinned  (the primary action and key amounts in a
+//                            bar above the bottom edge, item 43 A8c; hides the
+//                            page head's button ONLY under
+//                            data-bnd-own~="docfoot", on form routes)
 //   data-bnd-form-activity   beside | drawer  (where the timeline lives, item
 //                            43 A6; absent = below the form, stock). Drawer
 //                            moves the footer off-canvas ONLY under
@@ -1031,5 +1035,71 @@ html[data-bnd-form][data-bnd-form-header="band"][data-bnd-form-tone="dark"] {
 // .page-indicator-pill wrapper — the crumb kit's rule names one that is not
 // there on this build).
 html[data-bnd-own~="stagepath"] .page-head .title-area > .indicator-pill {
+  display: none;
+}
+
+// ── The pinned foot (item 43 A8c) ───────────────────────────────────────────
+// The status bar's own idiom: fixed, inset by the pane's live width, lifted
+// above whatever chrome is already at the edge by a measured custom property
+// bunood.js writes inline (declared here at 0 for the phantom-token guard).
+// The height is the token, so the reserve the observer measures is the bar.
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot {
+  --bnd-foot-lift: 0px;
+  position: fixed;
+  inset-block-end: var(--bnd-foot-lift);
+  inset-inline-start: var(--bnd-sidebar-live-w);
+  inset-inline-end: 0;
+  z-index: var(--bnd-z-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-4);
+  block-size: var(--bnd-foot-h);
+  padding-inline: var(--bnd-sp-5);
+  background: var(--bnd-raised);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-facts {
+  display: flex;
+  gap: var(--bnd-sp-5);
+  min-inline-size: 0;
+  overflow: hidden;
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-facts:empty {
+  display: none;
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  white-space: nowrap;
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact-label {
+  font-size: var(--bnd-body-help, var(--text-sm));
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact-value {
+  font-size: var(--bnd-body-title, var(--text-lg));
+  font-weight: var(--bnd-weight-semibold);
+  font-variant-numeric: var(--bnd-numeric);
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline-start: auto;
+}
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-primary[hidden] {
+  display: none;
+}
+html[data-theme] .bnd-docfoot-primary:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+// The page head's button is the foot's now — hidden only once the proxy is
+// live, and only on a form: a list's "+ New" carries the same class.
+html[data-bnd-own~="docfoot"] body[data-route^="Form"] .page-actions .primary-action {
   display: none;
 }

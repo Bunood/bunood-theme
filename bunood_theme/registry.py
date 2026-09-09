@@ -729,6 +729,25 @@ MARKS = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "docfoot",
+        "part": "docfoot",
+        "label": "Pinned foot",
+        "type": MARK,
+        "selector": ".bnd-docfoot",
+        # Item 43 A8c. A fixed bar above the bottom chrome carrying the page's
+        # primary action (proxied: frm.page.btn_primary.trigger("click") runs
+        # the one jQuery handler Frappe binds; the native is re-read on every
+        # mutation of the action cluster), the list-view Currency fields as
+        # facts, and the drawer's toggle. The native button is hidden ONLY
+        # under data-bnd-own~="docfoot", stamped after the foot is in the DOM
+        # and wired, and only on form routes - a list's own primary action is
+        # the same class and is never ours.
+        "native": ".page-actions .primary-action",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 SURFACE = "surface"

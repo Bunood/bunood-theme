@@ -4336,7 +4336,7 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_header", "form_header_tone", "form_stage", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_header", "form_header_tone", "form_stage", "form_foot", "form_grid_checkbox_reveal"];
 // Mobile bar contents (item 24 C2). Export AND import list it — the same const
 // on both sides, so the two cannot drift (the item-18 escapee: export carried a
 // field the import's `known` set refused, silently dropping it on re-import).
@@ -4372,6 +4372,7 @@ const BND_FORM_DEFAULTS = {
 	form_header: "Hero Band",
 	form_header_tone: "Brand-dark",
 	form_stage: "Status Path",
+	form_foot: "Pinned Bar",
 	form_grid_checkbox_reveal: 1,
 };
 
@@ -4565,6 +4566,15 @@ const BND_FORM_GROUPS = [
 			{ value: "Status Path", name: () => __("Status Path") },
 		],
 		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Original" ? __("The page head has no band to carry it") : "",
+	},
+	{
+		field: "form_foot",
+		title: () => __("Pinned foot"),
+		desc: () => __("A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."),
+		options: [
+			{ value: "Off", name: () => __("Off") },
+			{ value: "Pinned Bar", name: () => __("Pinned Bar") },
+		],
 	},
 ];
 

@@ -1381,7 +1381,7 @@ const MUTABLE_FIELDS = [
 	// The body kit (item 43 A1): width, type scale, primary button.
 	"desk_width", "desk_scale", "desk_primary",
 	// Field anatomy (item 43 A2) and the child grid (A4).
-	"form_fields", "form_grid", "form_activity", "form_header", "form_header_tone", "form_stage",
+	"form_fields", "form_grid", "form_activity", "form_header", "form_header_tone", "form_stage", "form_foot",
 	// Workspace tile + chart surfaces (item 25).
 	"workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal",
 	"chart_grid",
@@ -9207,7 +9207,8 @@ print("ok")
 				// A8a the Document header group (Original + 3) and the tone group (2):
 				// 8 cards, 24 options.
 				// A8b the Stage path group (2): 8 cards, 26 options.
-				form_picker: { cards: 8, toggles: 1, opts: 26 },
+				// A8c the Pinned foot group (2): 8 cards, 28 options.
+				form_picker: { cards: 8, toggles: 1, opts: 28 },
 				// Desk body (item 43 A1): no cards — three option groups (width 4,
 				// type scale 4, primary button 2) over the desk diagram.
 				desk_picker: { cards: 0, toggles: 0, opts: 10 },
@@ -13528,6 +13529,112 @@ print("ok")
 			const wanted = await page.evaluate(() => ["Draft", "Unpaid", "Paid", "Return"].map((x) => __(x)).join("·"));
 			expectEq(wf.states.join("·"), wanted, "a workflow's states in their order");
 			expectEq(wf.current, 1, "the current step is the workflow state");
+		});
+
+		await test("form: the pinned foot proxies the primary action, hides the native only once owned, keeps the last field clear, homes the toggle, and Off leaves nothing", async () => {
+			// Item 43 A8c. On a ToDo of the suite's own (created and removed here):
+			// the proxy carries the native's label; clicking it runs the native's
+			// handler (the record saves); the native is hidden only under the token
+			// (stripped and restored in place); the scroller's reserve keeps the
+			// last field above the bar; the drawer's toggle lives in the foot.
+			setSettings({
+				form_style: "Floating Panels", form_activity: "Drawer", form_header: "Hero Band",
+				form_header_tone: "Brand-dark", form_stage: "Status Path", form_foot: "Pinned Bar",
+			});
+			const todo = JSON.parse(benchPy(
+				'd = frappe.get_doc({"doctype": "ToDo", "description": "bnd item 43 A8c", "allocated_to": "Administrator"})\n' +
+				'd.insert(ignore_permissions=True)\nfrappe.db.commit()\nprint(json.dumps({"name": d.name}))\n'
+			).trim().split("\n").pop());
+			try {
+				await goDesk(`/desk/todo/${encodeURIComponent(todo.name)}`, ".bnd-docfoot", 3000);
+				const g = await page.evaluate(() => {
+					const foot = document.querySelector(".bnd-docfoot");
+					const native = document.querySelector(".page-actions .primary-action");
+					const main = document.querySelector(".main-section");
+					const fr = foot.getBoundingClientRect();
+					return {
+						count: document.querySelectorAll(".bnd-docfoot").length,
+						label: foot.querySelector(".bnd-docfoot-primary").textContent,
+						nativeLabel: native.textContent.trim(),
+						nativeDisplay: getComputedStyle(native).display,
+						owned: /(^|\s)docfoot(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
+						toggleInFoot: !!foot.querySelector(".bnd-docfoot-actions .bnd-drawer-toggle"),
+						footTop: Math.round(fr.top), footH: Math.round(fr.height), vh: window.innerHeight,
+						mainBottom: Math.round(main.getBoundingClientRect().bottom),
+						reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve")),
+					};
+				});
+				expectEq(g.count, 1, "one foot on the form");
+				expectEq(g.label, g.nativeLabel, "the proxy carries the native's label");
+				expect(g.owned && g.nativeDisplay === "none", `owned, the native is hidden (${g.nativeDisplay})`);
+				expect(g.toggleInFoot, "the drawer's toggle lives in the foot");
+				expect(g.reserve >= g.vh - g.footTop - 1, `the reserve covers the foot (${g.reserve} >= ${g.vh - g.footTop})`);
+				expect(g.mainBottom <= g.footTop + 1, `the scroller ends above the foot (${g.mainBottom} <= ${g.footTop})`);
+				// The last field stays clear at the bottom of the scroll.
+				await page.evaluate(() => { const m = document.querySelector(".main-section"); m.scrollTop = m.scrollHeight; });
+				await page.waitForTimeout(300);
+				const clear = await page.evaluate(() => {
+					const foot = document.querySelector(".bnd-docfoot").getBoundingClientRect();
+					const fields = [...document.querySelectorAll(".form-layout .frappe-control")].filter((f) => f.getBoundingClientRect().height > 0);
+					const last = fields[fields.length - 1].getBoundingClientRect();
+					return { lastBottom: Math.round(last.bottom), footTop: Math.round(foot.top) };
+				});
+				expect(clear.lastBottom <= clear.footTop, `the last field clears the foot (${clear.lastBottom} <= ${clear.footTop})`);
+				// Sabotage in place: the token gone, the native is back.
+				await page.evaluate(() => {
+					const h = document.documentElement;
+					h.setAttribute("data-bnd-own", (h.getAttribute("data-bnd-own") || "").split(/\s+/).filter((t) => t && t !== "docfoot").join(" "));
+				});
+				await page.waitForTimeout(50);
+				const back = await page.evaluate(() => getComputedStyle(document.querySelector(".page-actions .primary-action")).display);
+				expect(back !== "none", `unowned, the native is visible (${back})`);
+				await page.evaluate(() => {
+					const h = document.documentElement;
+					h.setAttribute("data-bnd-own", ((h.getAttribute("data-bnd-own") || "") + " docfoot").trim());
+				});
+				// The proxy runs the native's handler: the record saves.
+				const marker = "bnd a8c " + Date.now();
+				await page.evaluate((m) => cur_frm.set_value("description", m), marker);
+				await page.waitForFunction(() => cur_frm.doc.__unsaved, undefined, { timeout: 5000 });
+				await page.click(".bnd-docfoot-primary");
+				await page.waitForFunction(() => !cur_frm.doc.__unsaved && !cur_frm.is_dirty(), undefined, { timeout: 15000 });
+				const saved = benchPy('print(frappe.db.get_value("ToDo", ' + JSON.stringify(todo.name) + ', "description") or "")\n').trim().split("\n").pop();
+				expect(saved.includes(marker), `the native handler saved through the proxy (${JSON.stringify(saved)})`);
+				// Off: nothing left behind, the claim released.
+				await page.evaluate(() => window.bunood_theme.form_apply({ form_foot: "Off" }));
+				await page.waitForTimeout(200);
+				const off = await page.evaluate(() => ({
+					foot: document.querySelectorAll(".bnd-docfoot").length,
+					owned: /(^|\s)docfoot(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
+					nativeDisplay: getComputedStyle(document.querySelector(".page-actions .primary-action")).display,
+				}));
+				expect(off.foot === 0 && !off.owned && off.nativeDisplay !== "none", `Off leaves nothing behind (${JSON.stringify(off)})`);
+			} finally {
+				benchPy('frappe.delete_doc("ToDo", ' + JSON.stringify(todo.name) + ', force=1, ignore_permissions=True)\nfrappe.db.commit()\n');
+			}
+		});
+
+		await test("form: the pinned foot shows a submittable record's list-view amounts", async () => {
+			setSettings({ form_foot: "Pinned Bar", form_header: "Hero Band" });
+			const found = JSON.parse(benchPy(
+				'out = None\n' +
+				'for dt in ("Sales Order", "Sales Invoice", "Purchase Order", "Quotation", "Delivery Note"):\n' +
+				'    rows = frappe.get_all(dt, fields=["name"], limit=1)\n' +
+				'    if rows:\n' +
+				'        out = {"doctype": dt, "name": rows[0]["name"]}\n' +
+				'        break\n' +
+				'print(json.dumps(out))\n'
+			).trim().split("\n").pop());
+			expect(!!found, "the site has a submittable record to read");
+			await goDesk(`/desk/${found.doctype.toLowerCase().replace(/ /g, "-")}/${encodeURIComponent(found.name)}`, ".bnd-docfoot", 3000);
+			const g = await page.evaluate(() => {
+				const want = cur_frm.meta.fields.filter((df) => df.in_list_view && df.fieldtype === "Currency").slice(0, 3)
+					.map((df) => ({ f: df.fieldname, value: String(frappe.format(cur_frm.doc[df.fieldname], df, { inline: true, only_value: true }, cur_frm.doc) || "").trim() || "—" }));
+				const got = [...document.querySelectorAll(".bnd-docfoot-fact")].map((x) => ({ f: x.getAttribute("data-fieldname"), value: x.querySelector(".bnd-docfoot-fact-value").textContent }));
+				return { want, got };
+			});
+			expect(g.want.length >= 1, `the doctype has a list-view Currency field (${g.want.length})`);
+			expectEq(JSON.stringify(g.got), JSON.stringify(g.want), "the facts are the list-view amounts, formatted by frappe.format");
 		});
 
 		await test("list: Dense Table — an eyebrow head, status as a dot and a word, rows at the density floor, head aligned to body", async () => {

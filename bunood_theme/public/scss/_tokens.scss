@@ -187,6 +187,9 @@
   // The stage path's chevron notch (item 43 A8b): the point each step cuts
   // into the next; drawn with clip-path, so it is stated once here.
   --bnd-stage-notch: 10px;
+  // The pinned foot's height (item 43 A8c): fixed by the sheet, so the
+  // measured reserve and the bar agree by construction.
+  --bnd-foot-h: 56px;
 
   // ── Radii ─────────────────────────────────────────────────────────────────
   --bnd-radius-sm: 4px;

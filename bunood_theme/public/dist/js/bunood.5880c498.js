@@ -1354,6 +1354,7 @@
 				["header", "form_header", { "Original": "", "Title Block": "title", "Highlights Band": "facts", "Hero Band": "band" }],
 				["tone", "form_header_tone", { "Tinted": "tint", "Brand-dark": "dark" }],
 				["stage", "form_stage", { "Off": "", "Status Path": "path" }],
+				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
 			// The drawer (item 43 A6) and the header (A8a) are MOUNTS: an
@@ -1570,7 +1571,10 @@
 		// The band re-homes the toggle when it exists (A8a); the page's action
 		// cluster is the fallback. A toggle in the wrong host is moved, not
 		// rebuilt — its observer and count ride along.
-		const host = page.querySelector(":scope .bnd-dochead > .bnd-dochead-actions") || (frm.page.page_actions && frm.page.page_actions[0]);
+		const host =
+			page.querySelector(":scope > .bnd-docfoot > .bnd-docfoot-actions") ||
+			page.querySelector(":scope .bnd-dochead > .bnd-dochead-actions") ||
+			(frm.page.page_actions && frm.page.page_actions[0]);
 		if (!host) return;
 		if (toggle && toggle.parentElement !== host) host.appendChild(toggle);
 		if (!toggle) {
@@ -1775,20 +1779,133 @@
 		else if (!document.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
 	}
 
+	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
+	// `form_foot` = Pinned Bar: a fixed bar above the bottom chrome — LIFTED by
+	// whatever chrome is already there (the status bar, the dock), measured at
+	// mount and on resize, never declared — carrying the page's primary action
+	// as a PROXY (the native keeps its handler; the proxy triggers it and
+	// mirrors its label, hidden and disabled state through a MutationObserver
+	// on the action cluster), the doctype's list-view Currency fields as facts,
+	// and the drawer's toggle. It joins BND_BOTTOM_CHROME, so the scroller's
+	// reserve grows by what it measures and the last field is never under it.
+	// The native button is hidden ONLY under data-bnd-own~="docfoot" (stamped
+	// last) and only on form routes; a route change releases the claim, and the
+	// form's next refresh takes it again.
+	function docfoot_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-foot") === "pinned";
+	}
+
+	function docfoot_facts(meta) {
+		return (meta.fields || []).filter((df) => df.in_list_view && df.fieldtype === "Currency").slice(0, 3);
+	}
+
+	/** Distance from the viewport's bottom edge to the top of the tallest OTHER bottom chrome. */
+	function docfoot_lift() {
+		let lift = 0;
+		for (const bar of document.querySelectorAll(".bnd-statusbar, .bnd-dock")) {
+			const r = bar.getBoundingClientRect();
+			if (r.height > 0) lift = Math.max(lift, Math.ceil(window.innerHeight - r.top));
+		}
+		return lift;
+	}
+
+	function docfoot_sync(frm, foot) {
+		const btn = frm.page.btn_primary && frm.page.btn_primary[0];
+		const proxy = foot.querySelector(".bnd-docfoot-primary");
+		if (btn && proxy) {
+			const label = btn.textContent.trim() || decodeURIComponent(btn.getAttribute("data-label") || "");
+			proxy.textContent = label;
+			proxy.hidden = btn.classList.contains("hide") || !label;
+			proxy.disabled = !!btn.disabled;
+		}
+		foot.style.setProperty("--bnd-foot-lift", docfoot_lift() + "px");
+		const facts = foot.querySelector(".bnd-docfoot-facts");
+		facts.textContent = "";
+		const doc = frm.doc || {};
+		if (!(frm.is_new && frm.is_new())) {
+			for (const df of docfoot_facts(frm.meta)) {
+				const fact = el("div", "bnd-docfoot-fact", { "data-fieldname": df.fieldname });
+				const label = el("span", "bnd-docfoot-fact-label");
+				label.textContent = __(df.label || df.fieldname);
+				const value = el("span", "bnd-docfoot-fact-value");
+				let text = "";
+				try {
+					text = String(frappe.format(doc[df.fieldname], df, { inline: true, only_value: true }, doc) || "");
+				} catch (e) {
+					text = "";
+				}
+				value.textContent = text.trim() ? text.trim() : "—";
+				fact.appendChild(label);
+				fact.appendChild(value);
+				facts.appendChild(fact);
+			}
+		}
+	}
+
+	function mount_docfoot(frm) {
+		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.wrapper || !frm.page.wrapper[0]) return;
+		const page = frm.page.wrapper[0];
+		let foot = page.querySelector(":scope > .bnd-docfoot");
+		const wanted = docfoot_wanted() && !!(frm.page.btn_primary && frm.page.btn_primary.length);
+		if (!wanted) {
+			if (foot) foot.remove();
+			if (frm.__bnd_foot_mo) {
+				frm.__bnd_foot_mo.disconnect();
+				frm.__bnd_foot_mo = null;
+			}
+			if (!document.querySelector(".bnd-docfoot")) bnd_disown("docfoot");
+			defer_bottom_reserve();
+			return;
+		}
+		if (!foot) {
+			foot = el("div", "bnd-docfoot", { "data-bnd-part": "docfoot", role: "region", "aria-label": __("Document actions") });
+			foot.appendChild(el("div", "bnd-docfoot-facts"));
+			const actions = el("div", "bnd-docfoot-actions");
+			const primary = el("button", "bnd-docfoot-primary btn btn-primary btn-sm", { type: "button" });
+			primary.addEventListener("click", () => {
+				if (frm.page.btn_primary) frm.page.btn_primary.trigger("click");
+			});
+			actions.appendChild(primary);
+			foot.appendChild(actions);
+			page.appendChild(foot);
+		}
+		docfoot_sync(frm, foot);
+		if (!frm.__bnd_foot_mo && typeof MutationObserver !== "undefined" && frm.page.page_actions && frm.page.page_actions[0]) {
+			let queued = false;
+			frm.__bnd_foot_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => {
+					queued = false;
+					if (foot.isConnected) docfoot_sync(frm, foot);
+				});
+			});
+			frm.__bnd_foot_mo.observe(frm.page.page_actions[0], { attributes: true, childList: true, subtree: true, characterData: true });
+		}
+		// LAST: the native may leave the head only now that the proxy is live.
+		bnd_own("docfoot");
+		defer_bottom_reserve();
+	}
+	window.addEventListener("resize", () => {
+		for (const foot of document.querySelectorAll(".bnd-docfoot")) foot.style.setProperty("--bnd-foot-lift", docfoot_lift() + "px");
+	});
+
 	/** The form kit's after-apply hook: the current form follows the new values. */
 	function sync_form_mounts() {
 		if (!window.cur_frm) return;
 		mount_dochead(window.cur_frm);
+		mount_docfoot(window.cur_frm);
 		mount_drawer(window.cur_frm);
 	}
 
 	if (window.frappe && frappe.ui && frappe.ui.form && frappe.ui.form.on) {
 		// A wildcard handler runs after the doctype's own and after
 		// refresh_header, so the action cluster is settled when this mounts.
-		// The header first: it offers the drawer's toggle its home.
+		// The header and the foot first: they offer the drawer's toggle its home.
 		frappe.ui.form.on("*", {
 			refresh: (frm) => {
 				mount_dochead(frm);
+				mount_docfoot(frm);
 				mount_drawer(frm);
 			},
 		});
@@ -2151,7 +2268,9 @@
 	// ── Bottom reserve tracking ─────────────────────────────────────────────
 
 	/** Every piece of chrome this theme fixes to the viewport's bottom edge. */
-	const BND_BOTTOM_CHROME = ".bnd-statusbar, .bnd-dock";
+	// The pinned foot (item 43 A8c) joins the measured reserve: a display:none
+	// foot on a cached page measures 0, which is the right answer.
+	const BND_BOTTOM_CHROME = ".bnd-statusbar, .bnd-dock, .bnd-docfoot";
 
 	/**
 	 * Re-measure the bottom reserve on demand. Assigned by
@@ -8706,6 +8825,9 @@ function sb_zone_anchor(pane, zone, node) {
 			frappe.router.on("change", () => {
 				close_menu();
 				drawer_set_open(false);
+				// The foot's claim is a form's; a list's primary action is the
+				// same class and must never be hidden by a cached form's foot.
+				bnd_disown("docfoot");
 				update_desktop_mode();
 				keep_pane_on_desktop();
 				// AFTER update_desktop_mode, because that call is what stands

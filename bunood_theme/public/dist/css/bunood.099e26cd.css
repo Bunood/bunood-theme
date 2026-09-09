@@ -55,6 +55,7 @@
   --bnd-drawer-w: 420px;
   --bnd-form-hero: 1.5rem;
   --bnd-stage-notch: 10px;
+  --bnd-foot-h: 56px;
   --bnd-radius-sm: 4px;
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
@@ -5935,6 +5936,74 @@ html[data-bnd-form][data-bnd-form-header=band][data-bnd-form-tone=dark] {
 }
 
 html[data-bnd-own~=stagepath] .page-head .title-area > .indicator-pill {
+  display: none;
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot {
+  --bnd-foot-lift: 0px;
+  position: fixed;
+  inset-block-end: var(--bnd-foot-lift);
+  inset-inline-start: var(--bnd-sidebar-live-w);
+  inset-inline-end: 0;
+  z-index: var(--bnd-z-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-4);
+  block-size: var(--bnd-foot-h);
+  padding-inline: var(--bnd-sp-5);
+  background: var(--bnd-raised);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-facts {
+  display: flex;
+  gap: var(--bnd-sp-5);
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-facts:empty {
+  display: none;
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  white-space: nowrap;
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact-label {
+  font-size: var(--bnd-body-help, var(--text-sm));
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-ink-muted);
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-fact-value {
+  font-size: var(--bnd-body-title, var(--text-lg));
+  font-weight: var(--bnd-weight-semibold);
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-inline-start: auto;
+}
+
+html[data-bnd-form][data-bnd-form-foot] .bnd-docfoot-primary[hidden] {
+  display: none;
+}
+
+html[data-theme] .bnd-docfoot-primary:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
+html[data-bnd-own~=docfoot] body[data-route^=Form] .page-actions .primary-action {
   display: none;
 }
 

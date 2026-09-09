@@ -6950,3 +6950,33 @@ msgstr "مُعتمد"
 #, fuzzy
 msgid "Cancelled"
 msgstr "ملغى"
+
+#. src: ai
+#, fuzzy
+msgid "Form Foot"
+msgstr "ذيل النموذج"
+
+#. src: ai
+#, fuzzy
+msgid "Set by the picker above. A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."
+msgstr "يُضبط من المنتقي أعلاه. شريط مثبّت فوق الحافة السفلية يحمل الإجراء الرئيسي للسجل ومبالغه الأساسية، أينما مُرّرت الصفحة."
+
+#. src: ai
+#, fuzzy
+msgid "Pinned Bar"
+msgstr "شريط مثبّت"
+
+#. src: ai
+#, fuzzy
+msgid "Pinned foot"
+msgstr "الذيل المثبّت"
+
+#. src: ai
+#, fuzzy
+msgid "A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."
+msgstr "شريط مثبّت فوق الحافة السفلية يحمل الإجراء الرئيسي للسجل ومبالغه الأساسية، أينما مُرّرت الصفحة."
+
+#. src: ai
+#, fuzzy
+msgid "Document actions"
+msgstr "إجراءات المستند"

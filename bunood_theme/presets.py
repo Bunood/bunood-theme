@@ -444,6 +444,7 @@ FORM_FIELDS = [
     "form_header",
     "form_header_tone",
     "form_stage",
+    "form_foot",
     "form_grid_checkbox_reveal",
 ]
 
@@ -478,6 +479,9 @@ FORM_DEFAULTS = {
     # Item 43 A8b, the user's pick: the stage path in the band. Off leaves the
     # page head's docstatus pill where Frappe puts it.
     "form_stage": "Status Path",
+    # Item 43 A8c, the user's pick: the primary action and the key amounts
+    # pinned above the bottom edge. Off leaves the page head's button alone.
+    "form_foot": "Pinned Bar",
     # A Check, default-on: the same three-door contract as the list kit's
     # reveal (hover, :focus-within, any-checked), stood down on touch.
     "form_grid_checkbox_reveal": 1,
