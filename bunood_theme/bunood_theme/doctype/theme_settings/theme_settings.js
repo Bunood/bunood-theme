@@ -959,6 +959,10 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
 		bnd_render_compose_picker(frm);
+		// The side pane's map (item 43 B3) reads the rendered sections: after
+		// the pickers, and again once the shipped defaults land (the dots).
+		bnd_settings_marks(frm);
+		bnd_load_shipped().then(() => bnd_settings_marks(frm));
 		// The two surfaces that own no field draw into fields of their own
 		// (item 43 B1: the shell that used to host them is gone).
 		for (const [name, render] of [["desk_overview", bnd_render_overview], ["language_translations", bnd_render_translations]]) {
@@ -1060,110 +1064,170 @@ function bnd_repaint_placement_pickers(frm) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Master & detail shell (component rework, slice 1c step 2)
+// The settings map (item 43 B3) — what the side pane lists while this form is
+// open, and what each entry owns.
 //
 // WHAT
-//   A grouped list on one side, one component's settings on the other, instead
-//   of ~70 fields in nine stacked sections that a reader has to scroll to find
-//   anything in.
+//   One row per section card, under the BANDS of the importance order the
+//   doctype's field_order carries (B2): Compose · Look · Body · Shape · Beyond
+//   the desk · Generated. The rows themselves are DERIVED from the rendered
+//   sections on every refresh (`bnd_settings_rows`), so order has one source,
+//   the JSON. This table contributes membership only — which band a section
+//   sits in, and which fields its change dot watches (`BND_SETTINGS_OWNS`,
+//   keyed by `key`).
 //
-// WHY IT RELOCATES SECTIONS RATHER THAN REBUILDING THEM
-//   The obvious build is a second surface: draw the shell, and render every
-//   picker into it. That gives you TWO sets of cards bound to the same fields,
-//   each unaware of the other's clicks — the same-fact-in-two-places defect this
-//   whole rework exists to remove, reintroduced by the thing meant to fix it.
+// WHY A BAND IS A CONTIGUOUS RUN
+//   The pane draws a heading wherever the band changes between consecutive
+//   rows, so a band whose sections are scattered through field_order heads
+//   itself more than once. The shell's old groups (Bars & panes, Controls,
+//   Appearance…) did exactly that once B2 reordered the cards — APPEARANCE
+//   three times down one pane, read off a screenshot, not a check. The suite
+//   asserts each heading appears once; keep this table and field_order telling
+//   the same story.
 //
-//   So the shell MOVES the DOM Frappe already built. There is exactly one node
-//   per field, in a different parent, and "only one surface exists" stops being
-//   a rule anybody has to keep and becomes a property of the construction. It
-//   also means every Frappe control keeps working untouched: its JS holds a
-//   reference to its own wrapper, and a wrapper does not care who its parent is.
-//
-// WHY IT IS GATED BEHIND ?shell=1
-//   This lands before it replaces anything. The stacked form stays the default
-//   until the shell has the diagram (step 3) and the derived preset label, and
-//   until it has been used. A half-finished navigation is worse than a long
-//   form, because a long form at least shows you everything it has.
+// WHAT IT REPLACED
+//   The master & detail shell (slice 1c, retired in B1) MOVED the sections into
+//   a pane of its own so "only one surface exists" was a property of the
+//   construction. The map keeps that property more simply: it moves nothing,
+//   it points.
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * The left list: groups, and what each entry owns.
+ * The map's entries: bands, and what each entry owns.
  *
  * `anchors` are FIELD names, not section names, and that is deliberate — a
  * section break's own wrapper is an implementation detail of Frappe's layout
  * engine that has moved between versions, while a field's `$wrapper` is the
  * thing every control in this form already depends on. The section is found by
  * walking up from the field, so this keeps working if Frappe restructures.
+ *
+ * ONE ENTRY NAMES A SECTION: the first entry whose anchor lands in a section
+ * claims it, and a later one is ignored. That is how an Overview entry (an HTML
+ * field that renders INSIDE the Placement card) claimed Placement's row, its
+ * band and its change dot for a slice — an entry that renders inside another
+ * entry's card is not a row and has no entry here.
  */
 const BND_SETTINGS_GROUPS = [
 	{
-		group: () => __("Desk"),
+		// No heading over the first card: it is the page's own line.
+		group: () => "",
 		items: [
 			// The Compose card (item 43 B2): what the desk is, and the way into
 			// the composer. First on the page, first in the map.
 			{ key: "compose", label: () => __("Compose"), anchors: ["desk_compose"] },
-			// Renders rather than relocating, like Translations below: it owns no
-			// fields, it reads them.
-			{ key: "overview", label: () => __("Overview"), anchors: ["desk_overview"] },
 		],
 	},
 	{
-		group: () => __("Bars & panes"),
+		group: () => __("Look"),
 		items: [
-			// Containers, roughly top to bottom on the desk. The top bar is the
-			// first to have been split out of `desk_layout` (slice 2c); the
-			// others join this group as their own entries as their slices land,
-			// and "Layout preset" under Appearance stops being a setting at all
-			// once the last one has.
+			// ITEM 37, AND IT LEADS THE BAND because it is the control that answers
+			// "what does this desk look like" in one gesture. The entries under it
+			// are the axes a look composes from.
+			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
+			// ITEM 36, THE USER'S MAP 1: identity is ONE entry — name, logo,
+			// favicon, tagline AND the colour seeds together. The Directus
+			// co-location (its Appearance page holds colour + logos + favicon on
+			// one surface) extended with the name, because at this scale (four
+			// identity fields, four seeds) a split just separates the specimen
+			// from half its inputs. It anchors TWO cards, colours and branding;
+			// the generated stylesheet line it used to claim as well sits in the
+			// Generated card at the end since B2, with its own entry below.
+			{ key: "identity", label: () => __("Identity"), anchors: ["company_name", "brand_color"] },
+			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
+			// own picker like every other kit; the Selects sit hidden behind the
+			// card picker's controls.
+			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
+			// Item 36, the user's direction: language and fonts in their own place
+			// beside Translation. The Arabic face is the entry's whole surface
+			// today; the section is where any later language-shaped field lands.
+			{ key: "fonts", label: () => __("Language & Fonts"), anchors: ["arabic_font"] },
+			// Renders inside the Language & Fonts card, so it is never a row of its
+			// own (the fonts entry claims the section first) — the entry exists for
+			// the Overview's goto. Its state lives in its own doctypes (Bunood
+			// Translation Settings / Scan / Proposal), not in Theme Settings
+			// fields, which keeps the FIELD_PREFIXES guard out of a feature that
+			// is not a desk component.
+			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
+			// `density_default` has its own section. It used to share
+			// `section_features` with `palette_enabled`, and the shell's fallback
+			// for a twice-claimed section moved a bare $wrapper out of
+			// `.form-column > form`, severing the direct-descendant chain Frappe
+			// caps input width with (form.scss `.form-column.col-sm-12 > form >
+			// .input-max-width`). Measured: 636px against every other Select's
+			// 273px. B1 removed relocation altogether; the section stays its own.
+			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
+			// Item 38. Not a look but a POLICY about looks: which axes a person
+			// may decide for themselves. It sits with the look because that is
+			// what it governs, and the three Checks are visible rather than
+			// picker-driven — the same shape the container toggles use, and one
+			// fewer surface to keep truthful.
+			{ key: "personal", label: () => __("Personalization"), anchors: ["personal_look"] },
+		],
+	},
+	{
+		// Item 43: the body kits, the record's anatomy first.
+		group: () => __("Body"),
+		items: [
+			{ key: "desk", label: () => __("Desk body"), anchors: ["desk_width"] },
+			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
+			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
+			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
+			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
+			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
+			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
+			{ key: "filters", label: () => __("Filters"), anchors: ["filters_style"] },
+			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
+			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
+			{ key: "skeleton", label: () => __("Loading"), anchors: ["skeleton_style"] },
+		],
+	},
+	{
+		// The chrome: containers roughly top to bottom on the desk, then what
+		// they carry. The top bar was the first split out of `desk_layout`
+		// (slice 2c); each later container joined as its own entry.
+		group: () => __("Shape"),
+		items: [
+			// Item 37: KEEPS its picker — the five layouts stay one click away —
+			// but stores no name: it writes the containers and derives its
+			// highlight from them, which is what a preset is supposed to do.
+			{ key: "layout", label: () => __("Layout preset"), anchors: ["layout_picker"] },
+			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_picker"] },
 			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
 			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
-			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_picker"] },
 			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
 			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
-			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
 			// The phone bar (item 24): what the bottom bar carries below 768px.
-			// Sits with the bars because that is what it configures; its three
-			// toggles relocate here from section_mobile.
+			// Sits with the bars because that is what it configures.
 			{ key: "mobile", label: () => __("Mobile bar"), anchors: ["mobile_inbox"] },
-		],
-	},
-	{
-		group: () => __("Controls"),
-		items: [
-			// FIRST in the group, because it is the one that answers "where does
-			// everything live" — the per-component pickers below it answer the
-			// same question five times, each for one control.
+			// The one that answers "where does everything live" — the per-component
+			// pickers after it answer the same question five times, each for one
+			// control. The Overview renders inside this card (see the docblock).
 			{ key: "placement", label: () => __("Placement"), anchors: ["placement_board"] },
-			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
+			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
 			// Item 44: two tenants and the switch's style, plain Selects in one section.
 			{ key: "language", label: () => __("Language & Appearance"), anchors: ["language_placement"] },
-			// `palette_enabled` now sits with its seven siblings in
-			// section_palette, so one anchor reaches the whole component. It used
-			// to live three sections away, and anchoring it here claimed the
-			// section that also held `density_default` — which left a stranded
-			// "Features" heading over nothing and evicted the density control.
-			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
 			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
-			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
-			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
-			{ key: "desk", label: () => __("Desk body"), anchors: ["desk_width"] },
-			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
-			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
-			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
-			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
-			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
-			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
-			{ key: "skeleton", label: () => __("Loading"), anchors: ["skeleton_style"] },
-			{ key: "filters", label: () => __("Filters"), anchors: ["filters_style"] },
-			// Item 32. The only entry here whose surface is NOT on the desk — it
-			// dresses /login and /update-password, which an authenticated admin
-			// cannot even load (www/login.py redirects any session to /desk). So
-			// this pane shows a specimen and never a live preview, and the shell's
-			// change dot is the only feedback a click gives.
+			// `palette_enabled` sits with its seven siblings in section_palette, so
+			// one anchor reaches the whole component. It used to live three
+			// sections away, and anchoring it here claimed the section that also
+			// held `density_default` — which left a stranded "Features" heading
+			// over nothing and evicted the density control.
+			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
+			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
+		],
+	},
+	{
+		// Surfaces that are NOT the desk. None previews live on this page.
+		group: () => __("Beyond the desk"),
+		items: [
+			// Item 32. It dresses /login and /update-password, which an
+			// authenticated admin cannot even load (www/login.py redirects any
+			// session to /desk). So this card shows a specimen and never a live
+			// preview, and the map's change dot is the only feedback a click gives.
 			{ key: "login", label: () => __("Sign In"), anchors: ["login_style"] },
-			// Item 33, and the second entry here whose surface is not on the desk.
+			// Item 33, and the second entry whose surface is not on the desk.
 			// Unlike Sign In an admin CAN load these pages, so the missing live
 			// preview needs a different argument — the picker's docblock makes it.
 			{ key: "web", label: () => __("Website & Portal"), anchors: ["web_style"] },
@@ -1172,71 +1236,11 @@ const BND_SETTINGS_GROUPS = [
 		],
 	},
 	{
-		// ITEM 36, THE USER'S MAP 1: identity is ONE page in its own group —
-		// name, logo, favicon, tagline AND the colour seeds together. The
-		// Directus co-location (its Appearance page holds colour + logos +
-		// favicon on one surface) extended with the name, because at this scale
-		// (four identity fields, four seeds) a split page just separates the
-		// specimen from half its inputs. The entry anchors THREE sections:
-		// branding, colours, and the generated stylesheet line — brand_css_url
-		// belongs beside the seeds that produce it, not in a "Generated"
-		// section at the bottom of the form where nobody connects the two.
-		group: () => __("Identity"),
-		items: [
-			{
-				key: "identity",
-				label: () => __("Identity"),
-				anchors: ["company_name", "brand_color", "brand_css_url"],
-			},
-		],
-	},
-	{
-		group: () => __("Appearance"),
-		items: [
-			// ITEM 37, AND IT LEADS THE GROUP because it is the control that answers
-			// "what does this desk look like" in one gesture. The entries under it
-			// are the axes a look composes from. The Layout preset below KEEPS its
-			// picker — the five layouts stay one click away — but it no longer stores
-			// a name: it writes the containers and derives its highlight from them,
-			// which is what a preset is supposed to do.
-			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
-			{ key: "layout", label: () => __("Layout preset"), anchors: ["layout_picker"] },
-			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
-			// own picker like every other kit; the relocated Selects sit hidden
-			// behind the card picker's controls.
-			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
-			// `density_default` has its own section as of the shell work. It used
-			// to share `section_features` with `palette_enabled`, and the
-			// fallback that handles a twice-claimed section handled it — but only
-			// by moving a bare $wrapper out of `.form-column > form`, which severs
-			// the direct-descendant chain Frappe caps input width with
-			// (form.scss `.form-column.col-sm-12 > form > .input-max-width`).
-			// Measured: 636px against every other Select's 273px. The fallback is
-			// still there for the next collision; this one is fixed at the root.
-			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
-			// Item 38. Not a look but a POLICY about looks: which axes a person
-			// may decide for themselves. It sits under Appearance because that is
-			// what it governs, and the three Checks are visible rather than
-			// picker-driven — the same shape the container toggles use, and one
-			// fewer surface to keep truthful.
-			{ key: "personal", label: () => __("Personalization"), anchors: ["personal_look"] },
-		],
-	},
-	{
-		group: () => __("Language"),
-		items: [
-			// Item 36, the user's direction: language and fonts move out of the
-			// Colours pane into their own place beside Translation. The Arabic
-			// face is the entry's whole surface today; the section is where any
-			// later language-shaped field lands.
-			{ key: "fonts", label: () => __("Language & Fonts"), anchors: ["arabic_font"] },
-			// Renders rather than relocating, like the overview: the surface's
-			// state lives in its own doctypes (Bunood Translation Settings /
-			// Scan / Proposal), not in Theme Settings fields — which is what
-			// keeps the FIELD_PREFIXES guard out of a feature that is not a
-			// desk component.
-			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
-		],
+		// The generated stylesheet line: last and collapsible (B2). Its own
+		// entry so the row exists; no heading, and no OWNS entry — nothing in
+		// it is a choice.
+		group: () => "",
+		items: [{ key: "generated", label: () => __("Generated"), anchors: ["brand_css_url"] }],
 	},
 ];
 
@@ -1998,8 +2002,44 @@ function bnd_settings_goto(frm, key) {
  */
 function bnd_settings_marks(frm) {
 	if (window.bunood_theme && typeof window.bunood_theme.map_sync === "function") {
-		window.bunood_theme.map_sync(frm);
+		window.bunood_theme.map_sync(frm, bnd_settings_rows(frm));
 	}
+}
+
+/**
+ * The map's rows, read from the RENDERED sections (item 43 B3): fieldname and
+ * heading from the DOM in DOM order (the doctype's order, one source), the
+ * group and the change dot from the entry whose anchor field lives in that
+ * section — the same tables the shell read, the same comparison the cards use.
+ */
+function bnd_settings_rows(frm) {
+	const entry_of = new Map();
+	for (const g of BND_SETTINGS_GROUPS) {
+		for (const item of g.items) {
+			for (const anchor of item.anchors || []) {
+				const f = frm.get_field(anchor);
+				const $section = f && f.$wrapper ? f.$wrapper.closest(".form-section") : null;
+				const name = $section && $section.length ? $section.attr("data-fieldname") : null;
+				if (name && !entry_of.has(name)) entry_of.set(name, { key: item.key, group: g.group() });
+			}
+		}
+	}
+	const rows = [];
+	for (const node of document.querySelectorAll(".form-layout .form-section[data-fieldname]")) {
+		if (node.getBoundingClientRect().height === 0) continue;
+		const head = node.querySelector(".section-head");
+		const label = head ? head.textContent.trim() : "";
+		if (!label) continue;
+		const name = node.getAttribute("data-fieldname");
+		const entry = entry_of.get(name);
+		rows.push({
+			fieldname: name,
+			label,
+			group: entry ? entry.group : "",
+			changed: entry ? bnd_changed_fields(entry.key, frm).length > 0 : false,
+		});
+	}
+	return rows;
 }
 
 /**

@@ -748,6 +748,24 @@ MARKS = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "settingsmap",
+        "part": "settingsmap",
+        "label": "Settings map",
+        "type": MARK,
+        "selector": ".bnd-sb-map",
+        # Item 43 B3. On the Theme Settings route only: a map of the form's
+        # cards in the pane's Start zone, its rows DERIVED from the rendered
+        # sections (the form script hands them over on every refresh), marked
+        # current by an IntersectionObserver, dotted by the same comparison the
+        # cards use. In the Rail state one chip opens it as a menu; in the
+        # Hidden state a "Sections" menu mounts in the page head (the chrome
+        # ladder, as the brand does). Owns no native.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 SURFACE = "surface"

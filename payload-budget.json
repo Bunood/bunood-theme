@@ -154,11 +154,12 @@
   "AND css 26100 -> 26400 for item 43 slice A7, Dense Table: a fifth list style — hairline rows at the density floor, an eyebrow head, the status pill as a dot and a word, muted meta.",
   "AND css 26400 -> 27000 / js 118200 -> 120000 for item 43 slice A8a, the document header: the band's grid, its three styles and the brand-dark tone on the derived --bnd-brand-deep pair (palette.derive, gated); in bunood.js mount_dochead (title, indicator, meta, tiles from the doctype's list-view fields, the drawer toggle re-homed) with its doctrine. web_css 4100 -> 4200: _tokens.scss is shared with the web bundle and gained the band pair and the hero size (4,167 measured).",
   "AND css 27000 -> 27400 / js 120000 -> 121000 for item 43 slice A8b, the stage path: chevron steps by clip-path (both directions), the current step on the band's inverted pair, the page head's pill hidden only under data-bnd-own~=\"stagepath\"; in bunood.js the ladder (workflow states from boot, else docstatus) and the claim.",
-  "AND css 27400 -> 28000 / js 121000 -> 122500 for item 43 slice A8c, the pinned foot: the fixed bar on the status bar's idiom (lifted by the measured chrome, joining BND_BOTTOM_CHROME), its facts and proxy; in bunood.js mount_docfoot (the proxy, the observer on the action cluster, the lift, the claim released on route change)."
+  "AND css 27400 -> 28000 / js 121000 -> 122500 for item 43 slice A8c, the pinned foot: the fixed bar on the status bar's idiom (lifted by the measured chrome, joining BND_BOTTOM_CHROME), its facts and proxy; in bunood.js mount_docfoot (the proxy, the observer on the action cluster, the lift, the claim released on route change).",
+  "AND css 28000 -> 28500 / js 122500 -> 125500 for item 43 B3, the settings map in the side pane: the pane part, its rows from the form's sections, the IntersectionObserver, the rail chip and the page-head Sections menu; the pane sheet's map rules. (B1 retired the shell's 190 lines of CSS in the same group.)"
  ],
  "ceiling": {
-  "css_gzip": 28000,
-  "js_gzip": 122500,
+  "css_gzip": 28500,
+  "js_gzip": 125500,
   "web_css_gzip": 4200,
   "email_css_gzip": 2000,
   "print_css_gzip": 8000

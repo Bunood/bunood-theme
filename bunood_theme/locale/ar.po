@@ -708,6 +708,24 @@ msgstr "سطح المكتب"
 msgid "Differs from default"
 msgstr "يختلف عن الافتراضي"
 
+#. In theme_settings.js — the settings map's band over the desk body cards
+#. src: ai
+#, fuzzy
+msgid "Body"
+msgstr "المتن"
+
+#. In theme_settings.js — the settings map's band over the chrome cards
+#. src: ai
+#, fuzzy
+msgid "Shape"
+msgstr "الشكل"
+
+#. In theme_settings.js — the settings map's band over sign-in, website, email, print
+#. src: ai
+#, fuzzy
+msgid "Beyond the desk"
+msgstr "خارج المكتب"
+
 #. Option for 'Section Layout' in DocType 'Theme Settings'
 #. src: ai
 msgid "Divided"
@@ -7206,3 +7224,8 @@ msgstr "تنسيقات الطباعة: الرأس والجداول والمجا�
 #, fuzzy
 msgid "What the theme wrote for this site: the brand stylesheet's address."
 msgstr "ما كتبته السمة لهذا الموقع: عنوان ورقة أنماط العلامة."
+
+#. src: ai
+#, fuzzy
+msgid "Settings"
+msgstr "الإعدادات"

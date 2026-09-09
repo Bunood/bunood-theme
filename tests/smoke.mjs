@@ -9452,6 +9452,83 @@ print("ok")
 			expect(/Bunood Console/.test(g.line) && g.button, `the Compose card names the shipped look and offers the composer (${g.line})`);
 		});
 
+		await test("map: the side pane lists the cards in order, scrolls to one on click, follows the scroll, dots the changed card, and is absent elsewhere", async () => {
+			// Item 43 B3. The rows equal the visible sections in count, order and
+			// label; a click scrolls the card under the page head and marks it
+			// current; scrolling to the bottom marks the last card (the observer,
+			// never a timer); a mutable field off its shipped value dots exactly
+			// its card; the Selling workspace carries no map and Frappe's own rows
+			// stay untouched.
+			const shipped = JSON.parse(benchPy('from bunood_theme.api import get_shipped_defaults\nprint(json.dumps(get_shipped_defaults()["defaults"]))\n').trim().split("\n").pop());
+			setSettings({ ...Object.fromEntries(Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))), sidebar_enabled: 1, sidebar_pane_state: "Open" });
+			await goDesk("/desk/theme-settings", ".bnd-sb-map .bnd-sb-map-row", 4500);
+			const g = await page.evaluate(() => {
+				const rows = [...document.querySelectorAll(".bnd-sb-map-row")].map((b) => ({ f: b.getAttribute("data-section"), label: b.querySelector(".bnd-sb-item-label").textContent, dot: !!b.querySelector(".bnd-sb-map-dot") }));
+				const sections = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0 && n.querySelector(".section-head") && n.querySelector(".section-head").textContent.trim()).map((n) => ({ f: n.dataset.fieldname, label: n.querySelector(".section-head").textContent.trim() }));
+				const groups = [...document.querySelectorAll(".bnd-sb-map-group")].map((h) => h.textContent.trim());
+				return { rows, sections, groups, nav: !!document.querySelector('nav.bnd-sb-map[aria-label]'), route: document.documentElement.getAttribute("data-bnd-route") };
+			});
+			expectEq(JSON.stringify(g.rows.map((r) => [r.f, r.label])), JSON.stringify(g.sections.map((r) => [r.f, r.label])), "the rows are the visible sections, in order, by heading");
+			expect(g.nav && g.route === "settings", `a named nav on the settings route (${g.route})`);
+			expectEq(g.rows.filter((r) => r.dot).map((r) => r.f).join(","), "", "no dot at shipped state");
+			// A band heads ONE contiguous run: the table's membership and the
+			// doctype's order are two statements of one grouping, and a heading
+			// that repeats is the two disagreeing (APPEARANCE three times down
+			// one pane, read off a screenshot after the B2 reorder).
+			expect(g.groups.length >= 3 && new Set(g.groups).size === g.groups.length, `each band heads once (${g.groups.join(" · ")})`);
+			// A click scrolls the card to just under the STICKY page head — not
+			// under it: the heading is the part a scroll to the scroller's edge
+			// hides — and marks it current.
+			const target = g.rows[Math.min(12, g.rows.length - 1)].f;
+			await page.click(`.bnd-sb-map-row[data-section="${target}"]`);
+			await page.waitForFunction((f) => {
+				const cur = document.querySelector('.bnd-sb-map-row[aria-current="page"]');
+				const sec = document.querySelector(`.form-layout .form-section[data-fieldname="${f}"]`);
+				const head = document.querySelector(".page-head").getBoundingClientRect();
+				const r = sec.getBoundingClientRect();
+				return cur && cur.getAttribute("data-section") === f && r.top >= head.bottom - 1 && r.top <= head.bottom + 60;
+			}, target, { timeout: 6000 });
+			// The bottom of the scroll marks the last card.
+			await page.evaluate(() => { const m = document.querySelector(".main-section"); m.scrollTop = m.scrollHeight; });
+			await page.waitForFunction((f) => (document.querySelector('.bnd-sb-map-row[aria-current="page"]') || {}).getAttribute?.("data-section") === f, g.rows[g.rows.length - 1].f, { timeout: 6000 });
+			// A changed field dots its card, and only its card.
+			const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
+			setSettings({ crumb_hover: other });
+			await goDesk("/desk/theme-settings", ".bnd-sb-map .bnd-sb-map-row", 4500);
+			await page.waitForFunction(() => document.querySelectorAll(".bnd-sb-map-dot").length > 0, undefined, { timeout: 15000 });
+			const dotted = await page.evaluate(() => [...document.querySelectorAll(".bnd-sb-map-row")].filter((b) => b.querySelector(".bnd-sb-map-dot")).map((b) => b.getAttribute("data-section")));
+			expectEq(dotted.join(","), "section_crumbs", "one crumb field changed; exactly the Breadcrumbs card is dotted");
+			setSettings({ crumb_hover: shipped.crumb_hover });
+			// Elsewhere: no map, Frappe's rows untouched.
+			await goDesk("/desk/selling", ".body-sidebar .standard-sidebar-item", 3000);
+			const away = await page.evaluate(() => ({ map: document.querySelectorAll(".bnd-sb-map").length, route: document.documentElement.getAttribute("data-bnd-route"), rows: document.querySelectorAll(".body-sidebar .standard-sidebar-item").length }));
+			expect(away.map === 0 && away.route !== "settings" && away.rows > 0, `no map away from the settings route (${JSON.stringify(away)})`);
+		});
+
+		await test("map: the rail keeps one chip that opens the map as a menu, and the hidden pane lends a Sections menu to the page head", async () => {
+			setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail" });
+			await goDesk("/desk/theme-settings", ".bnd-sb-map", 4500);
+			const rail = await page.evaluate(() => {
+				const head = document.querySelector(".bnd-sb-map-head");
+				const rowsShown = [...document.querySelectorAll(".bnd-sb-map-row")].filter((b) => b.getBoundingClientRect().width > 0).length;
+				return { head: !!head && head.getBoundingClientRect().width > 0, rowsShown };
+			});
+			expect(rail.head && rail.rowsShown === 0, `rail: one chip, no rows (${JSON.stringify(rail)})`);
+			await page.click(".bnd-sb-map-head");
+			await page.waitForSelector(".bnd-menu [role='menuitem'], .bnd-menu button", { timeout: 5000 });
+			const items = await page.evaluate(() => document.querySelectorAll(".bnd-menu [role='menuitem'], .bnd-menu button").length);
+			expect(items >= 30, `the chip's menu lists the cards (${items})`);
+			await page.keyboard.press("Escape");
+			setSettings({ sidebar_pane_state: "Hidden" });
+			await goDesk("/desk/theme-settings", ".bnd-ph-map", 4500);
+			const hidden = await page.evaluate(() => ({ btn: !!document.querySelector(".page-head .bnd-ph-map"), map: document.querySelectorAll(".bnd-sb-map").length }));
+			expect(hidden.btn && hidden.map === 0, `hidden: the Sections menu in the page head, no pane map (${JSON.stringify(hidden)})`);
+			await page.click(".bnd-ph-map");
+			await page.waitForSelector(".bnd-menu [role='menuitem'], .bnd-menu button", { timeout: 5000 });
+			await page.keyboard.press("Escape");
+			setSettings({ sidebar_pane_state: "Open" });
+		});
+
 		await test("diagram: marks the current slot, and warns the ones the layout cannot honour", async () => {
 			// The defect: a placement diagram that always looks the same. It has
 			// to track the stored value AND react to the layout, because a slot's

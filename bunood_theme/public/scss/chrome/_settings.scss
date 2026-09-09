@@ -1397,3 +1397,17 @@ html[data-theme] .bnd-cmp-open:focus-visible {
 		margin-block-start: var(--bnd-sp-1);
 	}
 }
+
+// ── Where the map lands (item 43 B3) ────────────────────────────────────────
+// scrollIntoView puts a section's edge at the SCROLLER's edge, and the sticky
+// page head is painted over the first --page-head-height of that — so a card
+// the map scrolled to opened on its description line, its heading under the
+// head (read off a screenshot; the check now asserts the card clears the head).
+// scroll-margin is the CSS answer to an anchor under a sticky bar: it moves
+// nothing at rest, and every scroll-to on this page — the map, the page-head
+// menu, the Overview's goto — inherits it. Frappe's variable, read the way
+// _layouts.scss reads it; scoped to this route because it is this route's
+// gesture.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .form-layout .form-section {
+	scroll-margin-block-start: calc(var(--page-head-height) + var(--bnd-sp-2));
+}

@@ -7118,7 +7118,9 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  claim_panehead: the router hook calls it on every route, and a pane
 	 *  the layout has hidden must not claim the current page from nowhere. */
 	function sb_mark_current() {
-		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+		// Scoped to Frappe's own list: the settings map (item 43 B3) is a
+		// Start-zone sibling that marks its own current row.
+		for (const n of document.querySelectorAll(".body-sidebar-top [aria-current]")) {
 			n.removeAttribute("aria-current");
 		}
 		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
@@ -7130,7 +7132,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The sweep above is the whole teardown. */
 	function sb_unmark_current() {
-		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+		for (const n of document.querySelectorAll(".body-sidebar-top [aria-current]")) {
 			n.removeAttribute("aria-current");
 		}
 	}
@@ -7193,6 +7195,251 @@ function sb_zone_anchor(pane, zone, node) {
 		claim_panehead();
 	}
 
+	// ── The settings map (item 43 B3) ─────────────────────────────────────
+	// The settings page is one scroll of cards (B1); the map is its table of
+	// contents, in the pane's Start zone, on that route only. ROWS ARE DERIVED:
+	// the form script reads its rendered sections (fieldname, heading, group,
+	// changed) on every refresh and hands them over through
+	// bunood_theme.map_sync — order has one source, the doctype, and the map
+	// has none of its own. Current row: an IntersectionObserver on the real
+	// sections (never a timer after a click). Rail: the rows hide and one chip
+	// opens the map as a menu. Hidden: the pane is gone, so a "Sections" menu
+	// mounts in the page head from the chrome ladder, as the brand does.
+	let map_rows = [];
+	let map_observer = null;
+	let map_visible = new Map();
+	let map_scroller = null;
+	let map_at_bottom = false;
+
+	/** At the end of the scroll the LAST card is current: it can never reach the top. */
+	function map_on_scroll() {
+		const m = map_scroller;
+		if (!m) return;
+		const at_bottom = m.scrollTop + m.clientHeight >= m.scrollHeight - 2;
+		if (at_bottom === map_at_bottom) return;
+		map_at_bottom = at_bottom;
+		if (at_bottom) {
+			const last = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0).pop();
+			if (last) map_mark_current(last.getAttribute("data-fieldname"));
+		} else {
+			map_mark_from_visible();
+		}
+	}
+
+	function map_mark_from_visible() {
+		let top = null;
+		for (const [node] of map_visible) {
+			const t = node.getBoundingClientRect().top;
+			if (!top || t < top.t) top = { node, t };
+		}
+		if (top) map_mark_current(top.node.getAttribute("data-fieldname"));
+	}
+
+	/** The band the sticky page head paints over at the scroller's top. A card
+	 *  scrolled to lands just under it (scroll-margin, _settings.scss), so the
+	 *  previous card's last sliver is still "visible" there — and was the
+	 *  topmost card in the zone, so the spy marked it, not the one clicked.
+	 *  Read from the head itself, never a constant: the head is Frappe's. */
+	function map_head_inset(scroller) {
+		const head = scroller && scroller.querySelector(".page-head");
+		return head ? Math.ceil(head.getBoundingClientRect().height) : 0;
+	}
+
+	/** From geometry alone — the same rule as the observer's zone — so a fresh
+	 *  build is marked before any intersection event has fired. */
+	function map_mark_from_geometry() {
+		const m = map_scroller || document.querySelector(".main-section");
+		if (!m) return;
+		const mr = m.getBoundingClientRect();
+		const from = mr.top + map_head_inset(m);
+		const zone = mr.top + mr.height * 0.4;
+		let pick = null;
+		for (const n of document.querySelectorAll(".form-layout .form-section[data-fieldname]")) {
+			const r = n.getBoundingClientRect();
+			if (r.height === 0 || r.bottom <= from || r.top >= zone) continue;
+			if (!pick || r.top < pick.top) pick = { top: r.top, name: n.getAttribute("data-fieldname") };
+		}
+		if (pick) map_mark_current(pick.name);
+	}
+
+	function map_route_on() {
+		const r = (window.frappe && frappe.get_route && frappe.get_route()) || [];
+		return r[0] === "Form" && r[1] === "Theme Settings";
+	}
+
+	/** Scroll one card into view and put focus on its heading. */
+	function map_goto(fieldname) {
+		const node = document.querySelector(`.form-layout .form-section[data-fieldname="${fieldname}"]`);
+		if (!node) return;
+		// Current at once; the observer confirms when the scroll lands.
+		map_mark_current(fieldname);
+		node.scrollIntoView({ block: "start", behavior: "smooth" });
+		const head = node.querySelector(".section-head");
+		if (head) {
+			head.setAttribute("tabindex", "-1");
+			head.focus({ preventScroll: true });
+		}
+	}
+
+	function map_mark_current(fieldname) {
+		for (const b of document.querySelectorAll(".bnd-sb-map-row")) {
+			if (b.getAttribute("data-section") === fieldname) b.setAttribute("aria-current", "page");
+			else b.removeAttribute("aria-current");
+		}
+	}
+
+	/** The topmost card in view is the current one — observed, never assumed. */
+	function map_observe() {
+		if (map_observer) map_observer.disconnect();
+		map_observer = null;
+		map_visible = new Map();
+		if (typeof IntersectionObserver === "undefined") return;
+		const scroller = document.querySelector(".main-section");
+		const sections = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter(
+			(n) => n.getBoundingClientRect().height > 0
+		);
+		if (!sections.length) return;
+		map_observer = new IntersectionObserver(
+			(entries) => {
+				for (const e of entries) {
+					if (e.isIntersecting) map_visible.set(e.target, e.boundingClientRect.top);
+					else map_visible.delete(e.target);
+				}
+				if (!map_at_bottom) map_mark_from_visible();
+			},
+			// The zone: below the sticky head, down to 40% of the scroller.
+			{ root: scroller || null, rootMargin: `-${map_head_inset(scroller)}px 0px -60% 0px`, threshold: 0 }
+		);
+		for (const n of sections) map_observer.observe(n);
+		if (map_scroller !== scroller) {
+			if (map_scroller) map_scroller.removeEventListener("scroll", map_on_scroll);
+			map_scroller = scroller || null;
+			if (map_scroller) map_scroller.addEventListener("scroll", map_on_scroll, { passive: true });
+		}
+		map_at_bottom = false;
+		map_mark_from_geometry();
+		map_on_scroll();
+	}
+
+	/** The rows as menu items — the Rail chip and the page-head button share them. */
+	function map_menu_items() {
+		// The bands as dividers: thirty-nine rows scroll inside the menu's cap,
+		// and a rule where the pane would draw a heading keeps them scannable.
+		const items = [];
+		let group = null;
+		for (const row of map_rows) {
+			if (group !== null && row.group !== group) items.push("divider");
+			group = row.group;
+			items.push({ label: row.label, run: () => map_goto(row.fieldname) });
+		}
+		return items;
+	}
+
+	function sb_mount_map() {
+		const pane = document.querySelector(".body-sidebar");
+		const on = map_route_on() && sb_active() && container_on("sidepane") && !sidebar_is_hidden() && !!pane;
+		if (!on) {
+			sb_teardown_map();
+			return;
+		}
+		document.documentElement.setAttribute("data-bnd-route", "settings");
+		let map = pane.querySelector(":scope > .bnd-sb-map");
+		if (!map) {
+			map = el("nav", "bnd-sb-utils bnd-sb-map", { "data-bnd-part": "settingsmap", "aria-label": __("Settings") });
+			sb_zone_anchor(pane, "start", map);
+		}
+		map.textContent = "";
+		// The head: the map's title in the open pane, the one chip that opens
+		// the map as a menu in the rail.
+		const head = el("button", "bnd-sb-item bnd-sb-map-head", { type: "button" });
+		menu_trigger(head);
+		const chip = el("span", "bnd-sb-chip bnd-sb-map-chip");
+		chip.appendChild(sprite_icon("icon-list"));
+		head.appendChild(chip);
+		const title = el("span", "bnd-sb-item-label");
+		title.textContent = __("Settings");
+		head.appendChild(title);
+		head.addEventListener("click", (e) => {
+			e.stopPropagation();
+			show_menu(head, map_menu_items());
+		});
+		map.appendChild(head);
+		let group = null;
+		for (const row of map_rows) {
+			if (row.group && row.group !== group) {
+				const h = el("div", "bnd-sb-map-group");
+				h.textContent = row.group;
+				map.appendChild(h);
+			}
+			group = row.group;
+			const btn = el("button", "bnd-sb-item bnd-sb-map-row", { type: "button", "data-section": row.fieldname });
+			const label = el("span", "bnd-sb-item-label");
+			label.textContent = row.label;
+			btn.appendChild(label);
+			if (row.changed) {
+				const dot = el("span", "bnd-sb-map-dot", { title: __("Differs from default") });
+				btn.appendChild(dot);
+			}
+			btn.addEventListener("click", () => map_goto(row.fieldname));
+			map.appendChild(btn);
+		}
+		map_observe();
+	}
+
+	function sb_teardown_map() {
+		for (const n of document.querySelectorAll(".bnd-sb-map")) n.remove();
+		if (map_observer) map_observer.disconnect();
+		map_observer = null;
+		map_visible = new Map();
+		if (map_scroller) map_scroller.removeEventListener("scroll", map_on_scroll);
+		map_scroller = null;
+		map_at_bottom = false;
+		if (document.documentElement.getAttribute("data-bnd-route") === "settings" && !map_route_on()) {
+			document.documentElement.removeAttribute("data-bnd-route");
+		}
+	}
+
+	/** What Hidden leaves behind on the settings route: a Sections menu in the page head. */
+	function sb_mount_pagehead_map() {
+		if (!map_route_on() || !sb_pane_hidden()) {
+			for (const n of document.querySelectorAll(".bnd-ph-map")) n.remove();
+			return;
+		}
+		// The host can lag the form's refresh (measured: a direct call after the
+		// load mounted, the refresh-time call found no title) — the pane's own
+		// retry idiom, re-checking the premise on every attempt.
+		try_for(() => {
+			if (!map_route_on() || !sb_pane_hidden()) return true;
+			// The visible title, wherever it is: frappe.container.page can still
+			// point at the previous page while this route's head is already on
+			// screen (a fresh load of the settings route measured exactly that).
+			const title = [...document.querySelectorAll(".page-head .page-title")].find((t) => t.getBoundingClientRect().width > 0);
+			if (!title) return false;
+			sb_place_pagehead_map(title);
+			return true;
+		}, 30);
+	}
+
+	function sb_place_pagehead_map(title) {
+		for (const n of document.querySelectorAll(".bnd-ph-map")) if (!title.contains(n)) n.remove();
+		if (title.querySelector(".bnd-ph-map")) return;
+		const btn = el("button", "bnd-icon-btn bnd-ph-map", { type: "button", "data-bnd-part": "settingsmap", title: __("Sections"), "aria-label": __("Sections") });
+		menu_trigger(btn);
+		btn.appendChild(sprite_icon("icon-list"));
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			show_menu(btn, map_menu_items());
+		});
+		title.appendChild(btn);
+	}
+
+	/** The form script's entry: fresh rows, then the map and the head menu follow. */
+	bunood.map_sync = function (frm, rows) {
+		if (Array.isArray(rows)) map_rows = rows;
+		sb_mount_map();
+		sb_mount_pagehead_map();
+	};
+
 	/** What Hidden leaves behind: the brand in the page head — argument in _sidebar.scss. */
 	function sb_mount_pagehead_brand() {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
@@ -7239,15 +7486,8 @@ function sb_zone_anchor(pane, zone, node) {
 	bunood.pane_state = function (value) {
 		if (!sb_state) return;
 
+		// sb_apply re-places what the state moves (sb_follow_pane_state).
 		bunood.sb_apply({ sidebar_pane_state: value });
-		// Re-place search and the tenants: a hidden pane lends them to the page head.
-		mount_search();
-		mount_placed_tenants();
-		if (guard_critical_reach()) {
-			mount_placed_tenants();
-			sidepane_sync("settings");
-		}
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -8109,6 +8349,9 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 		// The pane's half of a contract with the chrome. _sidebar.scss.
 		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
+		// The settings map (item 43 B3): present on the Theme Settings route only;
+		// the router hook re-runs it on every route so it appears and goes.
+		{ key: "map", volatile: false, mount: sb_mount_map, unmount: sb_teardown_map },
 		// Volatile: Frappe rebuilds the list (and re-applies ITS per-language memory)
 		// on every workspace change; ours is applied after, so it wins.
 		{ key: "sections", volatile: true, mount: sb_apply_section_state, unmount: () => {} },
@@ -8600,7 +8843,30 @@ function sb_zone_anchor(pane, zone, node) {
 		// eight of the ten mounts by hand and skip the other two.
 		sidepane_teardown();
 		sidepane_sync("settings");
+		sb_follow_pane_state();
 	};
+
+	/**
+	 * What a pane state MOVES, re-placed after every apply: search and the
+	 * tenants (a hidden pane lends them to the page head), and the brand and
+	 * settings map the page head keeps while Hidden. This ran only from
+	 * pane_state() until item 43 B3. The settings form's preview re-applies
+	 * the pane through sb_apply on every refresh, and on a fresh load of that
+	 * route it re-hid a pane guard_critical_reach had opened moments earlier
+	 * (the page head was not built yet, so the tenants had nowhere to go);
+	 * with nothing following the change, the head kept neither brand nor map.
+	 */
+	function sb_follow_pane_state() {
+		mount_search();
+		mount_placed_tenants();
+		if (guard_critical_reach()) {
+			mount_placed_tenants();
+			sidepane_sync("settings");
+		}
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
+		sb_mount_pagehead_map();
+	}
 
 	/**
 	 * LIVE PREVIEW / re-application for the breadcrumb kit: take a full set
@@ -8848,6 +9114,12 @@ function sb_zone_anchor(pane, zone, node) {
 				// re-measured rather than assumed (item 38).
 				stamp_appearance_route();
 				sb_resolve_workspace_from_route();
+				// The settings map (item 43 B3) is the first pane part that is
+				// conditional on the ROUTE, so the ladder alone cannot place it:
+				// it re-runs here on every change, appearing on Theme Settings and
+				// going anywhere else, in the pane or in the page head.
+				sb_mount_map();
+				sb_mount_pagehead_map();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads
 				// are built per page and Frappe swaps the element out from

@@ -1990,6 +1990,51 @@ html[data-bnd-sb-color] .bnd-sb-utils {
   margin-block-end: var(--bnd-sp-1);
 }
 
+html[data-bnd-sb-color] .bnd-sb-map {
+  padding-block-end: var(--bnd-sp-2);
+  border-block-end: var(--bnd-line) solid color-mix(in srgb, var(--bnd-sb-ink) 12%, transparent);
+  margin-block-end: var(--bnd-sp-2);
+}
+
+html[data-bnd-sb-color] .bnd-sb-map-group {
+  padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-sb-ink-muted);
+}
+
+html[data-bnd-sb-color] .bnd-sb-map-row[aria-current=page] {
+  background: color-mix(in srgb, var(--bnd-sb-ink) 10%, transparent);
+  color: var(--bnd-sb-ink);
+  font-weight: var(--bnd-weight-medium);
+}
+
+html[data-bnd-sb-color] .bnd-sb-map-dot {
+  margin-inline-start: auto;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-brand-solid);
+  flex: none;
+}
+
+html[data-bnd-sb-color] .bnd-sb-map-head .bnd-sb-item-label {
+  font-weight: var(--bnd-weight-semibold);
+  color: var(--bnd-sb-ink);
+}
+
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-map-row,
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-map-group,
+html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-map-row,
+html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-map-group {
+  display: none;
+}
+
+html[data-theme] .bnd-ph-map {
+  margin-inline-start: var(--bnd-sp-2);
+}
+
 html[data-bnd-sb-color] .bnd-sb-item {
   display: flex;
   align-items: center;
@@ -4417,6 +4462,10 @@ html[data-theme] .bnd-cmp-open:focus-visible {
 }
 .bnd-idp-report > div + div {
   margin-block-start: var(--bnd-sp-1);
+}
+
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .form-layout .form-section {
+  scroll-margin-block-start: calc(var(--page-head-height) + var(--bnd-sp-2));
 }
 
 html[data-bnd-ws] .ce-block__content,
