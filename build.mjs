@@ -1885,6 +1885,37 @@ function assertFieldNaming(doctypeJson) {
 }
 
 /**
+ * `field_order` is the doctype's ONE statement of order (item 43 B2: the
+ * settings page reads as the JSON lists it). A name in it that no field carries
+ * is a ghost Frappe drops without a word, and a field it omits is appended after
+ * the LAST section by frappe.model.meta — measured: two hidden Selects sat inside
+ * the collapsible Generated card at idx 219/220 while the file said nothing of
+ * the kind. Both are the same fact in two places, disagreeing.
+ */
+function assertFieldOrder(doctypeJson) {
+	const names = new Set((doctypeJson.fields || []).map((f) => f.fieldname));
+	const order = doctypeJson.field_order || [];
+	const ghosts = order.filter((n) => !names.has(n));
+	const seen = new Set();
+	const repeats = [];
+	for (const n of order) {
+		if (seen.has(n)) repeats.push(n);
+		seen.add(n);
+	}
+	const unlisted = [...names].filter((n) => !seen.has(n));
+	const problems = [];
+	if (ghosts.length) problems.push(`names no field: ${ghosts.join(", ")}`);
+	if (repeats.length) problems.push(`repeats: ${repeats.join(", ")}`);
+	if (unlisted.length) problems.push(`omits (Frappe appends these after the last section): ${unlisted.join(", ")}`);
+	if (problems.length) {
+		throw new Error(
+			`Field-order guard: theme_settings.json's field_order ${problems.join("; ")} — ` +
+				"it must list every field exactly once, in the order the page should read."
+		);
+	}
+}
+
+/**
  * Compile one entry, write the hashed file, reap older hashes of the same entry.
  * @returns {Promise<{pyid: string, url: string}>}
  */
@@ -2004,6 +2035,14 @@ async function main() {
 	// Guard before compiling: a naming violation is cheaper to hear about
 	// before the build spends time on Sass than after.
 	assertFieldNaming(
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		)
+	);
+	assertFieldOrder(
 		JSON.parse(
 			await readFile(
 				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
