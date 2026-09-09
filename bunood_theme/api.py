@@ -30,7 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
-from frappe import _
+from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, nowdate
 
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
@@ -43,6 +43,243 @@ CACHE_ICON_MAP = "bnd_doctype_icon_map"
 #: high-traffic doctypes get attributed to "Home" and the sidebar highlights the wrong
 #: module everywhere.
 LANDING_WORKSPACES = {"home", "welcome workspace"}
+
+
+def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, limit=0) -> list:
+    """Read dashboard facts through ``get_list`` so user permissions still apply."""
+    if not frappe.db.exists("DocType", doctype) or not frappe.has_permission(doctype, "read"):
+        return []
+    try:
+        return frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=fields or ["name"],
+            order_by=order_by,
+            limit_page_length=limit,
+        )
+    except Exception:
+        frappe.log_error(title=f"bunood_theme: home dashboard {doctype} query stood down")
+        return []
+
+
+def _base_outstanding(row, company_currency: str) -> float:
+    """``outstanding_amount`` in the COMPANY's currency.
+
+    That field is stored in the PARTY ACCOUNT's currency (its `options` is
+    `party_account_currency`) and, unlike `grand_total`, it has no `base_*` twin
+    to read instead. Summing it raw put a 100,000 JPY balance into a SAR total.
+    `conversion_rate` is invoice -> company, which is the right factor exactly
+    when the party account is in the invoice's currency — ERPNext's normal
+    arrangement, and the case measured here (JPY/JPY, USD/USD).
+
+    Defined ONCE because receivables, payables and overdue all need it; three
+    copies of this rule is how two of them drift apart.
+    """
+    amount = flt(row.get("outstanding_amount"))
+    party_currency = row.get("party_account_currency") or company_currency
+    if party_currency == company_currency:
+        return amount
+    return amount * flt(row.get("conversion_rate") or 1)
+
+
+@frappe.whitelist()
+def get_home_dashboard(company: str | None = None) -> dict:
+    """Return a small, permission-filtered financial snapshot for Bunood Home.
+
+    ERPNext is optional for the theme, so every section has a valid empty shape.
+    The client can therefore render the same polished dashboard on a new company,
+    a restricted account, or a Frappe-only installation without a stack trace.
+    """
+    today = getdate(nowdate())
+    month_start = get_first_day(today)
+    six_month_start = get_first_day(add_months(today, -5))
+
+    companies = _dashboard_rows("Company", fields=["name", "default_currency"], limit=0)
+    allowed = {row.name: row for row in companies}
+    preferred = company or frappe.defaults.get_user_default("Company")
+    selected = preferred if preferred in allowed else (companies[0].name if companies else "")
+    currency = (
+        (allowed.get(selected) or {}).get("default_currency")
+        if selected
+        else frappe.defaults.get_global_default("currency")
+    ) or "SAR"
+
+    # The SIGN and its SIDE, from the record Frappe itself asks on every other
+    # surface. The dashboard used to hand the ISO code to `Intl.NumberFormat`,
+    # which renders the literal string "SAR" and knows nothing about this site
+    # — so the one screen a user opens first was the one screen not showing the
+    # riyal. Sending both fields means the dashboard follows the Currency
+    # record, including `bunood_theme.currency`'s flip to a trailing sign,
+    # without a second place to keep in step.
+    sign = frappe.db.get_value("Currency", currency, ["symbol", "symbol_on_right"], as_dict=True)
+
+    result = {
+        "company": selected,
+        "currency": currency,
+        "currency_symbol": (sign or {}).get("symbol") or currency,
+        "currency_symbol_on_right": bool((sign or {}).get("symbol_on_right")),
+        "generated_at": frappe.utils.now_datetime().isoformat(),
+        "metrics": {
+            "cash_balance": 0.0,
+            "sales_month": 0.0,
+            "receivables": 0.0,
+            "payables": 0.0,
+            # WHAT IS OVERDUE, IN MONEY. `invoice_status.overdue` counts
+            # documents; a worker deciding whether to chase anyone today needs
+            # the amount. Accumulated in the loop that already classifies each
+            # invoice, so it costs no extra query.
+            "overdue": 0.0,
+        },
+        # Documents this user still has to finish. Counted, never listed here:
+        # the panel links into the real filtered list rather than trying to be
+        # one.
+        "drafts": {"sales": 0, "purchase": 0},
+        "invoice_status": {"paid": 0, "open": 0, "overdue": 0},
+        # The client uses this exact scope when opening a status list.  Keep it
+        # beside the facts it describes so a click can never drift back to the
+        # stored ``status`` label (which ERPNext updates asynchronously).
+        "invoice_scope": {
+            "company": selected,
+            "from_date": six_month_start.isoformat(),
+            "as_of": today.isoformat(),
+        },
+        "trend": [],
+        "recent": [],
+    }
+    if not selected:
+        return result
+
+    sales = _dashboard_rows(
+        "Sales Invoice",
+        filters={"company": selected, "docstatus": 1, "posting_date": [">=", six_month_start]},
+        fields=["name", "customer_name", "posting_date", "due_date", "grand_total",
+                "base_grand_total", "outstanding_amount", "conversion_rate",
+                "party_account_currency", "status", "currency"],
+        order_by="posting_date desc, modified desc",
+        limit=0,
+    )
+    # The LIST keeps its `> 0` filter on purpose: it is the "bills to pay" queue,
+    # and a debit note is not a bill to pay. The TOTALS below must not filter —
+    # a total that silently drops returns is a wrong number, not a shorter list.
+    purchases = _dashboard_rows(
+        "Purchase Invoice",
+        filters={"company": selected, "docstatus": 1, "outstanding_amount": [">", 0]},
+        fields=["name", "supplier_name", "posting_date", "grand_total", "currency"],
+        order_by="posting_date desc, modified desc",
+        limit=5,
+    )
+    # NO `outstanding_amount > 0` HERE, and no SUM in SQL. A return invoice carries
+    # a NEGATIVE outstanding while its GL rows still reduce the control account, so
+    # `> 0` dropped every debit note from payables permanently (measured: 932.00
+    # shown against 332.00 true). The rows are summed in Python instead because the
+    # per-row currency is needed to reach the company currency at all.
+    purchase_rows = _dashboard_rows(
+        "Purchase Invoice",
+        filters={"company": selected, "docstatus": 1},
+        fields=["outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
+    )
+    older_receivable_rows = _dashboard_rows(
+        "Sales Invoice",
+        filters={"company": selected, "docstatus": 1, "posting_date": ["<", six_month_start]},
+        fields=["outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
+    )
+
+    month_totals = {}
+    cursor = six_month_start
+    for _ in range(6):
+        key = cursor.strftime("%Y-%m")
+        month_totals[key] = {
+            "label": cursor.strftime("%b"),
+            "value": 0.0,
+            "from_date": cursor.isoformat(),
+            "to_date": get_last_day(cursor).isoformat(),
+        }
+        cursor = get_first_day(add_months(cursor, 1))
+
+    for invoice in sales:
+        posting = getdate(invoice.posting_date)
+        key = posting.strftime("%Y-%m")
+        # base_grand_total, NOT grand_total. Every figure here is rendered under the
+        # company's currency symbol, and `grand_total` is in the INVOICE's currency:
+        # a 100,000 JPY invoice (2,500 SAR) was adding 100,000 to a SAR total.
+        base_total = flt(invoice.base_grand_total)
+        if key in month_totals:
+            month_totals[key]["value"] += base_total
+        if posting >= month_start:
+            result["metrics"]["sales_month"] += base_total
+        outstanding = _base_outstanding(invoice, currency)
+        result["metrics"]["receivables"] += outstanding
+        if outstanding <= 0:
+            result["invoice_status"]["paid"] += 1
+        elif invoice.due_date and getdate(invoice.due_date) < today:
+            result["invoice_status"]["overdue"] += 1
+            result["metrics"]["overdue"] += outstanding
+        else:
+            result["invoice_status"]["open"] += 1
+
+    result["metrics"]["receivables"] += sum(
+        _base_outstanding(row, currency) for row in older_receivable_rows
+    )
+    result["metrics"]["payables"] = sum(
+        _base_outstanding(row, currency) for row in purchase_rows
+    )
+    result["trend"] = list(month_totals.values())
+
+    # Unfinished work. `_dashboard_rows` is the permission-filtered helper every
+    # other section here uses, so a user who cannot read one of these doctypes
+    # gets a zero rather than an error — the same "valid empty shape" contract
+    # the docstring promises for a Frappe-only or restricted site.
+    for doctype, key in (("Sales Invoice", "sales"), ("Purchase Invoice", "purchase")):
+        result["drafts"][key] = len(
+            _dashboard_rows(
+                doctype,
+                filters={"company": selected, "docstatus": 0},
+                fields=["name"],
+                limit=0,
+            )
+        )
+
+    accounts = _dashboard_rows(
+        "Account",
+        filters={"company": selected, "account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0},
+        fields=["name"],
+        limit=0,
+    )
+    account_names = [row.name for row in accounts]
+    if account_names:
+        ledger = _dashboard_rows(
+            "GL Entry",
+            filters={"company": selected, "docstatus": 1, "account": ["in", account_names]},
+            fields=[{"SUM": "debit", "AS": "debit"}, {"SUM": "credit", "AS": "credit"}],
+            limit=1,
+        )
+        if ledger:
+            result["metrics"]["cash_balance"] = flt(ledger[0].debit) - flt(ledger[0].credit)
+
+    recent = []
+    for invoice in sales[:5]:
+        recent.append({
+            "doctype": "Sales Invoice",
+            "name": invoice.name,
+            "party": invoice.customer_name or "",
+            "date": str(invoice.posting_date),
+            "amount": flt(invoice.grand_total),
+            "currency": invoice.currency or currency,
+        })
+    for invoice in purchases[:5]:
+        recent.append({
+            "doctype": "Purchase Invoice",
+            "name": invoice.name,
+            "party": invoice.supplier_name or "",
+            "date": str(invoice.posting_date),
+            "amount": -flt(invoice.grand_total),
+            "currency": invoice.currency or currency,
+        })
+    recent.sort(key=lambda row: (row["date"], row["name"]), reverse=True)
+    result["recent"] = recent[:6]
+    return result
 
 
 # ── Version-proof wrappers ──────────────────────────────────────────────────────
@@ -1124,14 +1361,10 @@ def email_preview() -> str:
     composed on the server, contains no other user's data, and this returns the
     genuine output of ``get_formatted_html`` rather than a mock-up of it.
 
-    WHY NOT ``frappe.email.email_body.get_email_html``, WHICH IS ALREADY
-    WHITELISTED. It calls ``get_formatted_html`` WITHOUT an ``email_account``, and
-    ``email_body.py:419`` resolves that with ``find_outgoing()`` which returns
-    ``None`` when a site has no outgoing account — then line 433 dereferences it.
-    Measured on this site: ``AttributeError: 'NoneType' object has no attribute
-    'get'`` for any call asking for a header or a container, i.e. exactly what a
-    preview wants to show. Filed upstream in ``docs/upstream/frappe-email.md`` §7.
-    Passing our own stub is the whole difference.
+    Frappe 16.31 fixed the no-outgoing-account path described in
+    ``docs/upstream/frappe-email.md`` §7. The preview therefore calls the real
+    formatter without a synthetic Email Account; if upstream regresses, this
+    endpoint stands down to an empty frame like any other render failure.
 
     THE SAMPLE IS FIXED AND CARRIES EVERY ELEMENT THE CONTRACTS SPEAK ABOUT — a
     heading, prose, a bold run, the CTA and a bare link. A preview that omits one
@@ -1171,7 +1404,6 @@ def email_preview() -> str:
         return get_formatted_html(
             frappe._("Invoice {0}").format("ACC-SINV-0042"),
             body,
-            email_account=frappe._dict(brand_logo=None, footer=None),
             with_container=True,
         )
     except Exception:
@@ -1601,29 +1833,3 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
     except Exception:
         frappe.log_error(title="bunood_theme: print preview stood down")
         return ""
-
-
-@frappe.whitelist()
-def set_language(code: str = "") -> dict:
-    """Switch the signed-in user's desk language (item 44).
-
-    The switch is the theme's, but the FACT is Frappe's: ``User.language`` is what
-    the desk boots from, so that is what changes - through ``db.set_value`` rather
-    than ``doc.save()``, because a person switching their own language must not
-    need write permission on the User doctype, which ordinary roles do not have.
-    Only a language the admin OFFERS (Theme Settings, `language.offered_languages`)
-    may be chosen: the set the switch was built from, so a stale client cannot write
-    a code the site does not offer. The client reloads afterwards - a language
-    change needs new translations and the matching LTR/RTL bundle, which no in-page
-    apply can deliver.
-    """
-    code = (code or "").strip()
-    if not code or frappe.session.user == "Guest":
-        frappe.throw(_("Sign in to change your language."), frappe.PermissionError)
-    from bunood_theme.language import offered_languages
-
-    if code not in {row["code"] for row in offered_languages()}:
-        frappe.throw(_("That language is not offered on this site."), frappe.ValidationError)
-    frappe.db.set_value("User", frappe.session.user, "language", code, update_modified=False)
-    frappe.clear_cache(user=frappe.session.user)
-    return {"language": code}

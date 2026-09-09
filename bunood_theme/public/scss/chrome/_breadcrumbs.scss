@@ -357,3 +357,92 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
     content: "\2192"; // →
   }
 }
+
+// Mobile has a bottom-level navigation already. The page head therefore has
+// exactly two jobs: open the workspace drawer and name the current page. Keep
+// the LAST crumb as a plain title; the former parent crumb, icon chip,
+// separator, copy action and pill treatment were five competing signals in a
+// strip that should answer one question: "where am I?"
+html[data-bnd-narrow][data-bnd-desk] .page-head {
+  .page-head-content,
+  .title-area,
+  .navbar-breadcrumbs,
+  .navbar-breadcrumbs li:last-child {
+    display: flex;
+    align-items: center;
+  }
+
+  .page-head-content {
+    min-block-size: calc(var(--bnd-tap) + var(--bnd-sp-2));
+  }
+
+  .title-area {
+    min-inline-size: 0;
+  }
+
+  .navbar-breadcrumbs {
+    min-inline-size: 0;
+
+    li {
+      display: none;
+    }
+
+    li:last-child {
+      min-inline-size: 0;
+      cursor: default !important;
+    }
+
+    li:last-child::before,
+    li:last-child > a::before {
+      content: none;
+      display: none;
+    }
+
+    li:last-child > a,
+    li:last-child > span {
+      display: inline-flex;
+      align-items: center;
+      min-inline-size: 0;
+      min-block-size: var(--bnd-tap);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--bnd-ink);
+      font-size: var(--bnd-text-lg);
+      font-weight: var(--bnd-weight-medium);
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    li:last-child > a {
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .bnd-crumb-chip,
+    .bnd-crumb-copy,
+    li:last-child > a > svg {
+      display: none;
+    }
+  }
+
+  .sidebar-toggle-btn {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    inline-size: var(--bnd-tap);
+    block-size: var(--bnd-tap);
+    margin-inline-end: var(--bnd-sp-1);
+  }
+}
+
+// Home already has a permanent Home and Apps route in the phone bar. Its
+// drawer toggle was a third navigation mechanism beside a self-link-looking
+// title, so Home keeps only the plain title in this local header. Contextual
+// list/form pages retain the named Workspace menu control above.
+html[data-bnd-narrow][data-bnd-desk][data-bnd-own~="mobilehome"]
+  .page-container:has(.bnd-home-dashboard) .page-head .sidebar-toggle-btn {
+  display: none;
+}

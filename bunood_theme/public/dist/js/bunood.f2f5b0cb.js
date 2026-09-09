@@ -40,8 +40,83 @@
 (function () {
 	"use strict";
 
+	// Stable root scope for all Bunood component overrides. Keep this beside the
+	// other synchronous document attributes so shared controls are themed before
+	// Frappe mounts the desk shell.
+	document.documentElement.classList.add("bunood");
+
 	/** Public namespace. Navbar Settings action items call into this. */
 	const bunood = (window.bunood_theme = window.bunood_theme || {});
+
+	// ERPNext ships Home with Item, Customer, Supplier and Sales Invoice links.
+	// Bunood Home already exposes those tasks as prominent actions, while the
+	// sparse sidebar leaves every module behind an All Apps detour. Replace only
+	// Home's boot entry with a compact product navigator derived from Frappe's
+	// permission-filtered allowed_workspaces. Module sidebars remain untouched.
+	const HOME_NAVIGATION_GROUPS = [
+		["Transactions", "accounting", false, ["Selling", "Buying", "Stock", "Invoicing"]],
+		["Operations", "organization", true, ["CRM", "Manufacturing", "Projects", "Assets", "Quality", "Subcontracting"]],
+		["Reports", "table", true, ["Financial Reports", "ZATCA"]],
+		["Setup", "setting-gear", true, ["ERPNext Settings"]],
+	];
+
+	function home_sidebar_item(label, { type = "Link", link_to = null, icon = null, child = 0, keep_closed = 0 } = {}) {
+		return {
+			// These rows are assembled after boot rather than loaded from a
+			// translated Workspace document. Localize the visible label here and
+			// keep link_to as the stable English workspace identifier used by the
+			// router. Without this, an Arabic desk shows an English-only navigator.
+			label: __(label),
+			link_to,
+			link_type: type === "Link" ? "Workspace" : "DocType",
+			type,
+			icon,
+			child,
+			collapsible: 1,
+			indent: type === "Section Break" ? 1 : 0,
+			keep_closed,
+			url: null,
+			show_arrow: 0,
+			filters: null,
+			route_options: null,
+			tab: null,
+		};
+	}
+
+	function prepare_home_sidebar() {
+		const boot = window.frappe && frappe.boot;
+		const sidebars = boot && boot.workspace_sidebar_item;
+		const allowed_rows = (boot && boot.allowed_workspaces) || [];
+		if (!sidebars || !allowed_rows.length) return false;
+		const home_key = Object.keys(sidebars).find((key) => key.toLowerCase() === "home");
+		if (!home_key || !sidebars[home_key]) return false;
+		if (sidebars[home_key]._bnd_module_navigation) return false;
+		const allowed = new Map(allowed_rows.filter((row) => row && row.name).map((row) => [row.name, row]));
+		const home = allowed.get("Home");
+		const items = home ? [home_sidebar_item("Home", { link_to: "Home", icon: home.icon || "home" })] : [];
+		for (const [label, icon, closed, names] of HOME_NAVIGATION_GROUPS) {
+			const visible = names.filter((name) => allowed.has(name));
+			if (!visible.length) continue;
+			items.push(home_sidebar_item(label, { type: "Section Break", icon, keep_closed: Number(closed) }));
+			for (const name of visible) {
+				const workspace = allowed.get(name);
+				items.push(home_sidebar_item(workspace.title || workspace.label || name, {
+					link_to: name,
+					icon: workspace.icon,
+					child: 1,
+				}));
+			}
+		}
+		if (items.length < 2) return false;
+		sidebars[home_key].items = items;
+		sidebars[home_key]._bnd_module_navigation = true;
+		return true;
+	}
+
+	// app_include_js executes after frappe.boot is assigned and before the desk
+	// shell's bounded mount below. Mutating the payload here avoids a flash and
+	// leaves the standard Workspace Sidebar document untouched for upgrades.
+	prepare_home_sidebar();
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Density (item 4) — unchanged behaviour, see git history for the decision.
@@ -233,43 +308,79 @@
 	// Chart series palette (item 25)
 	// ════════════════════════════════════════════════════════════════════════
 	//
-	// WHAT AND WHY. frappe-charts takes series colours as a JS array and writes
-	// them as inline SVG styles — unreachable from CSS — and when a chart supplies
-	// none it falls back to the vendor's own palette, which no gate has measured
-	// (its default first colour is 2.4:1 on a white card). So the colours come
-	// from us instead: a contrast-validated, colour-vision-safe ramp derived in
-	// palette.series_ramp and shipped as the --bnd-series-* tokens.
-	//
-	// HOW. Every chart in v16 is built through ONE funnel, `new frappe.Chart(...)`
-	// (frappe/public/js/frappe/ui/chart.js). We wrap that constructor — reaching
-	// all seven call sites, where wrapping the widget method would reach only two.
-	// A plain function, NOT `class extends`: frappe-charts' Chart constructor
-	// RETURNS a different object (getChartByType), so a subclass's `this` is
-	// silently rebound and its prototype never joins the chain. Reassigning a
-	// function binding, before anything constructs a chart, is the same safe act
-	// as the is_rtl patch above and for the same live-lookup reason.
-	//
-	// FALLS OPEN. No frappe.Chart, tokens that will not resolve to plain hex, or a
-	// chart type we leave alone (heatmap wants a sequential ramp, not this) — any
-	// of these and we install nothing extra and the chart renders exactly as stock.
+	// Frappe Charts writes series colours inline, so CSS cannot theme them. Wrap
+	// its one public constructor and fill empty slots from Bunood's AA-safe ramp.
 	(function patch_chart_colors() {
 		if (!window.frappe || typeof frappe.Chart !== "function") return;
+		const NAVIGABLE_TYPES = new Set(["bar", "line", "axis-mixed", "scatter"]);
+		let chart_uid = 0;
 
-		// Whether a slot carries an admin colour worth KEEPING — deliberately
-		// permissive: any non-empty string. frappe-charts accepts more than #hex /
-		// rgb() / hsl() (its own PRESET_COLOR_MAP honours "teal", "blue", … via
-		// custom_options), and it validates each entry itself, so a stricter test
-		// here would DISCARD a valid admin colour and overwrite it with the ramp —
-		// the opposite of the intent. A `[]` (the vendor's `[[]]` degenerate for an
-		// uncoloured chart), `""`, undefined or a non-string is an empty slot.
+		function chart_host(parent, chart) {
+			if (parent && parent.nodeType === 1) return parent;
+			if (typeof parent === "string") return document.querySelector(parent);
+			return chart && chart.container ? chart.container.parentElement : null;
+		}
+
+		function chart_point_text(options, index) {
+			const data = (options && options.data) || {};
+			const label = ((data.labels || [])[index] || "").toString();
+			const values = (data.datasets || []).map((dataset, dataset_index) => {
+				const name = dataset.name || `${typeof __ === "function" ? __("Series") : "Series"} ${dataset_index + 1}`;
+				return `${name}: ${(dataset.values || [])[index] ?? 0}`;
+			});
+			return [label, ...values].filter(Boolean).join(". ");
+		}
+
+		/** Give every Frappe chart one interaction and accessibility contract. */
+		function decorate_chart(chart, parent, options, navigable) {
+			if (!chart || !chart.container) return;
+			const host = chart_host(parent, chart);
+			if (!host) return;
+			const title = options.bndAriaLabel || options.title ||
+				(((options.data && options.data.datasets) || [])
+					.map((dataset) => dataset.name).filter(Boolean).join(", ")) ||
+				(typeof __ === "function" ? __("Interactive chart") : "Interactive chart");
+			const container = chart.container;
+			container.classList.add("bnd-interactive-chart");
+			container.setAttribute("role", "group");
+			container.setAttribute("aria-label", title);
+			if (navigable && !container.hasAttribute("tabindex")) container.tabIndex = 0;
+
+			const help = document.createElement("span");
+			help.id = `bnd-chart-help-${++chart_uid}`;
+			help.className = "bnd-visually-hidden bnd-chart-announcer";
+			help.setAttribute("role", "status");
+			help.setAttribute("aria-live", "polite");
+			help.textContent = navigable
+				? (typeof __ === "function" ? __("Use the left and right arrow keys to inspect data points.") : "Use the left and right arrow keys to inspect data points.")
+				: title;
+			host.appendChild(help);
+			container.setAttribute("aria-describedby", help.id);
+			host.addEventListener("data-select", (event) => {
+				const index = Number(event.index ?? (event.detail && event.detail.index));
+				if (Number.isInteger(index) && index >= 0) help.textContent = chart_point_text(options, index);
+			});
+			if (navigable) {
+				let index = Math.max(0, ((options.data && options.data.labels) || []).length - 1);
+				container.addEventListener("keydown", (event) => {
+					const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+					if (!step) return;
+					event.preventDefault();
+					index = Math.max(0, Math.min(options.data.labels.length - 1, index + step));
+					host.dispatchEvent(new CustomEvent("data-select", { detail: { index } }));
+				});
+			}
+		}
+
 		const admin_set = (c) => typeof c === "string" && c.trim().length > 0;
+		function resolve_color(color) {
+			if (!admin_set(color)) return color;
+			const match = color.trim().match(/^var\(\s*(--[\w-]+)\s*\)$/);
+			if (!match) return color;
+			const value = getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
+			return value || color;
+		}
 
-		// The resolved ramp, cached per theme generation. getComputedStyle returns
-		// the token's computed value; our tokens are authored as plain 6-digit hex
-		// precisely so this is a hex and not a var()/color-mix string frappe-charts
-		// would reject. If ANY slot is not clean hex we return null and leave the
-		// chart on the vendor default — a coherent stock palette beats a mixture of
-		// ours and theirs that looks deliberate.
 		let ramp_cache = null;
 		let ramp_gen = 0;
 		let ramp_cache_gen = -1;
@@ -287,11 +398,6 @@
 			return out;
 		}
 
-		// Fill only what the admin left empty. A per-chart colour the admin set on
-		// the Dashboard Chart doc is their data and is kept in place; a hole (a
-		// null field, or the vendor's `[[]]` degenerate for an uncoloured Line/Bar
-		// that otherwise logs `"" is not a valid color`) takes the ramp. Heatmap is
-		// returned untouched.
 		function merged_colors(given, type) {
 			if (type === "heatmap") return given;
 			const ramp = resolve_ramp();
@@ -300,16 +406,43 @@
 			const out = [];
 			for (let i = 0; i < n; i++) {
 				const a = given[i];
-				out[i] = admin_set(a) ? a : ramp[i % ramp.length];
+				out[i] = admin_set(a) ? resolve_color(a) : ramp[i % ramp.length];
 			}
 			return out;
 		}
 
-		// Live charts, so a theme flip can repaint them. A plain Set pruned by
-		// `container.isConnected` — the honest synchronous "still on screen" test;
-		// a GC'd chart needs no repaint, so WeakRef would be over-engineering.
 		const live = new Set();
 		const deferred = new Set();
+
+		function repaint_marks(c, colors) {
+			const root = c.container;
+			if (!root || !colors.length) return;
+			let sheet = root.querySelector(":scope > style[data-bnd-chart-colors]");
+			if (!sheet) {
+				sheet = document.createElement("style");
+				sheet.dataset.bndChartColors = "";
+				root.appendChild(sheet);
+			}
+			sheet.textContent = colors.map((color, index) => {
+				if (window.CSS?.supports && !CSS.supports("color", color)) return "";
+				const d = `.dataset-${index}`;
+				return `${d} .bar,${d} .region-fill,${d} .data-point,${d} circle{fill:${color}!important}${d} .line-graph-path{stroke:${color}!important}`;
+			}).join("");
+			const paint = (node, color) => {
+				if (node.matches(".line-graph-path")) node.style.stroke = color;
+				else if (node.matches(".bar, .region-fill, .data-point, circle")) node.style.fill = color;
+			};
+			colors.forEach((color, index) => {
+				for (const node of root.querySelectorAll(`.dataset-${index} .bar, .dataset-${index} .line-graph-path, .dataset-${index} .region-fill, .dataset-${index} .data-point, .dataset-${index} circle`)) paint(node, color);
+			});
+			// Pie and donut slices represent points rather than datasets.
+			for (const [index, node] of [...root.querySelectorAll(".donut-path, .pie-path")].entries()) {
+				const color = colors[index % colors.length];
+				if (node.matches(".donut-path")) node.style.stroke = color;
+				else node.style.fill = color;
+			}
+			for (const [index, node] of [...root.querySelectorAll(".chart-legend .indicator, .graph-stats-container .indicator")].entries()) node.style.backgroundColor = colors[index % colors.length];
+		}
 
 		// Retire a chart whose container is gone. surfaces/_charts.scss.
 		function retire(c) {
@@ -330,14 +463,8 @@
 			const colors = merged_colors(c._bnd_given || [], c._bnd_type);
 			c.colors = colors;
 			if (c.tip) c.tip.colors = colors; // SvgTip captured the array separately
-			try {
-				// draw(false, false): rebuild components in place, same instance and
-				// container, no refetch, no entry animation. Reconstructing would
-				// strand the widget's reference to this chart.
-				c.draw(false, false);
-			} catch (e) {
-				/* a vendor draw throwing must not take the desk down */
-			}
+			// Avoid draw(): it races Frappe's ResizeObserver during route remounts.
+			repaint_marks(c, colors);
 		}
 
 		// A repaint destroys an open tooltip, so a chart the user is pointing at or
@@ -348,14 +475,14 @@
 				c.container.contains(document.activeElement)
 			);
 		}
-		function repaint_all() {
+		function repaint_all(force) {
 			ramp_gen++; // invalidate the cache: the theme moved
 			for (const c of Array.from(live)) {
 				if (!c.container || !c.container.isConnected) {
 					retire(c);
 					continue;
 				}
-				if (busy(c)) deferred.add(c);
+				if (!force && busy(c)) deferred.add(c);
 				else repaint_one(c);
 			}
 		}
@@ -375,14 +502,12 @@
 
 		const NativeChart = frappe.Chart;
 		function BndChart(parent, options) {
+			const navigable = !!(options && NAVIGABLE_TYPES.has(options.type) && options.isNavigable !== false);
+			if (navigable) options.isNavigable = 0;
 			const given =
 				options && Array.isArray(options.colors) ? options.colors.slice() : [];
 			if (options) options.colors = merged_colors(given, options.type);
-			// Turn the area fill on for every line chart so the Filled Area style
-			// (surfaces/_charts.scss) has a .region-fill to reveal — CSS then shows
-			// or hides it per chart_grid, keeping that axis a pure-CSS live preview.
-			// The fill's gradient is generated by frappe-charts from OUR series
-			// colour. Left alone if the doc already set it.
+			// Give line charts the region that the Filled Area style reveals.
 			if (options && options.type === "line") {
 				options.lineOptions = options.lineOptions || {};
 				if (options.lineOptions.regionFill === undefined) options.lineOptions.regionFill = 1;
@@ -391,6 +516,7 @@
 			if (chart && chart.container) {
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
+				decorate_chart(chart, parent, options || {}, navigable);
 				// Prune opportunistically so the set cannot grow without bound on a
 				// long-lived desk that renders many charts — and RETIRE rather than
 				// forget: a chart Frappe has re-rendered past is still bound to the
@@ -453,7 +579,7 @@
 		// theme flip and a settings change go through one door.
 		bunood.chart_apply = function (values) {
 			if (values && values.chart_grid !== undefined) apply_chart_grid_attr(values.chart_grid);
-			repaint_all();
+			repaint_all(true);
 		};
 	})();
 
@@ -597,9 +723,9 @@
 	// ════════════════════════════════════════════════════════════════════════
 	//
 	// Below Frappe's own mobile boundary — `frappe.is_mobile()` is exactly
-	// `innerWidth < 768` — the desktop chrome cannot stand: `toolbar.js` swaps
-	// away the <header> the top bar mounts into (desk.html:38), and Frappe
-	// collapses the side pane to an off-canvas drawer. So the desk COLLAPSES to
+	// `innerWidth < 768` — the desktop chrome cannot stand. Current v16 keeps
+	// desk.html's empty <header> in the DOM, but Frappe still collapses the side
+	// pane to an off-canvas drawer. So the desk COLLAPSES to
 	// one preset, `bnd_narrow_chrome` (registry.NARROW_CHROME): the host-free
 	// bottom bar carries the critical tenants (`bnd_narrow_placement`), and
 	// Frappe's own drawer — reached by its top-left menu — carries workspaces, so
@@ -610,22 +736,19 @@
 	// is a runtime override read by `container_on` / `active_placement` while
 	// narrow, and touches neither the stored fields nor the layout's derived name.
 	//
-	// REACTS TO THE BREAKPOINT, NOT `resize`. The <header> swap was a boot
+	// REACTS TO THE BREAKPOINT, NOT `resize`. The narrow chrome choice is a boot
 	// decision nothing re-ran, so a desk loaded at 400px and widened kept no top
 	// bar until reload. `matchMedia` fixes both directions: crossing 768 re-runs
-	// the container ladder (`remount_chrome`). Falls open — no payload means
-	// `is_narrow()` is false and every answer comes from the desktop path.
+	// the container ladder (`remount_chrome`). The viewport decision must not
+	// depend on the optional server payload: without it, a phone was treated as
+	// desktop and an always-open sidebar consumed almost the entire screen.
 	const narrow_chrome = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_chrome) || null;
 	const narrow_placement = (window.frappe && frappe.boot && frappe.boot.bnd_narrow_placement) || null;
-	// The user's phone-bar toggles (item 24 C2): which tenants join search below
-	// 768. Search itself has no toggle — it is the only search on a phone. A live
-	// preference, not a rebuild: active_placement turns a 0 into "Off" while narrow.
-	const mobile_state = (window.frappe && frappe.boot && frappe.boot.bnd_mobile) || null;
 	const MOBILE_MQ = typeof window.matchMedia === "function" ? window.matchMedia("(width < 768px)") : null;
 
 	/** Below Frappe's 768 mobile boundary, with a narrow preset to apply. */
 	function is_narrow() {
-		return !!(MOBILE_MQ && MOBILE_MQ.matches && narrow_chrome);
+		return !!(MOBILE_MQ && MOBILE_MQ.matches);
 	}
 
 	/**
@@ -669,7 +792,7 @@
 	function container_on(key) {
 		// Narrow mode wins: it is the runtime collapse to the mobile preset, and
 		// it must override both the stored setting and the layout fallback.
-		if (is_narrow() && Object.prototype.hasOwnProperty.call(narrow_chrome, key)) {
+		if (is_narrow() && narrow_chrome && Object.prototype.hasOwnProperty.call(narrow_chrome, key)) {
 			return !!narrow_chrome[key];
 		}
 		if (chrome_state && Object.prototype.hasOwnProperty.call(chrome_state, key)) {
@@ -684,10 +807,9 @@
 	 * SAME POLARITY AS `data-bnd-own`, and for the same reason. `data-bnd-
 	 * layout` is a declaration made at boot about what we INTEND to mount;
 	 * `mount_topbar` bails whenever `.main-section > header` is missing. That is
-	 * NOT "every viewport under ~480px" (this comment's old claim, corrected by
-	 * item 24): Frappe renders the empty <header> at every width (desk.html:38),
-	 * then `toolbar.js` REPLACES it whenever `frappe.is_mobile()` (innerWidth <
-	 * 768) OR read_only OR impersonation OR an announcement widget is set — so
+	 * not the mobile signal: current v16 keeps the empty header below 768, while
+	 * `container_on` deliberately selects the narrow container set there. The
+	 * header can still be absent for read_only, impersonation or announcements, so
 	 * the bar can be absent on a 1920px desk too. A stylesheet keyed on the
 	 * intention then reserves space for a bar that is not there, or sticks a
 	 * page head below a bar that never arrived. Keyed on the outcome there is
@@ -838,21 +960,14 @@
 		// present node is an unreachable one. Argument in _sidebar.scss.
 		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
 		const stranded = critical.filter((c) => {
-			const node = document.querySelector(c.selector);
-			return !node || !!node.closest(".body-sidebar-container");
+			const selectors = [c.selector, c.fallback].filter(Boolean).join(", ");
+			const routes = selectors ? [...document.querySelectorAll(selectors)] : [];
+			return !routes.some((node) => !node.closest(".body-sidebar-container"));
 		});
 		if (!stranded.length) return false;
 
 		// Release whichever mechanism is hiding it. Both, when both are.
-		if (hidden) {
-			html.setAttribute("data-bnd-sb-panestate", "open");
-			// DURABLE for the session, not only the attribute: apply_sidebar_attrs
-			// re-stamps the attribute from sb_state on every re-apply, and an un-hide
-			// that lived only in the attribute was undone by the next one - a bell
-			// mounted into the un-hidden window then rode the pane down (measured on
-			// the settings page, 2026-09-08). The route the guard opens stays open.
-			if (sb_state) sb_state.panestate = "Open";
-		}
+		if (hidden) html.setAttribute("data-bnd-sb-panestate", "open");
 		const kept = off.filter((k) => k !== "sidepane");
 		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
 		else html.removeAttribute("data-bnd-chrome-off");
@@ -935,7 +1050,7 @@
 		apply_chrome_off();
 
 		// `panehead` joins them (item 40); see _layouts.scss.
-		for (const token of ["search", "bell", "user", "panehead", "panetoggle"]) bnd_disown(token);
+		for (const token of ["search", "bell", "user", "panehead", "panetoggle", "mobilehome"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -959,6 +1074,7 @@
 		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
 		if (container_on("sidepane")) sb_mount_pagehead_brand();
 		else sb_teardown_pagehead_brand();
+		sync_desktop_shell();
 		defer_bottom_reserve();
 		// A shape change moves which route to Appearance exists, so the claim on
 		// Frappe's Display item is re-measured rather than assumed (item 38).
@@ -1000,18 +1116,18 @@
 	 * bar, which is not on screen — but the state is current the moment the window
 	 * crosses 768. The kit's mandatory re-apply-on-click hook, same as the others.
 	 */
-	bunood.mobile_apply = function (values) {
-		if (!values || !mobile_state) return;
-		const FIELD_TO_KEY = { mobile_inbox: "inbox", mobile_user: "user", mobile_apps: "apps" };
-		for (const [name, value] of Object.entries(values)) {
-			const key = FIELD_TO_KEY[name];
-			if (key && key in mobile_state) mobile_state[key] = parseInt(value, 10) ? 1 : 0;
-		}
-		remount_chrome();
-	};
-
 	function on_breakpoint_change() {
 		apply_viewport_mode();
+		if (is_narrow()) {
+			const pane = document.querySelector(".body-sidebar-container");
+			const native = window.frappe?.app?.sidebar;
+			if (native?.wrapper?.[0] === pane && typeof native.close === "function") native.close();
+		}
+		document.querySelector(".body-sidebar-container")?._bnd_sync_rail?.();
+		// Rail is desktop chrome. Re-resolve its attribute before remounting so
+		// Frappe's native off-canvas drawer owns the narrow layout, then restore
+		// the single top-bar toggle when the viewport becomes wide again.
+		apply_sidebar_attrs(sb_state);
 		remount_chrome();
 	}
 	if (MOBILE_MQ) {
@@ -1206,7 +1322,9 @@
 		// Rail keeps its own anchor attribute plus the trigger the JS wires --
 		// four dozen rules key on `data-bnd-rail` and it stays their subject.
 		// Legacy "Hover + Pin" mode labels imply their trigger.
-		if (state === "rail") {
+		// The custom collapsed pane is desktop-only. At narrow widths leave the
+		// rail attribute off so Frappe's native off-canvas drawer remains usable.
+		if (state === "rail" && !is_narrow()) {
 			html.setAttribute("data-bnd-rail", "");
 			const trigger =
 				SB_SLUGS.railtrigger[sb.rail_trigger] ||
@@ -1241,63 +1359,8 @@
 	 * v16's stock trail is untouched, the same escape hatch the desk-layout
 	 * picker offers with "Classic". Unknown labels behave identically.
 	 */
-	// ════════════════════════════════════════════════════════════════════════
-	// The SURFACE kits — list (15) · form (16) · workspace (25) · report (26)
-	// · views (27) · overlays (28) · empty (29) · skeleton (30) · filters (31)
-	// — one construction, NINE rows of a table. (This said "six" from the
-	// refactor that created the table until item 31; items 29 and 30 each added
-	// a row without touching it, which is how a count in a comment drifts. It
-	// counts the rows BELOW — if you add one, change it.)
-	// ════════════════════════════════════════════════════════════════════════
-	//
-	// Unlike every chrome kit above, a surface kit mounts NOTHING and injects
-	// nothing: it is attributes on <html> and a stylesheet over Frappe's own
-	// DOM. No node to build, no native to release, no ownership stamp —
-	// absent attributes ARE the stand-down, which is what lets "Original" be
-	// a pure clearing.
-	//
-	// WHY A TABLE, AND WHY NOW (item 29 slice 2a). Six kits shipped as six
-	// hand-copied blocks whose ONLY differences were data: the attribute
-	// stem, the boot key, the slug maps, and one post-hook. That shape has
-	// bitten twice — the item-18 "escapee" class is precisely a hand-copied
-	// list drifting from its source of truth — and the seventh copy would
-	// not fit the payload ceiling. The behaviour below is the six originals'
-	// to the letter; the gate for this refactor was byte-identical
-	// data-bnd-* attributes and a full green suite, never trust.
-	//
-	// THE SHARED SHAPE, once, instead of six times:
-	// - Label -> slug maps: each option fails open INDEPENDENTLY — an
-	//   unknown label sets no attribute for that option and the others
-	//   still apply. "Original" maps the anchor to "" — the whole kit
-	//   stands down and stock renders.
-	// - State: the options currently IN EFFECT — boot's at load, possibly
-	//   replaced by a live preview. Mounts read THIS, never frappe.boot, so
-	//   preview is a re-application, not a mode.
-	// - apply(): reflects options onto <html>, clearing whatever set came
-	//   before — attributes are wholly derived state. A falsy anchor slug
-	//   (Original / unknown / no boot) clears everything and sets nothing.
-	//   Payload keys are FIELDNAMES (the status shape): no mirror map
-	//   exists to fall out of step with presets.<KIT>_FIELDS.
-	// - The boot call runs at parse time, before Frappe renders the first
-	//   row/section/tile/cell/card/toast — the timing rule every kit keeps:
-	//   the anchor is on <html> before the DOM it styles exists, so nothing
-	//   stale ever paints.
-	// - bunood.<kit>_apply: the LIVE PREVIEW hook, mandatory from day one —
-	//   the status kit shipped without its hook and that is the recorded
-	//   failure class: settings that save but visibly do nothing.
-	//
-	// Per-row notes that used to be block doctrine:
-	// - workspace's attribute stem is "ws", not "workspace" — _workspace.scss
-	//   has keyed on data-bnd-ws since item 25.
-	// - views: Tinted/Chip/Cover are the NEUTRALS and map to "" (Frappe
-	//   already tints the kanban column inline and re-themes it for dark;
-	//   "keep stock" needs no attribute). Its live preview must also repaint
-	//   the calendars — an attribute flip alone cannot recolour an
-	//   inline-styled event.
-	// - overlay: the REPAIRS are not here and must not be —
-	//   surfaces/_overlays.scss scopes them html[data-theme], outside the
-	//   anchor, so clearing it never makes a dialog illegible. Dim and Inset
-	//   map to "" (stock scrim, stock row).
+	// Surface kits are attribute-only, fail open per axis, and clear all
+	// styling when their Original anchor resolves to an empty slug.
 
 	// Assigned by patch_calendar_colors below; a no-op until then so a boot
 	// with no Calendar class (or a headless build) never throws.
@@ -1471,6 +1534,26 @@
 	(function patch_calendar_colors() {
 		const Cal = window.frappe && frappe.views && frappe.views.Calendar;
 		if (!Cal || typeof Cal.prototype.prepare_colors !== "function") return;
+
+		// Frappe v16's generic endpoint now annotates start/end as date, while
+		// calendar.js still sends convert_to_system_tz() datetimes. In any
+		// non-UTC zone that becomes e.g. "2026-07-26 02:30:00" and Pydantic
+		// rejects the request with 417 before a single event can render. Keep
+		// custom calendar methods untouched; normalize only the generic method's
+		// documented date range at its one client-side funnel.
+		if (typeof Cal.prototype.get_args === "function") {
+			const NativeArgs = Cal.prototype.get_args;
+			Cal.prototype.get_args = function (start, end) {
+				const args = NativeArgs.call(this, start, end);
+				const generic = !this.get_events_method || this.get_events_method === "frappe.desk.calendar.get_events";
+				if (generic) {
+					for (const key of ["start", "end"]) {
+						if (typeof args[key] === "string") args[key] = args[key].split(/[ T]/)[0];
+					}
+				}
+				return args;
+			};
+		}
 
 		const live = new Set();
 		const HEX6 = /^#[0-9a-f]{6}$/i;
@@ -1919,35 +2002,354 @@
 	}
 
 	/**
+	 * Give Frappe's dynamically-rendered list selection checkboxes an accessible
+	 * name. Core emits one bare input per record, so axe's label count otherwise
+	 * grows with tenant data and a screen-reader user hears only "checkbox".
+	 * Observe added rows rather than the whole list state: this stays cheap on
+	 * long lists and also covers paging, filtering and virtual re-renders.
+	 */
+	let list_a11y_observer = null;
+	function label_list_checkboxes(root) {
+		const boxes = [];
+		if (root?.matches?.(".list-row-checkbox")) boxes.push(root);
+		for (const box of root?.querySelectorAll?.(".list-row-checkbox") || []) boxes.push(box);
+		for (const box of boxes) {
+			if (box.getAttribute("aria-label") || box.getAttribute("aria-labelledby") || box.title) continue;
+			const name = box.getAttribute("data-name") || __("row");
+			box.setAttribute("aria-label", __("Select {0}", [name]));
+		}
+	}
+	function observe_list_accessibility() {
+		label_list_checkboxes(document);
+		if (list_a11y_observer || typeof MutationObserver === "undefined" || !document.body) return;
+		list_a11y_observer = new MutationObserver(records => {
+			for (const record of records) for (const added of record.addedNodes) {
+				if (added.nodeType === Node.ELEMENT_NODE) label_list_checkboxes(added);
+			}
+		});
+		list_a11y_observer.observe(document.body, { childList: true, subtree: true });
+	}
+
+	/**
 	 * Route "" is v16's Desktop page, which ships its own navbar and search
 	 * and hides the normal sidebar — every piece of Bunood chrome stands down
 	 * there via the data-bnd-desktop attribute (chrome/_sidebar.scss).
+	 *
+	 * RESTORED AFTER A CHERRY-PICK ATE IT. Porting the v16 compatibility commit
+	 * onto this branch deleted this definition while leaving its call in the
+	 * router handler, and `node --check` passed — removing a whole function
+	 * leaves valid JS, exactly as CLAUDE.md warns. The desk threw
+	 * `update_desktop_mode is not defined` on every route change.
 	 */
 	/**
-	 * THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
-	 * desktop page declares `hide_sidebar`; container.js honours it right after
-	 * "page-change", and sidebar.js re-reads it on every setup. Clearing the flag
-	 * whenever the kit owns a pane on this desk, and asking Frappe's own toggle to
-	 * show what it hid, keeps the pane there. The bars still stand down in desktop
-	 * mode (_sidebar.scss): the ask was the pane. Idempotent, safe to call often.
+	 * Is this Frappe's Desktop page — the module grid?
+	 *
+	 * TWO ADDRESSES, ONE PAGE. The EMPTY route renders the grid as the desk's
+	 * landing, and `/app/desktop` reaches the same Page explicitly. Only the
+	 * empty spelling was recognised here, which stopped mattering the moment
+	 * `land_on_home` started sending the empty route away: the grid would have
+	 * kept its tiles but lost our styling and sprite icons at the one address
+	 * that still showed it.
+	 *
+	 * @param {string[]} route
+	 * @returns {boolean}
 	 */
-	function keep_pane_on_desktop() {
-		const pg = window.frappe && frappe.container && frappe.container.page && frappe.container.page.page;
-		if (!pg || !pg.hide_sidebar || !sb_state) return;
-		const html = document.documentElement;
-		if ((html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).includes("sidepane")) return;
-		if (html.hasAttribute("data-bnd-narrow")) return;
-		pg.hide_sidebar = false;
-		if (frappe.app && frappe.app.sidebar && typeof frappe.app.sidebar.toggle === "function") frappe.app.sidebar.toggle(false);
-		// The kit skipped a pane that was hidden when it mounted (HOSTS.sidepane answers
-		// null then), so a pane shown here would stay undressed: dress it now. Idempotent.
-		if (typeof mount_sidebar_kit === "function") mount_sidebar_kit();
+	function on_desktop_route(route) {
+		// THE URL SETTLES BEFORE FRAPPE'S ROUTE ARRAY. During a direct load or a
+		// native transition get_route() can still describe the page we just left;
+		// that race made the Dashboard return appear only on alternating All Apps
+		// loads. Use the requested address to settle every explicit page first,
+		// then consult the route array only for the genuinely bare desk address.
+		const path = String(location.pathname || "").replace(/\/+$/, "").toLowerCase();
+		if (path === "/desk/desktop" || path === "/app/desktop") return true;
+		if (path !== "/desk" && path !== "/app" && path !== "") return false;
+
+		// Frappe briefly returns null while its router resolves during boot. Treat
+		// that transient state as the empty route instead of reading `.length`
+		// from null and aborting the rest of the chrome mount.
+		if (!Array.isArray(route)) route = [];
+		if (!route.length) return true;
+		if (route.length === 1 && !route[0]) return true;
+		return route.length === 1 && String(route[0]).toLowerCase() === "desktop";
+	}
+
+	/**
+	 * Send the desk's EMPTY route to the Bunood home.
+	 *
+	 * WHY A REDIRECT AND NOT A SETTING. `frappe.boot.home_page` is the
+	 * supported lever, and it cannot reach this: `boot.add_home_page` resolves
+	 * the value through `frappe.desk.desk_page.get()`, so it names a **Page**
+	 * record, while our home is a **Workspace**. Measured on this site — the
+	 * only landing Page that exists is `desktop`, and there is no `Workspaces`
+	 * Page to point at. So the empty route is redirected here instead.
+	 *
+	 * NOTHING LOSES ITS ADDRESS. "All Apps" goes to `/apps`, Frappe's app
+	 * switcher, not to this grid — so it is untouched. The grid itself keeps
+	 * `/app/desktop`, which `on_desktop_route` now recognises, and a user who
+	 * asks for it explicitly is not bounced.
+	 */
+	function land_on_home() {
+		if (!theme_active()) return;
+
+		// THE URL DECIDES, NOT THE ROUTER'S CURRENT ANSWER.
+		//
+		// `frappe.get_route()` is transiently EMPTY while v16's desk shell does
+		// its own boot routing, so keying on it alone made this steal
+		// navigations meant for other pages: a visit to /desk/todo was bounced
+		// to the home the moment the router had not resolved yet, and the
+		// caller then waited out its full timeout for a selector on a page it
+		// never opened. The suite has a comment about exactly this failure mode
+		// for its own navigations; this added a second source of it, and 21
+		// checks went red in one subset — every `container:` and `invariant:`
+		// case, all of them 30s selector timeouts rather than assertions.
+		//
+		// The pathname is what the USER asked for and does not flicker. Only
+		// the bare desk root lands on the home; any deeper address is left
+		// alone whatever the router happens to be reporting mid-boot.
+		const path = String(location.pathname || "").replace(/\/+$/, "");
+		if (path !== "/desk" && path !== "/app" && path !== "") return;
+
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const empty = !route.length || (route.length === 1 && !route[0]);
+		if (!empty) return;
+		go_home();
 	}
 
 	function update_desktop_mode() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
-		const on_desktop = !route.length || (route.length === 1 && !route[0]);
+		const on_desktop = on_desktop_route(route);
 		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
+		// The Desktop page is cached. Never let the ownership stamp from that
+		// page leak onto an ordinary workspace while the router is swapping the
+		// visible container; `sync_desktop_shell` will claim it again after the
+		// current route's controls have actually mounted.
+		if (!on_desktop) document.documentElement.removeAttribute("data-bnd-desktop-shell");
+		// The grid is built asynchronously and has no "ready" event, so this
+		// polls with a bounded budget like every other mount here. Driven from
+		// this one function because it already runs at mount AND on every route
+		// change, which is exactly when a tile can appear.
+		if (on_desktop) try_for(mount_desktop_icons, 40, 150);
+	}
+
+	/** Release Frappe's phone-only inline three-column lock to responsive CSS. */
+	function sync_desktop_grid() {
+		if (!document.documentElement.hasAttribute("data-bnd-desktop")) return;
+		for (const grid of document.querySelectorAll(".desktop-wrapper .icons")) {
+			if (is_narrow()) {
+				// desktop.js writes `repeat(3, 1fr)` inline below 768, making the
+				// grid wider than a 390px viewport after padding and gaps. The Bunood
+				// narrow rule owns the responsive count, so release that one inline
+				// declaration while leaving Frappe's inline `display: grid` intact.
+				grid.style.removeProperty("grid-template-columns");
+			}
+		}
+	}
+
+	/**
+	 * Make the All Apps page choose ONE global shell.
+	 *
+	 * Frappe's Desktop page owns a private `.desktop-navbar` while every other
+	 * desk page uses the normal shell. Bunood also mounts its configured shell,
+	 * so allowing both to render produces two searches, two bells and two user
+	 * menus. It was previously hidden only when a TOP BAR existed; the exact
+	 * moment responsive mode removed that bar, Frappe's private navbar returned
+	 * on top of the mobile bottom navigation.
+	 *
+	 * Ownership is now based on the outcome: once a Bunood search has landed in
+	 * a real shell, that whole shell owns global navigation and the Desktop-only
+	 * navbar stands down. If no Bunood shell materialises, the stamp is absent
+	 * and Frappe remains the fail-open fallback.
+	 *
+	 * The bottom strip changes jobs below 768 too. Give assistive technology the
+	 * role it is actually performing: status region on desktop, primary
+	 * navigation on a phone.
+	 */
+	function sync_desktop_shell() {
+		const html = document.documentElement;
+		sync_desktop_grid();
+		const mobile = is_narrow();
+		const bar = document.querySelector(".bnd-statusbar");
+		const search = document.querySelector(".bnd-search-field, .bnd-search-icon");
+		const desktop_shell = search && search.closest(".bnd-topbar, .bnd-statusbar, .bnd-dock, .page-head");
+		// On a phone, hiding Desktop's private navbar on the strength of search
+		// alone can expose a half-mounted navigation row. Claim global ownership
+		// only when the complete, stable four-destination contract is present.
+		const mobile_shell = mobile && bar && ["home", "apps", "search", "user"].every((part) =>
+			[...bar.querySelectorAll(`[data-bnd-part="${part}"]`)].some((node) => node.offsetParent !== null)
+		);
+		// Home's drawer trigger stands down only after its complete replacement
+		// navigation exists. The ownership token makes a failed mobile mount fall
+		// back to Frappe's working hamburger instead of hiding the last route.
+		if (mobile_shell && on_home_route()) bnd_own("mobilehome");
+		else bnd_disown("mobilehome");
+		html.toggleAttribute(
+			"data-bnd-desktop-shell",
+			html.hasAttribute("data-bnd-desktop") && !!(mobile ? mobile_shell : desktop_shell)
+		);
+
+		// This is a workspace drawer opener, not a second Home/Apps destination.
+		// Name it by that job wherever Frappe remounts a page head.
+		for (const toggle of document.querySelectorAll(".page-head .sidebar-toggle-btn")) {
+			toggle.setAttribute("aria-label", __("Workspace menu"));
+			toggle.setAttribute("title", __("Workspace menu"));
+		}
+
+		if (!bar) return;
+		bar.toggleAttribute("data-bnd-mobile-nav", mobile);
+		bar.setAttribute("role", mobile ? "navigation" : "region");
+		bar.setAttribute("aria-label", mobile ? __("Primary navigation") : __("Status bar"));
+	}
+
+	/**
+	 * The sprite symbol for a module tile on the Desktop grid.
+	 *
+	 * A tile's `data-id` is sometimes a workspace name ("Invoicing", "Payments")
+	 * and sometimes a module name ("Accounting", "Framework"), so both are
+	 * asked. `frappe.boot.allowed_workspaces` carries the icon the site itself
+	 * chose for each workspace — the same value the side pane renders — which is
+	 * why this reads per-site data rather than a table in here: a hand-written
+	 * module list cannot cover a custom module, a third-party app or a site
+	 * running in another language, and the version this replaces had exactly
+	 * that problem.
+	 *
+	 * @param {string} id - the tile's `data-id`.
+	 * @returns {string} a sprite id that is safe to render.
+	 */
+	function desktop_symbol(id, label) {
+		const boot = (window.frappe && frappe.boot) || {};
+		const spaces = boot.allowed_workspaces || [];
+		const want = String(id || "");
+
+		let hit = spaces.find((w) => w && w.name === want);
+		if (!hit) {
+			// Module name: take the first workspace the module owns.
+			const owned = (boot.module_wise_workspaces || {})[want];
+			const first = Array.isArray(owned) ? owned[0] : null;
+			if (first) hit = spaces.find((w) => w && w.name === first);
+		}
+		if (hit && hit.icon) return ws_symbol(hit.icon);
+
+		// INFER, rather than settle for a folder. Measured on this stack: nine
+		// of twenty-one tiles name neither a workspace nor a module that owns
+		// one — "Payments", "Taxes", "Accounts Setup" — and a grid where nine
+		// tiles are the same folder glyph is not a set, it is a shrug. This is
+		// the SAME keyword table the sidebar and breadcrumbs already infer
+		// from, so a tile and its side-pane entry agree on the glyph.
+		for (const [re, candidates] of SB_ICON_HINTS) {
+			if (re.test(want) || (label && re.test(label))) {
+				const found = sb_existing_symbol(candidates);
+				if (found) return found;
+			}
+		}
+		return ws_symbol(null);
+	}
+
+	/**
+	 * Give each Desktop tile an icon from Frappe's own sprite.
+	 *
+	 * WHY OURS AND NOT FRAPPE'S OWN `<img>`
+	 *   The stock tile ships a raster-ish per-module SVG in whatever colours its
+	 *   app chose, so a grid mixes half a dozen palettes. A sprite symbol is a
+	 *   stroke drawing that inherits `currentColor`, which is what lets the grid
+	 *   read as one set.
+	 *
+	 * WHY THE NATIVE ICON IS HIDDEN FROM AN OUTCOME, NOT A DECLARATION
+	 *   `data-bnd-deskicon` is stamped on the container AFTER ours is in it, and
+	 *   the stylesheet hides the native sibling only from that mark — the same
+	 *   polarity as `data-bnd-own`. A mount that fails therefore leaves the
+	 *   stock icon on screen rather than an empty tile, which is the failure
+	 *   mode worth having. The version this replaces hid the native icon
+	 *   unconditionally and fetched a replacement from a third-party CDN, so an
+	 *   unreachable CDN meant a grid of empty squares.
+	 *
+	 * @returns {boolean} true once tiles have been seen, for `try_for`.
+	 */
+	function mount_desktop_icons() {
+		const tiles = document.querySelectorAll(".desktop-wrapper .desktop-icon");
+		if (!tiles.length) return false;
+		for (const tile of tiles) {
+			const host = tile.querySelector(".icon-container");
+			if (!host || host.querySelector(".bnd-deskicon")) continue;
+			const caption = tile.querySelector(".icon-title, .icon-caption");
+			const label = caption ? caption.textContent.trim() : "";
+			const svg = sprite_icon(desktop_symbol(tile.getAttribute("data-id"), label));
+			svg.classList.add("bnd-deskicon");
+			host.appendChild(svg);
+			// Frappe's alphabet fallback writes a random plate colour inline.
+			// Reports is one such tile on this site, so the inline declaration beats
+			// the shared Bunood plate even after our icon has replaced the fallback.
+			// Once the replacement succeeds, the host belongs to this icon system and
+			// must use the same token as every other module.
+			host.style.removeProperty("background-color");
+				host.setAttribute("data-bnd-deskicon", "");
+		}
+		sync_desktop_grid();
+		return true;
+	}
+
+	/**
+	 * Route to the first-class Home workspace, not Desk's empty route. Frappe
+	 * v16 keeps it as a standard workspace while /desk itself is only a shell
+	 * that self-redirects forever when a brand chip sends the user there.
+	 */
+	function go_home() {
+		frappe.set_route("home");
+	}
+
+	// A desk language change needs new translations and the matching RTL/LTR
+	// bundle. Persist only the signed-in User, then reload the same page.
+	let language_switch_pending = false;
+	function language_choice() {
+		return String(frappe.boot.lang || "en").split(/[-_]/)[0] === "ar"
+			// Language choices use their own names so the destination remains
+			// recognisable even when the current interface language is unfamiliar.
+			? { code: "en", label: "English", title: __("Switch to English") }
+			: { code: "ar", label: "العربية", title: __("Switch to Arabic") };
+	}
+
+	async function switch_desk_language() {
+		if (language_switch_pending || !frappe.session?.user || frappe.session.user === "Guest") return;
+		// Include cached forms: a user may have navigated away from an edit.
+		const dirty = Object.values(window.locals || {}).some(records =>
+			Object.values(records || {}).some(doc => doc?.__unsaved && !doc.parenttype));
+		if (dirty) {
+			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
+			return;
+		}
+		language_switch_pending = true;
+		const buttons = document.querySelectorAll('[data-bnd-part="language"]');
+		buttons.forEach(btn => { btn.disabled = true; btn.setAttribute("aria-busy", "true"); });
+		try {
+			const choice = language_choice();
+			// Native save checks User permissions and clears that user's boot cache.
+			const response = await frappe.call({
+				method: "frappe.client.set_value",
+				args: { doctype: "User", name: frappe.session.user, fieldname: "language", value: choice.code },
+				freeze: true,
+				freeze_message: __("Switching language..."),
+			});
+			if (response.exc || response.message?.language !== choice.code) throw new Error("Language update failed");
+			window.location.reload();
+		} catch (error) {
+			frappe.msgprint(__("Could not switch language. Please try again."));
+		} finally {
+			language_switch_pending = false;
+			buttons.forEach(btn => { btn.disabled = false; btn.removeAttribute("aria-busy"); });
+		}
+	}
+
+	function build_language_button() {
+		const choice = language_choice();
+		const btn = el("button", "bnd-icon-btn bnd-language-btn", {
+			type: "button", title: choice.title, "aria-label": choice.title,
+			"data-bnd-part": "language",
+		});
+		// Only the autonym changes language; the accessible label uses the UI's.
+		const label = el("span", "", { lang: choice.code, dir: choice.code === "ar" ? "rtl" : "ltr" });
+		label.textContent = choice.label;
+		btn.appendChild(label);
+		btn.addEventListener("click", switch_desk_language);
+		return btn;
 	}
 
 	// ── The theme's dropdown menu ───────────────────────────────────────────
@@ -2075,12 +2477,6 @@
 			const label = el("span", "bnd-menu-label");
 			label.textContent = item.label;
 			btn.appendChild(label);
-			// A menu of choices (item 44's language list) marks the current one the
-			// ARIA way: menuitemradio + aria-checked, never a check glyph alone.
-			if (item.checked !== undefined) {
-				btn.setAttribute("role", "menuitemradio");
-				btn.setAttribute("aria-checked", item.checked ? "true" : "false");
-			}
 			btn.addEventListener("click", () => {
 				close_menu();
 				try {
@@ -2157,16 +2553,28 @@
 	 */
 	function avatar_menu_items() {
 		const items = [];
+		// A phone has four primary destinations. Notifications remains one tap
+		// away as the first Account action, while its unread state rides on the
+		// Account trigger. This replaces the former fifth bottom-bar column.
+		if (is_narrow()) {
+			items.push({
+				label: __("Notifications"),
+				icon: "icon-bell",
+				badge: inbox_unread > 0 ? String(inbox_unread) : "",
+				run: inbox_invoke,
+			});
+			items.push("divider");
+		}
 
 		// Place-switching that has no other home now that the old brand menu
-		// is retired: Website for everyone, Desktop where the sidebar is gone.
+		// is retired: Website for everyone, Home where the sidebar is gone.
 		// Asks the DOM, not the layout: this item exists because the side pane
-		// — which normally carries the Desktop route — is not reachable. Since
+		// — which normally carries the Home route — is not reachable. Since
 		// the container split that is a question about the PANE, not about
 		// which layout is active, and the menu is built on click so the honest
 		// answer is available by then.
 		if (sidebar_is_hidden()) {
-			items.push({ label: __("Desktop"), icon: "icon-home", run: () => frappe.set_route("") });
+			items.push({ label: __("Home"), icon: "icon-home", run: go_home });
 		}
 		items.push({
 			label: __("Website"),
@@ -2175,6 +2583,9 @@
 		});
 		items.push("divider");
 
+		// The top bar stands down on phones and some layout presets. Keep the
+		// same account action reachable through the existing profile menu.
+		items.push({ label: language_choice().label, icon: "icon-web", run: switch_desk_language });
 		// ONE ENTRY, NOT THREE (item 38). This used to be "Appearance" (Frappe's
 		// own theme modal), "Sidebar Style" (a menu that applied the side pane
 		// only) and "Toggle Density" (a three-state cycle with a toast) — three
@@ -2186,9 +2597,6 @@
 			icon: "icon-monitor",
 			run: () => bunood.appearance(),
 		});
-		// Item 44: the always-present route to the language switch, for a desk whose
-		// layout has none of the bars the tenant sits in (and the phone bar).
-		for (const item of language_menu_items()) items.push(item);
 		// Theme Settings is site-wide admin config, so the shortcut only shows
 		// for users who can actually open it — everyone else would get a
 		// permission error page, which is worse than no entry.
@@ -2388,86 +2796,31 @@
 	 * viewport is showing, the stored choice otherwise. Search is deliberately
 	 * NOT in `narrow_placement`: it walks a fallback chain, so tearing down the
 	 * top bar drops it into the bottom bar on its own (SEARCH_FALLBACKS). The
-	 * tenants that do NOT walk a chain — bell, user, apps — are the ones the
-	 * narrow preset has to place explicitly, or they resolve to "absent".
+	 * remaining tenants use one structural mobile information architecture;
+	 * per-site switches no longer make primary navigation change shape.
 	 */
 	function active_placement(tenant) {
 		if (is_narrow() && narrow_placement && narrow_placement[tenant]) {
-			// Gated by the user's phone-bar toggle: a tenant switched off stands
-			// down. Search is never in mobile_state, so it is never gated here —
-			// it is the only search on a phone and always present.
-			if (mobile_state && tenant in mobile_state && !mobile_state[tenant]) return "Off";
 			return narrow_placement[tenant];
 		}
 		return (placement_state && placement_state[tenant]) || "";
 	}
 
-	/**
-	 * Tenants that may FALL BACK to the pane's foot when the region they asked
-	 * for is not on this desk. THE USER'S SCREENSHOT (2026-09-08): a bell and an
-	 * avatar placed at "Top Bar End" on a desk with no top bar used to resolve
-	 * "absent", which left Frappe's own "Notification" row under the search and
-	 * its user button at the foot — the right instinct for a CRITICAL tenant (a
-	 * route must survive the setting) aimed at the wrong destination. The pane's
-	 * foot band is that destination now, the page head when the pane is Hidden
-	 * (the same lend a Hidden pane already makes), and the natives return only
-	 * when even those are gone. `start` is not here: it opens the pane, so the
-	 * pane cannot host it.
-	 */
-	const PANE_FALLBACK = new Set(["inbox", "user", "language", "appearance"]);
-
-	/** The page head's cluster is the LEND (inside Frappe's own head), not our page-header container. */
-	function pagehead_is_lend() {
-		return !document.documentElement.hasAttribute("data-bnd-pagehead") &&
-			!!document.querySelector(".page-head .standard-items-section > .bnd-cluster");
-	}
-
-	/** Hidden wanted by the attribute OR by the stored state (the attribute can lag or be flipped). */
-	function sb_pane_hidden_wanted() {
-		if (sb_pane_hidden()) return true;
-		const html = document.documentElement;
-		if (html.hasAttribute("data-bnd-narrow")) return false;
-		const want = sb_state && SB_SLUGS.panestate && SB_SLUGS.panestate[sb_state.panestate];
-		return want === "hidden";
-	}
-
-	/** Where a tenant goes: `{ region, zone }`, region "off" | "absent" | a key. */
-	function resolve_placement(tenant) {
-		const label = active_placement(tenant);
-		if (label === "Off") return { region: "off", zone: "end" };
-		const slot = parse_slot(label);
-		if (!slot.region) return { region: "absent", zone: "end" };
-		// A Hidden pane LENDS its tenants to the page head (argument in _sidebar.scss).
-		if (slot.region === "sidepane" && sb_pane_hidden()) {
-			return host_for("pagehead", "end") ? { region: "pagehead", zone: "end" } : { region: "absent", zone: "end" };
-		}
-		if (host_for(slot.region, slot.zone)) {
-			// The page head is Frappe's own when our page-header container is off, and
-			// the cluster a Hidden pane LENDS into it sits beside the page actions with
-			// no room to centre anything: "Center" there overflowed the page by the
-			// head's padding (the switch matrix, 2026-09-08). It lands at the end.
-			const zone = slot.region === "pagehead" && slot.zone === "center" && pagehead_is_lend() ? "end" : slot.zone || "end";
-			return { region: slot.region, zone };
-		}
-		if (PANE_FALLBACK.has(tenant)) {
-			// "Hidden" from the SETTING as well as the attribute: guard_critical_reach
-			// flips the attribute to "open" for a moment and a later re-apply hides the
-			// pane again, and a bell mounted into that window would ride a hidden
-			// pane down (measured on the settings page, 2026-09-08).
-			const hidden = sb_pane_hidden_wanted();
-			if (!hidden && host_for("sidepane", "end")) return { region: "sidepane", zone: "end" };
-			if (host_for("pagehead", "end")) return { region: "pagehead", zone: "end" };
-		}
-		return { region: "absent", zone: "end" };
-	}
-
 	function placement_for(tenant) {
-		return resolve_placement(tenant).region;
+		const label = active_placement(tenant);
+		if (label === "Off") return "off";
+		const { region, zone } = parse_slot(label);
+		if (!region) return "absent";
+		// A Hidden pane LENDS its tenants to the page head (argument in _sidebar.scss).
+		if (region === "sidepane" && sb_pane_hidden()) return host_for("pagehead", "end") ? "pagehead" : "absent";
+		return host_for(region, zone) ? region : "absent";
 	}
 
 	/** The zone a tenant asked for, for the region it resolved to. */
 	function zone_for(tenant) {
-		return resolve_placement(tenant).zone;
+		const slot = parse_slot(active_placement(tenant));
+		if (slot.region === "sidepane" && sb_pane_hidden()) return "end"; // lent
+		return slot.zone || "end";
 	}
 
 	/**
@@ -2552,16 +2905,44 @@
 	 * which is exactly the question being asked and is cheaper than walking up
 	 * through getComputedStyle.
 	 */
-	function native_pane_usable() {
-		// Ask about the CONTAINER, not the affordance inside it. This runs from
-		// mount_chrome, before Frappe has painted the sidebar's contents — so
-		// testing the bell or the user button answers "not there yet" and the
-		// guard below misfires, refusing Off in every layout. The container is
-		// part of the desk skeleton and exists by then, and it is exactly what
-		// the layout rule targets (_layouts.scss sets `display: none !important`
-		// on it for Dock, beating Frappe's inline `display: block`).
-		const pane = document.querySelector(".body-sidebar-container");
-		return !!(pane && getComputedStyle(pane).display !== "none");
+	function native_pane_usable(tenant) {
+		// This check runs only AFTER ownership was released, so inspect the real
+		// tenant rather than treating a visible container as proof. A compact rail
+		// keeps the container visible while clipping its stock footer; that false
+		// positive removed the last user-menu route. Geometry plus hit-testing asks
+		// the product question directly: can a person actually operate it now?
+		const selectors = {
+			inbox: ".body-sidebar .sidebar-notification .item-anchor, .body-sidebar .sidebar-notification",
+			user: ".body-sidebar .sidebar-user-button",
+		};
+		const control = document.querySelector(selectors[tenant] || "");
+		if (!control || control.offsetParent === null) return false;
+		const style = getComputedStyle(control);
+		const rect = control.getBoundingClientRect();
+		if (
+			style.display === "none" || style.visibility === "hidden" ||
+			style.pointerEvents === "none" || rect.width < 20 || rect.height < 20 ||
+			rect.right <= 0 || rect.bottom <= 0 || rect.left >= innerWidth || rect.top >= innerHeight
+		) return false;
+		const hit = document.elementFromPoint(
+			Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / 2)),
+			Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / 2))
+		);
+		return !!(hit && (control === hit || control.contains(hit) || hit.contains(control)));
+	}
+
+	/** A registry-declared alternate route to a critical tenant is usable. */
+	function critical_fallback_usable(tenant) {
+		const critical = (window.frappe && frappe.boot && frappe.boot.bnd_critical) || [];
+		const selector = critical.find((item) => item.key === tenant)?.fallback;
+		if (!selector) return false;
+		return [...document.querySelectorAll(selector)].some((node) => {
+			if (node.closest(".body-sidebar-container") || node.offsetParent === null) return false;
+			const style = getComputedStyle(node);
+			const rect = node.getBoundingClientRect();
+			return style.display !== "none" && style.visibility !== "hidden" &&
+				style.pointerEvents !== "none" && rect.width >= 24 && rect.height >= 24;
+		});
 	}
 
 /**
@@ -2613,10 +2994,7 @@ function sb_zone_anchor(pane, zone, node) {
 	// Our end tenants become band cells.
 	if (zone === "end" && node.getAttribute) {
 		const part = node.getAttribute("data-bnd-part");
-		// Every End-zone tenant lives in the foot card. This was a list of four and
-		// item 44 added two: the band-order guard in build.mjs derives the same set
-		// from registry.py, so a tenant missing here lands loose under the card.
-		if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
+		if (part === "bell" || part === "user" || part === "home" || part === "apps") {
 			return sb_band(pane).appendChild(node);
 		}
 	}
@@ -2703,12 +3081,8 @@ function sb_zone_anchor(pane, zone, node) {
 	// REGISTRY ORDER, not append-at-the-end: `registry.default_desk_order()` reads
 	// the components table top to bottom and `start` sits before `apps` there, so
 	// spelling it last here would be a second copy that disagrees about ties.
-	// Registry order (default_desk_order): the language switch and the Appearance
-	// button come LAST, so an end cluster reads bell, avatar, language, appearance -
-	// beside the density segment the bar draws at its trailing edge (item 44). A
-	// stored order that predates them appends them, which is the same place.
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps", "language", "appearance"];
-	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start", language: "language", appearance: "appearance" };
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps"];
+	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
 
 	function desk_order_rank() {
 		const stored = String((placement_state && placement_state.order) || "")
@@ -2783,17 +3157,14 @@ function sb_zone_anchor(pane, zone, node) {
 		// every route to the user menu means no log out, no theme switch and no
 		// session defaults.
 		for (const [tenant, token, cls, build] of [
-			["inbox", "bell", "bnd-bell", build_bell],
+			// User comes first because, on a phone, its Account panel is the
+			// registry-declared fallback route to Notifications.
 			["user", "user", "bnd-avatar-btn", build_user],
+			["inbox", "bell", "bnd-bell", build_bell],
 			// The start button (item 42, slice 7). It replaces no native, so its
 			// token is its own and releasing it costs nothing — the pane keeps its
 			// handle and Frappe's page-title toggle either way.
 			["start", "start", "bnd-sb-start", build_start],
-			// Item 44. Neither replaces a native; the language switch may decline to
-			// build at all (one enabled language is no choice), which build() says
-			// by returning null.
-			["language", "language", "bnd-language-btn", build_language],
-			["appearance", "appearance", "bnd-appearance-btn", build_appearance],
 		]) {
 			const region = placement_for(tenant);
 			// The panel stamp follows the OUTCOME of every branch below: only a
@@ -2828,6 +3199,9 @@ function sb_zone_anchor(pane, zone, node) {
 				return !!head && !!current_page && !current_page.contains(head);
 			};
 			const existing = [...document.querySelectorAll("." + cls)].filter((n) => !in_another_page(n));
+			// A bar can survive a breakpoint crossing. Reconcile the user control's
+			// mobile Account semantics even when it did not need rebuilding.
+			if (tenant === "user") existing.forEach(sync_user_button);
 
 			// Asked for a region this desk does not have: leave whatever is
 			// already there exactly where it is, and keep claiming it if it is
@@ -2856,7 +3230,16 @@ function sb_zone_anchor(pane, zone, node) {
 				// data-bnd-own). The first version of this guard did exactly
 				// that and turned Off into a no-op in every layout.
 				bnd_disown(token);
-				if (existing.length && !native_pane_usable()) {
+				// A composite control can be the honest replacement too. On mobile,
+				// Account exposes Notifications and carries the unread badge, so keep
+				// the native drawer bell hidden and remove the redundant fifth item.
+				if (critical_fallback_usable(tenant)) {
+					for (const node of existing) node.remove();
+					bnd_own(token);
+					stamp("bottombar");
+					continue;
+				}
+				if (existing.length && !native_pane_usable(tenant)) {
 					// Releasing brought nothing back, so keep ONE of ours and
 					// claim it again. Keeping one rather than all is the other
 					// half of the fix: before, "Off" with three containers on
@@ -2891,19 +3274,7 @@ function sb_zone_anchor(pane, zone, node) {
 			// pane is Frappe's DOM and this theme does not redraw it.
 			const zone = zone_for(tenant);
 			if (!keeper) {
-				// A builder that THROWS must not strand the tenants after it in this
-				// loop with their natives unowned — one bad build used to leave the
-				// whole foot to Frappe. The tenant stands down; the error is reported.
-				let node = null;
-				try {
-					node = build();
-				} catch (e) {
-					console.error("bunood: " + tenant + " did not build", e);
-				}
-				if (!node) {
-					stamp("");
-					continue;
-				}
+				const node = build();
 				node.setAttribute("data-bnd-zone", zone);
 				if (region === "sidepane") sb_zone_anchor(host, zone, node);
 				else host.appendChild(node);
@@ -2936,28 +3307,31 @@ function sb_zone_anchor(pane, zone, node) {
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
+	function sync_start_toggle(button, expanded) {
+		if (!button) return;
+		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+		button.setAttribute("aria-expanded", expanded ? "true" : "false");
+		button.setAttribute("aria-label", label);
+		button.title = label;
+	}
+
 	/** The start button — argument in _sidebar.scss. */
 	function build_start() {
-		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
+		const expanded = document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
+		const btn = el("button", "bnd-icon-btn bnd-sb-start bnd-sidebar-toggle", {
 			type: "button",
 			"data-bnd-part": "start",
-			"aria-label": __("Menu"),
-			title: __("Menu"),
+			"aria-controls": (sidebar && sidebar.id) || "bnd-primary-sidebar",
 			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
 			// that was plainly open as collapsed until the first click corrected it —
 			// and the first click is exactly when a screen-reader user has already
 			// been told the wrong thing.
-			"aria-expanded":
-				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false",
+			"aria-expanded": expanded ? "true" : "false",
 		});
-		const mark = el("span", "bnd-sb-start-mark");
-		if (frappe.boot.bnd_logo) {
-			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-		} else {
-			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		}
-		btn.appendChild(mark);
+		btn.innerHTML = BND_PANEL_SVG;
+		sync_start_toggle(btn, expanded);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			bunood.pane_toggle();
@@ -2969,174 +3343,18 @@ function sb_zone_anchor(pane, zone, node) {
 	bunood.pane_toggle = function () {
 		if (!sb_state) return;
 		const html = document.documentElement;
+		const container = document.querySelector(".body-sidebar-container");
+		// In Rail, the bar's Menu control is the rail control. Reuse it instead
+		// of creating a second button or changing the saved pane state.
+		if (html.getAttribute("data-bnd-sb-panestate") === "rail" && !is_narrow() && container?._bnd_toggle_rail) {
+			container._bnd_toggle_rail();
+			return;
+		}
 		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
 		bunood.pane_state(away ? "Open" : "Hidden");
 		for (const b of document.querySelectorAll(".bnd-sb-start")) {
-			b.setAttribute("aria-expanded", away ? "true" : "false");
+			sync_start_toggle(b, away);
 		}
-	};
-
-	// ── The language switch and the Appearance button (item 44) ──────────
-	//
-	// A PLACEABLE TENANT like the bell, replacing no native: Frappe keeps a user's
-	// language behind My Settings and offers no desk affordance for it. What it
-	// offers is the languages ENABLED in the Language list (boot.bnd_language), the
-	// same set My Settings offers: exactly two make it a one-click toggle to the
-	// OTHER language, named in its own script so the person who needs it can read
-	// it; more make it a menu marking the current one. Switching writes
-	// User.language through the theme's endpoint (an ordinary role cannot save its
-	// own User doc) and reloads: a language change needs new translations and the
-	// matching LTR/RTL bundle, which no in-page apply can deliver.
-	//
-	// How it draws itself is `language_style` (Globe · Code · Name · Globe + Code ·
-	// Globe + Name), applied as `data-bnd-language-style` on <html>; the button
-	// always carries all three parts and the stylesheet shows the chosen ones, so a
-	// style change is an attribute, not a rebuild. In the pane's foot band and the
-	// rail a 36px cell cannot hold a word, so Name shrinks to Code there
-	// (_sidebar.scss).
-	const LANGUAGE_STYLE_SLUGS = { "Globe": "globe", "Code": "code", "Name": "name", "Globe + Code": "globe-code", "Globe + Name": "globe-name" };
-
-	function language_state() {
-		const b = (window.frappe && frappe.boot && frappe.boot.bnd_language) || {};
-		const current = String(b.current || (frappe.boot && frappe.boot.lang) || "en");
-		const languages = Array.isArray(b.languages) ? b.languages.filter((l) => l && l.code) : [];
-		return { style: b.style || "Globe", current, languages };
-	}
-
-	function apply_language_attrs(v) {
-		const slug = LANGUAGE_STYLE_SLUGS[(v && v.style) || "Globe"] || "globe";
-		document.documentElement.setAttribute("data-bnd-language-style", slug);
-	}
-
-	/** The base of a code ("ar" of "ar-SA"), which is how the pair is compared. */
-	function language_base(code) {
-		return String(code || "").split(/[-_]/)[0];
-	}
-
-	function language_dir(code) {
-		const rtl = (frappe.boot && frappe.boot.bnd_rtl_langs) || [];
-		return rtl.includes(language_base(code)) ? "rtl" : "ltr";
-	}
-
-	/** Toggle or menu: the two-language case offers the OTHER one directly. */
-	function language_pair() {
-		const { current, languages } = language_state();
-		const cur = language_base(current);
-		const others = languages.filter((l) => language_base(l.code) !== cur);
-		const here = languages.find((l) => language_base(l.code) === cur) || null;
-		const toggle = languages.length === 2 && others.length === 1;
-		return { languages, others, here, toggle, cur };
-	}
-
-	let language_switch_pending = false;
-	async function switch_language(code) {
-		if (language_switch_pending || !code) return;
-		// Unsaved edits would be lost to the reload: say so instead of losing them.
-		const dirty = Object.values(window.locals || {}).some((records) =>
-			Object.values(records || {}).some((doc) => doc && doc.__unsaved && !doc.parenttype)
-		);
-		if (dirty) {
-			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
-			return;
-		}
-		language_switch_pending = true;
-		const buttons = [...document.querySelectorAll('[data-bnd-part="language"]')];
-		for (const b of buttons) {
-			b.disabled = true;
-			b.setAttribute("aria-busy", "true");
-		}
-		try {
-			const r = await frappe.call({
-				method: "bunood_theme.api.set_language",
-				args: { code },
-				freeze: true,
-				freeze_message: __("Switching language..."),
-			});
-			if (!r || !r.message || r.message.language !== code) throw new Error("language not written");
-			window.location.reload();
-		} catch (e) {
-			frappe.msgprint(__("Could not switch language. Please try again."));
-			language_switch_pending = false;
-			for (const b of buttons) {
-				b.disabled = false;
-				b.removeAttribute("aria-busy");
-			}
-		}
-	}
-
-	/** Menu entries: a direct switch for two languages, else the list with the current marked. */
-	function language_menu_items() {
-		const { languages, others, toggle, cur } = language_pair();
-		if (languages.length < 2) return [];
-		if (toggle) {
-			return [{ label: __("Switch to {0}", [others[0].name]), icon: "icon-globe", run: () => switch_language(others[0].code) }];
-		}
-		return languages.map((l) => {
-			const checked = language_base(l.code) === cur;
-			return { label: l.name, icon: checked ? "icon-check" : undefined, checked, run: () => (checked ? null : switch_language(l.code)) };
-		});
-	}
-
-	function build_language() {
-		const { languages, others, here, toggle } = language_pair();
-		if (languages.length < 2) return null; // one language is no choice: the tenant stands down
-		// A toggle SHOWS the other language (where you would go); a menu shows the
-		// current one (where you are), and its list does the offering.
-		const shown = toggle ? others[0] : here || languages[0];
-		const attrs = { type: "button", "data-bnd-part": "language" };
-		if (toggle) {
-			attrs["aria-label"] = __("Switch to {0}", [shown.name]);
-			attrs.title = attrs["aria-label"];
-		} else {
-			attrs["aria-label"] = __("Language");
-			attrs.title = __("Language");
-			attrs["aria-haspopup"] = "menu";
-		}
-		const btn = el("button", "bnd-icon-btn bnd-language-btn", attrs);
-		const ico = el("span", "bnd-lang-ico");
-		ico.appendChild(sprite_icon("icon-globe"));
-		btn.appendChild(ico);
-		const code = el("span", "bnd-lang-code", { "aria-hidden": "true" });
-		code.textContent = language_base(shown.code).slice(0, 2).toUpperCase();
-		btn.appendChild(code);
-		// Only the autonym changes script; the accessible name stays in the UI's language.
-		const name = el("span", "bnd-lang-name", { lang: shown.code, dir: language_dir(shown.code), "aria-hidden": "true" });
-		name.textContent = shown.name;
-		btn.appendChild(name);
-		if (toggle) {
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				switch_language(others[0].code);
-			});
-		} else {
-			menu_trigger(btn);
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				show_menu(btn, language_menu_items());
-			});
-		}
-		return btn;
-	}
-
-	function build_appearance() {
-		const btn = el("button", "bnd-icon-btn bnd-appearance-btn", {
-			type: "button",
-			"data-bnd-part": "appearance",
-			"aria-label": __("Appearance"),
-			title: __("Appearance"),
-			"aria-haspopup": "dialog",
-		});
-		btn.appendChild(sprite_icon("icon-monitor"));
-		btn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			bunood.appearance();
-		});
-		return btn;
-	}
-
-	/** Live preview from the settings form (theme_settings.js): the style only. */
-	bunood.language_apply = function (values) {
-		apply_language_attrs({ style: (values && values.language_style) || "Globe" });
 	};
 
 	function build_bell() {
@@ -3155,6 +3373,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// unread rows a user has (measured with 2 unread + seen:0). See the
 		// inbox kit below; inbox_mount_badge fills this node.
 		bell.appendChild(el("span", "bnd-inbox-badge", { hidden: "" }));
+		const label = el("span", "bnd-mobile-nav-label");
+		label.textContent = __("Notifications");
+		bell.appendChild(label);
 		bell.addEventListener("click", (e) => {
 			// The proxy opens the panel synchronously; without this, OUR click
 			// then bubbles to Frappe's document-level outside-click closer —
@@ -3350,9 +3571,19 @@ function sb_zone_anchor(pane, zone, node) {
 				const hint = el("kbd", "bnd-acct-kbd");
 				hint.textContent = item.kbd;
 				row.appendChild(hint);
+			} else if (item.badge) {
+				const badge = el("span", "bnd-acct-item-badge");
+				badge.textContent = item.badge;
+				row.appendChild(badge);
 			}
-			row.addEventListener("click", () => {
-				close_acct(false);
+			row.addEventListener("click", (event) => {
+				// Account actions can open another overlay synchronously. Keep this
+				// originating click away from Frappe's document-level closers.
+				event.stopPropagation();
+				// Restore the stable Account trigger before running the action. If
+				// that action opens another dialog, it becomes the connected element
+				// focus returns to when the second dialog closes.
+				close_acct(true);
 				try {
 					item.run && item.run();
 				} catch (e) {
@@ -3413,6 +3644,21 @@ function sb_zone_anchor(pane, zone, node) {
 	 * Frappe's own, which is why `user` is the sharpest ownership token.
 	 * @returns {HTMLElement}
 	 */
+	function sync_user_button(avatar) {
+		const mobile = is_narrow();
+		avatar.setAttribute("aria-label", mobile ? __("Account") : __("User menu"));
+		avatar.toggleAttribute("data-bnd-inbox-route", mobile);
+		let badge = avatar.querySelector(":scope > .bnd-inbox-badge");
+		if (mobile && !badge) {
+			badge = el("span", "bnd-inbox-badge", { hidden: "" });
+			avatar.appendChild(badge);
+		} else if (!mobile && badge) {
+			badge.remove();
+		}
+		const label = avatar.querySelector(":scope > .bnd-mobile-nav-label");
+		if (label) label.textContent = mobile ? __("Account") : __("Profile");
+	}
+
 	function build_user() {
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
@@ -3420,6 +3666,10 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": __("User menu"),
 		});
 		avatar.innerHTML = user_avatar_html();
+		const label = el("span", "bnd-mobile-nav-label");
+		label.textContent = __("Profile");
+		avatar.appendChild(label);
+		sync_user_button(avatar);
 		avatar.setAttribute("aria-haspopup", "dialog");
 		avatar.setAttribute("aria-expanded", "false");
 		avatar.addEventListener("click", (e) => {
@@ -3860,10 +4110,17 @@ function sb_zone_anchor(pane, zone, node) {
 	 * with the split.
 	 */
 	function search_fallback_order() {
-		// THE DEFAULT IS THE SHIPPED DESK'S, and it is reached often: `layout()`
-		// answers "" for any shape no card names, which is every desk that has
-		// customised a container — the honest majority, not an edge case.
-		return SEARCH_FALLBACKS[layout()] || SEARCH_FALLBACKS.unifiedsidepane;
+		const named = SEARCH_FALLBACKS[layout()];
+		if (named) return named;
+		// A custom composition has no catalogue name. Resolve it from the live
+		// containers instead of pretending it is a top taskbar: an available side
+		// pane is the least intrusive home when no top bar or dock exists, while a
+		// bottom-only shell remains the final fail-open route.
+		if (container_on("dock")) return SEARCH_FALLBACKS.floatingbar;
+		if (container_on("topbar")) return SEARCH_FALLBACKS.toptaskbar;
+		if (container_on("sidepane")) return SEARCH_FALLBACKS.unifiedsidepane;
+		if (container_on("bottombar")) return SEARCH_FALLBACKS.taskbar;
+		return SEARCH_FALLBACKS.toptaskbar;
 	}
 
 	/** The container a slot needs, or null when this layout has no such bar. */
@@ -3993,6 +4250,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (slot === "sbtop" || slot === "sbbottom") {
 			for (const stray of document.querySelectorAll(".bnd-search-field, .bnd-search-icon")) stray.remove();
 			bnd_disown("search");
+			sync_desktop_shell();
 			return;
 		}
 
@@ -4007,6 +4265,7 @@ function sb_zone_anchor(pane, zone, node) {
 				host.insertBefore(build_search_icon(), host.firstChild);
 			}
 			bnd_own("search");
+			sync_desktop_shell();
 			return;
 		}
 		for (const stray of document.querySelectorAll(".bnd-search-icon")) stray.remove();
@@ -4033,6 +4292,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// that hides Frappe's own search row, so it must not run a moment
 		// earlier than the replacement actually existing.
 		bnd_own("search");
+		sync_desktop_shell();
 	}
 
 	// ── Top bar ─────────────────────────────────────────────────────────────
@@ -4060,6 +4320,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// leading edge. That regression shipped in the first cut of item 14.
 		bar.appendChild(el("div", "bnd-search-center"));
 		reserve_cluster(bar);
+		zone_in(bar, "end").appendChild(build_language_button());
 		header.appendChild(bar);
 		// Stamped only now, with the bar in the document — the whole point of
 		// keying the stylesheet on the outcome. Everything above this line can
@@ -4322,11 +4583,20 @@ function sb_zone_anchor(pane, zone, node) {
 		// existing cluster, returned success, and the incoming page never
 		// got one at all: no cluster, no bell, no badge, indefinitely.
 		const outgoing = frappe.container && frappe.container.page;
-		const wait_for_swap = !!(outgoing && outgoing.querySelector(".bnd-cluster"));
+		const outgoing_cluster = outgoing && outgoing.querySelector(".bnd-cluster");
+		const wait_for_swap = !!outgoing_cluster;
 		try_for(() => {
 			const page = frappe.container && frappe.container.page;
 			if (!page) return false;
-			if (wait_for_swap && page === outgoing) return false;
+			// List-to-list navigation can reuse the SAME page object and replace
+			// its head in place. Waiting only for object identity therefore waits
+			// forever and leaves the new list without a cluster. Wait while the
+			// actual outgoing cluster is connected; once Frappe detaches it, the
+			// reused page is a valid incoming host.
+			if (wait_for_swap && page === outgoing && outgoing_cluster.isConnected) {
+				inbox_ensure_badges();
+				return false;
+			}
 			const section = page.querySelector(".page-head .standard-items-section");
 			if (!section) return false;
 			if (section.querySelector(".bnd-cluster")) {
@@ -4335,6 +4605,8 @@ function sb_zone_anchor(pane, zone, node) {
 				// cluster must re-assert the attribute, or a navigation away
 				// and back leaves the stylesheet believing there is no cluster.
 				container_mounted("pagehead");
+				mount_placed_tenants();
+				inbox_ensure_badges();
 				return true;
 			}
 			section.appendChild(el("span", "bnd-cluster-divider"));
@@ -4410,6 +4682,22 @@ function sb_zone_anchor(pane, zone, node) {
 	 * is locale-tolerant here because workspace titles arrive in boot already
 	 * in the user's locale, same as the crumb label Frappe renders from them.
 	 */
+	function install_breadcrumb_context_fallback(breadcrumbs) {
+		if (!breadcrumbs || typeof breadcrumbs.set_workspace !== "function" || breadcrumbs._bnd_workspace_wrapped) return;
+		const native_set_workspace = breadcrumbs.set_workspace;
+		breadcrumbs.set_workspace = function (context) {
+			const result = native_set_workspace.apply(this, arguments);
+			if (theme_active() && context?.doctype && !context.workspace && this.last_route?.[0] === "Workspaces") {
+				// Cross-module origin: delegate native fallback without changing history.
+				const fallback = Object.create(this);
+				Object.defineProperty(fallback, "last_route", { value: undefined });
+				native_set_workspace.call(fallback, context);
+			}
+			return result;
+		};
+		breadcrumbs._bnd_workspace_wrapped = true;
+	}
+
 	function decorate_crumbs() {
 		const workspaces = (frappe.boot && frappe.boot.allowed_workspaces) || [];
 		const slug = (name) =>
@@ -4433,6 +4721,8 @@ function sb_zone_anchor(pane, zone, node) {
 			let resolved = false;
 
 			for (const trail of trails) {
+				const current_link = trail.querySelector("li:last-child > a");
+				if (current_link) current_link.setAttribute("aria-current", "page");
 				// 1. Resolution (always) — find the workspace crumb.
 				let ws_link = null;
 				let ws = null;
@@ -4886,9 +5176,14 @@ function sb_zone_anchor(pane, zone, node) {
 	 * so the palette shows the same "why it matched" the stock bar would.
 	 */
 	function pal_row(opt, species, txt) {
-		let marked = opt.label || opt.value || "";
+		// Frappe's search options retain stable English values for routing. Paint
+		// the localized label, and run highlighting over that presentation string;
+		// otherwise fuzzy_search replaces a translated label with its English
+		// marked_string (for example "Item" on an Arabic palette).
+		const display = __(opt.label || opt.value || "");
+		let marked = frappe.utils.escape_html(display);
 		if (txt && frappe.search.utils.fuzzy_search) {
-			const scored = frappe.search.utils.fuzzy_search(txt, opt.value || "", true);
+			const scored = frappe.search.utils.fuzzy_search(txt, display, true);
 			if (scored && scored.marked_string) marked = scored.marked_string;
 		}
 		const plain = opt.value || opt.label || "";
@@ -4969,12 +5264,16 @@ function sb_zone_anchor(pane, zone, node) {
 			// consume every key and leave Recent permanently empty (release
 			// review v0.7.0..HEAD). pal_row already added the frecency boost
 			// — no second pass, or the documented cap doubles.
-			// Dedupe WITHIN each group as well as across: frappe.route_history
-			// is appended per navigation with no dedupe, so revisiting a list
-			// twice would otherwise render it twice and eat the cap.
+			// Dedupe WITHIN each group as well as across. Use the visible label,
+			// not only the route: v16 emits one frequent-link option per view
+			// (`List/Item/List` and `List/Item/Image`) but labels both "Item
+			// List". Two indistinguishable rows are not two useful choices; keep
+			// the higher-ranked one. The key remains the fallback for icon-only
+			// or otherwise unlabeled options.
+			const identity = (row) => row.marked || row.plain || row.key;
 			const uniq = (rows) => {
 				const seen = new Set();
-				return rows.filter((r) => !seen.has(r.key) && seen.add(r.key));
+				return rows.filter((r) => !seen.has(identity(r)) && seen.add(identity(r)));
 			};
 			// Dedupe by what the row READS too, not only by where it goes:
 			// get_frequent_links labels both List/ToDo/Calendar/default and
@@ -4993,10 +5292,10 @@ function sb_zone_anchor(pane, zone, node) {
 				.sort((a, b) => b.index - a.index)
 				.filter(unseen(new Set()))
 				.slice(0, 5);
-			const kept = new Set(frequents.map((r) => r.key));
+			const kept = new Set(frequents.map(identity));
 			const shown = new Set(frequents.map(reads));
 			const recents = uniq(pal_source("get_recent_pages", "").map((o) => pal_row(o, "recent", "")))
-				.filter((r) => !kept.has(r.key))
+				.filter((r) => !kept.has(identity(r)))
 				.sort((a, b) => b.index - a.index)
 				.filter(unseen(shown))
 				.slice(0, 7);
@@ -5057,6 +5356,20 @@ function sb_zone_anchor(pane, zone, node) {
 	 * for X"). Calculator included: same convenience as stock, but behind a
 	 * strict arithmetic whitelist instead of a raw eval.
 	 */
+	function pal_open_global_search(txt) {
+		let search = frappe.searchdialog && frappe.searchdialog.search;
+		// Toolbar.setup_help() now skips construction when notifications are
+		// disabled. The SearchDialog class is still shipped; create it only when
+		// the user asks for the fallback instead of silently dropping the row.
+		if (!search && frappe.search && frappe.search.SearchDialog) {
+			search = new frappe.search.SearchDialog();
+			frappe.provide("frappe.searchdialog");
+			frappe.searchdialog.search = search;
+		}
+		if (search && search.open_global_search_dialog) search.open_global_search_dialog(txt);
+		else if (search && search.init_search) search.init_search(txt, "global_search");
+	}
+
 	function pal_fallbacks(txt) {
 		const rows = [];
 		if (!txt || !parseInt(pal_state.fallbacks, 10)) return rows;
@@ -5089,7 +5402,7 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 		}
 		// Global search hand-off: proxy to Frappe's own full-text dialog.
-		if (frappe.searchdialog && frappe.searchdialog.search) {
+		if ((frappe.searchdialog && frappe.searchdialog.search) || (frappe.search && frappe.search.SearchDialog)) {
 			rows.push({
 				species: "fallback",
 				// Typographic quotes, not escaped ASCII ones. Every regex-based
@@ -5101,7 +5414,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// extracted msgid and the runtime key agree again.
 				marked: frappe.utils.escape_html(__("Search all documents for “{0}”", [txt])),
 				plain: txt,
-				onclick: () => frappe.searchdialog.search.init_search(txt, "global_search"),
+				onclick: () => pal_open_global_search(txt),
 				key: "",
 				index: 0,
 			});
@@ -5253,11 +5566,10 @@ function sb_zone_anchor(pane, zone, node) {
 		item.addEventListener("mousemove", () => pal_highlight(flat_index));
 		item.addEventListener("mousedown", (ev) => {
 			ev.preventDefault();
-			pal_execute(row, ev.ctrlKey || ev.metaKey);
 		});
-		// Click too: assistive tech that synthesises activation sends a plain
-		// click, not the mousedown the pointer path uses. Idempotent — the
-		// mousedown's preventDefault means a real pointer never fires both.
+		// Execute only after mouse-up. Removing the palette on mouse-down
+		// exposes the underlying dashboard to the remainder of the click.
+		// This also gives assistive activation the same single action path.
 		item.addEventListener("click", (ev) => {
 			ev.preventDefault();
 			pal_execute(row, ev.ctrlKey || ev.metaKey);
@@ -5574,16 +5886,30 @@ function sb_zone_anchor(pane, zone, node) {
 	 * styles itself — pal_invoke opens our shell or the native modal. If
 	 * boot carried nothing, we never touch the binding and stock survives.
 	 */
+	let palette_mounted = false;
 	function mount_palette() {
-		if (!pal_state) return;
-		if (frappe.ui && frappe.ui.keys && frappe.ui.keys.add_shortcut) {
-			frappe.ui.keys.add_shortcut({
-				shortcut: "ctrl+k",
-				action: () => pal_invoke(),
-				description: __("Open the command palette"),
-				ignore_inputs: true,
-			});
-		}
+		if (!pal_state || palette_mounted) return;
+		palette_mounted = true;
+		// Frappe registers its standard shortcuts after app_include_js has
+		// loaded. add_shortcut() removes the previous callback for a combo, so
+		// registering here was only temporarily correct: Frappe's later Ctrl+K
+		// registration silently replaced ours on every real desk load. Own the
+		// gesture at the capture boundary instead. This also prevents the base
+		// input handler from opening the native awesomebar behind our shell when
+		// focus is inside a dialog. Original/Refined still call Frappe's own
+		// function through pal_invoke, so their behaviour remains native.
+		document.documentElement.dataset.bndPaletteKey = "1";
+		document.addEventListener(
+				"keydown",
+				(ev) => {
+					if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) return;
+					if (String(ev.key || "").toLowerCase() !== "k") return;
+					ev.preventDefault();
+					ev.stopImmediatePropagation();
+					pal_invoke();
+				},
+				true
+			);
 		// The native sidebar search row stays visible in Classic/Compact;
 		// route its clicks through the same decision point. Capture phase,
 		// so Frappe's own handler never races us while the shell is active.
@@ -5617,6 +5943,11 @@ function sb_zone_anchor(pane, zone, node) {
 			true
 		);
 	}
+
+	// Shortcut ownership is independent of visual chrome. Bind from boot as
+	// soon as the bundle is evaluated; waiting for the asynchronous desk-shell
+	// mount coupled Ctrl+K to unrelated sidebar work on cold loads.
+	mount_palette();
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Notification centre kit (item 13)
@@ -5655,7 +5986,6 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	apply_inbox_attrs(inbox_state);
-	apply_language_attrs(language_state());
 
 	/** True when OUR panel owns the bell (inbox / page styles). */
 	function inbox_active() {
@@ -5706,6 +6036,14 @@ function sb_zone_anchor(pane, zone, node) {
 				inbox_unread > 0
 					? __("Notifications") + " — " + __("Unread: {0}", [String(inbox_unread)])
 					: __("Notifications")
+			);
+		}
+		for (const account of document.querySelectorAll('.bnd-avatar-btn[data-bnd-inbox-route]')) {
+			account.setAttribute(
+				"aria-label",
+				inbox_unread > 0
+					? __("Account") + " — " + __("Unread: {0}", [String(inbox_unread)])
+					: __("Account")
 			);
 		}
 		// Announce the change too: marking rows read gives no visual feedback
@@ -6284,7 +6622,10 @@ function sb_zone_anchor(pane, zone, node) {
 	 * the skin on the way). Mirrors pal_invoke.
 	 */
 	function inbox_invoke() {
-		if (inbox_active() && frappe.xcall) {
+		// On phones Account is the sole Notifications route and Frappe's native
+		// trigger lives in chrome we intentionally suppress. Always use the
+		// responsive Bunood panel there, regardless of the desktop skin choice.
+		if ((inbox_active() || is_narrow()) && frappe.xcall) {
 			inbox_open_panel();
 			return;
 		}
@@ -6329,29 +6670,45 @@ function sb_zone_anchor(pane, zone, node) {
 	 * So stop guessing when: react to the DOM itself. Idempotent, cheap
 	 * (one paint per frame), and correct for every layout and page type.
 	 */
+	let inbox_observer = null;
 	function inbox_observe() {
-		if (!inbox_state || !window.MutationObserver) return;
-		const observer = new MutationObserver((records) => {
+		if (!inbox_state || !window.MutationObserver || inbox_observer) return;
+		inbox_observer = new MutationObserver((records) => {
 			if (inbox_paint_queued) return;
 			for (const record of records) {
 				for (const node of record.addedNodes) {
 					if (node.nodeType !== 1) continue;
+					// Frappe can replace the complete native notification row
+					// after our initial retry has already decorated the outgoing
+					// one. React to that host arriving as well as to our own badge
+					// arriving; otherwise Classic and an "Off" placed bell lose
+					// the count permanently on cold loads and route changes.
+					const native_arrived =
+						(node.matches && node.matches(".sidebar-notification, .sidebar-notification .item-anchor")) ||
+						(node.querySelector && node.querySelector(".sidebar-notification .item-anchor"));
 					if (
+						native_arrived ||
 						node.classList.contains("bnd-inbox-badge") ||
 						node.querySelector(".bnd-inbox-badge")
 					) {
 						inbox_paint_queued = true;
 						requestAnimationFrame(() => {
 							inbox_paint_queued = false;
-							inbox_paint_badge();
+							inbox_ensure_badges();
 						});
 						return;
 					}
 				}
 			}
 		});
-		observer.observe(document.body, { childList: true, subtree: true });
+		inbox_observer.observe(document.body, { childList: true, subtree: true });
 	}
+
+	// Badge continuity is a DOM lifecycle concern, independent of the chosen
+	// chrome. Watch before Frappe constructs or replaces its native row; the
+	// deferred pass also covers a row that already exists at bundle time.
+	inbox_observe();
+	setTimeout(() => inbox_ensure_badges(), 0);
 
 	/**
 	 * Arrival tiering: an approval that blocks a document earns an
@@ -6375,8 +6732,10 @@ function sb_zone_anchor(pane, zone, node) {
 	 * realtime event, and tier arrival toasts. Registered only when boot
 	 * delivered the kit, so a boot failure leaves stock behaviour intact.
 	 */
+	let inbox_mounted = false;
 	function mount_inbox() {
-		if (!inbox_state) return;
+		if (!inbox_state || inbox_mounted) return;
+		inbox_mounted = true;
 		// The sidebar renders a beat after the shell, so the native bell may
 		// not exist yet; retry like every other late-mounting anchor.
 		try_for(() => {
@@ -6434,6 +6793,12 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
+	// The native Classic bell and realtime/router hooks do not depend on a
+	// themed container. Register them from boot immediately, just like the
+	// palette shortcut, so a delayed chrome mount cannot leave a painted bell
+	// that still opens the wrong panel.
+	mount_inbox();
+
 	// ── Dock ────────────────────────────────────────────────────────────────
 
 	/** How many workspaces get a first-class dock slot before the overflow. */
@@ -6456,7 +6821,7 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
 		});
 		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-		brand.addEventListener("click", () => frappe.set_route(""));
+		brand.addEventListener("click", go_home);
 		dock.appendChild(brand);
 
 		const slug = (name) =>
@@ -6648,7 +7013,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the layout has hidden must not claim the current page from nowhere. */
 	function sb_mark_current() {
 		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
-			n.removeAttribute("aria-current");
+			if (!n.closest(".bnd-compact-nav")) n.removeAttribute("aria-current");
 		}
 		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
 		const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
@@ -6675,7 +7040,14 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!sidebar) return;
 		// Brand row, then place row (item 42) — argument in _sidebar.scss.
 		if (!sidebar.querySelector(".bnd-sb-brand")) {
-			const brand = el("div", "bnd-sb-brand");
+			// The brand is the pane's single, durable route to the dashboard. It
+			// remains a named 40px target when the pane becomes an icon rail, so a
+			// collapsed sidebar never turns the identity mark into dead decoration.
+			const brand = el("button", "bnd-sb-brand", {
+				type: "button",
+				title: __("Dashboard"),
+				"aria-label": __("Dashboard"),
+			});
 			const mark = el("span", "bnd-sb-brand-mark");
 			if (frappe.boot.bnd_logo) {
 				mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
@@ -6687,6 +7059,9 @@ function sb_zone_anchor(pane, zone, node) {
 			const company = el("span", "bnd-sb-brand-name");
 			company.textContent = frappe.boot.bnd_company || __("Home");
 			brand.appendChild(company);
+			brand.addEventListener("click", go_home);
+			sidebar.insertBefore(brand, sidebar.firstChild);
+			// The way out (v0.42.1). A sibling, not a child: the brand row is a button.
 			const hide = el("button", "bnd-icon-btn bnd-sb-brand-hide", {
 				type: "button",
 				title: __("Hide the side pane"),
@@ -6697,8 +7072,7 @@ function sb_zone_anchor(pane, zone, node) {
 				e.stopPropagation();
 				bunood.pane_state("Hidden");
 			});
-			brand.appendChild(hide);
-			sidebar.insertBefore(brand, sidebar.firstChild);
+			brand.insertAdjacentElement("afterend", hide);
 		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
@@ -6746,7 +7120,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const name = el("span", "bnd-sb-brand-name");
 		name.textContent = frappe.boot.bnd_company || __("Home");
 		home.appendChild(name);
-		home.addEventListener("click", () => frappe.set_route(""));
+		home.addEventListener("click", go_home);
 		wrap.appendChild(home);
 		const show = el("button", "bnd-icon-btn bnd-ph-show", {
 			type: "button",
@@ -6796,7 +7170,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const name = document.querySelector(".bnd-sb-head .bnd-sb-head-name");
 		if (!name) return;
 		const ws = sb_current_workspace;
-		const label = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+		const label = (ws && __(ws.title || ws.name)) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
 		const ico = document.querySelector(".bnd-sb-head .bnd-sb-head-ico");
 		if (ico) {
@@ -6834,13 +7208,15 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
 	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
 	function sb_head_menu() {
+		// `key` is the UNTRANSLATED name the dedupe matches on; `label` is read.
 		const items = [
-			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
+			{ key: "Home", label: __("Home"), icon: "icon-home", run: go_home },
 			{
+				key: "All Apps",
 				label: __("All Apps"),
 				icon: "icon-grid-2x2",
 				run: () => {
-					window.location.href = "/apps";
+					frappe.set_route("desktop");
 				},
 			},
 		];
@@ -6849,14 +7225,17 @@ function sb_zone_anchor(pane, zone, node) {
 		// DIFFERENT routes (/desk and /desk/home, measured) that render the same
 		// page. Two rows a person cannot tell apart are not two choices -- the
 		// rule the command palette's empty state follows one component over.
-		const taken = new Set(items.map((i) => i.label));
+		// UNTRANSLATED BOTH SIDES: built from `__()` labels while the filter tests
+		// `w.title` (English), this matched only on an English desk -- in Arabic
+		// nothing dropped and Home rendered twice. Reported 2026-09-07.
+		const taken = new Set(items.map((i) => i.key));
 		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
 			(w) => !w.parent_page && !taken.has(w.title || w.name)
 		);
 		if (roots.length) items.push("divider");
 		for (const w of roots) {
 			items.push({
-				label: w.title || w.name,
+				label: __(w.title || w.name),
 				icon: ws_symbol(w.icon),
 				image: ws_original_icon(w),
 				run: () => frappe.set_route(ws_route(w.name)),
@@ -6893,28 +7272,66 @@ function sb_zone_anchor(pane, zone, node) {
 	 * Build ONE quick link, in the shape its region wants.
 	 *
 	 * A bar wants an icon button; the pane wants a labelled row whose text sits
-	 * in a SPAN, because the collapsed rail hides labels with `display:none` and
-	 * a bare text node cannot be hidden by CSS — that is how icons once
-	 * overflowed the 52px rail.
+	 * in a SPAN so the row has stable, addressable text across pane layouts.
 	 */
 	function build_quick_link(which, in_bar) {
 		const is_home = which === "home";
+		const on_desktop = on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []);
+		// The module grid hides the side pane, so its route back is a labelled
+		// destination rather than another unexplained square glyph in the global
+		// chrome. On every other route the same setting keeps its compact shape.
+		const is_desktop_return = is_home && in_bar && on_desktop && !is_narrow();
 		const title = is_home ? __("Home") : __("All Apps");
+		const bar_title = in_bar && is_narrow() && !is_home ? __("Apps") : title;
+		// "All Apps" goes to the DESKTOP, not to `/apps`.
+		//
+		// `/apps` is Frappe's app SWITCHER, and it only has something to switch
+		// between when a site runs more than one desk app. On this one it
+		// server-redirects straight back to `/desk` — measured: a request to
+		// /apps returns 200 at the URL /desk — so the control looked dead. A
+		// user clicking "All Apps" was returned to the page they were already
+		// on, with no error to explain it.
+		//
+		// `desktop` is the module grid — 41 tiles here, Accounting through
+		// Framework — which is what the label actually promises. It is a normal
+		// route, so it keeps its address and the back button works; and it is
+		// NOT hijacked by `land_on_home`, which only claims an empty path.
 		const run = is_home
-			? () => frappe.set_route("")
+			? go_home
 			: () => {
-					window.location.href = "/apps";
+					frappe.set_route("desktop");
 			  };
 
 		if (in_bar) {
-			const btn = el("button", "bnd-icon-btn bnd-sb-util", {
+			const btn = el(
+				"button",
+				`bnd-icon-btn bnd-sb-util${is_desktop_return ? " bnd-dashboard-return" : ""}`,
+				{
 				type: "button",
-				title: title,
-				"aria-label": title,
+				title: bar_title,
+				"aria-label": bar_title,
 				"data-bnd-part": which,
-			});
+				}
+			);
 			if (is_home) btn.appendChild(sprite_icon("icon-home"));
 			else btn.innerHTML = BND_GRID_SVG;
+			// One DOM shape survives a breakpoint change: labels are visually
+			// hidden in desktop icon clusters, exposed as the caption of every
+			// phone-nav destination, and also exposed for the Dashboard return on
+			// the sidebar-free All Apps page.
+			const label = el(
+				"span",
+				`bnd-mobile-nav-label${is_desktop_return ? " bnd-dashboard-return-label" : ""}`
+			);
+			label.textContent = is_narrow() ? (is_home ? __("Home") : __("Apps")) : title;
+			btn.appendChild(label);
+			if (is_home && on_home_route()) {
+				btn.classList.add("is-current");
+				btn.setAttribute("aria-current", "page");
+			} else if (!is_home && on_desktop) {
+				btn.classList.add("is-current");
+				btn.setAttribute("aria-current", "page");
+			}
 			btn.addEventListener("click", run);
 			return btn;
 		}
@@ -6961,9 +7378,51 @@ function sb_zone_anchor(pane, zone, node) {
 		// No fallback to the old shared key: boot stopped emitting it in slice 2,
 		// so reading it would be a branch that can never be taken pretending to
 		// be a safety net. Through active_placement so narrow mode reaches the
-		// links: on a phone All Apps moves into the bottom bar and Home stands
-		// down (NARROW_PLACEMENT), without touching either stored setting.
-		const place = (which) => active_placement(which) || "Side Pane Start";
+		// links: on a phone Home and All Apps move into the bottom bar
+		// (NARROW_PLACEMENT), without touching either stored setting.
+		const place = (which) => {
+			const configured = active_placement(which) || "Side Pane Start";
+			// The Desktop/All Apps route intentionally hides the side pane. It must
+			// never become a navigation dead end: on THIS route Home is the labelled
+			// Dashboard action in the top bar even when the ordinary Home shortcut is
+			// configured Off or assigned to another region. The stored preference is
+			// still respected everywhere else.
+			const route = frappe.get_route ? frappe.get_route() || [] : [];
+			const desktop = on_desktop_route(route);
+			// Wide Desktop does not need a shortcut to the page already showing.
+			// Mobile navigation is deliberately invariant, so Apps remains in its
+			// stable second slot and carries aria-current on this route.
+			if (which === "apps" && desktop && !is_narrow()) return "Off";
+			// Use the end zone: in rail mode the top bar deliberately spans back
+			// across the rail at its logical start, so a wide labelled control there
+			// would begin outside the viewport. The end is the stable global-actions
+			// cluster in both LTR and RTL.
+			if (which === "home" && desktop) {
+				// Keep the route in the SAME live shell as search. This makes the
+				// labelled return survive Top Bar, Bottom Bar, Dock and the narrow
+				// phone collapse instead of hard-coding a host that may not exist.
+				const search = document.querySelector(".bnd-search-field, .bnd-search-icon");
+				const owner = region_of_node(search);
+				const candidates = [owner, "topbar", "bottombar", "dock"].filter(
+					(value, index, all) => value && all.indexOf(value) === index
+				);
+				for (const region of candidates) {
+					if (!["topbar", "bottombar", "dock"].includes(region)) continue;
+					// A labelled destination belongs beside the desktop bar's other
+					// global actions, away from its absolutely-centred search. On a
+					// phone the placement scaffolds are flattened into an ordered grid,
+					// so Start remains the honest narrow preset value.
+					const zone = region === "topbar" || (region === "bottombar" && !is_narrow())
+						? "end"
+						: "start";
+					if (host_for(region, zone)) {
+						const name = Object.entries(PLACEMENT_REGIONS).find(([, key]) => key === region)?.[0];
+						if (name) return `${name} ${zone.charAt(0).toUpperCase() + zone.slice(1)}`;
+					}
+				}
+			}
+			return configured;
+		};
 
 		// Group by destination so two links landing in the same place share one
 		// wrapper — otherwise the pane grows two containers with one row each,
@@ -7027,6 +7486,10 @@ function sb_zone_anchor(pane, zone, node) {
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
 		'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
 		'<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+	/** Split-panel glyph for the single top-bar sidebar toggle. */
+	const BND_PANEL_SVG =
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+		'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>';
 
 
 	/**
@@ -7045,168 +7508,257 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 
-	/**
-	 * The menu rail. Active only in "Rail" mode; the container is narrowed by
-	 * inline style (Frappe writes inline widths of its own, so CSS alone
-	 * cannot win) and the .bnd-rail-open class drives the CSS overlay
-	 * expansion. The TRIGGER — how the rail opens — is a Theme Settings
-	 * option:
-	 *
-	 *   hover     pointer enter opens, leave closes (focus-within too)
-	 *   click     clicking the rail toggles; outside click or route closes
-	 *   button    only the expand button toggles
-	 *   hoverpin  hover, plus a pin that locks the pane open
-	 *
-	 * The expand BUTTON (placement/shape/glyph all options) can accompany any
-	 * trigger; picking the button-only trigger forces one at the edge.
-	 */
+	/** Compact navigation derives from native permitted rows; no second catalogue. */
+	function sb_compact_entries(rows) {
+		const seen = new Set();
+		return rows.filter((row) => {
+			if (!row.label || row.hidden) return false;
+			if (row.section) return row.children > 0;
+			if (!/^\/desk(?:\/|$)/.test(row.href || "") || seen.has(row.href)) return false;
+			seen.add(row.href);
+			return true;
+		});
+	}
+
+	function sb_compact_icon(row) {
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("class", "bnd-rail-glyph");
+		svg.setAttribute("aria-hidden", "true");
+		svg.setAttribute("viewBox", "0 0 24 24");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "1.6");
+		const use = row.querySelector(":scope > .standard-sidebar-item .sidebar-item-icon use");
+		const id = use?.getAttribute("href") || use?.getAttribute("xlink:href") || "";
+		// TERNARY, NOT `&&`: `?.` guards only NULLISH, and `&&` gave `false` here.
+		const symbol = id.startsWith("#") ? document.getElementById(id.slice(1)) : null;
+		if (symbol?.tagName.toLowerCase() === "symbol") {
+			svg.setAttribute("viewBox", symbol.getAttribute("viewBox") || "0 0 24 24");
+			for (const child of symbol.children) svg.appendChild(child.cloneNode(true));
+		} else {
+			svg.innerHTML = '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>';
+		}
+		return svg;
+	}
+
+	function sb_mount_compact_nav() {
+		const container = document.querySelector(".body-sidebar-container");
+		const pane = container?.querySelector(".body-sidebar");
+		if (!pane || is_narrow() || !document.documentElement.hasAttribute("data-bnd-rail") || sb_edit_active()) {
+			sb_teardown_compact_nav();
+			return;
+		}
+		const rows = Array.from(pane.querySelectorAll(".sidebar-items > .sidebar-item-container"));
+		const entries = sb_compact_entries(rows.map((row) => ({
+			row,
+			label: row.querySelector(":scope > .standard-sidebar-item .sidebar-item-label")?.textContent.trim(),
+			href: row.querySelector(":scope > .standard-sidebar-item > .item-anchor")?.getAttribute("href"),
+			section: row.classList.contains("section-item"),
+			children: row.querySelectorAll(".sidebar-child-item .item-anchor[href]").length,
+			hidden: row.hidden || row.classList.contains("hidden") || row.classList.contains("bnd-sb-fhide"),
+			active: !!row.querySelector(".active-sidebar"),
+		})));
+		if (!entries.length) { container.classList.add("bnd-rail-open"); sb_teardown_compact_nav(); return; }
+		let nav = pane.querySelector(":scope > .bnd-compact-nav");
+		const signature = JSON.stringify(entries.map(({label, href, section, active}) => [label, href, section, active]));
+		if (nav?._bnd_signature === signature && entries.every((e, i) => nav._bnd_rows[i] === e.row)) return;
+		if (!nav) {
+			nav = el("div", "bnd-compact-nav", { "data-bnd-part": "compactnav" });
+			pane.insertBefore(nav, pane.querySelector(".body-sidebar-top"));
+		}
+		nav.replaceChildren();
+		for (const entry of entries) {
+			const node = el(entry.section ? "button" : "a", "bnd-rail-entry", {
+				...(entry.section ? { type: "button" } : { href: entry.href }),
+				title: entry.label, "aria-label": entry.label,
+			});
+			node.appendChild(sb_compact_icon(entry.row));
+			const label = el("span", "bnd-rail-label"); label.textContent = entry.label; node.appendChild(label);
+			if (entry.active) node.setAttribute(entry.section ? "data-active" : "aria-current", entry.section ? "true" : "page");
+			if (entry.section) node.addEventListener("click", () => {
+				if (!entry.row.isConnected) { sb_mount_compact_nav(); return; }
+				container._bnd_rail_return = node;
+				container.classList.add("bnd-rail-open"); container._bnd_sync_rail?.();
+				const disclosure = entry.row.querySelector(":scope > .standard-sidebar-item .drop-icon");
+				if (disclosure?.getAttribute("data-state") !== "opened") disclosure?.click();
+				requestAnimationFrame(() => entry.row.querySelector(".sidebar-child-item .item-anchor[href]")?.focus());
+			});
+			nav.appendChild(node);
+		}
+		nav._bnd_signature = signature; nav._bnd_rows = entries.map(e => e.row);
+		bnd_own("compactnav");
+	}
+
+	function sb_teardown_compact_nav() {
+		for (const node of document.querySelectorAll(".bnd-compact-nav")) node.remove();
+		bnd_disown("compactnav");
+	}
+
 	function sb_mount_rail() {
 		const container = document.querySelector(".body-sidebar-container");
 		if (!container) return;
-		// Narrow = the drawer's turf: stand down, or the claim strands the phone.
 		if (!document.documentElement.hasAttribute("data-bnd-rail") || is_narrow()) {
 			sb_teardown_rail(container);
 			return;
 		}
 		if (container.dataset.bndRail) {
-			// Already wired; remount released the token — re-claim.
-			bnd_own("panetoggle");
+			sb_mount_compact_nav();
+			container._bnd_sync_rail?.();
+			sb_mount_topbar_toggle(container);
 			return;
 		}
 		container.dataset.bndRail = "1";
-		container.style.width = "var(--bnd-sb-rail-w)";
 		container._bnd_rail_teardown = [];
-		const on = (target, event, fn) => {
-			target.addEventListener(event, fn);
-			container._bnd_rail_teardown.push(() => target.removeEventListener(event, fn));
+		const on = (target, event, fn, options) => {
+			target.addEventListener(event, fn, options);
+			container._bnd_rail_teardown.push(() => target.removeEventListener(event, fn, options));
 		};
 
-		const trigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
-		let open_timer = null;
-		let close_timer = null;
-		let pinned = false;
-		const open = () => {
-			clearTimeout(close_timer);
-			clearTimeout(open_timer);
-			// A short open delay filters drive-by passes over the rail; a
-			// deliberate pointer barely notices 80ms.
-			open_timer = setTimeout(() => container.classList.add("bnd-rail-open"), 80);
-		};
-		const close = (immediate) => {
-			clearTimeout(open_timer);
-			if (pinned) return;
-			clearTimeout(close_timer);
-			if (immediate) container.classList.remove("bnd-rail-open");
-			// A generous close delay stops the pane flapping when the pointer
-			// clips the edge or crosses to the expand button.
-			else close_timer = setTimeout(() => container.classList.remove("bnd-rail-open"), 320);
-		};
-		const toggle_pin = () => {
-			pinned = !pinned;
-			container.classList.toggle("bnd-rail-pinned", pinned);
-			// Both toggles SAY what they hold: the expand button controls the
-			// pane's expansion (aria-expanded), the pin holds it (aria-pressed).
-			for (const b of container.querySelectorAll(".bnd-railbtn")) {
-				b.setAttribute("aria-expanded", pinned ? "true" : "false");
+		const sync_toggle = () => {
+			const narrow = is_narrow();
+			if (narrow) {
+				container.classList.remove("bnd-rail-open");
 			}
-			for (const b of container.querySelectorAll(".bnd-sb-pin")) {
-				b.setAttribute("aria-pressed", pinned ? "true" : "false");
-			}
-			if (pinned) {
-				clearTimeout(close_timer);
+			if (!narrow && !document.querySelector(".bnd-topbar")) {
 				container.classList.add("bnd-rail-open");
-			} else {
-				// Soft close: if the pointer is still over the pane, stay open
-				// until it leaves — an instant slam under the cursor reads as
-				// a glitch (the old behaviour).
-				if (!container.matches(":hover")) close(true);
 			}
-		};
-
-		if (trigger === "hover" || trigger === "hoverpin") {
-			on(container, "pointerenter", open);
-			on(container, "pointerleave", () => close(false));
-			// Focus versions ignore movements WITHIN the pane — focusout fires
-			// on every internal focus hop and caused open/close churn.
-			on(container, "focusin", () => {
-				clearTimeout(close_timer);
-				container.classList.add("bnd-rail-open");
-			});
-			on(container, "focusout", (e) => {
-				if (e.relatedTarget && container.contains(e.relatedTarget)) return;
-				close(false);
-			});
-		}
-		if (trigger === "click") {
-			on(container, "click", (e) => {
-				// A click on a LINK navigates; only background clicks toggle.
-				if (e.target.closest("a, button")) return;
-				if (container.classList.contains("bnd-rail-open")) close(true);
-				else {
-					clearTimeout(open_timer);
-					container.classList.add("bnd-rail-open");
+			const expanded = !narrow && container.classList.contains("bnd-rail-open");
+			sb_mount_compact_nav();
+			container.style.width = narrow
+				? ""
+				: expanded
+					? "var(--bnd-sb-w)"
+					: "var(--bnd-sb-rail-w)";
+			const sidebar = container.querySelector(".body-sidebar");
+			if (sidebar) {
+				if (narrow) {
+					sidebar.removeAttribute("aria-hidden");
+					sidebar.removeAttribute("inert");
+				} else {
+					sidebar.setAttribute("aria-hidden", "false");
+					sidebar.removeAttribute("inert");
 				}
-			});
-			on(document, "pointerdown", (e) => {
-				if (!container.contains(e.target)) close(true);
-			});
-		}
-		// Escape always closes an unpinned pane, whatever the trigger.
+			}
+			for (const button of document.querySelectorAll(".bnd-sidebar-toggle")) {
+				button.setAttribute("aria-expanded", expanded ? "true" : "false");
+				const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+				button.setAttribute("aria-label", label);
+				button.title = label;
+			}
+		};
+		container._bnd_sync_rail = sync_toggle;
+		container._bnd_toggle_rail = () => {
+			if (is_narrow()) {
+				sync_toggle();
+				return;
+			}
+			container.classList.toggle("bnd-rail-open");
+			sync_toggle();
+		};
+		sync_toggle();
 		on(document, "keydown", (e) => {
-			if (e.key === "Escape" && !pinned) close(true);
+			if (e.key !== "Escape" || !container.classList.contains("bnd-rail-open")) return;
+			const returnFocus = container.contains(document.activeElement);
+			if (!returnFocus) return;
+			e.preventDefault(); e.stopPropagation();
+			container.classList.remove("bnd-rail-open");
+			sync_toggle();
+			if (returnFocus) (container._bnd_rail_return?.isConnected ? container._bnd_rail_return : document.querySelector(".bnd-sidebar-toggle"))?.focus();
 		});
 
-		if (trigger === "hoverpin") {
-			const header = container.querySelector(".bnd-sb-head") || container.querySelector(".sidebar-header");
-			if (header) {
-				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
-				pin.textContent = "⌖";
-				pin.addEventListener("click", (e) => {
-					e.stopPropagation();
-					toggle_pin();
+		// THE TRIGGER WAS WRITTEN AND READ BY NOTHING: only the click path was ever
+		// wired, so a desk set to Hover could expand only via the toggle. Measured
+		// live -- forcing `bnd-rail-open` widened the pane, so the CSS was right and
+		// the gesture was missing. _sidebar-layout.scss:57 carries the width rule.
+		const railtrigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
+		// A coarse pointer has no hover to open with; those desks keep the toggle.
+		if (railtrigger !== "click" && window.matchMedia?.("(hover: hover)")?.matches) {
+			const rail_open = () => {
+				if (is_narrow() || sb_edit_active() || container.classList.contains("bnd-rail-open")) return;
+				container.classList.add("bnd-rail-open");
+				sync_toggle();
+			};
+			const rail_close = () => {
+				// Pinned, or the keyboard is inside it: closing would strand focus.
+				// `bnd-rail-pinned` already existed in sb_teardown_rail's remove()
+				// list with nothing setting it; reusing it keeps that line honest.
+				if (is_narrow() || container.classList.contains("bnd-rail-pinned")) return;
+				if (container.contains(document.activeElement)) return;
+				if (!container.classList.contains("bnd-rail-open")) return;
+				container.classList.remove("bnd-rail-open");
+				sync_toggle();
+			};
+			on(container, "mouseenter", rail_open);
+			on(container, "mouseleave", rail_close);
+			on(container, "focusin", rail_open);
+			on(container, "focusout", () => setTimeout(rail_close, 0));
+			if (railtrigger === "hoverpin") {
+				on(container, "click", (e) => {
+					if (e.target.closest(".bnd-sidebar-toggle")) return;
+					container.classList.toggle("bnd-rail-pinned");
 				});
-				header.insertAdjacentElement("beforeend", pin);
 			}
 		}
+		sb_mount_topbar_toggle(container);
+	}
 
-		// The expand button. Its click PINS the pane (open until clicked
-		// again) so it works alone and alongside the hover trigger.
-		const sb = sb_state || {};
-		// No "Button Only": it forced pos="edge", overwriting another picker.
-		const pos = SB_SLUGS.railbtn[sb.rail_button] || "";
-		if (pos) {
-			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
-			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
-				type: "button",
-				"data-bnd-part": "railbtn",
-				"aria-label": __("Expand sidebar"),
-				"aria-expanded": "false",
-				title: __("Expand sidebar"),
-			});
-			btn.appendChild(
-				sprite_icon(
-					glyph === "menu" ? "icon-menu" : glyph === "arrows" ? "icon-arrow-left-to-line" : "icon-chevron-right"
-				)
-			);
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				toggle_pin();
-			});
-			container.appendChild(btn);
+	function sb_mount_topbar_toggle(container) {
+		bnd_disown("panetoggle");
+		if (is_narrow()) {
+			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
+				node.innerHTML = BND_PANEL_SVG;
+				delete node._bnd_start_markup;
+				node.classList.add("bnd-sidebar-toggle");
+				node.removeAttribute("data-bnd-rail-toggle");
+				sync_start_toggle(
+					node,
+					document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
+				);
+			}
+			return;
 		}
-
-		// Wiring live — claim the hamburger. Never before it. _layouts.scss.
+		const bar = document.querySelector(".bnd-topbar");
+		if (!bar?.getClientRects().length) return;
+		const sidebar = container.querySelector(".body-sidebar");
+		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
+		const expanded = container.classList.contains("bnd-rail-open");
+		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+		const start = bar.querySelector('.bnd-sb-start[data-bnd-part="start"]');
+		if (start) {
+			for (const node of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+			if (start._bnd_start_markup === undefined) start._bnd_start_markup = start.innerHTML;
+			start.innerHTML = BND_PANEL_SVG;
+			start.classList.add("bnd-sidebar-toggle");
+			start.setAttribute("data-bnd-rail-toggle", "reused");
+			start.setAttribute("aria-label", label);
+			start.setAttribute("aria-expanded", expanded ? "true" : "false");
+			start.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
+			start.title = label;
+			bnd_own("panetoggle");
+			return;
+		}
+		let button = bar.querySelector('[data-bnd-rail-toggle="created"]');
+		if (!button) {
+			button = el("button", "bnd-sidebar-toggle", {
+				type: "button",
+				"data-bnd-rail-toggle": "created",
+				"data-bnd-part": "panetoggle",
+			});
+			button.innerHTML = BND_PANEL_SVG;
+			button.addEventListener("click", () => container._bnd_toggle_rail?.());
+			bar.insertBefore(button, bar.firstChild);
+		}
+		for (const duplicate of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) {
+			if (duplicate !== button) duplicate.remove();
+		}
+		button.setAttribute("aria-label", label);
+		button.setAttribute("aria-expanded", expanded ? "true" : "false");
+		button.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
+		button.title = label;
 		bnd_own("panetoggle");
 	}
 
-	/**
-	 * Apply the configured pane width. Rail mode's OPEN width and the
-	 * always-expanded pane both read --bnd-sb-w (stops 200-280px; stop 2 is
-	 * v16's original 220px). Manual-collapse mode is left to Frappe: its
-	 * collapse animation owns the width there, and an inline width from us
-	 * would pin it open.
-	 */
-	/** The free-drag pixel; "" follows the site. Defect 23: _sidebar.scss. */
 	let sb_pane_px = String(((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).pane_px || "");
 
 	function sb_apply_width() {
@@ -7223,22 +7775,64 @@ function sb_zone_anchor(pane, zone, node) {
 			container.style.width = "";
 			return;
 		}
+		container.querySelector(".body-sidebar")?.style.removeProperty("height");
 		if (document.documentElement.hasAttribute("data-bnd-rail")) return; // rail sets its own
 		// The pixel rides an inline custom property; clearing is one remove.
 		const px = parseInt(sb_pane_px, 10);
 		if (px >= 200 && px <= 280) container.style.setProperty("--bnd-sb-w", px + "px");
 		else container.style.removeProperty("--bnd-sb-w");
-		// Frappe's collapse is the `expanded` CLASS, and since item 40 it is the
-		// only collapse there is. _sidebar.scss carries the pairing.
-		if (container.classList.contains("expanded")) container.style.width = "var(--bnd-sb-w)";
-		else container.style.width = "";
+		// Pane state is the higher-level contract. "Open" cannot inherit a stale
+		// vendor collapse from a previous route or layout and render as a 51px
+		// ghost column. Synchronize Frappe's STATE, not just its class: changing
+		// only the class leaves `sidebar_expanded` and localStorage saying false,
+		// so the next native render immediately folds it again.
+		if (document.documentElement.getAttribute("data-bnd-sb-panestate") === "open") {
+			// Clear the stale block written while Hidden's `display:none!important` won.
+			if (container.style.display === "block") container.style.removeProperty("display");
+			if (!container.classList.contains("expanded")) {
+				try {
+					localStorage.setItem("sidebar-expanded", "true");
+				} catch (_error) {
+					/* a storage-denied desk can still use the in-memory state */
+				}
+				const native = window.frappe?.app?.sidebar;
+				if (native?.wrapper?.[0] === container && typeof native.expand_sidebar === "function") {
+					native.sidebar_expanded = true;
+					native.expand_sidebar();
+				} else {
+					// Early boot: Frappe will read the persisted value when its instance
+					// arrives; the class keeps first paint at the same width meanwhile.
+					container.classList.add("expanded");
+				}
+			}
+		}
+		// Frappe's class still owns a person's manual collapse outside pane-state
+		// transitions; this function only sizes whichever state is now current.
+		container.style.width = container.classList.contains("expanded") ? "var(--bnd-sb-w)" : "";
 	}
 
 	/** Undo everything sb_mount_rail did, for previews that leave rail mode. */
 	function sb_teardown_rail(container) {
-		bnd_disown("panetoggle");
+		sb_teardown_compact_nav();
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
+			node.innerHTML = BND_PANEL_SVG;
+			delete node._bnd_start_markup;
+			node.classList.add("bnd-sidebar-toggle");
+			node.removeAttribute("data-bnd-rail-toggle");
+			sync_start_toggle(
+				node,
+				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
+			);
+		}
+		const topToggle = document.querySelector('.bnd-topbar .bnd-sb-start[data-bnd-part="start"]');
+		if (!is_narrow() && topToggle?.getClientRects().length) bnd_own("panetoggle");
+		else bnd_disown("panetoggle");
 		if (!container.dataset.bndRail) return;
 		delete container.dataset.bndRail;
+		delete container._bnd_toggle_rail;
+		delete container._bnd_sync_rail;
+		delete container._bnd_rail_return;
 		container.style.width = "";
 		container.classList.remove("bnd-rail-open", "bnd-rail-pinned");
 		for (const off of container._bnd_rail_teardown || []) off();
@@ -7423,6 +8017,16 @@ function sb_zone_anchor(pane, zone, node) {
 		handle.setAttribute("aria-label", __("Side pane width"));
 		aria();
 
+		// The resize strip resizes only. Pane state belongs to the dedicated
+		// navigation control; allowing Frappe's click-to-collapse handler to run
+		// here creates a second, unlabeled collapse control on the pane edge.
+		handle.addEventListener("click", (e) => {
+			const state = document.documentElement.getAttribute("data-bnd-sb-panestate");
+			if (state !== "open" && state !== "rail") return;
+			e.stopImmediatePropagation();
+			e.preventDefault();
+		}, true);
+
 		const rtl = () => getComputedStyle(container).direction === "rtl";
 		const clamp = (n) => Math.min(280, Math.max(200, n));
 		const persist = (px) => {
@@ -7593,7 +8197,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Remove the head. */
 	function sb_teardown_head() {
-		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand")) n.remove();
+		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand, .bnd-sb-brand-hide")) n.remove();
 		claim_panehead();
 	}
 
@@ -7630,6 +8234,7 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "utils", volatile: false, mount: sb_mount_utils, unmount: sb_teardown_pane_utils },
 		{ key: "icons", volatile: true, mount: sb_fix_icons, unmount: sb_restore_icons },
 		{ key: "current", volatile: true, mount: sb_mark_current, unmount: sb_unmark_current },
+		{ key: "compactnav", volatile: true, mount: sb_mount_compact_nav, unmount: sb_teardown_compact_nav },
 		{ key: "fades", volatile: true, mount: sb_mount_fades, unmount: sb_teardown_fades },
 		{ key: "badges", volatile: true, mount: sb_mount_badges, unmount: sb_teardown_badges },
 		{ key: "rail", volatile: false, mount: sb_mount_rail, unmount: sb_teardown_rail_here },
@@ -7638,93 +8243,7 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 		// The pane's half of a contract with the chrome. _sidebar.scss.
 		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
-		// Volatile: Frappe rebuilds the list (and re-applies ITS per-language memory)
-		// on every workspace change; ours is applied after, so it wins.
-		{ key: "sections", volatile: true, mount: sb_apply_section_state, unmount: () => {} },
 	];
-
-	// ── A section's collapsed state, across languages ────────────────
-	//
-	// THE USER'S SCREENSHOT PAIR (2026-09-08): the same workspace with Permissions
-	// open in English and closed in Arabic. Frappe remembers a collapsed section in
-	// localStorage `section-breaks-state[workspace_title][title]`, and BOTH keys
-	// are the TRANSLATED strings (boot translates labels), so every language keeps
-	// its own memory and a bilingual desk contradicts itself. The kit keeps a
-	// second store keyed by the sidebar's NAME and the item's own identity (its
-	// row name, which never translates), records every real click, and re-applies
-	// after each list build — after Frappe's own apply, so the canonical state
-	// wins. Frappe's store is left alone: two stores, each owned by whoever wrote
-	// it (the item-40 rule). Nothing here touches Frappe's DOM: the instance's own
-	// `toggle()` does the work.
-	const SB_SECTION_STORE = "bnd-section-state";
-
-	function sb_section_instances() {
-		const sb = window.frappe && frappe.app && frappe.app.sidebar;
-		return ((sb && sb.items) || []).filter(
-			(i) => i && i.item && i.item.type === "Section Break" && i.wrapper && i.wrapper[0]
-		);
-	}
-
-	function sb_section_scope() {
-		const sb = window.frappe && frappe.app && frappe.app.sidebar;
-		return (sb && (sb.sidebar_name || sb.sidebar_title)) || "";
-	}
-
-	/** The item's own row name when boot carries it; its position among sections otherwise. */
-	function sb_section_key(inst, index) {
-		const it = inst.item || {};
-		return it.name ? "n:" + it.name : "i:" + index;
-	}
-
-	function sb_section_store_read() {
-		try {
-			return JSON.parse(localStorage.getItem(SB_SECTION_STORE) || "{}") || {};
-		} catch (e) {
-			return {};
-		}
-	}
-
-	function sb_section_store_write(store) {
-		try {
-			localStorage.setItem(SB_SECTION_STORE, JSON.stringify(store));
-		} catch (e) {
-			/* storage refused: the state simply does not follow */
-		}
-	}
-
-	function sb_apply_section_state() {
-		const scope = sb_section_scope();
-		if (!scope) return;
-		const store = sb_section_store_read();
-		const mine = store[scope];
-		if (!mine) return;
-		sb_section_instances().forEach((inst, i) => {
-			const want = mine[sb_section_key(inst, i)];
-			if (want === undefined || !!inst.collapsed === !!want) return;
-			inst.collapsed = !!want;
-			inst.toggle();
-		});
-	}
-
-	/** Every REAL click on a section header records the state Frappe just set. */
-	document.addEventListener("click", (e) => {
-		if (!e.isTrusted) return;
-		const head = e.target && e.target.closest && e.target.closest(".body-sidebar .section-item > .standard-sidebar-item");
-		if (!head) return;
-		const wrapper = head.parentElement;
-		const scope = sb_section_scope();
-		if (!scope) return;
-		// Frappe's own handler ran first (it is bound on the element); read what it set.
-		setTimeout(() => {
-			sb_section_instances().forEach((inst, i) => {
-				if (inst.wrapper[0] !== wrapper) return;
-				const store = sb_section_store_read();
-				store[scope] = store[scope] || {};
-				store[scope][sb_section_key(inst, i)] = !!inst.collapsed;
-				sb_section_store_write(store);
-			});
-		}, 0);
-	});
 
 	/** The watch record: the NODES being observed, their observers, and the one
 	 *  timer they share. Null when nothing is being watched. */
@@ -7896,6 +8415,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** True while Frappe's sidebar edit mode is active (save/discard shown). */
 	function sb_edit_active() {
+		if (document.querySelector('.body-sidebar-container[data-mode="edit"]')) return true;
 		const controls = document.querySelector(".body-sidebar-bottom .bottom-edit-controls");
 		return !!(controls && !controls.classList.contains("hidden"));
 	}
@@ -8200,10 +8720,6 @@ function sb_zone_anchor(pane, zone, node) {
 				start_placement: "start",
 				home_placement: "home",
 				apps_placement: "apps",
-				// Item 44 (a seam its release missed: a switch moved on the board
-				// stayed put until reload).
-				language_placement: "language",
-				appearance_placement: "appearance",
 			})) {
 				if (field in values) placement_state[key] = values[field];
 			}
@@ -8221,6 +8737,829 @@ function sb_zone_anchor(pane, zone, node) {
 		// the answer is no.
 		sidepane_sync("mount");
 	}
+
+	// ── Bunood Home dashboard ──────────────────────────────────────────────
+
+	const HOME_ROUTE = "home";
+	let home_request = 0;
+	let home_status_resize_observer = null;
+	let home_greeting_timer = null;
+
+	function home_text(source) {
+		return typeof __ === "function" ? __(source) : source;
+	}
+
+	/** The greeting for a browser-local hour (or Date), exposed for regression tests. */
+	function home_greeting_text(hourOrDate) {
+		let hour;
+		if (hourOrDate instanceof Date) hour = hourOrDate.getHours();
+		else if (hourOrDate !== undefined && Number.isFinite(Number(hourOrDate))) hour = Number(hourOrDate);
+		else hour = new Date().getHours();
+		hour = ((Math.floor(hour) % 24) + 24) % 24;
+		// Keep the literals directly inside __(): the catalogue extractor cannot
+		// discover strings passed through the generic home_text helper.
+		if (hour >= 5 && hour < 12) return typeof __ === "function" ? __("Good morning") : "Good morning";
+		if (hour >= 12 && hour < 17) return typeof __ === "function" ? __("Good afternoon") : "Good afternoon";
+		if (hour >= 17 && hour < 22) return typeof __ === "function" ? __("Good evening") : "Good evening";
+		return typeof __ === "function" ? __("Welcome back") : "Welcome back";
+	}
+	bunood.home_greeting_text = home_greeting_text;
+
+	function home_clear_greeting_timer() {
+		clearTimeout(home_greeting_timer);
+		home_greeting_timer = null;
+	}
+
+	/** Update the cached Home page in place; navigation or a reload is unnecessary. */
+	function home_refresh_greeting(hourOrDate) {
+		const text = home_greeting_text(hourOrDate);
+		const host = on_home_route() ? home_host() : null;
+		const title = host && host.querySelector(":scope > .bnd-home-dashboard .bnd-home-title");
+		if (title) title.textContent = text;
+		return text;
+	}
+	bunood.home_refresh_greeting = home_refresh_greeting;
+
+	/** Re-evaluate at the next local 05:00 / 12:00 / 17:00 / 22:00 boundary. */
+	function home_schedule_greeting() {
+		home_clear_greeting_timer();
+		if (!on_home_route()) return;
+		const now = new Date();
+		let next = null;
+		for (const hour of [5, 12, 17, 22]) {
+			const candidate = new Date(now);
+			candidate.setHours(hour, 0, 0, 0);
+			if (candidate > now) {
+				next = candidate;
+				break;
+			}
+		}
+		if (!next) {
+			next = new Date(now);
+			next.setDate(next.getDate() + 1);
+			next.setHours(5, 0, 0, 0);
+		}
+		const delay = Math.max(1000, next.getTime() - now.getTime() + 50);
+		home_greeting_timer = setTimeout(() => {
+			home_refresh_greeting();
+			home_schedule_greeting();
+		}, delay);
+	}
+	bunood.home_schedule_greeting = home_schedule_greeting;
+
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState !== "visible" || !on_home_route()) return;
+		home_refresh_greeting();
+		home_schedule_greeting();
+	});
+
+	function on_home_route() {
+		// `|| []` GUARDS THE RETURN, not just the function's existence. The
+		// ternary alone asks whether `frappe.get_route` is defined; on Frappe
+		// v16 it is defined and RETURNS NULL while the router is still
+		// resolving — measured on `/app/item`, where `route[0]` then threw
+		// `Cannot read properties of null` out of the boot-time
+		// `mount_chrome` -> `mount_home_dashboard` chain.
+		const route = (window.frappe && frappe.get_route ? frappe.get_route() : null) || [];
+		// A public workspace URL such as /desk/home is normalised by Frappe's
+		// router to ["Workspaces", "Home"]. Testing route[0] alone therefore
+		// sees "Workspaces", not "home", and the dashboard never mounts.
+		// Keep the direct form for older Frappe builds and derive the workspace
+		// name from the current standard route for v16.
+		const head = String(route[0] || "").toLowerCase();
+		const workspace = head === "workspaces"
+			? route[1] === "private"
+				? route[2]
+				: route[1]
+			: route[0];
+		const slug = window.frappe && frappe.router && frappe.router.slug
+			? frappe.router.slug(String(workspace || ""))
+			: String(workspace || "").trim().toLowerCase().replace(/\s+/g, "-");
+		return slug === HOME_ROUTE;
+	}
+
+	function home_host() {
+		let page = frappe.container && frappe.container.page;
+		if (page && page.jquery) page = page[0];
+		// All workspaces share Frappe's one data-page-route="Workspaces"
+		// container. Use the current container instead of a document query:
+		// cached page containers remain in the DOM and a generic selector can
+		// otherwise mount into a hidden page during router transitions.
+		if (!page || String(page.getAttribute("data-page-route") || "").toLowerCase() !== "workspaces") {
+			return null;
+		}
+		return page.querySelector(".layout-main-section");
+	}
+
+	/**
+	 * The sign this site actually prints, and which side of the amount it goes.
+	 * Filled from `api.get_home_dashboard`; empty until the first payload.
+	 */
+	let home_sign = { code: "", symbol: "", right: false };
+
+	/** Record the site's currency sign from a dashboard payload. */
+	function home_sign_from(data) {
+		home_sign = {
+			code: data.currency || "",
+			symbol: data.currency_symbol || "",
+			right: !!data.currency_symbol_on_right,
+		};
+	}
+
+	/**
+	 * Money, with the site's own sign on the site's own side.
+	 *
+	 * NOT `Intl`'s currency style, which this used to be: that renders from
+	 * CLDR, whose SAR is the letters "SAR". U+20C1 is a 2025 codepoint CLDR
+	 * does not map, so the browser could not produce it at any locale — which
+	 * is why home read "SAR 1,000" while every list, form and printed invoice
+	 * on the same site already read "⃁ 1,000.00". The sign is a fact on the
+	 * `Currency` record, so it is fetched. `Intl` still formats the NUMBER.
+	 */
+	function home_money(value, currency) {
+		const amount = Number(value) || 0;
+		const language = document.documentElement.lang || "ar";
+		let text;
+		try {
+			text = new Intl.NumberFormat(language, {
+				maximumFractionDigits: 0,
+				numberingSystem: BND_NUMERALS,
+			}).format(amount);
+		} catch (e) {
+			text = amount.toLocaleString();
+		}
+		const code = currency || home_sign.code;
+		if (!code) return text;
+		const known = code === home_sign.code && home_sign.symbol;
+		const sign = known ? home_sign.symbol : code;
+		// Arabic reads the amount first from the right, then the riyal on
+		// the left. Isolate the number LTR inside an RTL amount/sign pair
+		// so separators and negative signs keep their order, including when
+		// this string appears beside counts in the attention panel.
+		if (known && code === "SAR" && /^ar(?:[-_]|$)/i.test(language)) {
+			return `\u2067\u2066${text}\u2069 ${sign}\u2069`;
+		}
+		// The trailing side is a property of THIS site's sign, so a foreign
+		// currency keeps the conventional leading ISO code rather than
+		// inheriting a placement that was never about it.
+		return known && home_sign.right ? `${text} ${sign}` : `${sign} ${text}`;
+	}
+
+	/**
+	 * @param {string|string[]} symbol - one sprite id, or candidates in
+	 *   preference order.
+	 *
+	 * CANDIDATES, FOR THE SAME REASON `HOME_TASKS` TAKES THEM. Sprite ids move
+	 * between upstream versions, and a `<use href>` naming a missing symbol
+	 * renders a SILENT EMPTY BOX — right size, no glyph. That shipped on
+	 * "Overdue invoices": Lucide renamed `alert-triangle` to `triangle-alert`
+	 * and this call site kept the old spelling. Resolving here rather than per
+	 * call site gives every home glyph the fallback.
+	 */
+	function home_icon(symbol, cls) {
+		const wrap = el("span", cls || "bnd-home-icon");
+		wrap.setAttribute("aria-hidden", "true");
+		const list = Array.isArray(symbol) ? symbol : [symbol];
+		// A miss costs a glyph, not the row: fall back to the first candidate
+		// so the markup is unchanged from today's behaviour when none exist.
+		wrap.appendChild(sprite_icon(sb_existing_symbol(list) || list[0]));
+		return wrap;
+	}
+
+	/**
+	 * The work a person actually opens Bunood to do, in the order they do it.
+	 *
+	 * WHY A TASK ROW AT ALL
+	 *   Measured on this desk: the first ACTIONABLE link sits ~580px into an
+	 *   800px viewport on Selling, Buying and Stock alike — above it, charts and
+	 *   number cards. Every door in the product is a NOUN ("Selling", "Buying"),
+	 *   so a person told "invoice this customer" has to already know ERPNext's
+	 *   information model to find the verb. This row is the verbs.
+	 *
+	 *   Capped at five, deliberately. A task row that grows into a menu has
+	 *   become the thing it replaced.
+	 *
+	 * `[doctype, label, symbol candidates]`. Candidates because sprite ids move
+	 * between Frappe versions; the first that exists wins and a miss costs a
+	 * glyph, not the button.
+	 */
+	const HOME_TASKS = [
+		["Sales Invoice", "New sales invoice", ["icon-invoice", "icon-file", "icon-plus"]],
+		["Purchase Invoice", "Record a purchase", ["icon-buying", "icon-shopping-cart", "icon-file"]],
+		["Payment Entry", "Receive payment", ["icon-money", "icon-money-coins-1", "icon-file"]],
+		["Stock Entry", "Stock entry", ["icon-stock", "icon-package", "icon-file"]],
+		["Customer", "New customer", ["icon-users", "icon-user", "icon-organization"]],
+	];
+
+	/**
+	 * Build the task row, filtered to what this user may actually create.
+	 *
+	 * A door nobody can open is worse than no door: it teaches a user that the
+	 * product lies to them. `frappe.boot.user.can_create` is the same list the
+	 * desk's own "+ New" menu is built from, so this cannot drift from what
+	 * Frappe would allow. It also filters by doctype EXISTENCE, so a
+	 * Frappe-only site (no ERPNext) renders the row it can rather than a row of
+	 * dead buttons.
+	 *
+	 * @param {HTMLElement} host - the actions container.
+	 */
+	function home_mount_tasks(host) {
+		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_create || [];
+		let primary = true;
+		for (const [doctype, label, symbols] of HOME_TASKS) {
+			if (can.length && can.indexOf(doctype) === -1) continue;
+			const symbol = sb_existing_symbol(symbols) || symbols[symbols.length - 1];
+			host.appendChild(
+				home_action(label, symbol, () => {
+					if (doctype === "Sales Invoice" && window.bunood_theme.sales_bill) return window.bunood_theme.sales_bill.newInvoice();
+					return frappe.new_doc(doctype);
+				}, primary)
+			);
+			primary = false;
+		}
+		// Every task filtered out (a very restricted account): say so rather
+		// than leaving a bare greeting with an empty strip under it.
+		if (!host.children.length) {
+			const none = el("p", "bnd-home-tasks-empty");
+			none.textContent = home_text("No documents you can create yet");
+			host.appendChild(none);
+		}
+	}
+
+	function home_action(label, symbol, action, primary) {
+		const button = el("button", `bnd-home-action${primary ? " is-primary" : ""}`, { type: "button" });
+		button.appendChild(home_icon(symbol, "bnd-home-action-icon"));
+		const copy = el("span", "");
+		copy.textContent = home_text(label);
+		button.appendChild(copy);
+		button.addEventListener("click", action);
+		return button;
+	}
+
+	function home_panel(title, subtitle, extra_class) {
+		const panel = el("section", `bnd-home-panel ${extra_class || ""}`.trim());
+		const head = el("header", "bnd-home-panel-head");
+		const copy = el("div", "bnd-home-panel-copy");
+		const heading = el("h2", "bnd-home-panel-title");
+		heading.textContent = home_text(title);
+		copy.appendChild(heading);
+		if (subtitle) {
+			const sub = el("p", "bnd-home-panel-subtitle");
+			sub.textContent = home_text(subtitle);
+			copy.appendChild(sub);
+		}
+		head.appendChild(copy);
+		panel.appendChild(head);
+		return { panel, head };
+	}
+
+	function home_metric(label, value, currency, symbol, tone) {
+		const card = el("article", `bnd-home-metric is-${tone}`);
+		const top = el("div", "bnd-home-metric-top");
+		top.appendChild(home_icon(symbol));
+		const caption = el("span", "bnd-home-metric-label");
+		caption.textContent = home_text(label);
+		top.appendChild(caption);
+		const amount = el("strong", "bnd-home-metric-value");
+		amount.textContent = home_money(value, currency);
+		card.append(top, amount);
+		return card;
+	}
+
+	/**
+	 * One row of "needs your attention": a label, what it is worth, and the
+	 * list it opens.
+	 *
+	 * A BUTTON, NOT A TILE. Every row here exists because there is something to
+	 * DO about it, so each one goes somewhere — a filtered list of exactly the
+	 * documents it counted. A number a user cannot act on belongs in the
+	 * summary strip above, not here.
+	 */
+	function home_attention_row(label, note, symbol, run) {
+		const row = el("button", "bnd-home-attn-row", { type: "button" });
+		row.appendChild(home_icon(symbol, "bnd-home-attn-icon"));
+		const copy = el("span", "bnd-home-attn-copy");
+		const title = el("span", "bnd-home-attn-label");
+		title.textContent = home_text(label);
+		const sub = el("span", "bnd-home-attn-note");
+		sub.textContent = note;
+		copy.append(title, sub);
+		row.appendChild(copy);
+		row.addEventListener("click", run);
+		return row;
+	}
+
+	/** Match the server classifier; ERPNext's scheduler-updated `status` can lag. */
+	function home_invoice_filters(data, kind) {
+		const scope = data.invoice_scope || {};
+		const filters = { docstatus: 1 };
+		if (scope.company) filters.company = scope.company;
+		if (scope.from_date) filters.posting_date = [">=", scope.from_date];
+		if (kind === "paid") {
+			filters.outstanding_amount = ["<=", 0];
+		} else {
+			filters.outstanding_amount = [">", 0];
+			if (scope.as_of) filters.due_date = [kind === "overdue" ? "<" : ">=", scope.as_of];
+		}
+		return filters;
+	}
+
+	function home_open_invoice_list(data, kind) {
+		frappe.set_route("List", "Sales Invoice", home_invoice_filters(data, kind));
+	}
+
+	function home_stop_status_alignment() {
+		if (home_status_resize_observer) home_status_resize_observer.disconnect();
+		home_status_resize_observer = null;
+	}
+
+	/** Anchor the custom total to the rendered ring, not to its wider panel. */
+	function home_align_status_total(visual, total, chart) {
+		const slice = chart.querySelector(".donut-path");
+		if (!visual.isConnected || !slice) return;
+		const visual_box = visual.getBoundingClientRect();
+		const slice_box = slice.getBoundingClientRect();
+		const center_x = slice_box.left + slice_box.width / 2;
+		const center_y = slice_box.top + slice_box.height / 2;
+		const rtl = getComputedStyle(visual).direction === "rtl";
+		total.style.setProperty("--bnd-home-status-center-inline",
+			`${rtl ? visual_box.right - center_x : center_x - visual_box.left}px`);
+		total.style.setProperty("--bnd-home-status-center-block", `${center_y - visual_box.top}px`);
+		total.dataset.bndAligned = "true";
+	}
+
+	/**
+	 * "Needs your attention" — the work, not the score.
+	 *
+	 * The summary strip above answers "how is the business doing". This answers
+	 * "what do I have to deal with", which is the question someone opening an
+	 * ERP at 9am actually has. Rows appear ONLY when they have something in
+	 * them: a panel listing three zeroes teaches a user to stop reading it, so
+	 * an empty one says so in a single line instead.
+	 *
+	 * @param {object} data - the payload from `api.get_home_dashboard`.
+	 */
+	function home_attention_panel(data) {
+		const currency = data.currency;
+		const metrics = data.metrics || {};
+		const status = data.invoice_status || {};
+		const drafts = data.drafts || {};
+		const attn = home_panel("Needs your attention", "What to deal with today", "bnd-home-attn-panel");
+		attn.head.appendChild(home_icon("icon-bell", "bnd-home-panel-mark"));
+		const list = el("div", "bnd-home-attn-list");
+
+		if (status.overdue) {
+			list.appendChild(
+				home_attention_row(
+					"Overdue invoices",
+					`${status.overdue} · ${home_money(metrics.overdue, currency)}`,
+					["icon-triangle-alert", "icon-alert-triangle", "es-line-alert-triangle", "icon-circle-alert"],
+					() => home_open_invoice_list(data, "overdue")
+				)
+			);
+		}
+		if (Number(metrics.payables) > 0) {
+			list.appendChild(
+				home_attention_row(
+					"Bills to pay",
+					home_money(metrics.payables, currency),
+					"icon-buying",
+					() => frappe.set_route("List", "Purchase Invoice", { status: "Unpaid" })
+				)
+			);
+		}
+		const draft_total = (Number(drafts.sales) || 0) + (Number(drafts.purchase) || 0);
+		if (draft_total) {
+			list.appendChild(
+				home_attention_row(
+					"Drafts to finish",
+					String(draft_total),
+					"icon-edit",
+					() => frappe.set_route("List", "Sales Invoice", { docstatus: 0 })
+				)
+			);
+		}
+
+		if (!list.children.length) {
+			const clear = el("p", "bnd-home-empty");
+			clear.textContent = home_text("Nothing needs your attention");
+			list.appendChild(clear);
+		}
+		attn.panel.appendChild(list);
+		return attn.panel;
+	}
+
+	function home_render_dashboard(root, data) {
+		home_stop_status_alignment();
+		root.replaceChildren();
+		// Before anything formats money: every home_money() below reads this.
+		home_sign_from(data);
+		const metrics = data.metrics || {};
+		const currency = data.currency || "SAR";
+
+		const intro = el("header", "bnd-home-intro");
+		const intro_copy = el("div", "bnd-home-intro-copy");
+		const eyebrow = el("span", "bnd-home-eyebrow");
+		eyebrow.textContent = data.company || home_text("Bunood");
+		const title = el("h1", "bnd-home-title");
+		title.textContent = home_greeting_text();
+		const subtitle = el("p", "bnd-home-subtitle");
+		subtitle.textContent = home_text("Your business at a glance");
+		intro_copy.append(eyebrow, title, subtitle);
+		const intro_actions = el("div", "bnd-home-intro-actions");
+		home_mount_tasks(intro_actions);
+		intro.append(intro_copy, intro_actions);
+		root.appendChild(intro);
+
+		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
+		const hero = el("article", "bnd-home-balance");
+		const hero_top = el("div", "bnd-home-balance-top");
+		hero_top.appendChild(home_icon("icon-wallet", "bnd-home-balance-icon"));
+		const hero_label = el("span", "bnd-home-balance-label");
+		hero_label.textContent = home_text("Cash and bank balance");
+		hero_top.appendChild(hero_label);
+		const hero_value = el("strong", "bnd-home-balance-value");
+		hero_value.textContent = home_money(metrics.cash_balance, currency);
+		const hero_note = el("span", "bnd-home-balance-note");
+		hero_note.textContent = home_text("Available across cash and bank accounts");
+		hero.append(hero_top, hero_value, hero_note);
+		summary.append(
+			hero,
+			home_metric("Sales this month", metrics.sales_month, currency, "icon-chart-no-axes-column-increasing", "blue"),
+			home_metric("Outstanding receivables", metrics.receivables, currency, "icon-receipt-text", "teal"),
+			home_metric("Outstanding payables", metrics.payables, currency, "icon-credit-card", "gold")
+		);
+		root.appendChild(summary);
+
+		const grid = el("div", "bnd-home-grid");
+		const trend = home_panel("Sales trend", "Last six months", "bnd-home-trend");
+		trend.head.appendChild(home_icon("icon-chart-column", "bnd-home-panel-mark"));
+		const trend_rows = Array.isArray(data.trend) ? data.trend : [];
+		const trend_chart = el("div", "bnd-home-chart bnd-home-trend-chart", {
+			"aria-label": home_text("Sales trend"),
+		});
+		trend.panel.appendChild(trend_chart);
+		grid.appendChild(trend.panel);
+
+		const status = home_panel("Invoice status", "Current sales invoices", "bnd-home-status");
+		status.head.appendChild(home_icon("icon-receipt", "bnd-home-panel-mark"));
+		const status_body = el("div", "bnd-home-status-body");
+		const status_visual = el("div", "bnd-home-status-visual");
+		const status_chart = el("div", "bnd-home-chart bnd-home-status-chart", {
+			"aria-label": home_text("Invoice status"),
+		});
+		const invoice_status = data.invoice_status || {};
+		const status_rows = [
+			["Paid", "paid", "paid", "var(--bnd-good)"],
+			["Open", "open", "open", "var(--bnd-cat-1)"],
+			["Overdue", "overdue", "overdue", "var(--bnd-critical)"],
+		];
+		const status_total = status_rows.reduce((sum, item) => sum + (Number(invoice_status[item[1]]) || 0), 0);
+		const status_total_copy = el("div", "bnd-home-status-total", { "aria-hidden": "true" });
+		const status_total_value = el("strong", "bnd-home-status-total-value");
+		status_total_value.textContent = String(status_total);
+		const status_total_label = el("span", "bnd-home-status-total-label");
+		status_total_label.textContent = home_text("Total");
+		status_total_copy.append(status_total_value, status_total_label);
+		status_visual.appendChild(status_chart);
+		if (status_total) status_visual.appendChild(status_total_copy);
+		const status_list = el("div", "bnd-home-status-list");
+		for (const item of status_rows) {
+			const value = Number(invoice_status[item[1]]) || 0;
+			const share = status_total ? Math.round((value / status_total) * 100) : 0;
+			const label_text = home_text(item[0]);
+			const row = el("button", `bnd-home-status-row is-${item[2]}`, {
+				type: "button",
+				"aria-label": `${label_text}: ${value} (${share}%)`,
+			});
+			const marker = el("span", "bnd-home-status-marker", { "aria-hidden": "true" });
+			row.addEventListener("click", () => home_open_invoice_list(data, item[1]));
+			const line = el("div", "bnd-home-status-line");
+			const label = el("span", "bnd-home-status-label");
+			label.textContent = label_text;
+			const count = el("strong", "bnd-home-status-count");
+			count.textContent = String(value);
+			line.append(label, count);
+			const percentage = el("span", "bnd-home-status-share");
+			percentage.textContent = `${share}%`;
+			row.append(marker, line, percentage);
+			status_list.appendChild(row);
+		}
+		status_body.append(status_visual, status_list);
+		status.panel.appendChild(status_body);
+		grid.appendChild(status.panel);
+
+		const recent = home_panel("Recent activity", "Latest invoices", "bnd-home-recent-panel");
+		recent.head.appendChild(home_icon("icon-activity", "bnd-home-panel-mark"));
+		const recent_list = el("div", "bnd-home-recent-list");
+		for (const item of data.recent || []) {
+			const row = el("button", "bnd-home-recent", { type: "button" });
+			row.appendChild(home_icon(item.doctype === "Sales Invoice" ? "icon-arrow-up-right" : "icon-arrow-down-left", "bnd-home-recent-icon"));
+			const copy = el("span", "bnd-home-recent-copy");
+			const party = el("strong", "bnd-home-recent-party");
+			party.textContent = item.party || item.name;
+			const meta = el("span", "bnd-home-recent-meta");
+			meta.textContent = `${home_text(item.doctype)} · ${item.name}`;
+			copy.append(party, meta);
+			const value = el("span", `bnd-home-recent-value${Number(item.amount) < 0 ? " is-out" : ""}`);
+			value.textContent = home_money(Math.abs(Number(item.amount) || 0), item.currency || currency);
+			row.append(copy, value);
+			row.addEventListener("click", () => frappe.set_route("Form", item.doctype, item.name));
+			recent_list.appendChild(row);
+		}
+		if (!recent_list.children.length) {
+			const empty = el("p", "bnd-home-empty");
+			empty.textContent = home_text("No recent activity");
+			recent_list.appendChild(empty);
+		}
+		recent.panel.appendChild(recent_list);
+		grid.appendChild(recent.panel);
+
+		// THE "QUICK ACTIONS" PANEL IS GONE, and its two creation entries with
+		// it. It offered "Create invoice" and "Record payment" — the same two
+		// doctypes the task row at the top of this page now offers as "New
+		// sales invoice" and "Receive payment". Two labels for one action is
+		// worse than either alone: a user cannot tell whether they differ, so
+		// they hesitate over both. Nine buttons in two rows was exactly the
+		// "too much, nothing pops" the task row exists to answer.
+		//
+		// Its other two entries were navigation, not creation — the Account
+		// list and the General Ledger — and both are one click away in the side
+		// pane, which now carries its labels on every workspace.
+		// WORK BEFORE REPORTING. The trend and status panels are built above
+		// because their data arrives with everything else, but they must READ
+		// after the two panels someone opens this page to act on: what needs
+		// attention, and what just happened. Moving the nodes rather than
+		// reordering the construction keeps each panel's build next to the data
+		// it reads — and moving them changes the tab order with the visual
+		// order, which a CSS `order` would not have done.
+		const attention = home_attention_panel(data);
+		grid.prepend(attention);
+		attention.after(recent.panel);
+		root.appendChild(grid);
+		home_schedule_greeting();
+
+		// Native workspaces, dashboards, reports and Home now share Frappe Charts.
+		requestAnimationFrame(() => {
+			if (!trend_chart.isConnected || typeof frappe.Chart !== "function") return;
+			new frappe.Chart(trend_chart, {
+				bndAriaLabel: home_text("Sales trend"), type: "bar", height: 320, colors: [],
+				data: {
+					labels: trend_rows.map((item) => home_text(item.label || "")),
+					datasets: [{ name: home_text("Sales"), values: trend_rows.map((item) => Number(item.value) || 0) }],
+				},
+				axisOptions: { xAxisMode: "tick", yAxisMode: "span", xIsSeries: 1 },
+				barOptions: { spaceRatio: 0.45 },
+				tooltipOptions: { formatTooltipY: (value) => home_money(value, currency) },
+			});
+			trend_chart.addEventListener("data-select", (event) => {
+				const point = trend_rows[Number(event.index ?? (event.detail && event.detail.index))];
+				if (point) frappe.set_route("List", "Sales Invoice", {
+					docstatus: 1,
+					posting_date: ["between", [point.from_date, point.to_date]],
+				});
+			});
+
+			const visible_statuses = status_rows
+				.map((item) => ({ item, value: Number(invoice_status[item[1]]) || 0 }))
+				.filter((entry) => entry.value > 0);
+			if (visible_statuses.length) {
+				new frappe.Chart(status_chart, {
+					bndAriaLabel: home_text("Invoice status"),
+					type: "donut",
+					height: 280,
+					strokeWidth: 34,
+					showLegend: 0,
+					colors: visible_statuses.map((entry) => entry.item[3]),
+					data: {
+						labels: visible_statuses.map((entry) => home_text(entry.item[0])),
+						datasets: [{
+							name: home_text("Current sales invoices"),
+							values: visible_statuses.map((entry) => entry.value),
+						}],
+					},
+				});
+				const align_total = () => requestAnimationFrame(() =>
+					home_align_status_total(status_visual, status_total_copy, status_chart));
+				align_total();
+				if (typeof ResizeObserver !== "undefined") {
+					home_status_resize_observer = new ResizeObserver(align_total);
+					home_status_resize_observer.observe(status_chart);
+				}
+				status_chart.addEventListener("data-select", (event) => {
+					const point = visible_statuses[Number(event.index ?? (event.detail && event.detail.index))];
+					if (point) home_open_invoice_list(data, point.item[1]);
+				});
+			} else {
+				const empty = el("p", "bnd-home-chart-empty");
+				empty.textContent = home_text("No invoice data yet");
+				status_chart.appendChild(empty);
+			}
+		});
+	}
+
+	function home_render_error(root) {
+		home_clear_greeting_timer();
+		root.replaceChildren();
+		const state = el("div", "bnd-home-state");
+		state.appendChild(home_icon("icon-circle-alert", "bnd-home-state-icon"));
+		const message = el("p", "bnd-home-state-message");
+		message.textContent = home_text("Could not load dashboard data");
+		state.append(message, home_action("Retry", "icon-refresh-cw", () => mount_home_dashboard(true), true));
+		root.appendChild(state);
+	}
+
+	function mount_home_dashboard(force) {
+		if (!on_home_route()) {
+			home_clear_greeting_timer();
+			home_stop_status_alignment();
+			for (const host of document.querySelectorAll(".bnd-home-host")) host.classList.remove("bnd-home-host");
+			for (const node of document.querySelectorAll(".bnd-home-dashboard")) node.remove();
+			return false;
+		}
+		const host = home_host();
+		if (!host) return false;
+		host.classList.add("bnd-home-host");
+		let root = host.querySelector(":scope > .bnd-home-dashboard");
+		if (root && !force) {
+			home_refresh_greeting();
+			home_schedule_greeting();
+			return true;
+		}
+		if (!root) {
+			root = el("main", "bnd-home-dashboard", { "aria-label": home_text("Bunood dashboard") });
+			host.appendChild(root);
+		}
+		home_stop_status_alignment();
+		home_clear_greeting_timer();
+		root.replaceChildren();
+		const loading = el("div", "bnd-home-state is-loading");
+		loading.appendChild(home_icon("icon-loader-circle", "bnd-home-state-icon"));
+		const loading_copy = el("p", "bnd-home-state-message");
+		loading_copy.textContent = home_text("Loading dashboard");
+		loading.appendChild(loading_copy);
+		root.appendChild(loading);
+		const request = ++home_request;
+		frappe.call({
+			method: "bunood_theme.api.get_home_dashboard",
+			callback: (response) => {
+				if (request !== home_request || !root.isConnected || !on_home_route()) return;
+				home_render_dashboard(root, response.message || {});
+			},
+			error: () => {
+				if (request === home_request && root.isConnected) home_render_error(root);
+			},
+		});
+		return true;
+	}
+
+	// Read-only summaries augment the form; native controls remain untouched.
+	// Permission/dependency visibility comes from each live Frappe control, not
+	// from the document payload (which can contain values the user cannot see).
+	const summary_states = new WeakMap();
+	// A review sheet is useful for itemized or financial transactions, not
+	// every document with fields. In particular, do not duplicate profile,
+	// permission, configuration, master-data, or operational tracking forms.
+	// Unknown/custom DocTypes stay native until their review use is assessed.
+	const summary_document_types = new Set([
+		"Quotation", "Sales Order", "Delivery Note", "Sales Invoice",
+		"Supplier Quotation", "Purchase Order", "Purchase Receipt", "Purchase Invoice",
+		"Payment Entry", "Journal Entry",
+		"Material Request", "Stock Entry", "Stock Reconciliation",
+		"Work Order", "Subcontracting Order", "Subcontracting Receipt",
+	]);
+	function summary_eligible(frm) {
+		return !!frm?.doc && !frm.meta?.istable && !frm.meta?.issingle && summary_document_types.has(frm.doctype);
+	}
+	function unmount_form_summary(frm) {
+		const state = summary_states.get(frm);
+		if (!state) return;
+		clearTimeout(state.timer);
+		state.observer?.disconnect();
+		$(frm.wrapper).off(".bnd-summary");
+		state.root?.remove();
+		summary_states.delete(frm);
+	}
+	function summary_node(tag, cls, text) {
+		const node = el(tag, cls);
+		if (text != null) node.textContent = text;
+		return node;
+	}
+	const summary_types = new Set(["Data", "Read Only", "Link", "Dynamic Link", "Select", "Date", "Datetime", "Time", "Currency", "Float", "Int", "Percent", "Check", "Small Text", "Text", "Long Text", "Text Editor"]);
+	const summary_priority = new Set(["customer", "customer_name", "supplier", "supplier_name", "party", "party_name", "company", "posting_date", "transaction_date", "due_date", "currency", "grand_total", "rounded_total", "outstanding_amount", "paid_amount", "received_amount", "total_qty", "total_taxes_and_charges", "discount_amount", "status"]);
+
+	function summary_text(value, df, doc) {
+		if (df.fieldtype === "Check") return Number(value) ? __("Yes") : __("No");
+		// Format with ERPNext's own currency/precision policy, then keep text
+		// only. User HTML can never become executable summary markup.
+		const markup = frappe.format(value, df, { inline: true }, doc);
+		return new DOMParser().parseFromString(markup, "text/html").body.textContent || "";
+	}
+
+	function summary_data(frm) {
+		const fields = [];
+		const tables = [];
+		for (const field of frm.fields || []) {
+			const df = field.df;
+			if (!df || typeof field.get_status !== "function" || df.hidden || df.hidden_due_to_dependency || field.get_status() === "None") continue;
+			if (field.tab?.is_hidden()) continue;
+			if (field.$wrapper?.closest(".hide-control, .hidden-section").length) continue;
+			const value = frm.doc[df.fieldname];
+			if (df.fieldtype === "Table" && Array.isArray(value) && value.length) {
+				// Only columns already exposed by the native grid are repeated.
+				const cols = (field.grid?.visible_columns || []).map(c => c[0]).filter(c =>
+					!c.hidden && !c.depends_on && !c.hidden_due_to_dependency && !Number(c.permlevel) && summary_types.has(c.fieldtype));
+				if (cols.length) tables.push({ name: df.fieldname, label: __(df.label), cols: cols.map(c => __(c.label)), rows: value.map(row => cols.map(c => summary_text(row[c.fieldname], c, row))) });
+				continue;
+			}
+			if (!summary_types.has(df.fieldtype) || value == null || value === "" || (df.fieldtype === "Check" && !Number(value))) continue;
+			fields.push({ name: df.fieldname, label: __(df.label), value: summary_text(value, df, frm.doc), key: summary_priority.has(df.fieldname), total: ["grand_total", "rounded_total", "outstanding_amount", "paid_amount", "received_amount"].includes(df.fieldname) });
+		}
+		return { fields, tables, pending: !!frm.doc.__unsaved };
+	}
+
+	function render_form_summary(frm, state) {
+		// Recheck at render too: a queued refresh must not resurrect a summary
+		// after its form context stops being eligible.
+		if (!summary_eligible(frm)) { unmount_form_summary(frm); return; }
+		if (window.cur_frm !== frm || !document.documentElement.hasAttribute("data-bnd-form")) return;
+		const host = frm.layout?.wrapper?.[0];
+		if (!host?.isConnected) return;
+		const data = summary_data(frm);
+		const signature = JSON.stringify(data);
+		if (signature === state.signature && state.root?.isConnected) return;
+		state.signature = signature;
+		const expanded = !!state.root?.querySelector("details")?.open;
+		const root = state.root || el("section", "bnd-form-summary");
+		state.root = root;
+		root.setAttribute("data-bnd-part", "form-summary");
+		root.setAttribute("aria-label", __("Document summary"));
+		root.replaceChildren();
+		const heading = el("header", "bnd-summary-heading");
+		heading.appendChild(summary_node("h2", "", __("Document summary")));
+		heading.appendChild(summary_node("span", "bnd-summary-state", data.pending ? __("Not Saved") : __(frm.doc.status || frm.doctype)));
+		root.appendChild(heading);
+		const list = (entries) => {
+			const dl = el("dl", "bnd-summary-values");
+			for (const entry of entries) {
+				const pair = el("div", entry.total ? "bnd-summary-value bnd-summary-total" : "bnd-summary-value");
+				pair.setAttribute("data-summary-field", entry.name);
+				pair.appendChild(summary_node("dt", "", entry.label));
+				const dd = summary_node("dd", "", entry.value);
+				dd.setAttribute("dir", "auto");
+				pair.appendChild(dd);
+				dl.appendChild(pair);
+			}
+			return dl;
+		};
+		const key = data.fields.filter(f => f.key);
+		root.appendChild(list(key.length ? key : data.fields.slice(0, 6)));
+		for (const table of data.tables) {
+			const block = el("div", "bnd-summary-table");
+			const grid = el("table");
+			grid.appendChild(summary_node("caption", "", table.label));
+			const head = el("thead"), row = el("tr");
+			for (const title of table.cols) { const th = summary_node("th", "", title); th.scope = "col"; row.appendChild(th); }
+			head.appendChild(row); grid.appendChild(head);
+			const body = el("tbody");
+			for (const values of table.rows) {
+				const tr = el("tr");
+				for (const value of values) { const td = summary_node("td", "", value); td.setAttribute("dir", "auto"); tr.appendChild(td); }
+				body.appendChild(tr);
+			}
+			grid.appendChild(body); block.appendChild(grid); root.appendChild(block);
+		}
+		const remaining = key.length ? data.fields.filter(f => !f.key) : data.fields.slice(6);
+		if (remaining.length) {
+			const details = el("details"); details.open = expanded;
+			details.appendChild(summary_node("summary", "bnd-summary-more", __("All entered details")));
+			details.appendChild(list(remaining)); root.appendChild(details);
+		}
+		if (!root.isConnected) host.appendChild(root);
+	}
+
+	function mount_form_summary(frm) {
+		if (!frm?.wrapper) return;
+		if (!summary_eligible(frm)) { unmount_form_summary(frm); return; }
+		let state = summary_states.get(frm);
+		if (!state) {
+			state = { root: null, signature: "", timer: null };
+			summary_states.set(frm, state);
+			state.queue = () => { clearTimeout(state.timer); state.timer = setTimeout(() => render_form_summary(frm, state), 120); };
+			$(frm.wrapper).on("dirty.bnd-summary refresh-fields.bnd-summary render_complete.bnd-summary change.bnd-summary", state.queue);
+			// Async calculations update native fields after the input event.
+			// Ignore our own mutations and render only when values change.
+			state.observer = new MutationObserver(records => {
+				if (records.some(r => !state.root?.contains(r.target))) state.queue();
+			});
+			// Frappe hides controls by toggling hide-control, without changing
+			// their children. Observe visibility too so stale values disappear.
+			state.observer.observe(frm.wrapper, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class", "hidden"] });
+		}
+		state.queue();
+	}
+
+	$(document).on("form-refresh.bnd-summary", (_event, frm) => mount_form_summary(frm));
 
 	// ── Orchestration ───────────────────────────────────────────────────────
 
@@ -8241,25 +9580,38 @@ function sb_zone_anchor(pane, zone, node) {
 		// must be left exactly as Frappe built it.
 		if (!theme_active()) return;
 
+		// allowed_workspaces is populated later than app_include_js on this v16
+		// build. Prepare Home at the first desk mount and let Frappe render the
+		// changed native payload once if its sparse shipped list already painted.
+		if (prepare_home_sidebar() && on_home_route() && frappe.app?.sidebar?.setup) {
+			frappe.app.sidebar.setup("Home");
+		}
+
 		// Re-stamp the viewport attributes now the desk is up: the module-scope
 		// call ran at load, but this is the point container_on / placement_for
 		// below are first asked, so data-bnd-narrow must be current here.
 		apply_viewport_mode();
 
 		observe_sidebar_width();
+		observe_list_accessibility();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
+		// AT MOUNT AS WELL AS ON ROUTE CHANGE. The router handler alone never
+		// fires for the route the desk LOADS on, so a visit that lands on
+		// route "" — v16's Desktop page — left `data-bnd-desktop` unstamped and
+		// our chrome mounted on top of the Desktop's own header. Measured: the
+		// attribute read false on `/desk` until this call came back.
 		update_desktop_mode();
+		// Same reason: the router handler never fires for the route the desk
+		// LOADS on, and a fresh login lands on exactly the empty route this
+		// sends to the home.
+		land_on_home();
 		decorate_crumbs();
 
-		// Frappe's renderer EMPTIES every trail and rebuilds it from scratch
-		// on each update() — route changes, add() calls, and every form
-		// header refresh (a doc save wipes our decoration). Wrapping update()
-		// is the sanctioned augmentation point: a plain object method, and
-		// core itself appends to the trail after clear() the same way.
-		// Fails open — if Frappe renames update(), decoration still runs on
-		// route changes below, just not on form refreshes.
+		// Native update rebuilds the trail, including on form refresh. Decorate
+		// afterward; if that hook disappears, route decoration still runs below.
+		install_breadcrumb_context_fallback(frappe.breadcrumbs);
 		if (frappe.breadcrumbs && typeof frappe.breadcrumbs.update === "function" && !frappe.breadcrumbs._bnd_wrapped) {
 			const native_update = frappe.breadcrumbs.update.bind(frappe.breadcrumbs);
 			frappe.breadcrumbs.update = function () {
@@ -8332,6 +9684,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
 		if (container_on("sidepane")) sb_mount_pagehead_brand();
 		else sb_teardown_pagehead_brand();
+		sync_desktop_shell();
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();
@@ -8341,25 +9694,22 @@ function sb_zone_anchor(pane, zone, node) {
 		stamp_appearance_route();
 		apply_home_route();
 
-		// THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
-		// desktop page declares `hide_sidebar`, and container.js honours it right
-		// AFTER firing "page-change" - so the flag is cleared on the way through
-		// whenever the kit owns a pane on this desk, and Frappe's own toggle then
-		// shows it. Nothing here touches the pane's DOM. The bars still stand down
-		// in desktop mode (_sidebar.scss): the ask was the pane.
-		// Two hooks, because the order is not ours: "page-change" fires BEFORE
-		// container.js reads the flag (so clearing it there is enough on most loads),
-		// but a load whose first page-change ran before this script listened (measured
-		// on a second visit to /app) leaves the pane hidden — so the router's own
-		// change event, which fires AFTER the toggle, repairs it through Frappe's
-		// toggle(false). Both paths call one function; neither touches the pane's DOM.
-		if (window.jQuery) window.jQuery(document).on("page-change", keep_pane_on_desktop);
-		keep_pane_on_desktop();
+		try_for(() => mount_home_dashboard(), 40, 150);
+
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				close_menu();
 				update_desktop_mode();
-				keep_pane_on_desktop();
+				land_on_home();
+				// Restore the complete sidebar after native navigation, including
+				// returning from All Apps where its decoration stands down.
+				sidepane_sync("route");
+				// The home dashboard mounts per route because Frappe swaps the
+				// workspace element out from under us. The retry covers the
+				// home route only, where the container is built asynchronously
+				// and a single synchronous mount lands before it exists.
+				mount_home_dashboard();
+				if (on_home_route()) try_for(() => mount_home_dashboard(), 40, 150);
 				// AFTER update_desktop_mode, because that call is what stands
 				// the chrome down on route "" and brings it back — but on the
 				// NEXT frame, not in this handler. Measuring forces a
@@ -8389,6 +9739,8 @@ function sb_zone_anchor(pane, zone, node) {
 					mount_placed_tenants();
 				}
 				// Recents churn with the route.
+				sb_mount_utils();
+				sync_desktop_shell();
 				// AFTER inject_compact_cluster, never before: Compact builds
 				// a NEW cluster (with a fresh hidden badge) on every route
 				// change, and Frappe fires router listeners in registration

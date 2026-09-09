@@ -1,0 +1,150 @@
+@use "../breakpoints" as *;
+
+// The outer column reserves layout space; its fixed pane owns viewport scrolling.
+// Native page wrappers may have fixed heights, so they cannot contain a sticky pane.
+html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
+  --bnd-pane-top: 0px;
+  &[data-bnd-topbar] { --bnd-pane-top: var(--bnd-topbar-h); }
+
+  .body-sidebar-container {
+    box-sizing: border-box;
+    position: relative;
+    inset-block-start: auto;
+    align-self: flex-start;
+    flex: 0 0 var(--bnd-sb-w);
+    inline-size: var(--bnd-sb-w);
+    min-inline-size: 0;
+    max-inline-size: none;
+    block-size: calc(100dvh - var(--bnd-pane-top) - var(--bnd-bottom-reserve));
+    min-block-size: 0;
+    margin-block-start: var(--bnd-pane-top);
+    overflow: visible;
+    z-index: var(--bnd-z-flyout);
+    transition: none;
+  }
+
+  .body-sidebar-container .body-sidebar {
+    position: fixed;
+    inset-block-start: var(--bnd-pane-top);
+    inset-block-end: auto;
+    inset-inline: auto;
+    display: flex;
+    flex-direction: column;
+    inline-size: var(--bnd-sb-w);
+    block-size: calc(100dvh - var(--bnd-pane-top) - var(--bnd-bottom-reserve));
+    background: inherit;
+    border: inherit;
+    border-radius: inherit;
+    box-shadow: inherit;
+    min-block-size: 0;
+    box-sizing: border-box;
+    visibility: visible;
+    opacity: 1;
+    overflow: hidden;
+    transition: none;
+  }
+
+  .body-sidebar-top {
+    flex: 1 1 0;
+    min-block-size: 0;
+    inline-size: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .body-sidebar-placeholder { display: none; }
+
+  &[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
+    flex-basis: var(--bnd-sb-rail-w);
+    inline-size: var(--bnd-sb-rail-w);
+    margin-inline: 0;
+    .body-sidebar { inline-size: var(--bnd-sb-rail-w); padding-inline: var(--bnd-sp-1); }
+  }
+}
+
+// The global header uses viewport coordinates in every mode, not negative
+// offsets derived separately from compact/expanded/floating sidebar widths.
+html.bunood[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) {
+  .main-section {
+    min-inline-size: 0;
+    flex: 1 1 0;
+    padding-block-start: var(--bnd-topbar-h);
+    overflow: visible;
+  }
+  .main-section > header {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    inline-size: auto;
+    margin: 0;
+    z-index: calc(var(--bnd-z-flyout) + 1);
+  }
+}
+
+// Retire the edge toggle only when our wired, visible topbar control owns it.
+html.bunood[data-bnd-own~="panetoggle"] .body-sidebar .collapse-sidebar-link {
+  display: none;
+}
+
+.bnd-compact-nav { display: none; }
+html.bunood[data-bnd-rail][data-bnd-own~="compactnav"]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) {
+  .body-sidebar-top, .standard-items-sections, .bnd-sb-filter, .body-sidebar-bottom,
+  .sidebar-resize-handle, .bnd-sb-brand-name { display: none; }
+  .bnd-sb-brand {
+    justify-content: center;
+    padding: var(--bnd-sp-2);
+    margin: 0;
+    border: 0;
+  }
+  .bnd-sb-head {
+    flex: none;
+    inline-size: 100%;
+    margin: 0;
+    padding-inline: var(--bnd-sp-1);
+    min-block-size: var(--bnd-sb-tile);
+    gap: var(--bnd-sp-1);
+    .bnd-sb-head-name { font-size: var(--bnd-text-xs); white-space: normal; }
+  }
+  .bnd-compact-nav {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-block-size: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    gap: var(--bnd-sp-1);
+    padding-block: var(--bnd-sp-2);
+  }
+}
+
+.bnd-rail-entry {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-2) var(--bnd-sp-1);
+  min-block-size: calc(var(--bnd-sb-tile) + var(--bnd-sp-4));
+  inline-size: 100%;
+  box-sizing: border-box;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  font-family: inherit;
+  font-size: var(--bnd-text-xs);
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  &:hover { background: var(--bnd-sb-chip-bg); color: var(--bnd-sb-ink); text-decoration: none; }
+  &[aria-current="page"], &[data-active="true"] { background: var(--bnd-brand-solid); color: var(--bnd-on-brand); }
+  &:focus-visible { outline: var(--bnd-line-2) solid var(--bnd-brand-ink); outline-offset: calc(-1 * var(--bnd-line-2)); }
+  &[aria-current="page"]:focus-visible, &[data-active="true"]:focus-visible { outline-color: var(--bnd-on-brand); }
+}
+.bnd-rail-glyph { inline-size: var(--bnd-text-xl); block-size: var(--bnd-text-xl); flex: none; }

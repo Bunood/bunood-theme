@@ -75,7 +75,37 @@ CONSTRAINTS THAT SHAPE THIS FILE
 See ARCHITECTURE.md sections 4, 5 and 3.
 """
 
+from urllib.parse import parse_qsl, urlencode
+
 import frappe
+
+
+AUTH_LANGUAGE_CODES = ("en", "ar")
+
+
+def _auth_language_code(value):
+    """Return the supported parent code for an explicit guest choice."""
+    code = str(value or "").strip().lower().replace("_", "-").split("-", 1)[0]
+    return code if code in AUTH_LANGUAGE_CODES else ""
+
+
+def _explicit_guest_language():
+    """Read only a deliberate query/cookie choice, never Accept-Language."""
+    requested = _auth_language_code((frappe.form_dict or {}).get("_lang"))
+    if requested:
+        return requested
+    request = getattr(frappe.local, "request", None)
+    return _auth_language_code(request.cookies.get("preferred_language") if request else "")
+
+
+def prefer_system_language_for_guests():
+    """Use an explicit English/Arabic guest choice, else the tenant default."""
+    if frappe.session.user == "Guest":
+        frappe.local.lang = (
+            _explicit_guest_language()
+            or frappe.get_system_settings("language")
+            or frappe.local.lang
+        )
 
 #: The DESK template. Frappe's ``PathResolver`` hardcodes ``TemplatePage("desk")`` for
 #: ``/desk`` and ``/app/*``, and the context carries the template path, so this is a
@@ -837,10 +867,63 @@ def _identity_meta(context, compose_title=False):
         tags["og:image"] = frappe.utils.get_url(_attr(tenant["logo"]))
 
 
+def _auth_language_href(code):
+    """Current auth URL with one language query, preserving redirect parameters."""
+    request = getattr(frappe.local, "request", None)
+    path = getattr(request, "path", None) or "/"
+    raw = getattr(request, "query_string", b"") or b""
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    query = [(key, value) for key, value in parse_qsl(raw, keep_blank_values=True) if key != "_lang"]
+    query.append(("_lang", code))
+    return f"{path}?{urlencode(query)}"
+
+
+def _auth_extras(context):
+    """Publish the bilingual auth chrome and its page-scoped interaction."""
+    from frappe.utils import escape_html
+
+    from bunood_theme.assets import AUTH_JS
+
+    current = _auth_language_code(getattr(frappe.local, "lang", ""))
+    language_label = escape_html(frappe._("Language"))
+    english_title = escape_html(frappe._("Switch to English"))
+    arabic_title = escape_html(frappe._("Switch to Arabic"))
+    welcome = escape_html(frappe._("Welcome to Bunood"))
+    promise = escape_html(frappe._("Run your business with clarity and ease."))
+
+    def choice(code, label, title, direction):
+        active = ' aria-current="true"' if current == code else ""
+        return (
+            f'<a class="bnd-auth-language-choice" data-bnd-lang="{code}" '
+            f'href="{escape_html(_auth_language_href(code))}" hreflang="{code}" '
+            f'lang="{code}" dir="{direction}" title="{title}"{active}>{label}</a>'
+        )
+
+    markup = (
+        f'<div class="bnd-auth-language-switch" data-bnd-auth-language role="group" '
+        f'aria-label="{language_label}">'
+        f'{choice("en", "English", english_title, "ltr")}'
+        f'{choice("ar", "العربية", arabic_title, "rtl")}'
+        '</div>'
+        '<section class="bnd-auth-hero" data-bnd-auth-hero>'
+        f'<h2>{welcome}</h2><p>{promise}</p>'
+        '</section>'
+    )
+    context.banner_html = f'{context.get("banner_html") or ""}{markup}'
+
+    scripts = list(context.get("web_include_js") or [])
+    if AUTH_JS not in scripts:
+        scripts.append(AUTH_JS)
+    context.web_include_js = scripts
+
+
 def _auth_context(context):
     """Dress ``/login`` and ``/update-password`` — item 32.
 
-    Three things, none of which needs a template fork or a byte of JS:
+    The first-paint shape needs no template fork. A small page-scoped script only
+    persists the language choice and moves the already-rendered hero into the split
+    layout without duplicating Frappe's full website navbar.
 
     1. **The scope.** ``templates/base.html:57`` renders
        ``class="{{ body_class or '' }}"``, and ``body_class`` is an ordinary
@@ -877,6 +960,9 @@ def _auth_context(context):
     The page's title and subtitle remain literals in ``www/login.html`` with no
     seam at all, which is filed upstream.
     """
+    context.title = frappe._(
+        "Update Password" if context.get("template") == "www/update-password.html" else "Login"
+    )
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)
@@ -903,6 +989,8 @@ def _auth_context(context):
             classes.append(f"{AUTH_BODY_CLASS}-{slug}")
 
     context.body_class = " ".join(classes)
+
+    _auth_extras(context)
 
     _add_brand_sheet(context)
 

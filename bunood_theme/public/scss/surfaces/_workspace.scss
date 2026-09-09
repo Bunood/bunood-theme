@@ -265,6 +265,37 @@ html[data-bnd-ws-menu] #{$ws} {
   }
 }
 
+// ── A shortcut tile's COUNT is data, not chrome ──────────────────────────────
+// The reveal above fades `.widget-control` because on most tiles it carries the
+// ⋯ menu. On a SHORTCUT tile it also carries the live count pill — 12 sales
+// invoices, 4 customers — and that is the same category as a chart's
+// `.filter-chart`, which the block above already exempts by name. Measured
+// 2026-09-07 at rest, pointer parked off-tile: 0 of 6 shortcut tiles showed a
+// count, and all six had one.
+//
+// The pill CANNOT opt out of a faded parent — `opacity` applies to the whole
+// subtree — so the parent must not fade, and the tile's arrow, which IS chrome,
+// is faded on its own instead. Weighed at (0,5,1) against the reveal's (0,4,1);
+// nothing else sets `opacity` on this element.
+html[data-bnd-ws-menu] #{$ws}.shortcut-widget-box .widget-control {
+  opacity: 1;
+}
+html[data-bnd-ws-menu] #{$ws}.shortcut-widget-box .widget-control > svg {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-ws-menu] #{$ws}.shortcut-widget-box:hover .widget-control > svg,
+html[data-bnd-ws-menu] #{$ws}.shortcut-widget-box:focus-within .widget-control > svg {
+  opacity: 1;
+}
+// A coarse pointer has no hover to reveal with, so the arrow stays put — the
+// same stand-down the reveal block makes, restated for the arm added above.
+@media (hover: none) {
+  html[data-bnd-ws-menu] #{$ws}.shortcut-widget-box .widget-control > svg {
+    opacity: 1;
+  }
+}
+
 // ── The number card's interior (workspace_metric, item 25 axis 2) ────────────
 // The FIGURE inside the tile, as opposed to the frame above. The number card is
 // `.number-widget-box`: `.widget-head > .widget-label > .widget-title` (label,

@@ -1,4 +1,6 @@
 // Copyright (c) 2026, Bunood and contributors
+@use "../breakpoints" as *;
+@use "sidebar-layout";
 // ============================================================================
 // SIDEBAR STYLE KIT — checklist item 10 (+ presets, item 30 pulled forward).
 //
@@ -334,9 +336,6 @@ html[data-bnd-sb-color] .bnd-sb-band {
   inset-block-end: var(--bnd-sb-pane-pad);
   display: flex;
   align-items: center;
-  // Six tenants can be placed here (item 44 added two). At the narrowest pane
-  // they do not fit one row, so the card wraps to a second rather than spill.
-  flex-wrap: wrap;
   gap: var(--bnd-sb-band-gap);
   margin-inline: 0;
   padding: var(--bnd-sb-band-pad);
@@ -352,20 +351,10 @@ html[data-bnd-sb-color] .bnd-sb-band {
     align-items: center;
     justify-content: center;
     // The account leads; registry order between; the bell pinned to the end.
-    // Registry order between the account and the bell (the build guard derives
-    // this list from registry.py; item 44 added language and appearance last).
     &[data-bnd-part="user"] { order: 1; }
     &[data-bnd-part="home"] { order: 2; }
     &[data-bnd-part="apps"] { order: 3; }
     &[data-bnd-part="language"] { order: 4; }
-    &[data-bnd-part="appearance"] { order: 5; }
-    // The switch in a 36px cell (item 44): a globe, or the two-letter code -
-    // never the word, and never both, because 18 + 4 + 18 does not fit 36.
-    &.bnd-language-btn {
-      column-gap: 0;
-      padding-inline: 0;
-      .bnd-lang-name { display: none; }
-    }
     &[data-bnd-part="bell"] {
       order: 9;
       margin-inline-start: auto;
@@ -397,15 +386,7 @@ html[data-bnd-sb-color] .bnd-sb-band {
 // account pins to the block-end corner, and nothing hides - the badge
 // stays a COUNT (shadcn hides both badge and action at icon-collapse,
 // which tells a collapsed user nothing was withheld when it was).
-//
-// AT REST ONLY. `:not(.bnd-rail-open)` is load-bearing: the flyout is the same
-// Rail STATE with the pane at full width, and keyed on the state alone this
-// column followed the pane out - bell over avatar in a card three cells tall
-// with a void above them (the user's screenshot, 2026-09-06, an Arabic desk).
-// The band's axis follows the pane's WIDTH: flown out, it is the row rule
-// above, same as Open. The rest rules at the end of this file already key
-// on the same class for the same reason.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar .bnd-sb-band {
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .bnd-sb-band {
   flex-direction: column;
   justify-content: flex-end;
   // The rail is 50px and the tile is 40: the card gives up its inline
@@ -435,8 +416,8 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 // same pane, which is the two-options-one-pixel defect again, one CSS
 // property further down. Shrink-0 pins the pane; the main section is
 // `flex: 1` with its own overflow and absorbs the difference, which is what
-// a flexible main pane is FOR. Scoped to the expanded mode: rail mode sizes
-// the container itself (52px) and manual collapse belongs to Frappe's own
+// a flexible main pane is FOR. Scoped to the expanded mode: collapsible mode
+// sizes the container itself and manual collapse belongs to Frappe's own
 // animation, exactly as sb_apply_width already divides them.
 // ── Frappe's own shortcut hint, on OUR pane ────────────────────────────────
 // `Ctrl+K` beside the search row is the vendor's, at `var(--ink-gray-4,
@@ -455,11 +436,12 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
 }
 
 // ── The start button (item 42, slice 7) ────────────────────────────────────
-// What makes a taskbar a taskbar: the company's mark at the bar's leading edge,
-// and one click between the pane being there and not. It BUILDS NOTHING — it
-// moves the pane between the states slice 8 defined — so there is no second
-// pane to keep in agreement, no focus trap to get wrong, and every rule the
-// pane already has applies unchanged.
+// One split-panel icon at the bar's leading edge moves the pane between the
+// states slice 8 defined. The company identity belongs inside the navigation
+// pane; using its initial here made a structural control look like an account
+// or brand button and left the closed state with no recognizable way back.
+// It BUILDS NOTHING — so there is no second pane to keep in agreement, no focus
+// trap to get wrong, and every rule the pane already has applies unchanged.
 //
 // A TENANT, not a fixture: placed by `start_placement`, mounted by
 // `mount_placed_tenants`, sorted by `enforce_desk_order`, released like any
@@ -476,6 +458,12 @@ html[data-theme] .bnd-sb-start {
   padding: 0;
   border-radius: var(--bnd-radius-md);
   overflow: hidden;
+
+  > svg {
+    display: block;
+    inline-size: 18px;
+    block-size: 18px;
+  }
 
   .bnd-sb-start-mark {
     display: grid;
@@ -643,21 +631,46 @@ html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-contai
   }
 }
 
-.bnd-ph-show .es-icon,
-.bnd-sb-brand-hide .es-icon {
+.bnd-ph-show .es-icon {
   inline-size: 16px;
   block-size: 16px;
 }
 
-// The way out, at the end of the pane's brand row; the rail hides it (below).
-html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-hide {
-  margin-inline-start: auto;
+html[data-bnd-sb-color] .bnd-ph-show {
   flex: none;
   color: var(--bnd-sb-ink-muted);
 
   &:hover {
     color: var(--bnd-sb-ink);
   }
+}
+
+// The way out of the pane, at the brand row's inline end. RESTORED after the
+// overhaul merge (2026-09-05) dropped it; the brand row is a <button> in that
+// overhaul, so this is a positioned SIBLING -- a button cannot contain one --
+// and the row keeps room for it. The rail hides it (rest-state rule below).
+html[data-bnd-sb-color] .bnd-sb-brand-hide {
+  position: absolute;
+  inset-block-start: var(--bnd-sp-3);
+  inset-inline-end: var(--bnd-sp-3);
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: var(--bnd-sb-tile);
+  color: var(--bnd-sb-ink-muted);
+
+  &:hover {
+    color: var(--bnd-sb-ink);
+  }
+
+  .es-icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+
+html[data-bnd-sb-color] .body-sidebar > .bnd-sb-brand {
+  padding-inline-end: calc(var(--bnd-sp-3) + 28px + var(--bnd-sp-2));
 }
 html[data-bnd-sb-panestate="open"] .body-sidebar-container {
   flex-shrink: 0;
@@ -851,17 +864,19 @@ html[data-bnd-sb-placement="floating"] .body-sidebar-container {
 
 // ── The injected pieces (bunood.js): the utils section ─────────────────────
 html[data-bnd-sb-color] .bnd-sb-utils {
-  padding: var(--bnd-sp-1);
-  margin-block-end: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-2);
+  padding-block: 0;
+  margin-block-end: var(--bnd-sp-2);
 }
 
 html[data-bnd-sb-color] .bnd-sb-item {
-  display: flex;
-  align-items: center;
-  gap: var(--bnd-sp-2);
-  inline-size: 100%;
-  padding-block: 5px;
-  padding-inline: var(--bnd-sp-2);
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-3);
+	inline-size: 100%;
+	min-block-size: 40px;
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-3);
   border: none;
   border-radius: var(--bnd-radius-md);
   background: transparent;
@@ -921,15 +936,17 @@ html[data-bnd-sb-color] .bnd-sb-item {
 html[data-bnd-sb-color] .bnd-sb-head {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-2);
-  inline-size: calc(100% - 2 * var(--bnd-sp-1));
-  margin: var(--bnd-sp-1);
-  padding-block: var(--bnd-sp-2);
-  padding-inline: var(--bnd-sp-2);
-  border: none;
-  border-radius: var(--bnd-radius-lg);
-  background: transparent;
-  color: var(--bnd-sb-ink);
+	gap: var(--bnd-sp-3);
+	min-block-size: 52px;
+	inline-size: calc(100% - 2 * var(--bnd-sp-2));
+	margin-block: var(--bnd-sp-2) var(--bnd-sp-3);
+	margin-inline: var(--bnd-sp-2);
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-3);
+	border: none;
+	border-radius: var(--bnd-radius-xl);
+	background: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
   // The module's name is the pane's heading, one step above the rows (the user
   // asked for it larger, 2026-09-05), with the module's own icon before it.
   font-size: var(--bnd-text-md);
@@ -937,9 +954,10 @@ html[data-bnd-sb-color] .bnd-sb-head {
   text-align: start;
   cursor: pointer;
 
-  &:hover {
-    background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
-  }
+	&:hover {
+		background: var(--bnd-brand-solid);
+		filter: brightness(1.04);
+	}
 
   .bnd-sb-head-ico {
     display: grid;
@@ -977,13 +995,15 @@ html[data-bnd-sb-color] .bnd-sb-head {
     display: grid;
     place-items: center;
     margin-inline-start: auto;
-    color: var(--bnd-sb-ink-muted);
+    color: var(--bnd-on-brand);
+    --icon-stroke: currentColor;
     flex: none;
 
     svg {
       inline-size: 14px;
       block-size: 14px;
     }
+    svg, use { stroke: currentColor; }
   }
 
   &[aria-expanded="true"] .bnd-sb-head-chev {
@@ -1028,6 +1048,15 @@ html[data-bnd-sb-color] .bnd-sb-head {
 // Frappe re-prepends its (owned, hidden) `.sidebar-header` on every workspace
 // switch, so "first" means first VISIBLE child, and the check reads it so.
 html[data-bnd-sb-color] .bnd-sb-brand {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-family: inherit;
+  text-align: start;
+  inline-size: 100%;
+  flex: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: var(--bnd-sp-3);
@@ -1037,6 +1066,9 @@ html[data-bnd-sb-color] .bnd-sb-brand {
   color: var(--bnd-sb-ink);
   font-size: var(--bnd-text-base);
   font-weight: var(--bnd-weight-medium);
+
+  &:hover { background: var(--bnd-sb-chip-bg); }
+  &:focus-visible { outline: var(--bnd-line-2) solid var(--bnd-brand-ink); outline-offset: calc(-1 * var(--bnd-line-2)); }
 
   .bnd-sb-brand-mark {
     display: grid;
@@ -1077,7 +1109,7 @@ html[data-bnd-sb-color] .bnd-sb-utils-bar {
   gap: var(--bnd-sp-1);
   margin-inline-end: var(--bnd-sp-2);
 }
-html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
+html[data-theme]:not([data-bnd-narrow]) .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
   inline-size: 22px;
   block-size: 22px;
 
@@ -1106,8 +1138,8 @@ html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
 html[data-bnd-sb-icons] .body-sidebar .item-anchor .sidebar-item-icon {
   display: inline-grid;
   place-items: center;
-  inline-size: 22px;
-  block-size: 22px;
+	inline-size: 30px;
+	block-size: 30px;
   flex: none;
   padding: 0; // beats Frappe's padding:7px, which is what shrank the box
 }
@@ -1253,13 +1285,36 @@ html[data-bnd-sb-icons="onactive"] .body-sidebar .standard-sidebar-item.active-s
 
 // Sidebar link text picks up the pane ink in every icon mode.
 html[data-bnd-sb-color] .body-sidebar .standard-sidebar-item {
-  border-radius: var(--bnd-radius-md);
-  color: var(--bnd-sb-ink-muted);
+	min-block-size: 40px;
+	border-radius: var(--bnd-radius-lg);
+	color: var(--bnd-sb-ink-muted);
 
-  .item-anchor,
-  .sidebar-item-label {
-    color: inherit;
-  }
+	.item-anchor,
+	.sidebar-item-label {
+		color: inherit;
+	}
+
+	.item-anchor {
+		// Native links have a fixed height; let the selection grow with its label.
+		block-size: auto;
+		min-block-size: 40px;
+		gap: var(--bnd-sp-3);
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-2);
+	}
+
+	.item-anchor .sidebar-item-label {
+		// Keep complete menu names readable in both RTL and LTR, including
+		// nested links and section headings. Do not clamp to a line count.
+		min-inline-size: 0;
+		white-space: normal;
+		overflow: visible;
+		text-overflow: clip;
+		overflow-wrap: anywhere;
+		word-break: normal;
+		font-size: var(--bnd-text-sm);
+		line-height: var(--bnd-leading-base);
+	}
 
   &:hover {
     background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
@@ -1371,39 +1426,6 @@ html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-i
   box-shadow: var(--bnd-sb-card-shadow);
 }
 
-// LOOSE ROWS SHARE ONE CARD (the user's call, 2026-09-08: "all menu items should
-// be inside a section"). A workspace may carry rows outside any section — Users
-// has Home, User and Role before Permissions and Audits — and under Cards they
-// stood bare beside the cards. A run of consecutive loose rows is now drawn as one
-// headerless card, with no wrapper (never touch Frappe's DOM): every loose row
-// carries the card's surface and side borders; the FIRST of a run (the first child,
-// or the row after a section) rounds and borders its top; the LAST of a run (the
-// last child, or the row before a section — `:has(+ .section-item)`, which this
-// desk's Chromium supports as item 40's `:nth-child(… of)` already requires) rounds
-// and borders its bottom and carries the card's block-end margin. The hue stays
-// neutral: a run without a header has no category to be coloured by.
-html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item) {
-  background: var(--bnd-sb-card-bg);
-  border-inline: var(--bnd-line) solid var(--bnd-sb-card-line);
-  padding-inline: var(--bnd-sp-1);
-}
-html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):first-child,
-html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .section-item + .sidebar-item-container:not(.section-item) {
-  border-block-start: var(--bnd-line) solid var(--bnd-sb-card-line);
-  border-start-start-radius: var(--bnd-radius-lg);
-  border-start-end-radius: var(--bnd-radius-lg);
-  padding-block-start: var(--bnd-sp-1);
-}
-html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):last-child,
-html[data-bnd-sb-sections="cards"] .body-sidebar-top .sidebar-items > .sidebar-item-container:not(.section-item):has(+ .section-item) {
-  border-block-end: var(--bnd-line) solid var(--bnd-sb-card-line);
-  border-end-start-radius: var(--bnd-radius-lg);
-  border-end-end-radius: var(--bnd-radius-lg);
-  padding-block-end: var(--bnd-sp-1);
-  margin-block-end: var(--bnd-sp-2);
-  box-shadow: var(--bnd-sb-card-shadow);
-}
-
 // Surface intensity: bg / border / shadow move TOGETHER through 5 designed
 // stops — a tenant can only land on states we drew.
 html[data-bnd-sb-intensity="1"] {
@@ -1417,8 +1439,8 @@ html[data-bnd-sb-intensity="2"] {
   --bnd-sb-card-shadow: none;
 }
 html[data-bnd-sb-intensity="3"] {
-  --bnd-sb-card-bg: var(--bnd-sb-card-base);
-  --bnd-sb-card-line: var(--bnd-sb-line);
+	--bnd-sb-card-bg: var(--bnd-sb-card-base);
+	--bnd-sb-card-line: transparent;
   --bnd-sb-card-shadow: none;
 }
 html[data-bnd-sb-intensity="4"] {
@@ -1510,7 +1532,18 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .st
   // included. `text-transform` STAYS — Arabic has no cased characters, so it
   // is a true no-op there and costs nothing to keep for Latin.
   text-transform: uppercase;
-  color: var(--bnd-sb-ink-muted);
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--bnd-sb-ink-muted);
+}
+
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item {
+	min-block-size: 34px;
+
+	.item-anchor {
+		min-block-size: 34px;
+	}
 }
 
 // ── The filter row (item 40) ────────────────────────────────────────────────
@@ -1696,184 +1729,6 @@ html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
 }
 
 
-// ── Menu rail: hover-expand ─────────────────────────────────────────────────
-// The container narrows to the rail width (its inline width is set by
-// bunood.js because Frappe writes inline widths of its own); the INNER
-// sidebar becomes an overlay that grows on the .bnd-rail-open class, which
-// bunood.js toggles from hover AND focus-within — so keyboard users get the
-// expansion too. Content never reflows: the fixed bars read the container
-// width (52px) via the existing ResizeObserver.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container {
-  overflow: visible;
-  // The overlay positions against the CONTAINER, not the viewport — without
-  // this, inset-block:0 resolves against the initial containing block and
-  // the pane paints from the window corner (measured before the fix).
-  position: relative;
-
-  .body-sidebar {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    inline-size: var(--bnd-sb-rail-w);
-    overflow: hidden;
-    background: var(--bnd-sb-bg);
-    border-radius: inherit;
-    border: inherit;
-    transition: inline-size var(--bnd-dur-base) var(--bnd-ease);
-    // ABOVE the top/status bars it slides across, below panels/menus.
-    // Measured: at z-bar the expanded pane layered UNDER the page's sticky
-    // chrome and the bottom bars.
-    z-index: var(--bnd-z-flyout);
-
-    // At rest, labels and wide-only pieces vanish; icons stay centered.
-    .sidebar-item-label {
-      opacity: 0;
-      transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
-    }
-  }
-
-  &.bnd-rail-open .body-sidebar {
-    inline-size: var(--bnd-sb-w);
-    box-shadow: var(--bnd-shadow-lg);
-
-    .sidebar-item-label {
-      opacity: 1;
-    }
-  }
-}
-// Floating + rail: the overlay tracks the card's inset.
-html[data-bnd-sb-placement="floating"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  inset-block: 0;
-  inset-inline-start: 0;
-}
-
-// THE SURFACE FOLLOWS THE PANE INTO THE RAIL. Expanded, the container is what
-// paints; railed, the container is a 52px strip and the OVERLAY inside it is
-// the pane -- so every surface that changes the container's paint needs the
-// same arm here, or the rail silently reverts to Solid. Reading the wrong node
-// is this file's oldest trap; these carry (0,4,1), which is what the rail's own
-// rules weigh.
-html[data-bnd-sb-material="tinted"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  background: var(--bnd-sb-tint);
-}
-html[data-bnd-sb-material="gradient"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  background: var(--bnd-sb-gradient);
-}
-html[data-bnd-sb-material="elevated"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  background: var(--bnd-raised);
-}
-html[data-bnd-sb-material="textured"][data-bnd-rail] .body-sidebar-container .body-sidebar {
-  background-image: var(--bnd-sb-grain-image);
-}
-
-// The pin control (hoverpin only; bunood.js mounts it).
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-sb-pin {
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: none;
-  border-radius: var(--bnd-radius-md);
-  background: transparent;
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-
-  &:hover {
-    background: color-mix(in srgb, var(--bnd-sb-ink) 8%, transparent);
-  }
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-sb-pin {
-  color: var(--bnd-brand-ink);
-}
-
-// Hide Frappe's own collapse toggle in rail modes — the rail IS the
-// collapsed state, and two collapse affordances would fight.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .collapse-sidebar-link,
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .sidebar-resize-handle {
-  display: none;
-}
-
-// Fixed bottom bars clear the pane: the live inset variable is measured by JS
-// at the sidebar's END edge, including any floating margins — this block only
-// documents that the statusbar consumes it; see observe_sidebar_width() in
-// bunood.js. It used to say "and the apps rail", which the rail's deletion
-// (item 40) made false.
-
-// ── Rail expand button ──────────────────────────────────────────────────────
-// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
-// trigger). Placement, shape and glyph are all Theme Settings options; the
-// element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  position: absolute;
-  z-index: calc(var(--bnd-z-flyout) + 1);
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  background: var(--bnd-sb-card-base);
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-  box-shadow: var(--bnd-shadow-sm);
-  // One shape since item 40: all eight shipped looks chose Circle, and the
-  // other two rendered through a CONCATENATED class the focus-ring guard
-  // cannot see. The radius lives on the identity class instead.
-  border-radius: var(--bnd-radius-pill);
-
-  svg {
-    inline-size: 13px;
-    block-size: 13px;
-    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
-  }
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-}
-
-// Placements. Edge rides the pane's end border, vertically centred; top sits
-// in the header row; bottom is pinned above the pane's end.
-//
-// TWO POSITIONS EACH, because the pane and the button have different parents.
-// The button is absolute against the CONTAINER, which stays at the rail's
-// 52px; the open pane is an overlay that grows to --bnd-sb-w PAST it. With
-// only the at-rest offset, opening slid the pane out from under the button
-// and left it floating over the workspace list, 40px from the left edge — a
-// chevron on top of "Material Request", measured 2026-08-08, and the broken
-// render reported that day. So each placement states where it sits at REST
-// (against the rail) and where it sits OPEN (against the pane's real edge,
-// derived from the same two widths the pane itself uses), with the same
-// duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-edge {
-  inset-inline-end: -12px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-edge {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
-}
-// The head placement, named for where it sits rather than for a compass
-// point (item 40). BOTTOM IS GONE, and it was measured out rather than
-// dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
-// controls — Frappe's collapse link and resize handle both live there.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-header {
-  inset-inline-end: var(--bnd-sp-1);
-  inset-block-start: var(--bnd-sp-2);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-header,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-header {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-
-
-// Open state: the chevron/arrow glyphs flip to point back.
-.bnd-rail-open .bnd-railbtn svg {
-  rotate: 180deg;
-}
 
 // ── Icon source overrides ───────────────────────────────────────────────────
 // "Original" hands the icon area back to Frappe untouched — every chip rule
@@ -1913,164 +1768,21 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   text-transform: uppercase;
 }
 
-// ── The Desktop page owns its own chrome ────────────────────────────────────
-// Route "" is v16's Desktop (#page-desktop): it ships its OWN navbar, its own
-// search, and hides the normal sidebar. Every piece of Bunood chrome stands
-// down there — bunood.js stamps data-bnd-desktop on <html> for that route.
-// Measured 2026-07-30: without this, our topbar duplicated the Desktop's
-// search header and the apps rail overlaid its icon grid.
-html[data-bnd-desktop] {
-  .bnd-topbar,
-  .bnd-statusbar,
-  .bnd-dock {
-    display: none;
-  }
-  // No .main-section reset is needed to go with that display:none. The bottom
-  // reserve is MEASURED from the chrome that is actually rendered
-  // (chrome/_layouts.scss), and a display:none bar measures zero — so standing
-  // the chrome down here already releases the space it had claimed.
-
-  // The Desktop navbar has its OWN notifications dropdown; the layouts'
-  // panel relocation (chrome/_layouts.scss) must not seize it — measured as
-  // a stray white pill floating at the page's top edge.
-  .dropdown-notifications {
-    position: static;
-    inline-size: auto;
-    max-height: none;
-    overflow-y: visible;
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-  }
-}
-
-// ── Rail rest state: calm, not compressed ───────────────────────────────────
-// A workspace can hold 70+ links; rendering them as micro-rows in a 52px rail
-// is noise (measured on the Stock workspace). At rest the rail shows ONLY the
-// brand mark, the utility chips and the module chip; the link list fades in
-// with the expansion. Opacity (not display) so the expansion animates.
-// AN ICON RAIL, NOT AN EMPTY ONE. The first rail hid the whole list at rest --
-// a 52px strip carrying the brand tile, a chevron and the foot, and nothing a
-// person could navigate with; the user's screenshot of the pane had icons in
-// it because they had reached FRAPPE'S collapse (`.collapse-sidebar-link`, a
-// 50px pane with every label truncated to one letter), which no rule here
-// styled at all. Two collapsed panes, neither right. Both are now one visual
-// state: the rows keep their icons, centred; labels, hints and edit
-// affordances are gone rather than clipped; the brand and the foot centre on
-// the same axis. `display: none` on the labels, not opacity: a label that is
-// invisible and still laid out is what produced the one-letter clipping, and
-// an invisible-but-focusable control is the trap the old rest state had to
-// paper over. The icons ARE focusable and visible, and focus opens the rail.
+// ── The Desktop page: our chrome STAYS, deliberately ────────────────────────
+// A `html[data-bnd-desktop]` block used to stand every bar down on route "",
+// because v16's Desktop "ships its OWN navbar, its own search, and hides the
+// normal sidebar" (measured 2026-07-30). The v16-compatibility work deleted it,
+// and re-adding it was tried here and MEASURED on 16.31: `#page-desktop` now
+// renders an app-icon grid under a plain `.page-head` with ZERO search
+// controls, ZERO user controls and the side pane hidden. Standing our chrome
+// down there leaves that page with no search, no user menu and no logout —
+// which is the one thing "off" is never allowed to mean (see the OFF branch in
+// bunood.js: off must not delete the last route to a thing).
 //
-// The second selector is Frappe's own collapse in the Open state -- the
-// container without `.expanded` on a desktop -- which the vendor styles only
-// by width. `:not([data-bnd-rail])` keeps the two arms disjoint: our rail
-// keeps `.expanded` on the container and sizes the pane itself.
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open),
-html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) {
-  .sidebar-item-label,
-  .sidebar-item-suffix,
-  .sidebar-item-control,
-  .body-sidebar-cards,
-  // The foot keeps Frappe own account button as an AVATAR: with `user_placement`
-  // Off it is the only route to identity, and the matrix counts routes. Its name,
-  // e-mail, the edit controls and the banners go; the avatar stays, centred.
-  .body-sidebar-bottom .bottom-edit-controls,
-  .body-sidebar-bottom .promotional-banners,
-  .body-sidebar-bottom .avatar-name-email,
-  .bnd-sb-filter,
-  .bnd-sb-brand-name,
-  .bnd-sb-brand-hide,
-  .bnd-sb-head-name,
-  .bnd-sb-item .bnd-sb-item-label {
-    display: none;
-  }
-
-  // The vendor header, when ours failed to mount: fade its text, keep its icon.
-  // Not display:none — the ownership guard reads that as hiding a native.
-  .body-sidebar-bottom .onboarding-sidebar span,
-  .sidebar-header .sidebar-item-label,
-  .sidebar-header span:not(.sidebar-item-icon) {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  .item-anchor {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  .body-sidebar-bottom .sidebar-user-button,
-  .body-sidebar-bottom .onboarding-sidebar {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  // A section header is a label; without one it is a hairline -- drawn once,
-  // where loose rows give way to sections, never between two sections: four
-  // collapsed sections in a row drew four stacked lines (measured 2026-09-04).
-  .sidebar-item-container.section-item + .sidebar-item-container.section-item > .standard-sidebar-item {
-    display: none;
-  }
-
-  .sidebar-item-container.section-item > .standard-sidebar-item {
-    block-size: 0;
-    min-block-size: 0;
-    margin-block: var(--bnd-sp-1);
-    padding: 0;
-    border-block-start: var(--bnd-line) solid var(--bnd-sb-line);
-    overflow: hidden;
-  }
-
-  // Cards flatten: there is no room for a card around a column of icons.
-  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
-    padding: 0;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .navbar-search-bar > .standard-sidebar-item {
-    border-color: transparent;
-    background: transparent;
-  }
-
-  .bnd-sb-brand,
-  .bnd-sb-head {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  // The module's icon is the row at rest; a bare chevron said nothing.
-  .bnd-sb-head-chev {
-    display: none;
-  }
-
-  .bnd-sb-item {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  .bnd-sb-utils {
-    padding-inline: 0;
-  }
-}
-
-// Frappe's collapse flips the foot the way our rail does (rule above the band).
-html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-band {
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-inline: calc(-1 * var(--bnd-sb-pane-pad));
-  padding-inline: 0;
-
-  > button {
-    &[data-bnd-part="bell"] {
-      order: 1;
-      margin-inline-start: 0;
-    }
-  }
-}
+// So the attribute is still stamped and still available to scope by, but
+// nothing hides the bars on it. If a future Frappe restores the Desktop's own
+// header, re-add the block WITH a check that search stays reachable there.
+//
 
 // ── Reduce transparency (OS-level) ───────────────────────
 // NOTHING TO DEGRADE, and that is what the surfaces catalogue bought rather
@@ -2107,18 +1819,31 @@ html[data-bnd-narrow] .body-sidebar-container:not(.expanded) {
   position: absolute;
   inline-size: 0;
   min-inline-size: 0;
+  margin: 0;
+  border: 0;
   overflow: hidden;
 }
 
-// The language switch inside the foot band, per style (item 44): Name and the
-// globe pairs shrink to the two-letter code; only the plain globe keeps its
-// glyph. Top-level because the pair is (style on <html>) x (cell in the band).
-html[data-bnd-language-style="name"] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
-html[data-bnd-language-style="globe-name"] .bnd-sb-band .bnd-language-btn .bnd-lang-code,
-html[data-bnd-language-style="globe-code"] .bnd-sb-band .bnd-language-btn .bnd-lang-code {
-  display: inline;
+// ── Navigation deduplication ───────────────────────────────────────────────
+// The brand block is the default Home affordance. Explicit placement settings
+// still win: if an administrator asks for a Home cell in the action band, it
+// must remain a real, usable destination rather than an invisible grid item.
+.body-sidebar .bnd-sb-module {
+  display: none !important;
 }
-html[data-bnd-language-style="globe-name"] .bnd-sb-band .bnd-language-btn .bnd-lang-ico,
-html[data-bnd-language-style="globe-code"] .bnd-sb-band .bnd-language-btn .bnd-lang-ico {
-  display: none;
+
+
+// Mobile off-canvas drawer: an opaque, elevated sheet above dashboard content.
+@include bnd-until(md) {
+  .body-sidebar-container,
+  .offcanvas,
+  .body-sidebar-container.offcanvas {
+    background-color: var(--bnd-surface) !important;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15) !important;
+    z-index: 1050 !important;
+  }
+
+  .body-sidebar {
+    background-color: var(--bnd-surface) !important;
+  }
 }

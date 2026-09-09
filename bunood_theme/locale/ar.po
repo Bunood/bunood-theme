@@ -18,6 +18,19 @@ msgstr ""
 # locale/inherited.ar.txt. Strings with no entry at all are the
 # still-untranslated tail; `npm run i18n:check` counts them.
 
+# ── Chart surface (item 25) ──────────────────────────────────────────────
+
+# ── Workspace tile surface (item 25) ─────────────────────────────────────
+
+# ── Number card metric (item 25 axis 2) ──────────────────────────────────
+
+# ── Report Studio strings (item 41, 2026-09-02) ──────────────────────────
+# Carried over from studio-zatca dd7f787, authored by Hesham for the Report
+# Studio, which is NOT on this line. Nothing here emits these msgids yet, so
+# `npm run i18n:check` counts them in neither direction; they exist so the
+# studio lands with its Arabic already decided. A dead-row reap will list
+# them — this banner is the reason to keep them.
+
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Arabic Font"
@@ -410,6 +423,7 @@ msgstr "كربون"
 
 #. In theme_settings.js
 #. src: item40
+#, fuzzy
 msgid "Card depth"
 msgstr "عمق البطاقة"
 
@@ -2183,8 +2197,7 @@ msgstr "كل مفتاح وكل موضع، في مكان واحد."
 msgid "Page title row"
 msgstr "صف عنوان الصفحة"
 
-#. In theme_settings.js
-#. src: ai
+#. In bunood.js
 msgid "Profile"
 msgstr "الملف الشخصي"
 
@@ -2226,7 +2239,7 @@ msgstr "ممّ تتكوّن اللوحة، خلف الروابط."
 #. Option for 'Pane Material' in DocType 'Theme Settings'
 #. src: ai
 msgid "Solid"
-msgstr "معتم"
+msgstr "معتمة"
 
 #. Option for 'Active Link Style' in DocType 'Theme Settings'
 #. src: ai
@@ -3215,8 +3228,6 @@ msgstr "إظهار قائمة ملفك الشخصي في الشريط السفل
 msgid "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
 msgstr "إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين."
 
-# ── Chart surface (item 25) ──────────────────────────────────────────────
-
 #. src: item25
 msgid "Chart Picker"
 msgstr "منتقي الرسم البياني"
@@ -3272,8 +3283,6 @@ msgstr "المساحة تحت الخط تحمل الرسم البياني — م
 #. src: item25
 msgid "Applies as you click. Series colours are set automatically for legibility."
 msgstr "يُطبَّق عند النقر. تُضبط ألوان السلاسل تلقائيًا لضمان الوضوح."
-
-# ── Workspace tile surface (item 25) ─────────────────────────────────────
 
 #. src: item25
 msgid "A card's menu rests hidden and appears on hover or keyboard focus. Always visible on touch screens."
@@ -3374,8 +3383,6 @@ msgstr "صفوف مساحة العمل"
 #. src: item25
 msgid "Workspace Style"
 msgstr "نمط مساحة العمل"
-
-# ── Number card metric (item 25 axis 2) ──────────────────────────────────
 
 #. src: item25
 msgid "Centred"
@@ -4017,6 +4024,22 @@ msgstr "يترك «الأصلي» شريط التصفية كما هو — ولا
 msgid "Sign In"
 msgstr "تسجيل الدخول"
 
+#. src: auth-language
+msgid "Welcome! Please sign in to continue."
+msgstr "مرحبًا! سجّل الدخول للمتابعة."
+
+#. src: auth-language
+msgid "Forgot password?"
+msgstr "هل نسيت كلمة المرور؟"
+
+#. src: auth-language
+msgid "Welcome to Bunood"
+msgstr "أهلًا بك في بنود"
+
+#. src: auth-language
+msgid "Run your business with clarity and ease."
+msgstr "أدر أعمالك بوضوح وسهولة."
+
 #. src: item32
 msgid "Sign-In Style"
 msgstr "نمط تسجيل الدخول"
@@ -4188,6 +4211,7 @@ msgstr "بطاقة"
 #. Option for 'Section Style' in DocType 'Theme Settings'
 #. In theme_settings.js
 #. src: item40
+#, fuzzy
 msgid "Cards"
 msgstr "بطاقات"
 
@@ -4962,49 +4986,60 @@ msgstr "سيعرض البريد والمستندات المطبوعة اسم ش�
 
 #. Label of the "ground_color" field in DocType 'Theme Settings'
 #. src: item37
+#, fuzzy
 msgid "Ground Color"
 msgstr "لون الأرضية"
 
 #. Description of the "ground_color" field in DocType 'Theme Settings'
 #. src: item37
+#, fuzzy
 msgid "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
-msgstr "اختياري. ما تُمزج منه أسطح المكتب. تركه فارغًا يعني لون العلامة التجارية، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
+msgstr "اختياري. ما تُمزج منه أسطح المكتب. الفراغ يعني لون العلامة، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
 
 #. src: item37
+#, fuzzy
 msgid "Bunood Day"
 msgstr "بنود نهاري"
 
 #. src: item37
+#, fuzzy
 msgid "Focus"
 msgstr "تركيز"
 
 #. src: item37
+#, fuzzy
 msgid "Canvas"
-msgstr "لوحة الرسم"
+msgstr "لوحة"
 
 #. src: item37
+#, fuzzy
 msgid "Ledger"
 msgstr "دفتر"
 
 #. src: item37
+#, fuzzy
 msgid "Records"
 msgstr "سجلات"
 
 #. src: item37
+#, fuzzy
 msgid "Studio"
 msgstr "استوديو"
 
 #. src: item37
+#, fuzzy
 msgid "Contrast"
 msgstr "تباين"
 
 #. src: item37
+#, fuzzy
 msgid "Theme Picker"
 msgstr "منتقي السمة"
 
 #. src: item37
+#, fuzzy
 msgid "The shipped look. Floating cards on a hue-washed pane."
-msgstr "المظهر الافتراضي. بطاقات عائمة على لوحة مغسولة بالألوان."
+msgstr "المظهر المُضمَّن. بطاقات عائمة على لوحة مغسولة بالتدرّج اللوني."
 
 #. In theme_settings.js
 #. src: ai
@@ -5012,198 +5047,235 @@ msgid "The same design in daylight — a floating card lifted off the page inste
 msgstr "التصميم نفسه في وضح النهار — بطاقة عائمة مرفوعة عن الصفحة بدل اللوح المصمت الملتصق."
 
 #. src: item37
+#, fuzzy
 msgid "Dense hairlines, monochrome glyphs, nothing raised."
 msgstr "خطوط شعرية كثيفة، أيقونات أحادية اللون، ولا شيء مرتفع."
 
 #. src: item37
+#, fuzzy
 msgid "Unframed and text-forward — the container does the framing."
 msgstr "بلا إطارات ومع تقديم النص — الحاوية هي التي تؤطّر."
 
 #. src: item37
+#, fuzzy
 msgid "Ruled and precise: zebra rows, weighted tiles."
 msgstr "مسطّر ودقيق: صفوف مخطّطة وبطاقات متفاوتة الوزن."
 
 #. src: item37
+#, fuzzy
 msgid "Soft tiles, filled empties, rounded elevation throughout."
 msgstr "بطاقات ناعمة، وحالات فارغة ممتلئة، وارتفاع مستدير في كل مكان."
 
 #. src: item37
+#, fuzzy
 msgid "Structured and sharp — a grid you can feel, on a deep pane."
 msgstr "منظّم وحادّ — شبكة تكاد تلمسها، على لوحة داكنة."
 
 #. src: item37
+#, fuzzy
 msgid "Document-centric: a paper sheet on a headed board."
 msgstr "مُتمحور حول المستند: ورقة على لوح معنون."
 
 #. src: item37
+#, fuzzy
 msgid "The modern neutral — subtle borders, colour used sparingly."
 msgstr "الحياد الحديث — حدود خفيفة، ولون يُستخدم باقتصاد."
 
 #. src: item37
+#, fuzzy
 msgid "Bold and high-contrast: solid panels, filled colour."
 msgstr "جريء وعالي التباين: ألواح مصمتة ولون ممتلئ."
 
 #. src: item37
+#, fuzzy
 msgid "Dense rows, live count badges, the status bar always on."
 msgstr "صفوف كثيفة، وشارات عدّ حيّة، وشريط الحالة ظاهر دائمًا."
 
 #. src: item37
+#, fuzzy
 msgid "Every kit that can stand down does. The side pane, status bar and charts cannot — they mount chrome, or ship no Original — so they take their quietest setting."
 msgstr "كل طقم يستطيع التنحّي يفعل. اللوحة الجانبية وشريط الحالة والرسوم البيانية لا تستطيع — فهي تركّب عناصر واجهة، أو لا تقدّم خيار «الأصلي» — لذا تأخذ أهدأ إعداد لها."
 
 #. src: item37
+#, fuzzy
 msgid "Custom — your own combination. Picking a look overwrites every setting it names, including the colours."
 msgstr "مخصّص — تركيبتك أنت. اختيار مظهر يستبدل كل إعداد يسمّيه، بما في ذلك الألوان."
 
 #. src: item37
+#, fuzzy
 msgid "Every setting this look names is applied. Change any one of them and this reads Custom."
 msgstr "كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص»."
 
 #. src: item38
+#, fuzzy
 msgid "Personalization"
 msgstr "التخصيص الشخصي"
 
 #. src: item38
+#, fuzzy
 msgid "People may choose their own look"
 msgstr "يمكن للأشخاص اختيار مظهرهم الخاص"
 
 #. src: item38
+#, fuzzy
 msgid "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
-msgstr "يمكن لكل شخص اختيار أحد المظاهر المُضمَّنة لنفسه، من نافذة المظهر. أما الألوان فتتبع إعدادات الموقع دائمًا."
+msgstr "يمكن لكل شخص اختيار أحد المظاهر المرفقة لنفسه، من نافذة المظهر. أما الألوان فتتبع إعدادات الموقع دائمًا."
 
 #. src: item38
+#, fuzzy
 msgid "People may choose their own desk shape"
 msgstr "يمكن للأشخاص اختيار شكل مكتبهم الخاص"
 
 #. src: item38
+#, fuzzy
 msgid "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
 msgstr "يمكن لكل شخص اختيار تخطيط مكتبه: أي الأشرطة تظهر، وأين يقع البحث والإشعارات والملف الشخصي. مُعطَّل افتراضيًا، لأن مواد التدريب ومكالمات الدعم تصف مكتبًا واحدًا."
 
 #. src: item38
+#, fuzzy
 msgid "People may set their own comfort"
 msgstr "يمكن للأشخاص ضبط إعدادات الراحة الخاصة بهم"
 
 #. src: item38
+#, fuzzy
 msgid "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
 msgstr "يمكن لكل شخص ضبط الوضع الفاتح أو الداكن وكثافة الصفوف. أما تقليل الحركة فمتاح للجميع دائمًا ولا يتأثر بهذا الإعداد."
 
 #. src: item38
+#, fuzzy
 msgid "Follow the site ({0})"
 msgstr "اتّبع إعدادات الموقع ({0})"
 
 #. src: item38
+#, fuzzy
 msgid "Follow the site"
 msgstr "اتّبع إعدادات الموقع"
 
 #. src: item38
+#, fuzzy
 msgid "Set by your administrator."
 msgstr "محدَّد من قِبل المسؤول."
 
 #. src: item38
+#, fuzzy
 msgid "Look"
 msgstr "المظهر العام"
 
 #. src: item38
+#, fuzzy
 msgid "Desk shape"
 msgstr "شكل المكتب"
 
 #. src: item38
+#, fuzzy
 msgid "Light or dark"
 msgstr "فاتح أو داكن"
 
 #. src: item38
+#, fuzzy
 msgid "Automatic"
 msgstr "تلقائي"
 
 #. src: item38
+#, fuzzy
 msgid "Colours follow the site."
 msgstr "الألوان تتبع إعدادات الموقع."
 
 #. src: item38
+#, fuzzy
 msgid "Appearance saved"
 msgstr "تم حفظ المظهر"
 
 #. src: item38
+#, fuzzy
 msgid "Could not open Appearance"
 msgstr "تعذّر فتح المظهر"
 
-#. src: item38
+#. src: shared simple-form actions
 msgid "Save"
 msgstr "حفظ"
 
 #. src: item38
+#, fuzzy
 msgid "Motion"
 msgstr "الحركة"
 
 #. src: item38
+#, fuzzy
 msgid "Follow my system"
 msgstr "اتّبع نظام جهازي"
 
 #. src: item38
+#, fuzzy
 msgid "Reduced"
 msgstr "مُخفَّفة"
 
 #. src: item38
+#, fuzzy
 msgid "Where the desk opens"
 msgstr "نقطة بدء المكتب"
 
 #. In theme_settings.js
 #. src: item40
+#, fuzzy
 msgid "Applies to card sections."
-msgstr "ينطبق على أقسام البطاقات."
+msgstr "ينطبق على الأقسام البطاقية."
 
 #. In bunood.js
 #. src: item40
+#, fuzzy
 msgid "Filter this workspace"
 msgstr "رشِّح مساحة العمل هذه"
 
 #. In bunood.js
 #. src: item40
+#, fuzzy
 msgid "Matches: {0}"
 msgstr "المطابقات: {0}"
 
 #. In theme_settings.js
 #. src: item40
+#, fuzzy
 msgid "Workspace filter"
 msgstr "مرشِّح مساحة العمل"
 
 #. In theme_settings.js
 #. src: item40
+#, fuzzy
 msgid "An always-visible filter row above the links."
 msgstr "صف ترشيح ظاهر دائمًا فوق الروابط."
 
 #. Label of a Check field in DocType 'Theme Settings'
 #. src: item40
+#, fuzzy
 msgid "Workspace Filter"
 msgstr "مرشِّح مساحة العمل"
 
 #. In bunood.js
 #. src: item40
+#, fuzzy
 msgid "Company"
 msgstr "الشركة"
 
+#, fuzzy
 msgid "Collapse all sections"
 msgstr "طيّ كل الأقسام"
 
+#. src: v2-csv-restore
 msgid "Quick actions"
 msgstr "إجراءات سريعة"
 
 #. In bunood.js
 #. src: item40
+#, fuzzy
 msgid "Side pane width"
 msgstr "عرض اللوحة الجانبية"
 
 #. In bunood.js
 #. src: item40
+#, fuzzy
 msgid "Use the site's width"
 msgstr "استخدام عرض الموقع"
-
-# ── Report Studio strings (item 41, 2026-09-02) ──────────────────────────
-# Carried over from studio-zatca dd7f787, authored by Hesham for the Report
-# Studio, which is NOT on this line. Nothing here emits these msgids yet, so
-# `npm run i18n:check` counts them in neither direction; they exist so the
-# studio lands with its Arabic already decided. A dead-row reap will list
-# them — this banner is the reason to keep them.
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
@@ -5349,11 +5421,26 @@ msgstr "دائن ناقص مدين — بالاتجاه الذي يتراكم ب
 msgid "Custom Period"
 msgstr "فترة مخصصة"
 
-#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
-#. the studio is not on this line, so nothing here emits it yet
-#. src: hesham
+#. src: v2-csv-restore
 msgid "Customer"
 msgstr "العميل"
+
+#. Bill date labels override incorrect inherited Arabic translations.
+msgid "Due Date"
+msgstr "تاريخ استحقاق السداد"
+
+msgid "Supplier Invoice Date"
+msgstr "تاريخ فاتورة المورد"
+
+#. Everyday ERP workflow labels; avoid invoice-only dates and stock-market terminology.
+msgid "Posting Date"
+msgstr "تاريخ الترحيل"
+
+msgid "Stock Entry Type"
+msgstr "نوع حركة المخزون"
+
+msgid "Payment Entry"
+msgstr "سند دفع أو قبض"
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
@@ -6117,9 +6204,7 @@ msgstr "اليوم"
 msgid "Top contributors"
 msgstr "أعلى المساهمين"
 
-#. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
-#. the studio is not on this line, so nothing here emits it yet
-#. src: hesham
+#. src: v2-csv-restore
 msgid "Total"
 msgstr "الإجمالي"
 
@@ -6263,6 +6348,7 @@ msgstr "مقارنة بالفترة السابقة"
 
 #. In bunood.js
 #. src: item42
+#, fuzzy
 msgid "Getting Started"
 msgstr "الشروع في العمل"
 
@@ -6288,21 +6374,25 @@ msgstr "الشريط العائم"
 
 #. In theme_settings.js
 #. src: item42
+#, fuzzy
 msgid "Everything in the side pane: brand, search, workspaces, notifications and profile. No bars above the page."
 msgstr "كل شيء في اللوحة الجانبية: العلامة والبحث ومساحات العمل والإشعارات والملف الشخصي. لا أشرطة فوق الصفحة."
 
 #. In theme_settings.js
 #. src: item42
+#, fuzzy
 msgid "A start button, centred search, notifications and profile in a bar along the bottom edge."
-msgstr "زر البدء، وبحث في المنتصف، والإشعارات والملف الشخصي في شريط على طول الحافة السفلية."
+msgstr "زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي في شريط على طول الحافة السفلية."
 
 #. In theme_settings.js
 #. src: item42
+#, fuzzy
 msgid "The taskbar at the top: start button, centred search, notifications and profile above the page."
-msgstr "شريط المهام في الأعلى: زر البدء، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة."
+msgstr "شريط المهام في الأعلى: زر ابدأ، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة."
 
 #. In theme_settings.js
 #. src: item42
+#, fuzzy
 msgid "No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."
 msgstr "بدون لوحة جانبية — مساحات العمل والبحث والإشعارات والملف الشخصي تطفو في كبسولة سفلية. صفحات بعرض كامل."
 
@@ -6368,142 +6458,859 @@ msgstr "سكة مع لوحة منبثقة"
 msgid "A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."
 msgstr "سكة رفيعة من الأيقونات تتوسع عند الوصول إليها. اللوحة حاضرة حين تريدها و52 بكسل حين لا تريد."
 
-#. In bunood.js
-#. src: item44
-msgid "Switch to {0}"
-msgstr "التبديل إلى {0}"
+#. src: simple forms
+msgid "A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."
+msgstr "المسودة لا ترحّل الحسابات ولا تحرّك المخزون ولا تسجّل دفعة. يعتمد النظام المستند عبر التحقق والتأكيد الأصليين."
+
+#. src: sales-bill
+msgid "Add item"
+msgstr "إضافة الصنف"
+
+#. src: stock entry simple workbench
+msgid "Add items and quantities"
+msgstr "أضف الأصناف والكميات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Add the items and quantities. Stock changes only after submission."
+msgstr "أضف الأصناف والكميات. لا يتغير المخزون إلا بعد الاعتماد."
+
+#. src: sales-bill
+msgid "Add your first item. Prices and taxes follow your invoice settings."
+msgstr "أضف أول صنف. تُحسب الأسعار والضرائب وفق إعدادات فاتورتك."
+
+#. src: simple forms
+msgid "Advanced"
+msgstr "متقدّم"
+
+#. src: simple forms
+msgid "Advanced form"
+msgstr "النموذج المتقدم"
+
+#. src: form-summary
+#, fuzzy
+msgid "All entered details"
+msgstr "جميع التفاصيل المدخلة"
+
+#. src: sales-bill
+msgid "Amount"
+msgstr "المبلغ"
+
+#. In report_compat.py
+#. src: ai
+msgid "Background export requested. Download link email: {0}"
+msgstr "تم طلب التصدير في الخلفية. البريد الإلكتروني لرابط التنزيل: {0}"
+
+#. src: sales-bill
+msgid "Bill total"
+msgstr "إجمالي الفاتورة"
+
+#. src: simple forms
+msgid "Camera scanning is not available in this browser. Type the barcode in item search."
+msgstr "المسح بالكاميرا غير متاح في هذا المتصفح. أدخل الباركود في خانة البحث عن صنف."
+
+#. src: sales-bill
+msgid "Changes stay in this invoice when you close this view."
+msgstr "تبقى التغييرات في الفاتورة الحالية عند إغلاق هذه النافذة."
+
+msgid "Checking ZATCA setup…"
+msgstr "جارٍ التحقق من إعدادات هيئة الزكاة والضريبة والجمارك…"
+
+#. src: sales-bill
+msgid "Choose an item from the search results."
+msgstr "اختر صنفاً من نتائج البحث."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the customer and warehouse, then add the items being delivered. Use Advanced for transport, billing, and accounting details."
+msgstr "اختر العميل والمستودع، ثم أضف الأصناف المراد تسليمها. استخدم الوضع المتقدم لتفاصيل النقل والفوترة والمحاسبة."
+
+#. src: stock entry simple workbench
+msgid "Choose the movement"
+msgstr "اختر نوع الحركة"
+
+#. src: stock entry simple workbench
+msgid "Choose the movement, warehouses, and items. Use Advanced for manufacturing, subcontracting, and accounting options."
+msgstr "اختر نوع الحركة والمستودعات والأصناف. استخدم الوضع المتقدم لخيارات التصنيع والمقاولات الفرعية والمحاسبة."
+
+#. src: simple forms
+msgid "Tax ID"
+msgstr "الرقم الضريبي"
+
+msgid "Print setup required"
+msgstr "يلزم استكمال إعدادات الطباعة"
+
+msgid "The seller address is missing. Ask your administrator to complete the company address in ZATCA Phase 1 Business Settings before printing this format."
+msgstr "عنوان البائع غير موجود. اطلب من مسؤول النظام استكمال عنوان الشركة في إعدادات زاتكا للمرحلة الأولى قبل استخدام تنسيق الطباعة هذا."
+
+msgid "This print format requires active ZATCA Phase 1 Business Settings for the invoice company. Ask your administrator to review the company setup before printing this format."
+msgstr "يتطلب تنسيق الطباعة هذا إعدادات زاتكا نشطة للمرحلة الأولى لشركة الفاتورة. اطلب من مسؤول النظام مراجعة إعدادات الشركة قبل استخدام هذا التنسيق."
+
+msgid "Choose a supplier before continuing."
+msgstr "اختر المورد قبل المتابعة."
+
+msgid "Choose a customer before continuing."
+msgstr "اختر العميل قبل المتابعة."
+
+msgid "Add at least one item before continuing."
+msgstr "أضف صنفًا واحدًا على الأقل قبل المتابعة."
+
+msgid "Choose the party and add at least one item."
+msgstr "اختر العميل أو المورد وأضف صنفًا واحدًا على الأقل."
+
+#. src: simple forms
+msgid "Choose the party before adding items."
+msgstr "اختر العميل أو المورد قبل إضافة الأصناف."
+
+#. src: simple forms
+msgid "Choose the party, add items, then save or submit when the document is ready."
+msgstr "اختر العميل أو المورد، ثم أضف الأصناف واحفظ المستند أو اعتمده عندما يصبح جاهزًا."
+
+#. src: stock entry simple workbench
+msgid "Choose the route"
+msgstr "حدّد مسار المخزون"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the source warehouse used for the delivered items."
+msgstr "اختر مستودع المصدر للأصناف التي سيتم تسليمها."
+
+#. src: simple forms
+msgid "Choose whether money came in, went out, or moved between accounts. Then select the party, amount, accounts, and invoices that apply."
+msgstr "اختر ما إذا كان المبلغ واردًا أو صادرًا أو محولًا بين الحسابات، ثم حدّد الطرف والمبلغ والحسابات والفواتير المعنية."
+msgid "Series"
+msgstr "سلسلة"
+
+msgid "Complete device onboarding with the OTP from Fatoora."
+msgstr "أكمل تهيئة الجهاز باستخدام رمز التحقق من فاتورة."
+
+#. src: sales-bill
+msgid "Correct the highlighted value before saving."
+msgstr "صحح القيمة غير الصالحة قبل الحفظ."
+
+#. src: topbar-language
+msgid "Could not switch language. Please try again."
+msgstr "تعذر تبديل اللغة. يرجى المحاولة مرة أخرى."
+
+#. src: simple forms
+msgid "Could not update the document. Open the advanced form to review."
+msgstr "تعذر تحديث المستند. افتح النموذج المتقدم لمراجعته."
+
+#. src: sales-bill
+msgid "Could not update the invoice. Open the full invoice to review."
+msgstr "تعذر تحديث الفاتورة. افتح الفاتورة الكاملة للمراجعة."
+
+msgid "Create ZATCA Business Settings for this company."
+msgstr "أنشئ إعدادات أعمال هيئة الزكاة والضريبة والجمارك لهذه الشركة."
 
 #. In bunood.js
-#. src: item44
+#. src: ai
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+#. src: stock entry simple workbench
+msgid "Date and company"
+msgstr "التاريخ والشركة"
+
+#. src: simple forms
+msgid "Delete"
+msgstr "حذف"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery steps"
+msgstr "خطوات التسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery summary"
+msgstr "ملخص التسليم"
+
+#. src: stock entry simple workbench
+msgid "Difference"
+msgstr "الفرق"
+
+#. src: simple forms
+msgid "Discard unsaved changes and reload this document?"
+msgstr "هل تريد تجاهل التغييرات غير المحفوظة وإعادة تحميل المستند؟"
+
+#. src: simple forms
+msgid "Discount"
+msgstr "خصم"
+
+#. src: simple forms
+msgid "Discount and tax"
+msgstr "الخصم والضريبة"
+
+#. src: simple forms
+msgid "Document actions"
+msgstr "إجراءات المستند"
+
+#. src: simple forms
+msgid "Document options"
+msgstr "خيارات المستند"
+
+#. src: form-summary
+#, fuzzy
+msgid "Document summary"
+msgstr "ملخص المستند"
+
+msgid "Draft actions"
+msgstr "إجراءات المسودة"
+
+#. src: simple forms
+msgid "Draft saved. Submit it when it is ready to affect accounts or stock."
+msgstr "حُفظت المسودة. اعتمدها عندما تصبح جاهزة للتأثير في الحسابات أو المخزون."
+
+#. src: sales-bill
+msgid "Find an item"
+msgstr "البحث عن صنف"
+
+#. src: simple forms
+msgid "Find item"
+msgstr "البحث عن صنف"
+
+#. src: simple forms
+msgid "Form mode"
+msgstr "وضع النموذج"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Fulfilment"
+msgstr "التنفيذ"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Grand total"
+msgstr "الإجمالي العام"
+
+#. src: stock entry simple workbench
+msgid "Incoming"
+msgstr "الوارد"
+
+msgid "Install and migrate the KSA Compliance app before configuring ZATCA."
+msgstr "ثبّت تطبيق الامتثال السعودي ورحّله قبل إعداد الربط مع الهيئة."
+
+msgid "Install KSA Compliance before sending invoices to ZATCA."
+msgstr "ثبّت تطبيق الامتثال السعودي قبل إرسال الفواتير إلى الهيئة."
+
+msgid "Interactive chart"
+msgstr "رسم بياني تفاعلي"
+
+msgid "Invoice actions"
+msgstr "إجراءات الفاتورة"
+
+msgid "Invoice queued for ZATCA. Status will update automatically."
+msgstr "وُضعت الفاتورة في قائمة الإرسال إلى الهيئة. ستتحدث الحالة تلقائيًا."
+
+msgid "Invoice tools"
+msgstr "أدوات الفاتورة"
+
+#. In sales_bill.js
+#. src: ai
+msgid "Item"
+msgstr "الصنف"
+
+#. src: stock entry simple workbench
+msgid "Items"
+msgstr "الأصناف"
+
+#. src: stock entry simple workbench
+msgid "Move stock"
+msgstr "نقل المخزون"
+
+#. src: stock entry simple workbench
+msgid "Movement"
+msgstr "الحركة"
+
+#. src: stock entry simple workbench
+msgid "Movement summary"
+msgstr "ملخص حركة المخزون"
+
+#. src: print amount wording
+msgid "Negative"
+msgstr "سالب"
+
+#. src: simple forms
+msgid "New"
+msgstr "جديد"
+
+#. src: simple forms
+msgid "New {0}"
+msgstr "إضافة {0}"
+
+#. src: form-summary
+#, fuzzy
+msgid "No"
+msgstr "لا"
+
+#. src: form-summary
+#, fuzzy
+msgid "Not Saved"
+msgstr "غير محفوظ"
+
+msgid "Only an Accounts Manager or System Manager can send an invoice to ZATCA."
+msgstr "يمكن لمدير الحسابات أو مدير النظام فقط إرسال فاتورة إلى الهيئة."
+
+#. src: stock entry simple workbench
+msgid "Only the warehouses required for this movement are shown."
+msgstr "تظهر فقط المستودعات المطلوبة لهذه الحركة."
+
+#. src: stock entry simple workbench
+msgid "Outgoing"
+msgstr "الصادر"
+
+#. src: simple forms
+msgid "Payment"
+msgstr "دفعة"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Prepare a delivery"
+msgstr "تجهيز تسليم"
+
+#. In bunood.js
+msgid "Primary navigation"
+msgstr "التنقل الرئيسي"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Quantity"
+msgstr "الكمية"
+
+msgid "Queueing invoice for ZATCA…"
+msgstr "جارٍ وضع الفاتورة في قائمة الإرسال إلى الهيئة…"
+
+#. src: simple forms
+msgid "Record a payment"
+msgstr "تسجيل دفعة"
+
+msgid "Refresh status"
+msgstr "تحديث الحالة"
+
+#. src: sales-bill
+msgid "Remove"
+msgstr "إزالة"
+
+#. In bunood.js
+#. src: ai
+msgid "Retract sidebar"
+msgstr "طي الشريط الجانبي"
+
+#. src: sales-bill
+msgid "Revert invalid edits"
+msgstr "التراجع عن القيم غير الصالحة"
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Review tax rows in Advanced"
+msgstr "مراجعة صفوف الضريبة في الوضع المتقدم"
+
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Review taxes and charges"
+msgstr "مراجعة الضرائب والرسوم"
+
+msgid "Review the ZATCA validation record before trying again."
+msgstr "راجع سجل تحقق الهيئة قبل المحاولة مرة أخرى."
+
+msgid "row"
+msgstr "صف"
+
+msgid "Run compliance checks, then obtain the production CSID."
+msgstr "شغّل فحوصات الامتثال ثم احصل على معرّف الحل الإنتاجي."
+
+#. src: sales-bill
+msgid "Saudi riyal"
+msgstr "ريال سعودي"
+
+#. src: simple forms
+msgid "Save draft"
+msgstr "حفظ المسودة"
+
+#. src: topbar-language
+msgid "Save or discard your unsaved changes before switching language."
+msgstr "احفظ التغييرات غير المحفوظة أو تجاهلها قبل تبديل اللغة."
+
+#. src: simple forms
+msgid "Scan barcode"
+msgstr "مسح الباركود"
+
+#. src: stock entry simple workbench
+msgid "Scan, search, or add items in the table. Stock is posted only after submission."
+msgstr "امسح الباركود أو ابحث أو أضف الأصناف في الجدول. لا تُرحّل حركة المخزون إلا بعد الاعتماد."
+
+#. src: sales-bill
+msgid "Search by item name or code"
+msgstr "ابحث باسم الصنف أو رمزه"
+
+msgid "Select {0}"
+msgstr "اختر {0}"
+
+#. src: sales-bill
+msgid "Select an item, then Add item. Ctrl+Enter adds it from search."
+msgstr "اختر الصنف ثم اضغط إضافة الصنف. يمكنك استخدام Ctrl+Enter للإضافة."
+
+#. src: stock entry simple workbench
+msgid "Select how stock should enter, leave, or move between warehouses."
+msgstr "حدّد ما إذا كان المخزون سيدخل أو يخرج أو يُنقل بين المستودعات."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Select the customer for this delivery note."
+msgstr "اختر العميل لإشعار التسليم هذا."
+
+msgid "Send to ZATCA"
+msgstr "إرسال إلى الهيئة"
+
+#. src: simple forms
+msgid "Simple"
+msgstr "مبسّط"
+
+#. src: simple forms
+msgid "Simple mode"
+msgstr "الوضع المبسّط"
+
+#. src: sales-bill
+msgid "Stock is not updated by this invoice."
+msgstr "هذه الفاتورة لا تحدّث المخزون."
+
+#. src: stock entry simple workbench
+msgid "Stock movement steps"
+msgstr "خطوات حركة المخزون"
+
+#. src: sales-bill
+msgid "Stock will be updated when the invoice is submitted."
+msgstr "سيتم تحديث المخزون عند اعتماد الفاتورة."
+
+#. src: shared simple-form actions
+msgid "Submit"
+msgstr "اعتماد"
+
+#. src: simple forms
+msgid "Submit document"
+msgstr "اعتماد المستند"
+
+#. src: simple forms
+msgid "Submit the document before recording payment."
+msgstr "اعتمد المستند قبل تسجيل الدفعة."
+
+msgid "Submit the sales invoice before sending it to ZATCA."
+msgstr "اعتمد فاتورة المبيعات قبل إرسالها إلى الهيئة."
+
+#. src: topbar-language
+msgid "Switch to Arabic"
+msgstr "التبديل إلى العربية"
+
+#. src: topbar-language
+msgid "Switch to English"
+msgstr "التبديل إلى الإنجليزية"
+
+#. src: topbar-language
 msgid "Switching language..."
 msgstr "جارٍ تبديل اللغة..."
 
-#. In bunood.js
-#. src: item44
-msgid "Save or discard your unsaved changes before switching language."
-msgstr "احفظ تغييراتك غير المحفوظة أو تجاهلها قبل تبديل اللغة."
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Row: {0}. Account: {1}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template."
+msgstr "مشكلة ضريبية. الصف: {0}. الحساب: {1}. النسبة مفقودة أو غير صالحة. أدخل نسبة، أو اختر قالبًا صريحًا للنسبة الصفرية أو الإعفاء أو خارج النطاق."
 
-#. In bunood.js
-#. src: item44
-msgid "Could not switch language. Please try again."
-msgstr "تعذّر تبديل اللغة. حاول مرة أخرى."
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Row: {0}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template."
+msgstr "مشكلة ضريبية. الصف: {0}. النسبة مفقودة أو غير صالحة. أدخل نسبة، أو اختر قالبًا صريحًا للنسبة الصفرية أو الإعفاء أو خارج النطاق."
 
-#. In theme_settings.js
-#. src: item44
-msgid "Language switch"
-msgstr "مبدّل اللغة"
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Rows: {0}. Conflicting rates: {1}. Account: {2}. Use one rate per tax account or separate the rates into different tax accounts."
+msgstr "مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. الحساب: {2}. استخدم نسبة واحدة لكل حساب ضريبي أو افصل النسب في حسابات ضريبية مختلفة."
 
-#. In theme_settings.js
-#. src: item44
-msgid "Appearance button"
-msgstr "زر المظهر"
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax issue. Rows: {0}. Conflicting rates: {1}. Use one rate per tax account or separate the rates into different tax accounts."
+msgstr "مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. استخدم نسبة واحدة لكل حساب ضريبي أو افصل النسب في حسابات ضريبية مختلفة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Language & Appearance"
-msgstr "اللغة والمظهر"
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "Tax template: {0}. No tax rows are configured. Choose a valid standard, zero-rate, exempt, or out-of-scope template."
+msgstr "قالب الضريبة: {0}. لا توجد صفوف ضريبية مُعدّة. اختر قالبًا صالحًا للضريبة القياسية أو النسبة الصفرية أو الإعفاء أو خارج النطاق."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Language Switch Placement"
-msgstr "موضع مبدّل اللغة"
+msgid "Taxes and charges"
+msgstr "الضرائب والرسوم"
 
-#. In theme_settings.json
-#. src: item44
-msgid "Language Switch Style"
-msgstr "أسلوب مبدّل اللغة"
+#. src: simple forms
+msgid "The document was not submitted. Review the highlighted fields."
+msgstr "لم يُعتمد المستند. راجع الحقول المميزة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Appearance Button Placement"
-msgstr "موضع زر المظهر"
+#. src: simple forms
+msgid "The draft was not saved. Review the message or open the advanced form."
+msgstr "لم تُحفظ المسودة. راجع الرسالة أو افتح النموذج المتقدم."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Globe"
-msgstr "كرة أرضية"
+#. src: sales-bill
+msgid "The draft was not saved. Review the message or open the full invoice."
+msgstr "لم يتم حفظ المسودة. راجع الرسالة أو افتح الفاتورة الكاملة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Code"
-msgstr "الرمز"
+#. src: simple forms
+msgid "The fields needed for this task are shown. Advanced mode keeps every ERPNext option on the same document."
+msgstr "تظهر الحقول اللازمة لهذه المهمة. يحتفظ الوضع المتقدم بجميع خيارات النظام في المستند نفسه."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Name"
-msgstr "الاسم"
+#. src: sales-bill
+msgid "The item could not be added. Review the full invoice."
+msgstr "تعذرت إضافة الصنف. راجع الفاتورة الكاملة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Globe + Code"
-msgstr "كرة أرضية + رمز"
+#. src: sales-bill
+msgid "The item was not removed. Review the full invoice."
+msgstr "لم تتم إزالة الصنف. راجع الفاتورة الكاملة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Globe + Name"
-msgstr "كرة أرضية + اسم"
+#. Bunood invoice tax validation
+#. src: human-reviewed
+msgid "The selected tax template contains no tax rows. Choose a valid standard, zero-rate, exempt, or out-of-scope template."
+msgstr "لا يحتوي قالب الضريبة المحدد على صفوف ضريبية. اختر قالبًا صالحًا للضريبة القياسية أو النسبة الصفرية أو الإعفاء أو خارج النطاق."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Where the language switch lives. It offers the languages enabled in the Language list; Off removes it, and the avatar menu keeps a Language entry."
-msgstr "موضع مبدّل اللغة. يعرض اللغات المفعّلة في قائمة اللغات؛ «معطَّل» يزيله، وتبقى قائمة الصورة الشخصية تحمل مدخل اللغة."
+msgid "The signed invoice is being prepared for ZATCA."
+msgstr "جارٍ تجهيز الفاتورة الموقعة لإرسالها إلى الهيئة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "How the switch draws itself: a globe, the other language's two-letter code, its name in its own script, or the globe with either. In the side pane's foot band and the rail a name shrinks to its code."
-msgstr "كيف يرسم المبدّل نفسه: كرة أرضية، أو رمز اللغة الأخرى من حرفين، أو اسمها بحرفها، أو الكرة الأرضية مع أيٍّ منهما. في شريط قاعدة اللوحة الجانبية والسكة يتقلّص الاسم إلى رمزه."
+msgid "The signed invoice is ready to send to ZATCA."
+msgstr "الفاتورة الموقعة جاهزة للإرسال إلى الهيئة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button."
-msgstr "موضع زر المظهر. يفتح الحوار الذي يفتحه مدخل «المظهر» في قائمة الصورة الشخصية؛ «معطَّل» يزيل الزر."
+msgid "The signed ZATCA invoice is still being prepared. Try again shortly."
+msgstr "لا تزال فاتورة الهيئة الموقعة قيد التجهيز. حاول مرة أخرى بعد قليل."
 
-#. In api.py
-#. src: item44
-msgid "Sign in to change your language."
-msgstr "سجّل الدخول لتغيير لغتك."
+msgid "The ZATCA connector is not installed on this site."
+msgstr "موصل هيئة الزكاة والضريبة والجمارك غير مثبت على هذا الموقع."
 
-#. In api.py
-#. src: item44
-msgid "That language is not enabled on this site."
-msgstr "هذه اللغة غير مفعّلة في هذا الموقع."
+#. src: simple forms
+msgid "This field is not editable. Use the advanced form."
+msgstr "هذا الحقل غير قابل للتحرير. استخدم النموذج المتقدم."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Languages Picker"
-msgstr "منتقي اللغات"
+#. src: sales-bill
+msgid "This field is not editable. Use the full invoice."
+msgstr "هذا الحقل غير قابل للتعديل. افتح الفاتورة الكاملة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Languages Offered"
-msgstr "اللغات المعروضة"
+#. src: sales-bill
+msgid "This invoice is no longer active. Open it again to continue."
+msgstr "هذه الفاتورة لم تعد مفتوحة. افتحها مجدداً للمتابعة."
 
-#. In theme_settings.json
-#. src: item44
-msgid "Set by the picker above: the languages the switch offers, in order, as Language codes. Empty means the shipped pair, Arabic and English."
-msgstr "يضبطه المنتقي أعلاه: اللغات التي يعرضها المبدّل، بالترتيب، كرموز لغات. الفراغ يعني الزوج المُرسَل: العربية والإنجليزية."
+#. src: sales-bill
+msgid "This item is no longer on the invoice."
+msgstr "هذا الصنف لم يعد موجوداً في الفاتورة."
 
-#. In theme_settings.js
-#. src: item44
-msgid "Languages the switch offers"
-msgstr "اللغات التي يعرضها المبدّل"
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Total quantity"
+msgstr "إجمالي الكمية"
 
-#. In theme_settings.js
-#. src: item44
-msgid "Order: {0}"
-msgstr "الترتيب: {0}"
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Unit price"
+msgstr "سعر الوحدة"
 
-#. In theme_settings.js
-#. src: item44
-msgid "Empty: the shipped pair, Arabic and English."
-msgstr "فارغ: الزوج المُرسَل، العربية والإنجليزية."
+#. src: bunood_theme/context.py
+msgid "Update Password"
+msgstr "تحديث كلمة المرور"
 
-#. In theme_settings.js
-#. src: item44
-msgid "Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load."
-msgstr "اختر لغتين على الأقل، بالترتيب الذي يجب أن يعرضه المبدّل. لا تظهر هنا إلا اللغات المفعّلة في قائمة اللغات. يُطبَّق عند تحميل الصفحة التالي."
+#. src: sales-bill
+msgid "Updating invoice…"
+msgstr "جارٍ تحديث الفاتورة…"
 
-#. In api.py
-#. src: item44
-msgid "That language is not offered on this site."
-msgstr "هذه اللغة غير معروضة في هذا الموقع."
+#. src: sales-bill
+msgid "Use a quantity above zero and a price of zero or more."
+msgstr "أدخل كمية أكبر من صفر وسعراً لا يقل عن صفر."
+
+#. src: simple forms
+msgid "Use the advanced form for this document type or permission level."
+msgstr "استخدم النموذج المتقدم لهذا النوع من المستندات أو مستوى الصلاحية."
+
+msgid "Use the left and right arrow keys to inspect data points."
+msgstr "استخدم مفتاحي السهم الأيسر والأيمن لاستعراض نقاط البيانات."
+
+#. src: mobile-shell
+msgid "Account"
+msgstr "الحساب"
+
+#. src: home-dashboard
+msgid "Good morning"
+msgstr "صباح الخير"
+
+#. src: home-dashboard
+msgid "Good afternoon"
+msgstr "مساء الخير"
+
+#. src: home-dashboard
+msgid "Good evening"
+msgstr "مساء الخير"
+
+#. src: home-dashboard
+msgid "Welcome back"
+msgstr "مرحبًا بعودتك"
+
+#. src: mobile-shell
+msgid "Workspace menu"
+msgstr "قائمة مساحات العمل"
+
+msgid "VAT"
+msgstr "ضريبة القيمة المضافة"
+
+msgid "View ZATCA record"
+msgstr "عرض سجل الهيئة"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Warehouse"
+msgstr "المستودع"
+
+#. src: stock entry simple workbench
+msgid "Warehouses"
+msgstr "المستودعات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "What are you delivering?"
+msgstr "ما الأصناف التي ستسلّمها؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Where is it leaving from?"
+msgstr "من أي مستودع ستخرج الأصناف؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Who is receiving this delivery?"
+msgstr "من سيستلم هذا التسليم؟"
+
+#. src: form-summary
+#, fuzzy
+msgid "Yes"
+msgstr "نعم"
+
+#. src: sales-bill
+msgid "Your bill starts here"
+msgstr "ابدأ فاتورتك هنا"
+
+msgid "ZATCA accepted this invoice with warnings."
+msgstr "قبلت الهيئة هذه الفاتورة مع تحذيرات."
+
+msgid "ZATCA accepted this invoice."
+msgstr "قبلت الهيئة هذه الفاتورة."
+
+msgid "ZATCA clearance is switched off. Review the validation record and company settings."
+msgstr "تخليص الهيئة معطل. راجع سجل التحقق وإعدادات الشركة."
+
+msgid "ZATCA e-invoicing"
+msgstr "الفوترة الإلكترونية مع هيئة الزكاة والضريبة والجمارك"
+
+msgid "ZATCA integration is disabled for this company."
+msgstr "الربط مع هيئة الزكاة والضريبة والجمارك معطل لهذه الشركة."
+
+msgid "ZATCA is ready. This invoice will be prepared when it is submitted."
+msgstr "الربط مع الهيئة جاهز. ستُجهّز هذه الفاتورة عند اعتمادها."
+
+msgid "ZATCA rejected this invoice. Open the validation record before correcting it."
+msgstr "رفضت الهيئة هذه الفاتورة. افتح سجل التحقق قبل تصحيحها."
+
+msgid "ZATCA settings"
+msgstr "إعدادات هيئة الزكاة والضريبة والجمارك"
+
+msgid "ZATCA status is temporarily unavailable."
+msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+#. Home and invoice entry: helper/profile labels missed by the literal extractor.
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "New sales invoice"
+msgstr "فاتورة مبيعات جديدة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Record a purchase"
+msgstr "تسجيل فاتورة شراء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Receive payment"
+msgstr "استلام دفعة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Stock entry"
+msgstr "قيد مخزون"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "New customer"
+msgstr "عميل جديد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Your business at a glance"
+msgstr "لمحة عن أعمالك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Financial summary"
+msgstr "الملخص المالي"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Cash and bank balance"
+msgstr "الرصيد النقدي والبنكي"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Available across cash and bank accounts"
+msgstr "الرصيد المتاح في الحسابات النقدية والبنكية"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales this month"
+msgstr "مبيعات هذا الشهر"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Outstanding receivables"
+msgstr "المبالغ المستحقة من العملاء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Outstanding payables"
+msgstr "المبالغ المستحقة للموردين"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Needs your attention"
+msgstr "يحتاج إلى متابعتك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What to deal with today"
+msgstr "ما يحتاج إلى إجراء اليوم"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Overdue invoices"
+msgstr "فواتير متأخرة السداد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Bills to pay"
+msgstr "فواتير مطلوب سدادها"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Drafts to finish"
+msgstr "مسودات تحتاج إلى إكمال"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Nothing needs your attention"
+msgstr "لا توجد أمور تحتاج إلى متابعتك"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No documents you can create yet"
+msgstr "لا تملك صلاحية إنشاء أي مستند حاليًا"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Recent activity"
+msgstr "أحدث الأنشطة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Latest invoices"
+msgstr "أحدث الفواتير"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No recent activity"
+msgstr "لا توجد أنشطة حديثة"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales trend"
+msgstr "اتجاه المبيعات"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Last six months"
+msgstr "آخر ستة أشهر"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Invoice status"
+msgstr "حالة الفواتير"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Current sales invoices"
+msgstr "فواتير المبيعات الحالية"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "No invoice data yet"
+msgstr "لا توجد بيانات فواتير بعد"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Could not load dashboard data"
+msgstr "تعذّر تحميل بيانات لوحة التحكم"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Sales bill"
+msgstr "فاتورة مبيعات"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Who are you billing?"
+msgstr "لمن تُصدر هذه الفاتورة؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What are you selling?"
+msgstr "ما الأصناف التي تبيعها؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Purchase bill"
+msgstr "فاتورة شراء"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "Who are you buying from?"
+msgstr "ممن تشتري؟"
+
+#. src: ai — product audit 2026-09-06
+#, fuzzy
+msgid "What are you buying?"
+msgstr "ما الأصناف التي تشتريها؟"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Price before discount"
+msgstr "السعر قبل الخصم"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Net unit price"
+msgstr "صافي سعر الوحدة"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Discount (%)"
+msgstr "الخصم (%)"
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Enter a price before discount first."
+msgstr "أدخل السعر قبل الخصم أولًا."
+
+#. src: ai — invoice workflow correction 2026-09-06
+#, fuzzy
+msgid "Open the advanced form to create this payment."
+msgstr "افتح النموذج المتقدم لإنشاء هذه الدفعة."
+
+#. src: ai — invoice pricing guidance 2026-09-06
+#, fuzzy
+msgid "Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."
+msgstr "يتطلب الخصم بالنسبة المئوية سعرًا للصنف في قائمة الأسعار المحددة. اختر صنفًا أو قائمة أسعار بسعر محدد، أو اضبط الخصم (%) على 0 وأدخل صافي سعر الوحدة."

@@ -895,40 +895,25 @@ frappe.ui.form.on("Theme Settings", {
 	onload(frm) {
 		bnd_fix_primary_action(frm);
 	},
-	// Item 44: plain Selects, so their live preview and the board redraw hang
-	// off the form events rather than a picker.
-	language_style(frm) {
-		bnd_language_preview(frm);
-	},
-	language_choices(frm) {
-		bnd_render_language_picker(frm);
-	},
-	language_placement(frm) {
-		bnd_render_placement_board(frm);
-	},
-	appearance_placement(frm) {
-		bnd_render_placement_board(frm);
-	},
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
-		// THE LAYOUT IS A PRESET, AND ITS FIELD IS NOW A RECORD OF ONE (item 36).
-		// The "read-only for one release so support can still see what a site
-		// was" that stood here expired many releases ago; the picker's derived
-		// label (`bnd_match_layout`) has said what the desk actually IS since
-		// the last container landed, and the Overview reads it too.
+		// The custom shell exposes Frappe's icon-only section toggle; its SVG is
+		// aria-hidden, so name the native button from the visible section label.
+		document.querySelectorAll(".sidebar-item-control .drop-icon:not([aria-label])").forEach((button) => {
+			const item = button.closest(".standard-sidebar-item");
+			button.setAttribute("aria-label", item ? item.textContent.trim() : document.title);
+		});
+		// THE LAYOUT IS A PRESET, AND THE STORED FIELD IS GONE (item 37).
+		// The picker's derived label (`bnd_match_layout`) has said what the desk
+		// actually IS since the last container landed, and the Overview reads it
+		// too — so there is no name left to render, read back or set by hand.
 		//
-		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
-		// plan had missed: boot still serves this name and `bunood.js` stamps
-		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
-		// position panels by. Deleting the field today would leave a CUSTOM
-		// desk — containers matching no preset — with nothing to stamp, i.e. a
-		// silent rendering change on exactly the sites that diverged. The
-		// honest sequence is to finish phase 0's own direction first (re-key
-		// those rules to container OUTCOMES, as `data-bnd-topbar` already was),
-		// then delete. Filed; this hides the control so nobody sets it by hand
-		// in the meantime, while the stored value keeps the desk rendering and
-		// stays queryable for support.
+		// The V2 UI branch reached here still setting `desk_layout` read-only
+		// with an explanatory description. That field no longer exists on the
+		// doctype, so both `set_df_property` calls were dropped in the rebase
+		// rather than carried: they would have addressed a fieldname that
+		// `v0_37_0/drop_desk_layout` deletes.
 		bnd_render_theme_picker(frm);
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
@@ -955,7 +940,6 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_identity_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
-		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
 		// AFTER the pickers, never before: the shell relocates the sections they
 		// were just drawn into, and moving a node the renderer is about to look
@@ -977,10 +961,6 @@ frappe.ui.form.on("Theme Settings", {
 	bottombar_enabled: bnd_container_changed,
 	dock_enabled: bnd_container_changed,
 	sidebar_enabled: bnd_container_changed,
-	// The phone-bar toggles (item 24): re-apply on click like every kit.
-	mobile_inbox: bnd_mobile_changed,
-	mobile_user: bnd_mobile_changed,
-	mobile_apps: bnd_mobile_changed,
 });
 
 /**
@@ -1011,22 +991,6 @@ function bnd_container_changed(frm) {
 }
 
 /**
- * A phone-bar toggle changed (item 24): apply it to the live desk. All three go
- * every time, same reason chrome_apply gets all five — it rebuilds from the
- * whole picture. Visible only when the window is actually narrow; at the desktop
- * width the form is viewed at, it keeps the state current for the next resize.
- */
-function bnd_mobile_changed(frm) {
-	if (window.bunood_theme && typeof window.bunood_theme.mobile_apply === "function") {
-		window.bunood_theme.mobile_apply({
-			mobile_inbox: frm.doc.mobile_inbox,
-			mobile_user: frm.doc.mobile_user,
-			mobile_apps: frm.doc.mobile_apps,
-		});
-	}
-}
-
-/**
  * Repaint every picker whose availability notes read the desk's shape.
  *
  * Every placement diagram marks the slots that cannot be honoured right now
@@ -1043,7 +1007,6 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_user_picker(frm);
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
-	bnd_render_language_picker(frm);
 	// The side pane's own picker joins them (item 36's picker audit): toggling
 	// "Show the side pane" left its option groups offering themselves as
 	// live over a pane that no longer existed, and the kit-off note never
@@ -1114,10 +1077,6 @@ const BND_SHELL_GROUPS = [
 			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
 			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
 			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
-			// The phone bar (item 24): what the bottom bar carries below 768px.
-			// Sits with the bars because that is what it configures; its three
-			// toggles relocate here from section_mobile.
-			{ key: "mobile", label: () => __("Mobile bar"), anchors: ["mobile_inbox"] },
 		],
 	},
 	{
@@ -1130,8 +1089,6 @@ const BND_SHELL_GROUPS = [
 			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
 			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
 			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
-			// Item 44: two tenants and the switch's style, plain Selects in one section.
-			{ key: "language", label: () => __("Language & Appearance"), anchors: ["language_placement"] },
 			// `palette_enabled` now sits with its seven siblings in
 			// section_palette, so one anchor reaches the whole component. It used
 			// to live three sections away, and anchoring it here claimed the
@@ -1309,8 +1266,6 @@ const BND_SHELL_OWNS = {
 	inbox: { prefixes: ["inbox_"] },
 	user: { fields: ["user_placement"] },
 	links: { fields: ["home_placement", "apps_placement"] },
-	// Item 44: the two prefixes ARE the naming rule, like every other kit here.
-	language: { prefixes: ["language_", "appearance_"] },
 	// The board OWNS the five placement fields it draws — deliberately the
 	// same fields the four entries around it own. It is a second view over one
 	// state, so a moved bell lights both its dot and the bell's: both claims
@@ -1322,8 +1277,6 @@ const BND_SHELL_OWNS = {
 			"user_placement",
 			"home_placement",
 			"apps_placement",
-			"language_placement",
-			"appearance_placement",
 			"desk_order",
 		],
 	},
@@ -1380,8 +1333,6 @@ const BND_SHELL_OWNS = {
 	// Prefix rather than fields: the axis is `personal_*` and every field it
 	// grows belongs to this pane by construction (item 38).
 	personal: { prefixes: ["personal_"] },
-	// The phone bar (item 24): the three mobile_* toggles by prefix.
-	mobile: { prefixes: ["mobile_"] },
 };
 
 /**
@@ -1640,9 +1591,6 @@ const BND_DESK_TENANTS = [
 	{ key: "start", field: "start_placement", label: () => __("Start button") },
 	{ key: "home", field: "home_placement", label: () => __("Home link") },
 	{ key: "apps", field: "apps_placement", label: () => __("All apps link") },
-	// Item 44.
-	{ key: "language", field: "language_placement", label: () => __("Language switch") },
-	{ key: "appearance", field: "appearance_placement", label: () => __("Appearance button") },
 ];
 
 function bnd_render_overview(frm, $pane) {
@@ -3778,71 +3726,6 @@ function bnd_palette_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.INBOX_FIELDS — keep in sync. */
-const BND_LANGUAGE_FIELDS = ["language_style", "language_choices"];
-// The reset chip's target, mirroring presets.LANGUAGE_DEFAULTS (the default-mirror
-// guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
-const BND_LANGUAGE_DEFAULTS = { language_style: "Globe", language_choices: "ar,en" };
-
-/** The enabled Language rows, fetched once per form: what the picker may offer. */
-let bnd_language_rows = null;
-
-/**
- * The languages the switch offers (v0.44.2). A multi-choice row of chips over the
- * languages ENABLED in the Language list; each click toggles a code in
- * `language_choices`, and the order of choosing is the order the switch lists.
- * The user's rule: "only languages turned on in settings" - the seventeen Frappe
- * enables at install are not that.
- */
-function bnd_render_language_picker(frm, host) {
-	const $host = bnd_picker_host(frm, "language_picker", host);
-	if (!$host) return;
-	const codes = () => String(frm.doc.language_choices || "").split(",").map((s) => s.trim()).filter(Boolean);
-	const draw = () => {
-		const chosen = codes();
-		const rows = bnd_language_rows || [];
-		const chips = rows
-			.map((r) => {
-				const on = chosen.includes(r.name);
-				return (
-					'<button type="button" class="bnd-cbp-opt bnd-cbp-lang' + (on ? " bnd-cbp-on" : "") +
-					'" aria-pressed="' + (on ? "true" : "false") + '" data-value="' + bnd_esc(r.name) +
-					'" lang="' + bnd_esc(r.name) + '">' + bnd_esc(r.language_name || r.name) + "</button>"
-				);
-			})
-			.join("");
-		const order = chosen.length ? __("Order: {0}", [chosen.join(" · ")]) : __("Empty: the shipped pair, Arabic and English.");
-		$host.html(
-			P.wrap(
-				'<div class="bnd-cbp-group" data-field="language_choices"><div class="bnd-cbp-title">' +
-					bnd_esc(__("Languages the switch offers")) + '</div><div class="bnd-cbp-row bnd-cbp-langs">' + chips + "</div>" +
-					P.note(order) +
-					P.note(__("Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load.")) +
-					"</div>"
-			)
-		);
-		$host.find(".bnd-cbp-lang").on("click", function () {
-			const code = this.getAttribute("data-value");
-			const now = codes();
-			const next = now.includes(code) ? now.filter((c) => c !== code) : now.concat([code]);
-			frm.set_value("language_choices", next.join(","));
-			draw();
-		});
-	};
-	if (bnd_language_rows) return draw();
-	frappe.db
-		.get_list("Language", { filters: { enabled: 1 }, fields: ["name", "language_name"], order_by: "language_name asc", limit: 200 })
-		.then((rows) => {
-			bnd_language_rows = rows || [];
-			draw();
-		});
-}
-
-/** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
-function bnd_language_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.language_apply) return;
-	window.bunood_theme.language_apply({ language_style: frm.doc.language_style });
-}
-
 const BND_INBOX_FIELDS = [
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
@@ -4299,10 +4182,6 @@ function bnd_list_set(frm, fieldname, value) {
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
 const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
-// Mobile bar contents (item 24 C2). Export AND import list it — the same const
-// on both sides, so the two cannot drift (the item-18 escapee: export carried a
-// field the import's `known` set refused, silently dropping it on re-import).
-const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
 
 /**
  * Client mirror of presets.LINKS_DEFAULTS — keep in sync.
@@ -7845,7 +7724,7 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS);
 }
 
 /**

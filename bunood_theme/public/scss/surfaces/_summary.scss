@@ -1,0 +1,61 @@
+// A review sheet beneath native form tabs. ERPNext owns values and controls.
+@use "sass:map";
+@use "../breakpoints" as bp;
+
+html[data-bnd-form] .bnd-form-summary {
+  margin-block: var(--bnd-sp-6);
+  padding: var(--bnd-sp-5);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+  border-block-start: var(--bnd-sp-1) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-lg);
+  min-inline-size: 0;
+}
+html:not([data-bnd-form]) .bnd-form-summary { display: none; }
+.bnd-form-summary {
+  .bnd-summary-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--bnd-sp-3);
+    margin-block-end: var(--bnd-sp-5);
+    h2 { margin: 0; font-size: var(--bnd-text-xl); }
+  }
+  .bnd-summary-state { color: var(--bnd-ink-muted); font-size: var(--bnd-text-sm); }
+  .bnd-summary-values {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--bnd-sp-4);
+    margin: 0;
+  }
+  .bnd-summary-value {
+    padding: var(--bnd-sp-3);
+    min-inline-size: 0;
+    dt { color: var(--bnd-ink-muted); font-size: var(--bnd-text-sm); font-weight: var(--bnd-weight-normal); }
+    dd { margin: var(--bnd-sp-2) 0 0; overflow-wrap: anywhere; white-space: pre-wrap; font-variant-numeric: var(--bnd-numeric); }
+  }
+  .bnd-summary-total {
+    background: var(--bnd-pane);
+    border-radius: var(--bnd-radius-md);
+    dd { font-size: var(--bnd-text-xl); font-weight: var(--bnd-weight-medium); }
+  }
+  .bnd-summary-table {
+    overflow-x: auto;
+    margin-block-start: var(--bnd-sp-5);
+    table { inline-size: 100%; border-collapse: collapse; font-variant-numeric: var(--bnd-numeric); }
+    caption { caption-side: top; color: var(--bnd-ink); font-weight: var(--bnd-weight-medium); }
+    th, td { padding: var(--bnd-sp-3); text-align: start; border-block-end: var(--bnd-line-strong) solid var(--bnd-border); }
+    th { background: var(--bnd-raised); color: var(--bnd-ink-muted); font-size: var(--bnd-text-sm); }
+  }
+  details { margin-block-start: var(--bnd-sp-5); border-block-start: var(--bnd-line-strong) solid var(--bnd-border); }
+  .bnd-summary-more { cursor: pointer; padding-block: var(--bnd-sp-4); color: var(--bnd-brand-ink); }
+  .bnd-summary-more:focus-visible { outline: var(--bnd-line-strong) solid var(--bnd-accent); outline-offset: var(--bnd-sp-1); }
+}
+@media (width < map.get(bp.$bnd-bp, md)) {
+  .bnd-form-summary .bnd-summary-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (width < map.get(bp.$bnd-bp, sm)) {
+  .bnd-form-summary .bnd-summary-values { grid-template-columns: minmax(0, 1fr); }
+}

@@ -262,6 +262,12 @@ COMPONENTS = [
         # The bell, NOT the badge inside it: the badge is the unread count and
         # is legitimately hidden on a quiet bench.
         "selector": ".bnd-bell",
+        # On a phone Notifications moves into the Account panel so the primary
+        # navigation stays at four stable destinations.  The account trigger is
+        # therefore a real route to this critical function, not merely a user
+        # affordance; the client guard reads this fallback before deciding that
+        # the side pane must be forced back on.
+        "fallback": '[data-bnd-inbox-route]',
         "native": ".body-sidebar .sidebar-notification",
         "regions": REGIONS,
         "toggle": None,
@@ -366,41 +372,6 @@ COMPONENTS = [
         "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
         "critical": False,
     },
-    {
-        # The language switch (item 44). It replaces no native: Frappe keeps a
-        # user's language behind My Settings and offers no desk affordance for
-        # it. It is LAST in this table on purpose - registry order is the default
-        # desk order, and the user asked for it beside the density segment, which
-        # the bottom bar draws at its trailing edge AFTER the cluster (measured):
-        # so bell, avatar, language, appearance, density. What it offers is the
-        # languages ENABLED in the Language list (boot.bnd_language), the set My
-        # Settings offers.
-        "key": "language",
-        "part": "language",
-        "label": "Language switch",
-        "type": TENANT,
-        "selector": '[data-bnd-part="language"]',
-        "native": None,
-        "regions": REGIONS,
-        "toggle": None,
-        "offable": True,
-        "critical": False,
-    },
-    {
-        # The Appearance button (item 44): the dialog item 38 built, reachable
-        # from a bar and not only from the avatar menu. Same position argument
-        # as the language switch above.
-        "key": "appearance",
-        "part": "appearance",
-        "label": "Appearance button",
-        "type": TENANT,
-        "selector": '[data-bnd-part="appearance"]',
-        "native": None,
-        "regions": REGIONS,
-        "toggle": None,
-        "offable": True,
-        "critical": False,
-    },
 ]
 
 #: Containers, in mount order.
@@ -466,7 +437,10 @@ LAYOUT_CHROME = {
     # Unified Side Pane with the pane at its Rail state. Until `sidebar_pane_state`
     # existed this row was byte-identical to Unified's and `check_layout_identity`
     # refused it — correctly, because a row nothing can tell apart is not a row.
-    "Rail + Flyout": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # The rail's one expansion control lives in the top bar. Shipping the rail
+    # without that host either strands navigation or forces the pane open, so
+    # this shape includes the control surface it actually needs.
+    "Rail + Flyout": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
 }
 
 
@@ -535,9 +509,6 @@ LAYOUT_TENANTS = {
         # Frappe's OWN search row, revealed at the pane's start; mount_search_at
         # deliberately does not claim it.
         "search_placement": "Side Pane Start",
-        # Item 44: beside the density segment, which ends the bar before the cluster.
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
     },
     "Taskbar": {
         # The start button is what makes this a taskbar.
@@ -545,18 +516,12 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
-        # Item 44: beside the density segment, which ends the bar before the cluster.
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
     },
     "Top Taskbar": {
         "start_placement": "Top Bar Start",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
-        # Item 44: beside the density segment, which ends the bar before the cluster.
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
     },
     "Rail + Flyout": {
         # The same tenants as Unified: this row differs by the pane's STATE, which
@@ -565,9 +530,6 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Side Pane End",
         "user_placement": "Side Pane End",
         "search_placement": "Side Pane Start",
-        # Item 44: beside the density segment, which ends the bar before the cluster.
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
     },
     "Floating Bar": {
         # The pill's own way back to the pane this row switches off.
@@ -579,9 +541,6 @@ LAYOUT_TENANTS = {
         # the dock first for this layout. Naming a slot the field does not offer
         # would write an illegal value into a Select.
         "search_placement": "Bottom Bar Center",
-        # Item 44: beside the density segment, which ends the bar before the cluster.
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
     },
 }
 
@@ -609,21 +568,22 @@ NARROW_CHROME = {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "doc
 #: it walks a fallback chain (`SEARCH_FALLBACKS`), so tearing the top bar down and
 #: losing Frappe's sidebar search row (dropped on mobile) lands it in the bottom
 #: bar on its own. The tenants that do NOT walk a chain — the bell, the user menu
-#: and the All Apps link — are the ones that must be placed explicitly here, or
+#: the Home / All Apps links — are the ones that must be placed explicitly here, or
 #: `placement_for` returns "absent" and they vanish. Every value is a slot in
 #: `slots_for` for that tenant (apps offers only "Start" on a bar); the suite
 #: asserts it, the same guard `LAYOUT_TENANTS` gets.
 NARROW_PLACEMENT = {
-    "inbox": "Bottom Bar End",
+    # Notifications is secondary navigation on a phone.  It remains reachable
+    # as the first action in Account, with its unread badge on the Account
+    # trigger, instead of consuming a fifth primary-navigation column.
+    "inbox": "Off",
     "user": "Bottom Bar End",
     "apps": "Bottom Bar Start",
-    # Home stands down on a phone: the mobile bar is search / alerts / you / apps
-    # (the user's chosen four), and Frappe's own drawer carries the rest.
-    "home": "Off",
-    # Item 44: the phone bar keeps the user's chosen four; the avatar menu
-    # carries the language entry, and Appearance is already there.
-    "language": "Off",
-    "appearance": "Off",
+    # A primary mobile navigation row needs stable routes to both destinations.
+    # Relying on Frappe's drawer made All Apps a dead end because that page has
+    # no side pane at all. Home and Apps therefore keep the same slots on every
+    # route; the current one is identified with aria-current, never removed.
+    "home": "Bottom Bar Start",
 }
 
 
@@ -645,6 +605,11 @@ MARK = "mark"
 
 MARKS = [
     {
+        "key": "compactnav", "part": "compactnav", "label": "Compact navigation",
+        "type": MARK, "selector": ".bnd-compact-nav",
+        "native": ".body-sidebar-top", "regions": (), "toggle": None, "critical": False,
+    },
+    {
         "key": "panehead",
         "part": "panehead",
         "label": "Place row",
@@ -658,17 +623,16 @@ MARKS = [
         "critical": False,
     },
     {
-        "key": "railbtn",
-        "part": "railbtn",
-        "label": "Rail button",
+        "key": "panetoggle",
+        "part": "panetoggle",
+        "label": "Side pane toggle",
         "type": MARK,
-        "selector": ".bnd-railbtn",
-        # The native this row's MODE owns (item 40, slice 11 - audit defect
-        # 3): rail mode used to leave two collapse affordances live, ours
-        # and Frappe's page-title hamburger. Hiding it is legal ONLY from
-        # data-bnd-own~="panetoggle", stamped by sb_mount_rail after the
-        # trigger wiring is actually live - a rail whose JS failed to wire
-        # leaves the native visible and working.
+        "selector": ".bnd-topbar .bnd-sidebar-toggle",
+        # Rail mode deliberately has one independent control in the top bar;
+        # the former edge/header buttons were retired because they duplicated
+        # Frappe's own collapse affordances and moved with the pane. Hiding the
+        # native page-title toggle is legal ONLY from data-bnd-own~="panetoggle",
+        # stamped after this control and its wiring are actually live.
         "native": ".page-title .sidebar-toggle-btn",
         "regions": (),
         "toggle": None,
@@ -677,6 +641,17 @@ MARKS = [
 ]
 
 SURFACE = "surface"
+
+# Fixed controls owned by their host, without independent placement settings.
+CHROME_ACTIONS = [
+    {"key": "language", "part": "language", "selector": '[data-bnd-part="language"]'},
+]
+
+# Additive content, not chrome and not a replacement for native form controls.
+CONTENT_COMPONENTS = [
+	{"key": "sales_bill", "part": "sales-bill", "selector": '[data-bnd-part="sales-bill"]'},
+    {"key": "form_summary", "part": "form-summary", "selector": '[data-bnd-part="form-summary"]'},
+]
 
 SURFACES = [
     {
@@ -1087,6 +1062,7 @@ def as_dict() -> dict:
         "containers": [c["key"] for c in CONTAINERS],
         "tenants": [c["key"] for c in TENANTS],
         "critical": [c["key"] for c in CRITICAL],
+        "actions": CHROME_ACTIONS,
         # The catalogue rides along so a consumer asking "what does this layout
         # mean" gets the answer in the same round trip as "what components are
         # there" — the whole reason this returns a table rather than exposing

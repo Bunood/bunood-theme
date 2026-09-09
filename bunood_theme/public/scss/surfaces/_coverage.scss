@@ -1,0 +1,67 @@
+// Native tree, attachment picker, activity and POS structures. Variables own
+// colour; these rules supply missing spacing, boundaries and selection shape.
+html[data-bnd-views] .tree {
+  padding: var(--bnd-sp-4);
+  .tree-link {
+    border-inline-start: var(--bnd-sp-1) solid transparent;
+    border-radius: var(--bnd-radius-sm);
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    max-inline-size: 100%;
+    .tree-label { overflow-wrap: anywhere; }
+  }
+  .tree-link:hover { background: var(--bnd-hover); }
+  .tree-link.active, .tree-link.selected {
+    border-inline-start-color: var(--bnd-brand-solid);
+    background: var(--bnd-active);
+    font-weight: var(--bnd-weight-medium);
+  }
+  .balance-area { font-variant-numeric: var(--bnd-numeric); unicode-bidi: isolate; }
+}
+html[data-theme] .tree-link:focus-visible {
+  outline: var(--bnd-line-strong) solid var(--bnd-accent);
+  outline-offset: var(--bnd-sp-1);
+}
+html[data-bnd-form] .new-timeline {
+  .timeline-item .timeline-content.frappe-card {
+    border-radius: var(--bnd-radius-lg);
+    border-color: var(--bnd-border-strong);
+    padding: var(--bnd-sp-4);
+  }
+  .timeline-item .timeline-content { overflow-wrap: anywhere; }
+}
+html[data-theme] .file-uploader {
+  .file-upload-area {
+    border: var(--bnd-line-strong) dashed var(--bnd-brand-solid);
+    border-radius: var(--bnd-radius-lg);
+    background: var(--bnd-raised);
+    padding: var(--bnd-sp-5);
+  }
+  .btn-file-upload {
+    padding-block: var(--bnd-sp-3);
+    padding-inline: var(--bnd-sp-4);
+    border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+    border-radius: var(--bnd-radius-md);
+    background: var(--bnd-surface);
+    margin: var(--bnd-sp-1);
+  }
+}
+html[data-bnd-form] .point-of-sale-app {
+  .pos-card, > .items-selector, > .customer-cart-container, > .payment-container {
+    border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+    border-radius: var(--bnd-radius-lg);
+    box-shadow: var(--bnd-shadow-sm);
+  }
+  .item-price, .grand-total, .total-amount { font-variant-numeric: var(--bnd-numeric); unicode-bidi: isolate; }
+}
+html[data-bnd-ws] .onb-panel {
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-md);
+  .onb-title { gap: var(--bnd-sp-3); }
+  .onb-steps { gap: var(--bnd-sp-3); }
+  .onb-group { padding-block: var(--bnd-sp-3); border-radius: var(--bnd-radius-md); }
+  .onb-step-text { overflow-wrap: anywhere; }
+}
