@@ -118,10 +118,13 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[x]` **Slice 1c step 2** — master & detail settings form. **It is the settings page**
-  as of 2026-08-06; `?shell=0` still reaches the stacked form for any field the shell
-  has not placed. It shipped behind `?shell=1` while half-built, which was right then
+- `[x]` **Slice 1c step 2** — master & detail settings form. **It was the settings page**
+  from 2026-08-06 to 2026-09-08; `?shell=0` reached the stacked form for any field the shell
+  had not placed. It shipped behind `?shell=1` while half-built, which was right then
   and wrong the moment it was finished — the work was invisible behind a query string.
+  **Retired in item 43 B1 (2026-09-08)**: the page is one scroll of section cards in
+  importance order (B2; `field_order` is the single source, build-guarded) with the map
+  in the desk's own side pane (B3).
   - `[x]` The shell: grouped left list (Bars & panes / Controls / Appearance, 10
     entries), a detail pane showing one component at a time. It **relocates** the
     sections Frappe built rather than drawing a second surface, so "only one surface

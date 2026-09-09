@@ -257,6 +257,14 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   The standing advice survives the fix: before assuming a red suite is your change,
   **stash, redeploy and re-run at HEAD**; after any sweep, diff Theme Settings
   against `setup.SHIPPED`.
+- **A fallback that WIDENS scope hides an argument that was never passed.** The settings
+  sweep's per-section scan read `document.querySelector(section) || document` — and the
+  section key was never passed into `page.evaluate`, so `k` was undefined on every pass
+  and every "scoped" scan was page-wide: 39 passes × ~400 options on the LIVE desk, which
+  cycled through every look for most of an hour before the user saw it (2026-09-09). The
+  per-section counts in its own log said so ("429 options" for a card with one button) and
+  nobody read them. Make the not-found case THROW — that throw is what found the unpassed
+  key — and read a tool's own counts before trusting its verdict.
 - **Deleting a stored name does not delete the need for the identity.** `desk_layout`
   went, and two runtime call sites still had to know the shape - so it is DERIVED by
   comparison (`presets.layout_of`), server-side, against the one catalogue. Two things

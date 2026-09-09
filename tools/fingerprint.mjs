@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 // documented regeneration command runs anywhere (item 27, §4.9).
 const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
 const { chromium } = require("playwright");
-const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE="http://localhost:8080";
+const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE=process.env.BND_URL||"http://localhost:8080";
 const py=(c)=>execFileSync("docker",["exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
  {input:`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n`+c,encoding:"utf8",stdio:["pipe","pipe","pipe"]});
 const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.cookie_manager=CookieManager()\nfrappe.local.form_dict=frappe._dict()\nfrappe.local.request=frappe._dict(path="/",method="GET",remote_addr="127.0.0.1",cookies=frappe._dict(),headers=frappe._dict(),environ=frappe._dict())\nfrappe.local.request_ip="127.0.0.1"\nlm=LoginManager()\nlm.login_as("Administrator")\nfrappe.db.commit()\nprint("SID="+frappe.session.sid)\n`).match(/SID=([a-f0-9]+)/)[1];
@@ -50,7 +50,7 @@ print(json.dumps(SHIPPED))
 const SHAPE_STATE = { ...shipped, inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
 set(SHAPE_STATE);
 const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
-await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
+await ctx.addCookies([{name:"sid",value:sid,domain:new URL(URL_BASE).hostname,path:"/"}]); const page=await ctx.newPage();
 // REFUSE TO CAPTURE A PAGE THAT IS NOT SHOWING THE PINNED STATE.
 //
 // Setting a value and navigating is not enough: the form reads its own

@@ -901,8 +901,9 @@ IN · four poles** (`Bare` drawn and dropped in the round). Facts worth keeping:
 - **`SETTINGS_PANE_KEYS` IS DERIVED NOW.** Item 31 found the hole in an adversarial review,
   back-filled its own key and left it open: measured here, the list still omitted
   `workspace`, `chart`, `report`, `views`, `overlay`, `empty` and `skeleton` — seven kits
-  never walked by the axe gate OR the accessible-name walk. The suite reads
-  `.bnd-shell-item[data-key]` off the shell.
+  never walked by the axe gate OR the accessible-name walk. The suite read
+  `.bnd-shell-item[data-key]` off the shell; since item 43 B1 it reads the rendered
+  `.form-section`s (`settingsSectionKeys`), the same hole closed from the other side.
 - **THREE TOOLS WOULD HAVE MISHANDLED A SECOND CSS FILE, SILENTLY.** `payload.mjs` took
   `find(f => f.startsWith("bunood."))` (one file per directory; `bunood-web.*` matched
   nothing, so it would have been measured by nothing) — now a bucket table with per-key
@@ -1430,7 +1431,7 @@ Shipped this session, all committed, all verified:
 | | what |
 |---|---|
 | **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,656 pairs over 11 seeds × 2 modes in CI (1,080 at this item's own release; item 22 added the sidebar pill/mark/stand-down rows) |
-| **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands |
+| **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands. *Retired in item 43 B1 (2026-09-08): the page is one scroll of cards in importance order, and the map lives in the desk's side pane — see §6* |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
 | **Tooling** | `npm run deploy`, `npm run contrast`, `tools/session.mjs` |
@@ -1586,7 +1587,7 @@ What that work needed, kept for the next surface kit:
   suite family). Diff against whichever kit is closer; both headers carry the
   same five-block contract. Six more edits live outside that list and are
   easy to miss: `build.mjs` FIELD_PREFIXES, the sweep's CRUMBS_ONLY **and**
-  IMPLICIT, `bunood.scss`'s `@use`, the shell nav entry + `BND_SHELL_OWNS`
+  IMPLICIT, `bunood.scss`'s `@use`, the settings map entry (`BND_SETTINGS_GROUPS`) + `BND_SETTINGS_OWNS`
   prefix, the export **and** import field lists, and MUTABLE_FIELDS.
 * **Probe BEFORE designing, and probe the CASCADE too.** Item 15 (was 16) taught
   "probe the DOM"; item 16 (was 18) added "probe the rules". Both of its defects were
@@ -2033,7 +2034,7 @@ check that was verified by putting the defect back and watching it turn red.
   surfaces against surfaces; a contrast ratio between two near-neighbours has no floor
   anyone can calibrate.
 - **THE BUILDER IS IN THE `placement` PANE, NOT `layout`.** Guessing cost a run: the
-  shell keeps EVERY pane mounted and hides all but the current one, so
+  shell (retired in item 43 B1) kept EVERY pane mounted and hid all but the current one, so
   `waitForSelector(".bnd-bd-desk")` resolved it 33 times as hidden and then timed out.
   The check waits on `state: "visible"`. Watched to fail at exactly 4 channels with
   `--bnd-raised`.
@@ -2087,7 +2088,7 @@ probes before it existed; do not write a ninth.
 ```js
 import { openDesk, goto, benchPy, settingsDrift, setSettings } from "./tools/session.mjs";
 const { page, close, errors } = await openDesk();
-await goto(page, "/desk/theme-settings", ".bnd-shell");  // shell is the default
+await goto(page, "/desk/theme-settings", ".bnd-cbp");  // one scroll of cards; the map is in the side pane (item 43)
 ```
 
 | constant | value |
@@ -2381,9 +2382,11 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 - `tools/contrast_gate.py` + `tools/contrast.mjs` — the gate and its launcher.
 - `tools/deploy.sh` — the whole deploy, including the WSL mirror.
 - `tools/session.mjs` — stack constants + authenticated browser session.
-- `theme_settings.js` — the shell (`bnd_shell_*`), bands (`P.zone`, `bnd_bands`),
-  the desk diagram (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`,
-  `bnd_region_blocker`), the Overview (`bnd_render_overview`).
+- `theme_settings.js` — the settings map's bands (`BND_SETTINGS_GROUPS`,
+  `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
+  `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram
+  (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`, `bnd_region_blocker`), the
+  Overview (`bnd_render_overview`), the Compose card (`bnd_render_compose_picker`).
 
 ### Design rules that are load-bearing
 
@@ -2391,8 +2394,13 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   contrast requirements: `--bnd-brand` (washes, exactly the seed),
   `--bnd-brand-solid` + `--bnd-on-brand` (fills and their labels),
   `--bnd-brand-ink` (brand as text). **Never paint with the raw seed.**
-- **The shell relocates Frappe's DOM, never redraws it.** That is what makes
-  "only one surface exists" a property of the construction rather than a rule.
+- **The settings map is derived from the form's sections; order lives in the doctype.**
+  The side pane's map (item 43 B3) reads the rendered `.form-section`s on every refresh
+  and points at them; `field_order` is the only statement of order (the build refuses a
+  ghost, a repeat or an omission), and `BND_SETTINGS_GROUPS` contributes band membership
+  only — a band heads once, asserted. It replaced the shell, which relocated the sections
+  into a pane of its own so "only one surface exists" was a property of the construction;
+  the map keeps that property by moving nothing.
 - **Bands live inside the picker output**, not at the form-section layer: 59 of
   92 fields are `hidden: 1` and every component section holds exactly one visible
   field — its picker. A heading appears only where a picker has more than one
