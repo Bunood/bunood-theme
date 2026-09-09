@@ -1110,76 +1110,53 @@ async function withPortalUser(route, waitSel, fn, opts = {}) {
 }
 
 /**
- * Every settings shell pane, READ FROM THE SHELL rather than listed here.
- *
- * WHY THIS STOPPED BEING A LITERAL (item 32). It was a hand-kept array, and a
- * pane missing from it escapes BOTH the axe hard gate and the accessible-name
- * walk — the pane renders, the picker works, and neither check ever looks at
- * it. Item 31 found that the hard way, in an adversarial release review rather
- * than from a gate, because the gate was the thing with the hole in it. It then
- * back-filled its OWN key and left the hole open: measured while adding item
- * 32's, the list was still missing `workspace`, `chart`, `report`, `views`,
- * `overlay`, `empty` and `skeleton` — SEVEN kits, none of them ever walked.
- *
- * A list that has to be updated by hand every time a kit ships is the
- * same-fact-in-two-places trap, and the fact already exists: BND_SHELL_GROUPS
- * renders `.bnd-shell-item[data-key]` for every pane. So read it. The order is
- * the shell's own, which is also what the old array claimed to be.
+ * The settings cards, in the doctype's order — read from the SECTION DOM (item
+ * 43 B1), never a hand-kept list: the list that had to be updated by hand every
+ * time a kit shipped is the same-fact-in-two-places trap, and it once left seven
+ * kits never walked. The shell that used to render one pane per entry is gone;
+ * every card is on the page at once.
  */
-async function settingsPaneKeys() {
+async function settingsSectionKeys() {
 	const keys = await page.evaluate(() =>
-		[...document.querySelectorAll(".bnd-shell-item[data-key]")].map((e) => e.getAttribute("data-key"))
+		[...document.querySelectorAll(".form-layout .form-section[data-fieldname]")]
+			.filter((n) => n.getBoundingClientRect().height > 0)
+			.map((n) => n.getAttribute("data-fieldname"))
 	);
-	if (!keys.length) throw new Error("no settings panes found — is the shell rendered?");
+	if (!keys.length) throw new Error("no settings sections found — is the form rendered?");
 	return keys;
 }
 
 /**
- * Click every settings pane and run fn(key) against it once the pane has
- * actually rendered. The shell shows ONE pane at a time and hides the rest
- * ([hidden] on every .bnd-shell-pane but the current one), and axe skips
- * hidden subtrees entirely — so a walk that does not wait for content sees
- * roughly one twentieth of the surface and calls that coverage.
+ * Scroll every settings card into view and run fn(key) against it. Nothing is
+ * hidden any more, so this is a scroll, not a reveal — a check that measures
+ * geometry still wants the card on screen.
  */
-async function walkSettingsPanes(fn) {
-	for (const key of await settingsPaneKeys()) {
-		await page.click(`.bnd-shell-item[data-key="${key}"]`);
-		try {
-			await page.waitForFunction(
-				(k) => {
-					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
-					if (!pane || pane.hidden || pane.children.length === 0) return false;
-					// The Translations pane fills from an xcall and shows this
-					// note first — waiting past it is what makes the pane mean
-					// something rather than an empty div axe would call clean.
-					return pane.textContent.trim() !== "Loading…";
-				},
-				key,
-				{ timeout: 15000 }
-			);
-		} catch (err) {
-			// SAY WHICH PANE, AND WHAT STATE IT WAS IN. A bare
-			// `waitForFunction: Timeout 15000ms exceeded` over an eighteen-pane
-			// walk is a diagnostic dead end: it cannot distinguish "the bench was
-			// too loaded for the xcall to land" from "this nav item has no pane at
-			// all", and those need opposite responses. It cost a release gate's
-			// worth of guessing on 2026-08-22 before three isolation runs settled
-			// it as contention. The three facts below separate the two cases
-			// immediately — a missing pane is a defect, a pane still reading
-			// "Loading…" is a slow backend.
-			const state = await page
-				.evaluate((k) => {
-					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
-					if (!pane) return "NO PANE ELEMENT — the nav item has no matching .bnd-shell-pane";
-					return `hidden=${pane.hidden} children=${pane.children.length} text=${JSON.stringify(
-						pane.textContent.trim().slice(0, 40)
-					)}`;
-				}, key)
-				.catch((e) => `could not read the pane: ${e.message}`);
-			throw new Error(`settings pane "${key}" never filled — ${state} (${err.message})`);
-		}
+async function walkSettingsSections(fn) {
+	for (const key of await settingsSectionKeys()) {
+		await page.evaluate((k) => {
+			const n = document.querySelector(`.form-layout .form-section[data-fieldname="${k}"]`);
+			if (n) n.scrollIntoView({ block: "start" });
+		}, key);
+		await page.waitForTimeout(150);
 		await fn(key);
 	}
+}
+
+/**
+ * Scroll one settings card into view by the ENTRY key the shell used to take
+ * (placement, inbox, sidepane…): the same card, reached by its picker field.
+ */
+const SETTINGS_CARD_FIELD = {
+	overview: "desk_overview", translations: "language_translations", placement: "placement_board", inbox: "inbox_picker", user: "user_picker",
+	links: "links_picker", language: "language_picker", sidepane: "sidebar_picker", crumbs: "crumbs_picker",
+	topbar: "topbar_enabled", search: "search_picker", theme: "theme_picker", layout: "layout_picker",
+};
+async function scrollToSettings(key) {
+	await page.evaluate((f) => {
+		const n = document.querySelector(`[data-fieldname="${f}"]`);
+		if (n) n.scrollIntoView({ block: "start" });
+	}, SETTINGS_CARD_FIELD[key] || key);
+	await page.waitForTimeout(250);
 }
 
 /** Does the selector match anything on the current page? */
@@ -3536,7 +3513,7 @@ async function main() {
 
 		// ── Save round-trip (TimestampMismatch regression, 0.6.2) ──────────
 		await test("Theme Settings saves twice in a row without conflict", async () => {
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2000);
+			await goDesk("/desk/theme-settings", ".bnd-sbp", 2000);
 			// Start from the DB's current state: earlier tests write Theme
 			// Settings through set_single_value, which bumps `modified`, so
 			// without this round 1 can fail on inherited staleness and mask
@@ -3577,7 +3554,7 @@ async function main() {
 			// Drives the REAL seeder, not an imitation of it: a Check row is
 			// deleted so the seeder has genuine work, exactly as a newly added
 			// field gives it work on an upgrade.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			const before = await page.evaluate(() => String(window.cur_frm.doc.modified));
 
 			const after = JSON.parse(
@@ -3620,7 +3597,7 @@ async function main() {
 			// THE CLAIM: touching a control persists it. Not previews it —
 			// persists it. Proven the only way that means anything: change it,
 			// RELOAD THE PAGE without saving, and read it back from the server.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			// THE SUBJECT HAS TO BE LIVE AT THE SHIPPED DEFAULTS. This drove
 			// `crumb_separator` until item 42 shipped `Crumb Pills`, which greys that
 			// whole group with "Pills draw no separators" -- so three checks about
@@ -3630,13 +3607,7 @@ async function main() {
 			const start = getSettings(["crumb_hover"]).crumb_hover;
 			const want = start === "Underline" ? "Darken" : "Underline";
 
-			await page.evaluate(() => {
-				// The breadcrumbs entry, so the picker under test is on screen.
-				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
-					(n) => n.getAttribute("data-key") === "crumbs"
-				);
-				if (item) item.click();
-			});
+			await scrollToSettings("crumbs");
 			await page.waitForTimeout(800);
 			await page.click(`[data-field="crumb_hover"][data-value="${want}"]`);
 			// Long enough for a debounced save to fire and land, and no longer.
@@ -3644,7 +3615,7 @@ async function main() {
 
 			expectEq(getSettings(["crumb_hover"]).crumb_hover, want, "the click reached the database");
 
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			expectEq(
 				await page.evaluate(() => String(window.cur_frm.doc.crumb_hover)),
 				want,
@@ -3676,7 +3647,7 @@ async function main() {
 			// lives between the click and the desk, which a server-side write
 			// jumps straight over. That is why the suite was green throughout.
 			setSettings({ desk_layout: "Top Taskbar" });
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			expect(await q(".bnd-topbar"), "precondition: the desk has a top bar");
 
 			const toggle = async () => {
@@ -3689,12 +3660,7 @@ async function main() {
 				await page.waitForTimeout(2500);
 			};
 
-			await page.evaluate(() => {
-				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
-					(n) => n.getAttribute("data-key") === "topbar"
-				);
-				if (item) item.click();
-			});
+			await scrollToSettings("topbar");
 			await page.waitForTimeout(700);
 
 			await toggle();
@@ -3744,17 +3710,12 @@ async function main() {
 			//
 			// The contract: what THIS edit touched wins; everything else the
 			// other writer stored survives it.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			const start = getSettings(["crumb_hover", "tagline"]);
 			const wantSep = start.crumb_hover === "Underline" ? "Darken" : "Underline";
 			const wantTag = "concurrent-" + Date.now();
 
-			await page.evaluate(() => {
-				const it = [...document.querySelectorAll(".bnd-shell-item")].find(
-					(n) => n.getAttribute("data-key") === "crumbs"
-				);
-				if (it) it.click();
-			});
+			await scrollToSettings("crumbs");
 			await page.waitForTimeout(700);
 
 			// Somebody else writes a DIFFERENT field while the form is open — a
@@ -3782,13 +3743,8 @@ async function main() {
 			// `modified` and dies — the very error this session just fixed at
 			// the seeding end. Clicking faster than saves complete must still
 			// leave the LAST choice stored.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4000);
-			await page.evaluate(() => {
-				const item = [...document.querySelectorAll(".bnd-shell-item")].find(
-					(n) => n.getAttribute("data-key") === "crumbs"
-				);
-				if (item) item.click();
-			});
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
+			await scrollToSettings("crumbs");
 			await page.waitForTimeout(800);
 
 			// Only the two options Crumb Pills leaves clickable, alternating -- the claim is
@@ -3835,7 +3791,7 @@ async function main() {
 			const restore = getSettings(["sidebar_enabled", "sidebar_placement"]);
 			try {
 				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", sidebar_placement: "Attached" });
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
+				await goDesk("/desk/theme-settings", ".bnd-sbp", 2500);
 				const radius = () => page.evaluate(
 					() => getComputedStyle(document.querySelector(".body-sidebar-container")).borderRadius);
 				const before = await radius();
@@ -5640,12 +5596,12 @@ print("ok")
 			const before = getSettings(["language_choices"]);
 			try {
 				setSettings({ language_choices: "en,ar" });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
 				// The shell shows one band at a time: open Language & Appearance first. The
 				// NAV item, by class: the placement board carries a chip with the same
 				// data-key (the tenant), earlier in the DOM, and a bare attribute selector
 				// clicked that chip instead (measured).
-				await page.click('.bnd-shell-item[data-key="language"]');
+				await scrollToSettings("language");
 				await page.waitForSelector(".bnd-cbp-lang", { timeout: 20000 });
 				const chips = await page.evaluate(() => [...document.querySelectorAll(".bnd-cbp-lang")].map((c) => ({ code: c.getAttribute("data-value"), on: c.classList.contains("bnd-cbp-on"), lang: c.getAttribute("lang") })));
 				expect(chips.length >= 2, `the picker lists the enabled languages (${chips.length})`);
@@ -6279,33 +6235,11 @@ print("ok")
 				};
 				page.on("request", listener);
 				try {
-					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-					await page.waitForFunction(
-						() => {
-							const n = document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note');
-							return n && n.textContent.trim();
-						},
-						null, { timeout: 15000 }
-					);
-					const note = await page.evaluate(() =>
-						document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note').textContent.trim()
-					);
-					expectEq(note, "Default", `at shipped the pane's note is Default, never a look's name (${note})`);
+					await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+					await page.waitForSelector(".bnd-sbp", { timeout: 15000 });
 					expectEq(calls.length, 0, `no catalogue fetch — the race is deleted by construction (${calls.join(", ")})`);
-
-					setSettings({ sidebar_hue_wash: "Off" });
-					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-					await page.waitForFunction(
-						() => {
-							const n = document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note');
-							return n && n.textContent.trim() && n.textContent.trim() !== "Default";
-						},
-						null, { timeout: 15000 }
-					).catch(() => {});
-					const changed = await page.evaluate(() =>
-						document.querySelector('.bnd-shell-item[data-key="sidepane"] .bnd-shell-note').textContent.trim()
-					);
-					expectEq(changed, "Changed", `and Changed the moment a field moves (${changed})`);
+					// The two-state note itself moved to the side pane's settings map
+					// (item 43 B3), where its check lives now.
 				} finally {
 					page.off("request", listener);
 				}
@@ -6340,8 +6274,8 @@ print("ok")
 			const before = getSettings(Object.keys(looks.ink));
 			try {
 				setSettings(looks.ink);
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.evaluate(() => document.querySelector('.bnd-shell-item[data-key="sidepane"]').click());
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("sidepane");
 				await page.waitForSelector(".bnd-sbp", { timeout: 15000 });
 				const clicked = await page.evaluate((f) => {
 					const chip = document.querySelector(`.bnd-sbp-reset[data-field="${f}"]`);
@@ -7910,8 +7844,8 @@ print("ok")
 				inbox_placement: "Top Bar End",
 				user_placement: "Top Bar End",
 			});
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 
 			// One chip per tenant, each in the zone its field says.
@@ -7962,8 +7896,8 @@ print("ok")
 			// This is the board's half of the "nothing ships a value the field
 			// will not accept" contract: the OTHER half checks what the code
 			// writes, this half checks what a user can ask for.
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 			const refused = await page.evaluate(() => {
 				const bd = document.querySelector(".bnd-bd");
@@ -7992,8 +7926,8 @@ print("ok")
 			// mouse-move drag does not produce HTML5 drag events reliably in
 			// headless — and the HANDLERS are what this test owns; the browser's
 			// own gesture recognition is not ours to test.
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 			const result = await page.evaluate(() => {
 				const bd = document.querySelector(".bnd-bd");
@@ -8094,8 +8028,8 @@ print("ok")
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 			await page.evaluate(() => {
 				const bd = document.querySelector(".bnd-bd");
@@ -8299,14 +8233,14 @@ print("ok")
 			// The status picker had a reason string for exactly this and it had
 			// gone dead: it read `status_style === "Off"`, an option removed in
 			// slice 2c-4, so the condition could never be true again.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 3000);
+			await goDesk("/desk/theme-settings", ".bnd-sbp", 3000);
 
 			for (const [field, value, picker, want] of [
 				["sidebar_enabled", 0, "sidebar_picker", /side pane/i],
 				["bottombar_enabled", 0, "status_picker", /bottom bar/i],
 			]) {
 				setSettings({ ...CHROME_DEFAULTS, [field]: value });
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 3000);
+				await goDesk("/desk/theme-settings", ".bnd-sbp", 3000);
 				const note = await page.evaluate(
 					(p) => {
 						const host = document.querySelector(`[data-fieldname="${p}"]`);
@@ -9069,7 +9003,7 @@ print("ok")
 			);
 			const before = axesState();
 			try {
-				await goDesk("/desk/theme-settings?shell=0", "[data-fieldname='theme_picker'] .bnd-thp-style", 5000);
+				await goDesk("/desk/theme-settings", "[data-fieldname='theme_picker'] .bnd-thp-style", 5000);
 				// Scoped to the picker's own host: every style card on the page wears the
 				// same base class, and item 36 measured the wrong element twice that way.
 				const sel = "[data-fieldname='theme_picker'] .bnd-thp-style[data-value='" + PICK + "']";
@@ -9121,7 +9055,7 @@ print("ok")
 			}
 		});
 		await test("settings: every picker renders its full complement", async () => {
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			// The identity pane's specimen fills from an async server fetch;
 			// wait for its cells before counting, or it reads as "rendered
 			// nothing" the way a thrown render would (item 36).
@@ -9347,7 +9281,7 @@ print("ok")
 					Object.entries(fixture.state).filter(([field]) => MUTABLE_FIELDS.includes(field))
 				)
 			);
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 			const actual = await page.evaluate((names) => {
 				const out = {};
 				for (const f of names) {
@@ -9433,7 +9367,7 @@ print("ok")
 			// comes from a permission, not from the doctype. Asserted on the
 			// LABEL rather than on our patch, so this keeps passing if Frappe
 			// ever fixes it and our correction becomes a no-op.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
 			const seen = await page.evaluate(() => ({
 				primary: (document.querySelector(".primary-action") || {}).textContent?.trim() || "",
 				submittable: !!(window.cur_frm && window.cur_frm.meta.is_submittable),
@@ -9467,40 +9401,29 @@ print("ok")
 			);
 		});
 
-		await test("shell: it IS the settings page, and ?shell=0 still reaches the old form", async () => {
-			// The gate inverted once the shell was finished. Both halves matter:
-			// the plain URL must show the shell (it shipped invisible behind a
-			// query string nobody would guess), and the stacked form must stay
-			// reachable for any field the shell has not placed.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 4500);
-			expectEq(await q(".bnd-shell"), true, "the plain settings URL does not show the shell");
-
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 4500);
-			expectEq(await q(".bnd-shell"), false, "?shell=0 still rendered the shell");
-			expect(await visible('[data-fieldname="sidebar_picker"]'), "?shell=0 lost the stacked form");
-		});
-
-		await test("shell: exactly one surface renders, never two", async () => {
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
-			const counts = await page.evaluate(() => {
-				const inside = (sel) =>
-					[...document.querySelectorAll(sel)].filter((n) => n.closest(".bnd-shell")).length;
-				return {
-					shells: document.querySelectorAll(".bnd-shell").length,
-					// Picker CONTENT, not the field wrapper: the wrapper stays in
-					// the DOM (empty) because Frappe owns it. Two copies of the
-					// content is the defect this test exists for.
-					cards: document.querySelectorAll(".bnd-cbp-opt, .bnd-sbp-card, .bnd-dgm-slot").length,
-					cardsInShell: inside(".bnd-cbp-opt, .bnd-sbp-card, .bnd-dgm-slot"),
-					legacyVisible: [...document.querySelectorAll('[data-fieldname$="_picker"]')].filter(
-						(n) => !n.closest(".bnd-shell") && n.getBoundingClientRect().height > 0
-					).length,
-				};
+		await test("settings: one surface — every card visible in one scroll with its heading, every picker mounted, every Select at its own width", async () => {
+			// Item 43 B1 retired the master-detail shell. What replaces its checks:
+			// no shell root; every section visible with Frappe's own heading back
+			// (the shell used to hide them); every picker field carries content;
+			// and no Select measures the 636px the shell's relocation once made.
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			const g = await page.evaluate(() => {
+				const sections = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0);
+				const unheaded = sections.filter((n) => { const h = n.querySelector(".section-head"); return !h || !h.textContent.trim() || getComputedStyle(h).display === "none"; }).map((n) => n.dataset.fieldname);
+				const pickers = [...document.querySelectorAll('[data-fieldname$="_picker"], [data-fieldname="placement_board"]')];
+				const empty = pickers.filter((n) => n.getBoundingClientRect().height > 0 && n.textContent.trim().length < 10).map((n) => n.dataset.fieldname);
+				const hiddenPickers = pickers.filter((n) => n.getBoundingClientRect().height === 0).map((n) => n.dataset.fieldname);
+				const selects = [...document.querySelectorAll('.form-layout select.form-control')].filter((n) => n.getBoundingClientRect().width > 0).map((n) => Math.round(n.getBoundingClientRect().width));
+				return { shells: document.querySelectorAll(".bnd-shell, .bnd-shell-nav, .bnd-shell-pane").length, sections: sections.length, unheaded, empty, hiddenPickers, selects };
 			});
-			expectEq(counts.shells, 1, "shell root count");
-			expect(counts.cards > 0, "shell rendered no picker content at all");
-			expectEq(counts.cardsInShell, counts.cards, "picker content exists outside the shell too");
-			expectEq(counts.legacyVisible, 0, "legacy picker fields still visible beside the shell");
+			expectEq(g.shells, 0, "no shell root or pane remains");
+			expect(g.sections >= 30, `the cards are on the page (${g.sections})`);
+			expectEq(g.unheaded.join(","), "", "every card carries its heading");
+			expectEq(g.empty.join(","), "", "every picker mounted content");
+			expectEq(g.hiddenPickers.join(","), "", "no picker is hidden");
+			// One width for every Select: the shell's relocation severed ONE wrapper
+			// (273 became 636) — a second width is the defect, whatever the first is.
+			expect(g.selects.length > 0 && new Set(g.selects).size === 1, `every Select keeps the same width (${[...new Set(g.selects)].join(",")})`);
 		});
 
 		await test("diagram: marks the current slot, and warns the ones the layout cannot honour", async () => {
@@ -9510,7 +9433,7 @@ print("ok")
 			// are asserted as transitions.
 			const slots = (key) =>
 				page.evaluate((k) => {
-					const pane = document.querySelector(`.bnd-shell-pane[data-key="${k}"]`);
+					const pane = document.querySelector(`[data-fieldname="${k}_picker"]`);
 					if (!pane) return null;
 					return [...pane.querySelectorAll(".bnd-dgm-slot")].map((b) => ({
 						v: b.dataset.value,
@@ -9526,8 +9449,8 @@ print("ok")
 			// — so without this the arm measures both reasons at once and reads as a
 			// regression in the one it was written for.
 			setSettings({ desk_layout: "Top Taskbar", inbox_placement: "Top Bar End", status_style: "Quiet", sidebar_pane_state: "Open" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="inbox"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("inbox");
 			await page.waitForTimeout(500);
 			let s1 = await slots("inbox");
 			// Counted against the FIELD, not a number typed here: E1 turned five
@@ -9558,8 +9481,8 @@ print("ok")
 
 			// Change the LAYOUT and the warnings must move with it.
 			setSettings({ desk_layout: "Floating Bar" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="inbox"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("inbox");
 			await page.waitForTimeout(500);
 			const s2 = await slots("inbox");
 			const warned = s2.filter((x) => x.warn).map((x) => x.v).sort().join(",");
@@ -9572,8 +9495,8 @@ print("ok")
 
 		await test("overview: one mark per placed component, each a route to its control", async () => {
 			setSettings({ inbox_placement: "Top Bar End", user_placement: "Side Pane End" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="overview"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("overview");
 			await page.waitForTimeout(600);
 			const marks = await page.evaluate(() =>
 				[...document.querySelectorAll(".bnd-dgm-mark")].map((m) => ({
@@ -9596,12 +9519,13 @@ print("ok")
 			// And a mark is a route to the control.
 			await page.click('.bnd-dgm-mark[data-goto="user"]');
 			await page.waitForTimeout(500);
-			expectEq(
-				await page.evaluate(() =>
-					(document.querySelector(".bnd-shell-item.bnd-shell-on") || {}).getAttribute("data-key")
-				),
-				"user",
-				"clicking the user mark did not select the user menu entry"
+			expect(
+				await page.evaluate(() => {
+					const a = document.activeElement;
+					const sec = a && a.closest(".form-section");
+					return !!(sec && sec.querySelector('[data-fieldname="user_picker"]'));
+				}),
+				"clicking the user mark did not scroll to and focus the user menu card"
 			);
 			setSettings({ user_placement: "Top Bar End" });
 		});
@@ -9614,7 +9538,7 @@ print("ok")
 			// a per-picker flag. And a group stranded outside every band, which is
 			// what happens when a new row is added to a picker table and nobody
 			// gives it a `zone`.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 4000);
 			const report = await page.evaluate(() => {
 				const out = {};
 				for (const f of [
@@ -9660,7 +9584,7 @@ print("ok")
 			// Filtering every group out of a band used to leave its heading
 			// standing over nothing, which reads as a broken filter rather than
 			// as no matches.
-			await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp-search", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-sbp-search", 4000);
 			const state = async (q) => {
 				await page.fill(".bnd-sbp-search", q);
 				await page.waitForTimeout(350);
@@ -9708,140 +9632,6 @@ print("ok")
 			}
 			await page.fill(".bnd-sbp-search", "");
 			await page.waitForTimeout(300);
-		});
-
-		await test("shell: the change dot marks the component that actually changed", async () => {
-			// The defect this catches is a dot that is always on, always off, or on
-			// for the wrong entry — all three of which look like a working feature
-			// in a screenshot. So it asserts the TRANSITION, against a value read
-			// from the shipped defaults rather than typed here: a hand-written
-			// "expected default" is the copy that goes stale, and it already fooled
-			// this test's author once ("Soft Tint" is a real option and is NOT the
-			// default; "Soft Pill" is, so a restore to the wrong one left the dot
-			// correctly lit and looked like a bug).
-			// THE SAME FACT THE DOTS READ. This pinned against `setup.SHIPPED`
-			// until item 36 gave the shipped-EMPTY identity fields a served ""
-			// entry (`SHIPPED_EMPTY`) — tagline is mutable and holds a real value
-			// on this site, so a pin that ignored the served empties would light
-			// the branding dot "at defaults" and fail honestly-but-uselessly.
-			// Pinning against the endpoint's own merge keeps check and feature
-			// reading one fact.
-			const shipped = JSON.parse(
-				benchPy(
-					`from bunood_theme.api import get_shipped_defaults\n` +
-						`print(json.dumps(get_shipped_defaults()["defaults"]))\n`
-				)
-					.trim().split("\n").pop()
-			);
-			const lit = async () => {
-				const m = await page.evaluate(() =>
-					[...document.querySelectorAll(".bnd-shell-item")]
-						.filter(
-							(n) =>
-								!document
-									.querySelector(`[data-bnd-dot="${n.dataset.key}"]`)
-									.hasAttribute("hidden")
-						)
-						.map((n) => n.dataset.key)
-				);
-				return m.join(",");
-			};
-
-			// EVERYTHING mutable is pinned to shipped, not a hand-picked list:
-			// "no dot at defaults" is a claim about a desk that IS at defaults,
-			// and the hand-picked version was patched twice — first placement
-			// (the E3 tests' leavings), then colors lit in a full run for a
-			// field nobody listed. Fields outside MUTABLE_FIELDS (colours,
-			// branding) are asserted-by-omission: the suite never writes them,
-			// so shipped is what they hold, and if that ever stops being true
-			// this test failing IS the announcement.
-			setSettings(
-				Object.fromEntries(
-					Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))
-				)
-			);
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			const entries = await page.evaluate(
-				() => document.querySelectorAll(".bnd-shell-item").length
-			);
-			expect(entries >= 6, `only ${entries} shell entries`);
-			expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
-
-			const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
-			setSettings({ crumb_hover: other });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "crumbs", "one crumb field changed; exactly crumbs should be marked");
-
-			setSettings({ crumb_hover: shipped.crumb_hover });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "", "the dot did not clear when the value returned to its default");
-		});
-
-		await test("shell: the dot lights for identity fields the seeder never writes", async () => {
-			// THE STRUCTURAL BLINDNESS THIS CLOSES: `bnd_changed_fields`
-			// intersects an entry's owned fields with the SERVED shipped map,
-			// and that map had no entry for logo, favicon, tagline or the dark
-			// seeds — so a site with a logo showed "Default" under Branding,
-			// forever. `SHIPPED_EMPTY` (setup.py) gives them a served "" to
-			// compare against, without ever entering `_seed_defaults` — a seeder
-			// writing "" rows for fields whose empty IS the shipped state would
-			// be noise at best and a fight with a deliberate clearing at worst.
-			// Watched RED against the pre-SHIPPED_EMPTY tree: the logo write
-			// below lit nothing.
-			//
-			// `arabic_font` rides the same check from the other direction: it
-			// was served (it IS seeded) but OWNED BY NO ENTRY — the only
-			// visible Select in the form whose change no dot answered for.
-			const served = JSON.parse(
-				benchPy(
-					`from bunood_theme.api import get_shipped_defaults\n` +
-						`print(json.dumps(get_shipped_defaults()["defaults"]))\n`
-				)
-					.trim().split("\n").pop()
-			);
-			for (const f of ["logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark"]) {
-				expect(f in served, `the served shipped map carries ${f}`);
-			}
-			const lit = async () => {
-				const m = await page.evaluate(() =>
-					[...document.querySelectorAll(".bnd-shell-item")]
-						.filter(
-							(n) =>
-								!document
-									.querySelector(`[data-bnd-dot="${n.dataset.key}"]`)
-									.hasAttribute("hidden")
-						)
-						.map((n) => n.dataset.key)
-				);
-				return m.join(",");
-			};
-			setSettings(
-				Object.fromEntries(
-					Object.entries(served).filter(([k]) => MUTABLE_FIELDS.includes(k))
-				)
-			);
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			expectEq(await lit(), "", "a dot is lit at shipped state before any identity write");
-			// One field per blindness class: logo → identity (shipped-empty),
-			// dark seed → identity (shipped-empty), arabic_font → fonts
-			// (served all along, but unowned until item 36; Map 1 moved it to
-			// the Language & fonts entry with its own section).
-			for (const [values, key] of [
-				[{ logo: "/assets/frappe/images/frappe-favicon.svg" }, "identity"],
-				[{ brand_color_dark: "#1a2f6e" }, "identity"],
-				[{ arabic_font: "Almarai" }, "fonts"],
-			]) {
-				await withBranding(values, async () => {
-					await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-					expectEq(
-						await lit(),
-						key,
-						`${Object.keys(values)[0]} changed; exactly ${key} should be marked`
-					);
-				});
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				expectEq(await lit(), "", `the dot did not clear when ${Object.keys(values)[0]} was restored`);
-			}
 		});
 
 		await test("settings: theme portability reads one list, and the list covers the kits", async () => {
@@ -9903,8 +9693,8 @@ print("ok")
 			const cur = getSettings(["tagline"]).tagline;
 			await withBranding({ tagline: cur ?? "" }, async () => {
 				setSettings({ topbar_enabled: 1 });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="sidepane"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("sidepane");
 				await page.waitForSelector(".bnd-sbp-import", { timeout: 15000 });
 				await page.click(".bnd-sbp-import");
 				await page.waitForSelector('.modal [data-fieldname="json"] textarea', { timeout: 15000 });
@@ -9934,129 +9724,6 @@ print("ok")
 			);
 		});
 
-		await test("shell: the note names a real preset, and never invents one", async () => {
-			// The value is the second half: this fails if someone later makes
-			// crumb_style or inbox_style print a preset name, which would be a
-			// label with no catalogue behind it.
-			//
-			// TWO entries have a catalogue now. The side pane has had one since
-			// item 10 (SIDEBAR_PRESETS, 22 values). The LAYOUT gained one with
-			// slice 2c — `registry.LAYOUT_CHROME` — and that is the whole point
-			// of the container split: until a table said what a layout writes,
-			// there was nothing to compare a desk against and this note could
-			// only say "Default" or "Changed". Both are checked the same way,
-			// against the server's list, so neither can drift into a label the
-			// catalogue does not contain.
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			const notes = await page.evaluate(() =>
-				Object.fromEntries(
-					[...document.querySelectorAll(".bnd-shell-item")].map((n) => [
-						n.dataset.key,
-						document.querySelector(`[data-bnd-note="${n.dataset.key}"]`).textContent.trim(),
-					])
-				)
-			);
-			// SLICE 10: the pane's catalogue went private and its note joined
-			// every other kit — the two-state, never a look's name. A look's
-			// name here would be the exact invention this check exists to
-			// refuse, because Focus and Quiet both compose the Ink pane.
-			expect(
-				notes.sidepane === "Default" || notes.sidepane === "Changed",
-				`side pane note "${notes.sidepane}" is not the honest two-state`
-			);
-
-			const layouts = Object.keys(
-				JSON.parse(
-					benchPy(`from bunood_theme.registry import as_dict\nprint(json.dumps(as_dict()["layout_chrome"]))\n`)
-						.trim().split("\n").pop()
-				)
-			);
-			expect(
-				layouts.includes(notes.layout) || notes.layout === "Custom",
-				`layout note "${notes.layout}" is neither a real layout name nor "Custom"`
-			);
-
-			// THE THIRD CATALOGUE (item 37), and the largest: twelve looks over 124
-			// values. Checked exactly as the other two are — against the server's
-			// own table — so a card and a note cannot drift into naming something
-			// the catalogue does not contain.
-			const themes = JSON.parse(
-				benchPy(
-					`from bunood_theme.presets import THEME_PRESETS\nprint(json.dumps(list(THEME_PRESETS)))\n`
-				).trim().split("\n").pop()
-			);
-			expect(
-				themes.includes(notes.theme) || notes.theme === "Custom",
-				`theme note "${notes.theme}" is neither a real theme preset nor "Custom"`
-			);
-
-			for (const [key, note] of Object.entries(notes)) {
-				if (key === "sidepane" || key === "layout" || key === "theme") continue;
-				// RENDER-ONLY ENTRIES OWN NO FIELDS — they read state or hold it
-				// in their own doctypes — so they have no Default/Changed to
-				// report and must stay silent. Saying "Default" under the
-				// Overview would claim a state it does not own, and go on
-				// claiming it while every component it displays had changed;
-				// the Translations surface (item 7 part 2) is the same class,
-				// its state living in Bunood Translation Scan/Proposal.
-				const RENDER_ONLY = ["overview", "translations"];
-				const allowed = RENDER_ONLY.includes(key) ? [""] : ["Default", "Changed"];
-				expect(
-					allowed.includes(note),
-					`${key} shows "${note}"; expected one of ${JSON.stringify(allowed)}`
-				);
-			}
-		});
-
-		await test("shell: no section is left stranded outside it", async () => {
-			// The shell claims sections by name. Add a section to the doctype and
-			// forget to place it and it renders below the shell, looking like a
-			// bug in the shell rather than an omission in its table. This is the
-			// check that names it. It also catches the opposite error: two entries
-			// claiming ONE section, which used to make the loser silently empty —
-			// `density_default` and `palette_enabled` share
-			// `section_features`, and that is how it was found.
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
-			const stranded = await page.evaluate(() =>
-				[...document.querySelectorAll(".form-section")]
-					.filter((n) => !n.closest(".bnd-shell") && n.getBoundingClientRect().height > 0)
-					// The shell's own host section is the one legitimate exception:
-					// it is what the shell is rendered INTO.
-					.filter((n) => !n.querySelector('[data-fieldname="chrome_shell"]'))
-					.map((n) =>
-						[...n.querySelectorAll("[data-fieldname]")]
-							.map((x) => x.dataset.fieldname)
-							.filter((x) => !x.startsWith("__"))
-							.slice(0, 3)
-							.join(",")
-					)
-			);
-			expectEq(stranded.length, 0, `sections outside the shell: ${JSON.stringify(stranded)}`);
-		});
-
-		await test("shell: every group opens and mounts its picker", async () => {
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
-			const items = await page.evaluate(() =>
-				[...document.querySelectorAll(".bnd-shell-item")].map((n) => n.dataset.key)
-			);
-			expect(items.length >= 6, `only ${items.length} shell entries`);
-			for (const key of items) {
-				await page.click(`.bnd-shell-item[data-key="${key}"]`);
-				await page.waitForTimeout(400);
-				const ok = await page.evaluate(
-					(k) => {
-						const pane = document.querySelector(".bnd-shell-detail");
-						if (!pane) return "no detail pane";
-						const sel = document.querySelector(`.bnd-shell-item[data-key="${k}"].bnd-shell-on`);
-						if (!sel) return "selection did not follow the click";
-						return pane.textContent.trim().length > 10 ? "" : "detail pane is empty";
-					},
-					key
-				);
-				expectEq(ok, "", `${key}: ${ok}`);
-			}
-		});
-
 		await test("shell: the Overview names the derived layout, not the stored one", async () => {
 			// The Overview note read the raw stored `desk_layout` and its own
 			// comment admitted the derived "Custom" label "arrives with the last
@@ -10073,11 +9740,11 @@ print("ok")
 				// single toggle the other way just lands on another real layout,
 				// which is what the first draft of this check got wrong).
 				setSettings({ desk_layout: "Top Taskbar", dock_enabled: 1 });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
-				await page.click('.bnd-shell-item[data-key="overview"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
+				await scrollToSettings("overview");
 				await page.waitForSelector(".bnd-dgm-overview", { timeout: 15000 });
 				const note = await page.evaluate(() => {
-					const n = document.querySelector(".bnd-shell-detail .bnd-cbp-note");
+					const n = document.querySelector('[data-fieldname="desk_overview"] .bnd-cbp-note');
 					return n ? n.textContent : "";
 				});
 				expect(/custom/i.test(note), `the Overview note reads Custom when a toggle differs ("${note}")`);
@@ -10103,8 +9770,8 @@ print("ok")
 			const before = getSettings(["home_placement", "apps_placement"]);
 			try {
 				setSettings({ home_placement: "Top Bar End", sidebar_enabled: 1, sidebar_pane_state: "Open" });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="links"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("links");
 				await page.waitForSelector('[data-fieldname="links_picker"] .bnd-cbp-reset', { timeout: 15000 });
 				await page.click('[data-fieldname="links_picker"] .bnd-cbp-reset[data-field="home_placement"]');
 				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
@@ -10131,8 +9798,8 @@ print("ok")
 				).trim().split("\n").pop()
 			);
 			setSettings({ desk_layout: cat.default });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="layout"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("layout");
 			await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
 			const cards = await page.evaluate(() =>
 				[...document.querySelectorAll(".bnd-lp-card")].map((c) => ({
@@ -10174,8 +9841,8 @@ print("ok")
 				"home_placement", "apps_placement",
 			]);
 			try {
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="overview"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("overview");
 				// The panel draws from a SERVED catalogue, so a cold form renders it a
 				// beat late — the pane owns that wait, and this waits for the result of
 				// it rather than for a fixed delay.
@@ -10275,8 +9942,8 @@ print("ok")
 			]);
 			try {
 				setSettings({ desk_layout: "Top Taskbar" });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="layout"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("layout");
 				await page.waitForSelector(".bnd-lp-card", { timeout: 15000 });
 				await page.click('.bnd-lp-card[data-value="Taskbar"]');
 				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 20000 });
@@ -10338,10 +10005,10 @@ print("ok")
 			const MOVE_MS = 900;
 			const before = getSettings(["user_placement", "home_placement"]);
 			try {
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
 				for (const [key, field] of [["user", "user_placement"], ["links", "home_placement"]]) {
 					const root = `[data-fieldname="${key}_picker"]`;
-					await page.click(`.bnd-shell-item[data-key="${key}"]`);
+					await scrollToSettings(key);
 					await page.waitForSelector(`${root} .bnd-dgm-slot`, { timeout: 15000 });
 					const target = await page.evaluate(
 						(args) => {
@@ -10383,56 +10050,6 @@ print("ok")
 					}, tenant);
 					expectEq(onBoard, target, `${key}: the board disagrees with the picker about one state`);
 				}
-			} finally {
-				setSettings(before);
-			}
-		});
-
-		await test("shell: the Layout entry answers for the desk, not for a stored label", async () => {
-			// desk_layout IS GONE as of item 37, where item 36 had only hidden it.
-			// applied, not a control. So the Layout entry owns the five container
-			// toggles it WRITES: a container that differs from the shipped desk
-			// must light this entry's dot, and the picker's note must read the
-			// DERIVED label. Watched red against the fields:["desk_layout"]
-			// ownership, where flipping a container lit the container's dot and
-			// left Layout claiming "Default" over a desk that had changed.
-			const before = getSettings(["dock_enabled"]);
-			try {
-				// THE SHIPPED LAYOUT, derived. "At rest" means the desk equals the shipped
-				// defaults, so this has to be whichever row ships -- naming one made the
-				// check pass only while that row happened to be the default, and item 42
-				// moved it.
-				const shippedLayout = JSON.parse(
-					benchPy(
-						`from bunood_theme.presets import DEFAULT_DESK_LAYOUT\nprint(json.dumps(DEFAULT_DESK_LAYOUT))\n`
-					).trim().split("\n").pop()
-				);
-				setSettings({ desk_layout: shippedLayout });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				const atRest = await page.evaluate(() =>
-					document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden")
-				);
-				expect(atRest, "the Layout dot is lit on a desk that matches its preset");
-				// Dock on WITH topbar on matches no layout — a genuine Custom.
-				setSettings({ desk_layout: shippedLayout, dock_enabled: 1 });
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				const changed = await page.evaluate(() => ({
-					lit: !document.querySelector('[data-bnd-dot="layout"]').hasAttribute("hidden"),
-					note: (document.querySelector('[data-bnd-note="layout"]') || {}).textContent || "",
-				}));
-				expect(changed.lit, "a container that differs did not light the Layout dot");
-				expect(/custom/i.test(changed.note), `the Layout note reads the derived label ("${changed.note}")`);
-				// AND THE FIELD IS GONE, not merely hidden. Item 36 left it hidden; this
-				// check asserted `df.hidden`, which a DELETED field can never satisfy -
-				// `get_field` returns null and the assertion read false. Ask the question
-				// item 37 actually answers: neither the form nor the doctype carries it.
-				const stored = await page.evaluate(() => ({
-					onForm: !!(window.cur_frm && window.cur_frm.get_field("desk_layout")),
-					inMeta: (frappe.get_meta("Theme Settings").fields || [])
-						.some((f) => f.fieldname === "desk_layout"),
-				}));
-				expect(!stored.onForm, "desk_layout is still a field on the form");
-				expect(!stored.inMeta, "desk_layout is still in the doctype meta");
 			} finally {
 				setSettings(before);
 			}
@@ -11205,7 +10822,7 @@ print("ok")
 			//
 			// Watched failing before the split: the card read فتح.
 			const got = await withLang("ar", async () => {
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-sbp", 2500);
+				await goDesk("/desk/theme-settings", ".bnd-sbp", 2500);
 				return page.evaluate(() => {
 					const card = document.querySelector(
 						'.bnd-sbp-opt[data-field="sidebar_pane_state"][data-value="Open"] .bnd-sbp-oname'
@@ -11312,7 +10929,7 @@ print("ok")
 				}
 				// The stacked settings form — the single densest surface: 285
 				// of the catalogue's msgids render only here.
-				await goDesk("/desk/theme-settings?shell=0", ".bnd-dgm-slot", 3500);
+				await goDesk("/desk/theme-settings", ".bnd-dgm-slot", 3500);
 				offenders.push(...(await collect()).map((o) => `settings: ${o}`));
 
 				expectEq(offenders.join("\n"), "", "theme-owned strings rendering untranslated");
@@ -11327,11 +10944,8 @@ print("ok")
 			// feature's bar: the shell entry opens, the pane paints from
 			// whatever state the server has, and a translation typed into the
 			// pane's own inputs reaches the merged dictionary.
-			await goDesk("/desk/theme-settings", ".bnd-shell", 2500);
-			await page.evaluate(() => {
-				const hit = [...document.querySelectorAll('.bnd-shell [data-key="translations"]')][0];
-				if (hit) hit.click();
-			});
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 2500);
+			await scrollToSettings("translations");
 			await page.waitForSelector(".bnd-tc", { timeout: 15000 });
 			await page.waitForTimeout(800);
 			expect(
@@ -11674,36 +11288,6 @@ print("ok")
 			await page.keyboard.press("Escape");
 		});
 
-		await test("a11y: the settings rail is a real tablist", async () => {
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			const shape = await page.evaluate(() => {
-				const items = [...document.querySelectorAll(".bnd-shell-item")];
-				return {
-					allTabs: items.every((n) => n.getAttribute("role") === "tab"),
-					selected: items.filter((n) => n.getAttribute("aria-selected") === "true").length,
-					tabStops: items.filter((n) => n.getAttribute("tabindex") === "0").length,
-				};
-			});
-			expect(shape.allTabs, "every entry is role=tab");
-			expectEq(shape.selected, 1, "exactly one entry is selected");
-			expectEq(shape.tabStops, 1, "exactly one entry is the Tab stop (roving tabindex)");
-			// Arrows move the selection AND the focus — asserted as a transition.
-			const moved = await page.evaluate(() => {
-				const first = document.querySelector('.bnd-shell-item[tabindex="0"]');
-				first.focus();
-				const beforeKey = first.getAttribute("data-key");
-				first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
-				const now = document.activeElement;
-				return {
-					beforeKey,
-					afterKey: now.classList.contains("bnd-shell-item") ? now.getAttribute("data-key") : null,
-					afterSelected: now.getAttribute && now.getAttribute("aria-selected"),
-				};
-			});
-			expect(moved.afterKey && moved.afterKey !== moved.beforeKey, "ArrowDown moved to the next entry");
-			expectEq(moved.afterSelected, "true", "the focused entry became the selected one");
-		});
-
 		await test("a11y: the board reorders without a pointer", async () => {
 			// Design pick 1A end to end: arm by click (a keyboard Enter on a
 			// button IS a click), nudge with the arrows the armed chip grows,
@@ -11721,8 +11305,8 @@ print("ok")
 				inbox_placement: "Top Bar End", user_placement: "Top Bar End",
 				desk_order: "search,inbox,user,home,apps",
 			});
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 			const zoneOk = await page.evaluate(() => {
 				const zone = document.querySelector('.bnd-bd-zone[data-slot="Top Bar End"]');
@@ -11771,8 +11355,8 @@ print("ok")
 				desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				search_placement: "Top Bar Center",
 			});
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="placement"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("placement");
 			await page.waitForSelector(".bnd-bd", { timeout: 8000 });
 
 			await page.click('.bnd-bd-chip[data-tenant="search"]');
@@ -11814,8 +11398,8 @@ print("ok")
 		});
 
 		await test("a11y: switches say their state, options say their selection", async () => {
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await page.click('.bnd-shell-item[data-key="crumbs"]');
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await scrollToSettings("crumbs");
 			await page.waitForTimeout(600);
 			const shape = await page.evaluate(() => {
 				const toggles = [...document.querySelectorAll(".bnd-cbp-toggle")].filter((n) => n.offsetParent);
@@ -11867,8 +11451,8 @@ print("ok")
 			await goDesk("/desk/item", ".page-head", 4000);
 			const nameless = new Set(await findNameless());
 
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-			await walkSettingsPanes(async () => {
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			await walkSettingsSections(async () => {
 				for (const n of await findNameless()) nameless.add(n);
 			});
 
@@ -12378,7 +11962,7 @@ print("ok")
 			// is not settings-surface coverage, which is a different test
 			// below with a different root list (P.wrap gives every picker
 			// .bnd-cbp, not .bnd-shell).
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
 			bad = bad.concat(await scan("our chrome on the settings route"));
 
 			// .bnd-dock only exists in the Dock layout, which hides the side pane
@@ -12418,7 +12002,7 @@ print("ok")
 			// reasoning from the token's name.
 			for (const mode of ["light", "dark"]) {
 				await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 3000);
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 3000);
 				await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
 				// THE BUILDER IS IN THE `placement` PANE, NOT `layout`. Guessing the
 				// key cost a run: `.bnd-bd-desk` exists in the DOM from first render
@@ -12426,7 +12010,7 @@ print("ok")
 				// times as hidden and then timed out — the shell keeps every pane
 				// mounted and hides all but the current one. Query the pane the node
 				// is actually in rather than naming one.
-				await page.click('.bnd-shell-item[data-key="placement"]');
+				await scrollToSettings("placement");
 				await page.waitForSelector(".bnd-bd-desk", { state: "visible", timeout: 15000 });
 				await page.waitForTimeout(700);
 
@@ -12520,14 +12104,16 @@ print("ok")
 			// .body-sidebar. Panes whose content is only stock Frappe
 			// controls stay covered by the baseline-diff test below, not
 			// this hard gate — correct by the layer model, not a gap.
-			const OURS_SETTINGS = [".bnd-shell-nav", ".bnd-cbp", ".bnd-sbp"];
+			const OURS_SETTINGS = [".bnd-cbp", ".bnd-sbp"];
 			const PAGE_RULES = ["region", "page-has-heading-one", "landmark-one-main", "bypass"];
 
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
 
 			const matched = new Set();
 			const bad = [];
-			await walkSettingsPanes(async (key) => {
+			// One scan over the whole page (item 43 B1): nothing is hidden any more,
+			// so the pane walk that once revealed a twentieth at a time is one pass.
+			for (const key of ["page"]) {
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS_SETTINGS) builder = builder.include(root);
 				// THE EMAIL PREVIEW IS EXCLUDED, and it is the sandbox that makes
@@ -12555,9 +12141,9 @@ print("ok")
 					OURS_SETTINGS
 				);
 				for (const s of present) matched.add(s);
-			});
+			}
 
-			expectEq(bad.join("\n"), "", "axe over every settings pane");
+			expectEq(bad.join("\n"), "", "axe over the settings page");
 			const missed = OURS_SETTINGS.filter((s) => !matched.has(s));
 			expectEq(missed.join(","), "", `every settings root matched in some pane (missed: ${missed.join(", ")})`);
 		});
@@ -14666,7 +14252,7 @@ print("ok")
 			// (cur_frm.refresh re-applies every kit's SAVED values); report must be
 			// restored to the saved Pinned Slab, not left at the unsaved preview.
 			setSettings({ report_style: "Pinned Slab" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			await page.evaluate(() => window.bunood_theme.report_apply({ report_style: "Original" }));
 			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-report")), null, "the preview cleared the report anchor");
 			await page.evaluate(() => cur_frm.refresh());
@@ -15060,7 +14646,7 @@ print("cleared")
 			// recur. Preview Original on the settings page, then cur_frm.refresh
 			// re-applies every kit's SAVED values.
 			setSettings({ views_style: "Floating Cards" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			await page.evaluate(() => window.bunood_theme.views_apply({ views_style: "Original" }));
 			await page.waitForTimeout(300);
 			expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-views")), null, "the preview cleared the views anchor");
@@ -15978,7 +15564,7 @@ print("cleared")
 			// it. Item 27 carries this check; item 28 shipped without one.
 			// Drives the HOOK the settings form drives, not the apply function.
 			setSettings({ overlay_style: "Floating", overlay_scrim: "Tinted", overlay_menu: "Inset" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			await page.evaluate(() =>
 				window.bunood_theme.overlay_apply({ overlay_style: "Solid", overlay_scrim: "Blurred", overlay_menu: "Plain" }));
 			await page.waitForTimeout(300);
@@ -16008,7 +15594,7 @@ print("cleared")
 			// settings form CLEARED the anchor the boot payload had just set. The
 			// renderer two functions above already fell back; the preview did not.
 			setSettings({ overlay_style: "Floating" });
-			await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4000);
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
 			const g = await page.evaluate(async () => {
 				// simulate the never-written field the boot payload defaults for
 				const before = cur_frm.doc.overlay_scrim;
@@ -17469,7 +17055,7 @@ print("cleared")
 				for (const [name, route, sel] of [
 					["list", "/desk/item", ".page-head"],
 					["form", FORM_ROUTE, ".page-head"],
-					["settings", "/desk/theme-settings", ".bnd-shell"],
+					["settings", "/desk/theme-settings", ".bnd-cbp"],
 				]) {
 					await page.setViewportSize(NARROW);
 					await goDesk(route, sel, 3500);
@@ -18523,13 +18109,13 @@ print("cleared")
 				//
 				// So: assert its ABSENCE, and assert the two things that ARE true in
 				// its place — the click lands in the field, and the page renders it.
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 3000);
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 3000);
 				const noHook = await page.evaluate(
 					() => typeof (window.bunood_theme || {}).login_apply === "undefined"
 				);
 				expect(noHook, "there is no bunood.login_apply — the surface is not on this page");
 
-				await page.click('.bnd-shell-item[data-key="login"]');
+				await scrollToSettings("login");
 				await page.waitForSelector(".bnd-lgp-style", { timeout: 15000 });
 				const clicked = await page.evaluate(async () => {
 					const card = [...document.querySelectorAll(".bnd-lgp-style")].find(
@@ -20800,8 +20386,8 @@ print("cleared")
 			// "no logo"; set to a raster, it shows the image; set to an SVG, the
 			// EMAIL miniature demonstrates the wordmark fallback with its badge.
 			const openIdentity = async () => {
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="identity"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("identity");
 				await page.waitForSelector(".bnd-idp-strip", { timeout: 15000 });
 				// the async fetch fills the strip; wait for a cell to carry a caption
 				await page.waitForFunction(
@@ -20864,8 +20450,8 @@ print("cleared")
 			// name in between.
 			const V = vendor();
 			await withBranding({ company_name: "ACME Trading" }, async () => {
-				await goDesk("/desk/theme-settings?shell=1", ".bnd-shell", 4500);
-				await page.click('.bnd-shell-item[data-key="identity"]');
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+				await scrollToSettings("identity");
 				await page.waitForSelector(".bnd-idp", { timeout: 15000 });
 				await page.click('.bnd-idp .bnd-cbp-reset[data-field="company_name"]');
 				await page.waitForFunction(

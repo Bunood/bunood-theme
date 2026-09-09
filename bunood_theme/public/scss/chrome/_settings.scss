@@ -773,192 +773,6 @@ html[data-theme] {
   }
 }
 
-// ── Master & detail shell (rework slice 1c step 2) ──────────────────────────
-//
-// A list beside a detail pane, collapsing to stacked below 900px. The width
-// query is on the FORM's container, not the viewport: this form already gets a
-// different width depending on whether the desk sidebar is expanded, so a
-// viewport query would answer a question nobody asked. Same reasoning as the
-// status bar's rank collapse.
-// THE CONTAINER AND THE RESPONDER ARE TWO ELEMENTS, and they have to be: a
-// `@container` rule styles only the container's DESCENDANTS, never the
-// container itself. When `.bnd-shell` carried `container-type`, its own
-// narrow rule below (collapse to one column) could never match — while the
-// nav and the items, being descendants, DID get their narrow rules. The
-// result was the worst of both: a wrap-row chip nav crammed into a grid
-// column that stayed 210px, items shrunk to 83px and packed two per ragged
-// row. Measured 2026-08-09 on an 800px pane; reported as "not responsive,
-// breaks its format" — which is exactly what half-applied breakpoints look
-// like.
-.bnd-shell-viewport {
-  container-type: inline-size;
-  container-name: bndshell;
-}
-
-.bnd-shell {
-  display: grid;
-  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
-  gap: var(--bnd-sp-5);
-  align-items: start;
-}
-
-.bnd-shell-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  position: sticky;
-  inset-block-start: var(--bnd-sp-4);
-  padding-inline-end: var(--bnd-sp-3);
-  border-inline-end: var(--bnd-line) solid var(--bnd-border);
-}
-
-.bnd-shell-group {
-  font-size: var(--bnd-text-xs);
-  font-weight: var(--bnd-weight-medium);
-  color: var(--bnd-ink-subtle);
-  padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
-}
-
-// Label on one line, state beneath it. Side by side, the note gets whatever the
-// label leaves of a 210px rail, and the two shipped side-pane presets are
-// "Bunood Night" and "Bunood Light" - both of which truncate to "Bunood ...",
-// which is worse than showing nothing at all. A preset name is the one note that
-// carries real information, so the layout is built for it.
-.bnd-shell-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 var(--bnd-sp-2);
-  inline-size: 100%;
-  text-align: start;
-  padding: var(--bnd-pad-y) var(--bnd-sp-2);
-  border: none;
-  border-radius: var(--bnd-radius-md);
-  background: transparent;
-  color: var(--bnd-ink-muted);
-  font-size: var(--bnd-text-sm);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--bnd-hover);
-    color: var(--bnd-ink);
-  }
-
-  &.bnd-shell-on {
-    background: var(--bnd-active);
-    color: var(--bnd-brand-ink);
-    font-weight: var(--bnd-weight-medium);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--bnd-accent);
-    outline-offset: 2px;
-  }
-}
-
-// The note is the entry's state in words - a preset name for the side pane,
-// "Default" or "Changed" for everything else. It carries the meaning; the dot
-// beside it is redundant reinforcement, which is the point: colour alone is
-// never the only signal (same rule the status tokens follow).
-.bnd-shell-note {
-  grid-column: 1;
-  font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
-  // Truncate only if a future preset name is genuinely longer than the rail,
-  // rather than at a width that clips the ones we actually ship.
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  // An empty note must not reserve a line: the marks are absent until the
-  // defaults arrive, and a rail that reflows when they land reads as a glitch.
-  &:empty {
-    display: none;
-  }
-}
-
-.bnd-shell-dot {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: 50%;
-  background: var(--bnd-brand-solid);
-  flex: none;
-
-  &[hidden] {
-    // `hidden` is a UA rule of the lowest possible weight and loses to any
-    // display declaration - the exact failure the status bar hit with
-    // `.bnd-status-item[hidden]`. State it explicitly.
-    display: none;
-  }
-}
-
-.bnd-shell-item.bnd-shell-on .bnd-shell-note {
-  color: var(--bnd-brand-ink);
-}
-
-.bnd-shell-detail {
-  min-inline-size: 0;
-
-  // Relocated sections arrive with the top border and padding that separated
-  // them from a sibling above. In a pane there is no sibling, so the rule is a
-  // line hanging over nothing.
-  .form-section {
-    border-block-start: none;
-    padding-block-start: 0;
-    margin-block-start: 0;
-  }
-
-  // The section heading names the same thing the selected list entry names, one
-  // inch away - "Command palette" over the Command palette pane. In a stacked
-  // form that heading IS the navigation; here it is a second copy of it. Hidden
-  // rather than removed, because the heading is Frappe's and the stacked form
-  // still needs it.
-  //
-  // It also absorbs the sub-headings a pane picks up when one entry owns two
-  // sections, which would otherwise read as stray labels: "Generated" under
-  // Colours is the brand stylesheet path, not a second topic.
-  .section-head,
-  .form-section-heading {
-    display: none;
-  }
-}
-
-.bnd-shell-pane[hidden] {
-  display: none;
-}
-
-// shell (620px), not bar-1 (900): the form's own column is ~840px wide on a 1440
-// desk with the sidebar expanded, so a 900px threshold collapsed the list into a
-// wrapped row of chips at full size - measured, not guessed. The stacked layout
-// is for a genuinely narrow form, which is why the number is well below the
-// common case. (The value lives in $bnd-cq as `shell`.)
-@include bnd-container-until(bndshell, shell) {
-  .bnd-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bnd-shell-nav {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding-inline-end: 0;
-    padding-block-end: var(--bnd-sp-3);
-    border-inline-end: none;
-    border-block-end: var(--bnd-line) solid var(--bnd-border);
-  }
-
-  .bnd-shell-item {
-    inline-size: auto;
-  }
-
-  // A group heading in a wrapped row of chips reads as another chip. The
-  // grouping survives in the order; the label does not survive the layout.
-  .bnd-shell-group {
-    display: none;
-  }
-}
 
 // ── The placement board (E2) ────────────────────────────────────────────────
 //
@@ -972,6 +786,8 @@ html[data-theme] {
 // RTL for free, which matters more than usual because "Start" and "End" are
 // the words on the zones.
 .bnd-bd {
+	container-type: inline-size;
+	container-name: bndboard;
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
@@ -1256,12 +1072,12 @@ html[data-theme] {
 }
 
 // Narrow panes: the desk stops pretending to be a desk and stacks, rather than
-// squeezing five regions into a column too thin to drop onto. Named `bndshell`
-// explicitly (was an UNNAMED @container that resolved to whatever ancestor
-// happened to carry container-type — .bnd-shell-viewport in practice, but it
-// would silently retarget if an intermediate box ever gained one). Same
-// container, same value (`board` = 544px = the old 34rem).
-@include bnd-container-until(bndshell, board) {
+// squeezing five regions into a column too thin to drop onto. The board is
+// its own container now (item 43 B1 retired the shell viewport it used to
+// query): the root declares `bndboard` and the rule targets its descendants,
+// which is the one arrangement a @container rule allows. Same value (`board`
+// = 544px = the old 34rem).
+@include bnd-container-until(bndboard, board) {
 	.bnd-bd-desk {
 		grid-template-columns: 1fr;
 	}
@@ -1277,6 +1093,8 @@ html[data-theme] {
 // Text-and-buttons chrome; the heavy lifting is server-side. Logical
 // properties throughout, no tracking (assertCursiveSafe), tokens only.
 .bnd-tc {
+	container-type: inline-size;
+	container-name: bndtc;
 	display: grid;
 	gap: var(--bnd-sp-3);
 }
@@ -1326,11 +1144,11 @@ html[data-theme] {
 }
 
 // Narrow: five columns (source, translation, three action controls) cannot fit
-// a phone-width shell pane, and there is no horizontal scroll wrapper — so the
-// row stacks, each cell taking the full width (item 24). Same container and
-// threshold as the shell's own collapse; the row was the last settings surface
-// with a fixed multi-column grid and no narrow fallback.
-@include bnd-container-until(bndshell, shell) {
+// a phone-width card, and there is no horizontal scroll wrapper — so the row
+// stacks, each cell taking the full width (item 24). The console is its own
+// container since item 43 B1 retired the shell viewport it used to query; the
+// threshold keeps the shell's old value under the console's name.
+@include bnd-container-until(bndtc, tc) {
 	.bnd-tc-prow {
 		grid-template-columns: 1fr;
 	}

@@ -24,7 +24,7 @@ const ROUTES = [
 	["item-new", "/desk/item/new", ".form-section"],
 	["item-list", "/desk/item", ".list-row-head"],
 	["selling", "/desk/selling", ".layout-main"],
-	["settings", "/desk/theme-settings?shell=0", ".bnd-cbp"],
+	["settings", "/desk/theme-settings", ".bnd-cbp"],
 ];
 
 const only = process.env.BND_ROUTES ? new Set(process.env.BND_ROUTES.split(",")) : null;

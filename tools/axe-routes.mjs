@@ -55,7 +55,7 @@
  *         /app/account/view/report     contrast 4->0   button-name 8->6
  *
  *     plus `image-alt 1->0` on all five, and no change at
- *     `/desk/theme-settings?shell=1`, which mounts no pane.
+ *     `/desk/theme-settings`, which mounts no pane.
  *
  * WHAT STAYS IN SCOPE, because this is a narrow exclusion and not a licence: the
  * pane's own rows, the four `button-name` nodes inside our `.bnd-sb-card`, every
@@ -83,7 +83,8 @@ export const AXE_TAGS = ["wcag2a", "wcag2aa"];
 export const ROUTES = [
 	["/desk/item", ".page-head"],
 	["/desk/item/BND-TEST-001", ".form-tabs-list"],
-	["/desk/theme-settings?shell=1", ".bnd-shell"],
+	// Item 43 B1: one scroll of section cards; the readiness selector is a picker.
+	["/desk/theme-settings", ".bnd-cbp"],
 	// Item 25: the two surfaces the workspace + chart kits land on.
 	["/desk/selling", ".ce-block .widget"],
 	["/desk/dashboard-view/Selling", ".widget-group-body"],

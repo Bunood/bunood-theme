@@ -287,6 +287,16 @@ html[data-bnd-form="sheet"] .form-layout .form-section.hide-border {
 }
 // The connections dashboard is a container too — the fusion. Its stock
 // padding is zero; the inline padding aligns it with the sections' own.
+// An EMPTY connections dashboard is a 26px frame: on a Single every section
+// inside carries .hide-control and the vendor never collapses the wrapper
+// (measured on Theme Settings, item 43 B1; Item's collapses). The frame goes
+// with its padding and border — never display:none, which the ownership
+// guard reads as hiding a native.
+html[data-bnd-form] .form-dashboard:not(:has(.form-dashboard-section:not(.hide-control))) {
+  padding: 0;
+  border-width: 0;
+  margin: 0;
+}
 html[data-bnd-form] .form-dashboard {
   background: var(--bnd-form-sec-bg, transparent);
   border: var(--bnd-line) solid var(--bnd-form-sec-border, transparent);

@@ -4,8 +4,6 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_shell",
-  "chrome_shell",
   "section_branding",
   "identity_picker",
   "company_name",
@@ -22,6 +20,7 @@
   "ground_color",
   "section_language",
   "arabic_font",
+  "language_translations",
   "section_icons",
   "icons_picker",
   "icon_style",
@@ -84,6 +83,7 @@
   "inbox_row_actions",
   "inbox_keyboard",
   "section_placement",
+  "desk_overview",
   "placement_board",
   "desk_order",
   "section_search",
@@ -242,16 +242,6 @@
    "label": "Icons"
   },
   {
-   "fieldname": "section_shell",
-   "fieldtype": "Section Break",
-   "label": "Desk"
-  },
-  {
-   "fieldname": "chrome_shell",
-   "fieldtype": "HTML",
-   "label": "Desk Settings"
-  },
-  {
    "fieldname": "section_branding",
    "fieldtype": "Section Break",
    "label": "Identity"
@@ -341,6 +331,11 @@
    "options": "System\nIBM Plex Sans Arabic\nNoto Sans Arabic\nAlmarai\nCairo",
    "default": "Noto Sans Arabic",
    "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
+  },
+  {
+   "fieldname": "language_translations",
+   "fieldtype": "HTML",
+   "label": "Translations"
   },
   {
    "fieldname": "section_theme",
@@ -1234,6 +1229,11 @@
    "label": "Placement"
   },
   {
+   "fieldname": "desk_overview",
+   "fieldtype": "HTML",
+   "label": "Overview"
+  },
+  {
    "fieldname": "placement_board",
    "fieldtype": "HTML",
    "label": "Placement Board"
@@ -1750,7 +1750,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 17:41:43.000000",
+ "modified": "2026-09-08 18:20:20.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

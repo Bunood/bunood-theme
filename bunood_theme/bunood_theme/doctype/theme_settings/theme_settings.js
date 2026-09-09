@@ -958,10 +958,12 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_links_picker(frm);
 		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
-		// AFTER the pickers, never before: the shell relocates the sections they
-		// were just drawn into, and moving a node the renderer is about to look
-		// for is how the host resolver ends up pointing at a detached wrapper.
-		bnd_shell_setup(frm);
+		// The two surfaces that own no field draw into fields of their own
+		// (item 43 B1: the shell that used to host them is gone).
+		for (const [name, render] of [["desk_overview", bnd_render_overview], ["language_translations", bnd_render_translations]]) {
+			const f = frm.get_field(name);
+			if (f && f.$wrapper) render(frm, f.$wrapper);
+		}
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
@@ -1092,13 +1094,13 @@ function bnd_repaint_placement_pickers(frm) {
  * thing every control in this form already depends on. The section is found by
  * walking up from the field, so this keeps working if Frappe restructures.
  */
-const BND_SHELL_GROUPS = [
+const BND_SETTINGS_GROUPS = [
 	{
 		group: () => __("Desk"),
 		items: [
 			// Renders rather than relocating, like Translations below: it owns no
 			// fields, it reads them.
-			{ key: "overview", label: () => __("Overview"), render: bnd_render_overview },
+			{ key: "overview", label: () => __("Overview"), anchors: ["desk_overview"] },
 		],
 	},
 	{
@@ -1229,7 +1231,7 @@ const BND_SHELL_GROUPS = [
 			// Scan / Proposal), not in Theme Settings fields — which is what
 			// keeps the FIELD_PREFIXES guard out of a feature that is not a
 			// desk component.
-			{ key: "translations", label: () => __("Translations"), render: bnd_render_translations },
+			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
 		],
 	},
 ];
@@ -1301,7 +1303,7 @@ let bnd_layout_slots = null;
  * exactly that about — or views over fields another entry also owns (the
  * board, the layout preset), where both claims are true.
  */
-const BND_SHELL_OWNS = {
+const BND_SETTINGS_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
 	pagehead: { prefixes: ["pagehead_"] },
 	sidepane: { prefixes: ["sidebar_"] },
@@ -1405,7 +1407,7 @@ const BND_SHELL_OWNS = {
  */
 function bnd_changed_fields(key, frm) {
 	if (!bnd_shipped) return [];
-	const spec = BND_SHELL_OWNS[key];
+	const spec = BND_SETTINGS_OWNS[key];
 	if (!spec) return [];
 	const owned = Object.keys(bnd_shipped).filter(
 		(f) =>
@@ -1441,7 +1443,7 @@ function bnd_changed_fields(key, frm) {
  * get the honest two-state, computed by the SAME function the dot uses. One
  * comparison, two renderings — never two comparisons that can disagree.
  */
-function bnd_shell_note(key, frm) {
+function bnd_settings_note(key, frm) {
 	if (!bnd_shipped) return "";
 	// THE THEME ENTRY OWNS NO FIELDS OF ITS OWN — it writes other entries'. So it
 	// is answered BEFORE the ownership guard below, which would otherwise send it
@@ -1455,7 +1457,7 @@ function bnd_shell_note(key, frm) {
 	// An entry that owns no fields has no state to report. The Overview READS
 	// settings; saying "Default" under it claims it has some, and would go on
 	// saying it while every component it shows had been changed.
-	if (!BND_SHELL_OWNS[key]) return "";
+	if (!BND_SETTINGS_OWNS[key]) return "";
 	// Translated HERE, not in the matcher: this is a display string, while the
 	// picker compares the same answer against untranslated card values.
 	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
@@ -1713,7 +1715,7 @@ function bnd_render_overview(frm, $pane) {
 		)
 	);
 	$pane.find(".bnd-dgm-mark").on("click", function () {
-		bnd_shell_select(frm, this.getAttribute("data-goto"));
+		bnd_settings_goto(frm, this.getAttribute("data-goto"));
 	});
 	// THE SAME SEAMS THE OWNING PICKERS USE. `bnd_container_changed` rebuilds
 	// the desk from all five containers and repaints every placement picker;
@@ -1933,159 +1935,39 @@ function bnd_render_translations(frm, $pane) {
 }
 
 /**
- * True unless the URL asks for the old stacked form.
+ * Scroll one settings card into view and put focus on its heading.
  *
- * THE DEFAULT FLIPPED once the shell was finished. It shipped behind `?shell=1`
- * while it was being built, on the reasoning that a half-finished navigation is
- * worse than a long form — right at the time, and wrong the moment it stopped
- * being half-finished. Left as it was, the work was invisible: the settings page
- * kept showing the ~70-field stack it was built to replace, and the only way to
- * see the new one was a query string nobody would guess.
- *
- * `?shell=0` still reaches the stacked form. It is the escape hatch for anyone
- * who needs a field the shell has not placed, and for comparing the two.
- *
- * Read from `location`, not from Frappe's route state: the router drops unknown
- * query args on some transitions, and the answer must not change under the user
- * mid-session.
+ * The shell's `select` switched panes; with every card in one scroll (item 43
+ * B1) a route to a control is a scroll. The entry's anchor FIELD names the
+ * card, exactly as the shell found it — walking up from a field's wrapper is
+ * what every control in this form already depends on.
  */
-function bnd_shell_wanted() {
-	try {
-		return new URLSearchParams(window.location.search).get("shell") !== "0";
-	} catch (e) {
-		// Cannot tell — show the stacked form, which needs nothing from us.
-		return false;
+function bnd_settings_goto(frm, key) {
+	const entry = BND_SETTINGS_GROUPS.flatMap((g) => g.items).find((i) => i.key === key);
+	const anchor = entry && (entry.anchors || [])[0];
+	const field = anchor && frm.get_field(anchor);
+	const $section = field && field.$wrapper ? field.$wrapper.closest(".form-section") : null;
+	const node = $section && $section.length ? $section[0] : null;
+	if (!node) return false;
+	node.scrollIntoView({ block: "start", behavior: "smooth" });
+	const head = node.querySelector(".section-head");
+	if (head) {
+		head.setAttribute("tabindex", "-1");
+		head.focus({ preventScroll: true });
 	}
+	return true;
 }
 
 /**
- * Build the shell once, move the owned sections into it, and select an entry.
- *
- * Idempotent: `refresh` fires on every save and route return, and rebuilding
- * would detach sections the pickers have already been drawn into.
+ * Repaint whatever shows the change marks. The shell painted its own rail;
+ * with the shell gone (item 43 B1) the marks live on the side pane's settings
+ * map, which bunood.js owns (B3) and which reads the same bnd_changed_fields.
+ * Until the map exists this is a no-op with a name, not a dangling call.
  */
-function bnd_shell_setup(frm) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	if (!bnd_shell_wanted()) {
-		// Hide the host section on the stacked form. The field renders nothing
-		// there, and Frappe cannot mark the section empty by itself — so it drew
-		// a "Desk" heading over a blank strip at the top of the default form,
-		// which is the same empty-heading defect the shell's own panes fixed.
-		field.$wrapper.closest(".form-section").hide();
-		return;
+function bnd_settings_marks(frm) {
+	if (window.bunood_theme && typeof window.bunood_theme.map_sync === "function") {
+		window.bunood_theme.map_sync(frm);
 	}
-	if (field.$wrapper.find(".bnd-shell").length) {
-		// Already built. The sections are where we put them; the selection and
-		// the change marks are the only state that can have gone stale — and the
-		// marks always have, because `refresh` fires straight after a save and a
-		// save is precisely when "changed" stops being true.
-		bnd_shell_select(frm, field.$wrapper.find(".bnd-shell").attr("data-current") || "sidepane");
-		bnd_shell_marks(frm);
-		return;
-	}
-
-	const $ = window.$;
-	let nav = "";
-	for (const g of BND_SHELL_GROUPS) {
-		nav += `<div class="bnd-shell-group">${bnd_esc(g.group())}</div>`;
-		for (const item of g.items) {
-			nav +=
-				`<button type="button" class="bnd-shell-item" role="tab" aria-selected="false" tabindex="-1" data-key="${bnd_esc(item.key)}">` +
-				`<span class="bnd-shell-label">${bnd_esc(item.label())}</span>` +
-				`<span class="bnd-shell-note" data-bnd-note="${bnd_esc(item.key)}"></span>` +
-				`<span class="bnd-shell-dot" data-bnd-dot="${bnd_esc(item.key)}" hidden></span>` +
-				`</button>`;
-		}
-	}
-
-	// The VIEWPORT wrapper exists for one reason: a `@container` rule cannot
-	// style the container it queries — only its descendants. `.bnd-shell` used
-	// to carry `container-type` itself, so its own narrow rule (collapse to one
-	// column) never applied while its CHILDREN's narrow rules did: the nav
-	// became a row of wrapped chips inside a still-210px grid column, 83px
-	// items packed two per ragged row. Measured 2026-08-09 on an 800px pane —
-	// the "breaks its format instead of reflowing" report. The wrapper queries;
-	// the shell responds.
-	const $shell = $(
-		`<div class="bnd-shell-viewport">` +
-			`<div class="bnd-shell" data-current="">` +
-			`<nav class="bnd-shell-nav" role="tablist">${nav}</nav>` +
-			`<div class="bnd-shell-detail"></div>` +
-			`</div>` +
-			`</div>`
-	);
-	field.$wrapper.empty().append($shell);
-
-	const $detail = $shell.find(".bnd-shell-detail");
-	// A section can only be in one pane. Two entries claiming the same one is not
-	// hypothetical — `density_default` and `palette_enabled` share
-	// `section_features`, so the second claim silently stole the first entry's
-	// content until this existed. First claim wins the whole section; a later one
-	// takes just its own field, which is the smaller, still-correct move.
-	const claimed = new Set();
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			const $pane = $(`<div class="bnd-shell-pane" data-key="${bnd_esc(item.key)}" hidden></div>`);
-			$detail.append($pane);
-			if (item.render) {
-				// Owns no fields, so there is nothing to relocate — it draws.
-				item.render(frm, $pane);
-				continue;
-			}
-			for (const anchor of item.anchors || []) {
-				const f = frm.get_field(anchor);
-				if (!f || !f.$wrapper) continue;
-				const $section = f.$wrapper.closest(".form-section");
-				const node = $section.length ? $section[0] : null;
-				// MOVE, not clone. jQuery append relocates an existing node, so
-				// there is never a second copy to keep in step.
-				if (node && !claimed.has(node)) {
-					claimed.add(node);
-					$pane.append($section);
-				} else {
-					$pane.append(f.$wrapper);
-				}
-			}
-		}
-	}
-
-	$shell.on("click", ".bnd-shell-item", function () {
-		bnd_shell_select(frm, this.getAttribute("data-key"));
-	});
-
-	// THE TABLIST KEYBOARD CONTRACT. The nav has carried role=tablist since
-	// the shell shipped, and a tablist promises arrow-key movement with a
-	// roving tabindex — one Tab stop for the whole rail, arrows to move
-	// within it. Without this the role was a lie the 34a audit called out:
-	// entries were plain buttons, aria-selected landed on nothing, and Tab
-	// walked all seventeen entries one by one.
-	$shell.on("keydown", ".bnd-shell-item", function (e) {
-		const HORIZ = ["ArrowLeft", "ArrowRight"];
-		const VERT = ["ArrowUp", "ArrowDown"];
-		if (!HORIZ.includes(e.key) && !VERT.includes(e.key) && e.key !== "Home" && e.key !== "End") return;
-		const items = $shell.find(".bnd-shell-item").toArray();
-		const at = items.indexOf(this);
-		if (at === -1) return;
-		e.preventDefault();
-		let next = at;
-		if (e.key === "Home") next = 0;
-		else if (e.key === "End") next = items.length - 1;
-		else {
-			const fwd = e.key === "ArrowDown" || e.key === "ArrowRight";
-			next = (at + (fwd ? 1 : -1) + items.length) % items.length;
-		}
-		bnd_shell_select(frm, items[next].getAttribute("data-key"));
-		items[next].focus();
-	});
-
-	bnd_shell_select(frm, BND_SHELL_GROUPS[0].items[0].key);
-
-	// The marks need the shipped defaults, which the server owns. Fetched once
-	// and then re-read from the module-level cache, so returning to the form
-	// costs nothing. A failure leaves `bnd_shipped` null and the marks simply do
-	// not appear — the shell is already fully usable without them.
-	bnd_load_shipped().then(() => bnd_shell_marks(frm));
 }
 
 /**
@@ -2189,75 +2071,6 @@ function bnd_apply_layout_preset(frm, name) {
 	});
 }
 
-/**
- * Paint the change dot and the note on every entry.
- *
- * Called after the fetch and after every save, because a save is exactly when
- * "changed" stops being true. It reads `frm.doc`, so it must run after Frappe
- * has refreshed the document, never against the values the user typed.
- */
-function bnd_shell_marks(frm) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	const $shell = field.$wrapper.find(".bnd-shell");
-	if (!$shell.length) return;
-
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			const changed = bnd_changed_fields(item.key, frm).length;
-			const dot = $shell.find(`[data-bnd-dot="${item.key}"]`)[0];
-			const note = $shell.find(`[data-bnd-note="${item.key}"]`)[0];
-			if (dot) {
-				if (changed) dot.removeAttribute("hidden");
-				else dot.setAttribute("hidden", "hidden");
-				// The dot is decoration; the count is the fact. Announce it once,
-				// on the control, rather than shipping a coloured circle that
-				// says nothing to anyone not looking at it.
-				// Label + value, never an interpolated plural: Frappe's translation
-				// layer is flat key->value with no plural support and Arabic has
-				// singular, dual and two plural forms, so "{0} settings differ"
-				// cannot be made correct for n=1,2,3-10,11+. See ROADMAP item 7(c).
-				dot.setAttribute("title", __("Differs from default") + ": " + changed);
-			}
-			if (note) note.textContent = bnd_shell_note(item.key, frm);
-		}
-	}
-}
-
-/** Show one pane, mark its entry selected. */
-function bnd_shell_select(frm, key) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	const $shell = field.$wrapper.find(".bnd-shell");
-	if (!$shell.length) return;
-
-	$shell.attr("data-current", key);
-	$shell.find(".bnd-shell-item").each(function () {
-		const on = this.getAttribute("data-key") === key;
-		this.classList.toggle("bnd-shell-on", on);
-		this.setAttribute("aria-selected", on ? "true" : "false");
-		// The roving half of the tablist contract: exactly one entry is a Tab
-		// stop, and it is the selected one. Arrows move within the rail.
-		this.setAttribute("tabindex", on ? "0" : "-1");
-	});
-	// A render-entry reads values the OTHER panes write, so it is stale the
-	// moment anything else was touched. Redrawn on selection rather than on
-	// every change: it is the cheapest place that is always early enough.
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			if (item.render && item.key === key) {
-				item.render(frm, $shell.find(`.bnd-shell-pane[data-key="${key}"]`));
-			}
-		}
-	}
-	$shell.find(".bnd-shell-pane").each(function () {
-		const on = this.getAttribute("data-key") === key;
-		// `hidden` rather than display, so a pane that is off is off for
-		// assistive technology too, not merely invisible.
-		if (on) this.removeAttribute("hidden");
-		else this.setAttribute("hidden", "hidden");
-	});
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Desk Layout picker (item 9) — unchanged behaviour.
@@ -2382,7 +2195,6 @@ const BND_LAYOUTS = [
  * Falls back to the field wrapper when no host is given, so every existing
  * caller keeps working unchanged.
  */
-const bnd_picker_hosts = {};
 
 /**
  * Hand every kit's values to the desk at once.
@@ -2420,14 +2232,11 @@ function bnd_picker_host(frm, fieldname, host) {
 	// would be the same fact in five places, which is the defect this rework
 	// exists to remove; the third caller to forget it would quietly send the
 	// picker back to its field wrapper mid-session.
-	if (host) bnd_picker_hosts[fieldname] = window.$(host);
-	const $remembered = bnd_picker_hosts[fieldname];
-	if ($remembered) {
-		// Still attached? A shell that was torn down must not capture the
-		// picker forever.
-		if ($remembered.length && document.body.contains($remembered[0])) return $remembered;
-		delete bnd_picker_hosts[fieldname];
-	}
+	// `host` is accepted and ignored (item 43 B1): with the shell gone every
+	// picker renders into its own field's wrapper, and that is what keeps a
+	// Select at its 273px — the shell's fallback `append(f.$wrapper)` once
+	// severed `.form-column > form > .input-max-width` and made one 636.
+	void host;
 	const field = frm.get_field(fieldname);
 	return field && field.$wrapper ? field.$wrapper : null;
 }
@@ -2788,7 +2597,9 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		const on = !!parseInt(frm.doc[t.field], 10);
 		add(t.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (t.name() + " " + t.field).toLowerCase() + '">' +
-			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
+			// role=switch + aria-checked, as P.toggle says it (item 43 B1: the first
+			// whole-page a11y scan found this hand-built one silent).
+			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" role="switch" aria-checked="' + (on ? "true" : "false") + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
 			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
 			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
 			"</button></div>"
@@ -3042,7 +2853,7 @@ function bnd_apply_theme_preset(frm, name) {
 	// Layout row (recomputed by bnd_shell_marks) told the truth, and the two rows
 	// of one form disagreed about one desk.
 	bnd_render_layout_picker(frm);
-	bnd_shell_marks(frm);
+	bnd_settings_marks(frm);
 }
 
 /**
@@ -3066,7 +2877,7 @@ function bnd_render_theme_picker(frm, host) {
 			// The shell's Theme note DERIVES from this catalogue, and two fetches
 			// race here. Painting again is the cheap half of the fix; the marks are
 			// idempotent, so the redundant repaint costs nothing.
-			bnd_shell_marks(frm);
+			bnd_settings_marks(frm);
 		}).catch(() => {
 			// The flag RESETS so the next render retries — item 35's review caught
 			// a first cut latching one transient failure into a dead card row for

@@ -181,8 +181,8 @@ page.on("console", (msg) => {
 	seenErrors.push({ at: current, text: text.slice(0, 300) });
 });
 
-await page.goto(`${URL_BASE}/desk/theme-settings?shell=1`, { waitUntil: "domcontentloaded", timeout: 60000 });
-await page.waitForSelector(".bnd-shell-item", { timeout: 30000 });
+await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.waitForSelector(".bnd-cbp", { timeout: 30000 });
 await page.waitForTimeout(2000);
 
 const settled = async () => {
@@ -198,17 +198,26 @@ const settled = async () => {
 	}
 };
 
+// Item 43 B1: the sections, in the doctype's order — every card is on the page
+// at once, so each pass scrolls its card into view and sweeps the controls
+// INSIDE it (the option scan is scoped below).
 const items = await page.evaluate(() =>
-	[...document.querySelectorAll(".bnd-shell-item")].map((n) => n.getAttribute("data-key"))
+	[...document.querySelectorAll(".form-layout .form-section[data-fieldname]")]
+		.filter((n) => n.getBoundingClientRect().height > 0)
+		.map((n) => n.getAttribute("data-fieldname"))
 );
-console.log(`shell items: ${items.join(", ")}`);
+console.log(`sections: ${items.join(", ")}`);
 
 for (const key of items) {
-	await page.click(`.bnd-shell-item[data-key="${key}"]`);
+	await page.evaluate((k) => {
+		const n = document.querySelector(`.form-layout .form-section[data-fieldname="${k}"]`);
+		if (n) n.scrollIntoView({ block: "start" });
+	}, key);
 	await page.waitForTimeout(600);
 
-	const opts = await page.evaluate(() => {
+	const opts = await page.evaluate((k) => {
 		const out = [];
+		const root = document.querySelector(`.form-layout .form-section[data-fieldname="${k}"]`) || document;
 		const vis = (n) => n.offsetParent !== null && !n.disabled && !n.hasAttribute("disabled");
 		const seen = new Set();
 		const push = (row, k) => {
@@ -216,7 +225,7 @@ for (const key of items) {
 			seen.add(k);
 			out.push(row);
 		};
-		for (const n of document.querySelectorAll(
+		for (const n of root.querySelectorAll(
 			".bnd-cbp-opt, .bnd-dgm-slot, .bnd-sbp-opt, .bnd-sbp-stop"
 		)) {
 			if (!vis(n)) continue;
