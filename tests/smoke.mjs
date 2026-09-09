@@ -13352,6 +13352,8 @@ print("ok")
 			setSettings({
 				form_style: "Floating Panels", form_sidebar: "Floating Pane", form_tabs: "Solid Pill",
 				form_grid_checkbox_reveal: 1, form_activity: "Drawer", form_header: "Hero Band", form_header_tone: "Brand-dark",
+				// The foot (A8c) homes the toggle before the band does; this is the band's check.
+				form_foot: "Off",
 			});
 			await goDesk(FORM_ROUTE, ".bnd-dochead", 4000);
 			const g = await page.evaluate(() => {

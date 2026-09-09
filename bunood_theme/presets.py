@@ -421,7 +421,9 @@ LIST_FIELDS = [
 #: The bolder option each time, consistent with the sidebar re-choice the day
 #: before. "Original" stays one click away for anyone who wants stock rows.
 LIST_DEFAULTS = {
-    "list_style": "Floating Cards",
+    # Item 43 A10, the user's pick (Bunood Console): zebra rows. Floating Cards
+    # stays in the catalogue and in every earlier preset.
+    "list_style": "Zebra Stripes",
     "list_hover": "Edge Rail",
     # One treatment for checked rows AND the bulk header: they are one state,
     # and splitting them is how a solid brand bar ends up over neutral rows.
@@ -467,7 +469,9 @@ FORM_DEFAULTS = {
     "form_tabs": "Solid Pill",
     # Styling only — the sidebar has no Off here. Hiding chrome is a
     # container concern; attachments and assignments must stay reachable.
-    "form_sidebar": "Floating Pane",
+    # Item 43 A5/A10, the user's pick: the inspector rail. Floating Pane stays
+    # in the catalogue and in every earlier preset.
+    "form_sidebar": "Inspector Rail",
     # Item 43 A6, the user's pick: the timeline in a drawer opened from the
     # page's actions. Original leaves it below the form; Beside is a column.
     "form_activity": "Drawer",
@@ -1427,7 +1431,7 @@ THEME_AXES = _theme_axes()
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~123 values. It also makes the one invariant free: ``Bunood Night`` overrides
+#: all ~123 values. It also makes the one invariant free: ``Bunood Console`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1437,17 +1441,51 @@ THEME_AXES = _theme_axes()
 #: value is drawn from that field's own ``options`` list, so nothing here is a value
 #: the doctype would refuse.
 THEME_PRESETS = {
-    "Bunood Night": {
+    # Item 43's pick, named by the user (2026-09-08): the desk of the "Console"
+    # look — full bleed, a brand-dark hero band with the record's facts and a
+    # stage path, stacked outlined fields, a ruled sheet for the lines, an
+    # inspector rail, the activity in a drawer, the primary action pinned
+    # above the edge, zebra lists, the brand on the primary button. Its
+    # values are EMPTY because it IS the shipped default: every default map
+    # above carries the pick, and _shipped_baseline() composes it.
+    "Bunood Console": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
         "values": {},
     },
+    "Bunood Night": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
+        "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "list_style": "Floating Cards", "form_sidebar": "Floating Pane", "desk_width": "Original",
+            "desk_scale": "Original", "desk_primary": "Black", "form_fields": "Original",
+            "form_grid": "Original", "form_activity": "Original", "form_header": "Original",
+            "form_header_tone": "Tinted", "form_stage": "Off", "form_foot": "Off",
+        },
+    },
     "Bunood Day": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Light",
-        "values": {},
+        "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "list_style": "Floating Cards", "form_sidebar": "Floating Pane", "desk_width": "Original",
+            "desk_scale": "Original", "desk_primary": "Black", "form_fields": "Original",
+            "form_grid": "Original", "form_activity": "Original", "form_header": "Original",
+            "form_header_tone": "Tinted", "form_stage": "Off", "form_foot": "Off",
+        },
     },
     "Focus": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Ink",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Fill on Active", "crumb_style": "Original",
             "list_style": "Hairline Rows", "list_hover": "Soft Wash",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
@@ -1462,6 +1500,13 @@ THEME_PRESETS = {
     "Canvas": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Eyebrow Title",
             "list_style": "Open Rows", "form_style": "Open Canvas",
             "workspace_style": "Open Board", "report_style": "Open Sheet",
@@ -1473,6 +1518,13 @@ THEME_PRESETS = {
     "Ledger": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Daylight",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Zebra Stripes", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ledger Rows",
             "report_grain": "Row Stripes", "views_style": "Soft Tiles",
@@ -1484,6 +1536,13 @@ THEME_PRESETS = {
     "Elevated": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Violet", "sidebar": "Aurora",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Floating Cards", "form_style": "Floating Panels",
             "workspace_style": "Soft Tiles", "views_style": "Soft Tiles",
             "overlay_style": "Soft", "empty_style": "Filled",
@@ -1494,6 +1553,13 @@ THEME_PRESETS = {
     "Carbon": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Teal", "sidebar": "Carbon",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "list_style": "Hairline Rows",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "views_style": "Hairline",
@@ -1505,6 +1571,13 @@ THEME_PRESETS = {
     "Records": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Hairline Rows", "form_style": "Paper Sheet",
             "workspace_style": "Headed Panel", "report_style": "Ledger Rows",
             "views_style": "Soft Tiles", "overlay_style": "Soft",
@@ -1516,6 +1589,13 @@ THEME_PRESETS = {
     "Studio": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Bunood Light",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Floating Cards", "form_style": "Floating Panels",
             "workspace_style": "Hairline Grid", "report_style": "Open Sheet",
             "views_style": "Floating Cards", "overlay_style": "Floating",
@@ -1526,6 +1606,13 @@ THEME_PRESETS = {
     "Contrast": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Carbon",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Crumb Pills",
             "list_style": "Floating Cards", "list_selection": "Bold Bar",
             "form_style": "Floating Panels", "workspace_style": "Headed Panel",
@@ -1540,6 +1627,13 @@ THEME_PRESETS = {
     "Workbench": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Workbench",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Original",
             "list_style": "Hairline Rows", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ruled Grid",
@@ -1561,6 +1655,12 @@ THEME_PRESETS = {
     "Quiet": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Ink",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "crumb_style": "Original", "palette_style": "Original",
             "inbox_style": "Original", "list_style": "Original",
             "form_style": "Original", "workspace_style": "Original",
@@ -1588,7 +1688,7 @@ THEME_PRESETS = {
 }
 
 #: The look a fresh install gets. It must be the one whose ``values`` are empty.
-DEFAULT_THEME_PRESET = "Bunood Night"
+DEFAULT_THEME_PRESET = "Bunood Console"
 
 
 def _shipped_baseline() -> dict:

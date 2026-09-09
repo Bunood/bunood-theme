@@ -5002,10 +5002,6 @@ msgstr "تباين"
 msgid "Theme Picker"
 msgstr "منتقي السمة"
 
-#. src: item37
-msgid "The shipped look. Floating cards on a hue-washed pane."
-msgstr "المظهر الافتراضي. بطاقات عائمة على لوحة مغسولة بالألوان."
-
 #. In theme_settings.js
 #. src: ai
 msgid "The same design in daylight — a floating card lifted off the page instead of attached solid."
@@ -6980,3 +6976,18 @@ msgstr "شريط مثبّت فوق الحافة السفلية يحمل الإج
 #, fuzzy
 msgid "Document actions"
 msgstr "إجراءات المستند"
+
+#. src: ai
+#, fuzzy
+msgid "Bunood Console"
+msgstr "بنود كونسول"
+
+#. src: ai
+#, fuzzy
+msgid "The shipped look: a hero band naming the record, the activity in a drawer, a ruled sheet for the lines, zebra lists."
+msgstr "المظهر الافتراضي: شريط رئيسي يسمّي السجل، والنشاط في دُرج، وورقة مسطّرة للبنود، وقوائم مخططة."
+
+#. src: ai
+#, fuzzy
+msgid "The desk before the body was rebuilt: floating cards on a hue-washed pane."
+msgstr "المكتب قبل إعادة بناء المتن: بطاقات عائمة على لوحة مغسولة بلون العلامة."

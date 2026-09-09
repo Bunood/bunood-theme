@@ -1298,7 +1298,7 @@
    "label": "List Picker"
   },
   {
-   "default": "Floating Cards",
+   "default": "Zebra Stripes",
    "description": "Set by the picker above. How rows draw their boundaries.",
    "fieldname": "list_style",
    "fieldtype": "Select",
@@ -1416,7 +1416,7 @@
    "options": "Brand Underline\nSegment Pills\nSolid Pill"
   },
   {
-   "default": "Floating Pane",
+   "default": "Inspector Rail",
    "description": "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all.",
    "fieldname": "form_sidebar",
    "fieldtype": "Select",
@@ -1750,7 +1750,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 17:22:29.000000",
+ "modified": "2026-09-08 17:41:43.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

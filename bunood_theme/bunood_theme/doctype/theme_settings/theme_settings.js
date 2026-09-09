@@ -2932,7 +2932,8 @@ function bnd_sb_set(frm, fieldname, value) {
 
 /** Card art + copy per shipped look. No VALUES — those are the server's. */
 const BND_THEME_ART = {
-	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The shipped look. Floating cards on a hue-washed pane.") },
+	"Bunood Console": { name: () => __("Bunood Console"), pane: "dark", card: "float", rows: "zebra", blurb: () => __("The shipped look: a hero band naming the record, the activity in a drawer, a ruled sheet for the lines, zebra lists.") },
+	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The desk before the body was rebuilt: floating cards on a hue-washed pane.") },
 	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
@@ -4126,7 +4127,7 @@ const BND_LIST_FIELDS = ["list_style", "list_hover", "list_selection", "list_che
 
 /** Client mirror of presets.LIST_DEFAULTS — keep in sync. */
 const BND_LIST_DEFAULTS = {
-	list_style: "Floating Cards",
+	list_style: "Zebra Stripes",
 	list_hover: "Edge Rail",
 	list_selection: "Bold Bar",
 	list_checkbox_reveal: 1,
@@ -4367,7 +4368,7 @@ const BND_FORM_DEFAULTS = {
 	form_fields: "Stacked Outlined",
 	form_grid: "Ruled Sheet",
 	form_tabs: "Solid Pill",
-	form_sidebar: "Floating Pane",
+	form_sidebar: "Inspector Rail",
 	form_activity: "Drawer",
 	form_header: "Hero Band",
 	form_header_tone: "Brand-dark",

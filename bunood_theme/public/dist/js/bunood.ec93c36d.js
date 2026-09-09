@@ -1719,8 +1719,13 @@
 		const doc = frm.doc || {};
 		const is_new = !!(frm.is_new && frm.is_new());
 		const title_field = frm.meta.title_field;
+		// A Single's docname IS its doctype name, untranslated — the settings
+		// form is the case that showed it — so a Single is named by its label.
+		const is_single = !!(frm.meta.issingle || frm.docname === frm.doctype);
 		const title = is_new
 			? __("New") + " " + __(frm.doctype)
+			: is_single
+			? __(frm.doctype)
 			: String((title_field && doc[title_field]) || frm.docname || "");
 		// The action slot outlives the rebuild: detached with its children,
 		// re-appended below.
@@ -1743,8 +1748,8 @@
 		}
 		head.appendChild(h);
 		const meta = el("p", "bnd-dochead-meta");
-		const bits = [__(frm.doctype)];
-		if (!is_new && title !== frm.docname) bits.push(frm.docname);
+		const bits = is_single ? [] : [__(frm.doctype)];
+		if (!is_new && !is_single && title !== frm.docname) bits.push(frm.docname);
 		// prettyDate, not comment_when: the latter returns a <span> with a tooltip,
 		// and the meta line is text (the screenshot showed the markup verbatim).
 		if (!is_new && doc.modified && frappe.datetime && frappe.datetime.prettyDate) {
