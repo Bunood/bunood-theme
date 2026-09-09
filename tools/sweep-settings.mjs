@@ -181,8 +181,15 @@ page.on("console", (msg) => {
 	seenErrors.push({ at: current, text: text.slice(0, 300) });
 });
 
-await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 60000 });
-await page.waitForSelector(".bnd-cbp", { timeout: 30000 });
+// THE COMPOSER PASS (item 43 C5): `BND_SWEEP_COMPOSE=1` sweeps the composer's
+// rail instead of the cards — the same click path, the same save-and-read-back,
+// over `/desk/theme-settings?compose&compare=0` (no frames), with `.bnd-cmp` as
+// the one "section". The rail's chips carry the same data-field/data-value as
+// the cards', and the click phase picks the VISIBLE one, which is the rail's
+// while the cards stand down.
+const COMPOSE = process.env.BND_SWEEP_COMPOSE === "1";
+await page.goto(`${URL_BASE}/desk/theme-settings${COMPOSE ? "?compose&compare=0" : ""}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.waitForSelector(COMPOSE ? ".bnd-cmp .bnd-cbp-opt" : ".bnd-cbp", { timeout: 30000 });
 await page.waitForTimeout(2000);
 
 const settled = async () => {
@@ -201,18 +208,22 @@ const settled = async () => {
 // Item 43 B1: the sections, in the doctype's order — every card is on the page
 // at once, so each pass scrolls its card into view and sweeps the controls
 // INSIDE it (the option scan is scoped below).
-const items = await page.evaluate(() =>
-	[...document.querySelectorAll(".form-layout .form-section[data-fieldname]")]
-		.filter((n) => n.getBoundingClientRect().height > 0)
-		.map((n) => n.getAttribute("data-fieldname"))
-);
+const items = COMPOSE
+	? ["composer"]
+	: await page.evaluate(() =>
+			[...document.querySelectorAll(".form-layout .form-section[data-fieldname]")]
+				.filter((n) => n.getBoundingClientRect().height > 0)
+				.map((n) => n.getAttribute("data-fieldname"))
+	  );
 console.log(`sections: ${items.join(", ")}`);
+/** The section's own selector — or the composer's rail, the one non-section root. */
+const rootSel = (k) => (k === "composer" ? ".bnd-cmp" : `.form-layout .form-section[data-fieldname="${k}"]`);
 
 for (const key of items) {
-	await page.evaluate((k) => {
-		const n = document.querySelector(`.form-layout .form-section[data-fieldname="${k}"]`);
+	await page.evaluate((s) => {
+		const n = document.querySelector(s);
 		if (n) n.scrollIntoView({ block: "start" });
-	}, key);
+	}, rootSel(key));
 	await page.waitForTimeout(600);
 
 	const opts = await page.evaluate((k) => {
@@ -223,7 +234,7 @@ for (const key of items) {
 		// live desk cycling through every look instead of minutes (2026-09-09).
 		// A missing section throws rather than falling back to the document:
 		// the fallback is exactly what hid that.
-		const root = document.querySelector(`.form-layout .form-section[data-fieldname="${k}"]`);
+		const root = document.querySelector(k === "composer" ? ".bnd-cmp" : `.form-layout .form-section[data-fieldname="${k}"]`);
 		if (!root) throw new Error(`sweep: section ${k} is not on the page`);
 		const vis = (n) => n.offsetParent !== null && !n.disabled && !n.hasAttribute("disabled");
 		const seen = new Set();

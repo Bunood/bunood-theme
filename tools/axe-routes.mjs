@@ -85,6 +85,10 @@ export const ROUTES = [
 	["/desk/item/BND-TEST-001", ".form-tabs-list"],
 	// Item 43 B1: one scroll of section cards; the readiness selector is a picker.
 	["/desk/theme-settings", ".bnd-cbp"],
+	// Item 43 C5: the composer mode, frame-free (compare=0) — the rail, the head,
+	// the switch and the page chips. The frames' own titles are asserted by the
+	// strip check; a scan INTO nine desks would bank nine desks' counts here.
+	["/desk/theme-settings?compose&compare=0", ".bnd-cmp .bnd-cbp-opt"],
 	// Item 25: the two surfaces the workspace + chart kits land on.
 	["/desk/selling", ".ce-block .widget"],
 	["/desk/dashboard-view/Selling", ".widget-group-body"],

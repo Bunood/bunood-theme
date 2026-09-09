@@ -19,6 +19,9 @@
 		"link-name": 1,
 		"select-name": 5
 	},
+	"/desk/theme-settings?compose&compare=0": {
+		"link-name": 1
+	},
 	"/desk/selling": {
 		"aria-allowed-attr": 3,
 		"button-name": 6,

@@ -9711,9 +9711,14 @@ print("ok")
 						values: cells.map((c) => c.getAttribute("data-value")),
 						on: cells.filter((c) => c.classList.contains("bnd-cmp-cell-on")).map((c) => c.getAttribute("data-value")),
 						doc: cur_frm.doc.desk_scale,
+						// Every frame names itself for a screen reader (axe's frame-title;
+						// the composer's routes are scanned frame-free, so this is where
+						// the frames' own rule is asserted — item 43 C5).
+						untitled: [...document.querySelectorAll(".bnd-cmp iframe")].filter((f) => !(f.getAttribute("title") || "").trim()).length,
 					};
 				});
 				expectEq(g.touch, "desk_scale", "the touched decision is marked");
+				expectEq(g.untitled, 0, "every composer frame carries a title");
 				expectEq(new Set(g.scales).size, g.values.length, `every cell carries its OWN scale (${g.scales.join(",")})`);
 				expectEq(new Set(g.forms).size, 1, `and the same form style (${g.forms.join(",")})`);
 				expectEq(g.on.join(","), g.doc, "the current value's cell is marked");

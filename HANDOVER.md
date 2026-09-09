@@ -2386,7 +2386,13 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
   `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram
   (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`, `bnd_region_blocker`), the
-  Overview (`bnd_render_overview`), the Compose card (`bnd_render_compose_picker`).
+  Overview (`bnd_render_overview`), the Compose card (`bnd_render_compose_picker`), and
+  the composer (item 43 C1–C4): the mode (`bnd_compose_wanted`, latched per document),
+  the rail (`BND_COMPOSER_ZONES` × `bnd_composer_catalogue()`, `bnd_composer_sync` on the
+  dirty tick), the stage (`bnd_composer_build_stage`, `bnd_composer_push_frame` — the seam
+  that hands a frame's engine the form's values), the strip (`BND_COMPOSER_FOCUS`,
+  `bnd_composer_touch`, cells loaded in turn) and the server's page list
+  (`api.composer_pages`).
 
 ### Design rules that are load-bearing
 
@@ -2401,6 +2407,16 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   only — a band heads once, asserted. It replaced the shell, which relocated the sections
   into a pane of its own so "only one surface exists" was a property of the construction;
   the map keeps that property by moving nothing.
+- **The composer is a MODE of the settings form, and its frames are told, never
+  asked.** `?compose` is read once per document (a full navigation in and out — a
+  route change drops the query and a cached page must not flip); every rail click
+  goes through the kit's own setter so the cards, the desk and the rail cannot
+  disagree; highlights are derived from `frm.doc` on the dirty tick, never
+  remembered; and a stage or strip frame is handed the form's values through its
+  OWN `bunood_theme` (`bnd_all_previews(frm, engine)` + the shape, language, phone
+  bar and site density), because every kit apply is attribute-only and
+  module-scoped per document. Colour is the one thing a frame cannot be told: it
+  reloads onto the brand sheet a landed save wrote (`bnd:saved`).
 - **Bands live inside the picker output**, not at the form-section layer: 59 of
   92 fields are `hidden: 1` and every component section holds exactly one visible
   field — its picker. A heading appears only where a picker has more than one
