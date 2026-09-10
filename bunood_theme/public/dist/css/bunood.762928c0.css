@@ -2650,17 +2650,12 @@ html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle 
   inset-inline-end: -8px;
 }
 html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle::after {
-  inset-inline-start: 0;
-  inset-inline-end: auto;
-  transform: translateX(-50%);
+  content: none;
+  display: none;
 }
 html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: -2px;
-}
-
-html[dir=rtl][data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle::after {
-  transform: translateX(50%);
 }
 
 html[data-theme] .bnd-sb-wchip {

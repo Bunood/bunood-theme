@@ -3951,6 +3951,10 @@ async function main() {
 				pagehead: document.querySelectorAll(".page-head .bnd-pagehead-sidebar-toggle").length,
 				topbarVisible: [...document.querySelectorAll(".bnd-topbar .bnd-sidebar-toggle")].filter(node => getComputedStyle(node).display !== "none").length,
 				attached: document.querySelectorAll(".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin").length,
+				legacyEdgeGlyph: [...document.querySelectorAll(".body-sidebar .sidebar-resize-handle")].filter((node) => {
+					const pseudo = getComputedStyle(node, "::after");
+					return pseudo.display !== "none" && !["none", "normal", '""'].includes(pseudo.content);
+				}).length,
 				nativeVisible: [...document.querySelectorAll(".body-sidebar .collapse-sidebar-link, .body-sidebar .sidebar-resize-handle")].filter((node) => {
 					const rect = node.getBoundingClientRect();
 					const cs = getComputedStyle(node);
@@ -3960,6 +3964,7 @@ async function main() {
 			expectEq(controls.pagehead, 1, `one page-head sidebar toggle (${JSON.stringify(controls)})`);
 			expectEq(controls.topbarVisible, 0, `no duplicate top-bar toggle (${JSON.stringify(controls)})`);
 			expectEq(controls.attached, 0, `no controls are attached to the sidebar (${JSON.stringify(controls)})`);
+			expectEq(controls.legacyEdgeGlyph, 0, `the resize edge carries no legacy collapse icon (${JSON.stringify(controls)})`);
 			expectEq(controls.nativeVisible, 0, `native competing controls are hidden (${JSON.stringify(controls)})`);
 			const collapsed = await page.locator('.page-head .bnd-pagehead-sidebar-toggle').evaluate(button => {
 				const buttonRect = button.getBoundingClientRect();
