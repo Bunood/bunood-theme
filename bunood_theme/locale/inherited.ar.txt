@@ -8,43 +8,127 @@
 # Regenerate with: npm run i18n:inherited      (read from bunood-backend-1, lang=ar)
 # False friends are rejected in the script's REJECT map, with a reason each.
 #
-# 40 inherited, from frappe + erpnext + telephony.
+# 122 inherited, from frappe + erpnext + telephony + hrms + payments + crm + helpdesk + ksa_compliance + bunood_real_estate.
 
+API Keys	frappe: مفاتيح واجهة برمجة التطبيقات
 Accepted	frappe: مقبول
-Alert	frappe: إنذار
+Accounts Receivable	erpnext: الحسابات المدينة
+Actions	frappe: الإجراءات
+Activity	frappe: نشاط
+All	frappe: الكل
 App	frappe: تطبيق
 Auto	frappe: تلقائى
 Batch Size	erpnext: حجم الدفعة
+Black	erpnext: أسود
+Brand	frappe: العلامة التجارية
 Breadcrumbs	frappe: مسار التصفح
+Button	frappe: زر
 Calendar Event	erpnext: حدث التقويم
+Cancelled	frappe: ألغيت
+Card	frappe: بطاقة
+Cards	frappe: بطاقات
 Charts	frappe: الرسوم البيانية
+Code	frappe: رمز
+Company	erpnext: شركة
+Company Name	frappe: اسم الشركة
+Completed	frappe: أكتمل
 Custom	frappe: مخصص
+Customer	erpnext: العميل
+Dashboard	frappe: لوحة القيادة
+Default	frappe: الافتراضي
+Desktop	frappe: سطح المكتب
 Document	frappe: وثيقة
+Documents	frappe: وثائق
+Done	frappe: مُنجز
+Draft	frappe: مشروع
+Email	frappe: البريد الإلكتروني
+Email Header	frappe: رأس البريد الإلكتروني
+End	frappe: النهاية
+Error	frappe: خطأ
+Errors	frappe: أخطاء
 Export	frappe: تصدير
+Failed	frappe: باءت بالفشل
+Fields	frappe: الحقول
+Filters	frappe: فلاتر
+Finished At	frappe: انتهى في
+Form	frappe: استمارة
 Generated	erpnext: تم إنشاؤه
+Getting Started	frappe: البدء
+Header	frappe: العنوان الرأسي
+Hidden	frappe: مخفي
+Hide	frappe: إخفاء
+Home	frappe: الصفحة الرئيسية
+Icon Style	frappe: نمط الأيقونة
+Import	frappe: استيراد
 Inbox	frappe: صندوق الوارد
+Inverse	frappe: معكوس
+Invoice	erpnext: فاتورة
 Keyboard Shortcuts	frappe: اختصارات لوحة المفاتيح
 Language	frappe: اللغة
+Large	erpnext: كبير
 List	frappe: قائمة
+Loading	frappe: تحميل
 Loading...	frappe: تحميل ...
 Logo	erpnext: شعار
 Manual	erpnext: يدوي
+Medium	frappe: متوسط
 Menu	frappe: الخيارات
 Missing	erpnext: مفتقد
+Name	frappe: اسم
+New	frappe: جديد
 None	frappe: لا شيء
+Notification	frappe: إعلام
 Notifications	frappe: إخطارات
 Off	frappe: إيقاف
+Open	frappe: فتح
+Overview	frappe: نظرة عامّة
 Page	frappe: الصفحة
+Pending	frappe: معلق
+Preview	frappe: معاينة
+Primary	frappe: أساسي
+Print	frappe: طباعة
+Profile	frappe: حساب تعريفي
 Provider	frappe: المزود
+Refresh	frappe: تحديث
+Rejected	frappe: مرفوض
 Reload	frappe: تحديث
+Report	frappe: تقرير
+Reports	frappe: تقارير
+Reset to default	frappe: إعادة الضبط إلى الوضع الافتراضي
 Reset to defaults	frappe: إعادة تعيين إلى الإعدادات الافتراضية
+Rule	frappe: قاعدة
+Sales Invoice	erpnext: فاتورة مبيعات
+Save	frappe: حفظ
+Scan	frappe: مسح
+Scheduler	frappe: جدولة
+Search	frappe: البحث
+Search or type a command	frappe: ابحث أو اكتب أمرًا
+Selling	erpnext: المبيعات
+Selling Settings	erpnext: إعدادات البيع
 Separator	frappe: فاصل
 Session Defaults	frappe: الجلسة الافتراضية
+Settings	frappe: إعدادات
 Share	frappe: مشاركة
 Shared	frappe: مشتركة
 Sidebar	frappe: الشريط الجانبي
+Small	erpnext: صغير
 Source Text	frappe: النص المصدر
+Start	frappe: بداية
+Started At	frappe: بدأ في
+Status	frappe: الحالة
 Style	frappe: النمط
+Submitted	frappe: مسجلة
 System	frappe: نظام
+System Manager	frappe: مدير النظام
+Toggle Full Width	frappe: تفعيل/إلغاء العرض الكامل
+Totals	frappe: المجاميع
 Tree	frappe: شجرة
 Unread	frappe: غير مقروء
+User Menu	frappe: قائمة المستخدم
+Website	frappe: الموقع
+Website Theme	frappe: شكل الموقع
+Weight	frappe: وزن
+Width	frappe: عرض
+Workspace	frappe: مساحة العمل
+Workspaces	frappe: مساحات العمل
+You	crm: أنت

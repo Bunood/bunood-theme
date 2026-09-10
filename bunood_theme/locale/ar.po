@@ -7391,3 +7391,18 @@ msgstr "ما كتبته السمة لهذا الموقع: عنوان ورقة أ
 #, fuzzy
 msgid "Settings"
 msgstr "الإعدادات"
+
+#. In bunood.js — the phone bar's notification type. Inherited from frappe until
+#. 16.33, whose ar.po carries "Alert" only under a msgctxt, which a bare __()
+#. cannot reach — so the row is ours again (2026-09-10).
+#. src: ai
+#, fuzzy
+msgid "Alert"
+msgstr "تنبيه"
+
+#. In theme_settings.js — a compare cell's button, named for its value so five
+#. of them are five to a reader (item 43 review)
+#. src: ai
+#, fuzzy
+msgid "Use this: {0}"
+msgstr "استخدم هذا: {0}"

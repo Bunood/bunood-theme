@@ -56,6 +56,25 @@ const REJECT = new Map([
 	["Display", "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it"],
 	["Translations", "frappe ترجمة is singular; our nav section is plural — الترجمات"],
 	["Queued", "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار"],
+	// The 2026-09-10 regeneration read nine apps instead of three and proposed
+	// 99 more; these are the ones whose upstream sense is wrong for ours.
+	["Automatic", "frappe معادلة is a formula; ours is the colour mode that follows the OS — تلقائي"],
+	["Both", "erpnext على حد سواء is 'alike'; ours is both halves of a title / both gridlines — كلاهما"],
+	["Clear", "frappe واضح is 'obvious'; ours is the action that clears a field — مسح"],
+	["Light", "frappe ضوء is a lamp's light (noun); the colour mode is فاتح"],
+	["Dark", "frappe مظلم is 'gloomy'; kept with Light so the colour-mode pair agrees — داكن"],
+	["Link", "frappe حلقة الوصل is a liaison; a hyperlink is رابط"],
+	["List View", "frappe عرض منسدل is a DROPDOWN view; the list view is عرض القائمة"],
+	["Original", "frappe إبداعي is 'creative'; our stand-down pole is the stock look — الأصلي"],
+	["Records", "erpnext تسجيل is 'recording' (singular verbal noun); ours is the plural noun — سجلات"],
+	["Saved Filters", "frappe حفظ الفلاتر is the imperative 'save the filters'; ours is a heading — المحفوظة"],
+	["Show", "frappe تبين is 'it turns out'; the pair with Hide (إخفاء) is إظهار"],
+	["Solid", "frappe صلب is 'rigid'; the pane material is opaque — معتم"],
+	["Split", "erpnext انشق، مزق is 'tore apart'; the two-pane login layout is مُقسَّم"],
+	["Subtle", "frappe دقيق is 'precise'; a subtle wash is faint — خفيفة"],
+	["Theme", "frappe موضوع is a topic; a visual theme is السمة (the ar.po note already says so)"],
+	["Letter", "frappe رسالة is a message; the email style shaped like a formal letter is خطاب"],
+	["Ledger", "erpnext دفتر الأستاذ is the general-ledger account book; the Ledger look is a ruled page — دفتر"],
 ]);
 
 /**

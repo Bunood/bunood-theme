@@ -165,8 +165,24 @@ function emitCsv() {
 		process.exit(1);
 	}
 	const po = parsePo(readFileSync(PO, "utf8"));
+	// THE INHERITED SET IS APPLIED HERE, AT EMIT TIME, not by deleting PO entries.
+	// The PO keeps every authored decision; `inherited.ar.txt` is regenerated
+	// from whatever the running stack translates, and a string upstream stops
+	// translating must ship our row again without anyone re-authoring it. Only
+	// `build` skipped inherited msgids before this (2026-09-10), so the first
+	// regeneration that grew the set turned 82 authored rows into the redundant
+	// overrides the coverage gate refuses.
+	const inherited = readInherited(join(APP, "locale", "inherited.ar.txt"));
+	let skippedInherited = 0;
 	const rows = [...po.entries()]
 		.filter(([, str]) => str) // an empty msgstr is a decision to fall back, not a row
+		.filter(([key]) => {
+			// A contextual row (`msgid<U+0004>ctx`) is keyed `source:context` at
+			// runtime and upstream's bare row can never answer it — keep it.
+			if (key.includes(String.fromCharCode(4)) || !inherited.has(key)) return true;
+			skippedInherited++;
+			return false;
+		})
 		.sort(([a], [b]) => (a < b ? -1 : 1))
 		// Frappe's reader: col0 source, col1 translation, col2 context. Its loader
 		// keys a row with a context as `source:context`, which is what a
@@ -179,6 +195,7 @@ function emitCsv() {
 	mkdirSync(dirname(CSV), { recursive: true });
 	writeFileSync(CSV, rows.join("\n") + "\n", "utf8");
 	console.log(`  wrote translations/ar.csv: ${rows.length} rows (GENERATED — edit the PO, then re-emit)`);
+	if (skippedInherited) console.log(`  skipped ${skippedInherited} inherited msgid(s) — upstream answers those`);
 }
 
 const mode = process.argv[2];
