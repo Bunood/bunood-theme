@@ -716,6 +716,15 @@ There is STILL no v0.33.0
   speculatively, proposed `Split` → `انشق، مزق` ("torn, ripped") for a login LAYOUT POLE
   and `Theme` → `موضوع` ("topic", not a visual theme). That ledger is curated against
   false friends; regenerating it wholesale is not the no-op its name suggests.
+  **Regenerated deliberately 2026-09-10 (item 43's release):** the stack had grown from
+  three apps to nine since the last run, and 82 of our authored rows were silently
+  overriding upstream desk-wide. 149 collisions, 27 rejected in the tool's `REJECT` map
+  with a reason each (17 new: Light, Dark, Theme, Split, Original, Records, Show, Solid…),
+  122 inherited. Two facts that took the day: **the inherited set is applied at EMIT
+  time** (`i18n_po.mjs emit` drops those msgids; the PO keeps every authored decision, so
+  a string upstream stops translating ships again by itself), and **frappe 16.33 carries
+  `Alert` only under a msgctxt**, which a bare `__("Alert")` cannot reach — our row is
+  back. The 17 new rejections were argued by the assistant; they await the user's eye.
 - **A `perl -0pi` WITH `\x{...}` RE-ENCODED A WHOLE FILE.** `theme_settings.js` came back
   with 2,578 mojibake sequences — every em-dash and ellipsis — and **`node --check` passed
   on it**, because it was still valid JavaScript. A parse check does not detect encoding
@@ -2391,7 +2400,12 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   the rail (`BND_COMPOSER_ZONES` × `bnd_composer_catalogue()`, `bnd_composer_sync` on the
   dirty tick), the stage (`bnd_composer_build_stage`, `bnd_composer_push_frame` — the seam
   that hands a frame's engine the form's values), the strip (`BND_COMPOSER_FOCUS`,
-  `bnd_composer_touch`, cells loaded in turn) and the server's page list
+  `bnd_composer_touch`, cells loaded in turn) and the server's page list.
+  **A frame never boots inside a hidden page** (`bnd_composer_shown`): Frappe caches the
+  outgoing page `display:none`, a frame that navigates there is 0px wide, `frappe.is_mobile()`
+  reads that as a phone and writes `sidebar-expanded=false` into the storage the frames SHARE
+  with the desk — every later fresh load then boots with a collapsed pane. Navigation and the
+  cell queue refuse while hidden; Frappe's own `show` sends both back
   (`api.composer_pages`).
 
 ### Design rules that are load-bearing

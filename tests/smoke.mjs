@@ -1045,7 +1045,16 @@ async function withPersonal(user, values, fn) {
 					: `frappe.defaults.clear_default(${JSON.stringify(k)}, parent=U)\n`
 			)
 			.join("") +
-		`frappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\nfrappe.db.commit()\n`;
+		// COMMIT, THEN CLEAR — the same order `setSettings` learned the hard way.
+		// This helper cleared first, and the composer's stage check (item 43 C3)
+		// is the first caller whose desk keeps REQUESTING during the restore: its
+		// frames are live desks. One of them repopulated the user's cache from
+		// the still-committed Canvas look in the gap, the commit landed behind a
+		// cache nobody cleared again, and every fresh load for the next sixty
+		// checks booted on a look no test had set — the map's rows in a rail
+		// menu, a pane head with no name, seven pane links with no text — until
+		// the personal checks at the end cleared it (full run 2026-09-09).
+		`frappe.db.commit()\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`;
 
 	const before = JSON.parse(
 		benchPy(
@@ -1355,10 +1364,6 @@ const MUTABLE_FIELDS = [
 	// in BRAND_INPUTS so the `finally` restore regenerates the sheet with it.
 	"ground_color",
 	"desk_order", "list_style", "list_hover", "list_selection", "list_checkbox_reveal",
-	// Placements the suite writes (the topbar, pane-state and layout checks set
-	// them) and, until item 43 A9, never restored: every run left both on
-	// "Top Bar End" against a shipped "Side Pane End".
-	"inbox_placement", "user_placement",
 	// Form view kit (item 18).
 	"form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal",
 	// The body kit (item 43 A1): width, type scale, primary button.
@@ -8183,6 +8188,12 @@ print("ok")
 				desk_layout: "Top Taskbar",
 				topbar_enabled: 1, bottombar_enabled: 1, sidebar_enabled: 1,
 				pagehead_enabled: 0, dock_enabled: 0,
+				// Top Taskbar writes the pane Hidden (LAYOUT_PANE), and a hidden
+				// pane lends its tenants to the page head — both pane zones then
+				// measure the SAME pixel (y 68, the head's centre). The pane zones'
+				// claim presumes a visible pane; the fourth check found passing on
+				// the pre-bb4f412 guard defect, which opened it on every load.
+				sidebar_pane_state: "Open",
 			};
 			const at = (part) =>
 				page.evaluate((p) => {
@@ -9715,10 +9726,25 @@ print("ok")
 						// the composer's routes are scanned frame-free, so this is where
 						// the frames' own rule is asserted — item 43 C5).
 						untitled: [...document.querySelectorAll(".bnd-cmp iframe")].filter((f) => !(f.getAttribute("title") || "").trim()).length,
+						// The review's reader pass (item 43): a cell is a picture, not a
+						// desk to tab into — its clip is inert and its frame out of the
+						// tab order; the stage frame stays reachable but is skipped by
+						// Tab; the name and the control come BEFORE the picture; five
+						// "Use this" buttons name their five values; the stage frame
+						// names its page.
+						inert: cells.filter((c) => c.querySelector(".bnd-cmp-cellclip").hasAttribute("inert") && c.querySelector(".bnd-cmp-cellframe").getAttribute("tabindex") === "-1").length,
+						barFirst: cells.filter((c) => c.firstElementChild.classList.contains("bnd-cmp-cellbar")).length,
+						useNames: cells.map((c) => c.querySelector(".bnd-cmp-use").getAttribute("aria-label") || ""),
+						names: cells.map((c) => c.querySelector(".bnd-cmp-cellname").textContent),
+						stage: [document.querySelector(".bnd-cmp-frame").getAttribute("tabindex"), document.querySelector(".bnd-cmp-frame").getAttribute("title")],
 					};
 				});
 				expectEq(g.touch, "desk_scale", "the touched decision is marked");
 				expectEq(g.untitled, 0, "every composer frame carries a title");
+				expectEq(g.inert, g.values.length, `every cell's clip is inert and its frame off the tab order (${g.inert}/${g.values.length})`);
+				expectEq(g.barFirst, g.values.length, "the name and the control precede the picture in every cell");
+				expect(g.useNames.every((n, i) => n && n.includes(g.names[i])) && new Set(g.useNames).size === g.useNames.length, `every Use this names its value (${g.useNames.join(" | ")})`);
+				expect(g.stage[0] === "-1" && /Selling Settings/.test(g.stage[1] || ""), `the stage frame is skipped by Tab and named for its page (${g.stage.join(" · ")})`);
 				expectEq(new Set(g.scales).size, g.values.length, `every cell carries its OWN scale (${g.scales.join(",")})`);
 				expectEq(new Set(g.forms).size, 1, `and the same form style (${g.forms.join(",")})`);
 				expectEq(g.on.join(","), g.doc, "the current value's cell is marked");
@@ -9752,10 +9778,16 @@ print("ok")
 			const before = getSettings(["desk_scale"]);
 			try {
 				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				const flagBefore = await page.evaluate(() => localStorage.getItem("sidebar-expanded"));
 				await page.waitForFunction(() => { const f = document.querySelector(".bnd-cmp-frame"); return f && f.getAttribute("data-bnd-route"); }, undefined, { timeout: 45000 });
 				const other = await page.evaluate(() => { const cur = cur_frm.doc.desk_scale; return [...document.querySelectorAll('.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"]:not([disabled])')].map((b) => b.getAttribute("data-value")).find((v) => v !== cur); });
 				await page.click(`.bnd-cmp .bnd-cbp-opt[data-field="desk_scale"][data-value="${other}"]`);
-				await page.waitForFunction(() => document.querySelectorAll(".bnd-cmp-cell:not([hidden]) .bnd-cmp-cellframe[data-bnd-route]").length >= 1, undefined, { timeout: 90000 });
+				// Leave AT ONCE, before the autosave's 400ms debounce: the save then
+				// lands on a hidden page, which is the case the guard below exists
+				// for. Waiting for a cell to load first made it a race — a busy
+				// machine lost it (the full run of 2026-09-09) and a single run
+				// never did, so the check passed on the defect until it was forced.
+				await page.waitForSelector(".bnd-cmp-cell:not([hidden])", { timeout: 20000 });
 				// The theme's own way home (the brand tile's): an in-app route, so the
 				// form page is CACHED hidden with its frames — a path under another
 				// desk prefix would be a full load, and a fresh document has no
@@ -9765,6 +9797,19 @@ print("ok")
 				await page.waitForTimeout(1500);
 				const parked = await page.evaluate(() => [...document.querySelectorAll(".bnd-cmp iframe")].map((f) => [f.getAttribute("data-bnd-route") || "", (f.contentWindow && f.contentWindow.location.href) || ""]));
 				expect(parked.length >= 2 && parked.every(([r, h]) => !r && /about:blank$/.test(h)), `every frame parked (${JSON.stringify(parked)})`);
+				// A save that lands AFTER the page hid (the autosave, 400ms after the
+				// click above) refreshes the hidden form, and its sync must leave the
+				// stage parked: a frame booting in a hidden page is 0px wide, Frappe
+				// reads that as a phone and writes its collapsed-sidebar flag into
+				// the storage the desk shares with the frames — the map's rows in a
+				// rail menu sixty checks later (full run 2026-09-09; measured 2.4s).
+				await page.waitForTimeout(4000);
+				const later = await page.evaluate(() => ({
+					frames: [...document.querySelectorAll(".bnd-cmp iframe")].map((f) => [f.getAttribute("data-bnd-route") || "", (f.contentWindow && f.contentWindow.location.href) || ""]),
+					flag: localStorage.getItem("sidebar-expanded"),
+				}));
+				expect(later.frames.every(([r, h]) => !r && /about:blank$/.test(h)), `every frame is STILL parked after the save landed (${JSON.stringify(later.frames)})`);
+				expectEq(later.flag, flagBefore, "Frappe's sidebar flag in the browser is untouched by the frames");
 			} finally {
 				setSettings(before);
 			}
@@ -9784,10 +9829,14 @@ print("ok")
 				const rows = [...document.querySelectorAll(".bnd-sb-map-row")].map((b) => ({ f: b.getAttribute("data-section"), label: b.querySelector(".bnd-sb-item-label").textContent, dot: !!b.querySelector(".bnd-sb-map-dot") }));
 				const sections = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0 && n.querySelector(".section-head") && n.querySelector(".section-head").textContent.trim()).map((n) => ({ f: n.dataset.fieldname, label: n.querySelector(".section-head").textContent.trim() }));
 				const groups = [...document.querySelectorAll(".bnd-sb-map-group")].map((h) => h.textContent.trim());
-				return { rows, sections, groups, nav: !!document.querySelector('nav.bnd-sb-map[aria-label]'), route: document.documentElement.getAttribute("data-bnd-route") };
+				const head = document.querySelector(".bnd-sb-map-head");
+				return { rows, sections, groups, nav: !!document.querySelector('nav.bnd-sb-map[aria-label]'), route: document.documentElement.getAttribute("data-bnd-route"), headName: head ? (head.getAttribute("aria-label") || "") : null };
 			});
 			expectEq(JSON.stringify(g.rows.map((r) => [r.f, r.label])), JSON.stringify(g.sections.map((r) => [r.f, r.label])), "the rows are the visible sections, in order, by heading");
 			expect(g.nav && g.route === "settings", `a named nav on the settings route (${g.route})`);
+			// The head is the rail's one chip, whose label the rail hides: its
+			// name lives on the button (item 43 review).
+			expect(g.headName, `the map's head carries its own name (${JSON.stringify(g.headName)})`);
 			expectEq(g.rows.filter((r) => r.dot).map((r) => r.f).join(","), "", "no dot at shipped state");
 			// A band heads ONE contiguous run: the table's membership and the
 			// doctype's order are two statements of one grouping, and a heading
@@ -12379,6 +12428,18 @@ print("ok")
 			bad = bad.concat(await scan("menu open"));
 			await page.keyboard.press("Escape");
 
+			// THE RAIL keeps every affordance and hides every label, so it is
+			// the state in which a button's name is only what the code gave it.
+			// Scanned on the desk (the pane head) and on the settings route
+			// (the map's one chip). Found by a leaked rail state in a full run
+			// (2026-09-09): two unnamed buttons, each fine with its label shown.
+			setSettings({ sidebar_pane_state: "Rail" });
+			await goDesk("/desk/item", ".page-head", 4000);
+			bad = bad.concat(await scan("rail"));
+			await goDesk("/desk/theme-settings", ".bnd-sb-map-head", 4500);
+			bad = bad.concat(await scan("rail on the settings route"));
+			setSettings({ sidebar_pane_state: "Open" });
+
 			// This pass proves our CHROME is unbroken on a non-list route — it
 			// is not settings-surface coverage, which is a different test
 			// below with a different root list (P.wrap gives every picker
@@ -14887,10 +14948,13 @@ print("ok")
 
 		// ── The composing axes (slice 3a) ──────────────────────────────────
 		await test("views: Plain nulls the kanban column tint, Tinted keeps it", async () => {
-			// Frappe tints the column with an inline background-color:
-			// var(--bg-{indicator}); Tinted (default) keeps it, Plain nulls it by
-			// re-pointing the var (the only way to beat an inline colour without
-			// !important). Fails against stock: the column is always tinted.
+			// Frappe paints the column from an INLINE background-color reading one
+			// of its own vars (`kanban_column.html:1`); Tinted (default) keeps it,
+			// Plain nulls it by re-pointing that var — the only way to beat an
+			// inline colour without !important. Fails against stock: the column is
+			// always filled. WHICH var moved: 16.33 replaced the per-status
+			// `--bg-{indicator}` with the neutral `--kanban-column-bg`, so Plain
+			// silently stopped doing anything until this check said so.
 			setSettings({ views_style: "Floating Cards", views_band: "Plain" });
 			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
 			const plain = await page.evaluate(() => {

@@ -1402,6 +1402,9 @@ const BND_SETTINGS_OWNS = {
 		fields: [
 			"company_name", "logo", "favicon", "tagline",
 			"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+			// Served in SHIPPED_EMPTY so the dot compares against "" — and owned by
+			// nobody until the release review of item 43 (a set ground showed no dot).
+			"ground_color",
 		],
 	},
 	// `arabic_font` was the only visible, user-editable Select in the whole
@@ -1760,13 +1763,18 @@ function bnd_composer_catalogue() {
 		workspace_style: { set: bnd_workspace_set, styles: BND_WORKSPACE_STYLES, title: () => __("Workspace"), defaults: BND_WORKSPACE_DEFAULTS },
 		report_style: { set: bnd_report_set, styles: BND_REPORT_STYLES, title: () => __("Data tables"), defaults: BND_REPORT_DEFAULTS },
 		chart_grid: { set: bnd_chart_set, styles: BND_CHART_STYLES, title: () => __("Charts"), defaults: BND_CHART_DEFAULTS },
-		sidebar_pane_state: { set: bnd_sb_set, title: () => __("Side pane"), defaults: null },
+		// The sidebar picker's own entry: its option names carry the "pane state"
+		// context ("Open" the state, not the verb), and its Hidden option carries
+		// the reason the pane cannot go while the bell and the profile live in it.
+		sidebar_pane_state: { set: bnd_sb_set, groups: BND_SB_GROUPS, defaults: null },
 	};
 }
 
 /** The value a row shows: the stored one, else what the kit's picker would show. */
 function bnd_composer_value(frm, field, row) {
-	return String(frm.doc[field] || bnd_default_of(field, row.defaults ? row.defaults[field] : "") || "");
+	// Through the same normaliser the sidebar card uses: a site still holding a
+	// pre-item-42 pane label highlights Open on both, not on one.
+	return bnd_sb_norm(field, frm.doc[field] || bnd_default_of(field, row.defaults ? row.defaults[field] : "") || "");
 }
 
 let bnd_cmp_tick = 0;
@@ -1818,14 +1826,14 @@ function bnd_composer_build(frm, $host) {
 					// Filtered against the field's real options — the rule that
 					// retired the status Off-card wedge class of bug.
 					const offered = bnd_field_values(frm, field);
+					// An option's OWN reason (the pane's Hidden while the bell is in it)
+					// counts as much as the group's.
 					const items = (g
-						? g.options.map((o) => ({ value: o.value, name: o.name() }))
+						? g.options.map((o) => ({ value: o.value, name: o.name(), reason: reason || (o.disabled ? o.disabled(frm) : "") }))
 						: row.styles
-						? row.styles.map((s) => ({ value: s.value, name: __(s.value) }))
-						: offered.map((v) => ({ value: v, name: __(v) }))
-					)
-						.filter((i) => !offered.length || offered.includes(i.value))
-						.map((i) => ({ value: i.value, name: i.name, reason }));
+						? row.styles.map((s) => ({ value: s.value, name: __(s.value), reason }))
+						: offered.map((v) => ({ value: v, name: __(v), reason }))
+					).filter((i) => !offered.length || offered.includes(i.value));
 					return (
 						'<div class="bnd-cmp-row" data-field="' + bnd_esc(field) + '">' +
 						P.group({
@@ -1882,6 +1890,14 @@ function bnd_composer_build(frm, $host) {
 			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
 		})
 		.on("mouseleave.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), null);
+		})
+		// The keyboard gets the same naming as the pointer: an option under
+		// focus is named in its row, exactly as one under the cursor is.
+		.on("focusin.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
+		})
+		.on("focusout.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
 			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), null);
 		})
 		.on("click.bndcompose", ".bnd-cmp-copy", function () {
@@ -2063,9 +2079,25 @@ function bnd_composer_frame_loaded(frm, frame) {
 }
 
 /** Navigate the stage to a page, or park it (`about:blank`). */
+/**
+ * The composer page is on screen — not a cached page Frappe hid. A frame must
+ * NEVER boot inside a hidden page: its window is 0px wide there, Frappe's
+ * `is_mobile()` reads that as a phone and writes `sidebar-expanded=false` into
+ * the browser storage the frames SHARE with the desk — and every fresh load
+ * of the real desk then boots with its pane collapsed. Measured 2026-09-10: a
+ * save landing 2.4s after the page hid refreshed the hidden form, its sync sent
+ * the parked stage back to Home, and the map's rows sat in a rail menu for the
+ * next sixty checks, none naming it.
+ */
+function bnd_composer_shown(frm) {
+	const el = frm.page && frm.page.wrapper && frm.page.wrapper[0];
+	return !!el && el.getClientRects().length > 0;
+}
+
 function bnd_composer_navigate(frm, route) {
 	const frame = frm.$wrapper.find(".bnd-cmp-frame")[0];
 	if (!frame || !frame.contentWindow) return;
+	if (route && !bnd_composer_shown(frm)) return; // stays parked; `show` sends it back
 	const url = route ? window.location.origin + route : "about:blank";
 	// The mark is the NEW document's, stamped by the seam at its load; a stale
 	// one would read as "ready" through the whole navigation.
@@ -2101,6 +2133,9 @@ function bnd_composer_render_pages(frm) {
 		)
 		.join("");
 	const current = pages.find((p) => p.key === bnd_cmp_page);
+	// The frame is named for the page it shows — a reader's list of frames
+	// says "Preview: Home", not "Preview" ten times.
+	$stage.find(".bnd-cmp-frame").attr("title", current ? __("Preview: {0}", [current.label]) : __("Preview"));
 	$stage.find(".bnd-cmp-pages").html(
 		'<div class="bnd-cbp-row">' + buttons + "</div>" +
 			(current && current.route
@@ -2117,7 +2152,7 @@ function bnd_composer_build_stage(frm, $stage) {
 	}
 	$stage.html(
 		'<div class="bnd-cmp-pages"></div>' +
-			'<div class="bnd-cmp-clip"><iframe class="bnd-cmp-frame" title="' + bnd_esc(__("Preview")) + '"></iframe></div>'
+			'<div class="bnd-cmp-clip"><iframe class="bnd-cmp-frame" tabindex="-1" title="' + bnd_esc(__("Preview")) + '"></iframe></div>'
 	);
 	const frame = $stage.find(".bnd-cmp-frame")[0];
 	frame.addEventListener("load", () => {
@@ -2153,6 +2188,13 @@ function bnd_composer_build_stage(frm, $stage) {
 	frm.page.wrapper.off("hide.bndstage").on("hide.bndstage", () => {
 		bnd_composer_navigate(frm, "");
 		bnd_composer_strip_park(frm);
+	});
+	// The way back — Frappe fires `show` on the incoming page once it is
+	// visible: the stage returns to its page and the strip, if one was up, is
+	// drawn again. From HERE, never from a refresh that lands while hidden.
+	frm.page.wrapper.off("show.bndstage").on("show.bndstage", () => {
+		bnd_composer_stage_sync(frm);
+		if (bnd_cmp_touched) bnd_composer_render_strip(frm);
 	});
 	bnd_composer_render_compare_switch(frm, $stage);
 }
@@ -2207,6 +2249,7 @@ const BND_COMPOSER_FOCUS = {
 
 let bnd_cmp_compare = true; // the Compare switch: a gesture, per page load
 let bnd_cmp_touched = ""; // the decision the strip draws
+let bnd_cmp_scrolled_for = ""; // the decision the stage last scrolled its strip in for
 let bnd_cmp_queue = null; // cells still to load, one after another
 
 /** The form with ONE field replaced — what a cell is pushed. It INHERITS the
@@ -2260,6 +2303,19 @@ function bnd_composer_render_strip(frm) {
 		$stage.append($strip);
 	}
 	$stage.attr("data-bnd-comparing", field);
+	// ONCE PER TOUCH, the stage's own scroller shows the whole strip: the stage
+	// is bounded and scrolls itself, and at 1366x768 the strip sat entirely
+	// under the fold, so a touch looked like nothing had happened. Only as far
+	// as the strip's foot needs, never past its head, and never the host page.
+	if (bnd_cmp_scrolled_for !== field) {
+		bnd_cmp_scrolled_for = field;
+		const stage = $stage[0], strip = $strip[0];
+		requestAnimationFrame(() => {
+			const sr = strip.getBoundingClientRect(), tr = stage.getBoundingClientRect();
+			const under = sr.bottom - tr.bottom;
+			if (under > 0) stage.scrollTo({ top: stage.scrollTop + Math.min(under + 8, Math.max(0, sr.top - tr.top)), behavior: bnd_scroll_behavior() });
+		});
+	}
 	const row = frm.$wrapper.find('.bnd-cmp-row[data-field="' + field + '"] .bnd-cbp-title');
 	const title = row.length ? row[0].childNodes[0].textContent.trim() : field;
 	$strip.find(".bnd-cmp-striphead").text(__("Comparing: {0}", [title]));
@@ -2271,9 +2327,14 @@ function bnd_composer_render_strip(frm) {
 		let cell = existing[i];
 		if (!cell) {
 			cell = $(
-				'<div class="bnd-cmp-cell"><div class="bnd-cmp-cellclip"><iframe class="bnd-cmp-cellframe" title=""></iframe></div>' +
-					'<div class="bnd-cmp-cellbar"><span class="bnd-cmp-cellname"></span>' +
-					'<button type="button" class="bnd-cbp-opt bnd-cmp-use" data-field="" data-value=""><span class="bnd-cbp-oname">' + bnd_esc(__("Use this")) + "</span></button></div></div>"
+				// The bar FIRST: a reader meets the value's name and its control
+				// before a preview it cannot use, and a toast rising under the
+				// frame no longer covers the control. The clip is inert — a cell
+				// is a picture of a desk, not a desk to tab into; the stage frame
+				// is the one that stays reachable.
+				'<div class="bnd-cmp-cell"><div class="bnd-cmp-cellbar"><span class="bnd-cmp-cellname"></span>' +
+					'<button type="button" class="bnd-cbp-opt bnd-cmp-use" data-field="" data-value=""><span class="bnd-cbp-oname">' + bnd_esc(__("Use this")) + "</span></button></div>" +
+					'<div class="bnd-cmp-cellclip" inert><iframe class="bnd-cmp-cellframe" tabindex="-1" title=""></iframe></div></div>'
 			)[0];
 			$cells.append(cell);
 			const frame = cell.querySelector(".bnd-cmp-cellframe");
@@ -2285,6 +2346,8 @@ function bnd_composer_render_strip(frm) {
 		const use = cell.querySelector(".bnd-cmp-use");
 		use.setAttribute("data-field", field);
 		use.setAttribute("data-value", v.value);
+		// Five buttons all reading "Use this" are one button to a reader.
+		use.setAttribute("aria-label", __("Use this: {0}", [v.name]));
 		cell.hidden = false;
 	});
 	for (const spare of existing.slice(values.length)) {
@@ -2302,6 +2365,7 @@ function bnd_composer_render_strip(frm) {
 
 function bnd_composer_cell_park(cell) {
 	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	clearTimeout(cell.__bnd_wait); // a parked cell hands no turn on
 	frame.removeAttribute("data-bnd-route");
 	if (frame.contentWindow) frame.contentWindow.location.replace("about:blank");
 }
@@ -2314,6 +2378,7 @@ function bnd_composer_stage_route() {
 
 function bnd_composer_load_next(frm) {
 	if (!bnd_cmp_queue || !bnd_cmp_queue.length) return;
+	if (!bnd_composer_shown(frm)) return; // a hidden page boots no frame (bnd_composer_shown)
 	const cell = bnd_cmp_queue.shift();
 	const frame = cell.querySelector(".bnd-cmp-cellframe");
 	const route = bnd_composer_stage_route();
@@ -2390,7 +2455,21 @@ function bnd_composer_cell_focus(cell, field) {
 			if (tries > 0) setTimeout(() => settle(tries - 1), 250);
 			return;
 		}
-		el.scrollIntoView({ block: "start" });
+		// Scrolled within the FRAME's own scroller — the nearest scrollable
+		// ancestor (a report's .dt-scrollable), else its document. scrollIntoView
+		// would also scroll every ANCESTOR frame, and the host page jumped to
+		// the cell on every load (read off the screen, item 43 review).
+		const doc = fw.document.scrollingElement || fw.document.documentElement;
+		let scroller = doc;
+		for (let n = el.parentElement; n && n !== fw.document.body; n = n.parentElement) {
+			const o = fw.getComputedStyle(n).overflowY;
+			if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight) {
+				scroller = n;
+				break;
+			}
+		}
+		const base = scroller === doc ? 0 : scroller.getBoundingClientRect().top;
+		scroller.scrollTop += el.getBoundingClientRect().top - base;
 		const head = fw.document.querySelector(".page-head");
 		const headH = head ? head.getBoundingClientRect().height : 0;
 		const top = el.getBoundingClientRect().top;
@@ -2745,6 +2824,18 @@ function bnd_render_translations(frm, $pane) {
  * card, exactly as the shell found it — walking up from a field's wrapper is
  * what every control in this form already depends on.
  */
+/**
+ * Smooth only where motion is welcome: the OS preference, or the theme's own
+ * per-user reduce-motion stamp (item 38, `data-bnd-motion`). A smooth scroll
+ * is motion like any other and used to ignore both.
+ */
+function bnd_scroll_behavior() {
+	const reduce =
+		(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+		document.documentElement.getAttribute("data-bnd-motion") === "reduce";
+	return reduce ? "auto" : "smooth";
+}
+
 function bnd_settings_goto(frm, key) {
 	const entry = BND_SETTINGS_GROUPS.flatMap((g) => g.items).find((i) => i.key === key);
 	const anchor = entry && (entry.anchors || [])[0];
@@ -2752,7 +2843,7 @@ function bnd_settings_goto(frm, key) {
 	const $section = field && field.$wrapper ? field.$wrapper.closest(".form-section") : null;
 	const node = $section && $section.length ? $section[0] : null;
 	if (!node) return false;
-	node.scrollIntoView({ block: "start", behavior: "smooth" });
+	node.scrollIntoView({ block: "start", behavior: bnd_scroll_behavior() });
 	const head = node.querySelector(".section-head");
 	if (head) {
 		head.setAttribute("tabindex", "-1");
@@ -7702,7 +7793,9 @@ const BND_STATUS_FIELDS = [
 
 /** Shipped defaults, for the reset chips. */
 const BND_STATUS_DEFAULTS = {
-	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "Off",
+	// The layout row's value, as the doctype default reads (item 43's review found
+	// "Top Bar Center" here — the mirror guard reads only literal Python rows).
+	search_placement: "Side Pane Start", status_style: "Quiet", status_clock: "Off",
 	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
 	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
 	status_freshness: 1, status_escalate: 0,
@@ -8762,6 +8855,10 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
+		// The three the desk's SHAPE also carries (items 42 and 44); an import that
+		// dropped them kept the target's start button, globe and Appearance button
+		// while counting them applied (item 43's review).
+		"start_placement", "language_placement", "appearance_placement",
 	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_DESK_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 

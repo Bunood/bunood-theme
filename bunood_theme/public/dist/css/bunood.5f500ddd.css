@@ -4491,6 +4491,9 @@ html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-
   .bnd-cmp {
     grid-template-columns: minmax(0, 1fr);
   }
+  .bnd-cmp-rail {
+    order: 2;
+  }
 }
 .bnd-cmp-head {
   grid-column: 1/-1;
@@ -4626,6 +4629,10 @@ html[data-theme] .bnd-cmp-open-page:focus-visible {
 
 .bnd-cmp-cell-on {
   border-color: var(--bnd-accent);
+}
+
+.bnd-cmp-cell[hidden] {
+  display: none;
 }
 
 .bnd-cmp-cellclip {
@@ -6407,6 +6414,7 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
 }
 
 html[data-bnd-views-band=plain] .kanban-column:not(.add-new-column) {
+  --kanban-column-bg: transparent;
   --bg-blue: transparent;
   --bg-cyan: transparent;
   --bg-gray: transparent;

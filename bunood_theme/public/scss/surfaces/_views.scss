@@ -318,9 +318,17 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
 // hue in the header. Dropped, the report_grain 4->2 precedent.) The indicator
 // list is Kanban Board Column's own Select options, scrubbed.
 html[data-bnd-views-band="plain"] .kanban-column:not(.add-new-column) {
-  // Quoted: unquoted `cyan`/`gray` are Sass COLOUR values, and interpolating
-  // one can rename the var (cyan -> aqua), which would never match Frappe's
-  // --bg-cyan. Strings keep the name exact.
+  // FRAPPE 16.33 CHANGED WHAT THE COLUMN READS. `kanban_column.html:1` now
+  // writes one neutral `style="background-color: var(--kanban-column-bg)"` —
+  // the per-status tint is gone from upstream, so Plain had nothing left to
+  // null and did nothing at all (a live defect since the bench moved; the
+  // suite named it and it was carried as a bench debt). Plain nulls the var
+  // the template actually reads; Tinted, the neutral, keeps the fill.
+  --kanban-column-bg: transparent;
+  // The per-status vars stay for a bench still on the older template, where
+  // the column carried `var(--bg-{indicator})`. Quoted: unquoted `cyan`/`gray`
+  // are Sass COLOUR values, and interpolating one can rename the var
+  // (cyan -> aqua), which would never match Frappe's --bg-cyan.
   @each $c in "blue", "cyan", "gray", "grey", "green", "light-blue", "orange", "pink", "purple", "red", "yellow", "darkgrey" {
     --bg-#{$c}: transparent;
   }

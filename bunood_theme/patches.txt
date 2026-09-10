@@ -113,4 +113,10 @@ bunood_theme.patches.v0_42_0.retire_icon_styles
 
 bunood_theme.patches.v0_42_1.retire_shortcuts
 
+# Item 43: Bunood Console moved two EXISTING defaults (form_sidebar, list_style).
+# Both are theme axes, so a row still holding the old default would read Custom
+# on every theme card against the moved baseline — the quick_links_stand_down
+# shape, same limits. The ten new axes need nothing: no row is the new default.
+bunood_theme.patches.v0_45_0.console_defaults
+
 bunood_theme.patches.v0_11_0.heal_unknown_placements

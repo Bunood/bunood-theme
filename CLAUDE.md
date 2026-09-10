@@ -201,7 +201,12 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   an icon check reporting the default it just moved away from. It looks like five
   unrelated bugs, it gets worse as the machine gets busier, and restarting the backend
   "fixes" it for a while, which is what makes it so easy to file as environmental.
-  Commit, then clear. Measured after: one page load, every time.
+  Commit, then clear. Measured after: one page load, every time. **Third instance
+  (2026-09-10):** `withPersonal` cleared the USER cache before committing its restore, and
+  the composer's stage check was the first caller whose desk keeps REQUESTING during the
+  restore (its frames are live desks) — the leaked personal look then failed three
+  unrelated checks sixty tests later, none naming it. Any helper that clears any cache
+  commits first.
 - **A retry that treats a TRANSIENT as its premise.** `sidepane_sync` mounts the head
   inside a `try_for`; re-reading `sidebar_is_hidden()` on every attempt made it give up
   on a pane that was merely mid-layout, and three presets in a row lost their head while

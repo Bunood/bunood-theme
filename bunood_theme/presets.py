@@ -1387,7 +1387,8 @@ def _theme_axes() -> list:
       * ``brand_css_url`` is GENERATED - the content-hashed sheet's own address.
         Writing it would hand a preset the power to point a site at a stale file.
       * ``arabic_font`` is a language choice, which item 36 deliberately moved
-        out of Appearance.
+        out of Appearance — and so is ``language_choices``, the languages the
+        switch offers (v0.44.2): site policy that no look may rewrite.
       * ``palette_enabled`` ``mobile_inbox`` ``mobile_user`` ``mobile_apps`` are
         the honest gap. They DO describe the desk, and a preset does not write
         them, so two desks differing only in a phone-bar toggle both read the
@@ -1406,8 +1407,11 @@ def _theme_axes() -> list:
         # them as SHAPE), and a theme preset must write them too, or the partition
         # gate reads them as PHANTOM — "filed but not written by any preset" —
         # which is exactly what `npm run contrast` said from v0.44.0 until item 43
-        # A3 needed the gate to run past that line.
-        list(LANGUAGE_DEFAULTS), list(APPEARANCE_DEFAULTS),
+        # A3 needed the gate to run past that line. NOT `language_choices`: which
+        # languages a site offers is policy, not a look — `list(LANGUAGE_DEFAULTS)`
+        # stood here and made every theme card write "ar,en" over a site's own
+        # list, and read "Custom" on any site offering a third (item 43's review).
+        ["language_placement", "language_style"], list(APPEARANCE_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
         STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, DESK_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,

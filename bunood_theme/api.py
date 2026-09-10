@@ -1651,9 +1651,14 @@ def composer_pages() -> dict:
     admin cannot open is still listed, because the reason is the information.
     """
     frappe.only_for("System Manager")
+    from urllib.parse import quote
 
     def latest(doctype: str) -> str | None:
-        rows = frappe.get_list(doctype, fields=["name"], order_by="modified desc", limit=1)
+        # get_all, not get_list: the answer is "which record exists", and a
+        # System Manager whose user permissions narrow the doctype would
+        # otherwise be told there is none and sent to a NEW record. The frame
+        # enforces permissions itself when it opens the route.
+        rows = frappe.get_all(doctype, fields=["name"], order_by="modified desc", limit=1)
         return rows[0]["name"] if rows else None
 
     def form_page(key: str, label: str, doctype: str, missing: str) -> dict:
@@ -1661,7 +1666,10 @@ def composer_pages() -> dict:
             return {"key": key, "label": label, "route": "", "reason": missing}
         slug = frappe.scrub(doctype).replace("_", "-")
         name = latest(doctype)
-        return {"key": key, "label": label, "route": f"/desk/{slug}/{name}" if name else f"/desk/{slug}/new", "reason": ""}
+        # A record name is data: "ACC-SINV-2026-00001" is safe, "Bunood / Riyadh"
+        # or a name with a space is not, and the frame navigates to this string.
+        route = f"/desk/{slug}/{quote(name, safe='')}" if name else f"/desk/{slug}/new"
+        return {"key": key, "label": label, "route": route, "reason": ""}
 
     def list_page(key: str, label: str, doctype: str, missing: str) -> dict:
         if not frappe.db.exists("DocType", doctype):
@@ -1683,12 +1691,12 @@ def composer_pages() -> dict:
     ]
     # The wide report: Accounts Receivable is ERPNext's and needs a company.
     if frappe.db.exists("Report", "Accounts Receivable"):
-        pages.append({"key": "report", "label": _("Accounts Receivable"), "route": "/desk/query-report/Accounts Receivable", "reason": ""})
+        pages.append({"key": "report", "label": _("Accounts Receivable"), "route": "/desk/query-report/" + quote("Accounts Receivable", safe=""), "reason": ""})
     else:
         pages.append({"key": "report", "label": _("Accounts Receivable"), "route": "", "reason": erp})
     dashboard = latest("Dashboard") if frappe.db.exists("DocType", "Dashboard") else None
     pages.append(
-        {"key": "dashboard", "label": _("Dashboard"), "route": f"/desk/dashboard-view/{dashboard}" if dashboard else "", "reason": "" if dashboard else _("No dashboard on this site.")}
+        {"key": "dashboard", "label": _("Dashboard"), "route": f"/desk/dashboard-view/{quote(dashboard, safe='')}" if dashboard else "", "reason": "" if dashboard else _("No dashboard on this site.")}
     )
     pages.append(
         {"key": "settings", "label": _("Selling Settings"), "route": "/desk/selling-settings", "reason": ""}

@@ -1440,6 +1440,12 @@ html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-
 	.bnd-cmp {
 		grid-template-columns: minmax(0, 1fr);
 	}
+	// One column: the preview first, the rail of decisions under it. The rail
+	// is the taller of the two, and led with, it put the preview under the fold
+	// on every narrow screen.
+	.bnd-cmp-rail {
+		order: 2;
+	}
 }
 .bnd-cmp-head {
 	grid-column: 1 / -1;
@@ -1587,6 +1593,11 @@ html[data-theme] .bnd-cmp-open-page:focus-visible {
 }
 .bnd-cmp-cell-on {
 	border-color: var(--bnd-accent);
+}
+// A spare cell is parked with the `hidden` attribute; the grid above would
+// otherwise win over the UA's `[hidden]` and keep drawing an empty card.
+.bnd-cmp-cell[hidden] {
+	display: none;
 }
 // The clip inherits the stage's scale from the clip above it (one ResizeObserver,
 // one token) — declared again here only as the fallback the guard reads.

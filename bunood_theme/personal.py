@@ -441,11 +441,10 @@ SITE_ONLY_FIELDS = (
     "desk_order",
     "ground_color",
     "home_placement",
-    # Item 44's list of the languages the switch OFFERS. Which languages a site
-    # turns on is policy, not a look — the same reason the placements above are
-    # here. Filed with item 43 A3, when the partition gate first ran past the
-    # phantom this field's siblings had been since v0.44.0.
-    "language_choices",
+    # NOT `language_choices` (the languages the switch offers, v0.44.2): it is
+    # policy, not a look, and since item 43's review it is no THEME AXIS either —
+    # it stands outside the partition the way `arabic_font` does. Filed here it
+    # would read as phantom; filed as an axis, every theme card rewrote it.
 )
 
 #: The desk kits a personal look carries — named positively, one line each.

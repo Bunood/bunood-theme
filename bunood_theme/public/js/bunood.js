@@ -7282,13 +7282,21 @@ function sb_zone_anchor(pane, zone, node) {
 		return r[0] === "Form" && r[1] === "Theme Settings";
 	}
 
+	/** Smooth only where motion is welcome: the OS preference or the item-38 stamp. */
+	function scroll_behavior() {
+		const reduce =
+			(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+			document.documentElement.getAttribute("data-bnd-motion") === "reduce";
+		return reduce ? "auto" : "smooth";
+	}
+
 	/** Scroll one card into view and put focus on its heading. */
 	function map_goto(fieldname) {
 		const node = document.querySelector(`.form-layout .form-section[data-fieldname="${fieldname}"]`);
 		if (!node) return;
 		// Current at once; the observer confirms when the scroll lands.
 		map_mark_current(fieldname);
-		node.scrollIntoView({ block: "start", behavior: "smooth" });
+		node.scrollIntoView({ block: "start", behavior: scroll_behavior() });
 		const head = node.querySelector(".section-head");
 		if (head) {
 			head.setAttribute("tabindex", "-1");
@@ -7366,7 +7374,9 @@ function sb_zone_anchor(pane, zone, node) {
 		map.textContent = "";
 		// The head: the map's title in the open pane, the one chip that opens
 		// the map as a menu in the rail.
-		const head = el("button", "bnd-sb-item bnd-sb-map-head", { type: "button" });
+		// Named on the button itself: the rail hides the label span, and a chip
+		// with a hidden label is a button with no name (axe button-name).
+		const head = el("button", "bnd-sb-item bnd-sb-map-head", { type: "button", title: __("Settings"), "aria-label": __("Settings") });
 		menu_trigger(head);
 		const chip = el("span", "bnd-sb-chip bnd-sb-map-chip");
 		chip.appendChild(sprite_icon("icon-list"));
@@ -7521,6 +7531,13 @@ function sb_zone_anchor(pane, zone, node) {
 		const ws = sb_current_workspace;
 		const label = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
+		// The rail hides the name span; the button keeps its name regardless
+		// (measured: a rail-state scan reported .bnd-sb-head with no name).
+		const btn = name.closest(".bnd-sb-head");
+		if (btn) {
+			btn.setAttribute("aria-label", label);
+			btn.setAttribute("title", label);
+		}
 		const ico = document.querySelector(".bnd-sb-head .bnd-sb-head-ico");
 		if (ico) {
 			ico.textContent = "";
