@@ -55,6 +55,7 @@ const REJECT = new Map([
 	["Filter", "frappe منقي is a purifier; a filter control is تصفية"],
 	["Display", "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it"],
 	["Translations", "frappe ترجمة is singular; our nav section is plural — الترجمات"],
+	["Notifications", "Frappe إخطارات is inconsistent with Bunood's product wording; our notification surface uses إشعارات"],
 	["Queued", "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار"],
 ]);
 

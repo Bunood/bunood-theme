@@ -8,7 +8,7 @@
 # Regenerate with: npm run i18n:inherited      (read from bunood-backend-1, lang=ar)
 # False friends are rejected in the script's REJECT map, with a reason each.
 #
-# 40 inherited, from frappe + erpnext + telephony.
+# 39 inherited, from frappe + erpnext + telephony.
 
 Accepted	frappe: مقبول
 Alert	frappe: إنذار
@@ -32,7 +32,6 @@ Manual	erpnext: يدوي
 Menu	frappe: الخيارات
 Missing	erpnext: مفتقد
 None	frappe: لا شيء
-Notifications	frappe: إخطارات
 Off	frappe: إيقاف
 Page	frappe: الصفحة
 Provider	frappe: المزود

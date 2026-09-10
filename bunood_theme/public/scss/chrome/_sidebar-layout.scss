@@ -86,6 +86,12 @@ html.bunood[data-bnd-own~="panetoggle"] .body-sidebar .collapse-sidebar-link {
   display: none;
 }
 
+// A Start placement from an older preset must not create a second control in
+// the optional top bar. The page-head control is the one stable desktop home.
+html.bunood[data-bnd-own~="panetoggle"] .bnd-topbar .bnd-sidebar-toggle {
+  display: none;
+}
+
 .bnd-compact-nav { display: none; }
 html.bunood[data-bnd-rail][data-bnd-own~="compactnav"]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) {
   .body-sidebar-top, .standard-items-sections, .bnd-sb-filter, .body-sidebar-bottom,

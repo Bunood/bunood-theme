@@ -94,13 +94,29 @@ test('returning to desktop releases the native mobile inline pane height before 
   height='844px';context.is_narrow=()=>true;
   vm.runInNewContext('('+match[0]+')()',context); assert.equal(height,'844px');
 });
-test('existing rail without a topbar cannot retain toggle ownership', () => {
-  let owned=true;
+test('existing rail without a topbar delegates toggle ownership to the page head', () => {
+  let owned=false,mounted=0;
   const container={dataset:{bndRail:'1'}};
-  const context={document:{querySelector:s=>s==='.body-sidebar-container'?container:null,querySelectorAll:()=>[],documentElement:{hasAttribute:()=>true}},is_narrow:()=>false,sb_mount_compact_nav:()=>{},bnd_own:()=>{owned=true;},bnd_disown:()=>{owned=false;}};
+  const context={document:{querySelector:s=>s==='.body-sidebar-container'?container:null,querySelectorAll:()=>[],documentElement:{hasAttribute:()=>true}},is_narrow:()=>false,sb_mount_compact_nav:()=>{},sb_mount_pagehead_toggle:()=>{mounted++;owned=true;}};
   const source=['sb_mount_topbar_toggle','sb_mount_rail'].map(name=>js.match(new RegExp('function '+name+'\\(container\\) \\{([\\s\\S]*?)\\n\\t\\}|function '+name+'\\(\\) \\{([\\s\\S]*?)\\n\\t\\}'))[0]).join('\n');
   vm.runInNewContext(source+'\nsb_mount_rail();',context);
-  assert.equal(owned,false);
+  assert.equal(owned,true); assert.equal(mounted,1);
+});
+test('page-head toggle arrows mirror expanded state and writing direction', () => {
+  const source=js.match(/function sidebar_toggle_direction\(expanded\) \{[\s\S]*?\n\t\}/)[0];
+  const direction=vm.runInNewContext('('+source+')');
+  assert.equal(direction(true),'start');
+  assert.equal(direction(false),'end');
+  const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_breadcrumbs.scss'),'utf8');
+  assert.match(css,/html\[dir="rtl"\][\s\S]*?transform:\s*scaleX\(-1\)/);
+});
+test('sidebar toggle is anchored in flow beside the workspace icon', () => {
+  const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_breadcrumbs.scss'),'utf8');
+  const rule=css.match(/\.bnd-pagehead-sidebar-toggle \{([\s\S]*?)\n\}/)[1];
+  assert.match(rule,/display:\s*inline-grid/);
+  assert.doesNotMatch(rule,/position:\s*(absolute|fixed)/);
+  assert.match(js,/workspace\.insertAdjacentElement\("afterend", button\)/);
+  assert.match(js,/data-bnd-part": "panetoggle"/);
 });
 test('Escape returns focus from an expanded child to its compact section trigger', () => {
   let keydown,focused=0;

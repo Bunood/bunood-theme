@@ -17,12 +17,24 @@ const required = [
 	"Invoice status", "Current sales invoices", "No invoice data yet", "Could not load dashboard data",
 	"Sales bill", "Who are you billing?", "What are you selling?",
 	"Purchase bill", "Who are you buying from?", "What are you buying?",
+	"Notification", "Notifications", "Notification Picker", "Notification Style",
+	"Notification settings", "Notifications Placement",
 ];
 
 test("observed Home and invoice labels have shipped Arabic translations", () => {
 	const translations = readTranslations(fileURLToPath(new URL("../bunood_theme/translations/ar.csv", import.meta.url)));
 	const missing = required.filter(key => !/[\u0600-\u06ff]/u.test(translations.get(key) || ""));
 	assert.deepEqual(missing, []);
+});
+
+test("notification labels use consistent Arabic product wording", () => {
+	const translations = readTranslations(fileURLToPath(new URL("../bunood_theme/translations/ar.csv", import.meta.url)));
+	assert.equal(translations.get("Notification"), "إشعار");
+	assert.equal(translations.get("Notifications"), "إشعارات");
+	assert.equal(translations.get("Notification Picker"), "منتقي الإشعارات");
+	assert.equal(translations.get("Notification Style"), "نمط الإشعارات");
+	assert.equal(translations.get("Notification settings"), "إعدادات الإشعارات");
+	assert.equal(translations.get("Notifications Placement"), "موضع الإشعارات");
 });
 
 test("Home actions can wrap inside their available width", () => {

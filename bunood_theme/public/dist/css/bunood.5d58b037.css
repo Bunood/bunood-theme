@@ -610,10 +610,6 @@ html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
-html[data-bnd-own~=panetoggle] .page-title .sidebar-toggle-btn {
-  display: none;
-}
-
 html[data-bnd-own~=onboard] .body-sidebar .onboarding-sidebar,
 html[data-bnd-own~=onboard] .body-sidebar p:has(> .onboarding-sidebar) {
   display: none;
@@ -1829,6 +1825,10 @@ html[data-bnd-crumbs] .bnd-crumb-chip svg {
   block-size: 13px;
 }
 
+html[dir=rtl] .page-head .bnd-pagehead-sidebar-toggle svg {
+  transform: scaleX(-1);
+}
+
 html[data-bnd-crumbs] .bnd-crumb-copy {
   display: inline-grid;
   place-items: center;
@@ -2006,6 +2006,41 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill .indicator-pill {
   font-weight: var(--bnd-weight-medium);
 }
 
+html[data-theme] .page-head .bnd-pagehead-sidebar-toggle {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  margin-inline: var(--bnd-sp-1) var(--bnd-sp-2);
+  padding: 0;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: color var(--bnd-dur-fast) var(--bnd-ease), background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-theme] .page-head .bnd-pagehead-sidebar-toggle svg {
+  display: block;
+  inline-size: 18px;
+  block-size: 18px;
+}
+html[data-theme] .page-head .bnd-pagehead-sidebar-toggle:hover {
+  color: var(--bnd-ink);
+  background: var(--bnd-hover);
+  border-color: var(--bnd-border-strong);
+}
+html[data-theme] .page-head .bnd-pagehead-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+
+html[data-bnd-narrow] .page-head .bnd-pagehead-sidebar-toggle {
+  display: none;
+}
+
 @media (width < 992px) {
   html[data-bnd-crumbs][data-bnd-crumb-collapse] .navbar-breadcrumbs li {
     display: none;
@@ -2170,6 +2205,10 @@ html.bunood[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) .main-section
 }
 
 html.bunood[data-bnd-own~=panetoggle] .body-sidebar .collapse-sidebar-link {
+  display: none;
+}
+
+html.bunood[data-bnd-own~=panetoggle] .bnd-topbar .bnd-sidebar-toggle {
   display: none;
 }
 

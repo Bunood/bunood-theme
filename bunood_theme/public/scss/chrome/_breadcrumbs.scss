@@ -77,6 +77,10 @@ html[data-bnd-crumbs] .bnd-crumb-chip {
   }
 }
 
+html[dir="rtl"] .page-head .bnd-pagehead-sidebar-toggle svg {
+  transform: scaleX(-1);
+}
+
 // Copy-link button (mounted by JS on the last li when the flag is set).
 // Rest state is invisible; hovering anywhere on the title row or keyboard
 // focus reveals it — the affordance costs nothing until wanted.
@@ -326,6 +330,51 @@ html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
     border-radius: var(--bnd-radius-pill);
     font-weight: var(--bnd-weight-medium);
   }
+}
+
+// The sidebar belongs to the page shell, so its control lives in that shell as
+// well: directly beside Frappe's workspace/Home icon. No absolute positioning
+// and no pane-relative offset means it stays put while the pane opens, closes,
+// scrolls, or changes width. The runtime mirrors the double chevron from the
+// live expanded state and document direction.
+html[data-theme] .page-head .bnd-pagehead-sidebar-toggle {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  margin-inline: var(--bnd-sp-1) var(--bnd-sp-2);
+  padding: 0;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease),
+    border-color var(--bnd-dur-fast) var(--bnd-ease);
+
+  svg {
+    display: block;
+    inline-size: 18px;
+    block-size: 18px;
+  }
+
+  &:hover {
+    color: var(--bnd-ink);
+    background: var(--bnd-hover);
+    border-color: var(--bnd-border-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 2px;
+  }
+}
+
+html[data-bnd-narrow] .page-head .bnd-pagehead-sidebar-toggle {
+  display: none;
 }
 
 // ── Narrow collapse: a single labeled back crumb ────────────────────────────

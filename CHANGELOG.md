@@ -22,6 +22,27 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.8] — 2026-09-10 — Page-head sidebar control (patch)
+
+### Changed
+
+- Moved the desktop sidebar control out of the pane and into the page head,
+  directly beside Frappe's workspace/Home button. It remains anchored while
+  the pane changes width or scroll position.
+- Replaced the static edge chevron with a stateful double-chevron: expanded
+  points toward logical start, collapsed points toward logical end, and RTL
+  mirrors the glyph without physical left/right state.
+- Retired the pane-edge and optional top-bar duplicates while preserving the
+  separate workspace/Home menu and Frappe's native mobile drawer control.
+- Corrected and standardized the Arabic notification vocabulary: the visible
+  plural is now `إشعارات`, the singular is `إشعار`, and related settings use
+  the same terminology.
+
+### Checks
+
+Build guards and focused sidebar, breadcrumb, and Home regressions pass. The
+desktop browser smoke covers placement, open/close state, and Arabic mirroring.
+
 ## [0.44.7] — 2026-09-10 — Tajawal invoice typography (patch)
 
 ### Changed

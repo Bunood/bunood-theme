@@ -1071,6 +1071,7 @@
 		// that held them leaves them behind in a node that has just been
 		// removed, or absent from the one that has just arrived.
 		sb_mount_utils();
+		try_for(() => sb_mount_pagehead_toggle(), 30);
 		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
 		if (container_on("sidepane")) sb_mount_pagehead_brand();
 		else sb_teardown_pagehead_brand();
@@ -3328,6 +3329,11 @@ function sb_zone_anchor(pane, zone, node) {
 		button.setAttribute("aria-expanded", expanded ? "true" : "false");
 		button.setAttribute("aria-label", label);
 		button.title = label;
+		if (button.classList.contains("bnd-pagehead-sidebar-toggle")) {
+			const direction = sidebar_toggle_direction(expanded);
+			button.dataset.bndArrow = direction;
+			button.innerHTML = direction === "start" ? BND_DOUBLE_START_SVG : BND_DOUBLE_END_SVG;
+		}
 	}
 
 	/** The start button — argument in _sidebar.scss. */
@@ -7115,8 +7121,8 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_pagehead_brand() {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
 		const title = page && page.querySelector(".page-head .page-title");
-		// A start button already carries the mark and the way back; two would be noise.
-		if (!title || !sb_pane_hidden() || document.querySelector('[data-bnd-part="start"]')) {
+		// The page-head toggle carries the way back; this is only its fallback.
+		if (!title || !sb_pane_hidden() || document.querySelector(".bnd-pagehead-sidebar-toggle")) {
 			sb_teardown_pagehead_brand();
 			return;
 		}
@@ -7153,6 +7159,52 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const n of document.querySelectorAll(".bnd-ph-brand")) n.remove();
 	}
 
+	/** One desktop toggle, in flow beside the page-head workspace icon. */
+	function sb_mount_pagehead_toggle() {
+		const wanted = container_on("sidepane") && !is_narrow();
+		if (!wanted) {
+			sb_teardown_pagehead_toggle();
+			return true;
+		}
+		const page = (window.frappe && frappe.container && frappe.container.page) || null;
+		const title = page && page.querySelector(".page-head .page-title");
+		if (!title) return false;
+		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle")) {
+			if (!title.contains(node)) node.remove();
+		}
+		let button = title.querySelector(":scope > .bnd-pagehead-sidebar-toggle");
+		if (!button) {
+			button = el("button", "bnd-pagehead-sidebar-toggle bnd-sidebar-toggle", {
+				type: "button",
+				"data-bnd-part": "panetoggle",
+			});
+			button.addEventListener("click", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				bunood.pane_toggle();
+			});
+			const workspace = title.querySelector(":scope > .sidebar-toggle-btn");
+			if (workspace) workspace.insertAdjacentElement("afterend", button);
+			else title.insertBefore(button, title.firstChild);
+		}
+		const sidebar = document.querySelector(".body-sidebar");
+		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
+		button.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
+		const container = document.querySelector(".body-sidebar-container");
+		const rail = document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail";
+		const expanded = rail
+			? !!container?.classList.contains("bnd-rail-open")
+			: document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
+		sync_start_toggle(button, expanded);
+		bnd_own("panetoggle");
+		return true;
+	}
+
+	function sb_teardown_pagehead_toggle() {
+		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle")) node.remove();
+		bnd_disown("panetoggle");
+	}
+
 	/** The pane's state, page-locally — argument in _sidebar.scss. */
 	bunood.pane_state = function (value) {
 		if (!sb_state) return;
@@ -7165,7 +7217,10 @@ function sb_zone_anchor(pane, zone, node) {
 			mount_placed_tenants();
 			sidepane_sync("settings");
 		}
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		if (container_on("sidepane")) {
+			sb_mount_pagehead_toggle();
+			sb_mount_pagehead_brand();
+		}
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -7505,6 +7560,16 @@ function sb_zone_anchor(pane, zone, node) {
 	const BND_PANEL_SVG =
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
 		'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>';
+	const BND_DOUBLE_START_SVG =
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+		'<path d="M13 6l-6 6 6 6"/><path d="M19 6l-6 6 6 6"/></svg>';
+	const BND_DOUBLE_END_SVG =
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+		'<path d="M11 6l6 6-6 6"/><path d="M5 6l6 6-6 6"/></svg>';
+
+	function sidebar_toggle_direction(expanded) {
+		return expanded ? "start" : "end";
+	}
 
 
 	/**
@@ -7655,10 +7720,7 @@ function sb_zone_anchor(pane, zone, node) {
 				}
 			}
 			for (const button of document.querySelectorAll(".bnd-sidebar-toggle")) {
-				button.setAttribute("aria-expanded", expanded ? "true" : "false");
-				const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
-				button.setAttribute("aria-label", label);
-				button.title = label;
+				sync_start_toggle(button, expanded);
 			}
 		};
 		container._bnd_sync_rail = sync_toggle;
@@ -7718,60 +7780,13 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function sb_mount_topbar_toggle(container) {
-		bnd_disown("panetoggle");
-		if (is_narrow()) {
-			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
-			for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
-				node.innerHTML = BND_PANEL_SVG;
-				delete node._bnd_start_markup;
-				node.classList.add("bnd-sidebar-toggle");
-				node.removeAttribute("data-bnd-rail-toggle");
-				sync_start_toggle(
-					node,
-					document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
-				);
-			}
-			return;
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
+		for (const node of document.querySelectorAll('[data-bnd-rail-toggle="reused"]')) {
+			node.innerHTML = node._bnd_start_markup || BND_PANEL_SVG;
+			delete node._bnd_start_markup;
+			node.removeAttribute("data-bnd-rail-toggle");
 		}
-		const bar = document.querySelector(".bnd-topbar");
-		if (!bar?.getClientRects().length) return;
-		const sidebar = container.querySelector(".body-sidebar");
-		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
-		const expanded = container.classList.contains("bnd-rail-open");
-		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
-		const start = bar.querySelector('.bnd-sb-start[data-bnd-part="start"]');
-		if (start) {
-			for (const node of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) node.remove();
-			if (start._bnd_start_markup === undefined) start._bnd_start_markup = start.innerHTML;
-			start.innerHTML = BND_PANEL_SVG;
-			start.classList.add("bnd-sidebar-toggle");
-			start.setAttribute("data-bnd-rail-toggle", "reused");
-			start.setAttribute("aria-label", label);
-			start.setAttribute("aria-expanded", expanded ? "true" : "false");
-			start.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
-			start.title = label;
-			bnd_own("panetoggle");
-			return;
-		}
-		let button = bar.querySelector('[data-bnd-rail-toggle="created"]');
-		if (!button) {
-			button = el("button", "bnd-sidebar-toggle", {
-				type: "button",
-				"data-bnd-rail-toggle": "created",
-				"data-bnd-part": "panetoggle",
-			});
-			button.innerHTML = BND_PANEL_SVG;
-			button.addEventListener("click", () => container._bnd_toggle_rail?.());
-			bar.insertBefore(button, bar.firstChild);
-		}
-		for (const duplicate of bar.querySelectorAll('[data-bnd-rail-toggle="created"]')) {
-			if (duplicate !== button) duplicate.remove();
-		}
-		button.setAttribute("aria-label", label);
-		button.setAttribute("aria-expanded", expanded ? "true" : "false");
-		button.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
-		button.title = label;
-		bnd_own("panetoggle");
+		sb_mount_pagehead_toggle(container);
 	}
 
 	let sb_pane_px = String(((window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || {}).pane_px || "");
@@ -7840,9 +7855,7 @@ function sb_zone_anchor(pane, zone, node) {
 				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open"
 			);
 		}
-		const topToggle = document.querySelector('.bnd-topbar .bnd-sb-start[data-bnd-part="start"]');
-		if (!is_narrow() && topToggle?.getClientRects().length) bnd_own("panetoggle");
-		else bnd_disown("panetoggle");
+		sb_mount_pagehead_toggle(container);
 		if (!container.dataset.bndRail) return;
 		delete container.dataset.bndRail;
 		delete container._bnd_toggle_rail;
@@ -9696,6 +9709,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// nowhere at all when the side pane was off. Idempotent — it clears its
 		// own previous mounts first — so the kit calling it too costs nothing.
 		sb_mount_utils();
+		try_for(() => sb_mount_pagehead_toggle(), 30);
 		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
 		if (container_on("sidepane")) sb_mount_pagehead_brand();
 		else sb_teardown_pagehead_brand();
@@ -9747,6 +9761,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// quietly bring the cluster back on the next navigation after
 				// the user switched it off.
 				if (container_on("pagehead")) inject_compact_cluster();
+				try_for(() => sb_mount_pagehead_toggle(), 30);
 				if (container_on("dock")) update_dock_active();
 				sb_update_head();
 				sb_mark_current();

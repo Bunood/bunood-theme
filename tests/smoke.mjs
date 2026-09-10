@@ -3621,7 +3621,7 @@ async function main() {
 			}
 		});
 
-		await test("sidebar: Top Taskbar Home uses one icon-only toggle for a populated reserved pane", async () => {
+		await test("sidebar: Top Taskbar Home uses one page-head toggle for a populated reserved pane", async () => {
 			const wanted = layoutSettings("Top Taskbar");
 			const prior = getSettings(Object.keys(wanted));
 			const viewport = page.viewportSize();
@@ -3646,7 +3646,7 @@ async function main() {
 					Math.min(first.right, second.right) - Math.max(first.left, second.left) > 0 &&
 					Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 0;
 				const candidates = [...document.querySelectorAll(
-					'.bnd-topbar [data-bnd-part="start"], .bnd-topbar [data-bnd-part="panetoggle"], .bnd-topbar .bnd-sidebar-toggle'
+					'.page-head .bnd-pagehead-sidebar-toggle'
 				)].filter(visible);
 				const button = candidates[0] || null;
 				const container = document.querySelector(".body-sidebar-container");
@@ -3732,12 +3732,10 @@ async function main() {
 				});
 				await page.evaluate(() => localStorage.setItem("sidebar-expanded", "false"));
 				setSettings(wanted);
-				await goDesk("/desk/home", '.bnd-topbar [data-bnd-part="start"], .bnd-topbar [data-bnd-part="panetoggle"]', 3000);
+				await goDesk("/desk/home", '.page-head .bnd-pagehead-sidebar-toggle', 3000);
 				rest = await measure();
 
-				const toggle = () => page.locator(
-					'.bnd-topbar [data-bnd-part="start"]:visible, .bnd-topbar [data-bnd-part="panetoggle"]:visible, .bnd-topbar .bnd-sidebar-toggle:visible'
-				).first();
+				const toggle = () => page.locator('.page-head .bnd-pagehead-sidebar-toggle:visible').first();
 				await toggle().click();
 				await page.waitForFunction(() => {
 					const pane = document.querySelector(".body-sidebar");
@@ -3765,16 +3763,16 @@ async function main() {
 			}
 
 			expectEq(rest.sidebarExpanded, "false", `the test starts from the vendor-collapsed sidebar premise (${JSON.stringify(rest)})`);
-			expectEq(rest.toggleCount, 1, `Top Taskbar starts with one pane toggle (${JSON.stringify(rest)})`);
+			expectEq(rest.toggleCount, 1, `Top Taskbar starts with one page-head pane toggle (${JSON.stringify(rest)})`);
 			expect(rest.toggle?.hasPanelSvg && rest.toggle.visibleCompanyMarks === 0 && !rest.toggle.text,
-				`the menu glyph is an icon-only split panel, never the company initial or name (${JSON.stringify(rest.toggle)})`);
+				`the menu glyph is an icon-only double chevron, never the company initial or name (${JSON.stringify(rest.toggle)})`);
 			expect(rest.toggle.label && rest.toggle.title && rest.toggle.expanded === "false" && rest.toggle.controls,
 				`the closed toggle clearly names and controls the pane (${JSON.stringify(rest.toggle)})`);
 			expect(rest.container?.width <= 2 && rest.main?.width >= rest.viewport - 2,
 				`the closed pane leaves no empty sidebar gutter (${JSON.stringify(rest)})`);
 
-			expectEq(open.paneState, "open", `clicking the top-bar control opens the pane (${JSON.stringify(open)})`);
-			expectEq(open.toggleCount, 1, `the same single top-bar control remains while open (${JSON.stringify(open)})`);
+			expectEq(open.paneState, "open", `clicking the page-head control opens the pane (${JSON.stringify(open)})`);
+			expectEq(open.toggleCount, 1, `the same single page-head control remains while open (${JSON.stringify(open)})`);
 			expect(open.toggle?.expanded === "true" && open.toggle.part === rest.toggle.part,
 				`the same control exposes the open state (${JSON.stringify({ rest: rest.toggle, open: open.toggle })})`);
 			expect(open.panePaintedInBounds && open.brandPaintedInBounds && open.headPaintedInBounds &&
@@ -3799,8 +3797,8 @@ async function main() {
 			expect(open.bodyScrollWidth - open.bodyClientWidth <= 1,
 				`the open pane does not create horizontal body overflow (${JSON.stringify(open)})`);
 
-			expectEq(closed.paneState, "hidden", `the top-bar control closes the pane again (${JSON.stringify(closed)})`);
-			expectEq(closed.toggleCount, 1, `closing does not duplicate or remove the top-bar control (${JSON.stringify(closed)})`);
+			expectEq(closed.paneState, "hidden", `the page-head control closes the pane again (${JSON.stringify(closed)})`);
+			expectEq(closed.toggleCount, 1, `closing does not duplicate or remove the page-head control (${JSON.stringify(closed)})`);
 			expect(closed.toggle?.expanded === "false" && closed.container?.width <= 2,
 				`the closed state is announced and releases its column (${JSON.stringify(closed)})`);
 			expect(Math.abs(closed.main.width - rest.main.width) <= 2,
@@ -3811,7 +3809,7 @@ async function main() {
 
 		await test("rail: collapsed state is a composed icon rail and toggled pane is opaque", async () => {
 			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
 			const rest = await page.evaluate(() => {
 				const rail = document.querySelector(".body-sidebar-container");
 				const pane = rail.querySelector(".body-sidebar");
@@ -3845,7 +3843,7 @@ async function main() {
 			expect(rest.targets.length >= 5, `compact rail exposes the dashboard brand and every top-level section target (${JSON.stringify(rest)})`);
 			expect(rest.targets.every((target) => target.width === 40 && target.height === 40 && target.title), `compact rail targets are consistently sized and named (${JSON.stringify(rest)})`);
 
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
+			await page.click(".page-head .bnd-pagehead-sidebar-toggle");
 			await page.waitForTimeout(300);
 			const open = await page.evaluate(() => {
 				const rail = document.querySelector(".body-sidebar-container");
@@ -3890,7 +3888,7 @@ async function main() {
 
 		await test("rail: a compact section icon opens the full navigation tree", async () => {
 			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
 			const section = page.locator(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item").first();
 			const target = await section.evaluate((node) => {
 				const rect = node.getBoundingClientRect();
@@ -3924,14 +3922,15 @@ async function main() {
 			expect(state.open && state.width >= 200 && state.labelVisible, `section icon reveals the complete navigation (${JSON.stringify(state)})`);
 		});
 
-		await test("rail: exactly one independent top-bar toggle opens and closes", async () => {
+		await test("rail: exactly one page-head toggle opens and closes", async () => {
 			setSettings(presets["Bunood Light"]);
-			await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+			await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
 			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
 				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-collapsed.png` });
 			}
 			const controls = await page.evaluate(() => ({
-				topbar: document.querySelectorAll(".bnd-topbar .bnd-sidebar-toggle").length,
+				pagehead: document.querySelectorAll(".page-head .bnd-pagehead-sidebar-toggle").length,
+				topbarVisible: [...document.querySelectorAll(".bnd-topbar .bnd-sidebar-toggle")].filter(node => getComputedStyle(node).display !== "none").length,
 				attached: document.querySelectorAll(".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin").length,
 				nativeVisible: [...document.querySelectorAll(".body-sidebar .collapse-sidebar-link, .body-sidebar .sidebar-resize-handle")].filter((node) => {
 					const rect = node.getBoundingClientRect();
@@ -3939,13 +3938,15 @@ async function main() {
 					return rect.width > 0 && rect.height > 0 && cs.display !== "none" && cs.visibility !== "hidden";
 				}).length,
 			}));
-			expectEq(controls.topbar, 1, `one top-bar sidebar toggle (${JSON.stringify(controls)})`);
+			expectEq(controls.pagehead, 1, `one page-head sidebar toggle (${JSON.stringify(controls)})`);
+			expectEq(controls.topbarVisible, 0, `no duplicate top-bar toggle (${JSON.stringify(controls)})`);
 			expectEq(controls.attached, 0, `no controls are attached to the sidebar (${JSON.stringify(controls)})`);
 			expectEq(controls.nativeVisible, 0, `native competing controls are hidden (${JSON.stringify(controls)})`);
-			const collapsed = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
+			const collapsed = await page.locator('.page-head .bnd-pagehead-sidebar-toggle').evaluate(button => {
 				const buttonRect = button.getBoundingClientRect();
-				const barRect = button.closest(".bnd-topbar").getBoundingClientRect();
-				const paneRect = document.querySelector(".body-sidebar").getBoundingClientRect();
+				const barRect = button.closest(".page-head").getBoundingClientRect();
+				const homeRect = button.parentElement.querySelector(".title-area")?.getBoundingClientRect();
+				const gap = homeRect ? Math.max(0, Math.max(buttonRect.left, homeRect.left) - Math.min(buttonRect.right, homeRect.right)) : Infinity;
 				return {
 				label: button.getAttribute('aria-label'),
 				expanded: button.getAttribute('aria-expanded'),
@@ -3953,45 +3954,54 @@ async function main() {
 				width: buttonRect.width,
 				buttonCenterY: (buttonRect.top + buttonRect.bottom) / 2,
 				barCenterY: (barRect.top + barRect.bottom) / 2,
-				viewportInset: Math.round(buttonRect.left),
-				separateFromPane: buttonRect.bottom <= paneRect.top + 1,
+					viewportInset: Math.round(buttonRect.left),
+					outsidePane: !button.closest(".body-sidebar-container"),
+					besideHome: gap <= 24,
+					arrow: button.dataset.bndArrow,
 				};
 			});
 			expect(collapsed.label && collapsed.expanded === 'false' && collapsed.glyph, `collapsed button is named, stateful and illustrated (${JSON.stringify(collapsed)})`);
-			expect(collapsed.width >= 32 && collapsed.width <= 40, `top-bar toggle is a quiet compact target (${collapsed.width}px)`);
-			expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `top-bar toggle is vertically centred (${JSON.stringify(collapsed)})`);
-			expect(collapsed.separateFromPane, `top-bar toggle occupies its own chrome row above the sidebar (${JSON.stringify(collapsed)})`);
+			expect(collapsed.width >= 32 && collapsed.width <= 40, `page-head toggle is a quiet compact target (${collapsed.width}px)`);
+			expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `page-head toggle is vertically centred (${JSON.stringify(collapsed)})`);
+			expect(collapsed.outsidePane && collapsed.besideHome, `page-head toggle is beside Home and outside the sidebar (${JSON.stringify(collapsed)})`);
+			expectEq(collapsed.arrow, "end", `collapsed control points toward logical end (${JSON.stringify(collapsed)})`);
 			await page.mouse.move(1, 500);
 			await page.waitForTimeout(300);
 			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "hover alone does not open the sidebar");
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
+			const positions = [];
+			for (let i = 0; i < 5; i++) {
+				positions.push(await page.locator(".page-head .bnd-pagehead-sidebar-toggle").evaluate(node => {
+					const r = node.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)];
+				}));
+				await page.waitForTimeout(100);
+			}
+			expect(new Set(positions.map(String)).size === 1, `page-head toggle is visually anchored (${JSON.stringify(positions)})`);
+			await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click({ force: true });
 			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens from top-bar toggle");
+			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens from page-head toggle");
 			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
 				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-expanded.png` });
 			}
-			const expanded = await page.locator('.bnd-topbar .bnd-sidebar-toggle').evaluate(button => {
+			const expanded = await page.locator('.page-head .bnd-pagehead-sidebar-toggle').evaluate(button => {
 				const rect = button.getBoundingClientRect();
 				return {
 					label: button.getAttribute('aria-label'),
 					expanded: button.getAttribute('aria-expanded'),
 					viewportInset: Math.round(rect.left),
+					arrow: button.dataset.bndArrow,
 				};
 			});
 			expect(expanded.label && expanded.label !== collapsed.label && expanded.expanded === 'true', `open button exposes its retract name and state (${JSON.stringify(expanded)})`);
-			expectEq(expanded.viewportInset, collapsed.viewportInset, `top-bar toggle stays at one viewport position instead of following the sidebar edge (${JSON.stringify({ collapsed, expanded })})`);
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(500);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays open until the same control is pressed again");
-			await page.click(".bnd-topbar .bnd-sidebar-toggle");
+			expectEq(expanded.arrow, "start", `expanded control reverses toward logical start (${JSON.stringify(expanded)})`);
+			await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click({ force: true });
 			await page.waitForTimeout(300);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes from top-bar toggle");
+			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes from page-head toggle");
 		});
 
-		await test("rail: top-bar toggle mirrors cleanly in Arabic dark mode", async () => {
+		await test("rail: page-head toggle mirrors cleanly in Arabic dark mode", async () => {
 			setSettings(presets["Bunood Light"]);
 			await withLang("ar", async () => {
-				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
+				await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
 				const previousTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme") || "light");
 				const previousDir = await page.evaluate(() => document.documentElement.getAttribute("dir") || "ltr");
 				try {
@@ -4004,27 +4014,26 @@ async function main() {
 					});
 					await page.waitForTimeout(100);
 					const collapsed = await page.evaluate(() => {
-						const button = document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getBoundingClientRect();
-						const bar = document.querySelector(".bnd-topbar").getBoundingClientRect();
+						const button = document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").getBoundingClientRect();
+						const bar = document.querySelector(".page-head").getBoundingClientRect();
 						const sidebar = document.querySelector(".body-sidebar-container").getBoundingClientRect();
-						const pane = document.querySelector(".body-sidebar").getBoundingClientRect();
 						return {
 							dir: getComputedStyle(document.documentElement).direction,
 							buttonCenterY: (button.top + button.bottom) / 2,
 							barCenterY: (bar.top + bar.bottom) / 2,
 							// Floating placement keeps its intentional 8px viewport inset.
 							sidebarAtRight: Math.abs(innerWidth - sidebar.right) <= 12,
-							separateFromPane: button.bottom <= pane.top + 1,
+							outsidePane: !document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").closest(".body-sidebar-container"),
 						};
 					});
 					expectEq(collapsed.dir, "rtl", `Arabic rail uses RTL geometry (${JSON.stringify(collapsed)})`);
 					expect(collapsed.sidebarAtRight, `Arabic sidebar remains on the right (${JSON.stringify(collapsed)})`);
-					expect(collapsed.separateFromPane, `Arabic top-bar toggle remains above the sidebar pane (${JSON.stringify(collapsed)})`);
-					expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `Arabic top-bar toggle stays centred (${JSON.stringify(collapsed)})`);
+					expect(collapsed.outsidePane, `Arabic page-head toggle remains outside the sidebar pane (${JSON.stringify(collapsed)})`);
+					expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `Arabic page-head toggle stays centred (${JSON.stringify(collapsed)})`);
 					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
 						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-collapsed.png` });
 					}
-					await page.click(".bnd-topbar .bnd-sidebar-toggle");
+					await page.click(".page-head .bnd-pagehead-sidebar-toggle");
 					await page.waitForTimeout(300);
 					const open = await page.evaluate(() => {
 						const rail = document.querySelector(".body-sidebar-container").getBoundingClientRect();
@@ -4035,7 +4044,7 @@ async function main() {
 							paneTop: Math.round(pane.top),
 							barBottom: Math.round(document.querySelector(".bnd-topbar").getBoundingClientRect().bottom),
 							mainOverlap: Math.round(Math.max(0, Math.min(pane.right, main.right) - Math.max(pane.left, main.left))),
-							expanded: document.querySelector(".bnd-topbar .bnd-sidebar-toggle").getAttribute("aria-expanded"),
+							expanded: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").getAttribute("aria-expanded"),
 						};
 					});
 					expectEq(open.expanded, "true", `Arabic toggle exposes its open state (${JSON.stringify(open)})`);
@@ -4058,8 +4067,8 @@ async function main() {
 			setSettings(presets["Bunood Light"]);
 			await page.setViewportSize({ width: 1440, height: 900 });
 			try {
-				await goDesk("/desk/home", ".bnd-topbar .bnd-sidebar-toggle", 3000);
-				await page.click(".bnd-topbar .bnd-sidebar-toggle");
+				await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
+				await page.click(".page-head .bnd-pagehead-sidebar-toggle");
 				await page.waitForTimeout(300);
 				expect(await page.locator(".body-sidebar-container").evaluate(node => node.classList.contains("bnd-rail-open")), "desktop sidebar starts expanded");
 
@@ -4081,7 +4090,7 @@ async function main() {
 				expect(!narrow.open, `narrow layout closes the desktop rail state (${JSON.stringify(narrow)})`);
 				expect(narrow.railWidth <= 2, `collapsed mobile drawer reserves no desktop column beyond its border (${JSON.stringify(narrow)})`);
 				expect(narrow.mainWidth >= narrow.viewport - 1, `main workspace keeps the narrow viewport (${JSON.stringify(narrow)})`);
-				expectEq(narrow.toggles, 0, `desktop top-bar toggle stands down in narrow mode (${JSON.stringify(narrow)})`);
+				expectEq(narrow.toggles, 0, `desktop page-head toggle stands down in narrow mode (${JSON.stringify(narrow)})`);
 				if (process.env.BND_SIDEBAR_SCREENSHOTS) {
 					await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/narrow-after-expanded-rail.png`, fullPage: true });
 				}
@@ -6543,7 +6552,7 @@ print("ok")
 			}
 		});
 
-		await test("sidepane: the place row and independent top-bar toggle announce their identity", async () => {
+		await test("sidepane: the place row and page-head toggle announce their identity", async () => {
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
 			// audit found the pane's own nodes invisible to all three.
@@ -6559,13 +6568,13 @@ print("ok")
 
 				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail", sidebar_rail_button: "Edge", topbar_enabled: 1 });
 				await goDesk("/app/selling", "body", 3000);
-				await page.waitForFunction(() => !!document.querySelector(".bnd-topbar .bnd-sidebar-toggle"), null, { timeout: 20000 });
+				await page.waitForFunction(() => !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"), null, { timeout: 20000 });
 				const btn = await page.evaluate(() => {
-					const node = document.querySelector(".bnd-topbar .bnd-sidebar-toggle");
+					const node = document.querySelector(".page-head .bnd-pagehead-sidebar-toggle");
 					return { part: node.getAttribute("data-bnd-part"), label: node.getAttribute("aria-label"),
 						expanded: node.getAttribute("aria-expanded"), controls: node.getAttribute("aria-controls") };
 				});
-				expect(["panetoggle", "start"].includes(btn.part), `the independent control is findable by part (${JSON.stringify(btn)})`);
+				expectEq(btn.part, "panetoggle", `the independent control is findable by part (${JSON.stringify(btn)})`);
 				expect(btn.label && btn.controls && btn.expanded === "false", `and announces its target and state (${JSON.stringify(btn)})`);
 			} finally {
 				setSettings(before);
@@ -6737,15 +6746,9 @@ print("ok")
 			}
 		});
 
-		await test("rail: the native toggle is claimed exactly while the rail's wiring is live", async () => {
-			// Item 40 slice 11 (audit defect 3). Rail mode used to leave two
-			// collapse affordances live: ours and Frappe's page-title hamburger.
-			// The repair is a CLAIM, not a hide — bnd_own("panetoggle") stamped
-			// by the rail wiring, so a rail whose JS failed to wire leaves the
-			// native visible and working (the polarity the whole ownership
-			// doctrine exists for). Both directions, then the fail-open arm:
-			// with the claim withdrawn, the native must be reachable AND must
-			// still open the pane.
+		await test("sidebar: the native toggle is claimed while the desktop page-head control is live", async () => {
+			// Desktop has one stable page-head control in every pane state. Narrow
+			// mode removes it and releases the claim so Frappe's drawer opener wins.
 			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger", "topbar_enabled"]);
 			try {
 				setSettings({
@@ -6763,10 +6766,12 @@ print("ok")
 					return {
 						owned: own.split(/\s+/).includes("panetoggle"),
 						toggleShown: !!(btn && getComputedStyle(btn).display !== "none"),
+						pagehead: !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"),
+						edgeShown: [...document.querySelectorAll(".body-sidebar .collapse-sidebar-link")].some(node => getComputedStyle(node).display !== "none"),
 					};
 				});
-				expect(on.owned, "the rail's wiring claims the native toggle");
-				expect(!on.toggleShown, "and only then is the hamburger hidden — one affordance, not two");
+				expect(on.owned, "the desktop page-head control claims the pane-edge toggle");
+				expect(on.pagehead && !on.edgeShown, "the header control replaces the pane-edge control");
 
 				// FAIL-OPEN, measured where it matters. On a DESKTOP viewport
 				// Frappe media-hides the hamburger itself (probed: display none
@@ -6813,17 +6818,18 @@ print("ok")
 					await page.setViewportSize({ width: 1440, height: 900 });
 				}
 
-				// The other direction: Always Expanded wires no rail, claims nothing.
+				// Always Expanded still uses the same page-head control.
 				setSettings({ sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
 				await page.waitForFunction(
 					() => !document.documentElement.hasAttribute("data-bnd-rail"),
 					null, { timeout: 20000 }
 				);
-				const off = await page.evaluate(() =>
-					(document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panetoggle")
-				);
-				expect(!off, "no rail, no claim — the token is never a declaration");
+				const off = await page.evaluate(() => ({
+					owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("panetoggle"),
+					pagehead: !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"),
+				}));
+				expect(off.owned && off.pagehead, "the page-head owner remains available outside rail mode");
 			} finally {
 				setSettings(before);
 			}

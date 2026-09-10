@@ -60,14 +60,9 @@ html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
   display: none;
 }
 
-// The page-title hamburger (item 40, slice 11 - audit defect 3). Rail mode
-// used to leave TWO collapse affordances live: our trigger and Frappe's
-// toggle. The claim is stamped by sb_mount_rail only after the trigger
-// wiring is actually live, so a rail whose JS died leaves the hamburger
-// visible and working - the same fail-open every row above buys.
-html[data-bnd-own~="panetoggle"] .page-title .sidebar-toggle-btn {
-  display: none;
-}
+// Frappe's page-title button is the workspace/Home menu on this desk. It stays
+// visible beside Bunood's independent pane toggle; the pane-edge collapse link
+// is the duplicate retired by _sidebar-layout.scss.
 
 // Getting Started (item 42, slice 4). Frappe's onboarding link at the pane's
 // foot moves into the account panel, and the link is hidden only while our

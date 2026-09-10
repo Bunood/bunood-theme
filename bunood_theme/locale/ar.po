@@ -1540,22 +1540,22 @@ msgstr "لا شيء ينتظر موافقتك"
 #. Label of a HTML field in DocType 'Theme Settings'
 #. src: ai
 msgid "Notification Picker"
-msgstr "منتقي الإخطارات"
+msgstr "منتقي الإشعارات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Notification Style"
-msgstr "نمط الإخطارات"
+msgstr "نمط الإشعارات"
 
 #. In bunood.js
 #. src: ai
 msgid "Notification settings"
-msgstr "إعدادات الإخطارات"
+msgstr "إعدادات الإشعارات"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: ai
 msgid "Notifications Placement"
-msgstr "موضع الإخطارات"
+msgstr "موضع الإشعارات"
 
 #. In theme_settings.js
 #. src: ai
@@ -3762,7 +3762,88 @@ msgstr "استيراد"
 
 #. src: apps-trim
 msgid "Notification"
-msgstr "إعلام"
+msgstr "إشعار"
+
+#. In bunood.js and Theme Settings
+#. Overrides Frappe's inherited wording for the Bunood notification surface.
+msgid "Notifications"
+msgstr "إشعارات"
+
+#. Theme Settings language and appearance controls
+msgid "Appearance Button Placement"
+msgstr "موضع زر المظهر"
+
+msgid "Appearance button"
+msgstr "زر المظهر"
+
+msgid "Code"
+msgstr "الرمز"
+
+msgid "Empty: the shipped pair, Arabic and English."
+msgstr "فارغ: الزوج المُرسَل، العربية والإنجليزية."
+
+msgid "Globe"
+msgstr "كرة أرضية"
+
+msgid "Globe + Code"
+msgstr "كرة أرضية + رمز"
+
+msgid "Globe + Name"
+msgstr "كرة أرضية + اسم"
+
+msgid "How the switch draws itself: a globe, the other language's two-letter code, its name in its own script, or the globe with either. In the side pane's foot band and the rail a name shrinks to its code."
+msgstr "كيف يرسم المبدّل نفسه: كرة أرضية، أو رمز اللغة الأخرى من حرفين، أو اسمها بحرفها، أو الكرة الأرضية مع أيٍّ منهما. في شريط قاعدة اللوحة الجانبية والسكة يتقلّص الاسم إلى رمزه."
+
+msgid "Language & Appearance"
+msgstr "اللغة والمظهر"
+
+msgid "Language Switch Placement"
+msgstr "موضع مبدّل اللغة"
+
+msgid "Language Switch Style"
+msgstr "أسلوب مبدّل اللغة"
+
+msgid "Language switch"
+msgstr "مبدّل اللغة"
+
+msgid "Languages Offered"
+msgstr "اللغات المعروضة"
+
+msgid "Languages Picker"
+msgstr "منتقي اللغات"
+
+msgid "Languages the switch offers"
+msgstr "اللغات التي يعرضها المبدّل"
+
+msgid "Name"
+msgstr "الاسم"
+
+msgid "Order: {0}"
+msgstr "الترتيب: {0}"
+
+msgid "Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load."
+msgstr "اختر لغتين على الأقل، بالترتيب الذي يجب أن يعرضه المبدّل. لا تظهر هنا إلا اللغات المفعّلة في قائمة اللغات. يُطبَّق عند تحميل الصفحة التالي."
+
+msgid "Set by the picker above: the languages the switch offers, in order, as Language codes. Empty means the shipped pair, Arabic and English."
+msgstr "يضبطه المنتقي أعلاه: اللغات التي يعرضها المبدّل، بالترتيب، كرموز لغات. الفراغ يعني الزوج المُرسَل: العربية والإنجليزية."
+
+msgid "Sign in to change your language."
+msgstr "سجّل الدخول لتغيير لغتك."
+
+msgid "Switch to {0}"
+msgstr "التبديل إلى {0}"
+
+msgid "That language is not enabled on this site."
+msgstr "هذه اللغة غير مفعّلة في هذا الموقع."
+
+msgid "That language is not offered on this site."
+msgstr "هذه اللغة غير معروضة على هذا الموقع."
+
+msgid "Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button."
+msgstr "موضع زر المظهر. يفتح الحوار الذي يفتحه مدخل «المظهر» في قائمة الصورة الشخصية؛ «معطَّل» يزيل الزر."
+
+msgid "Where the language switch lives. It offers the languages enabled in the Language list; Off removes it, and the avatar menu keeps a Language entry."
+msgstr "موضع مبدّل اللغة. يعرض اللغات المفعّلة في قائمة اللغات؛ «معطَّل» يزيله، وتبقى قائمة الصورة الشخصية تحمل مدخل اللغة."
 
 #. src: apps-trim
 msgid "Open"
