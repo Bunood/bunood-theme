@@ -211,7 +211,7 @@ function selectionWorkbench() {
 
 test('native layout selection contract is pinned and reproduced before the adapter', () => {
   const pins=fs.readFileSync('bunood_theme/data/upstream-pins.json','utf8');
-  assert.match(pins,/"frappe:frappe\/public\/js\/frappe\/form\/layout.js": "354cc8ffd272d3f1859c89886367ae2e5c55bcb19cc236c291dc4af1d44798f2"/);
+  assert.match(pins,/"frappe:frappe\/public\/js\/frappe\/form\/layout.js": "3abb35b67655684fd706533ac7018adaadbc08ce3cd38e24bd3231a32c7e5d6f"/);
   const {layout,input}=selectionWorkbench(); layout.refresh();
   assert.deepEqual([input.selectionStart,input.selectionEnd,input.selectCalls],[0,2,1]);
 });
