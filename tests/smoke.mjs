@@ -22812,7 +22812,16 @@ print("cleared")
 
 		await test("console error budget: nothing beyond the allowlist", async () => {
 			const unexpected = consoleErrors.filter((e) => !CONSOLE_ALLOWLIST.some((re) => re.test(e)));
-			expectEq(unexpected.length, 0, `unexpected console errors:\n${unexpected.slice(0, 5).join("\n")}`);
+			// PRINTED, NOT THROWN. The failure printer cuts a message at 300
+			// characters, and each of these carries four stack frames plus the check
+			// it happened during — the fields the capture above exists to record,
+			// precisely so a recurrence names its caller. Thrown, they were cut
+			// mid-frame: the 2026-09-10 recurrence of the frappe-charts removeChild
+			// race arrived with no caller and no check name, which is the one thing
+			// the four-frame capture was written to prevent. The FAIL line stays
+			// short; the evidence goes to the log at full length.
+			for (const e of unexpected) process.stdout.write(`        · ${e}\n`);
+			expectEq(unexpected.length, 0, "unexpected console errors (each listed in full above)");
 		});
 	} finally {
 		// Always restore the site to its pre-suite configuration.
