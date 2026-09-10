@@ -8,8 +8,8 @@
 		"crm": "1.79.0",
 		"helpdesk": "1.27.0",
 		"ksa_compliance": "0.61.7",
-		"bunood_real_estate": "1.4.0",
-		"bunood_setup": "0.7.1"
+		"bunood_real_estate": "1.4.1",
+		"bunood_setup": "0.7.2"
 	},
 	"files": {
 		"frappe:frappe/public/js/frappe/views/breadcrumbs.js": "95fdb6649ce010e07e3e8dae4eb7717d7b42c69ce98aabf623e838e8c8cfe3d8",
