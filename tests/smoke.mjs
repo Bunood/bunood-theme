@@ -9764,9 +9764,40 @@ print("ok")
 					const scale = fr.width / 1440;
 					const r = el.getBoundingClientRect(); // in frame CSS px
 					const top = fr.top + r.top * scale;
-					return { clipTop: Math.round(clip.top), clipBottom: Math.round(clip.bottom), elTop: Math.round(top), elBottom: Math.round(top + r.height * scale), translate: f.style.translate };
+					const head = f.contentWindow.document.querySelector(".page-head");
+					return {
+						clipTop: Math.round(clip.top), clipBottom: Math.round(clip.bottom),
+						elTop: Math.round(top), elBottom: Math.round(top + r.height * scale),
+						translate: f.style.translate, scale,
+						// Where the element sits INSIDE the frame, and how tall the
+						// frame's own page head is: the two numbers the translate is
+						// computed from, so the assertion can check the arithmetic
+						// instead of the fact that 150 is less than 600.
+						elTopInFrame: Math.round(r.top), headH: head ? Math.round(head.getBoundingClientRect().height) : 0,
+					};
 				});
+				// THE DISTANCE, NOT MERE CONTAINMENT. `elTop >= clipTop && elTop <
+				// clipBottom` reduces, with the translate zeroed, to "the element is
+				// in the frame's first 600px" — true of `.layout-side-section` on any
+				// desk page, so the check passed for any translate, right sign or
+				// wrong, and for a scroll that did nothing. It caught only the case
+				// the `data-bnd-focus` wait above already catches. Named by the
+				// release review's check lens.
+				//
+				// What the code intends is that the element lands just under the
+				// frame's own sticky page head, so that is what is asserted — and
+				// the translate is asserted to be a real, non-zero move whenever the
+				// element started below the head.
 				expect(focus.elTop >= focus.clipTop - 2 && focus.elTop < focus.clipBottom, `the sidebar's top sits inside the clip (${JSON.stringify(focus)})`);
+				expect(
+					focus.elTop - focus.clipTop <= focus.headH * focus.scale + 6,
+					`and it sits just under the frame's own head, not merely somewhere in view (${focus.elTop - focus.clipTop} vs ${Math.round(focus.headH * focus.scale)})`
+				);
+				const moved = Math.abs(parseFloat(String(focus.translate).replace(/[^-\d.]/g, "")) || 0);
+				expect(
+					focus.elTopInFrame <= focus.headH + 2 || moved > 1,
+					`the frame was actually translated to bring it there (translate ${JSON.stringify(focus.translate)}, element at ${focus.elTopInFrame} in a frame whose head is ${focus.headH})`
+				);
 			} finally {
 				setSettings(before);
 			}
@@ -9832,7 +9863,25 @@ print("ok")
 				const head = document.querySelector(".bnd-sb-map-head");
 				return { rows, sections, groups, nav: !!document.querySelector('nav.bnd-sb-map[aria-label]'), route: document.documentElement.getAttribute("data-bnd-route"), headName: head ? (head.getAttribute("aria-label") || "") : null };
 			});
-			expectEq(JSON.stringify(g.rows.map((r) => [r.f, r.label])), JSON.stringify(g.sections.map((r) => [r.f, r.label])), "the rows are the visible sections, in order, by heading");
+			// AGAINST THE DOCTYPE, NOT AGAINST THE DOM. The expectation used to be
+			// built from the same query with the same two filters that
+			// `bnd_settings_rows` uses to build the rows — both sides of one
+			// `expectEq` reading the same DOM, so a card that rendered with an empty
+			// or hidden heading dropped out of both and the map could omit a real
+			// settings card while this stayed green. CLAUDE.md's own "a check that
+			// derives its expectation from the thing it is judging", named by the
+			// release review's check lens. `field_order` is the independent source
+			// the sibling check above already asks the server for.
+			const metaOrder = JSON.parse(benchPy(
+				'meta = frappe.get_meta("Theme Settings")\n' +
+				'print(json.dumps([f.fieldname for f in meta.fields if f.fieldtype == "Section Break" and not f.hidden]))\n'
+			).trim().split("\n").pop());
+			const wantRows = metaOrder.filter((f) => g.sections.some((s) => s.f === f));
+			expectEq(g.rows.map((r) => r.f).join(","), wantRows.join(","), "the rows are the doctype's sections, in field_order");
+			// The DOM still has to agree with the doctype, or the two independent
+			// sources have diverged and the map is only right about one of them.
+			expectEq(g.sections.map((s) => s.f).join(","), wantRows.join(","), "and so are the cards on the page");
+			expectEq(JSON.stringify(g.rows.map((r) => [r.f, r.label])), JSON.stringify(g.sections.map((r) => [r.f, r.label])), "each row carries its card's own heading");
 			expect(g.nav && g.route === "settings", `a named nav on the settings route (${g.route})`);
 			// The head is the rail's one chip, whose label the rail hides: its
 			// name lives on the button (item 43 review).

@@ -196,6 +196,20 @@ def pairs():
         AA_TEXT, "tinted section head",
     ))
 
+    # And the MUTED ink over the same wash — the pair this gate had no row for.
+    # Item 43 A8a's Hero Band reads `var(--bnd-form-band-muted,
+    # var(--bnd-ink-muted))` for its meta line and every tile label, and the
+    # tinted tone sets only `--bnd-form-band-ink`, so the fallback is what paints
+    # on a band that is this same 10% wash. The band's own comment records the
+    # muted ink as the risk the DARK tone refused to take; the tinted tone takes
+    # it and nothing measured it. "Closed is not the same as covered" — the
+    # release review's CSS lens found this as a pair with no row, not a wrong
+    # ratio, which is the shape item 40's three defects also had.
+    out.append(Pair(
+        "var(--bnd-ink-muted)", "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))",
+        AA_TEXT, "tinted band meta and tile labels",
+    ))
+
     # Item 43 A4: Ruled Sheet's even rows carry a 3% ink wash under the row's
     # own ink. Near-invisible on purpose, and a wash all the same — the gate
     # measures every surface a text token is drawn over.
