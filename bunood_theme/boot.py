@@ -241,6 +241,12 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_rtl_langs = sorted(RTL_LANGS)
 
+        # Report Studio is deliberately not part of every desk page. Its route
+        # loads this immutable asset only when opened.
+        from bunood_theme.assets import STUDIO_JS
+
+        bootinfo.bnd_studio_js = STUDIO_JS
+
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

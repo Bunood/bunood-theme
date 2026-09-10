@@ -176,6 +176,7 @@
   "ceiling": {
     "css_gzip": 32000,
     "js_gzip": 153700,
+    "studio_js_gzip": 27000,
     "web_css_gzip": 4600,
     "auth_js_gzip": 1000,
     "email_css_gzip": 2000,

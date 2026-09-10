@@ -67,6 +67,8 @@ const BUCKETS = [
 	{ dir: ["css"], prefix: "bunood.", key: "css" },
 	{ dir: ["js"], prefix: "bunood-auth.", key: "auth_js" },
 	{ dir: ["js"], prefix: "bunood.", key: "js" },
+	// Lazily loaded by the Report Studio route, never by the global desk.
+	{ dir: ["js"], prefix: "bnd-studio.", key: "studio_js" },
 ];
 
 export function measure() {
@@ -114,7 +116,7 @@ export function measure() {
  * history row's comparability at the release that introduced a second sheet.
  */
 export const CEILING_KEYS = [
-	"css_gzip", "js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
+	"css_gzip", "js_gzip", "studio_js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
 ];
 
 /**

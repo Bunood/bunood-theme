@@ -2115,6 +2115,15 @@
 		go_home();
 	}
 
+	/** Keep the legacy/user-facing Apps address as an alias for All Apps. */
+	function redirect_apps_alias() {
+		const path = String(location.pathname || "").replace(/\/+$/, "").toLowerCase();
+		if (path !== "/desk/apps" && path !== "/app/apps") return false;
+		if (!window.frappe || typeof frappe.set_route !== "function") return false;
+		frappe.set_route("desktop");
+		return true;
+	}
+
 	function update_desktop_mode() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const on_desktop = on_desktop_route(route);
@@ -9704,6 +9713,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
+				if (redirect_apps_alias()) return;
 				close_menu();
 				update_desktop_mode();
 				land_on_home();
@@ -9762,7 +9772,7 @@ function sb_zone_anchor(pane, zone, node) {
 	// "shell ready" event, so wait for its anchor elements with a bounded
 	// poll, then mount. If the desk never appears (website page, login), the
 	// budget runs out and nothing happens — which is correct there.
-	try_for(() => {
+	if (!redirect_apps_alias()) try_for(() => {
 		if (!window.frappe || !frappe.boot || !document.querySelector(".body-sidebar-container")) {
 			return false;
 		}

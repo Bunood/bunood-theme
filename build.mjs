@@ -1947,10 +1947,24 @@ async function buildEntry({ key, src, pyid }) {
  */
 const JS_ENTRIES = [
 	{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" },
+	// Report Studio is page-scoped: its route loads this hashed asset on demand.
+	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 	// Loaded only by _auth_context. It keeps the public login bilingual without
 	// shipping the desk bundle or Frappe's full website navbar to that page.
 	{ key: "bunood-auth", src: "bunood_auth.js", pyid: "AUTH_JS" },
 ];
+
+// These controllers extend the global desk runtime. Keeping them as focused
+// source files makes them testable, but the shipped THEME_JS must contain all
+// three. A previous merge retained the source/tests while silently reverting
+// this composition step, so invoices fell back to the native form in production.
+const DESK_JS_SOURCES = ["bunood.js", "sales_bill.js", "simple_forms.js"];
+
+async function readDeskJs() {
+	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))
+		.join("\n")
+		.replace(/\r\n/g, "\n");
+}
 
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
@@ -1961,7 +1975,9 @@ async function buildJsEntry({ key, src, pyid }) {
 	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
 	// checkout must produce the SAME content hash, or the dist-drift gate
 	// fails on every push made from Windows (CI run #1 did exactly that).
-	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
+	const source = key === "bunood"
+		? await readDeskJs()
+		: (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 
@@ -2137,7 +2153,7 @@ async function main() {
 	// guards, which all run BEFORE compilation on source alone.
 	assertRingCoverage(
 		built.map((b) => b.css || "").join("\n"),
-		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
+		await readDeskJs(),
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"

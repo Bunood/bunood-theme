@@ -618,7 +618,7 @@
 			this.zatcaStatus.textContent = __("Checking ZATCA setup…");
 			try {
 				const args = this.doc.__islocal ? { company: this.doc.company } : { invoice_name: this.doc.name, company: this.doc.company };
-				const response = await frappe.call({ method: "bunood_theme.zatca.get_status", type: "GET", args });
+				const response = await frappe.call({ method: "bunood_theme.zatca.status.get_status", type: "GET", args });
 				if (!this.active() || request !== this.zatcaRequest) return;
 				this.zatcaData = response.message || {}; this.renderZatca();
 			} catch (error) {
@@ -666,7 +666,7 @@
 			if (state === "ready_to_send" && data.can_queue) {
 				this.zatcaSending = true; this.busy();
 				try {
-					await frappe.call({ method: "bunood_theme.zatca.queue_invoice", type: "POST", args: { invoice_name: this.doc.name }, freeze: true, freeze_message: __("Queueing invoice for ZATCA…") });
+					await frappe.call({ method: "bunood_theme.zatca.status.queue_invoice", type: "POST", args: { invoice_name: this.doc.name }, freeze: true, freeze_message: __("Queueing invoice for ZATCA…") });
 					this.zatcaStatus.textContent = __("Invoice queued for ZATCA. Status will update automatically.");
 					setTimeout(() => this.loadZatca(true), 2500);
 				} finally { this.zatcaSending = false; this.busy(); }

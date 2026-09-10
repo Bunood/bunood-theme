@@ -234,7 +234,7 @@ def queue_invoice(invoice_name: str) -> dict[str, Any]:
     if record.get("integration_status") not in SENDABLE:
         frappe.throw(_("Review the ZATCA validation record before trying again."))
     frappe.enqueue(
-        "bunood_theme.zatca.submit_invoice",
+        "bunood_theme.zatca.status.submit_invoice",
         additional_fields_name=record["name"],
         queue="short",
         enqueue_after_commit=True,

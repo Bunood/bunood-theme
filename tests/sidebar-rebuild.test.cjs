@@ -15,6 +15,16 @@ test('All Apps in workspace menu opens the native desktop grid', () => {
   menu.find(item=>item.label==='All Apps').run();
   assert.equal(destination,'desktop');
 });
+test('legacy /apps address redirects to the native desktop grid', () => {
+  let destination;
+  const source = js.match(/function redirect_apps_alias\(\) \{([\s\S]*?)\n\t\}/)[0];
+  const redirect = vm.runInNewContext('(' + source + ')', {
+    location:{pathname:'/desk/apps'}, window:{frappe:{}},
+    frappe:{set_route:value=>{destination=value;}},
+  });
+  assert.equal(redirect(), true);
+  assert.equal(destination, 'desktop');
+});
 test('filled workspace header chevron uses on-brand contrast', () => {
   const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_sidebar.scss'),'utf8');
   const rule=css.match(/\.bnd-sb-head-chev \{([\s\S]*?)\n  \}/)[1];

@@ -2,6 +2,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+test('production asset build ships the bill and simplified-form controllers', () => {
+  const build = fs.readFileSync('build.mjs', 'utf8');
+  assert.match(build, /DESK_JS_SOURCES = \["bunood\.js", "sales_bill\.js", "simple_forms\.js"\]/);
+  assert.match(build, /key === "bunood"[\s\S]*?await readDeskJs\(\)/);
+  assert.match(build, /key: "bnd-studio", src: "report_studio\.js", pyid: "STUDIO_JS"/);
+  const boot = fs.readFileSync('bunood_theme/boot.py', 'utf8');
+  assert.match(boot, /from bunood_theme\.assets import STUDIO_JS[\s\S]*?bootinfo\.bnd_studio_js = STUDIO_JS/);
+});
+test('ZATCA calls the package module that actually owns the whitelisted facade', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /bunood_theme\.zatca\.status\.get_status/);
+  assert.match(source, /bunood_theme\.zatca\.status\.queue_invoice/);
+  assert.doesNotMatch(source, /bunood_theme\.zatca\.(?:get_status|queue_invoice)/);
+});
 test('redesigned bill keeps essential native controls visible without duplicating option controls', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   assert.match(source, /primaryFields = \["posting_date", "due_date",.*"bill_no", "bill_date"/);
@@ -417,8 +431,8 @@ test('native asynchronous Payment errors remain observable', async () => {
 });
 test('sales invoices expose the credential-free Bunood ZATCA facade', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  assert.match(source,/bunood_theme\.zatca\.get_status/);
-  assert.match(source,/bunood_theme\.zatca\.queue_invoice/);
+  assert.match(source,/bunood_theme\.zatca\.status\.get_status/);
+  assert.match(source,/bunood_theme\.zatca\.status\.queue_invoice/);
   assert.match(source,/Sales Invoice Additional Fields/);
   assert.doesNotMatch(source,/production_security_token|production_secret|security_token/);
 });
