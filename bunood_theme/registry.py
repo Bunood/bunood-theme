@@ -511,14 +511,14 @@ LAYOUT_TENANTS = {
         "search_placement": "Side Pane Start",
     },
     "Taskbar": {
-        # The start button is what makes this a taskbar.
-        "start_placement": "Bottom Bar Start",
+        # The page head owns the one stable pane toggle on every desktop.
+        "start_placement": "Off",
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
     },
     "Top Taskbar": {
-        "start_placement": "Top Bar Start",
+        "start_placement": "Off",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
@@ -532,8 +532,7 @@ LAYOUT_TENANTS = {
         "search_placement": "Side Pane Start",
     },
     "Floating Bar": {
-        # The pill's own way back to the pane this row switches off.
-        "start_placement": "Dock Start",
+        "start_placement": "Off",
         "inbox_placement": "Dock End",
         "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form
@@ -627,13 +626,11 @@ MARKS = [
         "part": "panetoggle",
         "label": "Side pane toggle",
         "type": MARK,
-        "selector": ".bnd-topbar .bnd-sidebar-toggle",
-        # Rail mode deliberately has one independent control in the top bar;
-        # the former edge/header buttons were retired because they duplicated
-        # Frappe's own collapse affordances and moved with the pane. Hiding the
-        # native page-title toggle is legal ONLY from data-bnd-own~="panetoggle",
-        # stamped after this control and its wiring are actually live.
-        "native": ".page-title .sidebar-toggle-btn",
+        "selector": ".page-head .bnd-pagehead-sidebar-toggle",
+        # The independent control now lives in the page head beside Frappe's
+        # workspace/Home control.  It replaces only the pane-edge collapse
+        # link; the workspace control remains a distinct destination.
+        "native": ".body-sidebar .collapse-sidebar-link",
         "regions": (),
         "toggle": None,
         "critical": False,

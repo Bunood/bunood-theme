@@ -700,12 +700,28 @@ html[data-bnd-sb-panestate="open"] .body-sidebar-container {
   // on cursor direction, which its click-only life never surfaced.
   .sidebar-resize-handle {
     cursor: col-resize;
+    // Frappe centres this strip across the pane edge. Its in-pane half can sit
+    // under the fixed sidebar surface, making the advertised eight-pixel hit
+    // area behave like four pixels. Keep the whole target on the content side
+    // of the boundary; the pseudo-element remains exactly on the edge.
+    inset-inline-start: auto;
+    inset-inline-end: -8px;
+
+    &::after {
+      inset-inline-start: 0;
+      inset-inline-end: auto;
+      transform: translateX(-50%);
+    }
 
     &:focus-visible {
       outline: 2px solid var(--bnd-accent); // the canonical ring token
       outline-offset: -2px;
     }
   }
+}
+
+html[dir="rtl"][data-bnd-sb-panestate="open"] .body-sidebar-container .sidebar-resize-handle::after {
+  transform: translateX(50%);
 }
 
 // THE DRAG (item 40, the user's free-pixel call — VS Code, not a detent).

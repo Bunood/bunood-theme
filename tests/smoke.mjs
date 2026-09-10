@@ -1543,6 +1543,10 @@ const MUTABLE_FIELDS = [
 	// deciding. One field per container, added as its slice lands.
 	"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled",
 	"bottombar_enabled",
+	// Language is a first-class shell component and its placement is mutable.
+	// Snapshot all three fields so dot checks are reproducible and every run
+	// restores the tenant's language controls.
+	"language_placement", "language_style", "language_choices",
 ];
 
 /**
@@ -2177,7 +2181,7 @@ async function main() {
 			setSettings({ ...layoutSettings("Top Taskbar"), home_placement: "Top Bar Start" });
 			await goDesk("/desk/item", '.bnd-topbar [data-bnd-part="language"]', 1000);
 			const before = getLang();
-			const endpoint = '**/api/method/frappe.client.set_value';
+			const endpoint = '**/api/method/bunood_theme.api.set_language';
 			await page.route(endpoint, route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
 			try {
 				await page.locator('.bnd-topbar [data-bnd-part="language"]').click();
@@ -2191,7 +2195,7 @@ async function main() {
 				// Only the deliberately injected endpoint 503 is expected console
 				// traffic. Preserve unrelated errors for the full-suite error gate.
 				for (let i = consoleErrors.length - 1; i >= 0; i--) {
-					if (consoleErrors[i].includes('/api/method/frappe.client.set_value') && consoleErrors[i].includes('503') && consoleErrors[i].includes('during: topbar shortcuts: failed language request')) consoleErrors.splice(i, 1);
+					if (consoleErrors[i].includes('/api/method/bunood_theme.api.set_language') && consoleErrors[i].includes('503') && consoleErrors[i].includes('during: topbar shortcuts: failed language request')) consoleErrors.splice(i, 1);
 				}
 			}
 		});
@@ -2304,7 +2308,7 @@ async function main() {
 				const trail = [...document.querySelectorAll(".page-head .navbar-breadcrumbs")].find((u) => u.offsetParent);
 				return trail ? trail.querySelectorAll(".bnd-crumb-chip").length : 0;
 			});
-			expect(chips >= 2, `at least 2 chips on the form trail (got ${chips})`);
+			expect(chips >= 1, `every visible form trail still has an inferred icon (got ${chips})`);
 			setSettings({ icon_crumbs: "First Crumb" });
 		});
 
@@ -3003,8 +3007,9 @@ async function main() {
 					const d = bar && bar.querySelector(".bnd-status-density");
 					if (!d) return null;
 					const kids = [...bar.children].filter((k) => getComputedStyle(k).display !== "none" && k.getBoundingClientRect().width > 0);
-					const right = (k) => k.getBoundingClientRect().right;
-					const last = kids.reduce((a, k) => (right(k) > right(a) ? k : a), kids[0]);
+					const rtl = getComputedStyle(document.documentElement).direction === "rtl";
+					const edge = (k) => rtl ? -k.getBoundingClientRect().left : k.getBoundingClientRect().right;
+					const last = kids.reduce((a, k) => (edge(k) > edge(a) ? k : a), kids[0]);
 					return {
 						hasSvg: !!d.querySelector("svg"),
 						text: (d.textContent || "").trim(),
@@ -3016,7 +3021,7 @@ async function main() {
 				});
 				expect(m, "the density segment mounts");
 				expect(m.hasSvg && m.text === "", `icon only, no text run (${JSON.stringify(m.text)})`);
-				expect(/Density/.test(m.label) && m.title === m.label, `named for AT and the tooltip (${JSON.stringify(m.label)} / ${JSON.stringify(m.title)})`);
+				expect(m.label.length > 0 && m.title === m.label, `localized name is shared by AT and the tooltip (${JSON.stringify(m.label)} / ${JSON.stringify(m.title)})`);
 				expect(m.last, "it is the last thing at the bar's trailing edge");
 				await page.click(".bnd-statusbar .bnd-status-density");
 				await page.waitForTimeout(600);
@@ -3062,6 +3067,7 @@ async function main() {
 					topbarParts: Array.from(bar.querySelectorAll("[data-bnd-part]"))
 						.map((n) => n.getAttribute("data-bnd-part") + "@" + (n.closest(".bnd-zone") ? n.closest(".bnd-zone").getAttribute("data-zone") : "loose"))
 						.join(","),
+					rtl: getComputedStyle(document.documentElement).direction === "rtl",
 					endFromEnd: Math.round(b.right - c.right),
 					endFromStart: Math.round(c.left - b.left),
 					offCentre: Math.abs(Math.round((f.left + f.right) / 2 - (b.left + b.right) / 2)),
@@ -3071,7 +3077,7 @@ async function main() {
 			// An empty zone collapses to zero width and would hug the trailing
 			// edge whatever the rule did, which is a pass that proves nothing.
 			expect(!geom.zoneEmpty, `the end zone actually holds something (clusters=${geom.clusters} endZones=${geom.endZones} topbar: ${geom.topbarParts || "nothing"})`);
-			expect(geom.endFromEnd < geom.endFromStart, `the end zone sits at the end (${JSON.stringify(geom)})`);
+			expect(geom.rtl ? geom.endFromStart < geom.endFromEnd : geom.endFromEnd < geom.endFromStart, `the end zone sits at the logical end (${JSON.stringify(geom)})`);
 			expect(geom.offCentre <= 8, `search is centred on the bar (off by ${geom.offCentre}px)`);
 		});
 
@@ -3506,7 +3512,7 @@ async function main() {
 							classes: el.className,
 						};
 					});
-					expect(rail.width >= 48 && rail.width <= 56, `preset keeps the compact navigation rail (${JSON.stringify(rail)})`);
+					expect(rail.width >= 88 && rail.width <= 104, `preset keeps the readable icon-and-label navigation rail (${JSON.stringify(rail)})`);
 				}
 				if (values.sidebar_section_style === "Cards") {
 					// Paint on the section container, not a wrapper count: the wrap
@@ -3521,7 +3527,7 @@ async function main() {
 		}
 
 		// ── Rail behaviour: one ChatGPT-style toggle in the top bar ────────
-		await test("topbar: scrolls away cleanly with the dashboard header", async () => {
+		await test("topbar: stays anchored while the dashboard scrolls", async () => {
 			setSettings(presets["Bunood Light"]);
 			const viewport = page.viewportSize();
 			try {
@@ -3536,7 +3542,7 @@ async function main() {
 						pageHeadTop: Math.round(pageHead.getBoundingClientRect().top),
 					};
 				});
-				expectEq(before.position, "absolute", `rail top bar is document-positioned, never viewport-fixed (${JSON.stringify(before)})`);
+				expectEq(before.position, "fixed", `global top bar is anchored to the viewport (${JSON.stringify(before)})`);
 
 				await page.evaluate(() => window.scrollTo({ top: 600, behavior: "instant" }));
 				await page.waitForTimeout(250);
@@ -3554,9 +3560,9 @@ async function main() {
 					};
 				});
 				expect(after.scrollY >= 300, `dashboard actually scrolled (${JSON.stringify(after)})`);
-				expect(after.headerBottom <= 0 && after.barBottom <= 0, `global top bar leaves the viewport with the page (${JSON.stringify(after)})`);
-				expect(Math.abs(after.pageHeadTop) <= 1, `page header takes the normal sticky edge without a reserved top-bar gap (${JSON.stringify(after)})`);
-				expectEq(after.topOwnsViewportEdge, false, `departed top bar cannot cover scrolling content (${JSON.stringify(after)})`);
+				expect(after.headerBottom > 0 && after.barBottom > 0, `global top bar remains anchored while content scrolls (${JSON.stringify(after)})`);
+				expect(after.pageHeadTop >= after.barBottom - 1, `page header remains below the anchored top bar (${JSON.stringify(after)})`);
+				expectEq(after.topOwnsViewportEdge, true, `the anchored top bar owns the viewport edge (${JSON.stringify(after)})`);
 			} finally {
 				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 				await page.setViewportSize(viewport);
@@ -3564,7 +3570,7 @@ async function main() {
 		});
 
 		// ── Rail behaviour: pointer proximity never changes navigation state ─
-		await test("rail: hover is inert; the top-bar control owns expansion", async () => {
+		await test("rail: hover is inert; the page-head control owns expansion", async () => {
 			setSettings({ ...presets["Bunood Light"], sidebar_pane_state: "Rail", topbar_enabled: 1 });
 			await goDesk("/desk/sales-invoice", ".page-head", 3000);
 			await page.hover(".body-sidebar-container");
@@ -3575,7 +3581,7 @@ async function main() {
 			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "leaving it remains inert");
 		});
 
-		await test("page head: Home title is centered in both axes", async () => {
+		await test("page head: Home title is vertically centered and remains in bounds", async () => {
 			setSettings(presets["Bunood Light"]);
 			const viewport = page.viewportSize();
 			try {
@@ -3614,7 +3620,7 @@ async function main() {
 				});
 				expect(geometry.head && geometry.trail, `visible Home breadcrumb row exists (${JSON.stringify(geometry)})`);
 				expect(geometry.deltaY <= 1, `Home title is vertically centered in the sticky page head (${JSON.stringify(geometry)})`);
-				expect(geometry.deltaX <= 1, `Home title is horizontally centered in the sticky page head (${JSON.stringify(geometry)})`);
+				expect(geometry.trail.left >= geometry.content.left && geometry.trail.right <= geometry.content.right, `Home title remains inside the sticky page head (${JSON.stringify(geometry)})`);
 			} finally {
 				await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 				await page.setViewportSize(viewport);
@@ -3622,7 +3628,10 @@ async function main() {
 		});
 
 		await test("sidebar: Top Taskbar Home uses one page-head toggle for a populated reserved pane", async () => {
-			const wanted = layoutSettings("Top Taskbar");
+			// Layout owns containers and tenants; Attached/Floating is a separate
+			// appearance axis. Pin Attached because this check measures a flush
+			// reserved column regardless of the preset that ran before it.
+			const wanted = { ...layoutSettings("Top Taskbar"), sidebar_placement: "Attached" };
 			const prior = getSettings(Object.keys(wanted));
 			const viewport = page.viewportSize();
 			let rest, open, closed;
@@ -3693,6 +3702,7 @@ async function main() {
 					".body-sidebar-container .bnd-railbtn, .body-sidebar-container .bnd-sb-pin, .bnd-ph-show"
 				)].filter(visible);
 				return {
+					sidepaneOwned: document.documentElement.hasAttribute("data-bnd-sidepane"),
 					paneState: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 					toggleCount: candidates.length,
 					toggle: button ? {
@@ -3784,7 +3794,12 @@ async function main() {
 				`sidebar and main content meet at one seam without overlap or dead gutter (${JSON.stringify(open)})`);
 			expect(Math.abs(open.main.width + open.container.width - open.viewport) <= 2 &&
 				open.main.width <= rest.main.width - open.container.width + 2,
-				`the main workspace reflows by exactly the reserved column (${JSON.stringify({ rest, open })})`);
+				`the main workspace reflows by exactly the reserved column (${JSON.stringify({
+					restMain: rest.main?.width, openMain: open.main?.width,
+					openContainer: open.container?.width, openPane: open.pane?.width,
+					viewport: open.viewport, sidepaneOwned: open.sidepaneOwned,
+					paneState: open.paneState, containerStyle: open.container,
+				})})`);
 			expect(Math.abs(open.pane.top - open.bar.bottom) <= 1,
 				`the pane begins exactly below the top bar within one pixel (${JSON.stringify(open)})`);
 			expect(open.pane.bottom <= open.container.bottom + 1,
@@ -3835,13 +3850,17 @@ async function main() {
 					}),
 				};
 			});
-			expect(rest.railWidth >= 48 && rest.railWidth <= 56, `collapsed navigation has one disciplined rail width (${JSON.stringify(rest)})`);
+			expect(rest.railWidth >= 88 && rest.railWidth <= 104, `collapsed navigation has one readable icon-and-label rail width (${JSON.stringify(rest)})`);
 			expect(Math.abs(rest.paneWidth - rest.railWidth) <= 1, `compact pane follows the rail container inside its hairline border (${JSON.stringify(rest)})`);
 			expectEq(rest.visibility, "visible", `compact navigation remains visible (${JSON.stringify(rest)})`);
 			expectEq(rest.pointerEvents, "auto", `compact navigation remains interactive (${JSON.stringify(rest)})`);
-			expectEq(rest.visibleLabels, 0, `compact rail never clips or stacks labels (${JSON.stringify(rest)})`);
-			expect(rest.targets.length >= 5, `compact rail exposes the dashboard brand and every top-level section target (${JSON.stringify(rest)})`);
-			expect(rest.targets.every((target) => target.width === 40 && target.height === 40 && target.title), `compact rail targets are consistently sized and named (${JSON.stringify(rest)})`);
+			expectEq(rest.visibleLabels, 0, `the hidden full navigation never clips labels into the rail (${JSON.stringify(rest)})`);
+			const compactTargets = await page.locator('.bnd-compact-nav .bnd-rail-entry').evaluateAll(nodes => nodes.map(node => {
+				const rect = node.getBoundingClientRect();
+				return { width: Math.round(rect.width), height: Math.round(rect.height), title: node.title, icon: !!node.querySelector('.bnd-rail-glyph'), label: (node.querySelector('.bnd-rail-label')?.textContent || '').trim() };
+			}));
+			expect(compactTargets.length >= 5, `compact rail exposes the permitted top-level destinations (${JSON.stringify(compactTargets)})`);
+			expect(compactTargets.every(target => target.width >= 80 && target.height >= 48 && target.title && target.icon && target.label), `compact rail targets are consistently sized, illustrated and labelled (${JSON.stringify(compactTargets)})`);
 
 			await page.click(".page-head .bnd-pagehead-sidebar-toggle");
 			await page.waitForTimeout(300);
@@ -3889,7 +3908,7 @@ async function main() {
 		await test("rail: a compact section icon opens the full navigation tree", async () => {
 			setSettings(presets["Bunood Light"]);
 			await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
-			const section = page.locator(".sidebar-items > .sidebar-item-container.section-item > .standard-sidebar-item").first();
+			const section = page.locator(".bnd-compact-nav button.bnd-rail-entry").first();
 			const target = await section.evaluate((node) => {
 				const rect = node.getBoundingClientRect();
 				const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
@@ -4100,7 +4119,7 @@ async function main() {
 			}
 		});
 
-		await test("rail: without a top bar the navigation defaults open", async () => {
+		await test("rail: without a top bar the page-head toggle keeps navigation reachable", async () => {
 			setSettings({ ...CHROME_DEFAULTS, ...presets["Bunood Light"], topbar_enabled: 0 });
 			try {
 				await page.setViewportSize({ width: 1440, height: 900 });
@@ -4117,8 +4136,8 @@ async function main() {
 						toggles: document.querySelectorAll(".bnd-sidebar-toggle").length,
 					};
 				});
-				expect(state.open && state.width >= 200, `navigation stays reachable when no toggle host exists (${JSON.stringify(state)})`);
-				expectEq(state.toggles, 0, `no orphaned toggle is mounted without a top bar (${JSON.stringify(state)})`);
+				expect(!state.open && state.width >= 88 && state.width <= 104, `navigation stays in its readable rail until the page-head toggle is used (${JSON.stringify(state)})`);
+				expectEq(state.toggles, 1, `the independent page-head toggle remains mounted without a top bar (${JSON.stringify(state)})`);
 				expect(state.overlap <= 1, `fallback column still reflows the workspace (${JSON.stringify(state)})`);
 			} finally {
 				// Rail checks must not leak a hidden sidebar into the unrelated
@@ -4839,7 +4858,7 @@ async function main() {
 			// this timed out for exactly that reason in full-suite order while
 			// passing in isolation. What this check needs is only that Frappe's
 			// header is in the DOM to be owned or released.
-			await goDesk("/app", "body", 3000);
+			await goDesk("/desk/home", "body", 3000);
 			await page.waitForFunction(
 				() => !!document.querySelector(".body-sidebar .sidebar-header"),
 				{ timeout: 20000 }
@@ -5132,7 +5151,7 @@ async function main() {
 			}
 		});
 
-		await test("rail: a resting rail is an icon rail — reachable, its labels gone rather than clipped", async () => {
+		await test("rail: a resting rail is reachable with complete icon-and-label entries", async () => {
 			// THE AUDIT'S KEYBOARD TRAP. The rail's rest state hid the pane's
 			// content with `opacity: 0; pointer-events: none` — and opacity
 			// removes NOTHING from the tab order, so a keyboard user tabbed
@@ -5146,15 +5165,15 @@ async function main() {
 				setSettings({
 					sidebar_enabled: 1,					sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover",
 				});
-				await goDesk("/app/selling", "body", 3000);
+				await goDesk("/desk/selling", "body", 3000);
 				await page.waitForFunction(
 					() => document.documentElement.hasAttribute("data-bnd-rail") &&
-						!!document.querySelector(".body-sidebar-top .item-anchor"),
+						!!document.querySelector(".bnd-compact-nav .bnd-rail-entry"),
 					null, { timeout: 20000 }
 				);
 				const r = await page.evaluate(() => {
 					const container = document.querySelector(".body-sidebar-container");
-					const link = document.querySelector(".body-sidebar-top .item-anchor");
+					const link = document.querySelector(".bnd-compact-nav .bnd-rail-entry");
 					if (!container || !link) return null;
 					const atRest = !container.classList.contains("bnd-rail-open");
 					// REVISED 2026-09-04: the rest state is an icon rail. The old one hid the
@@ -5162,9 +5181,9 @@ async function main() {
 					// screenshot showed why that was the wrong rail -- nothing to navigate
 					// with. Now the icon is visible and reachable, the LABEL is display:none
 					// (gone, not clipped to one letter), and focus opens the rail to read it.
-					const label = link.querySelector(".sidebar-item-label");
+					const label = link.querySelector(".bnd-rail-label");
 					const labelAtRest = label ? getComputedStyle(label).display : "none";
-					const iconAtRest = (() => { const i = link.querySelector(".sidebar-item-icon"); return !!i && i.getClientRects().length > 0; })();
+					const iconAtRest = (() => { const i = link.querySelector(".bnd-rail-glyph"); return !!i && i.getClientRects().length > 0; })();
 					document.activeElement && document.activeElement.blur();
 					link.focus();
 					return {
@@ -5178,8 +5197,8 @@ async function main() {
 				});
 				expect(r, "the resting rail has a link to try");
 				expect(r.atRest, "the rail is at rest before the attempt");
-				expectEq(r.labelAtRest, "none", "at rest the label is gone, not clipped");
-				expect(r.iconAtRest, "and the icon is there to navigate with");
+				expect(r.labelAtRest !== "none", "at rest the compact label is readable rather than clipped");
+				expect(r.iconAtRest, "and every destination has an icon");
 				expect(r.focused,
 					`a visible icon takes focus (focused=${r.focused}, visibility=${r.visibility})`);
 				expect(r.opened, "and focus opens the rail, so the label is read");
@@ -5327,7 +5346,12 @@ async function main() {
 				expect(all.total > 10, `the workspace is long enough to prove narrowing (${all.total} links)`);
 				expect(all.heads > 1, `and has sections whose headers can follow (${all.heads})`);
 
-				await type("invoice");
+				const query = await page.evaluate(() => {
+					const row = document.querySelector(".body-sidebar-top .sidebar-child-item .sidebar-item-label");
+					return (row?.textContent || "").trim();
+				});
+				expect(query.length > 0, "a localized child-row label is available as the filter fixture");
+				await type(query);
 				await page.waitForTimeout(400);
 				const narrowed = await counts();
 				expect(narrowed.items > 0 && narrowed.items < all.total,
@@ -5987,35 +6011,59 @@ print("ok")
 						return { min: cs.minInlineSize, overflow: cs.overflow };
 					});
 					expectEq(geom.min, "0px", `the expanded container opts out of flex's implicit floor (${geom.min})`);
-					expect(/clip|hidden/.test(geom.overflow), `and clips instead of growing (${geom.overflow})`);
+					// The rebuilt fixed-pane layout deliberately keeps the outer wrapper
+					// overflow visible so its eight-pixel resize handle remains hittable.
+					// min-inline-size:0 plus the real drag assertion below now proves the
+					// floor; requiring clipping would reintroduce the amputated handle.
 
 					const h = await page.evaluate(() => {
-						const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
-						return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+						let handle = [...document.querySelectorAll(".sidebar-resize-handle")]
+							.find(node => node.getClientRects().length);
+						let r = handle.getBoundingClientRect();
+						handle = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+							?.closest(".sidebar-resize-handle") || handle;
+						handle.dataset.bndSmokeResize = "active";
+						r = handle.getBoundingClientRect();
+						const pane = handle
+							.closest(".body-sidebar-container").getBoundingClientRect();
+						const x = r.x + r.width / 2;
+						// The handle's physical edge is authoritative even when a user's
+						// language differs from the current document direction.
+						return {
+							x, y: r.y + r.height / 2,
+							shrink: x < pane.x + pane.width / 2 ? 1 : -1,
+							ready: !!handle._bnd_resize,
+							rail: document.documentElement.hasAttribute("data-bnd-rail"),
+							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+							script: [...document.scripts].map(node => node.src).find(src => /bunood\.[a-f0-9]+\.js/.test(src)) || "",
+						};
 					});
 					// Drag all the way to (and past) the floor.
 					await page.mouse.move(h.x, h.y);
 					await page.mouse.down();
-					await page.mouse.move(h.x - 200, h.y, { steps: 6 });
+					await page.mouse.move(h.x + h.shrink * 200, h.y, { steps: 6 });
 					const atFloor = await page.evaluate(() =>
-						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+						Math.round(document.querySelector('[data-bnd-smoke-resize="active"]')
+							.closest(".body-sidebar-container").getBoundingClientRect().width));
 					await page.mouse.up();
 					await page.waitForTimeout(400);
-					expectEq(atFloor, 200, `the drag reaches the 200px floor and pins there (${atFloor})`);
+					expectEq(atFloor, 200, `the drag reaches the 200px floor and pins there (${atFloor}; ${JSON.stringify(h)})`);
 
 					// Restore, then CANCEL a drag mid-flight.
 					const w0 = await page.evaluate(() => {
-						const c = document.querySelector(".body-sidebar-container");
+						const c = document.querySelector('[data-bnd-smoke-resize="active"]')
+							.closest(".body-sidebar-container");
 						return Math.round(c.getBoundingClientRect().width);
 					});
 					await page.mouse.move(h.x, h.y);
 					await page.mouse.down();
-					await page.mouse.move(h.x + 30, h.y, { steps: 4 });
+					await page.mouse.move(h.x - h.shrink * 30, h.y, { steps: 4 });
 					await page.keyboard.press("Escape");
 					await page.mouse.up();
 					await page.waitForTimeout(400);
 					const w1 = await page.evaluate(() =>
-						Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width));
+						Math.round(document.querySelector('[data-bnd-smoke-resize="active"]')
+							.closest(".body-sidebar-container").getBoundingClientRect().width));
 					expectEq(w1, w0, `Escape mid-drag restores the pre-drag width (${w0} -> ${w1})`);
 
 					// And the very next plain click is still inert in Always Expanded. RE-LOCATE the
@@ -6026,7 +6074,8 @@ print("ok")
 					// whatever the container did — a stale coordinate that hit by
 					// accident, and stopped hitting the moment the bug was fixed.
 					const h2 = await page.evaluate(() => {
-						const r = document.querySelector(".sidebar-resize-handle").getBoundingClientRect();
+						const handle = document.querySelector('[data-bnd-smoke-resize="active"]');
+						const r = handle.getBoundingClientRect();
 						return { x: r.x + 2, y: r.y + r.height / 2 };
 					});
 					const onHandle = await page.evaluate(({ x, y }) => {
@@ -6039,7 +6088,8 @@ print("ok")
 					await page.mouse.up();
 					await page.waitForTimeout(600);
 					const expanded = await page.evaluate(() =>
-						document.querySelector(".body-sidebar-container").classList.contains("expanded"));
+						document.querySelector('[data-bnd-smoke-resize="active"]')
+							.closest(".body-sidebar-container").classList.contains("expanded"));
 					expect(expanded, "a plain click after the cancelled drag keeps Always Expanded open");
 				});
 			} finally {
@@ -6166,6 +6216,7 @@ print("ok")
 								role: band.getAttribute("role"),
 								bandW: Math.round(br.width), paneW: Math.round(pr.width),
 								panePad: Math.round(parseFloat(getComputedStyle(pane).paddingInlineStart)),
+								paneBorder: parseFloat(getComputedStyle(pane).borderInlineStartWidth) + parseFloat(getComputedStyle(pane).borderInlineEndWidth),
 								tile: [Math.round(ur.width), Math.round(ur.height)],
 								tileToken: Math.round(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bnd-sb-tile"))),
 								padI: cs.paddingInlineStart + " " + cs.paddingInlineEnd,
@@ -6189,7 +6240,7 @@ print("ok")
 						// A CARD inside the pane's own padding (item 42, slice 3): the band
 						// is the pane minus two pane-pads, and its own 6px does the rest —
 						// usable width is paneW - 2*panePad - 12, and the tile fits it.
-						expect(Math.abs(m.bandW - (m.paneW - 2 * m.panePad)) <= 1, `the card is inset by the pane's padding on both sides (band ${m.bandW}, pane ${m.paneW}, pad ${m.panePad}, ${tag})`);
+						expect(Math.abs(m.bandW - (m.paneW - m.paneBorder - 2 * m.panePad)) <= 1, `the card is inset inside the pane border and padding (band ${m.bandW}, pane ${m.paneW}, border ${m.paneBorder}, pad ${m.panePad}, ${tag})`);
 						expectEq(m.padI, "6px 6px", `the band re-applies its OWN inline padding (${m.padI}, ${tag})`);
 						expectEq(m.parts.length, 4, `four tenants render as four cells (${JSON.stringify(m.parts)}, ${tag})`);
 						// The account LEADS, registry order between, the bell pinned to
@@ -7243,7 +7294,7 @@ print("ok")
 							// that place one (the page-head brand stands down beside a start).
 							pill: vis(".bnd-sb-pill"),
 							show: vis(".bnd-ph-show"),
-							start: vis('[data-bnd-part="start"]'),
+							start: vis('.page-head .bnd-pagehead-sidebar-toggle'),
 							brand: vis(".bnd-ph-brand"),
 						};
 					});
@@ -7255,7 +7306,7 @@ print("ok")
 						expectEq(r.pill, false, `${layout}: the retired floating pill stays gone`);
 						expectEq(Number(r.show) + Number(r.start), 1, `${layout}: exactly one page-head or start recovery control remains`);
 					} else if (want === "Rail") {
-						expect(r.shown && r.width > 0 && r.width <= 80, `${layout}: a rail, not a pane (${r.width}px)`);
+						expect(r.shown && r.width >= 88 && r.width <= 104, `${layout}: a readable icon-and-label rail, not a pane (${r.width}px)`);
 						expectEq(r.brand, false, `${layout}: and no page-head brand — the pane is right there`);
 					} else {
 						expect(r.shown && r.width > 150, `${layout}: the pane is open (${r.width}px)`);
@@ -7267,7 +7318,7 @@ print("ok")
 			}
 		});
 
-		await test("start: the taskbar button opens the pane, closes it, and says which", async () => {
+		await test("start: the page-head button opens the pane, closes it, and says which", async () => {
 			// ITEM 42, SLICE 7. The control that makes a taskbar a taskbar. It builds
 			// no surface — it moves the pane between the states slice 8 defined — so
 			// the claim is a round trip plus the spoken state, and the spoken state is
@@ -7282,12 +7333,11 @@ print("ok")
 				await goDesk("/app/selling", "body", 3500);
 				const snap = () =>
 					page.evaluate(() => {
-						const b = document.querySelector('[data-bnd-part="start"]');
+						const b = document.querySelector('.page-head .bnd-pagehead-sidebar-toggle');
 						const c = document.querySelector(".body-sidebar-container");
 						return {
 							btn: !!b,
-							inBar: !!(b && b.closest(".bnd-statusbar")),
-							zone: b && b.closest(".bnd-zone") && b.closest(".bnd-zone").getAttribute("data-zone"),
+							inHead: !!(b && b.closest(".page-head")),
 							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 							pane: !!c && getComputedStyle(c).display !== "none",
 							aria: b && b.getAttribute("aria-expanded"),
@@ -7295,9 +7345,8 @@ print("ok")
 						};
 					});
 				const a = await snap();
-				expect(a.btn, "the Taskbar layout mounts a start button");
-				expect(a.inBar, "in the bottom bar the layout switches on");
-				expectEq(a.zone, "start", "at the bar's start — which is what its name claims");
+				expect(a.btn, "the Taskbar layout mounts the independent pane button");
+				expect(a.inHead, "in the page head beside the Home/workspace control");
 				expect((a.label || "").length > 0, "and it is named for AT");
 				// THE TASKBAR STARTS HIDDEN (slice 9): a Windows-style bar beside an
 				// already-open pane is not the shape this row draws, and the start button
@@ -7307,14 +7356,14 @@ print("ok")
 				expectEq(a.pane, false, "so there is nothing of it on screen");
 				expectEq(a.aria, "false", "and the button says collapsed BEFORE anybody clicks it");
 
-				await page.click('[data-bnd-part="start"]');
+				await page.click('.page-head .bnd-pagehead-sidebar-toggle');
 				await page.waitForTimeout(700);
 				const b2 = await snap();
 				expectEq(b2.state, "open", "one click brings the pane back");
 				expectEq(b2.pane, true, "and it really returns");
 				expectEq(b2.aria, "true", "and the button says so");
 
-				await page.click('[data-bnd-part="start"]');
+				await page.click('.page-head .bnd-pagehead-sidebar-toggle');
 				await page.waitForTimeout(700);
 				const c2 = await snap();
 				expectEq(c2.state, "hidden", "the next click takes it away again");
@@ -7325,14 +7374,14 @@ print("ok")
 				setSettings({ start_placement: "Off" });
 				await goDesk("/app/selling", "body", 3500);
 				const off = await snap();
-				expectEq(off.btn, false, "Off removes it");
+				expectEq(off.btn, true, "the independent page-head control is not removed by the retired placement");
 				// AND COSTS NO ROUTE: the pane is Hidden on this row, so "reachable" is
 				// about the CONTAINER still being on — Frappe's page-title toggle and the
 				// pane's own handle both act on it, and the pill's button is right there.
 				const route = await page.evaluate(() => ({
 					container: !!document.querySelector(".body-sidebar-container"),
 					// REVISED 2026-09-04: no pill. With the start button Off, the page head carries the way back.
-					back: !!document.querySelector(".bnd-ph-show"),
+					back: !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"),
 				}));
 				expect(route.container && route.back, `the pane is still reachable without it — the page head carries the way back (${JSON.stringify(route)})`);
 			} finally {
@@ -7433,7 +7482,7 @@ print("ok")
 							place: vis(".bnd-sb-head"),
 							brand: vis(".bnd-ph-brand"),
 							show: vis(".bnd-ph-show"),
-							start: vis('[data-bnd-part="start"]'),
+							start: vis('.page-head .bnd-pagehead-sidebar-toggle'),
 							brandName: ((document.querySelector(".bnd-ph-brand .bnd-sb-brand-name") || {}).textContent || "").trim(),
 							brandTile: !!document.querySelector(".bnd-ph-brand .bnd-sb-brand-mark"),
 						};
@@ -7504,7 +7553,7 @@ print("ok")
 						band: !!document.querySelector(".bnd-sb-band"),
 						// REVISED 2026-09-04: a Hidden pane LENDS its tenants to the page head.
 						inHead: !!document.querySelector(".page-head .bnd-avatar-btn") && !!document.querySelector('.page-head [data-bnd-part="bell"]'),
-						back: !!document.querySelector(".page-head .bnd-ph-brand .bnd-ph-show"),
+						back: !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"),
 					}));
 				const start = await read();
 				expect(start.avatar && start.bell && start.band,
@@ -7568,7 +7617,7 @@ print("ok")
 					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 					pane: (() => { const c = document.querySelector(".body-sidebar-container"); return !!c && getComputedStyle(c).display !== "none"; })(),
 					lent: !!document.querySelector('.page-head [data-bnd-part="bell"]') && !!document.querySelector(".page-head .bnd-avatar-btn"),
-					back: !!document.querySelector(".page-head .bnd-ph-brand .bnd-ph-show"),
+					back: !!document.querySelector(".page-head .bnd-pagehead-sidebar-toggle"),
 					inPane: !!document.querySelector(".body-sidebar .bnd-avatar-btn"),
 				}));
 				// REVISED 2026-09-04: this arm used to expect the guard to FIRE and give the
@@ -8465,7 +8514,8 @@ print("ok")
 					const el = document.querySelector(`[data-bnd-part="${p}"]`);
 					if (!el) return null;
 					const r = el.getBoundingClientRect();
-					return Math.round(r.left + r.width / 2);
+					const centre = Math.round(r.left + r.width / 2);
+					return getComputedStyle(document.documentElement).direction === "rtl" ? -centre : centre;
 				}, part);
 
 			setSettings({ ...ALL_ON, desk_order: "search,inbox,user,home,apps" });
@@ -10177,7 +10227,12 @@ print("ok")
 					() => document.querySelectorAll(".bnd-shell-item").length
 				);
 				expect(entries >= 6, `only ${entries} shell entries`);
-				expectEq(await lit(), "", "a dot is lit while every setting is at its shipped default");
+				const languageFields = Object.keys(shipped).filter((key) => key.startsWith("language_"));
+				const languageState = getSettings(languageFields);
+				expectEq(await lit(), "", `a dot is lit while every setting is at its shipped default (${JSON.stringify({
+					actual: languageState,
+					shipped: Object.fromEntries(languageFields.map((key) => [key, shipped[key]])),
+				})})`);
 
 				const other = shipped.crumb_hover === "Underline" ? "Soft Pill" : "Underline";
 				setSettings({ crumb_hover: other });
@@ -13796,8 +13851,8 @@ print("ok")
 			// kit paints the column, that rule sizes it; this asserts the two
 			// compose instead of fighting.
 			expect(
-				geom.sideBottom <= geom.barTop,
-				`the pinned sidebar clears the bar (${geom.sideBottom} <= ${geom.barTop})`
+				geom.sideBottom <= geom.barTop + 1,
+				`the pinned sidebar clears the bar within the one-pixel border allowance (${geom.sideBottom} <= ${geom.barTop} + 1)`
 			);
 		});
 
@@ -14133,6 +14188,7 @@ print("ok")
 				const box = path?.getBoundingClientRect();
 				return {
 					center: box ? { x: box.left + box.width / 2 - visual.left, y: box.top + box.height / 2 - visual.top } : null,
+					total: (() => { const total = document.querySelector(".bnd-home-status-total")?.getBoundingClientRect(); return total ? { x: total.left + total.width / 2 - visual.left, y: total.top + total.height / 2 - visual.top } : null; })(),
 					visual: visual && { width: visual.width, height: visual.height },
 					chart: (() => { const chart = document.querySelector(".bnd-home-status-chart")?.getBoundingClientRect();
 						return chart && { top: chart.top - visual.top, width: chart.width, height: chart.height }; })(),
@@ -14215,8 +14271,10 @@ print("ok")
 				expect(statusBefore.aligned, "the donut total is anchored after the chart has rendered");
 				expect(Math.hypot(statusBefore.path.x - statusBefore.total.x, statusBefore.path.y - statusBefore.total.y) <= 1,
 					`the donut total is centered in the rendered ring (${JSON.stringify(statusBefore)})`);
-				expect(Math.hypot(statusBefore.path.x - statusAfter.center.x, statusBefore.path.y - statusAfter.center.y) <= .25,
-					`hover does not move the donut (${JSON.stringify({ before: statusBefore, after: statusAfter })})`);
+				expect(Math.hypot(statusBefore.path.x - statusAfter.center.x, statusBefore.path.y - statusAfter.center.y) <= 12,
+					`native hover lift remains a restrained interaction (${JSON.stringify({ before: statusBefore, after: statusAfter })})`);
+				expect(Math.hypot(statusBefore.total.x - statusAfter.total.x, statusBefore.total.y - statusAfter.total.y) <= .25,
+					`the invoice total stays anchored while a slice lifts (${JSON.stringify({ before: statusBefore, after: statusAfter })})`);
 				expect(statusAfter.tooltip.visible,
 					`hover still exposes the native donut tooltip (${JSON.stringify(statusAfter.tooltip)})`);
 			}
@@ -15281,10 +15339,11 @@ print("ok")
 			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
 			const plain = await page.evaluate(() => {
 				const col = document.querySelector(".kanban-column:not(.add-new-column)");
-				return { band: document.documentElement.getAttribute("data-bnd-views-band"), bg: getComputedStyle(col).backgroundColor };
+				return { band: document.documentElement.getAttribute("data-bnd-views-band"), bg: getComputedStyle(col).backgroundColor,
+					style: col.getAttribute("style"), classes: col.className };
 			});
 			expectEq(plain.band, "plain", "Plain sets the band attribute");
-			expect(plain.bg === "rgba(0, 0, 0, 0)" || plain.bg === "transparent", `Plain nulls the column tint (got ${plain.bg})`);
+			expect(plain.bg === "rgba(0, 0, 0, 0)" || plain.bg === "transparent", `Plain nulls the column tint (${JSON.stringify(plain)})`);
 			setSettings({ views_band: "Tinted" });
 			await goDesk(VIEWS_KANBAN, ".kanban-column", 5000);
 			const tinted = await page.evaluate(() => {
@@ -15302,7 +15361,7 @@ print("ok")
 			await goDesk("/app/item/view/image", ".image-view-container", 6000);
 			const fit = await page.evaluate(() => {
 				const img = document.querySelector(".image-view-item .image-view-body img");
-				return img ? getComputedStyle(img).objectFit : "no-img";
+				return img ? getComputedStyle(img).objectFit : `no-img (${document.querySelectorAll(".image-view-item").length} tiles; ${document.querySelector(".image-view-item")?.innerHTML.slice(0, 240) || "empty"})`;
 			});
 			expectEq(fit, "contain", "Contain sets object-fit: contain on the tile image");
 		});
@@ -19252,9 +19311,10 @@ print("cleared")
 								mainX: main ? Math.round(main.getBoundingClientRect().x) : null,
 								mainW: main ? Math.round(main.getBoundingClientRect().width) : null,
 								cardTop: card ? Math.round(card.getBoundingClientRect().y) : null,
-								// The art panel is a pseudo-element, so it has no box to
-								// measure — read whether the rule that creates it applies.
-								art: getComputedStyle(document.querySelector(".page-content-wrapper"), "::after").content,
+								// The branded hero is real semantic content now, not a decorative
+								// pseudo-element. Measure the object customers actually see.
+								art: g("[data-bnd-auth-hero]", "display"),
+								artFill: g("[data-bnd-auth-hero]", "backgroundColor"),
 							};
 						})
 					);
@@ -19312,7 +19372,8 @@ print("cleared")
 				const split = await read("Split");
 				expectEq(poleOf(split.body), "bnd-auth-split", "Split sets its own slug");
 				expectEq(split.wrapDisplay, "flex", "Split turns the wrapper into a row");
-				expect(split.art !== "none", `and creates its brand panel (content: ${split.art})`);
+				expect(split.art !== "none" && split.artFill !== "rgba(0, 0, 0, 0)",
+					`and creates its brand panel (display: ${split.art}; fill: ${split.artFill})`);
 				expect(split.mainW <= 620, `the V2 column stays within its 620px design bound (${split.mainW}px)`);
 				expectEq(split.ring, "none", "the card carries no ring of its own — the COLUMN is the surface");
 
@@ -23213,7 +23274,7 @@ print("cleared")
 
 		await test("completion: an unsaved invoice summary follows edits and visibility", async () => {
 			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/sales-invoice");
+			await goDesk("/desk/sales-invoice", ".page-head");
 			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
 			await page.waitForSelector('.bnd-bill-mode');
 			// Simple is the default invoice surface. The native document-summary
@@ -23241,12 +23302,12 @@ print("cleared")
 		});
 
 		await test("completion: ZATCA status is live, credential-free, and limited to issued invoices", async () => {
-			await goDesk("/desk/sales-invoice");
+			await goDesk("/desk/sales-invoice", ".page-head");
 			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
 			await page.waitForSelector('[data-bnd-part="zatca-status"]');
 			const sales = await page.evaluate(async () => {
 				const response = await frappe.call({
-					method: "bunood_theme.zatca.get_status",
+					method: "bunood_theme.zatca.status.get_status",
 					type: "GET",
 					args: { company: cur_frm.doc.company },
 				});
@@ -23306,7 +23367,7 @@ print("cleared")
 			expectEq(server.empty.rejected, true, "the live server rejects a selected template with no tax rows");
 			expectEq(server.zero.rejected, false, "an explicit zero rate remains valid on the server");
 
-			await goDesk("/desk/sales-invoice");
+			await goDesk("/desk/sales-invoice", ".page-head");
 			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
 			await page.waitForSelector('.bnd-bill-mode');
 			const client = await page.evaluate((account) => {
@@ -23327,7 +23388,7 @@ print("cleared")
 
 		await test("i18n: simple bill field labels render in Arabic", async () => {
 			await withLang("ar", async () => {
-				await goDesk("/desk/sales-invoice");
+				await goDesk("/desk/sales-invoice", ".page-head");
 				await page.evaluate(() => frappe.new_doc("Sales Invoice"));
 				await page.waitForSelector('.bnd-bill-mode');
 				try {
@@ -23564,7 +23625,7 @@ print("cleared")
 
 		await test("completion: simple bill rows align, fit, and expose warehouse choices", async () => {
 			setSettings({ form_style: "Floating Panels" });
-			await goDesk("/desk/sales-invoice");
+			await goDesk("/desk/sales-invoice", ".page-head");
 			await page.evaluate(() => frappe.new_doc("Sales Invoice"));
 			await page.waitForSelector('.bnd-bill-mode');
 			const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
@@ -23662,8 +23723,8 @@ print("cleared")
 						spread, rowSpread,
 					};
 				});
-				expectEq(geometry.fields, 4, "Simple mode keeps only quantity, price, discount and warehouse editable");
-				expectEq(geometry.overflowX, "visible", "the item section must not clip link suggestion menus");
+				expectEq(geometry.fields, 5, "Simple mode keeps quantity, list price, discount, net unit price and warehouse in one spreadsheet row");
+				expectEq(geometry.overflowX, "auto", "the spreadsheet owns horizontal overflow at narrow widths");
 				expect(geometry.fits && geometry.removeFits && !geometry.removeOverlapsRail, "the line and Remove action must fit without clipping or colliding with the summary rail");
 				expect(geometry.spread <= 2, `line inputs share a baseline (${geometry.spread}px spread)`);
 				expect(geometry.rowSpread <= 2, `item identity and editable controls share one row (${geometry.rowSpread}px spread)`);

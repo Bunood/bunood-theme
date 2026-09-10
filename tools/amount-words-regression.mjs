@@ -22,6 +22,10 @@ print(json.dumps(dict(passed=result.wasSuccessful(),tests=result.testsRun,output
 `);
 writeFileSync(join(out,'unit-results.json'),JSON.stringify(units,null,2));
 if(!units.passed) throw new Error(units.output);
+if(process.argv.includes('--units-only')) {
+ console.log(`amount words: ${units.tests} site-backed unit tests passed`);
+ process.exit(0);
+}
 
 const cases=[
  ['sales-ar','Sales Invoice','ACC-SINV-2026-00004','ar',null,false,'ألف وأربعمائة ريال سعودي فقط لا غير'],

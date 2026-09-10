@@ -229,6 +229,30 @@ html[data-bnd-report] [id="page-query-report"] .report-summary {
   font-variant-numeric: var(--bnd-numeric);
 }
 
+// Query-report controls, totals and chart are one visual stack. Frappe gives
+// the summary an inline gutter but leaves the filter and chart full bleed,
+// which produces three unrelated left edges (and is especially conspicuous in
+// RTL). Own the gutter and frame here so every report has one durable geometry.
+html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper) {
+  box-sizing: border-box;
+  inline-size: calc(100% - 32px) !important;
+  margin-inline: 16px !important;
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+
+html[data-bnd-report] [id="page-query-report"] .report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+html[data-bnd-report] [id="page-query-report"] .report-summary .summary-item {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SLICE 3 — table grain and row feedback.
 // ════════════════════════════════════════════════════════════════════════════

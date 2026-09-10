@@ -171,6 +171,11 @@ msgstr "عُدّل من أجل المقروئية"
 msgid "Adjusted for readability: {details}"
 msgstr "عُدّل من أجل المقروئية: {details}"
 
+#. Runtime notification type.
+#. src: human
+msgid "Alert"
+msgstr "تنبيه"
+
 #. In bunood.js
 #. src: ai
 msgid "All Apps"
@@ -4112,6 +4117,15 @@ msgstr "مرحبًا! سجّل الدخول للمتابعة."
 #. src: auth-language
 msgid "Forgot password?"
 msgstr "هل نسيت كلمة المرور؟"
+
+msgid "Please enter your email, we'll send you password reset link"
+msgstr "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور."
+
+msgid "Send Link"
+msgstr "إرسال الرابط"
+
+msgid "Back to sign in"
+msgstr "العودة إلى تسجيل الدخول"
 
 #. src: auth-language
 msgid "Welcome to Bunood"

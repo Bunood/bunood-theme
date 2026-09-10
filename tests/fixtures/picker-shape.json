@@ -5,7 +5,7 @@
   "accent_color": "#0090ff",
   "arabic_font": "Noto Sans Arabic",
   "density_default": "Comfortable",
-  "desk_order": "search,inbox,user,home,start,apps,language,appearance",
+  "desk_order": "search,inbox,user,home,start,apps",
   "sidebar_placement": "Attached",
   "sidebar_material": "Solid",
   "sidebar_active_style": "Accent Rail",

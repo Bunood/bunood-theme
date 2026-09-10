@@ -638,6 +638,10 @@ html[data-bnd-desk] body[data-route^=Form] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
+html[data-bnd-topbar][data-bnd-desk] body[data-route^=Form] .layout-side-section {
+  block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height) - var(--bnd-topbar-h));
+}
+
 html[data-bnd-desk] .report-view .layout-main-section {
   block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve));
 }
@@ -1413,6 +1417,10 @@ html[data-theme] .bnd-avatar-btn:hover {
   box-shadow: 0 0 0 2px var(--bnd-active);
 }
 
+html[data-theme]:not([data-bnd-narrow]) .bnd-mobile-nav-label {
+  display: none;
+}
+
 html[data-theme] .bnd-cluster-divider {
   inline-size: var(--bnd-line);
   block-size: 18px;
@@ -2166,7 +2174,7 @@ html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) .body-sidebar-container .b
   box-sizing: border-box;
   visibility: visible;
   opacity: 1;
-  overflow: hidden;
+  overflow: visible;
   transition: none;
 }
 html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) .body-sidebar-top {
@@ -2638,10 +2646,21 @@ html[data-bnd-sb-panestate=open] .body-sidebar-container.expanded {
 }
 html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle {
   cursor: col-resize;
+  inset-inline-start: auto;
+  inset-inline-end: -8px;
+}
+html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle::after {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  transform: translateX(-50%);
 }
 html[data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle:focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: -2px;
+}
+
+html[dir=rtl][data-bnd-sb-panestate=open] .body-sidebar-container .sidebar-resize-handle::after {
+  transform: translateX(50%);
 }
 
 html[data-theme] .bnd-sb-wchip {
@@ -6318,6 +6337,26 @@ html[data-bnd-report] [id=page-query-report] .report-summary {
   font-variant-numeric: var(--bnd-numeric);
 }
 
+html[data-bnd-report] [id=page-query-report] :is(.page-form, .report-summary, .chart-wrapper) {
+  box-sizing: border-box;
+  inline-size: calc(100% - 32px) !important;
+  margin-inline: 16px !important;
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+
+html[data-bnd-report] [id=page-query-report] .report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+html[data-bnd-report] [id=page-query-report] .report-summary .summary-item {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
 html[data-bnd-report-rows=wash] {
   --bnd-rep-hover-bg: var(--bnd-hover);
   --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
@@ -6839,6 +6878,12 @@ html[data-bnd-views] .image-view-container .image-view-item {
   color: var(--bnd-view-ink);
 }
 
+html[data-bnd-views] .image-view-container .image-view-item :is(.image-view-info li,
+.image-view-info .text-muted,
+.placeholder-text) {
+  color: var(--bnd-view-ink) !important;
+}
+
 html[data-bnd-views] .image-view-container .image-view-item:hover {
   border-color: var(--bnd-border-strong);
   box-shadow: var(--bnd-shadow-md);
@@ -6929,6 +6974,7 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
 }
 
 html[data-bnd-views-band=plain] .kanban-column:not(.add-new-column) {
+  --kanban-column-bg: transparent;
   --bg-blue: transparent;
   --bg-cyan: transparent;
   --bg-gray: transparent;
@@ -8218,8 +8264,9 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
 }
 
 .bnd-bill-item-value {
-  display: grid;
-  gap: var(--bnd-sp-1);
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
   min-block-size: var(--bnd-control-h);
   min-inline-size: 0;
   padding-inline: var(--bnd-sp-2);
@@ -8227,7 +8274,11 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
 }
 
 .bnd-bill-item-value strong {
-  overflow-wrap: anywhere;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bnd-bill-item-value .bnd-bill-hint {

@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const APP = join(ROOT, "bunood_theme");
@@ -74,11 +75,11 @@ const REJECT = new Map([
 function installedApps() {
 	try {
 		const out = execFileSync(
-			"docker",
-			["exec", BACKEND, "bash", "-lc",
+			DOCKER_BIN,
+			dockerArgv("exec", BACKEND, "bash", "-lc",
 			 `cd /home/frappe/frappe-bench/sites && ../env/bin/python -c ` +
 			 `'import frappe,json;frappe.init(site="${SITE}",sites_path=".");frappe.connect();` +
-			 `print("APPS=" + json.dumps(frappe.get_installed_apps()))'`],
+			 `print("APPS=" + json.dumps(frappe.get_installed_apps()))'`),
 			{ encoding: "utf8" }
 		);
 		const m = out.match(/APPS=(\[.*\])/);
@@ -99,9 +100,9 @@ const APPS = installedApps().filter((a) => a !== "bunood_theme");
 function poFromContainer(app) {
 	try {
 		return execFileSync(
-			"docker",
-			["exec", BACKEND, "bash", "-lc",
-			 `cat /home/frappe/frappe-bench/apps/${app}/${app}/locale/${LANG}.po 2>/dev/null || true`],
+			DOCKER_BIN,
+			dockerArgv("exec", BACKEND, "bash", "-lc",
+			 `cat /home/frappe/frappe-bench/apps/${app}/${app}/locale/${LANG}.po 2>/dev/null || true`),
 			{ encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
 		);
 	} catch {
@@ -147,8 +148,9 @@ function parsePo(text) {
 	return out;
 }
 
-const { extractCatalogue } = await import(`file://${join(ROOT, "tools", "i18n.mjs").replace(/\\/g, "/")}`);
+const { extractCatalogue, readTranslations } = await import(`file://${join(ROOT, "tools", "i18n.mjs").replace(/\\/g, "/")}`);
 const catalogue = extractCatalogue();
+const localTranslations = readTranslations(join(APP, "translations", `${LANG}.csv`));
 
 const upstream = new Map();
 for (const app of APPS) {
@@ -169,9 +171,9 @@ for (const app of APPS) {
 	// gap. Warn loudly; the fix is one command.
 	try {
 		execFileSync(
-			"docker",
-			["exec", BACKEND, "bash", "-lc",
-			 `test -f /home/frappe/frappe-bench/sites/assets/locale/${LANG}/LC_MESSAGES/${app}.mo`],
+			DOCKER_BIN,
+			dockerArgv("exec", BACKEND, "bash", "-lc",
+			 `test -f /home/frappe/frappe-bench/sites/assets/locale/${LANG}/LC_MESSAGES/${app}.mo`),
 			{ encoding: "utf8" }
 		);
 	} catch {
@@ -189,7 +191,10 @@ if (!upstream.size) {
 }
 
 const hits = [...catalogue.keys()].filter((m) => upstream.has(m)).sort();
-const accepted = hits.filter((m) => !REJECT.has(m));
+// An explicit Bunood row is an intentional product-language choice. Do not
+// convert it into an inherited dependency merely because a newly installed
+// app happens to translate the same English key.
+const accepted = hits.filter((m) => !REJECT.has(m) && !localTranslations.has(m));
 const rejected = hits.filter((m) => REJECT.has(m));
 
 console.log(`\n  our strings: ${catalogue.size}`);

@@ -157,6 +157,17 @@ html[data-bnd-views] .image-view-container .image-view-item {
   box-shadow: var(--bnd-view-shadow);
   color: var(--bnd-view-ink);
 }
+
+// Frappe's gallery footer and no-image initials carry vendor-muted literals
+// that do not clear AA on the themed tile washes. The tile already owns its
+// ink token, so descendants inherit that same tested contrast contract.
+html[data-bnd-views] .image-view-container .image-view-item :is(
+  .image-view-info li,
+  .image-view-info .text-muted,
+  .placeholder-text
+) {
+  color: var(--bnd-view-ink) !important;
+}
 // The stock hover replaces the box-shadow AND drops the image to 30% opacity —
 // an aggressive, unthemed reveal (image_view.scss). Under our anchor the object
 // keeps its identity on hover: the boundary firms and the lift grows by one
@@ -318,6 +329,10 @@ html[data-bnd-views] .kanban-cards .kanban-card-wrapper.sortable-drag .kanban-ca
 // hue in the header. Dropped, the report_grain 4->2 precedent.) The indicator
 // list is Kanban Board Column's own Select options, scrubbed.
 html[data-bnd-views-band="plain"] .kanban-column:not(.add-new-column) {
+	// Frappe v16 consolidated the indicator-specific inline value into this
+	// column token. Keep both generations covered so the option survives an
+	// upstream upgrade without an !important override.
+	--kanban-column-bg: transparent;
   // Quoted: unquoted `cyan`/`gray` are Sass COLOUR values, and interpolating
   // one can rename the var (cyan -> aqua), which would never match Frappe's
   // --bg-cyan. Strings keep the name exact.

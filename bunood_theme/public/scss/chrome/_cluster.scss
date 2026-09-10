@@ -76,6 +76,13 @@ html[data-theme] .bnd-avatar-btn {
   }
 }
 
+// Labels belong to the four-cell phone navigation only.  Leaving these inline
+// on a desktop made the account label paint outside its fixed avatar button,
+// where it could cover the notification control and even the viewport edge.
+html[data-theme]:not([data-bnd-narrow]) .bnd-mobile-nav-label {
+  display: none;
+}
+
 // Divider between page actions and global cluster in the compact layout's
 // shared strip — the "one strip, two jobs" seam made visible.
 html[data-theme] .bnd-cluster-divider {

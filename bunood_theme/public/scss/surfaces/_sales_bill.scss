@@ -154,10 +154,13 @@
 .bnd-bill-item strong { font-size: var(--bnd-text-sm); }
 .bnd-bill-item-label { display: block; }
 .bnd-bill-item-value {
-  display: grid; gap: var(--bnd-sp-1); min-block-size: var(--bnd-control-h);
+  display: flex; align-items: center; gap: var(--bnd-sp-2); min-block-size: var(--bnd-control-h);
   min-inline-size: 0; padding-inline: var(--bnd-sp-2); border: var(--bnd-line) solid transparent;
 }
-.bnd-bill-item-value strong { overflow-wrap: anywhere; }
+.bnd-bill-item-value strong {
+  flex: 1 1 auto; min-inline-size: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
 .bnd-bill-item-value .bnd-bill-hint { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bnd-bill-cell { min-inline-size: 0; }
 .bnd-bill-cell .control-label,

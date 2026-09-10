@@ -30,7 +30,7 @@
 	const LINE_LABELS = {
 		qty: () => __("Quantity"),
 		price_list_rate: () => __("Price before discount"),
-		rate: () => __("Net unit price"),
+		rate: () => __("Unit price"),
 		discount_percentage: () => __("Discount (%)"),
 		warehouse: () => __("Warehouse"),
 	};

@@ -5,13 +5,12 @@
 # is one flat global map, so their translation already answers, and shipping our
 # own would be a second copy that overrides theirs desk-wide.
 #
-# Regenerate with: npm run i18n:inherited      (read from bunood-backend-1, lang=ar)
+# Regenerate with: npm run i18n:inherited      (read from bunoodrc-backend-1, lang=ar)
 # False friends are rejected in the script's REJECT map, with a reason each.
 #
-# 39 inherited, from frappe + erpnext + telephony.
+# 36 inherited, from frappe + erpnext + hrms + crm + telephony + helpdesk + payments + ksa_compliance + bunood_real_estate + bunood_setup.
 
 Accepted	frappe: مقبول
-Alert	frappe: إنذار
 App	frappe: تطبيق
 Auto	frappe: تلقائى
 Batch Size	erpnext: حجم الدفعة

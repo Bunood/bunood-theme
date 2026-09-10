@@ -206,6 +206,49 @@ function defaults() {
 	);
 }
 
+/** Native Saudi VAT templates used by the sales and purchasing acceptance paths. */
+function taxes() {
+	return py(
+		`C = ${JSON.stringify(COMPANY)}\n` +
+			`accounts = frappe.get_all("Account", filters={"company": C, "account_type": "Tax", "is_group": 0}, pluck="name")\n` +
+			`output = next((n for n in accounts if "output" in n.lower()), None)\n` +
+			`input_ = next((n for n in accounts if "input" in n.lower()), None)\n` +
+			`def tax_account(label, root):\n` +
+			`    existing = frappe.db.get_value("Account", {"company": C, "account_name": label, "is_group": 0}, "name")\n` +
+			`    if existing:\n` +
+			`        return existing\n` +
+			`    parent = frappe.db.get_value("Account", {"company": C, "root_type": root, "is_group": 1}, "name")\n` +
+			`    if not parent:\n` +
+			`        raise AssertionError("fixture company has no %s account group for %s" % (root, label))\n` +
+			`    return frappe.get_doc({"doctype": "Account", "account_name": label, "company": C, "parent_account": parent, "account_type": "Tax", "is_group": 0}).insert(ignore_permissions=True).name\n` +
+			`output = output or tax_account("Output VAT", "Liability")\n` +
+			`input_ = input_ or tax_account("Input VAT", "Asset")\n` +
+			`cc = frappe.db.get_value("Company", C, "cost_center")\n` +
+			`specs = [\n` +
+			`    ("Sales Taxes and Charges Template", "Bunood Output VAT 15%", output),\n` +
+			`    ("Purchase Taxes and Charges Template", "Bunood Input VAT 15%", input_),\n` +
+			`]\n` +
+			`made = []\n` +
+			`for dt, title, account in specs:\n` +
+			`    name = frappe.db.get_value(dt, {"title": title, "company": C}, "name")\n` +
+			`    doc = frappe.get_doc(dt, name) if name else frappe.new_doc(dt)\n` +
+			`    doc.title = title\n` +
+			`    doc.company = C\n` +
+			`    doc.is_default = 1\n` +
+			`    doc.set("taxes", [])\n` +
+			`    row = {"charge_type": "On Net Total", "account_head": account, "description": "VAT 15%", "rate": 15, "cost_center": cc}\n` +
+			`    if dt.startswith("Purchase"):\n` +
+			`        row["add_deduct_tax"] = "Add"\n` +
+			`        row["category"] = "Total"\n` +
+			`    doc.append("taxes", row)\n` +
+			`    doc.save(ignore_permissions=True) if name else doc.insert(ignore_permissions=True)\n` +
+			`    made.append(doc.name)\n` +
+			`frappe.db.commit()\n` +
+			`frappe.clear_cache()\n` +
+			`print("taxes: %s" % ", ".join(made))\n`
+	);
+}
+
 /**
  * Movement in the ledger.
  *
@@ -216,9 +259,8 @@ function defaults() {
 function ledger() {
 	return py(
 		`C = ${JSON.stringify(COMPANY)}\n` +
-			`if frappe.db.count("GL Entry"):\n` +
-			`    print("ledger: %d GL entries already" % frappe.db.count("GL Entry"))\n` +
-			`else:\n` +
+			`inv_name = frappe.db.get_value("Sales Invoice", {"docstatus": 1, "outstanding_amount": [">", 0]}, "name")\n` +
+			`if not inv_name:\n` +
 			`    cust = frappe.db.get_value("Customer", {}, "name") or frappe.get_doc(\n` +
 			`        {"doctype": "Customer", "customer_name": "عميل تجريبي"}).insert(ignore_permissions=True).name\n` +
 			`    grp = frappe.db.get_value("Item Group", {"is_group": 0}, "name")\n` +
@@ -243,8 +285,13 @@ function ledger() {
 			`        it.cost_center = it.cost_center or cc\n` +
 			`    inv.save()\n` +
 			`    inv.submit()\n` +
-			`    frappe.db.commit()\n` +
-			`    print("ledger: submitted %s, %d GL entries" % (inv.name, frappe.db.count("GL Entry")))\n`
+			`    inv_name = inv.name\n` +
+			`# Home's overdue workflow needs a stable, genuinely overdue receivable.\n` +
+			`# Direct DB update is deliberate for this disposable acceptance fixture: a\n` +
+			`# submitted invoice cannot be edited through the document API.\n` +
+			`frappe.db.set_value("Sales Invoice", inv_name, "due_date", frappe.utils.add_days(frappe.utils.nowdate(), -1), update_modified=False)\n` +
+			`frappe.db.commit()\n` +
+			`print("ledger: overdue %s, %d GL entries" % (inv_name, frappe.db.count("GL Entry")))\n`
 	);
 }
 
@@ -303,8 +350,45 @@ function formFixture() {
  * every route to /desk/setup-wizard/0. Done at the end so the flag never claims
  * a site is ready before it is.
  */
+/** Saved drafts used only to verify the shared transaction-summary lifecycle. */
+function summaryFixtures() {
+	return py(
+		`C = ${JSON.stringify(COMPANY)}\n` +
+			`today = frappe.utils.nowdate()\n` +
+			`customer = frappe.db.get_value("Customer", {}, "name")\n` +
+			`if not customer:\n` +
+			`    customer = frappe.get_doc({"doctype": "Customer", "customer_name": "عميل تجريبي", "tax_id": "300000000000003"}).insert(ignore_permissions=True).name\n` +
+			`supplier = frappe.db.get_value("Supplier", {}, "name")\n` +
+			`if not supplier:\n` +
+			`    supplier = frappe.get_doc({"doctype": "Supplier", "supplier_name": "مورد تجريبي", "supplier_type": "Company", "tax_id": "300000000000003"}).insert(ignore_permissions=True).name\n` +
+			`receivable = frappe.db.get_value("Account", {"company": C, "account_type": "Receivable", "is_group": 0}, "name")\n` +
+			`cash = frappe.db.get_value("Account", {"company": C, "account_type": "Cash", "is_group": 0}, "name") or frappe.db.get_value("Account", {"company": C, "root_type": "Asset", "is_group": 0}, "name")\n` +
+			`specs = {\n` +
+			`    "Sales Order": {"company": C, "customer": customer, "transaction_date": today, "delivery_date": today},\n` +
+			`    "Purchase Order": {"company": C, "supplier": supplier, "transaction_date": today, "schedule_date": today},\n` +
+			`    "Purchase Invoice": {"company": C, "supplier": supplier, "posting_date": today, "due_date": today},\n` +
+			`    "Payment Entry": {"company": C, "payment_type": "Receive", "party_type": "Customer", "party": customer, "posting_date": today, "paid_from": receivable, "paid_to": cash, "paid_amount": 0, "received_amount": 0},\n` +
+			`    "Journal Entry": {"company": C, "posting_date": today, "voucher_type": "Journal Entry"},\n` +
+			`}\n` +
+			`made = []\n` +
+			`for dt, values in specs.items():\n` +
+			`    if frappe.db.exists(dt, {}):\n` +
+			`        continue\n` +
+			`    doc = frappe.get_doc({"doctype": dt, **values})\n` +
+			`    doc.flags.ignore_validate = True\n` +
+			`    doc.flags.ignore_mandatory = True\n` +
+			`    doc.flags.ignore_links = True\n` +
+			`    doc.insert(ignore_permissions=True, ignore_mandatory=True, ignore_links=True)\n` +
+			`    made.append(dt)\n` +
+			`frappe.db.commit()\n` +
+			`print("summary drafts: %s" % (", ".join(made) or "already present"))\n`
+	);
+}
+
 function markComplete() {
 	return py(
+		`from bunood_theme.setup import after_setup_wizard\n` +
+			`after_setup_wizard()\n` +
 		`for n in frappe.get_all("Installed Application", pluck="name"):\n` +
 			`    frappe.db.set_value("Installed Application", n, "is_setup_complete", 1)\n` +
 			`frappe.db.commit()\n` +
@@ -321,7 +405,7 @@ if (REPORT_ONLY) {
 	process.exit(0);
 }
 
-for (const step of [masters, prerequisites, company, accounting, defaults, ledger, formFixture, markComplete]) {
+for (const step of [masters, prerequisites, company, accounting, defaults, taxes, ledger, formFixture, summaryFixtures, markComplete]) {
 	console.log("  " + step().split("\n").pop());
 }
 

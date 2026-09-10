@@ -251,6 +251,12 @@ html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
 }
 
+html[data-bnd-topbar][data-bnd-desk] body[data-route^="Form"] .layout-side-section {
+  block-size: calc(
+    100vh - var(--bnd-bottom-reserve) - var(--page-head-height) - var(--bnd-topbar-h)
+  );
+}
+
 // ── The report view's own 100vh arithmetic needs the reserve too ────────────
 // report.scss sizes `.report-view .layout-main-section` and frappe_datatable
 // sizes `.dt-scrollable` from RAW 100vh — the whole viewport — not from

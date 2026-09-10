@@ -906,9 +906,9 @@ def _auth_extras(context):
         f'{choice("en", "English", english_title, "ltr")}'
         f'{choice("ar", "العربية", arabic_title, "rtl")}'
         '</div>'
-        '<section class="bnd-auth-hero" data-bnd-auth-hero>'
+        '<aside class="bnd-auth-hero" data-bnd-auth-hero aria-label="Bunood">'
         f'<h2>{welcome}</h2><p>{promise}</p>'
-        '</section>'
+        '</aside>'
     )
     context.banner_html = f'{context.get("banner_html") or ""}{markup}'
 

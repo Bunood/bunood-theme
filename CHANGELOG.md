@@ -22,6 +22,28 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.10] — 2026-09-10 — Production-candidate acceptance repairs (patch)
+
+### Fixed
+
+- Kept top-bar labels inside their desktop controls and removed the remaining
+  overflow around the profile and notification actions.
+- Made the page-head sidebar button the single desktop owner, with logical
+  RTL/LTR arrows and click-owned rail expansion.
+- Aligned query-report filters, totals and charts into one responsive branded
+  stack, including wrapped summaries at mobile widths.
+- Updated the kanban Plain option for Frappe v16's `--kanban-column-bg` token.
+- Repaired clean-site fixtures for an overdue receivable, the `BND-TEST-001`
+  form item and real local gallery image attachments.
+- Restored the Language & Appearance section and protected Bunood's explicit
+  Arabic product wording from inherited translation overrides.
+
+### Checks
+
+Static product tests: **110/110 passed**. Translation coverage, icons and all
+9,184 WCAG color-pair checks pass. Full immutable-image browser acceptance is
+the release gate for this patch.
+
 ## [0.44.9] — 2026-09-10 — Preference ownership guard (patch)
 
 ### Fixed

@@ -102,7 +102,9 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
         "sidebar_pane_state": "Rail",
-        "sidebar_rail_trigger": "Hover",
+        # The independent page-head button owns the rail state. Pointer
+        # proximity must never resize the workspace under a user's cursor.
+        "sidebar_rail_trigger": "Click",
         "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",

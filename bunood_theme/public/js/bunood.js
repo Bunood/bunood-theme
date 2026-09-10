@@ -7699,9 +7699,6 @@ function sb_zone_anchor(pane, zone, node) {
 			if (narrow) {
 				container.classList.remove("bnd-rail-open");
 			}
-			if (!narrow && !document.querySelector(".bnd-topbar")) {
-				container.classList.add("bnd-rail-open");
-			}
 			const expanded = !narrow && container.classList.contains("bnd-rail-open");
 			sb_mount_compact_nav();
 			container.style.width = narrow
@@ -8025,16 +8022,17 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Free-pixel drag on Frappe's own handle. Argument: _sidebar.scss. */
 	function sb_mount_resize() {
-		const handle = document.querySelector(".body-sidebar .sidebar-resize-handle");
-		const container = document.querySelector(".body-sidebar-container");
+		const handles = [...document.querySelectorAll(".body-sidebar .sidebar-resize-handle")];
+		const handle = handles.find((node) => node.getClientRects().length && !node._bnd_resize) ||
+			handles.find((node) => !node._bnd_resize);
+		const container = handle?.closest(".body-sidebar-container");
 		if (!handle || !container || handle._bnd_resize) return;
 		handle._bnd_resize = true;
+		const active_container = () => handle.closest(".body-sidebar-container") || container;
 
-		// APG splitter: focusable separator, pixel scale.
 		const aria = () => {
-			const w = Math.round(container.getBoundingClientRect().width) || 240;
+			const w = Math.round(active_container().getBoundingClientRect().width) || 240;
 			handle.setAttribute("aria-valuenow", String(w));
-			// "240px": a unit symbol, not a noun for a placeholder to govern.
 			handle.setAttribute("aria-valuetext", w + "px");
 		};
 		handle.setAttribute("role", "separator");
@@ -8055,7 +8053,11 @@ function sb_zone_anchor(pane, zone, node) {
 			e.preventDefault();
 		}, true);
 
-		const rtl = () => getComputedStyle(container).direction === "rtl";
+		const width_scale = () => {
+			const hr = handle.getBoundingClientRect();
+			const cr = active_container().getBoundingClientRect();
+			return hr.left + hr.width / 2 < cr.left + cr.width / 2 ? -1 : 1;
+		};
 		const clamp = (n) => Math.min(280, Math.max(200, n));
 		const persist = (px) => {
 			sb_pane_px = px === "" ? "" : String(px);
@@ -8067,11 +8069,12 @@ function sb_zone_anchor(pane, zone, node) {
 		let drag = null;
 		handle.addEventListener("pointerdown", (e) => {
 			if (e.button !== 0) return;
-			if (!container.classList.contains("expanded")) return;
+			if (!active_container().classList.contains("expanded")) return;
 			if (document.documentElement.hasAttribute("data-bnd-rail")) return;
 			drag = {
 				x0: e.clientX,
-				w0: Math.round(container.getBoundingClientRect().width),
+				w0: Math.round(active_container().getBoundingClientRect().width),
+				scale: width_scale(),
 				latched: false,
 				cancelled: false,
 			};
@@ -8083,9 +8086,8 @@ function sb_zone_anchor(pane, zone, node) {
 			// The 4px latch: movement, never time. _sidebar.scss.
 			if (!drag.latched && Math.abs(raw) < 4) return;
 			drag.latched = true;
-			// clientX never mirrors — RTL widens leftward.
-			const w = clamp(drag.w0 + (rtl() ? -raw : raw));
-			container.style.setProperty("--bnd-sb-w", w + "px");
+			const w = clamp(drag.w0 + drag.scale * raw);
+			active_container().style.setProperty("--bnd-sb-w", w + "px");
 			sb_wchip(w);
 			aria();
 		});
@@ -8110,7 +8112,7 @@ function sb_zone_anchor(pane, zone, node) {
 				},
 				{ capture: true, once: true }
 			);
-			const w = clamp(d.w0 + (rtl() ? -(e.clientX - d.x0) : e.clientX - d.x0));
+			const w = clamp(d.w0 + d.scale * (e.clientX - d.x0));
 			persist(w);
 			aria();
 		};
@@ -8143,10 +8145,11 @@ function sb_zone_anchor(pane, zone, node) {
 
 		// Physical arrows, derived direction; Up/Down NOT consumed. SCSS.
 		handle.addEventListener("keydown", (e) => {
-			const w0 = Math.round(container.getBoundingClientRect().width) || 240;
+			const host = active_container();
+			const w0 = Math.round(host.getBoundingClientRect().width) || 240;
 			let w = null;
-			if (e.key === "ArrowRight") w = clamp(w0 + (rtl() ? -10 : 10));
-			else if (e.key === "ArrowLeft") w = clamp(w0 + (rtl() ? 10 : -10));
+			if (e.key === "ArrowRight") w = clamp(w0 + width_scale() * 10);
+			else if (e.key === "ArrowLeft") w = clamp(w0 - width_scale() * 10);
 			else if (e.key === "Home") w = 200;
 			else if (e.key === "End") w = 280;
 			else if (e.key === "Enter") {
@@ -8155,7 +8158,7 @@ function sb_zone_anchor(pane, zone, node) {
 				return;
 			} else return;
 			e.preventDefault();
-			container.style.setProperty("--bnd-sb-w", w + "px");
+			host.style.setProperty("--bnd-sb-w", w + "px");
 			persist(w);
 			aria();
 		});
@@ -8168,7 +8171,7 @@ function sb_zone_anchor(pane, zone, node) {
 				label: px + "px",
 				icon: "icon-chevron-right",
 				run: () => {
-					container.style.setProperty("--bnd-sb-w", px + "px");
+					active_container().style.setProperty("--bnd-sb-w", px + "px");
 					persist(px);
 					aria();
 				},
@@ -8189,6 +8192,7 @@ function sb_zone_anchor(pane, zone, node) {
 		handle.addEventListener("keydown", (e) => {
 			if (e.key === "F10" && e.shiftKey) stop_menu(e);
 		});
+		if (handles.some((node) => !node._bnd_resize)) queueMicrotask(sb_mount_resize);
 	}
 
 	/** The drag readout; null hides it. */

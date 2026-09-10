@@ -40,7 +40,9 @@ html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
     box-sizing: border-box;
     visibility: visible;
     opacity: 1;
-    overflow: hidden;
+    // The scrolling viewport is `.body-sidebar-top`; the shell must not clip
+    // the resize strip that deliberately sits just outside the pane edge.
+    overflow: visible;
     transition: none;
   }
 

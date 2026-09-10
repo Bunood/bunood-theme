@@ -1174,6 +1174,7 @@ const BND_SHELL_GROUPS = [
 	{
 		group: () => __("Language"),
 		items: [
+			{ key: "language", label: () => __("Language"), anchors: ["language_picker"] },
 			// Item 36, the user's direction: language and fonts move out of the
 			// Colours pane into their own place beside Translation. The Arabic
 			// face is the entry's whole surface today; the section is where any
@@ -1326,6 +1327,7 @@ const BND_SHELL_OWNS = {
 	// form that NO entry owned (item 36 gave it one in the Colours pane, then
 	// Map 1 moved it here with the field's own section).
 	fonts: { fields: ["arabic_font"] },
+	language: { prefixes: ["language_"] },
 	// The Icons axis owns every icon_* field by prefix — the same rule the
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },
