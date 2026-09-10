@@ -7,7 +7,9 @@ had drifted EIGHT behind the roadmap (0.20.0 was item 28) so that a version
 number told you nothing about what was in it. Releases before 0.29.0 keep the
 numbers they shipped under and are never renumbered: the jump from 0.20.0 to
 0.29.0 is this adoption, not eight lost releases. **v1.0.0 is reserved for the
-completion of all 38 coverage items.**
+completion of all 38 coverage items.** **A second recorded exception (2026-09-09): item 43
+shipped AFTER item 44 (v0.44.0–v0.44.2), so its MINOR could not be 43 without going backwards;
+it is v0.45.0, and the heading names the item.**
 
 Every release is an annotated git tag, and `app_version` in hooks.py matches
 the latest tag — with ONE recorded exception. `v0.29.0` is tagged at item 29's
@@ -21,6 +23,161 @@ written down rather than left to be rediscovered as a bug.
 to work order on 2026-08-13; entries here keep the numbers that were current when they
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
+
+## [0.45.0] — 2026-09-10 — The body, rebuilt: anatomy over frame, and a composer for it (item 43)
+
+**The user's brief (2026-09-03):** "ERPNext is good, but the visual body is poorly done; the
+previous items didn't really make it look better, especially the body of the program and the
+forms." Nine surface kits had dressed the body's FRAME — a card around a section, a pill on a
+tab — while the anatomy inside stayed stock: one type size everywhere, a field box at 1.02:1
+on its page, no document header, and two widths (Frappe's 900px cap inside the theme's
+full-width card). Thirty looks were drawn, a live composer was published, and the user picked
+**Bunood Console** (`from 09 Console · 1B 2B 3A 4D 5C 6B 7D 8C · 14 brand · +hero +stage
++pinned`); then asked for the composer INSIDE the theme and the settings page restructured.
+Three deliverables, one item, in that order.
+
+### Added — the body kits (A0–A10)
+
+- **The `body` kit**: `desk_width` (Original · Measured Column · Narrow Column · **Full
+  Bleed**) feeds Frappe's own `--page-max-width` where the vendor reads it — the item-40 lesson,
+  never a second width; `desk_scale` (Original · Compact 13 · **Standard 14** · Touch 16), a
+  site type set where the section head leads the label; `desk_primary` (Black · **Brand**).
+- **Field anatomy** `form_fields`: Original · **Stacked Outlined** · Property Rows (a 160px
+  label column, Check keeps its box first, wide types span) · Quiet Underline · Inline Text.
+- **Sections** `form_style` gains Headed Groups · Grouped Insets · Tinted Heads (a brand-wash
+  head, gated); every style carries a 20px collapse control.
+- **Line items** `form_grid`: Original · Hairline Ledger · **Ruled Sheet** — the row-height
+  density contract on every cell, tabular numerals end-aligned, Add row a full-width quiet
+  control.
+- **Inspector Rail** `form_sidebar` (the default): no card, a 40px thumb on the name's row,
+  eyebrow group titles, counts as chips.
+- **Activity** `form_activity`: Original · Beside (a 340px column at 2xl) · **Drawer** — the
+  stock `.form-footer` as an owned off-canvas panel, opened from the band, Escape closes, focus
+  returns.
+- **Dense Table** `list_style`, and **Zebra Stripes** becomes the shipped list default.
+- **The document header** `form_header`: Page Head · Title Block · Highlights Band · **Hero
+  Band** with `form_header_tone` Tinted · **Brand-dark** (the derived `--bnd-brand-deep` pair,
+  gated over 27 seeds × 2 modes); tiles from the doctype's first four list-view fields.
+- **The stage path** `form_stage`: the active Workflow's states, else Draft · Submitted ·
+  Cancelled on submittable doctypes; the native pill hidden only once owned.
+- **The pinned foot** `form_foot`: the primary action proxied, the Currency facts, lifted by
+  the measured chrome.
+- **The workspace gutter** reaches the workspace at the vendor's own nesting.
+- **Bunood Console** is the shipped preset (empty `values` — the rule: the default preset is
+  the one whose values are empty); every earlier preset is pinned to its pre-43 desk.
+
+### Changed — the settings page (B1–B4)
+
+- **The shell is retired** (B1): every card in one scroll with its heading, every Select at
+  its 273px, the placement board on its own named container.
+- **Importance order lives in the doctype** (B2): Compose → Look → Body → Shape → Beyond the
+  desk → Generated; every Section Break carries a one-line description; the Compose card
+  names the matched look and opens the composer.
+- **The settings map in the side pane** (B3): rows derived from the rendered sections, bands
+  from the doctype's order (a band heads once, asserted), scroll-spy with the last card pinned
+  at the bottom, a chip-and-menu in the rail, a Sections menu in the page head under Hidden,
+  a clicked card landing under the sticky head. `field_order` names every field exactly once,
+  build-guarded — it had named a ghost and omitted two Selects since before v0.44.2.
+
+### Added — the composer (C1–C5)
+
+- **`/desk/theme-settings?compose`**, a mode of the same form read once per document: a rail
+  of eighteen decisions in four bands, every row the kit's own option table through the kit's
+  own setter, highlights derived from the document on every dirty tick, a copy line; a
+  **stage** — a real desk page in a same-origin frame at 1440×900, scaled, sticky beside the
+  rail, ten pages resolved by the server (an absent one greyed with its reason), the frame told
+  the form's values through its own engine, its routing never touching the joint history,
+  reloading onto the brand sheet a landed save wrote; and a **compare strip** — one cell per
+  value of the decision last touched, each the form with that one field replaced, focused on
+  the element it governs, reused across decisions and loaded in turn. `?compare=0` keeps every
+  tool frame-free; frames park when the page hides.
+
+### Fixed
+
+- **A hidden pane opened on every fresh load of a form or list.** `guard_critical_reach`
+  judged reach before Frappe had built the page head the tenants are lent to; it waits for
+  the head now, and `page-change` re-places them. Three placement checks had passed on the
+  defect and own their premise now.
+- **The settings sweep replayed the page 39 times.** Its per-section scan never received the
+  section key and fell back to the document — every kind reads from the section, a missing
+  section throws, and the tool honours `BND_URL`.
+- The contrast gate had been red since v0.44.0 on two placement fields (A3's commit).
+- **`language_choices` was a theme axis** (since v0.44.2): every theme card wrote `ar,en`
+  over a site's own language list, and a site offering a third read Custom on every card. It
+  is site policy outside the partition, the way `arabic_font` is (the release review).
+- **The two moved defaults get a patch** (`v0_45_0.console_defaults`): a row still holding
+  Floating Pane or Floating Cards moves to Inspector Rail or Zebra Stripes. Both are theme
+  axes, and the moved baseline would have read Custom on every card of every existing site —
+  the v0.40.0 quick-links precedent, limits included. The ten new axes need nothing: no row
+  is the new default.
+- **The inherited set caught up with the stack.** `inherited.ar.txt` was last regenerated over
+  three apps on 2026-08-31; over the nine installed today it proposes 149 collisions, 27 of
+  them false friends rejected with a reason each (Frappe's *Light* is a lamp's, its *Theme* a
+  topic, its *List View* a dropdown, its *Original* creative). The emit applies the set now —
+  85 authored rows stop shipping and stop overriding upstream desk-wide — and *Alert* is ours
+  again, because 16.33 carries it only under a context a bare `__()` cannot reach.
+- **A composer frame never boots inside a hidden page.** A save landing after the page hid
+  refreshed the cached form, its sync sent the parked stage back to Home, and that frame
+  booted 0px wide — Frappe read it as a phone and wrote `sidebar-expanded=false` into the
+  browser storage the frames share with the desk, so every later fresh load booted with its
+  pane collapsed: the map's rows in a rail menu, a pane head with no name, seven pane links
+  with no text, sixty checks later and none naming it (the full run of 2026-09-09; measured
+  at 2.4s). Navigation and the cell queue now refuse while the page is hidden, and Frappe's
+  `show` sends the stage and the strip back.
+- **Plain kanban columns were doing nothing** since this bench moved to frappe 16.33:
+  `kanban_column.html` now writes one neutral `--kanban-column-bg` inline where it wrote the
+  per-status `--bg-{indicator}`, so the vars Plain re-points were no longer the vars the
+  column reads. Carried as a bench debt for two releases; it is one line, and a shipped
+  control that does nothing is a defect wherever the cause lives.
+- **The composer's page list** resolves the latest record with `get_all` (a manager's user
+  permissions had been able to send the frame to a new record) and URL-quotes every name.
+- **Six findings in the form script** from the review: `ground_color` in the identity kit's
+  field list, the status kit's `search_placement` default, the pane state on the rail through
+  its own setter, builder items carrying their reason, the composer's value normalised through
+  the pane's packer, three placement keys in the theme's key set.
+
+### Accessibility — the review's reader pass
+
+- **Compare cells are pictures**: the clip is `inert` and its frame off the tab order; the
+  value's name and its control come BEFORE the picture (which also lifts the control out from
+  under a rising toast); every *Use this* names its value; spare cells are truly hidden.
+- **The stage frame** is skipped by Tab and titled for the page it shows.
+- **A cell's focus scrolls its own frame**, never the host page — `scrollIntoView` had
+  scrolled every ancestor frame, and the page jumped to the strip on every cell load. The
+  stage shows a fresh strip once per touch, only as far as its foot needs (at 1366×768 the
+  strip sat entirely under the fold), and in one column the rail follows the preview.
+- **The rail keeps names**: the map's chip and the pane head carry theirs on the button, where
+  the rail hides the label span. Smooth scrolls honour reduced motion — the OS preference and
+  the item-38 stamp. The keyboard gets the hover naming: an option under focus is named in
+  its row.
+
+### Checks
+
+Forty-odd new checks across the body kits, the map and the composer, each watched failing
+first; the picker-shape fixture and the axe baseline recaptured (byte-identical after B2 and
+B3; the composer's route added); `npm run contrast` over 9,408 pairs; the sweep's composer
+pass ends restored over an empty diff. The suite's own repairs: `withPersonal` commits before
+it clears (its cache-first order leaked a personal look for sixty checks and failed three of
+them, none naming it); a fourth placement check (`slots`) owns its Open premise; the chrome axe
+check scans the rail on the desk and on the settings route; the strip check asserts the reader
+pass; the map check asserts its head's name; the parking check leaves BEFORE the autosave's
+debounce, which is what makes the hidden-page case happen every run rather than on a slow
+machine, and reads Frappe's flag back afterwards. Review: six adversarial lenses were launched and
+three reported (the form script's seams, the server side, accessibility — 22 findings, every
+one fixed above); the other three died on a model rate limit and are not counted.
+Full run at the release candidate: **523/526**, and the three are all older than this item.
+Two are bench debts this line has carried since it moved to frappe 16.33 — frappe's
+`templates/emails/standard.html` has changed and wants a re-read, a port and a re-pin, and
+their `get_email_html` no longer crashes without an outgoing account, so `api.email_preview`
+can be simplified. The third is one recurrence, in 526 checks, of the frappe-charts
+`removeChild` race that v0.42.1 diagnosed; both its mitigations are intact (`retire()` calls
+the vendor's `destroy()`, and the `makeChartArea` wrap puts the real svg back), and it
+arrived with no caller because the failure printer cuts a message at 300 characters — which
+is exactly what the four-frame capture exists to carry. The budget prints its evidence to
+the log now instead of throwing it, so the next recurrence names its caller; that repair is
+a commit after the run, and touches no shipped code. `node tools/shots.mjs` was read in all
+five pane states, and the composer sweep applied and saved all 71 of its options and
+restored the site row for row.
 
 ## [0.44.2] — 2026-09-08 — The switch offers what you chose; the pane stays on All Apps (patch)
 

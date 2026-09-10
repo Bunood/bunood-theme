@@ -1555,6 +1555,46 @@ only its Arabic strings crossed.
   Letters` under another field's name). Released as **v0.42.0**; `app_version` resumes
   tracking here.
 
+- `[x]` **43 · The body, rebuilt: anatomy over frame** *(opened 2026-09-03, built
+  2026-09-08/09; plan at `~/.claude/plans/erp-next-is-good-serene-whisper.md`; releases as
+  v0.45.0 — item 44 took the next number while this one waited for its picks)*. The user's
+  brief: "ERPNext is good, but the visual body is poorly done; the previous items didn't
+  really make it look better, especially the body of the program and the forms." Measured
+  on the live desk, the diagnosis was that nine surface kits had all dressed the FRAME —
+  a card around a section, a pill on a tab — while the anatomy inside stayed stock: one
+  type size for head, label and value; a field box at 1.02:1 against its page; no document
+  header; and TWO widths, Frappe's 900px cap centred inside the theme's full-width card.
+  Decided through three published rounds — the decision cards
+  ([Desk Body Round](https://claude.ai/code/artifact/58e2d705-8247-4a39-a1cc-380490019b3b)),
+  thirty complete looks across eleven pages
+  ([Desk Body Looks](https://claude.ai/code/artifact/51a66996-0bb1-4e65-9817-55384405e9fc))
+  and a live per-decision picker
+  ([Desk Body Composer](https://claude.ai/code/artifact/7d10abfb-e20b-491e-97dd-821290cac5f5)),
+  the last built after the user asked to choose the pieces rather than a whole look. **The
+  pick is "Bunood Console"** and it becomes the shipped default: full bleed, stacked
+  outlined fields, floating panels, a brand-dark hero band with tiles and a chevron stage
+  path, a ruled line-item sheet, an inspector rail, activity in a drawer, zebra lists, a
+  pinned foot, 14px, brand primary. Every letter the rounds drew stays in the catalogue.
+  The user then asked for two more things: **the composer inside the theme**, and **the
+  settings page restructured**.
+  **Built.** Ten new axes plus three mounts (the band, the foot, the drawer), each an
+  attribute kit with an Original pole and ownership stamped after the node is in the DOM;
+  the vendor's own `--page-max-width` fed where the vendor reads it, never a second width.
+  The settings page loses its in-page shell for one scroll of cards in importance order,
+  with the section map moved into the desk's own side pane (scroll-spy, a chip-and-menu in
+  the rail, a Sections menu in the page head under Hidden). The composer ships as a mode
+  of that form at `?compose`: a rail of eighteen decisions through the kits' own setters, a
+  real desk page in a scaled same-origin frame told the form's unsaved values, and a
+  compare strip drawing every value of the decision you last touched. **Three defects the
+  item's own traces found, each older than the slice that caught it:** the critical-reach
+  guard opened a Hidden pane on every fresh load of a form or list; the settings sweep
+  replayed the live desk 39 times because a scoped scan fell back to the whole document;
+  and a composer frame booting inside a page Frappe had cached hidden was 0px wide, so it
+  wrote Frappe's collapsed-sidebar flag into storage the desk shares. **Deferred, with
+  reasons in the plan:** the folding accordion sections, the master list and the print
+  bench (each a large mount, none in the pick), and the timeline restyle until its DOM is
+  measured. Released as **v0.45.0**; the account in CHANGELOG `[0.45.0]`.
+
 - `[x]` **44 · The language switch and the Appearance button** *(opened and built
   2026-09-06; releases as v0.44.0)*. Asked for after the overhaul went back to its branch:
   "add a language switch that can be added to different placements, default in bottom next
@@ -1567,7 +1607,8 @@ only its Arabic strings crossed.
   switch writing `User.language` through a validating endpoint and reloading, the avatar
   menu's language entry as the route every layout keeps, the style as an attribute the
   band degrades honestly, the foot band wrapping at six cells, seven checks. Item 43 is
-  still awaiting its picks; this took the next number. The account in CHANGELOG `[0.44.0]`.
+  was still awaiting its picks; this took the next number, which is why 43 ships as v0.45.0.
+  The account in CHANGELOG `[0.44.0]`.
 
 ---
 
