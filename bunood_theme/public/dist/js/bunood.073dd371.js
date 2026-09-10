@@ -1571,8 +1571,8 @@
 				frm.__bnd_drawer_mo = null;
 			}
 			drawer_set_open(false);
-			// Release only once NO cached page still holds a toggle.
-			if (!document.querySelector(".bnd-drawer-toggle")) bnd_disown("drawer");
+			// Per page, like the path's and the foot's.
+			if (!page.querySelector(".bnd-drawer-toggle")) bnd_disown("drawer");
 			return;
 		}
 		// The band re-homes the toggle when it exists (A8a); the page's action
@@ -1611,12 +1611,16 @@
 		drawer_recount(frm, toggle);
 		if (!frm.__bnd_drawer_mo && typeof MutationObserver !== "undefined") {
 			let queued = false;
+			// RE-QUERIED, NOT CLOSED OVER: the foot's stand-down removes the
+			// toggle with it, so the one captured here goes detached and the
+			// observer counts into nothing for the rest of the session.
 			frm.__bnd_drawer_mo = new MutationObserver(() => {
 				if (queued) return;
 				queued = true;
 				requestAnimationFrame(() => {
 					queued = false;
-					drawer_recount(frm, toggle);
+					const live = drawer_current_toggle();
+					if (live) drawer_recount(frm, live);
 				});
 			});
 			frm.__bnd_drawer_mo.observe(frm.footer.wrapper[0], { childList: true, subtree: true });
@@ -1714,8 +1718,8 @@
 		let head = main.querySelector(":scope > .bnd-dochead");
 		if (!dochead_wanted()) {
 			if (head) head.remove();
-			// No band, no path: the pill is Frappe's again.
-			if (!document.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+			// No band, no path: the pill is Frappe's again. Per page, as below.
+			if (!main.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
 			return;
 		}
 		const style = document.documentElement.getAttribute("data-bnd-form-header");
@@ -1787,8 +1791,11 @@
 		}
 		head.appendChild(tiles);
 		// LAST: the pill may leave only once the path that replaces it is live.
+		// RELEASED PER PAGE, never per document — Frappe caches one page per
+		// doctype, so a cached path was deciding for the page on screen. Every
+		// mount re-claims, so a cached page takes it back on its own refresh.
 		if (mount_stagepath(frm, head)) bnd_own("stagepath");
-		else if (!document.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+		else if (!main.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
 	}
 
 	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
@@ -1865,7 +1872,9 @@
 				frm.__bnd_foot_mo.disconnect();
 				frm.__bnd_foot_mo = null;
 			}
-			if (!document.querySelector(".bnd-docfoot")) bnd_disown("docfoot");
+			// Per page, like the path's: a cached foot was hiding the head's Save
+			// button on the form the user was actually looking at.
+			if (!page.querySelector(".bnd-docfoot")) bnd_disown("docfoot");
 			defer_bottom_reserve();
 			return;
 		}
@@ -1903,6 +1912,36 @@
 	});
 
 	/** The form kit's after-apply hook: the current form follows the new values. */
+	/**
+	 * The band's status pill, re-derived on the dirty tick — `get_indicator`
+	 * answers "Not Saved" the moment `__unsaved` is set, the band is built on
+	 * `refresh` only, and the stage path hides Frappe's own pill. No DOM class
+	 * marks the dirty state (measured), so this is the hook. Only the pill:
+	 * rebuilding the band would drop the action slot on every keystroke.
+	 */
+	function dochead_sync_status(frm) {
+		if (!frm || !frm.page || !frm.page.main || !frm.page.main[0]) return;
+		const head = frm.page.main[0].querySelector(":scope > .bnd-dochead");
+		if (!head) return;
+		const h = head.querySelector(".bnd-dochead-title");
+		if (!h) return;
+		let ind = null;
+		try {
+			ind = frm.is_new && frm.is_new() ? null : frappe.get_indicator ? frappe.get_indicator(frm.doc, frm.doctype) : null;
+		} catch (e) {
+			ind = null;
+		}
+		const existing = h.querySelector(":scope > .bnd-dochead-status");
+		if (!ind || !ind[0]) {
+			if (existing) existing.remove();
+			return;
+		}
+		const pill = existing || el("span", "");
+		pill.className = "bnd-dochead-status indicator-pill no-indicator-dot " + (ind[1] || "gray");
+		pill.textContent = __(ind[0]);
+		if (!existing) h.appendChild(pill);
+	}
+
 	function sync_form_mounts() {
 		if (!window.cur_frm) return;
 		mount_dochead(window.cur_frm);
@@ -1919,6 +1958,11 @@
 				mount_dochead(frm);
 				mount_docfoot(frm);
 				mount_drawer(frm);
+				// The dirty tick. Namespaced and `.off()`-first — `refresh` runs
+				// many times per document.
+				if (frm && frm.$wrapper) {
+					frm.$wrapper.off("dirty.bnddochead").on("dirty.bnddochead", () => dochead_sync_status(frm));
+				}
 			},
 		});
 	}
@@ -8945,11 +8989,16 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	bunood.apply_look = function (values) {
 		if (!values) return;
-		for (const fn of [
+		// DERIVED FROM THE REGISTRY, NOT LISTED — the hand-kept list this
+		// docblock calls a trap had become one, missing `body` and `language`,
+		// so Appearance previewed every look at the site's width, type scale and
+		// button colour. Only the hand-written appliers need naming.
+		const appliers = [
 			"sb_apply", "crumb_apply", "icon_apply", "palette_apply", "inbox_apply",
-			"chart_apply", "list_apply", "form_apply", "workspace_apply", "report_apply",
-			"views_apply", "overlay_apply", "empty_apply", "skeleton_apply", "filters_apply",
-		]) {
+			"chart_apply", "language_apply",
+			...Object.keys(BND_SURFACE_KITS).map((k) => k + "_apply"),
+		];
+		for (const fn of appliers) {
 			if (typeof bunood[fn] === "function") bunood[fn](values);
 		}
 	};
@@ -9143,6 +9192,9 @@ function sb_zone_anchor(pane, zone, node) {
 				// The foot's claim is a form's; a list's primary action is the
 				// same class and must never be hidden by a cached form's foot.
 				bnd_disown("docfoot");
+				// And the path's, for the same reason: a doctype with no path of
+				// its own must not inherit a cached one's hidden pill.
+				bnd_disown("stagepath");
 				update_desktop_mode();
 				keep_pane_on_desktop();
 				// AFTER update_desktop_mode, because that call is what stands

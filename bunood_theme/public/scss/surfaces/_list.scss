@@ -291,7 +291,12 @@ html[data-bnd-list="table"] .list-row-head {
   background: var(--bnd-raised);
   border-block-end: var(--bnd-line) solid var(--bnd-border);
   color: var(--bnd-ink-muted);
-  font-size: var(--bnd-body-help);
+  // FALLBACK, because this rule is not gated on the scale. `--bnd-body-help`
+  // is declared only inside `html[data-bnd-body-scale]`, so under
+  // `desk_scale: Original` this read is invalid and the head inherits the row's
+  // size — measured 14px against a 14px row, i.e. the eyebrow that separates a
+  // Dense Table head from its body simply is not there.
+  font-size: var(--bnd-body-help, var(--text-sm));
   font-weight: var(--bnd-weight-semibold);
   text-transform: uppercase;
 }

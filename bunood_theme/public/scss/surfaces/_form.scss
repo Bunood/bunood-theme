@@ -425,7 +425,25 @@ html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-heading-row {
 // which would punch holes in every stripe. The sticky pair stays opaque —
 // it covers scrolled cells — so it INHERITS the row's paint rather than
 // dropping its own.
-html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row:nth-child(even) {
+// A STRIPE IS THE REST STATE, AND HAS TO SAY SO IN ITS SELECTOR. Written as a
+// bare `:nth-child(even)` this rule carried `[data-bnd-form-grid]` — one
+// attribute more than the hover above it and one source position later than the
+// checked wash — so on EVERY EVEN ROW it beat both: hovering did nothing, and a
+// selected row was indistinguishable from an unselected one (under Hairline
+// Ledger the zebra IS `--bnd-surface`, so the selection wash vanished
+// completely). Measured on the shipped default: rest and hover both
+// `color(srgb 0.9726 0.9728 0.9734)` on row 2, while row 1 hovered to
+// `rgb(241, 246, 243)`.
+//
+// The three states are excluded here rather than re-weighted, because they must
+// keep applying under `Original`, where this rule does not exist at all — adding
+// `[data-bnd-form-grid]` to them would take them off the stock grid. The repo's
+// standing lesson, third instance: re-weigh against EVERY rule that sets the
+// same property on the same element, not only the one the comment names.
+html[data-bnd-form][data-bnd-form-grid]
+  .form-grid
+  .grid-body
+  .grid-row:nth-child(even):not(:hover):not(.grid-row-open):not(:has(.grid-row-check:checked)) {
   background: var(--bnd-form-grid-zebra);
 }
 html[data-bnd-form][data-bnd-form-grid] .form-grid .grid-body .grid-row .col:last-child {
@@ -548,7 +566,13 @@ html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-image-sect
 // The letter avatar's glyph is sized for the 80px well (40px, vendor); in a
 // 40px thumb it is a title-sized letter on the box's centre line.
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .sidebar-standard-image .standard-image {
-  font-size: var(--bnd-body-title);
+  // FALLBACK, because this rule is NOT gated on the scale. Every
+  // `--bnd-body-*` token is declared only inside `html[data-bnd-body-scale]`
+  // (_tokens.scss), so under `desk_scale: Original` — a shipped option — an
+  // unguarded read is invalid-at-computed-value and the property falls back to
+  // `inherit`: measured at 13px, a body-sized letter marooned in a 40px thumb.
+  // Six sibling reads in this file already carry the fallback; four did not.
+  font-size: var(--bnd-body-title, var(--text-lg));
   line-height: 0;
 }
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-section:not(.sidebar-image-section):not(.sidebar-meta-details) {
@@ -565,7 +589,8 @@ html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar > .sidebar-section:
 // .form-sidebar-label; Attachments and Tags are a bare first span.
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-items > span:first-child,
 html[data-bnd-form][data-bnd-form-side="rail"] .form-sidebar .form-sidebar-label {
-  font-size: var(--bnd-body-help);
+  // Fallback: this rule is not gated on the scale. See the avatar above.
+  font-size: var(--bnd-body-help, var(--text-sm));
   font-weight: var(--bnd-weight-semibold);
   text-transform: uppercase;
   color: var(--bnd-ink-muted);
@@ -668,7 +693,8 @@ html[data-bnd-form] .bnd-drawer-toggle .bnd-drawer-count {
   border-radius: var(--bnd-radius-pill);
   background: var(--bnd-brand-solid);
   color: var(--bnd-on-brand);
-  font-size: var(--bnd-body-help);
+  // Fallback: this rule is not gated on the scale. See the avatar above.
+  font-size: var(--bnd-body-help, var(--text-sm));
   font-weight: var(--bnd-weight-semibold);
   font-variant-numeric: var(--bnd-numeric);
   text-align: center;
@@ -692,15 +718,41 @@ html[data-bnd-form] .form-layout .form-section .section-head {
   display: flex;
   align-items: center;
   gap: var(--bnd-sp-2);
-  margin-inline: calc(-1 * var(--bnd-form-head-bleed, 0px));
-  padding-inline: var(--bnd-form-head-bleed, 0px);
+  // NO NEGATIVE MARGIN HERE, and the one that used to be here never worked:
+  // Frappe sets `.std-form-layout .section-head, .section-body { margin: auto
+  // !important }` (census §1, form.scss:88-96), and a non-important
+  // `margin-inline` cannot beat an `!important` shorthand at any specificity.
+  // Measured under Tinted Heads before the repair: computed margin-inline 0px,
+  // head 815px inside an 849px section — a floating inset band, which is the
+  // one thing a head band must not be. The bleed is achieved by NOT insetting
+  // the head and insetting its SIBLING instead; see the tinted rule below.
+  // The vendor's own inset PLUS whatever the style bleeds. Without the first
+  // term the title hangs 15px inside its own fields on every style that sets no
+  // bleed — which is six of the seven, the shipped default included.
+  padding-inline: calc(var(--bnd-form-head-bleed, 0px) + var(--bnd-form-col-pad));
   border-block-end: var(--bnd-line) solid var(--bnd-form-head-rule, transparent);
   border-start-start-radius: var(--bnd-form-sec-radius, 0);
   border-start-end-radius: var(--bnd-form-sec-radius, 0);
   background: var(--bnd-form-head-bg, transparent);
   color: var(--bnd-form-head-ink, inherit);
 }
+// THE BLEED, ACHIEVED BY MOVING THE INSET OFF THE SECTION. The section drops
+// its own inline padding so the head can span it edge to edge; the head pads
+// its text by the bleed plus the column's 15px (the rule above), and the body
+// takes the bleed alone, because the `.form-column` inside it adds that same
+// 15px on its own. Title and labels then land on one line and the band reaches
+// both edges. Measured: head box 292..1141 against a section of 292..1141,
+// head text and first field both at 323.
+//
+// Padding, never margin. The first repair here was `margin-inline: calc(-1 *
+// bleed)` on the head, and it never applied at any specificity — the vendor
+// sets `.std-form-layout .section-head, .section-body { margin: auto
+// !important }` (census §1), so the band rendered as a floating inset chip,
+// which is the one thing a head band must not be.
 html[data-bnd-form="tinted"] .form-layout .form-section {
+  padding-inline: 0;
+}
+html[data-bnd-form="tinted"] .form-layout .form-section > .section-body {
   padding-inline: var(--bnd-form-head-bleed);
 }
 html[data-bnd-form] .form-layout .form-section .section-head .collapse-indicator {
@@ -1044,9 +1096,30 @@ html[data-bnd-form][data-bnd-form-header="band"][data-bnd-form-tone="dark"] {
 // 16.33 renders it as a bare span.indicator-pill in .title-area (no
 // .page-indicator-pill wrapper — the crumb kit's rule names one that is not
 // there on this build).
-html[data-bnd-own~="stagepath"] .page-head .title-area > .indicator-pill {
+// SCOPED TO THE ROUTE AND TO THE SETTING, like its sibling at the foot. The
+// first cut carried neither, so a claim that outlived its page (Frappe caches
+// one page per doctype) hid the pill on every later route, including lists and
+// on doctypes that have no path to replace it with. The disown moved to the
+// router in the same change; both halves are needed, because ownership is
+// released on a route change and re-taken on the next mount, and the window
+// between them is exactly where an unscoped rule does damage.
+html[data-bnd-form-stage="path"][data-bnd-own~="stagepath"]
+  body[data-route^="Form"]
+  .page-head
+  .title-area
+  > .indicator-pill {
   display: none;
 }
+// THE UNSAVED STATE IS NOT A CSS PROBLEM, and it was nearly solved as one.
+// That pill is not only the docstatus: `frappe.get_indicator` returns
+// ["Not Saved", "orange"] for `doc.__unsaved`, and Frappe repaints the head on
+// every `dirty`. Measured for a hook to key an exception on — and there is
+// none: with a record dirty, the wrapper is still `form-page`, the body still
+// `no-breadcrumbs`, nothing in the DOM says so. So the band follows the dirty
+// tick itself (`dochead_sync_status`, bunood.js) and shows "Not Saved" in place
+// of the pill it hides, which is the honest replacement rather than an
+// exception. Recorded because the first repair invented a `.editable-form`
+// class that does not exist in this bundle.
 
 // ── The pinned foot (item 43 A8c) ───────────────────────────────────────────
 // The status bar's own idiom: fixed, inset by the pane's live width, lifted

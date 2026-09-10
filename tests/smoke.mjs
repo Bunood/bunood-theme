@@ -13554,6 +13554,29 @@ print("ok")
 			const ladder = await page.evaluate(() => [__("Draft"), __("Submitted"), __("Cancelled")].join("·"));
 			expectEq(g.states.join("·"), ladder, "the docstatus ladder in order");
 			expect(g.current === Math.min(g.docstatus, 2) && g.done === g.current, `the current step is the docstatus (${g.current} for ${g.docstatus}, ${g.done} done)`);
+			// AND THE OTHER RUNGS, because the one above is vacuous on a draft and
+			// a draft is what `frappe.get_all` with no order_by usually hands back:
+			// with docstatus 0 it reduces to "step 0 is current and nothing is
+			// done", which a mount that marked step 0 unconditionally and never
+			// emitted `data-bnd-done` would satisfy — on every submittable document
+			// in the product. Driven client-side rather than by finding a submitted
+			// record, so it is the same answer on any site (the release review's
+			// check lens; the workflow branch below already uses this idiom).
+			const rung = async (docstatus) => {
+				await page.evaluate((d) => { cur_frm.doc.docstatus = d; cur_frm.refresh(); }, docstatus);
+				await page.waitForTimeout(600);
+				return page.evaluate(() => {
+					const steps = [...document.querySelectorAll(".bnd-stagepath-step")];
+					return { current: steps.findIndex((s) => s.getAttribute("aria-current") === "step"), done: steps.filter((s) => s.hasAttribute("data-bnd-done")).length };
+				});
+			};
+			const was = g.docstatus;
+			for (const d of [0, 1, 2]) {
+				const r = await rung(d);
+				expect(r.current === d && r.done === d, `docstatus ${d} lights step ${d} with ${d} done (got ${r.current}, ${r.done})`);
+			}
+			await page.evaluate((d) => { cur_frm.doc.docstatus = d; cur_frm.refresh(); }, was);
+			await page.waitForTimeout(400);
 			expect(g.owned && g.pill === "none", `owned, the page head's pill is hidden (${g.pill})`);
 			await page.evaluate(() => {
 				const h = document.documentElement;
@@ -13881,7 +13904,15 @@ print("ok")
 			expectEq(t.head, t.label, "stock: 14 over 14, the census's diagnosis");
 		});
 		await test("body: Brand paints the primary button with the gated pair", async () => {
-			setSettings({ desk_primary: "Brand" });
+			// `form_foot: "Off"` IS THE PREMISE, not tidiness. An earlier check
+			// leaves the pinned foot ON, and the foot's ownership rule hides
+			// `.page-actions .primary-action` — so this waited on a button set to
+			// `display: none` (a latent 30s timeout that only resolved by catching
+			// a pre-mount frame) and then measured the invisible one while the
+			// button the user can see was the foot's proxy. Named by the release
+			// review's check lens; the proxy's own pair is asserted in the foot's
+			// check, which is where it belongs.
+			setSettings({ desk_primary: "Brand", form_foot: "Off" });
 			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), "brand", "primary attribute");
 			const want = await resolvePair("var(--bnd-brand-solid)", "var(--bnd-on-brand)");
@@ -13893,7 +13924,7 @@ print("ok")
 			expectEq(got.ink, want.ink, "ink is --bnd-on-brand");
 		});
 		await test("body: Black keeps Frappe's own primary", async () => {
-			setSettings({ desk_primary: "Black" });
+			setSettings({ desk_primary: "Black", form_foot: "Off" }); // the premise; see above
 			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), null, "no primary attribute");
 			const want = await resolvePair("var(--gray-900)", "var(--neutral)");
@@ -14014,16 +14045,67 @@ print("ok")
 			const s = getComputedStyle(sec), h = getComputedStyle(head);
 			const ind = [...document.querySelectorAll(".form-layout .section-head.collapsible .collapse-indicator")].find(vis);
 			const r = ind && ind.getBoundingClientRect();
+			// WHERE THE TITLE'S TEXT STARTS, and where the first field starts. The
+			// box tells you nothing here — the whole question is padding, and a
+			// head whose padding was replaced by a token only one style sets hung
+			// its title 15px inside its own fields on the other six.
+			const ctrl = sec.querySelector(".frappe-control");
+			const range = document.createRange();
+			const tn = [...head.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+			let textX = null;
+			if (tn) { range.selectNodeContents(tn); const b = range.getBoundingClientRect(); if (b.width) textX = b.left; }
+			const secR = sec.getBoundingClientRect(), headR = head.getBoundingClientRect();
 			return {
 				secBg: s.backgroundColor, secBorder: s.borderInlineStartColor, secRadius: s.borderRadius,
 				headBg: h.backgroundColor, headRule: h.borderBlockEndWidth, headRuleColor: h.borderBlockEndColor, headPx: px(head), labelPx: px(label),
 				indicator: r ? { w: r.width, h: r.height } : null,
+				headTextX: textX, ctrlX: ctrl ? ctrl.getBoundingClientRect().left : null,
+				// How much of the section the head's BOX covers: a band that does
+				// not reach the edges is a floating chip, not a head band.
+				headInset: Math.round(headR.left - secR.left), headW: Math.round(headR.width), secW: Math.round(secR.width),
 			};
 		});
+		await test("form: a section title starts where its own fields start, in every style", async () => {
+			// THE ONE THING A HEAD MUST DO. A3 gave every style the same head
+			// anatomy and set `padding-inline` from a bleed token that only Tinted
+			// Heads declares, so on the other six it resolved to 0 and beat
+			// Frappe's own 15px — the inset that exists precisely because every
+			// field sits inside a `.form-column` with the same 15px. Measured on
+			// the shipped default before the repair: title text at 308, first
+			// field at 323, on every form page in the product, both directions.
+			// Found by the release review's CSS lens; no check compared the two,
+			// though the sibling field check had been comparing label to input
+			// since A2.
+			//
+			// AND THE BAND'S REACH, in the one style that paints one: a head band
+			// inset from its section reads as a floating chip. Its first repair
+			// was a negative margin that could never apply — the vendor's
+			// `margin: auto !important` — so this asserts the box, not the rule.
+			for (const [style, tinted] of [["Floating Panels", false], ["Headed Groups", false], ["Paper Sheet", false], ["Grouped Insets", false], ["Tinted Heads", true], ["Original", false]]) {
+				setSettings({ form_style: style });
+				await goDesk(FORM_ROUTE, ".form-layout", 2500);
+				const g = await sectionGeom();
+				expect(g.headTextX !== null && g.ctrlX !== null, `${style}: a head with text and a field to line up with`);
+				expect(
+					Math.abs(g.headTextX - g.ctrlX) <= 2,
+					`${style}: the title starts where the fields start (${Math.round(g.headTextX)} vs ${Math.round(g.ctrlX)})`
+				);
+				if (tinted) {
+					expect(g.headInset <= 2, `${style}: the band reaches the section's inline start (inset ${g.headInset})`);
+					expect(g.secW - g.headW <= 4, `${style}: and its end (${g.headW} of ${g.secW})`);
+				}
+			}
+		});
+
 		const NEW_STYLES = {
 			"Headed Groups": ["groups", (g, raised) => {
 				expectEq(g.secBg, "rgba(0, 0, 0, 0)", "no panel");
+				// THE COLOUR, NOT THE WIDTH. Every style carries this border at
+				// `--bnd-line`; only Headed Groups gives it a colour, so a check on
+				// `headRule` alone was true of all seven and would have stayed green
+				// with the hairline deleted (the release review's check lens).
 				expectEq(g.headRule, "1px", "a hairline under the head");
+				expect(g.headRuleColor !== "rgba(0, 0, 0, 0)", `and it is visible (${g.headRuleColor})`);
 			}],
 			"Grouped Insets": ["inset", (g, raised) => {
 				expectEq(g.secBg, raised, "the raised tone");
@@ -14092,6 +14174,60 @@ print("ok")
 			expectEq(g.numVariant, "tabular-nums", "and tabular");
 			expect(g.addW && Math.abs(g.addW - g.gridW) <= 2, `Add row spans the grid (${g.addW} vs ${g.gridW})`);
 		});
+		await test("form: a striped row still answers the pointer and still shows it is selected", async () => {
+			// THE STRIPE IS THE REST STATE AND MUST LOSE TO ALL THREE OF THE OTHERS.
+			// Written as a bare `:nth-child(even)` the zebra carried one attribute
+			// more than the hover rule and one source position more than the checked
+			// wash, so on EVERY EVEN ROW hovering did nothing and a selected row
+			// looked unselected — under Hairline Ledger the zebra IS `--bnd-surface`,
+			// so the selection wash disappeared outright. Found by the release
+			// review's CSS lens and measured before the repair: row 2 read
+			// `color(srgb 0.9726 …)` at rest AND on hover, while row 1 hovered to
+			// `rgb(241, 246, 243)`.
+			//
+			// THE ODD ROW IS THE CONTROL. Without it a repair that broke hover
+			// everywhere would still satisfy "even differs from its rest colour"
+			// on nothing, and the check would be asserting its own sabotage.
+			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
+			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await page.evaluate(async () => {
+				const tab = [...document.querySelectorAll(".form-tabs .nav-link")].find((a) => /uom/i.test(a.textContent));
+				if (tab && !tab.classList.contains("active")) { tab.click(); await new Promise((r) => setTimeout(r, 600)); }
+			});
+			await page.waitForTimeout(800);
+			const rowSel = (n) => `.form-grid .grid-body .grid-row:nth-child(${n})`;
+			const bgOf = (n) => page.evaluate((s) => { const el = document.querySelector(s); return el ? getComputedStyle(el).backgroundColor : null; }, rowSel(n));
+			const rest = { odd: await bgOf(1), even: await bgOf(2) };
+			expect(rest.odd && rest.even && rest.odd !== rest.even, `the grid is striped at rest (${rest.odd} vs ${rest.even})`);
+			// Hover: mutate and read in DIFFERENT evaluates, and give the fill time
+			// to settle — a read on the mutating tick serves a stale value, and a
+			// read mid-transition serves an interpolation.
+			const hover = {};
+			for (const n of [1, 2]) {
+				const el = await page.$(rowSel(n));
+				expect(el, `row ${n} exists`);
+				await el.scrollIntoViewIfNeeded();
+				await el.hover();
+				await page.waitForTimeout(500);
+				hover[n === 1 ? "odd" : "even"] = await bgOf(n);
+				await page.mouse.move(5, 5);
+				await page.waitForTimeout(300);
+			}
+			expect(hover.odd !== rest.odd, `hover paints an odd row (${rest.odd} -> ${hover.odd})`);
+			expect(hover.even !== rest.even, `hover paints an EVEN row too (${rest.even} -> ${hover.even})`);
+			// Selection: the same question on the other state. The mark alone is not
+			// the indication — the wash is what the list kit and this grid share.
+			const box = await page.$(`${rowSel(2)} .grid-row-check`);
+			expect(box, "the even row has a selection checkbox");
+			await box.click();
+			await page.waitForTimeout(500);
+			const checkedEven = await bgOf(2);
+			const stillChecked = await page.evaluate((s) => !!document.querySelector(`${s} .grid-row-check:checked`), rowSel(2));
+			expect(stillChecked, "the even row is actually checked");
+			expect(checkedEven !== rest.even, `a selected EVEN row shows the selection wash (${rest.even} -> ${checkedEven})`);
+			await box.click();
+		});
+
 		await test("form: Hairline Ledger drops the verticals and sets a small-caps head", async () => {
 			setSettings({ form_grid: "Hairline Ledger" });
 			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
@@ -14160,6 +14296,12 @@ print("ok")
 			const form = await page.evaluate(() => Math.round(document.querySelector(".std-form-layout .form-section").getBoundingClientRect().width));
 			expect(Math.abs(ws - form) <= 2, `Measured Column: workspace ${ws} == form ${form}`);
 			expect(ws >= 1100 && ws <= 1140, `and it is the measured 1120 (${ws})`);
+			// PUT IT BACK. `Measured Column` is not what this theme ships, and
+			// roughly 250 checks run after this one — every workspace, chart,
+			// report, view and overlay check was measuring a desk at a width the
+			// product does not use. It cost nothing visible here, which is exactly
+			// how the drag-resize leftover went unnoticed for two runs.
+			setSettings({ desk_width: "Full Bleed" });
 		});
 
 		const WS_STYLE_SLUG = {

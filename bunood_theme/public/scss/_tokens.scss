@@ -173,6 +173,16 @@
   // A section head's collapse indicator (item 43 A3): a control, so a hit box —
   // 20px is the floor the accessibility item set for a secondary control.
   --bnd-form-indicator: 20px;
+  // BOOTSTRAP'S COLUMN PADDING, WHICH THE HEAD HAS TO MATCH. Every field sits
+  // inside `.form-column` at 15px from the section's content box, and Frappe's
+  // own `.section-head` carries the same 15px so the title lines up with the
+  // labels beneath it. A3's head rule replaced that padding with a bleed token
+  // that only Tinted Heads sets, so on the other six styles it resolved to 0
+  // and every section title hung 15px to the inline start of its own fields —
+  // measured on the shipped default, head text 308 against a field at 323.
+  // A token rather than the literal, because the head reads it in a calc with
+  // the bleed and both consumers must move together if the vendor's does.
+  --bnd-form-col-pad: 15px;
   // The inspector rail's record thumb (item 43 A5): the form sidebar's 80px image
   // well brought down onto the name's row — 40px reads as an avatar, not a photo.
   --bnd-form-thumb: 40px;

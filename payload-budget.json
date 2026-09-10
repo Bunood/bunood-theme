@@ -156,11 +156,22 @@
 		"AND css 27000 -> 27400 / js 120000 -> 121000 for item 43 slice A8b, the stage path: chevron steps by clip-path (both directions), the current step on the band's inverted pair, the page head's pill hidden only under data-bnd-own~=\"stagepath\"; in bunood.js the ladder (workflow states from boot, else docstatus) and the claim.",
 		"AND css 27400 -> 28000 / js 121000 -> 122500 for item 43 slice A8c, the pinned foot: the fixed bar on the status bar's idiom (lifted by the measured chrome, joining BND_BOTTOM_CHROME), its facts and proxy; in bunood.js mount_docfoot (the proxy, the observer on the action cluster, the lift, the claim released on route change).",
 		"AND css 28000 -> 28500 / js 122500 -> 125500 for item 43 B3, the settings map in the side pane: the pane part, its rows from the form's sections, the IntersectionObserver, the rail chip and the page-head Sections menu; the pane sheet's map rules. (B1 retired the shell's 190 lines of CSS in the same group.)",
-		"AND js 125500 -> 126000 for the critical-reach guard's readiness wait (2026-09-08, found by B3's trace): visible_page_title(), the guard declining to judge a hidden pane before the page head exists, lend_to_arrived_page on Frappe's page-change, and sb_apply ending in the pane-state follower. Measured 125,544 after the comments were cut to pointers — 44 over; the argument lives in the commit and in pane-holds."
+		"AND js 125500 -> 126000 for the critical-reach guard's readiness wait (2026-09-08, found by B3's trace): visible_page_title(), the guard declining to judge a hidden pane before the page head exists, lend_to_arrived_page on Frappe's page-change, and sb_apply ending in the pane-state follower. Measured 125,544 after the comments were cut to pointers — 44 over; the argument lives in the commit and in pane-holds.",
+		"AND js 126000 -> 126800 for the v0.45.0 release reviews (2026-09-10). 655",
+		"gzip bytes of CODE, after the prose that came with it was cut back to the",
+		"line: `apply_look` derives its applier list from BND_SURFACE_KITS instead of",
+		"naming fifteen functions, which is what let items 43 and 44 register kits the",
+		"Appearance dialog never previewed (width, type scale, primary colour and the",
+		"language style, all left at the site value until the next page load); and",
+		"`dochead_sync_status` re-derives the band s status pill on the dirty tick,",
+		"because the stage path hides Frappe s own pill and the band was built on",
+		"refresh only, so a submittable record with unsaved edits showed Draft and",
+		"nothing else. The rest of the review s JS fixes are one word each (three",
+		"ownership releases scoped to the page, one observer re-querying its toggle)."
 	],
 	"ceiling": {
 		"css_gzip": 28500,
-		"js_gzip": 126000,
+		"js_gzip": 126800,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

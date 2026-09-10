@@ -1924,7 +1924,12 @@ function bnd_composer_build(frm, $host) {
 	frm.$wrapper.off("bnd:saved.bndcompose").on("bnd:saved.bndcompose", (e, mine) => {
 		const inputs = bnd_brand_inputs || [];
 		if (!Object.keys(mine || {}).some((f) => inputs.includes(f))) return;
-		for (const frame of frm.$wrapper.find(".bnd-cmp-frame")) {
+		// BOTH FRAME FAMILIES. The strip's cells are `.bnd-cmp-cellframe`, which
+		// `.bnd-cmp-frame` does not match, so a landed brand save repainted the
+		// stage onto the new content-hashed sheet and left every compare cell on
+		// the old one — a strip whose whole job is to show the same desk with one
+		// field changed, showing two different brands instead.
+		for (const frame of frm.$wrapper.find(".bnd-cmp-frame, .bnd-cmp-cellframe")) {
 			if (frame.contentWindow && frame.getAttribute("data-bnd-route")) {
 				frame.removeAttribute("data-bnd-route");
 				frame.contentWindow.location.reload();
@@ -2366,6 +2371,7 @@ function bnd_composer_render_strip(frm) {
 function bnd_composer_cell_park(cell) {
 	const frame = cell.querySelector(".bnd-cmp-cellframe");
 	clearTimeout(cell.__bnd_wait); // a parked cell hands no turn on
+	clearTimeout(cell.__bnd_focus); // …and chases no element in a parked frame
 	frame.removeAttribute("data-bnd-route");
 	if (frame.contentWindow) frame.contentWindow.location.replace("about:blank");
 }
@@ -2449,10 +2455,17 @@ function bnd_composer_cell_focus(cell, field) {
 	const fw = frame.contentWindow;
 	const spec = BND_COMPOSER_FOCUS[field];
 	if (!fw || !spec) return;
+	// ONE CHAIN PER CELL. A push arrives from the dirty tick, from the frame's
+	// own router-change and page-change handlers, and from each load — so
+	// without this every push started another self-rescheduling retry, and two
+	// chains on one cell wrote `frame.style.translate` from rects measured at
+	// different moments. Cleared here and in `bnd_composer_cell_park`, beside
+	// the queue's own timer.
+	clearTimeout(cell.__bnd_focus);
 	const settle = (tries) => {
 		const el = fw.document.querySelector(spec.sel);
 		if (!el) {
-			if (tries > 0) setTimeout(() => settle(tries - 1), 250);
+			if (tries > 0) cell.__bnd_focus = setTimeout(() => settle(tries - 1), 250);
 			return;
 		}
 		// Scrolled within the FRAME's own scroller — the nearest scrollable

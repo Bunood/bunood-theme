@@ -43,15 +43,21 @@
 // the card, the tabs bar and the connections dashboard take the same width so
 // there is nothing beside the body for the eye to read as a second edge.
 // Full Bleed needs no rule: the cap is `none` and everything fills the column.
-html[data-bnd-body-width="measured"] .form-layout .form-section,
-html[data-bnd-body-width="measured"] .form-layout .form-dashboard-section,
-html[data-bnd-body-width="measured"] .form-layout .form-tabs-list {
+// `body:not(.full-width)` on both, because EVERY vendor reader of
+// `--page-max-width` carries that guard (census §1) and Frappe's own Toggle
+// Full Width is how a user lifts the cap. Without it the vendor lifted
+// `.section-body` to `none` while our card stayed pinned at the token, so the
+// menu item silently did nothing — the item-40 shape again, a control governing
+// a box while something else governs the box inside it.
+html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-section,
+html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-dashboard-section,
+html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-tabs-list {
   max-inline-size: var(--bnd-content-w);
   margin-inline: auto;
 }
-html[data-bnd-body-width="narrow"] .form-layout .form-section,
-html[data-bnd-body-width="narrow"] .form-layout .form-dashboard-section,
-html[data-bnd-body-width="narrow"] .form-layout .form-tabs-list {
+html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-section,
+html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-dashboard-section,
+html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-tabs-list {
   max-inline-size: var(--bnd-content-w-narrow);
   margin-inline: auto;
 }
