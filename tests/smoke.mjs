@@ -21176,9 +21176,24 @@ print("cleared")
 			// port anything load-bearing (a new marker, a new context key), then
 			// update the hash in the same commit with the diff in its message.
 			const PINNED = {
-				standard: "ef600441177479bc327042bea532a10b52dc9e8415994d9a47a12458cce91457",
+				// RE-PINNED 2026-09-10 at frappe 16.33.0, which is this check doing its
+				// job: it went red, upstream was read, three changes were ported into
+				// our fork (the container width keys on `header or with_container`;
+				// `{{ content }}` sits in a `<div>`, not a `<p>` it cannot legally
+				// contain; `brand_name` joins the name chain) and one was deliberately
+				// left — 16.33's four cell class names carry padding inside
+				// `.body-table.with-container .email-container`, and our fork moved that
+				// padding onto its own cell, so taking them would inset every contained
+				// email twice. The argument lives at the top of the template.
+				standard: "fd3e883de26cc12aa10f723e36bdc5ab9ebae160fcaa91fd62913a8c4f0ddf88",
 				email_header: "530ee1d7e98977edaf2c26a68f8defb9daaf542c8244f692875d26ad08011e9d",
-				email_footer: "3275615ecd933fb4936f44955046a19056ff05ed9a14ade8bc6df3419e961480",
+				// RE-PINNED 2026-09-10 at 16.33.0 with the standard above. One line
+				// changed — the root div's class list gained `text-muted` and a
+				// conditional `with-divider` — and neither is taken: `text-muted` is
+				// `color: … !important` in the vendor's sheet and would beat the fitted
+				// footer ink that `email: the repaired inks clear AA` guards, and
+				// `with-divider` hangs padding we already own. Argued in the template.
+				email_footer: "801fd923887b41f710296218688a91f54311fccaf3220519b3c1fe3244982ad0",
 			};
 			const p = emailProbe();
 			for (const [name, want] of Object.entries(PINNED)) {
@@ -21731,14 +21746,7 @@ print("cleared")
 					"from bunood_theme.api import email_preview\n" +
 					"res = {}\n" +
 					"res['html'] = email_preview()\n" +
-					"# The upstream crash our endpoint exists to route around.\n" +
-					"try:\n" +
-					"    from frappe.email.email_body import get_formatted_html\n" +
-					"    get_formatted_html('T', '<p>x</p>', with_container=True)\n" +
-					"    res['upstream'] = 'no error'\n" +
-					"except Exception as e:\n" +
-					"    res['upstream'] = type(e).__name__\n" +
-					"# And the permission gate, from a user who has no business here.\n" +
+					"# The permission gate, from a user who has no business here.\n" +
 					"frappe.set_user('Guest')\n" +
 					"try:\n" +
 					"    email_preview()\n" +
@@ -21763,12 +21771,17 @@ print("cleared")
 				expect(res.html.includes(needle), `the preview sample is missing ${needle}`);
 			}
 			expectEq(res.guest, "PermissionError", "a Guest must not be able to render the preview");
-			expectEq(
-				res.upstream,
-				"AttributeError",
-				"frappe's own get_email_html path no longer crashes without an outgoing account — " +
-					"re-check docs/upstream/frappe-email.md §7 and simplify api.email_preview if it is fixed"
-			);
+			// THE TRIPWIRE FIRED, SO IT IS GONE. This arm asserted `AttributeError`
+			// from frappe's own path, purely to say "tell me when upstream fixes
+			// this". 16.33 fixed it — `get_brand_logo` guards the dereference now
+			// (docs/upstream/frappe-email.md §7) — and the answer to "simplify
+			// api.email_preview?" turned out to be NO: its `email_account` stub reads
+			// as a crash workaround and is really suppressing Website Settings'
+			// `app_logo` fallback and the account footer, so the preview shows what
+			// the settings say and nothing else. Keeping the arm would mean asserting
+			// upstream behaviour we deliberately do not depend on, which is the
+			// "asserting something this app does not control" trap the markers check
+			// two tests up refuses by name.
 		});
 
 
@@ -21790,6 +21803,15 @@ print("cleared")
 					"}\n" +
 					"res['html'] = get_formatted_html('T', '<p>body</p>', email_account=acct,\n" +
 					"                                 with_container=True, header=[None, 'blue'])\n" +
+					// THE THIRD VENDOR STRING, added when frappe 16.33 handed the
+					// wrapper a `brand_name` context key it had never had. Same gate as
+					// `brand_logo`, so this very render carries it — and its value is
+					// `website_settings.app_name or system_settings.app_name`, which is
+					// the FRAMEWORK's name on a site that set neither.
+					"from frappe.email.email_body import get_brand_name\n" +
+					"res['brand_name'] = get_brand_name()\n" +
+					"from bunood_theme.email import brand as bnd_brand\n" +
+					"res['ours'] = bnd_brand(None)['name']\n" +
 					"print('BND_BR' + json.dumps(res))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_BR"));
@@ -21840,6 +21862,22 @@ print("cleared")
 				/frappeframework\.com/.test(res.html),
 				false,
 				"the vendor's marketing URL reached the rendered message"
+			);
+
+			// AND THE WORDMARK, which is a third vendor string this check had no arm
+			// for until frappe 16.33 created one. Same shape as the two above: prove
+			// the stock value is a vendor name FIRST, then prove it is not what we
+			// render. Without the first half this passes vacuously the day someone
+			// sets Website Settings' app_name to the tenant's own company.
+			expect(
+				res.brand_name && /^(Frappe|ERPNext)$/i.test(res.brand_name.trim()),
+				`get_brand_name() no longer returns a vendor name (${JSON.stringify(res.brand_name)}) — ` +
+					"this arm depended on it being one; re-read frappe-email.md §7"
+			);
+			expectEq(
+				res.ours === res.brand_name,
+				false,
+				`our wordmark is the framework's name (${res.ours}) — brand_name must not enter the chain`
 			);
 		});
 

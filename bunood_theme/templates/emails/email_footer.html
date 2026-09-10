@@ -2,7 +2,27 @@
   THE EMAIL FOOTER — ours. Item 34. See standard.html's header for why this app
   forks three of Frappe's email templates and what that costs.
 
-  Forked at frappe 16.27.0, sha256 3275615ecd933fb4; pinned by tests/smoke.mjs.
+  Forked at frappe 16.27.0; re-read and re-pinned at 16.33.0 (sha256
+  801fd923887b41f7), 2026-09-10. Pinned by tests/smoke.mjs.
+
+  16.33 CHANGED EXACTLY ONE LINE HERE — the root div's class list — and NEITHER
+  half is taken. Upstream now writes:
+
+      class="email-footer-container text-muted
+             {% if email_account_footer or sender_address or default_mail_footer %}with-divider{% endif %}"
+
+    `text-muted` is refused on measurement, not on taste: `email.bundle.scss:357`
+      is `.text-muted { color: $text-muted !important; }`. Our footer ink is a
+      fitted CONTRACT at `.bnd-e .bnd-e-foot` (0,2,0) with no `!important`, and
+      in an inlining pipeline `!important` wins whatever the specificity — so
+      taking the class would hand the footer straight back to #7c7c7c and undo
+      the repair four lines below. `email: the repaired inks clear AA` is the
+      check that would catch it, and it should never have to.
+    `with-divider` is refused because it is a hook for padding we already own:
+      `.email-footer-container.with-divider` adds a 24px margin, 16px of padding
+      and a border-top, and it also drives `standard.html`'s `filled` cell class,
+      which this fork does not take either (the argument is in that file). One
+      refusal, consistently applied, beats two halves of a divider.
 
   TWO OF THE THREE LOAD-BEARING MARKERS ARE IN THIS FILE:
       <!--unsubscribe link here-->   -> email_body.py:444 replaces it wholesale

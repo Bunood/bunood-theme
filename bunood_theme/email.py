@@ -389,6 +389,17 @@ def brand(logo_from_account=None, settings=None) -> dict:
             neither, so stock shows no logo on the commonest message a site sends.
         settings: an already-loaded Theme Settings, when the caller has one.
 
+    NOT A THIRD SOURCE: frappe 16.33 added a ``brand_name`` context key beside
+    ``brand_logo``, filled under the same gate, and it is deliberately unused.
+    ``get_brand_name()`` (``email_body.py:711``) is
+    ``website_settings.app_name or system_settings.app_name``, which on a site
+    that has not set either is the string **"Frappe"** — measured on this bench.
+    Taking it as a fallback would put the framework's name on a customer's mail
+    to their customers, which is the exact outcome ``_vendor_name`` exists to
+    prevent and which ``bunood_email_title`` and ``bunood_email_footer`` already
+    strip out of two other seams. A new key is worth reading; its value is what
+    decides whether it is worth using.
+
     Returns:
         ``{"mark": url or "", "name": str, "show_mark": bool, "show_name": bool}``
         — RAW, not escaped. The template escapes at the point of use with ``| e``,
