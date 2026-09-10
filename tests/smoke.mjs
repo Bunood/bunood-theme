@@ -14900,12 +14900,19 @@ print("ok")
 							const r = button.getBoundingClientRect();
 							const icon = button.querySelector("svg").getBoundingClientRect();
 							const text = button.querySelector(".bnd-mobile-nav-label").getBoundingClientRect();
+							const escapedLabels = [...document.querySelectorAll(
+								".bnd-topbar .bnd-mobile-nav-label:not(.bnd-dashboard-return-label)"
+							)].filter(node => {
+								const box = node.getBoundingClientRect();
+								return box.width > 0 && box.height > 0 && getComputedStyle(node).display !== "none";
+							}).length;
 							return {
 								rect: { left: r.left, right: r.right, top: r.top, width: r.width, viewport: innerWidth },
 								withinViewport: r.left >= 0 && r.right <= innerWidth,
 								contentFits: button.scrollWidth <= button.clientWidth,
 								labelVisible: text.width > 20 && text.height > 10,
 								centred: Math.abs((icon.top + icon.height / 2) - (text.top + text.height / 2)) < 2,
+								escapedLabels: escapedLabels === 0,
 							};
 						});
 						expect(Object.entries(fit).filter(([key]) => key !== "rect").every(([, value]) => value),

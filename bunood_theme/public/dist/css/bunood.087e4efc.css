@@ -847,6 +847,10 @@ html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
 }
 
+html[data-theme] .bnd-topbar .bnd-mobile-nav-label:not(.bnd-dashboard-return-label) {
+  display: none;
+}
+
 html[data-theme] .bnd-topbar .bnd-sb-utils-bar {
   margin-block: 0;
 }

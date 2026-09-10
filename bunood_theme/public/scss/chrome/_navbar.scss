@@ -142,6 +142,16 @@ html[data-theme] .bnd-topbar .bnd-cluster {
   margin-inline-start: auto;
 }
 
+// Phone captions belong to the four-cell bottom navigation, never to the
+// desktop-style top bar. The same tenant nodes survive a breakpoint change,
+// so a narrow viewport can briefly host them here while placement settles;
+// without this component boundary their Arabic labels escape the fixed icon
+// buttons and overlap the page. The labelled All Apps return is intentional.
+html[data-theme] .bnd-topbar
+  .bnd-mobile-nav-label:not(.bnd-dashboard-return-label) {
+  display: none;
+}
+
 // Sidebar utilities carry bottom spacing when they live in the pane. In a
 // horizontal bar that margin shifts the whole icon pair above the bar centre.
 html[data-theme] .bnd-topbar .bnd-sb-utils-bar {
