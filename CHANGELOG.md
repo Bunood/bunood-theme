@@ -22,6 +22,20 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.9] — 2026-09-10 — Preference ownership guard (patch)
+
+### Fixed
+
+- Classified the language switch and appearance-button configuration as
+  administrator-owned site settings. This restores the field partition invariant
+  and prevents named personal looks from silently claiming tenant-wide language
+  availability or global chrome placement.
+
+### Checks
+
+The personal-field partition gate fails on v0.44.8 and passes with all four new
+settings filed exactly once as site-owned.
+
 ## [0.44.8] — 2026-09-10 — Page-head sidebar control (patch)
 
 ### Changed

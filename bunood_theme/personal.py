@@ -430,9 +430,14 @@ OFF_DESK_FIELDS = tuple(sorted(set(LOGIN_FIELDS) | set(WEB_FIELDS) | set(EMAIL_F
 #:   move desk chrome, so they are not a look; they are outside
 #:   :data:`SHAPE_FIELDS`, so they are not a personal shape either. Site-only is
 #:   the honest third answer rather than filing them wherever subtraction lands.
+#: * the language and appearance controls — these describe which languages the
+#:   tenant offers and where its global chrome is mounted. The language switch
+#:   changes a user's locale, but its offered set, drawing and placement remain
+#:   administrator-owned Theme Settings rather than fields a named look carries.
 SITE_ONLY_FIELDS = (
     "accent_color",
     "accent_color_dark",
+    "appearance_placement",
     "apps_placement",
     "brand_color",
     "brand_color_dark",
@@ -440,6 +445,9 @@ SITE_ONLY_FIELDS = (
     "desk_order",
     "ground_color",
     "home_placement",
+    "language_choices",
+    "language_placement",
+    "language_style",
 )
 
 #: The desk kits a personal look carries — named positively, one line each.
