@@ -388,6 +388,7 @@
 				if (options.lineOptions.regionFill === undefined) options.lineOptions.regionFill = 1;
 			}
 			const chart = new NativeChart(parent, options);
+			if (chart) guard_chart_area(chart); // installs once; see guard_chart_area
 			if (chart && chart.container) {
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
@@ -405,19 +406,28 @@
 		// A redraw during the SMIL swap (the real svg is out of its container for
 		// 250ms; a ResizeObserver fires when our chrome mounts) is the removeChild
 		// pageerror. Put the real svg back first. Argument: surfaces/_charts.scss.
-		const native_area = NativeChart.prototype.makeChartArea;
-		if (typeof native_area === "function" && !native_area._bnd) {
-			const guarded = function () {
-				if (this.svg && this.container && this.svg.parentNode !== this.container) {
-					for (const n of Array.from(this.container.children)) {
-						if (n.tagName && n.tagName.toLowerCase() === "svg") this.container.removeChild(n);
+		// PATCHED ON THE PROTOTYPE THAT OWNS IT, found from a real instance —
+		// `frappe.Chart` is a factory and does not own `makeChartArea`, so the
+		// first version of this guard installed nothing at all. Argument and
+		// measurements in surfaces/_charts.scss.
+		function guard_chart_area(chart) {
+			for (let p = Object.getPrototypeOf(chart); p && p !== Object.prototype; p = Object.getPrototypeOf(p)) {
+				if (!Object.prototype.hasOwnProperty.call(p, "makeChartArea")) continue;
+				const native = p.makeChartArea;
+				if (typeof native !== "function" || native._bnd) return;
+				const guarded = function () {
+					if (this.svg && this.container && this.svg.parentNode !== this.container) {
+						for (const n of Array.from(this.container.children)) {
+							if (n.tagName && n.tagName.toLowerCase() === "svg") this.container.removeChild(n);
+						}
+						this.container.appendChild(this.svg);
 					}
-					this.container.appendChild(this.svg);
-				}
-				return native_area.apply(this, arguments);
-			};
-			guarded._bnd = true;
-			NativeChart.prototype.makeChartArea = guarded;
+					return native.apply(this, arguments);
+				};
+				guarded._bnd = true;
+				p.makeChartArea = guarded;
+				return;
+			}
 		}
 		frappe.Chart = BndChart;
 

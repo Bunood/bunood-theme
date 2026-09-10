@@ -167,11 +167,17 @@
 		"because the stage path hides Frappe s own pill and the band was built on",
 		"refresh only, so a submittable record with unsaved edits showed Draft and",
 		"nothing else. The rest of the review s JS fixes are one word each (three",
-		"ownership releases scoped to the page, one observer re-querying its toggle)."
+		"ownership releases scoped to the page, one observer re-querying its toggle).",
+		"AND 126800 -> 127100 in the same review round, for `guard_chart_area`. The",
+		"frappe-charts removeChild race had been reported fixed twice and failed a",
+		"fifth full run; reproducing it showed the wrap was never installed at all,",
+		"because frappe.Chart is a factory and does not own makeChartArea. The guard",
+		"walks a real instance s prototype chain instead. 43 gzip bytes after the",
+		"argument moved to surfaces/_charts.scss, which Sass strips."
 	],
 	"ceiling": {
 		"css_gzip": 28500,
-		"js_gzip": 126800,
+		"js_gzip": 127100,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

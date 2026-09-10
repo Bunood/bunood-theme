@@ -136,6 +136,51 @@ Three deliverables, one item, in that order.
   its own setter, builder items carrying their reason, the composer's value normalised through
   the pane's packer, three placement keys in the theme's key set.
 
+### Fixed — the second review round, on the shipped default
+
+Three of the six adversarial lenses died on a model rate limit before the tag and were
+re-run afterwards. They found more than the three that reported, and four of the findings
+were on the path every site takes out of the box. Each was re-measured before it was
+touched, and the tag moved to include them.
+
+- **A striped row answered neither the pointer nor the selection.** The zebra carried one
+  attribute more than the row-hover rule and one source position more than the checked-row
+  wash, so on every EVEN row of every child table hovering did nothing and a selected row
+  looked unselected. Under Hairline Ledger the stripe is the surface colour, so the
+  selection wash disappeared outright. The three states are excluded from the stripe rather
+  than re-weighted, because they must keep applying under Original.
+- **Every section title hung 15 pixels inside its own fields.** The head's inline padding
+  came from a bleed token only Tinted Heads declares, so on the other six styles it
+  resolved to zero and beat Frappe's own 15px — the inset that exists because every field
+  sits in a column with the same 15px. Measured on the shipped default: title at 308, first
+  field at 323, on every form page in both directions.
+- **Tinted Heads never bled.** Its band was a floating chip inset inside the section it was
+  meant to span: the repair was a negative margin, and the vendor sets `margin: auto
+  !important` on that element, which no specificity beats. The inset moved off the section
+  instead.
+- **Frappe's own Toggle Full Width stopped working** under Measured Column and Narrow: our
+  card capped at the token with no `body:not(.full-width)` guard, while every vendor reader
+  of `--page-max-width` carries one.
+- **Four token reads had no fallback**, so under `desk_scale: Original` the inspector rail's
+  avatar letter fell to body size in a 40px thumb and Dense Table's eyebrow head vanished
+  into its own rows.
+- **The Appearance dialog never previewed the body kit.** `apply_look` named its appliers by
+  hand — its own docblock calls that a trap — so every look previewed with the page's width,
+  type scale, primary colour and language style left at the site's values, then snapped into
+  place on the next load. The list is derived from the kit registry now.
+- **Three ownership claims outlived their pages.** The path, the foot and the drawer released
+  only when no page in the document held their node, and Frappe caches one page per doctype
+  — so a cached form decided for the page on screen, hiding a head pill on a doctype with no
+  path and a Save button on the form the user was looking at.
+- **The unsaved state was disappearing.** The head pill is also Frappe's dirty flag; the band
+  is built on refresh only, so it read "Draft" while the stage path hid the live one. The
+  band follows the dirty tick now. No DOM class marks that state, which was measured rather
+  than assumed after a first repair invented one.
+- Also: the drawer's observer counted into a node the foot's stand-down had destroyed; a
+  landed brand save left every compare cell on the old sheet; and each push started another
+  focus-retry chain, so two of them wrote one frame's transform from rects taken at
+  different moments.
+
 ### Accessibility — the review's reader pass
 
 - **Compare cells are pictures**: the clip is `inert` and its frame off the tab order; the
@@ -162,9 +207,22 @@ them, none naming it); a fourth placement check (`slots`) owns its Open premise;
 check scans the rail on the desk and on the settings route; the strip check asserts the reader
 pass; the map check asserts its head's name; the parking check leaves BEFORE the autosave's
 debounce, which is what makes the hidden-page case happen every run rather than on a slow
-machine, and reads Frappe's flag back afterwards. Review: six adversarial lenses were launched and
-three reported (the form script's seams, the server side, accessibility — 22 findings, every
-one fixed above); the other three died on a model rate limit and are not counted.
+machine, and reads Frappe's flag back afterwards. The second round added two checks and repaired four:
+a striped row answers the pointer and shows its selection; a section title starts where its
+fields start in every style, with the band's reach asserted as a box because its first
+repair was a rule that could not apply; Headed Groups asserted a border WIDTH every style
+carries instead of the colour only it sets; the two primary-button checks waited on a button
+the shipped foot hides; the stage path's docstatus arm was vacuous on a draft; the map's
+headline assertion read the same DOM on both sides; and the composer's focus arm was
+satisfied by any translate at all. `desk_width` is put back afterwards, which it was not for
+the 250 checks that follow it. Review: six adversarial lenses were launched and
+all six reported in the end — the form script's seams, the server side and accessibility
+before the tag; the JS mounts, the stylesheets and the check lens after it, when the three
+that had died on a model rate limit were re-run. Every finding was re-measured here before
+it was touched, and four did not survive that: our band pill is not swept by Frappe's dirty
+handler, the composer's frames write no Route History, the `_body.scss` token reads need no
+fallback because that block is attribute-gated, and Frappe's cell classes are refused rather
+than ported because their padding would double our own.
 Full run at the release candidate: **523/526**, and the three are all older than this item.
 Two are bench debts this line has carried since it moved to frappe 16.33 — frappe's
 `templates/emails/standard.html` has changed and wants a re-read, a port and a re-pin, and

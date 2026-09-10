@@ -14535,6 +14535,81 @@ print("ok")
 			expectEq(r.colorWarns, 0, "no `is not a valid color` warning — the empty slot is dropped");
 		});
 
+		await test("chart: the removeChild guard is installed on the class that owns the method, and the race is silent", async () => {
+			// FIVE FULL RUNS, TWO "FIXES", AND IT WAS NEVER INSTALLED. The wrap read
+			// `frappe.Chart.prototype.makeChartArea` — but `frappe.Chart` is a
+			// FACTORY and does not own that method, so the read was `undefined`,
+			// the `typeof === "function"` guard around it declined, and nothing was
+			// patched. The guard dressed its own absence as defensive code, which
+			// is CLAUDE.md's "a branch whose guard is false is UNTESTED, not
+			// working" one level up. Reproduced 2026-09-10 at last: viewport churn
+			// on a dashboard threw once and the composer's strip over a dashboard
+			// threw eight times; after the repair, zero on both.
+			//
+			// TWO ARMS, because either alone is weak. The presence arm would pass
+			// on a guard that patched the wrong thing correctly; the silence arm
+			// alone could pass on a machine that happened not to lose the race.
+			// THE SELLING WORKSPACE, NOT A DASHBOARD. `/desk/dashboard-view/Payments`
+			// is where this race reproduces most readily and it cannot be used:
+			// one of its ERPNext chart sources answers 417 on this site, so the
+			// chart draws with no data and logs ~150 `<path> attribute d: NaN`
+			// errors — which land in the run-wide budget and fail a check that has
+			// nothing to do with charts. The workspace draws a real one.
+			await goDesk("/desk/selling", ".frappe-chart", 6000);
+			const installed = await page.evaluate(() => {
+				// Any live chart: walk its prototype chain for the marker, exactly
+				// as the guard does when it installs.
+				const el = document.querySelector(".frappe-chart");
+				if (!el) return "no chart on this dashboard";
+				let found = false, owner = null;
+				const seen = [];
+				// The instance is not exposed, so build one — IN AN ATTACHED, SIZED
+				// container. The first cut used `document.createElement("div")`,
+				// which has zero width, so frappe-charts computed NaN geometry and
+				// logged 116 SVG path errors into the very budget this check reads.
+				const host = document.createElement("div");
+				host.style.cssText = "position:fixed;inset-block-start:-9999px;inline-size:400px;block-size:200px";
+				document.body.appendChild(host);
+				let probe;
+				try {
+					probe = new frappe.Chart(host, { data: { labels: ["a", "b"], datasets: [{ values: [1, 2] }] }, type: "line", height: 200, animate: 0 });
+				} finally {
+					host.remove();
+				}
+				for (let p = Object.getPrototypeOf(probe); p && p !== Object.prototype; p = Object.getPrototypeOf(p)) {
+					seen.push((p.constructor && p.constructor.name) || "?");
+					if (Object.prototype.hasOwnProperty.call(p, "makeChartArea")) {
+						owner = (p.constructor && p.constructor.name) || "?";
+						found = !!p.makeChartArea._bnd;
+						break;
+					}
+				}
+				return { found, owner, chain: seen.join(" -> "), factoryOwns: Object.prototype.hasOwnProperty.call(frappe.Chart.prototype, "makeChartArea") };
+			});
+			expect(typeof installed === "object", `a chart to inspect (${installed})`);
+			expect(installed.owner, `some prototype in the chain owns makeChartArea (${installed.chain})`);
+			expect(installed.found, `and it carries our guard (owner ${installed.owner}, chain ${installed.chain})`);
+			// The premise, stated: if the factory ever DOES own it, the original
+			// read was fine and this check's reason for existing has changed.
+			expectEq(installed.factoryOwns, false, "frappe.Chart is still a factory that does not own the method");
+			// The race itself: churn the viewport while the charts animate in.
+			const before = consoleErrors.length;
+			for (const [w, h] of [[1200, 800], [1600, 900], [1000, 700], [1440, 900], [1280, 820]]) {
+				await page.setViewportSize({ width: w, height: h });
+				await page.waitForTimeout(280);
+			}
+			await page.setViewportSize({ width: 1440, height: 900 });
+			await page.waitForTimeout(1500);
+			// FILTER ON THE MESSAGE, NOT THE WHOLE ENTRY. Every captured error
+			// carries a `(during: <check name>)` suffix, and THIS check's name
+			// contains the word "removeChild" — so a filter over the whole string
+			// matched all 116 of the errors the paragraph above describes and
+			// blamed them on the race. A check that matches its own name is the
+			// same shape as one that derives its expectation from its subject.
+			const raced = consoleErrors.slice(before).filter((e) => /removeChild/.test(String(e).split("(during:")[0]));
+			expectEq(raced.length, 0, `no removeChild during a redraw${raced.length ? ": " + raced[0].slice(0, 200) : ""}`);
+		});
+
 		await test("chart: a theme flip repaints the series in place", async () => {
 			await goDesk(CHART_ROUTE, ".layout-main-section", 3000);
 			const r = await page.evaluate(async () => {
